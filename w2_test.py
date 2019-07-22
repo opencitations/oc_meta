@@ -20,10 +20,12 @@ process.id_job()
 process.title_job()
 process.author_job()
 process.pub_date_job()
+process.venue_job()
+process.type_job()
+process.publisher_job()
 
 
 #rdf serialization
 BRgraph = process.br_graph.g
-with open('counter/br.txt', 'r') as file:
-    name = str(int(file.read()))
-BRgraph.serialize(destination='rdf/br/' + name + '.json', format='json-ld')
+
+BRgraph.serialize(destination='rdf/br/' + process.name + '.json', format='json-ld', auto_compact=True)
