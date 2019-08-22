@@ -40,6 +40,8 @@ class GraphEntity(object):
     PRISM = Namespace("http://prismstandard.org/namespaces/basic/2.0/")
     PRO = Namespace("http://purl.org/spar/pro/")
 
+
+
     # Bibliographic entities
     has_subtitle = FABIO.hasSubtitle
     has_publication_date = PRISM.publicationDate
@@ -99,6 +101,12 @@ class GraphEntity(object):
     role_in_time = PRO.RoleInTime
     with_role = PRO.withRole
     has_next = OCO.hasNext
+
+    #ADDED
+    viaf = DATACITE.viaf
+    #TODO
+    crossref = DATACITE.crossref
+    wikidata = DATACITE.wikidata
 
     # This constructor creates a new instance of an RDF resource
     def __init__(self, g, res=None, res_type=None, resp_agent=None, source_agent=None,
@@ -339,6 +347,15 @@ class GraphEntity(object):
 
     def follows(self, ar_res):
         ar_res.g.add((URIRef(str(ar_res)), GraphEntity.has_next, self.res))
+
+    #added
+    def create_wikidata(self, string):
+        return self._associate_identifier_with_scheme(string, GraphEntity.wikidata)
+    def create_crossref(self, string):
+        return self._associate_identifier_with_scheme(string, GraphEntity.crossref)
+    def create_viaf(self, string):
+        return self._associate_identifier_with_scheme(string, GraphEntity.viaf)
+
     # /END Composite Attributes
 
     # /START Protected Methods
@@ -360,6 +377,7 @@ class GraphEntity(object):
     def _create_type(self, res_type):
         create_type(self.g, self.res, res_type)
     # /END Private Methods
+
 
 
 class GraphSet(object):

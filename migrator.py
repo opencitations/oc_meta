@@ -2,29 +2,40 @@ from graphlib import *
 import re
 
 class Migrator():
-    def __init__(self, row, sgraph):
-        self.ids = row['id']
-        self.title = row['title']
-        self.authors = row['author']
-        self.pub_date = row['pub_date']
-        self.venue = row['venue']
-        self.vol = row['volume']
-        self.issue = row['issue']
-        self.page = row['page']
-        self.type = row['type']
-        self.publ = row['publisher']
+    def __init__(self, data):
+        self.setgraph = GraphSet("https://w3id.org/OC/meta/", "", "counter/")
 
-        #New BR
-        self.setgraph = sgraph
+        for row in data:
+            ids = row['id']
+            title = row['title']
+            authors = row['author']
+            pub_date = row['pub_date']
+            venue = row['venue']
+            vol = row['volume']
+            issue = row['issue']
+            page = row['page']
+            type = row['type']
+            publisher = row['publisher']
 
-        self.br_graph = self.setgraph.add_br("agent", source_agent=None, source=None, res=None)
-        with open('counter/br.txt', 'r') as file:
-            self.name = str(int(file.read()))
+            #New BR
+            self.br_graph = self.setgraph.add_br("agent", source_agent=None, source=None, res=None)
+
+            self.id_job(ids)
+            self.title_job(title)
+            self.author_job(authors)
+            self.pub_date_job(pub_date)
+            self.venue_job(venue, vol, issue)
+            self.page_job(page)
+            self.type_job(type)
+            self.publisher_job(publisher)
+
+        self.final_graph = Graph()
+        for g in self.setgraph.graphs():
+            self.final_graph += g
 
 
 
-    def id_job (self):
-        ids = self.ids
+    def id_job (self, ids):
         idslist = re.split(r'\s*;\s*', ids)
 
         #publication id
@@ -35,24 +46,17 @@ class Migrator():
                 pub_doi.create_doi(id)
                 self.br_graph.has_id(pub_doi)
 
-                #serialization
-                with open('counter/id.txt', 'r') as file:
-                    name = str(int(file.read()))
-                IDgraph = pub_doi.g
-                IDgraph.serialize(destination='rdf/id/' + name +'.json', format='json-ld', auto_compact=True)
+            if "wikidata" in id:
+                id = id.replace("wikidata:", "")
+                pub_wikidata = self.setgraph.add_id("agent", source_agent=None, source=None, res=None)
+                pub_wikidata.create_wikidata(id)
+                self.br_graph.has_id(pub_wikidata)
 
-            #TODO 'if "wikidata"...'
-            #if "wikidata" in id:
-            #    id = id.replace("wikidata:", "")
-            #    wikidatalist.append(id)
+    def title_job (self, title):
+        self.br_graph.create_title(title)
 
 
-    def title_job (self):
-        self.br_graph.create_title(self.title)
-
-
-    def author_job (self):
-        authors = self.authors
+    def author_job (self, authors):
         authorslist = re.split(r'\s*;\s*(?=[^]]*(?:\[|$))', authors)
 
         for aut in authorslist:
@@ -75,40 +79,35 @@ class Migrator():
                     pub_aut_orcid = self.setgraph.add_id("agent", source_agent=None, source=None, res=None)
                     pub_aut_orcid.create_orcid(id)
                     pub_aut.has_id(pub_aut_orcid)
-                    AutOrcid = pub_aut_orcid.g
-                    with open('counter/id.txt', 'r') as file:
-                        name = str(int(file.read()))
-                    AutOrcid.serialize(destination='rdf/id/' + name + '.json', format='json-ld', auto_compact=True)
+                if "viaf" in id:
+                    id = id.replace("viaf:", "")
+                    pub_aut_viaf = self.setgraph.add_id("agent", source_agent=None, source=None, res=None)
+                    pub_aut_viaf.create_viaf(id)
+                    pub_aut.has_id(pub_aut_viaf)
+                if "wikidata" in id:
+                    id = id.replace("wikidata:", "")
+                    pub_aut_wikidata = self.setgraph.add_id("agent", source_agent=None, source=None, res=None)
+                    pub_aut_wikidata.create_wikidata(id)
+                    pub_aut.has_id(pub_aut_wikidata)
+
 
         # authorRole
             pub_aut_role = self.setgraph.add_ar("agent", source_agent=None, source=None, res=None)
             pub_aut_role.create_author(self.br_graph)
             pub_aut.has_role(pub_aut_role)
-            AutRole = pub_aut_role.g
-            with open('counter/ar.txt', 'r') as file:
-                name = str(int(file.read()))
-            AutRole.serialize(destination='rdf/ar/' + name + '.json', format='json-ld', auto_compact=True)
 
-            Aut = pub_aut.g
-            with open('counter/ra.txt', 'r') as file:
-                name = str(int(file.read()))
-            Aut.serialize(destination='rdf/ra/' + name + '.json', format='json-ld', auto_compact=True)
-
-
-    def pub_date_job (self):
+    def pub_date_job (self, pub_date):
         datelist = list()
-        datelist.append(int(self.pub_date))
+        datelist.append(int(pub_date))
         self.br_graph.create_pub_date(datelist)
 
-    def venue_job (self):
+    def venue_job (self, venue, vol, issue):
         venue_graph = self.setgraph.add_br("agent", source_agent=None, source=None, res=None)
-        with open('counter/br.txt', 'r') as file:
-            venue_filename = str(int(file.read()))
 
-        venue_title = re.search(r'(.*?)\s*\[.*?\]', self.venue).group(1)
+        venue_title = re.search(r'(.*?)\s*\[.*?\]', venue).group(1)
         venue_graph.create_title(venue_title)
 
-        venue_id = re.search(r'\[\s*(.*?)\s*\]', self.venue).group(1)
+        venue_id = re.search(r'\[\s*(.*?)\s*\]', venue).group(1)
         venue_id_list = re.split(r'\s*;\s*', venue_id)
 
         for id in venue_id_list:
@@ -117,84 +116,69 @@ class Migrator():
                 venue_issn = self.setgraph.add_id("agent", source_agent=None, source=None, res=None)
                 venue_issn.create_issn(id)
                 venue_graph.has_id(venue_issn)
-                VenueIssn = venue_issn.g
-                with open('counter/id.txt', 'r') as file:
-                    name = str(int(file.read()))
-                VenueIssn.serialize(destination='rdf/id/' + name + '.json', format='json-ld', auto_compact=True)
+            if "doi" in id:
+                id = id.replace("doi:", "")
+                venue_doi = self.setgraph.add_id("agent", source_agent=None, source=None, res=None)
+                venue_doi.create_doi(id)
+                venue_graph.has_id(venue_doi)
+            if "isbn" in id:
+                id = id.replace("isbn:", "")
+                venue_isbn = self.setgraph.add_id("agent", source_agent=None, source=None, res=None)
+                venue_isbn.create_isbn(id)
+                venue_graph.has_id(venue_isbn)
 
-        if self.vol:
+
+        if vol:
             vol_graph = self.setgraph.add_br("agent", source_agent=None, source=None, res=None)
-            with open('counter/br.txt', 'r') as file:
-                vol_filename = str(int(file.read()))
             vol_graph.create_volume()
-            vol_graph.create_number(self.vol)
+            vol_graph.create_number(vol)
             venue_graph.has_part(vol_graph)
 
-            if self.issue:
+            if issue:
                 issue_graph = self.setgraph.add_br("agent", source_agent=None, source=None, res=None)
-                with open('counter/br.txt', 'r') as file:
-                    issue_filename = str(int(file.read()))
                 issue_graph.create_issue()
-                issue_graph.create_number(self.issue)
+                issue_graph.create_number(issue)
                 vol_graph.has_part(issue_graph)
                 issue_graph.has_part(self.br_graph)
 
-                VenueGraph = venue_graph.g
-                VenueGraph.serialize(destination='rdf/br/' + venue_filename + '.json', format='json-ld', auto_compact=True)
-                VolGraph = vol_graph.g
-                VolGraph.serialize(destination='rdf/br/' + vol_filename + '.json', format='json-ld', auto_compact=True)
-                IssueGraph = issue_graph.g
-                IssueGraph.serialize(destination='rdf/br/' + issue_filename + '.json', format='json-ld', auto_compact=True)
-
             else:
-                venue_graph.has_part(vol_graph)
                 vol_graph.has_part(self.br_graph)
-                VenueGraph = venue_graph.g
-                VenueGraph.serialize(destination='rdf/br/' + venue_filename + '.json', format='json-ld', auto_compact=True)
-                VolGraph = vol_graph.g
-                VolGraph.serialize(destination='rdf/br/' + vol_filename + '.json', format='json-ld', auto_compact=True)
 
         else:
             venue_graph.has_part(self.br_graph)
-            VenueGraph = venue_graph.g
-            VenueGraph.serialize(destination='rdf/br/' + venue_filename + '.json', format='json-ld', auto_compact=True)
 
-    #TODO
-    def page_job (self):
-        page = self.page
-        return page
+    def page_job (self, page):
+        if page:
+            form = self.setgraph.add_re("agent", source_agent=None, source=None, res=None)
+            pages = page.split("-")
+            form.create_starting_page(pages[0])
+            form.create_ending_page(pages[1])
+            self.br_graph.has_format(form)
 
-    def type_job (self):
-        if self.type == "journal article":
+
+    def type_job (self, type):
+        if type == "journal article":
             self.br_graph.create_journal_article()
-        elif self.type == "book chapter":
+        elif type == "book chapter":
             self.br_graph.create_book_chapter()
 
-    def publisher_job (self):
-        publ_name = re.search(r'(.*?)\s*\[.*?\]', self.publ).group(1)
+
+    def publisher_job (self, publisher):
+        publ_name = re.search(r'(.*?)\s*\[.*?\]', publisher).group(1)
         publ = self.setgraph.add_ra("agent", source_agent=None, source=None, res=None)
         publ.create_name(publ_name)
 
-        publ_id = re.search(r'\[\s*(.*?)\s*\]', self.publ).group(1)
+        publ_id = re.search(r'\[\s*(.*?)\s*\]', publisher).group(1)
         publ_id_list = re.split(r'\s*;\s*', publ_id)
 
-        #for id in publ_id_list:
-        #        if 'crossref' in id:
-        #            id = id.replace('crossref:','')
-        #            pub_crossref = self.setgraph.add_id("agent", source_agent=None, source=None, res=None)
+        for id in publ_id_list:
+                if 'crossref' in id:
+                    id = id.replace('crossref:','')
+                    publ_crossref = self.setgraph.add_id("agent", source_agent=None, source=None, res=None)
+                    publ_crossref.create_crossref(id)
+                    publ.has_id(publ_crossref)
 
         # authorRole
         publ_role = self.setgraph.add_ar("agent", source_agent=None, source=None, res=None)
         publ_role.create_publisher(self.br_graph)
         publ.has_role(publ_role)
-        PublRole = publ_role.g
-        with open('counter/ar.txt', 'r') as file:
-            name = str(int(file.read()))
-        PublRole.serialize(destination='rdf/ar/' + name + '.json', format='json-ld', auto_compact=True)
-
-        Publ = publ.g
-        with open('counter/ra.txt', 'r') as file:
-            name = str(int(file.read()))
-        Publ.serialize(destination='rdf/ra/' + name + '.json', format='json-ld', auto_compact=True)
-
-

@@ -1,0 +1,167 @@
+<https://w3id.org/OC/meta/id/12> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "0000-0003-0530-4305" .
+<https://w3id.org/OC/meta/br/5> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression> .
+<https://w3id.org/OC/meta/ra/5> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> .
+<https://w3id.org/OC/meta/br/3> <http://purl.org/spar/pro/isDocumentContextFor> <https://w3id.org/OC/meta/ar/4> .
+<https://w3id.org/OC/meta/id/6> <http://www.w3.org/2000/01/rdf-schema#label> "identifier 6 [id/6]" .
+<https://w3id.org/OC/meta/id/16> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "2451-8492" .
+<https://w3id.org/OC/meta/id/16> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/datacite/Identifier> .
+<https://w3id.org/OC/meta/br/4> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/OC/meta/id/16> .
+<https://w3id.org/OC/meta/id/3> <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/orcid> .
+<https://w3id.org/OC/meta/ra/4> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/OC/meta/id/14> .
+<https://w3id.org/OC/meta/ar/2> <http://purl.org/spar/pro/isHeldBy> <https://w3id.org/OC/meta/ra/2> .
+<https://w3id.org/OC/meta/id/2> <http://www.w3.org/2000/01/rdf-schema#label> "identifier 2 [id/2]" .
+<https://w3id.org/OC/meta/ra/1> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/OC/meta/id/3> .
+<https://w3id.org/OC/meta/id/13> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "309649450" .
+<https://w3id.org/OC/meta/ar/1> <http://purl.org/spar/pro/withRole> <http://purl.org/spar/pro/author> .
+<https://w3id.org/OC/meta/ra/1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> .
+<https://w3id.org/OC/meta/br/1> <http://purl.org/dc/terms/title> "The SPAR Ontologies" .
+<https://w3id.org/OC/meta/br/1> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/OC/meta/id/1> .
+<https://w3id.org/OC/meta/ar/5> <http://purl.org/spar/pro/isHeldBy> <https://w3id.org/OC/meta/ra/5> .
+<https://w3id.org/OC/meta/ra/2> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> .
+<https://w3id.org/OC/meta/id/3> <http://www.w3.org/2000/01/rdf-schema#label> "identifier 3 [id/3]" .
+<https://w3id.org/OC/meta/br/1> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/OC/meta/id/2> .
+<https://w3id.org/OC/meta/ar/3> <http://www.w3.org/2000/01/rdf-schema#label> "agent role 3 [ar/3]" .
+<https://w3id.org/OC/meta/id/8> <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/isbn> .
+<https://w3id.org/OC/meta/id/14> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "Q30536251" .
+<https://w3id.org/OC/meta/id/4> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "309649450" .
+<https://w3id.org/OC/meta/ra/3> <http://www.w3.org/2000/01/rdf-schema#label> "responsible agent 3 [ra/3]" .
+<https://w3id.org/OC/meta/id/13> <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/viaf> .
+<https://w3id.org/OC/meta/id/2> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/datacite/Identifier> .
+<https://w3id.org/OC/meta/id/2> <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/wikidata> .
+<https://w3id.org/OC/meta/id/3> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "0000-0003-0530-4305" .
+<https://w3id.org/OC/meta/ra/1> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/OC/meta/id/5> .
+<https://w3id.org/OC/meta/id/15> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/datacite/Identifier> .
+<https://w3id.org/OC/meta/br/3> <http://purl.org/vocab/frbr/core#embodiment> <https://w3id.org/OC/meta/re/2> .
+<https://w3id.org/OC/meta/id/17> <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/crossref> .
+<https://w3id.org/OC/meta/id/7> <http://www.w3.org/2000/01/rdf-schema#label> "identifier 7 [id/7]" .
+<https://w3id.org/OC/meta/br/6> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression> .
+<https://w3id.org/OC/meta/ar/3> <http://purl.org/spar/pro/withRole> <http://purl.org/spar/pro/publisher> .
+<https://w3id.org/OC/meta/id/9> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/datacite/Identifier> .
+<https://w3id.org/OC/meta/br/1> <http://prismstandard.org/namespaces/basic/2.0/publicationDate> "2018"^^<http://www.w3.org/2001/XMLSchema#gYear> .
+<https://w3id.org/OC/meta/id/9> <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/isbn> .
+<https://w3id.org/OC/meta/id/1> <http://www.w3.org/2000/01/rdf-schema#label> "identifier 1 [id/1]" .
+<https://w3id.org/OC/meta/id/5> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "Q30536251" .
+<https://w3id.org/OC/meta/ra/2> <http://xmlns.com/foaf/0.1/givenName> "David" .
+<https://w3id.org/OC/meta/id/17> <http://www.w3.org/2000/01/rdf-schema#label> "identifier 17 [id/17]" .
+<https://w3id.org/OC/meta/id/1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/datacite/Identifier> .
+<https://w3id.org/OC/meta/br/2> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression> .
+<https://w3id.org/OC/meta/br/1> <http://purl.org/spar/pro/isDocumentContextFor> <https://w3id.org/OC/meta/ar/3> .
+<https://w3id.org/OC/meta/id/7> <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/doi> .
+<https://w3id.org/OC/meta/br/1> <http://purl.org/spar/pro/isDocumentContextFor> <https://w3id.org/OC/meta/ar/2> .
+<https://w3id.org/OC/meta/id/5> <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/wikidata> .
+<https://w3id.org/OC/meta/br/3> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression> .
+<https://w3id.org/OC/meta/br/6> <http://www.w3.org/2000/01/rdf-schema#label> "bibliographic resource 6 [br/6]" .
+<https://w3id.org/OC/meta/ra/1> <http://xmlns.com/foaf/0.1/givenName> "Silvio" .
+<https://w3id.org/OC/meta/id/15> <http://www.w3.org/2000/01/rdf-schema#label> "identifier 15 [id/15]" .
+<https://w3id.org/OC/meta/id/14> <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/wikidata> .
+<https://w3id.org/OC/meta/id/4> <http://www.w3.org/2000/01/rdf-schema#label> "identifier 4 [id/4]" .
+<https://w3id.org/OC/meta/ar/1> <http://purl.org/spar/pro/isHeldBy> <https://w3id.org/OC/meta/ra/1> .
+<https://w3id.org/OC/meta/id/8> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/datacite/Identifier> .
+<https://w3id.org/OC/meta/id/6> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/datacite/Identifier> .
+<https://w3id.org/OC/meta/re/1> <http://prismstandard.org/namespaces/basic/2.0/endingPage> "136" .
+<https://w3id.org/OC/meta/id/2> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "Q61661462" .
+<https://w3id.org/OC/meta/br/1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression> .
+<https://w3id.org/OC/meta/br/1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/BookChapter> .
+<https://w3id.org/OC/meta/id/11> <http://www.w3.org/2000/01/rdf-schema#label> "identifier 11 [id/11]" .
+<https://w3id.org/OC/meta/ar/3> <http://purl.org/spar/pro/isHeldBy> <https://w3id.org/OC/meta/ra/3> .
+<https://w3id.org/OC/meta/re/1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Manifestation> .
+<https://w3id.org/OC/meta/id/13> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/datacite/Identifier> .
+<https://w3id.org/OC/meta/id/13> <http://www.w3.org/2000/01/rdf-schema#label> "identifier 13 [id/13]" .
+<https://w3id.org/OC/meta/re/2> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Manifestation> .
+<https://w3id.org/OC/meta/ra/2> <http://xmlns.com/foaf/0.1/familyName> "Shotton" .
+<https://w3id.org/OC/meta/br/6> <http://purl.org/spar/fabio/hasSequenceIdentifier> "1-2" .
+<https://w3id.org/OC/meta/id/10> <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/crossref> .
+<https://w3id.org/OC/meta/id/1> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "10.1007/978-3-030-00668-6_8" .
+<https://w3id.org/OC/meta/id/6> <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/orcid> .
+<https://w3id.org/OC/meta/ar/1> <http://www.w3.org/2000/01/rdf-schema#label> "agent role 1 [ar/1]" .
+<https://w3id.org/OC/meta/id/11> <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/doi> .
+<https://w3id.org/OC/meta/br/1> <http://purl.org/vocab/frbr/core#embodiment> <https://w3id.org/OC/meta/re/1> .
+<https://w3id.org/OC/meta/br/2> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/OC/meta/id/8> .
+<https://w3id.org/OC/meta/ra/4> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/OC/meta/id/13> .
+<https://w3id.org/OC/meta/id/15> <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/issn> .
+<https://w3id.org/OC/meta/id/4> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/datacite/Identifier> .
+<https://w3id.org/OC/meta/br/4> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/OC/meta/id/15> .
+<https://w3id.org/OC/meta/re/2> <http://www.w3.org/2000/01/rdf-schema#label> "resource embodiment 2 [re/2]" .
+<https://w3id.org/OC/meta/ra/5> <http://www.w3.org/2000/01/rdf-schema#label> "responsible agent 5 [ra/5]" .
+<https://w3id.org/OC/meta/ar/4> <http://www.w3.org/2000/01/rdf-schema#label> "agent role 4 [ar/4]" .
+<https://w3id.org/OC/meta/id/12> <http://www.w3.org/2000/01/rdf-schema#label> "identifier 12 [id/12]" .
+<https://w3id.org/OC/meta/br/5> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/JournalVolume> .
+<https://w3id.org/OC/meta/br/3> <http://prismstandard.org/namespaces/basic/2.0/publicationDate> "2017"^^<http://www.w3.org/2001/XMLSchema#gYear> .
+<https://w3id.org/OC/meta/br/6> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/JournalIssue> .
+<https://w3id.org/OC/meta/ra/3> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/OC/meta/id/10> .
+<https://w3id.org/OC/meta/id/8> <http://www.w3.org/2000/01/rdf-schema#label> "identifier 8 [id/8]" .
+<https://w3id.org/OC/meta/br/3> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/OC/meta/id/11> .
+<https://w3id.org/OC/meta/id/16> <http://www.w3.org/2000/01/rdf-schema#label> "identifier 16 [id/16]" .
+<https://w3id.org/OC/meta/re/2> <http://prismstandard.org/namespaces/basic/2.0/startingPage> "155" .
+<https://w3id.org/OC/meta/ra/2> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/OC/meta/id/6> .
+<https://w3id.org/OC/meta/id/12> <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/orcid> .
+<https://w3id.org/OC/meta/ra/5> <http://xmlns.com/foaf/0.1/name> "IOS Press" .
+<https://w3id.org/OC/meta/id/11> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "10.3233/ds-170012" .
+<https://w3id.org/OC/meta/ra/4> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> .
+<https://w3id.org/OC/meta/ar/2> <http://purl.org/spar/pro/withRole> <http://purl.org/spar/pro/author> .
+<https://w3id.org/OC/meta/id/9> <http://www.w3.org/2000/01/rdf-schema#label> "identifier 9 [id/9]" .
+<https://w3id.org/OC/meta/id/10> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "297" .
+<https://w3id.org/OC/meta/id/10> <http://www.w3.org/2000/01/rdf-schema#label> "identifier 10 [id/10]" .
+<https://w3id.org/OC/meta/br/1> <http://www.w3.org/2000/01/rdf-schema#label> "bibliographic resource 1 [br/1]" .
+<https://w3id.org/OC/meta/id/16> <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/issn> .
+<https://w3id.org/OC/meta/id/14> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/datacite/Identifier> .
+<https://w3id.org/OC/meta/ar/2> <http://www.w3.org/2000/01/rdf-schema#label> "agent role 2 [ar/2]" .
+<https://w3id.org/OC/meta/id/4> <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/viaf> .
+<https://w3id.org/OC/meta/ra/4> <http://xmlns.com/foaf/0.1/givenName> "Silvio" .
+<https://w3id.org/OC/meta/re/2> <http://prismstandard.org/namespaces/basic/2.0/endingPage> "173" .
+<https://w3id.org/OC/meta/id/5> <http://www.w3.org/2000/01/rdf-schema#label> "identifier 5 [id/5]" .
+<https://w3id.org/OC/meta/br/3> <http://www.w3.org/2000/01/rdf-schema#label> "bibliographic resource 3 [br/3]" .
+<https://w3id.org/OC/meta/br/5> <http://purl.org/spar/fabio/hasSequenceIdentifier> "1" .
+<https://w3id.org/OC/meta/ar/4> <http://purl.org/spar/pro/withRole> <http://purl.org/spar/pro/author> .
+<https://w3id.org/OC/meta/id/12> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/datacite/Identifier> .
+<https://w3id.org/OC/meta/br/5> <http://www.w3.org/2000/01/rdf-schema#label> "bibliographic resource 5 [br/5]" .
+<https://w3id.org/OC/meta/br/1> <http://purl.org/vocab/frbr/core#partOf> <https://w3id.org/OC/meta/br/2> .
+<https://w3id.org/OC/meta/id/6> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "0000-0001-5506-523X" .
+<https://w3id.org/OC/meta/br/6> <http://purl.org/vocab/frbr/core#partOf> <https://w3id.org/OC/meta/br/5> .
+<https://w3id.org/OC/meta/ra/4> <http://xmlns.com/foaf/0.1/familyName> "Peroni" .
+<https://w3id.org/OC/meta/id/5> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/datacite/Identifier> .
+<https://w3id.org/OC/meta/ra/4> <http://www.w3.org/2000/01/rdf-schema#label> "responsible agent 4 [ra/4]" .
+<https://w3id.org/OC/meta/ra/5> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/OC/meta/id/17> .
+<https://w3id.org/OC/meta/id/11> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/datacite/Identifier> .
+<https://w3id.org/OC/meta/ar/4> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/pro/RoleInTime> .
+<https://w3id.org/OC/meta/br/4> <http://purl.org/dc/terms/title> "Data Science" .
+<https://w3id.org/OC/meta/ra/4> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/OC/meta/id/12> .
+<https://w3id.org/OC/meta/id/3> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/datacite/Identifier> .
+<https://w3id.org/OC/meta/id/1> <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/doi> .
+<https://w3id.org/OC/meta/br/5> <http://purl.org/vocab/frbr/core#partOf> <https://w3id.org/OC/meta/br/4> .
+<https://w3id.org/OC/meta/ar/5> <http://www.w3.org/2000/01/rdf-schema#label> "agent role 5 [ar/5]" .
+<https://w3id.org/OC/meta/id/14> <http://www.w3.org/2000/01/rdf-schema#label> "identifier 14 [id/14]" .
+<https://w3id.org/OC/meta/ar/5> <http://purl.org/spar/pro/withRole> <http://purl.org/spar/pro/publisher> .
+<https://w3id.org/OC/meta/br/3> <http://purl.org/dc/terms/title> "Automating semantic publishing" .
+<https://w3id.org/OC/meta/ar/2> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/pro/RoleInTime> .
+<https://w3id.org/OC/meta/br/3> <http://purl.org/vocab/frbr/core#partOf> <https://w3id.org/OC/meta/br/6> .
+<https://w3id.org/OC/meta/br/4> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression> .
+<https://w3id.org/OC/meta/ar/4> <http://purl.org/spar/pro/isHeldBy> <https://w3id.org/OC/meta/ra/4> .
+<https://w3id.org/OC/meta/re/1> <http://www.w3.org/2000/01/rdf-schema#label> "resource embodiment 1 [re/1]" .
+<https://w3id.org/OC/meta/ar/1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/pro/RoleInTime> .
+<https://w3id.org/OC/meta/id/8> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "978-3-030-00670-9" .
+<https://w3id.org/OC/meta/id/17> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/datacite/Identifier> .
+<https://w3id.org/OC/meta/ra/1> <http://www.w3.org/2000/01/rdf-schema#label> "responsible agent 1 [ra/1]" .
+<https://w3id.org/OC/meta/br/3> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/JournalArticle> .
+<https://w3id.org/OC/meta/br/4> <http://www.w3.org/2000/01/rdf-schema#label> "bibliographic resource 4 [br/4]" .
+<https://w3id.org/OC/meta/br/3> <http://purl.org/spar/pro/isDocumentContextFor> <https://w3id.org/OC/meta/ar/5> .
+<https://w3id.org/OC/meta/id/7> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/datacite/Identifier> .
+<https://w3id.org/OC/meta/br/2> <http://purl.org/dc/terms/title> "The Semantic Web – ISWC 2018 --- 17th International Semantic Web Conference, Monterey, CA, USA, October 8–12, 2018, Proceedings, Part II" .
+<https://w3id.org/OC/meta/ra/2> <http://www.w3.org/2000/01/rdf-schema#label> "responsible agent 2 [ra/2]" .
+<https://w3id.org/OC/meta/ar/5> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/pro/RoleInTime> .
+<https://w3id.org/OC/meta/ra/1> <http://xmlns.com/foaf/0.1/familyName> "Peroni" .
+<https://w3id.org/OC/meta/br/2> <http://www.w3.org/2000/01/rdf-schema#label> "bibliographic resource 2 [br/2]" .
+<https://w3id.org/OC/meta/ar/3> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/pro/RoleInTime> .
+<https://w3id.org/OC/meta/id/15> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "2451-8484" .
+<https://w3id.org/OC/meta/id/17> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "7437" .
+<https://w3id.org/OC/meta/id/7> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "10.1007/978-3-030-00668-6" .
+<https://w3id.org/OC/meta/br/2> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/OC/meta/id/9> .
+<https://w3id.org/OC/meta/id/9> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "978-3-030-00671-6" .
+<https://w3id.org/OC/meta/ra/1> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/OC/meta/id/4> .
+<https://w3id.org/OC/meta/br/2> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/OC/meta/id/7> .
+<https://w3id.org/OC/meta/ra/3> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> .
+<https://w3id.org/OC/meta/id/10> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/datacite/Identifier> .
+<https://w3id.org/OC/meta/br/1> <http://purl.org/spar/pro/isDocumentContextFor> <https://w3id.org/OC/meta/ar/1> .
+<https://w3id.org/OC/meta/re/1> <http://prismstandard.org/namespaces/basic/2.0/startingPage> "119" .
+<https://w3id.org/OC/meta/ra/3> <http://xmlns.com/foaf/0.1/name> "Springer International Publishing" .
+
