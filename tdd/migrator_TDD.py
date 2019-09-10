@@ -20,7 +20,7 @@ class MigratorTest(unittest.TestCase):
 
     def test(self):
         new_graph = self.migrator_processed.final_graph
-        self.assertEqual(new_graph == self.test_graph, True)
+        self.assertEqual(new_graph, self.test_graph)
 
 if __name__ == '__main__':
     unittest.main()
