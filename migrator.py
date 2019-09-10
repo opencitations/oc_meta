@@ -17,8 +17,7 @@ class Migrator():
             type = row['type']
             publisher = row['publisher']
 
-            #New BR
-            self.br_graph = self.setgraph.add_br("agent", source_agent=None, source=None, res=None)
+            self.url = "https://w3id.org/OC/meta/"
 
             self.id_job(ids)
             self.title_job(title)
@@ -40,7 +39,13 @@ class Migrator():
 
         #publication id
         for id in idslist:
-            if "doi" in id:
+            if "meta:" in id:
+                id = id.replace("meta:", "")
+                url = URIRef(self.url + id)
+                self.br_graph = self.setgraph.add_br("agent", source_agent=None, source=None, res=url)
+
+        for id in idslist:
+            if "doi:" in id:
                 id = id.replace("doi:", "")
                 pub_doi = self.setgraph.add_id("agent", source_agent=None, source=None, res=None)
                 pub_doi.create_doi(id)
@@ -60,17 +65,20 @@ class Migrator():
         authorslist = re.split(r'\s*;\s*(?=[^]]*(?:\[|$))', authors)
 
         for aut in authorslist:
-            pub_aut = self.setgraph.add_ra("agent", source_agent=None, source=None, res=None)
-            author_name = re.search(r'(.*?)\s*\[.*?\]', aut).group(1)
-            author_name_splitted = re.split(r'\s*,\s*', author_name)
-            firstName = author_name_splitted[1]
-            lastName = author_name_splitted[0]
-            pub_aut.create_given_name(firstName)
-            pub_aut.create_family_name(lastName)
-
             aut_id = re.search(r'\[\s*(.*?)\s*\]', aut).group(1)
             aut_id_list = re.split(r'\s*;\s*', aut_id)
 
+            for id in aut_id_list:
+                if "meta:" in id:
+                    id = id.replace("meta:", "")
+                    url = URIRef(self.url + id)
+                    pub_aut = self.setgraph.add_ra("agent", source_agent=None, source=None, res=url)
+                    author_name = re.search(r'(.*?)\s*\[.*?\]', aut).group(1)
+                    author_name_splitted = re.split(r'\s*,\s*', author_name)
+                    firstName = author_name_splitted[1]
+                    lastName = author_name_splitted[0]
+                    pub_aut.create_given_name(firstName)
+                    pub_aut.create_family_name(lastName)
 
         # lists of authors' IDs
             for id in aut_id_list:
@@ -102,50 +110,84 @@ class Migrator():
         self.br_graph.create_pub_date(datelist)
 
     def venue_job (self, venue, vol, issue):
-        venue_graph = self.setgraph.add_br("agent", source_agent=None, source=None, res=None)
 
-        venue_title = re.search(r'(.*?)\s*\[.*?\]', venue).group(1)
-        venue_graph.create_title(venue_title)
+        if venue:
+            venue_id = re.search(r'\[\s*(.*?)\s*\]', venue).group(1)
+            venue_id_list = re.split(r'\s*;\s*', venue_id)
 
-        venue_id = re.search(r'\[\s*(.*?)\s*\]', venue).group(1)
-        venue_id_list = re.split(r'\s*;\s*', venue_id)
+            for id in venue_id_list:
+                if "meta:" in id:
+                    id = id.replace("meta:", "")
+                    url = URIRef(self.url + id)
+                    venue_title = re.search(r'(.*?)\s*\[.*?\]', venue).group(1)
+                    venue_graph = self.setgraph.add_br("agent", source_agent=None, source=None, res=url)
+                    venue_graph.create_title(venue_title)
 
-        for id in venue_id_list:
-            if "issn" in id:
-                id = id.replace("issn:", "")
-                venue_issn = self.setgraph.add_id("agent", source_agent=None, source=None, res=None)
-                venue_issn.create_issn(id)
-                venue_graph.has_id(venue_issn)
-            if "doi" in id:
-                id = id.replace("doi:", "")
-                venue_doi = self.setgraph.add_id("agent", source_agent=None, source=None, res=None)
-                venue_doi.create_doi(id)
-                venue_graph.has_id(venue_doi)
-            if "isbn" in id:
-                id = id.replace("isbn:", "")
-                venue_isbn = self.setgraph.add_id("agent", source_agent=None, source=None, res=None)
-                venue_isbn.create_isbn(id)
-                venue_graph.has_id(venue_isbn)
+            for id in venue_id_list:
+                if "issn" in id:
+                    id = id.replace("issn:", "")
+                    venue_issn = self.setgraph.add_id("agent", source_agent=None, source=None, res=None)
+                    venue_issn.create_issn(id)
+                    venue_graph.has_id(venue_issn)
+                if "doi" in id:
+                    id = id.replace("doi:", "")
+                    venue_doi = self.setgraph.add_id("agent", source_agent=None, source=None, res=None)
+                    venue_doi.create_doi(id)
+                    venue_graph.has_id(venue_doi)
+                if "isbn" in id:
+                    id = id.replace("isbn:", "")
+                    venue_isbn = self.setgraph.add_id("agent", source_agent=None, source=None, res=None)
+                    venue_isbn.create_isbn(id)
+                    venue_graph.has_id(venue_isbn)
 
 
         if vol:
-            vol_graph = self.setgraph.add_br("agent", source_agent=None, source=None, res=None)
-            vol_graph.create_volume()
-            vol_graph.create_number(vol)
+            vol_id = re.search(r'\[\s*(.*?)\s*\]', vol).group(1)
+            vol_id_list = re.split(r'\s*;\s*', vol_id)
+
+            for id in vol_id_list:
+                if "meta:" in id:
+                    id = id.replace("meta:", "")
+                    url = URIRef(self.url + id)
+                    vol_graph = self.setgraph.add_br("agent", source_agent=None, source=None, res=url)
+                    vol_title = re.search(r'(.*?)\s*\[.*?\]', vol).group(1)
+                    vol_graph.create_volume()
+                    vol_graph.create_number(vol_title)
+
+
+        if issue:
+            issue_id = re.search(r'\[\s*(.*?)\s*\]', issue).group(1)
+            issue_id_list = re.split(r'\s*;\s*', issue_id)
+
+            for id in issue_id_list:
+                if "meta:" in id:
+                    id = id.replace("meta:", "")
+                    url = URIRef(self.url + id)
+                    issue_graph = self.setgraph.add_br("agent", source_agent=None, source=None, res=url)
+                    issue_title = re.search(r'(.*?)\s*\[.*?\]', issue).group(1)
+                    issue_graph.create_issue()
+                    issue_graph.create_number(issue_title)
+
+        if venue and vol and issue:
+            issue_graph.has_part(self.br_graph)
+            vol_graph.has_part(issue_graph)
             venue_graph.has_part(vol_graph)
-
-            if issue:
-                issue_graph = self.setgraph.add_br("agent", source_agent=None, source=None, res=None)
-                issue_graph.create_issue()
-                issue_graph.create_number(issue)
-                vol_graph.has_part(issue_graph)
-                issue_graph.has_part(self.br_graph)
-
-            else:
-                vol_graph.has_part(self.br_graph)
-
-        else:
+        elif venue and not vol and issue:
+            issue_graph.has_part(self.br_graph)
+            venue_graph.has_part(issue_graph)
+        elif venue and vol and not issue:
+            vol_graph.has_part(self.br_graph)
+            venue_graph.has_part(vol_graph)
+        elif not venue and vol and issue:
+            issue_graph.has_part(self.br_graph)
+            vol_graph.has_part(issue_graph)
+        elif venue and not vol and not issue:
             venue_graph.has_part(self.br_graph)
+        elif not venue and vol and not issue:
+            vol_graph.has_part(self.br_graph)
+        elif not venue and not vol and issue:
+            issue_graph.has_part(self.br_graph)
+
 
     def page_job (self, page):
         if page:
@@ -164,12 +206,17 @@ class Migrator():
 
 
     def publisher_job (self, publisher):
-        publ_name = re.search(r'(.*?)\s*\[.*?\]', publisher).group(1)
-        publ = self.setgraph.add_ra("agent", source_agent=None, source=None, res=None)
-        publ.create_name(publ_name)
 
         publ_id = re.search(r'\[\s*(.*?)\s*\]', publisher).group(1)
         publ_id_list = re.split(r'\s*;\s*', publ_id)
+
+        for id in publ_id_list:
+            if "meta:" in id:
+                id = id.replace("meta:", "")
+                url = URIRef(self.url + id)
+                publ_name = re.search(r'(.*?)\s*\[.*?\]', publisher).group(1)
+                publ = self.setgraph.add_ra("agent", source_agent=None, source=None, res=url)
+                publ.create_name(publ_name)
 
         for id in publ_id_list:
                 if 'crossref' in id:

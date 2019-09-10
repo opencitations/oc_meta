@@ -23,7 +23,6 @@
 
 <https://w3id.org/OC/meta/br/1> a fabio:BookChapter,
         fabio:Expression ;
-    rdfs:label "bibliographic resource 1 [br/1]" ;
     prism:publicationDate "2018"^^xsd:gYear ;
     dcterms:title "The SPAR Ontologies" ;
     datacite:hasIdentifier <https://w3id.org/OC/meta/id/1>,
@@ -36,7 +35,6 @@
 
 <https://w3id.org/OC/meta/br/3> a fabio:Expression,
         fabio:JournalArticle ;
-    rdfs:label "bibliographic resource 3 [br/3]" ;
     prism:publicationDate "2017"^^xsd:gYear ;
     dcterms:title "Automating semantic publishing" ;
     datacite:hasIdentifier <https://w3id.org/OC/meta/id/11> ;
@@ -71,27 +69,23 @@
     pro:withRole pro:publisher .
 
 <https://w3id.org/OC/meta/br/2> a fabio:Expression ;
-    rdfs:label "bibliographic resource 2 [br/2]" ;
     dcterms:title "The Semantic Web – ISWC 2018 --- 17th International Semantic Web Conference, Monterey, CA, USA, October 8–12, 2018, Proceedings, Part II" ;
     datacite:hasIdentifier <https://w3id.org/OC/meta/id/7>,
         <https://w3id.org/OC/meta/id/8>,
         <https://w3id.org/OC/meta/id/9> .
 
 <https://w3id.org/OC/meta/br/4> a fabio:Expression ;
-    rdfs:label "bibliographic resource 4 [br/4]" ;
     dcterms:title "Data Science" ;
     datacite:hasIdentifier <https://w3id.org/OC/meta/id/12>,
         <https://w3id.org/OC/meta/id/13> .
 
 <https://w3id.org/OC/meta/br/5> a fabio:Expression,
         fabio:JournalVolume ;
-    rdfs:label "bibliographic resource 5 [br/5]" ;
     fabio:hasSequenceIdentifier "1" ;
     frbr:partOf <https://w3id.org/OC/meta/br/4> .
 
 <https://w3id.org/OC/meta/br/6> a fabio:Expression,
         fabio:JournalIssue ;
-    rdfs:label "bibliographic resource 6 [br/6]" ;
     fabio:hasSequenceIdentifier "1-2" ;
     frbr:partOf <https://w3id.org/OC/meta/br/5> .
 
@@ -166,7 +160,6 @@
     literal:hasLiteralValue "978-3-030-00671-6" .
 
 <https://w3id.org/OC/meta/ra/1> a foaf:Agent ;
-    rdfs:label "responsible agent 1 [ra/1]" ;
     datacite:hasIdentifier <https://w3id.org/OC/meta/id/3>,
         <https://w3id.org/OC/meta/id/4>,
         <https://w3id.org/OC/meta/id/5> ;
@@ -174,18 +167,15 @@
     foaf:givenName "Silvio" .
 
 <https://w3id.org/OC/meta/ra/2> a foaf:Agent ;
-    rdfs:label "responsible agent 2 [ra/2]" ;
     datacite:hasIdentifier <https://w3id.org/OC/meta/id/6> ;
     foaf:familyName "Shotton" ;
     foaf:givenName "David" .
 
 <https://w3id.org/OC/meta/ra/3> a foaf:Agent ;
-    rdfs:label "responsible agent 3 [ra/3]" ;
     datacite:hasIdentifier <https://w3id.org/OC/meta/id/10> ;
     foaf:name "Springer International Publishing" .
 
 <https://w3id.org/OC/meta/ra/4> a foaf:Agent ;
-    rdfs:label "responsible agent 5 [ra/4]" ;
     datacite:hasIdentifier <https://w3id.org/OC/meta/id/14> ;
     foaf:name "IOS Press" .
 
