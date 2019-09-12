@@ -3,7 +3,7 @@ from migrator import *
 import csv
 
 
-class MigratorTest(unittest.TestCase):
+class TestConverterDemo(unittest.TestCase):
 
     # check if counter folder is empty before procede (Doing it automatically could be risky)
     def setUp(self):
@@ -20,6 +20,8 @@ class MigratorTest(unittest.TestCase):
 
     def test(self):
         new_graph = self.migrator_processed.final_graph
+
+        #new_graph.serialize(destination='output.ttl', format='ttl')
         self.assertEqual(new_graph, self.test_graph)
 
 if __name__ == '__main__':

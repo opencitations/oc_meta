@@ -116,15 +116,12 @@ class GraphEntity(object):
         self.source_agent = source_agent
         self.source = source
 
-        existing_ref = False
-
         # Create the reference if not specified
         if res is None:
             self.res = \
                 URIRef(str(g.identifier) + (short_name + "/" if short_name != "" else "") + count)
         else:
             self.res = res
-            existing_ref = True
 
         # Associated the graph in input if no existing graph
         # was already used for that entity
@@ -137,13 +134,13 @@ class GraphEntity(object):
         if self.res not in g_set.res_to_entity:
             g_set.res_to_entity[self.res] = self
 
-        # If it is a new entity, add all the additional information to it
-        if not existing_ref:
+        # It creates the type
+        if res_type is not None:
             self._create_type(res_type)
 
-            # It creates the label
-            if label is not None:
-                self.create_label(label)
+        # It creates the label
+        if label is not None:
+            self.create_label(label)
 
     def __str__(self):
         return str(self.res)
@@ -476,8 +473,15 @@ class GraphSet(object):
         # at the graph set level. However, a new graph is created and reserved for such resource
         # and it is added to the graph set.
         if res is not None:
-            return self._generate_entity(cur_g, res=res, resp_agent=resp_agent,
-                                         source_agent=source_agent, source=source,
+            related_to_label = ""
+            related_to_short_label = ""
+            count = res.split("/" + short_name + "/")[1]
+            label = "%s %s%s [%s/%s%s]" % (
+                GraphSet.labels[short_name], count, related_to_label,
+                short_name, count, related_to_short_label)
+
+            return self._generate_entity(cur_g, res=res, res_type=main_type, resp_agent=resp_agent,
+                                         source_agent=source_agent, source=source, label=label,
                                          list_of_entities=list_of_entities)
         # This is the case when 'res_or_resp_agent' is actually a string representing the name
         # of the responsible agent. In this case, a new individual will be created.
