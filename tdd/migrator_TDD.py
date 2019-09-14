@@ -52,10 +52,10 @@ class testcase_02(unittest.TestCase):
             migrator2 = Migrator(data2)
 
             test_graph2 = Graph()
-            self.test_graph2 = test_graph2.parse("testcases/testcase_02.ttl", format="ttl")
+            test_graph2 = test_graph2.parse("testcases/testcase_02.ttl", format="ttl")
 
             new_graph2 = migrator2.final_graph
-            self.assertEqual(new_graph2, self.test_graph2)
+            self.assertEqual(new_graph2, test_graph2)
 
 
 
@@ -70,10 +70,10 @@ class testcase_03(unittest.TestCase):
             migrator3 = Migrator(data3)
 
             test_graph3 = Graph()
-            self.test_graph3 = test_graph3.parse("testcases/testcase_03.ttl", format="ttl")
-
+            test_graph3 = test_graph3.parse("testcases/testcase_03.ttl", format="ttl")
+            
             new_graph3 = migrator3.final_graph
-            self.assertEqual(new_graph3, self.test_graph2)
+            self.assertEqual(new_graph3, test_graph3)
 
 
 
@@ -84,7 +84,7 @@ def suite(testobj):
     return test_suite
 
 
-mySuit=suite(testcase_X)
+mySuit=suite(testcase_03)
 
 runner=unittest.TextTestRunner()
 runner.run(mySuit)
