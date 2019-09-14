@@ -71,7 +71,7 @@ class testcase_03(unittest.TestCase):
 
             test_graph3 = Graph()
             test_graph3 = test_graph3.parse("testcases/testcase_03.ttl", format="ttl")
-            
+
             new_graph3 = migrator3.final_graph
             self.assertEqual(new_graph3, test_graph3)
 
