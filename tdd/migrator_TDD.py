@@ -3,55 +3,88 @@ from migrator import *
 import csv
 
 
-class TestMigrator(unittest.TestCase):
+class testcase_X(unittest.TestCase):
 
     # check if counter folder is empty before procede (Doing it automatically could be risky)
-    def setUp(self):
 
-        #data for testX
-        with open("clean_data.csv", 'r', encoding='utf-8') as csvfile:
+    def test(self):
+        #general test on example csv
+
+        with open("testcases/testcase_data/testcase_X_data.csv", 'r', encoding='utf-8') as csvfile:
             reader = csv.DictReader(csvfile)
             dataX = [dict(x) for x in reader]
-        self.migrator_processedX = Migrator(dataX)
+
+        migrator_processedX = Migrator(dataX)
+
         test_graphX = Graph()
-        self.test_graphX = test_graphX.parse("example_graph.ttl", format="ttl")
+        test_graphX = test_graphX.parse("testcases/testcase_X.ttl", format="ttl")
 
-        #data for testcase 1-2-3
-        with open("new_test_clean_data.csv", 'r', encoding='utf-8') as csvfile:
-            reader = csv.DictReader(csvfile)
-            self.data123 = [dict(x) for x in reader]
+        new_graph = migrator_processedX.final_graph
 
-        test_graph1 = Graph()
-        self.test_graph1 = test_graph1.parse("testcase-01.ttl", format="ttl")
-
-        test_graph2 = Graph()
-        self.test_graph2 = test_graph2.parse("testcase-02.ttl", format="ttl")
-
-        test_graph3 = Graph()
-        self.test_graph3 = test_graph3.parse("testcase-03.ttl", format="ttl")
+        self.assertEqual(new_graph, test_graphX)
 
 
+class testcase_01 (unittest.TestCase):
 
-    def testX(self):
-        #general test on example csv
-        new_graph = self.migrator_processedX.final_graph
-
-        self.assertEqual(new_graph, self.test_graphX)
-
-    def testcase1(self):
+    def test (self):
         # testcase1: 2 different issues of the same venue (no volume)
-        with open("new_clean_data.csv", 'r', encoding='utf-8') as csvfile:
+        with open("testcases/testcase_data/testcase_01_data.csv", 'r', encoding='utf-8') as csvfile:
             reader = csv.DictReader(csvfile)
-            data = [dict(x) for x in reader]
+            data1 = [dict(x) for x in reader]
 
-            partial_data1 = list()
-            partial_data1 = list()
-            partial_data1.append(data[0])
-            partial_data1.append(data[5])
+            migrator1 = Migrator(data1)
 
-            migrator1 = Migrator(self.data123)
-            new_graph = self.migrator_processed123.final_graph
+            test_graph1 = Graph()
+            test_graph1 = test_graph1.parse("testcases/testcase_01.ttl", format="ttl")
+
+            new_graph1 = migrator1.final_graph
+            self.assertEqual(new_graph1, test_graph1)
 
 
-if __name__ == '__main__':
-    unittest.main()
+class testcase_02(unittest.TestCase):
+
+    def test(self):
+        # testcase2: 2 different volumes of the same venue (no issue)
+        with open("testcases/testcase_data/testcase_02_data.csv", 'r', encoding='utf-8') as csvfile:
+            reader = csv.DictReader(csvfile)
+            data2 = [dict(x) for x in reader]
+
+            migrator2 = Migrator(data2)
+
+            test_graph2 = Graph()
+            self.test_graph2 = test_graph2.parse("testcases/testcase_02.ttl", format="ttl")
+
+            new_graph2 = migrator2.final_graph
+            self.assertEqual(new_graph2, self.test_graph2)
+
+
+
+class testcase_03(unittest.TestCase):
+
+    def test(self):
+        # testcase3: 2 different issues of the same volume
+        with open("testcases/testcase_data/testcase_03_data.csv", 'r', encoding='utf-8') as csvfile:
+            reader = csv.DictReader(csvfile)
+            data3 = [dict(x) for x in reader]
+
+            migrator3 = Migrator(data3)
+
+            test_graph3 = Graph()
+            self.test_graph3 = test_graph3.parse("testcases/testcase_03.ttl", format="ttl")
+
+            new_graph3 = migrator3.final_graph
+            self.assertEqual(new_graph3, self.test_graph2)
+
+
+
+
+def suite(testobj):
+    test_suite = unittest.TestSuite()
+    test_suite.addTest(unittest.makeSuite(testobj))
+    return test_suite
+
+
+mySuit=suite(testcase_X)
+
+runner=unittest.TextTestRunner()
+runner.run(mySuit)

@@ -165,7 +165,7 @@ class converter():
                     finaliddlist.append(pubnewid)
                 else:
                     ract = ract + 1
-                    radict[author_name] = ract
+                    radict[pub] = ract
                     newid = "meta:ra/" + str(ract)
                     finaliddlist.append(newid)
 
