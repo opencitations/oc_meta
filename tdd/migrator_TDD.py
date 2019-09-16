@@ -1,6 +1,18 @@
 import unittest
 from migrator import *
 import csv
+from rdflib.term import _toPythonMapping
+from rdflib import XSD, compare
+
+
+# The following function has been added for handling gYear and gYearMonth correctly.
+# Source: https://github.com/opencitations/script/blob/master/ocdm/storer.py
+# More info at https://github.com/RDFLib/rdflib/issues/806.
+def hack_dates():
+    if XSD.gYear in _toPythonMapping:
+        _toPythonMapping.pop(XSD.gYear)
+    if XSD.gYearMonth in _toPythonMapping:
+        _toPythonMapping.pop(XSD.gYearMonth)
 
 
 class testcase_X(unittest.TestCase):
@@ -17,11 +29,12 @@ class testcase_X(unittest.TestCase):
         migrator_processedX = Migrator(dataX)
 
         test_graphX = Graph()
+        hack_dates()
         test_graphX = test_graphX.parse("testcases/testcase_X.ttl", format="ttl")
 
-        new_graph = migrator_processedX.final_graph
+        new_graphX = migrator_processedX.final_graph
 
-        self.assertEqual(new_graph, test_graphX)
+        self.assertEqual(compare.isomorphic(new_graphX, test_graphX), True)
 
 
 class testcase_01 (unittest.TestCase):
@@ -35,10 +48,11 @@ class testcase_01 (unittest.TestCase):
             migrator1 = Migrator(data1)
 
             test_graph1 = Graph()
+            hack_dates()
             test_graph1 = test_graph1.parse("testcases/testcase_01.ttl", format="ttl")
 
             new_graph1 = migrator1.final_graph
-            self.assertEqual(new_graph1, test_graph1)
+            self.assertEqual(compare.isomorphic(new_graph1, test_graph1), True)
 
 
 class testcase_02(unittest.TestCase):
@@ -52,10 +66,11 @@ class testcase_02(unittest.TestCase):
             migrator2 = Migrator(data2)
 
             test_graph2 = Graph()
+            hack_dates()
             test_graph2 = test_graph2.parse("testcases/testcase_02.ttl", format="ttl")
 
             new_graph2 = migrator2.final_graph
-            self.assertEqual(new_graph2, test_graph2)
+            self.assertEqual(compare.isomorphic(new_graph2, test_graph2), True)
 
 
 
@@ -70,10 +85,12 @@ class testcase_03(unittest.TestCase):
             migrator3 = Migrator(data3)
 
             test_graph3 = Graph()
+            hack_dates()
             test_graph3 = test_graph3.parse("testcases/testcase_03.ttl", format="ttl")
 
             new_graph3 = migrator3.final_graph
-            self.assertEqual(new_graph3, test_graph3)
+
+            self.assertEqual(compare.isomorphic(new_graph3, test_graph3), True)
 
 
 
@@ -84,7 +101,7 @@ def suite(testobj):
     return test_suite
 
 
-mySuit=suite(testcase_03)
+mySuit=suite(testcase_X)
 
 runner=unittest.TextTestRunner()
 runner.run(mySuit)

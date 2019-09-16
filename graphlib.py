@@ -110,11 +110,13 @@ class GraphEntity(object):
 
     # This constructor creates a new instance of an RDF resource
     def __init__(self, g, res=None, res_type=None, resp_agent=None, source_agent=None,
-                 source=None, count=None, label=None, short_name="", g_set=None):
+                 source=None, count=None, label=None, short_name="", g_set=None, wanted_type = False, wanted_label = True):
         self.cur_name = "SPACIN " + self.__class__.__name__
         self.resp_agent = resp_agent
         self.source_agent = source_agent
         self.source = source
+
+        existing_ref = False
 
         # Create the reference if not specified
         if res is None:
@@ -122,6 +124,7 @@ class GraphEntity(object):
                 URIRef(str(g.identifier) + (short_name + "/" if short_name != "" else "") + count)
         else:
             self.res = res
+            existing_ref = True
 
         # Associated the graph in input if no existing graph
         # was already used for that entity
@@ -134,13 +137,18 @@ class GraphEntity(object):
         if self.res not in g_set.res_to_entity:
             g_set.res_to_entity[self.res] = self
 
-        # It creates the type
-        if res_type is not None:
+        # If it is a new entity, add all the additional information to it
+        if not existing_ref:
             self._create_type(res_type)
 
-        # It creates the label
-        if label is not None:
-            self.create_label(label)
+            # It creates the label
+            if label is not None:
+                if wanted_label:
+                    self.create_label(label)
+
+        #add type even if it isn't a new entity
+        if wanted_type:
+            self._create_type(res_type)
 
     def __str__(self):
         return str(self.res)
@@ -435,35 +443,35 @@ class GraphSet(object):
             return self.res_to_entity[res]
 
     # Add resources related to bibliographic entities
-    def add_ar(self, resp_agent, source_agent=None, source=None, res=None):
+    def add_ar(self, resp_agent, source_agent=None, source=None, res=None, wanted_type = False , wanted_label = True):
         return self._add(
             self.g_ar, GraphEntity.role_in_time, res, resp_agent,
-            source_agent, source, self.ar_info_path, "ar")
+            source_agent, source, self.ar_info_path, "ar", wanted_type = wanted_type , wanted_label = wanted_label)
 
-    def add_be(self, resp_agent, source_agent=None, source=None, res=None):
+    def add_be(self, resp_agent, source_agent=None, source=None, res=None, wanted_type = False , wanted_label = True):
         return self._add(
             self.g_be, GraphEntity.bibliographic_reference, res, resp_agent,
-            source_agent, source, self.be_info_path, "be")
+            source_agent, source, self.be_info_path, "be", wanted_type = wanted_type , wanted_label = wanted_label)
 
-    def add_br(self, resp_agent, source_agent=None, source=None, res=None):
+    def add_br(self, resp_agent, source_agent=None, source=None, res=None, wanted_type = False , wanted_label = True):
         return self._add(self.g_br, GraphEntity.expression, res, resp_agent,
-                         source_agent, source, self.br_info_path, "br")
+                         source_agent, source, self.br_info_path, "br", wanted_type = wanted_type , wanted_label = wanted_label)
 
-    def add_id(self, resp_agent, source_agent=None, source=None, res=None):
+    def add_id(self, resp_agent, source_agent=None, source=None, res=None, wanted_type = False , wanted_label = True):
         return self._add(self.g_id, GraphEntity.identifier, res, resp_agent,
-                         source_agent, source, self.id_info_path, "id")
+                         source_agent, source, self.id_info_path, "id", wanted_type = wanted_type , wanted_label = wanted_label)
 
-    def add_ra(self, resp_agent, source_agent=None, source=None, res=None):
+    def add_ra(self, resp_agent, source_agent=None, source=None, res=None, wanted_type = False , wanted_label = True):
         return self._add(self.g_ra, GraphEntity.agent, res, resp_agent,
-                         source_agent, source, self.ra_info_path, "ra")
+                         source_agent, source, self.ra_info_path, "ra", wanted_type = wanted_type , wanted_label = wanted_label)
 
-    def add_re(self, resp_agent, source_agent=None, source=None, res=None):
+    def add_re(self, resp_agent, source_agent=None, source=None, res=None, wanted_type = False , wanted_label = True):
         return self._add(
             self.g_re, GraphEntity.manifestation, res, resp_agent,
-            source_agent, source, self.re_info_path, "re")
+            source_agent, source, self.re_info_path, "re", wanted_type = wanted_type , wanted_label = wanted_label)
 
     def _add(self, graph_url, main_type, res, resp_agent, source_agent,
-             source, info_file_path, short_name, list_of_entities=[]):
+             source, info_file_path, short_name, list_of_entities=[], wanted_type = False , wanted_label = True):
         cur_g = Graph(identifier=graph_url)
         self._set_ns(cur_g)
         self.g += [cur_g]
@@ -473,16 +481,9 @@ class GraphSet(object):
         # at the graph set level. However, a new graph is created and reserved for such resource
         # and it is added to the graph set.
         if res is not None:
-            related_to_label = ""
-            related_to_short_label = ""
-            count = res.split("/" + short_name + "/")[1]
-            label = "%s %s%s [%s/%s%s]" % (
-                GraphSet.labels[short_name], count, related_to_label,
-                short_name, count, related_to_short_label)
-
             return self._generate_entity(cur_g, res=res, res_type=main_type, resp_agent=resp_agent,
-                                         source_agent=source_agent, source=source, label=label,
-                                         list_of_entities=list_of_entities)
+                                         source_agent=source_agent, source=source,
+                                         list_of_entities=list_of_entities, wanted_type = wanted_type, wanted_label = wanted_label)
         # This is the case when 'res_or_resp_agent' is actually a string representing the name
         # of the responsible agent. In this case, a new individual will be created.
         else:
@@ -515,13 +516,13 @@ class GraphSet(object):
             return self._generate_entity(
                 cur_g, res_type=main_type, resp_agent=resp_agent, source_agent=source_agent,
                 source=source, count=count, label=label, short_name=short_name,
-                list_of_entities=list_of_entities)
+                list_of_entities=list_of_entities, wanted_type = wanted_type, wanted_label = wanted_label)
 
     def _generate_entity(self, g, res=None, res_type=None, resp_agent=None, source_agent=None,
-                         source=None, count=None, label=None, short_name="", list_of_entities=[]):
+                         source=None, count=None, label=None, short_name="", list_of_entities=[], wanted_type = False, wanted_label = True):
         return GraphEntity(g, res=res, res_type=res_type, resp_agent=resp_agent,
                            source_agent=source_agent, source=source, count=count,
-                           label=label, g_set=self)
+                           label=label, g_set=self, wanted_type = wanted_type, wanted_label = wanted_label)
 
     def graphs(self):
         result = []
