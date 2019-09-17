@@ -82,7 +82,7 @@ class testcase_03(unittest.TestCase):
             reader = csv.DictReader(csvfile)
             data3 = [dict(x) for x in reader]
 
-            migrator3 = Migrator(data3)
+            migrator3 = Migrator(data3, "testcases/testcase_data/indices/index3.txt")
 
             test_graph3 = Graph()
             hack_dates()
@@ -101,7 +101,7 @@ def suite(testobj):
     return test_suite
 
 
-mySuit=suite(testcase_X)
+mySuit=suite(testcase_03)
 
 runner=unittest.TextTestRunner()
 runner.run(mySuit)

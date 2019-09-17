@@ -2,8 +2,70 @@ from graphlib import *
 import re
 
 class Migrator():
-    def __init__(self, data):
-        self.setgraph = GraphSet("https://w3id.org/OC/meta/", "", "counter/")
+    def __init__(self, data, txtindex):
+        self.url = "https://w3id.org/OC/meta/"
+
+        self.setgraph = GraphSet(self.url, "", "counter/")
+
+        self.index = dict()
+        self.index['crossref'] = dict()
+        self.index["doi"] = dict()
+        self.index["issn"] = dict()
+        self.index["isbn"] = dict()
+        self.index["orcid"] = dict()
+        self.index["pmid"] = dict()
+        self.index['pmcid'] = dict()
+        self.index['url'] = dict()
+        self.index['viaf'] = dict()
+        self.index['wikidata'] = dict()
+
+
+
+        with open(txtindex) as file:
+            id_index = file.read().splitlines()
+            for line in id_index:
+                values = line.split(" , ")
+
+                if 'crossref' in line:
+                    id = values[0].replace('crossref:', '')
+                    self.index['crossref'][id] = values[1]
+
+                elif "doi" in line:
+                    id = values[0].replace('doi:', '')
+                    self.index['doi'][id] = values[1]
+
+                elif "issn" in line:
+                    id = values[0].replace('issn:', '')
+                    self.index['issn'][id] = values[1]
+
+                elif "isbn" in line:
+                    id = values[0].replace('isbn:', '')
+                    self.index['isbn'][id] = values[1]
+
+                elif "orcid" in line:
+                    id = values[0].replace('orcid:', '')
+                    self.index['orcid'][id] = values[1]
+
+                elif "pmid" in line:
+                    id = values[0].replace('pmid:', '')
+                    self.index['pmid'][id] = values[1]
+
+                elif "pmcid" in line:
+                    id = values[0].replace('pmcid:', '')
+                    self.index['pmcid'][id] = values[1]
+
+                elif "url" in line:
+                    id = values[0].replace('url:', '')
+                    self.index['url'][id] = values[1]
+
+                elif "viaf" in line:
+                    id = values[0].replace('viaf:', '')
+                    self.index['viaf'][id] = values[1]
+
+                elif "wikidata" in line:
+                    id = values[0].replace('wikidata:', '')
+                    self.index['wikidata'][id] = values[1]
+
 
         for row in data:
             ids = row['id']
@@ -16,8 +78,6 @@ class Migrator():
             page = row['page']
             type = row['type']
             publisher = row['publisher']
-
-            self.url = "https://w3id.org/OC/meta/"
 
             self.id_job(ids)
             self.title_job(title)
@@ -45,25 +105,7 @@ class Migrator():
                 self.br_graph = self.setgraph.add_br("agent", source_agent=None, source=None, res=url, wanted_type = True)
 
         for id in idslist:
-            if "doi:" in id:
-                metaid = re.search(r'\{\s*(.*?)\s*\}', id).group(1)
-                metaid = metaid.replace("meta_id:", "")
-                url = URIRef(self.url + metaid)
-                id = re.search(r'(.*?)\s*\{.*?\}', id).group(1)
-                id = id.replace("doi:", "")
-                pub_doi = self.setgraph.add_id("agent", source_agent=None, source=None, res=url, wanted_type = True)
-                pub_doi.create_doi(id)
-                self.br_graph.has_id(pub_doi)
-
-            if "wikidata" in id:
-                metaid = re.search(r'\{\s*(.*?)\s*\}', id).group(1)
-                metaid = metaid.replace("meta_id:", "")
-                url = URIRef(self.url + metaid)
-                id = re.search(r'(.*?)\s*\{.*?\}', id).group(1)
-                id = id.replace("wikidata:", "")
-                pub_wikidata = self.setgraph.add_id("agent", source_agent=None, source=None, res=url, wanted_type = True)
-                pub_wikidata.create_wikidata(id)
-                self.br_graph.has_id(pub_wikidata)
+            self.id_creator(self.br_graph, id)
 
     def title_job (self, title):
         self.br_graph.create_title(title)
@@ -91,34 +133,7 @@ class Migrator():
 
         # lists of authors' IDs
             for id in aut_id_list:
-                if "orcid" in id:
-                    metaid = re.search(r'\{\s*(.*?)\s*\}', id).group(1)
-                    metaid = metaid.replace("meta_id:", "")
-                    url = URIRef(self.url + metaid)
-                    id = re.search(r'(.*?)\s*\{.*?\}', id).group(1)
-                    id = id.replace("orcid:", "")
-                    pub_aut_orcid = self.setgraph.add_id("agent", source_agent=None, source=None, res=url, wanted_type = True)
-                    pub_aut_orcid.create_orcid(id)
-                    pub_aut.has_id(pub_aut_orcid)
-                if "viaf" in id:
-                    metaid = re.search(r'\{\s*(.*?)\s*\}', id).group(1)
-                    metaid = metaid.replace("meta_id:", "")
-                    url = URIRef(self.url + metaid)
-                    id = re.search(r'(.*?)\s*\{.*?\}', id).group(1)
-                    id = id.replace("viaf:", "")
-                    pub_aut_viaf = self.setgraph.add_id("agent", source_agent=None, source=None, res=url, wanted_type = True)
-                    pub_aut_viaf.create_viaf(id)
-                    pub_aut.has_id(pub_aut_viaf)
-                if "wikidata" in id:
-                    metaid = re.search(r'\{\s*(.*?)\s*\}', id).group(1)
-                    metaid = metaid.replace("meta_id:", "")
-                    url = URIRef(self.url + metaid)
-                    id = re.search(r'(.*?)\s*\{.*?\}', id).group(1)
-                    id = id.replace("wikidata:", "")
-                    pub_aut_wikidata = self.setgraph.add_id("agent", source_agent=None, source=None, res=url, wanted_type = True)
-                    pub_aut_wikidata.create_wikidata(id)
-                    pub_aut.has_id(pub_aut_wikidata)
-
+                self.id_creator(pub_aut, id)
 
         # authorRole
             pub_aut_role = self.setgraph.add_ar("agent", source_agent=None, source=None, res=None, wanted_label = False)
@@ -154,34 +169,7 @@ class Migrator():
                     venue_graph.create_title(venue_title)
 
             for id in venue_id_list:
-                if "issn" in id:
-                    metaid = re.search(r'\{\s*(.*?)\s*\}', id).group(1)
-                    metaid = metaid.replace("meta_id:", "")
-                    url = URIRef(self.url + metaid)
-                    id = re.search(r'(.*?)\s*\{.*?\}', id).group(1)
-                    id = id.replace("issn:", "")
-                    venue_issn = self.setgraph.add_id("agent", source_agent=None, source=None, res=url, wanted_type = True)
-                    venue_issn.create_issn(id)
-                    venue_graph.has_id(venue_issn)
-                if "doi" in id:
-                    metaid = re.search(r'\{\s*(.*?)\s*\}', id).group(1)
-                    metaid = metaid.replace("meta_id:", "")
-                    url = URIRef(self.url + metaid)
-                    id = re.search(r'(.*?)\s*\{.*?\}', id).group(1)
-                    id = id.replace("doi:", "")
-                    venue_doi = self.setgraph.add_id("agent", source_agent=None, source=None, res=url, wanted_type = True)
-                    venue_doi.create_doi(id)
-                    venue_graph.has_id(venue_doi)
-                if "isbn" in id:
-                    metaid = re.search(r'\{\s*(.*?)\s*\}', id).group(1)
-                    metaid = metaid.replace("meta_id:", "")
-                    url = URIRef(self.url + metaid)
-                    id = re.search(r'(.*?)\s*\{.*?\}', id).group(1)
-                    id = id.replace("isbn:", "")
-                    venue_isbn = self.setgraph.add_id("agent", source_agent=None, source=None, res=url, wanted_type = True)
-                    venue_isbn.create_isbn(id)
-                    venue_graph.has_id(venue_isbn)
-
+                self.id_creator(venue_graph, id)
 
         if vol:
             vol_id = re.search(r'\[\s*(.*?)\s*\]', vol).group(1)
@@ -241,10 +229,41 @@ class Migrator():
 
 
     def type_job (self, type):
-        if type == "journal article":
-            self.br_graph.create_journal_article()
+        if type == "academic proceedings":
+            self.br_graph.create_proceedings()
+        elif type == "book":
+            self.br_graph.create_book()
         elif type == "book chapter":
             self.br_graph.create_book_chapter()
+        elif type == "book series":
+            self.br_graph.create_book_series()
+        elif type == "book set":
+            self.br_graph.create_book_set()
+        elif type == "data file":
+            self.br_graph.create_dataset()
+        elif type == "journal":
+            self.br_graph.create_journal()
+        elif type == "journal article":
+            self.br_graph.create_journal_article()
+        elif type == "journal issue":
+            self.br_graph.create_journal_issue()
+        elif type == "journal volume":
+            self.br_graph.create_journal_volume()
+        elif type == "proceedings paper":
+            self.br_graph.create_proceedings_article()
+        elif type == "reference book":
+            self.br_graph.create_reference_book()
+        elif type == "reference entry":
+            self.br_graph.create_reference_entry()
+        elif type == "journal article":
+            self.br_graph.create_journal_article()
+        elif type == "report document":
+            self.br_graph.create_report()
+        elif type == "specification document":
+            self.br_graph.create_standard()
+        elif type == "thesis":
+            self.br_graph.create_dissertation()
+
 
 
     def publisher_job (self, publisher):
@@ -261,17 +280,88 @@ class Migrator():
                 publ.create_name(publ_name)
 
         for id in publ_id_list:
-                if 'crossref' in id:
-                    metaid = re.search(r'\{\s*(.*?)\s*\}', id).group(1)
-                    metaid = metaid.replace("meta_id:", "")
-                    url = URIRef(self.url + metaid)
-                    id = re.search(r'(.*?)\s*\{.*?\}', id).group(1)
-                    id = id.replace('crossref:','')
-                    publ_crossref = self.setgraph.add_id("agent", source_agent=None, source=None, res=url, wanted_type = True)
-                    publ_crossref.create_crossref(id)
-                    publ.has_id(publ_crossref)
+            self.id_creator(publ, id)
 
         # authorRole
         publ_role = self.setgraph.add_ar("agent", source_agent=None, source=None, res=None, wanted_label=False)
         publ_role.create_publisher(self.br_graph)
         publ.has_role(publ_role)
+
+
+
+    def id_creator (self,graph, id):
+
+        new_id = None
+
+        if 'crossref' in id:
+            id = id.replace('crossref:', '')
+            res = self.index['crossref'][id]
+            url = URIRef(self.url + "id/" + res)
+            new_id = self.setgraph.add_id("agent", source_agent=None, source=None, res=url, wanted_type = True)
+            new_id.create_crossref(id)
+
+        elif "doi:" in id:
+            id = id.replace("doi:", "")
+            res = self.index['doi'][id]
+            url = URIRef(self.url + "id/" + res)
+            new_id = self.setgraph.add_id("agent", source_agent=None, source=None, res=url, wanted_type = True)
+            new_id.create_doi(id)
+
+        elif "issn" in id:
+            id = id.replace("issn:", "")
+            res = self.index['issn'][id]
+            url = URIRef(self.url + "id/" + res)
+            new_id = self.setgraph.add_id("agent", source_agent=None, source=None, res=url, wanted_type = True)
+            new_id.create_issn(id)
+
+        elif "isbn" in id:
+            id = id.replace("isbn:", "")
+            res = self.index['isbn'][id]
+            url = URIRef(self.url + "id/" + res)
+            new_id = self.setgraph.add_id("agent", source_agent=None, source=None, res=url, wanted_type = True)
+            new_id.create_isbn(id)
+
+        elif "orcid" in id:
+            id = id.replace("orcid:", "")
+            res = self.index['orcid'][id]
+            url = URIRef(self.url + "id/" + res)
+            new_id = self.setgraph.add_id("agent", source_agent=None, source=None, res=url, wanted_type = True)
+            new_id.create_orcid(id)
+
+        elif "pmid:" in id:
+            id = id.replace("pmid:", "")
+            res = self.index['pmid'][id]
+            url = URIRef(self.url + "id/" + res)
+            new_id = self.setgraph.add_id("agent", source_agent=None, source=None, res=url, wanted_type=True)
+            new_id.create_pmid(id)
+
+        elif "pmcid:" in id:
+            id = id.replace("pmcid:", "")
+            res = self.index['pmcid'][id]
+            url = URIRef(self.url + "id/" + res)
+            new_id = self.setgraph.add_id("agent", source_agent=None, source=None, res=url, wanted_type=True)
+            new_id.create_pmcid(id)
+
+        elif "url:" in id:
+            id = id.replace("url:", "")
+            res = self.index['url'][id]
+            url = URIRef(self.url + "id/" + res)
+            new_id = self.setgraph.add_id("agent", source_agent=None, source=None, res=url, wanted_type=True)
+            new_id.create_url(id)
+
+        elif "viaf" in id:
+            id = id.replace("viaf:", "")
+            res = self.index['viaf'][id]
+            url = URIRef(self.url + "id/" + res)
+            new_id = self.setgraph.add_id("agent", source_agent=None, source=None, res=url, wanted_type=True)
+            new_id.create_viaf(id)
+
+        elif "wikidata" in id:
+            id = id.replace("wikidata:", "")
+            res = self.index['wikidata'][id]
+            url = URIRef(self.url + "id/" + res)
+            new_id = self.setgraph.add_id("agent", source_agent=None, source=None, res=url, wanted_type=True)
+            new_id.create_wikidata(id)
+
+        if new_id:
+            graph.has_id(new_id)

@@ -3,7 +3,19 @@ import csv, re
 
 class converter():
 
-    def __init__(self, data):
+    def __init__(self, data, path):
+        self.data = data
+        dataID = self.conversion()
+
+        for x in dataID:
+            val = str(x) + " , " + str(dataID[x])
+            with open(path, 'a') as file:
+                file.write( val + '\n')
+
+
+
+
+    def conversion(self):
         brct = 0
         idct = 0
         ract = 0
@@ -13,27 +25,21 @@ class converter():
         radict = {}
 
 
-        for row in data:
+        for row in self.data:
 
 
             if row['id']:
-                finaliddlist = list()
                 idslist = re.split(r'\s*;\s*', row['id'])
                 for id in idslist:
-                    if id in iddict:
-                        newid = id + " {meta_id:id/"+ str(iddict[id]) +"}"
-                        finaliddlist.append(newid)
-                    else:
+                    if id not in iddict:
                         idct = idct + 1
                         iddict[id] = idct
-                        newid = id + " {meta_id:id/"+ str(idct) +"}"
-                        finaliddlist.append(newid)
 
                 brct = brct + 1
                 newid = "meta:br/" + str(brct)
-                finaliddlist.append(newid)
+                idslist.append(newid)
 
-                newrow = "; ".join(finaliddlist)
+                newrow = "; ".join(idslist)
                 row['id'] = newrow
 
 
@@ -46,32 +52,25 @@ class converter():
                     aut_id = re.search(r'\[\s*(.*?)\s*\]', aut).group(1)
                     aut_id_list = re.split(r'\s*;\s*', aut_id)
 
-                    finaliddlist = list()
-
                     # lists of authors' IDs
                     for id in aut_id_list:
-                        if id in iddict:
-                            newid = id + " {meta_id:id/" + str(iddict[id]) + "}"
-                            finaliddlist.append(newid)
-                        else:
+                        if id not in iddict:
                             idct = idct + 1
                             iddict[id] = idct
-                            newid = id + " {meta_id:id/" + str(idct) + "}"
-                            finaliddlist.append(newid)
 
                     author_name = re.search(r'(.*?)\s*\[.*?\]', aut).group(1)
 
                     if author_name in radict:
                         autnewid = "meta:ra/" + str(radict[author_name])
-                        finaliddlist.append(autnewid)
+                        aut_id_list.append(autnewid)
                     else:
                         ract = ract + 1
                         radict[author_name] = ract
                         newid = "meta:ra/" + str(ract)
-                        finaliddlist.append(newid)
+                        aut_id_list.append(newid)
 
 
-                    newfinalidlist = "; ".join(finaliddlist)
+                    newfinalidlist = "; ".join(aut_id_list)
                     newaut = author_name + " [" + newfinalidlist + "]"
                     finalautlist.append(newaut)
 
@@ -83,21 +82,15 @@ class converter():
             if row["venue"]:
                 venue_id = re.search(r'\[\s*(.*?)\s*\]', row["venue"]).group(1)
                 venue_id_list = re.split(r'\s*;\s*', venue_id)
-                finaliddlist = list()
                 for id in venue_id_list:
-                    if id in iddict:
-                        newid = id + " {meta_id:id/" + str(iddict[id]) + "}"
-                        finaliddlist.append(newid)
-                    else:
+                    if id not in iddict:
                         idct = idct + 1
                         iddict[id] = idct
-                        newid = id + " {meta_id:id/" + str(idct) + "}"
-                        finaliddlist.append(newid)
 
                 ven = re.search(r'(.*?)\s*\[.*?\]', row["venue"]).group(1)
                 if ven in brdict:
                     vennewid = "meta:br/" + str(brdict[ven]["id"])
-                    finaliddlist.append(vennewid)
+                    venue_id_list.append(vennewid)
                 else:
                     brct = brct + 1
                     brdict[ven] = dict()
@@ -105,9 +98,9 @@ class converter():
                     brdict[ven]["iss"] = dict()
                     brdict[ven]["id"] = brct
                     newid = "meta:br/" + str(brct)
-                    finaliddlist.append(newid)
+                    venue_id_list.append(newid)
 
-                finaliddlist = "; ".join(finaliddlist)
+                finaliddlist = "; ".join(venue_id_list)
                 newrow = ven + " [" + finaliddlist + "]"
                 row['venue'] = newrow
 
@@ -148,29 +141,25 @@ class converter():
             if row["publisher"]:
                 pub_id = re.search(r'\[\s*(.*?)\s*\]', row["publisher"]).group(1)
                 pub_id_list = re.split(r'\s*;\s*', pub_id)
-                finaliddlist = list()
                 for id in pub_id_list:
-                    if id in iddict:
-                        newid = id + " {meta_id:id/" + str(iddict[id]) + "}"
-                        finaliddlist.append(newid)
-                    else:
+                    if id not in iddict:
                         idct = idct + 1
                         iddict[id] = idct
-                        newid = id + " {meta_id:id/" + str(idct) + "}"
-                        finaliddlist.append(newid)
+
 
                 pub = re.search(r'(.*?)\s*\[.*?\]', row["publisher"]).group(1)
                 if pub in radict:
                     pubnewid = "meta:ra/" + str(radict[pub])
-                    finaliddlist.append(pubnewid)
+                    pub_id_list.append(pubnewid)
                 else:
                     ract = ract + 1
                     radict[pub] = ract
                     newid = "meta:ra/" + str(ract)
-                    finaliddlist.append(newid)
+                    pub_id_list.append(newid)
 
-                finaliddlist = "; ".join(finaliddlist)
+                finaliddlist = "; ".join(pub_id_list)
                 newrow = pub + " [" + finaliddlist + "]"
                 row['publisher'] = newrow
 
-        self.data = data
+        self.newdata = self.data
+        return iddict

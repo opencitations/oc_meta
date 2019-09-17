@@ -9,7 +9,7 @@ def uno (newdata):
     partial_data1 = list()
     partial_data1.append(newdata[0])
     partial_data1.append(newdata[5])
-    newcleandata1 = converter(partial_data1).data
+    newcleandata1 = converter(partial_data1).newdata
     keys = newcleandata1[0].keys()
 
     with open('testcase_01_data.csv', 'w', newline='') as output_file:
@@ -23,7 +23,7 @@ def due(newdata):
     partial_data2 = list()
     partial_data2.append(newdata[1])
     partial_data2.append(newdata[3])
-    newcleandata2 = converter(partial_data2).data
+    newcleandata2 = converter(partial_data2).newdata
     keys = newcleandata2[0].keys()
 
     with open('testcase_02_data.csv', 'w', newline='') as output_file:
@@ -37,7 +37,7 @@ def tre(newdata):
     partial_data3 = list()
     partial_data3.append(newdata[2])
     partial_data3.append(newdata[4])
-    newcleandata3 = converter(partial_data3).data
+    newcleandata3 = converter(partial_data3, "index3.txt").newdata
     keys = newcleandata3[0].keys()
 
     with open('testcase_03_data.csv', 'w', newline='') as output_file:
