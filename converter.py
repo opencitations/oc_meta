@@ -41,6 +41,14 @@ class converter():
 
                 newrow = "; ".join(idslist)
                 row['id'] = newrow
+            else:
+                brct = brct + 1
+                newid = "meta:br/" + str(brct)
+                newrow = list()
+                newrow.append(newid)
+
+                row['id'] = newrow[0]
+
 
 
 
@@ -49,16 +57,22 @@ class converter():
                 authorslist = re.split(r'\s*;\s*(?=[^]]*(?:\[|$))', row['author'])
                 finalautlist = list()
                 for aut in authorslist:
-                    aut_id = re.search(r'\[\s*(.*?)\s*\]', aut).group(1)
-                    aut_id_list = re.split(r'\s*;\s*', aut_id)
+                    aut_id = re.search(r'\[\s*(.*?)\s*\]', aut)
+                    if aut_id:
+                        aut_id = aut_id.group(1)
+                        aut_id_list = re.split(r'\s*;\s*', aut_id)
 
-                    # lists of authors' IDs
-                    for id in aut_id_list:
-                        if id not in iddict:
-                            idct = idct + 1
-                            iddict[id] = idct
-
-                    author_name = re.search(r'(.*?)\s*\[.*?\]', aut).group(1)
+                        # lists of authors' IDs
+                        for id in aut_id_list:
+                            if id not in iddict:
+                                idct = idct + 1
+                                iddict[id] = idct
+                    else:
+                        aut_id_list = list()
+                    if aut_id:
+                        author_name = re.search(r'(.*?)\s*\[.*?\]', aut).group(1)
+                    else:
+                        author_name= row["author"]
 
                     if author_name in radict:
                         autnewid = "meta:ra/" + str(radict[author_name])
@@ -80,14 +94,20 @@ class converter():
 
 
             if row["venue"]:
-                venue_id = re.search(r'\[\s*(.*?)\s*\]', row["venue"]).group(1)
-                venue_id_list = re.split(r'\s*;\s*', venue_id)
-                for id in venue_id_list:
-                    if id not in iddict:
-                        idct = idct + 1
-                        iddict[id] = idct
-
-                ven = re.search(r'(.*?)\s*\[.*?\]', row["venue"]).group(1)
+                venue_id = re.search(r'\[\s*(.*?)\s*\]', row["venue"])
+                if venue_id:
+                    venue_id= venue_id.group(1)
+                    venue_id_list = re.split(r'\s*;\s*', venue_id)
+                    for id in venue_id_list:
+                        if id not in iddict:
+                            idct = idct + 1
+                            iddict[id] = idct
+                else:
+                   venue_id_list = list()
+                if venue_id:
+                    ven = re.search(r'(.*?)\s*\[.*?\]', row["venue"]).group(1)
+                else:
+                    ven = row["venue"]
                 if ven in brdict:
                     vennewid = "meta:br/" + str(brdict[ven]["id"])
                     venue_id_list.append(vennewid)
@@ -139,15 +159,20 @@ class converter():
 
 
             if row["publisher"]:
-                pub_id = re.search(r'\[\s*(.*?)\s*\]', row["publisher"]).group(1)
-                pub_id_list = re.split(r'\s*;\s*', pub_id)
-                for id in pub_id_list:
-                    if id not in iddict:
-                        idct = idct + 1
-                        iddict[id] = idct
-
-
-                pub = re.search(r'(.*?)\s*\[.*?\]', row["publisher"]).group(1)
+                pub_id = re.search(r'\[\s*(.*?)\s*\]', row["publisher"])
+                if pub_id:
+                    pub_id = pub_id.group(1)
+                    pub_id_list = re.split(r'\s*;\s*', pub_id)
+                    for id in pub_id_list:
+                        if id not in iddict:
+                            idct = idct + 1
+                            iddict[id] = idct
+                else:
+                    pub_id_list = list()
+                if pub_id:
+                    pub = re.search(r'(.*?)\s*\[.*?\]', row["publisher"]).group(1)
+                else:
+                    pub = row["publisher"]
                 if pub in radict:
                     pubnewid = "meta:ra/" + str(radict[pub])
                     pub_id_list.append(pubnewid)

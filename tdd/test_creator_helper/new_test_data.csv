@@ -5,3 +5,6 @@ doi:10.001/B-3; wikidata:B1111113 ; wikidata:B3	TITLE3	Name1, Surname1 [orcid:00
 doi:10.00665	TITLE4	Name2, Surname2 [orcid:0000-0002; viaf:222222; wikidata:Q2222222]	1993	venue2[issn:1112; issn:11113]	4		680-731	book chapter	pub2[crossref:1112]
 doi:10.00222	TITLE5	Name3, Surname3 [orcid:0000-0003; viaf:1111113; wikidata:Q1111113; wikidata:11111113]	2001	venue3[issn:1114]	8	4-5	201-231	journal article	pub1 [crossref:1111]
 doi:10.00211; wikidata:B5	TITLE6	Name4, Surname4 [orcid:0000-0004]	1995	venue1 [isbn:1111]		7-8	279-302	journal article	pub1 [crossref:1111]
+doi:10.001/B-1; wikidata:B1111111 ; doi:10.0001/2	TITLE1	Name1, Surname1 [orcid:0000-0001; viaf:1111111; wikidata:Q1111111; wikidata:11111112]; Name2, Surname2 [orcid:0000-0002; viaf:222222; wikidata:Q2222222]	1995-06	venue1 [isbn:1111]	6	5-6	266-278	journal article	pub1 [crossref:1111]
+pmid:11111111; pmcid:PMC1111111; url:www.example.com	TITLE2	Name3, Surname3 [orcid:0000-0003; viaf:1111113; wikidata:Q1111113; wikidata:11111113]; Name2, Surname2 [orcid:0000-0002; viaf:222222; wikidata:Q2222222]	1993-01-19	venue2[issn:1112; issn:11113]	6		732-784	book chapter	pub2[crossref:1112]
+	TITLE6	NameX, SurnameX	1995	venueX		7-8	279-302	journal article	pubX

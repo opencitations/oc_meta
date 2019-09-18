@@ -2,11 +2,17 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="d2b23c46-2db9-4b25-a89e-e1906277cf0f" name="Default" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change beforePath="$PROJECT_DIR$/converter.py" afterPath="$PROJECT_DIR$/converter.py" />
-      <change beforePath="$PROJECT_DIR$/migrator.py" afterPath="$PROJECT_DIR$/migrator.py" />
+      <change beforePath="$PROJECT_DIR$/tdd/counter/ar.txt" afterPath="$PROJECT_DIR$/tdd/counter/ar.txt" />
+      <change beforePath="$PROJECT_DIR$/tdd/counter/re.txt" afterPath="$PROJECT_DIR$/tdd/counter/re.txt" />
       <change beforePath="$PROJECT_DIR$/tdd/migrator_TDD.py" afterPath="$PROJECT_DIR$/tdd/migrator_TDD.py" />
       <change beforePath="$PROJECT_DIR$/tdd/test_creator_helper/csv_creator.py" afterPath="$PROJECT_DIR$/tdd/test_creator_helper/csv_creator.py" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_03_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_03_data.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/test_creator_helper/new_test_data.csv" afterPath="$PROJECT_DIR$/tdd/test_creator_helper/new_test_data.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/test_creator_helper/rdf_creator.py" afterPath="$PROJECT_DIR$/tdd/test_creator_helper/rdf_creator.py" />
+      <change beforePath="$PROJECT_DIR$/tdd/test_data.csv" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_01_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_01_data.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_02_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_02_data.csv" />
       <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_X_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_X_data.csv" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -21,8 +27,8 @@
       <file leaf-file-name="migrator.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/migrator.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="539">
-              <caret line="362" column="0" lean-forward="false" selection-start-line="362" selection-start-column="0" selection-end-line="362" selection-end-column="0" />
+            <state relative-caret-position="486">
+              <caret line="296" column="38" lean-forward="false" selection-start-line="296" selection-start-column="38" selection-end-line="296" selection-end-column="38" />
               <folding>
                 <element signature="e#0#22#0" expanded="true" />
               </folding>
@@ -33,8 +39,8 @@
       <file leaf-file-name="rdf_creator.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/tdd/test_creator_helper/rdf_creator.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="252">
-              <caret line="12" column="0" lean-forward="false" selection-start-line="12" selection-start-column="0" selection-end-line="12" selection-end-column="0" />
+            <state relative-caret-position="337">
+              <caret line="52" column="49" lean-forward="false" selection-start-line="52" selection-start-column="49" selection-end-line="52" selection-end-column="49" />
               <folding>
                 <element signature="e#0#22#0" expanded="true" />
               </folding>
@@ -55,8 +61,8 @@
       <file leaf-file-name="csv_creator.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/tdd/test_creator_helper/csv_creator.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="314">
-              <caret line="39" column="57" lean-forward="false" selection-start-line="39" selection-start-column="57" selection-end-line="39" selection-end-column="57" />
+            <state relative-caret-position="442">
+              <caret line="90" column="5" lean-forward="false" selection-start-line="90" selection-start-column="5" selection-end-line="90" selection-end-column="5" />
               <folding />
             </state>
           </provider>
@@ -65,8 +71,8 @@
       <file leaf-file-name="converter.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/converter.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="318">
-              <caret line="160" column="50" lean-forward="false" selection-start-line="160" selection-start-column="38" selection-end-line="160" selection-end-column="50" />
+            <state relative-caret-position="294">
+              <caret line="50" column="0" lean-forward="false" selection-start-line="50" selection-start-column="0" selection-end-line="50" selection-end-column="0" />
               <folding />
             </state>
           </provider>
@@ -75,8 +81,8 @@
       <file leaf-file-name="migrator_TDD.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/tdd/migrator_TDD.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="161">
-              <caret line="91" column="0" lean-forward="true" selection-start-line="91" selection-start-column="0" selection-end-line="91" selection-end-column="0" />
+            <state relative-caret-position="108">
+              <caret line="122" column="35" lean-forward="false" selection-start-line="122" selection-start-column="35" selection-end-line="122" selection-end-column="35" />
               <folding>
                 <element signature="e#0#15#0" expanded="true" />
               </folding>
@@ -87,8 +93,8 @@
       <file leaf-file-name="graphlib.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/graphlib.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="196">
-              <caret line="565" column="28" lean-forward="false" selection-start-line="565" selection-start-column="0" selection-end-line="566" selection-end-column="0" />
+            <state relative-caret-position="10969">
+              <caret line="574" column="70" lean-forward="false" selection-start-line="574" selection-start-column="70" selection-end-line="574" selection-end-column="70" />
               <folding>
                 <element signature="e#850#893#0" expanded="true" />
               </folding>
@@ -139,18 +145,19 @@
     <option name="CHANGED_PATHS">
       <list>
         <option value="$PROJECT_DIR$/graphlib.py" />
-        <option value="$PROJECT_DIR$/tdd/test_creator_helper/csv_creator.py" />
         <option value="$PROJECT_DIR$/testa.py" />
-        <option value="$PROJECT_DIR$/converter.py" />
-        <option value="$PROJECT_DIR$/migrator.py" />
         <option value="$PROJECT_DIR$/tdd/migrator_TDD.py" />
+        <option value="$PROJECT_DIR$/tdd/test_creator_helper/csv_creator.py" />
+        <option value="$PROJECT_DIR$/migrator.py" />
+        <option value="$PROJECT_DIR$/tdd/test_creator_helper/rdf_creator.py" />
+        <option value="$PROJECT_DIR$/converter.py" />
       </list>
     </option>
   </component>
   <component name="ProjectFrameBounds" extendedState="6">
-    <option name="x" value="-8" />
-    <option name="width" value="976" />
-    <option name="height" value="1038" />
+    <option name="x" value="1057" />
+    <option name="width" value="881" />
+    <option name="height" value="710" />
   </component>
   <component name="ProjectView">
     <navigator currentView="ProjectPane" proportions="" version="1">
@@ -272,6 +279,24 @@
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
     </configuration>
+    <configuration name="rdf_creator" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tdd/test_creator_helper" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="meta" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/tdd/test_creator_helper/rdf_creator.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+    </configuration>
     <configuration name="testa" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -290,16 +315,18 @@
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
     </configuration>
-    <list size="3">
+    <list size="4">
       <item index="0" class="java.lang.String" itemvalue="Python.migrator_TDD" />
       <item index="1" class="java.lang.String" itemvalue="Python.csv_creator" />
       <item index="2" class="java.lang.String" itemvalue="Python.testa" />
+      <item index="3" class="java.lang.String" itemvalue="Python.rdf_creator" />
     </list>
     <recent_temporary>
-      <list size="3">
+      <list size="4">
         <item index="0" class="java.lang.String" itemvalue="Python.migrator_TDD" />
-        <item index="1" class="java.lang.String" itemvalue="Python.csv_creator" />
-        <item index="2" class="java.lang.String" itemvalue="Python.testa" />
+        <item index="1" class="java.lang.String" itemvalue="Python.rdf_creator" />
+        <item index="2" class="java.lang.String" itemvalue="Python.csv_creator" />
+        <item index="3" class="java.lang.String" itemvalue="Python.testa" />
       </list>
     </recent_temporary>
   </component>
@@ -321,11 +348,10 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="-9" y="-9" width="1938" height="1048" extended-state="6" />
-    <editor active="true" />
     <layout>
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="true" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.2609209" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.2609209" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
@@ -350,7 +376,7 @@
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="true" content_ui="tabs" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.2609209" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.2609209" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
@@ -375,26 +401,6 @@
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/graphlib.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="196">
-          <caret line="565" column="28" lean-forward="false" selection-start-line="565" selection-start-column="0" selection-end-line="566" selection-end-column="0" />
-          <folding>
-            <element signature="e#850#893#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/tdd/test_creator_helper/rdf_creator.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="252">
-          <caret line="12" column="0" lean-forward="false" selection-start-line="12" selection-start-column="0" selection-end-line="12" selection-end-column="0" />
-          <folding>
-            <element signature="e#0#22#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/tdd/test_creator_helper/index3.txt">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
@@ -411,6 +417,26 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/graphlib.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="10969">
+          <caret line="574" column="70" lean-forward="false" selection-start-line="574" selection-start-column="70" selection-end-line="574" selection-end-column="70" />
+          <folding>
+            <element signature="e#850#893#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/migrator.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="486">
+          <caret line="296" column="38" lean-forward="false" selection-start-line="296" selection-start-column="38" selection-end-line="296" selection-end-column="38" />
+          <folding>
+            <element signature="e#0#22#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/tdd/test_creator_helper/new_test_data.csv">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="147">
@@ -421,24 +447,24 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/tdd/test_creator_helper/csv_creator.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="314">
-          <caret line="39" column="57" lean-forward="false" selection-start-line="39" selection-start-column="57" selection-end-line="39" selection-end-column="57" />
+        <state relative-caret-position="442">
+          <caret line="90" column="5" lean-forward="false" selection-start-line="90" selection-start-column="5" selection-end-line="90" selection-end-column="5" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/converter.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="318">
-          <caret line="160" column="50" lean-forward="false" selection-start-line="160" selection-start-column="38" selection-end-line="160" selection-end-column="50" />
+        <state relative-caret-position="294">
+          <caret line="50" column="0" lean-forward="false" selection-start-line="50" selection-start-column="0" selection-end-line="50" selection-end-column="0" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/migrator.py">
+    <entry file="file://$PROJECT_DIR$/tdd/test_creator_helper/rdf_creator.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="539">
-          <caret line="362" column="0" lean-forward="false" selection-start-line="362" selection-start-column="0" selection-end-line="362" selection-end-column="0" />
+        <state relative-caret-position="337">
+          <caret line="52" column="49" lean-forward="false" selection-start-line="52" selection-start-column="49" selection-end-line="52" selection-end-column="49" />
           <folding>
             <element signature="e#0#22#0" expanded="true" />
           </folding>
@@ -447,8 +473,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/tdd/migrator_TDD.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="161">
-          <caret line="91" column="0" lean-forward="true" selection-start-line="91" selection-start-column="0" selection-end-line="91" selection-end-column="0" />
+        <state relative-caret-position="108">
+          <caret line="122" column="35" lean-forward="false" selection-start-line="122" selection-start-column="35" selection-end-line="122" selection-end-column="35" />
           <folding>
             <element signature="e#0#15#0" expanded="true" />
           </folding>
