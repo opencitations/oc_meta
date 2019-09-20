@@ -134,7 +134,22 @@ class testcase_05 (unittest.TestCase):
             new_graph5 = migrator5.final_graph
             self.assertEqual(compare.isomorphic(new_graph5, test_graph5), True)
 
+class testcase_06 (unittest.TestCase):
 
+    def test (self):
+        # testcase6: ALL types test
+        with open("testcases/testcase_data/testcase_06_data.csv", 'r', encoding='utf-8') as csvfile:
+            reader = csv.DictReader(csvfile)
+            data6 = [dict(x) for x in reader]
+
+            migrator6 = Migrator(data6, "testcases/testcase_data/indices/index6.txt")
+
+            test_graph6 = Graph()
+            hack_dates()
+            test_graph6 = test_graph6.parse("testcases/testcase_06.ttl", format="ttl")
+
+            new_graph6 = migrator6.final_graph
+            self.assertEqual(compare.isomorphic(new_graph6, test_graph6), True)
 
 
 def suite(testobj):
@@ -143,7 +158,7 @@ def suite(testobj):
     return test_suite
 
 
-TestSuit=suite(testcase_05)
+TestSuit=suite(testcase_06)
 
 runner=unittest.TextTestRunner()
 runner.run(TestSuit)

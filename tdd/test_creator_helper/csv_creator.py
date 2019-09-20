@@ -88,4 +88,16 @@ def test5(newdata):
         dict_writer.writerows(newcleandata5)
 
 
-test5(newdata)
+def test6(newdata):
+    # testcase6: ALL types test
+    partial_data6= newdata[9:32]
+    newcleandata6 = converter(partial_data6, "index6.txt").newdata
+    keys = newcleandata6[0].keys()
+
+    with open('testcase_06_data.csv', 'w', newline='') as output_file:
+        dict_writer = csv.DictWriter(output_file, keys)
+        dict_writer.writeheader()
+        dict_writer.writerows(newcleandata6)
+
+
+test6(newdata)

@@ -229,40 +229,57 @@ class Migrator():
 
 
     def type_job (self, type):
-        if type == "academic proceedings":
-            self.br_graph.create_proceedings()
-        elif type == "book":
+        #if type == "archival document":
+            #TODO
+        if type == "book":
             self.br_graph.create_book()
         elif type == "book chapter":
             self.br_graph.create_book_chapter()
+        elif type == "book part":
+            self.br_graph.create_book_part()
+        elif type == "book section":
+            self.br_graph.create_book_section()
         elif type == "book series":
             self.br_graph.create_book_series()
         elif type == "book set":
             self.br_graph.create_book_set()
+        elif type == "book track":
+            self.br_graph.create_book_track()
+        elif type == "component":
+            self.br_graph.create_component()
         elif type == "data file":
             self.br_graph.create_dataset()
+        elif type == "dissertation":
+            self.br_graph.create_dissertation()
+        elif type == "edited book":
+            self.br_graph.create_edited_book()
         elif type == "journal":
             self.br_graph.create_journal()
         elif type == "journal article":
             self.br_graph.create_journal_article()
         elif type == "journal issue":
-            self.br_graph.create_journal_issue()
+            self.br_graph.create_issue()
         elif type == "journal volume":
-            self.br_graph.create_journal_volume()
-        elif type == "proceedings paper":
+            self.br_graph.create_volume()
+        elif type == "monograph":
+            self.br_graph.create_monograph()
+        elif type == "proceedings article":
             self.br_graph.create_proceedings_article()
+        elif type == "proceedings":
+            self.br_graph.create_proceedings()
         elif type == "reference book":
             self.br_graph.create_reference_book()
         elif type == "reference entry":
             self.br_graph.create_reference_entry()
-        elif type == "journal article":
-            self.br_graph.create_journal_article()
-        elif type == "report document":
+        elif type == "report series":
+            self.br_graph.create_report_series()
+        elif type == "report":
             self.br_graph.create_report()
-        elif type == "specification document":
+        elif type == "standard":
             self.br_graph.create_standard()
-        elif type == "thesis":
-            self.br_graph.create_dissertation()
+        elif type == "standard series":
+            self.br_graph.create_standard_series()
+
 
 
 

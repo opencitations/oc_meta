@@ -54,5 +54,15 @@ def test5():
     new_graph5 = migrator_processed4.final_graph
     new_graph5.serialize(destination='testcase_05.ttl', format='ttl')
 
+def test6():
+    # testcase6: ALL types test
+    with open("testcase_06_data.csv", 'r', encoding='utf-8') as csvfile6:
+        reader = csv.DictReader(csvfile6)
+        data6 = [dict(x) for x in reader]
 
-test5()
+    migrator_processed6 = Migrator(data6, "index6.txt")
+    new_graph6 = migrator_processed6.final_graph
+    new_graph6.serialize(destination='testcase_06.ttl', format='ttl')
+
+
+test6()
