@@ -49,7 +49,8 @@
     ns7:isHeldBy <https://w3id.org/OC/meta/ra/2> ;
     ns7:withRole ns7:publisher .
 
-<https://w3id.org/OC/meta/br/2> a ns8:Expression ;
+<https://w3id.org/OC/meta/br/2> a ns8:Expression,
+        ns8:Journal ;
     ns6:title "venue3" ;
     ns3:hasIdentifier <https://w3id.org/OC/meta/id/8> .
 

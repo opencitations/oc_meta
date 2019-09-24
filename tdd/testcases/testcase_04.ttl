@@ -36,7 +36,7 @@
         <https://w3id.org/OC/meta/ar/5>,
         <https://w3id.org/OC/meta/ar/6> ;
     ns6:embodiment <https://w3id.org/OC/meta/re/2> ;
-    ns6:partOf <https://w3id.org/OC/meta/br/7> .
+    ns6:partOf <https://w3id.org/OC/meta/br/6> .
 
 <https://w3id.org/OC/meta/ar/1> a ns3:RoleInTime ;
     ns3:isHeldBy <https://w3id.org/OC/meta/ra/1> ;
@@ -56,7 +56,8 @@
     ns3:isHeldBy <https://w3id.org/OC/meta/ra/5> ;
     ns3:withRole ns3:publisher .
 
-<https://w3id.org/OC/meta/br/2> a ns7:Expression ;
+<https://w3id.org/OC/meta/br/2> a ns7:Expression,
+        ns7:Journal ;
     ns8:title "venue1" ;
     ns1:hasIdentifier <https://w3id.org/OC/meta/id/11> .
 
@@ -70,15 +71,11 @@
     ns7:hasSequenceIdentifier "5-6" ;
     ns6:partOf <https://w3id.org/OC/meta/br/3> .
 
-<https://w3id.org/OC/meta/br/6> a ns7:Expression ;
+<https://w3id.org/OC/meta/br/6> a ns7:Expression,
+        ns7:Book ;
     ns8:title "venue2" ;
     ns1:hasIdentifier <https://w3id.org/OC/meta/id/20>,
         <https://w3id.org/OC/meta/id/21> .
-
-<https://w3id.org/OC/meta/br/7> a ns7:Expression,
-        ns7:JournalVolume ;
-    ns7:hasSequenceIdentifier "6" ;
-    ns6:partOf <https://w3id.org/OC/meta/br/6> .
 
 <https://w3id.org/OC/meta/id/1> a ns1:Identifier ;
     ns1:usesIdentifierScheme ns1:doi ;

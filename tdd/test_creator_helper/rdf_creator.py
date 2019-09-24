@@ -7,7 +7,7 @@ def test1():
         reader = csv.DictReader(csvfile1)
         data1 = [dict(x) for x in reader]
 
-    migrator_processed1 = Migrator(data1, "index1.txt")
+    migrator_processed1 = Migrator(data1, "index1_ra.csv", "index1_br.csv")
     new_graph1 = migrator_processed1.final_graph
     new_graph1.serialize(destination='testcase_01.ttl', format='ttl')
 
@@ -19,7 +19,7 @@ def test2():
         reader = csv.DictReader(csvfile2)
         data2 = [dict(x) for x in reader]
 
-    migrator_processed2 = Migrator(data2, "index2.txt")
+    migrator_processed2 = Migrator(data2, "index2_ra.csv", "index2_br.csv")
     new_graph2 = migrator_processed2.final_graph
     new_graph2.serialize(destination='testcase_02.ttl', format='ttl')
 
@@ -30,7 +30,7 @@ def test3():
         reader = csv.DictReader(csvfile3)
         data3 = [dict(x) for x in reader]
 
-    migrator_processed3 = Migrator(data3, "index3.txt")
+    migrator_processed3 = Migrator(data3, "index3_ra.csv", "index3_br.csv")
     new_graph3 = migrator_processed3.final_graph
     new_graph3.serialize(destination='testcase_03.ttl', format='ttl')
 
@@ -40,7 +40,7 @@ def test4():
         reader = csv.DictReader(csvfile4)
         data4 = [dict(x) for x in reader]
 
-    migrator_processed4 = Migrator(data4, "index4.txt")
+    migrator_processed4 = Migrator(data4, "index4_ra.csv", "index4_br.csv")
     new_graph4 = migrator_processed4.final_graph
     new_graph4.serialize(destination='testcase_04.ttl', format='ttl')
 
@@ -50,7 +50,7 @@ def test5():
         reader = csv.DictReader(csvfile4)
         data5 = [dict(x) for x in reader]
 
-    migrator_processed4 = Migrator(data5, "index5.txt")
+    migrator_processed4 = Migrator(data5, "index5_ra.csv", "index5_br.csv")
     new_graph5 = migrator_processed4.final_graph
     new_graph5.serialize(destination='testcase_05.ttl', format='ttl')
 
@@ -60,9 +60,50 @@ def test6():
         reader = csv.DictReader(csvfile6)
         data6 = [dict(x) for x in reader]
 
-    migrator_processed6 = Migrator(data6, "index6.txt")
+    migrator_processed6 = Migrator(data6, "index6_ra.csv", "index6_br.csv")
     new_graph6 = migrator_processed6.final_graph
     new_graph6.serialize(destination='testcase_06.ttl', format='ttl')
 
+def test7():
+    # testcase7: archival document in an archival document set
+    with open("testcase_07_data.csv", 'r', encoding='utf-8') as csvfile:
+        reader = csv.DictReader(csvfile, delimiter="\t")
+        data = [dict(x) for x in reader]
 
-test6()
+    migrator_processed = Migrator(data, "index7_ra.csv", "index7_br.csv")
+    new_graph = migrator_processed.final_graph
+    new_graph.serialize(destination='testcase_07.ttl', format='ttl')
+
+def test8():
+    # testcase8: all journal related types with an editor
+    with open("testcase_08_data.csv", 'r', encoding='utf-8') as csvfile:
+        reader = csv.DictReader(csvfile, delimiter="\t")
+        data = [dict(x) for x in reader]
+
+    migrator_processed = Migrator(data, "index8_ra.csv", "index8_br.csv")
+    new_graph = migrator_processed.final_graph
+    new_graph.serialize(destination='testcase_08.ttl', format='ttl')
+
+def test9():
+    # testcase9: all book related types with an editor
+    with open("testcase_09_data.csv", 'r', encoding='utf-8') as csvfile:
+        reader = csv.DictReader(csvfile, delimiter="\t")
+        data = [dict(x) for x in reader]
+
+    migrator_processed = Migrator(data, "index9_ra.csv", "index9_br.csv")
+    new_graph = migrator_processed.final_graph
+    new_graph.serialize(destination='testcase_09.ttl', format='ttl')
+
+
+def test10():
+    # testcase10: all proceeding related types with an editor
+    with open("testcase_10_data.csv", 'r', encoding='utf-8') as csvfile:
+        reader = csv.DictReader(csvfile, delimiter="\t")
+        data = [dict(x) for x in reader]
+
+    migrator_processed = Migrator(data, "index10_ra.csv", "index10_br.csv")
+    new_graph = migrator_processed.final_graph
+    new_graph.serialize(destination='testcase_10.ttl', format='ttl')
+
+
+test10()

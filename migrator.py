@@ -1,70 +1,18 @@
 from graphlib import *
-import re
+import re, csv
 
 class Migrator():
-    def __init__(self, data, txtindex):
+    def __init__(self, data, ra_index_csv, br_index_csv):
         self.url = "https://w3id.org/OC/meta/"
 
         self.setgraph = GraphSet(self.url, "", "counter/")
 
-        self.index = dict()
-        self.index['crossref'] = dict()
-        self.index["doi"] = dict()
-        self.index["issn"] = dict()
-        self.index["isbn"] = dict()
-        self.index["orcid"] = dict()
-        self.index["pmid"] = dict()
-        self.index['pmcid'] = dict()
-        self.index['url'] = dict()
-        self.index['viaf'] = dict()
-        self.index['wikidata'] = dict()
 
+        self.ra_index = dict()
+        self.indexer(ra_index_csv, self.ra_index)
 
-
-        with open(txtindex) as file:
-            id_index = file.read().splitlines()
-            for line in id_index:
-                values = line.split(" , ")
-
-                if 'crossref' in line:
-                    id = values[0].replace('crossref:', '')
-                    self.index['crossref'][id] = values[1]
-
-                elif "doi" in line:
-                    id = values[0].replace('doi:', '')
-                    self.index['doi'][id] = values[1]
-
-                elif "issn" in line:
-                    id = values[0].replace('issn:', '')
-                    self.index['issn'][id] = values[1]
-
-                elif "isbn" in line:
-                    id = values[0].replace('isbn:', '')
-                    self.index['isbn'][id] = values[1]
-
-                elif "orcid" in line:
-                    id = values[0].replace('orcid:', '')
-                    self.index['orcid'][id] = values[1]
-
-                elif "pmid" in line:
-                    id = values[0].replace('pmid:', '')
-                    self.index['pmid'][id] = values[1]
-
-                elif "pmcid" in line:
-                    id = values[0].replace('pmcid:', '')
-                    self.index['pmcid'][id] = values[1]
-
-                elif "url" in line:
-                    id = values[0].replace('url:', '')
-                    self.index['url'][id] = values[1]
-
-                elif "viaf" in line:
-                    id = values[0].replace('viaf:', '')
-                    self.index['viaf'][id] = values[1]
-
-                elif "wikidata" in line:
-                    id = values[0].replace('wikidata:', '')
-                    self.index['wikidata'][id] = values[1]
+        self.br_index = dict()
+        self.indexer(br_index_csv, self.br_index)
 
 
         for row in data:
@@ -76,8 +24,14 @@ class Migrator():
             vol = row['volume']
             issue = row['issue']
             page = row['page']
-            type = row['type']
+            self.type = row['type']
             publisher = row['publisher']
+            editor = row['editor']
+
+
+            self.venue_graph = None
+            self.vol_graph = None
+            self.issue_graph = None
 
             self.id_job(ids)
             self.title_job(title)
@@ -85,14 +39,75 @@ class Migrator():
             self.pub_date_job(pub_date)
             self.venue_job(venue, vol, issue)
             self.page_job(page)
-            self.type_job(type)
-            self.publisher_job(publisher)
+            self.type_job(self.type)
+            if publisher:
+                self.publisher_job(publisher)
+            if editor:
+                self.editor_job(editor)
+
 
         self.final_graph = Graph()
         for g in self.setgraph.graphs():
             self.final_graph += g
 
+    def indexer(self, csv_index, index):
+        index['crossref'] = dict()
+        index["doi"] = dict()
+        index["issn"] = dict()
+        index["isbn"] = dict()
+        index["orcid"] = dict()
+        index["pmid"] = dict()
+        index['pmcid'] = dict()
+        index['url'] = dict()
+        index['viaf'] = dict()
+        index['wikidata'] = dict()
 
+
+        with open(csv_index, 'r', encoding='utf-8') as csvfile:
+            reader = csv.DictReader(csvfile, delimiter=",")
+            id_index = [dict(x) for x in reader]
+
+            for row in id_index:
+
+                if 'crossref' in row["id"]:
+                    id = row["id"].replace('crossref:', '')
+                    index['crossref'][id] = row["meta"]
+
+                elif "doi" in row["id"]:
+                    id = row["id"].replace('doi:', '')
+                    index['doi'][id] = row["meta"]
+
+                elif "issn" in row["id"]:
+                    id = row["id"].replace('issn:', '')
+                    index['issn'][id] = row["meta"]
+
+                elif "isbn" in row["id"]:
+                    id = row["id"].replace('isbn:', '')
+                    index['isbn'][id] = row["meta"]
+
+                elif "orcid" in row["id"]:
+                    id = row["id"].replace('orcid:', '')
+                    index['orcid'][id] = row["meta"]
+
+                elif "pmid" in row["id"]:
+                    id = row["id"].replace('pmid:', '')
+                    index['pmid'][id] = row["meta"]
+
+                elif "pmcid" in row["id"]:
+                    id = row["id"].replace('pmcid:', '')
+                    index['pmcid'][id] = row["meta"]
+
+                elif "url" in row["id"]:
+                    id = row["id"].replace('url:', '')
+                    index['url'][id] = row["meta"]
+
+                elif "viaf" in row["id"]:
+                    id = row["id"].replace('viaf:', '')
+                    index['viaf'][id] = row["meta"]
+
+                elif "wikidata" in row["id"]:
+                    id = row["id"].replace('wikidata:', '')
+                    index['wikidata'][id] = row["meta"]
 
     def id_job (self, ids):
         idslist = re.split(r'\s*;\s*', ids)
@@ -105,7 +120,7 @@ class Migrator():
                 self.br_graph = self.setgraph.add_br("agent", source_agent=None, source=None, res=url, wanted_type = True)
 
         for id in idslist:
-            self.id_creator(self.br_graph, id)
+            self.id_creator(self.br_graph, id, ra=False)
 
     def title_job (self, title):
         self.br_graph.create_title(title)
@@ -133,7 +148,7 @@ class Migrator():
 
         # lists of authors' IDs
             for id in aut_id_list:
-                self.id_creator(pub_aut, id)
+                self.id_creator(pub_aut, id, ra=True)
 
         # authorRole
             pub_aut_role = self.setgraph.add_ar("agent", source_agent=None, source=None, res=None, wanted_label = False)
@@ -165,13 +180,28 @@ class Migrator():
                     id = id.replace("meta:", "")
                     url = URIRef(self.url + id)
                     venue_title = re.search(r'(.*?)\s*\[.*?\]', venue).group(1)
-                    venue_graph = self.setgraph.add_br("agent", source_agent=None, source=None, res=url, wanted_type = True)
-                    venue_graph.create_title(venue_title)
+                    self.venue_graph = self.setgraph.add_br("agent", source_agent=None, source=None, res=url, wanted_type = True)
+                    if self.type == "journal article" or self.type == "journal volume" or self.type == "journal issue":
+                        self.venue_graph.create_journal()
+                    elif self.type == "book chapter" or self.type == "book part":
+                        self.venue_graph.create_book()
+                    elif self.type == "proceedings article":
+                        self.venue_graph.create_proceedings()
+                    elif self.type == "archival document":
+                        self.venue_graph.create_archival_document_set()
+                    elif self.type == "report":
+                        self.venue_graph.create_report_series()
+                    elif self.type == "standard":
+                        self.venue_graph.create_standard_series()
+
+
+
+                    self.venue_graph.create_title(venue_title)
 
             for id in venue_id_list:
-                self.id_creator(venue_graph, id)
+                self.id_creator(self.venue_graph, id, ra=False)
 
-        if vol:
+        if (self.type == "journal article" or self.type == "journal issue") and vol:
             vol_id = re.search(r'\[\s*(.*?)\s*\]', vol).group(1)
             vol_id_list = re.split(r'\s*;\s*', vol_id)
 
@@ -179,13 +209,13 @@ class Migrator():
                 if "meta:" in id:
                     id = id.replace("meta:", "")
                     url = URIRef(self.url + id)
-                    vol_graph = self.setgraph.add_br("agent", source_agent=None, source=None, res=url, wanted_type = True)
+                    self.vol_graph = self.setgraph.add_br("agent", source_agent=None, source=None, res=url, wanted_type = True)
                     vol_title = re.search(r'(.*?)\s*\[.*?\]', vol).group(1)
-                    vol_graph.create_volume()
-                    vol_graph.create_number(vol_title)
+                    self.vol_graph.create_volume()
+                    self.vol_graph.create_number(vol_title)
 
 
-        if issue:
+        if self.type == "journal article" and issue:
             issue_id = re.search(r'\[\s*(.*?)\s*\]', issue).group(1)
             issue_id_list = re.split(r'\s*;\s*', issue_id)
 
@@ -193,30 +223,35 @@ class Migrator():
                 if "meta:" in id:
                     id = id.replace("meta:", "")
                     url = URIRef(self.url + id)
-                    issue_graph = self.setgraph.add_br("agent", source_agent=None, source=None, res=url, wanted_type = True)
+                    self.issue_graph = self.setgraph.add_br("agent", source_agent=None, source=None, res=url, wanted_type = True)
                     issue_title = re.search(r'(.*?)\s*\[.*?\]', issue).group(1)
-                    issue_graph.create_issue()
-                    issue_graph.create_number(issue_title)
+                    self.issue_graph.create_issue()
+                    self.issue_graph.create_number(issue_title)
 
         if venue and vol and issue:
-            issue_graph.has_part(self.br_graph)
-            vol_graph.has_part(issue_graph)
-            venue_graph.has_part(vol_graph)
-        elif venue and not vol and issue:
-            issue_graph.has_part(self.br_graph)
-            venue_graph.has_part(issue_graph)
+            self.issue_graph.has_part(self.br_graph)
+            self.vol_graph.has_part(self.issue_graph)
+            self.venue_graph.has_part(self.vol_graph)
+
         elif venue and vol and not issue:
-            vol_graph.has_part(self.br_graph)
-            venue_graph.has_part(vol_graph)
-        elif not venue and vol and issue:
-            issue_graph.has_part(self.br_graph)
-            vol_graph.has_part(issue_graph)
+            self.vol_graph.has_part(self.br_graph)
+            self.venue_graph.has_part(self.vol_graph)
+
         elif venue and not vol and not issue:
-            venue_graph.has_part(self.br_graph)
-        elif not venue and vol and not issue:
-            vol_graph.has_part(self.br_graph)
-        elif not venue and not vol and issue:
-            issue_graph.has_part(self.br_graph)
+            self.venue_graph.has_part(self.br_graph)
+
+        elif venue and not vol and issue:
+            self.issue_graph.has_part(self.br_graph)
+            self.venue_graph.has_part(self.issue_graph)
+
+        #elif not venue and vol and issue:
+        #    issue_graph.has_part(self.br_graph)
+        #    vol_graph.has_part(issue_graph)
+
+        #elif not venue and vol and not issue:
+        #    vol_graph.has_part(self.br_graph)
+        #elif not venue and not vol and issue:
+        #    issue_graph.has_part(self.br_graph)
 
 
     def page_job (self, page):
@@ -229,9 +264,9 @@ class Migrator():
 
 
     def type_job (self, type):
-        #if type == "archival document":
-            #TODO
-        if type == "book":
+        if type == "archival document":
+            self.br_graph.create_archival_document()
+        elif type == "book":
             self.br_graph.create_book()
         elif type == "book chapter":
             self.br_graph.create_book_chapter()
@@ -297,85 +332,143 @@ class Migrator():
                 publ.create_name(publ_name)
 
         for id in publ_id_list:
-            self.id_creator(publ, id)
+            self.id_creator(publ, id, ra = True)
 
-        # authorRole
+        # publisherRole
         publ_role = self.setgraph.add_ar("agent", source_agent=None, source=None, res=None, wanted_label=False)
         publ_role.create_publisher(self.br_graph)
         publ.has_role(publ_role)
 
+    def editor_job (self, editor):
+        editorslist = re.split(r'\s*;\s*(?=[^]]*(?:\[|$))', editor)
+
+        edit_role_list = list()
+        for ed in editorslist:
+            ed_id = re.search(r'\[\s*(.*?)\s*\]', ed).group(1)
+            ed_id_list = re.split(r'\s*;\s*', ed_id)
+
+            for id in ed_id_list:
+                if "meta:" in id:
+                    id = id.replace("meta:", "")
+                    url = URIRef(self.url + id)
+                    pub_ed = self.setgraph.add_ra("agent", source_agent=None, source=None, res=url, wanted_type = True)
+                    editor_name = re.search(r'(.*?)\s*\[.*?\]', ed).group(1)
+                    editor_name_splitted = re.split(r'\s*,\s*', editor_name)
+                    firstName = editor_name_splitted[1]
+                    lastName = editor_name_splitted[0]
+                    pub_ed.create_given_name(firstName)
+                    pub_ed.create_family_name(lastName)
+
+        # lists of editor's IDs
+            for id in ed_id_list:
+                self.id_creator(pub_ed, id, ra=True)
+
+        # editorRole
+            pub_ed_role = self.setgraph.add_ar("agent", source_agent=None, source=None, res=None, wanted_label = False)
+
+            if self.type == "journal article" and self.issue_graph:
+                pub_ed_role.create_editor(self.issue_graph)
+            elif self.type == "journal article" and not self.issue_graph and self.vol_graph:
+                pub_ed_role.create_editor(self.vol_graph)
+            elif self.type == "journal issue" and self.vol_graph:
+                pub_ed_role.create_editor(self.vol_graph)
+            elif (self.type == "book chapter" or self.type == "book part") and self.venue_graph:
+                pub_ed_role.create_editor(self.venue_graph)
+            else:
+                pub_ed_role.create_editor(self.br_graph)
+
+            pub_ed.has_role(pub_ed_role)
+            edit_role_list.append(pub_ed_role)
+            if len(edit_role_list) > 1:
+                pub_ed_role.follows(edit_role_list[edit_role_list.index(pub_ed_role)-1])
 
 
-    def id_creator (self,graph, id):
+
+
+    def id_creator (self,graph, id, ra):
 
         new_id = None
 
-        if 'crossref' in id:
-            id = id.replace('crossref:', '')
-            res = self.index['crossref'][id]
-            url = URIRef(self.url + "id/" + res)
-            new_id = self.setgraph.add_id("agent", source_agent=None, source=None, res=url, wanted_type = True)
-            new_id.create_crossref(id)
+        if ra:
+            if 'crossref' in id:
+                id = id.replace('crossref:', '')
+                res = self.ra_index['crossref'][id]
+                url = URIRef(self.url + "id/" + res)
+                new_id = self.setgraph.add_id("agent", source_agent=None, source=None, res=url, wanted_type = True)
+                new_id.create_crossref(id)
+
+            elif "orcid" in id:
+                id = id.replace("orcid:", "")
+                res = self.ra_index['orcid'][id]
+                url = URIRef(self.url + "id/" + res)
+                new_id = self.setgraph.add_id("agent", source_agent=None, source=None, res=url, wanted_type=True)
+                new_id.create_orcid(id)
+
+            elif "viaf" in id:
+                id = id.replace("viaf:", "")
+                res = self.ra_index['viaf'][id]
+                url = URIRef(self.url + "id/" + res)
+                new_id = self.setgraph.add_id("agent", source_agent=None, source=None, res=url, wanted_type=True)
+                new_id.create_viaf(id)
+
+            elif "wikidata" in id:
+                id = id.replace("wikidata:", "")
+                res = self.ra_index['wikidata'][id]
+                url = URIRef(self.url + "id/" + res)
+                new_id = self.setgraph.add_id("agent", source_agent=None, source=None, res=url, wanted_type=True)
+                new_id.create_wikidata(id)
+            elif "url:" in id:
+                id = id.replace("url:", "")
+                res = self.ra_index['url'][id]
+                url = URIRef(self.url + "id/" + res)
+                new_id = self.setgraph.add_id("agent", source_agent=None, source=None, res=url, wanted_type=True)
+                new_id.create_url(id)
 
         elif "doi:" in id:
             id = id.replace("doi:", "")
-            res = self.index['doi'][id]
+            res = self.br_index['doi'][id]
             url = URIRef(self.url + "id/" + res)
             new_id = self.setgraph.add_id("agent", source_agent=None, source=None, res=url, wanted_type = True)
             new_id.create_doi(id)
 
         elif "issn" in id:
             id = id.replace("issn:", "")
-            res = self.index['issn'][id]
+            res = self.br_index['issn'][id]
             url = URIRef(self.url + "id/" + res)
             new_id = self.setgraph.add_id("agent", source_agent=None, source=None, res=url, wanted_type = True)
             new_id.create_issn(id)
 
         elif "isbn" in id:
             id = id.replace("isbn:", "")
-            res = self.index['isbn'][id]
+            res = self.br_index['isbn'][id]
             url = URIRef(self.url + "id/" + res)
             new_id = self.setgraph.add_id("agent", source_agent=None, source=None, res=url, wanted_type = True)
             new_id.create_isbn(id)
 
-        elif "orcid" in id:
-            id = id.replace("orcid:", "")
-            res = self.index['orcid'][id]
-            url = URIRef(self.url + "id/" + res)
-            new_id = self.setgraph.add_id("agent", source_agent=None, source=None, res=url, wanted_type = True)
-            new_id.create_orcid(id)
-
         elif "pmid:" in id:
             id = id.replace("pmid:", "")
-            res = self.index['pmid'][id]
+            res = self.br_index['pmid'][id]
             url = URIRef(self.url + "id/" + res)
             new_id = self.setgraph.add_id("agent", source_agent=None, source=None, res=url, wanted_type=True)
             new_id.create_pmid(id)
 
         elif "pmcid:" in id:
             id = id.replace("pmcid:", "")
-            res = self.index['pmcid'][id]
+            res = self.br_index['pmcid'][id]
             url = URIRef(self.url + "id/" + res)
             new_id = self.setgraph.add_id("agent", source_agent=None, source=None, res=url, wanted_type=True)
             new_id.create_pmcid(id)
 
         elif "url:" in id:
             id = id.replace("url:", "")
-            res = self.index['url'][id]
+            res = self.br_index['url'][id]
             url = URIRef(self.url + "id/" + res)
             new_id = self.setgraph.add_id("agent", source_agent=None, source=None, res=url, wanted_type=True)
             new_id.create_url(id)
 
-        elif "viaf" in id:
-            id = id.replace("viaf:", "")
-            res = self.index['viaf'][id]
-            url = URIRef(self.url + "id/" + res)
-            new_id = self.setgraph.add_id("agent", source_agent=None, source=None, res=url, wanted_type=True)
-            new_id.create_viaf(id)
-
         elif "wikidata" in id:
             id = id.replace("wikidata:", "")
-            res = self.index['wikidata'][id]
+            res = self.br_index['wikidata'][id]
             url = URIRef(self.url + "id/" + res)
             new_id = self.setgraph.add_id("agent", source_agent=None, source=None, res=url, wanted_type=True)
             new_id.create_wikidata(id)

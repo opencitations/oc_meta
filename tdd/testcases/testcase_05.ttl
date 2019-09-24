@@ -26,7 +26,8 @@
     ns2:isHeldBy <https://w3id.org/OC/meta/ra/2> ;
     ns2:withRole ns2:publisher .
 
-<https://w3id.org/OC/meta/br/2> a ns3:Expression ;
+<https://w3id.org/OC/meta/br/2> a ns3:Expression,
+        ns3:Journal ;
     ns5:title "venueX" .
 
 <https://w3id.org/OC/meta/br/3> a ns3:Expression,

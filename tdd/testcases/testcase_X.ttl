@@ -65,13 +65,13 @@
     pro:isHeldBy <https://w3id.org/OC/meta/ra/4> ;
     pro:withRole pro:publisher .
 
-<https://w3id.org/OC/meta/br/2> a fabio:Expression ;
+<https://w3id.org/OC/meta/br/2> a fabio:Expression, fabio:Book ;
     dcterms:title "The Semantic Web – ISWC 2018 --- 17th International Semantic Web Conference, Monterey, CA, USA, October 8–12, 2018, Proceedings, Part II" ;
     datacite:hasIdentifier <https://w3id.org/OC/meta/id/7>,
         <https://w3id.org/OC/meta/id/8>,
         <https://w3id.org/OC/meta/id/9> .
 
-<https://w3id.org/OC/meta/br/4> a fabio:Expression ;
+<https://w3id.org/OC/meta/br/4> a fabio:Expression , fabio:Journal;
     dcterms:title "Data Science" ;
     datacite:hasIdentifier <https://w3id.org/OC/meta/id/12>,
         <https://w3id.org/OC/meta/id/13> .

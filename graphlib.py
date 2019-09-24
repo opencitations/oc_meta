@@ -63,6 +63,8 @@ class GraphEntity(object):
     title = DCTERMS.title
     part = DOCO.Part
     academic_proceedings = FABIO.AcademicProceedings
+    archival_document = FABIO.ArchivalDocument
+    archival_document_set = FABIO.ArchivalDocumentSet
     book = FABIO.Book
     book_chapter = FABIO.BookChapter
     book_series = FABIO.BookSeries
@@ -220,6 +222,12 @@ class GraphEntity(object):
     # /START Composite Attributes
     def create_expression_collection(self):
         self._create_type(GraphEntity.expression_collection)
+
+    def create_archival_document(self):
+        self._create_type(GraphEntity.archival_document)
+
+    def create_archival_document_set(self):
+        self._create_type(GraphEntity.archival_document_set)
 
     def create_book_chapter(self):
         self._create_type(GraphEntity.book_chapter)

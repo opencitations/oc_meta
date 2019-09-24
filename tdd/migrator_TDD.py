@@ -15,141 +15,147 @@ def hack_dates():
         _toPythonMapping.pop(XSD.gYearMonth)
 
 
+#migrator executor
+def prepare2test(test_data_csv,index_ra, index_br, testcase ):
+    with open(test_data_csv, 'r') as csvfile:
+        reader = csv.DictReader(csvfile, delimiter="\t")
+        data = [dict(x) for x in reader]
+
+    migrator = Migrator(data, index_ra,index_br)
+
+    test_graph = Graph()
+    hack_dates()
+    test_graph = test_graph.parse(testcase, format="ttl")
+    new_graph = migrator.final_graph
+    return test_graph, new_graph
+
 # !!!check if counter folder is empty before procede (Doing it automatically could be risky)!!!
+
+
+
 
 
 class testcase_X(unittest.TestCase):
 
     def test(self):
         #general test on example csv
-
-        with open("testcases/testcase_data/testcase_X_data.csv", 'r') as csvfile:
-            reader = csv.DictReader(csvfile)
-            dataX = [dict(x) for x in reader]
-
-        migrator_processedX = Migrator(dataX, "testcases/testcase_data/indices/indexX.txt")
-
-        test_graphX = Graph()
-        hack_dates()
-        test_graphX = test_graphX.parse("testcases/testcase_X.ttl", format="ttl")
-
-        new_graphX = migrator_processedX.final_graph
-
-        self.assertEqual(compare.isomorphic(new_graphX, test_graphX), True)
+        test_graph, new_graph = prepare2test("testcases/testcase_data/testcase_X_data.csv",
+                                             "testcases/testcase_data/indices/indexX_ra.csv",
+                                             "testcases/testcase_data/indices/indexX_br.csv",
+                                             "testcases/testcase_X.ttl")
+        self.assertEqual(compare.isomorphic(new_graph, test_graph), True)
 
 
 class testcase_01 (unittest.TestCase):
-
     def test (self):
         # testcase1: 2 different issues of the same venue (no volume)
-        with open("testcases/testcase_data/testcase_01_data.csv", 'r', encoding='utf-8') as csvfile:
-            reader = csv.DictReader(csvfile)
-            data1 = [dict(x) for x in reader]
-
-            migrator1 = Migrator(data1, "testcases/testcase_data/indices/index1.txt")
-
-            test_graph1 = Graph()
-            hack_dates()
-            test_graph1 = test_graph1.parse("testcases/testcase_01.ttl", format="ttl")
-
-            new_graph1 = migrator1.final_graph
-            self.assertEqual(compare.isomorphic(new_graph1, test_graph1), True)
+        test_graph, new_graph = prepare2test("testcases/testcase_data/testcase_01_data.csv",
+                                             "testcases/testcase_data/indices/index1_ra.csv",
+                                             "testcases/testcase_data/indices/index1_br.csv",
+                                             "testcases/testcase_01.ttl")
+        self.assertEqual(compare.isomorphic(new_graph, test_graph), True)
 
 
 class testcase_02(unittest.TestCase):
-
     def test(self):
         # testcase2: 2 different volumes of the same venue (no issue)
-        with open("testcases/testcase_data/testcase_02_data.csv", 'r', encoding='utf-8') as csvfile:
-            reader = csv.DictReader(csvfile)
-            data2 = [dict(x) for x in reader]
+        test_graph, new_graph = prepare2test("testcases/testcase_data/testcase_02_data.csv",
+                                             "testcases/testcase_data/indices/index2_ra.csv",
+                                             "testcases/testcase_data/indices/index2_br.csv",
+                                             "testcases/testcase_02.ttl")
+        self.assertEqual(compare.isomorphic(new_graph, test_graph), True)
 
-            migrator2 = Migrator(data2, "testcases/testcase_data/indices/index2.txt")
-
-            test_graph2 = Graph()
-            hack_dates()
-            test_graph2 = test_graph2.parse("testcases/testcase_02.ttl", format="ttl")
-
-            new_graph2 = migrator2.final_graph
-            self.assertEqual(compare.isomorphic(new_graph2, test_graph2), True)
 
 
 
 class testcase_03(unittest.TestCase):
-
     def test(self):
         # testcase3: 2 different issues of the same volume
-        with open("testcases/testcase_data/testcase_03_data.csv", 'r', encoding='utf-8') as csvfile:
-            reader = csv.DictReader(csvfile)
-            data3 = [dict(x) for x in reader]
-
-            migrator3 = Migrator(data3, "testcases/testcase_data/indices/index3.txt")
-
-            test_graph3 = Graph()
-            hack_dates()
-            test_graph3 = test_graph3.parse("testcases/testcase_03.ttl", format="ttl")
-
-            new_graph3 = migrator3.final_graph
-
-            self.assertEqual(compare.isomorphic(new_graph3, test_graph3), True)
+        test_graph, new_graph = prepare2test("testcases/testcase_data/testcase_03_data.csv",
+                                             "testcases/testcase_data/indices/index3_ra.csv",
+                                             "testcases/testcase_data/indices/index3_br.csv",
+                                             "testcases/testcase_03.ttl")
+        self.assertEqual(compare.isomorphic(new_graph, test_graph), True)
 
 
 
 
 
 class testcase_04 (unittest.TestCase):
-
     def test (self):
         # testcase4: 2 new IDS and different date format (yyyy-mm and yyyy-mm-dd)
-        with open("testcases/testcase_data/testcase_04_data.csv", 'r', encoding='utf-8') as csvfile:
-            reader = csv.DictReader(csvfile)
-            data4 = [dict(x) for x in reader]
-
-            migrator4 = Migrator(data4, "testcases/testcase_data/indices/index4.txt")
-
-            test_graph4 = Graph()
-            hack_dates()
-            test_graph4 = test_graph4.parse("testcases/testcase_04.ttl", format="ttl")
-
-            new_graph4 = migrator4.final_graph
-            self.assertEqual(compare.isomorphic(new_graph4, test_graph4), True)
+        test_graph, new_graph = prepare2test("testcases/testcase_data/testcase_04_data.csv",
+                                             "testcases/testcase_data/indices/index4_ra.csv",
+                                             "testcases/testcase_data/indices/index4_br.csv",
+                                             "testcases/testcase_04.ttl")
+        self.assertEqual(compare.isomorphic(new_graph, test_graph), True)
 
 
 
 
 class testcase_05 (unittest.TestCase):
-
     def test (self):
         # testcase5: NO ID scenario
-        with open("testcases/testcase_data/testcase_05_data.csv", 'r', encoding='utf-8') as csvfile:
-            reader = csv.DictReader(csvfile)
-            data4 = [dict(x) for x in reader]
+        test_graph, new_graph = prepare2test("testcases/testcase_data/testcase_05_data.csv",
+                                             "testcases/testcase_data/indices/index5_ra.csv",
+                                             "testcases/testcase_data/indices/index5_br.csv",
+                                             "testcases/testcase_05.ttl")
+        self.assertEqual(compare.isomorphic(new_graph, test_graph), True)
 
-            migrator5 = Migrator(data4, "testcases/testcase_data/indices/index5.txt")
 
-            test_graph5 = Graph()
-            hack_dates()
-            test_graph5 = test_graph5.parse("testcases/testcase_05.ttl", format="ttl")
-
-            new_graph5 = migrator5.final_graph
-            self.assertEqual(compare.isomorphic(new_graph5, test_graph5), True)
 
 class testcase_06 (unittest.TestCase):
-
     def test (self):
         # testcase6: ALL types test
-        with open("testcases/testcase_data/testcase_06_data.csv", 'r', encoding='utf-8') as csvfile:
-            reader = csv.DictReader(csvfile)
-            data6 = [dict(x) for x in reader]
+        test_graph, new_graph = prepare2test("testcases/testcase_data/testcase_06_data.csv",
+                                             "testcases/testcase_data/indices/index6_ra.csv",
+                                             "testcases/testcase_data/indices/index6_br.csv",
+                                             "testcases/testcase_06.ttl")
+        self.assertEqual(compare.isomorphic(new_graph, test_graph), True)
 
-            migrator6 = Migrator(data6, "testcases/testcase_data/indices/index6.txt")
 
-            test_graph6 = Graph()
-            hack_dates()
-            test_graph6 = test_graph6.parse("testcases/testcase_06.ttl", format="ttl")
 
-            new_graph6 = migrator6.final_graph
-            self.assertEqual(compare.isomorphic(new_graph6, test_graph6), True)
+
+class testcase_07 (unittest.TestCase):
+    def test (self):
+        # testcase7: archival document in an archival document set
+        test_graph, new_graph = prepare2test("testcases/testcase_data/testcase_07_data.csv",
+                                             "testcases/testcase_data/indices/index7_ra.csv",
+                                             "testcases/testcase_data/indices/index7_br.csv",
+                                             "testcases/testcase_07.ttl")
+        self.assertEqual(compare.isomorphic(new_graph, test_graph), True)
+
+
+
+class testcase_08 (unittest.TestCase):
+    def test (self):
+        # testcase8: all journal related types with an editor
+        test_graph, new_graph = prepare2test("testcases/testcase_data/testcase_08_data.csv",
+                                             "testcases/testcase_data/indices/index8_ra.csv",
+                                             "testcases/testcase_data/indices/index8_br.csv",
+                                             "testcases/testcase_08.ttl")
+        self.assertEqual(compare.isomorphic(new_graph, test_graph), True)
+
+
+
+class testcase_09 (unittest.TestCase):
+    def test (self):
+        # testcase9: all book related types with an editor
+        test_graph, new_graph = prepare2test("testcases/testcase_data/testcase_09_data.csv",
+                                             "testcases/testcase_data/indices/index9_ra.csv",
+                                             "testcases/testcase_data/indices/index9_br.csv",
+                                             "testcases/testcase_09.ttl")
+        self.assertEqual(compare.isomorphic(new_graph, test_graph), True)
+
+
+class testcase_10 (unittest.TestCase):
+    def test (self):
+        # testcase10: all proceeding related types with an editor
+        test_graph, new_graph = prepare2test("testcases/testcase_data/testcase_10_data.csv",
+                                             "testcases/testcase_data/indices/index10_ra.csv",
+                                             "testcases/testcase_data/indices/index10_br.csv",
+                                             "testcases/testcase_10.ttl")
+        self.assertEqual(compare.isomorphic(new_graph, test_graph), True)
 
 
 def suite(testobj):
@@ -158,7 +164,7 @@ def suite(testobj):
     return test_suite
 
 
-TestSuit=suite(testcase_06)
+TestSuit=suite(testcase_10)
 
 runner=unittest.TextTestRunner()
 runner.run(TestSuit)

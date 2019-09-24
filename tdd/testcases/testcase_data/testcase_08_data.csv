@@ -1,0 +1,7 @@
+id	title	author	pub_date	venue	volume	issue	page	type	publisher	editor
+doi:10.001/B-1; meta:br/1	TITLE1	Name1, Surname1 [orcid:0000-0001; meta:ra/1]	1995	venue1 [isbn:1111; meta:br/2]	1 [meta:br/3]	5-6 [meta:br/4]	266-278	journal article	pub1 [crossref:1111; meta:ra/2]	editname1, editsurname1 [viaf:11111111; meta:ra/3]
+doi:10.002/B-2; meta:br/5	TITLE2	Name1, Surname1 [orcid:0000-0001; meta:ra/1]	1995	venue2 [isbn:1112; meta:br/6]		5-6 [meta:br/7]	266-278	journal article	pub1 [crossref:1111; meta:ra/2]	editname1, editsurname1 [viaf:11111111; meta:ra/3]
+doi:10.003/B-3; meta:br/8	TITLE3	Name1, Surname1 [orcid:0000-0001; meta:ra/1]	1995	venue3 [isbn:1113; meta:br/9]			266-278	journal article	pub1 [crossref:1111; meta:ra/2]	editname1, editsurname1 [viaf:11111111; meta:ra/3]
+doi:10.004/B-4; meta:br/10	TITLE4	Name1, Surname1 [orcid:0000-0001; meta:ra/1]	1995	venue4 [isbn:1114; meta:br/11]	1 [meta:br/12]		266-278	journal issue	pub1 [crossref:1111; meta:ra/2]	editname1, editsurname1 [viaf:11111111; meta:ra/3]
+doi:10.005/B-5; meta:br/13	TITLE5	Name1, Surname1 [orcid:0000-0001; meta:ra/1]	1995	venue5 [isbn:1115; meta:br/14]			266-278	journal volume	pub1 [crossref:1111; meta:ra/2]	editname1, editsurname1 [viaf:11111111; meta:ra/3]
+doi:10.006/B-6; meta:br/15	TITLE6	Name1, Surname1 [orcid:0000-0001; meta:ra/1]	1995				266-278	journal	pub1 [crossref:1111; meta:ra/2]	editname1, editsurname1 [viaf:11111111; meta:ra/3]; editname2, editsurname2 [viaf:2222222, crossref:1234567; meta:ra/4]

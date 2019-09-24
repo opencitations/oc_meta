@@ -3,14 +3,51 @@ import csv, re
 
 class converter():
 
-    def __init__(self, data, path):
+    def __init__(self, data, pathra, pathbr):
         self.data = data
-        dataID = self.conversion()
+        dataIDRA, dataIDBR = self.conversion()
 
-        for x in dataID:
-            val = str(x) + " , " + str(dataID[x])
-            with open(path, 'a') as file:
-                file.write( val + '\n')
+        try:
+            rowsra= list()
+            for x in dataIDRA:
+                row= dict()
+                row["id"] = str(x)
+                row["meta"] = str(dataIDRA[x])
+                rowsra.append(row)
+
+            with open(pathra, 'w', newline='') as output_file:
+                dict_writer = csv.DictWriter(output_file, rowsra[0].keys())
+                dict_writer.writeheader()
+                dict_writer.writerows(rowsra)
+
+            rowsbr = list()
+            for x in dataIDBR:
+                row = dict()
+                row["id"] = str(x)
+                row["meta"] = str(dataIDBR[x])
+                rowsbr.append(row)
+
+            with open(pathbr, 'w', newline='') as output_file:
+                dict_writer = csv.DictWriter(output_file, rowsbr[0].keys())
+                dict_writer.writeheader()
+                dict_writer.writerows(rowsbr)
+        except:
+            try:
+                rowsbr = list()
+                for x in dataIDBR:
+                    row = dict()
+                    row["id"] = str(x)
+                    row["meta"] = str(dataIDBR[x])
+                    rowsbr.append(row)
+
+                with open(pathbr, 'w', newline='') as output_file:
+                    dict_writer = csv.DictWriter(output_file, rowsbr[0].keys())
+                    dict_writer.writeheader()
+                    dict_writer.writerows(rowsbr)
+            except:
+                return
+
+
 
 
 
@@ -21,7 +58,8 @@ class converter():
         ract = 0
 
         brdict = {}
-        iddict = {}
+        idra = {}
+        idbr = {}
         radict = {}
 
 
@@ -31,9 +69,9 @@ class converter():
             if row['id']:
                 idslist = re.split(r'\s*;\s*', row['id'])
                 for id in idslist:
-                    if id not in iddict:
+                    if id not in idbr:
                         idct = idct + 1
-                        iddict[id] = idct
+                        idbr[id] = idct
 
                 brct = brct + 1
                 newid = "meta:br/" + str(brct)
@@ -64,9 +102,9 @@ class converter():
 
                         # lists of authors' IDs
                         for id in aut_id_list:
-                            if id not in iddict:
+                            if id not in idra:
                                 idct = idct + 1
-                                iddict[id] = idct
+                                idra[id] = idct
                     else:
                         aut_id_list = list()
                     if aut_id:
@@ -91,17 +129,15 @@ class converter():
                 newrow = "; ".join(finalautlist)
                 row['author'] = newrow
 
-
-
             if row["venue"]:
                 venue_id = re.search(r'\[\s*(.*?)\s*\]', row["venue"])
                 if venue_id:
                     venue_id= venue_id.group(1)
                     venue_id_list = re.split(r'\s*;\s*', venue_id)
                     for id in venue_id_list:
-                        if id not in iddict:
+                        if id not in idbr:
                             idct = idct + 1
-                            iddict[id] = idct
+                            idbr[id] = idct
                 else:
                    venue_id_list = list()
                 if venue_id:
@@ -164,9 +200,9 @@ class converter():
                     pub_id = pub_id.group(1)
                     pub_id_list = re.split(r'\s*;\s*', pub_id)
                     for id in pub_id_list:
-                        if id not in iddict:
+                        if id not in idra:
                             idct = idct + 1
-                            iddict[id] = idct
+                            idra[id] = idct
                 else:
                     pub_id_list = list()
                 if pub_id:
@@ -186,5 +222,43 @@ class converter():
                 newrow = pub + " [" + finaliddlist + "]"
                 row['publisher'] = newrow
 
+            if row['editor']:
+
+                editlist = re.split(r'\s*;\s*(?=[^]]*(?:\[|$))', row['editor'])
+                finaledlist = list()
+                for ed in editlist:
+                    ed_id = re.search(r'\[\s*(.*?)\s*\]', ed)
+                    if ed_id:
+                        ed_id = ed_id.group(1)
+                        ed_id_list = re.split(r'\s*;\s*', ed_id)
+
+                        # lists of editors' IDs
+                        for id in ed_id_list:
+                            if id not in idra:
+                                idct = idct + 1
+                                idra[id] = idct
+                    else:
+                        ed_id_list = list()
+                    if ed_id:
+                        ed_name = re.search(r'(.*?)\s*\[.*?\]', ed).group(1)
+                    else:
+                        ed_name = row["editor"]
+
+                    if ed_name in radict:
+                        ednewid = "meta:ra/" + str(radict[ed_name])
+                        ed_id_list.append(ednewid)
+                    else:
+                        ract = ract + 1
+                        radict[ed_name] = ract
+                        newid = "meta:ra/" + str(ract)
+                        ed_id_list.append(newid)
+
+                    newfinalidlist = "; ".join(ed_id_list)
+                    newed = ed_name + " [" + newfinalidlist + "]"
+                    finaledlist.append(newed)
+
+                newrow = "; ".join(finaledlist)
+                row['editor'] = newrow
+
         self.newdata = self.data
-        return iddict
+        return idra, idbr

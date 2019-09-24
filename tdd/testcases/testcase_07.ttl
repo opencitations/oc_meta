@@ -1,0 +1,44 @@
+@prefix ns1: <http://purl.org/spar/pro/> .
+@prefix ns2: <http://purl.org/spar/datacite/> .
+@prefix ns3: <http://xmlns.com/foaf/0.1/> .
+@prefix ns4: <http://www.essepuntato.it/2010/06/literalreification/> .
+@prefix ns5: <http://purl.org/dc/terms/> .
+@prefix ns6: <http://purl.org/vocab/frbr/core#> .
+@prefix ns7: <http://prismstandard.org/namespaces/basic/2.0/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<https://w3id.org/OC/meta/br/1> a <http://purl.org/spar/fabio/ArchivalDocument>,
+        <http://purl.org/spar/fabio/Expression> ;
+    ns7:publicationDate "1995"^^xsd:gYear ;
+    ns5:title "TITLE1" ;
+    ns1:isDocumentContextFor <https://w3id.org/OC/meta/ar/1>,
+        <https://w3id.org/OC/meta/ar/2> ;
+    ns6:partOf <https://w3id.org/OC/meta/br/2> .
+
+<https://w3id.org/OC/meta/ar/1> a ns1:RoleInTime ;
+    ns1:isHeldBy <https://w3id.org/OC/meta/ra/1> ;
+    ns1:withRole ns1:author .
+
+<https://w3id.org/OC/meta/ar/2> a ns1:RoleInTime ;
+    ns1:isHeldBy <https://w3id.org/OC/meta/ra/2> ;
+    ns1:withRole ns1:publisher .
+
+<https://w3id.org/OC/meta/br/2> a <http://purl.org/spar/fabio/ArchivalDocumentSet>,
+        <http://purl.org/spar/fabio/Expression> ;
+    ns5:title "venue1" ;
+    ns2:hasIdentifier <https://w3id.org/OC/meta/id/1> .
+
+<https://w3id.org/OC/meta/id/1> a ns2:Identifier ;
+    ns2:usesIdentifierScheme ns2:wikidata ;
+    ns4:hasLiteralValue "11111112" .
+
+<https://w3id.org/OC/meta/ra/1> a ns3:Agent ;
+    ns3:familyName "Name1" ;
+    ns3:givenName "Surname1" .
+
+<https://w3id.org/OC/meta/ra/2> a ns3:Agent ;
+    ns3:name "pubX" .
+

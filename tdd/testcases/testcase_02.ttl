@@ -12,7 +12,7 @@
 @prefix xml: <http://www.w3.org/XML/1998/namespace> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-<https://w3id.org/OC/meta/br/1> a ns9:BookChapter,
+<https://w3id.org/OC/meta/br/1> a ns9:JournalArticle,
         ns9:Expression ;
     ns2:publicationDate "1993"^^xsd:gYear ;
     ns5:title "TITLE2" ;
@@ -25,7 +25,7 @@
     ns3:embodiment <https://w3id.org/OC/meta/re/1> ;
     ns3:partOf <https://w3id.org/OC/meta/br/3> .
 
-<https://w3id.org/OC/meta/br/4> a ns9:BookChapter,
+<https://w3id.org/OC/meta/br/4> a ns9:JournalArticle,
         ns9:Expression ;
     ns2:publicationDate "1993"^^xsd:gYear ;
     ns5:title "TITLE4" ;
@@ -138,7 +138,8 @@
     ns7:isHeldBy <https://w3id.org/OC/meta/ra/2> ;
     ns7:withRole ns7:author .
 
-<https://w3id.org/OC/meta/br/2> a ns9:Expression ;
+<https://w3id.org/OC/meta/br/2> a ns9:Expression,
+        ns9:Journal;
     ns5:title "venue2" ;
     ns4:hasIdentifier <https://w3id.org/OC/meta/id/11>,
         <https://w3id.org/OC/meta/id/12> .

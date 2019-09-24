@@ -155,7 +155,8 @@
     ns4:isHeldBy <https://w3id.org/OC/meta/ra/2> ;
     ns4:withRole ns4:author .
 
-<https://w3id.org/OC/meta/br/2> a ns7:Expression ;
+<https://w3id.org/OC/meta/br/2> a ns7:Expression,
+        ns7:Journal ;
     ns6:title "venue1" ;
     ns1:hasIdentifier <https://w3id.org/OC/meta/id/11> .
 
