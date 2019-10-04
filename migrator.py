@@ -1,4 +1,4 @@
-from graphlib import *
+from scripts.graphlib import *
 import re, csv
 
 class Migrator():
@@ -187,8 +187,6 @@ class Migrator():
                         self.venue_graph.create_book()
                     elif self.type == "proceedings article":
                         self.venue_graph.create_proceedings()
-                    elif self.type == "archival document":
-                        self.venue_graph.create_archival_document_set()
                     elif self.type == "report":
                         self.venue_graph.create_report_series()
                     elif self.type == "standard":
@@ -339,6 +337,10 @@ class Migrator():
         publ_role.create_publisher(self.br_graph)
         publ.has_role(publ_role)
 
+
+
+
+
     def editor_job (self, editor):
         editorslist = re.split(r'\s*;\s*(?=[^]]*(?:\[|$))', editor)
 
@@ -369,8 +371,6 @@ class Migrator():
             if self.type == "journal article" and self.issue_graph:
                 pub_ed_role.create_editor(self.issue_graph)
             elif self.type == "journal article" and not self.issue_graph and self.vol_graph:
-                pub_ed_role.create_editor(self.vol_graph)
-            elif self.type == "journal issue" and self.vol_graph:
                 pub_ed_role.create_editor(self.vol_graph)
             elif (self.type == "book chapter" or self.type == "book part") and self.venue_graph:
                 pub_ed_role.create_editor(self.venue_graph)
@@ -417,12 +417,6 @@ class Migrator():
                 url = URIRef(self.url + "id/" + res)
                 new_id = self.setgraph.add_id("agent", source_agent=None, source=None, res=url, wanted_type=True)
                 new_id.create_wikidata(id)
-            elif "url:" in id:
-                id = id.replace("url:", "")
-                res = self.ra_index['url'][id]
-                url = URIRef(self.url + "id/" + res)
-                new_id = self.setgraph.add_id("agent", source_agent=None, source=None, res=url, wanted_type=True)
-                new_id.create_url(id)
 
         elif "doi:" in id:
             id = id.replace("doi:", "")

@@ -26,8 +26,7 @@
     ns1:isHeldBy <https://w3id.org/OC/meta/ra/2> ;
     ns1:withRole ns1:publisher .
 
-<https://w3id.org/OC/meta/br/2> a <http://purl.org/spar/fabio/ArchivalDocumentSet>,
-        <http://purl.org/spar/fabio/Expression> ;
+<https://w3id.org/OC/meta/br/2> a <http://purl.org/spar/fabio/Expression> ;
     ns5:title "venue1" ;
     ns2:hasIdentifier <https://w3id.org/OC/meta/id/1> .
 

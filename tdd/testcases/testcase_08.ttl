@@ -28,7 +28,8 @@
     ns4:title "TITLE4" ;
     ns1:hasIdentifier <https://w3id.org/OC/meta/id/10> ;
     ns2:isDocumentContextFor <https://w3id.org/OC/meta/ar/10>,
-        <https://w3id.org/OC/meta/ar/11> ;
+        <https://w3id.org/OC/meta/ar/11>,
+        <https://w3id.org/OC/meta/ar/12> ;
     ns6:embodiment <https://w3id.org/OC/meta/re/4> ;
     ns6:partOf <https://w3id.org/OC/meta/br/12> .
 
@@ -156,7 +157,6 @@
 <https://w3id.org/OC/meta/br/12> a ns9:Expression,
         ns9:JournalVolume ;
     ns9:hasSequenceIdentifier "1" ;
-    ns2:isDocumentContextFor <https://w3id.org/OC/meta/ar/12> ;
     ns6:partOf <https://w3id.org/OC/meta/br/11> .
 
 <https://w3id.org/OC/meta/br/14> a ns9:Expression,

@@ -4,10 +4,16 @@ import csv
 from rdflib.term import _toPythonMapping
 from rdflib import XSD, compare
 
+def reset():
+    with open("counter/re.txt", 'w') as br:
+        br.write('0')
+    with open("counter/ar.txt", 'w') as br:
+        br.write('0')
 
 # The following function has been added for handling gYear and gYearMonth correctly.
 # Source: https://github.com/opencitations/script/blob/master/ocdm/storer.py
 # More info at https://github.com/RDFLib/rdflib/issues/806.
+
 def hack_dates():
     if XSD.gYear in _toPythonMapping:
         _toPythonMapping.pop(XSD.gYear)
@@ -17,6 +23,7 @@ def hack_dates():
 
 #migrator executor
 def prepare2test(test_data_csv,index_ra, index_br, testcase ):
+    reset()
     with open(test_data_csv, 'r') as csvfile:
         reader = csv.DictReader(csvfile, delimiter="\t")
         data = [dict(x) for x in reader]
@@ -28,10 +35,6 @@ def prepare2test(test_data_csv,index_ra, index_br, testcase ):
     test_graph = test_graph.parse(testcase, format="ttl")
     new_graph = migrator.final_graph
     return test_graph, new_graph
-
-# !!!check if counter folder is empty before procede (Doing it automatically could be risky)!!!
-
-
 
 
 
@@ -157,6 +160,14 @@ class testcase_10 (unittest.TestCase):
                                              "testcases/testcase_10.ttl")
         self.assertEqual(compare.isomorphic(new_graph, test_graph), True)
 
+class testcase_11 (unittest.TestCase):
+    def test (self):
+        # testcase11: a book inside a book series and a book inside a book set
+        test_graph, new_graph = prepare2test("testcases/testcase_data/testcase_11_data.csv",
+                                             "testcases/testcase_data/indices/index11_ra.csv",
+                                             "testcases/testcase_data/indices/index11_br.csv",
+                                             "testcases/testcase_11.ttl")
+        self.assertEqual(compare.isomorphic(new_graph, test_graph), True)
 
 def suite(testobj):
     test_suite = unittest.TestSuite()
@@ -164,7 +175,7 @@ def suite(testobj):
     return test_suite
 
 
-TestSuit=suite(testcase_10)
+TestSuit=suite(testcase_11)
 
 runner=unittest.TextTestRunner()
 runner.run(TestSuit)

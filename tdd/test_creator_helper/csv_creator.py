@@ -6,7 +6,7 @@ with open("new_test_data.csv", 'r', encoding='utf-8') as csvfile:
 
 
 def testmaker(partial_data, path, index_ra, index_br):
-    newcleandata = converter(partial_data, index_ra, index_br).newdata
+    newcleandata = Converter(partial_data, index_ra, index_br).newdata
     keys = newcleandata[0].keys()
 
     with open(path, 'w', newline='') as output_file:
@@ -97,4 +97,10 @@ def test10(newdata):
     partial_data= newdata[43:45]
     testmaker(partial_data, 'testcase_10_data.csv',"index10_ra.csv", "index10_br.csv")
 
-test10(newdata)
+def test11(newdata):
+    # testcase11: a book inside a book series and a book inside a book set
+    #TODO test11 cannot be completed with converter, it requires some handmade editing
+    partial_data= newdata[45:49]
+    testmaker(partial_data, 'testcase_11_data.csv',"index11_ra.csv", "index11_br.csv")
+
+test11(newdata)

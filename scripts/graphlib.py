@@ -17,11 +17,11 @@
 __author__ = 'essepuntato'
 from rdflib import Graph, Namespace, URIRef
 from rdflib.namespace import XSD, RDFS
-from reporter import Reporter
+from scripts.reporter import Reporter
 import re
 import os
 from datetime import datetime
-from support import is_string_empty, create_literal, create_type, get_short_name, \
+from scripts.support import is_string_empty, create_literal, create_type, get_short_name, \
     get_count, encode_url, find_paths, find_local_line_id, get_prefix
 
 
@@ -64,7 +64,6 @@ class GraphEntity(object):
     part = DOCO.Part
     academic_proceedings = FABIO.AcademicProceedings
     archival_document = FABIO.ArchivalDocument
-    archival_document_set = FABIO.ArchivalDocumentSet
     book = FABIO.Book
     book_chapter = FABIO.BookChapter
     book_series = FABIO.BookSeries
@@ -225,9 +224,6 @@ class GraphEntity(object):
 
     def create_archival_document(self):
         self._create_type(GraphEntity.archival_document)
-
-    def create_archival_document_set(self):
-        self._create_type(GraphEntity.archival_document_set)
 
     def create_book_chapter(self):
         self._create_type(GraphEntity.book_chapter)
