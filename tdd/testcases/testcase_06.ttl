@@ -3,6 +3,8 @@
 @prefix ns3: <http://xmlns.com/foaf/0.1/> .
 @prefix ns4: <http://prismstandard.org/namespaces/basic/2.0/> .
 @prefix ns5: <http://purl.org/vocab/frbr/core#> .
+@prefix ns6: <http://purl.org/spar/datacite/> .
+@prefix ns7: <http://www.essepuntato.it/2010/06/literalreification/> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xml: <http://www.w3.org/XML/1998/namespace> .
@@ -407,9 +409,18 @@
     ns1:title "venue3" .
 
 <https://w3id.org/OC/meta/ra/1> a ns3:Agent ;
-    ns3:familyName "Name1" ;
-    ns3:givenName "Surname1" .
+    ns6:hasIdentifier <https://w3id.org/OC/meta/id/1>;
+    ns3:familyName "Surname1" ;
+    ns3:givenName "Name1" .
 
 <https://w3id.org/OC/meta/ra/2> a ns3:Agent ;
+    ns6:hasIdentifier <https://w3id.org/OC/meta/id/2>;
     ns3:name "pubX" .
 
+<https://w3id.org/OC/meta/id/1> a ns6:Identifier ;
+    ns6:usesIdentifierScheme ns6:viaf ;
+    ns7:hasLiteralValue "111" .
+
+<https://w3id.org/OC/meta/id/2> a ns6:Identifier ;
+    ns6:usesIdentifierScheme ns6:viaf ;
+    ns7:hasLiteralValue "222" .

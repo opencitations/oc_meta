@@ -128,20 +128,20 @@
         <https://w3id.org/OC/meta/id/5>,
         <https://w3id.org/OC/meta/id/6>,
         <https://w3id.org/OC/meta/id/7> ;
-    ns5:familyName "Name1" ;
-    ns5:givenName "Surname1" .
+    ns5:familyName "Surname1" ;
+    ns5:givenName "Name1" .
 
 <https://w3id.org/OC/meta/ra/2> a ns5:Agent ;
     ns1:hasIdentifier <https://w3id.org/OC/meta/id/10>,
         <https://w3id.org/OC/meta/id/8>,
         <https://w3id.org/OC/meta/id/9> ;
-    ns5:familyName "Name2" ;
-    ns5:givenName "Surname2" .
+    ns5:familyName "Surname2" ;
+    ns5:givenName "Name2" .
 
 <https://w3id.org/OC/meta/ra/4> a ns5:Agent ;
     ns1:hasIdentifier <https://w3id.org/OC/meta/id/15> ;
-    ns5:familyName "Name4" ;
-    ns5:givenName "Surname4" .
+    ns5:familyName "Surname4" ;
+    ns5:givenName "Name4" .
 
 <https://w3id.org/OC/meta/re/1> a ns7:Manifestation ;
     ns3:endingPage "278" ;

@@ -221,8 +221,12 @@
     ns5:hasLiteralValue "10.006/b-6" .
 
 <https://w3id.org/OC/meta/id/15> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:viaf ;
+    ns5:hasLiteralValue "2222222" .
+
+<https://w3id.org/OC/meta/id/16> a ns1:Identifier ;
     ns1:usesIdentifierScheme ns1:crossref ;
-    ns5:hasLiteralValue "viaf:2222222, 1234567" .
+    ns5:hasLiteralValue "1234567" .
 
 <https://w3id.org/OC/meta/id/2> a ns1:Identifier ;
     ns1:usesIdentifierScheme ns1:orcid ;
@@ -257,9 +261,10 @@
     ns5:hasLiteralValue "1113" .
 
 <https://w3id.org/OC/meta/ra/4> a ns8:Agent ;
-    ns1:hasIdentifier <https://w3id.org/OC/meta/id/15> ;
-    ns8:familyName "editname2" ;
-    ns8:givenName "editsurname2" .
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/15>,
+    <https://w3id.org/OC/meta/id/16>;
+    ns8:familyName "editsurname2" ;
+    ns8:givenName "editname2" .
 
 <https://w3id.org/OC/meta/re/1> a ns9:Manifestation ;
     ns3:endingPage "278" ;
@@ -291,8 +296,8 @@
 
 <https://w3id.org/OC/meta/ra/1> a ns8:Agent ;
     ns1:hasIdentifier <https://w3id.org/OC/meta/id/2> ;
-    ns8:familyName "Name1" ;
-    ns8:givenName "Surname1" .
+    ns8:familyName "Surname1" ;
+    ns8:givenName "Name1" .
 
 <https://w3id.org/OC/meta/ra/2> a ns8:Agent ;
     ns1:hasIdentifier <https://w3id.org/OC/meta/id/4> ;
@@ -300,6 +305,6 @@
 
 <https://w3id.org/OC/meta/ra/3> a ns8:Agent ;
     ns1:hasIdentifier <https://w3id.org/OC/meta/id/5> ;
-    ns8:familyName "editname1" ;
-    ns8:givenName "editsurname1" .
+    ns8:familyName "editsurname1" ;
+    ns8:givenName "editname1" .
 

@@ -125,16 +125,16 @@
         <https://w3id.org/OC/meta/id/5>,
         <https://w3id.org/OC/meta/id/6>,
         <https://w3id.org/OC/meta/id/7> ;
-    ns5:familyName "Name1" ;
-    ns5:givenName "Surname1" .
+    ns5:familyName "Surname1" ;
+    ns5:givenName "Name1" .
 
 <https://w3id.org/OC/meta/ra/3> a ns5:Agent ;
     ns3:hasIdentifier <https://w3id.org/OC/meta/id/11>,
         <https://w3id.org/OC/meta/id/12>,
         <https://w3id.org/OC/meta/id/13>,
         <https://w3id.org/OC/meta/id/14> ;
-    ns5:familyName "Name3" ;
-    ns5:givenName "Surname3" .
+    ns5:familyName "Surname3" ;
+    ns5:givenName "Name3" .
 
 <https://w3id.org/OC/meta/re/1> a ns8:Manifestation ;
     ns4:endingPage "200" ;

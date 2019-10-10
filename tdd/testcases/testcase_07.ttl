@@ -35,8 +35,8 @@
     ns4:hasLiteralValue "11111112" .
 
 <https://w3id.org/OC/meta/ra/1> a ns3:Agent ;
-    ns3:familyName "Name1" ;
-    ns3:givenName "Surname1" .
+    ns3:familyName "Surname1" ;
+    ns3:givenName "Name1" .
 
 <https://w3id.org/OC/meta/ra/2> a ns3:Agent ;
     ns3:name "pubX" .

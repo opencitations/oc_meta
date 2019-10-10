@@ -36,8 +36,8 @@
     ns4:partOf <https://w3id.org/OC/meta/br/2> .
 
 <https://w3id.org/OC/meta/ra/1> a ns6:Agent ;
-    ns6:familyName "NameX" ;
-    ns6:givenName "SurnameX" .
+    ns6:familyName "SurnameX" ;
+    ns6:givenName "NameX" .
 
 <https://w3id.org/OC/meta/ra/2> a ns6:Agent ;
     ns6:name "pubX" .

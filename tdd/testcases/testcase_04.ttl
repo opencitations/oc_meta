@@ -170,8 +170,8 @@
         <https://w3id.org/OC/meta/id/5>,
         <https://w3id.org/OC/meta/id/6>,
         <https://w3id.org/OC/meta/id/7> ;
-    ns4:familyName "Name1" ;
-    ns4:givenName "Surname1" .
+    ns4:familyName "Surname1" ;
+    ns4:givenName "Name1" .
 
 <https://w3id.org/OC/meta/ra/3> a ns4:Agent ;
     ns1:hasIdentifier <https://w3id.org/OC/meta/id/12> ;
@@ -182,8 +182,8 @@
         <https://w3id.org/OC/meta/id/17>,
         <https://w3id.org/OC/meta/id/18>,
         <https://w3id.org/OC/meta/id/19> ;
-    ns4:familyName "Name3" ;
-    ns4:givenName "Surname3" .
+    ns4:familyName "Surname3" ;
+    ns4:givenName "Name3" .
 
 <https://w3id.org/OC/meta/ra/5> a ns4:Agent ;
     ns1:hasIdentifier <https://w3id.org/OC/meta/id/22> ;
@@ -209,6 +209,6 @@
     ns1:hasIdentifier <https://w3id.org/OC/meta/id/10>,
         <https://w3id.org/OC/meta/id/8>,
         <https://w3id.org/OC/meta/id/9> ;
-    ns4:familyName "Name2" ;
-    ns4:givenName "Surname2" .
+    ns4:familyName "Surname2" ;
+    ns4:givenName "Name2" .
 

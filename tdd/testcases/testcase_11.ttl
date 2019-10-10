@@ -136,8 +136,8 @@
 
 <https://w3id.org/OC/meta/ra/1> a ns4:Agent ;
     ns1:hasIdentifier <https://w3id.org/OC/meta/id/2> ;
-    ns4:familyName "Name1" ;
-    ns4:givenName "Surname1" .
+    ns4:familyName "Surname1" ;
+    ns4:givenName "Name1" .
 
 <https://w3id.org/OC/meta/ra/2> a ns4:Agent ;
     ns1:hasIdentifier <https://w3id.org/OC/meta/id/4> ;
@@ -145,6 +145,6 @@
 
 <https://w3id.org/OC/meta/ra/3> a ns4:Agent ;
     ns1:hasIdentifier <https://w3id.org/OC/meta/id/5> ;
-    ns4:familyName "editname1" ;
-    ns4:givenName "editsurname1" .
+    ns4:familyName "editsurname1" ;
+    ns4:givenName "editname1" .
 

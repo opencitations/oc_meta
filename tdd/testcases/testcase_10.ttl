@@ -84,8 +84,8 @@
 
 <https://w3id.org/OC/meta/ra/1> a ns2:Agent ;
     ns4:hasIdentifier <https://w3id.org/OC/meta/id/2> ;
-    ns2:familyName "Name1" ;
-    ns2:givenName "Surname1" .
+    ns2:familyName "Surname1" ;
+    ns2:givenName "Name1" .
 
 <https://w3id.org/OC/meta/ra/2> a ns2:Agent ;
     ns4:hasIdentifier <https://w3id.org/OC/meta/id/3> ;
@@ -93,6 +93,6 @@
 
 <https://w3id.org/OC/meta/ra/3> a ns2:Agent ;
     ns4:hasIdentifier <https://w3id.org/OC/meta/id/4> ;
-    ns2:familyName "editname1" ;
-    ns2:givenName "editsurname1" .
+    ns2:familyName "editsurname1" ;
+    ns2:givenName "editname1" .
 

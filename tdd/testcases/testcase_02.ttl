@@ -123,8 +123,8 @@
         <https://w3id.org/OC/meta/id/5>,
         <https://w3id.org/OC/meta/id/6>,
         <https://w3id.org/OC/meta/id/7> ;
-    ns6:familyName "Name3" ;
-    ns6:givenName "Surname3" .
+    ns6:familyName "Surname3" ;
+    ns6:givenName "Name3" .
 
 <https://w3id.org/OC/meta/re/1> a ns9:Manifestation ;
     ns2:endingPage "784" ;
@@ -148,8 +148,8 @@
     ns4:hasIdentifier <https://w3id.org/OC/meta/id/10>,
         <https://w3id.org/OC/meta/id/8>,
         <https://w3id.org/OC/meta/id/9> ;
-    ns6:familyName "Name2" ;
-    ns6:givenName "Surname2" .
+    ns6:familyName "Surname2" ;
+    ns6:givenName "Name2" .
 
 <https://w3id.org/OC/meta/ra/3> a ns6:Agent ;
     ns4:hasIdentifier <https://w3id.org/OC/meta/id/13> ;

@@ -110,7 +110,7 @@ class Migrator():
                     index['wikidata'][id] = row["meta"]
 
     def id_job (self, ids):
-        idslist = re.split(r'\s*;\s*', ids)
+        idslist = re.split(r'\s+', ids)
 
         #publication id
         for id in idslist:
@@ -132,7 +132,7 @@ class Migrator():
         aut_role_list = list()
         for aut in authorslist:
             aut_id = re.search(r'\[\s*(.*?)\s*\]', aut).group(1)
-            aut_id_list = re.split(r'\s*;\s*', aut_id)
+            aut_id_list = aut_id.split(" ")
 
             for id in aut_id_list:
                 if "meta:" in id:
@@ -173,7 +173,7 @@ class Migrator():
 
         if venue:
             venue_id = re.search(r'\[\s*(.*?)\s*\]', venue).group(1)
-            venue_id_list = re.split(r'\s*;\s*', venue_id)
+            venue_id_list = venue_id.split(" ")
 
             for id in venue_id_list:
                 if "meta:" in id:
@@ -201,7 +201,7 @@ class Migrator():
 
         if (self.type == "journal article" or self.type == "journal issue") and vol:
             vol_id = re.search(r'\[\s*(.*?)\s*\]', vol).group(1)
-            vol_id_list = re.split(r'\s*;\s*', vol_id)
+            vol_id_list = vol_id.split(" ")
 
             for id in vol_id_list:
                 if "meta:" in id:
@@ -215,7 +215,7 @@ class Migrator():
 
         if self.type == "journal article" and issue:
             issue_id = re.search(r'\[\s*(.*?)\s*\]', issue).group(1)
-            issue_id_list = re.split(r'\s*;\s*', issue_id)
+            issue_id_list = issue_id.split(" ")
 
             for id in issue_id_list:
                 if "meta:" in id:
@@ -319,7 +319,7 @@ class Migrator():
     def publisher_job (self, publisher):
 
         publ_id = re.search(r'\[\s*(.*?)\s*\]', publisher).group(1)
-        publ_id_list = re.split(r'\s*;\s*', publ_id)
+        publ_id_list = publ_id.split(" ")
 
         for id in publ_id_list:
             if "meta:" in id:
@@ -347,7 +347,7 @@ class Migrator():
         edit_role_list = list()
         for ed in editorslist:
             ed_id = re.search(r'\[\s*(.*?)\s*\]', ed).group(1)
-            ed_id_list = re.split(r'\s*;\s*', ed_id)
+            ed_id_list = ed_id.split(" ")
 
             for id in ed_id_list:
                 if "meta:" in id:

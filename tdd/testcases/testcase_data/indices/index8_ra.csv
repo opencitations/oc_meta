@@ -2,4 +2,5 @@ id,meta
 orcid:0000-0001,2
 crossref:1111,4
 viaf:11111111,5
-"viaf:2222222, crossref:1234567",15
+viaf:2222222,15
+crossref:1234567,16

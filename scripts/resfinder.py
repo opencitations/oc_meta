@@ -298,3 +298,15 @@ class ResourceFinder(object):
         for res, in result:
             return res
 
+#NOT WORKING... need serialization for multiple results
+    def retrieve_br_from_id (self, value):
+        query = """
+                SELECT DISTINCT * WHERE {
+                    ?res a <%s>.
+                    ?res <%s> ?id.
+     
+                    
+                }""" % (GraphEntity.expression , GraphEntity.has_identifier)
+                        #GraphEntity.title, GraphEntity.has_identifier) #GraphEntity.uses_identifier_scheme, GraphEntity.has_literal_value) # GraphEntity.has_identifier, GraphEntity.uses_identifier_scheme, GraphEntity.has_literal_value) #value, value)
+
+        return self.__query(query)

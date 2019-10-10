@@ -1,6 +1,8 @@
 import unittest
+
 from converter import *
 import csv
+
 
 
 def datacollect():
@@ -12,7 +14,7 @@ def datacollect():
 
 def prepare2test(data, testcase_csv):
 
-    conversion = Converter(data).data
+    conversion = Converter(data, 'http://127.0.0.1:9999/blazegraph/sparql').data
 
     with open(testcase_csv, 'r') as csvfile:
         reader = csv.DictReader(csvfile, delimiter="\t")
@@ -92,16 +94,17 @@ class testcase_06 (unittest.TestCase):
 
 
 
-
+'''
+DEPRECATED
 class testcase_07 (unittest.TestCase):
     def test (self):
-        # testcase7: archival document in an archival document set
+        testcase7: archival document in an archival document set
         data = datacollect()
         partial_data = list()
         partial_data.append(data[33])
         conversion, testcase = prepare2test(partial_data, "testcases/testcase_data/testcase_07_data.csv")
         self.assertEqual(conversion, testcase)
-
+'''
 
 
 class testcase_08 (unittest.TestCase):

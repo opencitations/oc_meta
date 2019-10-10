@@ -1,4 +1,4 @@
 id	title	author	pub_date	venue	volume	issue	page	type	publisher	editor
-isbn:1111; meta:br/1	TITLE1	Name1, Surname1 [orcid:0000-0001; meta:ra/1]	1995	venue1 [isbn:2222; meta:br/2]			266-278	book chapter	pub1 [crossref:1111; meta:ra/2]	editname1, editsurname1 [viaf:11111111; meta:ra/3]
-isbn:3333; meta:br/3	TITLE2	Name1, Surname1 [orcid:0000-0001; meta:ra/1]	1995	venue2 [isbn:4444; meta:br/4]			266-278	book part	pub1 [crossref:1111; meta:ra/2]	editname1, editsurname1 [viaf:11111111; meta:ra/3]
-isbn:5555; meta:br/5	TITLE2	Name1, Surname1 [orcid:0000-0001; meta:ra/1]	1995				266-278	book	pub1 [crossref:1111; meta:ra/2]	editname1, editsurname1 [viaf:11111111; meta:ra/3]
+isbn:1111 meta:br/1	TITLE1	Surname1, Name1 [orcid:0000-0001 meta:ra/1]	1995	venue1 [isbn:2222 meta:br/2]			266-278	book chapter	pub1 [crossref:1111 meta:ra/2]	editsurname1, editname1 [viaf:11111111 meta:ra/3]
+isbn:3333 meta:br/3	TITLE2	Surname1, Name1 [orcid:0000-0001 meta:ra/1]	1995	venue2 [isbn:4444 meta:br/4]			266-278	book part	pub1 [crossref:1111 meta:ra/2]	editsurname1, editname1 [viaf:11111111 meta:ra/3]
+isbn:5555 meta:br/5	TITLE2	Surname1, Name1 [orcid:0000-0001 meta:ra/1]	1995				266-278	book	pub1 [crossref:1111 meta:ra/2]	editsurname1, editname1 [viaf:11111111 meta:ra/3]
