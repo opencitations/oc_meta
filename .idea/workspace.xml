@@ -4,42 +4,6 @@
     <list default="true" id="d2b23c46-2db9-4b25-a89e-e1906277cf0f" name="Default" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change beforePath="$PROJECT_DIR$/converter.py" afterPath="$PROJECT_DIR$/converter.py" />
-      <change beforePath="$PROJECT_DIR$/tdd/converter_TDD.py" afterPath="$PROJECT_DIR$/tdd/converter_TDD.py" />
-      <change beforePath="$PROJECT_DIR$/tdd/counter/ar.txt" afterPath="$PROJECT_DIR$/tdd/counter/ar.txt" />
-      <change beforePath="$PROJECT_DIR$/tdd/counter/re.txt" afterPath="$PROJECT_DIR$/tdd/counter/re.txt" />
-      <change beforePath="$PROJECT_DIR$/tdd/migrator_TDD.py" afterPath="$PROJECT_DIR$/tdd/migrator_TDD.py" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_01.ttl" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_01.ttl" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_02.ttl" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_02.ttl" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_03.ttl" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_03.ttl" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_04.ttl" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_04.ttl" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_05.ttl" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_05.ttl" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_06.ttl" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_06.ttl" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_07.ttl" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_07.ttl" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_08.ttl" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_08.ttl" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_09.ttl" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_09.ttl" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_10.ttl" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_10.ttl" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_11.ttl" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index10_br.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index10_br.csv" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index10_ra.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index10_ra.csv" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index11_br.csv" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index11_ra.csv" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index7_br.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index7_br.csv" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index7_ra.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index7_ra.csv" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index8_br.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index8_br.csv" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index8_ra.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index8_ra.csv" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index9_br.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index9_br.csv" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index9_ra.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index9_ra.csv" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_01_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_01_data.csv" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_02_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_02_data.csv" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_03_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_03_data.csv" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_04_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_04_data.csv" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_05_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_05_data.csv" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_06_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_06_data.csv" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_07_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_07_data.csv" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_08_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_08_data.csv" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_09_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_09_data.csv" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_10_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_10_data.csv" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_11_data.csv" afterPath="" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -65,8 +29,8 @@
       <file leaf-file-name="converter.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/converter.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="8043">
-              <caret line="383" column="63" lean-forward="true" selection-start-line="383" selection-start-column="63" selection-end-line="383" selection-end-column="63" />
+            <state relative-caret-position="451">
+              <caret line="570" column="42" lean-forward="false" selection-start-line="570" selection-start-column="42" selection-end-line="570" selection-end-column="42" />
               <folding>
                 <element signature="e#0#18#0" expanded="true" />
               </folding>
@@ -218,12 +182,12 @@
         <option value="$PROJECT_DIR$/tdd/migrator_TDD.py" />
         <option value="$PROJECT_DIR$/scripts/graphlib.py" />
         <option value="$PROJECT_DIR$/prova.py" />
-        <option value="$PROJECT_DIR$/converter.py" />
         <option value="$PROJECT_DIR$/tdd/converter_TDD.py" />
+        <option value="$PROJECT_DIR$/converter.py" />
       </list>
     </option>
   </component>
-  <component name="ProjectFrameBounds" extendedState="7">
+  <component name="ProjectFrameBounds" extendedState="6">
     <option name="x" value="-8" />
     <option name="width" value="976" />
     <option name="height" value="1038" />
@@ -414,7 +378,7 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="-9" y="-9" width="1938" height="1048" extended-state="7" />
+    <frame x="-9" y="-9" width="1938" height="1048" extended-state="6" />
     <editor active="true" />
     <layout>
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.26100966" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
@@ -861,8 +825,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/converter.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="8043">
-          <caret line="383" column="63" lean-forward="true" selection-start-line="383" selection-start-column="63" selection-end-line="383" selection-end-column="63" />
+        <state relative-caret-position="451">
+          <caret line="570" column="42" lean-forward="false" selection-start-line="570" selection-start-column="42" selection-end-line="570" selection-end-column="42" />
           <folding>
             <element signature="e#0#18#0" expanded="true" />
           </folding>

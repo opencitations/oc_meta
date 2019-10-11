@@ -555,11 +555,20 @@ class Converter:
     def clean_name(name):
         if "," in name:
             split_name = re.split(r'\s*,\s*', name)
-            first_name = split_name[1].title()
-            surname = split_name[0].title()
-            new_name = surname + ", " + first_name
+            first_name = split_name[1].split()
+            for pos,w in enumerate(first_name):
+                first_name[pos] = w.capitalize()
+            new_first_name = " ".join(first_name)
+            surname = split_name[0].split()
+            for pos, w in enumerate(surname):
+                surname[pos] = w.capitalize()
+            new_surname = " ".join(surname)
+            new_name = new_surname + ", " + new_first_name
         else:
-            new_name = name.title()
+            split_name = name.split()
+            for pos,w in enumerate(split_name):
+                split_name[pos] = w.capitalize()
+            new_name = " ".join(split_name)
 
         return new_name
 
