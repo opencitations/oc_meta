@@ -58,7 +58,7 @@
 
 <https://w3id.org/OC/meta/br/2> a ns7:Expression,
         ns7:Journal ;
-    ns8:title "venue1" ;
+    ns8:title "Venue1" ;
     ns1:hasIdentifier <https://w3id.org/OC/meta/id/11> .
 
 <https://w3id.org/OC/meta/br/3> a ns7:Expression,
@@ -73,7 +73,7 @@
 
 <https://w3id.org/OC/meta/br/6> a ns7:Expression,
         ns7:Book ;
-    ns8:title "venue2" ;
+    ns8:title "Venue2" ;
     ns1:hasIdentifier <https://w3id.org/OC/meta/id/20>,
         <https://w3id.org/OC/meta/id/21> .
 
@@ -175,7 +175,7 @@
 
 <https://w3id.org/OC/meta/ra/3> a ns4:Agent ;
     ns1:hasIdentifier <https://w3id.org/OC/meta/id/12> ;
-    ns4:name "pub1" .
+    ns4:name "Pub1" .
 
 <https://w3id.org/OC/meta/ra/4> a ns4:Agent ;
     ns1:hasIdentifier <https://w3id.org/OC/meta/id/16>,
@@ -187,7 +187,7 @@
 
 <https://w3id.org/OC/meta/ra/5> a ns4:Agent ;
     ns1:hasIdentifier <https://w3id.org/OC/meta/id/22> ;
-    ns4:name "pub2" .
+    ns4:name "Pub2" .
 
 <https://w3id.org/OC/meta/re/1> a ns7:Manifestation ;
     ns5:endingPage "278" ;

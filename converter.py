@@ -1,27 +1,29 @@
-import csv, re
+import csv, re, os
 from scripts.finder import*
 
-class Converter():
 
-    def __init__(self, data, ts, separator = None):
+class Converter:
+
+    def __init__(self, data, ts, separator = None, info_dir ="converter_counter/"):
 
         self.ts = ts
         self.separator = separator
         self.data = data
 
+        # Counter local paths
+        self.info_dir = info_dir
+        self.br_info_path = info_dir + "br.txt"
+        self.id_info_path = info_dir + "id.txt"
+        self.ra_info_path = info_dir + "ra.txt"
 
-        # counters TODO make them TXT files
-        self.brcnt = 0
-        self.idcnt = 0
-        self.racnt = 0
 
         self.brdict = {}  # key br metaid; value id
 
         self.radict = {}  # key ra metaid; value id
         self.vvi = {}  #Venue, Volume, Issue
 
-        self.idra = {}  # key id; value id metaid related to ra
-        self.idbr = {}  # key id; value id metaid related to br
+        self.idra = {}  # key id; value metaid of id related to ra
+        self.idbr = {}  # key id; value metaid of id related to br
 
 
         self.rowcnt = 0
@@ -37,7 +39,7 @@ class Converter():
 
             self.rowcnt += 1
 
-
+        #self.indexer()
 
     #ID
     def clean_id(self, row):
@@ -87,21 +89,24 @@ class Converter():
                 #new br
                 else:
                     #create new br metaid
-                    self.brcnt = self.brcnt + 1
-                    meta = str(self.brcnt)
+                    count = self._add_number(self.br_info_path)
+                    meta = str(count)
                     newid = "meta:br/" + meta
 
                     self.brdict[meta] = dict()
                     self.brdict[meta]["ids"] = list()
                     self.brdict[meta]["rows"] = list()
-                    self.brdict[meta]["title"] = row["title"]
+
+                    title = self.clean_title(row["title"])
+                    self.brdict[meta]["title"] = title
+                    row["title"] = title
 
 
             id2update = list()
             for id in idslist:
                 if id not in self.idbr:
-                    self.idcnt = self.idcnt + 1
-                    self.idbr[id] = self.idcnt
+                    count = self._add_number(self.id_info_path)
+                    self.idbr[id] = count
 
                 if id not in self.brdict[meta]["ids"]:
                     self.brdict[meta]["ids"].append(id)
@@ -120,10 +125,12 @@ class Converter():
         #br without IDs, new br
         else:
             #if enity has no ID
-            self.brcnt = self.brcnt + 1
-            meta = str(self.brcnt)
+            count = self._add_number(self.br_info_path)
+            meta = str(count)
             newid = "meta:br/" + meta
             row['id'] = newid
+            title = self.clean_title(row["title"])
+            row["title"] = title
 
     # RA
     def clean_ra(self, row, rowname):
@@ -135,18 +142,7 @@ class Converter():
 
                     # clean ra name
                     if ra_id:
-                        ra_name = re.search(r'\s*(.*?)\s*\[.*?\]', ra).group(1)  # takes autor name and surname ignoring spaces between
-                        if rowname == "publisher":
-                            ra_name = ra_name
-                        else:
-                            split_name = re.split(r'\s*,\s*', ra_name)
-                            first_name = split_name[1]
-                            surname = split_name[0]
-                            ra_name = surname + ", " + first_name
-
-                    else:
-                        ra_name = row[rowname].strip()
-
+                        ra_name = re.search(r'\s*(.*?)\s*\[.*?\]', ra).group(1)  # takes autor name and surname ignoring spaces around
 
 
                     #clean ra id
@@ -193,10 +189,11 @@ class Converter():
 
                             # new ra
                             else:
-                                self.racnt = self.racnt + 1
-                                meta = str(self.racnt)
+                                count = self._add_number(self.ra_info_path)
+                                meta = str(count)
                                 newid = "meta:ra/" + meta
 
+                                ra_name = self.clean_name(re.search(r'\s*(.*?)\s*\[.*?\]', ra).group(1))  # takes autor name and surname ignoring spaces around
 
                                 self.radict[meta] = dict()
                                 self.radict[meta]["ids"] = list()
@@ -209,8 +206,8 @@ class Converter():
                         id2update = list()
                         for id in ra_id_list:
                             if id not in self.idra:
-                                self.idcnt = self.idcnt + 1
-                                self.idra[id] = self.idcnt
+                                count = self._add_number(self.id_info_path)
+                                self.idra[id] = count
 
                             if id not in self.radict[meta]["ids"]:
                                 self.radict[meta]["ids"].append(id)
@@ -226,9 +223,11 @@ class Converter():
 
                     else:
                         # if enity has no ID
-                        self.racnt = self.racnt + 1
-                        meta = str(self.racnt)
+                        count = self._add_number(self.ra_info_path)
+                        meta = str(count)
                         newids = "meta:ra/" + meta
+                        ra_name = self.clean_name(row[rowname].strip())
+
 
 
                     newra = ra_name + " [" + newids + "]"
@@ -239,17 +238,10 @@ class Converter():
 
     #VVI
     def clean_vvi(self, row):
+        vol_meta = None
         if row["venue"]:
-            vol = None
-            issue = None
-            vol_meta = None
-            issue_meta = None
-
             venue_id = re.search(r'\[\s*(.*?)\s*\]', row["venue"])
-            if venue_id:
-                ven = re.search(r'(.*?)\s*\[.*?\]', row["venue"]).group(1)
-            else:
-                ven = row["venue"]
+
             if venue_id:
                 venue_id = venue_id.group(1)
                 if self.separator:
@@ -301,9 +293,11 @@ class Converter():
 
                     else:
                         # create new br metaid
-                        self.brcnt = self.brcnt + 1
-                        ven_meta = str(self.brcnt)
+                        count = self._add_number(self.br_info_path)
+                        ven_meta = str(count)
                         newid = "meta:br/" + ven_meta
+
+                        ven = self.clean_title(re.search(r'(.*?)\s*\[.*?\]', row["venue"]).group(1))
 
                         self.brdict[ven_meta] = dict()
                         self.brdict[ven_meta]["ids"] = list()
@@ -319,8 +313,8 @@ class Converter():
                 # add new ids
                 for id in venue_id_list:
                     if id not in self.idbr:
-                        self.idcnt = self.idcnt + 1
-                        self.idbr[id] = self.idcnt
+                        count = self._add_number(self.id_info_path)
+                        self.idbr[id] = count
 
                     if id not in self.brdict[ven_meta]["ids"]:
                         self.brdict[ven_meta]["ids"].append(id)
@@ -337,9 +331,11 @@ class Converter():
                 # br without IDs, new br
             else:
                 # if enity has no ID
-                self.brcnt = self.brcnt + 1
-                ven_meta = str(self.brcnt)
+                count = self._add_number(self.br_info_path)
+                ven_meta = str(count)
                 newids = "meta:br/" + ven_meta
+                ven = self.clean_title(row["venue"])
+
 
             row['venue'] = ven + " [" + newids + "]"
 
@@ -351,15 +347,15 @@ class Converter():
                     if vol in self.vvi[ven_meta]["volume"]:
                             vol_meta = self.vvi[ven_meta]["volume"][vol]["id"]
                     else:
-                        self.brcnt = self.brcnt + 1
-                        vol_meta = str(self.brcnt)
+                        count = self._add_number(self.br_info_path)
+                        vol_meta = str(count)
 
                         self.vvi[ven_meta]["volume"][vol] = dict()
                         self.vvi[ven_meta]["volume"][vol]["id"] = vol_meta
                         self.vvi[ven_meta]["volume"][vol]["issue"] = dict()
                 else:
-                    self.brcnt = self.brcnt + 1
-                    vol_meta = str(self.brcnt)
+                    count = self._add_number(self.br_info_path)
+                    vol_meta = str(count)
                 newids = "meta:br/" + vol_meta
                 row['volume'] = vol + " [" + newids + "]"
 
@@ -373,20 +369,20 @@ class Converter():
                         if issue in self.vvi[ven_meta]["volume"][vol]["issue"]:
                             issue_meta = self.vvi[ven_meta]["volume"][vol]["issue"][issue]
                         else:
-                            self.brcnt = self.brcnt + 1
-                            issue_meta = str(self.brcnt)
+                            count = self._add_number(self.br_info_path)
+                            issue_meta = str(count)
                             self.vvi[ven_meta]["volume"][vol]["issue"][issue] = issue_meta
                     else:
                         #issue inside venue (without volume)
                         if issue in self.vvi[ven_meta]["issue"]:
                             issue_meta = self.vvi[ven_meta]["issue"][issue]
                         else:
-                            self.brcnt = self.brcnt + 1
-                            issue_meta = str(self.brcnt)
+                            count = self._add_number(self.br_info_path)
+                            issue_meta = str(count)
                             self.vvi[ven_meta]["issue"][issue] = issue_meta
                 else:
-                    self.brcnt = self.brcnt + 1
-                    issue_meta = str(self.brcnt)
+                    count = self._add_number(self.id_info_path)
+                    issue_meta = str(count)
 
                 newids = "meta:br/" + issue_meta
                 row['issue'] = issue + " [" + newids + "]"
@@ -543,18 +539,105 @@ class Converter():
                 newrow = name + " [" + newidrow + "]"
                 self.data[n]["venue"] = newrow
 
+    @staticmethod
+    def clean_title(title):
+        words = title.split()
+        for pos,w in enumerate(words):
+            if any(x.isupper() for x in w):
+                pass
+            else:
+                words[pos] = w.capitalize()
 
-            '''
-            br = self.data[n]["venue"]
-            name = re.search(r'\s*(.*?)\s*\[.*?\]', br).group(1)
-            old_id = re.search(r'\[\s*(.*?)\s*\]', br).group(1).split(" ")
-            meta = old_id[-1]
-            old_id.remove(meta)
-            for x in id_list:
-                if x not in old_id:
-                    old_id.append(x)
-            old_id.append(meta)
-            newidrow = " ".join(old_id)
-            newrow = name + " [" + newidrow + "]"
-            self.data[n]["venue"] = newrow
-            '''
+        newtitle = " ".join(words)
+        return newtitle
+
+    @staticmethod
+    def clean_name(name):
+        if "," in name:
+            split_name = re.split(r'\s*,\s*', name)
+            first_name = split_name[1].title()
+            surname = split_name[0].title()
+            new_name = surname + ", " + first_name
+        else:
+            new_name = name.title()
+
+        return new_name
+
+    @staticmethod
+    def _read_number(file_path, line_number=1):
+        cur_number = 0
+
+        try:
+            with open(file_path) as f:
+                cur_number = int(f.readlines()[line_number - 1])
+        except Exception as e:
+            pass  # Do nothing
+
+        return cur_number
+
+    @staticmethod
+    def _add_number(file_path, line_number=1):
+        cur_number = Converter._read_number(file_path, line_number) + 1
+
+        if not os.path.exists(os.path.dirname(file_path)):
+            os.makedirs(os.path.dirname(file_path))
+
+        if os.path.exists(file_path):
+            with open(file_path) as f:
+                all_lines = f.readlines()
+        else:
+            all_lines = []
+
+        line_len = len(all_lines)
+        zero_line_number = line_number - 1
+        for i in range(line_number):
+            if i >= line_len:
+                all_lines += ["\n"]
+            if i == zero_line_number:
+                all_lines[i] = str(cur_number) + "\n"
+
+        with open(file_path, "w") as f:
+            f.writelines(all_lines)
+
+        return cur_number
+
+
+'''
+    def indexer (self):
+        rowsra= list()
+        if self.idra:
+            for x in self.idra:
+                row= dict()
+                row["id"] = str(x)
+                row["meta"] = str(self.idra[x])
+                rowsra.append(row)
+        else:
+            row = dict()
+            row["id"] = ""
+            row["meta"] = ""
+            rowsra.append(row)
+
+        with open(PATH-RA, 'w', newline='') as output_file:
+            dict_writer = csv.DictWriter(output_file, rowsra[0].keys())
+            dict_writer.writeheader()
+            dict_writer.writerows(rowsra)
+
+        rowsbr = list()
+        rowsra = list()
+        if self.idbr:
+            for x in self.idbr:
+                row = dict()
+                row["id"] = str(x)
+                row["meta"] = str(self.idbr[x])
+                rowsra.append(row)
+        else:
+            row = dict()
+            row["id"] = ""
+            row["meta"] = ""
+            rowsra.append(row)
+
+        with open(PATH-BR, 'w', newline='') as output_file:
+            dict_writer = csv.DictWriter(output_file, rowsbr[0].keys())
+            dict_writer.writeheader()
+            dict_writer.writerows(rowsbr)
+'''

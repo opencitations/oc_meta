@@ -36,11 +36,11 @@
     ns4:partOf <https://w3id.org/OC/meta/br/2> .
 
 <https://w3id.org/OC/meta/ra/1> a ns6:Agent ;
-    ns6:familyName "SurnameX" ;
-    ns6:givenName "NameX" .
+    ns6:familyName "Surnamex" ;
+    ns6:givenName "Namex" .
 
 <https://w3id.org/OC/meta/ra/2> a ns6:Agent ;
-    ns6:name "pubX" .
+    ns6:name "Pubx" .
 
 <https://w3id.org/OC/meta/re/1> a ns3:Manifestation ;
     ns1:endingPage "302" ;

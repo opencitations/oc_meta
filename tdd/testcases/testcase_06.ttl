@@ -378,35 +378,35 @@
 
 <https://w3id.org/OC/meta/br/16> a <http://purl.org/spar/fabio/Expression>,
         <http://purl.org/spar/fabio/Journal> ;
-    ns1:title "venue13" .
+    ns1:title "Venue13" .
 
 <https://w3id.org/OC/meta/br/18> a <http://purl.org/spar/fabio/Expression>,
         <http://purl.org/spar/fabio/Journal> ;
-    ns1:title "venue14" .
+    ns1:title "Venue14" .
 
 <https://w3id.org/OC/meta/br/20> a <http://purl.org/spar/fabio/Expression>,
         <http://purl.org/spar/fabio/Journal> ;
-    ns1:title "venue15" .
+    ns1:title "Venue15" .
 
 <https://w3id.org/OC/meta/br/23> a <http://purl.org/spar/fabio/AcademicProceedings>,
         <http://purl.org/spar/fabio/Expression> ;
-    ns1:title "venue17" .
+    ns1:title "Venue17" .
 
 <https://w3id.org/OC/meta/br/29> a <http://purl.org/spar/fabio/Expression>,
         <http://purl.org/spar/fabio/Series> ;
-    ns1:title "venue22" .
+    ns1:title "Venue22" .
 
 <https://w3id.org/OC/meta/br/3> a <http://purl.org/spar/fabio/Book>,
         <http://purl.org/spar/fabio/Expression> ;
-    ns1:title "venue2" .
+    ns1:title "Venue2" .
 
 <https://w3id.org/OC/meta/br/31> a <http://purl.org/spar/fabio/Expression>,
         <http://purl.org/spar/fabio/Series> ;
-    ns1:title "venue23" .
+    ns1:title "Venue23" .
 
 <https://w3id.org/OC/meta/br/5> a <http://purl.org/spar/fabio/Book>,
         <http://purl.org/spar/fabio/Expression> ;
-    ns1:title "venue3" .
+    ns1:title "Venue3" .
 
 <https://w3id.org/OC/meta/ra/1> a ns3:Agent ;
     ns6:hasIdentifier <https://w3id.org/OC/meta/id/1>;
@@ -415,7 +415,7 @@
 
 <https://w3id.org/OC/meta/ra/2> a ns3:Agent ;
     ns6:hasIdentifier <https://w3id.org/OC/meta/id/2>;
-    ns3:name "pubX" .
+    ns3:name "Pubx" .
 
 <https://w3id.org/OC/meta/id/1> a ns6:Identifier ;
     ns6:usesIdentifierScheme ns6:viaf ;

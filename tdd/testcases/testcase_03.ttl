@@ -51,7 +51,7 @@
 
 <https://w3id.org/OC/meta/br/2> a ns8:Expression,
         ns8:Journal ;
-    ns6:title "venue3" ;
+    ns6:title "Venue3" ;
     ns3:hasIdentifier <https://w3id.org/OC/meta/id/8> .
 
 <https://w3id.org/OC/meta/br/4> a ns8:Expression,
@@ -151,5 +151,5 @@
 
 <https://w3id.org/OC/meta/ra/2> a ns5:Agent ;
     ns3:hasIdentifier <https://w3id.org/OC/meta/id/9> ;
-    ns5:name "pub1" .
+    ns5:name "Pub1" .
 

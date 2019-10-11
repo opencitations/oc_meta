@@ -3,7 +3,13 @@ import unittest
 from converter import *
 import csv
 
-
+def reset():
+    with open("converter_counter/br.txt", 'w') as br:
+        br.write('0')
+    with open("converter_counter/id.txt", 'w') as br:
+        br.write('0')
+    with open("converter_counter/ra.txt", 'w') as br:
+        br.write('0')
 
 def datacollect():
     with open("new_test_data.csv", 'r', encoding='utf-8') as csvfile:
@@ -13,6 +19,7 @@ def datacollect():
     return data
 
 def prepare2test(data, testcase_csv):
+    reset()
 
     conversion = Converter(data, 'http://127.0.0.1:9999/blazegraph/sparql').data
 
@@ -107,39 +114,39 @@ class testcase_07 (unittest.TestCase):
 '''
 
 
-class testcase_08 (unittest.TestCase):
+class testcase_07 (unittest.TestCase):
     def test (self):
-        # testcase8: all journal related types with an editor
+        # testcase7: all journal related types with an editor
         data = datacollect()
         partial_data = data[34:40]
+        conversion, testcase = prepare2test(partial_data, "testcases/testcase_data/testcase_07_data.csv")
+        self.assertEqual(conversion, testcase)
+
+
+
+class testcase_08 (unittest.TestCase):
+    def test (self):
+        # testcase8: all book related types with an editor
+        data = datacollect()
+        partial_data = data[40:43]
         conversion, testcase = prepare2test(partial_data, "testcases/testcase_data/testcase_08_data.csv")
         self.assertEqual(conversion, testcase)
 
 
-
 class testcase_09 (unittest.TestCase):
     def test (self):
-        # testcase9: all book related types with an editor
+        # testcase09: all proceeding related types with an editor
         data = datacollect()
-        partial_data = data[40:43]
+        partial_data = data[43:45]
         conversion, testcase = prepare2test(partial_data, "testcases/testcase_data/testcase_09_data.csv")
         self.assertEqual(conversion, testcase)
 
-
 class testcase_10 (unittest.TestCase):
     def test (self):
-        # testcase10: all proceeding related types with an editor
-        data = datacollect()
-        partial_data = data[43:45]
-        conversion, testcase = prepare2test(partial_data, "testcases/testcase_data/testcase_10_data.csv")
-        self.assertEqual(conversion, testcase)
-
-class testcase_11 (unittest.TestCase):
-    def test (self):
-        # testcase11: a book inside a book series and a book inside a book set
+        # testcase10: a book inside a book series and a book inside a book set
         data = datacollect()
         partial_data = data[45:49]
-        conversion, testcase = prepare2test(partial_data, "testcases/testcase_data/testcase_11_data.csv")
+        conversion, testcase = prepare2test(partial_data, "testcases/testcase_data/testcase_10_data.csv")
         self.assertEqual(conversion, testcase)
 
 def suite(testobj):
@@ -148,7 +155,7 @@ def suite(testobj):
     return test_suite
 
 
-TestSuit=suite(testcase_11)
+TestSuit=suite(testcase_08)
 
 runner=unittest.TextTestRunner()
 runner.run(TestSuit)

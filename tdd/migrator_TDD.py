@@ -121,7 +121,7 @@ class testcase_06 (unittest.TestCase):
 
 class testcase_07 (unittest.TestCase):
     def test (self):
-        # testcase7: archival document in an archival document set
+        # testcase7: all journal related types with an editor
         test_graph, new_graph = prepare2test("testcases/testcase_data/testcase_07_data.csv",
                                              "testcases/testcase_data/indices/index7_ra.csv",
                                              "testcases/testcase_data/indices/index7_br.csv",
@@ -132,7 +132,7 @@ class testcase_07 (unittest.TestCase):
 
 class testcase_08 (unittest.TestCase):
     def test (self):
-        # testcase8: all journal related types with an editor
+        # testcase8: all book related types with an editor
         test_graph, new_graph = prepare2test("testcases/testcase_data/testcase_08_data.csv",
                                              "testcases/testcase_data/indices/index8_ra.csv",
                                              "testcases/testcase_data/indices/index8_br.csv",
@@ -140,33 +140,22 @@ class testcase_08 (unittest.TestCase):
         self.assertEqual(compare.isomorphic(new_graph, test_graph), True)
 
 
-
 class testcase_09 (unittest.TestCase):
     def test (self):
-        # testcase9: all book related types with an editor
+        # testcase9: all proceeding related types with an editor
         test_graph, new_graph = prepare2test("testcases/testcase_data/testcase_09_data.csv",
                                              "testcases/testcase_data/indices/index9_ra.csv",
                                              "testcases/testcase_data/indices/index9_br.csv",
                                              "testcases/testcase_09.ttl")
         self.assertEqual(compare.isomorphic(new_graph, test_graph), True)
 
-
 class testcase_10 (unittest.TestCase):
     def test (self):
-        # testcase10: all proceeding related types with an editor
+        # testcase10: a book inside a book series and a book inside a book set
         test_graph, new_graph = prepare2test("testcases/testcase_data/testcase_10_data.csv",
                                              "testcases/testcase_data/indices/index10_ra.csv",
                                              "testcases/testcase_data/indices/index10_br.csv",
                                              "testcases/testcase_10.ttl")
-        self.assertEqual(compare.isomorphic(new_graph, test_graph), True)
-
-class testcase_11 (unittest.TestCase):
-    def test (self):
-        # testcase11: a book inside a book series and a book inside a book set
-        test_graph, new_graph = prepare2test("testcases/testcase_data/testcase_11_data.csv",
-                                             "testcases/testcase_data/indices/index11_ra.csv",
-                                             "testcases/testcase_data/indices/index11_br.csv",
-                                             "testcases/testcase_11.ttl")
         self.assertEqual(compare.isomorphic(new_graph, test_graph), True)
 
 def suite(testobj):
@@ -175,7 +164,7 @@ def suite(testobj):
     return test_suite
 
 
-TestSuit=suite(testcase_08)
+TestSuit=suite(testcase_10)
 
 runner=unittest.TextTestRunner()
 runner.run(TestSuit)

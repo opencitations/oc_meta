@@ -157,10 +157,10 @@
 
 <https://w3id.org/OC/meta/br/2> a ns7:Expression,
         ns7:Journal ;
-    ns6:title "venue1" ;
+    ns6:title "Venue1" ;
     ns1:hasIdentifier <https://w3id.org/OC/meta/id/11> .
 
 <https://w3id.org/OC/meta/ra/3> a ns5:Agent ;
     ns1:hasIdentifier <https://w3id.org/OC/meta/id/12> ;
-    ns5:name "pub1" .
+    ns5:name "Pub1" .
 

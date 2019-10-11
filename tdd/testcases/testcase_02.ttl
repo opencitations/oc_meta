@@ -140,7 +140,7 @@
 
 <https://w3id.org/OC/meta/br/2> a ns9:Expression,
         ns9:Journal;
-    ns5:title "venue2" ;
+    ns5:title "Venue2" ;
     ns4:hasIdentifier <https://w3id.org/OC/meta/id/11>,
         <https://w3id.org/OC/meta/id/12> .
 
@@ -153,5 +153,5 @@
 
 <https://w3id.org/OC/meta/ra/3> a ns6:Agent ;
     ns4:hasIdentifier <https://w3id.org/OC/meta/id/13> ;
-    ns6:name "pub2" .
+    ns6:name "Pub2" .
 

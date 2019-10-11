@@ -2,16 +2,12 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="d2b23c46-2db9-4b25-a89e-e1906277cf0f" name="Default" comment="">
-      <change beforePath="" afterPath="$PROJECT_DIR$/scripts/finder.py" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change beforePath="$PROJECT_DIR$/converter.py" afterPath="$PROJECT_DIR$/converter.py" />
-      <change beforePath="$PROJECT_DIR$/migrator.py" afterPath="$PROJECT_DIR$/migrator.py" />
-      <change beforePath="$PROJECT_DIR$/scripts/resfinder.py" afterPath="$PROJECT_DIR$/scripts/resfinder.py" />
       <change beforePath="$PROJECT_DIR$/tdd/converter_TDD.py" afterPath="$PROJECT_DIR$/tdd/converter_TDD.py" />
       <change beforePath="$PROJECT_DIR$/tdd/counter/ar.txt" afterPath="$PROJECT_DIR$/tdd/counter/ar.txt" />
       <change beforePath="$PROJECT_DIR$/tdd/counter/re.txt" afterPath="$PROJECT_DIR$/tdd/counter/re.txt" />
       <change beforePath="$PROJECT_DIR$/tdd/migrator_TDD.py" afterPath="$PROJECT_DIR$/tdd/migrator_TDD.py" />
-      <change beforePath="$PROJECT_DIR$/tdd/new_test_data.csv" afterPath="$PROJECT_DIR$/tdd/new_test_data.csv" />
       <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_01.ttl" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_01.ttl" />
       <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_02.ttl" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_02.ttl" />
       <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_03.ttl" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_03.ttl" />
@@ -22,9 +18,17 @@
       <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_08.ttl" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_08.ttl" />
       <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_09.ttl" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_09.ttl" />
       <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_10.ttl" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_10.ttl" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_11.ttl" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_11.ttl" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index6_ra.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index6_ra.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_11.ttl" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index10_br.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index10_br.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index10_ra.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index10_ra.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index11_br.csv" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index11_ra.csv" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index7_br.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index7_br.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index7_ra.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index7_ra.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index8_br.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index8_br.csv" />
       <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index8_ra.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index8_ra.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index9_br.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index9_br.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index9_ra.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index9_ra.csv" />
       <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_01_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_01_data.csv" />
       <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_02_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_02_data.csv" />
       <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_03_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_03_data.csv" />
@@ -35,7 +39,7 @@
       <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_08_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_08_data.csv" />
       <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_09_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_09_data.csv" />
       <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_10_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_10_data.csv" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_11_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_11_data.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_11_data.csv" afterPath="" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -49,8 +53,8 @@
       <file leaf-file-name="migrator.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/migrator.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-4946">
-              <caret line="201" column="33" lean-forward="false" selection-start-line="201" selection-start-column="26" selection-end-line="201" selection-end-column="33" />
+            <state relative-caret-position="-9335">
+              <caret line="7" column="57" lean-forward="false" selection-start-line="7" selection-start-column="47" selection-end-line="7" selection-end-column="57" />
               <folding>
                 <element signature="e#0#30#0" expanded="true" />
               </folding>
@@ -58,13 +62,13 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="converter.py" pinned="false" current-in-tab="false">
+      <file leaf-file-name="converter.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/converter.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="6394">
-              <caret line="515" column="0" lean-forward="true" selection-start-line="515" selection-start-column="0" selection-end-line="515" selection-end-column="0" />
+            <state relative-caret-position="8043">
+              <caret line="383" column="63" lean-forward="true" selection-start-line="383" selection-start-column="63" selection-end-line="383" selection-end-column="63" />
               <folding>
-                <element signature="e#0#14#0" expanded="true" />
+                <element signature="e#0#18#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -73,8 +77,8 @@
       <file leaf-file-name="graphlib.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/scripts/graphlib.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="4095">
-              <caret line="261" column="45" lean-forward="false" selection-start-line="261" selection-start-column="26" selection-end-line="261" selection-end-column="45" />
+            <state relative-caret-position="522">
+              <caret line="514" column="21" lean-forward="false" selection-start-line="514" selection-start-column="16" selection-end-line="514" selection-end-column="21" />
               <folding>
                 <element signature="e#850#893#0" expanded="true" />
               </folding>
@@ -97,22 +101,10 @@
       <file leaf-file-name="resfinder.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/scripts/resfinder.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="2618">
-              <caret line="299" column="0" lean-forward="true" selection-start-line="299" selection-start-column="0" selection-end-line="299" selection-end-column="0" />
+            <state relative-caret-position="2933">
+              <caret line="299" column="0" lean-forward="false" selection-start-line="299" selection-start-column="0" selection-end-line="299" selection-end-column="0" />
               <folding>
                 <element signature="e#851#893#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="datamerge.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/../quaero/data/dataprocessing/datamerge.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="42">
-              <caret line="2" column="19" lean-forward="false" selection-start-line="2" selection-start-column="0" selection-end-line="3" selection-end-column="0" />
-              <folding>
-                <element signature="e#0#27#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -121,7 +113,7 @@
       <file leaf-file-name="finder.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/scripts/finder.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-1378">
+            <state relative-caret-position="1764">
               <caret line="153" column="30" lean-forward="false" selection-start-line="153" selection-start-column="8" selection-end-line="153" selection-end-column="30" />
               <folding>
                 <element signature="e#0#40#0" expanded="true" />
@@ -130,11 +122,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="prova.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="prova.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/prova.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="147">
-              <caret line="7" column="29" lean-forward="true" selection-start-line="7" selection-start-column="29" selection-end-line="7" selection-end-column="70" />
+            <state relative-caret-position="-126">
+              <caret line="0" column="1" lean-forward="false" selection-start-line="0" selection-start-column="1" selection-end-line="0" selection-end-column="1" />
               <folding />
             </state>
           </provider>
@@ -143,8 +135,8 @@
       <file leaf-file-name="converter_TDD.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/tdd/converter_TDD.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="441">
-              <caret line="21" column="0" lean-forward="false" selection-start-line="21" selection-start-column="0" selection-end-line="21" selection-end-column="0" />
+            <state relative-caret-position="365">
+              <caret line="157" column="26" lean-forward="false" selection-start-line="157" selection-start-column="26" selection-end-line="157" selection-end-column="26" />
               <folding>
                 <element signature="e#0#15#0" expanded="true" />
               </folding>
@@ -155,8 +147,8 @@
       <file leaf-file-name="migrator_TDD.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/tdd/migrator_TDD.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="365">
-              <caret line="177" column="26" lean-forward="false" selection-start-line="177" selection-start-column="26" selection-end-line="177" selection-end-column="26" />
+            <state relative-caret-position="171">
+              <caret line="25" column="7" lean-forward="true" selection-start-line="25" selection-start-column="0" selection-end-line="26" selection-end-column="0" />
               <folding>
                 <element signature="e#0#15#0" expanded="true" />
               </folding>
@@ -175,22 +167,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>section</find>
-      <find>series</find>
-      <find>&quot;book&quot;</find>
-      <find>autho</find>
-      <find>compon</find>
-      <find>open</find>
-      <find>self.issue</find>
-      <find>row['auth</find>
-      <find>procee</find>
-      <find>archiva</find>
-      <find>GraphEntity</find>
-      <find>archival document</find>
-      <find>br</find>
-      <find>lowe</find>
-      <find>retrieve_from</find>
-      <find>;</find>
       <find>brdict</find>
       <find>[&quot;rows&quot;</find>
       <find>surname</find>
@@ -198,13 +174,29 @@
       <find>vol</find>
       <find>create_journal</find>
       <find>issue</find>
-      <find>GraphEntity.journal</find>
       <find>vvi</find>
       <find>venue</find>
-      <find>print</find>
       <find>newi</find>
-      <find>journal</find>
       <find>radict</find>
+      <find>GraphEntity.journal</find>
+      <find>increment</find>
+      <find>r_count</find>
+      <find>issue_meta</find>
+      <find>_add_number</find>
+      <find>clean_ti</find>
+      <find>_read_number</find>
+      <find>info_file_path</find>
+      <find>file_path</find>
+      <find>ar</find>
+      <find>+</find>
+      <find>file</find>
+      <find>ra_info_path</find>
+      <find>id_info_path</find>
+      <find>print</find>
+      <find>08</find>
+      <find>rese</find>
+      <find>cnt</find>
+      <find>journal</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -217,14 +209,14 @@
         <option value="$PROJECT_DIR$/graphlib.py" />
         <option value="$PROJECT_DIR$/resfinder.py" />
         <option value="$PROJECT_DIR$/tdd/test_creator_helper/rdf_creator.py" />
-        <option value="$PROJECT_DIR$/scripts/graphlib.py" />
         <option value="$PROJECT_DIR$/scripts/storer.py" />
         <option value="$PROJECT_DIR$/tdd/test_creator_helper/csv_creator.py" />
         <option value="$PROJECT_DIR$/migrator.py" />
-        <option value="$PROJECT_DIR$/tdd/migrator_TDD.py" />
         <option value="$PROJECT_DIR$/../quaero/data/dataprocessing/datamerge.py" />
         <option value="$PROJECT_DIR$/scripts/resfinder.py" />
         <option value="$PROJECT_DIR$/scripts/finder.py" />
+        <option value="$PROJECT_DIR$/tdd/migrator_TDD.py" />
+        <option value="$PROJECT_DIR$/scripts/graphlib.py" />
         <option value="$PROJECT_DIR$/prova.py" />
         <option value="$PROJECT_DIR$/converter.py" />
         <option value="$PROJECT_DIR$/tdd/converter_TDD.py" />
@@ -430,7 +422,7 @@
       <window_info id="R Packages" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="R Graphics" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.27744982" sideWeight="0.5042965" order="7" side_tool="true" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.27744982" sideWeight="0.49570355" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.27744982" sideWeight="0.49570355" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
@@ -456,7 +448,7 @@
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.26100966" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.26100966" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
       <window_info id="R Packages" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="R Graphics" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
@@ -492,7 +484,7 @@
         <state relative-caret-position="2058">
           <caret line="99" column="0" lean-forward="false" selection-start-line="99" selection-start-column="0" selection-end-line="99" selection-end-column="0" />
           <folding>
-            <element signature="e#0#22#0" expanded="true" />
+            <element signature="e#0#22#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -510,7 +502,7 @@
         <state relative-caret-position="987">
           <caret line="47" column="16" lean-forward="false" selection-start-line="47" selection-start-column="16" selection-end-line="47" selection-end-column="16" />
           <folding>
-            <element signature="e#0#14#0" expanded="true" />
+            <element signature="e#0#18#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -541,7 +533,7 @@
         <state relative-caret-position="1281">
           <caret line="62" column="55" lean-forward="false" selection-start-line="62" selection-start-column="55" selection-end-line="62" selection-end-column="55" />
           <folding>
-            <element signature="e#0#22#0" expanded="true" />
+            <element signature="e#0#22#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -566,7 +558,7 @@
         <state relative-caret-position="1050">
           <caret line="50" column="0" lean-forward="false" selection-start-line="50" selection-start-column="0" selection-end-line="50" selection-end-column="0" />
           <folding>
-            <element signature="e#0#14#0" expanded="true" />
+            <element signature="e#0#18#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -597,7 +589,7 @@
         <state relative-caret-position="1281">
           <caret line="62" column="55" lean-forward="false" selection-start-line="62" selection-start-column="55" selection-end-line="62" selection-end-column="55" />
           <folding>
-            <element signature="e#0#22#0" expanded="true" />
+            <element signature="e#0#22#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -622,7 +614,7 @@
         <state relative-caret-position="1050">
           <caret line="50" column="0" lean-forward="false" selection-start-line="50" selection-start-column="0" selection-end-line="50" selection-end-column="0" />
           <folding>
-            <element signature="e#0#14#0" expanded="true" />
+            <element signature="e#0#18#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -653,7 +645,7 @@
         <state relative-caret-position="1281">
           <caret line="62" column="55" lean-forward="false" selection-start-line="62" selection-start-column="55" selection-end-line="62" selection-end-column="55" />
           <folding>
-            <element signature="e#0#22#0" expanded="true" />
+            <element signature="e#0#22#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -678,7 +670,7 @@
         <state relative-caret-position="1050">
           <caret line="50" column="0" lean-forward="false" selection-start-line="50" selection-start-column="0" selection-end-line="50" selection-end-column="0" />
           <folding>
-            <element signature="e#0#14#0" expanded="true" />
+            <element signature="e#0#18#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -709,7 +701,7 @@
         <state relative-caret-position="1071">
           <caret line="52" column="49" lean-forward="false" selection-start-line="52" selection-start-column="49" selection-end-line="52" selection-end-column="49" />
           <folding>
-            <element signature="e#0#22#0" expanded="true" />
+            <element signature="e#0#22#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -734,7 +726,7 @@
         <state relative-caret-position="1050">
           <caret line="50" column="0" lean-forward="false" selection-start-line="50" selection-start-column="0" selection-end-line="50" selection-end-column="0" />
           <folding>
-            <element signature="e#0#14#0" expanded="true" />
+            <element signature="e#0#18#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -774,7 +766,7 @@
         <state relative-caret-position="-777">
           <caret line="2" column="0" lean-forward="false" selection-start-line="2" selection-start-column="0" selection-end-line="2" selection-end-column="0" />
           <folding>
-            <element signature="e#0#22#0" expanded="true" />
+            <element signature="e#0#22#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -791,37 +783,27 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/../quaero/data/dataprocessing/datamerge.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="42">
-          <caret line="2" column="19" lean-forward="false" selection-start-line="2" selection-start-column="0" selection-end-line="3" selection-end-column="0" />
+        <state relative-caret-position="147">
+          <caret line="7" column="42" lean-forward="true" selection-start-line="7" selection-start-column="42" selection-end-line="7" selection-end-column="42" />
           <folding>
-            <element signature="e#0#27#0" expanded="true" />
+            <element signature="e#0#27#0" expanded="false" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/scripts/graphlib.py">
+    <entry file="file://$PROJECT_DIR$/scripts/resfinder.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="4095">
-          <caret line="261" column="45" lean-forward="false" selection-start-line="261" selection-start-column="26" selection-end-line="261" selection-end-column="45" />
+        <state relative-caret-position="2933">
+          <caret line="299" column="0" lean-forward="false" selection-start-line="299" selection-start-column="0" selection-end-line="299" selection-end-column="0" />
           <folding>
-            <element signature="e#850#893#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/tdd/migrator_TDD.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="365">
-          <caret line="177" column="26" lean-forward="false" selection-start-line="177" selection-start-column="26" selection-end-line="177" selection-end-column="26" />
-          <folding>
-            <element signature="e#0#15#0" expanded="true" />
+            <element signature="e#851#893#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/scripts/finder.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-1378">
+        <state relative-caret-position="1764">
           <caret line="153" column="30" lean-forward="false" selection-start-line="153" selection-start-column="8" selection-end-line="153" selection-end-column="30" />
           <folding>
             <element signature="e#0#40#0" expanded="true" />
@@ -829,51 +811,61 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/migrator.py">
+    <entry file="file://$PROJECT_DIR$/scripts/graphlib.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-4946">
-          <caret line="201" column="33" lean-forward="false" selection-start-line="201" selection-start-column="26" selection-end-line="201" selection-end-column="33" />
+        <state relative-caret-position="522">
+          <caret line="514" column="21" lean-forward="false" selection-start-line="514" selection-start-column="16" selection-end-line="514" selection-end-column="21" />
           <folding>
-            <element signature="e#0#30#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/scripts/resfinder.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2618">
-          <caret line="299" column="0" lean-forward="true" selection-start-line="299" selection-start-column="0" selection-end-line="299" selection-end-column="0" />
-          <folding>
-            <element signature="e#851#893#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/converter.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="6394">
-          <caret line="515" column="0" lean-forward="true" selection-start-line="515" selection-start-column="0" selection-end-line="515" selection-end-column="0" />
-          <folding>
-            <element signature="e#0#14#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/tdd/converter_TDD.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="441">
-          <caret line="21" column="0" lean-forward="false" selection-start-line="21" selection-start-column="0" selection-end-line="21" selection-end-column="0" />
-          <folding>
-            <element signature="e#0#15#0" expanded="true" />
+            <element signature="e#850#893#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/prova.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="147">
-          <caret line="7" column="29" lean-forward="true" selection-start-line="7" selection-start-column="29" selection-end-line="7" selection-end-column="70" />
+        <state relative-caret-position="-126">
+          <caret line="0" column="1" lean-forward="false" selection-start-line="0" selection-start-column="1" selection-end-line="0" selection-end-column="1" />
           <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tdd/migrator_TDD.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="171">
+          <caret line="25" column="7" lean-forward="true" selection-start-line="25" selection-start-column="0" selection-end-line="26" selection-end-column="0" />
+          <folding>
+            <element signature="e#0#15#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tdd/converter_TDD.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="365">
+          <caret line="157" column="26" lean-forward="false" selection-start-line="157" selection-start-column="26" selection-end-line="157" selection-end-column="26" />
+          <folding>
+            <element signature="e#0#15#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/migrator.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-9335">
+          <caret line="7" column="57" lean-forward="false" selection-start-line="7" selection-start-column="47" selection-end-line="7" selection-end-column="57" />
+          <folding>
+            <element signature="e#0#30#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/converter.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="8043">
+          <caret line="383" column="63" lean-forward="true" selection-start-line="383" selection-start-column="63" selection-end-line="383" selection-end-column="63" />
+          <folding>
+            <element signature="e#0#18#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>

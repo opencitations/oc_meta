@@ -1,6 +1,4 @@
 id,meta
-isbn:1111,1
-isbn:2222,3
-isbn:3333,6
-isbn:4444,7
-isbn:5555,8
+doi:10.001/B-1,1
+doi:10.002/B-2,5
+isbn:1112,6
