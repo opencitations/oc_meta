@@ -623,7 +623,6 @@ class Converter:
             dict_writer.writerows(rowsra)
 
         rowsbr = list()
-        rowsra = list()
         if self.idbr:
             for x in self.idbr:
                 row = dict()
@@ -634,7 +633,7 @@ class Converter:
             row = dict()
             row["id"] = ""
             row["meta"] = ""
-            rowsra.append(row)
+            rowsbr.append(row)
 
         with open(PATH-BR, 'w', newline='') as output_file:
             dict_writer = csv.DictWriter(output_file, rowsbr[0].keys())
