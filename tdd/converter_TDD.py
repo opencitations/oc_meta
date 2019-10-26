@@ -23,9 +23,11 @@ def prepare2test(data, testcase_csv):
 
     conversion = Converter(data, 'http://127.0.0.1:9999/blazegraph/sparql').data
 
-    with open(testcase_csv, 'r') as csvfile:
+    with open(testcase_csv, 'r', encoding='utf-8') as csvfile:
         reader = csv.DictReader(csvfile, delimiter="\t")
         testcase = [dict(x) for x in reader]
+
+
     return conversion, testcase
 
 
@@ -149,13 +151,51 @@ class testcase_10 (unittest.TestCase):
         conversion, testcase = prepare2test(partial_data, "testcases/testcase_data/testcase_10_data.csv")
         self.assertEqual(conversion, testcase)
 
+
+class testcase_11 (unittest.TestCase):
+    def test (self):
+        # testcase11: real time entity update
+        data = datacollect()
+        partial_data = data[49:52]
+        conversion, testcase = prepare2test(partial_data, "testcases/testcase_data/testcase_11_data.csv")
+        self.assertEqual(conversion, testcase)
+
+class testcase_12 (unittest.TestCase):
+    def test (self):
+        # testcase12: clean name, title, ids
+        data = datacollect()
+        partial_data = list()
+        partial_data.append(data[52])
+        conversion, testcase = prepare2test(partial_data, "testcases/testcase_data/testcase_12_data.csv")
+        self.assertEqual(conversion, testcase)
+
+'''
+class testcase_13 (unittest.TestCase):
+    #AD HOC TEST
+
+    reset()
+    # testcase13: ID_clean massive test
+    def test1 (self):
+        #meta specified [row-0] new id belonging to a wannabe [row-1] meta specified with an id related to wannabe [row-2]
+        empty_val = {"author":"", "pub-date":"", "venue":"", "volume":"", "issue":"", "page":"", "type":"", "publisher":"", "editor":""}
+        row_data = [{"id":"meta:br/1" , "title":""},{"id":"doi:20", "title": "title1"}, {"id":"meta:br/1 doi:20", "title": "title1"}]
+        data = [{**d, **empty_val} for d in row_data]
+        row_testcase = [{'id': 'doi:20 doi:1 doi:2 doi:40 meta:br/1', 'title': 'Title1'}, {'id': 'doi:20 doi:1 doi:2 doi:40 meta:br/1', 'title': 'Title1'}]
+        testcase = [{**t, **empty_val} for t in row_testcase]
+        conversion = Converter(data, 'http://127.0.0.1:9999/blazegraph/sparql').data
+
+        self.assertEqual(conversion, testcase)
+'''
+
+
+
 def suite(testobj):
     test_suite = unittest.TestSuite()
     test_suite.addTest(unittest.makeSuite(testobj))
     return test_suite
 
 
-TestSuit=suite(testcase_08)
+TestSuit=suite(testcase_13)
 
 runner=unittest.TextTestRunner()
 runner.run(TestSuit)

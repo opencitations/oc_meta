@@ -48,3 +48,7 @@ doi:10.001/B-1	BOOK1	Surname1, Name1 [orcid:0000-0001]	1995	BOOKSERIES [isbn:111
 doi:10.001 isbn:1111	BOOKSERIES	Surname1, Name1 [orcid:0000-0001]	1995					book series	pub1 [crossref:1111]	editsurname1, editname1 [viaf:11111111]
 doi:10.002/B-2	BOOK2	Surname1, Name1 [orcid:0000-0001]	1995	BOOKSET [isbn:2222]				book	pub1 [crossref:1111]	editsurname1, editname1 [viaf:11111111]
 doi:10.002 isbn:2222	BOOKSET	Surname1, Name1 [orcid:0000-0001]	1995					book series	pub1 [crossref:1111]	editsurname1, editname1 [viaf:11111111]
+doi:10.002	TITLE1	Surname1, Name1 [orcid:0000-0001]; Surname2, Name2 [orcid:0000-0002]	1995					book	pub1 [crossref:1111]	editsurname1, editname1 [viaf:11111111]
+doi:10.002 isbn:2222	TITLE1	Surname1, Name1 [orcid:0000-0001 viaf: 123]	1995	Venue1 [doi:11.123]				book	pub1 [crossref:1111 viaf:344]	editsurname1, editname1 [viaf:11111111 wikidata:F123]
+doi:11.123	TITLE1	Surname1, Name1 [orcid:0000-0001]; Surname2, Name2 [orcid:0000-0002 viaf:222]	1995					book	pub1 [crossref:1111 wikidata:E191]	editsurname1, editname1 [viaf:123]
+  dOi : 11.123 vIAF : 123	 agile    Knowledge   graph   testing ù ò       à  with   TESTaLOD (!incredible!) έτος  汉字	kong-sang  , chang   [   orcid  :0000-0001 ] ;    leClerc,   charles [ORcId   :0000-0002    viaf  :222]	1995					book	ilMulino [crossref  :1111    wikidata  :E191]	leClerc,   charles [OrCId   :0000-0002]

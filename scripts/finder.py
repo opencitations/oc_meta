@@ -12,8 +12,12 @@ class ResourceFinder:
         result = self.ts.query(query)
         return result
 
+
+
+    #_______________________________BR_________________________________#
+
     def retrieve_br_from_id(self, value, schema):
-        schema = GraphEntity.DATACITE + schema
+        schema = GraphEntity.DATACITE + schema.upper()
         query = """
                 SELECT DISTINCT ?res (group_concat(DISTINCT  ?title;separator=' ;and; ') as ?title)
 					 (group_concat(DISTINCT  ?id;separator=' ;and; ') as ?id)
@@ -22,7 +26,7 @@ class ResourceFinder:
 
 				WHERE {
                     ?res a <%s>.
-                    ?res <%s> ?title.
+                    OPTIONAL {?res <%s> ?title.}
                     ?res <%s> ?id.
                     ?id <%s> ?schema.
                     ?id  <%s> ?value.
@@ -35,30 +39,149 @@ class ResourceFinder:
                 """ % (GraphEntity.expression, GraphEntity.title, GraphEntity.has_identifier,
                        GraphEntity.uses_identifier_scheme, GraphEntity.has_literal_value, GraphEntity.has_identifier,
                        GraphEntity.uses_identifier_scheme, schema, GraphEntity.has_literal_value, value)
+        results = self.__query(query)
+
+        if len(results["results"]["bindings"]):
+            result_list = list()
+            for result in results["results"]["bindings"]:
+                res = str(result["res"]["value"]).replace("https://w3id.org/OC/meta/br/", "")
+                title = str(result["title"]["value"])
+                meta_id_list = str(result["id"]["value"]).replace("https://w3id.org/OC/meta/id/", "").split(" ;and; ")
+                id_schema_list = str(result["schema"]["value"]).replace(GraphEntity.DATACITE, "").split(" ;and; ")
+                id_value_list = str(result["value"]["value"]).split(" ;and; ")
+
+                couple_list = list(zip(id_schema_list,id_value_list))
+                id_list = list()
+                for x in couple_list:
+                    id = str(x[0]).lower() + ':' + str(x[1])
+                    id_list.append(id)
+                final_list = list(zip(meta_id_list, id_list))
+                result_list.append(tuple((res, title, final_list)))
+            return result_list
+        else:
+            return None
+
+    def retrieve_br_from_meta (self, meta_id):
+        uri = "https://w3id.org/OC/meta/br/" + str(meta_id)
+        query = """
+                SELECT DISTINCT ?res (group_concat(DISTINCT  ?title;separator=' ;and; ') as ?title)
+                     (group_concat(DISTINCT  ?id;separator=' ;and; ') as ?id)
+                     (group_concat(?schema;separator=' ;and; ') as ?schema)
+                     (group_concat(DISTINCT  ?value;separator=' ;and; ') as ?value)
+
+                WHERE {
+                    ?res a <%s>.
+                    OPTIONAL {?res <%s> ?title.}
+                    ?res <%s> ?id.
+                    ?id <%s> ?schema.
+                    ?id  <%s> ?value.
+                    filter(?res = <%s>)
+                } group by ?res
+
+                """ % (GraphEntity.expression, GraphEntity.title, GraphEntity.has_identifier,
+                       GraphEntity.uses_identifier_scheme, GraphEntity.has_literal_value, uri)
         result = self.__query(query)
 
         if result["results"]["bindings"]:
             result = result["results"]["bindings"][0]
-            res = str(result["res"]["value"]).replace("https://w3id.org/OC/meta/br/", "")
             title = str(result["title"]["value"])
             meta_id_list = str(result["id"]["value"]).replace("https://w3id.org/OC/meta/id/", "").split(" ;and; ")
             id_schema_list = str(result["schema"]["value"]).replace(GraphEntity.DATACITE, "").split(" ;and; ")
             id_value_list = str(result["value"]["value"]).split(" ;and; ")
 
-            couple_list = list(zip(id_schema_list,id_value_list))
+            couple_list = list(zip(id_schema_list, id_value_list))
             id_list = list()
             for x in couple_list:
-                id = str(x[0]) + ':' + str(x[1])
+                id = str(x[0]).lower() + ':' + str(x[1])
                 id_list.append(id)
             final_list = list(zip(meta_id_list, id_list))
 
-            return res, title, final_list
+            return title, final_list
         else:
             return None
 
 
-    def retrieve_autor_editor_from_id (self, value, schema):
-        schema = GraphEntity.DATACITE + schema
+    #_______________________________ID_________________________________#
+
+    def retrieve_id (self, value, schema):
+        schema = GraphEntity.DATACITE + schema.upper()
+
+        query = """
+                        SELECT DISTINCT ?res 
+
+
+                        WHERE {
+                            ?res a <%s>.
+                            ?res <%s> <%s>.
+                            ?res <%s> ?knownValue.
+                            filter(?knownValue = "%s")
+                        } group by ?res
+
+                        """ % (
+        GraphEntity.identifier, GraphEntity.uses_identifier_scheme, schema, GraphEntity.has_literal_value,
+        value)
+
+        result = self.__query(query)
+        if result["results"]["bindings"]:
+            return str(result["res"]["value"]).replace("https://w3id.org/OC/meta/ra/", "")
+        else:
+            return None
+
+
+
+
+    #_______________________________RA_________________________________#
+    def retrieve_ra_from_meta (self, meta_id, publisher = False):
+        uri = "https://w3id.org/OC/meta/ra/" + str(meta_id)
+        query = """
+                        SELECT DISTINCT ?res (group_concat(DISTINCT  ?title;separator=' ;and; ') as ?title)
+                             (group_concat(DISTINCT  ?name;separator=' ;and; ') as ?name)
+                             (group_concat(DISTINCT  ?surname;separator=' ;and; ') as ?surname)
+                             (group_concat(DISTINCT  ?id;separator=' ;and; ') as ?id)
+                             (group_concat(?schema;separator=' ;and; ') as ?schema)
+                             (group_concat(DISTINCT  ?value;separator=' ;and; ') as ?value)
+
+                        WHERE {
+                            ?res a <%s>.
+                            OPTIONAL {?res <%s> ?name.
+                                ?res <%s> ?surname.}
+                            OPTIONAL {?res <%s> ?title.}
+                            ?res <%s> ?id.
+                            ?id <%s> ?schema.
+                            ?id  <%s> ?value.
+                            filter(?knownValue = "%s")
+                        } group by ?res
+
+                        """ % (GraphEntity.agent, GraphEntity.given_name, GraphEntity.family_name, GraphEntity.name, GraphEntity.has_identifier,
+                               GraphEntity.uses_identifier_scheme, GraphEntity.has_literal_value, uri)
+        result = self.__query(query)
+
+        if result["results"]["bindings"]:
+            result = result["results"]["bindings"][0]
+            if str(result["title"]["value"]) and publisher:
+                title = str(result["title"]["value"])
+            elif str(result["surname"]["value"]) and str(result["name"]["value"]) and not publisher:
+                title = str(result["surname"]["value"]) + ", " + str(result["name"]["value"])
+            else:
+                title = ""
+            meta_id_list = str(result["id"]["value"]).replace("https://w3id.org/OC/meta/id/", "").split(" ;and; ")
+            id_schema_list = str(result["schema"]["value"]).replace(GraphEntity.DATACITE, "").split(" ;and; ")
+            id_value_list = str(result["value"]["value"]).split(" ;and; ")
+
+            couple_list = list(zip(id_schema_list, id_value_list))
+            id_list = list()
+            for x in couple_list:
+                id = str(x[0]).lower() + ':' + str(x[1])
+                id_list.append(id)
+            final_list = list(zip(meta_id_list, id_list))
+
+            return title, final_list
+        else:
+            return None
+
+
+    def retrieve_ra_from_id(self, value, schema, publisher):
+        schema = GraphEntity.DATACITE + schema.upper()
 
         query = """
                 SELECT DISTINCT ?res 
@@ -70,8 +193,9 @@ class ResourceFinder:
 
                 WHERE {
                     ?res a <%s>.
-                    ?res <%s> ?name.
-                    ?res <%s> ?surname.
+                    OPTIONAL {?res <%s> ?name.
+                            ?res <%s> ?surname.}
+                    OPTIONAL {?res <%s> ?title.}
                     ?res <%s> ?id.
                     ?id <%s> ?schema.
                     ?id  <%s> ?value.
@@ -81,78 +205,45 @@ class ResourceFinder:
                     filter(?knownValue = "%s")
                 } group by ?res
 
-                """ % (GraphEntity.agent, GraphEntity.given_name, GraphEntity.family_name, GraphEntity.has_identifier,
+                """ % (GraphEntity.agent, GraphEntity.given_name, GraphEntity.family_name, GraphEntity.name, GraphEntity.has_identifier,
                        GraphEntity.uses_identifier_scheme, GraphEntity.has_literal_value, GraphEntity.has_identifier,
                        GraphEntity.uses_identifier_scheme, schema, GraphEntity.has_literal_value, value)
 
-        result = self.__query(query)
+        results = self.__query(query)
 
-        if result["results"]["bindings"]:
-            result = result["results"]["bindings"][0]
-            res = str(result["res"]["value"]).replace("https://w3id.org/OC/meta/ra/", "")
-            title = str(result["surname"]["value"]) + ", " + str(result["name"]["value"])
-            meta_id_list = str(result["id"]["value"]).replace("https://w3id.org/OC/meta/id/", "").split(" ;and; ")
-            id_schema_list = str(result["schema"]["value"]).replace(GraphEntity.DATACITE, "").split(" ;and; ")
-            id_value_list = str(result["value"]["value"]).split(" ;and; ")
+        if len(results["results"]["bindings"]):
+            result_list = list()
+            for result in results["results"]["bindings"]:
+                result = result["results"]["bindings"][0]
+                res = str(result["res"]["value"]).replace("https://w3id.org/OC/meta/ra/", "")
+                if str(result["title"]["value"]) and publisher:
+                    title = str(result["title"]["value"])
+                elif str(result["surname"]["value"]) and str(result["name"]["value"]) and not publisher:
+                    title = str(result["surname"]["value"]) + ", " + str(result["name"]["value"])
+                else:
+                    title = ""
+                meta_id_list = str(result["id"]["value"]).replace("https://w3id.org/OC/meta/id/", "").split(" ;and; ")
+                id_schema_list = str(result["schema"]["value"]).replace(GraphEntity.DATACITE, "").split(" ;and; ")
+                id_value_list = str(result["value"]["value"]).split(" ;and; ")
 
-            couple_list = list(zip(id_schema_list, id_value_list))
-            id_list = list()
-            for x in couple_list:
-                id = str(x[0]) + ':' + str(x[1])
-                id_list.append(id)
-            final_list = list(zip(meta_id_list, id_list))
+                couple_list = list(zip(id_schema_list, id_value_list))
+                id_list = list()
+                for x in couple_list:
+                    id = str(x[0]).lower() + ':' + str(x[1])
+                    id_list.append(id)
+                final_list = list(zip(meta_id_list, id_list))
 
-            return res, title, final_list
+                result_list.append(tuple((res, title, final_list)))
+            return result_list
         else:
             return None
 
-    def retrieve_publisher_from_id(self, value, schema):
-        schema = GraphEntity.DATACITE + schema
-        query = """
-                SELECT DISTINCT ?res (group_concat(DISTINCT  ?title;separator=' ;and; ') as ?title)
-                     (group_concat(DISTINCT  ?id;separator=' ;and; ') as ?id)
-                     (group_concat(?schema;separator=' ;and; ') as ?schema)
-                     (group_concat(DISTINCT  ?value;separator=' ;and; ') as ?value)
 
-                WHERE {
-                    ?res a <%s>.
-                    ?res <%s> ?title.
-                    ?res <%s> ?id.
-                    ?id <%s> ?schema.
-                    ?id  <%s> ?value.
-                    ?res <%s> ?knownId.
-                    ?knownId <%s> <%s>.
-                    ?knownId <%s> ?knownValue.
-                    filter(?knownValue = "%s")
-                } group by ?res
 
-                """ % (GraphEntity.agent, GraphEntity.name, GraphEntity.has_identifier,
-                       GraphEntity.uses_identifier_scheme, GraphEntity.has_literal_value,
-                       GraphEntity.has_identifier,
-                       GraphEntity.uses_identifier_scheme, schema, GraphEntity.has_literal_value, value)
-        result = self.__query(query)
-
-        if result["results"]["bindings"]:
-            result = result["results"]["bindings"][0]
-            res = str(result["res"]["value"]).replace("https://w3id.org/OC/meta/ra/", "")
-            title = str(result["title"]["value"])
-            meta_id_list = str(result["id"]["value"]).replace("https://w3id.org/OC/meta/id/", "").split(" ;and; ")
-            id_schema_list = str(result["schema"]["value"]).replace(GraphEntity.DATACITE, "").split(" ;and; ")
-            id_value_list = str(result["value"]["value"]).split(" ;and; ")
-
-            couple_list = list(zip(id_schema_list, id_value_list))
-            id_list = list()
-            for x in couple_list:
-                id = str(x[0]) + ':' + str(x[1])
-                id_list.append(id)
-            final_list = list(zip(meta_id_list, id_list))
-
-            return res, title, final_list
-        else:
-            return None
+    #_______________________________VVI_________________________________#
 
     def retrieve_venue_from_id(self, value, schema):
-        schema = GraphEntity.DATACITE + schema
+        schema = GraphEntity.DATACITE + schema.upper()
         query = """
                 SELECT DISTINCT ?res 
                      (group_concat(DISTINCT  ?type;separator=' ;and; ') as ?type)

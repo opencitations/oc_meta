@@ -123,7 +123,8 @@ class Migrator():
             self.id_creator(self.br_graph, id, ra=False)
 
     def title_job (self, title):
-        self.br_graph.create_title(title)
+        if title:
+            self.br_graph.create_title(title)
 
 
     def author_job (self, authors):
@@ -140,11 +141,15 @@ class Migrator():
                     url = URIRef(self.url + id)
                     pub_aut = self.setgraph.add_ra("agent", source_agent=None, source=None, res=url, wanted_type = True)
                     author_name = re.search(r'(.*?)\s*\[.*?\]', aut).group(1)
-                    author_name_splitted = re.split(r'\s*,\s*', author_name)
-                    firstName = author_name_splitted[1]
-                    lastName = author_name_splitted[0]
-                    pub_aut.create_given_name(firstName)
-                    pub_aut.create_family_name(lastName)
+                    if "," in author_name:
+                        author_name_splitted = re.split(r'\s*,\s*', author_name)
+                        firstName = author_name_splitted[1]
+                        lastName = author_name_splitted[0]
+                        if firstName:
+                            pub_aut.create_given_name(firstName)
+                        pub_aut.create_family_name(lastName)
+                    else:
+                        pub_aut.create_name(author_name)
 
         # lists of authors' IDs
             for id in aut_id_list:
@@ -355,11 +360,16 @@ class Migrator():
                     url = URIRef(self.url + id)
                     pub_ed = self.setgraph.add_ra("agent", source_agent=None, source=None, res=url, wanted_type = True)
                     editor_name = re.search(r'(.*?)\s*\[.*?\]', ed).group(1)
-                    editor_name_splitted = re.split(r'\s*,\s*', editor_name)
-                    firstName = editor_name_splitted[1]
-                    lastName = editor_name_splitted[0]
-                    pub_ed.create_given_name(firstName)
-                    pub_ed.create_family_name(lastName)
+                    if "," in editor_name:
+                        editor_name_splitted = re.split(r'\s*,\s*', editor_name)
+                        firstName = editor_name_splitted[1]
+                        lastName = editor_name_splitted[0]
+                        pub_ed.create_given_name(firstName)
+                        pub_ed.create_family_name(lastName)
+                    else:
+                        pub_ed.create_name(editor_name)
+
+
 
         # lists of editor's IDs
             for id in ed_id_list:
