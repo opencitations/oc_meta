@@ -15,16 +15,20 @@ class Converter:
         self.br_info_path = info_dir + "br.txt"
         self.id_info_path = info_dir + "id.txt"
         self.ra_info_path = info_dir + "ra.txt"
+        self.ar_info_path = info_dir + "ar.txt"
+        self.re_info_path = info_dir + "re.txt"
 
-        self.brdict = {}  # key br metaid; value id
-        self.radict = {}  # key ra metaid; value id
+        self.brdict = {}
+        self.radict = {}
+        self.ardict = {}
         self.vvi = {}  #Venue, Volume, Issue
         self.idra = {}  # key id; value metaid of id related to ra
         self.idbr = {}  # key id; value metaid of id related to br
 
         self.rameta = dict()
         self.brmeta = dict()
-
+        self.armeta = dict()
+        self.remeta = dict()
 
         #wannabe counter
         self.wnb_cnt = 0
@@ -32,11 +36,12 @@ class Converter:
         self.rowcnt = 0
 
         self.conflict_list = list()
+        self.new_sequence_list = list()
         self.data = data
 
         for row in self.data:
             self.clean_id(row)
-            #self.clean_vvi(row)
+            self.clean_vvi(row)
             self.rowcnt = + 1
 
         #reset row counter
@@ -56,7 +61,7 @@ class Converter:
 
     #ID
     def clean_id(self, row):
-        #TODO check resource embodiment
+
         if row['id']:
             if self.separator:
                 idslist = re.sub(r'\s*:\s*', ':', row['id']).split(self.separator)
@@ -70,84 +75,246 @@ class Converter:
         row['id'] = metaval
 
 
+        #page
+        if row['page']:
+            row['page'] = row['page'].strip()
+        #todo date
+        #todo type
+
+
 
     # VVI
     def clean_vvi(self, row):
-        #todo
         vol_meta = None
         if row["venue"]:
             venue_id = re.search(r'\[\s*(.*?)\s*\]', row["venue"])
             if venue_id:
+                name = self.clean_title(re.search(r'(.*?)\s*\[.*?\]', row["venue"]).group(1))
                 venue_id = venue_id.group(1)
                 if self.separator:
                     idslist = re.sub(r'\s*\:\s*', ':', venue_id).split(self.separator)
                 else:
                     idslist = re.split(r'\s+', re.sub(r'\s*\:\s*', ':', venue_id))
-                name = self.clean_name(row['title'])
                 metaval = self.id_worker(row, name, idslist, ra_ent=False, br_ent=True, vvi_ent=True, publ_entity=False)
+                ts_vvi = None
+                if "wannabe" not in metaval:
+                    ts_vvi = self.finder.retrieve_venue_from_meta(metaval)
 
+                #todo check what to do when metaval already in self.vvi
+                if ("wannabe" in metaval or not ts_vvi) and metaval not in self.vvi:
+                    self.vvi[metaval] = dict()
+                    self.vvi[metaval]["volume"] = dict()
+                    self.vvi[metaval]["issue"] = dict()
+                elif ts_vvi:
+                        self.vvi[metaval] = ts_vvi
+
+            else:
+                name = self.clean_title(row['venue'])
+                metaval = self.new_entity(self.brdict, name)
+                self.vvi[metaval] = dict()
+                self.vvi[metaval]["volume"] = dict()
+                self.vvi[metaval]["issue"] = dict()
+
+            row["venue"] = metaval
+
+        # VOLUME
+            if row["volume"] and (row["type"] == "journal issue" or row["type"] == "journal article"):
+                vol = row["volume"].strip()
+                row["volume"] = vol
+                if vol in self.vvi[metaval]["volume"]:
+                    vol_meta = self.vvi[metaval]["volume"][vol]["id"]
+                else:
+                    vol_meta = self.new_entity(self.brdict, "")
+                    self.vvi[metaval]["volume"][vol] = dict()
+                    self.vvi[metaval]["volume"][vol]["id"] = vol_meta
+                    self.vvi[metaval]["volume"][vol]["issue"] = dict()
+
+
+            elif row['volume'] and row["type"] == "journal volume":
+                vol = row["volume"].strip()
+                row["volume"] = vol
+                row["issue"] = ""
+                vol_meta = row["id"]
+                self.volume_issue(vol_meta, self.vvi[metaval]["volume"], vol, row)
+
+            # ISSUE
+            if row["issue"] and row["type"] == "journal article":
+                issue = row["issue"].strip()
+                row["issue"] = issue
+                if vol_meta:
+                    # issue inside vol
+                    if issue not in self.vvi[metaval]["volume"][vol]["issue"]:
+                        issue_meta = self.new_entity(self.brdict, "")
+                        self.vvi[metaval]["volume"][vol]["issue"][issue] = dict()
+                        self.vvi[metaval]["volume"][vol]["issue"][issue]["id"] = issue_meta
+
+                else:
+                    # issue inside venue (without volume)
+                    if issue not in self.vvi[metaval]["issue"]:
+                        issue_meta = self.new_entity(self.brdict, "")
+                        self.vvi[metaval]["issue"][issue] = dict()
+                        self.vvi[metaval]["issue"][issue]["id"] = issue_meta
+
+            elif row["issue"] and row["type"] == "journal issue":
+                issue = row["issue"].strip()
+                row["issue"] = issue
+                issue_meta = row["id"]
+                if vol_meta:
+                    self.volume_issue(issue_meta, self.vvi[metaval]["volume"][vol]["issue"], issue, row)
+                else:
+                    self.volume_issue(issue_meta, self.vvi[metaval]["issue"], issue, row)
 
     # RA
     def clean_ra(self, row, col_name):
-        #todo authors list + AgentRole
             if row[col_name]:
                 ra_list = re.split(r'\s*;\s*(?=[^]]*(?:\[|$))', row[col_name]) #split authors by ";" outside "[]" (any spaces before and after ";")
                 final_ra_list = list()
 
-                #if br has meta and not wannabe ---> a sequence of ra already exists
-                if "wannabe" not in row["id"]:
-                    #query ra sequence
-                    #se non sono presenti nel dizionario aggiungi i ra al radict
-                    #crea la nuova sequenza di ra
-                    #aggiungi la sequenza nel dizionario
-                    #todo abbina ra-ruolo-br nel roledict
-                    pass
+                if row["id"] in self.brdict:
+                    br_metaval = row["id"]
+                else:
+                    for x in self.brdict:
+                        if row["id"] in self.brdict[x]["others"]:
+                            br_metaval = x
+                            break
 
+                if br_metaval not in self.ardict or not self.ardict[br_metaval][col_name]:
+                    #new sequence
+                    if "wannabe" in br_metaval:
+                        if br_metaval not in self.ardict:
+                            self.ardict[br_metaval] = dict()
+                            self.ardict[br_metaval]["author"] = list()
+                            self.ardict[br_metaval]["editor"] = list()
+                            self.ardict[br_metaval]["publisher"] = list()
+                        sequence = []
+                    else:
+                        #sequence can be in TS
+                        sequence_found = self.finder.retrieve_ra_sequence_from_meta(br_metaval, col_name)
+                        if sequence_found:
+                            sequence = []
+                            for x in sequence_found:
+                                for k in x:
+                                    sequence.append(tuple((k, x[k][2])))
+                                    if x[k][2] not in self.radict:
+                                        self.radict[x[k][2]] = dict()
+                                        self.radict[x[k][2]]["ids"] = list()
+                                        self.radict[x[k][2]]["others"] = list()
+                                        self.radict[x[k][2]]["title"] = x[k][0]
+                                    for i in x[k][1]:
+                                        if i[0] not in self.idra:
+                                            self.idra[i[1]] = i[0]
+                                        if i[1] not in self.radict[x[k][2]]["ids"]:
+                                            self.radict[x[k][2]]["ids"].append(i[1])
+
+                            if br_metaval not in self.ardict:
+                                self.ardict[br_metaval] = dict()
+                                self.ardict[br_metaval]["author"] = list()
+                                self.ardict[br_metaval]["editor"] = list()
+                                self.ardict[br_metaval]["publisher"] = list()
+                                self.ardict[br_metaval][col_name].extend(sequence)
+                            else:
+                                self.ardict[br_metaval][col_name].extend(sequence)
+                        else:
+                            # totally new sequence
+                            if br_metaval not in self.ardict:
+                                self.ardict[br_metaval] = dict()
+                                self.ardict[br_metaval]["author"] = list()
+                                self.ardict[br_metaval]["editor"] = list()
+                                self.ardict[br_metaval]["publisher"] = list()
+                            sequence = []
+                else:
+                    sequence = self.ardict[br_metaval][col_name]
+
+                new_sequence = list()
                 for ra in ra_list:
-                    #todo se abbiamo una sequenza aggiungi i metaid ai ra (per fare prima)
+                    new_elem_seq = True
                     ra_id = re.search(r'\[\s*(.*?)\s*\]', ra) #takes string inside "[]" ignoring any space between (ex: [ TARGET  ] --> TARGET
-                    #clean ra id
                     if ra_id:
                         ra_id = ra_id.group(1)
+                        name = self.clean_name(re.search(r'\s*(.*?)\s*\[.*?\]', ra).group(1))
+                    else:
+                        name = self.clean_name(ra)
+
+                    if not ra_id and sequence:
+                        for x, k in sequence:
+                            if self.radict[k]["title"] == name:
+                                ra_id = "meta:ra/" + str(k)
+                                new_elem_seq = False
+                                break
+                    if ra_id:
+                        #ra_id = ra_id.group(1)
                         if self.separator:
                             ra_id_list = re.sub(r'\s*\:\s*', ':', ra_id).split(self.separator)
                         else:
                             ra_id_list = re.split(r'\s+', re.sub(r'\s*\:\s*', ':', ra_id))
-                        name = self.clean_name(re.search(r'\s*(.*?)\s*\[.*?\]', ra).group(1))
+
+                        if sequence:
+                            kv = None
+                            for x,k in sequence:
+                                for i in ra_id_list:
+                                    if i in self.radict[k]['ids']:
+                                        new_elem_seq = False
+                                        if "wannabe" not in k:
+                                            kv = k
+                                            for pos,i in enumerate(ra_id_list):
+                                                if "meta" in i:
+                                                    ra_id_list[pos] = ""
+                                                break
+                                            ra_id_list = list(filter(None, ra_id_list))
+                                            ra_id_list.append("meta:ra/" + kv)
+                            if not kv:
+                                for x, k in sequence:
+                                    if self.radict[k]['title'] == name:
+                                        new_elem_seq = False
+                                        if "wannabe" not in k:
+                                            kv = k
+                                            for pos, i in enumerate(ra_id_list):
+                                                if "meta" in i:
+                                                    ra_id_list[pos] = ""
+                                                break
+                                            ra_id_list = list(filter(None, ra_id_list))
+                                            ra_id_list.append("meta:ra/" + kv)
+
                         if col_name == "publisher":
                             metaval = self.id_worker(row, name, ra_id_list, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
                         else:
                             metaval = self.id_worker(row, name, ra_id_list, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=False)
                     else:
-                        name = self.clean_name(row[col_name])
                         metaval = self.new_entity(self.radict, name)
-                    #todo abbina ra-ruolo-br nel roledict (roledict sarà da aggiornare una volta assegnati i meta finali), se abbiamo la sequenza abbiamo già i ruoli
-                    final_ra_list.append(metaval)
-                newrow = "; ".join(final_ra_list)
-                row[col_name] = newrow
+                    if new_elem_seq:
+                        role = self._add_number(self.ar_info_path)
+                        new_sequence.append(tuple((role, metaval)))
+                        self.new_sequence_list.append(tuple((self.rowcnt, role,  metaval)))
+                    #final_ra_list.append(metaval)
+
+                sequence.extend(new_sequence)
+                self.ardict[br_metaval][col_name] = sequence
 
 
     def find_update_other_ID (self, list2match, metaval, dict2match, temporary_name):
         found_others = self.local_match(list2match, dict2match)
         if found_others["wannabe"]:
             for obj in found_others["wannabe"]:
-                for x in dict2match[obj]["ids"]:
-                    if x not in dict2match[metaval]["ids"]:
-                        dict2match[metaval]["ids"].append(x)
+                self.update(dict2match, metaval, obj, temporary_name)
 
-                for x in dict2match[obj]["others"]:
-                    if x not in dict2match[metaval]["others"]:
-                        dict2match[metaval]["others"].append(x)
 
-                dict2match[metaval]["others"].append(obj)
+    def update(self,dict2match, metaval, old_meta, temporary_name):
+        for x in dict2match[old_meta]["ids"]:
+            if x not in dict2match[metaval]["ids"]:
+                dict2match[metaval]["ids"].append(x)
 
-                if not dict2match[metaval]["title"]:
-                    if dict2match[obj]["title"]:
-                        dict2match[metaval]["title"] = dict2match[obj]["title"]
-                    else:
-                        dict2match[metaval]["title"] = temporary_name
-                del dict2match[obj]
+        for x in dict2match[old_meta]["others"]:
+            if x not in dict2match[metaval]["others"]:
+                dict2match[metaval]["others"].append(x)
 
+        dict2match[metaval]["others"].append(old_meta)
+
+        if not dict2match[metaval]["title"]:
+            if dict2match[old_meta]["title"]:
+                dict2match[metaval]["title"] = dict2match[old_meta]["title"]
+            else:
+                dict2match[metaval]["title"] = temporary_name
+        del dict2match[old_meta]
 
     @staticmethod
     # All in One recursion, clean ids and meanwhile check if there's metaId
@@ -158,21 +325,27 @@ class Converter:
             pattern = "ra/"
         metaid = ""
         id_list = list(filter(None, id_list))
-        for pos, elem in enumerate(id_list):
-            try:
-                id = elem.split(":")
-                value = id[1]
-                schema = id[0].lower()
-                if schema == "meta":
-                    if "meta:" + pattern in elem:
-                        metaid = value.replace(pattern, "")
+        how_many_meta = [i for i in id_list if i.lower().startswith('meta')]
+        if len(how_many_meta) > 1:
+            for pos, elem in enumerate(id_list):
+                if "meta" in elem:
+                    id_list[pos] = ""
+        else:
+            for pos, elem in enumerate(id_list):
+                try:
+                    id = elem.split(":")
+                    value = id[1]
+                    schema = id[0].lower()
+                    if schema == "meta":
+                        if "meta:" + pattern in elem:
+                            metaid = value.replace(pattern, "")
+                        else:
+                            id_list[pos] = ""
                     else:
-                        id_list[pos] = ""
-                else:
-                    newid = schema + ":" + value
-                    id_list[pos] = newid
-            except:
-                id_list[pos] = ""
+                        newid = schema + ":" + value
+                        id_list[pos] = newid
+                except:
+                    id_list[pos] = ""
         if metaid:
             id_list.remove("meta:" + pattern + metaid)
         id_list = list(filter(None, id_list))
@@ -181,8 +354,8 @@ class Converter:
 
 
     def conflict (self, idslist, entity_dict, name, id_dict):
-        self.conflict_list.append(self.rowcnt)
         metaval = self.new_entity(entity_dict, name)
+        self.conflict_list.append(tuple((self.rowcnt, metaval)))
         for id in idslist:
             entity_dict[metaval]["ids"].append(id)
             if id not in id_dict:
@@ -210,8 +383,6 @@ class Converter:
                     res = self.finder.retrieve_br_from_id(value, schema)
                 elif ra:
                     res = self.finder.retrieve_ra_from_id(value, schema, publ)
-                elif vvi:
-                    res = self.finder.retrieve_venue_from_id(value, schema)
                 if res:
                     for f in res:
                         if f[0] not in id_set:
@@ -220,18 +391,16 @@ class Converter:
         return match_elem
 
 
-    def ra_update(self, row, rowname):
-        if row[rowname]:
-            ras_list = row[rowname].split("; ")
-            for pos, ra in enumerate(ras_list):
-                if "wannabe" in ra:
-                    for k in self.rameta:
-                        if ra in self.rameta[k]["others"]:
-                            ras_list[pos] = self.rameta[k]["title"] + " [" + " ".join(self.rameta[k]["ids"]) + "]"
-                else:
-                    k = ra
-                    ras_list[pos] = self.rameta[k]["title"] + " [" + " ".join(self.rameta[k]["ids"]) + "]"
-            row[rowname] = "; ".join(ras_list)
+    def ra_update(self, row, br_key, col_name):
+        if row[col_name]:
+            sequence = self.armeta[br_key][col_name]
+            ras_list = list()
+            for x,y in sequence:
+                ra_name = self.rameta[y]["title"]
+                ra_ids = " ".join(self.rameta[y]["ids"])
+                ra = ra_name+ " [" + ra_ids + "]"
+                ras_list.append(ra)
+            row[col_name] = "; ".join(ras_list)
 
 
     @staticmethod
@@ -249,6 +418,19 @@ class Converter:
                         if k not in match_elem["existing"]:
                             match_elem["existing"].append(k)
         return match_elem
+
+
+    def meta_ar(self, newkey, oldkey, role):
+        for x,k in self.ardict[oldkey][role]:
+            if "wannabe" in k:
+                for m in self.rameta:
+                    if k in self.rameta[m]['others']:
+                        new_v = m
+                        break
+            else:
+                new_v = k
+            self.armeta[newkey][role].append(tuple((x, new_v)))
+
 
     def meta_maker(self):
         for x in self.brdict:
@@ -276,179 +458,87 @@ class Converter:
                 self.rameta[x] = self.radict[x]
                 self.rameta[x]["ids"].append("meta:ra/" + x)
 
+        for x in self.ardict:
+            if "wannabe" in x:
+                for w in self.brmeta:
+                    if x in self.brmeta[w]["others"]:
+                        br_key = w
+                        break
+            else:
+                br_key = x
+
+            self.armeta[br_key] = dict()
+            self.armeta[br_key]["author"] = list()
+            self.armeta[br_key]["editor"] = list()
+            self.armeta[br_key]["publisher"] = list()
+
+            self.meta_ar(br_key, x, "author")
+            self.meta_ar(br_key, x, "editor")
+            self.meta_ar(br_key, x, "publisher")
+
+
 
 
     def dry(self):
         for row in self.data:
             if "wannabe" in row["id"]:
-                for k in self.brmeta:
-                    if row["id"] in self.brmeta[k]["others"]:
-                        row["id"] = " ".join(self.brmeta[k]["ids"])
-                        row["title"] = self.brmeta[k]["title"]
+                for i in self.brmeta:
+                    if row["id"] in self.brmeta[i]["others"]:
+                        k = i
             else:
                 k = row["id"]
-                row["id"] = " ".join(self.brmeta[k]["ids"])
-                row["title"] = self.brmeta[k]["title"]
-
-            self.ra_update(row, "author")
-            self.ra_update(row, "publisher")
-            self.ra_update(row, "editor")
-
-    '''
-    #VVI
-    def clean_vvi(self, row):
-        vol_meta = None
-        if row["venue"]:
-            venue_id = re.search(r'\[\s*(.*?)\s*\]', row["venue"])
-
-            if venue_id:
-                venue_id = venue_id.group(1)
-                if self.separator:
-                    venue_id_list = re.sub(r'\s*\:\s*', ':', venue_id).split(self.separator)
-                else:
-                    venue_id_list = re.split(r'\s+', re.sub(r'\s*\:\s*', ':', venue_id))
-
-                venue_id_list = self.clean_id_list(venue_id_list)
-
-                # check if br exists in temporary dict
-
-                local_match, elem = self.local_any(venue_id_list, self.brdict)
-                if local_match:
-                    ven_meta = str(elem)
-                    newid = "meta:br/" + ven_meta
-
-                    ven = self.brdict[ven_meta]["title"]
-
-                    for x in self.brdict[ven_meta]["ids"]:
-                        if x not in venue_id_list:
-                            venue_id_list.append(x)
-
-                else:
-                    # check if br exists in graph
-                    finder_match, found_elem = self.finder_any_vii(venue_id_list)
-                    if finder_match:
-                        ven_meta = found_elem[0]
-                        newid = "meta:br/" + ven_meta
-
-                        title = found_elem[1]
-                        ven = title
-
-                        self.brdict[ven_meta] = dict()
-                        self.brdict[ven_meta]["ids"] = list()
-                        self.brdict[ven_meta]["rows"] = list()
-                        self.brdict[ven_meta]["title"] = title
-
-                        existing_ids = found_elem[2]
-
-                        for id in existing_ids:
-                            if id[1] not in self.idbr:
-                                self.idbr[id[1]] = id[0]
-                            if id[1] not in venue_id_list:
-                                venue_id_list.append(id[1])
-
-                        if found_elem[3]:
-                            #self.vendict[ven_meta] = dict()
-                            self.vvi[ven_meta] = found_elem[3]
-
-
+                if row["page"] and (k not in self.remeta):
+                    re = self.finder.re_from_meta(k)
+                    if re:
+                        self.remeta[k] = re
                     else:
-                        # create new br metaid
-                        count = self._add_number(self.br_info_path)
-                        ven_meta = str(count)
-                        newid = "meta:br/" + ven_meta
+                        count = self._add_number(self.re_info_path)
+                        self.remeta[k] = count
 
-                        ven = self.clean_title(re.search(r'(.*?)\s*\[.*?\]', row["venue"]).group(1))
+            self.ra_update(row, k, "author")
+            self.ra_update(row, k, "publisher")
+            self.ra_update(row, k, "editor")
+            row["id"] = " ".join(self.brmeta[k]["ids"])
+            row["title"] = self.brmeta[k]["title"]
 
-                        self.brdict[ven_meta] = dict()
-                        self.brdict[ven_meta]["ids"] = list()
-                        self.brdict[ven_meta]["rows"] = list()
-                        self.brdict[ven_meta]["title"] = ven
-
-                        self.vvi[ven_meta] = dict()
-                        self.vvi[ven_meta]["volume"] = dict()
-                        self.vvi[ven_meta]["issue"] = dict()
-
-                id2update = list()
-
-                # add new ids
-                for id in venue_id_list:
-                    if id not in self.idbr:
-                        count = self._add_number(self.id_info_path)
-                        self.idbr[id] = count
-
-                    if id not in self.brdict[ven_meta]["ids"]:
-                        self.brdict[ven_meta]["ids"].append(id)
-                        id2update.append(id)
-                    if self.rowcnt not in self.brdict[ven_meta]["rows"]:
-                        self.brdict[ven_meta]["rows"].append(self.rowcnt)
-
-                if id2update and len(self.brdict[ven_meta]["rows"]) > 1:
-                    self.update_venue(id2update, ven_meta)
-
-
-                venue_id_list.append(newid)
-                newids = " ".join(venue_id_list)
-                # br without IDs, new br
-            else:
-                # if enity has no ID
-                count = self._add_number(self.br_info_path)
-                ven_meta = str(count)
-                newids = "meta:br/" + ven_meta
-                ven = self.clean_title(row["venue"])
-
-
-            row['venue'] = ven + " [" + newids + "]"
-
-
-        #VOLUME
-            if row["volume"] and (row["type"] == "journal issue" or row["type"] == "journal article"):
-                vol = row["volume"].strip()
-                if ven_meta in self.vvi:
-                    if vol in self.vvi[ven_meta]["volume"]:
-                            vol_meta = self.vvi[ven_meta]["volume"][vol]["id"]
-                    else:
-                        count = self._add_number(self.br_info_path)
-                        vol_meta = str(count)
-
-                        self.vvi[ven_meta]["volume"][vol] = dict()
-                        self.vvi[ven_meta]["volume"][vol]["id"] = vol_meta
-                        self.vvi[ven_meta]["volume"][vol]["issue"] = dict()
+            vol= None
+            if row["venue"]:
+                venue= row["venue"]
+                if "wannabe" in venue:
+                    for i in self.brmeta:
+                        if venue in self.brmeta[i]["others"]:
+                            ve = i
                 else:
-                    count = self._add_number(self.br_info_path)
-                    vol_meta = str(count)
-                newids = "meta:br/" + vol_meta
-                row['volume'] = vol + " [" + newids + "]"
+                    ve = venue
+                row["venue"] = self.brmeta[ve]["title"] + " [" + " ".join(self.brmeta[ve]["ids"]) + "]"
 
-
-        #ISSUE
-            if row["issue"] and row["type"] == "journal article":
-                issue = row["issue"].strip()
-                if ven_meta in self.vvi:
-                    if vol_meta:
-                        #issue inside vol
-                        if issue in self.vvi[ven_meta]["volume"][vol]["issue"]:
-                            issue_meta = self.vvi[ven_meta]["volume"][vol]["issue"][issue]
-                        else:
-                            count = self._add_number(self.br_info_path)
-                            issue_meta = str(count)
-                            self.vvi[ven_meta]["volume"][vol]["issue"][issue] = issue_meta
-                    else:
-                        #issue inside venue (without volume)
-                        if issue in self.vvi[ven_meta]["issue"]:
-                            issue_meta = self.vvi[ven_meta]["issue"][issue]
-                        else:
-                            count = self._add_number(self.br_info_path)
-                            issue_meta = str(count)
-                            self.vvi[ven_meta]["issue"][issue] = issue_meta
+            if row["volume"]:
+                vol = row["volume"]
+                vol_meta = self.vvi[venue]["volume"][vol]["id"]
+                if "wannabe" in vol_meta:
+                    for i in self.brmeta:
+                        if vol_meta in self.brmeta[i]["others"]:
+                            v = i
                 else:
-                    if vol_meta:
-                        row["type"] = "journal article"
-                    count = self._add_number(self.br_info_path)
-                    issue_meta = str(count)
+                    v = vol_meta
+                row["volume"] = row["volume"] + " [meta:br/" + v + "]"
 
-                newids = "meta:br/" + issue_meta
-                row['issue'] = issue + " [" + newids + "]"
-    '''
+
+            if row["issue"]:
+                if vol:
+                    issue_meta = self.vvi[venue]["volume"][vol]["issue"][row["issue"]]["id"]
+                else:
+                    issue_meta = self.vvi[venue]["issue"][row["issue"]]["id"]
+                if "wannabe" in issue_meta:
+                    for b in self.brmeta:
+                        if issue_meta in self.brmeta[b]["others"]:
+                            i = b
+                else:
+                    i = issue_meta
+                row["issue"] = row["issue"] + " [meta:br/" + i + "]"
+
+
+
 
     @staticmethod
     def clean_name(name):
@@ -564,10 +654,8 @@ class Converter:
             entity_dict = self.radict
             idslist, metaval = self.clean_id_list(idslist, br=False)
 
-
         # there's meta
         if metaval:
-
             # meta already in entity_dict (no care about conflicts, we have a meta specified)
             if metaval in entity_dict:
                 self.find_update_other_ID(idslist, metaval, entity_dict, name)
@@ -581,15 +669,10 @@ class Converter:
 
                 if not entity_dict[metaval]["title"] and name:
                     entity_dict[metaval]["title"] = name
-                row['id'] = metaval
 
             else:
                 found_meta_ts = None
-                if vvi_ent:
-                    #todo
-                    #found_meta_ts = self.finder.retrieve_br_from_meta(metaval)
-                    pass
-                elif ra_ent:
+                if ra_ent:
                     found_meta_ts = self.finder.retrieve_ra_from_meta(metaval, publisher = publ_entity)
                 elif br_ent:
                     found_meta_ts = self.finder.retrieve_br_from_meta(metaval)
@@ -621,7 +704,6 @@ class Converter:
 
                     if not entity_dict[metaval]["title"] and name:
                         entity_dict[metaval]["title"] = name
-                    row['id'] = metaval
 
                 # wrong meta
                 else:
@@ -718,7 +800,6 @@ class Converter:
 
             else:
                 sparql_match = self.finder_sparql(idslist, br=br_ent, ra=ra_ent, vvi=vvi_ent, publ=publ_entity)
-
                 if len(sparql_match) > 1:
                     return self.conflict(idslist, entity_dict, name, id_dict)
                 elif len(sparql_match) == 1:
@@ -743,13 +824,8 @@ class Converter:
                                 entity_dict[metaval]["ids"].append(id[1])
 
                 else:
-                    metaval = "wannabe_" + str(self.wnb_cnt)
-                    self.wnb_cnt += 1
+                    metaval = self.new_entity(entity_dict, name)
 
-                    entity_dict[metaval] = dict()
-                    entity_dict[metaval]["ids"] = list()
-                    entity_dict[metaval]["others"] = list()
-                    entity_dict[metaval]["title"] = name
 
             for id in idslist:
                 if id not in id_dict:
@@ -776,3 +852,35 @@ class Converter:
         entity_dict[metaval]["others"] = list()
         entity_dict[metaval]["title"] = name
         return metaval
+
+
+    def volume_issue (self, meta, path, value, row):
+        if "wannabe" not in meta:
+            if value in path:
+                if "wannabe" in path[value]["id"]:
+                    old_meta = path[value]["id"]
+                    self.update(self.brdict, meta, old_meta, row["title"])
+                    path[value]["id"] = meta
+                else:
+                    # todo conflict
+                    pass
+            else:
+                path[value] = dict()
+                path[value]["id"] = meta
+                if "issue" not in path:
+                    path[value]["issue"] = dict()
+        else:
+            if value in path:
+                if "wannabe" in path[value]["id"]:
+                    old_meta = path[value]["id"]
+                    self.update(self.brdict, meta, old_meta, row["title"])
+                    path[value]["id"] = meta
+                else:
+                    old_meta = path[value]["id"]
+                    self.update(self.brdict, old_meta, meta, row["title"])
+
+            else:
+                path[value] = dict()
+                path[value]["id"] = meta
+                if "issue" not in path:
+                    path[value]["issue"] = dict()

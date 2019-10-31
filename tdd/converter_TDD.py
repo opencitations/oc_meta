@@ -155,6 +155,7 @@ class testcase_10 (unittest.TestCase):
 class testcase_11 (unittest.TestCase):
     def test (self):
         # testcase11: real time entity update
+        self.maxDiff = None
         data = datacollect()
         partial_data = data[49:52]
         conversion, testcase = prepare2test(partial_data, "testcases/testcase_data/testcase_11_data.csv")
@@ -195,7 +196,7 @@ def suite(testobj):
     return test_suite
 
 
-TestSuit=suite(testcase_13)
+TestSuit=suite(testcase_11)
 
 runner=unittest.TextTestRunner()
 runner.run(TestSuit)
