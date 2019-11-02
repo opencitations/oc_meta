@@ -52,3 +52,27 @@ doi:10.002	TITLE1	Surname1, Name1 [orcid:0000-0001]; Surname2, Name2 [orcid:0000
 doi:10.002 isbn:2222	TITLE1	Surname1, Name1 [orcid:0000-0001 viaf: 123]	1995	Venue1 [doi:11.123]				book	pub1 [crossref:1111 viaf:344]	editsurname1, editname1 [viaf:11111111 wikidata:F123]
 doi:11.123	TITLE1	Surname1, Name1 [orcid:0000-0001]; Surname2, Name2 [orcid:0000-0002 viaf:222]	1995					book	pub1 [crossref:1111 wikidata:E191]	editsurname1, editname1 [viaf:123]
   dOi : 11.123 vIAF : 123	 agile    Knowledge   graph   testing ù ò       à  with   TESTaLOD (!incredible!) έτος  汉字	kong-sang  , chang   [   orcid  :0000-0001 ] ;    leClerc,   charles [ORcId   :0000-0002    viaf  :222]	1995					book	ilMulino [crossref  :1111    wikidata  :E191]	leClerc,   charles [OrCId   :0000-0002]
+meta:br/101										
+doi:6	title1									
+doi:6 meta:br/101										
+meta:br/101 doi:3	title1-title2									
+doi:3	title3-title2									
+meta:br/101	TITLE1	suRname1  ,   naMe1 [wikidata:1]; Surname3, Name3 [viaf:3 wikidata:3]								
+meta:br/101	TITLE1	Surname, Name [viaf:2 wikidata:2]; Surname3, Name3 [viaf:1 wikidata:1]								
+	TITLE1	Surname, Name [viaf:1 viaf:2]								
+	TITLE1	Surname, Name [meta:ra/101]								
+	TITLE1	Surname, Name [viaf:5]								
+	TITLE1	Surname, Name [meta:ra/101 viaf:5]								
+doi:1001	TITLE1	Surname1, Name1 [orcid:0000-0001]		venue1 [meta:br/301]	1	5-6	266-278	journal article	pub1 [crossref:1111]	
+doi:1001	TITLE1	Surname1, Name1 [orcid:0000-0001]		venue1 [doi:301 doi:1]	1	5-6	266-278	journal article	pub1 [crossref:1111]	
+doi:301	TITLE1	Surname, Name [viaf:5]								
+doi:1001	TITLE1	Surname1, Name1 [orcid:0000-0001]		venue1 [meta:br/101]	1	5-6	266-278	journal article	pub1 [crossref:1111]	
+doi:1
+doi:1 doi:3	title1-title2									
+wikidata:1 doi:1	title1-title2									
+doi: 310 wikidata:310	TITLE1	Surname, Name [viaf:5]								
+doi:1001	TITLE1	Surname1, Name1 [orcid:0000-0001]		venue1 [meta:br/301]	1		266-278	journal volume	pub1 [crossref:1111]	
+doi: 301 wikidata:301	TITLE1	Surname, Name [viaf:5]								
+doi:1001	TITLE1	Surname1, Name1 [orcid:0000-0001]		venue1 [meta:br/301]	1	5-6	266-278	journal issue	pub1 [crossref:1111]	
+doi:101	TITLE1	Surname1, Name1 [orcid:0000-0004]	2019-02-29							
+doi:1	TITLE1	Surname1, Name1 [orcid:0000-0001]		venue1 [meta:br/201]			12-110			

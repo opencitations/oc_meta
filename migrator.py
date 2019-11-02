@@ -260,9 +260,8 @@ class Migrator():
     def page_job (self, page):
         if page:
             form = self.setgraph.add_re("agent", source_agent=None, source=None, res=None, wanted_label=False)
-            pages = page.split("-")
-            form.create_starting_page(pages[0])
-            form.create_ending_page(pages[1])
+            form.create_starting_page(page)
+            form.create_ending_page(page)
             self.br_graph.has_format(form)
 
 

@@ -72,16 +72,15 @@ class ResourceFinder:
                 WHERE {
                     ?res a <%s>.
                     OPTIONAL {?res <%s> ?title.}
-                    ?res <%s> ?id.
-                    ?id <%s> ?schema.
-                    ?id  <%s> ?value.
+                    OPTIONAL {?res <%s> ?id.
+                        ?id <%s> ?schema.
+                        ?id  <%s> ?value.}
                     filter(?res = <%s>)
                 } group by ?res
 
                 """ % (GraphEntity.expression, GraphEntity.title, GraphEntity.has_identifier,
                        GraphEntity.uses_identifier_scheme, GraphEntity.has_literal_value, uri)
         result = self.__query(query)
-
         if result["results"]["bindings"]:
             result = result["results"]["bindings"][0]
             title = str(result["title"]["value"])
@@ -146,9 +145,9 @@ class ResourceFinder:
                             OPTIONAL {?res <%s> ?name.
                                 ?res <%s> ?surname.}
                             OPTIONAL {?res <%s> ?title.}
-                            ?res <%s> ?id.
-                            ?id <%s> ?schema.
-                            ?id  <%s> ?value.
+                            OPTIONAL {?res <%s> ?id.
+                                ?id <%s> ?schema.
+                                ?id  <%s> ?value.}
                             filter(?res = <%s>)
                         } group by ?res
 
@@ -271,14 +270,20 @@ class ResourceFinder:
                 types = str(x["type"]["value"]).split(" ;and; ")
 
                 for t in types:
-                    if str(t) == str(GraphEntity.FABIO.JournalIssue):
-                        content["issue"][title] = res
+                    if content:
+                        if str(t) == str(GraphEntity.FABIO.JournalIssue):
+                            content["issue"][title] = res
 
-                    elif str(t) == str(GraphEntity.FABIO.JournalVolume):
-                        content["volume"][title] = dict()
-                        content["volume"][title]["id"] = res
-                        content["volume"][title]["issue"] = dict()
-                        content["volume"][title]["issue"] = self.retrieve_vvi(res, content["volume"][title]["issue"])
+                        elif str(t) == str(GraphEntity.FABIO.JournalVolume):
+                            content["volume"][title] = dict()
+                            content["volume"][title]["id"] = res
+                            content["volume"][title]["issue"] = dict()
+                            content["volume"][title]["issue"] = self.retrieve_vvi(res, None)
+                    else:
+                        if str(t) == str(GraphEntity.FABIO.JournalIssue):
+                            content = dict()
+                            content[title] = dict()
+                            content[title]['id'] = res
         return content
 
 
@@ -329,9 +334,9 @@ class ResourceFinder:
                 for x in dict_ar:
                     if dict_ar[x]["next"] == last:
                         if col_name == "publisher":
-                            agent_info = self.retrieve_ra_from_meta (dict_ar[x]["agent"], publisher = True) + tuple(dict_ar[x]["agent"])
+                            agent_info = self.retrieve_ra_from_meta (dict_ar[x]["agent"], publisher = True) + (dict_ar[x]["agent"],)
                         else:
-                            agent_info = self.retrieve_ra_from_meta(dict_ar[x]["agent"], publisher = False) + tuple(dict_ar[x]["agent"])
+                            agent_info = self.retrieve_ra_from_meta(dict_ar[x]["agent"], publisher = False) + (dict_ar[x]["agent"],)
                         ar_dic = dict()
                         ar_dic[x] = agent_info
                         ar_list.append(ar_dic)
@@ -346,14 +351,20 @@ class ResourceFinder:
     def re_from_meta (self, meta):
         uri = "https://w3id.org/OC/meta/br/" + str(meta)
         query = """
-                        SELECT DISTINCT ?re
+                        SELECT DISTINCT ?re ?sp ?ep
                         WHERE {
                             <%s> a <%s>.
                             <%s> <%s> ?re.
+                            ?re <%s> ?sp.
+                            ?re <%s> ?ep.
                         }
 
-                        """ % (uri, GraphEntity.expression, uri, GraphEntity.embodiment)
+                        """ % (uri, GraphEntity.expression, uri, GraphEntity.embodiment, GraphEntity.starting_page, GraphEntity.ending_page)
         result = self.__query(query)
         if result["results"]["bindings"]:
-            return result["results"]["bindings"]["re"]["value"].replace("https://w3id.org/OC/meta/re/", "")
+            meta = result["results"]["bindings"][0]["re"]["value"].replace("https://w3id.org/OC/meta/re/", "")
+            pages = result["results"]["bindings"][0]["sp"]["value"] + "-" + result["results"]["bindings"][0]["ep"]["value"]
+            return (meta, pages)
+        else:
+            return None
 

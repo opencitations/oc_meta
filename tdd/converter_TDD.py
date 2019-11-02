@@ -1,5 +1,4 @@
 import unittest
-
 from converter import *
 import csv
 
@@ -10,6 +9,15 @@ def reset():
         br.write('0')
     with open("converter_counter/ra.txt", 'w') as br:
         br.write('0')
+    with open("converter_counter/ar.txt", 'w') as br:
+        br.write('0')
+    with open("converter_counter/re.txt", 'w') as br:
+        br.write('0')
+
+def reset_server(server):
+    ts = sparql.SPARQLServer(server)
+    ts.update('delete{?x ?y ?z} where{?x ?y ?z}')
+
 
 def datacollect():
     with open("new_test_data.csv", 'r', encoding='utf-8') as csvfile:
@@ -22,7 +30,6 @@ def prepare2test(data, testcase_csv):
     reset()
 
     conversion = Converter(data, 'http://127.0.0.1:9999/blazegraph/sparql').data
-
     with open(testcase_csv, 'r', encoding='utf-8') as csvfile:
         reader = csv.DictReader(csvfile, delimiter="\t")
         testcase = [dict(x) for x in reader]
@@ -103,19 +110,6 @@ class testcase_06 (unittest.TestCase):
 
 
 
-'''
-DEPRECATED
-class testcase_07 (unittest.TestCase):
-    def test (self):
-        testcase7: archival document in an archival document set
-        data = datacollect()
-        partial_data = list()
-        partial_data.append(data[33])
-        conversion, testcase = prepare2test(partial_data, "testcases/testcase_data/testcase_07_data.csv")
-        self.assertEqual(conversion, testcase)
-'''
-
-
 class testcase_07 (unittest.TestCase):
     def test (self):
         # testcase7: all journal related types with an editor
@@ -135,6 +129,7 @@ class testcase_08 (unittest.TestCase):
         self.assertEqual(conversion, testcase)
 
 
+
 class testcase_09 (unittest.TestCase):
     def test (self):
         # testcase09: all proceeding related types with an editor
@@ -142,6 +137,8 @@ class testcase_09 (unittest.TestCase):
         partial_data = data[43:45]
         conversion, testcase = prepare2test(partial_data, "testcases/testcase_data/testcase_09_data.csv")
         self.assertEqual(conversion, testcase)
+
+
 
 class testcase_10 (unittest.TestCase):
     def test (self):
@@ -152,43 +149,181 @@ class testcase_10 (unittest.TestCase):
         self.assertEqual(conversion, testcase)
 
 
+
 class testcase_11 (unittest.TestCase):
     def test (self):
         # testcase11: real time entity update
-        self.maxDiff = None
         data = datacollect()
         partial_data = data[49:52]
         conversion, testcase = prepare2test(partial_data, "testcases/testcase_data/testcase_11_data.csv")
         self.assertEqual(conversion, testcase)
 
+
+
 class testcase_12 (unittest.TestCase):
     def test (self):
         # testcase12: clean name, title, ids
         data = datacollect()
-        partial_data = list()
-        partial_data.append(data[52])
+        partial_data = data[52:53]
+        #partial_data = list()
+        #partial_data.append(data[52])
         conversion, testcase = prepare2test(partial_data, "testcases/testcase_data/testcase_12_data.csv")
         self.assertEqual(conversion, testcase)
 
-'''
+
+
 class testcase_13 (unittest.TestCase):
-    #AD HOC TEST
-
-    reset()
     # testcase13: ID_clean massive test
-    def test1 (self):
-        #meta specified [row-0] new id belonging to a wannabe [row-1] meta specified with an id related to wannabe [row-2]
-        empty_val = {"author":"", "pub-date":"", "venue":"", "volume":"", "issue":"", "page":"", "type":"", "publisher":"", "editor":""}
-        row_data = [{"id":"meta:br/1" , "title":""},{"id":"doi:20", "title": "title1"}, {"id":"meta:br/1 doi:20", "title": "title1"}]
-        data = [{**d, **empty_val} for d in row_data]
-        row_testcase = [{'id': 'doi:20 doi:1 doi:2 doi:40 meta:br/1', 'title': 'Title1'}, {'id': 'doi:20 doi:1 doi:2 doi:40 meta:br/1', 'title': 'Title1'}]
-        testcase = [{**t, **empty_val} for t in row_testcase]
-        conversion = Converter(data, 'http://127.0.0.1:9999/blazegraph/sparql').data
 
+    def test1(self):
+        #1--- meta specified br in a row, wannabe with a new id in a row, meta specified with an id related to wannabe in a row
+        server = 'http://127.0.0.1:9999/blazegraph/sparql'
+        #reset_server(server)
+        data = datacollect()
+        partial_data = data[53:56]
+        conversion, testcase = prepare2test(partial_data, "testcases/testcase_data/testcase_13.1_data.csv")
         self.assertEqual(conversion, testcase)
-'''
+
+    def test2(self):
+        #2---Conflict with META precedence: a br has a meta_id and an id related to another meta_id, the first specified meta has precedence
+        data = datacollect()
+        partial_data = data[56:57]
+        conversion, testcase = prepare2test(partial_data, "testcases/testcase_data/testcase_13.2_data.csv")
+        self.assertEqual(conversion, testcase)
+
+    def test3(self):
+        #3--- conflict: br with id shared with 2 meta
+        data = datacollect()
+        partial_data = data[57:58]
+        conversion, testcase = prepare2test(partial_data, "testcases/testcase_data/testcase_13.3_data.csv")
+        self.assertEqual(conversion, testcase)
+
+#todo check!
+class conflict(unittest.TestCase):
+    #todo possibile soluzione (mode-1), quando ho un conflitto inserisco tutti i meta coinvolti nel dizionario
+
+    def mode_1(self):
+        # con il meta nel dizionario la nuova si associa al meta originario
+        data = datacollect()
+        partial_data = data[68:71]
+        conversion, testcase = prepare2test(partial_data, "testcases/testcase_data/testcase_13.3_data.csv")
+        print(conversion)
+
+    def mode_2(self):
+        # senza meta nel dizionario la nuova si associa al meta del conflitto
+        data = datacollect()
+        partial_data = data[69:71]
+        conversion, testcase = prepare2test(partial_data, "testcases/testcase_data/testcase_13.3_data.csv")
+        print(conversion)
 
 
+
+class testcase_14 (unittest.TestCase):
+    def test1(self):
+        # update existing sequence, in particular, a new author and an existing author without an existing id (matched tanks to surname,name(BAD WRITTEN!)
+        data = datacollect()
+        partial_data = data[58:59]
+        conversion, testcase = prepare2test(partial_data, "testcases/testcase_data/testcase_14.1_data.csv")
+        self.assertEqual(conversion, testcase)
+
+    def test2(self):
+        # same sequence different order, with new ids
+        data = datacollect()
+        partial_data = data[59:60]
+        conversion, testcase = prepare2test(partial_data, "testcases/testcase_data/testcase_14.2_data.csv")
+        self.assertEqual(conversion, testcase)
+
+    def test3(self):
+        # RA CONFLICT
+        data = datacollect()
+        partial_data = data[60:61]
+        conversion, testcase = prepare2test(partial_data, "testcases/testcase_data/testcase_14.3_data.csv")
+        self.assertEqual(conversion, testcase)
+
+    def test4(self):
+        #meta specified ra in a row, wannabe ra with a new id in a row, meta specified with an id related to wannabe in a ra
+        data = datacollect()
+        partial_data = data[61:64]
+        conversion, testcase = prepare2test(partial_data, "testcases/testcase_data/testcase_14.4_data.csv")
+        self.assertEqual(conversion, testcase)
+
+
+
+class testcase_15 (unittest.TestCase):
+    def test1(self):
+        # venue volume issue  already exists in ts
+        data = datacollect()
+        partial_data = data[64:65]
+        conversion, testcase = prepare2test(partial_data, "testcases/testcase_data/testcase_15.1_data.csv")
+        self.assertEqual(conversion, testcase)
+
+    def test2(self):
+        # venue conflict
+        data = datacollect()
+        partial_data = data[65:66]
+        conversion, testcase = prepare2test(partial_data, "testcases/testcase_data/testcase_15.2_data.csv")
+        self.assertEqual(conversion, testcase)
+
+    def test3(self):
+        # venue in ts is now the br
+        data = datacollect()
+        partial_data = data[66:67]
+        conversion, testcase = prepare2test(partial_data, "testcases/testcase_data/testcase_15.3_data.csv")
+        self.assertEqual(conversion, testcase)
+
+    def test4(self):
+        # br in ts is now the venue
+        data = datacollect()
+        partial_data = data[67:68]
+        conversion, testcase = prepare2test(partial_data, "testcases/testcase_data/testcase_15.4_data.csv")
+        self.assertEqual(conversion, testcase)
+
+    def test5(self):
+        # volume in ts is now the br
+        data = datacollect()
+        partial_data = data[71:72]
+        conversion, testcase = prepare2test(partial_data, "testcases/testcase_data/testcase_15.5_data.csv")
+        self.assertEqual(conversion, testcase)
+
+    def test6(self):
+        # br is a volume
+        data = datacollect()
+        partial_data = data[72:73]
+        conversion, testcase = prepare2test(partial_data, "testcases/testcase_data/testcase_15.6_data.csv")
+        self.assertEqual(conversion, testcase)
+
+    def test7(self):
+        # issue in ts is now the br
+        data = datacollect()
+        partial_data = data[73:74]
+        conversion, testcase = prepare2test(partial_data, "testcases/testcase_data/testcase_15.7_data.csv")
+        self.assertEqual(conversion, testcase)
+
+    def test8(self):
+        # br is a issue
+        data = datacollect()
+        partial_data = data[74:75]
+        conversion, testcase = prepare2test(partial_data, "testcases/testcase_data/testcase_15.8_data.csv")
+        self.assertEqual(conversion, testcase)
+
+
+
+class testcase_16(unittest.TestCase):
+    def test1(self):
+        #wrong date (2019/02/29)
+        data = datacollect()
+        partial_data = data[75:76]
+        conversion, testcase = prepare2test(partial_data, "testcases/testcase_data/testcase_16.1_data.csv")
+        self.assertEqual(conversion, testcase)
+    def test2(self):
+        #existing re
+        data = datacollect()
+        partial_data = data[76:77]
+        conversion, testcase = prepare2test(partial_data, "testcases/testcase_data/testcase_16.2_data.csv")
+        self.assertEqual(conversion, testcase)
+
+
+#todo testcase_15 only local
 
 def suite(testobj):
     test_suite = unittest.TestSuite()
@@ -196,7 +331,7 @@ def suite(testobj):
     return test_suite
 
 
-TestSuit=suite(testcase_11)
+TestSuit=suite(testcase_15)
 
 runner=unittest.TextTestRunner()
 runner.run(TestSuit)
