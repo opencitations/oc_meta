@@ -2,20 +2,23 @@ from scripts.graphlib import *
 import re, csv
 
 class Migrator():
-    def __init__(self, data, ra_index_csv, br_index_csv):
+    def __init__(self, data, ra_index_csv, br_index_csv, re_index_csv, ar_index_csv):
         self.url = "https://w3id.org/OC/meta/"
 
         self.setgraph = GraphSet(self.url, "", "counter/")
 
 
-        self.ra_index = dict()
-        self.indexer(ra_index_csv, self.ra_index)
+        self.ra_index = self.indexer_id(ra_index_csv)
 
-        self.br_index = dict()
-        self.indexer(br_index_csv, self.br_index)
+        self.br_index = self.indexer_id(br_index_csv)
+
+        self.re_index = self.index_re(re_index_csv)
+
+        self.ar_index = self.index_ar(ar_index_csv)
 
 
         for row in data:
+            self.row_meta = ""
             ids = row['id']
             title = row['title']
             authors = row['author']
@@ -50,7 +53,44 @@ class Migrator():
         for g in self.setgraph.graphs():
             self.final_graph += g
 
-    def indexer(self, csv_index, index):
+
+    @staticmethod
+    def index_re (csv_path):
+        index = dict()
+        with open(csv_path, 'r', encoding='utf-8') as csvfile:
+            reader = csv.DictReader(csvfile, delimiter='\t')
+            id_index = [dict(x) for x in reader]
+            for row in id_index:
+                index[row["br"]] = row["re"]
+        return index
+
+    @staticmethod
+    def index_ar (csv_path):
+        index = dict()
+        with open(csv_path, 'r', encoding='utf-8') as csvfile:
+            reader = csv.DictReader(csvfile, delimiter='\t')
+            id_index = [dict(x) for x in reader]
+            for row in id_index:
+                index[row["meta"]] = dict()
+                index[row["meta"]]["author"] = Migrator.ar_worker(row["author"])
+                index[row["meta"]]["editor"] = Migrator.ar_worker(row["editor"])
+                index[row["meta"]]["publisher"] = Migrator.ar_worker(row["publisher"])
+        return index
+
+    @staticmethod
+    def ar_worker(str):
+        if str:
+            ar_dict = dict()
+            couples = str.split("; ")
+            for c in couples:
+                cou = c.split(", ")
+                ar_dict[cou[1]] = cou[0]
+            return ar_dict
+        else:
+            return dict()
+    @staticmethod
+    def indexer_id ( csv_index):
+        index = dict()
         index['crossref'] = dict()
         index["doi"] = dict()
         index["issn"] = dict()
@@ -64,7 +104,7 @@ class Migrator():
 
 
         with open(csv_index, 'r', encoding='utf-8') as csvfile:
-            reader = csv.DictReader(csvfile, delimiter=",")
+            reader = csv.DictReader(csvfile, delimiter='\t')
             id_index = [dict(x) for x in reader]
 
             for row in id_index:
@@ -109,6 +149,9 @@ class Migrator():
                     id = row["id"].replace('wikidata:', '')
                     index['wikidata'][id] = row["meta"]
 
+        return index
+
+
     def id_job (self, ids):
         idslist = re.split(r'\s+', ids)
 
@@ -116,6 +159,7 @@ class Migrator():
         for id in idslist:
             if "meta:" in id:
                 id = id.replace("meta:", "")
+                self.row_meta = id.replace("br/", "")
                 url = URIRef(self.url + id)
                 self.br_graph = self.setgraph.add_br("agent", source_agent=None, source=None, res=url, wanted_type = True)
 
@@ -137,8 +181,9 @@ class Migrator():
 
             for id in aut_id_list:
                 if "meta:" in id:
-                    id = id.replace("meta:", "")
+                    id = str(id).replace('meta:', "")
                     url = URIRef(self.url + id)
+                    aut_meta = id.replace('ra/', "")
                     pub_aut = self.setgraph.add_ra("agent", source_agent=None, source=None, res=url, wanted_type = True)
                     author_name = re.search(r'(.*?)\s*\[.*?\]', aut).group(1)
                     if "," in author_name:
@@ -155,8 +200,11 @@ class Migrator():
             for id in aut_id_list:
                 self.id_creator(pub_aut, id, ra=True)
 
-        # authorRole
-            pub_aut_role = self.setgraph.add_ar("agent", source_agent=None, source=None, res=None, wanted_label = False)
+            #Author ROLE
+            AR = self.ar_index[self.row_meta]["author"][aut_meta]
+            ar_id = "ar/" + str(AR)
+            url_ar = URIRef(self.url + ar_id)
+            pub_aut_role = self.setgraph.add_ar("agent", source_agent=None, source=None, res=url_ar, wanted_type = True)
             pub_aut_role.create_author(self.br_graph)
             pub_aut.has_role(pub_aut_role)
             aut_role_list.append(pub_aut_role)
@@ -182,7 +230,7 @@ class Migrator():
 
             for id in venue_id_list:
                 if "meta:" in id:
-                    id = id.replace("meta:", "")
+                    id = str(id).replace("meta:", "")
                     url = URIRef(self.url + id)
                     venue_title = re.search(r'(.*?)\s*\[.*?\]', venue).group(1)
                     self.venue_graph = self.setgraph.add_br("agent", source_agent=None, source=None, res=url, wanted_type = True)
@@ -210,7 +258,7 @@ class Migrator():
 
             for id in vol_id_list:
                 if "meta:" in id:
-                    id = id.replace("meta:", "")
+                    id = str(id).replace("meta:", "")
                     url = URIRef(self.url + id)
                     self.vol_graph = self.setgraph.add_br("agent", source_agent=None, source=None, res=url, wanted_type = True)
                     vol_title = re.search(r'(.*?)\s*\[.*?\]', vol).group(1)
@@ -224,7 +272,7 @@ class Migrator():
 
             for id in issue_id_list:
                 if "meta:" in id:
-                    id = id.replace("meta:", "")
+                    id = str(id).replace("meta:", "")
                     url = URIRef(self.url + id)
                     self.issue_graph = self.setgraph.add_br("agent", source_agent=None, source=None, res=url, wanted_type = True)
                     issue_title = re.search(r'(.*?)\s*\[.*?\]', issue).group(1)
@@ -259,7 +307,10 @@ class Migrator():
 
     def page_job (self, page):
         if page:
-            form = self.setgraph.add_re("agent", source_agent=None, source=None, res=None, wanted_label=False)
+            res_em = self.re_index[self.row_meta]
+            re_id = "re/" + str(res_em)
+            url_re = URIRef(self.url + re_id)
+            form = self.setgraph.add_re("agent", source_agent=None, source=None, res=url_re, wanted_type = True)
             form.create_starting_page(page)
             form.create_ending_page(page)
             self.br_graph.has_format(form)
@@ -327,7 +378,8 @@ class Migrator():
 
         for id in publ_id_list:
             if "meta:" in id:
-                id = id.replace("meta:", "")
+                id = str(id).replace("meta:", "")
+                pub_meta = id.replace("ra/","")
                 url = URIRef(self.url + id)
                 publ_name = re.search(r'(.*?)\s*\[.*?\]', publisher).group(1)
                 publ = self.setgraph.add_ra("agent", source_agent=None, source=None, res=url, wanted_type = True)
@@ -336,8 +388,11 @@ class Migrator():
         for id in publ_id_list:
             self.id_creator(publ, id, ra = True)
 
-        # publisherRole
-        publ_role = self.setgraph.add_ar("agent", source_agent=None, source=None, res=None, wanted_label=False)
+        #publisherRole
+        AR = self.ar_index[self.row_meta]["publisher"][pub_meta]
+        ar_id = "ar/" + str(AR)
+        url_ar = URIRef(self.url + ar_id)
+        publ_role = self.setgraph.add_ar("agent", source_agent=None, source=None, res=url_ar, wanted_type = True)
         publ_role.create_publisher(self.br_graph)
         publ.has_role(publ_role)
 
@@ -355,7 +410,8 @@ class Migrator():
 
             for id in ed_id_list:
                 if "meta:" in id:
-                    id = id.replace("meta:", "")
+                    id = str(id).replace("meta:", "")
+                    ed_meta = id.replace("ra/", "")
                     url = URIRef(self.url + id)
                     pub_ed = self.setgraph.add_ra("agent", source_agent=None, source=None, res=url, wanted_type = True)
                     editor_name = re.search(r'(.*?)\s*\[.*?\]', ed).group(1)
@@ -363,19 +419,22 @@ class Migrator():
                         editor_name_splitted = re.split(r'\s*,\s*', editor_name)
                         firstName = editor_name_splitted[1]
                         lastName = editor_name_splitted[0]
-                        pub_ed.create_given_name(firstName)
+                        if firstName:
+                            pub_ed.create_given_name(firstName)
                         pub_ed.create_family_name(lastName)
                     else:
                         pub_ed.create_name(editor_name)
-
 
 
         # lists of editor's IDs
             for id in ed_id_list:
                 self.id_creator(pub_ed, id, ra=True)
 
-        # editorRole
-            pub_ed_role = self.setgraph.add_ar("agent", source_agent=None, source=None, res=None, wanted_label = False)
+        #editorRole
+            AR = self.ar_index[self.row_meta]["editor"][ed_meta]
+            ar_id = "ar/" + str(AR)
+            url_ar = URIRef(self.url + ar_id)
+            pub_ed_role = self.setgraph.add_ar("agent", source_agent=None, source=None, res=url_ar, wanted_type = True)
 
             if self.type == "journal article" and self.issue_graph:
                 pub_ed_role.create_editor(self.issue_graph)

@@ -5,8 +5,10 @@ from dateutil.parser import parse
 
 class Converter:
 
-    def __init__(self, data, ts, separator = None, info_dir ="converter_counter/"):
+    def __init__(self, data, ts, separator = None, info_dir ="converter_counter/", generate_doc = False, filename = None):
 
+        if filename:
+            self.filename = filename
         self.finder = ResourceFinder(ts)
         self.separator = separator
         self.data = data
@@ -56,7 +58,9 @@ class Converter:
 
         self.meta_maker()
         self.dry()
-        #self.indexer()
+
+        if generate_doc and filename:
+            self.indexer()
 
 
     #ID
@@ -497,18 +501,19 @@ class Converter:
                         k = i
             else:
                 k = row["id"]
-                if row["page"] and (k not in self.remeta):
-                    re = self.finder.re_from_meta(k)
-                    if re:
-                        self.remeta[k] = re
-                        row["page"] = re[1]
-                    else:
-                        count = self._add_number(self.re_info_path)
-                        page = row["page"].strip()
-                        self.remeta[k] = (count, page)
-                        row["page"] = page
-                elif k in self.remeta:
-                    row["page"] = self.remeta[1]
+
+            if row["page"] and (k not in self.remeta):
+                re = self.finder.re_from_meta(k)
+                if re:
+                    self.remeta[k] = re
+                    row["page"] = re[1]
+                else:
+                    count = self._add_number(self.re_info_path)
+                    page = row["page"].strip()
+                    self.remeta[k] = (count, page)
+                    row["page"] = page
+            elif k in self.remeta:
+                row["page"] = self.remeta[1]
 
             self.ra_update(row, k, "author")
             self.ra_update(row, k, "publisher")
@@ -619,44 +624,92 @@ class Converter:
             f.writelines(all_lines)
         return cur_number
 
-    '''
+
+    @staticmethod
+    def write_csv(path, list):
+        with open(path, 'w', newline='') as output_file:
+            dict_writer = csv.DictWriter(output_file, list[0].keys(), delimiter='\t')
+            dict_writer.writeheader()
+            dict_writer.writerows(list)
+
+    @staticmethod
+    def write_txt():
+        pass
+
     def indexer (self):
-        rowsra= list()
+
+        #ID
+        index_id_ra= list()
         if self.idra:
             for x in self.idra:
                 row= dict()
                 row["id"] = str(x)
                 row["meta"] = str(self.idra[x])
-                rowsra.append(row)
+                index_id_ra.append(row)
         else:
             row = dict()
             row["id"] = ""
             row["meta"] = ""
-            rowsra.append(row)
+            index_id_ra.append(row)
+        ra_path = "index_id_ra_" + self.filename + ".csv"
+        self.write_csv(ra_path, index_id_ra)
 
-        with open(PATH-RA, 'w', newline='') as output_file:
-            dict_writer = csv.DictWriter(output_file, rowsra[0].keys())
-            dict_writer.writeheader()
-            dict_writer.writerows(rowsra)
-
-        rowsbr = list()
+        index_id_br = list()
         if self.idbr:
             for x in self.idbr:
                 row = dict()
                 row["id"] = str(x)
                 row["meta"] = str(self.idbr[x])
-                rowsra.append(row)
+                index_id_br.append(row)
         else:
             row = dict()
             row["id"] = ""
             row["meta"] = ""
-            rowsbr.append(row)
+            index_id_br.append(row)
+        br_path = "index_id_br_" + self.filename + ".csv"
+        self.write_csv(br_path, index_id_br)
 
-        with open(PATH-BR, 'w', newline='') as output_file:
-            dict_writer = csv.DictWriter(output_file, rowsbr[0].keys())
-            dict_writer.writeheader()
-            dict_writer.writerows(rowsbr)
-    '''
+        #AR
+        ar_index = list()
+        if self.armeta:
+            for x in self.armeta:
+                index = dict()
+                index["meta"] = x
+                for y in self.armeta[x]:
+                    list_ar = list()
+                    for ar, id in self.armeta[x][y]:
+                        list_ar.append(str(ar) + ", " +  str(id))
+                    index[y] = "; ".join(list_ar)
+                ar_index.append(index)
+        else:
+            row = dict()
+            row["meta"] = ""
+            row["author"] = ""
+            row["editor"] = ""
+            row["publisher"] = ""
+            ar_index.append(row)
+        ar_path = "index_ar_" + self.filename + ".csv"
+        self.write_csv(ar_path, ar_index)
+
+        #RE
+        re_index = list()
+        if self.remeta:
+            for x in self.remeta:
+                r = dict()
+                r["br"] = x
+                r["re"] = self.remeta[x][0]
+                re_index.append(r)
+        else:
+            row = dict()
+            row["br"] = ""
+            row["re"] = ""
+            re_index.append(row)
+        re_path = "index_re_" + self.filename + ".csv"
+        self.write_csv(re_path, re_index)
+
+        #TODO LOG
+
+
 
     def id_worker(self, row, name, idslist, ra_ent=False, br_ent=False, vvi_ent=False, publ_entity=False):
 

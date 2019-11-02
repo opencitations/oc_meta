@@ -18,7 +18,6 @@ def reset_server(server):
     ts = sparql.SPARQLServer(server)
     ts.update('delete{?x ?y ?z} where{?x ?y ?z}')
 
-
 def datacollect():
     with open("new_test_data.csv", 'r', encoding='utf-8') as csvfile:
         reader = csv.DictReader(csvfile, delimiter="\t")
@@ -28,12 +27,11 @@ def datacollect():
 
 def prepare2test(data, testcase_csv):
     reset()
-
-    conversion = Converter(data, 'http://127.0.0.1:9999/blazegraph/sparql').data
+    convert = Converter(data, 'http://127.0.0.1:9999/blazegraph/sparql')
+    conversion = convert.data
     with open(testcase_csv, 'r', encoding='utf-8') as csvfile:
         reader = csv.DictReader(csvfile, delimiter="\t")
         testcase = [dict(x) for x in reader]
-
 
     return conversion, testcase
 
@@ -331,7 +329,7 @@ def suite(testobj):
     return test_suite
 
 
-TestSuit=suite(testcase_15)
+TestSuit=suite(testcase_10)
 
 runner=unittest.TextTestRunner()
 runner.run(TestSuit)
