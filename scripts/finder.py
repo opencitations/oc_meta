@@ -1,7 +1,6 @@
 from scripts.graphlib import GraphEntity
 from pymantic import sparql
 
-
 class ResourceFinder:
 
     def __init__(self, ts_url):
@@ -142,8 +141,8 @@ class ResourceFinder:
 
                         WHERE {
                             ?res a <%s>.
-                            OPTIONAL {?res <%s> ?name.
-                                ?res <%s> ?surname.}
+                            OPTIONAL {?res <%s> ?name.}
+                            OPTIONAL {?res <%s> ?surname.}
                             OPTIONAL {?res <%s> ?title.}
                             OPTIONAL {?res <%s> ?id.
                                 ?id <%s> ?schema.
@@ -158,7 +157,7 @@ class ResourceFinder:
             result = result["results"]["bindings"][0]
             if str(result["title"]["value"]) and publisher:
                 title = str(result["title"]["value"])
-            elif str(result["surname"]["value"]) and str(result["name"]["value"]) and not publisher:
+            elif str(result["surname"]["value"]) and not publisher:
                 title = str(result["surname"]["value"]) + ", " + str(result["name"]["value"])
             else:
                 title = ""
@@ -192,8 +191,8 @@ class ResourceFinder:
 
                 WHERE {
                     ?res a <%s>.
-                    OPTIONAL {?res <%s> ?name.
-                            ?res <%s> ?surname.}
+                    OPTIONAL {?res <%s> ?name. }
+                    OPTIONAL {?res <%s> ?surname.}
                     OPTIONAL {?res <%s> ?title.}
                     ?res <%s> ?id.
                     ?id <%s> ?schema.
@@ -216,7 +215,7 @@ class ResourceFinder:
                 res = str(result["res"]["value"]).replace("https://w3id.org/OC/meta/ra/", "")
                 if str(result["title"]["value"]) and publisher:
                     title = str(result["title"]["value"])
-                elif str(result["surname"]["value"]) and str(result["name"]["value"]) and not publisher:
+                elif str(result["surname"]["value"]) and not publisher:
                     title = str(result["surname"]["value"]) + ", " + str(result["name"]["value"])
                 else:
                     title = ""
@@ -367,4 +366,148 @@ class ResourceFinder:
             return (meta, pages)
         else:
             return None
+
+
+    def retrieve_br_info_from_meta(self, meta_id):
+        uri = "https://w3id.org/OC/meta/br/" + str(meta_id)
+        query = """
+                        SELECT ?res 
+                        (group_concat(DISTINCT  ?type;separator=' ;and; ') as ?type)
+                        (group_concat(DISTINCT  ?date;separator=' ;and; ') as ?date)
+                        (group_concat(DISTINCT  ?num;separator=' ;and; ') as ?num)
+                        (group_concat(DISTINCT  ?part1;separator=' ;and; ') as ?part1)
+                        (group_concat(DISTINCT  ?title1;separator=' ;and; ') as ?title1)
+                        (group_concat(DISTINCT  ?num1;separator=' ;and; ') as ?num1)
+                        (group_concat(DISTINCT  ?type1;separator=' ;and; ') as ?type1)
+                        (group_concat(DISTINCT  ?part2;separator=' ;and; ') as ?part2)
+                        (group_concat(DISTINCT  ?title2;separator=' ;and; ') as ?title2)
+                        (group_concat(DISTINCT  ?num2;separator=' ;and; ') as ?num2)
+                        (group_concat(DISTINCT  ?type2;separator=' ;and; ') as ?type2)
+                        (group_concat(DISTINCT  ?part3;separator=' ;and; ') as ?part3)
+                        (group_concat(DISTINCT  ?title3;separator=' ;and; ') as ?title3)
+                        (group_concat(DISTINCT  ?num3;separator=' ;and; ') as ?num3)
+                        (group_concat(DISTINCT  ?type3;separator=' ;and; ') as ?type3) 
+
+                        WHERE {
+                                ?res a ?type.
+                                OPTIONAL {?res <%s> ?date.}
+                                OPTIONAL {?res <%s> ?num.}
+                                OPTIONAL {?res <%s> ?part1.
+                                            OPTIONAL {?part1 <%s> ?title1.}
+                                            OPTIONAL {?part1 <%s> ?num1.}
+                                            ?part1 a ?type1.
+                                            OPTIONAL{?part1 <%s> ?part2.
+                                                     OPTIONAL {?part2 <%s> ?title2.}
+                                                        OPTIONAL {?part2 <%s> ?num2.}
+                                                        ?part2 a ?type2.
+                                                     OPTIONAL{?part2 <%s> ?part3.
+                                                              OPTIONAL {?part3 <%s> ?title3.}
+                                                                OPTIONAL {?part3 <%s> ?num3.}
+                                                        ?part3 a ?type3.
+                                                    }
+                                        }
+                                }
+                            filter(?res = <%s>)
+                        } group by ?res
+
+                        """ % (GraphEntity.has_publication_date, GraphEntity.has_sequence_identifier, GraphEntity.part_of, GraphEntity.title, GraphEntity.has_sequence_identifier, GraphEntity.part_of, GraphEntity.title, GraphEntity.has_sequence_identifier,GraphEntity.part_of, GraphEntity.title, GraphEntity.has_sequence_identifier,uri)
+        result = self.__query(query)
+        if result["results"]["bindings"]:
+
+            result = result["results"]["bindings"][0]
+            res_dict = dict()
+            res_dict["pub_date"] = ""
+            res_dict["type"] = ""
+            res_dict["page"] = ""
+            res_dict["issue"] = ""
+            res_dict["volume"] = ""
+            res_dict["venue"] = ""
+
+            if "date" in result:
+                res_dict["pub_date"] = result["date"]["value"]
+            else:
+                res_dict["pub_date"] = ""
+
+            res_dict["type"] = self.typalo(result, "type")
+
+            res_dict["page"] = self.re_from_meta(meta_id)
+
+            if "num" in result:
+                if "issue" in self.typalo(result, "type"):
+                    res_dict["issue"] = str(result["num"]["value"])
+                elif "volume" in self.typalo(result, "type"):
+                    res_dict["volume"] = str(result["num"]["value"])
+
+            res_dict = self.vvi_find(result, "part1", "type1", "title1", "num1", res_dict)
+            res_dict = self.vvi_find(result, "part2", "type2", "title2", "num2", res_dict)
+            res_dict = self.vvi_find(result, "part3", "type3", "title3", "num3", res_dict)
+
+            return res_dict
+        else:
+            return None
+
+
+
+
+    @staticmethod
+    def typalo(result, type):
+        t_type = ""
+        if "type" in result:
+            ty = result[type]["value"].split(" ;and; ")
+            for t in ty:
+                if "Expression" not in t:
+                    t_type = str(t)
+                    if str(t_type) == str(GraphEntity.archival_document):
+                        t_type = "archival document"
+                    if str(t_type) == str(GraphEntity.book):
+                        t_type = "book"
+                    if str(t_type) == str(GraphEntity.book_chapter):
+                        t_type = "book chapter"
+                    if str(t_type) == str(GraphEntity.part):
+                        t_type = "book part"
+                    if str(t_type) == str(GraphEntity.expression_collection):
+                        t_type = "book section"
+                    if str(t_type) == str(GraphEntity.book_series):
+                        t_type = "book series"
+                    if str(t_type) == str(GraphEntity.book_set):
+                        t_type = "book set"
+                    if str(t_type) == str(GraphEntity.data_file):
+                        t_type = "data file"
+                    if str(t_type) == str(GraphEntity.thesis):
+                        t_type = "dissertation"
+                    if str(t_type) == str(GraphEntity.journal):
+                        t_type = "journal"
+                    if str(t_type) == str(GraphEntity.journal_article):
+                        t_type = "journal article"
+                    if str(t_type) == str(GraphEntity.journal_issue):
+                        t_type = "journal issue"
+                    if str(t_type) == str(GraphEntity.journal_volume):
+                        t_type = "journal volume"
+                    if str(t_type) == str(GraphEntity.proceedings_paper):
+                        t_type = "proceedings article"
+                    if str(t_type) == str(GraphEntity.academic_proceedings):
+                        t_type = "proceedings"
+                    if str(t_type) == str(GraphEntity.reference_book):
+                        t_type = "reference book"
+                    if str(t_type) == str(GraphEntity.reference_entry):
+                        t_type = "reference entry"
+                    if str(t_type) == str(GraphEntity.series):
+                        t_type = "series"
+                    if str(t_type) == str(GraphEntity.report_document):
+                        t_type = "report"
+                    if str(t_type) == str(GraphEntity.specification_document):
+                        t_type = "standard"
+        return t_type
+
+    def vvi_find(self, result, part, type, title, num, dic):
+        typ = self.typalo(result, type)
+        if "issue" in typ:
+            dic["issue"] = str(result[num]["value"])
+        elif "volume" in typ:
+            dic["volume"] = str(result[num]["value"])
+        elif typ:
+            dic["venue"] = result[title]["value"] + " [meta:" + result[part]["value"].replace("https://w3id.org/OC/meta/", "") +"]"
+        return dic
+
+
 

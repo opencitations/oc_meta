@@ -2,50 +2,74 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="d2b23c46-2db9-4b25-a89e-e1906277cf0f" name="Default" comment="">
+      <change beforePath="" afterPath="$PROJECT_DIR$/crossref/warmup.py" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change beforePath="$PROJECT_DIR$/converter.py" afterPath="$PROJECT_DIR$/converter.py" />
-      <change beforePath="$PROJECT_DIR$/converter_counter/ar.txt" afterPath="$PROJECT_DIR$/converter_counter/ar.txt" />
-      <change beforePath="$PROJECT_DIR$/converter_counter/id.txt" afterPath="$PROJECT_DIR$/converter_counter/id.txt" />
-      <change beforePath="$PROJECT_DIR$/converter_counter/ra.txt" afterPath="$PROJECT_DIR$/converter_counter/ra.txt" />
+      <change beforePath="$PROJECT_DIR$/converter_counter/ar.txt" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/converter_counter/br.txt" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/converter_counter/id.txt" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/converter_counter/ra.txt" afterPath="" />
       <change beforePath="$PROJECT_DIR$/migrator.py" afterPath="$PROJECT_DIR$/migrator.py" />
+      <change beforePath="$PROJECT_DIR$/scripts/finder.py" afterPath="$PROJECT_DIR$/scripts/finder.py" />
+      <change beforePath="$PROJECT_DIR$/scripts/graphlib.py" afterPath="$PROJECT_DIR$/scripts/graphlib.py" />
       <change beforePath="$PROJECT_DIR$/tdd/converter_TDD.py" afterPath="$PROJECT_DIR$/tdd/converter_TDD.py" />
       <change beforePath="$PROJECT_DIR$/tdd/converter_counter/ar.txt" afterPath="$PROJECT_DIR$/tdd/converter_counter/ar.txt" />
       <change beforePath="$PROJECT_DIR$/tdd/converter_counter/br.txt" afterPath="$PROJECT_DIR$/tdd/converter_counter/br.txt" />
       <change beforePath="$PROJECT_DIR$/tdd/converter_counter/id.txt" afterPath="$PROJECT_DIR$/tdd/converter_counter/id.txt" />
-      <change beforePath="$PROJECT_DIR$/tdd/converter_counter/ra.txt" afterPath="$PROJECT_DIR$/tdd/converter_counter/ra.txt" />
-      <change beforePath="$PROJECT_DIR$/tdd/counter/ar.txt" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/tdd/counter/re.txt" afterPath="" />
       <change beforePath="$PROJECT_DIR$/tdd/migrator_TDD.py" afterPath="$PROJECT_DIR$/tdd/migrator_TDD.py" />
+      <change beforePath="$PROJECT_DIR$/tdd/new_test_data.csv" afterPath="$PROJECT_DIR$/tdd/new_test_data.csv" />
       <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_01.ttl" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_01.ttl" />
       <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_02.ttl" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_02.ttl" />
       <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_03.ttl" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_03.ttl" />
       <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_04.ttl" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_04.ttl" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_06.ttl" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_06.ttl" />
       <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_07.ttl" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_07.ttl" />
       <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_08.ttl" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_08.ttl" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_09.ttl" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_09.ttl" />
       <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_10.ttl" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_10.ttl" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index10_br.csv" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index10_ra.csv" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index1_br.csv" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index1_ra.csv" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index2_br.csv" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index2_ra.csv" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index3_br.csv" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index3_ra.csv" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index4_br.csv" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index4_ra.csv" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index5_br.csv" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index5_ra.csv" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index6_br.csv" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index6_ra.csv" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index7_br.csv" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index7_ra.csv" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index8_br.csv" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index8_ra.csv" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index9_br.csv" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/index9_ra.csv" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/indexX_br.csv" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/indexX_ra.csv" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/01/index_ar_01.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/01/index_ar_01.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/01/index_id_br_01.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/01/index_id_br_01.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/01/index_re_01.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/01/index_re_01.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/02/index_ar_02.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/02/index_ar_02.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/02/index_id_br_02.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/02/index_id_br_02.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/02/index_re_02.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/02/index_re_02.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/03/index_ar_03.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/03/index_ar_03.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/03/index_id_br_03.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/03/index_id_br_03.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/03/index_re_03.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/03/index_re_03.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/04/index_ar_04.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/04/index_ar_04.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/04/index_id_br_04.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/04/index_id_br_04.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/04/index_re_04.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/04/index_re_04.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/06/index_ar_06.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/06/index_ar_06.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/07/index_ar_07.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/07/index_ar_07.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/07/index_id_br_07.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/07/index_id_br_07.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/07/index_re_07.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/07/index_re_07.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/08/index_ar_08.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/08/index_ar_08.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/08/index_id_br_08.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/08/index_id_br_08.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/08/index_re_08.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/08/index_re_08.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/10/index_id_br_10.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/10/index_id_br_10.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_01_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_01_data.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_02_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_02_data.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_03_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_03_data.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_04_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_04_data.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_05_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_05_data.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_06_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_06_data.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_07_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_07_data.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_08_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_08_data.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_10_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_10_data.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_11_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_11_data.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_13.1_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_13.1_data.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_13.2_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_13.2_data.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_14.1_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_14.1_data.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_14.2_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_14.2_data.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_15.1_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_15.1_data.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_15.2_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_15.2_data.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_15.3_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_15.3_data.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_15.4_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_15.4_data.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_15.5_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_15.5_data.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_15.7_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_15.7_data.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_15.8_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_15.8_data.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_16.1_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_16.1_data.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_16.2_data.csv" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_16.2_data.csv" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/ts/testcase_ts-13.ttl" afterPath="$PROJECT_DIR$/tdd/testcases/ts/testcase_ts-13.ttl" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -59,22 +83,10 @@
       <file leaf-file-name="migrator.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/migrator.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-1754">
-              <caret line="436" column="118" lean-forward="false" selection-start-line="436" selection-start-column="118" selection-end-line="436" selection-end-column="118" />
+            <state relative-caret-position="-732">
+              <caret line="175" column="35" lean-forward="true" selection-start-line="175" selection-start-column="35" selection-end-line="175" selection-end-column="35" />
               <folding>
                 <element signature="e#0#30#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="converter.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/converter.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="241">
-              <caret line="702" column="24" lean-forward="true" selection-start-line="702" selection-start-column="24" selection-end-line="702" selection-end-column="24" />
-              <folding>
-                <element signature="e#0#18#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -83,22 +95,10 @@
       <file leaf-file-name="graphlib.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/scripts/graphlib.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="297">
-              <caret line="198" column="34" lean-forward="false" selection-start-line="198" selection-start-column="34" selection-end-line="198" selection-end-column="42" />
+            <state relative-caret-position="108">
+              <caret line="243" column="48" lean-forward="false" selection-start-line="243" selection-start-column="26" selection-end-line="243" selection-end-column="48" />
               <folding>
                 <element signature="e#850#893#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="resfinder.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/scripts/resfinder.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="6195">
-              <caret line="299" column="0" lean-forward="false" selection-start-line="299" selection-start-column="0" selection-end-line="299" selection-end-column="0" />
-              <folding>
-                <element signature="e#851#893#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -107,8 +107,8 @@
       <file leaf-file-name="finder.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/scripts/finder.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="430">
-              <caret line="367" column="13" lean-forward="false" selection-start-line="367" selection-start-column="13" selection-end-line="367" selection-end-column="13" />
+            <state relative-caret-position="-18">
+              <caret line="37" column="39" lean-forward="false" selection-start-line="37" selection-start-column="37" selection-end-line="37" selection-end-column="39" />
               <folding>
                 <element signature="e#0#40#0" expanded="true" />
               </folding>
@@ -119,9 +119,11 @@
       <file leaf-file-name="prova.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/prova.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="410">
-              <caret line="98" column="70" lean-forward="false" selection-start-line="98" selection-start-column="70" selection-end-line="98" selection-end-column="89" />
-              <folding />
+            <state relative-caret-position="470">
+              <caret line="114" column="12" lean-forward="false" selection-start-line="114" selection-start-column="12" selection-end-line="114" selection-end-column="12" />
+              <folding>
+                <element signature="e#0#23#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -129,8 +131,8 @@
       <file leaf-file-name="converter_TDD.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/tdd/converter_TDD.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="294">
-              <caret line="29" column="71" lean-forward="false" selection-start-line="29" selection-start-column="71" selection-end-line="29" selection-end-column="71" />
+            <state relative-caret-position="-4504">
+              <caret line="37" column="4" lean-forward="false" selection-start-line="37" selection-start-column="4" selection-end-line="37" selection-end-column="54" />
               <folding>
                 <element signature="e#0#15#0" expanded="true" />
               </folding>
@@ -138,12 +140,26 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="migrator_TDD.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="migrator_TDD.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/tdd/migrator_TDD.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="126">
-              <caret line="25" column="67" lean-forward="false" selection-start-line="25" selection-start-column="67" selection-end-line="25" selection-end-column="67" />
-              <folding />
+            <state relative-caret-position="84">
+              <caret line="22" column="4" lean-forward="false" selection-start-line="22" selection-start-column="4" selection-end-line="34" selection-end-column="100" />
+              <folding>
+                <element signature="e#0#15#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="warmup.py" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/crossref/warmup.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="470">
+              <caret line="85" column="35" lean-forward="false" selection-start-line="85" selection-start-column="35" selection-end-line="85" selection-end-column="35" />
+              <folding>
+                <element signature="e#0#22#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -154,6 +170,18 @@
             <state relative-caret-position="315">
               <caret line="15" column="0" lean-forward="false" selection-start-line="15" selection-start-column="0" selection-end-line="15" selection-end-column="0" />
               <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="converter.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/converter.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="381">
+              <caret line="411" column="42" lean-forward="false" selection-start-line="411" selection-start-column="42" selection-end-line="411" selection-end-column="42" />
+              <folding>
+                <element signature="e#0#24#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -169,36 +197,36 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>vvi_ent</find>
-      <find>retrieve_</find>
-      <find>finder_sparql</find>
-      <find>if ra</find>
-      <find>impo</find>
-      <find>finder</find>
-      <find>_add_number</find>
-      <find>reset_ser</find>
-      <find>reset</find>
-      <find>re</find>
-      <find>reset(</find>
-      <find>final_ra_list</find>
-      <find>ra_update</find>
-      <find>pr</find>
-      <find>seque</find>
-      <find>{'id': 'wannabe_3'}</find>
-      <find>def volume_issue</find>
-      <find>self.idbr</find>
-      <find>id_dict</find>
-      <find>reset()</find>
-      <find>dry</find>
-      <find>re_info</find>
-      <find>indexe</find>
-      <find>page</find>
+      <find>book_series</find>
+      <find>def create_book</find>
+      <find>def vol</find>
+      <find>-</find>
+      <find>Converter.</find>
+      <find>self.clean_id_list</find>
+      <find>re_from_meta</find>
+      <find>Converter.str</find>
+      <find>create_type(GraphEntity.book)</find>
+      <find>'type</find>
       <find>remeta</find>
-      <find>ardict</find>
-      <find>armeta</find>
-      <find>authors</find>
-      <find>meta_ar</find>
+      <find>self.log</find>
+      <find>&quot;type</find>
+      <find>row[&quot;type</find>
+      <find>create_series</find>
+      <find>ex</find>
+      <find>parse</find>
+      <find>track</find>
+      <find>boo</find>
+      <find>def in</find>
+      <find>read_</find>
+      <find>dump</find>
+      <find>def d</find>
       <find>print</find>
+      <find>accad</find>
+      <find>GraphEntity.expression</find>
+      <find>def write_csv</find>
+      <find>id_worker</find>
+      <find>def clean_id_list</find>
+      <find>author</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -214,24 +242,27 @@
         <option value="$PROJECT_DIR$/scripts/storer.py" />
         <option value="$PROJECT_DIR$/../quaero/data/dataprocessing/datamerge.py" />
         <option value="$PROJECT_DIR$/scripts/resfinder.py" />
-        <option value="$PROJECT_DIR$/scripts/graphlib.py" />
         <option value="$PROJECT_DIR$/tdd/test_creator_helper/csv_creator.py" />
         <option value="$PROJECT_DIR$/../testalo/cq_test_machine.py" />
         <option value="$PROJECT_DIR$/../testalo/allin1.py" />
-        <option value="$PROJECT_DIR$/scripts/finder.py" />
+        <option value="$PROJECT_DIR$/tdd/tddc.py" />
+        <option value="$PROJECT_DIR$/tdd/ggffg.py" />
+        <option value="$PROJECT_DIR$/scripts/graphlib.py" />
         <option value="$PROJECT_DIR$/prova.py" />
-        <option value="$PROJECT_DIR$/migrator.py" />
-        <option value="$PROJECT_DIR$/converter.py" />
-        <option value="$PROJECT_DIR$/tdd/converter_TDD.py" />
+        <option value="$PROJECT_DIR$/scripts/finder.py" />
         <option value="$PROJECT_DIR$/tdd/migrator_TDD.py" />
+        <option value="$PROJECT_DIR$/tdd/converter_TDD.py" />
+        <option value="$PROJECT_DIR$/converter.py" />
+        <option value="$PROJECT_DIR$/migrator.py" />
+        <option value="$PROJECT_DIR$/crossref/warmup.py" />
       </list>
     </option>
   </component>
   <component name="ProjectFrameBounds" extendedState="7">
-    <option name="x" value="773" />
-    <option name="y" value="18" />
-    <option name="width" value="976" />
-    <option name="height" value="1038" />
+    <option name="x" value="-9" />
+    <option name="y" value="-9" />
+    <option name="width" value="978" />
+    <option name="height" value="1048" />
   </component>
   <component name="ProjectView">
     <navigator currentView="ProjectPane" proportions="" version="1">
@@ -258,23 +289,7 @@
             <path>
               <item name="meta" type="b2602c69:ProjectViewProjectNode" />
               <item name="meta" type="462c0819:PsiDirectoryNode" />
-              <item name="LICENSE.md" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="meta" type="b2602c69:ProjectViewProjectNode" />
-              <item name="meta" type="462c0819:PsiDirectoryNode" />
-              <item name="scripts" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="meta" type="b2602c69:ProjectViewProjectNode" />
-              <item name="meta" type="462c0819:PsiDirectoryNode" />
-              <item name="tdd" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="meta" type="b2602c69:ProjectViewProjectNode" />
-              <item name="meta" type="462c0819:PsiDirectoryNode" />
-              <item name="tdd" type="462c0819:PsiDirectoryNode" />
-              <item name="test_creator_helper" type="462c0819:PsiDirectoryNode" />
+              <item name="crossref" type="462c0819:PsiDirectoryNode" />
             </path>
           </expand>
           <select />
@@ -286,7 +301,7 @@
   </component>
   <component name="PropertiesComponent">
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/../testalo" />
+    <property name="last_opened_file_path" value="$USER_HOME$/Desktop/ispra/scripts" />
   </component>
   <component name="RunDashboard">
     <option name="ruleStates">
@@ -300,25 +315,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Python.migrator_TDD">
-    <configuration name="allin1" type="PythonConfigurationType" factoryName="Python" temporary="true">
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/../testalo" />
-      <option name="IS_MODULE_SDK" value="false" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <module name="meta" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/../testalo/allin1.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-    </configuration>
+  <component name="RunManager" selected="Python.warmup">
     <configuration name="converter_TDD" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -337,19 +334,19 @@
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
     </configuration>
-    <configuration name="csv_creator" type="PythonConfigurationType" factoryName="Python" temporary="true">
+    <configuration name="ggffg" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
       <envs>
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
       <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tdd/test_creator_helper" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tdd" />
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <module name="meta" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/tdd/test_creator_helper/csv_creator.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/tdd/ggffg.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -391,20 +388,38 @@
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
     </configuration>
+    <configuration name="warmup" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/crossref" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="meta" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/crossref/warmup.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+    </configuration>
     <list size="5">
       <item index="0" class="java.lang.String" itemvalue="Python.migrator_TDD" />
-      <item index="1" class="java.lang.String" itemvalue="Python.csv_creator" />
-      <item index="2" class="java.lang.String" itemvalue="Python.prova" />
-      <item index="3" class="java.lang.String" itemvalue="Python.converter_TDD" />
-      <item index="4" class="java.lang.String" itemvalue="Python.allin1" />
+      <item index="1" class="java.lang.String" itemvalue="Python.prova" />
+      <item index="2" class="java.lang.String" itemvalue="Python.converter_TDD" />
+      <item index="3" class="java.lang.String" itemvalue="Python.ggffg" />
+      <item index="4" class="java.lang.String" itemvalue="Python.warmup" />
     </list>
     <recent_temporary>
       <list size="5">
-        <item index="0" class="java.lang.String" itemvalue="Python.migrator_TDD" />
-        <item index="1" class="java.lang.String" itemvalue="Python.converter_TDD" />
-        <item index="2" class="java.lang.String" itemvalue="Python.prova" />
-        <item index="3" class="java.lang.String" itemvalue="Python.allin1" />
-        <item index="4" class="java.lang.String" itemvalue="Python.csv_creator" />
+        <item index="0" class="java.lang.String" itemvalue="Python.warmup" />
+        <item index="1" class="java.lang.String" itemvalue="Python.migrator_TDD" />
+        <item index="2" class="java.lang.String" itemvalue="Python.converter_TDD" />
+        <item index="3" class="java.lang.String" itemvalue="Python.prova" />
+        <item index="4" class="java.lang.String" itemvalue="Python.ggffg" />
       </list>
     </recent_temporary>
   </component>
@@ -437,13 +452,13 @@
     <frame x="-9" y="-9" width="1938" height="1048" extended-state="7" />
     <editor active="true" />
     <layout>
-      <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3293979" sideWeight="0.48925886" order="6" side_tool="false" content_ui="tabs" />
-      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.27744982" sideWeight="0.11063373" order="7" side_tool="true" content_ui="tabs" />
+      <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32467532" sideWeight="0.8856069" order="6" side_tool="false" content_ui="tabs" />
+      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.27744982" sideWeight="0.150913" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
-      <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3293979" sideWeight="0.49570355" order="8" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.27744982" sideWeight="0.88936627" order="2" side_tool="false" content_ui="tabs" />
-      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3293979" sideWeight="0.49785176" order="9" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.111707844" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3293979" sideWeight="0.9156821" order="8" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.27744982" sideWeight="0.849087" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3293979" sideWeight="0.4935553" order="9" side_tool="false" content_ui="tabs" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.062298603" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="R Packages" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.0" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="R Graphics" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.0" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
@@ -458,25 +473,25 @@
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
     </layout>
     <layout-to-restore>
-      <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3293979" sideWeight="0.49570355" order="6" side_tool="false" content_ui="tabs" />
+      <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32467532" sideWeight="0.8856069" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
-      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.27744982" sideWeight="0.091836736" order="7" side_tool="true" content_ui="tabs" />
+      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.27744982" sideWeight="0.150913" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.27744982" sideWeight="0.90816325" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
-      <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3293979" sideWeight="0.49785176" order="8" side_tool="false" content_ui="tabs" />
-      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3293979" sideWeight="0.49785176" order="9" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.20461869" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3293979" sideWeight="0.9156821" order="8" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.27744982" sideWeight="0.849087" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3293979" sideWeight="0.4935553" order="9" side_tool="false" content_ui="tabs" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.055853922" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
       <window_info id="R Packages" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.0" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="R Graphics" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.0" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.39905548" sideWeight="0.49785176" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.39905548" sideWeight="0.49570355" order="3" side_tool="false" content_ui="tabs" />
     </layout-to-restore>
   </component>
   <component name="VcsContentAnnotationSettings">
@@ -484,17 +499,39 @@
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
-      <option name="time" value="8" />
+      <option name="time" value="21" />
     </breakpoint-manager>
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
+    <entry file="file://$PROJECT_DIR$/tdd/test_creator_helper/rdf_creator.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1281">
+          <caret line="62" column="55" lean-forward="false" selection-start-line="62" selection-start-column="55" selection-end-line="62" selection-end-column="55" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tdd/test_creator_helper/new_test_data.csv">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="147">
+          <caret line="7" column="0" lean-forward="false" selection-start-line="7" selection-start-column="0" selection-end-line="7" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tdd/test_creator_helper/csv_creator.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1932">
+          <caret line="92" column="0" lean-forward="false" selection-start-line="92" selection-start-column="0" selection-end-line="92" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/converter.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1050">
           <caret line="50" column="0" lean-forward="false" selection-start-line="50" selection-start-column="0" selection-end-line="50" selection-end-column="0" />
           <folding>
-            <element signature="e#0#18#0" expanded="true" />
+            <element signature="e#0#24#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -544,57 +581,7 @@
         <state relative-caret-position="1050">
           <caret line="50" column="0" lean-forward="false" selection-start-line="50" selection-start-column="0" selection-end-line="50" selection-end-column="0" />
           <folding>
-            <element signature="e#0#18#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/tdd/migrator_TDD.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2835">
-          <caret line="139" column="21" lean-forward="false" selection-start-line="139" selection-start-column="21" selection-end-line="139" selection-end-column="35" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/graphlib.py" />
-    <entry file="file://$PROJECT_DIR$/migrator.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="5019">
-          <caret line="240" column="47" lean-forward="false" selection-start-line="240" selection-start-column="47" selection-end-line="240" selection-end-column="47" />
-          <folding>
-            <element signature="e#0#30#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/tdd/test_creator_helper/rdf_creator.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1281">
-          <caret line="62" column="55" lean-forward="false" selection-start-line="62" selection-start-column="55" selection-end-line="62" selection-end-column="55" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/tdd/test_creator_helper/new_test_data.csv">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="147">
-          <caret line="7" column="0" lean-forward="false" selection-start-line="7" selection-start-column="0" selection-end-line="7" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/tdd/test_creator_helper/csv_creator.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1932">
-          <caret line="92" column="0" lean-forward="false" selection-start-line="92" selection-start-column="0" selection-end-line="92" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/converter.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1050">
-          <caret line="50" column="0" lean-forward="false" selection-start-line="50" selection-start-column="0" selection-end-line="50" selection-end-column="0" />
-          <folding>
-            <element signature="e#0#18#0" expanded="true" />
+            <element signature="e#0#24#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -644,7 +631,7 @@
         <state relative-caret-position="1050">
           <caret line="50" column="0" lean-forward="false" selection-start-line="50" selection-start-column="0" selection-end-line="50" selection-end-column="0" />
           <folding>
-            <element signature="e#0#18#0" expanded="true" />
+            <element signature="e#0#24#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -703,27 +690,9 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$USER_HOME$/AppData/Local/Temp/7zO4501D30E/indicatorLod.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-6793">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/AppData/Local/Temp/7zO45010DCE/generacleaned.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-181">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/AppData/Local/Temp/7zO450F7761/indicatorLod.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="252">
-          <caret line="18" column="22" lean-forward="true" selection-start-line="18" selection-start-column="22" selection-end-line="18" selection-end-column="22" />
-        </state>
-      </provider>
-    </entry>
+    <entry file="file://$USER_HOME$/AppData/Local/Temp/7zO4501D30E/indicatorLod.py" />
+    <entry file="file://$USER_HOME$/AppData/Local/Temp/7zO45010DCE/generacleaned.py" />
+    <entry file="file://$USER_HOME$/AppData/Local/Temp/7zO450F7761/indicatorLod.py" />
     <entry file="file://$USER_HOME$/AppData/Local/Temp/7zO45035819/generaskos.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-5796">
@@ -731,13 +700,7 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$USER_HOME$/AppData/Local/Temp/7zO450EC9B7/pubblica.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
+    <entry file="file://$USER_HOME$/AppData/Local/Temp/7zO450EC9B7/pubblica.py" />
     <entry file="file://$USER_HOME$/AppData/Local/Temp/7zO4505A9ED/genera_luoghi.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-5285">
@@ -753,16 +716,7 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/scripts/resfinder.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="6195">
-          <caret line="299" column="0" lean-forward="false" selection-start-line="299" selection-start-column="0" selection-end-line="299" selection-end-column="0" />
-          <folding>
-            <element signature="e#851#893#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
+    <entry file="file://$PROJECT_DIR$/index_re.csv" />
     <entry file="file://$PROJECT_DIR$/tdd/test_creator_helper/csv_creator.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="315">
@@ -771,77 +725,105 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/scripts/graphlib.py">
+    <entry file="file://$PROJECT_DIR$/tdd/tddc.py" />
+    <entry file="file://$PROJECT_DIR$/tdd/ggffg.py" />
+    <entry file="file://$USER_HOME$/Desktop/ispra/scripts/ISPRALOd.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="297">
-          <caret line="198" column="34" lean-forward="false" selection-start-line="198" selection-start-column="34" selection-end-line="198" selection-end-column="42" />
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
-            <element signature="e#850#893#0" expanded="true" />
+            <element signature="e#0#52#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/scripts/resfinder.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="512">
+          <caret line="299" column="0" lean-forward="false" selection-start-line="299" selection-start-column="0" selection-end-line="299" selection-end-column="0" />
+          <folding>
+            <element signature="e#851#893#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/prova.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="470">
+          <caret line="114" column="12" lean-forward="false" selection-start-line="114" selection-start-column="12" selection-end-line="114" selection-end-column="12" />
+          <folding>
+            <element signature="e#0#23#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/scripts/finder.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="430">
-          <caret line="367" column="13" lean-forward="false" selection-start-line="367" selection-start-column="13" selection-end-line="367" selection-end-column="13" />
+        <state relative-caret-position="-18">
+          <caret line="37" column="39" lean-forward="false" selection-start-line="37" selection-start-column="37" selection-end-line="37" selection-end-column="39" />
           <folding>
             <element signature="e#0#40#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/index_re.csv">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/prova.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="410">
-          <caret line="98" column="70" lean-forward="false" selection-start-line="98" selection-start-column="70" selection-end-line="98" selection-end-column="89" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/migrator.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-1754">
-          <caret line="436" column="118" lean-forward="false" selection-start-line="436" selection-start-column="118" selection-end-line="436" selection-end-column="118" />
-          <folding>
-            <element signature="e#0#30#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/converter.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="241">
-          <caret line="702" column="24" lean-forward="true" selection-start-line="702" selection-start-column="24" selection-end-line="702" selection-end-column="24" />
-          <folding>
-            <element signature="e#0#18#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/tdd/converter_TDD.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="294">
-          <caret line="29" column="71" lean-forward="false" selection-start-line="29" selection-start-column="71" selection-end-line="29" selection-end-column="71" />
+        <state relative-caret-position="-4504">
+          <caret line="37" column="4" lean-forward="false" selection-start-line="37" selection-start-column="4" selection-end-line="37" selection-end-column="54" />
           <folding>
             <element signature="e#0#15#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/scripts/graphlib.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="108">
+          <caret line="243" column="48" lean-forward="false" selection-start-line="243" selection-start-column="26" selection-end-line="243" selection-end-column="48" />
+          <folding>
+            <element signature="e#850#893#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/converter.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="381">
+          <caret line="411" column="42" lean-forward="false" selection-start-line="411" selection-start-column="42" selection-end-line="411" selection-end-column="42" />
+          <folding>
+            <element signature="e#0#24#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/tdd/migrator_TDD.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="126">
-          <caret line="25" column="67" lean-forward="false" selection-start-line="25" selection-start-column="67" selection-end-line="25" selection-end-column="67" />
-          <folding />
+        <state relative-caret-position="84">
+          <caret line="22" column="4" lean-forward="false" selection-start-line="22" selection-start-column="4" selection-end-line="34" selection-end-column="100" />
+          <folding>
+            <element signature="e#0#15#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/migrator.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-732">
+          <caret line="175" column="35" lean-forward="true" selection-start-line="175" selection-start-column="35" selection-end-line="175" selection-end-column="35" />
+          <folding>
+            <element signature="e#0#30#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/crossref/warmup.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="470">
+          <caret line="85" column="35" lean-forward="false" selection-start-line="85" selection-start-column="35" selection-end-line="85" selection-end-column="35" />
+          <folding>
+            <element signature="e#0#22#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>

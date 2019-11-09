@@ -294,6 +294,9 @@ class GraphEntity(object):
     def create_report_series(self):
         self._create_type(GraphEntity.series)
 
+    def create_series(self):
+        self._create_type(GraphEntity.series)
+
     def create_standard(self):
         self._create_type(GraphEntity.specification_document)
 

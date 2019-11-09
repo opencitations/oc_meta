@@ -1,14 +1,13 @@
-import csv, re, os
+import csv, re, os, json
 from scripts.finder import*
 from dateutil.parser import parse
-
+from datetime import datetime
 
 class Converter:
 
-    def __init__(self, data, ts, separator = None, info_dir ="converter_counter/", generate_doc = False, filename = None):
+    def __init__(self, data, ts, separator = None, info_dir ="converter_counter/", filename = None, path = None):
 
-        if filename:
-            self.filename = filename
+
         self.finder = ResourceFinder(ts)
         self.separator = separator
         self.data = data
@@ -27,6 +26,8 @@ class Converter:
         self.vvi = {}  #Venue, Volume, Issue
         self.idra = {}  # key id; value metaid of id related to ra
         self.idbr = {}  # key id; value metaid of id related to br
+        self.conflict_br = {}
+        self.conflict_ra = {}
 
         self.rameta = dict()
         self.brmeta = dict()
@@ -38,12 +39,23 @@ class Converter:
 
         self.rowcnt = 0
 
-        self.conflict_list = list()
+        self.log = dict()
         self.new_sequence_list = list()
         self.data = data
 
         for row in self.data:
+            self.log[self.rowcnt] = dict()
+            key_list = ["id", "author", "venue", "editor", "publisher", "page", "volume", "issue", "pub_date", "type"]
+            for key in key_list:
+                self.log[self.rowcnt][key] = dict()
             self.clean_id(row)
+            self.rowcnt = + 1
+
+        self.check_equality()
+
+        # reset row counter
+        self.rowcnt = 0
+        for row in self.data:
             self.clean_vvi(row)
             self.rowcnt = + 1
 
@@ -56,11 +68,19 @@ class Converter:
             self.clean_ra(row, "editor")
             self.rowcnt =+ 1
 
+        self.brdict.update(self.conflict_br)
+        self.radict.update(self.conflict_ra)
         self.meta_maker()
+        self.log = self.log_update()
         self.dry()
 
-        if generate_doc and filename:
-            self.indexer()
+        self.path = path
+        if self.path:
+            if not os.path.exists(os.path.dirname(self.path)):
+                os.makedirs(os.path.dirname(self.path))
+
+        self.filename = filename
+        self.indexer()
 
 
     #ID
@@ -75,28 +95,57 @@ class Converter:
                 idslist = re.sub(r'\s*:\s*', ':', row['id']).split(self.separator)
             else:
                 idslist = re.split(r'\s+', re.sub(r'\s*:\s*', ':', row['id']))
-            metaval = self.id_worker(row, name, idslist, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
+            metaval = self.id_worker("id", name, idslist, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
         else:
             metaval = self.new_entity(self.brdict, name)
+
         row['id'] = metaval
 
+        if "wannabe" not in metaval:
+            self.equalizer(row, metaval)
 
         #page
         if row['page']:
-            row['page'] = row['page'].strip()
+            row['page'] = Converter.string_fix(row['page'].strip())
         #date
         if row['pub_date']:
-            date = row['pub_date'].strip()
+            date = Converter.string_fix(row['pub_date'].strip())
             try:
-                parse(date)
+                date = self.parse_hack(date)
             except:
-                date = ""
+                try:
+                    if len(date) == 10:
+                        try:
+                            newdate = date[:-3]
+                            date = self.parse_hack(newdate)
+                        except:
+                            try:
+                                newdate = date[:-6]
+                                date = self.parse_hack(newdate)
+                            except:
+                                date = ""
+                    elif len(date) == 7:
+                        try:
+                            newdate = date[:-3]
+                            date = self.parse_hack(newdate)
+                        except:
+                            date = ""
+                except:
+                    date = ""
+
             row['pub_date'] = date
 
         #type
         if row['type']:
             type = " ".join((row['type'].strip().lower()).split())
-            row['type'] = type
+            if type == "edited book" or type == "monograph":
+                type = "book"
+            elif type == "report series" or type == "standard series":
+                type = "series"
+            if type in {"archival document" ,"book" ,"book chapter" ,"book part" , "book section" ,"book series" ,"book set" ,"data file" ,"dissertation" ,"journal" ,"journal article" ,"journal issue" ,"journal volume" ,"proceedings article" ,"proceedings" ,"reference book" ,"reference entry" ,"series" ,"report" ,"standard"}:
+                row['type'] = type
+            else:
+                row['type'] = ""
 
 
     # VVI
@@ -111,7 +160,7 @@ class Converter:
                     idslist = re.sub(r'\s*\:\s*', ':', venue_id).split(self.separator)
                 else:
                     idslist = re.split(r'\s+', re.sub(r'\s*\:\s*', ':', venue_id))
-                metaval = self.id_worker(row, name, idslist, ra_ent=False, br_ent=True, vvi_ent=True, publ_entity=False)
+                metaval = self.id_worker("venue", name, idslist, ra_ent=False, br_ent=True, vvi_ent=True, publ_entity=False)
 
                 if metaval not in self.vvi:
                     ts_vvi = None
@@ -180,6 +229,10 @@ class Converter:
                     self.volume_issue(issue_meta, self.vvi[metaval]["volume"][vol]["issue"], issue, row)
                 else:
                     self.volume_issue(issue_meta, self.vvi[metaval]["issue"], issue, row)
+        else:
+            row["venue"] = ""
+            row["volume"] = ""
+            row["issue"] = ""
 
     # RA
     def clean_ra(self, row, col_name):
@@ -241,7 +294,8 @@ class Converter:
                     sequence = self.ardict[br_metaval][col_name]
 
                 new_sequence = list()
-                for ra in ra_list:
+                change_order = False
+                for pos,ra in enumerate(ra_list):
                     new_elem_seq = True
                     ra_id = re.search(r'\[\s*(.*?)\s*\]', ra) #takes string inside "[]" ignoring any space between (ex: [ TARGET  ] --> TARGET
                     if ra_id:
@@ -265,9 +319,12 @@ class Converter:
 
                         if sequence:
                             kv = None
-                            for x,k in sequence:
+                            for ps, el in enumerate(sequence):
+                                k = el[1]
                                 for i in ra_id_list:
                                     if i in self.radict[k]['ids']:
+                                        if ps != pos:
+                                            change_order = True
                                         new_elem_seq = False
                                         if "wannabe" not in k:
                                             kv = k
@@ -278,6 +335,7 @@ class Converter:
                                             ra_id_list = list(filter(None, ra_id_list))
                                             ra_id_list.append("meta:ra/" + kv)
                             if not kv:
+                                #new element
                                 for x, k in sequence:
                                     if self.radict[k]['title'] == name:
                                         new_elem_seq = False
@@ -291,15 +349,18 @@ class Converter:
                                             ra_id_list.append("meta:ra/" + kv)
 
                         if col_name == "publisher":
-                            metaval = self.id_worker(row, name, ra_id_list, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
+                            metaval = self.id_worker("publisher", name, ra_id_list, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
                         else:
-                            metaval = self.id_worker(row, name, ra_id_list, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=False)
+                            metaval = self.id_worker(col_name, name, ra_id_list, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=False)
                     else:
                         metaval = self.new_entity(self.radict, name)
                     if new_elem_seq:
+                        added_element = True
                         role = self._add_number(self.ar_info_path)
                         new_sequence.append(tuple((role, metaval)))
                         self.new_sequence_list.append(tuple((self.rowcnt, role,  metaval)))
+                if change_order:
+                    self.log[self.rowcnt][col_name]["Info"] = "Proposed new RA sequence: REFUSED"
 
                 sequence.extend(new_sequence)
                 self.ardict[br_metaval][col_name] = sequence
@@ -347,7 +408,8 @@ class Converter:
         else:
             for pos, elem in enumerate(id_list):
                 try:
-                    id = elem.split(":")
+                    elem = Converter.string_fix(elem)
+                    id = elem.split(":", 1)
                     value = id[1]
                     schema = id[0].lower()
                     if schema == "meta":
@@ -367,9 +429,14 @@ class Converter:
 
 
 
-    def conflict (self, idslist, entity_dict, name, id_dict):
-        metaval = self.new_entity(entity_dict, name)
-        self.conflict_list.append(tuple((self.rowcnt, metaval)))
+    def conflict (self, idslist, name, id_dict, col_name):
+        if col_name == "id" or col_name == "venue":
+            entity_dict = self.conflict_br
+            metaval = self.new_entity(entity_dict, name)
+        elif col_name == "author" or col_name == "editor" or col_name == "publisher":
+            entity_dict = self.conflict_ra
+            metaval = self.new_entity(entity_dict, name)
+        self.log[self.rowcnt][col_name]['Conflict Entity'] = metaval
         for id in idslist:
             entity_dict[metaval]["ids"].append(id)
             if id not in id_dict:
@@ -513,7 +580,7 @@ class Converter:
                     self.remeta[k] = (count, page)
                     row["page"] = page
             elif k in self.remeta:
-                row["page"] = self.remeta[1]
+                row["page"] = self.remeta[k][1]
 
             self.ra_update(row, k, "author")
             self.ra_update(row, k, "publisher")
@@ -521,7 +588,6 @@ class Converter:
             row["id"] = " ".join(self.brmeta[k]["ids"])
             row["title"] = self.brmeta[k]["title"]
 
-            vol= None
             if row["venue"]:
                 venue= row["venue"]
                 if "wannabe" in venue:
@@ -532,32 +598,17 @@ class Converter:
                     ve = venue
                 row["venue"] = self.brmeta[ve]["title"] + " [" + " ".join(self.brmeta[ve]["ids"]) + "]"
 
-            if row["volume"]:
-                vol = row["volume"]
-                vol_meta = self.vvi[venue]["volume"][vol]["id"]
-                if "wannabe" in vol_meta:
-                    for i in self.brmeta:
-                        if vol_meta in self.brmeta[i]["others"]:
-                            v = i
-                else:
-                    v = vol_meta
-                row["volume"] = row["volume"] + " [meta:br/" + v + "]"
-
-
-            if row["issue"]:
-                if vol:
-                    issue_meta = self.vvi[venue]["volume"][vol]["issue"][row["issue"]]['id']
-                else:
-                    issue_meta = self.vvi[venue]["issue"][row["issue"]]['id']
-                if "wannabe" in issue_meta:
-                    for b in self.brmeta:
-                        if issue_meta in self.brmeta[b]["others"]:
-                            i = b
-                else:
-                    i = issue_meta
-                row["issue"] = row["issue"] + " [meta:br/" + i + "]"
-
-
+    @staticmethod
+    def name_check(ts_name, name):
+        if "," in ts_name:
+            names = ts_name.split(",")
+            if names[0] and not names[1].strip():
+                #there isn't a given name in ts
+                if "," in name:
+                    gname = name.split(", ")[1]
+                    if gname.strip():
+                        ts_name = names[0] + ", " + gname
+        return ts_name
 
 
     @staticmethod
@@ -572,13 +623,15 @@ class Converter:
             for pos, w in enumerate(surname):
                 surname[pos] = w.title()
             new_surname = " ".join(surname)
-            new_name = new_surname + ", " + new_first_name
+            if new_surname:
+                new_name = new_surname + ", " + new_first_name
+            else:
+                new_name = ""
         else:
             split_name = name.split()
             for pos,w in enumerate(split_name):
                 split_name[pos] = w.capitalize()
             new_name = " ".join(split_name)
-
         return new_name
 
 
@@ -627,7 +680,7 @@ class Converter:
 
     @staticmethod
     def write_csv(path, list):
-        with open(path, 'w', newline='') as output_file:
+        with open(path, 'w', newline='',encoding="utf-8") as output_file:
             dict_writer = csv.DictWriter(output_file, list[0].keys(), delimiter='\t')
             dict_writer.writeheader()
             dict_writer.writerows(list)
@@ -637,7 +690,10 @@ class Converter:
         pass
 
     def indexer (self):
-
+        if self.path:
+            path = self.path
+        else:
+            path = ""
         #ID
         index_id_ra= list()
         if self.idra:
@@ -651,8 +707,11 @@ class Converter:
             row["id"] = ""
             row["meta"] = ""
             index_id_ra.append(row)
-        ra_path = "index_id_ra_" + self.filename + ".csv"
-        self.write_csv(ra_path, index_id_ra)
+
+        if self.filename:
+            ra_path = path + "index_id_ra_" + self.filename + ".csv"
+            self.write_csv(ra_path, index_id_ra)
+        self.index_id_ra = index_id_ra
 
         index_id_br = list()
         if self.idbr:
@@ -666,8 +725,11 @@ class Converter:
             row["id"] = ""
             row["meta"] = ""
             index_id_br.append(row)
-        br_path = "index_id_br_" + self.filename + ".csv"
-        self.write_csv(br_path, index_id_br)
+        if self.filename:
+            br_path = path + "index_id_br_" + self.filename + ".csv"
+            self.write_csv(br_path, index_id_br)
+        self.index_id_br = index_id_br
+
 
         #AR
         ar_index = list()
@@ -688,8 +750,10 @@ class Converter:
             row["editor"] = ""
             row["publisher"] = ""
             ar_index.append(row)
-        ar_path = "index_ar_" + self.filename + ".csv"
-        self.write_csv(ar_path, ar_index)
+        if self.filename:
+            ar_path = path + "index_ar_" + self.filename + ".csv"
+            self.write_csv(ar_path, ar_index)
+        self.ar_index = ar_index
 
         #RE
         re_index = list()
@@ -697,21 +761,64 @@ class Converter:
             for x in self.remeta:
                 r = dict()
                 r["br"] = x
-                r["re"] = self.remeta[x][0]
+                r["re"] = str(self.remeta[x][0])
                 re_index.append(r)
         else:
             row = dict()
             row["br"] = ""
             row["re"] = ""
             re_index.append(row)
-        re_path = "index_re_" + self.filename + ".csv"
-        self.write_csv(re_path, re_index)
+        if self.filename:
+            re_path = path + "index_re_" + self.filename + ".csv"
+            self.write_csv(re_path, re_index)
+        self.re_index = re_index
 
-        #TODO LOG
+
+        #VI
+        vi_index = list()
+        self.VolIss = dict()
+        if self.vvi:
+            for x in self.vvi:
+                if self.vvi[x]["issue"]:
+                    for iss in self.vvi[x]["issue"]:
+                        if "wannabe" in self.vvi[x]["issue"][iss]["id"]:
+                            for i in self.brmeta:
+                                if self.vvi[x]["issue"][iss]["id"] in self.brmeta[i]["others"]:
+                                    self.vvi[x]["issue"][iss]["id"] = str(i)
+                if self.vvi[x]["volume"]:
+                    for vol in self.vvi[x]["volume"]:
+                        if "wannabe" in self.vvi[x]["volume"][vol]["id"]:
+                            for i in self.brmeta:
+                                if self.vvi[x]["volume"][vol]["id"] in self.brmeta[i]["others"]:
+                                    self.vvi[x]["volume"][vol]["id"] = str(i)
+                        if self.vvi[x]["volume"][vol]["issue"]:
+                            for iss in self.vvi[x]["volume"][vol]["issue"]:
+                                if "wannabe" in self.vvi[x]["volume"][vol]["issue"][iss]["id"]:
+                                    for i in self.brmeta:
+                                        if self.vvi[x]["volume"][vol]["issue"][iss]["id"] in self.brmeta[i]["others"]:
+                                            self.vvi[x]["volume"][vol]["issue"][iss]["id"] = str(i)
+                if "wannabe" in x:
+                    for i in self.brmeta:
+                        if x in self.brmeta[i]["others"]:
+                            self.VolIss[i] = self.vvi[x]
+                else:
+                    self.VolIss[x] = self.vvi[x]
+        if self.filename:
+            vvi_file = path + "index_vi_" + self.filename + ".json"
+            with open(vvi_file, 'w') as fp:
+                json.dump(self.VolIss, fp)
+
+        if self.log:
+            log_file = path + "log_" + self.filename + ".json"
+            with open(log_file, 'w') as lf:
+                json.dump(self.log, lf)
+
+        if self.data:
+            data_file = path + "data_" + self.filename + ".csv"
+            self.write_csv(data_file, self.data)
 
 
-
-    def id_worker(self, row, name, idslist, ra_ent=False, br_ent=False, vvi_ent=False, publ_entity=False):
+    def id_worker(self, col_name, name, idslist, ra_ent=False, br_ent=False, vvi_ent=False, publ_entity=False):
 
         if not ra_ent:
             id_dict = self.idbr
@@ -747,10 +854,12 @@ class Converter:
 
                 # meta in triplestore
                 if found_meta_ts:
-                    title = found_meta_ts[0]
                     entity_dict[metaval] = dict()
                     entity_dict[metaval]["ids"] = list()
-                    entity_dict[metaval]["title"] = title
+                    if col_name == "author" or col_name == "editor":
+                        entity_dict[metaval]["title"] = self.name_check(found_meta_ts[0], name)
+                    else:
+                        entity_dict[metaval]["title"] = found_meta_ts[0]
                     entity_dict[metaval]["others"] = list()
 
                     self.find_update_other_ID(idslist, metaval, entity_dict, name)
@@ -784,7 +893,7 @@ class Converter:
             if local_match["existing"]:
                 # ids refer to multiple existing enitities
                 if len(local_match["existing"]) > 1:
-                    return self.conflict(idslist, entity_dict, name, id_dict)
+                    return self.conflict(idslist, name, id_dict, col_name)
 
                 # ids refer to ONE existing enitity
                 elif len(local_match["existing"]) == 1:
@@ -796,7 +905,7 @@ class Converter:
                     if supsected_ids:
                         sparql_match = self.finder_sparql(supsected_ids, br=br_ent, ra=ra_ent, vvi = vvi_ent, publ = publ_entity)
                         if len(sparql_match) > 1:
-                            return self.conflict(idslist, entity_dict, name, id_dict)
+                            return self.conflict(idslist, name, id_dict, col_name)
 
 
             # ids refers to 1 or more wannabe enitities
@@ -829,13 +938,13 @@ class Converter:
                     sparql_match = self.finder_sparql(supsected_ids, br=br_ent, ra=ra_ent, vvi=vvi_ent, publ=publ_entity)
                     if sparql_match:
                         if "wannabe" not in metaval or len(sparql_match) > 1:
-                            return self.conflict(idslist, entity_dict, name, id_dict)
+                            return self.conflict(idslist, name, id_dict, col_name)
                         else:
                             existing_ids = sparql_match[0][2]
                             new_idslist = [x[1] for x in existing_ids]
                             new_sparql_match = self.finder_sparql(new_idslist, br=br_ent, ra=ra_ent, vvi=vvi_ent, publ=publ_entity)
                             if len(new_sparql_match) > 1:
-                                return self.conflict(idslist, entity_dict, name, id_dict)
+                                return self.conflict(idslist, name, id_dict, col_name)
                             else:
                                 old_metaval = metaval
                                 metaval = sparql_match[0][0]
@@ -843,7 +952,6 @@ class Converter:
                                 entity_dict[metaval]["ids"] = list()
                                 entity_dict[metaval]["others"] = list()
                                 entity_dict[metaval]["title"] = ""
-
                                 for x in entity_dict[old_metaval]["ids"]:
                                     if x not in entity_dict[metaval]["ids"]:
                                         entity_dict[metaval]["ids"].append(x)
@@ -870,19 +978,23 @@ class Converter:
             else:
                 sparql_match = self.finder_sparql(idslist, br=br_ent, ra=ra_ent, vvi=vvi_ent, publ=publ_entity)
                 if len(sparql_match) > 1:
-                    return self.conflict(idslist, entity_dict, name, id_dict)
+                    return self.conflict(idslist, name, id_dict, col_name)
                 elif len(sparql_match) == 1:
                     existing_ids = sparql_match[0][2]
                     new_idslist = [x[1] for x in existing_ids]
                     new_sparql_match = self.finder_sparql(new_idslist, br=br_ent, ra=ra_ent, vvi=vvi_ent, publ=publ_entity)
                     if len(new_sparql_match) > 1:
-                        return self.conflict(idslist, entity_dict, name, id_dict)
+                        return self.conflict(idslist, name, id_dict, col_name)
                     elif len(new_sparql_match) == 1:
                         metaval = sparql_match[0][0]
                         entity_dict[metaval] = dict()
                         entity_dict[metaval]["ids"] = list()
                         entity_dict[metaval]["others"] = list()
-                        entity_dict[metaval]["title"] = sparql_match[0][1]
+                        if col_name == "author" or col_name == "editor":
+                            entity_dict[metaval]["title"] = self.name_check(sparql_match[0][1], name)
+                        else:
+                            entity_dict[metaval]["title"] = sparql_match[0][1]
+
                         if not entity_dict[metaval]["title"] and name:
                             entity_dict[metaval]["title"] = name
 
@@ -931,13 +1043,8 @@ class Converter:
                     self.update(self.brdict, meta, old_meta, row["title"])
                     path[value]["id"] = meta
                 else:
-                    # todo conflict
-                    # non posso accettare di inserire un volume doppione nel dizionario:
-                    # EX
-                    # "venue: X"; "vol 4 [meta:br/1]"
-                    # "venue: X"; "vol 4 [meta:br/2]"(in conflitto ne creo uno nuovo)
-                    # nuovo: "venue: X"; "vol 4" A chi lo associo? Se ne creo un'altro rischiamo un effetto a catena
-                    # Idea, la venue diventa un nuovo br (potrebbe essere confusionario)
+                    if meta == path[value]["id"]:
+                        raise ValueError('A very specific bad thing happened! A Volume or Issue in conflict at row ' + str(self.rowcnt))
                     pass
             else:
                 path[value] = dict()
@@ -970,3 +1077,94 @@ class Converter:
                 path[value]["id"] = meta
                 if "issue" not in path: #it's a Volume
                     path[value]["issue"] = dict()
+
+    def log_update(self):
+        new_log = dict()
+        for x in self.log:
+            if any(self.log[x][y].values() for y in self.log[x]):
+                for y in self.log[x]:
+                    if "Conflict Entity" in self.log[x][y]:
+                        v = self.log[x][y]["Conflict Entity"]
+                        if "wannabe" in v:
+                            if y == "id" or y == "venue":
+                                for brm in self.brmeta:
+                                    if v in self.brmeta[brm]["others"]:
+                                        m = "br/" + str(brm)
+                            elif y == "author" or y == "editor" or y == "publisher":
+                                for ram in self.rameta:
+                                    if v in self.rameta[ram]["others"]:
+                                        m = "ra/" + str(ram)
+                        else:
+                            m = v
+                        self.log[x][y]["Conflict Entity"] = m
+                new_log[x] = self.log[x]
+
+                if "wannabe" in self.data[x]["id"]:
+                    for brm in self.brmeta:
+                        if self.data[x]["id"] in self.brmeta[brm]["others"]:
+                            met = "br/" + str(brm)
+                else:
+                    met = "br/" + str(self.data[x]["id"])
+                new_log[x]["id"]["meta"] = met
+        return new_log
+
+
+    @staticmethod
+    def string_fix(st):
+        dash_list = ["‐", "–", "—", "−", "‑", "⁃", "­"]     #Hyphen, En-Dash, Em-Dash, Minus Sign, Non-breaking Hyphen, Hyphen Bullet, Soft Hyphen
+        for d in dash_list:
+            if d in st:
+                    st.replace(d, "-")
+        if "isbn:" in st:
+            st.replace("-", "")
+        return st
+
+
+    @staticmethod
+    #hack dateutil automatic-today-date
+    def parse_hack(date):
+        dt = parse(date, default=datetime(2001, 1, 1))
+        dt2 = parse(date, default=datetime(2002, 2, 2))
+
+        if dt.year == dt2.year and dt.month == dt2.month and dt.day == dt2.day:
+            clean_date = parse(date).strftime("%Y-%m-%d")
+        elif dt.year == dt2.year and dt.month == dt2.month:
+            clean_date = parse(date).strftime("%Y-%m")
+        elif dt.year == dt2.year:
+            clean_date = parse(date).strftime("%Y")
+        else:
+            clean_date = ""
+
+        return clean_date
+
+
+    def check_equality(self):
+        for row in self.data:
+            if "wannabe" in row["id"]:
+                for i in self.brdict:
+                    if row["id"] in self.brdict[i]["others"] and "wannabe" not in i:
+                        row["id"] = i
+                        self.equalizer(row, i)
+
+
+
+
+    def equalizer(self, row, metaval):
+        self.log[self.rowcnt]["id"]["status"] = "ENTITY ALREADY EXISTS"
+        known_data = self.finder.retrieve_br_info_from_meta(metaval)
+        row["venue"] = known_data["venue"]
+        row["volume"] = known_data["volume"]
+        row["issue"] = known_data["issue"]
+        if known_data["pub_date"]:
+            row["pub_date"] = known_data["pub_date"]
+        elif row["pub_date"]:
+            self.log[self.rowcnt]["pub_date"]["status"] = "NEW VALUE PROPOSED"
+        if known_data["page"]:
+            row["page"] = known_data["page"][1]
+            self.remeta[metaval] = known_data["page"]
+        elif row["page"]:
+            self.log[self.rowcnt]["page"]["status"] = "NEW VALUE PROPOSED"
+        if known_data["type"]:
+            row["type"] = known_data["type"]
+        elif row["type"]:
+            self.log[self.rowcnt]["type"]["status"] = "NEW VALUE PROPOSED"

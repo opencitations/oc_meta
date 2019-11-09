@@ -1,9 +1,9 @@
-@prefix ns1: <http://purl.org/spar/datacite/> .
-@prefix ns2: <http://purl.org/dc/terms/> .
-@prefix ns3: <http://purl.org/spar/pro/> .
-@prefix ns4: <http://xmlns.com/foaf/0.1/> .
-@prefix ns5: <http://www.essepuntato.it/2010/06/literalreification/> .
-@prefix ns6: <http://prismstandard.org/namespaces/basic/2.0/> .
+@prefix ns1: <http://purl.org/dc/terms/> .
+@prefix ns2: <http://purl.org/spar/pro/> .
+@prefix ns3: <http://www.essepuntato.it/2010/06/literalreification/> .
+@prefix ns4: <http://prismstandard.org/namespaces/basic/2.0/> .
+@prefix ns5: <http://purl.org/spar/datacite/> .
+@prefix ns6: <http://xmlns.com/foaf/0.1/> .
 @prefix ns7: <http://purl.org/vocab/frbr/core#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
@@ -12,137 +12,137 @@
 
 <https://w3id.org/OC/meta/br/1> a <http://purl.org/spar/fabio/BookChapter>,
         <http://purl.org/spar/fabio/Expression> ;
-    ns6:publicationDate "1995"^^xsd:gYear ;
-    ns2:title "TITLE1" ;
-    ns1:hasIdentifier <https://w3id.org/OC/meta/id/1> ;
-    ns3:isDocumentContextFor <https://w3id.org/OC/meta/ar/1>,
+    ns4:publicationDate "1995"^^xsd:gYear ;
+    ns1:title "TITLE1" ;
+    ns5:hasIdentifier <https://w3id.org/OC/meta/id/1> ;
+    ns2:isDocumentContextFor <https://w3id.org/OC/meta/ar/1>,
         <https://w3id.org/OC/meta/ar/2> ;
     ns7:embodiment <https://w3id.org/OC/meta/re/1> ;
-    ns7:partOf <https://w3id.org/OC/meta/br/2> .
-
-<https://w3id.org/OC/meta/br/3> a <http://purl.org/spar/doco/Part>,
-        <http://purl.org/spar/fabio/Expression> ;
-    ns6:publicationDate "1995"^^xsd:gYear ;
-    ns2:title "TITLE2" ;
-    ns1:hasIdentifier <https://w3id.org/OC/meta/id/3> ;
-    ns3:isDocumentContextFor <https://w3id.org/OC/meta/ar/4>,
-        <https://w3id.org/OC/meta/ar/5> ;
-    ns7:embodiment <https://w3id.org/OC/meta/re/2> ;
     ns7:partOf <https://w3id.org/OC/meta/br/4> .
 
-<https://w3id.org/OC/meta/br/5> a <http://purl.org/spar/fabio/Book>,
+<https://w3id.org/OC/meta/br/2> a <http://purl.org/spar/doco/Part>,
         <http://purl.org/spar/fabio/Expression> ;
-    ns6:publicationDate "1995"^^xsd:gYear ;
-    ns2:title "TITLE2" ;
-    ns1:hasIdentifier <https://w3id.org/OC/meta/id/5> ;
-    ns3:isDocumentContextFor <https://w3id.org/OC/meta/ar/7>,
+    ns4:publicationDate "1995"^^xsd:gYear ;
+    ns1:title "TITLE2" ;
+    ns5:hasIdentifier <https://w3id.org/OC/meta/id/2> ;
+    ns2:isDocumentContextFor <https://w3id.org/OC/meta/ar/4>,
+        <https://w3id.org/OC/meta/ar/5> ;
+    ns7:embodiment <https://w3id.org/OC/meta/re/2> ;
+    ns7:partOf <https://w3id.org/OC/meta/br/5> .
+
+<https://w3id.org/OC/meta/br/3> a <http://purl.org/spar/fabio/Book>,
+        <http://purl.org/spar/fabio/Expression> ;
+    ns4:publicationDate "1995"^^xsd:gYear ;
+    ns1:title "TITLE2" ;
+    ns5:hasIdentifier <https://w3id.org/OC/meta/id/3> ;
+    ns2:isDocumentContextFor <https://w3id.org/OC/meta/ar/7>,
         <https://w3id.org/OC/meta/ar/8>,
         <https://w3id.org/OC/meta/ar/9> ;
     ns7:embodiment <https://w3id.org/OC/meta/re/3> .
 
-<https://w3id.org/OC/meta/ar/1> a ns3:RoleInTime ;
-    ns3:isHeldBy <https://w3id.org/OC/meta/ra/1> ;
-    ns3:withRole ns3:author .
+<https://w3id.org/OC/meta/ar/1> a ns2:RoleInTime ;
+    ns2:isHeldBy <https://w3id.org/OC/meta/ra/1> ;
+    ns2:withRole ns2:author .
 
-<https://w3id.org/OC/meta/ar/2> a ns3:RoleInTime ;
-    ns3:isHeldBy <https://w3id.org/OC/meta/ra/2> ;
-    ns3:withRole ns3:publisher .
+<https://w3id.org/OC/meta/ar/2> a ns2:RoleInTime ;
+    ns2:isHeldBy <https://w3id.org/OC/meta/ra/2> ;
+    ns2:withRole ns2:publisher .
 
-<https://w3id.org/OC/meta/ar/3> a ns3:RoleInTime ;
-    ns3:isHeldBy <https://w3id.org/OC/meta/ra/3> ;
-    ns3:withRole ns3:editor .
+<https://w3id.org/OC/meta/ar/3> a ns2:RoleInTime ;
+    ns2:isHeldBy <https://w3id.org/OC/meta/ra/3> ;
+    ns2:withRole ns2:editor .
 
-<https://w3id.org/OC/meta/ar/4> a ns3:RoleInTime ;
-    ns3:isHeldBy <https://w3id.org/OC/meta/ra/1> ;
-    ns3:withRole ns3:author .
+<https://w3id.org/OC/meta/ar/4> a ns2:RoleInTime ;
+    ns2:isHeldBy <https://w3id.org/OC/meta/ra/1> ;
+    ns2:withRole ns2:author .
 
-<https://w3id.org/OC/meta/ar/5> a ns3:RoleInTime ;
-    ns3:isHeldBy <https://w3id.org/OC/meta/ra/2> ;
-    ns3:withRole ns3:publisher .
+<https://w3id.org/OC/meta/ar/5> a ns2:RoleInTime ;
+    ns2:isHeldBy <https://w3id.org/OC/meta/ra/2> ;
+    ns2:withRole ns2:publisher .
 
-<https://w3id.org/OC/meta/ar/6> a ns3:RoleInTime ;
-    ns3:isHeldBy <https://w3id.org/OC/meta/ra/3> ;
-    ns3:withRole ns3:editor .
+<https://w3id.org/OC/meta/ar/6> a ns2:RoleInTime ;
+    ns2:isHeldBy <https://w3id.org/OC/meta/ra/3> ;
+    ns2:withRole ns2:editor .
 
-<https://w3id.org/OC/meta/ar/7> a ns3:RoleInTime ;
-    ns3:isHeldBy <https://w3id.org/OC/meta/ra/1> ;
-    ns3:withRole ns3:author .
+<https://w3id.org/OC/meta/ar/7> a ns2:RoleInTime ;
+    ns2:isHeldBy <https://w3id.org/OC/meta/ra/1> ;
+    ns2:withRole ns2:author .
 
-<https://w3id.org/OC/meta/ar/8> a ns3:RoleInTime ;
-    ns3:isHeldBy <https://w3id.org/OC/meta/ra/2> ;
-    ns3:withRole ns3:publisher .
+<https://w3id.org/OC/meta/ar/8> a ns2:RoleInTime ;
+    ns2:isHeldBy <https://w3id.org/OC/meta/ra/2> ;
+    ns2:withRole ns2:publisher .
 
-<https://w3id.org/OC/meta/ar/9> a ns3:RoleInTime ;
-    ns3:isHeldBy <https://w3id.org/OC/meta/ra/3> ;
-    ns3:withRole ns3:editor .
-
-<https://w3id.org/OC/meta/br/2> a <http://purl.org/spar/fabio/Book>,
-        <http://purl.org/spar/fabio/Expression> ;
-    ns2:title "Venue1" ;
-    ns1:hasIdentifier <https://w3id.org/OC/meta/id/2> ;
-    ns3:isDocumentContextFor <https://w3id.org/OC/meta/ar/3> .
+<https://w3id.org/OC/meta/ar/9> a ns2:RoleInTime ;
+    ns2:isHeldBy <https://w3id.org/OC/meta/ra/3> ;
+    ns2:withRole ns2:editor .
 
 <https://w3id.org/OC/meta/br/4> a <http://purl.org/spar/fabio/Book>,
         <http://purl.org/spar/fabio/Expression> ;
-    ns2:title "Venue2" ;
-    ns1:hasIdentifier <https://w3id.org/OC/meta/id/4> ;
-    ns3:isDocumentContextFor <https://w3id.org/OC/meta/ar/6> .
+    ns1:title "Venue1" ;
+    ns5:hasIdentifier <https://w3id.org/OC/meta/id/4> ;
+    ns2:isDocumentContextFor <https://w3id.org/OC/meta/ar/3> .
 
-<https://w3id.org/OC/meta/id/1> a ns1:Identifier ;
-    ns1:usesIdentifierScheme ns1:isbn ;
-    ns5:hasLiteralValue "1111" .
+<https://w3id.org/OC/meta/br/5> a <http://purl.org/spar/fabio/Book>,
+        <http://purl.org/spar/fabio/Expression> ;
+    ns1:title "Venue2" ;
+    ns5:hasIdentifier <https://w3id.org/OC/meta/id/5> ;
+    ns2:isDocumentContextFor <https://w3id.org/OC/meta/ar/6> .
 
-<https://w3id.org/OC/meta/id/2> a ns1:Identifier ;
-    ns1:usesIdentifierScheme ns1:isbn ;
-    ns5:hasLiteralValue "2222" .
+<https://w3id.org/OC/meta/id/1> a ns5:Identifier ;
+    ns5:usesIdentifierScheme ns5:isbn ;
+    ns3:hasLiteralValue "1111" .
 
-<https://w3id.org/OC/meta/id/3> a ns1:Identifier ;
-    ns1:usesIdentifierScheme ns1:isbn ;
-    ns5:hasLiteralValue "3333" .
+<https://w3id.org/OC/meta/id/2> a ns5:Identifier ;
+    ns5:usesIdentifierScheme ns5:isbn ;
+    ns3:hasLiteralValue "3333" .
 
-<https://w3id.org/OC/meta/id/4> a ns1:Identifier ;
-    ns1:usesIdentifierScheme ns1:isbn ;
-    ns5:hasLiteralValue "4444" .
+<https://w3id.org/OC/meta/id/3> a ns5:Identifier ;
+    ns5:usesIdentifierScheme ns5:isbn ;
+    ns3:hasLiteralValue "5555" .
 
-<https://w3id.org/OC/meta/id/5> a ns1:Identifier ;
-    ns1:usesIdentifierScheme ns1:isbn ;
-    ns5:hasLiteralValue "5555" .
+<https://w3id.org/OC/meta/id/4> a ns5:Identifier ;
+    ns5:usesIdentifierScheme ns5:isbn ;
+    ns3:hasLiteralValue "2222" .
 
-<https://w3id.org/OC/meta/id/6> a ns1:Identifier ;
-    ns1:usesIdentifierScheme ns1:orcid ;
-    ns5:hasLiteralValue "0000-0001" .
+<https://w3id.org/OC/meta/id/5> a ns5:Identifier ;
+    ns5:usesIdentifierScheme ns5:isbn ;
+    ns3:hasLiteralValue "4444" .
 
-<https://w3id.org/OC/meta/id/7> a ns1:Identifier ;
-    ns1:usesIdentifierScheme ns1:crossref ;
-    ns5:hasLiteralValue "1111" .
+<https://w3id.org/OC/meta/id/6> a ns5:Identifier ;
+    ns5:usesIdentifierScheme ns5:orcid ;
+    ns3:hasLiteralValue "0000-0001" .
 
-<https://w3id.org/OC/meta/id/8> a ns1:Identifier ;
-    ns1:usesIdentifierScheme ns1:viaf ;
-    ns5:hasLiteralValue "11111111" .
+<https://w3id.org/OC/meta/id/7> a ns5:Identifier ;
+    ns5:usesIdentifierScheme ns5:crossref ;
+    ns3:hasLiteralValue "1111" .
+
+<https://w3id.org/OC/meta/id/8> a ns5:Identifier ;
+    ns5:usesIdentifierScheme ns5:viaf ;
+    ns3:hasLiteralValue "11111111" .
 
 <https://w3id.org/OC/meta/re/1> a <http://purl.org/spar/fabio/Manifestation> ;
-    ns6:endingPage "278" ;
-    ns6:startingPage "266" .
+    ns4:endingPage "278" ;
+    ns4:startingPage "266" .
 
 <https://w3id.org/OC/meta/re/2> a <http://purl.org/spar/fabio/Manifestation> ;
-    ns6:endingPage "278" ;
-    ns6:startingPage "266" .
+    ns4:endingPage "278" ;
+    ns4:startingPage "266" .
 
 <https://w3id.org/OC/meta/re/3> a <http://purl.org/spar/fabio/Manifestation> ;
-    ns6:endingPage "278" ;
-    ns6:startingPage "266" .
+    ns4:endingPage "278" ;
+    ns4:startingPage "266" .
 
-<https://w3id.org/OC/meta/ra/1> a ns4:Agent ;
-    ns1:hasIdentifier <https://w3id.org/OC/meta/id/6> ;
-    ns4:familyName "Surname1" ;
-    ns4:givenName "Name1" .
+<https://w3id.org/OC/meta/ra/1> a ns6:Agent ;
+    ns5:hasIdentifier <https://w3id.org/OC/meta/id/6> ;
+    ns6:familyName "Surname1" ;
+    ns6:givenName "Name1" .
 
-<https://w3id.org/OC/meta/ra/2> a ns4:Agent ;
-    ns1:hasIdentifier <https://w3id.org/OC/meta/id/7> ;
-    ns4:name "Pub1" .
+<https://w3id.org/OC/meta/ra/2> a ns6:Agent ;
+    ns5:hasIdentifier <https://w3id.org/OC/meta/id/7> ;
+    ns6:name "Pub1" .
 
-<https://w3id.org/OC/meta/ra/3> a ns4:Agent ;
-    ns1:hasIdentifier <https://w3id.org/OC/meta/id/8> ;
-    ns4:familyName "Editsurname1" ;
-    ns4:givenName "Editname1" .
+<https://w3id.org/OC/meta/ra/3> a ns6:Agent ;
+    ns5:hasIdentifier <https://w3id.org/OC/meta/id/8> ;
+    ns6:familyName "Editsurname1" ;
+    ns6:givenName "Editname1" .
 

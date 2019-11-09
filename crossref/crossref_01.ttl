@@ -1,0 +1,392 @@
+@prefix ns1: <http://purl.org/spar/datacite/> .
+@prefix ns2: <http://purl.org/spar/pro/> .
+@prefix ns3: <http://prismstandard.org/namespaces/basic/2.0/> .
+@prefix ns4: <http://purl.org/dc/terms/> .
+@prefix ns5: <http://purl.org/vocab/frbr/core#> .
+@prefix ns6: <http://xmlns.com/foaf/0.1/> .
+@prefix ns7: <http://www.essepuntato.it/2010/06/literalreification/> .
+@prefix ns8: <http://purl.org/spar/fabio/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<https://w3id.org/OC/meta/br/1> a ns8:Expression,
+        ns8:JournalArticle ;
+    ns3:publicationDate "1997-09-01"^^xsd:date ;
+    ns4:title "Epidermolysis Bullosa Acquisita In Childhood" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/1>,
+        <https://w3id.org/OC/meta/id/2> ;
+    ns2:isDocumentContextFor <https://w3id.org/OC/meta/ar/1>,
+        <https://w3id.org/OC/meta/ar/2> ;
+    ns5:embodiment <https://w3id.org/OC/meta/re/1> ;
+    ns5:partOf <https://w3id.org/OC/meta/br/13> .
+
+<https://w3id.org/OC/meta/br/10> a ns8:Expression,
+        ns8:JournalArticle ;
+    ns3:publicationDate "1997-09-01"^^xsd:date ;
+    ns4:title "Recurrent Scarring Ulcers Of The Oral Mucosa. Sutton Disease (Periadenitis Mucosa Necrotica Recurrens" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/19>,
+        <https://w3id.org/OC/meta/id/20> ;
+    ns2:isDocumentContextFor <https://w3id.org/OC/meta/ar/17>,
+        <https://w3id.org/OC/meta/ar/18> ;
+    ns5:embodiment <https://w3id.org/OC/meta/re/10> ;
+    ns5:partOf <https://w3id.org/OC/meta/br/13> .
+
+<https://w3id.org/OC/meta/br/2> a ns8:Expression,
+        ns8:JournalArticle ;
+    ns3:publicationDate "1997-09-01"^^xsd:date ;
+    ns4:title "Increased Scalp Skin And Serum 5 Alpha-Reductase Reduced Androgens In A Man Relevant To The Acquired Progressive Kinky Hair Disorder And Developing Androgenetic Alopecia" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/3>,
+        <https://w3id.org/OC/meta/id/4> ;
+    ns2:isDocumentContextFor <https://w3id.org/OC/meta/ar/3>,
+        <https://w3id.org/OC/meta/ar/4> ;
+    ns5:embodiment <https://w3id.org/OC/meta/re/2> ;
+    ns5:partOf <https://w3id.org/OC/meta/br/13> .
+
+<https://w3id.org/OC/meta/br/3> a ns8:Expression,
+        ns8:JournalArticle ;
+    ns3:publicationDate "1997-09-01"^^xsd:date ;
+    ns4:title "Localized Darier Disease. Implications For Genetic Studies" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/5>,
+        <https://w3id.org/OC/meta/id/6> ;
+    ns2:isDocumentContextFor <https://w3id.org/OC/meta/ar/5>,
+        <https://w3id.org/OC/meta/ar/6> ;
+    ns5:embodiment <https://w3id.org/OC/meta/re/3> ;
+    ns5:partOf <https://w3id.org/OC/meta/br/13> .
+
+<https://w3id.org/OC/meta/br/4> a ns8:Expression,
+        ns8:JournalArticle ;
+    ns3:publicationDate "1997-09-01"^^xsd:date ;
+    ns4:title "Localized Facial Flushing In Infancy. Auriculotemporal Nerve (Frey) Syndrome" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/7>,
+        <https://w3id.org/OC/meta/id/8> ;
+    ns2:isDocumentContextFor <https://w3id.org/OC/meta/ar/7>,
+        <https://w3id.org/OC/meta/ar/8> ;
+    ns5:embodiment <https://w3id.org/OC/meta/re/4> ;
+    ns5:partOf <https://w3id.org/OC/meta/br/13> .
+
+<https://w3id.org/OC/meta/br/5> a ns8:Expression,
+        ns8:JournalArticle ;
+    ns3:publicationDate "1997-09-01"^^xsd:date ;
+    ns4:title "The Case For Sunscreens. A Review Of Their Use In Preventing Actinic Damage And Neoplasia" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/10>,
+        <https://w3id.org/OC/meta/id/9> ;
+    ns2:isDocumentContextFor <https://w3id.org/OC/meta/ar/10>,
+        <https://w3id.org/OC/meta/ar/9> ;
+    ns5:embodiment <https://w3id.org/OC/meta/re/5> ;
+    ns5:partOf <https://w3id.org/OC/meta/br/13> .
+
+<https://w3id.org/OC/meta/br/6> a ns8:Expression,
+        ns8:JournalArticle ;
+    ns3:publicationDate "1997-09-01"^^xsd:date ;
+    ns4:title "Epstein-Barr Virus. A Serial Killer Or An Innocent Bystander?" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/11>,
+        <https://w3id.org/OC/meta/id/12> ;
+    ns2:isDocumentContextFor <https://w3id.org/OC/meta/ar/11>,
+        <https://w3id.org/OC/meta/ar/12> ;
+    ns5:embodiment <https://w3id.org/OC/meta/re/6> ;
+    ns5:partOf <https://w3id.org/OC/meta/br/13> .
+
+<https://w3id.org/OC/meta/br/7> a ns8:Expression,
+        ns8:JournalArticle ;
+    ns3:publicationDate "1997-09-01"^^xsd:date ;
+    ns4:title "The Accuracy Of Indirect Immunofluorescence On Sodium Chloride-Split Skin In Differentiating Subepidermal Bullous Diseases" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/13>,
+        <https://w3id.org/OC/meta/id/14> ;
+    ns2:isDocumentContextFor <https://w3id.org/OC/meta/ar/13>,
+        <https://w3id.org/OC/meta/ar/14> ;
+    ns5:embodiment <https://w3id.org/OC/meta/re/7> ;
+    ns5:partOf <https://w3id.org/OC/meta/br/13> .
+
+<https://w3id.org/OC/meta/br/8> a ns8:Expression,
+        ns8:JournalArticle ;
+    ns3:publicationDate "1997-09-01"^^xsd:date ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/15>,
+        <https://w3id.org/OC/meta/id/16> ;
+    ns2:isDocumentContextFor <https://w3id.org/OC/meta/ar/15> ;
+    ns5:embodiment <https://w3id.org/OC/meta/re/8> ;
+    ns5:partOf <https://w3id.org/OC/meta/br/13> .
+
+<https://w3id.org/OC/meta/br/9> a ns8:Expression,
+        ns8:JournalArticle ;
+    ns3:publicationDate "1997-09-01"^^xsd:date ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/17>,
+        <https://w3id.org/OC/meta/id/18> ;
+    ns2:isDocumentContextFor <https://w3id.org/OC/meta/ar/16> ;
+    ns5:embodiment <https://w3id.org/OC/meta/re/9> ;
+    ns5:partOf <https://w3id.org/OC/meta/br/13> .
+
+<https://w3id.org/OC/meta/ar/1> a ns2:RoleInTime ;
+    ns2:isHeldBy <https://w3id.org/OC/meta/ra/1> ;
+    ns2:withRole ns2:author .
+
+<https://w3id.org/OC/meta/ar/10> a ns2:RoleInTime ;
+    ns2:isHeldBy <https://w3id.org/OC/meta/ra/10> ;
+    ns2:withRole ns2:publisher .
+
+<https://w3id.org/OC/meta/ar/11> a ns2:RoleInTime ;
+    ns2:isHeldBy <https://w3id.org/OC/meta/ra/11> ;
+    ns2:withRole ns2:author .
+
+<https://w3id.org/OC/meta/ar/12> a ns2:RoleInTime ;
+    ns2:isHeldBy <https://w3id.org/OC/meta/ra/12> ;
+    ns2:withRole ns2:publisher .
+
+<https://w3id.org/OC/meta/ar/13> a ns2:RoleInTime ;
+    ns2:isHeldBy <https://w3id.org/OC/meta/ra/13> ;
+    ns2:withRole ns2:author .
+
+<https://w3id.org/OC/meta/ar/14> a ns2:RoleInTime ;
+    ns2:isHeldBy <https://w3id.org/OC/meta/ra/14> ;
+    ns2:withRole ns2:publisher .
+
+<https://w3id.org/OC/meta/ar/15> a ns2:RoleInTime ;
+    ns2:isHeldBy <https://w3id.org/OC/meta/ra/15> ;
+    ns2:withRole ns2:publisher .
+
+<https://w3id.org/OC/meta/ar/16> a ns2:RoleInTime ;
+    ns2:isHeldBy <https://w3id.org/OC/meta/ra/16> ;
+    ns2:withRole ns2:publisher .
+
+<https://w3id.org/OC/meta/ar/17> a ns2:RoleInTime ;
+    ns2:isHeldBy <https://w3id.org/OC/meta/ra/17> ;
+    ns2:withRole ns2:author .
+
+<https://w3id.org/OC/meta/ar/18> a ns2:RoleInTime ;
+    ns2:isHeldBy <https://w3id.org/OC/meta/ra/18> ;
+    ns2:withRole ns2:publisher .
+
+<https://w3id.org/OC/meta/ar/2> a ns2:RoleInTime ;
+    ns2:isHeldBy <https://w3id.org/OC/meta/ra/2> ;
+    ns2:withRole ns2:publisher .
+
+<https://w3id.org/OC/meta/ar/3> a ns2:RoleInTime ;
+    ns2:isHeldBy <https://w3id.org/OC/meta/ra/3> ;
+    ns2:withRole ns2:author .
+
+<https://w3id.org/OC/meta/ar/4> a ns2:RoleInTime ;
+    ns2:isHeldBy <https://w3id.org/OC/meta/ra/4> ;
+    ns2:withRole ns2:publisher .
+
+<https://w3id.org/OC/meta/ar/5> a ns2:RoleInTime ;
+    ns2:isHeldBy <https://w3id.org/OC/meta/ra/5> ;
+    ns2:withRole ns2:author .
+
+<https://w3id.org/OC/meta/ar/6> a ns2:RoleInTime ;
+    ns2:isHeldBy <https://w3id.org/OC/meta/ra/6> ;
+    ns2:withRole ns2:publisher .
+
+<https://w3id.org/OC/meta/ar/7> a ns2:RoleInTime ;
+    ns2:isHeldBy <https://w3id.org/OC/meta/ra/7> ;
+    ns2:withRole ns2:author .
+
+<https://w3id.org/OC/meta/ar/8> a ns2:RoleInTime ;
+    ns2:isHeldBy <https://w3id.org/OC/meta/ra/8> ;
+    ns2:withRole ns2:publisher .
+
+<https://w3id.org/OC/meta/ar/9> a ns2:RoleInTime ;
+    ns2:isHeldBy <https://w3id.org/OC/meta/ra/9> ;
+    ns2:withRole ns2:author .
+
+<https://w3id.org/OC/meta/br/11> a ns8:Expression,
+        ns8:Journal ;
+    ns4:title "Archives Of Dermatology" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/21> .
+
+<https://w3id.org/OC/meta/br/12> a ns8:Expression,
+        ns8:JournalVolume ;
+    ns8:hasSequenceIdentifier "133" ;
+    ns5:partOf <https://w3id.org/OC/meta/br/11> .
+
+<https://w3id.org/OC/meta/id/1> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:doi ;
+    ns7:hasLiteralValue "10.1001/archderm.133.9.1122" .
+
+<https://w3id.org/OC/meta/id/10> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:url ;
+    ns7:hasLiteralValue "http://dx.doi.org/10.1001/archderm.133.9.1146" .
+
+<https://w3id.org/OC/meta/id/11> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:doi ;
+    ns7:hasLiteralValue "10.1001/archderm.133.9.1156" .
+
+<https://w3id.org/OC/meta/id/12> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:url ;
+    ns7:hasLiteralValue "http://dx.doi.org/10.1001/archderm.133.9.1156" .
+
+<https://w3id.org/OC/meta/id/13> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:doi ;
+    ns7:hasLiteralValue "10.1001/archderm.133.9.1158" .
+
+<https://w3id.org/OC/meta/id/14> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:url ;
+    ns7:hasLiteralValue "http://dx.doi.org/10.1001/archderm.133.9.1158" .
+
+<https://w3id.org/OC/meta/id/15> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:doi ;
+    ns7:hasLiteralValue "10.1001/archderm.133.9.1161" .
+
+<https://w3id.org/OC/meta/id/16> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:url ;
+    ns7:hasLiteralValue "http://dx.doi.org/10.1001/archderm.133.9.1161" .
+
+<https://w3id.org/OC/meta/id/17> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:doi ;
+    ns7:hasLiteralValue "10.1001/archderm.133.9.1161b" .
+
+<https://w3id.org/OC/meta/id/18> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:url ;
+    ns7:hasLiteralValue "http://dx.doi.org/10.1001/archderm.133.9.1161b" .
+
+<https://w3id.org/OC/meta/id/19> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:doi ;
+    ns7:hasLiteralValue "10.1001/archderm.133.9.1162" .
+
+<https://w3id.org/OC/meta/id/2> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:url ;
+    ns7:hasLiteralValue "http://dx.doi.org/10.1001/archderm.133.9.1122" .
+
+<https://w3id.org/OC/meta/id/20> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:url ;
+    ns7:hasLiteralValue "http://dx.doi.org/10.1001/archderm.133.9.1162" .
+
+<https://w3id.org/OC/meta/id/21> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:issn ;
+    ns7:hasLiteralValue "0003-987X" .
+
+<https://w3id.org/OC/meta/id/3> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:doi ;
+    ns7:hasLiteralValue "10.1001/archderm.133.9.1129" .
+
+<https://w3id.org/OC/meta/id/4> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:url ;
+    ns7:hasLiteralValue "http://dx.doi.org/10.1001/archderm.133.9.1129" .
+
+<https://w3id.org/OC/meta/id/5> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:doi ;
+    ns7:hasLiteralValue "10.1001/archderm.133.9.1134" .
+
+<https://w3id.org/OC/meta/id/6> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:url ;
+    ns7:hasLiteralValue "http://dx.doi.org/10.1001/archderm.133.9.1134" .
+
+<https://w3id.org/OC/meta/id/7> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:doi ;
+    ns7:hasLiteralValue "10.1001/archderm.133.9.1143" .
+
+<https://w3id.org/OC/meta/id/8> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:url ;
+    ns7:hasLiteralValue "http://dx.doi.org/10.1001/archderm.133.9.1143" .
+
+<https://w3id.org/OC/meta/id/9> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:doi ;
+    ns7:hasLiteralValue "10.1001/archderm.133.9.1146" .
+
+<https://w3id.org/OC/meta/ra/1> a ns6:Agent ;
+    ns6:familyName "Callot-Mellot" ;
+    ns6:givenName "C." .
+
+<https://w3id.org/OC/meta/ra/10> a ns6:Agent ;
+    ns6:name "American Medical Association (ama)" .
+
+<https://w3id.org/OC/meta/ra/11> a ns6:Agent ;
+    ns6:familyName "Sangueza" ;
+    ns6:givenName "O. P." .
+
+<https://w3id.org/OC/meta/ra/12> a ns6:Agent ;
+    ns6:name "American Medical Association (ama)" .
+
+<https://w3id.org/OC/meta/ra/13> a ns6:Agent ;
+    ns6:familyName "Mutasim" ;
+    ns6:givenName "D. F." .
+
+<https://w3id.org/OC/meta/ra/14> a ns6:Agent ;
+    ns6:name "American Medical Association (ama)" .
+
+<https://w3id.org/OC/meta/ra/15> a ns6:Agent ;
+    ns6:name "American Medical Association (ama)" .
+
+<https://w3id.org/OC/meta/ra/16> a ns6:Agent ;
+    ns6:name "American Medical Association (ama)" .
+
+<https://w3id.org/OC/meta/ra/17> a ns6:Agent ;
+    ns6:familyName "Chung" ;
+    ns6:givenName "J. Y." .
+
+<https://w3id.org/OC/meta/ra/18> a ns6:Agent ;
+    ns6:name "American Medical Association (ama)" .
+
+<https://w3id.org/OC/meta/ra/2> a ns6:Agent ;
+    ns6:name "American Medical Association (ama)" .
+
+<https://w3id.org/OC/meta/ra/3> a ns6:Agent ;
+    ns6:familyName "Boudou" ;
+    ns6:givenName "P." .
+
+<https://w3id.org/OC/meta/ra/4> a ns6:Agent ;
+    ns6:name "American Medical Association (ama)" .
+
+<https://w3id.org/OC/meta/ra/5> a ns6:Agent ;
+    ns6:familyName "O'Malley" ;
+    ns6:givenName "M. P." .
+
+<https://w3id.org/OC/meta/ra/6> a ns6:Agent ;
+    ns6:name "American Medical Association (ama)" .
+
+<https://w3id.org/OC/meta/ra/7> a ns6:Agent ;
+    ns6:familyName "Dizon" ;
+    ns6:givenName "M. V." .
+
+<https://w3id.org/OC/meta/ra/8> a ns6:Agent ;
+    ns6:name "American Medical Association (ama)" .
+
+<https://w3id.org/OC/meta/ra/9> a ns6:Agent ;
+    ns6:familyName "Naylor" ;
+    ns6:givenName "M. F." .
+
+<https://w3id.org/OC/meta/re/1> a ns8:Manifestation ;
+    ns3:endingPage "1126" ;
+    ns3:startingPage "1122" .
+
+<https://w3id.org/OC/meta/re/10> a ns8:Manifestation ;
+    ns3:endingPage "1163" ;
+    ns3:startingPage "1162" .
+
+<https://w3id.org/OC/meta/re/2> a ns8:Manifestation ;
+    ns3:endingPage "1133" ;
+    ns3:startingPage "1129" .
+
+<https://w3id.org/OC/meta/re/3> a ns8:Manifestation ;
+    ns3:endingPage "1138" ;
+    ns3:startingPage "1134" .
+
+<https://w3id.org/OC/meta/re/4> a ns8:Manifestation ;
+    ns3:endingPage "1145" ;
+    ns3:startingPage "1143" .
+
+<https://w3id.org/OC/meta/re/5> a ns8:Manifestation ;
+    ns3:endingPage "1154" ;
+    ns3:startingPage "1146" .
+
+<https://w3id.org/OC/meta/re/6> a ns8:Manifestation ;
+    ns3:endingPage "1157" ;
+    ns3:startingPage "1156" .
+
+<https://w3id.org/OC/meta/re/7> a ns8:Manifestation ;
+    ns3:endingPage "1160" ;
+    ns3:startingPage "1158" .
+
+<https://w3id.org/OC/meta/re/8> a ns8:Manifestation ;
+    ns3:endingPage "1162" ;
+    ns3:startingPage "1161" .
+
+<https://w3id.org/OC/meta/re/9> a ns8:Manifestation ;
+    ns3:endingPage "1161" ;
+    ns3:startingPage "1161B" .
+
+<https://w3id.org/OC/meta/br/13> a ns8:Expression,
+        ns8:JournalIssue ;
+    ns8:hasSequenceIdentifier "9" ;
+    ns5:partOf <https://w3id.org/OC/meta/br/12> .
+
