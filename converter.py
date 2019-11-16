@@ -130,6 +130,8 @@ class Converter:
                             date = self.parse_hack(newdate)
                         except:
                             date = ""
+                    else:
+                        date = ""
                 except:
                     date = ""
 
@@ -142,7 +144,10 @@ class Converter:
                 type = "book"
             elif type == "report series" or type == "standard series":
                 type = "series"
-            if type in {"archival document" ,"book" ,"book chapter" ,"book part" , "book section" ,"book series" ,"book set" ,"data file" ,"dissertation" ,"journal" ,"journal article" ,"journal issue" ,"journal volume" ,"proceedings article" ,"proceedings" ,"reference book" ,"reference entry" ,"series" ,"report" ,"standard"}:
+            if type in {"archival document", "book", "book chapter", "book part", "book section", "book series",
+                        "book set", "data file", "dissertation", "journal", "journal article", "journal issue",
+                        "journal volume", "proceedings article", "proceedings", "reference book", "reference entry",
+                        "series", "report", "standard"}:
                 row['type'] = type
             else:
                 row['type'] = ""
@@ -680,7 +685,7 @@ class Converter:
 
     @staticmethod
     def write_csv(path, list):
-        with open(path, 'w', newline='',encoding="utf-8") as output_file:
+        with open(path, 'w', newline='', encoding="utf-8") as output_file:
             dict_writer = csv.DictWriter(output_file, list[0].keys(), delimiter='\t')
             dict_writer.writeheader()
             dict_writer.writerows(list)
@@ -694,45 +699,36 @@ class Converter:
             path = self.path
         else:
             path = ""
+
         #ID
-        index_id_ra= list()
+        self.index_id_ra = list()
         if self.idra:
             for x in self.idra:
                 row= dict()
                 row["id"] = str(x)
                 row["meta"] = str(self.idra[x])
-                index_id_ra.append(row)
+                self.index_id_ra.append(row)
         else:
             row = dict()
             row["id"] = ""
             row["meta"] = ""
-            index_id_ra.append(row)
+            self.index_id_ra.append(row)
 
-        if self.filename:
-            ra_path = path + "index_id_ra_" + self.filename + ".csv"
-            self.write_csv(ra_path, index_id_ra)
-        self.index_id_ra = index_id_ra
-
-        index_id_br = list()
+        self.index_id_br = list()
         if self.idbr:
             for x in self.idbr:
                 row = dict()
                 row["id"] = str(x)
                 row["meta"] = str(self.idbr[x])
-                index_id_br.append(row)
+                self.index_id_br.append(row)
         else:
             row = dict()
             row["id"] = ""
             row["meta"] = ""
-            index_id_br.append(row)
-        if self.filename:
-            br_path = path + "index_id_br_" + self.filename + ".csv"
-            self.write_csv(br_path, index_id_br)
-        self.index_id_br = index_id_br
-
+            self.index_id_br.append(row)
 
         #AR
-        ar_index = list()
+        self.ar_index = list()
         if self.armeta:
             for x in self.armeta:
                 index = dict()
@@ -742,40 +738,29 @@ class Converter:
                     for ar, id in self.armeta[x][y]:
                         list_ar.append(str(ar) + ", " +  str(id))
                     index[y] = "; ".join(list_ar)
-                ar_index.append(index)
+                self.ar_index.append(index)
         else:
             row = dict()
             row["meta"] = ""
             row["author"] = ""
             row["editor"] = ""
             row["publisher"] = ""
-            ar_index.append(row)
-        if self.filename:
-            ar_path = path + "index_ar_" + self.filename + ".csv"
-            self.write_csv(ar_path, ar_index)
-        self.ar_index = ar_index
+            self.ar_index.append(row)
 
         #RE
-        re_index = list()
+        self.re_index = list()
         if self.remeta:
             for x in self.remeta:
                 r = dict()
                 r["br"] = x
                 r["re"] = str(self.remeta[x][0])
-                re_index.append(r)
+                self.re_index.append(r)
         else:
             row = dict()
             row["br"] = ""
             row["re"] = ""
-            re_index.append(row)
-        if self.filename:
-            re_path = path + "index_re_" + self.filename + ".csv"
-            self.write_csv(re_path, re_index)
-        self.re_index = re_index
-
-
+            self.re_index.append(row)
         #VI
-        vi_index = list()
         self.VolIss = dict()
         if self.vvi:
             for x in self.vvi:
@@ -803,19 +788,34 @@ class Converter:
                             self.VolIss[i] = self.vvi[x]
                 else:
                     self.VolIss[x] = self.vvi[x]
+
         if self.filename:
+            ra_path = path + "index_id_ra_" + self.filename + ".csv"
+            self.write_csv(ra_path, self.index_id_ra)
+
+            br_path = path + "index_id_br_" + self.filename + ".csv"
+            self.write_csv(br_path, self.index_id_br)
+
+            ar_path = path + "index_ar_" + self.filename + ".csv"
+            self.write_csv(ar_path, self.ar_index)
+
+            re_path = path + "index_re_" + self.filename + ".csv"
+            self.write_csv(re_path, self.re_index)
+
             vvi_file = path + "index_vi_" + self.filename + ".json"
             with open(vvi_file, 'w') as fp:
                 json.dump(self.VolIss, fp)
 
-        if self.log:
-            log_file = path + "log_" + self.filename + ".json"
-            with open(log_file, 'w') as lf:
-                json.dump(self.log, lf)
+            if self.log:
+                log_file = path + "log_" + self.filename + ".json"
+                with open(log_file, 'w') as lf:
+                    json.dump(self.log, lf)
 
-        if self.data:
-            data_file = path + "data_" + self.filename + ".csv"
-            self.write_csv(data_file, self.data)
+            if self.data:
+                data_file = path + "data_" + self.filename + ".csv"
+                self.write_csv(data_file, self.data)
+
+
 
 
     def id_worker(self, col_name, name, idslist, ra_ent=False, br_ent=False, vvi_ent=False, publ_entity=False):
@@ -1134,7 +1134,6 @@ class Converter:
             clean_date = parse(date).strftime("%Y")
         else:
             clean_date = ""
-
         return clean_date
 
 

@@ -38,7 +38,6 @@ def prepare2test(data, name):
     server = "http://127.0.0.1:9999/blazegraph/sparql"
     reset_server(server)
     if float(name)>12:
-        print(float(name))
         add_data_ts(server)
 
     testcase_csv = "testcases/testcase_data/testcase_" + name + "_data.csv"

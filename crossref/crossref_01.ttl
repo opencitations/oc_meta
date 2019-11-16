@@ -1,392 +1,1530 @@
 @prefix ns1: <http://purl.org/spar/datacite/> .
-@prefix ns2: <http://purl.org/spar/pro/> .
+@prefix ns2: <http://purl.org/vocab/frbr/core#> .
 @prefix ns3: <http://prismstandard.org/namespaces/basic/2.0/> .
-@prefix ns4: <http://purl.org/dc/terms/> .
-@prefix ns5: <http://purl.org/vocab/frbr/core#> .
-@prefix ns6: <http://xmlns.com/foaf/0.1/> .
-@prefix ns7: <http://www.essepuntato.it/2010/06/literalreification/> .
-@prefix ns8: <http://purl.org/spar/fabio/> .
+@prefix ns4: <http://xmlns.com/foaf/0.1/> .
+@prefix ns5: <http://purl.org/spar/pro/> .
+@prefix ns6: <http://purl.org/dc/terms/> .
+@prefix ns7: <http://purl.org/spar/fabio/> .
+@prefix ns8: <https://w3id.org/oc/ontology/> .
+@prefix ns9: <http://www.essepuntato.it/2010/06/literalreification/> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xml: <http://www.w3.org/XML/1998/namespace> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-<https://w3id.org/OC/meta/br/1> a ns8:Expression,
-        ns8:JournalArticle ;
-    ns3:publicationDate "1997-09-01"^^xsd:date ;
-    ns4:title "Epidermolysis Bullosa Acquisita In Childhood" ;
-    ns1:hasIdentifier <https://w3id.org/OC/meta/id/1>,
-        <https://w3id.org/OC/meta/id/2> ;
-    ns2:isDocumentContextFor <https://w3id.org/OC/meta/ar/1>,
-        <https://w3id.org/OC/meta/ar/2> ;
-    ns5:embodiment <https://w3id.org/OC/meta/re/1> ;
-    ns5:partOf <https://w3id.org/OC/meta/br/13> .
+<https://w3id.org/OC/meta/br/23630> a ns7:Expression,
+        ns7:JournalArticle ;
+    ns3:publicationDate "2018"^^xsd:gYear ;
+    ns6:title "Association Between Loin Ultimate pH And Plasma Indicators Of Pre-Slaughter Stressors In Australian Lamb" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35522> ;
+    ns5:isDocumentContextFor <https://w3id.org/OC/meta/ar/52466>,
+        <https://w3id.org/OC/meta/ar/52467>,
+        <https://w3id.org/OC/meta/ar/52468>,
+        <https://w3id.org/OC/meta/ar/52469>,
+        <https://w3id.org/OC/meta/ar/52470> ;
+    ns2:embodiment <https://w3id.org/OC/meta/re/15656> ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23652> .
 
-<https://w3id.org/OC/meta/br/10> a ns8:Expression,
-        ns8:JournalArticle ;
-    ns3:publicationDate "1997-09-01"^^xsd:date ;
-    ns4:title "Recurrent Scarring Ulcers Of The Oral Mucosa. Sutton Disease (Periadenitis Mucosa Necrotica Recurrens" ;
-    ns1:hasIdentifier <https://w3id.org/OC/meta/id/19>,
-        <https://w3id.org/OC/meta/id/20> ;
-    ns2:isDocumentContextFor <https://w3id.org/OC/meta/ar/17>,
-        <https://w3id.org/OC/meta/ar/18> ;
-    ns5:embodiment <https://w3id.org/OC/meta/re/10> ;
-    ns5:partOf <https://w3id.org/OC/meta/br/13> .
+<https://w3id.org/OC/meta/br/23631> a ns7:Expression,
+        ns7:JournalArticle ;
+    ns3:publicationDate "2019-04-04"^^xsd:date ;
+    ns6:title "Quorum Sensing: A Prospective Therapeutic Target For Bacterial Diseases" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35523> ;
+    ns5:isDocumentContextFor <https://w3id.org/OC/meta/ar/52471>,
+        <https://w3id.org/OC/meta/ar/52472>,
+        <https://w3id.org/OC/meta/ar/52473>,
+        <https://w3id.org/OC/meta/ar/52474>,
+        <https://w3id.org/OC/meta/ar/52475>,
+        <https://w3id.org/OC/meta/ar/52476> ;
+    ns2:embodiment <https://w3id.org/OC/meta/re/15657> ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23654> .
 
-<https://w3id.org/OC/meta/br/2> a ns8:Expression,
-        ns8:JournalArticle ;
-    ns3:publicationDate "1997-09-01"^^xsd:date ;
-    ns4:title "Increased Scalp Skin And Serum 5 Alpha-Reductase Reduced Androgens In A Man Relevant To The Acquired Progressive Kinky Hair Disorder And Developing Androgenetic Alopecia" ;
-    ns1:hasIdentifier <https://w3id.org/OC/meta/id/3>,
-        <https://w3id.org/OC/meta/id/4> ;
-    ns2:isDocumentContextFor <https://w3id.org/OC/meta/ar/3>,
-        <https://w3id.org/OC/meta/ar/4> ;
-    ns5:embodiment <https://w3id.org/OC/meta/re/2> ;
-    ns5:partOf <https://w3id.org/OC/meta/br/13> .
+<https://w3id.org/OC/meta/br/23632> a ns7:BookChapter,
+        ns7:Expression ;
+    ns3:publicationDate "1964"^^xsd:gYear ;
+    ns6:title "Intrauterine Feminisierung Männlicher Rattenfeten Durch Das Stark Gestagen Wirksame 6-Chlor-⊿6-1,2-Methylen-17 Α-Hydroxyprogesteronacetat" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35524> ;
+    ns5:isDocumentContextFor <https://w3id.org/OC/meta/ar/52477>,
+        <https://w3id.org/OC/meta/ar/52478>,
+        <https://w3id.org/OC/meta/ar/52479> ;
+    ns2:embodiment <https://w3id.org/OC/meta/re/15658> ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23655> .
 
-<https://w3id.org/OC/meta/br/3> a ns8:Expression,
-        ns8:JournalArticle ;
-    ns3:publicationDate "1997-09-01"^^xsd:date ;
-    ns4:title "Localized Darier Disease. Implications For Genetic Studies" ;
-    ns1:hasIdentifier <https://w3id.org/OC/meta/id/5>,
-        <https://w3id.org/OC/meta/id/6> ;
-    ns2:isDocumentContextFor <https://w3id.org/OC/meta/ar/5>,
-        <https://w3id.org/OC/meta/ar/6> ;
-    ns5:embodiment <https://w3id.org/OC/meta/re/3> ;
-    ns5:partOf <https://w3id.org/OC/meta/br/13> .
+<https://w3id.org/OC/meta/br/23633> a ns7:Expression,
+        ns7:JournalArticle ;
+    ns3:publicationDate "2018-05-07"^^xsd:date ;
+    ns6:title "Desarrollo Emocional Y Creativo En Educación Infantil Mediante Las Artes Visuales Y La Música" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35525> ;
+    ns5:isDocumentContextFor <https://w3id.org/OC/meta/ar/52480>,
+        <https://w3id.org/OC/meta/ar/52481>,
+        <https://w3id.org/OC/meta/ar/52482>,
+        <https://w3id.org/OC/meta/ar/52483> ;
+    ns2:embodiment <https://w3id.org/OC/meta/re/15659> ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23657> .
 
-<https://w3id.org/OC/meta/br/4> a ns8:Expression,
-        ns8:JournalArticle ;
-    ns3:publicationDate "1997-09-01"^^xsd:date ;
-    ns4:title "Localized Facial Flushing In Infancy. Auriculotemporal Nerve (Frey) Syndrome" ;
-    ns1:hasIdentifier <https://w3id.org/OC/meta/id/7>,
-        <https://w3id.org/OC/meta/id/8> ;
-    ns2:isDocumentContextFor <https://w3id.org/OC/meta/ar/7>,
-        <https://w3id.org/OC/meta/ar/8> ;
-    ns5:embodiment <https://w3id.org/OC/meta/re/4> ;
-    ns5:partOf <https://w3id.org/OC/meta/br/13> .
+<https://w3id.org/OC/meta/br/23634> a ns7:Expression,
+        ns7:JournalArticle ;
+    ns3:publicationDate "2011-04-11"^^xsd:date ;
+    ns6:title "A Modified PRP Conjugate Gradient Algorithm With Trust Region For Optimization Problems" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35526> ;
+    ns5:isDocumentContextFor <https://w3id.org/OC/meta/ar/52484>,
+        <https://w3id.org/OC/meta/ar/52485>,
+        <https://w3id.org/OC/meta/ar/52486> ;
+    ns2:embodiment <https://w3id.org/OC/meta/re/15660> ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23660> .
 
-<https://w3id.org/OC/meta/br/5> a ns8:Expression,
-        ns8:JournalArticle ;
-    ns3:publicationDate "1997-09-01"^^xsd:date ;
-    ns4:title "The Case For Sunscreens. A Review Of Their Use In Preventing Actinic Damage And Neoplasia" ;
-    ns1:hasIdentifier <https://w3id.org/OC/meta/id/10>,
-        <https://w3id.org/OC/meta/id/9> ;
-    ns2:isDocumentContextFor <https://w3id.org/OC/meta/ar/10>,
-        <https://w3id.org/OC/meta/ar/9> ;
-    ns5:embodiment <https://w3id.org/OC/meta/re/5> ;
-    ns5:partOf <https://w3id.org/OC/meta/br/13> .
+<https://w3id.org/OC/meta/br/23635> a ns7:Expression,
+        ns7:JournalArticle ;
+    ns3:publicationDate "1969-11"^^xsd:gYearMonth ;
+    ns6:title "A Suggested Role For The Polyphenol-Phenoloxidase System In Invertebrate Immunity" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35527> ;
+    ns5:isDocumentContextFor <https://w3id.org/OC/meta/ar/52487>,
+        <https://w3id.org/OC/meta/ar/52488> ;
+    ns2:embodiment <https://w3id.org/OC/meta/re/15661> ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23663> .
 
-<https://w3id.org/OC/meta/br/6> a ns8:Expression,
-        ns8:JournalArticle ;
-    ns3:publicationDate "1997-09-01"^^xsd:date ;
-    ns4:title "Epstein-Barr Virus. A Serial Killer Or An Innocent Bystander?" ;
-    ns1:hasIdentifier <https://w3id.org/OC/meta/id/11>,
-        <https://w3id.org/OC/meta/id/12> ;
-    ns2:isDocumentContextFor <https://w3id.org/OC/meta/ar/11>,
-        <https://w3id.org/OC/meta/ar/12> ;
-    ns5:embodiment <https://w3id.org/OC/meta/re/6> ;
-    ns5:partOf <https://w3id.org/OC/meta/br/13> .
+<https://w3id.org/OC/meta/br/23636> a ns7:Expression,
+        ns7:JournalArticle ;
+    ns3:publicationDate "1993-09"^^xsd:gYearMonth ;
+    ns6:title "Cloning And Characterization Of αPS1, A Novel Drosophila Melanogaster Integrin" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35528> ;
+    ns5:isDocumentContextFor <https://w3id.org/OC/meta/ar/52489>,
+        <https://w3id.org/OC/meta/ar/52490>,
+        <https://w3id.org/OC/meta/ar/52491>,
+        <https://w3id.org/OC/meta/ar/52492>,
+        <https://w3id.org/OC/meta/ar/52493>,
+        <https://w3id.org/OC/meta/ar/52494> ;
+    ns2:embodiment <https://w3id.org/OC/meta/re/15662> ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23666> .
 
-<https://w3id.org/OC/meta/br/7> a ns8:Expression,
-        ns8:JournalArticle ;
-    ns3:publicationDate "1997-09-01"^^xsd:date ;
-    ns4:title "The Accuracy Of Indirect Immunofluorescence On Sodium Chloride-Split Skin In Differentiating Subepidermal Bullous Diseases" ;
-    ns1:hasIdentifier <https://w3id.org/OC/meta/id/13>,
-        <https://w3id.org/OC/meta/id/14> ;
-    ns2:isDocumentContextFor <https://w3id.org/OC/meta/ar/13>,
-        <https://w3id.org/OC/meta/ar/14> ;
-    ns5:embodiment <https://w3id.org/OC/meta/re/7> ;
-    ns5:partOf <https://w3id.org/OC/meta/br/13> .
+<https://w3id.org/OC/meta/br/23637> a ns7:Expression,
+        ns7:JournalArticle ;
+    ns3:publicationDate "2003-03"^^xsd:gYearMonth ;
+    ns6:title "Breathing Life Into Organizational Studies" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35529> ;
+    ns5:isDocumentContextFor <https://w3id.org/OC/meta/ar/52495>,
+        <https://w3id.org/OC/meta/ar/52496> ;
+    ns2:embodiment <https://w3id.org/OC/meta/re/15663> ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23669> .
 
-<https://w3id.org/OC/meta/br/8> a ns8:Expression,
-        ns8:JournalArticle ;
-    ns3:publicationDate "1997-09-01"^^xsd:date ;
-    ns1:hasIdentifier <https://w3id.org/OC/meta/id/15>,
-        <https://w3id.org/OC/meta/id/16> ;
-    ns2:isDocumentContextFor <https://w3id.org/OC/meta/ar/15> ;
-    ns5:embodiment <https://w3id.org/OC/meta/re/8> ;
-    ns5:partOf <https://w3id.org/OC/meta/br/13> .
+<https://w3id.org/OC/meta/br/23638> a ns7:Expression,
+        ns7:JournalArticle ;
+    ns3:publicationDate "1998"^^xsd:gYear ;
+    ns6:title "Room Temperature Sterilization Of Surfaces And Fabrics With A One Atmosphere Uniform Glow Discharge Plasma" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35530> ;
+    ns5:isDocumentContextFor <https://w3id.org/OC/meta/ar/52497>,
+        <https://w3id.org/OC/meta/ar/52498>,
+        <https://w3id.org/OC/meta/ar/52499>,
+        <https://w3id.org/OC/meta/ar/52500>,
+        <https://w3id.org/OC/meta/ar/52501>,
+        <https://w3id.org/OC/meta/ar/52502>,
+        <https://w3id.org/OC/meta/ar/52503>,
+        <https://w3id.org/OC/meta/ar/52504>,
+        <https://w3id.org/OC/meta/ar/52505> ;
+    ns2:embodiment <https://w3id.org/OC/meta/re/15664> ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23672> .
 
-<https://w3id.org/OC/meta/br/9> a ns8:Expression,
-        ns8:JournalArticle ;
-    ns3:publicationDate "1997-09-01"^^xsd:date ;
-    ns1:hasIdentifier <https://w3id.org/OC/meta/id/17>,
-        <https://w3id.org/OC/meta/id/18> ;
-    ns2:isDocumentContextFor <https://w3id.org/OC/meta/ar/16> ;
-    ns5:embodiment <https://w3id.org/OC/meta/re/9> ;
-    ns5:partOf <https://w3id.org/OC/meta/br/13> .
+<https://w3id.org/OC/meta/br/23639> a ns7:Expression,
+        ns7:JournalArticle ;
+    ns3:publicationDate "2002"^^xsd:gYear ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35531> ;
+    ns5:isDocumentContextFor <https://w3id.org/OC/meta/ar/52506>,
+        <https://w3id.org/OC/meta/ar/52507>,
+        <https://w3id.org/OC/meta/ar/52508>,
+        <https://w3id.org/OC/meta/ar/52509>,
+        <https://w3id.org/OC/meta/ar/52510> ;
+    ns2:embodiment <https://w3id.org/OC/meta/re/15665> ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23675> .
 
-<https://w3id.org/OC/meta/ar/1> a ns2:RoleInTime ;
-    ns2:isHeldBy <https://w3id.org/OC/meta/ra/1> ;
-    ns2:withRole ns2:author .
+<https://w3id.org/OC/meta/br/23640> a ns7:Expression,
+        ns7:JournalArticle ;
+    ns3:publicationDate "2002-02"^^xsd:gYearMonth ;
+    ns6:title "Sight Of A Predator Can Stimulate A Corticosterone Response In The Great Tit (Parus Major)" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35532> ;
+    ns5:isDocumentContextFor <https://w3id.org/OC/meta/ar/52511>,
+        <https://w3id.org/OC/meta/ar/52512>,
+        <https://w3id.org/OC/meta/ar/52513> ;
+    ns2:embodiment <https://w3id.org/OC/meta/re/15666> ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23678> .
 
-<https://w3id.org/OC/meta/ar/10> a ns2:RoleInTime ;
-    ns2:isHeldBy <https://w3id.org/OC/meta/ra/10> ;
-    ns2:withRole ns2:publisher .
+<https://w3id.org/OC/meta/br/23641> a ns7:Expression,
+        ns7:JournalArticle ;
+    ns3:publicationDate "1983-03-10"^^xsd:date ;
+    ns6:title "Variable-range Hopping Conductivity In Granular Materials" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35533> ;
+    ns5:isDocumentContextFor <https://w3id.org/OC/meta/ar/52514>,
+        <https://w3id.org/OC/meta/ar/52515>,
+        <https://w3id.org/OC/meta/ar/52516>,
+        <https://w3id.org/OC/meta/ar/52517> ;
+    ns2:embodiment <https://w3id.org/OC/meta/re/15667> ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23681> .
 
-<https://w3id.org/OC/meta/ar/11> a ns2:RoleInTime ;
-    ns2:isHeldBy <https://w3id.org/OC/meta/ra/11> ;
-    ns2:withRole ns2:author .
+<https://w3id.org/OC/meta/br/23642> a ns7:Expression,
+        ns7:JournalArticle ;
+    ns3:publicationDate "1998-09"^^xsd:gYearMonth ;
+    ns6:title "Discharge Electrolysis In Molten Chloride: Formation Of Fine Silver Particles" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35534> ;
+    ns5:isDocumentContextFor <https://w3id.org/OC/meta/ar/52518>,
+        <https://w3id.org/OC/meta/ar/52519>,
+        <https://w3id.org/OC/meta/ar/52520>,
+        <https://w3id.org/OC/meta/ar/52521> ;
+    ns2:embodiment <https://w3id.org/OC/meta/re/15668> ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23684> .
 
-<https://w3id.org/OC/meta/ar/12> a ns2:RoleInTime ;
-    ns2:isHeldBy <https://w3id.org/OC/meta/ra/12> ;
-    ns2:withRole ns2:publisher .
+<https://w3id.org/OC/meta/br/23643> a ns7:Expression,
+        ns7:JournalArticle ;
+    ns3:publicationDate "2002-03"^^xsd:gYearMonth ;
+    ns6:title "Estimating The Total Exposure To Air Pollutants For Different Population Age Groups In Hong Kong" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35535> ;
+    ns5:isDocumentContextFor <https://w3id.org/OC/meta/ar/52522>,
+        <https://w3id.org/OC/meta/ar/52523>,
+        <https://w3id.org/OC/meta/ar/52524>,
+        <https://w3id.org/OC/meta/ar/52525>,
+        <https://w3id.org/OC/meta/ar/52526> ;
+    ns2:embodiment <https://w3id.org/OC/meta/re/15669> ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23687> .
 
-<https://w3id.org/OC/meta/ar/13> a ns2:RoleInTime ;
-    ns2:isHeldBy <https://w3id.org/OC/meta/ra/13> ;
-    ns2:withRole ns2:author .
+<https://w3id.org/OC/meta/br/23644> a ns7:Expression,
+        ns7:JournalArticle ;
+    ns3:publicationDate "1978-08"^^xsd:gYearMonth ;
+    ns6:title "Equatorial Adjustment In The Eastern Atlantic" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35536> ;
+    ns5:isDocumentContextFor <https://w3id.org/OC/meta/ar/52527>,
+        <https://w3id.org/OC/meta/ar/52528>,
+        <https://w3id.org/OC/meta/ar/52529>,
+        <https://w3id.org/OC/meta/ar/52530>,
+        <https://w3id.org/OC/meta/ar/52531>,
+        <https://w3id.org/OC/meta/ar/52532>,
+        <https://w3id.org/OC/meta/ar/52533>,
+        <https://w3id.org/OC/meta/ar/52534>,
+        <https://w3id.org/OC/meta/ar/52535> ;
+    ns2:embodiment <https://w3id.org/OC/meta/re/15670> ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23690> .
 
-<https://w3id.org/OC/meta/ar/14> a ns2:RoleInTime ;
-    ns2:isHeldBy <https://w3id.org/OC/meta/ra/14> ;
-    ns2:withRole ns2:publisher .
+<https://w3id.org/OC/meta/br/23645> a ns7:Expression,
+        ns7:JournalArticle ;
+    ns3:publicationDate "2007-10"^^xsd:gYearMonth ;
+    ns6:title "The Integration Of Cognition And Emotion During Infancy And Early Childhood: Regulatory Processes Associated With The Development Of Working Memory" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35537> ;
+    ns5:isDocumentContextFor <https://w3id.org/OC/meta/ar/52536>,
+        <https://w3id.org/OC/meta/ar/52537>,
+        <https://w3id.org/OC/meta/ar/52538> ;
+    ns2:embodiment <https://w3id.org/OC/meta/re/15671> ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23693> .
 
-<https://w3id.org/OC/meta/ar/15> a ns2:RoleInTime ;
-    ns2:isHeldBy <https://w3id.org/OC/meta/ra/15> ;
-    ns2:withRole ns2:publisher .
+<https://w3id.org/OC/meta/br/23646> a ns7:Expression,
+        ns7:JournalArticle ;
+    ns3:publicationDate "2002-09"^^xsd:gYearMonth ;
+    ns6:title "A Novel Six-Component Force Sensor Of Good Measurement Isotropy And Sensitivities" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35538> ;
+    ns5:isDocumentContextFor <https://w3id.org/OC/meta/ar/52539>,
+        <https://w3id.org/OC/meta/ar/52540>,
+        <https://w3id.org/OC/meta/ar/52541> ;
+    ns2:embodiment <https://w3id.org/OC/meta/re/15672> ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23696> .
 
-<https://w3id.org/OC/meta/ar/16> a ns2:RoleInTime ;
-    ns2:isHeldBy <https://w3id.org/OC/meta/ra/16> ;
-    ns2:withRole ns2:publisher .
+<https://w3id.org/OC/meta/br/23647> a ns7:Expression,
+        ns7:JournalArticle ;
+    ns3:publicationDate "1988-01"^^xsd:gYearMonth ;
+    ns6:title "Which Classroom Behaviours Do Primary School Teachers Say They Find Most Troublesome?" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35539> ;
+    ns5:isDocumentContextFor <https://w3id.org/OC/meta/ar/52542>,
+        <https://w3id.org/OC/meta/ar/52543>,
+        <https://w3id.org/OC/meta/ar/52544> ;
+    ns2:embodiment <https://w3id.org/OC/meta/re/15673> ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23699> .
 
-<https://w3id.org/OC/meta/ar/17> a ns2:RoleInTime ;
-    ns2:isHeldBy <https://w3id.org/OC/meta/ra/17> ;
-    ns2:withRole ns2:author .
+<https://w3id.org/OC/meta/br/23648> a ns7:Expression,
+        ns7:JournalArticle ;
+    ns3:publicationDate "2007-02"^^xsd:gYearMonth ;
+    ns6:title "Spark Plasma Sintering Of ZrB2–ZrC Powder Mixtures Synthesized By MA-SHS In Air" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35540> ;
+    ns5:isDocumentContextFor <https://w3id.org/OC/meta/ar/52545>,
+        <https://w3id.org/OC/meta/ar/52546>,
+        <https://w3id.org/OC/meta/ar/52547> ;
+    ns2:embodiment <https://w3id.org/OC/meta/re/15674> ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23702> .
 
-<https://w3id.org/OC/meta/ar/18> a ns2:RoleInTime ;
-    ns2:isHeldBy <https://w3id.org/OC/meta/ra/18> ;
-    ns2:withRole ns2:publisher .
+<https://w3id.org/OC/meta/br/23649> a ns7:Expression,
+        ns7:JournalArticle ;
+    ns3:publicationDate "2006-10"^^xsd:gYearMonth ;
+    ns6:title "Low-level Activity Measurement Of 131Xem, 133Xem, 135Xe And 133Xe In Atmospheric Air Samples Using High-Resolution Dual X–γ Spectrometry" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35541> ;
+    ns5:isDocumentContextFor <https://w3id.org/OC/meta/ar/52548>,
+        <https://w3id.org/OC/meta/ar/52549>,
+        <https://w3id.org/OC/meta/ar/52550>,
+        <https://w3id.org/OC/meta/ar/52551>,
+        <https://w3id.org/OC/meta/ar/52552> ;
+    ns2:embodiment <https://w3id.org/OC/meta/re/15675> ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23705> .
 
-<https://w3id.org/OC/meta/ar/2> a ns2:RoleInTime ;
-    ns2:isHeldBy <https://w3id.org/OC/meta/ra/2> ;
-    ns2:withRole ns2:publisher .
+<https://w3id.org/OC/meta/ar/52466> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/31984> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52467> .
 
-<https://w3id.org/OC/meta/ar/3> a ns2:RoleInTime ;
-    ns2:isHeldBy <https://w3id.org/OC/meta/ra/3> ;
-    ns2:withRole ns2:author .
+<https://w3id.org/OC/meta/ar/52470> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/31988> ;
+    ns5:withRole ns5:publisher .
 
-<https://w3id.org/OC/meta/ar/4> a ns2:RoleInTime ;
-    ns2:isHeldBy <https://w3id.org/OC/meta/ra/4> ;
-    ns2:withRole ns2:publisher .
+<https://w3id.org/OC/meta/ar/52471> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/31989> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52472> .
 
-<https://w3id.org/OC/meta/ar/5> a ns2:RoleInTime ;
-    ns2:isHeldBy <https://w3id.org/OC/meta/ra/5> ;
-    ns2:withRole ns2:author .
+<https://w3id.org/OC/meta/ar/52476> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/31994> ;
+    ns5:withRole ns5:publisher .
 
-<https://w3id.org/OC/meta/ar/6> a ns2:RoleInTime ;
-    ns2:isHeldBy <https://w3id.org/OC/meta/ra/6> ;
-    ns2:withRole ns2:publisher .
+<https://w3id.org/OC/meta/ar/52477> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/31995> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52478> .
 
-<https://w3id.org/OC/meta/ar/7> a ns2:RoleInTime ;
-    ns2:isHeldBy <https://w3id.org/OC/meta/ra/7> ;
-    ns2:withRole ns2:author .
+<https://w3id.org/OC/meta/ar/52479> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/31997> ;
+    ns5:withRole ns5:publisher .
 
-<https://w3id.org/OC/meta/ar/8> a ns2:RoleInTime ;
-    ns2:isHeldBy <https://w3id.org/OC/meta/ra/8> ;
-    ns2:withRole ns2:publisher .
+<https://w3id.org/OC/meta/ar/52480> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/31998> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52481> .
 
-<https://w3id.org/OC/meta/ar/9> a ns2:RoleInTime ;
-    ns2:isHeldBy <https://w3id.org/OC/meta/ra/9> ;
-    ns2:withRole ns2:author .
+<https://w3id.org/OC/meta/ar/52483> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32001> ;
+    ns5:withRole ns5:publisher .
 
-<https://w3id.org/OC/meta/br/11> a ns8:Expression,
-        ns8:Journal ;
-    ns4:title "Archives Of Dermatology" ;
-    ns1:hasIdentifier <https://w3id.org/OC/meta/id/21> .
+<https://w3id.org/OC/meta/ar/52484> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32002> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52485> .
 
-<https://w3id.org/OC/meta/br/12> a ns8:Expression,
-        ns8:JournalVolume ;
-    ns8:hasSequenceIdentifier "133" ;
-    ns5:partOf <https://w3id.org/OC/meta/br/11> .
+<https://w3id.org/OC/meta/ar/52486> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32004> ;
+    ns5:withRole ns5:publisher .
 
-<https://w3id.org/OC/meta/id/1> a ns1:Identifier ;
+<https://w3id.org/OC/meta/ar/52487> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32005> ;
+    ns5:withRole ns5:author .
+
+<https://w3id.org/OC/meta/ar/52488> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32006> ;
+    ns5:withRole ns5:publisher .
+
+<https://w3id.org/OC/meta/ar/52489> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32007> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52490> .
+
+<https://w3id.org/OC/meta/ar/52494> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32006> ;
+    ns5:withRole ns5:publisher .
+
+<https://w3id.org/OC/meta/ar/52495> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32012> ;
+    ns5:withRole ns5:author .
+
+<https://w3id.org/OC/meta/ar/52496> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32013> ;
+    ns5:withRole ns5:publisher .
+
+<https://w3id.org/OC/meta/ar/52497> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32014> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52498> .
+
+<https://w3id.org/OC/meta/ar/52505> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/31997> ;
+    ns5:withRole ns5:publisher .
+
+<https://w3id.org/OC/meta/ar/52506> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32022> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52507> .
+
+<https://w3id.org/OC/meta/ar/52510> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/31997> ;
+    ns5:withRole ns5:publisher .
+
+<https://w3id.org/OC/meta/ar/52511> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32026> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52512> .
+
+<https://w3id.org/OC/meta/ar/52513> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32006> ;
+    ns5:withRole ns5:publisher .
+
+<https://w3id.org/OC/meta/ar/52514> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32028> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52515> .
+
+<https://w3id.org/OC/meta/ar/52517> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32031> ;
+    ns5:withRole ns5:publisher .
+
+<https://w3id.org/OC/meta/ar/52518> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32032> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52519> .
+
+<https://w3id.org/OC/meta/ar/52521> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32006> ;
+    ns5:withRole ns5:publisher .
+
+<https://w3id.org/OC/meta/ar/52522> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32035> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52523> .
+
+<https://w3id.org/OC/meta/ar/52526> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32006> ;
+    ns5:withRole ns5:publisher .
+
+<https://w3id.org/OC/meta/ar/52527> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32039> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52528> .
+
+<https://w3id.org/OC/meta/ar/52535> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32047> ;
+    ns5:withRole ns5:publisher .
+
+<https://w3id.org/OC/meta/ar/52536> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32048> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52537> .
+
+<https://w3id.org/OC/meta/ar/52538> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32006> ;
+    ns5:withRole ns5:publisher .
+
+<https://w3id.org/OC/meta/ar/52539> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32050> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52540> .
+
+<https://w3id.org/OC/meta/ar/52541> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32006> ;
+    ns5:withRole ns5:publisher .
+
+<https://w3id.org/OC/meta/ar/52542> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32052> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52543> .
+
+<https://w3id.org/OC/meta/ar/52544> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32004> ;
+    ns5:withRole ns5:publisher .
+
+<https://w3id.org/OC/meta/ar/52545> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32054> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52546> .
+
+<https://w3id.org/OC/meta/ar/52547> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/31997> ;
+    ns5:withRole ns5:publisher .
+
+<https://w3id.org/OC/meta/ar/52548> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32056> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52549> .
+
+<https://w3id.org/OC/meta/ar/52552> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32006> ;
+    ns5:withRole ns5:publisher .
+
+<https://w3id.org/OC/meta/br/23650> a ns7:Expression,
+        ns7:Journal ;
+    ns6:title "Meat And Muscle Biology" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35542> .
+
+<https://w3id.org/OC/meta/br/23651> a ns7:Expression,
+        ns7:JournalVolume ;
+    ns7:hasSequenceIdentifier "2" ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23650> .
+
+<https://w3id.org/OC/meta/br/23652> a ns7:Expression,
+        ns7:JournalIssue ;
+    ns7:hasSequenceIdentifier "1" ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23651> .
+
+<https://w3id.org/OC/meta/br/23653> a ns7:Expression,
+        ns7:Journal ;
+    ns6:title "BioMed Research International" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35543> .
+
+<https://w3id.org/OC/meta/br/23654> a ns7:Expression,
+        ns7:JournalVolume ;
+    ns7:hasSequenceIdentifier "2019" ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23653> .
+
+<https://w3id.org/OC/meta/br/23655> a ns7:Book,
+        ns7:Expression ;
+    ns6:title "Schilddrüsenhormone Und Körperperipherie / Regulation Der Schilddrüsenfunktion" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35544> .
+
+<https://w3id.org/OC/meta/br/23656> a ns7:Expression,
+        ns7:Journal ;
+    ns6:title "Creativity And Educational Innovation Review" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35545> .
+
+<https://w3id.org/OC/meta/br/23657> a ns7:Expression,
+        ns7:JournalIssue ;
+    ns7:hasSequenceIdentifier "1" ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23656> .
+
+<https://w3id.org/OC/meta/br/23658> a ns7:Expression,
+        ns7:Journal ;
+    ns6:title "Numerical Functional Analysis And Optimization" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35546> .
+
+<https://w3id.org/OC/meta/br/23659> a ns7:Expression,
+        ns7:JournalVolume ;
+    ns7:hasSequenceIdentifier "32" ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23658> .
+
+<https://w3id.org/OC/meta/br/23660> a ns7:Expression,
+        ns7:JournalIssue ;
+    ns7:hasSequenceIdentifier "5" ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23659> .
+
+<https://w3id.org/OC/meta/br/23661> a ns7:Expression,
+        ns7:Journal ;
+    ns6:title "Journal Of Invertebrate Pathology" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35547> .
+
+<https://w3id.org/OC/meta/br/23662> a ns7:Expression,
+        ns7:JournalVolume ;
+    ns7:hasSequenceIdentifier "14" ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23661> .
+
+<https://w3id.org/OC/meta/br/23663> a ns7:Expression,
+        ns7:JournalIssue ;
+    ns7:hasSequenceIdentifier "3" ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23662> .
+
+<https://w3id.org/OC/meta/br/23664> a ns7:Expression,
+        ns7:Journal ;
+    ns6:title "Mechanisms Of Development" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35548> .
+
+<https://w3id.org/OC/meta/br/23665> a ns7:Expression,
+        ns7:JournalVolume ;
+    ns7:hasSequenceIdentifier "43" ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23664> .
+
+<https://w3id.org/OC/meta/br/23666> a ns7:Expression,
+        ns7:JournalIssue ;
+    ns7:hasSequenceIdentifier "1" ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23665> .
+
+<https://w3id.org/OC/meta/br/23667> a ns7:Expression,
+        ns7:Journal ;
+    ns6:title "Journal Of Management Inquiry" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35549> .
+
+<https://w3id.org/OC/meta/br/23668> a ns7:Expression,
+        ns7:JournalVolume ;
+    ns7:hasSequenceIdentifier "12" ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23667> .
+
+<https://w3id.org/OC/meta/br/23669> a ns7:Expression,
+        ns7:JournalIssue ;
+    ns7:hasSequenceIdentifier "1" ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23668> .
+
+<https://w3id.org/OC/meta/br/23670> a ns7:Expression,
+        ns7:Journal ;
+    ns6:title "Journal Of Industrial Microbiology And Biotechnology" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35550> .
+
+<https://w3id.org/OC/meta/br/23671> a ns7:Expression,
+        ns7:JournalVolume ;
+    ns7:hasSequenceIdentifier "20" ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23670> .
+
+<https://w3id.org/OC/meta/br/23672> a ns7:Expression,
+        ns7:JournalIssue ;
+    ns7:hasSequenceIdentifier "1" ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23671> .
+
+<https://w3id.org/OC/meta/br/23673> a ns7:Expression,
+        ns7:Journal ;
+    ns6:title "Plant Ecology" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35551> .
+
+<https://w3id.org/OC/meta/br/23674> a ns7:Expression,
+        ns7:JournalVolume ;
+    ns7:hasSequenceIdentifier "158" ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23673> .
+
+<https://w3id.org/OC/meta/br/23675> a ns7:Expression,
+        ns7:JournalIssue ;
+    ns7:hasSequenceIdentifier "2" ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23674> .
+
+<https://w3id.org/OC/meta/br/23676> a ns7:Expression,
+        ns7:Journal ;
+    ns6:title "General And Comparative Endocrinology" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35552> .
+
+<https://w3id.org/OC/meta/br/23677> a ns7:Expression,
+        ns7:JournalVolume ;
+    ns7:hasSequenceIdentifier "125" ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23676> .
+
+<https://w3id.org/OC/meta/br/23678> a ns7:Expression,
+        ns7:JournalIssue ;
+    ns7:hasSequenceIdentifier "2" ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23677> .
+
+<https://w3id.org/OC/meta/br/23679> a ns7:Expression,
+        ns7:Journal ;
+    ns6:title "Journal Of Physics C: Solid State Physics" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35553> .
+
+<https://w3id.org/OC/meta/br/23680> a ns7:Expression,
+        ns7:JournalVolume ;
+    ns7:hasSequenceIdentifier "16" ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23679> .
+
+<https://w3id.org/OC/meta/br/23681> a ns7:Expression,
+        ns7:JournalIssue ;
+    ns7:hasSequenceIdentifier "7" ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23680> .
+
+<https://w3id.org/OC/meta/br/23682> a ns7:Expression,
+        ns7:Journal ;
+    ns6:title "Plasmas & Ions" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35554> .
+
+<https://w3id.org/OC/meta/br/23683> a ns7:Expression,
+        ns7:JournalVolume ;
+    ns7:hasSequenceIdentifier "1" ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23682> .
+
+<https://w3id.org/OC/meta/br/23684> a ns7:Expression,
+        ns7:JournalIssue ;
+    ns7:hasSequenceIdentifier "1" ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23683> .
+
+<https://w3id.org/OC/meta/br/23685> a ns7:Expression,
+        ns7:Journal ;
+    ns6:title "Environment International" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35555> .
+
+<https://w3id.org/OC/meta/br/23686> a ns7:Expression,
+        ns7:JournalVolume ;
+    ns7:hasSequenceIdentifier "27" ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23685> .
+
+<https://w3id.org/OC/meta/br/23687> a ns7:Expression,
+        ns7:JournalIssue ;
+    ns7:hasSequenceIdentifier "8" ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23686> .
+
+<https://w3id.org/OC/meta/br/23688> a ns7:Expression,
+        ns7:Journal ;
+    ns6:title "Geophysical Research Letters" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35556> .
+
+<https://w3id.org/OC/meta/br/23689> a ns7:Expression,
+        ns7:JournalVolume ;
+    ns7:hasSequenceIdentifier "5" ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23688> .
+
+<https://w3id.org/OC/meta/br/23690> a ns7:Expression,
+        ns7:JournalIssue ;
+    ns7:hasSequenceIdentifier "8" ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23689> .
+
+<https://w3id.org/OC/meta/br/23691> a ns7:Expression,
+        ns7:Journal ;
+    ns6:title "Brain And Cognition" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35557> .
+
+<https://w3id.org/OC/meta/br/23692> a ns7:Expression,
+        ns7:JournalVolume ;
+    ns7:hasSequenceIdentifier "65" ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23691> .
+
+<https://w3id.org/OC/meta/br/23693> a ns7:Expression,
+        ns7:JournalIssue ;
+    ns7:hasSequenceIdentifier "1" ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23692> .
+
+<https://w3id.org/OC/meta/br/23694> a ns7:Expression,
+        ns7:Journal ;
+    ns6:title "Sensors And Actuators A: Physical" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35558> .
+
+<https://w3id.org/OC/meta/br/23695> a ns7:Expression,
+        ns7:JournalVolume ;
+    ns7:hasSequenceIdentifier "100" ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23694> .
+
+<https://w3id.org/OC/meta/br/23696> a ns7:Expression,
+        ns7:JournalIssue ;
+    ns7:hasSequenceIdentifier "2-3" ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23695> .
+
+<https://w3id.org/OC/meta/br/23697> a ns7:Expression,
+        ns7:Journal ;
+    ns6:title "Educational Review" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35559> .
+
+<https://w3id.org/OC/meta/br/23698> a ns7:Expression,
+        ns7:JournalVolume ;
+    ns7:hasSequenceIdentifier "40" ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23697> .
+
+<https://w3id.org/OC/meta/br/23699> a ns7:Expression,
+        ns7:JournalIssue ;
+    ns7:hasSequenceIdentifier "1" ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23698> .
+
+<https://w3id.org/OC/meta/br/23700> a ns7:Expression,
+        ns7:Journal ;
+    ns6:title "Journal Of Materials Science" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35560> .
+
+<https://w3id.org/OC/meta/br/23701> a ns7:Expression,
+        ns7:JournalVolume ;
+    ns7:hasSequenceIdentifier "42" ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23700> .
+
+<https://w3id.org/OC/meta/br/23702> a ns7:Expression,
+        ns7:JournalIssue ;
+    ns7:hasSequenceIdentifier "3" ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23701> .
+
+<https://w3id.org/OC/meta/br/23703> a ns7:Expression,
+        ns7:Journal ;
+    ns6:title "Applied Radiation And Isotopes" ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35561> .
+
+<https://w3id.org/OC/meta/br/23704> a ns7:Expression,
+        ns7:JournalVolume ;
+    ns7:hasSequenceIdentifier "64" ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23703> .
+
+<https://w3id.org/OC/meta/br/23705> a ns7:Expression,
+        ns7:JournalIssue ;
+    ns7:hasSequenceIdentifier "10-11" ;
+    ns2:partOf <https://w3id.org/OC/meta/br/23704> .
+
+<https://w3id.org/OC/meta/id/35522> a ns1:Identifier ;
     ns1:usesIdentifierScheme ns1:doi ;
-    ns7:hasLiteralValue "10.1001/archderm.133.9.1122" .
+    ns9:hasLiteralValue "10.22175/mmb2017.10.0050" .
 
-<https://w3id.org/OC/meta/id/10> a ns1:Identifier ;
-    ns1:usesIdentifierScheme ns1:url ;
-    ns7:hasLiteralValue "http://dx.doi.org/10.1001/archderm.133.9.1146" .
-
-<https://w3id.org/OC/meta/id/11> a ns1:Identifier ;
+<https://w3id.org/OC/meta/id/35523> a ns1:Identifier ;
     ns1:usesIdentifierScheme ns1:doi ;
-    ns7:hasLiteralValue "10.1001/archderm.133.9.1156" .
+    ns9:hasLiteralValue "10.1155/2019/2015978" .
 
-<https://w3id.org/OC/meta/id/12> a ns1:Identifier ;
-    ns1:usesIdentifierScheme ns1:url ;
-    ns7:hasLiteralValue "http://dx.doi.org/10.1001/archderm.133.9.1156" .
-
-<https://w3id.org/OC/meta/id/13> a ns1:Identifier ;
+<https://w3id.org/OC/meta/id/35524> a ns1:Identifier ;
     ns1:usesIdentifierScheme ns1:doi ;
-    ns7:hasLiteralValue "10.1001/archderm.133.9.1158" .
+    ns9:hasLiteralValue "10.1007/978-3-662-26787-5_53" .
 
-<https://w3id.org/OC/meta/id/14> a ns1:Identifier ;
-    ns1:usesIdentifierScheme ns1:url ;
-    ns7:hasLiteralValue "http://dx.doi.org/10.1001/archderm.133.9.1158" .
-
-<https://w3id.org/OC/meta/id/15> a ns1:Identifier ;
+<https://w3id.org/OC/meta/id/35525> a ns1:Identifier ;
     ns1:usesIdentifierScheme ns1:doi ;
-    ns7:hasLiteralValue "10.1001/archderm.133.9.1161" .
+    ns9:hasLiteralValue "10.7203/creativity.1.12063" .
 
-<https://w3id.org/OC/meta/id/16> a ns1:Identifier ;
-    ns1:usesIdentifierScheme ns1:url ;
-    ns7:hasLiteralValue "http://dx.doi.org/10.1001/archderm.133.9.1161" .
-
-<https://w3id.org/OC/meta/id/17> a ns1:Identifier ;
+<https://w3id.org/OC/meta/id/35526> a ns1:Identifier ;
     ns1:usesIdentifierScheme ns1:doi ;
-    ns7:hasLiteralValue "10.1001/archderm.133.9.1161b" .
+    ns9:hasLiteralValue "10.1080/01630563.2011.554948" .
 
-<https://w3id.org/OC/meta/id/18> a ns1:Identifier ;
-    ns1:usesIdentifierScheme ns1:url ;
-    ns7:hasLiteralValue "http://dx.doi.org/10.1001/archderm.133.9.1161b" .
-
-<https://w3id.org/OC/meta/id/19> a ns1:Identifier ;
+<https://w3id.org/OC/meta/id/35527> a ns1:Identifier ;
     ns1:usesIdentifierScheme ns1:doi ;
-    ns7:hasLiteralValue "10.1001/archderm.133.9.1162" .
+    ns9:hasLiteralValue "10.1016/0022-2011(69)90178-5" .
 
-<https://w3id.org/OC/meta/id/2> a ns1:Identifier ;
-    ns1:usesIdentifierScheme ns1:url ;
-    ns7:hasLiteralValue "http://dx.doi.org/10.1001/archderm.133.9.1122" .
+<https://w3id.org/OC/meta/id/35528> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:doi ;
+    ns9:hasLiteralValue "10.1016/0925-4773(93)90020-x" .
 
-<https://w3id.org/OC/meta/id/20> a ns1:Identifier ;
-    ns1:usesIdentifierScheme ns1:url ;
-    ns7:hasLiteralValue "http://dx.doi.org/10.1001/archderm.133.9.1162" .
+<https://w3id.org/OC/meta/id/35529> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:doi ;
+    ns9:hasLiteralValue "10.1177/1056492602250515" .
 
-<https://w3id.org/OC/meta/id/21> a ns1:Identifier ;
+<https://w3id.org/OC/meta/id/35530> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:doi ;
+    ns9:hasLiteralValue "10.1038/sj.jim.2900482" .
+
+<https://w3id.org/OC/meta/id/35531> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:doi ;
+    ns9:hasLiteralValue "10.1023/a:1015525303754" .
+
+<https://w3id.org/OC/meta/id/35532> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:doi ;
+    ns9:hasLiteralValue "10.1006/gcen.2001.7749" .
+
+<https://w3id.org/OC/meta/id/35533> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:doi ;
+    ns9:hasLiteralValue "10.1088/0022-3719/16/7/004" .
+
+<https://w3id.org/OC/meta/id/35534> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:doi ;
+    ns9:hasLiteralValue "10.1016/s1288-3255(99)80004-5" .
+
+<https://w3id.org/OC/meta/id/35535> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:doi ;
+    ns9:hasLiteralValue "10.1016/s0160-4120(01)00120-9" .
+
+<https://w3id.org/OC/meta/id/35536> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:doi ;
+    ns9:hasLiteralValue "10.1029/gl005i008p00637" .
+
+<https://w3id.org/OC/meta/id/35537> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:doi ;
+    ns9:hasLiteralValue "10.1016/j.bandc.2006.01.009" .
+
+<https://w3id.org/OC/meta/id/35538> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:doi ;
+    ns9:hasLiteralValue "10.1016/s0924-4247(02)00135-8" .
+
+<https://w3id.org/OC/meta/id/35539> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:doi ;
+    ns9:hasLiteralValue "10.1080/0013191880400102" .
+
+<https://w3id.org/OC/meta/id/35540> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:doi ;
+    ns9:hasLiteralValue "10.1007/s10853-006-0719-y" .
+
+<https://w3id.org/OC/meta/id/35541> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:doi ;
+    ns9:hasLiteralValue "10.1016/j.apradiso.2006.02.094" .
+
+<https://w3id.org/OC/meta/id/35542> a ns1:Identifier ;
     ns1:usesIdentifierScheme ns1:issn ;
-    ns7:hasLiteralValue "0003-987X" .
+    ns9:hasLiteralValue "2575-985X" .
 
-<https://w3id.org/OC/meta/id/3> a ns1:Identifier ;
-    ns1:usesIdentifierScheme ns1:doi ;
-    ns7:hasLiteralValue "10.1001/archderm.133.9.1129" .
+<https://w3id.org/OC/meta/id/35543> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:issn ;
+    ns9:hasLiteralValue "2314-6133" .
 
-<https://w3id.org/OC/meta/id/4> a ns1:Identifier ;
-    ns1:usesIdentifierScheme ns1:url ;
-    ns7:hasLiteralValue "http://dx.doi.org/10.1001/archderm.133.9.1129" .
+<https://w3id.org/OC/meta/id/35544> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:isbn ;
+    ns9:hasLiteralValue "9783540032229" .
 
-<https://w3id.org/OC/meta/id/5> a ns1:Identifier ;
-    ns1:usesIdentifierScheme ns1:doi ;
-    ns7:hasLiteralValue "10.1001/archderm.133.9.1134" .
+<https://w3id.org/OC/meta/id/35545> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:issn ;
+    ns9:hasLiteralValue "2603-6061" .
 
-<https://w3id.org/OC/meta/id/6> a ns1:Identifier ;
-    ns1:usesIdentifierScheme ns1:url ;
-    ns7:hasLiteralValue "http://dx.doi.org/10.1001/archderm.133.9.1134" .
+<https://w3id.org/OC/meta/id/35546> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:issn ;
+    ns9:hasLiteralValue "0163-0563" .
 
-<https://w3id.org/OC/meta/id/7> a ns1:Identifier ;
-    ns1:usesIdentifierScheme ns1:doi ;
-    ns7:hasLiteralValue "10.1001/archderm.133.9.1143" .
+<https://w3id.org/OC/meta/id/35547> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:issn ;
+    ns9:hasLiteralValue "0022-2011" .
 
-<https://w3id.org/OC/meta/id/8> a ns1:Identifier ;
-    ns1:usesIdentifierScheme ns1:url ;
-    ns7:hasLiteralValue "http://dx.doi.org/10.1001/archderm.133.9.1143" .
+<https://w3id.org/OC/meta/id/35548> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:issn ;
+    ns9:hasLiteralValue "0925-4773" .
 
-<https://w3id.org/OC/meta/id/9> a ns1:Identifier ;
-    ns1:usesIdentifierScheme ns1:doi ;
-    ns7:hasLiteralValue "10.1001/archderm.133.9.1146" .
+<https://w3id.org/OC/meta/id/35549> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:issn ;
+    ns9:hasLiteralValue "1056-4926" .
 
-<https://w3id.org/OC/meta/ra/1> a ns6:Agent ;
-    ns6:familyName "Callot-Mellot" ;
-    ns6:givenName "C." .
+<https://w3id.org/OC/meta/id/35550> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:issn ;
+    ns9:hasLiteralValue "1367-5435" .
 
-<https://w3id.org/OC/meta/ra/10> a ns6:Agent ;
-    ns6:name "American Medical Association (ama)" .
+<https://w3id.org/OC/meta/id/35551> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:issn ;
+    ns9:hasLiteralValue "1385-0237" .
 
-<https://w3id.org/OC/meta/ra/11> a ns6:Agent ;
-    ns6:familyName "Sangueza" ;
-    ns6:givenName "O. P." .
+<https://w3id.org/OC/meta/id/35552> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:issn ;
+    ns9:hasLiteralValue "0016-6480" .
 
-<https://w3id.org/OC/meta/ra/12> a ns6:Agent ;
-    ns6:name "American Medical Association (ama)" .
+<https://w3id.org/OC/meta/id/35553> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:issn ;
+    ns9:hasLiteralValue "0022-3719" .
 
-<https://w3id.org/OC/meta/ra/13> a ns6:Agent ;
-    ns6:familyName "Mutasim" ;
-    ns6:givenName "D. F." .
+<https://w3id.org/OC/meta/id/35554> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:issn ;
+    ns9:hasLiteralValue "1288-3255" .
 
-<https://w3id.org/OC/meta/ra/14> a ns6:Agent ;
-    ns6:name "American Medical Association (ama)" .
+<https://w3id.org/OC/meta/id/35555> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:issn ;
+    ns9:hasLiteralValue "0160-4120" .
 
-<https://w3id.org/OC/meta/ra/15> a ns6:Agent ;
-    ns6:name "American Medical Association (ama)" .
+<https://w3id.org/OC/meta/id/35556> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:issn ;
+    ns9:hasLiteralValue "0094-8276" .
 
-<https://w3id.org/OC/meta/ra/16> a ns6:Agent ;
-    ns6:name "American Medical Association (ama)" .
+<https://w3id.org/OC/meta/id/35557> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:issn ;
+    ns9:hasLiteralValue "0278-2626" .
 
-<https://w3id.org/OC/meta/ra/17> a ns6:Agent ;
-    ns6:familyName "Chung" ;
-    ns6:givenName "J. Y." .
+<https://w3id.org/OC/meta/id/35558> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:issn ;
+    ns9:hasLiteralValue "0924-4247" .
 
-<https://w3id.org/OC/meta/ra/18> a ns6:Agent ;
-    ns6:name "American Medical Association (ama)" .
+<https://w3id.org/OC/meta/id/35559> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:issn ;
+    ns9:hasLiteralValue "0013-1911" .
 
-<https://w3id.org/OC/meta/ra/2> a ns6:Agent ;
-    ns6:name "American Medical Association (ama)" .
+<https://w3id.org/OC/meta/id/35560> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:issn ;
+    ns9:hasLiteralValue "0022-2461" .
 
-<https://w3id.org/OC/meta/ra/3> a ns6:Agent ;
-    ns6:familyName "Boudou" ;
-    ns6:givenName "P." .
+<https://w3id.org/OC/meta/id/35561> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:issn ;
+    ns9:hasLiteralValue "0969-8043" .
 
-<https://w3id.org/OC/meta/ra/4> a ns6:Agent ;
-    ns6:name "American Medical Association (ama)" .
+<https://w3id.org/OC/meta/id/35562> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:crossref ;
+    ns9:hasLiteralValue "9437" .
 
-<https://w3id.org/OC/meta/ra/5> a ns6:Agent ;
-    ns6:familyName "O'Malley" ;
-    ns6:givenName "M. P." .
+<https://w3id.org/OC/meta/id/35563> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:orcid ;
+    ns9:hasLiteralValue "http://orcid.org/0000-0002-7840-0210" .
 
-<https://w3id.org/OC/meta/ra/6> a ns6:Agent ;
-    ns6:name "American Medical Association (ama)" .
+<https://w3id.org/OC/meta/id/35564> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:orcid ;
+    ns9:hasLiteralValue "http://orcid.org/0000-0001-6112-6975" .
 
-<https://w3id.org/OC/meta/ra/7> a ns6:Agent ;
-    ns6:familyName "Dizon" ;
-    ns6:givenName "M. V." .
+<https://w3id.org/OC/meta/id/35565> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:orcid ;
+    ns9:hasLiteralValue "http://orcid.org/0000-0001-5251-4116" .
 
-<https://w3id.org/OC/meta/ra/8> a ns6:Agent ;
-    ns6:name "American Medical Association (ama)" .
+<https://w3id.org/OC/meta/id/35566> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:crossref ;
+    ns9:hasLiteralValue "98" .
 
-<https://w3id.org/OC/meta/ra/9> a ns6:Agent ;
-    ns6:familyName "Naylor" ;
-    ns6:givenName "M. F." .
+<https://w3id.org/OC/meta/id/35567> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:crossref ;
+    ns9:hasLiteralValue "297" .
 
-<https://w3id.org/OC/meta/re/1> a ns8:Manifestation ;
-    ns3:endingPage "1126" ;
-    ns3:startingPage "1122" .
+<https://w3id.org/OC/meta/id/35568> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:crossref ;
+    ns9:hasLiteralValue "4247" .
 
-<https://w3id.org/OC/meta/re/10> a ns8:Manifestation ;
-    ns3:endingPage "1163" ;
-    ns3:startingPage "1162" .
+<https://w3id.org/OC/meta/id/35569> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:crossref ;
+    ns9:hasLiteralValue "301" .
 
-<https://w3id.org/OC/meta/re/2> a ns8:Manifestation ;
-    ns3:endingPage "1133" ;
-    ns3:startingPage "1129" .
+<https://w3id.org/OC/meta/id/35570> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:crossref ;
+    ns9:hasLiteralValue "78" .
 
-<https://w3id.org/OC/meta/re/3> a ns8:Manifestation ;
-    ns3:endingPage "1138" ;
-    ns3:startingPage "1134" .
+<https://w3id.org/OC/meta/id/35571> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:crossref ;
+    ns9:hasLiteralValue "179" .
 
-<https://w3id.org/OC/meta/re/4> a ns8:Manifestation ;
-    ns3:endingPage "1145" ;
-    ns3:startingPage "1143" .
+<https://w3id.org/OC/meta/id/35572> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:crossref ;
+    ns9:hasLiteralValue "266" .
 
-<https://w3id.org/OC/meta/re/5> a ns8:Manifestation ;
-    ns3:endingPage "1154" ;
-    ns3:startingPage "1146" .
+<https://w3id.org/OC/meta/id/35573> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:crossref ;
+    ns9:hasLiteralValue "13" .
 
-<https://w3id.org/OC/meta/re/6> a ns8:Manifestation ;
-    ns3:endingPage "1157" ;
-    ns3:startingPage "1156" .
+<https://w3id.org/OC/meta/ra/31984> a ns4:Agent ;
+    ns4:familyName "Stewart" ;
+    ns4:givenName "Sarah M." .
 
-<https://w3id.org/OC/meta/re/7> a ns8:Manifestation ;
-    ns3:endingPage "1160" ;
-    ns3:startingPage "1158" .
+<https://w3id.org/OC/meta/ra/31985> a ns4:Agent ;
+    ns4:familyName "Mcgilchrist" ;
+    ns4:givenName "Peter" .
 
-<https://w3id.org/OC/meta/re/8> a ns8:Manifestation ;
-    ns3:endingPage "1162" ;
+<https://w3id.org/OC/meta/ra/31986> a ns4:Agent ;
+    ns4:familyName "Gardner" ;
+    ns4:givenName "Graham E." .
+
+<https://w3id.org/OC/meta/ra/31987> a ns4:Agent ;
+    ns4:familyName "Pethick" ;
+    ns4:givenName "David W." .
+
+<https://w3id.org/OC/meta/ra/31988> a ns4:Agent ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35562> ;
+    ns4:name "American Meat Science Association" .
+
+<https://w3id.org/OC/meta/ra/31989> a ns4:Agent ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35563> ;
+    ns4:familyName "Jiang" ;
+    ns4:givenName "Qian" .
+
+<https://w3id.org/OC/meta/ra/31990> a ns4:Agent ;
+    ns4:familyName "Chen" ;
+    ns4:givenName "Jiashun" .
+
+<https://w3id.org/OC/meta/ra/31991> a ns4:Agent ;
+    ns4:familyName "Yang" ;
+    ns4:givenName "Chengbo" .
+
+<https://w3id.org/OC/meta/ra/31992> a ns4:Agent ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35564> ;
+    ns4:familyName "Yin" ;
+    ns4:givenName "Yulong" .
+
+<https://w3id.org/OC/meta/ra/31993> a ns4:Agent ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35565> ;
+    ns4:familyName "Yao" ;
+    ns4:givenName "Kang" .
+
+<https://w3id.org/OC/meta/ra/31994> a ns4:Agent ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35566> ;
+    ns4:name "Hindawi Limited" .
+
+<https://w3id.org/OC/meta/ra/31995> a ns4:Agent ;
+    ns4:familyName "Neumann" ;
+    ns4:givenName "F." .
+
+<https://w3id.org/OC/meta/ra/31996> a ns4:Agent ;
+    ns4:familyName "Hamada" ;
+    ns4:givenName "H." .
+
+<https://w3id.org/OC/meta/ra/31998> a ns4:Agent ;
+    ns4:familyName "Botella Nicolás" ;
+    ns4:givenName "Ana Mª" .
+
+<https://w3id.org/OC/meta/ra/31999> a ns4:Agent ;
+    ns4:familyName "Fosati Parreño" ;
+    ns4:givenName "Amparo" .
+
+<https://w3id.org/OC/meta/ra/32000> a ns4:Agent ;
+    ns4:familyName "Canet Benavent" ;
+    ns4:givenName "Regina" .
+
+<https://w3id.org/OC/meta/ra/32001> a ns4:Agent ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35568> ;
+    ns4:name "Universitat De Valencia" .
+
+<https://w3id.org/OC/meta/ra/32002> a ns4:Agent ;
+    ns4:familyName "Li" ;
+    ns4:givenName "Xiangrong" .
+
+<https://w3id.org/OC/meta/ra/32003> a ns4:Agent ;
+    ns4:familyName "Ruan" ;
+    ns4:givenName "Qingsong" .
+
+<https://w3id.org/OC/meta/ra/32005> a ns4:Agent ;
+    ns4:familyName "Taylor" ;
+    ns4:givenName "Ronald L." .
+
+<https://w3id.org/OC/meta/ra/32007> a ns4:Agent ;
+    ns4:familyName "Wehrli" ;
+    ns4:givenName "Marcel" .
+
+<https://w3id.org/OC/meta/ra/32008> a ns4:Agent ;
+    ns4:familyName "Diantonio" ;
+    ns4:givenName "Aaron" .
+
+<https://w3id.org/OC/meta/ra/32009> a ns4:Agent ;
+    ns4:familyName "Fearnley" ;
+    ns4:givenName "Ian M." .
+
+<https://w3id.org/OC/meta/ra/32010> a ns4:Agent ;
+    ns4:familyName "Smith" ;
+    ns4:givenName "Richard J." .
+
+<https://w3id.org/OC/meta/ra/32011> a ns4:Agent ;
+    ns4:familyName "Wilcox" ;
+    ns4:givenName "Michael" .
+
+<https://w3id.org/OC/meta/ra/32012> a ns4:Agent ;
+    ns4:familyName "Dutton" ;
+    ns4:givenName "Jane E." .
+
+<https://w3id.org/OC/meta/ra/32013> a ns4:Agent ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35571> ;
+    ns4:name "Sage Publications" .
+
+<https://w3id.org/OC/meta/ra/32014> a ns4:Agent ;
+    ns4:familyName "Kelly-Wintenberg" ;
+    ns4:givenName "K" .
+
+<https://w3id.org/OC/meta/ra/32015> a ns4:Agent ;
+    ns4:familyName "Montie" ;
+    ns4:givenName "T C" .
+
+<https://w3id.org/OC/meta/ra/32016> a ns4:Agent ;
+    ns4:familyName "Brickman" ;
+    ns4:givenName "C" .
+
+<https://w3id.org/OC/meta/ra/32017> a ns4:Agent ;
+    ns4:familyName "Roth" ;
+    ns4:givenName "J R" .
+
+<https://w3id.org/OC/meta/ra/32018> a ns4:Agent ;
+    ns4:familyName "Carr" ;
+    ns4:givenName "A K" .
+
+<https://w3id.org/OC/meta/ra/32019> a ns4:Agent ;
+    ns4:familyName "Sorge" ;
+    ns4:givenName "K" .
+
+<https://w3id.org/OC/meta/ra/32020> a ns4:Agent ;
+    ns4:familyName "Wadsworth" ;
+    ns4:givenName "L C" .
+
+<https://w3id.org/OC/meta/ra/32021> a ns4:Agent ;
+    ns4:familyName "Tsai" ;
+    ns4:givenName "P P Y" .
+
+<https://w3id.org/OC/meta/ra/32022> a ns4:Agent ;
+    ns4:familyName "Dodd" ;
+    ns4:givenName "M.B." .
+
+<https://w3id.org/OC/meta/ra/32023> a ns4:Agent ;
+    ns4:familyName "Lauenroth" ;
+    ns4:givenName "W.K." .
+
+<https://w3id.org/OC/meta/ra/32024> a ns4:Agent ;
+    ns4:familyName "Burke" ;
+    ns4:givenName "I.C." .
+
+<https://w3id.org/OC/meta/ra/32025> a ns4:Agent ;
+    ns4:familyName "Chapman" ;
+    ns4:givenName "P.L." .
+
+<https://w3id.org/OC/meta/ra/32026> a ns4:Agent ;
+    ns4:familyName "Cockrem" ;
+    ns4:givenName "J.F." .
+
+<https://w3id.org/OC/meta/ra/32027> a ns4:Agent ;
+    ns4:familyName "Silverin" ;
+    ns4:givenName "B." .
+
+<https://w3id.org/OC/meta/ra/32028> a ns4:Agent ;
+    ns4:familyName "Entin-Wohlman" ;
+    ns4:givenName "O" .
+
+<https://w3id.org/OC/meta/ra/32029> a ns4:Agent ;
+    ns4:familyName "Gefen" ;
+    ns4:givenName "Y" .
+
+<https://w3id.org/OC/meta/ra/32030> a ns4:Agent ;
+    ns4:familyName "Shapira" ;
+    ns4:givenName "Y" .
+
+<https://w3id.org/OC/meta/ra/32031> a ns4:Agent ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35572> ;
+    ns4:name "Iop Publishing" .
+
+<https://w3id.org/OC/meta/ra/32032> a ns4:Agent ;
+    ns4:familyName "Kawamura" ;
+    ns4:givenName "Hiroyuki" .
+
+<https://w3id.org/OC/meta/ra/32033> a ns4:Agent ;
+    ns4:familyName "Moritani" ;
+    ns4:givenName "Kimikazu" .
+
+<https://w3id.org/OC/meta/ra/32034> a ns4:Agent ;
+    ns4:familyName "Lto" ;
+    ns4:givenName "Yasuhiko" .
+
+<https://w3id.org/OC/meta/ra/32035> a ns4:Agent ;
+    ns4:familyName "Chau" ;
+    ns4:givenName "C.K" .
+
+<https://w3id.org/OC/meta/ra/32036> a ns4:Agent ;
+    ns4:familyName "Tu" ;
+    ns4:givenName "E.Y" .
+
+<https://w3id.org/OC/meta/ra/32037> a ns4:Agent ;
+    ns4:familyName "Chan" ;
+    ns4:givenName "D.W.T" .
+
+<https://w3id.org/OC/meta/ra/32038> a ns4:Agent ;
+    ns4:familyName "Burnett" ;
+    ns4:givenName "J" .
+
+<https://w3id.org/OC/meta/ra/32039> a ns4:Agent ;
+    ns4:familyName "Moore" ;
+    ns4:givenName "Dennis" .
+
+<https://w3id.org/OC/meta/ra/32040> a ns4:Agent ;
+    ns4:familyName "Hisard" ;
+    ns4:givenName "Philippe" .
+
+<https://w3id.org/OC/meta/ra/32041> a ns4:Agent ;
+    ns4:familyName "Mccreary" ;
+    ns4:givenName "Julian" .
+
+<https://w3id.org/OC/meta/ra/32042> a ns4:Agent ;
+    ns4:familyName "Merle" ;
+    ns4:givenName "Jacques" .
+
+<https://w3id.org/OC/meta/ra/32043> a ns4:Agent ;
+    ns4:familyName "O'Brien" ;
+    ns4:givenName "James" .
+
+<https://w3id.org/OC/meta/ra/32044> a ns4:Agent ;
+    ns4:familyName "Picaut" ;
+    ns4:givenName "Joël" .
+
+<https://w3id.org/OC/meta/ra/32045> a ns4:Agent ;
+    ns4:familyName "Verstraete" ;
+    ns4:givenName "Jean-Marc" .
+
+<https://w3id.org/OC/meta/ra/32046> a ns4:Agent ;
+    ns4:familyName "Wunsch" ;
+    ns4:givenName "Carl" .
+
+<https://w3id.org/OC/meta/ra/32047> a ns4:Agent ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35573> ;
+    ns4:name "American Geophysical Union (agu)" .
+
+<https://w3id.org/OC/meta/ra/32048> a ns4:Agent ;
+    ns4:familyName "Wolfe" ;
+    ns4:givenName "Christy D." .
+
+<https://w3id.org/OC/meta/ra/32049> a ns4:Agent ;
+    ns4:familyName "Bell" ;
+    ns4:givenName "Martha Ann" .
+
+<https://w3id.org/OC/meta/ra/32050> a ns4:Agent ;
+    ns4:familyName "Liu" ;
+    ns4:givenName "Sheng A." .
+
+<https://w3id.org/OC/meta/ra/32051> a ns4:Agent ;
+    ns4:familyName "Tzo" ;
+    ns4:givenName "Hung L." .
+
+<https://w3id.org/OC/meta/ra/32052> a ns4:Agent ;
+    ns4:familyName "Wheldall" ;
+    ns4:givenName "Kevin" .
+
+<https://w3id.org/OC/meta/ra/32053> a ns4:Agent ;
+    ns4:familyName "Merrett" ;
+    ns4:givenName "Frank" .
+
+<https://w3id.org/OC/meta/ra/32054> a ns4:Agent ;
+    ns4:familyName "Tsuchida" ;
+    ns4:givenName "Takeshi" .
+
+<https://w3id.org/OC/meta/ra/32055> a ns4:Agent ;
+    ns4:familyName "Yamamoto" ;
+    ns4:givenName "Satoshi" .
+
+<https://w3id.org/OC/meta/ra/32056> a ns4:Agent ;
+    ns4:familyName "Le Petit" ;
+    ns4:givenName "G." .
+
+<https://w3id.org/OC/meta/ra/32057> a ns4:Agent ;
+    ns4:familyName "Jutier" ;
+    ns4:givenName "C." .
+
+<https://w3id.org/OC/meta/ra/32058> a ns4:Agent ;
+    ns4:familyName "Gross" ;
+    ns4:givenName "P." .
+
+<https://w3id.org/OC/meta/ra/32059> a ns4:Agent ;
+    ns4:familyName "Greiner" ;
+    ns4:givenName "V." .
+
+<https://w3id.org/OC/meta/re/15656> a ns7:Manifestation ;
+    ns3:endingPage "254" ;
+    ns3:startingPage "254" .
+
+<https://w3id.org/OC/meta/re/15657> a ns7:Manifestation ;
+    ns3:endingPage "15" ;
+    ns3:startingPage "1" .
+
+<https://w3id.org/OC/meta/re/15658> a ns7:Manifestation ;
+    ns3:endingPage "304" ;
+    ns3:startingPage "301" .
+
+<https://w3id.org/OC/meta/re/15659> a ns7:Manifestation ;
+    ns3:endingPage "70" ;
+    ns3:startingPage "70" .
+
+<https://w3id.org/OC/meta/re/15660> a ns7:Manifestation ;
+    ns3:endingPage "506" ;
+    ns3:startingPage "496" .
+
+<https://w3id.org/OC/meta/re/15661> a ns7:Manifestation ;
+    ns3:endingPage "428" ;
+    ns3:startingPage "427" .
+
+<https://w3id.org/OC/meta/re/15662> a ns7:Manifestation ;
+    ns3:endingPage "36" ;
+    ns3:startingPage "21" .
+
+<https://w3id.org/OC/meta/re/15663> a ns7:Manifestation ;
+    ns3:endingPage "19" ;
+    ns3:startingPage "5" .
+
+<https://w3id.org/OC/meta/re/15664> a ns7:Manifestation ;
+    ns3:endingPage "74" ;
+    ns3:startingPage "69" .
+
+<https://w3id.org/OC/meta/re/15665> a ns7:Manifestation ;
+    ns3:endingPage "137" ;
+    ns3:startingPage "127" .
+
+<https://w3id.org/OC/meta/re/15666> a ns7:Manifestation ;
+    ns3:endingPage "255" ;
+    ns3:startingPage "248" .
+
+<https://w3id.org/OC/meta/re/15667> a ns7:Manifestation ;
+    ns3:endingPage "1167" ;
     ns3:startingPage "1161" .
 
-<https://w3id.org/OC/meta/re/9> a ns8:Manifestation ;
-    ns3:endingPage "1161" ;
-    ns3:startingPage "1161B" .
+<https://w3id.org/OC/meta/re/15668> a ns7:Manifestation ;
+    ns3:endingPage "36" ;
+    ns3:startingPage "29" .
 
-<https://w3id.org/OC/meta/br/13> a ns8:Expression,
-        ns8:JournalIssue ;
-    ns8:hasSequenceIdentifier "9" ;
-    ns5:partOf <https://w3id.org/OC/meta/br/12> .
+<https://w3id.org/OC/meta/re/15669> a ns7:Manifestation ;
+    ns3:endingPage "630" ;
+    ns3:startingPage "617" .
+
+<https://w3id.org/OC/meta/re/15670> a ns7:Manifestation ;
+    ns3:endingPage "640" ;
+    ns3:startingPage "637" .
+
+<https://w3id.org/OC/meta/re/15671> a ns7:Manifestation ;
+    ns3:endingPage "13" ;
+    ns3:startingPage "3" .
+
+<https://w3id.org/OC/meta/re/15672> a ns7:Manifestation ;
+    ns3:endingPage "230" ;
+    ns3:startingPage "223" .
+
+<https://w3id.org/OC/meta/re/15673> a ns7:Manifestation ;
+    ns3:endingPage "27" ;
+    ns3:startingPage "13" .
+
+<https://w3id.org/OC/meta/re/15674> a ns7:Manifestation ;
+    ns3:endingPage "778" ;
+    ns3:startingPage "772" .
+
+<https://w3id.org/OC/meta/re/15675> a ns7:Manifestation ;
+    ns3:endingPage "1312" ;
+    ns3:startingPage "1307" .
+
+<https://w3id.org/OC/meta/ar/52467> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/31985> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52468> .
+
+<https://w3id.org/OC/meta/ar/52468> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/31986> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52469> .
+
+<https://w3id.org/OC/meta/ar/52469> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/31987> ;
+    ns5:withRole ns5:author .
+
+<https://w3id.org/OC/meta/ar/52472> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/31990> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52473> .
+
+<https://w3id.org/OC/meta/ar/52473> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/31991> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52474> .
+
+<https://w3id.org/OC/meta/ar/52474> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/31992> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52475> .
+
+<https://w3id.org/OC/meta/ar/52475> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/31993> ;
+    ns5:withRole ns5:author .
+
+<https://w3id.org/OC/meta/ar/52478> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/31996> ;
+    ns5:withRole ns5:author .
+
+<https://w3id.org/OC/meta/ar/52481> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/31999> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52482> .
+
+<https://w3id.org/OC/meta/ar/52482> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32000> ;
+    ns5:withRole ns5:author .
+
+<https://w3id.org/OC/meta/ar/52485> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32003> ;
+    ns5:withRole ns5:author .
+
+<https://w3id.org/OC/meta/ar/52490> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32008> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52491> .
+
+<https://w3id.org/OC/meta/ar/52491> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32009> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52492> .
+
+<https://w3id.org/OC/meta/ar/52492> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32010> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52493> .
+
+<https://w3id.org/OC/meta/ar/52493> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32011> ;
+    ns5:withRole ns5:author .
+
+<https://w3id.org/OC/meta/ar/52498> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32015> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52499> .
+
+<https://w3id.org/OC/meta/ar/52499> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32016> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52500> .
+
+<https://w3id.org/OC/meta/ar/52500> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32017> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52501> .
+
+<https://w3id.org/OC/meta/ar/52501> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32018> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52502> .
+
+<https://w3id.org/OC/meta/ar/52502> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32019> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52503> .
+
+<https://w3id.org/OC/meta/ar/52503> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32020> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52504> .
+
+<https://w3id.org/OC/meta/ar/52504> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32021> ;
+    ns5:withRole ns5:author .
+
+<https://w3id.org/OC/meta/ar/52507> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32023> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52508> .
+
+<https://w3id.org/OC/meta/ar/52508> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32024> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52509> .
+
+<https://w3id.org/OC/meta/ar/52509> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32025> ;
+    ns5:withRole ns5:author .
+
+<https://w3id.org/OC/meta/ar/52512> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32027> ;
+    ns5:withRole ns5:author .
+
+<https://w3id.org/OC/meta/ar/52515> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32029> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52516> .
+
+<https://w3id.org/OC/meta/ar/52516> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32030> ;
+    ns5:withRole ns5:author .
+
+<https://w3id.org/OC/meta/ar/52519> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32033> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52520> .
+
+<https://w3id.org/OC/meta/ar/52520> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32034> ;
+    ns5:withRole ns5:author .
+
+<https://w3id.org/OC/meta/ar/52523> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32036> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52524> .
+
+<https://w3id.org/OC/meta/ar/52524> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32037> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52525> .
+
+<https://w3id.org/OC/meta/ar/52525> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32038> ;
+    ns5:withRole ns5:author .
+
+<https://w3id.org/OC/meta/ar/52528> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32040> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52529> .
+
+<https://w3id.org/OC/meta/ar/52529> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32041> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52530> .
+
+<https://w3id.org/OC/meta/ar/52530> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32042> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52531> .
+
+<https://w3id.org/OC/meta/ar/52531> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32043> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52532> .
+
+<https://w3id.org/OC/meta/ar/52532> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32044> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52533> .
+
+<https://w3id.org/OC/meta/ar/52533> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32045> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52534> .
+
+<https://w3id.org/OC/meta/ar/52534> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32046> ;
+    ns5:withRole ns5:author .
+
+<https://w3id.org/OC/meta/ar/52537> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32049> ;
+    ns5:withRole ns5:author .
+
+<https://w3id.org/OC/meta/ar/52540> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32051> ;
+    ns5:withRole ns5:author .
+
+<https://w3id.org/OC/meta/ar/52543> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32053> ;
+    ns5:withRole ns5:author .
+
+<https://w3id.org/OC/meta/ar/52546> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32055> ;
+    ns5:withRole ns5:author .
+
+<https://w3id.org/OC/meta/ar/52549> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32057> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52550> .
+
+<https://w3id.org/OC/meta/ar/52550> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32058> ;
+    ns5:withRole ns5:author ;
+    ns8:hasNext <https://w3id.org/OC/meta/ar/52551> .
+
+<https://w3id.org/OC/meta/ar/52551> a ns5:RoleInTime ;
+    ns5:isHeldBy <https://w3id.org/OC/meta/ra/32059> ;
+    ns5:withRole ns5:author .
+
+<https://w3id.org/OC/meta/ra/32004> a ns4:Agent ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35569> ;
+    ns4:name "Informa Uk Limited" .
+
+<https://w3id.org/OC/meta/ra/31997> a ns4:Agent ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35567> ;
+    ns4:name "Springer Berlin Heidelberg" .
+
+<https://w3id.org/OC/meta/ra/32006> a ns4:Agent ;
+    ns1:hasIdentifier <https://w3id.org/OC/meta/id/35570> ;
+    ns4:name "Elsevier Bv" .
 
