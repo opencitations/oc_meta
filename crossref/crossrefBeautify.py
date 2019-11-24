@@ -1,21 +1,21 @@
 import json, html
 from bs4 import BeautifulSoup
-
+import csv
+from scripts.orcidmanager import ORCIDManager
 class crossrefBeautify:
 
-    def __init__(self, raw_data_path, randomize=False):
+    def __init__(self, raw_data_path, orcid_index):
+        self.orcid_index = datacollect(orcid_index)
         self.data = list()
         with open(raw_data_path, encoding="utf-8") as json_file:
-            raw_data = json.load(json_file)
 
-            if randomize:
-                input_data = raw_data["items"][:20]
-            else:
-                input_data = raw_data["items"]
+            raw_data = json.load(json_file)
+            input_data = raw_data["items"]
 
             for x in input_data:
                 row = dict()
 
+                self.doi = None
                 #create empty row
                 keys = ["id", "title", "author", "pub_date", "venue", "volume", "issue", "page", "type", "publisher",
                         "editor"]
@@ -30,8 +30,10 @@ class crossrefBeautify:
                 if "DOI" in x:
                     if isinstance(x["DOI"], list):
                         idlist.append(str("doi:" + str(x["DOI"][0])))
+                        self.doi = str(x["DOI"][0])
                     else:
                         idlist.append(str("doi:" + str(x["DOI"])))
+                        self.doi = str(x["DOI"])
 
                 if "ISBN" in x:
                     if row["type"] in {"book", "monograph", "edited book"}:
@@ -62,19 +64,35 @@ class crossrefBeautify:
 
                 #row["author"]
                 if "author" in x:
+                    dict_orcid = None
+                    if self.doi and not all("ORCID" in at for at in x["author"]):
+                        dict_orcid = self.orcid_finder()
                     autlist = list()
                     for at in x["author"]:
                         if "family" in at:
+                            f_name = at["family"]
+                            g_name = at["given"]
                             if "given" in at:
-                                aut = at["family"] + ", " + at["given"]
+                                aut = f_name + ", " + g_name
                             else:
-                                aut = at["family"] + ", "
+                                aut = f_name + ", "
+
                             if "ORCID" in at:
                                 if isinstance(at["ORCID"], list):
-                                    aut = aut + " [" + str("orcid:" + str(at["ORCID"][0])) + "]"
+                                    orcid = ORCIDManager().normalise(str(at["ORCID"][0]))
                                 else:
-                                    aut = aut + " [" + str("orcid:" + str(at["ORCID"])) + "]"
+                                    orcid = ORCIDManager().normalise(str(at["ORCID"]))
+                                aut = aut + " [" + "orcid:" + orcid + "]"
+                            elif dict_orcid:
+                                for x in dict_orcid:
+                                    orc_n = dict_orcid[x].split(", ")
+                                    orc_f = orc_n[0]
+                                    orc_g = orc_n[1]
+                                    if (f_name.lower() in orc_f.lower() or orc_f.lower() in f_name.lower()):
+                                        #and (g_name.lower() in orc_g.lower() or orc_g.lower() in g_name.lower()):
+                                        aut = aut + " [" + "orcid:" + str(x) + "]"
                             autlist.append(aut)
+
                     row["author"] = "; ".join(autlist)
 
                 #row["date"]
@@ -138,5 +156,24 @@ class crossrefBeautify:
                                     edit = edit + " [" + str("orcid:" + str(ed["ORCID"])) + "]"
                             editlist.append(edit)
                     row["editor"] = "; ".join(editlist)
-
                 self.data.append(row)
+
+    def orcid_finder(self):
+        found = dict()
+        if self.doi in self.orcid_index:
+            orcids = self.orcid_index[self.doi]
+            if orcids:
+                orcids = orcids.split("; ")
+                for orc in orcids:
+                    orc = orc.replace("]", "").split(" [")
+                    found[orc[1]] = orc[0].lower()
+        return found
+
+def datacollect(data_path):
+    data = dict()
+    with open(data_path, 'r', encoding='utf-8') as csvfile:
+        csv.field_size_limit(500000000)
+        reader = csv.DictReader(csvfile, delimiter="\t")
+        for x in reader:
+            data[x["doi"].lower()] = x["orcid"]
+        return  data

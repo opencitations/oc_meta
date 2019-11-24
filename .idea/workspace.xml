@@ -2,17 +2,14 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="d2b23c46-2db9-4b25-a89e-e1906277cf0f" name="Default" comment="">
-      <change afterPath="$PROJECT_DIR$/crossref/crossrefBeautify.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/meta.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/meta.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/orcid/index_orcid_doi.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/converter.py" beforeDir="false" afterPath="$PROJECT_DIR$/converter.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/1.json" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/crossref/converter_counter/ar.txt" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/converter_counter/ar.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/crossref/converter_counter/br.txt" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/converter_counter/br.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/crossref/converter_counter/id.txt" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/converter_counter/id.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/crossref/converter_counter/ra.txt" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/converter_counter/ra.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/crossref/converter_counter/re.txt" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/converter_counter/re.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/crossref/crossrefBeautify.py" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/crossrefBeautify.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/crossref/crossref_01.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/crossref_01.ttl" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_01/data_crossref_01.csv" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/csv/indices/crossref_01/data_crossref_01.csv" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_01/index_ar_crossref_01.csv" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/csv/indices/crossref_01/index_ar_crossref_01.csv" afterDir="false" />
@@ -21,8 +18,6 @@
       <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_01/index_re_crossref_01.csv" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/csv/indices/crossref_01/index_re_crossref_01.csv" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_01/index_vi_crossref_01.json" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/csv/indices/crossref_01/index_vi_crossref_01.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/crossref/warmup.py" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/warmup.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/graphlib.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/graphlib.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tdd/converter_TDD.py" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/converter_TDD.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -57,7 +52,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Python.warmup">
+  <component name="RunManager" selected="Python.prova">
     <configuration name="converter_TDD" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="meta" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -172,10 +167,10 @@
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.prova" />
         <item itemvalue="Python.warmup" />
         <item itemvalue="Python.converter_TDD" />
         <item itemvalue="Python.migrator_TDD" />
-        <item itemvalue="Python.prova" />
         <item itemvalue="Python.ggffg" />
       </list>
     </recent_temporary>
@@ -207,7 +202,9 @@
       <map>
         <entry key="MAIN">
           <value>
-            <State />
+            <State>
+              <option name="COLUMN_ORDER" />
+            </State>
           </value>
         </entry>
       </map>
