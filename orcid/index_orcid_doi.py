@@ -21,8 +21,9 @@ class index_orcid_doi:
                     xml_soup = BeautifulSoup(xml_file, 'xml')
                     g_name = xml_soup.find('personal-details:given-names')
                     f_name = xml_soup.find('personal-details:family-name')
-                    if g_name and g_name:
-                        g_name = g_name.get_text()
+                    if f_name:
+                        if g_name:
+                            g_name = g_name.get_text()
                         f_name = f_name.get_text()
                         name = f_name + ", " + g_name
                         ids = xml_soup.findAll('common:external-id')

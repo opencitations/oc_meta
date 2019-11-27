@@ -15,10 +15,11 @@
 # SOFTWARE.
 
 
+from scripts.id_manager.identifiermanager import IdentifierManager
 from re import sub, match
 
 
-class ORCIDManager:
+class ORCIDManager(IdentifierManager):
     def __init__(self):
         self.p = "orcid:"
         super(ORCIDManager, self).__init__()

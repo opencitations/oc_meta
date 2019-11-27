@@ -1,7 +1,7 @@
 import json, html
 from bs4 import BeautifulSoup
 import csv
-from scripts.orcidmanager import ORCIDManager
+from scripts.id_manager.orcidmanager import ORCIDManager
 class crossrefBeautify:
 
     def __init__(self, raw_data_path, orcid_index):

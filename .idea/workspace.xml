@@ -2,22 +2,33 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="d2b23c46-2db9-4b25-a89e-e1906277cf0f" name="Default" comment="">
-      <change afterPath="$PROJECT_DIR$/orcid/index_orcid_doi.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/converter.py" beforeDir="false" afterPath="$PROJECT_DIR$/converter.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/crossref/converter_counter/ar.txt" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/converter_counter/ar.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/crossref/converter_counter/br.txt" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/converter_counter/br.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/crossref/converter_counter/id.txt" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/converter_counter/id.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/crossref/converter_counter/ra.txt" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/converter_counter/ra.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/crossref/converter_counter/re.txt" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/converter_counter/re.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/crossref/crossrefBeautify.py" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/crossrefBeautify.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/crossref_01.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/crossref_01.ttl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_01/data_crossref_01.csv" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/csv/indices/crossref_01/data_crossref_01.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_01/index_ar_crossref_01.csv" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/csv/indices/crossref_01/index_ar_crossref_01.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_01/index_id_br_crossref_01.csv" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/csv/indices/crossref_01/index_id_br_crossref_01.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_01/index_id_ra_crossref_01.csv" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/csv/indices/crossref_01/index_id_ra_crossref_01.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_01/index_re_crossref_01.csv" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/csv/indices/crossref_01/index_re_crossref_01.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_01/index_vi_crossref_01.json" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/csv/indices/crossref_01/index_vi_crossref_01.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/warmup.py" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/warmup.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_orcid_prova/data_crossref_orcid_prova.csv" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/csv/indices/crossref_orcid_prova/data_crossref_orcid_prova.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_orcid_prova/index_ar_crossref_orcid_prova.csv" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/csv/indices/crossref_orcid_prova/index_ar_crossref_orcid_prova.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_orcid_prova/index_id_br_crossref_orcid_prova.csv" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/csv/indices/crossref_orcid_prova/index_id_br_crossref_orcid_prova.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_orcid_prova/index_id_ra_crossref_orcid_prova.csv" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/csv/indices/crossref_orcid_prova/index_id_ra_crossref_orcid_prova.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_orcid_prova/index_re_crossref_orcid_prova.csv" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/csv/indices/crossref_orcid_prova/index_re_crossref_orcid_prova.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_orcid_prova/index_vi_crossref_orcid_prova.json" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/csv/indices/crossref_orcid_prova/index_vi_crossref_orcid_prova.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/orcid/index_orcid_doi.py" beforeDir="false" afterPath="$PROJECT_DIR$/orcid/index_orcid_doi.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/orcidmanager.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/converter_TDD.py" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/converter_TDD.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/converter_counter/ar.txt" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/converter_counter/ar.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/converter_counter/br.txt" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/converter_counter/br.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/converter_counter/id.txt" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/converter_counter/id.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/converter_counter/re.txt" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/converter_counter/re.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/new_test_data.csv" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/new_test_data.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/01/index_id_br_01.csv" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/01/index_id_br_01.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/01/index_id_ra_01.csv" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/01/index_id_ra_01.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/02/index_id_br_02.csv" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/02/index_id_br_02.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_01_data.csv" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_01_data.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_02_data.csv" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_02_data.csv" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -37,8 +48,13 @@
   </component>
   <component name="ProjectId" id="1TeeWZRitHUySD7L0r0MjaS19So" />
   <component name="PropertiesComponent">
-    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/scripts/id_manager" />
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
+  </component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\Fabio\Documents\GitHub\meta\scripts\id_manager" />
+    </key>
   </component>
   <component name="RunDashboard">
     <option name="ruleStates">
@@ -52,7 +68,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Python.prova">
+  <component name="RunManager" selected="Python.converter_TDD">
     <configuration name="converter_TDD" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="meta" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -167,9 +183,9 @@
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.prova" />
-        <item itemvalue="Python.warmup" />
         <item itemvalue="Python.converter_TDD" />
+        <item itemvalue="Python.warmup" />
+        <item itemvalue="Python.prova" />
         <item itemvalue="Python.migrator_TDD" />
         <item itemvalue="Python.ggffg" />
       </list>
