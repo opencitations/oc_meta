@@ -1,11 +1,16 @@
 import json, html
 from bs4 import BeautifulSoup
-import csv
 from scripts.id_manager.orcidmanager import ORCIDManager
+from scripts.csvmanager import CSVManager
+from scripts.id_manager.issnmanager import ISSNManager
+from scripts.id_manager.isbnmanager import ISBNManager
+from scripts.id_manager.doimanager import DOIManager
+
+
 class crossrefBeautify:
 
     def __init__(self, raw_data_path, orcid_index):
-        self.orcid_index = datacollect(orcid_index)
+        self.orcid_index = CSVManager(orcid_index)
         self.data = list()
         with open(raw_data_path, encoding="utf-8") as json_file:
 
@@ -15,7 +20,6 @@ class crossrefBeautify:
             for x in input_data:
                 row = dict()
 
-                self.doi = None
                 #create empty row
                 keys = ["id", "title", "author", "pub_date", "venue", "volume", "issue", "page", "type", "publisher",
                         "editor"]
@@ -27,28 +31,33 @@ class crossrefBeautify:
 
                 #row["id"]
                 idlist = list()
+                doi = None
                 if "DOI" in x:
                     if isinstance(x["DOI"], list):
-                        idlist.append(str("doi:" + str(x["DOI"][0])))
-                        self.doi = str(x["DOI"][0])
+                        doi = DOIManager().normalise(str(x["DOI"][0]))
                     else:
-                        idlist.append(str("doi:" + str(x["DOI"])))
-                        self.doi = str(x["DOI"])
+                        doi = DOIManager().normalise(str(x["DOI"]))
+                    idlist.append(str("doi:" + doi))
 
                 if "ISBN" in x:
                     if row["type"] in {"book", "monograph", "edited book"}:
                         if isinstance(x["ISBN"], list):
-                            idlist.append(str("isbn:" + str(x["ISBN"][0])))
+                            isbnid = str(x["ISBN"][0])
                         else:
-                            idlist.append(str("isbn:" + str(x["ISBN"])))
+                            isbnid = str(x["ISBN"])
+                        if ISBNManager().is_valid(isbnid):
+                            isbnid = ISBNManager().normalise(isbnid)
+                            idlist.append(str("isbn:" + isbnid))
 
                 if "ISSN" in x:
                     if row["type"] in {"journal", "series", "report series", "standard series"}:
                         if isinstance(x["ISSN"], list):
-                            idlist.append(str("issn:" + str(x["ISSN"][0])))
+                            issnid = str(x["ISSN"][0])
                         else:
-                            idlist.append(str("issn:" + str(x["ISSN"])))
-
+                            issnid = str(x["ISSN"])
+                        if ISSNManager().is_valid(issnid):
+                            issnid = ISSNManager().normalise(issnid)
+                            idlist.append(str("issn:" + issnid))
                 row["id"] = " ".join(idlist)
 
                 #row["title"]
@@ -65,8 +74,8 @@ class crossrefBeautify:
                 #row["author"]
                 if "author" in x:
                     dict_orcid = None
-                    if self.doi and not all("ORCID" in at for at in x["author"]):
-                        dict_orcid = self.orcid_finder()
+                    if doi and not all("ORCID" in at for at in x["author"]):
+                        dict_orcid = self.orcid_finder(doi)
                     autlist = list()
                     for at in x["author"]:
                         if "family" in at:
@@ -76,13 +85,16 @@ class crossrefBeautify:
                                 aut = f_name + ", " + g_name
                             else:
                                 aut = f_name + ", "
-
+                            orcid = None
                             if "ORCID" in at:
                                 if isinstance(at["ORCID"], list):
-                                    orcid = ORCIDManager().normalise(str(at["ORCID"][0]))
+                                    orcid = str(at["ORCID"][0])
                                 else:
-                                    orcid = ORCIDManager().normalise(str(at["ORCID"]))
-                                aut = aut + " [" + "orcid:" + orcid + "]"
+                                    orcid = str(at["ORCID"])
+                                if ORCIDManager().is_valid(orcid):
+                                    orcid = ORCIDManager().normalise(orcid)
+                                else:
+                                    orcid = None
                             elif dict_orcid:
                                 for x in dict_orcid:
                                     orc_n = dict_orcid[x].split(", ")
@@ -90,7 +102,9 @@ class crossrefBeautify:
                                     orc_g = orc_n[1]
                                     if (f_name.lower() in orc_f.lower() or orc_f.lower() in f_name.lower()):
                                         #and (g_name.lower() in orc_g.lower() or orc_g.lower() in g_name.lower()):
-                                        aut = aut + " [" + "orcid:" + str(x) + "]"
+                                        orcid = x
+                            if orcid:
+                                aut = aut + " [" + "orcid:" + str(orcid) + "]"
                             autlist.append(aut)
 
                     row["author"] = "; ".join(autlist)
@@ -98,7 +112,6 @@ class crossrefBeautify:
                 #row["date"]
                 if "issued" in x:
                     row["pub_date"] = "-".join([str(y) for y in x["issued"]["date-parts"][0]])
-
 
                 #row["venue"]
                 if "container-title" in x:
@@ -108,22 +121,28 @@ class crossrefBeautify:
                         ventit = str(x["container-title"])
                     ven_soup = BeautifulSoup(ventit, "html.parser")
                     ventit = html.unescape(ven_soup.get_text())
-
+                    venidlist = list()
                     if "ISBN" in x:
                         if row["type"] not in {"book", "monograph", "edited book"}:
                             if isinstance(x["ISBN"], list):
-                                venid = str("isbn:" + str(x["ISBN"][0]))
+                                venisbnid = str(x["ISBN"][0])
                             else:
-                                venid = str("isbn:" + str(x["ISBN"]))
+                                venisbnid = str(x["ISBN"])
+                            if ISBNManager().is_valid(venisbnid):
+                                venisbnid = ISBNManager().normalise(venisbnid)
+                                venidlist.append(str("isbn:" + venisbnid))
 
                     if "ISSN" in x:
                         if row["type"] not in {"journal", "series", "report series", "standard series"}:
                             if isinstance(x["ISSN"], list):
-                                venid = str("issn:" + str(x["ISSN"][0]))
+                                venissnid = str("issn:" + str(x["ISSN"][0]))
                             else:
-                                venid = str("issn:" + str(x["ISSN"]))
-                    if venid:
-                        row["venue"] = ventit + " [" + venid + "]"
+                                venissnid = str("issn:" + str(x["ISSN"]))
+                            if ISSNManager().is_valid(venissnid):
+                                venissnid = ISSNManager().normalise(venissnid)
+                                venidlist.append(str("issn:" + venissnid))
+                    if venidlist:
+                        row["venue"] = ventit + " [" + " ".join(venidlist) + "]"
                     else:
                         row["venue"] = ventit
 
@@ -149,31 +168,30 @@ class crossrefBeautify:
                                 edit = ed["family"] + ", " + ed["given"]
                             else:
                                 edit = ed["family"] + ", "
+                            edorcid = None
                             if "ORCID" in ed:
                                 if isinstance(ed["ORCID"], list):
-                                    edit = edit + " [" + str("orcid:" + str(ed["ORCID"][0])) + "]"
+                                    edorcid = str(ed["ORCID"][0])
                                 else:
-                                    edit = edit + " [" + str("orcid:" + str(ed["ORCID"])) + "]"
+                                    edorcid = str(ed["ORCID"])
+                                if ORCIDManager().is_valid(edorcid):
+                                    edorcid = ORCIDManager().normalise(edorcid)
+                                else:
+                                    edorcid = None
+                                if edorcid:
+                                    edit = edit + " [orcid:" + str(edorcid) + "]"
                             editlist.append(edit)
                     row["editor"] = "; ".join(editlist)
                 self.data.append(row)
 
-    def orcid_finder(self):
+    def orcid_finder(self, doi):
         found = dict()
-        if self.doi in self.orcid_index:
-            orcids = self.orcid_index[self.doi]
-            if orcids:
-                orcids = orcids.split("; ")
-                for orc in orcids:
+        doi = doi.lower()
+        orcids = self.orcid_index.get_value(doi)
+        if orcids:
+            for orcid in orcids:
+                orcid = orcid.split("; ")
+                for orc in orcid:
                     orc = orc.replace("]", "").split(" [")
                     found[orc[1]] = orc[0].lower()
         return found
-
-def datacollect(data_path):
-    data = dict()
-    with open(data_path, 'r', encoding='utf-8') as csvfile:
-        csv.field_size_limit(500000000)
-        reader = csv.DictReader(csvfile, delimiter="\t")
-        for x in reader:
-            data[x["doi"].lower()] = x["orcid"]
-        return  data

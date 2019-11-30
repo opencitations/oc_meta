@@ -1,13 +1,19 @@
-import csv, os
+import os
 from bs4 import BeautifulSoup
+from scripts.csvmanager import CSVManager
+from scripts.id_manager.doimanager import DOIManager
+
 
 class index_orcid_doi:
 
     def __init__(self, summaries_path, csv_path):
+        self.doi_index = CSVManager("doi_index.csv")
+        self.doimanager = DOIManager(valid_doi=self.doi_index)
+        self.csvstorage = CSVManager(csv_path)
         self.index = dict()
-
         self.finder(summaries_path)
-        self.write_csv(csv_path)
+        for x in self.index:
+            self.csvstorage.add_value(x, "; ".join(self.index[x]))
 
     def finder (self, summaries_path):
         x = 0
@@ -34,19 +40,15 @@ class index_orcid_doi:
                                 if type and rel:
                                     if type.get_text().lower() == "doi" and rel.get_text().lower() == "self":
                                         doi = el.find('common:external-id-value').get_text()
-                                        orcid = file.replace(".xml", "")
-                                        x +=1
-                                        auto = name + " [" + orcid + "]"
-                                        if doi in self.index:
-                                            if auto not in self.index[doi]:
-                                                self.index[doi].append(auto)
-                                        else:
-                                            self.index[doi] = list()
-                                            self.index[doi].append(auto)
-
-    def write_csv(self, path):
-        with open(path, 'w', newline='', encoding="utf-8") as output_file:
-            writer = csv.writer(output_file, delimiter='\t')
-            writer.writerow(['doi', 'orcid'])
-            for x in self.index:
-                writer.writerow((x , "; ".join(self.index[x])))
+                                        if self.doimanager.is_valid(doi):
+                                            doi = self.doimanager.normalise(doi)
+                                            if doi:
+                                                orcid = file.replace(".xml", "")
+                                                x +=1
+                                                auto = name + " [" + orcid + "]"
+                                                if doi in self.index:
+                                                    if auto not in self.index[doi]:
+                                                        self.index[doi].append(auto)
+                                                else:
+                                                    self.index[doi] = list()
+                                                    self.index[doi].append(auto)

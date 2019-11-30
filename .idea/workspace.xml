@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="d2b23c46-2db9-4b25-a89e-e1906277cf0f" name="Default" comment="">
+      <change afterPath="$PROJECT_DIR$/scripts/id_manager/isbnmanager.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/converter.py" beforeDir="false" afterPath="$PROJECT_DIR$/converter.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/crossref/converter_counter/ar.txt" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/converter_counter/ar.txt" afterDir="false" />
@@ -16,19 +17,38 @@
       <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_orcid_prova/index_id_ra_crossref_orcid_prova.csv" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/csv/indices/crossref_orcid_prova/index_id_ra_crossref_orcid_prova.csv" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_orcid_prova/index_re_crossref_orcid_prova.csv" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/csv/indices/crossref_orcid_prova/index_re_crossref_orcid_prova.csv" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_orcid_prova/index_vi_crossref_orcid_prova.json" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/csv/indices/crossref_orcid_prova/index_vi_crossref_orcid_prova.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/crossref/warmup.py" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/warmup.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/orcid/index_orcid_doi.py" beforeDir="false" afterPath="$PROJECT_DIR$/orcid/index_orcid_doi.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/orcidmanager.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/tdd/converter_TDD.py" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/converter_TDD.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tdd/converter_counter/ar.txt" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/converter_counter/ar.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tdd/converter_counter/br.txt" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/converter_counter/br.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tdd/converter_counter/id.txt" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/converter_counter/id.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/converter_counter/ra.txt" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/converter_counter/ra.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tdd/converter_counter/re.txt" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/converter_counter/re.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tdd/new_test_data.csv" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/new_test_data.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/01/index_id_br_01.csv" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/01/index_id_br_01.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/01/index_id_ra_01.csv" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/01/index_id_ra_01.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/02/index_id_br_02.csv" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/indices/02/index_id_br_02.csv" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_01_data.csv" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_01_data.csv" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_02_data.csv" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_02_data.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_03_data.csv" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_03_data.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_04_data.csv" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_04_data.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_05_data.csv" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_05_data.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_06_data.csv" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_06_data.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_07_data.csv" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_07_data.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_08_data.csv" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_08_data.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_09_data.csv" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_09_data.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_10_data.csv" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_10_data.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_11_data.csv" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_11_data.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_13.1_data.csv" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_13.1_data.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_14.1_data.csv" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_14.1_data.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_14.2_data.csv" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_14.2_data.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_14.3_data.csv" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_14.3_data.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_14.4_data.csv" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_14.4_data.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_15.1_data.csv" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_15.1_data.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_15.2_data.csv" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_15.2_data.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_15.4_data.csv" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_15.4_data.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_15.5_data.csv" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_15.5_data.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_15.6_data.csv" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_15.6_data.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_15.8_data.csv" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_15.8_data.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_16.1_data.csv" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_16.1_data.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_16.2_data.csv" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_16.2_data.csv" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -48,7 +68,7 @@
   </component>
   <component name="ProjectId" id="1TeeWZRitHUySD7L0r0MjaS19So" />
   <component name="PropertiesComponent">
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/scripts/id_manager" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
   </component>
   <component name="RecentsManager">
@@ -68,7 +88,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Python.converter_TDD">
+  <component name="RunManager" selected="Python.warmup">
     <configuration name="converter_TDD" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="meta" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -90,7 +110,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="ggffg" type="PythonConfigurationType" factoryName="Python" temporary="true">
+    <configuration name="index_orcid_doi" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="meta" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -98,11 +118,11 @@
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
       <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tdd" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/orcid" />
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/tdd/ggffg.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/orcid/index_orcid_doi.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -175,19 +195,19 @@
       <method v="2" />
     </configuration>
     <list>
+      <item itemvalue="Python.converter_TDD" />
       <item itemvalue="Python.migrator_TDD" />
       <item itemvalue="Python.prova" />
-      <item itemvalue="Python.converter_TDD" />
-      <item itemvalue="Python.ggffg" />
       <item itemvalue="Python.warmup" />
+      <item itemvalue="Python.index_orcid_doi" />
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.converter_TDD" />
         <item itemvalue="Python.warmup" />
         <item itemvalue="Python.prova" />
+        <item itemvalue="Python.index_orcid_doi" />
+        <item itemvalue="Python.converter_TDD" />
         <item itemvalue="Python.migrator_TDD" />
-        <item itemvalue="Python.ggffg" />
       </list>
     </recent_temporary>
   </component>

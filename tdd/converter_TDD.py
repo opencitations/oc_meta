@@ -1,5 +1,5 @@
 import unittest
-from converter import *
+from converter import*
 import csv
 from SPARQLWrapper import SPARQLWrapper
 from pathlib import Path
@@ -376,7 +376,19 @@ def suite(testobj):
     return test_suite
 
 
-TestSuit=suite(testcase_12)
-
+TestSuit=suite(testcase_15)
 runner=unittest.TextTestRunner()
 runner.run(TestSuit)
+'''
+x = 1
+while x < 17:
+    if x < 10:
+        y = "0" + str(x)
+    else:
+        y = str(x)
+    t = "testcase_" + y
+    TestSuit=suite(eval(t))
+    x += 1
+    runner=unittest.TextTestRunner()
+    runner.run(TestSuit)
+'''

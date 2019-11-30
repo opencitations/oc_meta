@@ -642,6 +642,8 @@ class Converter:
 
     @staticmethod
     def clean_title(title):
+        if title.isupper():
+            title = title.lower()
         words = title.split()
         for pos, w in enumerate(words):
             if any(x.isupper() for x in w):

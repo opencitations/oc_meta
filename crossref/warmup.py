@@ -2,7 +2,7 @@ from migrator import *
 from converter import *
 from crossref.crossrefBeautify import *
 def warmup (raw_data_path):
-    row_csv = crossrefBeautify(raw_data_path, "inde_orc_pro.csv").data
+    row_csv = crossrefBeautify(raw_data_path, "new.csv").data
     name = "crossref_orcid_prova"
     server = "http://127.0.0.1:9999/blazegraph/sparql"
     clean_csv = Converter(row_csv, server, filename=name, path="csv/indices/" + name + "/")
