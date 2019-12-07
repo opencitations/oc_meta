@@ -28,11 +28,9 @@ from scripts.support import is_string_empty, create_literal, create_type, get_sh
 class GraphEntity(object):
     BIRO = Namespace("http://purl.org/spar/biro/")
     C4O = Namespace("http://purl.org/spar/c4o/")
-    CO = Namespace("http://purl.org/co/") # new
     CITO = Namespace("http://purl.org/spar/cito/")
     DATACITE = Namespace("http://purl.org/spar/datacite/")
     DCTERMS = Namespace("http://purl.org/dc/terms/")
-    DEO = Namespace("http://purl.org/spar/deo/") # new
     DOCO = Namespace("http://purl.org/spar/doco/")
     FABIO = Namespace("http://purl.org/spar/fabio/")
     FOAF = Namespace("http://xmlns.com/foaf/0.1/")
@@ -42,22 +40,20 @@ class GraphEntity(object):
     PRISM = Namespace("http://prismstandard.org/namespaces/basic/2.0/")
     PRO = Namespace("http://purl.org/spar/pro/")
 
+
+
     # Bibliographic entities
     has_subtitle = FABIO.hasSubtitle
     has_publication_date = PRISM.publicationDate
     bibliographic_reference = BIRO.BibliographicReference
     references = BIRO.references
     has_content = C4O.hasContent
-    is_context_of = C4O.isContextOf # new
-    denotes = C4O.denotes # new
-    has_element = CO.element
     cites = CITO.cites
     doi = DATACITE.doi
     occ = DATACITE.occ
     pmid = DATACITE.pmid
     pmcid = DATACITE.pmcid
     orcid = DATACITE.orcid
-    xpath = DATACITE["local-resource-identifier-scheme"] # new
     has_identifier = DATACITE.hasIdentifier
     identifier = DATACITE.Identifier
     isbn = DATACITE.isbn
@@ -67,36 +63,26 @@ class GraphEntity(object):
     title = DCTERMS.title
     part = DOCO.Part
     academic_proceedings = FABIO.AcademicProceedings
+    archival_document = FABIO.ArchivalDocument
     book = FABIO.Book
     book_chapter = FABIO.BookChapter
     book_series = FABIO.BookSeries
     book_set = FABIO.BookSet
-    caption = DEO.Caption # new
     data_file = FABIO.DataFile
-    discourse_element = DOCO.DiscourseElement # new
     expression = FABIO.Expression
     expression_collection = FABIO.ExpressionCollection
-    footnote = DOCO.Footnote # new
     has_sequence_identifier = FABIO.hasSequenceIdentifier
-    intextref_pointer = C4O.InTextReferencePointer # new
     journal = FABIO.Journal
     journal_article = FABIO.JournalArticle
     journal_issue = FABIO.JournalIssue
     journal_volume = FABIO.JournalVolume
     manifestation = FABIO.Manifestation
-    paragraph = DOCO.Paragraph # new
     proceedings_paper = FABIO.ProceedingsPaper
     reference_book = FABIO.ReferenceBook
     reference_entry = FABIO.ReferenceEntry
     report_document = FABIO.ReportDocument
-    section = DOCO.Section # new
-    section_title = DOCO.SectionTitle # new
-    sentence = DOCO.Sentence # new
     series = FABIO.Series
-    singleloc_pointer_list = C4O.SingleLocationPointerList # new
     specification_document = FABIO.SpecificationDocument
-    table = DOCO.Table # new
-    text_chunk = DOCO.TextChunk # new
     thesis = FABIO.Thesis
     agent = FOAF.Agent
     family_name = FOAF.familyName
@@ -105,7 +91,6 @@ class GraphEntity(object):
     embodiment = FRBR.embodiment
     part_of = FRBR.partOf
     contains_reference = FRBR.part
-    contains_de = FRBR.part # new
     has_literal_value = LITERAL.hasLiteralValue
     ending_page = PRISM.endingPage
     starting_page = PRISM.startingPage
@@ -117,14 +102,16 @@ class GraphEntity(object):
     role_in_time = PRO.RoleInTime
     with_role = PRO.withRole
     has_next = OCO.hasNext
-    viaf = DATACITE.viaf ##new 
-    crossref = DATACITE.crossref ##new #TODO add to datacite!
-    wikidata = DATACITE.wikidata ##new #TODO add to datacite!
 
+    #ADDED
+    viaf = DATACITE.viaf
+    #TODO
+    crossref = DATACITE.crossref
+    wikidata = DATACITE.wikidata
 
-    # This constructor creates a new instance of an RDF resource ##new
+    # This constructor creates a new instance of an RDF resource
     def __init__(self, g, res=None, res_type=None, resp_agent=None, source_agent=None,
-                 source=None, count=None, label=None, short_name="", g_set=None, wanted_type=False):
+                 source=None, count=None, label=None, short_name="", g_set=None, wanted_type = False, wanted_label = True):
         self.cur_name = "SPACIN " + self.__class__.__name__
         self.resp_agent = resp_agent
         self.source_agent = source_agent
@@ -156,11 +143,11 @@ class GraphEntity(object):
             self._create_type(res_type)
 
             # It creates the label
-            #if label is not None:
-                #if wanted_label:  #It creates label only if wanted ##new
-                 #   self.create_label(label)
+            if label is not None:
+                if wanted_label:
+                    self.create_label(label)
 
-        #It creates type if wanted (i.e. add type even if it isn't a new entity) ##new
+        #add type even if it isn't a new entity
         if wanted_type:
             self._create_type(res_type)
 
@@ -235,6 +222,9 @@ class GraphEntity(object):
     def create_expression_collection(self):
         self._create_type(GraphEntity.expression_collection)
 
+    def create_archival_document(self):
+        self._create_type(GraphEntity.archival_document)
+
     def create_book_chapter(self):
         self._create_type(GraphEntity.book_chapter)
 
@@ -305,22 +295,13 @@ class GraphEntity(object):
         self._create_type(GraphEntity.series)
 
     def create_series(self):
-        self._create_type(GraphEntity.series) ##new
+        self._create_type(GraphEntity.series)
 
     def create_standard(self):
         self._create_type(GraphEntity.specification_document)
 
     def create_standard_series(self):
         self._create_type(GraphEntity.series)
-
-    def create_discourse_element(self, de_class): # new
-        self._create_type(de_class)
-
-    def create_sentence(self): # new
-        self._create_type(GraphEntity.sentence)
-
-    def create_text_chunk(self): # new
-        self._create_type(GraphEntity.text_chunk)
 
     def create_publisher(self, br_res):
         return self._associate_role_with_document(GraphEntity.publisher, br_res)
@@ -355,21 +336,6 @@ class GraphEntity(object):
     def create_url(self, string):
         return self._associate_identifier_with_scheme(encode_url(string.lower()), GraphEntity.url)
 
-    def create_xpath(self, string): # new
-        return self._associate_identifier_with_scheme(string, GraphEntity.xpath)
-
-    def create_wikidata(self, string): ##new
-        return self._associate_identifier_with_scheme(string, GraphEntity.wikidata)
-
-    def create_crossref(self, string): ##new
-        return self._associate_identifier_with_scheme(string, GraphEntity.crossref)
-
-    def create_viaf(self, string): ##new
-        return self._associate_identifier_with_scheme(string, GraphEntity.viaf)
-
-    def denotes(self, be_res):
-        self.g.add((self.res, GraphEntity.denotes, URIRef(str(be_res))))
-
     def has_id(self, id_res):
         self.g.add((self.res, GraphEntity.has_identifier, URIRef(str(id_res))))
 
@@ -381,15 +347,6 @@ class GraphEntity(object):
 
     def contains_in_reference_list(self, be_res):
         self.g.add((self.res, GraphEntity.contains_reference, URIRef(str(be_res))))
-
-    def contains_discourse_element(self, de_res): # new
-        self.g.add((self.res, GraphEntity.contains_de, URIRef(str(de_res)) ))
-
-    def contained_in_discourse_element(self, de_res): # new
-        self.g.add((URIRef(str(de_res)), GraphEntity.contains_de, self.res ))
-
-    def contains_element(self, rp_res): # new
-        self.g.add((self.res, GraphEntity.has_element, URIRef(str(rp_res)) ))
 
     def has_citation(self, br_res):
         self.g.add((self.res, GraphEntity.cites, URIRef(str(br_res))))
@@ -403,8 +360,14 @@ class GraphEntity(object):
     def follows(self, ar_res):
         ar_res.g.add((URIRef(str(ar_res)), GraphEntity.has_next, self.res))
 
-    def has_context(self, de_res):
-        self.g.add((URIRef(str(de_res)), GraphEntity.is_context_of, self.res))
+    #added
+    def create_wikidata(self, string):
+        return self._associate_identifier_with_scheme(string, GraphEntity.wikidata)
+    def create_crossref(self, string):
+        return self._associate_identifier_with_scheme(string, GraphEntity.crossref)
+    def create_viaf(self, string):
+        return self._associate_identifier_with_scheme(string, GraphEntity.viaf)
+
     # /END Composite Attributes
 
     # /START Protected Methods
@@ -428,20 +391,16 @@ class GraphEntity(object):
     # /END Private Methods
 
 
+
 class GraphSet(object):
     # Labels
     labels = {
-        "an": "annotation",
         "ar": "agent role",
         "be": "bibliographic entry",
         "br": "bibliographic resource",
-        "ci": "citation", # new TODO change here and add annotations
-        "de": "discourse element", # new
         "id": "identifier",
-        "pl": "single location pointer list", # new
         "ra": "responsible agent",
-        "re": "resource embodiment",
-        "rp": "in-text reference pointer" # new
+        "re": "resource embodiment"
     }
 
     def __init__(self, base_iri, context_path, info_dir="", n_file_item=1, supplier_prefix=""):
@@ -465,33 +424,25 @@ class GraphSet(object):
         self.g_ar = base_iri + "ar/"
         self.g_be = base_iri + "be/"
         self.g_br = base_iri + "br/"
-        self.g_cp = base_iri + "cp/" # new TODO change and add annotations
-        self.g_de = base_iri + "de/" # new
         self.g_id = base_iri + "id/"
-        self.g_pl = base_iri + "pl/" # new
         self.g_ra = base_iri + "ra/"
         self.g_re = base_iri + "re/"
-        self.g_rp = base_iri + "rp/" # new
 
         # Local paths
         self.info_dir = info_dir
         self.ar_info_path = info_dir + "ar.txt"
         self.be_info_path = info_dir + "be.txt"
         self.br_info_path = info_dir + "br.txt"
-        self.cp_info_path = info_dir + "cp.txt" # new TODO change and add annotations
-        self.de_info_path = info_dir + "de.txt" # new
         self.id_info_path = info_dir + "id.txt"
-        self.pl_info_path = info_dir + "pl.txt" # new
         self.ra_info_path = info_dir + "ra.txt"
         self.re_info_path = info_dir + "re.txt"
-        self.rp_info_path = info_dir + "rp.txt" # new
 
         self.reperr = Reporter(True)
         self.reperr.new_article()
         self.repok = Reporter(True)
         self.repok.new_article()
 
-    def res_count(self): # useless?
+    def res_count(self):
         return self.r_count
 
     def get_entity(self, res):
@@ -499,47 +450,35 @@ class GraphSet(object):
             return self.res_to_entity[res]
 
     # Add resources related to bibliographic entities
-    def add_ar(self, resp_agent, source_agent=None, source=None, res=None, wanted_type=False):
+    def add_ar(self, resp_agent, source_agent=None, source=None, res=None, wanted_type = False , wanted_label = True):
         return self._add(
             self.g_ar, GraphEntity.role_in_time, res, resp_agent,
-            source_agent, source, self.ar_info_path, "ar", wanted_type=wanted_type)
+            source_agent, source, self.ar_info_path, "ar", wanted_type = wanted_type , wanted_label = wanted_label)
 
-    def add_be(self, resp_agent, source_agent=None, source=None, res=None, wanted_type=False):
+    def add_be(self, resp_agent, source_agent=None, source=None, res=None, wanted_type = False , wanted_label = True):
         return self._add(
             self.g_be, GraphEntity.bibliographic_reference, res, resp_agent,
-            source_agent, source, self.be_info_path, "be", wanted_type=wanted_type)
+            source_agent, source, self.be_info_path, "be", wanted_type = wanted_type , wanted_label = wanted_label)
 
-    def add_br(self, resp_agent, source_agent=None, source=None, res=None, wanted_type=False):
+    def add_br(self, resp_agent, source_agent=None, source=None, res=None, wanted_type = False , wanted_label = True):
         return self._add(self.g_br, GraphEntity.expression, res, resp_agent,
-                         source_agent, source, self.br_info_path, "br", wanted_type=wanted_type)
+                         source_agent, source, self.br_info_path, "br", wanted_type = wanted_type , wanted_label = wanted_label)
 
-    def add_de(self, resp_agent, source_agent=None, source=None, res=None, wanted_type=False): # new
-        return self._add(self.g_de, GraphEntity.discourse_element, res, resp_agent,
-                         source_agent, source, self.de_info_path, "de", wanted_type=wanted_type)
-
-    def add_id(self, resp_agent, source_agent=None, source=None, res=None, wanted_type=False):
+    def add_id(self, resp_agent, source_agent=None, source=None, res=None, wanted_type = False , wanted_label = True):
         return self._add(self.g_id, GraphEntity.identifier, res, resp_agent,
-                         source_agent, source, self.id_info_path, "id", wanted_type=wanted_type)
+                         source_agent, source, self.id_info_path, "id", wanted_type = wanted_type , wanted_label = wanted_label)
 
-    def add_pl(self, resp_agent, source_agent=None, source=None, res=None, wanted_type=False): # new
-        return self._add(self.g_pl, GraphEntity.singleloc_pointer_list, res, resp_agent,
-                         source_agent, source, self.pl_info_path, "pl", wanted_type=wanted_type)
-
-    def add_rp(self, resp_agent, source_agent=None, source=None, res=None, wanted_type=False): # new
-        return self._add(self.g_rp, GraphEntity.intextref_pointer, res, resp_agent,
-                         source_agent, source, self.rp_info_path, "rp", wanted_type=wanted_type)
-
-    def add_ra(self, resp_agent, source_agent=None, source=None, res=None, wanted_type=False):
+    def add_ra(self, resp_agent, source_agent=None, source=None, res=None, wanted_type = False , wanted_label = True):
         return self._add(self.g_ra, GraphEntity.agent, res, resp_agent,
-                         source_agent, source, self.ra_info_path, "ra", wanted_type=wanted_type)
+                         source_agent, source, self.ra_info_path, "ra", wanted_type = wanted_type , wanted_label = wanted_label)
 
-    def add_re(self, resp_agent, source_agent=None, source=None, res=None, wanted_type=False):
+    def add_re(self, resp_agent, source_agent=None, source=None, res=None, wanted_type = False , wanted_label = True):
         return self._add(
             self.g_re, GraphEntity.manifestation, res, resp_agent,
-            source_agent, source, self.re_info_path, "re", wanted_type=wanted_type)
+            source_agent, source, self.re_info_path, "re", wanted_type = wanted_type , wanted_label = wanted_label)
 
     def _add(self, graph_url, main_type, res, resp_agent, source_agent,
-             source, info_file_path, short_name, list_of_entities=[], wanted_type=False):
+             source, info_file_path, short_name, list_of_entities=[], wanted_type = False , wanted_label = True):
         cur_g = Graph(identifier=graph_url)
         self._set_ns(cur_g)
         self.g += [cur_g]
@@ -551,7 +490,7 @@ class GraphSet(object):
         if res is not None:
             return self._generate_entity(cur_g, res=res, res_type=main_type, resp_agent=resp_agent,
                                          source_agent=source_agent, source=source,
-                                         list_of_entities=list_of_entities, wanted_type=wanted_type)
+                                         list_of_entities=list_of_entities, wanted_type = wanted_type, wanted_label = wanted_label)
         # This is the case when 'res_or_resp_agent' is actually a string representing the name
         # of the responsible agent. In this case, a new individual will be created.
         else:
@@ -578,20 +517,19 @@ class GraphSet(object):
             else:
                 count = self.supplier_prefix + str(GraphSet._add_number(info_file_path))
 
-            # label = "%s %s%s [%s/%s%s]" % (
-            #     GraphSet.labels[short_name], count, related_to_label,
-            #     short_name, count, related_to_short_label)
-            # removing labels
+            label = "%s %s%s [%s/%s%s]" % (
+                GraphSet.labels[short_name], count, related_to_label,
+                short_name, count, related_to_short_label)
             return self._generate_entity(
                 cur_g, res_type=main_type, resp_agent=resp_agent, source_agent=source_agent,
-                source=source, count=count, label=None, short_name=short_name,
-                list_of_entities=list_of_entities, wanted_type=wanted_type)
-    # removing labels
+                source=source, count=count, label=label, short_name=short_name,
+                list_of_entities=list_of_entities, wanted_type = wanted_type, wanted_label = wanted_label)
+
     def _generate_entity(self, g, res=None, res_type=None, resp_agent=None, source_agent=None,
-                         source=None, count=None, label=None, short_name="", list_of_entities=[], wanted_type=False):
+                         source=None, count=None, label=None, short_name="", list_of_entities=[], wanted_type = False, wanted_label = True):
         return GraphEntity(g, res=res, res_type=res_type, resp_agent=resp_agent,
                            source_agent=source_agent, source=source, count=count,
-                           label=None, g_set=self, wanted_type=wanted_type)
+                           label=label, g_set=self, wanted_type = wanted_type, wanted_label = wanted_label)
 
     def graphs(self):
         result = []
@@ -606,21 +544,15 @@ class GraphSet(object):
     def _set_ns(self, g):
         g.namespace_manager.bind("ar", Namespace(self.g_ar))
         g.namespace_manager.bind("be", Namespace(self.g_be))
-        g.namespace_manager.bind("cp", Namespace(self.g_cp)) # new TODO change and add annotations
-        g.namespace_manager.bind("de", Namespace(self.g_de)) # new
         g.namespace_manager.bind("br", Namespace(self.g_br))
         g.namespace_manager.bind("id", Namespace(self.g_id))
-        g.namespace_manager.bind("pl", Namespace(self.g_pl)) # new
         g.namespace_manager.bind("ra", Namespace(self.g_ra))
         g.namespace_manager.bind("re", Namespace(self.g_re))
-        g.namespace_manager.bind("rp", Namespace(self.g_rp)) # new
         g.namespace_manager.bind("biro", GraphEntity.BIRO)
-        g.namespace_manager.bind("co", GraphEntity.CO) # new
         g.namespace_manager.bind("c4o", GraphEntity.C4O)
         g.namespace_manager.bind("cito", GraphEntity.CITO)
         g.namespace_manager.bind("datacite", GraphEntity.DATACITE)
         g.namespace_manager.bind("dcterms", GraphEntity.DCTERMS)
-        g.namespace_manager.bind("deo", GraphEntity.DEO) # new
         g.namespace_manager.bind("doco", GraphEntity.DOCO)
         g.namespace_manager.bind("fabio", GraphEntity.FABIO)
         g.namespace_manager.bind("foaf", GraphEntity.FOAF)
@@ -689,7 +621,6 @@ class ProvEntity(GraphEntity):
     was_derived_from = PROV.wasDerivedFrom
     had_primary_source = PROV.hadPrimarySource
     was_generated_by = PROV.wasGeneratedBy
-    was_attributed_to = PROV.wasAttributedTo # new
     was_invalidated_by = PROV.wasInvalidatedBy
     qualified_association = PROV.qualifiedAssociation
     description = GraphEntity.DCTERMS.description
@@ -754,9 +685,6 @@ class ProvEntity(GraphEntity):
     def has_role_in(self, ca_res):
         ca_res.g.add((URIRef(str(ca_res)), ProvEntity.associated_agent, self.res))
 
-    # new
-    def responsible_agent_of(self, se_res):
-        se_res.g.add((URIRef(str(se_res)), ProvEntity.was_attributed_to, self.res))
     # /END Composite Attributes
 
 
@@ -772,20 +700,14 @@ class ProvSet(GraphSet):
             self.all_subjects.add(next(cur_subj_g.subjects(None, None)))
         self.resp = "SPACIN ProvSet"
         self.prov_g = prov_subj_graph_set
-        # GraphSet.labels.update(
-        #     {
-        #         "ca": "curatorial activity",
-        #         "pa": "provenance agent",
-        #         "cr": "curatorial role",
-        #         "se": "snapshot of entity metadata"
-        #     }
-        # )
-        # GraphSet.labels.update(
-        #     {
-        #         "pa": "provenance agent",
-        #         "se": "snapshot of entity metadata"
-        #     }
-        # )
+        GraphSet.labels.update(
+            {
+                "ca": "curatorial activity",
+                "pa": "provenance agent",
+                "cr": "curatorial role",
+                "se": "snapshot of entity metadata"
+            }
+        )
 
     # Add resources related to provenance information
     def add_pa(self, resp_agent=None, res=None):
@@ -794,11 +716,11 @@ class ProvSet(GraphSet):
     def add_se(self, resp_agent=None, prov_subject=None, res=None):
         return self._add_prov("se", ProvEntity.entity, res, resp_agent, prov_subject)
 
-    # def add_ca(self, resp_agent=None, prov_subject=None, res=None):
-    #     return self._add_prov("ca", ProvEntity.activity, res, resp_agent, prov_subject)
-    #
-    # def add_cr(self, resp_agent=None, prov_subject=None, res=None):
-    #     return self._add_prov("cr", ProvEntity.association, res, resp_agent, prov_subject)
+    def add_ca(self, resp_agent=None, prov_subject=None, res=None):
+        return self._add_prov("ca", ProvEntity.activity, res, resp_agent, prov_subject)
+
+    def add_cr(self, resp_agent=None, prov_subject=None, res=None):
+        return self._add_prov("cr", ProvEntity.association, res, resp_agent, prov_subject)
 
     def generate_provenance(self, c_time=None, do_insert=True, remove_entity=False):
         time_string = '%Y-%m-%dT%H:%M:%S'
@@ -831,52 +753,47 @@ class ProvSet(GraphSet):
             if cur_subj.source is not None:
                 cur_snapshot.has_primary_source(cur_subj.source)
 
-            ## Associations
-            #cur_curator_ass = None
-            #cur_source_ass = None
+            # Associations
+            cur_curator_ass = None
+            cur_source_ass = None
 
             if cur_subj.resp_agent is not None:
-                # cur_curator_ass = self.add_cr(self.cur_name, cur_subj)
-                # cur_curator_ass.has_role_type(ProvEntity.curator)
+                cur_curator_ass = self.add_cr(self.cur_name, cur_subj)
+                cur_curator_ass.has_role_type(ProvEntity.curator)
                 cur_curator_agent_res = self.rf.retrieve_provenance_agent_from_name(cur_subj.resp_agent)
                 if cur_curator_agent_res is None:
                     cur_curator_agent = self.add_pa(self.cur_name)
                     cur_curator_agent.create_name(cur_subj.resp_agent)
-                    cur_curator_agent.responsible_agent_of(cur_snapshot)
                     self.rf.update_graph_set(self)
                 else:
                     cur_curator_agent = self.add_pa(self.cur_name, cur_curator_agent_res)
-                    cur_curator_agent.responsible_agent_of(cur_snapshot)
+                cur_curator_agent.has_role_in(cur_curator_ass)
+
+            if cur_subj.source_agent is not None:
+                cur_source_ass = self.add_cr(self.cur_name, cur_subj)
+                cur_source_ass.has_role_type(ProvEntity.source_provider)
+                cur_source_agent_res = self.rf.retrieve_provenance_agent_from_name(cur_subj.source_agent)
+                if cur_source_agent_res is None:
+                    cur_source_agent = self.add_pa(self.cur_name)
+                    cur_source_agent.create_name(cur_subj.source_agent)
                     self.rf.update_graph_set(self)
-                # cur_curator_agent.has_role_in(cur_curator_ass)
+                else:
+                    cur_source_agent = self.add_pa(self.cur_name, cur_source_agent_res)
+                cur_source_agent.has_role_in(cur_source_ass)
 
-            #if cur_subj.source_agent is not None:
-            #     cur_source_ass = self.add_cr(self.cur_name, cur_subj)
-            #     cur_source_ass.has_role_type(ProvEntity.source_provider)
-            #     cur_source_agent_res = self.rf.retrieve_provenance_agent_from_name(cur_subj.source_agent)
-            #     if cur_source_agent_res is None:
-            #         cur_source_agent = self.add_pa(self.cur_name)
-            #         cur_source_agent.create_name(cur_subj.source_agent)
-            #         self.rf.update_graph_set(self)
-            #     else:
-            #         cur_source_agent = self.add_pa(self.cur_name, cur_source_agent_res)
-            #     cur_source_agent.has_role_in(cur_source_ass)
+            # Activity
+            cur_activity = self.add_ca(self.cur_name, cur_subj)
+            cur_activity.generates(cur_snapshot)
 
-            ## Activity
-            # cur_activity = self.add_ca(self.cur_name, cur_subj)
-            # cur_activity.generates(cur_snapshot)
-            #
-            # if cur_curator_ass is not None:
-            #     cur_activity.involves_agent_with_role(cur_curator_ass)
-            # if cur_source_ass is not None:
-            #     cur_activity.involves_agent_with_role(cur_source_ass)
+            if cur_curator_ass is not None:
+                cur_activity.involves_agent_with_role(cur_curator_ass)
+            if cur_source_ass is not None:
+                cur_activity.involves_agent_with_role(cur_source_ass)
 
             # Old snapshot
             if last_snapshot is None and do_insert:  # Create a new entity
-                # cur_activity.create_creation_activity()
-                # TODO se description
-                cur_snapshot.create_description("The entity '%s' has been created." % str(cur_subj.res))
-                # cur_activity.create_description("The entity '%s' has been created." % str(cur_subj.res))
+                cur_activity.create_creation_activity()
+                cur_activity.create_description("The entity '%s' has been created." % str(cur_subj.res))
             else:
                 update_query_data = None
                 update_description = None
@@ -910,8 +827,8 @@ class ProvSet(GraphSet):
                         update_description += " statements"
                     update_description += "."
 
-                #cur_activity.create_update_activity()
-                cur_snapshot.create_description(update_description)
+                cur_activity.create_update_activity()
+                cur_activity.create_description(update_description)
                 cur_snapshot.create_update_query(update_query_data[0])
 
                 # Note: due to previous processing errors, it would be possible that no snapshot has been created
@@ -922,11 +839,11 @@ class ProvSet(GraphSet):
                 if last_snapshot is not None:
                     cur_snapshot.derives_from(last_snapshot)
                     last_snapshot.create_invalidation_time(cur_time)
-                    cur_snapshot.invalidates(last_snapshot)
+                    cur_activity.invalidates(last_snapshot)
 
-                # Invalidate the new snapshot if the entity has been removed
+                # Invalidate the new snapshopt if the entity has been removed
                 if remove_entity:
-                    cur_snapshot.invalidates(cur_snapshot)
+                    cur_activity.invalidates(cur_snapshot)
                     cur_snapshot.create_invalidation_time(cur_time)
 
     @staticmethod
@@ -984,8 +901,8 @@ class ProvSet(GraphSet):
         g.namespace_manager.bind("prov", ProvEntity.PROV)
 
     def _generate_entity(self, g, res=None, res_type=None, resp_agent=None, source_agent=None,
-                         source=None, count=None, label=None, short_name="", list_of_entities=[], wanted_type=False):
+                         source=None, count=None, label=None, short_name="", list_of_entities=[], wanted_type = False, wanted_label = True):
         return ProvEntity(list_of_entities[0] if list_of_entities else None, g,
                           res=res, res_type=res_type, resp_agent=resp_agent,
                           source_agent=source_agent, source=source,
-                          count=count, label=None, short_name=short_name, g_set=self)
+                          count=count, label=label, short_name=short_name, g_set=self)
