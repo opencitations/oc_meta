@@ -123,7 +123,7 @@ class crossrefBeautify:
                     ventit = html.unescape(ven_soup.get_text())
                     venidlist = list()
                     if "ISBN" in x:
-                        if row["type"] not in {"book", "monograph", "edited book"}:
+                        if row["type"] in {"book chapter", "book part"}:
                             if isinstance(x["ISBN"], list):
                                 venisbnid = str(x["ISBN"][0])
                             else:
@@ -133,7 +133,7 @@ class crossrefBeautify:
                                 venidlist.append(str("isbn:" + venisbnid))
 
                     if "ISSN" in x:
-                        if row["type"] not in {"journal", "series", "report series", "standard series"}:
+                        if row["type"] in {"journal article", "journal volume", "journal issue"}:
                             if isinstance(x["ISSN"], list):
                                 venissnid = str("issn:" + str(x["ISSN"][0]))
                             else:
@@ -189,9 +189,7 @@ class crossrefBeautify:
         doi = doi.lower()
         orcids = self.orcid_index.get_value(doi)
         if orcids:
-            for orcid in orcids:
-                orcid = orcid.split("; ")
-                for orc in orcid:
-                    orc = orc.replace("]", "").split(" [")
-                    found[orc[1]] = orc[0].lower()
+            for orc in orcids:
+                orc = orc.replace("]", "").split(" [")
+                found[orc[1]] = orc[0].lower()
         return found

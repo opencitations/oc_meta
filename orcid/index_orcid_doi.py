@@ -10,18 +10,12 @@ class index_orcid_doi:
         self.doi_index = CSVManager("doi_index.csv")
         self.doimanager = DOIManager(valid_doi=self.doi_index)
         self.csvstorage = CSVManager(csv_path)
-        self.index = dict()
+        #self.index = dict()
         self.finder(summaries_path)
-        for x in self.index:
-            self.csvstorage.add_value(x, "; ".join(self.index[x]))
 
     def finder (self, summaries_path):
-        x = 0
         for fold, dirs, files in os.walk(summaries_path):
             for file in files:
-                if x > 10:
-                    return
-                print(x)
                 if file.endswith('.xml'):
                     xml_file = open(os.path.join(fold, file), 'r', encoding="utf-8")
                     xml_soup = BeautifulSoup(xml_file, 'xml')
@@ -46,9 +40,14 @@ class index_orcid_doi:
                                                 orcid = file.replace(".xml", "")
                                                 x +=1
                                                 auto = name + " [" + orcid + "]"
+                                                self.csvstorage.add_value(doi, auto)
+                                                '''
                                                 if doi in self.index:
                                                     if auto not in self.index[doi]:
                                                         self.index[doi].append(auto)
                                                 else:
                                                     self.index[doi] = list()
                                                     self.index[doi].append(auto)
+                                                '''
+
+index_orcid_doi("M:\\tesi\\orcid_data\\ORCID_2019_summaries.tar\\ORCID_2019_summaries\\summaries\\001", "rrr.csv")

@@ -35,16 +35,19 @@ from rdflib import XSD
 class Storer(object):
 
     def __init__(self, graph_set=None, repok=None, reperr=None,
-                 context_map={}, default_dir="_", dir_split=0, n_file_item=1):
+                 context_map={}, default_dir="_", dir_split=0, n_file_item=1, nt=False):
+        self.nt = nt
         self.dir_split = dir_split
         self.n_file_item = n_file_item
-        self.context_map = context_map
         self.default_dir = default_dir
-        for context_url in context_map:
-            context_file_path = context_map[context_url]
-            with open(context_file_path) as f:
-                context_json = json.load(f)
-                self.context_map[context_url] = context_json
+
+        if not nt:
+            self.context_map = context_map
+            for context_url in context_map:
+                context_file_path = context_map[context_url]
+                with open(context_file_path) as f:
+                    context_json = json.load(f)
+                    self.context_map[context_url] = context_json
 
         if graph_set is None:
             self.g = []
@@ -240,17 +243,20 @@ class Storer(object):
 
             new_g.addN([(s, p, o, g_iri)])
 
-        cur_json_ld = json.loads(
-            new_g.serialize(format="json-ld", context=self.__get_context(context_path)).decode("utf-8"))
+        if not self.nt and context_path:
+            cur_json_ld = json.loads(
+                new_g.serialize(format="json-ld", context=self.__get_context(context_path)).decode("utf-8"))
 
-        if isinstance(cur_json_ld, dict):
-            cur_json_ld["@context"] = context_path
-        else:  # it is a list
-            for item in cur_json_ld:
-                item["@context"] = context_path
+            if isinstance(cur_json_ld, dict):
+                cur_json_ld["@context"] = context_path
+            else:  # it is a list
+                for item in cur_json_ld:
+                    item["@context"] = context_path
 
-        with open(cur_file_path, "w") as f:
-            json.dump(cur_json_ld, f, indent=4, ensure_ascii=False)
+            with open(cur_file_path, "w") as f:
+                json.dump(cur_json_ld, f, indent=4, ensure_ascii=False)
+        else:
+            new_g.serialize(cur_file_path, format="nt11", encoding="utf-8")
 
         self.repok.add_sentence("File '%s' added." % cur_file_path)
 
@@ -383,7 +389,7 @@ class Storer(object):
         return cur_graph
 
     def __load_graph(self, file_path, cur_graph=None):
-        formats = ["json-ld", "rdfxml", "turtle", "trig"]
+        formats = ["json-ld", "rdfxml", "turtle", "trig", "nt11"]
 
         current_graph = ConjunctiveGraph()
 

@@ -36,7 +36,9 @@ def prepare2test(name):
     test_graph = Graph()
     hack_dates()
     test_graph = test_graph.parse(testcase_ttl, format="ttl")
-    new_graph = migrator.final_graph
+    new_graph = Graph()
+    for g in migrator.setgraph.graphs():
+        new_graph += g
     return test_graph, new_graph
 
 

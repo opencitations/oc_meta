@@ -52,10 +52,6 @@ class Migrator():
                 self.editor_job(editor)
 
 
-        self.final_graph = Graph()
-        for g in self.setgraph.graphs():
-            self.final_graph += g
-
 
     @staticmethod
     def index_re (csv_path):
