@@ -15,7 +15,7 @@
 <https://w3id.org/OC/meta/br/1> a ns7:Expression,
         ns7:JournalArticle ;
     ns5:publicationDate "1995"^^xsd:gYear ;
-    ns8:title "TITLE1" ;
+    ns8:title "Title1" ;
     ns3:hasIdentifier <https://w3id.org/OC/meta/id/1> ;
     ns1:isDocumentContextFor <https://w3id.org/OC/meta/ar/1>,
         <https://w3id.org/OC/meta/ar/2> ;
@@ -25,7 +25,7 @@
 <https://w3id.org/OC/meta/br/2> a ns7:Expression,
         ns7:JournalArticle ;
     ns5:publicationDate "1995"^^xsd:gYear ;
-    ns8:title "TITLE2" ;
+    ns8:title "Title2" ;
     ns3:hasIdentifier <https://w3id.org/OC/meta/id/2> ;
     ns1:isDocumentContextFor <https://w3id.org/OC/meta/ar/4>,
         <https://w3id.org/OC/meta/ar/5> ;
@@ -35,7 +35,7 @@
 <https://w3id.org/OC/meta/br/3> a ns7:Expression,
         ns7:JournalArticle ;
     ns5:publicationDate "1995"^^xsd:gYear ;
-    ns8:title "TITLE3" ;
+    ns8:title "Title3" ;
     ns3:hasIdentifier <https://w3id.org/OC/meta/id/3> ;
     ns1:isDocumentContextFor <https://w3id.org/OC/meta/ar/7>,
         <https://w3id.org/OC/meta/ar/8>,
@@ -46,7 +46,7 @@
 <https://w3id.org/OC/meta/br/4> a ns7:Expression,
         ns7:JournalIssue ;
     ns5:publicationDate "1995"^^xsd:gYear ;
-    ns8:title "TITLE4" ;
+    ns8:title "Title4" ;
     ns3:hasIdentifier <https://w3id.org/OC/meta/id/4> ;
     ns1:isDocumentContextFor <https://w3id.org/OC/meta/ar/10>,
         <https://w3id.org/OC/meta/ar/11>,
@@ -57,7 +57,7 @@
 <https://w3id.org/OC/meta/br/5> a ns7:Expression,
         ns7:JournalVolume ;
     ns5:publicationDate "1995"^^xsd:gYear ;
-    ns8:title "TITLE5" ;
+    ns8:title "Title5" ;
     ns3:hasIdentifier <https://w3id.org/OC/meta/id/5> ;
     ns1:isDocumentContextFor <https://w3id.org/OC/meta/ar/13>,
         <https://w3id.org/OC/meta/ar/14>,
@@ -68,7 +68,7 @@
 <https://w3id.org/OC/meta/br/6> a ns7:Expression,
         ns7:Journal ;
     ns5:publicationDate "1995"^^xsd:gYear ;
-    ns8:title "TITLE6" ;
+    ns8:title "Title6" ;
     ns3:hasIdentifier <https://w3id.org/OC/meta/id/6> ;
     ns1:isDocumentContextFor <https://w3id.org/OC/meta/ar/16>,
         <https://w3id.org/OC/meta/ar/17>,

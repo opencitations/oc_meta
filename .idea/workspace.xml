@@ -2,28 +2,26 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="d2b23c46-2db9-4b25-a89e-e1906277cf0f" name="Default" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/converter_counter/ar.txt" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/converter_counter/ar.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/converter_counter/br.txt" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/converter_counter/br.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/converter_counter/id.txt" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/converter_counter/id.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/converter_counter/ra.txt" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/converter_counter/ra.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/converter_counter/re.txt" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/converter_counter/re.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/crossrefBeautify.py" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/crossrefBeautify.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/crossref_01.ttl" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_orcid_prova/data_crossref_orcid_prova.csv" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/csv/indices/crossref_orcid_prova/data_crossref_orcid_prova.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_orcid_prova/index_ar_crossref_orcid_prova.csv" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/csv/indices/crossref_orcid_prova/index_ar_crossref_orcid_prova.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_orcid_prova/index_id_br_crossref_orcid_prova.csv" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/csv/indices/crossref_orcid_prova/index_id_br_crossref_orcid_prova.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_orcid_prova/index_id_ra_crossref_orcid_prova.csv" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/csv/indices/crossref_orcid_prova/index_id_ra_crossref_orcid_prova.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_orcid_prova/index_re_crossref_orcid_prova.csv" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/csv/indices/crossref_orcid_prova/index_re_crossref_orcid_prova.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_orcid_prova/index_vi_crossref_orcid_prova.json" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/csv/indices/crossref_orcid_prova/index_vi_crossref_orcid_prova.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/inde_orc_pro.csv" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/inde_orc_pro.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/new.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/warmup.py" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/warmup.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/migrator.py" beforeDir="false" afterPath="$PROJECT_DIR$/migrator.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/orcid/index_orcid_doi.py" beforeDir="false" afterPath="$PROJECT_DIR$/orcid/index_orcid_doi.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/storer.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/storer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/converter.py" beforeDir="false" afterPath="$PROJECT_DIR$/converter.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/converter_TDD.py" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/converter_TDD.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/converter_counter/ar.txt" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/converter_counter/ar.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/converter_counter/br.txt" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/converter_counter/br.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/converter_counter/id.txt" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/converter_counter/id.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/converter_counter/ra.txt" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/converter_counter/ra.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/converter_counter/re.txt" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/converter_counter/re.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tdd/migrator_TDD.py" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/migrator_TDD.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_01.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_01.ttl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_02.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_02.ttl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_03.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_03.ttl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_04.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_04.ttl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_05.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_05.ttl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_06.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_06.ttl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_07.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_07.ttl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_08.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_08.ttl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_09.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_09.ttl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_10.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_10.ttl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_15.5_data.csv" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/testcases/testcase_data/testcase_15.5_data.csv" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -63,7 +61,28 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Python.warmup">
+  <component name="RunManager" selected="Python.migrator_TDD">
+    <configuration name="converter_TDD" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <module name="meta" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tdd" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/tdd/converter_TDD.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <configuration name="index_orcid_doi" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="meta" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -85,7 +104,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="main (1)" type="PythonConfigurationType" factoryName="Python" temporary="true">
+    <configuration name="migrator_TDD" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="meta" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -93,32 +112,11 @@
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
       <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$USER_HOME$/Downloads/myDocumentation/doc" />
-      <option name="IS_MODULE_SDK" value="false" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tdd" />
+      <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$USER_HOME$/Downloads/myDocumentation/doc/main.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
-    <configuration name="main" type="PythonConfigurationType" factoryName="Python" temporary="true">
-      <module name="meta" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$USER_HOME$/Downloads/myDocumentation" />
-      <option name="IS_MODULE_SDK" value="false" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$USER_HOME$/Downloads/myDocumentation/main.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/tdd/migrator_TDD.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -173,16 +171,16 @@
       <item itemvalue="Python.prova" />
       <item itemvalue="Python.warmup" />
       <item itemvalue="Python.index_orcid_doi" />
-      <item itemvalue="Python.main" />
-      <item itemvalue="Python.main (1)" />
+      <item itemvalue="Python.converter_TDD" />
+      <item itemvalue="Python.migrator_TDD" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.migrator_TDD" />
+        <item itemvalue="Python.converter_TDD" />
         <item itemvalue="Python.warmup" />
         <item itemvalue="Python.index_orcid_doi" />
         <item itemvalue="Python.prova" />
-        <item itemvalue="Python.main (1)" />
-        <item itemvalue="Python.main" />
       </list>
     </recent_temporary>
   </component>

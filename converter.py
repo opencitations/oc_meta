@@ -1044,10 +1044,6 @@ class Converter:
                     old_meta = path[value]["id"]
                     self.update(self.brdict, meta, old_meta, row["title"])
                     path[value]["id"] = meta
-                else:
-                    if meta == path[value]["id"]:
-                        raise ValueError('A very specific bad thing happened! A Volume or Issue in conflict at row ' + str(self.rowcnt))
-                    pass
             else:
                 path[value] = dict()
                 path[value]["id"] = meta

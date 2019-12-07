@@ -15,7 +15,7 @@
 <https://w3id.org/OC/meta/br/1> a ns9:Expression,
         ns9:JournalArticle ;
     ns7:publicationDate "1993"^^xsd:gYear ;
-    ns8:title "TITLE2" ;
+    ns8:title "Title2" ;
     ns3:hasIdentifier <https://w3id.org/OC/meta/id/1>,
         <https://w3id.org/OC/meta/id/2>,
         <https://w3id.org/OC/meta/id/3> ;
@@ -28,7 +28,7 @@
 <https://w3id.org/OC/meta/br/2> a ns9:Expression,
         ns9:JournalArticle ;
     ns7:publicationDate "1993"^^xsd:gYear ;
-    ns8:title "TITLE4" ;
+    ns8:title "Title4" ;
     ns3:hasIdentifier <https://w3id.org/OC/meta/id/4> ;
     ns4:isDocumentContextFor <https://w3id.org/OC/meta/ar/4>,
         <https://w3id.org/OC/meta/ar/5> ;

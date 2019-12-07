@@ -13,7 +13,7 @@
 <https://w3id.org/OC/meta/br/1> a <http://purl.org/spar/fabio/AcademicProceedings>,
         <http://purl.org/spar/fabio/Expression> ;
     ns6:publicationDate "1995"^^xsd:gYear ;
-    ns2:title "TITLE1" ;
+    ns2:title "Title1" ;
     ns3:hasIdentifier <https://w3id.org/OC/meta/id/1> ;
     ns4:isDocumentContextFor <https://w3id.org/OC/meta/ar/1>,
         <https://w3id.org/OC/meta/ar/2>,
@@ -22,7 +22,7 @@
 <https://w3id.org/OC/meta/br/2> a <http://purl.org/spar/fabio/Expression>,
         <http://purl.org/spar/fabio/ProceedingsPaper> ;
     ns6:publicationDate "1995"^^xsd:gYear ;
-    ns2:title "TITLE2" ;
+    ns2:title "Title2" ;
     ns3:hasIdentifier <https://w3id.org/OC/meta/id/2> ;
     ns4:isDocumentContextFor <https://w3id.org/OC/meta/ar/4>,
         <https://w3id.org/OC/meta/ar/5>,

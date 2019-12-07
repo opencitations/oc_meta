@@ -12,7 +12,7 @@
 <https://w3id.org/OC/meta/br/1> a ns3:Expression,
         ns3:JournalArticle ;
     ns1:publicationDate "1995"^^xsd:gYear ;
-    ns5:title "TITLE6" ;
+    ns5:title "Title6" ;
     ns2:isDocumentContextFor <https://w3id.org/OC/meta/ar/1>,
         <https://w3id.org/OC/meta/ar/2> ;
     ns4:embodiment <https://w3id.org/OC/meta/re/1> ;

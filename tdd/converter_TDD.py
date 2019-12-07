@@ -376,8 +376,8 @@ def suite(testobj):
     return test_suite
 
 
-TestSuit=suite(testcase_15)
-runner=unittest.TextTestRunner()
+TestSuit = suite(testcase_15)
+runner = unittest.TextTestRunner()
 runner.run(TestSuit)
 '''
 x = 1

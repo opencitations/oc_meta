@@ -13,7 +13,7 @@
 <https://w3id.org/OC/meta/br/1> a <http://purl.org/spar/fabio/BookChapter>,
         <http://purl.org/spar/fabio/Expression> ;
     ns4:publicationDate "1995"^^xsd:gYear ;
-    ns1:title "TITLE1" ;
+    ns1:title "Title1" ;
     ns5:hasIdentifier <https://w3id.org/OC/meta/id/1> ;
     ns2:isDocumentContextFor <https://w3id.org/OC/meta/ar/1>,
         <https://w3id.org/OC/meta/ar/2> ;
@@ -23,7 +23,7 @@
 <https://w3id.org/OC/meta/br/2> a <http://purl.org/spar/doco/Part>,
         <http://purl.org/spar/fabio/Expression> ;
     ns4:publicationDate "1995"^^xsd:gYear ;
-    ns1:title "TITLE2" ;
+    ns1:title "Title2" ;
     ns5:hasIdentifier <https://w3id.org/OC/meta/id/2> ;
     ns2:isDocumentContextFor <https://w3id.org/OC/meta/ar/4>,
         <https://w3id.org/OC/meta/ar/5> ;
@@ -33,7 +33,7 @@
 <https://w3id.org/OC/meta/br/3> a <http://purl.org/spar/fabio/Book>,
         <http://purl.org/spar/fabio/Expression> ;
     ns4:publicationDate "1995"^^xsd:gYear ;
-    ns1:title "TITLE2" ;
+    ns1:title "Title2" ;
     ns5:hasIdentifier <https://w3id.org/OC/meta/id/3> ;
     ns2:isDocumentContextFor <https://w3id.org/OC/meta/ar/7>,
         <https://w3id.org/OC/meta/ar/8>,
