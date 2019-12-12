@@ -3,6 +3,11 @@
   <component name="ChangeListManager">
     <list default="true" id="d2b23c46-2db9-4b25-a89e-e1906277cf0f" name="Default" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/migrator.py" beforeDir="false" afterPath="$PROJECT_DIR$/migrator.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/conf.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/conf.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/graphlib.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/graphlib.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/old_graphlib.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/storer.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/storer.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -22,7 +27,7 @@
   </component>
   <component name="ProjectId" id="1TeeWZRitHUySD7L0r0MjaS19So" />
   <component name="PropertiesComponent">
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/../FREDalo" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
   </component>
   <component name="RecentsManager">
@@ -42,7 +47,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Python.migrator_TDD">
+  <component name="RunManager" selected="Python.prova">
     <configuration name="converter_TDD" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="meta" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -157,11 +162,11 @@
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.prova" />
         <item itemvalue="Python.migrator_TDD" />
         <item itemvalue="Python.converter_TDD" />
         <item itemvalue="Python.warmup" />
         <item itemvalue="Python.index_orcid_doi" />
-        <item itemvalue="Python.prova" />
       </list>
     </recent_temporary>
   </component>

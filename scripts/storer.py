@@ -230,7 +230,6 @@ class Storer(object):
                    (query_type, str(cur_g.identifier), cur_g.serialize(format="nt11", encoding="utf-8").decode("utf-8"))
 
     def __store_in_file(self, cur_g, cur_file_path, context_path):
-
         # Note: the following lines from here and until 'cur_json_ld' are a sort of hack for including all
         # the triples of the input graph into the final stored file. Some how, some of them are not written
         # in such file otherwise - in particular the provenance ones.
