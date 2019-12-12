@@ -2,44 +2,34 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="d2b23c46-2db9-4b25-a89e-e1906277cf0f" name="Default" comment="">
-      <change afterPath="$PROJECT_DIR$/DEMO/Dumontier/json/Dumontier.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/DEMO/Dumontier/warmup.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/converter_counter/ar.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/converter_counter/br.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/converter_counter/id.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/converter_counter/ra.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/converter_counter/re.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_01/data_crossref_01.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_01/index_ar_crossref_01.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_01/index_id_br_crossref_01.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_01/index_id_ra_crossref_01.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_01/index_re_crossref_01.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_01/index_vi_crossref_01.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_02/data_crossref_02.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_02/index_ar_crossref_02.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_02/index_id_br_crossref_02.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_02/index_id_ra_crossref_02.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_02/index_re_crossref_02.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_02/index_vi_crossref_02.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_orcid_prova/data_crossref_orcid_prova.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_orcid_prova/index_ar_crossref_orcid_prova.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_orcid_prova/index_id_br_crossref_orcid_prova.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_orcid_prova/index_id_ra_crossref_orcid_prova.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_orcid_prova/index_re_crossref_orcid_prova.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_orcid_prova/index_vi_crossref_orcid_prova.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/inde_orc_pro.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/json/1.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/json/2019.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/json/Dumontier.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/json/Feynman.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/json/haleem_mohamed.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/warmup.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/orcid/doi_index.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/orcid/index_orcid_doi.py" beforeDir="false" afterPath="$PROJECT_DIR$/orcid/index_orcid_doi.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/conf.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/conf.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/storer.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/storer.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/support.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/support.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/converter_counter/ar.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/converter_counter/br.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/converter_counter/id.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/converter_counter/ra.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/converter_counter/re.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/counter_prov/counter_/prov/pa.txt" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Dumontier/counter_prov/counter_/prov/pa.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/counter_prov/counter_ar/_/10000/1000/prov/se.txt" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Dumontier/counter_prov/counter_ar/_/10000/1000/prov/se.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/counter_prov/counter_br/_/10000/1000/prov/se.txt" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Dumontier/counter_prov/counter_br/_/10000/1000/prov/se.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/counter_prov/counter_id/_/10000/1000/prov/se.txt" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Dumontier/counter_prov/counter_id/_/10000/1000/prov/se.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/counter_prov/counter_ra/_/10000/1000/prov/se.txt" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Dumontier/counter_prov/counter_ra/_/10000/1000/prov/se.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/counter_prov/counter_re/_/10000/1000/prov/se.txt" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Dumontier/counter_prov/counter_re/_/10000/1000/prov/se.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/csv/indices/Dumontier/data_Dumontier.csv" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Dumontier/csv/indices/Dumontier/data_Dumontier.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/csv/indices/Dumontier/index_id_ra_Dumontier.csv" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Dumontier/csv/indices/Dumontier/index_id_ra_Dumontier.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/csv/indices/Dumontier/index_vi_Dumontier.json" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Dumontier/csv/indices/Dumontier/index_vi_Dumontier.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/srv/data/corpus/ar/_/10000/1000.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Dumontier/srv/data/corpus/ar/_/10000/1000.ttl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/srv/data/corpus/ar/_/10000/1000/prov/se.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Dumontier/srv/data/corpus/ar/_/10000/1000/prov/se.ttl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/srv/data/corpus/br/_/10000/1000.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Dumontier/srv/data/corpus/br/_/10000/1000.ttl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/srv/data/corpus/br/_/10000/1000/prov/se.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Dumontier/srv/data/corpus/br/_/10000/1000/prov/se.ttl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/srv/data/corpus/id/_/10000/1000.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Dumontier/srv/data/corpus/id/_/10000/1000.ttl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/srv/data/corpus/id/_/10000/1000/prov/se.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Dumontier/srv/data/corpus/id/_/10000/1000/prov/se.ttl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/srv/data/corpus/ra/_/10000/1000.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Dumontier/srv/data/corpus/ra/_/10000/1000.ttl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/srv/data/corpus/ra/_/10000/1000/prov/se.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Dumontier/srv/data/corpus/ra/_/10000/1000/prov/se.ttl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/srv/data/corpus/re/_/10000/1000.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Dumontier/srv/data/corpus/re/_/10000/1000.ttl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/srv/data/corpus/re/_/10000/1000/prov/se.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Dumontier/srv/data/corpus/re/_/10000/1000/prov/se.ttl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/summaries/0000-0003-4727-9435.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/converter.py" beforeDir="false" afterPath="$PROJECT_DIR$/converter.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/graphlib.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/graphlib.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />

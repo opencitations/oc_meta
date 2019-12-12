@@ -49,7 +49,7 @@ class Converter:
             for key in key_list:
                 self.log[self.rowcnt][key] = dict()
             self.clean_id(row)
-            self.rowcnt = + 1
+            self.rowcnt += 1
 
         self.check_equality()
 
@@ -57,7 +57,7 @@ class Converter:
         self.rowcnt = 0
         for row in self.data:
             self.clean_vvi(row)
-            self.rowcnt = + 1
+            self.rowcnt += 1
 
         #reset row counter
         self.rowcnt = 0
@@ -66,7 +66,7 @@ class Converter:
             self.clean_ra(row, "author")
             self.clean_ra(row, "publisher")
             self.clean_ra(row, "editor")
-            self.rowcnt =+ 1
+            self.rowcnt += 1
 
         self.brdict.update(self.conflict_br)
         self.radict.update(self.conflict_ra)

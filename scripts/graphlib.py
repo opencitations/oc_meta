@@ -117,6 +117,7 @@ class GraphEntity(object):
     role_in_time = PRO.RoleInTime
     with_role = PRO.withRole
     has_next = OCO.hasNext
+    archival_document = FABIO.ArchivalDocument ##new
     viaf = DATACITE.viaf ##new
     crossref = DATACITE.crossref ##new #TODO add to datacite!
     wikidata = DATACITE.wikidata ##new #TODO add to datacite!
@@ -361,6 +362,9 @@ class GraphEntity(object):
 
     def create_viaf(self, string): ##new
         return self._associate_identifier_with_scheme(string, GraphEntity.viaf)
+
+    def create_archival_document(self): ##new
+        self._create_type(GraphEntity.archival_document)
 
     def denotes(self, be_res):
         self.g.add((self.res, GraphEntity.denotes, URIRef(str(be_res))))
