@@ -261,7 +261,7 @@ def find_local_line_id(res, n_file_item=1):
     return cur_number - cur_file_split
 
 
-def find_paths(string_iri, base_dir, base_iri, default_dir, dir_split, n_file_item):
+def find_paths(string_iri, base_dir, base_iri, default_dir, dir_split, n_file_item, is_json=True):
     """
     This function is responsible for looking for the correct JSON file that contains the data related to the
     resource identified by the variable 'string_iri'. This search takes into account the organisation in
@@ -269,7 +269,10 @@ def find_paths(string_iri, base_dir, base_iri, default_dir, dir_split, n_file_it
     In case no supplier prefix is specified, the 'default_dir' (usually set to "_") is used instead.
     """
     cur_file_path = None
-
+    if is_json:
+        format_string = ".json"
+    else:
+        format_string = ".ttl"
     if is_dataset(string_iri):
         cur_dir_path = (base_dir + re.sub("^%s(.*)$" % base_iri, "\\1", string_iri))[:-1]
         # In case of dataset, the file path is different from regular files, e.g.
@@ -306,7 +309,7 @@ def find_paths(string_iri, base_dir, base_iri, default_dir, dir_split, n_file_it
                 # In case of provenance, the file path is different from regular files, e.g.
                 # /corpus/br/10000/1000/prov/se.json
                 cur_file_path = cur_dir_path + os.sep + re.sub(
-                    ("^%s" + prov_regex) % base_iri, "\\5", string_iri) + ".json"
+                    ("^%s" + prov_regex) % base_iri, "\\5", string_iri) + format_string
             else:  # regular bibliographic entity
                 cur_dir_path = base_dir + \
                                re.sub(("^%s" + res_regex) % base_iri,
@@ -315,7 +318,7 @@ def find_paths(string_iri, base_dir, base_iri, default_dir, dir_split, n_file_it
                                       string_iri) + \
                                os.sep + str(cur_split)
 
-                cur_file_path = cur_dir_path + os.sep + str(cur_file_split) + ".json"
+                cur_file_path = cur_dir_path + os.sep + str(cur_file_split) + format_string
         # Enter here if no split is needed
         elif dir_split == 0:
             if "/prov/" in string_iri:
@@ -325,7 +328,7 @@ def find_paths(string_iri, base_dir, base_iri, default_dir, dir_split, n_file_it
                                        "\\1%s%s" % (os.sep, default_dir)), string_iri) + \
                                os.sep + str(cur_file_split) + os.sep + "prov"
                 cur_file_path = cur_dir_path + os.sep + re.sub(
-                    ("^%s" + prov_regex) % base_iri, "\\5", string_iri) + ".json"
+                    ("^%s" + prov_regex) % base_iri, "\\5", string_iri) + format_string
             else:
                 cur_dir_path = base_dir + \
                                re.sub(("^%s" + res_regex) % base_iri,
@@ -333,12 +336,12 @@ def find_paths(string_iri, base_dir, base_iri, default_dir, dir_split, n_file_it
                                        "\\1%s%s" % (os.sep, default_dir)),
                                       string_iri)
 
-                cur_file_path = cur_dir_path + os.sep + str(cur_file_split) + ".json"
+                cur_file_path = cur_dir_path + os.sep + str(cur_file_split) + format_string
         # Enter here if the data is about a provenance agent, e.g.,
         # /corpus/prov/
         else:
             cur_dir_path = base_dir + re.sub(("^%s" + res_regex) % base_iri, "\\1", string_iri)
-            cur_file_path = cur_dir_path + os.sep + re.sub(res_regex, "\\2\\3", string_iri) + ".json"
+            cur_file_path = cur_dir_path + os.sep + re.sub(res_regex, "\\2\\3", string_iri) + format_string
 
     return cur_dir_path, cur_file_path
 

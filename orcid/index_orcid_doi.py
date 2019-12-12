@@ -10,7 +10,6 @@ class index_orcid_doi:
         self.doi_index = CSVManager("doi_index.csv")
         self.doimanager = DOIManager(valid_doi=self.doi_index)
         self.csvstorage = CSVManager(csv_path)
-        #self.index = dict()
         self.finder(summaries_path)
 
     def finder (self, summaries_path):
@@ -38,16 +37,8 @@ class index_orcid_doi:
                                             doi = self.doimanager.normalise(doi)
                                             if doi:
                                                 orcid = file.replace(".xml", "")
-                                                x +=1
                                                 auto = name + " [" + orcid + "]"
                                                 self.csvstorage.add_value(doi, auto)
-                                                '''
-                                                if doi in self.index:
-                                                    if auto not in self.index[doi]:
-                                                        self.index[doi].append(auto)
-                                                else:
-                                                    self.index[doi] = list()
-                                                    self.index[doi].append(auto)
-                                                '''
 
-index_orcid_doi("M:\\tesi\\orcid_data\\ORCID_2019_summaries.tar\\ORCID_2019_summaries\\summaries\\001", "rrr.csv")
+
+#index_orcid_doi("C:\\Users\\Fabio\\Documents\\GitHub\\meta\\DEMO\\Dumontier\\summaries", "orcid.csv")

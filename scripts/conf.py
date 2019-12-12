@@ -17,8 +17,8 @@
 __author__ = 'essepuntato'
 
 # Official configuration
-base_dir = "/srv/data/corpus/"
-base_iri = "https://w3id.org/OC/"
+base_dir = "srv\\data\\corpus\\"
+base_iri = "https://w3id.org/OC/meta/"
 triplestore_url = "http://localhost:9999/blazegraph/sparql"
 triplestore_url_real = ""
 context_path = "https://w3id.org/oc/corpus/context.json"

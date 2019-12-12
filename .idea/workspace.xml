@@ -2,12 +2,44 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="d2b23c46-2db9-4b25-a89e-e1906277cf0f" name="Default" comment="">
+      <change afterPath="$PROJECT_DIR$/DEMO/Dumontier/json/Dumontier.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/DEMO/Dumontier/warmup.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/migrator.py" beforeDir="false" afterPath="$PROJECT_DIR$/migrator.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/crossref/converter_counter/ar.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/crossref/converter_counter/br.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/crossref/converter_counter/id.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/crossref/converter_counter/ra.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/crossref/converter_counter/re.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_01/data_crossref_01.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_01/index_ar_crossref_01.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_01/index_id_br_crossref_01.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_01/index_id_ra_crossref_01.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_01/index_re_crossref_01.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_01/index_vi_crossref_01.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_02/data_crossref_02.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_02/index_ar_crossref_02.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_02/index_id_br_crossref_02.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_02/index_id_ra_crossref_02.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_02/index_re_crossref_02.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_02/index_vi_crossref_02.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_orcid_prova/data_crossref_orcid_prova.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_orcid_prova/index_ar_crossref_orcid_prova.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_orcid_prova/index_id_br_crossref_orcid_prova.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_orcid_prova/index_id_ra_crossref_orcid_prova.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_orcid_prova/index_re_crossref_orcid_prova.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/crossref/csv/indices/crossref_orcid_prova/index_vi_crossref_orcid_prova.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/crossref/inde_orc_pro.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/crossref/json/1.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/crossref/json/2019.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/crossref/json/Dumontier.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/crossref/json/Feynman.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/crossref/json/haleem_mohamed.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/crossref/warmup.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/orcid/doi_index.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/orcid/index_orcid_doi.py" beforeDir="false" afterPath="$PROJECT_DIR$/orcid/index_orcid_doi.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/scripts/conf.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/conf.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/graphlib.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/graphlib.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/old_graphlib.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/scripts/storer.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/storer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/support.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/support.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -47,28 +79,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Python.prova">
-    <configuration name="converter_TDD" type="PythonConfigurationType" factoryName="Python" temporary="true">
-      <module name="meta" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tdd" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/tdd/converter_TDD.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
+  <component name="RunManager" selected="Python.warmup (1)">
     <configuration name="index_orcid_doi" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="meta" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -132,6 +143,27 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
+    <configuration name="warmup (1)" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <module name="meta" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/DEMO/Dumontier" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/DEMO/Dumontier/warmup.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <configuration name="warmup" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="meta" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -157,16 +189,16 @@
       <item itemvalue="Python.prova" />
       <item itemvalue="Python.warmup" />
       <item itemvalue="Python.index_orcid_doi" />
-      <item itemvalue="Python.converter_TDD" />
       <item itemvalue="Python.migrator_TDD" />
+      <item itemvalue="Python.warmup (1)" />
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.prova" />
-        <item itemvalue="Python.migrator_TDD" />
-        <item itemvalue="Python.converter_TDD" />
+        <item itemvalue="Python.warmup (1)" />
         <item itemvalue="Python.warmup" />
         <item itemvalue="Python.index_orcid_doi" />
+        <item itemvalue="Python.prova" />
+        <item itemvalue="Python.migrator_TDD" />
       </list>
     </recent_temporary>
   </component>

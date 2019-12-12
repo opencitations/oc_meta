@@ -261,8 +261,12 @@ class Storer(object):
 
     def dir_and_file_paths(self, cur_g, base_dir, base_iri):
         cur_subject = set(cur_g.subjects(None, None)).pop()
+        if self.nt:
+            is_json = False
+        else:
+            is_json = True
         return find_paths(
-            str(cur_subject), base_dir, base_iri, self.default_dir, self.dir_split, self.n_file_item)
+            str(cur_subject), base_dir, base_iri, self.default_dir, self.dir_split, self.n_file_item, is_json=is_json)
 
     def update(self, add_g, remove_g, base_dir, base_iri, context_path, tmp_dir=None,
                override=False, already_processed={}, store_now=True):
