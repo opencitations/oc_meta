@@ -1,7 +1,7 @@
-@prefix ar: <https://w3id.org/OC/meta/ar/> .
-@prefix be: <https://w3id.org/OC/meta/be/> .
+@prefix ar: <https://w3id.org/oc/meta/ar/> .
+@prefix be: <https://w3id.org/oc/meta/be/> .
 @prefix biro: <http://purl.org/spar/biro/> .
-@prefix br: <https://w3id.org/OC/meta/br/> .
+@prefix br: <https://w3id.org/oc/meta/br/> .
 @prefix c4o: <http://purl.org/spar/c4o/> .
 @prefix cito: <http://purl.org/spar/cito/> .
 @prefix datacite: <http://purl.org/spar/datacite/> .
@@ -10,162 +10,162 @@
 @prefix fabio: <http://purl.org/spar/fabio/> .
 @prefix foaf: <http://xmlns.com/foaf/0.1/> .
 @prefix frbr: <http://purl.org/vocab/frbr/core#> .
-@prefix id: <https://w3id.org/OC/meta/id/> .
+@prefix id: <https://w3id.org/oc/meta/id/> .
 @prefix literal: <http://www.essepuntato.it/2010/06/literalreification/> .
 @prefix oco: <https://w3id.org/oc/ontology/> .
 @prefix prism: <http://prismstandard.org/namespaces/basic/2.0/> .
 @prefix pro: <http://purl.org/spar/pro/> .
-@prefix ra: <https://w3id.org/OC/meta/ra/> .
+@prefix ra: <https://w3id.org/oc/meta/ra/> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix re: <https://w3id.org/OC/meta/re/> .
+@prefix re: <https://w3id.org/oc/meta/re/> .
 @prefix xml: <http://www.w3.org/XML/1998/namespace> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-<https://w3id.org/OC/meta/br/1> a fabio:BookChapter,
+<https://w3id.org/oc/meta/br/1> a fabio:BookChapter,
         fabio:Expression ;
     prism:publicationDate "2018"^^xsd:gYear ;
     dcterms:title "The SPAR Ontologies" ;
-    datacite:hasIdentifier <https://w3id.org/OC/meta/id/1>,
-        <https://w3id.org/OC/meta/id/2> ;
-    pro:isDocumentContextFor <https://w3id.org/OC/meta/ar/1>,
-        <https://w3id.org/OC/meta/ar/2>,
-        <https://w3id.org/OC/meta/ar/3> ;
-    frbr:embodiment <https://w3id.org/OC/meta/re/1> ;
-    frbr:partOf <https://w3id.org/OC/meta/br/2> .
+    datacite:hasIdentifier <https://w3id.org/oc/meta/id/1>,
+        <https://w3id.org/oc/meta/id/2> ;
+    pro:isDocumentContextFor <https://w3id.org/oc/meta/ar/1>,
+        <https://w3id.org/oc/meta/ar/2>,
+        <https://w3id.org/oc/meta/ar/3> ;
+    frbr:embodiment <https://w3id.org/oc/meta/re/1> ;
+    frbr:partOf <https://w3id.org/oc/meta/br/2> .
 
-<https://w3id.org/OC/meta/br/3> a fabio:Expression,
+<https://w3id.org/oc/meta/br/3> a fabio:Expression,
         fabio:JournalArticle ;
     prism:publicationDate "2017"^^xsd:gYear ;
     dcterms:title "Automating semantic publishing" ;
-    datacite:hasIdentifier <https://w3id.org/OC/meta/id/11> ;
-    pro:isDocumentContextFor <https://w3id.org/OC/meta/ar/4>,
-        <https://w3id.org/OC/meta/ar/5> ;
-    frbr:embodiment <https://w3id.org/OC/meta/re/2> ;
-    frbr:partOf <https://w3id.org/OC/meta/br/6> .
+    datacite:hasIdentifier <https://w3id.org/oc/meta/id/11> ;
+    pro:isDocumentContextFor <https://w3id.org/oc/meta/ar/4>,
+        <https://w3id.org/oc/meta/ar/5> ;
+    frbr:embodiment <https://w3id.org/oc/meta/re/2> ;
+    frbr:partOf <https://w3id.org/oc/meta/br/6> .
 
-<https://w3id.org/OC/meta/ar/1> a pro:RoleInTime ;
-    pro:isHeldBy <https://w3id.org/OC/meta/ra/1> ;
-    oco:hasNext <https://w3id.org/OC/meta/ar/2> ;
+<https://w3id.org/oc/meta/ar/1> a pro:RoleInTime ;
+    pro:isHeldBy <https://w3id.org/oc/meta/ra/1> ;
+    oco:hasNext <https://w3id.org/oc/meta/ar/2> ;
     pro:withRole pro:author .
 
-<https://w3id.org/OC/meta/ar/2> a pro:RoleInTime ;
-    pro:isHeldBy <https://w3id.org/OC/meta/ra/2> ;
+<https://w3id.org/oc/meta/ar/2> a pro:RoleInTime ;
+    pro:isHeldBy <https://w3id.org/oc/meta/ra/2> ;
     pro:withRole pro:author .
 
-<https://w3id.org/OC/meta/ar/3> a pro:RoleInTime ;
-    pro:isHeldBy <https://w3id.org/OC/meta/ra/3> ;
+<https://w3id.org/oc/meta/ar/3> a pro:RoleInTime ;
+    pro:isHeldBy <https://w3id.org/oc/meta/ra/3> ;
     pro:withRole pro:publisher .
 
-<https://w3id.org/OC/meta/ar/4> a pro:RoleInTime ;
-    pro:isHeldBy <https://w3id.org/OC/meta/ra/1> ;
+<https://w3id.org/oc/meta/ar/4> a pro:RoleInTime ;
+    pro:isHeldBy <https://w3id.org/oc/meta/ra/1> ;
     pro:withRole pro:author .
 
-<https://w3id.org/OC/meta/ar/5> a pro:RoleInTime ;
-    pro:isHeldBy <https://w3id.org/OC/meta/ra/4> ;
+<https://w3id.org/oc/meta/ar/5> a pro:RoleInTime ;
+    pro:isHeldBy <https://w3id.org/oc/meta/ra/4> ;
     pro:withRole pro:publisher .
 
-<https://w3id.org/OC/meta/br/2> a fabio:Expression, fabio:Book ;
+<https://w3id.org/oc/meta/br/2> a fabio:Expression, fabio:Book ;
     dcterms:title "The Semantic Web – ISWC 2018 --- 17th International Semantic Web Conference, Monterey, CA, USA, October 8–12, 2018, Proceedings, Part II" ;
-    datacite:hasIdentifier <https://w3id.org/OC/meta/id/7>,
-        <https://w3id.org/OC/meta/id/8>,
-        <https://w3id.org/OC/meta/id/9> .
+    datacite:hasIdentifier <https://w3id.org/oc/meta/id/7>,
+        <https://w3id.org/oc/meta/id/8>,
+        <https://w3id.org/oc/meta/id/9> .
 
-<https://w3id.org/OC/meta/br/4> a fabio:Expression , fabio:Journal;
+<https://w3id.org/oc/meta/br/4> a fabio:Expression , fabio:Journal;
     dcterms:title "Data Science" ;
-    datacite:hasIdentifier <https://w3id.org/OC/meta/id/12>,
-        <https://w3id.org/OC/meta/id/13> .
+    datacite:hasIdentifier <https://w3id.org/oc/meta/id/12>,
+        <https://w3id.org/oc/meta/id/13> .
 
-<https://w3id.org/OC/meta/br/5> a fabio:Expression,
+<https://w3id.org/oc/meta/br/5> a fabio:Expression,
         fabio:JournalVolume ;
     fabio:hasSequenceIdentifier "1" ;
-    frbr:partOf <https://w3id.org/OC/meta/br/4> .
+    frbr:partOf <https://w3id.org/oc/meta/br/4> .
 
-<https://w3id.org/OC/meta/br/6> a fabio:Expression,
+<https://w3id.org/oc/meta/br/6> a fabio:Expression,
         fabio:JournalIssue ;
     fabio:hasSequenceIdentifier "1-2" ;
-    frbr:partOf <https://w3id.org/OC/meta/br/5> .
+    frbr:partOf <https://w3id.org/oc/meta/br/5> .
 
-<https://w3id.org/OC/meta/id/1> a datacite:Identifier ;
+<https://w3id.org/oc/meta/id/1> a datacite:Identifier ;
     datacite:usesIdentifierScheme datacite:doi ;
     literal:hasLiteralValue "10.1007/978-3-030-00668-6_8" .
 
-<https://w3id.org/OC/meta/id/10> a datacite:Identifier ;
+<https://w3id.org/oc/meta/id/10> a datacite:Identifier ;
     datacite:usesIdentifierScheme datacite:crossref ;
     literal:hasLiteralValue "297" .
 
-<https://w3id.org/OC/meta/id/11> a datacite:Identifier ;
+<https://w3id.org/oc/meta/id/11> a datacite:Identifier ;
     datacite:usesIdentifierScheme datacite:doi ;
     literal:hasLiteralValue "10.3233/ds-170012" .
 
-<https://w3id.org/OC/meta/id/12> a datacite:Identifier ;
+<https://w3id.org/oc/meta/id/12> a datacite:Identifier ;
     datacite:usesIdentifierScheme datacite:issn ;
     literal:hasLiteralValue "2451-8484" .
 
-<https://w3id.org/OC/meta/id/13> a datacite:Identifier ;
+<https://w3id.org/oc/meta/id/13> a datacite:Identifier ;
     datacite:usesIdentifierScheme datacite:issn ;
     literal:hasLiteralValue "2451-8492" .
 
-<https://w3id.org/OC/meta/id/14> a datacite:Identifier ;
+<https://w3id.org/oc/meta/id/14> a datacite:Identifier ;
     datacite:usesIdentifierScheme datacite:crossref ;
     literal:hasLiteralValue "7437" .
 
-<https://w3id.org/OC/meta/id/2> a datacite:Identifier ;
+<https://w3id.org/oc/meta/id/2> a datacite:Identifier ;
     datacite:usesIdentifierScheme datacite:wikidata ;
     literal:hasLiteralValue "Q61661462" .
 
-<https://w3id.org/OC/meta/id/3> a datacite:Identifier ;
+<https://w3id.org/oc/meta/id/3> a datacite:Identifier ;
     datacite:usesIdentifierScheme datacite:orcid ;
     literal:hasLiteralValue "0000-0003-0530-4305" .
 
-<https://w3id.org/OC/meta/id/4> a datacite:Identifier ;
+<https://w3id.org/oc/meta/id/4> a datacite:Identifier ;
     datacite:usesIdentifierScheme datacite:viaf ;
     literal:hasLiteralValue "309649450" .
 
-<https://w3id.org/OC/meta/id/5> a datacite:Identifier ;
+<https://w3id.org/oc/meta/id/5> a datacite:Identifier ;
     datacite:usesIdentifierScheme datacite:wikidata ;
     literal:hasLiteralValue "Q30536251" .
 
-<https://w3id.org/OC/meta/id/6> a datacite:Identifier ;
+<https://w3id.org/oc/meta/id/6> a datacite:Identifier ;
     datacite:usesIdentifierScheme datacite:orcid ;
     literal:hasLiteralValue "0000-0001-5506-523X" .
 
-<https://w3id.org/OC/meta/id/7> a datacite:Identifier ;
+<https://w3id.org/oc/meta/id/7> a datacite:Identifier ;
     datacite:usesIdentifierScheme datacite:doi ;
     literal:hasLiteralValue "10.1007/978-3-030-00668-6" .
 
-<https://w3id.org/OC/meta/id/8> a datacite:Identifier ;
+<https://w3id.org/oc/meta/id/8> a datacite:Identifier ;
     datacite:usesIdentifierScheme datacite:isbn ;
     literal:hasLiteralValue "978-3-030-00670-9" .
 
-<https://w3id.org/OC/meta/id/9> a datacite:Identifier ;
+<https://w3id.org/oc/meta/id/9> a datacite:Identifier ;
     datacite:usesIdentifierScheme datacite:isbn ;
     literal:hasLiteralValue "978-3-030-00671-6" .
 
-<https://w3id.org/OC/meta/ra/1> a foaf:Agent ;
-    datacite:hasIdentifier <https://w3id.org/OC/meta/id/3>,
-        <https://w3id.org/OC/meta/id/4>,
-        <https://w3id.org/OC/meta/id/5> ;
+<https://w3id.org/oc/meta/ra/1> a foaf:Agent ;
+    datacite:hasIdentifier <https://w3id.org/oc/meta/id/3>,
+        <https://w3id.org/oc/meta/id/4>,
+        <https://w3id.org/oc/meta/id/5> ;
     foaf:familyName "Peroni" ;
     foaf:givenName "Silvio" .
 
-<https://w3id.org/OC/meta/ra/2> a foaf:Agent ;
-    datacite:hasIdentifier <https://w3id.org/OC/meta/id/6> ;
+<https://w3id.org/oc/meta/ra/2> a foaf:Agent ;
+    datacite:hasIdentifier <https://w3id.org/oc/meta/id/6> ;
     foaf:familyName "Shotton" ;
     foaf:givenName "David" .
 
-<https://w3id.org/OC/meta/ra/3> a foaf:Agent ;
-    datacite:hasIdentifier <https://w3id.org/OC/meta/id/10> ;
+<https://w3id.org/oc/meta/ra/3> a foaf:Agent ;
+    datacite:hasIdentifier <https://w3id.org/oc/meta/id/10> ;
     foaf:name "Springer International Publishing" .
 
-<https://w3id.org/OC/meta/ra/4> a foaf:Agent ;
-    datacite:hasIdentifier <https://w3id.org/OC/meta/id/14> ;
+<https://w3id.org/oc/meta/ra/4> a foaf:Agent ;
+    datacite:hasIdentifier <https://w3id.org/oc/meta/id/14> ;
     foaf:name "IOS Press" .
 
-<https://w3id.org/OC/meta/re/1> a fabio:Manifestation ;
+<https://w3id.org/oc/meta/re/1> a fabio:Manifestation ;
     prism:endingPage "136" ;
     prism:startingPage "119" .
 
-<https://w3id.org/OC/meta/re/2> a fabio:Manifestation ;
+<https://w3id.org/oc/meta/re/2> a fabio:Manifestation ;
     prism:endingPage "173" ;
     prism:startingPage "155" .

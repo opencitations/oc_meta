@@ -9,40 +9,40 @@
 @prefix xml: <http://www.w3.org/XML/1998/namespace> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-<https://w3id.org/OC/meta/br/1> a ns3:Expression,
+<https://w3id.org/oc/meta/br/1> a ns3:Expression,
         ns3:JournalArticle ;
     ns1:publicationDate "1995"^^xsd:gYear ;
     ns5:title "Title6" ;
-    ns2:isDocumentContextFor <https://w3id.org/OC/meta/ar/1>,
-        <https://w3id.org/OC/meta/ar/2> ;
-    ns4:embodiment <https://w3id.org/OC/meta/re/1> ;
-    ns4:partOf <https://w3id.org/OC/meta/br/3> .
+    ns2:isDocumentContextFor <https://w3id.org/oc/meta/ar/1>,
+        <https://w3id.org/oc/meta/ar/2> ;
+    ns4:embodiment <https://w3id.org/oc/meta/re/1> ;
+    ns4:partOf <https://w3id.org/oc/meta/br/3> .
 
-<https://w3id.org/OC/meta/ar/1> a ns2:RoleInTime ;
-    ns2:isHeldBy <https://w3id.org/OC/meta/ra/1> ;
+<https://w3id.org/oc/meta/ar/1> a ns2:RoleInTime ;
+    ns2:isHeldBy <https://w3id.org/oc/meta/ra/1> ;
     ns2:withRole ns2:author .
 
-<https://w3id.org/OC/meta/ar/2> a ns2:RoleInTime ;
-    ns2:isHeldBy <https://w3id.org/OC/meta/ra/2> ;
+<https://w3id.org/oc/meta/ar/2> a ns2:RoleInTime ;
+    ns2:isHeldBy <https://w3id.org/oc/meta/ra/2> ;
     ns2:withRole ns2:publisher .
 
-<https://w3id.org/OC/meta/br/2> a ns3:Expression,
+<https://w3id.org/oc/meta/br/2> a ns3:Expression,
         ns3:Journal ;
     ns5:title "venueX" .
 
-<https://w3id.org/OC/meta/br/3> a ns3:Expression,
+<https://w3id.org/oc/meta/br/3> a ns3:Expression,
         ns3:JournalIssue ;
     ns3:hasSequenceIdentifier "7-8" ;
-    ns4:partOf <https://w3id.org/OC/meta/br/2> .
+    ns4:partOf <https://w3id.org/oc/meta/br/2> .
 
-<https://w3id.org/OC/meta/ra/1> a ns6:Agent ;
+<https://w3id.org/oc/meta/ra/1> a ns6:Agent ;
     ns6:familyName "Surnamex" ;
     ns6:givenName "Namex" .
 
-<https://w3id.org/OC/meta/ra/2> a ns6:Agent ;
+<https://w3id.org/oc/meta/ra/2> a ns6:Agent ;
     ns6:name "Pubx" .
 
-<https://w3id.org/OC/meta/re/1> a ns3:Manifestation ;
+<https://w3id.org/oc/meta/re/1> a ns3:Manifestation ;
     ns1:endingPage "302" ;
     ns1:startingPage "279" .
 

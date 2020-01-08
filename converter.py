@@ -100,7 +100,6 @@ class Converter:
             metaval = self.new_entity(self.brdict, name)
 
         row['id'] = metaval
-
         if "wannabe" not in metaval:
             self.equalizer(row, metaval)
 
@@ -250,7 +249,6 @@ class Converter:
                         if row["id"] in self.brdict[x]["others"]:
                             br_metaval = x
                             break
-
                 if br_metaval not in self.ardict or not self.ardict[br_metaval][col_name]:
                     #new sequence
                     if "wannabe" in br_metaval:

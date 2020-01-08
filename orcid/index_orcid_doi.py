@@ -16,7 +16,7 @@ class index_orcid_doi:
         for fold, dirs, files in os.walk(summaries_path):
             for file in files:
                 if file.endswith('.xml'):
-                    xml_file = open(os.path.join(fold, file), 'r', encoding="utf-8")
+                    xml_file = open(os.path.join(fold, file), 'r')
                     xml_soup = BeautifulSoup(xml_file, 'xml')
                     g_name = xml_soup.find('personal-details:given-names')
                     f_name = xml_soup.find('personal-details:family-name')
@@ -41,4 +41,4 @@ class index_orcid_doi:
                                                 self.csvstorage.add_value(doi, auto)
 
 
-#index_orcid_doi("C:\\Users\\Fabio\\Documents\\GitHub\\meta\\DEMO\\Dumontier\\summaries", "orcid.csv")
+#index_orcid_doi("C:\\Users\\Fabio\\Documents\\GitHub\\meta\\DEMO\\Peroni\\summaries", "orcid.csv")

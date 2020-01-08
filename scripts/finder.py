@@ -43,9 +43,9 @@ class ResourceFinder:
         if len(results["results"]["bindings"]):
             result_list = list()
             for result in results["results"]["bindings"]:
-                res = str(result["res"]["value"]).replace("https://w3id.org/OC/meta/br/", "")
+                res = str(result["res"]["value"]).replace("https://w3id.org/oc/meta/br/", "")
                 title = str(result["title"]["value"])
-                meta_id_list = str(result["id"]["value"]).replace("https://w3id.org/OC/meta/id/", "").split(" ;and; ")
+                meta_id_list = str(result["id"]["value"]).replace("https://w3id.org/oc/meta/id/", "").split(" ;and; ")
                 id_schema_list = str(result["schema"]["value"]).replace(GraphEntity.DATACITE, "").split(" ;and; ")
                 id_value_list = str(result["value"]["value"]).split(" ;and; ")
 
@@ -61,7 +61,7 @@ class ResourceFinder:
             return None
 
     def retrieve_br_from_meta (self, meta_id):
-        uri = "https://w3id.org/OC/meta/br/" + str(meta_id)
+        uri = "https://w3id.org/oc/meta/br/" + str(meta_id)
         query = """
                 SELECT DISTINCT ?res (group_concat(DISTINCT  ?title;separator=' ;and; ') as ?title)
                      (group_concat(DISTINCT  ?id;separator=' ;and; ') as ?id)
@@ -83,7 +83,7 @@ class ResourceFinder:
         if result["results"]["bindings"]:
             result = result["results"]["bindings"][0]
             title = str(result["title"]["value"])
-            meta_id_list = str(result["id"]["value"]).replace("https://w3id.org/OC/meta/id/", "").split(" ;and; ")
+            meta_id_list = str(result["id"]["value"]).replace("https://w3id.org/oc/meta/id/", "").split(" ;and; ")
             id_schema_list = str(result["schema"]["value"]).replace(GraphEntity.DATACITE, "").split(" ;and; ")
             id_value_list = str(result["value"]["value"]).split(" ;and; ")
 
@@ -121,7 +121,7 @@ class ResourceFinder:
 
         result = self.__query(query)
         if result["results"]["bindings"]:
-            return str(result["res"]["value"]).replace("https://w3id.org/OC/meta/ra/", "")
+            return str(result["res"]["value"]).replace("https://w3id.org/oc/meta/ra/", "")
         else:
             return None
 
@@ -130,7 +130,7 @@ class ResourceFinder:
 
     #_______________________________RA_________________________________#
     def retrieve_ra_from_meta (self, meta_id, publisher = False):
-        uri = "https://w3id.org/OC/meta/ra/" + str(meta_id)
+        uri = "https://w3id.org/oc/meta/ra/" + str(meta_id)
         query = """
                         SELECT DISTINCT ?res (group_concat(DISTINCT  ?title;separator=' ;and; ') as ?title)
                              (group_concat(DISTINCT  ?name;separator=' ;and; ') as ?name)
@@ -161,7 +161,7 @@ class ResourceFinder:
                 title = str(result["surname"]["value"]) + ", " + str(result["name"]["value"])
             else:
                 title = ""
-            meta_id_list = str(result["id"]["value"]).replace("https://w3id.org/OC/meta/id/", "").split(" ;and; ")
+            meta_id_list = str(result["id"]["value"]).replace("https://w3id.org/oc/meta/id/", "").split(" ;and; ")
             id_schema_list = str(result["schema"]["value"]).replace(GraphEntity.DATACITE, "").split(" ;and; ")
             id_value_list = str(result["value"]["value"]).split(" ;and; ")
 
@@ -212,14 +212,14 @@ class ResourceFinder:
         if len(results["results"]["bindings"]):
             result_list = list()
             for result in results["results"]["bindings"]:
-                res = str(result["res"]["value"]).replace("https://w3id.org/OC/meta/ra/", "")
+                res = str(result["res"]["value"]).replace("https://w3id.org/oc/meta/ra/", "")
                 if str(result["title"]["value"]) and publisher:
                     title = str(result["title"]["value"])
                 elif str(result["surname"]["value"]) and not publisher:
                     title = str(result["surname"]["value"]) + ", " + str(result["name"]["value"])
                 else:
                     title = ""
-                meta_id_list = str(result["id"]["value"]).replace("https://w3id.org/OC/meta/id/", "").split(" ;and; ")
+                meta_id_list = str(result["id"]["value"]).replace("https://w3id.org/oc/meta/id/", "").split(" ;and; ")
                 id_schema_list = str(result["schema"]["value"]).replace(GraphEntity.DATACITE, "").split(" ;and; ")
                 id_value_list = str(result["value"]["value"]).split(" ;and; ")
 
@@ -259,12 +259,12 @@ class ResourceFinder:
                     ?res <%s> ?title.
                 } group by ?res
 
-                """ % (GraphEntity.part_of, "https://w3id.org/OC/meta/br/" + str(meta), GraphEntity.has_sequence_identifier)
+                """ % (GraphEntity.part_of, "https://w3id.org/oc/meta/br/" + str(meta), GraphEntity.has_sequence_identifier)
         result = self.__query(query)
         if result["results"]["bindings"]:
             results = result["results"]["bindings"]
             for x in results:
-                res = str(x["res"]["value"]).replace("https://w3id.org/OC/meta/br/", "")
+                res = str(x["res"]["value"]).replace("https://w3id.org/oc/meta/br/", "")
                 title = str(x["title"]["value"])
                 types = str(x["type"]["value"]).split(" ;and; ")
 
@@ -294,7 +294,7 @@ class ResourceFinder:
             role = GraphEntity.editor
         else:
             role = GraphEntity.publisher
-        uri = "https://w3id.org/OC/meta/br/" + str(meta_id)
+        uri = "https://w3id.org/oc/meta/br/" + str(meta_id)
         query = """
                 SELECT DISTINCT ?role ?next ?agent
 
@@ -314,12 +314,12 @@ class ResourceFinder:
             results = result["results"]["bindings"]
             dict_ar = dict()
             for x in results:
-                role = str(x["role"]["value"]).replace("https://w3id.org/OC/meta/ar/", "")
+                role = str(x["role"]["value"]).replace("https://w3id.org/oc/meta/ar/", "")
                 if "next" in x:
-                    next = str(x["next"]["value"]).replace("https://w3id.org/OC/meta/ar/", "")
+                    next = str(x["next"]["value"]).replace("https://w3id.org/oc/meta/ar/", "")
                 else:
                     next = ""
-                agent = str(x["agent"]["value"]).replace("https://w3id.org/OC/meta/ra/", "")
+                agent = str(x["agent"]["value"]).replace("https://w3id.org/oc/meta/ra/", "")
 
                 dict_ar[role] = dict()
 
@@ -348,7 +348,7 @@ class ResourceFinder:
             return None
 
     def re_from_meta (self, meta):
-        uri = "https://w3id.org/OC/meta/br/" + str(meta)
+        uri = "https://w3id.org/oc/meta/br/" + str(meta)
         query = """
                         SELECT DISTINCT ?re ?sp ?ep
                         WHERE {
@@ -361,7 +361,7 @@ class ResourceFinder:
                         """ % (uri, GraphEntity.expression, uri, GraphEntity.embodiment, GraphEntity.starting_page, GraphEntity.ending_page)
         result = self.__query(query)
         if result["results"]["bindings"]:
-            meta = result["results"]["bindings"][0]["re"]["value"].replace("https://w3id.org/OC/meta/re/", "")
+            meta = result["results"]["bindings"][0]["re"]["value"].replace("https://w3id.org/oc/meta/re/", "")
             pages = result["results"]["bindings"][0]["sp"]["value"] + "-" + result["results"]["bindings"][0]["ep"]["value"]
             return (meta, pages)
         else:
@@ -369,7 +369,7 @@ class ResourceFinder:
 
 
     def retrieve_br_info_from_meta(self, meta_id):
-        uri = "https://w3id.org/OC/meta/br/" + str(meta_id)
+        uri = "https://w3id.org/oc/meta/br/" + str(meta_id)
         query = """
                         SELECT ?res 
                         (group_concat(DISTINCT  ?type;separator=' ;and; ') as ?type)
@@ -506,7 +506,7 @@ class ResourceFinder:
         elif "volume" in typ:
             dic["volume"] = str(result[num]["value"])
         elif typ:
-            dic["venue"] = result[title]["value"] + " [meta:" + result[part]["value"].replace("https://w3id.org/OC/meta/", "") +"]"
+            dic["venue"] = result[title]["value"] + " [meta:" + result[part]["value"].replace("https://w3id.org/oc/meta/", "") +"]"
         return dic
 
 

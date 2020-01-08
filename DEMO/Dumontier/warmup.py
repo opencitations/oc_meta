@@ -36,7 +36,7 @@ def warmup (raw_json_path, doi_orcid, name):
                                   n_file_item=items_per_file,
                                   default_dir=default_dir),
                    dir_split_number, items_per_file, "", wanted_label=False)
-    prov.generate_provenance()
+    prov.generate_provenance("meta_demo_agent")
 
     res_storer = Storer(migrator,
                         context_map={},

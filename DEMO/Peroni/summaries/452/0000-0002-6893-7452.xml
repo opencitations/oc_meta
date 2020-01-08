@@ -1,0 +1,2835 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<record:record path="/0000-0002-6893-7452" xmlns:internal="http://www.orcid.org/ns/internal" xmlns:education="http://www.orcid.org/ns/education" xmlns:distinction="http://www.orcid.org/ns/distinction" xmlns:deprecated="http://www.orcid.org/ns/deprecated" xmlns:other-name="http://www.orcid.org/ns/other-name" xmlns:membership="http://www.orcid.org/ns/membership" xmlns:error="http://www.orcid.org/ns/error" xmlns:common="http://www.orcid.org/ns/common" xmlns:record="http://www.orcid.org/ns/record" xmlns:personal-details="http://www.orcid.org/ns/personal-details" xmlns:keyword="http://www.orcid.org/ns/keyword" xmlns:email="http://www.orcid.org/ns/email" xmlns:external-identifier="http://www.orcid.org/ns/external-identifier" xmlns:funding="http://www.orcid.org/ns/funding" xmlns:preferences="http://www.orcid.org/ns/preferences" xmlns:address="http://www.orcid.org/ns/address" xmlns:invited-position="http://www.orcid.org/ns/invited-position" xmlns:work="http://www.orcid.org/ns/work" xmlns:history="http://www.orcid.org/ns/history" xmlns:employment="http://www.orcid.org/ns/employment" xmlns:qualification="http://www.orcid.org/ns/qualification" xmlns:service="http://www.orcid.org/ns/service" xmlns:person="http://www.orcid.org/ns/person" xmlns:activities="http://www.orcid.org/ns/activities" xmlns:researcher-url="http://www.orcid.org/ns/researcher-url" xmlns:peer-review="http://www.orcid.org/ns/peer-review" xmlns:bulk="http://www.orcid.org/ns/bulk" xmlns:research-resource="http://www.orcid.org/ns/research-resource">
+    <common:orcid-identifier>
+        <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+        <common:path>0000-0002-6893-7452</common:path>
+        <common:host>orcid.org</common:host>
+    </common:orcid-identifier>
+    <preferences:preferences>
+        <preferences:locale>en</preferences:locale>
+    </preferences:preferences>
+    <history:history>
+        <history:creation-method>website</history:creation-method>
+        <history:submission-date>2013-05-11T21:08:50.877Z</history:submission-date>
+        <common:last-modified-date>2017-11-03T17:33:19.605Z</common:last-modified-date>
+        <history:claimed>true</history:claimed>
+        <history:verified-email>true</history:verified-email>
+        <history:verified-primary-email>true</history:verified-primary-email>
+    </history:history>
+    <person:person path="/0000-0002-6893-7452/person">
+        <common:last-modified-date>2016-06-06T15:29:36.952Z</common:last-modified-date>
+        <person:name visibility="public" path="0000-0002-6893-7452">
+            <common:created-date>2016-04-15T22:55:44.112Z</common:created-date>
+            <common:last-modified-date>2016-04-15T22:55:44.112Z</common:last-modified-date>
+            <personal-details:given-names>Angelo</personal-details:given-names>
+            <personal-details:family-name>Di Iorio</personal-details:family-name>
+        </person:name>
+        <other-name:other-names path="/0000-0002-6893-7452/other-names"/>
+        <researcher-url:researcher-urls path="/0000-0002-6893-7452/researcher-urls"/>
+        <email:emails path="/0000-0002-6893-7452/email"/>
+        <address:addresses path="/0000-0002-6893-7452/address">
+            <common:last-modified-date>2016-06-06T15:29:36.952Z</common:last-modified-date>
+            <address:address put-code="284742" visibility="public" path="/0000-0002-6893-7452/address/284742" display-index="0">
+                <common:created-date>2016-01-24T18:28:24.922Z</common:created-date>
+                <common:last-modified-date>2016-06-06T15:29:36.952Z</common:last-modified-date>
+                <common:source>
+                    <common:source-orcid>
+                        <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                        <common:path>0000-0002-6893-7452</common:path>
+                        <common:host>orcid.org</common:host>
+                    </common:source-orcid>
+                    <common:source-name>Angelo Di Iorio</common:source-name>
+                </common:source>
+                <address:country>IT</address:country>
+            </address:address>
+        </address:addresses>
+        <keyword:keywords path="/0000-0002-6893-7452/keywords"/>
+        <external-identifier:external-identifiers path="/0000-0002-6893-7452/external-identifiers"/>
+    </person:person>
+    <activities:activities-summary path="/0000-0002-6893-7452/activities">
+        <common:last-modified-date>2015-09-25T08:32:58.088Z</common:last-modified-date>
+        <activities:distinctions path="/0000-0002-6893-7452/distinctions"/>
+        <activities:educations path="/0000-0002-6893-7452/educations">
+            <common:last-modified-date>2015-09-25T08:29:50.716Z</common:last-modified-date>
+            <activities:affiliation-group>
+                <common:last-modified-date>2015-09-25T08:29:50.716Z</common:last-modified-date>
+                <common:external-ids/>
+                <education:education-summary put-code="1201700" display-index="0" path="/0000-0002-6893-7452/education/1201700" visibility="public">
+                    <common:created-date>2015-09-25T08:29:18.786Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:29:50.716Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <common:role-title>PhD in Computer Science</common:role-title>
+                    <common:organization>
+                        <common:name>University of Bologna</common:name>
+                        <common:address>
+                            <common:city>Bologna</common:city>
+                            <common:country>IT</common:country>
+                        </common:address>
+                    </common:organization>
+                </education:education-summary>
+            </activities:affiliation-group>
+        </activities:educations>
+        <activities:employments path="/0000-0002-6893-7452/employments">
+            <common:last-modified-date>2015-09-25T08:32:58.088Z</common:last-modified-date>
+            <activities:affiliation-group>
+                <common:last-modified-date>2015-09-25T08:32:58.088Z</common:last-modified-date>
+                <common:external-ids/>
+                <employment:employment-summary put-code="1201714" display-index="0" path="/0000-0002-6893-7452/employment/1201714" visibility="public">
+                    <common:created-date>2015-09-25T08:32:58.088Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:32:58.088Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <common:department-name>Computer Science</common:department-name>
+                    <common:role-title>Researcher</common:role-title>
+                    <common:organization>
+                        <common:name>University of Bologna</common:name>
+                        <common:address>
+                            <common:city>Bologna</common:city>
+                            <common:country>IT</common:country>
+                        </common:address>
+                    </common:organization>
+                </employment:employment-summary>
+            </activities:affiliation-group>
+        </activities:employments>
+        <activities:fundings path="/0000-0002-6893-7452/fundings"/>
+        <activities:invited-positions path="/0000-0002-6893-7452/invited-positions"/>
+        <activities:memberships path="/0000-0002-6893-7452/memberships"/>
+        <activities:peer-reviews path="/0000-0002-6893-7452/peer-reviews"/>
+        <activities:qualifications path="/0000-0002-6893-7452/qualifications"/>
+        <activities:research-resources path="/0000-0002-6893-7452/research-resources"/>
+        <activities:services path="/0000-0002-6893-7452/services"/>
+        <activities:works path="/0000-0002-6893-7452/works">
+            <common:last-modified-date>2015-09-25T08:32:04.676Z</common:last-modified-date>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:32:02.770Z</common:last-modified-date>
+                <common:external-ids/>
+                <work:work-summary put-code="18711367" path="/0000-0002-6893-7452/work/18711367" visibility="public" display-index="69">
+                    <common:created-date>2015-09-25T08:32:02.770Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:32:02.770Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Capturing and managing emergent implicit knowledge using social software and semantic Web technologies</common:title>
+                    </work:title>
+                    <common:external-ids/>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2015</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Knowledge-based Systems</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:32:00.761Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1145/2740908.2742018</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1145/2740908.2742018</common:external-id-normalized>
+                    </common:external-id>
+                    <common:external-id>
+                        <common:external-id-type>isbn</common:external-id-type>
+                        <common:external-id-value>978-1-4503-3473-0</common:external-id-value>
+                        <common:external-id-normalized transient="true">9781450334730</common:external-id-normalized>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="18711360" path="/0000-0002-6893-7452/work/18711360" visibility="public" display-index="63">
+                    <common:created-date>2015-09-25T08:32:00.761Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:32:00.761Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Exploring Bibliographies for Research-related Tasks</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1145/2740908.2742018</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1145/2740908.2742018</common:external-id-normalized>
+                        </common:external-id>
+                        <common:external-id>
+                            <common:external-id-type>isbn</common:external-id-type>
+                            <common:external-id-value>978-1-4503-3473-0</common:external-id-value>
+                            <common:external-id-normalized transient="true">9781450334730</common:external-id-normalized>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://dx.doi.org/10.1145/2740908.2742018</common:url>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2015</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Proceedings of the 24th International Conference on World Wide Web Companion</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:32:03.876Z</common:last-modified-date>
+                <common:external-ids/>
+                <work:work-summary put-code="18711372" path="/0000-0002-6893-7452/work/18711372" visibility="public" display-index="74">
+                    <common:created-date>2015-09-25T08:32:03.876Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:32:03.876Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Exploring scholarly papers through citations</common:title>
+                    </work:title>
+                    <common:external-ids/>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2015</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Proceedings for the 15th ACM symposium on Document engineering (to appear)</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:32:04.676Z</common:last-modified-date>
+                <common:external-ids/>
+                <work:work-summary put-code="18711376" path="/0000-0002-6893-7452/work/18711376" visibility="public" display-index="78">
+                    <common:created-date>2015-09-25T08:32:04.676Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:32:04.676Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Knowledge management of scholarly products: Semantic Lancet Project</common:title>
+                    </work:title>
+                    <common:external-ids/>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2015</common:year>
+                    </common:publication-date>
+                    <work:journal-title>6th European Conference on Knowledge Management - ECKM 2015</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:32:03.540Z</common:last-modified-date>
+                <common:external-ids/>
+                <work:work-summary put-code="18711371" path="/0000-0002-6893-7452/work/18711371" visibility="public" display-index="73">
+                    <common:created-date>2015-09-25T08:32:03.540Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:32:03.540Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Measuring the domain-oriented quality of diff algorithms</common:title>
+                    </work:title>
+                    <common:external-ids/>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2015</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Comput. Stand. Interfaces </work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:32:03.157Z</common:last-modified-date>
+                <common:external-ids/>
+                <work:work-summary put-code="18711368" path="/0000-0002-6893-7452/work/18711368" visibility="public" display-index="70">
+                    <common:created-date>2015-09-25T08:32:03.157Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:32:03.157Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Special Issue on Web Technologies</common:title>
+                    </work:title>
+                    <common:external-ids/>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2015</common:year>
+                    </common:publication-date>
+                    <work:journal-title>J. Web Eng.</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:32:00.989Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1002/spe.2305</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1002/spe.2305</common:external-id-normalized>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="18711362" path="/0000-0002-6893-7452/work/18711362" visibility="public" display-index="64">
+                    <common:created-date>2015-09-25T08:32:00.989Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:32:00.989Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Bridging the gap between tracking and detecting changes in XML</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1002/spe.2305</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1002/spe.2305</common:external-id-normalized>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://dx.doi.org/10.1002/spe.2305</common:url>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2014</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Software: Practice and Experience</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:58.002Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1002/asi.23088</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1002/asi.23088</common:external-id-normalized>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="18711345" path="/0000-0002-6893-7452/work/18711345" visibility="public" display-index="49">
+                    <common:created-date>2015-09-25T08:31:58.002Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:58.002Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Dealing with structural patterns of XML documents</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1002/asi.23088</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1002/asi.23088</common:external-id-normalized>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://dx.doi.org/10.1002/asi.23088</common:url>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2014</common:year>
+                    </common:publication-date>
+                    <work:journal-title>JASIST</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:32:00.375Z</common:last-modified-date>
+                <common:external-ids/>
+                <work:work-summary put-code="18711359" path="/0000-0002-6893-7452/work/18711359" visibility="public" display-index="62">
+                    <common:created-date>2015-09-25T08:32:00.375Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:32:00.375Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Describing bibliographic references in RDF</common:title>
+                    </work:title>
+                    <common:external-ids/>
+                    <common:url>http://ceur-ws.org/Vol-1155/paper-05.pdf</common:url>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2014</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Proceedings of the 4th Workshop on Semantic Publishing co-located
+               with the 11th Extended Semantic Web Conference (ESWC 2014), Anissaras,
+               Greece, May 25th, 2014.</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:32:01.437Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1145/2644866.2644896</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1145/2644866.2644896</common:external-id-normalized>
+                    </common:external-id>
+                    <common:external-id>
+                        <common:external-id-type>isbn</common:external-id-type>
+                        <common:external-id-value>978-1-4503-2949-1</common:external-id-value>
+                        <common:external-id-normalized transient="true">9781450329491</common:external-id-normalized>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="18711363" path="/0000-0002-6893-7452/work/18711363" visibility="public" display-index="65">
+                    <common:created-date>2015-09-25T08:32:01.437Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:32:01.437Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Document Changes: Modeling, Detection, Storage and Visualization (DChanges 2014)</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1145/2644866.2644896</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1145/2644866.2644896</common:external-id-normalized>
+                        </common:external-id>
+                        <common:external-id>
+                            <common:external-id-type>isbn</common:external-id-type>
+                            <common:external-id-value>978-1-4503-2949-1</common:external-id-value>
+                            <common:external-id-normalized transient="true">9781450329491</common:external-id-normalized>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://doi.acm.org/10.1145/2644866.2644896</common:url>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2014</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Proceedings of the 2014 ACM Symposium on Document Engineering</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:32:00.986Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1007/978-3-319-07443-6_39</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1007/978-3-319-07443-6_39</common:external-id-normalized>
+                    </common:external-id>
+                    <common:external-id>
+                        <common:external-id-type>isbn</common:external-id-type>
+                        <common:external-id-value>978-3-319-07442-9</common:external-id-value>
+                        <common:external-id-normalized transient="true">9783319074429</common:external-id-normalized>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="18711361" path="/0000-0002-6893-7452/work/18711361" visibility="public" display-index="64">
+                    <common:created-date>2015-09-25T08:32:00.986Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:32:00.986Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Evaluating Citation Functions in CiTO: Cognitive Issues</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1007/978-3-319-07443-6_39</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1007/978-3-319-07443-6_39</common:external-id-normalized>
+                        </common:external-id>
+                        <common:external-id>
+                            <common:external-id-type>isbn</common:external-id-type>
+                            <common:external-id-value>978-3-319-07442-9</common:external-id-value>
+                            <common:external-id-normalized transient="true">9783319074429</common:external-id-normalized>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://dx.doi.org/10.1007/978-3-319-07443-6_39</common:url>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2014</common:year>
+                    </common:publication-date>
+                    <work:journal-title>The Semantic Web: Trends and Challenges</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:32:00.244Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1109/WETICE.2014.8</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1109/wetice.2014.8</common:external-id-normalized>
+                    </common:external-id>
+                    <common:external-id>
+                        <common:external-id-type>isbn</common:external-id-type>
+                        <common:external-id-value>978-1-4799-4249-7</common:external-id-value>
+                        <common:external-id-normalized transient="true">9781479942497</common:external-id-normalized>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="18711356" path="/0000-0002-6893-7452/work/18711356" visibility="public" display-index="59">
+                    <common:created-date>2015-09-25T08:32:00.244Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:32:00.244Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Exploiting Semantic Knowledge in Know Best</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1109/WETICE.2014.8</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1109/wetice.2014.8</common:external-id-normalized>
+                        </common:external-id>
+                        <common:external-id>
+                            <common:external-id-type>isbn</common:external-id-type>
+                            <common:external-id-value>978-1-4799-4249-7</common:external-id-value>
+                            <common:external-id-normalized transient="true">9781479942497</common:external-id-normalized>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://dx.doi.org/10.1109/WETICE.2014.8</common:url>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2014</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Proceedings of the 2014 IEEE 23rd International WETICE Conference</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:32:03.305Z</common:last-modified-date>
+                <common:external-ids/>
+                <work:work-summary put-code="18711370" path="/0000-0002-6893-7452/work/18711370" visibility="public" display-index="72">
+                    <common:created-date>2015-09-25T08:32:03.305Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:32:03.305Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Measuring the domain-oriented quality of diff algorithms</common:title>
+                    </work:title>
+                    <common:external-ids/>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2014</common:year>
+                    </common:publication-date>
+                    <work:journal-title>20th IMEKO TC-4 International Symposium on Measurement of Electrical Quantities</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:32:04.595Z</common:last-modified-date>
+                <common:external-ids/>
+                <work:work-summary put-code="18711375" path="/0000-0002-6893-7452/work/18711375" visibility="public" display-index="77">
+                    <common:created-date>2015-09-25T08:32:04.595Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:32:04.595Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Semantic Lenses to Bring Digital and Semantic Publishing Together</common:title>
+                    </work:title>
+                    <common:external-ids/>
+                    <common:url>http://ceur-ws.org/Vol-1282/lisc2014_submission_6.pdf</common:url>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2014</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Proceedings of the 4th Workshop on Linked Science 2014 - Making Sense
+               Out of Data (LISC2014) co-located with the 13th International Semantic
+               Web Conference (ISWC 2014), Riva del Garda, Italy, October 19, 2014.</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:32:00.257Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1007/978-3-319-12024-9_8</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1007/978-3-319-12024-9_8</common:external-id-normalized>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="18711357" path="/0000-0002-6893-7452/work/18711357" visibility="public" display-index="60">
+                    <common:created-date>2015-09-25T08:32:00.257Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:32:00.257Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Semantic Publishing Challenge - Assessing the Quality of Scientific
+               Output</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1007/978-3-319-12024-9_8</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1007/978-3-319-12024-9_8</common:external-id-normalized>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://dx.doi.org/10.1007/978-3-319-12024-9_8</common:url>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2014</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Semantic Web Evaluation Challenge - SemWebEval 2014 at ESWC 2014,
+               Anissaras, Crete, Greece, May 25-29, 2014, Revised Selected Papers</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:32:01.603Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>isbn</common:external-id-type>
+                        <common:external-id-value>978-3-319-12023-2</common:external-id-value>
+                        <common:external-id-normalized transient="true">9783319120232</common:external-id-normalized>
+                    </common:external-id>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1007/978-3-319-12024-9</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1007/978-3-319-12024-9</common:external-id-normalized>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="18711364" path="/0000-0002-6893-7452/work/18711364" visibility="public" display-index="66">
+                    <common:created-date>2015-09-25T08:32:01.603Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:32:01.603Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Semantic Web Evaluation Challenge - SemWebEval 2014 at ESWC 2014,
+               Anissaras, Crete, Greece, May 25-29, 2014, Revised Selected Papers</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1007/978-3-319-12024-9</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1007/978-3-319-12024-9</common:external-id-normalized>
+                        </common:external-id>
+                        <common:external-id>
+                            <common:external-id-type>isbn</common:external-id-type>
+                            <common:external-id-value>978-3-319-12023-2</common:external-id-value>
+                            <common:external-id-normalized transient="true">9783319120232</common:external-id-normalized>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://dx.doi.org/10.1007/978-3-319-12024-9</common:url>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2014</common:year>
+                    </common:publication-date>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:32:04.168Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1007/978-3-319-17966-7_10</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1007/978-3-319-17966-7_10</common:external-id-normalized>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="18711374" path="/0000-0002-6893-7452/work/18711374" visibility="public" display-index="76">
+                    <common:created-date>2015-09-25T08:32:04.168Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:32:04.168Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>The Semantic Lancet Project: A Linked Open Dataset for Scholarly
+               Publishing</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1007/978-3-319-17966-7_10</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1007/978-3-319-17966-7_10</common:external-id-normalized>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://dx.doi.org/10.1007/978-3-319-17966-7_10</common:url>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2014</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Knowledge Engineering and Knowledge Management - EKAW 2014 Satellite
+               Events, Linköping, Sweden,
+               November 24-28, 2014. Revised Selected Papers.</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:32:03.176Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>http://dx.doi.org/10.1016/j.scico.2014.03.001</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1016/j.scico.2014.03.001</common:external-id-normalized>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="18711369" path="/0000-0002-6893-7452/work/18711369" visibility="public" display-index="71">
+                    <common:created-date>2015-09-25T08:32:03.176Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:32:03.176Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Web Technologies: selected and extended papers from WT ACM SAC 2012</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>http://dx.doi.org/10.1016/j.scico.2014.03.001</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1016/j.scico.2014.03.001</common:external-id-normalized>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://www.sciencedirect.com/science/article/pii/S0167642314001051</common:url>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2014</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Science of Computer Programming</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:58.497Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>isbn</common:external-id-type>
+                        <common:external-id-value>978-3-319-03523-9</common:external-id-value>
+                        <common:external-id-normalized transient="true">9783319035239</common:external-id-normalized>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="18711350" path="/0000-0002-6893-7452/work/18711350" visibility="public" display-index="53">
+                    <common:created-date>2015-09-25T08:31:58.497Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:58.497Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>AI*IA 2013: Advances in Artificial Intelligence - XIIIth
+               International Conference of the Italian Association for
+               Artificial Intelligence, Turin, Italy, December 4-6, 2013.
+               Proceedings</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>isbn</common:external-id-type>
+                            <common:external-id-value>978-3-319-03523-9</common:external-id-value>
+                            <common:external-id-normalized transient="true">9783319035239</common:external-id-normalized>
+                        </common:external-id>
+                    </common:external-ids>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2013</common:year>
+                    </common:publication-date>
+                    <work:journal-title>AI*IA</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:57.624Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1145/2517978.2517990</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1145/2517978.2517990</common:external-id-normalized>
+                    </common:external-id>
+                    <common:external-id>
+                        <common:external-id-type>isbn</common:external-id-type>
+                        <common:external-id-value>978-1-4503-2199-0</common:external-id-value>
+                        <common:external-id-normalized transient="true">9781450321990</common:external-id-normalized>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="18711343" path="/0000-0002-6893-7452/work/18711343" visibility="public" display-index="47">
+                    <common:created-date>2015-09-25T08:31:57.624Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:57.624Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Annotations with EARMARK in Practice: A Fairy Tale</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1145/2517978.2517990</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1145/2517978.2517990</common:external-id-normalized>
+                        </common:external-id>
+                        <common:external-id>
+                            <common:external-id-type>isbn</common:external-id-type>
+                            <common:external-id-value>978-1-4503-2199-0</common:external-id-value>
+                            <common:external-id-normalized transient="true">9781450321990</common:external-id-normalized>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://doi.acm.org/10.1145/2517978.2517990</common:url>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2013</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Proceedings of the 1st International Workshop on Collaborative Annotations in Shared Environment: Metadata, Vocabularies and Techniques in the Digital Humanities</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:58.229Z</common:last-modified-date>
+                <common:external-ids/>
+                <work:work-summary put-code="18711347" path="/0000-0002-6893-7452/work/18711347" visibility="public" display-index="51">
+                    <common:created-date>2015-09-25T08:31:58.229Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:58.229Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Characterising Citations in Scholarly Articles: An Experiment</common:title>
+                    </work:title>
+                    <common:external-ids/>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2013</common:year>
+                    </common:publication-date>
+                    <work:journal-title>AIC@AI*IA</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:59.416Z</common:last-modified-date>
+                <common:external-ids/>
+                <work:work-summary put-code="18711354" path="/0000-0002-6893-7452/work/18711354" visibility="public" display-index="57">
+                    <common:created-date>2015-09-25T08:31:59.416Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:59.416Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Characterising Citations in Scholarly Documents: The CiTalO Framework</common:title>
+                    </work:title>
+                    <common:external-ids/>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2013</common:year>
+                    </common:publication-date>
+                    <work:journal-title>ESWC (Satellite Events)</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:32:02.008Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>isbn</common:external-id-type>
+                        <common:external-id-value>978-1-4503-1789-4</common:external-id-value>
+                        <common:external-id-normalized transient="true">9781450317894</common:external-id-normalized>
+                    </common:external-id>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1145/2494266.2494319</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1145/2494266.2494319</common:external-id-normalized>
+                    </common:external-id>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1145/2494266.2494322</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1145/2494266.2494322</common:external-id-normalized>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="18711365" path="/0000-0002-6893-7452/work/18711365" visibility="public" display-index="67">
+                    <common:created-date>2015-09-25T08:32:02.008Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:32:02.008Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Document Changes: Modeling; Detection; Storing and Visualization (DChanges)</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1145/2494266.2494322</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1145/2494266.2494322</common:external-id-normalized>
+                        </common:external-id>
+                        <common:external-id>
+                            <common:external-id-type>isbn</common:external-id-type>
+                            <common:external-id-value>978-1-4503-1789-4</common:external-id-value>
+                            <common:external-id-normalized transient="true">9781450317894</common:external-id-normalized>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://doi.acm.org/10.1145/2494266.2494322</common:url>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2013</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Proceedings of the 2013 ACM Symposium on Document Engineering</work:journal-title>
+                </work:work-summary>
+                <work:work-summary put-code="18711349" path="/0000-0002-6893-7452/work/18711349" visibility="public" display-index="52">
+                    <common:created-date>2015-09-25T08:31:58.489Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:58.489Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Recognising Document Components in XML-based Academic Articles</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1145/2494266.2494319</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1145/2494266.2494319</common:external-id-normalized>
+                        </common:external-id>
+                        <common:external-id>
+                            <common:external-id-type>isbn</common:external-id-type>
+                            <common:external-id-value>978-1-4503-1789-4</common:external-id-value>
+                            <common:external-id-normalized transient="true">9781450317894</common:external-id-normalized>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://doi.acm.org/10.1145/2494266.2494319</common:url>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2013</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Proceedings of the 2013 ACM Symposium on Document Engineering</work:journal-title>
+                </work:work-summary>
+                <work:work-summary put-code="18711346" path="/0000-0002-6893-7452/work/18711346" visibility="public" display-index="50">
+                    <common:created-date>2015-09-25T08:31:58.016Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:58.016Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Document Changes: Modeling; Detection; Storing and Visualization (DChanges)</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1145/2494266.2494322</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1145/2494266.2494322</common:external-id-normalized>
+                        </common:external-id>
+                        <common:external-id>
+                            <common:external-id-type>isbn</common:external-id-type>
+                            <common:external-id-value>978-1-4503-1789-4</common:external-id-value>
+                            <common:external-id-normalized transient="true">9781450317894</common:external-id-normalized>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://doi.acm.org/10.1145/2494266.2494322</common:url>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2013</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Proceedings of the 2013 ACM Symposium on Document Engineering</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:32:02.372Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1002/spe.2169</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1002/spe.2169</common:external-id-normalized>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="18711366" path="/0000-0002-6893-7452/work/18711366" visibility="public" display-index="68">
+                    <common:created-date>2015-09-25T08:32:02.372Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:32:02.372Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Editorial - Special Issue on Web Technologies</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1002/spe.2169</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1002/spe.2169</common:external-id-normalized>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://dx.doi.org/10.1002/spe.2169</common:url>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2013</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Software: Practice and Experience</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:58.504Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1007/978-3-642-41242-4_30</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1007/978-3-642-41242-4_30</common:external-id-normalized>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="18711351" path="/0000-0002-6893-7452/work/18711351" visibility="public" display-index="54">
+                    <common:created-date>2015-09-25T08:31:58.504Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:58.504Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Identifying Functions of Citations with CiTalO</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1007/978-3-642-41242-4_30</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1007/978-3-642-41242-4_30</common:external-id-normalized>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://dx.doi.org/10.1007/978-3-642-41242-4_30</common:url>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2013</common:year>
+                    </common:publication-date>
+                    <work:journal-title>The Semantic Web: ESWC 2013 Satellite Events - ESWC 2013 Satellite
+               Events, Montpellier, France, May 26-30, 2013, Revised Selected Papers</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:32:03.885Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1145/2539150.2539180</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1145/2539150.2539180</common:external-id-normalized>
+                    </common:external-id>
+                    <common:external-id>
+                        <common:external-id-type>isbn</common:external-id-type>
+                        <common:external-id-value>978-1-4503-2113-6</common:external-id-value>
+                        <common:external-id-normalized transient="true">9781450321136</common:external-id-normalized>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="18711373" path="/0000-0002-6893-7452/work/18711373" visibility="public" display-index="75">
+                    <common:created-date>2015-09-25T08:32:03.885Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:32:03.885Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Integration of Legal Datasets: From Meta-model to Implementation</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1145/2539150.2539180</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1145/2539150.2539180</common:external-id-normalized>
+                        </common:external-id>
+                        <common:external-id>
+                            <common:external-id-type>isbn</common:external-id-type>
+                            <common:external-id-value>978-1-4503-2113-6</common:external-id-value>
+                            <common:external-id-normalized transient="true">9781450321136</common:external-id-normalized>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://doi.acm.org/10.1145/2539150.2539180</common:url>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2013</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Proceedings of International Conference on Information Integration and Web-based Applications and Services</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:59.348Z</common:last-modified-date>
+                <common:external-ids/>
+                <work:work-summary put-code="18711353" path="/0000-0002-6893-7452/work/18711353" visibility="public" display-index="56">
+                    <common:created-date>2015-09-25T08:31:59.348Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:59.348Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Proceedings of the 4th Italian Information Retrieval Workshop,
+               Pisa, Italy, January 16-17, 2013</common:title>
+                    </work:title>
+                    <common:external-ids/>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2013</common:year>
+                    </common:publication-date>
+                    <work:journal-title>IIR</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:58.486Z</common:last-modified-date>
+                <common:external-ids/>
+                <work:work-summary put-code="18711348" path="/0000-0002-6893-7452/work/18711348" visibility="public" display-index="52">
+                    <common:created-date>2015-09-25T08:31:58.486Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:58.486Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Proceedings of the First International Workshop on Artificial
+               Intelligence and Cognition (AIC 2013) An official workshop
+               of the 13th International Conference of the Italian Association
+               for Artificial Intelligence (AI*IA 2013), Torino, Italy,
+               December 3, 2013</common:title>
+                    </work:title>
+                    <common:external-ids/>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2013</common:year>
+                    </common:publication-date>
+                    <work:journal-title>AIC@AI*IA</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:59.835Z</common:last-modified-date>
+                <common:external-ids/>
+                <work:work-summary put-code="18711355" path="/0000-0002-6893-7452/work/18711355" visibility="public" display-index="58">
+                    <common:created-date>2015-09-25T08:31:59.835Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:59.835Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Promoting Best Practice Sharing within Organizations</common:title>
+                    </work:title>
+                    <common:external-ids/>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2013</common:year>
+                    </common:publication-date>
+                    <work:journal-title>WEBIST 2013 - Proceedings of the 9th International Conference
+               on Web Information Systems and Technologies, Aachen, Germany,
+               8-10 May, 2013</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:59.044Z</common:last-modified-date>
+                <common:external-ids/>
+                <work:work-summary put-code="18711352" path="/0000-0002-6893-7452/work/18711352" visibility="public" display-index="55">
+                    <common:created-date>2015-09-25T08:31:59.044Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:59.044Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Semantic Annotation of Scholarly Documents and Citations</common:title>
+                    </work:title>
+                    <common:external-ids/>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2013</common:year>
+                    </common:publication-date>
+                    <work:journal-title>AI*IA</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:32:00.305Z</common:last-modified-date>
+                <common:external-ids/>
+                <work:work-summary put-code="18711358" path="/0000-0002-6893-7452/work/18711358" visibility="public" display-index="61">
+                    <common:created-date>2015-09-25T08:32:00.305Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:32:00.305Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Towards a Qualitative Analysis of Diff Algorithms</common:title>
+                    </work:title>
+                    <common:external-ids/>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2013</common:year>
+                    </common:publication-date>
+                    <work:journal-title>IIR</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:49.909Z</common:last-modified-date>
+                <common:external-ids/>
+                <work:work-summary put-code="18711296" path="/0000-0002-6893-7452/work/18711296" visibility="public" display-index="0">
+                    <common:created-date>2015-09-25T08:31:49.909Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:49.909Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>A first approach to the automatic recognition of structural patterns in XML documents</common:title>
+                    </work:title>
+                    <common:external-ids/>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2012</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Proceedings for the 12th ACM symposium on Document engineering (to appear)</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:50.810Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1002/spe.1096</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1002/spe.1096</common:external-id-normalized>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="18711299" path="/0000-0002-6893-7452/work/18711299" visibility="public" display-index="3">
+                    <common:created-date>2015-09-25T08:31:50.810Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:50.810Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>High-quality pagination for publishing</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1002/spe.1096</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1002/spe.1096</common:external-id-normalized>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://dx.doi.org/10.1002/spe.1096</common:url>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2012</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Software: Practice and Experience</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:51.404Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1504/IJWET.2011.043439</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1504/ijwet.2011.043439</common:external-id-normalized>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="18711303" path="/0000-0002-6893-7452/work/18711303" visibility="public" display-index="7">
+                    <common:created-date>2015-09-25T08:31:51.404Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:51.404Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Using Semantic Web technologies for analysis and validation of structural markup</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1504/IJWET.2011.043439</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1504/ijwet.2011.043439</common:external-id-normalized>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://dx.doi.org/10.1504/IJWET.2011.043439</common:url>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2011</common:year>
+                        <common:month>10</common:month>
+                    </common:publication-date>
+                    <work:journal-title>Int. J. Web Eng. Technol.</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:52.652Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1002/asi.21591</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1002/asi.21591</common:external-id-normalized>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="18711312" path="/0000-0002-6893-7452/work/18711312" visibility="public" display-index="16">
+                    <common:created-date>2015-09-25T08:31:52.652Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:52.652Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>A Semantic Web approach to everyday overlapping markup</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1002/asi.21591</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1002/asi.21591</common:external-id-normalized>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://dx.doi.org/10.1002/asi.21591</common:url>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2011</common:year>
+                        <common:month>09</common:month>
+                    </common:publication-date>
+                    <work:journal-title>J. Am. Soc. Inf. Sci. Technol.</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:55.630Z</common:last-modified-date>
+                <common:external-ids/>
+                <work:work-summary put-code="18711332" path="/0000-0002-6893-7452/work/18711332" visibility="public" display-index="36">
+                    <common:created-date>2015-09-25T08:31:55.630Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:55.630Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>High-quality pagination for publishing</common:title>
+                    </work:title>
+                    <common:external-ids/>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2011</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Software: Practice and Experience</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:56.982Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>isbn</common:external-id-type>
+                        <common:external-id-value>78-3-642-23171-1</common:external-id-value>
+                        <common:external-id-normalized-error transient="true">
+                            <common:error-code>8001</common:error-code>
+                            <common:error-message>Cannot normalize identifier value isbn:78-3-642-23171-1</common:error-message>
+                        </common:external-id-normalized-error>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="18711339" path="/0000-0002-6893-7452/work/18711339" visibility="public" display-index="43">
+                    <common:created-date>2015-09-25T08:31:56.982Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:56.982Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>OWiki: enabling an ontology-led creation of semantic data</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>isbn</common:external-id-type>
+                            <common:external-id-value>78-3-642-23171-1</common:external-id-value>
+                            <common:external-id-normalized-error transient="true">
+                                <common:error-code>8001</common:error-code>
+                                <common:error-message>Cannot normalize identifier value isbn:78-3-642-23171-1</common:error-message>
+                            </common:external-id-normalized-error>
+                        </common:external-id>
+                    </common:external-ids>
+                    <work:type>book-chapter</work:type>
+                    <common:publication-date>
+                        <common:year>2011</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Human - Computer Systems Interaction: Backgrounds and Applications 2: Part 1 (Advances in Intelligent and Soft Computing)</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:52.678Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1080/13614568.2010.497194</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1080/13614568.2010.497194</common:external-id-normalized>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="18711313" path="/0000-0002-6893-7452/work/18711313" visibility="public" display-index="17">
+                    <common:created-date>2015-09-25T08:31:52.678Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:52.678Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Ontology-driven generation of wiki content and interfaces</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1080/13614568.2010.497194</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1080/13614568.2010.497194</common:external-id-normalized>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://dx.doi.org/10.1080/13614568.2010.497194</common:url>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2010</common:year>
+                        <common:month>04</common:month>
+                    </common:publication-date>
+                    <work:journal-title>New Rev. Hypermedia Multimedia</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:56.640Z</common:last-modified-date>
+                <common:external-ids/>
+                <work:work-summary put-code="18711338" path="/0000-0002-6893-7452/work/18711338" visibility="public" display-index="42">
+                    <common:created-date>2015-09-25T08:31:56.640Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:56.640Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>A cross-format architecture for professional publishing</common:title>
+                    </work:title>
+                    <common:external-ids/>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2010</common:year>
+                    </common:publication-date>
+                    <work:journal-title>IADIS Applied Computing 2010</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:54.651Z</common:last-modified-date>
+                <common:external-ids/>
+                <work:work-summary put-code="18711325" path="/0000-0002-6893-7452/work/18711325" visibility="public" display-index="29">
+                    <common:created-date>2015-09-25T08:31:54.651Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:54.651Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Crowdsourcing semantic content: a model and two applications</common:title>
+                    </work:title>
+                    <common:external-ids/>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2010</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Proceedings of the 3rd International Conference on Human System Interaction (HSI’10). Rzeszów, Poland</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:57.779Z</common:last-modified-date>
+                <common:external-ids/>
+                <work:work-summary put-code="18711344" path="/0000-0002-6893-7452/work/18711344" visibility="public" display-index="48">
+                    <common:created-date>2015-09-25T08:31:57.779Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:57.779Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>DIY eBooks: collaborative publishing made easy</common:title>
+                    </work:title>
+                    <common:external-ids/>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2010</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Imaging and Printing in a Web 2.0 World; and Multimedia Content Access: Algorithms and Systems IV.. Proceedings of SPIE</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:51.849Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>isbn</common:external-id-type>
+                        <common:external-id-value>3-642-16437-4, 978-3-642-16437-8</common:external-id-value>
+                        <common:external-id-normalized transient="true">3642164374</common:external-id-normalized>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="18711306" path="/0000-0002-6893-7452/work/18711306" visibility="public" display-index="10">
+                    <common:created-date>2015-09-25T08:31:51.849Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:51.849Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Handling markup overlaps using OWL</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>isbn</common:external-id-type>
+                            <common:external-id-value>3-642-16437-4, 978-3-642-16437-8</common:external-id-value>
+                            <common:external-id-normalized transient="true">3642164374</common:external-id-normalized>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://dl.acm.org/citation.cfm?id=1948294.1948333</common:url>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2010</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Proceedings of the 17th international conference on Knowledge engineering and management by the masses</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:55.623Z</common:last-modified-date>
+                <common:external-ids/>
+                <work:work-summary put-code="18711331" path="/0000-0002-6893-7452/work/18711331" visibility="public" display-index="35">
+                    <common:created-date>2015-09-25T08:31:55.623Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:55.623Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Managing semantics in XML vocabularies: an experience in the legal and legislative domain</common:title>
+                    </work:title>
+                    <common:external-ids/>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2010</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Proceedings of Balisage Series on Markup Technologies, The Markup Conference</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:50.524Z</common:last-modified-date>
+                <common:external-ids/>
+                <work:work-summary put-code="18711298" path="/0000-0002-6893-7452/work/18711298" visibility="public" display-index="2">
+                    <common:created-date>2015-09-25T08:31:50.524Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:50.524Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>A Natural and Multi-layered Approach to Detect Changes in Tree-Based Textual Documents</common:title>
+                    </work:title>
+                    <common:external-ids/>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2009</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Lecture Notes in Business Information Processing, International Conference on Enterprise Information Systems (ICEIS) 2009</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:55.944Z</common:last-modified-date>
+                <common:external-ids/>
+                <work:work-summary put-code="18711334" path="/0000-0002-6893-7452/work/18711334" visibility="public" display-index="38">
+                    <common:created-date>2015-09-25T08:31:55.944Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:55.944Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Continuously updated e-learning material through easy authoring processes</common:title>
+                    </work:title>
+                    <common:external-ids/>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2009</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Journal of e-Learning and Knowledge Society</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:54.288Z</common:last-modified-date>
+                <common:external-ids/>
+                <work:work-summary put-code="18711324" path="/0000-0002-6893-7452/work/18711324" visibility="public" display-index="28">
+                    <common:created-date>2015-09-25T08:31:54.288Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:54.288Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Customized Edit Interfaces for Wikis via Semantic Annotations</common:title>
+                    </work:title>
+                    <common:external-ids/>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2009</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Adaptation and Personalization for Web 2.0</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:54.714Z</common:last-modified-date>
+                <common:external-ids/>
+                <work:work-summary put-code="18711326" path="/0000-0002-6893-7452/work/18711326" visibility="public" display-index="30">
+                    <common:created-date>2015-09-25T08:31:54.714Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:54.714Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Exploiting Ontologies To Deploy User-Friendly and Customized Metadata Editors</common:title>
+                    </work:title>
+                    <common:external-ids/>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2009</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Proceedings of the IADIS Internet/WWW 2009 conference. Rome, Italy</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:52.414Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1145/1557914.1558004</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1145/1557914.1558004</common:external-id-normalized>
+                    </common:external-id>
+                    <common:external-id>
+                        <common:external-id-type>isbn</common:external-id-type>
+                        <common:external-id-value>978-1-60558-486-7</common:external-id-value>
+                        <common:external-id-normalized transient="true">9781605584867</common:external-id-normalized>
+                    </common:external-id>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1145/1557914.1557942</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1145/1557914.1557942</common:external-id-normalized>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="18711311" path="/0000-0002-6893-7452/work/18711311" visibility="public" display-index="15">
+                    <common:created-date>2015-09-25T08:31:52.414Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:52.414Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>New Forms of Xanalogical Storage and Function</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1145/1557914.1558004</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1145/1557914.1558004</common:external-id-normalized>
+                        </common:external-id>
+                        <common:external-id>
+                            <common:external-id-type>isbn</common:external-id-type>
+                            <common:external-id-value>978-1-60558-486-7</common:external-id-value>
+                            <common:external-id-normalized transient="true">9781605584867</common:external-id-normalized>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://doi.acm.org/10.1145/1557914.1558004</common:url>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2009</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Proceedings of the 20th ACM conference on Hypertext and hypermedia</work:journal-title>
+                </work:work-summary>
+                <work:work-summary put-code="18711304" path="/0000-0002-6893-7452/work/18711304" visibility="public" display-index="8">
+                    <common:created-date>2015-09-25T08:31:51.664Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:51.664Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>From XML inclusions to XML transclusions</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1145/1557914.1557942</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1145/1557914.1557942</common:external-id-normalized>
+                        </common:external-id>
+                        <common:external-id>
+                            <common:external-id-type>isbn</common:external-id-type>
+                            <common:external-id-value>978-1-60558-486-7</common:external-id-value>
+                            <common:external-id-normalized transient="true">9781605584867</common:external-id-normalized>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://doi.acm.org/10.1145/1557914.1557942</common:url>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2009</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Proceedings of the 20th ACM conference on Hypertext and hypermedia</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:54.956Z</common:last-modified-date>
+                <common:external-ids/>
+                <work:work-summary put-code="18711327" path="/0000-0002-6893-7452/work/18711327" visibility="public" display-index="31">
+                    <common:created-date>2015-09-25T08:31:54.956Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:54.956Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Towards markup support for full GODDAGs and beyond: the EARMARK approach</common:title>
+                    </work:title>
+                    <common:external-ids/>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2009</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Proceedings of Balisage: The Markup Conference</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:57.154Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>isbn</common:external-id-type>
+                        <common:external-id-value>978-1605663845</common:external-id-value>
+                        <common:external-id-normalized transient="true">9781605663845</common:external-id-normalized>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="18711341" path="/0000-0002-6893-7452/work/18711341" visibility="public" display-index="45">
+                    <common:created-date>2015-09-25T08:31:57.154Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:57.154Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Web Semantics via Wiki Templating</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>isbn</common:external-id-type>
+                            <common:external-id-value>978-1605663845</common:external-id-value>
+                            <common:external-id-normalized transient="true">9781605663845</common:external-id-normalized>
+                        </common:external-id>
+                    </common:external-ids>
+                    <work:type>book-chapter</work:type>
+                    <common:publication-date>
+                        <common:year>2009</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Handbook of research on Web 2.0, 3.0 and x.0: technologies, business and social applications</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:51.887Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>isbn</common:external-id-type>
+                        <common:external-id-value>978-1-60558-166-8</common:external-id-value>
+                        <common:external-id-normalized transient="true">9781605581668</common:external-id-normalized>
+                    </common:external-id>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1145/1529282.1529422</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1145/1529282.1529422</common:external-id-normalized>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="18711307" path="/0000-0002-6893-7452/work/18711307" visibility="public" display-index="11">
+                    <common:created-date>2015-09-25T08:31:51.887Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:51.887Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Where are your manners?: Sharing best community practices in the Web 2.0</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1145/1529282.1529422</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1145/1529282.1529422</common:external-id-normalized>
+                        </common:external-id>
+                        <common:external-id>
+                            <common:external-id-type>isbn</common:external-id-type>
+                            <common:external-id-value>978-1-60558-166-8</common:external-id-value>
+                            <common:external-id-normalized transient="true">9781605581668</common:external-id-normalized>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://doi.acm.org/10.1145/1529282.1529422</common:url>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2009</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Proceedings of the 2009 ACM symposium on Applied Computing</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:57.407Z</common:last-modified-date>
+                <common:external-ids/>
+                <work:work-summary put-code="18711342" path="/0000-0002-6893-7452/work/18711342" visibility="public" display-index="46">
+                    <common:created-date>2015-09-25T08:31:57.407Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:57.407Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>XML Transclusions: A Feasible Path.</common:title>
+                    </work:title>
+                    <common:external-ids/>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2009</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Proceedings of the First ACM Workshop on New forms of Xanalogical storage and function</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:50.984Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1145/1350502.1350505</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1145/1350502.1350505</common:external-id-normalized>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="18711301" path="/0000-0002-6893-7452/work/18711301" visibility="public" display-index="5">
+                    <common:created-date>2015-09-25T08:31:50.984Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:50.984Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Pattern-based segmentation of digital documents: model and implementation</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1145/1350502.1350505</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1145/1350502.1350505</common:external-id-normalized>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://doi.acm.org/10.1145/1350502.1350505</common:url>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2008</common:year>
+                        <common:month>03</common:month>
+                    </common:publication-date>
+                    <work:journal-title>SIGWEB Newsl.</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:53.027Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>isbn</common:external-id-type>
+                        <common:external-id-value>978-0-7695-3167-0</common:external-id-value>
+                        <common:external-id-normalized transient="true">9780769531670</common:external-id-normalized>
+                    </common:external-id>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1109/ICALT.2008.246</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1109/icalt.2008.246</common:external-id-normalized>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="18711316" path="/0000-0002-6893-7452/work/18711316" visibility="public" display-index="20">
+                    <common:created-date>2015-09-25T08:31:53.027Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:53.027Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Fighting Technical Complexity in Authoring E-Learning Material</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1109/ICALT.2008.246</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1109/icalt.2008.246</common:external-id-normalized>
+                        </common:external-id>
+                        <common:external-id>
+                            <common:external-id-type>isbn</common:external-id-type>
+                            <common:external-id-value>978-0-7695-3167-0</common:external-id-value>
+                            <common:external-id-normalized transient="true">9780769531670</common:external-id-normalized>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://dx.doi.org/10.1109/ICALT.2008.246</common:url>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2008</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Proceedings of the 2008 Eighth IEEE International Conference on Advanced Learning Technologies</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:52.084Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>isbn</common:external-id-type>
+                        <common:external-id-value>978-1-60558-081-4</common:external-id-value>
+                        <common:external-id-normalized transient="true">9781605580814</common:external-id-normalized>
+                    </common:external-id>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1145/1410140.1410157</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1145/1410140.1410157</common:external-id-normalized>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="18711308" path="/0000-0002-6893-7452/work/18711308" visibility="public" display-index="12">
+                    <common:created-date>2015-09-25T08:31:52.084Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:52.084Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Higher-level Layout through Topological Abstraction</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1145/1410140.1410157</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1145/1410140.1410157</common:external-id-normalized>
+                        </common:external-id>
+                        <common:external-id>
+                            <common:external-id-type>isbn</common:external-id-type>
+                            <common:external-id-value>978-1-60558-081-4</common:external-id-value>
+                            <common:external-id-normalized transient="true">9781605580814</common:external-id-normalized>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://doi.acm.org/10.1145/1410140.1410157</common:url>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2008</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Proceedings of the eighth ACM symposium on Document engineering</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:51.682Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>isbn</common:external-id-type>
+                        <common:external-id-value>978-1-60558-085-2</common:external-id-value>
+                        <common:external-id-normalized transient="true">9781605580852</common:external-id-normalized>
+                    </common:external-id>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1145/1367497.1367581</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1145/1367497.1367581</common:external-id-normalized>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="18711305" path="/0000-0002-6893-7452/work/18711305" visibility="public" display-index="9">
+                    <common:created-date>2015-09-25T08:31:51.682Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:51.682Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Wiki content templating</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1145/1367497.1367581</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1145/1367497.1367581</common:external-id-normalized>
+                        </common:external-id>
+                        <common:external-id>
+                            <common:external-id-type>isbn</common:external-id-type>
+                            <common:external-id-value>978-1-60558-085-2</common:external-id-value>
+                            <common:external-id-normalized transient="true">9781605580852</common:external-id-normalized>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://doi.acm.org/10.1145/1367497.1367581</common:url>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2008</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Proceedings of the 17th international conference on World Wide Web</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:56.233Z</common:last-modified-date>
+                <common:external-ids/>
+                <work:work-summary put-code="18711336" path="/0000-0002-6893-7452/work/18711336" visibility="public" display-index="40">
+                    <common:created-date>2015-09-25T08:31:56.233Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:56.233Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Pattern-based segmentation of digital documents: model and implementation (PhD Thesis)</common:title>
+                    </work:title>
+                    <common:external-ids/>
+                    <work:type>report</work:type>
+                    <common:publication-date>
+                        <common:year>2007</common:year>
+                    </common:publication-date>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:55.956Z</common:last-modified-date>
+                <common:external-ids/>
+                <work:work-summary put-code="18711335" path="/0000-0002-6893-7452/work/18711335" visibility="public" display-index="39">
+                    <common:created-date>2015-09-25T08:31:55.956Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:55.956Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>RDF and TopicMaps interoperability: a model-driven approach</common:title>
+                    </work:title>
+                    <common:external-ids/>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2007</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Proceedings of ITA</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:52.160Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>isbn</common:external-id-type>
+                        <common:external-id-value>978-3-540-73596-0</common:external-id-value>
+                        <common:external-id-normalized transient="true">9783540735960</common:external-id-normalized>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="18711309" path="/0000-0002-6893-7452/work/18711309" visibility="public" display-index="13">
+                    <common:created-date>2015-09-25T08:31:52.160Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:52.160Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Structural patterns for descriptive documents</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>isbn</common:external-id-type>
+                            <common:external-id-value>978-3-540-73596-0</common:external-id-value>
+                            <common:external-id-normalized transient="true">9783540735960</common:external-id-normalized>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://dl.acm.org/citation.cfm?id=1770588.1770631</common:url>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2007</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Proceedings of the 7th international conference on Web engineering</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:56.432Z</common:last-modified-date>
+                <common:external-ids/>
+                <work:work-summary put-code="18711337" path="/0000-0002-6893-7452/work/18711337" visibility="public" display-index="41">
+                    <common:created-date>2015-09-25T08:31:56.432Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:56.432Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Templating wiki content for fun and profit</common:title>
+                    </work:title>
+                    <common:external-ids/>
+                    <work:type>report</work:type>
+                    <common:publication-date>
+                        <common:year>2007</common:year>
+                    </common:publication-date>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:55.736Z</common:last-modified-date>
+                <common:external-ids/>
+                <work:work-summary put-code="18711333" path="/0000-0002-6893-7452/work/18711333" visibility="public" display-index="37">
+                    <common:created-date>2015-09-25T08:31:55.736Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:55.736Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>A total-fit page-breaking algorithm with user-defined adjustment strategies</common:title>
+                    </work:title>
+                    <common:external-ids/>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2006</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Proceedings of SPIE</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:54.044Z</common:last-modified-date>
+                <common:external-ids/>
+                <work:work-summary put-code="18711322" path="/0000-0002-6893-7452/work/18711322" visibility="public" display-index="26">
+                    <common:created-date>2015-09-25T08:31:54.044Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:54.044Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Automatic Deployment of Semantic Wikis: a Prototype</common:title>
+                    </work:title>
+                    <common:external-ids/>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2006</common:year>
+                    </common:publication-date>
+                    <work:journal-title>SemWiki</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:54.286Z</common:last-modified-date>
+                <common:external-ids/>
+                <work:work-summary put-code="18711323" path="/0000-0002-6893-7452/work/18711323" visibility="public" display-index="27">
+                    <common:created-date>2015-09-25T08:31:54.286Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:54.286Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Automatically Producing Accessible Learning Objects</common:title>
+                    </work:title>
+                    <common:external-ids/>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2006</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Educational Technology &amp; Society</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:51.168Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1145/1149453.1149471</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1145/1149453.1149471</common:external-id-normalized>
+                    </common:external-id>
+                    <common:external-id>
+                        <common:external-id-type>isbn</common:external-id-type>
+                        <common:external-id-value>1-59593-413-8</common:external-id-value>
+                        <common:external-id-normalized transient="true">1595934138</common:external-id-normalized>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="18711302" path="/0000-0002-6893-7452/work/18711302" visibility="public" display-index="6">
+                    <common:created-date>2015-09-25T08:31:51.168Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:51.168Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Constrained Wiki: an Oxymoron?</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1145/1149453.1149471</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1145/1149453.1149471</common:external-id-normalized>
+                        </common:external-id>
+                        <common:external-id>
+                            <common:external-id-type>isbn</common:external-id-type>
+                            <common:external-id-value>1-59593-413-8</common:external-id-value>
+                            <common:external-id-normalized transient="true">1595934138</common:external-id-normalized>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://doi.acm.org/10.1145/1149453.1149471</common:url>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2006</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Proceedings of the 2006 international symposium on Wikis</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:55.184Z</common:last-modified-date>
+                <common:external-ids/>
+                <work:work-summary put-code="18711329" path="/0000-0002-6893-7452/work/18711329" visibility="public" display-index="33">
+                    <common:created-date>2015-09-25T08:31:55.184Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:55.184Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Dynamic conversion between XML-based languages for vector graphics</common:title>
+                    </work:title>
+                    <common:external-ids/>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2006</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Proceedings of SPIE</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:53.620Z</common:last-modified-date>
+                <common:external-ids/>
+                <work:work-summary put-code="18711319" path="/0000-0002-6893-7452/work/18711319" visibility="public" display-index="23">
+                    <common:created-date>2015-09-25T08:31:53.620Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:53.620Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>SemWiki2006, First Workshop on Semantic Wikis - From Wiki
+               to Semantics, Proceedings, co-located with the ESWC2006,
+               Budva, Montenegro, June 12, 2006</common:title>
+                    </work:title>
+                    <common:external-ids/>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2006</common:year>
+                    </common:publication-date>
+                    <work:journal-title>SemWiki</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:50.326Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1007/11762256_48</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1007/11762256_48</common:external-id-normalized>
+                    </common:external-id>
+                    <common:external-id>
+                        <common:external-id-type>isbn</common:external-id-type>
+                        <common:external-id-value>3-540-34544-2, 978-3-540-34544-2</common:external-id-value>
+                        <common:external-id-normalized transient="true">3540345442</common:external-id-normalized>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="18711297" path="/0000-0002-6893-7452/work/18711297" visibility="public" display-index="1">
+                    <common:created-date>2015-09-25T08:31:50.326Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:50.326Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>WikiFactory: an ontology-based application for creating domain-oriented wikis</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1007/11762256_48</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1007/11762256_48</common:external-id-normalized>
+                        </common:external-id>
+                        <common:external-id>
+                            <common:external-id-type>isbn</common:external-id-type>
+                            <common:external-id-value>3-540-34544-2, 978-3-540-34544-2</common:external-id-value>
+                            <common:external-id-normalized transient="true">3540345442</common:external-id-normalized>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://dx.doi.org/10.1007/11762256_48</common:url>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2006</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Proceedings of the 3rd European conference on The Semantic Web: research and applications</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:55.404Z</common:last-modified-date>
+                <common:external-ids/>
+                <work:work-summary put-code="18711330" path="/0000-0002-6893-7452/work/18711330" visibility="public" display-index="34">
+                    <common:created-date>2015-09-25T08:31:55.404Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:55.404Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Beyond proxies: XLink support in the browser</common:title>
+                    </work:title>
+                    <common:external-ids/>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2005</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Proceedings of ITA</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:53.628Z</common:last-modified-date>
+                <common:external-ids/>
+                <work:work-summary put-code="18711320" path="/0000-0002-6893-7452/work/18711320" visibility="public" display-index="24">
+                    <common:created-date>2015-09-25T08:31:53.628Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:53.628Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Design patterns for descriptive document substructures</common:title>
+                    </work:title>
+                    <common:external-ids/>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2005</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Extreme Markup Languages</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:50.816Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1145/1083356.1083365</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1145/1083356.1083365</common:external-id-normalized>
+                    </common:external-id>
+                    <common:external-id>
+                        <common:external-id-type>isbn</common:external-id-type>
+                        <common:external-id-value>1-59593-168-6</common:external-id-value>
+                        <common:external-id-normalized transient="true">1595931686</common:external-id-normalized>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="18711300" path="/0000-0002-6893-7452/work/18711300" visibility="public" display-index="4">
+                    <common:created-date>2015-09-25T08:31:50.816Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:50.816Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>From the Writable Web to Global Editability</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1145/1083356.1083365</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1145/1083356.1083365</common:external-id-normalized>
+                        </common:external-id>
+                        <common:external-id>
+                            <common:external-id-type>isbn</common:external-id-type>
+                            <common:external-id-value>1-59593-168-6</common:external-id-value>
+                            <common:external-id-normalized transient="true">1595931686</common:external-id-normalized>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://doi.acm.org/10.1145/1083356.1083365</common:url>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2005</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Proceedings of the sixteenth ACM conference on Hypertext and hypermedia</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:53.001Z</common:last-modified-date>
+                <common:external-ids/>
+                <work:work-summary put-code="18711315" path="/0000-0002-6893-7452/work/18711315" visibility="public" display-index="19">
+                    <common:created-date>2015-09-25T08:31:53.001Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:53.001Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Proceedings of the Extreme Markup Languages 2005 Conference,
+               1-5 August 2005, Montréal, Quebec, Canada</common:title>
+                    </work:title>
+                    <common:external-ids/>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2005</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Extreme Markup Languages</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:53.878Z</common:last-modified-date>
+                <common:external-ids/>
+                <work:work-summary put-code="18711321" path="/0000-0002-6893-7452/work/18711321" visibility="public" display-index="25">
+                    <common:created-date>2015-09-25T08:31:53.878Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:53.878Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Simply Creating Accessible Learning Object</common:title>
+                    </work:title>
+                    <common:external-ids/>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2005</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Proceedings of eLearning and Human-Computer Interaction: Exploring Design Synergies for more Effective Learning Experiences (INTERACT 2005 Workshop)</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:52.391Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>isbn</common:external-id-type>
+                        <common:external-id-value>0-7695-2268-8-4</common:external-id-value>
+                        <common:external-id-normalized-error transient="true">
+                            <common:error-code>8001</common:error-code>
+                            <common:error-message>Cannot normalize identifier value isbn:0-7695-2268-8-4</common:error-message>
+                        </common:external-id-normalized-error>
+                    </common:external-id>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1109/HICSS.2005.682</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1109/hicss.2005.682</common:external-id-normalized>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="18711310" path="/0000-0002-6893-7452/work/18711310" visibility="public" display-index="14">
+                    <common:created-date>2015-09-25T08:31:52.391Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:52.391Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Web Authoring: A Closed Case?</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1109/HICSS.2005.682</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1109/hicss.2005.682</common:external-id-normalized>
+                        </common:external-id>
+                        <common:external-id>
+                            <common:external-id-type>isbn</common:external-id-type>
+                            <common:external-id-value>0-7695-2268-8-4</common:external-id-value>
+                            <common:external-id-normalized-error transient="true">
+                                <common:error-code>8001</common:error-code>
+                                <common:error-message>Cannot normalize identifier value isbn:0-7695-2268-8-4</common:error-message>
+                            </common:external-id-normalized-error>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://dx.doi.org/10.1109/HICSS.2005.682</common:url>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2005</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Proceedings of the Proceedings of the 38th Annual Hawaii International Conference on System Sciences (HICSS'05) - Track 4 - Volume 04</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:53.310Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>isbn</common:external-id-type>
+                        <common:external-id-value>3-540-23060-2</common:external-id-value>
+                        <common:external-id-normalized transient="true">3540230602</common:external-id-normalized>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="18711317" path="/0000-0002-6893-7452/work/18711317" visibility="public" display-index="21">
+                    <common:created-date>2015-09-25T08:31:53.310Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:53.310Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Document Analysis Systems VI, 6th International Workshop,
+               DAS 2004, Florence, Italy, September 8-10, 2004, Proceedings</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>isbn</common:external-id-type>
+                            <common:external-id-value>3-540-23060-2</common:external-id-value>
+                            <common:external-id-normalized transient="true">3540230602</common:external-id-normalized>
+                        </common:external-id>
+                    </common:external-ids>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2004</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Document Analysis Systems</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:53.376Z</common:last-modified-date>
+                <common:external-ids/>
+                <work:work-summary put-code="18711318" path="/0000-0002-6893-7452/work/18711318" visibility="public" display-index="22">
+                    <common:created-date>2015-09-25T08:31:53.376Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:53.376Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Rule-Based Structural Analysis of Web Pages</common:title>
+                    </work:title>
+                    <common:external-ids/>
+                    <work:type>conference-paper</work:type>
+                    <common:publication-date>
+                        <common:year>2004</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Document Analysis Systems</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:52.981Z</common:last-modified-date>
+                <common:external-ids/>
+                <work:work-summary put-code="18711314" path="/0000-0002-6893-7452/work/18711314" visibility="public" display-index="18">
+                    <common:created-date>2015-09-25T08:31:52.981Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:52.981Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Writing the Web</common:title>
+                    </work:title>
+                    <common:external-ids/>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2004</common:year>
+                    </common:publication-date>
+                    <work:journal-title>J. Digit. Inf.</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:55.176Z</common:last-modified-date>
+                <common:external-ids/>
+                <work:work-summary put-code="18711328" path="/0000-0002-6893-7452/work/18711328" visibility="public" display-index="32">
+                    <common:created-date>2015-09-25T08:31:55.176Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:55.176Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>A Xanalogical Collaborative Editing Environment</common:title>
+                    </work:title>
+                    <common:external-ids/>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2003</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Proceedings of the Second International Workshop of Web Document Analysis</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2015-09-25T08:31:57.136Z</common:last-modified-date>
+                <common:external-ids/>
+                <work:work-summary put-code="18711340" path="/0000-0002-6893-7452/work/18711340" visibility="public" display-index="44">
+                    <common:created-date>2015-09-25T08:31:57.136Z</common:created-date>
+                    <common:last-modified-date>2015-09-25T08:31:57.136Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0002-6893-7452</common:uri>
+                            <common:path>0000-0002-6893-7452</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Angelo Di Iorio</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Constrained Wiki: the Wiki Way to validating content</common:title>
+                    </work:title>
+                    <common:external-ids/>
+                    <work:type>journal-article</work:type>
+                    <work:journal-title>Advances in Human-Computer Interaction</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+        </activities:works>
+    </activities:activities-summary>
+</record:record>

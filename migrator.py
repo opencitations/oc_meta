@@ -3,7 +3,7 @@ import re, csv, json
 
 class Migrator():
     def __init__(self, data, ra_index_csv, br_index_csv, re_index_csv, ar_index_csv, vi_index_json):
-        self.url = "https://w3id.org/OC/meta/"
+        self.url = "https://w3id.org/oc/meta/"
 
         self.setgraph = GraphSet(self.url, "", "counter/", wanted_label=False, forced_type=True)
 
