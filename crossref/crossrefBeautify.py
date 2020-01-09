@@ -43,22 +43,20 @@ class crossrefBeautify:
                     if "ISBN" in x:
                         if row["type"] in {"book", "monograph", "edited book"}:
                             if isinstance(x["ISBN"], list):
-                                isbnid = str(x["ISBN"][0])
+                                for i in x["ISBN"]:
+                                    self.issn_worker(str(i), idlist)
                             else:
                                 isbnid = str(x["ISBN"])
-                            if ISBNManager().is_valid(isbnid):
-                                isbnid = ISBNManager().normalise(isbnid)
-                                idlist.append(str("isbn:" + isbnid))
+                                self.isbn_worker(isbnid, idlist)
 
                     if "ISSN" in x:
                         if row["type"] in {"journal", "series", "report series", "standard series"}:
                             if isinstance(x["ISSN"], list):
-                                issnid = str(x["ISSN"][0])
+                                for i in x["ISSN"]:
+                                    self.issn_worker(str(i), idlist)
                             else:
                                 issnid = str(x["ISSN"])
-                            if ISSNManager().is_valid(issnid):
-                                issnid = ISSNManager().normalise(issnid)
-                                idlist.append(str("issn:" + issnid))
+                                self.issn_worker(issnid, idlist)
                     row["id"] = " ".join(idlist)
 
                     #row["title"]
@@ -126,22 +124,20 @@ class crossrefBeautify:
                         if "ISBN" in x:
                             if row["type"] in {"book chapter", "book part"}:
                                 if isinstance(x["ISBN"], list):
-                                    venisbnid = str(x["ISBN"][0])
+                                    for i in x["ISBN"]:
+                                        self.issn_worker(str(i), venidlist)
                                 else:
                                     venisbnid = str(x["ISBN"])
-                                if ISBNManager().is_valid(venisbnid):
-                                    venisbnid = ISBNManager().normalise(venisbnid)
-                                    venidlist.append(str("isbn:" + venisbnid))
+                                    self.isbn_worker(venisbnid, venidlist)
 
                         if "ISSN" in x:
                             if row["type"] in {"journal article", "journal volume", "journal issue"}:
                                 if isinstance(x["ISSN"], list):
-                                    venissnid = str("issn:" + str(x["ISSN"][0]))
+                                    for i in x["ISSN"]:
+                                        self.issn_worker(str(i), venidlist)
                                 else:
-                                    venissnid = str("issn:" + str(x["ISSN"]))
-                                if ISSNManager().is_valid(venissnid):
-                                    venissnid = ISSNManager().normalise(venissnid)
-                                    venidlist.append(str("issn:" + venissnid))
+                                    venissnid = str(x["ISSN"])
+                                    self.issn_worker(venissnid, venidlist)
                         if venidlist:
                             row["venue"] = ventit + " [" + " ".join(venidlist) + "]"
                         else:
@@ -159,7 +155,6 @@ class crossrefBeautify:
                             row["publisher"] = x["publisher"] + " [" + "crossref:" + x["member"] + "]"
                         else:
                             row["publisher"] = x["publisher"]
-
 
                     if "editor" in x:
                         editlist = list()
@@ -194,3 +189,13 @@ class crossrefBeautify:
                 orc = orc.replace("]", "").split(" [")
                 found[orc[1]] = orc[0].lower()
         return found
+
+    def issn_worker (self, issnid, idlist):
+        if ISSNManager().is_valid(issnid):
+            issnid = ISSNManager().normalise(issnid)
+            idlist.append(str("issn:" + issnid))
+
+    def isbn_worker (self, isbnid, idlist):
+        if ISBNManager().is_valid(isbnid):
+            isbnid = ISBNManager().normalise(isbnid)
+            idlist.append(str("isbn:" + isbnid))

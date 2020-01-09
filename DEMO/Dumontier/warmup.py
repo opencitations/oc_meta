@@ -9,8 +9,8 @@ from scripts.conf import reference_dir, base_iri, context_path, info_dir, triple
     sharing_dir
 
 
-def warmup (raw_json_path, doi_orcid, name):
-    row_csv = crossrefBeautify(raw_json_path, doi_orcid).data
+def warmup (raw_json_path, doi_orcid, name, doi_csv):
+    row_csv = crossrefBeautify(raw_json_path, doi_orcid, doi_csv).data
     server = "http://127.0.0.1:9999/blazegraph/sparql"
     clean_csv = Converter(row_csv, server, filename=name, path="csv/indices/" + name + "/")
     print(clean_csv.log)
@@ -59,6 +59,5 @@ def warmup (raw_json_path, doi_orcid, name):
         base_dir, base_iri, context_path,
         temp_dir_for_rdf_loading)
 
-
-warmup("json/Dumontier.json", "csv/doi-orcid.csv", "Dumontier")
+warmup("json/Dumontier.json", "csv/orcid.csv", "Dumontier", "csv/doi.csv")
 
