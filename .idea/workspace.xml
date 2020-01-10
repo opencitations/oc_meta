@@ -3,49 +3,15 @@
   <component name="ChangeListManager">
     <list default="true" id="d2b23c46-2db9-4b25-a89e-e1906277cf0f" name="Default" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/converter_counter/ar.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/converter_counter/br.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/converter_counter/id.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/converter_counter/ra.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/converter_counter/re.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/counter_prov/counter_ar/_/10000/1000/prov/se.txt" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Dumontier/counter_prov/counter_ar/_/10000/1000/prov/se.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/counter_prov/counter_br/_/10000/1000/prov/se.txt" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Dumontier/counter_prov/counter_br/_/10000/1000/prov/se.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/counter_prov/counter_id/_/10000/1000/prov/se.txt" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Dumontier/counter_prov/counter_id/_/10000/1000/prov/se.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/counter_prov/counter_ra/_/10000/1000/prov/se.txt" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Dumontier/counter_prov/counter_ra/_/10000/1000/prov/se.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/counter_prov/counter_re/_/10000/1000/prov/se.txt" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Dumontier/counter_prov/counter_re/_/10000/1000/prov/se.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/csv/doi-orcid.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/csv/indices/Dumontier/data_Dumontier.csv" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Dumontier/csv/indices/Dumontier/data_Dumontier.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/csv/indices/Dumontier/index_ar_Dumontier.csv" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Dumontier/csv/indices/Dumontier/index_ar_Dumontier.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/csv/indices/Dumontier/index_id_br_Dumontier.csv" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Dumontier/csv/indices/Dumontier/index_id_br_Dumontier.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/csv/indices/Dumontier/index_id_ra_Dumontier.csv" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Dumontier/csv/indices/Dumontier/index_id_ra_Dumontier.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/csv/indices/Dumontier/index_re_Dumontier.csv" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Dumontier/csv/indices/Dumontier/index_re_Dumontier.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/csv/indices/Dumontier/index_vi_Dumontier.json" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Dumontier/csv/indices/Dumontier/index_vi_Dumontier.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/json/Dumontier.json" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Dumontier/json/Dumontier.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/srv/data/meta/ar/_/10000/1000.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Dumontier/srv/data/meta/ar/_/10000/1000.ttl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/srv/data/meta/ar/_/10000/1000/prov/se.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Dumontier/srv/data/meta/ar/_/10000/1000/prov/se.ttl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/srv/data/meta/br/_/10000/1000.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Dumontier/srv/data/meta/br/_/10000/1000.ttl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/srv/data/meta/br/_/10000/1000/prov/se.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Dumontier/srv/data/meta/br/_/10000/1000/prov/se.ttl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/srv/data/meta/id/_/10000/1000.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Dumontier/srv/data/meta/id/_/10000/1000.ttl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/srv/data/meta/id/_/10000/1000/prov/se.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Dumontier/srv/data/meta/id/_/10000/1000/prov/se.ttl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/srv/data/meta/ra/_/10000/1000.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Dumontier/srv/data/meta/ra/_/10000/1000.ttl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/srv/data/meta/ra/_/10000/1000/prov/se.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Dumontier/srv/data/meta/ra/_/10000/1000/prov/se.ttl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/srv/data/meta/re/_/10000/1000.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Dumontier/srv/data/meta/re/_/10000/1000.ttl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/srv/data/meta/re/_/10000/1000/prov/se.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Dumontier/srv/data/meta/re/_/10000/1000/prov/se.ttl" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/warmup.py" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Dumontier/warmup.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/DEMO/Peroni/converter_counter/ar.txt" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Peroni/converter_counter/ar.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/DEMO/Peroni/converter_counter/br.txt" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Peroni/converter_counter/br.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/DEMO/Peroni/converter_counter/id.txt" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Peroni/converter_counter/id.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DEMO/Peroni/converter_counter/ra.txt" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Peroni/converter_counter/ra.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/DEMO/Peroni/counter_prov/counter_ar/_/10000/1000/prov/se.txt" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Peroni/counter_prov/counter_ar/_/10000/1000/prov/se.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/DEMO/Peroni/counter_prov/counter_br/_/10000/1000/prov/se.txt" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Peroni/counter_prov/counter_br/_/10000/1000/prov/se.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/DEMO/Peroni/counter_prov/counter_id/_/10000/1000/prov/se.txt" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Peroni/counter_prov/counter_id/_/10000/1000/prov/se.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/DEMO/Peroni/counter_prov/counter_ra/_/10000/1000/prov/se.txt" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Peroni/counter_prov/counter_ra/_/10000/1000/prov/se.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Peroni/csv/doi.csv" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Peroni/csv/doi.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Peroni/csv/indices/Peroni/data_Peroni.csv" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Peroni/csv/indices/Peroni/data_Peroni.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Peroni/csv/indices/Peroni/index_ar_Peroni.csv" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Peroni/csv/indices/Peroni/index_ar_Peroni.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Peroni/csv/indices/Peroni/index_id_br_Peroni.csv" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Peroni/csv/indices/Peroni/index_id_br_Peroni.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Peroni/csv/indices/Peroni/index_id_ra_Peroni.csv" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Peroni/csv/indices/Peroni/index_id_ra_Peroni.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Peroni/csv/indices/Peroni/index_re_Peroni.csv" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Peroni/csv/indices/Peroni/index_re_Peroni.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Peroni/csv/indices/Peroni/index_vi_Peroni.json" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Peroni/csv/indices/Peroni/index_vi_Peroni.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/DEMO/Peroni/srv/data/meta/ar/_/10000/1000.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Peroni/srv/data/meta/ar/_/10000/1000.ttl" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/DEMO/Peroni/srv/data/meta/ar/_/10000/1000/prov/se.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Peroni/srv/data/meta/ar/_/10000/1000/prov/se.ttl" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/DEMO/Peroni/srv/data/meta/br/_/10000/1000.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Peroni/srv/data/meta/br/_/10000/1000.ttl" afterDir="false" />
@@ -54,6 +20,9 @@
       <change beforePath="$PROJECT_DIR$/DEMO/Peroni/srv/data/meta/id/_/10000/1000/prov/se.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Peroni/srv/data/meta/id/_/10000/1000/prov/se.ttl" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/DEMO/Peroni/srv/data/meta/ra/_/10000/1000.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Peroni/srv/data/meta/ra/_/10000/1000.ttl" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/DEMO/Peroni/srv/data/meta/ra/_/10000/1000/prov/se.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Peroni/srv/data/meta/ra/_/10000/1000/prov/se.ttl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DEMO/Peroni/srv/data/meta/re/_/10000/1000.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Peroni/srv/data/meta/re/_/10000/1000.ttl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DEMO/Peroni/srv/data/meta/re/_/10000/1000/prov/se.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Peroni/srv/data/meta/re/_/10000/1000/prov/se.ttl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DEMO/Peroni/warmup.py" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Peroni/warmup.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/crossref/crossrefBeautify.py" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/crossrefBeautify.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/prova.py" beforeDir="false" afterPath="$PROJECT_DIR$/prova.py" afterDir="false" />
     </list>
@@ -95,7 +64,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Python.warmup (1)">
+  <component name="RunManager" selected="Python.warmup (2)">
     <configuration name="index_orcid_doi" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="meta" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -210,8 +179,8 @@
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.warmup (1)" />
         <item itemvalue="Python.warmup (2)" />
+        <item itemvalue="Python.warmup (1)" />
         <item itemvalue="Python.prova" />
         <item itemvalue="Python.index_orcid_doi" />
         <item itemvalue="Python.migrator_TDD" />

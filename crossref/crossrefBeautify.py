@@ -9,8 +9,11 @@ from scripts.id_manager.doimanager import DOIManager
 
 class crossrefBeautify:
 
-    def __init__(self, raw_data_path, orcid_index, doi_csv):
-        self.doi_set = CSVManager.load_csv_column_as_set(doi_csv, "doi")
+    def __init__(self, raw_data_path, orcid_index, doi_csv=None):
+        if doi_csv:
+            doi_set = CSVManager.load_csv_column_as_set(doi_csv, "doi")
+        else:
+            doi_set = None
         self.orcid_index = CSVManager(orcid_index)
         self.data = list()
         with open(raw_data_path, encoding="utf-8") as json_file:
@@ -24,7 +27,7 @@ class crossrefBeautify:
                         doi = DOIManager().normalise(str(x["DOI"][0]))
                     else:
                         doi = DOIManager().normalise(str(x["DOI"]))
-                if doi and doi in self.doi_set:
+                if (doi and doi_set and doi in doi_set) or (doi and not doi_set):
                     row = dict()
 
                     #create empty row
