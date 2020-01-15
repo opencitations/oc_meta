@@ -5,15 +5,14 @@ from datetime import datetime
 
 class Converter:
 
-    def __init__(self, data, ts, separator = None, info_dir ="converter_counter/", filename = None, path = None):
-
+    def __init__(self, data, ts, info_dir, prefix="060", separator=None, filename=None, path=None):
 
         self.finder = ResourceFinder(ts)
         self.separator = separator
         self.data = data
+        self.prefix = prefix
 
         # Counter local paths
-        self.info_dir = info_dir
         self.br_info_path = info_dir + "br.txt"
         self.id_info_path = info_dir + "id.txt"
         self.ra_info_path = info_dir + "ra.txt"
@@ -51,6 +50,7 @@ class Converter:
             self.clean_id(row)
             self.rowcnt += 1
 
+        self.rowcnt -= 1
         self.check_equality()
 
         # reset row counter
@@ -272,6 +272,7 @@ class Converter:
                                         self.radict[x[k][2]]["others"] = list()
                                         self.radict[x[k][2]]["title"] = x[k][0]
                                     for i in x[k][1]:
+                                        #other ids after meta
                                         if i[0] not in self.idra:
                                             self.idra[i[1]] = i[0]
                                         if i[1] not in self.radict[x[k][2]]["ids"]:
@@ -359,7 +360,7 @@ class Converter:
                         metaval = self.new_entity(self.radict, name)
                     if new_elem_seq:
                         added_element = True
-                        role = self._add_number(self.ar_info_path)
+                        role = self.prefix + str(self._add_number(self.ar_info_path))
                         new_sequence.append(tuple((role, metaval)))
                         self.new_sequence_list.append(tuple((self.rowcnt, role,  metaval)))
                 if change_order:
@@ -449,7 +450,7 @@ class Converter:
                     id_dict[id] = found_m
                 else:
                     count = self._add_number(self.id_info_path)
-                    id_dict[id] = count
+                    id_dict[id] = self.prefix + str(count)
         return metaval
 
 
@@ -521,7 +522,7 @@ class Converter:
             if "wannabe" in x:
                 other = x
                 count = self._add_number(self.br_info_path)
-                meta = str(count)
+                meta = self.prefix + str(count)
                 self.brmeta[meta] = self.brdict[x]
                 self.brmeta[meta]["others"].append(other)
                 self.brmeta[meta]["ids"].append("meta:br/" + meta)
@@ -533,7 +534,7 @@ class Converter:
             if "wannabe" in x:
                 other = x
                 count = self._add_number(self.ra_info_path)
-                meta = str(count)
+                meta = self.prefix + str(count)
                 self.rameta[meta] = self.radict[x]
                 self.rameta[meta]["others"].append(other)
                 self.rameta[meta]["ids"].append("meta:ra/" + meta)
@@ -578,7 +579,7 @@ class Converter:
                     self.remeta[k] = re
                     row["page"] = re[1]
                 else:
-                    count = self._add_number(self.re_info_path)
+                    count = self.prefix + str(self._add_number(self.re_info_path))
                     page = row["page"].strip()
                     self.remeta[k] = (count, page)
                     row["page"] = page
@@ -840,7 +841,7 @@ class Converter:
                         entity_dict[metaval]["ids"].append(id)
                     if id not in id_dict:
                         count = self._add_number(self.id_info_path)
-                        id_dict[id] = count
+                        id_dict[id] = self.prefix + str(count)
 
                 if not entity_dict[metaval]["title"] and name:
                     entity_dict[metaval]["title"] = name
@@ -869,7 +870,7 @@ class Converter:
                             entity_dict[metaval]["ids"].append(id)
                         if id not in id_dict:
                             count = self._add_number(self.id_info_path)
-                            id_dict[id] = count
+                            id_dict[id] = self.prefix + str(count)
 
                     existing_ids = found_meta_ts[1]
 
@@ -1011,7 +1012,7 @@ class Converter:
             for id in idslist:
                 if id not in id_dict:
                     count = self._add_number(self.id_info_path)
-                    id_dict[id] = count
+                    id_dict[id] = self.prefix + str(count)
 
                 if id not in entity_dict[metaval]["ids"]:
                     entity_dict[metaval]["ids"].append(id)

@@ -12,7 +12,7 @@ from scripts.conf import reference_dir, base_iri, context_path, info_dir, triple
 def warmup (raw_json_path, doi_orcid, name, doi_csv):
     server = "http://127.0.0.1:9999/blazegraph/sparql"
     row_csv = crossrefBeautify(raw_json_path, doi_orcid, doi_csv).data
-    clean_csv = Converter(row_csv, server, filename=name, path="csv/indices/" + name + "/")
+    clean_csv = Converter(row_csv, server, info_dir=info_dir, filename=name, path="csv/indices/" + name + "/")
     print(clean_csv.log)
     crossref_csv = "csv/indices/" + name + "/data_" + name + ".csv"
     crossref_id_br = "csv/indices/" + name + "/index_id_br_" + name + ".csv"
@@ -25,7 +25,7 @@ def warmup (raw_json_path, doi_orcid, name, doi_csv):
         reader = csv.DictReader(csvfile, delimiter="\t")
         data = [dict(x) for x in reader]
 
-    migrator = Migrator(data, crossref_id_ra, crossref_id_br, crossref_re, crossref_ar, crossref_vi).setgraph
+    migrator = Migrator(data, base_iri, crossref_id_ra, crossref_id_br, crossref_re, crossref_ar, crossref_vi).setgraph
 
     prov = ProvSet(migrator, base_iri, context_path, default_dir, "counter_prov/counter_",
                    ResourceFinder(base_dir=base_dir, base_iri=base_iri,
@@ -61,22 +61,22 @@ def warmup (raw_json_path, doi_orcid, name, doi_csv):
 
 
 def reset():
-    with open("converter_counter/br.txt", 'w') as br:
+    with open(info_dir + "br.txt", 'w') as br:
         br.write('0')
-    with open("converter_counter/id.txt", 'w') as br:
+    with open(info_dir + "id.txt", 'w') as br:
         br.write('0')
-    with open("converter_counter/ra.txt", 'w') as br:
+    with open(info_dir + "ra.txt", 'w') as br:
         br.write('0')
-    with open("converter_counter/ar.txt", 'w') as br:
+    with open(info_dir + "ar.txt", 'w') as br:
         br.write('0')
-    with open("converter_counter/re.txt", 'w') as br:
+    with open(info_dir + "re.txt", 'w') as br:
         br.write('0')
 
 def reset_server(server):
     ts = sparql.SPARQLServer(server)
     ts.update('delete{?x ?y ?z} where{?x ?y ?z}')
 
-#reset()
+#eset()
 reset_server("http://127.0.0.1:9999/blazegraph/sparql")
 warmup("json/Peroni.json", "csv/orcid.csv", "Peroni", "csv/doi.csv")
 warmup("json/Vitali.json", "csv/orcid.csv", "Vitali", "csv/doi.csv")

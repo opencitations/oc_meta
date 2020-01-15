@@ -168,8 +168,9 @@ class ResourceFinder:
             couple_list = list(zip(id_schema_list, id_value_list))
             id_list = list()
             for x in couple_list:
-                id = str(x[0]).lower() + ':' + str(x[1])
-                id_list.append(id)
+                if x[0] and x[1]:
+                    id = str(x[0]).lower() + ':' + str(x[1])
+                    id_list.append(id)
             final_list = list(zip(meta_id_list, id_list))
 
             return title, final_list

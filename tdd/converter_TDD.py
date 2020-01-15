@@ -2,7 +2,7 @@ import unittest
 from converter import*
 import csv
 from SPARQLWrapper import SPARQLWrapper
-from pathlib import Path
+import os
 
 def reset():
     with open("converter_counter/br.txt", 'w') as br:
@@ -23,7 +23,8 @@ def reset_server(server):
 def add_data_ts (server):
     ts = SPARQLWrapper(server)
     ts.method = "POST"
-    ts.setQuery("LOAD <file:C:/Users/Fabio/Documents/GitHub/meta/tdd/testcases/ts/testcase_ts-13.ttl>")
+    f_path = os.path.abspath("testcases/ts/testcase_ts-13.ttl").replace("\\", "/")
+    ts.setQuery("LOAD <file:" + f_path + ">")
     ts.query()
 
 def datacollect():
@@ -48,7 +49,7 @@ def prepare2test(data, name):
     testcase_vi = "testcases/testcase_data/indices/" + name + "/index_vi_" + name + ".json"
 
     #convert = Converter(data, server, filename=name, path="testcases/testcase_data/indices/" + name + "/")
-    convert = Converter(data, server)
+    convert = Converter(data, server, info_dir="converter_counter/")
     with open(testcase_csv, 'r', encoding='utf-8') as csvfile:
         reader = csv.DictReader(csvfile, delimiter="\t")
         testcase_csv = [dict(x) for x in reader]
@@ -71,9 +72,10 @@ def prepare2test(data, name):
 
     with open(testcase_vi) as json_file:
         testcase_vi = json.load(json_file)
-
+    
     testcase = [testcase_csv, testcase_id_br, testcase_id_ra, testcase_ar, testcase_re, testcase_vi]
     conversion = [convert.data, convert.index_id_br, convert.index_id_ra, convert.ar_index, convert.re_index, convert.VolIss]
+
     return conversion, testcase
 
 
@@ -375,8 +377,8 @@ def suite(testobj):
     test_suite.addTest(unittest.makeSuite(testobj))
     return test_suite
 
-
-TestSuit = suite(testcase_15)
+'''
+TestSuit = suite(testcase_14)
 runner = unittest.TextTestRunner()
 runner.run(TestSuit)
 '''
@@ -391,4 +393,3 @@ while x < 17:
     x += 1
     runner=unittest.TextTestRunner()
     runner.run(TestSuit)
-'''

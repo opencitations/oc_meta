@@ -1,0 +1,39 @@
+<https://w3id.org/oc/meta/ra/0605> <http://xmlns.com/foaf/0.1/givenName> "Alison" .
+<https://w3id.org/oc/meta/ra/0609> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> .
+<https://w3id.org/oc/meta/ra/0601> <http://xmlns.com/foaf/0.1/familyName> "Verborgh" .
+<https://w3id.org/oc/meta/ra/0601> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> .
+<https://w3id.org/oc/meta/ra/06011> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> .
+<https://w3id.org/oc/meta/ra/0602> <http://xmlns.com/foaf/0.1/givenName> "Michel" .
+<https://w3id.org/oc/meta/ra/06010> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> .
+<https://w3id.org/oc/meta/ra/0605> <http://xmlns.com/foaf/0.1/familyName> "Callahan" .
+<https://w3id.org/oc/meta/ra/06012> <http://xmlns.com/foaf/0.1/familyName> "Villanueva-Rosales" .
+<https://w3id.org/oc/meta/ra/0603> <http://xmlns.com/foaf/0.1/familyName> "Kuhn" .
+<https://w3id.org/oc/meta/ra/06012> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> .
+<https://w3id.org/oc/meta/ra/06011> <http://xmlns.com/foaf/0.1/familyName> "Hogue" .
+<https://w3id.org/oc/meta/ra/0609> <http://xmlns.com/foaf/0.1/givenName> "Tiffany I." .
+<https://w3id.org/oc/meta/ra/0607> <http://xmlns.com/foaf/0.1/familyName> "Kuhn" .
+<https://w3id.org/oc/meta/ra/0608> <http://xmlns.com/foaf/0.1/familyName> "Chepelev" .
+<https://w3id.org/oc/meta/ra/0606> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> .
+<https://w3id.org/oc/meta/ra/0608> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> .
+<https://w3id.org/oc/meta/ra/0606> <http://xmlns.com/foaf/0.1/givenName> "Alexander" .
+<https://w3id.org/oc/meta/ra/0602> <http://xmlns.com/foaf/0.1/familyName> "Dumontier" .
+<https://w3id.org/oc/meta/ra/06012> <http://xmlns.com/foaf/0.1/givenName> "Natalia" .
+<https://w3id.org/oc/meta/ra/0602> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06014> .
+<https://w3id.org/oc/meta/ra/0608> <http://xmlns.com/foaf/0.1/givenName> "Leonid L." .
+<https://w3id.org/oc/meta/ra/0606> <http://xmlns.com/foaf/0.1/familyName> "Gawronski" .
+<https://w3id.org/oc/meta/ra/0609> <http://xmlns.com/foaf/0.1/familyName> "Leung" .
+<https://w3id.org/oc/meta/ra/0604> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06016> .
+<https://w3id.org/oc/meta/ra/0604> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> .
+<https://w3id.org/oc/meta/ra/0607> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> .
+<https://w3id.org/oc/meta/ra/06010> <http://xmlns.com/foaf/0.1/familyName> "Wild" .
+<https://w3id.org/oc/meta/ra/0605> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> .
+<https://w3id.org/oc/meta/ra/0603> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> .
+<https://w3id.org/oc/meta/ra/06010> <http://xmlns.com/foaf/0.1/givenName> "David J." .
+<https://w3id.org/oc/meta/ra/0603> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06015> .
+<https://w3id.org/oc/meta/ra/06011> <http://xmlns.com/foaf/0.1/givenName> "Christopher Wv" .
+<https://w3id.org/oc/meta/ra/0607> <http://xmlns.com/foaf/0.1/givenName> "Tobias" .
+<https://w3id.org/oc/meta/ra/0601> <http://xmlns.com/foaf/0.1/givenName> "Ruben" .
+<https://w3id.org/oc/meta/ra/0602> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> .
+<https://w3id.org/oc/meta/ra/0603> <http://xmlns.com/foaf/0.1/givenName> "Tobias" .
+<https://w3id.org/oc/meta/ra/0604> <http://xmlns.com/foaf/0.1/name> "Ios Press" .
+

@@ -32,7 +32,7 @@ def prepare2test(name):
         reader = csv.DictReader(csvfile, delimiter="\t")
         data = [dict(x) for x in reader]
 
-    migrator = Migrator(data, testcase_id_ra, testcase_id_br, testcase_re, testcase_ar, testcase_vi)
+    migrator = Migrator(data, "https://w3id.org/oc/meta/", testcase_id_ra, testcase_id_br, testcase_re, testcase_ar, testcase_vi)
     test_graph = Graph()
     hack_dates()
     test_graph = test_graph.parse(testcase_ttl, format="ttl")
