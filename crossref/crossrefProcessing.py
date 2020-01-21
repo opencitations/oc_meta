@@ -7,7 +7,7 @@ from scripts.id_manager.isbnmanager import ISBNManager
 from scripts.id_manager.doimanager import DOIManager
 
 
-class crossrefBeautify:
+class crossrefProcessing:
 
     def __init__(self, raw_data_path, orcid_index, doi_csv=None):
         if doi_csv:

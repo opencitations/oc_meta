@@ -1,7 +1,7 @@
 from scripts.graphlib import *
 import re, csv, json
 
-class Migrator():
+class Creator():
     def __init__(self, data, base_iri, ra_index_csv, br_index_csv, re_index_csv, ar_index_csv, vi_index_json):
         self.url = base_iri
 
@@ -71,9 +71,9 @@ class Migrator():
             id_index = [dict(x) for x in reader]
             for row in id_index:
                 index[row["meta"]] = dict()
-                index[row["meta"]]["author"] = Migrator.ar_worker(row["author"])
-                index[row["meta"]]["editor"] = Migrator.ar_worker(row["editor"])
-                index[row["meta"]]["publisher"] = Migrator.ar_worker(row["publisher"])
+                index[row["meta"]]["author"] = Creator.ar_worker(row["author"])
+                index[row["meta"]]["editor"] = Creator.ar_worker(row["editor"])
+                index[row["meta"]]["publisher"] = Creator.ar_worker(row["publisher"])
         return index
 
     @staticmethod

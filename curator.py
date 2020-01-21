@@ -3,7 +3,7 @@ from scripts.finder import*
 from dateutil.parser import parse
 from datetime import datetime
 
-class Converter:
+class Curator:
 
     def __init__(self, data, ts, info_dir, prefix="060", separator=None, filename=None, path=None):
 
@@ -105,10 +105,10 @@ class Converter:
 
         #page
         if row['page']:
-            row['page'] = Converter.string_fix(row['page'].strip())
+            row['page'] = Curator.string_fix(row['page'].strip())
         #date
         if row['pub_date']:
-            date = Converter.string_fix(row['pub_date'].strip())
+            date = Curator.string_fix(row['pub_date'].strip())
             try:
                 date = self.parse_hack(date)
             except:
@@ -412,7 +412,7 @@ class Converter:
         else:
             for pos, elem in enumerate(id_list):
                 try:
-                    elem = Converter.string_fix(elem)
+                    elem = Curator.string_fix(elem)
                     id = elem.split(":", 1)
                     value = id[1]
                     schema = id[0].lower()
@@ -664,7 +664,7 @@ class Converter:
 
     @staticmethod
     def _add_number(file_path, line_number=1):
-        cur_number = Converter._read_number(file_path, line_number) + 1
+        cur_number = Curator._read_number(file_path, line_number) + 1
         if not os.path.exists(os.path.dirname(file_path)):
             os.makedirs(os.path.dirname(file_path))
         if os.path.exists(file_path):

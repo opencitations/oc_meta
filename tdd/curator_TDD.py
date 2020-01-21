@@ -1,19 +1,19 @@
 import unittest
-from converter import*
+from curator import*
 import csv
 from SPARQLWrapper import SPARQLWrapper
 import os
 
 def reset():
-    with open("converter_counter/br.txt", 'w') as br:
+    with open("curator_counter/br.txt", 'w') as br:
         br.write('0')
-    with open("converter_counter/id.txt", 'w') as br:
+    with open("curator_counter/id.txt", 'w') as br:
         br.write('0')
-    with open("converter_counter/ra.txt", 'w') as br:
+    with open("curator_counter/ra.txt", 'w') as br:
         br.write('0')
-    with open("converter_counter/ar.txt", 'w') as br:
+    with open("curator_counter/ar.txt", 'w') as br:
         br.write('0')
-    with open("converter_counter/re.txt", 'w') as br:
+    with open("curator_counter/re.txt", 'w') as br:
         br.write('0')
 
 def reset_server(server):
@@ -48,8 +48,7 @@ def prepare2test(data, name):
     testcase_re = "testcases/testcase_data/indices/" + name + "/index_re_" + name + ".csv"
     testcase_vi = "testcases/testcase_data/indices/" + name + "/index_vi_" + name + ".json"
 
-    #convert = Converter(data, server, filename=name, path="testcases/testcase_data/indices/" + name + "/")
-    convert = Converter(data, server, info_dir="converter_counter/")
+    curator = Curator(data, server, info_dir="curator_counter/")
     with open(testcase_csv, 'r', encoding='utf-8') as csvfile:
         reader = csv.DictReader(csvfile, delimiter="\t")
         testcase_csv = [dict(x) for x in reader]
@@ -74,9 +73,9 @@ def prepare2test(data, name):
         testcase_vi = json.load(json_file)
     
     testcase = [testcase_csv, testcase_id_br, testcase_id_ra, testcase_ar, testcase_re, testcase_vi]
-    conversion = [convert.data, convert.index_id_br, convert.index_id_ra, convert.ar_index, convert.re_index, convert.VolIss]
+    data_curated = [curator.data, curator.index_id_br, curator.index_id_ra, curator.ar_index, curator.re_index, curator.VolIss]
 
-    return conversion, testcase
+    return data_curated, testcase
 
 
 class testcase_01 (unittest.TestCase):
@@ -87,8 +86,8 @@ class testcase_01 (unittest.TestCase):
         partial_data = list()
         partial_data.append(data[0])
         partial_data.append(data[5])
-        conversion, testcase = prepare2test(partial_data, name)
-        for pos,x in enumerate(conversion):
+        data_curated, testcase = prepare2test(partial_data, name)
+        for pos,x in enumerate(data_curated):
             self.assertEqual(x, testcase[pos])
 
 
@@ -101,8 +100,8 @@ class testcase_02(unittest.TestCase):
         partial_data = list()
         partial_data.append(data[1])
         partial_data.append(data[3])
-        conversion, testcase = prepare2test(partial_data, name)
-        self.assertEqual(conversion, testcase)
+        data_curated, testcase = prepare2test(partial_data, name)
+        self.assertEqual(data_curated, testcase)
 
 
 class testcase_03(unittest.TestCase):
@@ -113,8 +112,8 @@ class testcase_03(unittest.TestCase):
         partial_data = list()
         partial_data.append(data[2])
         partial_data.append(data[4])
-        conversion, testcase = prepare2test(partial_data, name)
-        self.assertEqual(conversion, testcase)
+        data_curated, testcase = prepare2test(partial_data, name)
+        self.assertEqual(data_curated, testcase)
 
 
 class testcase_04 (unittest.TestCase):
@@ -125,8 +124,8 @@ class testcase_04 (unittest.TestCase):
         partial_data = list()
         partial_data.append(data[6])
         partial_data.append(data[7])
-        conversion, testcase = prepare2test(partial_data, name)
-        for pos,x in enumerate(conversion):
+        data_curated, testcase = prepare2test(partial_data, name)
+        for pos,x in enumerate(data_curated):
             self.assertEqual(x, testcase[pos])
 
 
@@ -137,8 +136,8 @@ class testcase_05 (unittest.TestCase):
         data = datacollect()
         partial_data = list()
         partial_data.append(data[8])
-        conversion, testcase = prepare2test(partial_data, name)
-        self.assertEqual(conversion, testcase)
+        data_curated, testcase = prepare2test(partial_data, name)
+        self.assertEqual(data_curated, testcase)
 
 
 class testcase_06 (unittest.TestCase):
@@ -147,8 +146,8 @@ class testcase_06 (unittest.TestCase):
         name = "06"
         data = datacollect()
         partial_data = data[9:33]
-        conversion, testcase = prepare2test(partial_data, name)
-        self.assertEqual(conversion, testcase)
+        data_curated, testcase = prepare2test(partial_data, name)
+        self.assertEqual(data_curated, testcase)
 
 
 class testcase_07 (unittest.TestCase):
@@ -157,8 +156,8 @@ class testcase_07 (unittest.TestCase):
         name = "07"
         data = datacollect()
         partial_data = data[34:40]
-        conversion, testcase = prepare2test(partial_data, name)
-        self.assertEqual(conversion, testcase)
+        data_curated, testcase = prepare2test(partial_data, name)
+        self.assertEqual(data_curated, testcase)
 
 
 class testcase_08 (unittest.TestCase):
@@ -167,8 +166,8 @@ class testcase_08 (unittest.TestCase):
         name = "08"
         data = datacollect()
         partial_data = data[40:43]
-        conversion, testcase = prepare2test(partial_data, name)
-        self.assertEqual(conversion, testcase)
+        data_curated, testcase = prepare2test(partial_data, name)
+        self.assertEqual(data_curated, testcase)
 
 
 class testcase_09 (unittest.TestCase):
@@ -177,8 +176,8 @@ class testcase_09 (unittest.TestCase):
         name = "09"
         data = datacollect()
         partial_data = data[43:45]
-        conversion, testcase = prepare2test(partial_data, name)
-        self.assertEqual(conversion, testcase)
+        data_curated, testcase = prepare2test(partial_data, name)
+        self.assertEqual(data_curated, testcase)
 
 
 class testcase_10 (unittest.TestCase):
@@ -187,8 +186,8 @@ class testcase_10 (unittest.TestCase):
         name = "10"
         data = datacollect()
         partial_data = data[45:49]
-        conversion, testcase = prepare2test(partial_data, name)
-        self.assertEqual(conversion, testcase)
+        data_curated, testcase = prepare2test(partial_data, name)
+        self.assertEqual(data_curated, testcase)
 
 
 class testcase_11 (unittest.TestCase):
@@ -197,8 +196,8 @@ class testcase_11 (unittest.TestCase):
         name = "11"
         data = datacollect()
         partial_data = data[49:52]
-        conversion, testcase = prepare2test(partial_data, name)
-        self.assertEqual(conversion, testcase)
+        data_curated, testcase = prepare2test(partial_data, name)
+        self.assertEqual(data_curated, testcase)
 
 
 class testcase_12 (unittest.TestCase):
@@ -207,8 +206,8 @@ class testcase_12 (unittest.TestCase):
         name = "12"
         data = datacollect()
         partial_data = data[52:53]
-        conversion, testcase = prepare2test(partial_data, name)
-        self.assertEqual(conversion, testcase)
+        data_curated, testcase = prepare2test(partial_data, name)
+        self.assertEqual(data_curated, testcase)
 
 
 class testcase_13 (unittest.TestCase):
@@ -220,23 +219,23 @@ class testcase_13 (unittest.TestCase):
         name = "13.1"
         data = datacollect()
         partial_data = data[53:56]
-        conversion, testcase = prepare2test(partial_data, name)
-        self.assertEqual(conversion, testcase)
+        data_curated, testcase = prepare2test(partial_data, name)
+        self.assertEqual(data_curated, testcase)
 
     def test2(self):
         #2---Conflict with META precedence: a br has a meta_id and an id related to another meta_id, the first specified meta has precedence
         data = datacollect()
         name = "13.2"
         partial_data = data[56:57]
-        conversion, testcase = prepare2test(partial_data, name)
-        self.assertEqual(conversion, testcase)
+        data_curated, testcase = prepare2test(partial_data, name)
+        self.assertEqual(data_curated, testcase)
     def test3(self):
         #3--- conflict: br with id shared with 2 meta
         data = datacollect()
         name = "13.3"
         partial_data = data[57:58]
-        conversion, testcase = prepare2test(partial_data, name)
-        self.assertEqual(conversion, testcase)
+        data_curated, testcase = prepare2test(partial_data, name)
+        self.assertEqual(data_curated, testcase)
 
 
 
@@ -248,32 +247,32 @@ class testcase_14 (unittest.TestCase):
         name = "14.1"
         data = datacollect()
         partial_data = data[58:59]
-        conversion, testcase = prepare2test(partial_data, name)
-        self.assertEqual(conversion, testcase)
+        data_curated, testcase = prepare2test(partial_data, name)
+        self.assertEqual(data_curated, testcase)
 
     def test2(self):
         # same sequence different order, with new ids
         name = "14.2"
         data = datacollect()
         partial_data = data[59:60]
-        conversion, testcase = prepare2test(partial_data, name)
-        self.assertEqual(conversion, testcase)
+        data_curated, testcase = prepare2test(partial_data, name)
+        self.assertEqual(data_curated, testcase)
 
     def test3(self):
         # RA
         name = "14.3"
         data = datacollect()
         partial_data = data[60:61]
-        conversion, testcase = prepare2test(partial_data, name)
-        self.assertEqual(conversion, testcase)
+        data_curated, testcase = prepare2test(partial_data, name)
+        self.assertEqual(data_curated, testcase)
     
     def test4(self):
         #meta specified ra in a row, wannabe ra with a new id in a row, meta specified with an id related to wannabe in a ra
         name = "14.4"
         data = datacollect()
         partial_data = data[61:64]
-        conversion, testcase = prepare2test(partial_data, name)
-        self.assertEqual(conversion, testcase)
+        data_curated, testcase = prepare2test(partial_data, name)
+        self.assertEqual(data_curated, testcase)
 
 
 class testcase_15 (unittest.TestCase):
@@ -283,64 +282,64 @@ class testcase_15 (unittest.TestCase):
         name = "15.1"
         data = datacollect()
         partial_data = data[64:65]
-        conversion, testcase = prepare2test(partial_data, name)
-        self.assertEqual(conversion, testcase)
+        data_curated, testcase = prepare2test(partial_data, name)
+        self.assertEqual(data_curated, testcase)
 
     def test2(self):
         # venue conflict
         name = "15.2"
         data = datacollect()
         partial_data = data[65:66]
-        conversion, testcase = prepare2test(partial_data, name)
-        self.assertEqual(conversion, testcase)
+        data_curated, testcase = prepare2test(partial_data, name)
+        self.assertEqual(data_curated, testcase)
 
     def test3(self):
         # venue in ts is now the br
         name = "15.3"
         data = datacollect()
         partial_data = data[66:67]
-        conversion, testcase = prepare2test(partial_data, name)
-        self.assertEqual(conversion, testcase)
+        data_curated, testcase = prepare2test(partial_data, name)
+        self.assertEqual(data_curated, testcase)
 
     def test4(self):
         # br in ts is now the venue
         name = "15.4"
         data = datacollect()
         partial_data = data[67:68]
-        conversion, testcase = prepare2test(partial_data, name)
-        self.assertEqual(conversion, testcase)
+        data_curated, testcase = prepare2test(partial_data, name)
+        self.assertEqual(data_curated, testcase)
 
     def test5(self):
         # volume in ts is now the br
         name = "15.5"
         data = datacollect()
         partial_data = data[71:72]
-        conversion, testcase = prepare2test(partial_data, name)
-        self.assertEqual(conversion, testcase)
+        data_curated, testcase = prepare2test(partial_data, name)
+        self.assertEqual(data_curated, testcase)
 
     def test6(self):
         # br is a volume
         name = "15.6"
         data = datacollect()
         partial_data = data[72:73]
-        conversion, testcase = prepare2test(partial_data, name)
-        self.assertEqual(conversion, testcase)
+        data_curated, testcase = prepare2test(partial_data, name)
+        self.assertEqual(data_curated, testcase)
 
     def test7(self):
         # issue in ts is now the br
         name = "15.7"
         data = datacollect()
         partial_data = data[73:74]
-        conversion, testcase = prepare2test(partial_data, name)
-        self.assertEqual(conversion, testcase)
+        data_curated, testcase = prepare2test(partial_data, name)
+        self.assertEqual(data_curated, testcase)
 
     def test8(self):
         # br is a issue
         name = "15.8"
         data = datacollect()
         partial_data = data[74:75]
-        conversion, testcase = prepare2test(partial_data, name)
-        self.assertEqual(conversion, testcase)
+        data_curated, testcase = prepare2test(partial_data, name)
+        self.assertEqual(data_curated, testcase)
 
 
 class testcase_16(unittest.TestCase):
@@ -351,8 +350,8 @@ class testcase_16(unittest.TestCase):
         #wrong date (2019/02/29)
         data = datacollect()
         partial_data = data[75:76]
-        conversion, testcase = prepare2test(partial_data, name)
-        self.assertEqual(conversion, testcase)
+        data_curated, testcase = prepare2test(partial_data, name)
+        self.assertEqual(data_curated, testcase)
 
 
     def test2(self):
@@ -360,16 +359,16 @@ class testcase_16(unittest.TestCase):
         name = "16.2"
         data = datacollect()
         partial_data = data[76:77]
-        conversion, testcase = prepare2test(partial_data, name)
-        self.assertEqual(conversion, testcase)
+        data_curated, testcase = prepare2test(partial_data, name)
+        self.assertEqual(data_curated, testcase)
 
     def test3(self):
         #given name for an RA with only a family name in TS
         name = "16.3"
         data = datacollect()
         partial_data = data[77:78]
-        conversion, testcase = prepare2test(partial_data, name)
-        self.assertEqual(conversion, testcase)
+        data_curated, testcase = prepare2test(partial_data, name)
+        self.assertEqual(data_curated, testcase)
 
 
 def suite(testobj):

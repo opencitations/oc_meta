@@ -1,5 +1,5 @@
 import unittest
-from migrator import *
+from creator import *
 import csv
 from rdflib.term import _toPythonMapping
 from rdflib import XSD, compare
@@ -17,7 +17,7 @@ def hack_dates():
         _toPythonMapping.pop(XSD.gYearMonth)
 
 
-#migrator executor
+#creator executor
 def prepare2test(name):
 
     testcase_csv = "testcases/testcase_data/testcase_" + name + "_data.csv"
@@ -32,12 +32,12 @@ def prepare2test(name):
         reader = csv.DictReader(csvfile, delimiter="\t")
         data = [dict(x) for x in reader]
 
-    migrator = Migrator(data, "https://w3id.org/oc/meta/", testcase_id_ra, testcase_id_br, testcase_re, testcase_ar, testcase_vi)
+    creator = Creator(data, "https://w3id.org/oc/meta/", testcase_id_ra, testcase_id_br, testcase_re, testcase_ar, testcase_vi)
     test_graph = Graph()
     hack_dates()
     test_graph = test_graph.parse(testcase_ttl, format="ttl")
     new_graph = Graph()
-    for g in migrator.setgraph.graphs():
+    for g in creator.setgraph.graphs():
         new_graph += g
     return test_graph, new_graph
 
