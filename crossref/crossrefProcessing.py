@@ -1,10 +1,10 @@
 import json, html, csv
 from bs4 import BeautifulSoup
-from scripts.id_manager.orcidmanager import ORCIDManager
-from scripts.csvmanager import CSVManager
-from scripts.id_manager.issnmanager import ISSNManager
-from scripts.id_manager.isbnmanager import ISBNManager
-from scripts.id_manager.doimanager import DOIManager
+from meta.lib.id_manager.orcidmanager import ORCIDManager
+from meta.lib.csvmanager import CSVManager
+from meta.lib.id_manager.issnmanager import ISSNManager
+from meta.lib.id_manager.isbnmanager import ISBNManager
+from meta.lib.id_manager.doimanager import DOIManager
 
 
 class crossrefProcessing:

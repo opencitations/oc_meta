@@ -1,4 +1,0 @@
-<https://w3id.org/oc/meta/re/0601> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Manifestation> .
-<https://w3id.org/oc/meta/re/0601> <http://prismstandard.org/namespaces/basic/2.0/startingPage> "155" .
-<https://w3id.org/oc/meta/re/0601> <http://prismstandard.org/namespaces/basic/2.0/endingPage> "173" .
-

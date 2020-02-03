@@ -1,19 +1,24 @@
 import unittest
-from curator import*
+from meta.scripts.curator import*
 import csv
 from SPARQLWrapper import SPARQLWrapper
 import os
 
+
+def path(str):
+    path = os.path.abspath(str)
+    return str
+
 def reset():
-    with open("curator_counter/br.txt", 'w') as br:
+    with open(path("meta/tdd/curator_counter/br.txt"), 'w') as br:
         br.write('0')
-    with open("curator_counter/id.txt", 'w') as br:
+    with open(path("meta/tdd/curator_counter/id.txt"), 'w') as br:
         br.write('0')
-    with open("curator_counter/ra.txt", 'w') as br:
+    with open(path("meta/tdd/curator_counter/ra.txt"), 'w') as br:
         br.write('0')
-    with open("curator_counter/ar.txt", 'w') as br:
+    with open(path("meta/tdd/curator_counter/ar.txt"), 'w') as br:
         br.write('0')
-    with open("curator_counter/re.txt", 'w') as br:
+    with open(path("meta/tdd/curator_counter/re.txt"), 'w') as br:
         br.write('0')
 
 def reset_server(server):
@@ -23,12 +28,12 @@ def reset_server(server):
 def add_data_ts (server):
     ts = SPARQLWrapper(server)
     ts.method = "POST"
-    f_path = os.path.abspath("testcases/ts/testcase_ts-13.ttl").replace("\\", "/")
+    f_path = os.path.abspath("meta/tdd/testcases/ts/testcase_ts-13.ttl").replace("\\", "/")
     ts.setQuery("LOAD <file:" + f_path + ">")
     ts.query()
 
 def datacollect():
-    with open("new_test_data.csv", 'r', encoding='utf-8') as csvfile:
+    with open(path("meta/tdd/new_test_data.csv"), 'r', encoding='utf-8') as csvfile:
         data = list(csv.DictReader(csvfile, delimiter=","))
     return data
 
@@ -39,14 +44,14 @@ def prepare2test(data, name):
     if float(name)>12:
         add_data_ts(server)
 
-    testcase_csv = "testcases/testcase_data/testcase_" + name + "_data.csv"
-    testcase_id_br = "testcases/testcase_data/indices/" + name + "/index_id_br_" + name + ".csv"
-    testcase_id_ra = "testcases/testcase_data/indices/" + name + "/index_id_ra_" + name + ".csv"
-    testcase_ar = "testcases/testcase_data/indices/" + name + "/index_ar_" + name + ".csv"
-    testcase_re = "testcases/testcase_data/indices/" + name + "/index_re_" + name + ".csv"
-    testcase_vi = "testcases/testcase_data/indices/" + name + "/index_vi_" + name + ".json"
+    testcase_csv = path("meta/tdd/testcases/testcase_data/testcase_" + name + "_data.csv")
+    testcase_id_br = path("meta/tdd/testcases/testcase_data/indices/" + name + "/index_id_br_" + name + ".csv")
+    testcase_id_ra = path("meta/tdd/testcases/testcase_data/indices/" + name + "/index_id_ra_" + name + ".csv")
+    testcase_ar = path("meta/tdd/testcases/testcase_data/indices/" + name + "/index_ar_" + name + ".csv")
+    testcase_re = path("meta/tdd/testcases/testcase_data/indices/" + name + "/index_re_" + name + ".csv")
+    testcase_vi = path("meta/tdd/testcases/testcase_data/indices/" + name + "/index_vi_" + name + ".json")
 
-    curator_obj = Curator(data, server, info_dir="curator_counter/")
+    curator_obj = Curator(data, server, info_dir=path("meta/tdd/curator_counter/"))
     curator_obj.curator()
     with open(testcase_csv, 'r', encoding='utf-8') as csvfile:
         testcase_csv = list(csv.DictReader(csvfile, delimiter=","))

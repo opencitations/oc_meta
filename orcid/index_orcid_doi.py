@@ -1,14 +1,18 @@
 import os
 from bs4 import BeautifulSoup
-from scripts.csvmanager import CSVManager
-from scripts.id_manager.doimanager import DOIManager
+from meta.lib.csvmanager import CSVManager
+from meta.lib.id_manager.doimanager import DOIManager
 from argparse import ArgumentParser
 
 
 class index_orcid_doi:
 
-    def __init__(self, csv_path):
-        self.doi_index = CSVManager("doi_index.csv")
+    def __init__(self, csv_path, valid_doi):
+        if not os.path.exists(os.path.dirname(csv_path)):
+            os.makedirs(os.path.dirname(csv_path))
+        if not os.path.exists(os.path.dirname(valid_doi)):
+            os.makedirs(os.path.dirname(valid_doi))
+        self.doi_index = CSVManager(valid_doi)
         self.doimanager = DOIManager(valid_doi=self.doi_index)
         self.csvstorage = CSVManager(csv_path)
 
@@ -42,17 +46,20 @@ class index_orcid_doi:
 
 
 if __name__ == "__main__":
-    arg_parser = ArgumentParser("index_orcid_doi.py", description="This script allows one to validate and retrieve citationd data "
-                                                      "associated to an OCI (Open Citation Identifier).")
+    arg_parser = ArgumentParser("index_orcid_doi.py", description="This script builds a csv index of DOIs associated with ORCIDs, "
+                                                                  "starting from XML files containing ORCID data.")
+
 
     arg_parser.add_argument("-c", "--csv", dest="csv_path", required=True,
                             help="The output CSV file path.")
     arg_parser.add_argument("-s", "--summaries", dest="summaries_path", required=True,
-                            help="The folder path containing orcid sumamries, subfolder will be considered too.")
+                            help="The folder path containing orcid summaries, subfolder will be considered too.")
+    arg_parser.add_argument("-v", "--valid", dest="valid_doi", required=True,
+                            help="Filepath of CSv containing valid DOIs.")
 
     args = arg_parser.parse_args()
 
-    iOd = index_orcid_doi(args.csv_path)
+    iOd = index_orcid_doi(args.csv_path, args.valid_doi)
 
     iOd.finder(args.summaries_path)
 

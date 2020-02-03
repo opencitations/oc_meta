@@ -1,9 +1,9 @@
 import unittest
-from creator import *
+from meta.scripts.creator import *
 import csv
 from rdflib.term import _toPythonMapping
 from rdflib import XSD, compare
-
+import os, json
 
 
 # The following function has been added for handling gYear and gYearMonth correctly.
@@ -17,25 +17,27 @@ def hack_dates():
         _toPythonMapping.pop(XSD.gYearMonth)
 
 def open_csv(path):
+    path = os.path.abspath(path)
     with open(path, 'r', encoding="utf-8") as csvfile:
         reader = csv.DictReader(csvfile, delimiter=",")
         data = [dict(x) for x in reader]
         return data
 
 def open_json(path):
+    path = os.path.abspath(path)
     with open(path) as json_file:
         data = json.load(json_file)
         return data
 
 #creator executor
 def prepare2test(name):
-    data = open_csv("testcases/testcase_data/testcase_" + name + "_data.csv")
-    testcase_id_br = open_csv("testcases/testcase_data/indices/" + name + "/index_id_br_" + name + ".csv")
-    testcase_id_ra = open_csv("testcases/testcase_data/indices/" + name + "/index_id_ra_" + name + ".csv")
-    testcase_ar = open_csv("testcases/testcase_data/indices/" + name + "/index_ar_" + name + ".csv")
-    testcase_re = open_csv("testcases/testcase_data/indices/" + name + "/index_re_" + name + ".csv")
-    testcase_vi = open_json("testcases/testcase_data/indices/" + name + "/index_vi_" + name + ".json")
-    testcase_ttl = "testcases/testcase_" + name + ".ttl"
+    data = open_csv("meta/tdd/testcases/testcase_data/testcase_" + name + "_data.csv")
+    testcase_id_br = open_csv("meta/tdd/testcases/testcase_data/indices/" + name + "/index_id_br_" + name + ".csv")
+    testcase_id_ra = open_csv("meta/tdd/testcases/testcase_data/indices/" + name + "/index_id_ra_" + name + ".csv")
+    testcase_ar = open_csv("meta/tdd/testcases/testcase_data/indices/" + name + "/index_ar_" + name + ".csv")
+    testcase_re = open_csv("meta/tdd/testcases/testcase_data/indices/" + name + "/index_re_" + name + ".csv")
+    testcase_vi = open_json("meta/tdd/testcases/testcase_data/indices/" + name + "/index_vi_" + name + ".json")
+    testcase_ttl = "meta/tdd/testcases/testcase_" + name + ".ttl"
 
 
 
