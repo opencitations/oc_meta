@@ -2,57 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="d2b23c46-2db9-4b25-a89e-e1906277cf0f" name="Default" comment="">
-      <change afterPath="$PROJECT_DIR$/lib/id_manager/__init__.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/csv/doi.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/csv/doi_index.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/csv/indices/Dumontier/data_Dumontier.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/csv/indices/Dumontier/index_ar_Dumontier.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/csv/indices/Dumontier/index_id_br_Dumontier.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/csv/indices/Dumontier/index_id_ra_Dumontier.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/csv/indices/Dumontier/index_re_Dumontier.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/csv/indices/Dumontier/index_vi_Dumontier.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/csv/orcid.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/uu.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Dumontier/warmup.py" beforeDir="false" afterPath="$PROJECT_DIR$/DEMO/Dumontier/warmup.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Peroni/csv_e/2020-02-03T07_31_58.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Peroni/csv_e/2020-02-03T07_32_02.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Peroni/csv_e/index/2020-02-03T07_31_58/index_ar.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Peroni/csv_e/index/2020-02-03T07_31_58/index_id_br.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Peroni/csv_e/index/2020-02-03T07_31_58/index_id_ra.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Peroni/csv_e/index/2020-02-03T07_31_58/index_re.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Peroni/csv_e/index/2020-02-03T07_31_58/index_vi.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Peroni/csv_e/index/2020-02-03T07_32_02/index_ar.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Peroni/csv_e/index/2020-02-03T07_32_02/index_id_br.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Peroni/csv_e/index/2020-02-03T07_32_02/index_id_ra.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Peroni/csv_e/index/2020-02-03T07_32_02/index_re.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Peroni/csv_e/index/2020-02-03T07_32_02/index_vi.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/DEMO/Peroni/csv_e/index/2020-02-03T07_32_02log.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/creator.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/crossref/crossrefProcessing.py" beforeDir="false" afterPath="$PROJECT_DIR$/crossref/crossrefProcessing.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/curator.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/orcid/api_orcid.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/orcid/index_orcid_doi.py" beforeDir="false" afterPath="$PROJECT_DIR$/orcid/index_orcid_doi.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/preprocess.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/process.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/quad.nq" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/quand.nq" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/conf.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/csvmanager.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/finder.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/graphlib.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/id_manager/doimanager.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/id_manager/identifiermanager.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/id_manager/isbnmanager.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/id_manager/issnmanager.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/id_manager/orcidmanager.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/reporter.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/resfinder.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/storer.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/support.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tdd/creator_TDD.py" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/creator_TDD.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tdd/curator_TDD.py" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/curator_TDD.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test_quads.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/run_process.py" beforeDir="false" afterPath="$PROJECT_DIR$/run_process.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />

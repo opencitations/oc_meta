@@ -6,16 +6,14 @@ from meta.lib.conf import base_iri, context_path, info_dir, triplestore_url, \
     base_dir, temp_dir_for_rdf_loading, dir_split_number, items_per_file, default_dir
 from datetime import datetime
 from argparse import ArgumentParser
-import os
 
 
 
-def process(crossref_csv_dir, csv_dir, index_dir, auxiliary_dir, triplestore, source=None):
+def process(crossref_csv_dir, csv_dir, index_dir, auxiliary_path, triplestore, source=None):
     for filename in os.listdir(crossref_csv_dir):
-        auxiliary_path = os.path.join(auxiliary_dir, "auxiliary.txt")
         pathoo(auxiliary_path)
-        with open(auxiliary_path, 'r') as f:
-            completed = [line.strip() for line in f]
+        aux_file = open(auxiliary_path, "r+")
+        completed = [line.rstrip('\n') for line in aux_file]
         if filename.endswith(".csv") and filename not in completed:
             filepath = os.path.join(crossref_csv_dir, filename)
             data = unpack(filepath)
@@ -59,10 +57,8 @@ def process(crossref_csv_dir, csv_dir, index_dir, auxiliary_dir, triplestore, so
                 base_dir, base_iri, context_path,
                 temp_dir_for_rdf_loading)
 
-            pathoo(auxiliary_dir)
-            file = open(auxiliary_dir, "w")
-            file.write(filename +"\n")
-            file.close()
+            aux_file.write(filename +"\n")
+            aux_file.close()
 
 
 def pathoo(path):
@@ -89,8 +85,8 @@ if __name__ == "__main__":
     arg_parser.add_argument("-i", "--ind", dest="index_dir", required=True,
                             help="Directory where cleaned indices will be stored")
 
-    arg_parser.add_argument("-a", "--aux", dest="auxiliary_dir", required=True,
-                            help="Directory containing a txt of CSV list filepath")
+    arg_parser.add_argument("-a", "--aux", dest="auxiliary_path", required=True,
+                            help="Txt file containing processed CSV list filepath")
 
     arg_parser.add_argument("-t", "--tri", dest="triplestore", required=True,
                             help="Triplestore URL")
@@ -100,4 +96,4 @@ if __name__ == "__main__":
 
     args = arg_parser.parse_args()
 
-    process(args.crossref_csv_dir, args.csv_dir, args.index_dir, args.auxiliary_dir, args.triplestore, source=args.source)
+    process(args.crossref_csv_dir, args.csv_dir, args.index_dir, args.auxiliary_path, args.triplestore, source=args.source)

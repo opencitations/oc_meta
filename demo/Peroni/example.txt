@@ -14,9 +14,6 @@ python -m meta.run_process
     -c C:\\Users\\Fabio\\Documents\\GitHub\\meta\\DEMO\\Peroni\\CSV
     -v C:\\Users\\Fabio\\Documents\\GitHub\\meta\\DEMO\\Peroni\\CSVe
     -i C:\\Users\\Fabio\\Documents\\GitHub\\meta\\DEMO\\Peroni\\CSVe\\indices
-    -a C:\\Users\\Fabio\\Documents\\GitHub\\meta\\DEMO\\Peroni\\auxiliary
+    -a C:\\Users\\Fabio\\Documents\\GitHub\\meta\\DEMO\\Peroni\\auxiliary\\auxiliary.txt
     -t http://127.0.0.1:9999/blazegraph/sparql
     -s https://api.crossref.org/snapshots/monthly/2019/09/all.json.tar.gz
-
-
-python -m meta.run_process -c C:\\Users\\Fabio\\Documents\\GitHub\\meta\\DEMO\\Peroni\\CSV -v C:\\Users\\Fabio\\Documents\\GitHub\\meta\\DEMO\\Peroni\\CSVe -i C:\\Users\\Fabio\\Documents\\GitHub\\meta\\DEMO\\Peroni\\CSVe\\indices  -a C:\Users\Fabio\Documents\GitHub\meta\DEMO\Peroni\auxiliary -t http://127.0.0.1:9999/blazegraph/sparql -s https://api.crossref.org/snapshots/monthly/2019/09/all.json.tar.gz
