@@ -13,7 +13,12 @@ def warmup (raw_json_path, doi_orcid, name, doi_csv):
     server = "http://127.0.0.1:9999/blazegraph/sparql"
     #reset()
     reset_server(server)
-    row_csv = crossrefProcessing(raw_json_path, doi_orcid, doi_csv).data
+    process = crossrefProcessing(doi_orcid, doi_csv)
+    row_csv = process.csv_creator(raw_json_path)
+    with open("uu.csv", 'w', newline='', encoding="utf-8") as output_file:
+        dict_writer = csv.DictWriter(output_file, row_csv[0].keys(), delimiter=',', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
+        dict_writer.writeheader()
+        dict_writer.writerows(row_csv)
     clean_csv = Curator(row_csv, server, info_dir=info_dir, filename=name, path="csv/indices/" + name + "/")
     print(clean_csv.log)
     crossref_csv = "csv/indices/" + name + "/data_" + name + ".csv"
@@ -24,7 +29,7 @@ def warmup (raw_json_path, doi_orcid, name, doi_csv):
     crossref_vi = "csv/indices/" + name + "/index_vi_" + name + ".json"
 
     with open(crossref_csv, 'r', encoding="utf-8") as csvfile:
-        reader = csv.DictReader(csvfile, delimiter="\t")
+        reader = csv.DictReader(csvfile, delimiter=",")
         data = [dict(x) for x in reader]
 
     creator = Creator(data, base_iri, crossref_id_ra, crossref_id_br, crossref_re, crossref_ar, crossref_vi).setgraph
@@ -51,7 +56,7 @@ def warmup (raw_json_path, doi_orcid, name, doi_csv):
                          context_map={},
                          dir_split=dir_split_number,
                          n_file_item=items_per_file,
-                         nt=True)
+                         nq=True)
 
     res_storer.upload_and_store(
         base_dir, triplestore_url, base_iri, context_path,

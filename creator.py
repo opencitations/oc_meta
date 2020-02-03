@@ -2,25 +2,25 @@ from scripts.graphlib import *
 import re, csv, json
 
 class Creator():
-    def __init__(self, data, base_iri, ra_index_csv, br_index_csv, re_index_csv, ar_index_csv, vi_index_json):
+    def __init__(self, data, base_iri, ra_index, br_index, re_index_csv, ar_index_csv, vi_index):
         self.url = base_iri
 
         self.setgraph = GraphSet(self.url, "", "counter/", wanted_label=False, forced_type=True)
 
-        self.ra_index = self.indexer_id(ra_index_csv)
+        self.ra_index = self.indexer_id(ra_index)
 
-        self.br_index = self.indexer_id(br_index_csv)
+        self.br_index = self.indexer_id(br_index)
 
         self.re_index = self.index_re(re_index_csv)
 
         self.ar_index = self.index_ar(ar_index_csv)
 
-        with open(vi_index_json) as json_file:
-            self.vi_index = json.load(json_file)
+        self.vi_index = vi_index
+        self.data = data
 
 
-
-        for row in data:
+    def creator(self):
+        for row in self.data:
             self.row_meta = ""
             ids = row['id']
             title = row['title']
@@ -51,29 +51,25 @@ class Creator():
             if editor:
                 self.editor_job(editor)
 
+        return self.setgraph
+
 
 
     @staticmethod
-    def index_re (csv_path):
+    def index_re (id_index):
         index = dict()
-        with open(csv_path, 'r', encoding='utf-8') as csvfile:
-            reader = csv.DictReader(csvfile, delimiter='\t')
-            id_index = [dict(x) for x in reader]
-            for row in id_index:
-                index[row["br"]] = row["re"]
+        for row in id_index:
+            index[row["br"]] = row["re"]
         return index
 
     @staticmethod
-    def index_ar (csv_path):
+    def index_ar (id_index):
         index = dict()
-        with open(csv_path, 'r', encoding='utf-8') as csvfile:
-            reader = csv.DictReader(csvfile, delimiter='\t')
-            id_index = [dict(x) for x in reader]
-            for row in id_index:
-                index[row["meta"]] = dict()
-                index[row["meta"]]["author"] = Creator.ar_worker(row["author"])
-                index[row["meta"]]["editor"] = Creator.ar_worker(row["editor"])
-                index[row["meta"]]["publisher"] = Creator.ar_worker(row["publisher"])
+        for row in id_index:
+            index[row["meta"]] = dict()
+            index[row["meta"]]["author"] = Creator.ar_worker(row["author"])
+            index[row["meta"]]["editor"] = Creator.ar_worker(row["editor"])
+            index[row["meta"]]["publisher"] = Creator.ar_worker(row["publisher"])
         return index
 
     @staticmethod
@@ -102,50 +98,46 @@ class Creator():
         index['wikidata'] = dict()
 
 
-        with open(csv_index, 'r', encoding='utf-8') as csvfile:
-            reader = csv.DictReader(csvfile, delimiter='\t')
-            id_index = [dict(x) for x in reader]
+        for row in csv_index:
+            if row["id"].startswith("crossref"):
+                id = row["id"].replace('crossref:', '')
+                index['crossref'][id] = row["meta"]
 
-            for row in id_index:
-                if row["id"].startswith("crossref"):
-                    id = row["id"].replace('crossref:', '')
-                    index['crossref'][id] = row["meta"]
+            elif row["id"].startswith("doi"):
+                id = row["id"].replace('doi:', '')
+                index['doi'][id] = row["meta"]
 
-                elif row["id"].startswith("doi"):
-                    id = row["id"].replace('doi:', '')
-                    index['doi'][id] = row["meta"]
+            elif row["id"].startswith("issn"):
+                id = row["id"].replace('issn:', '')
+                index['issn'][id] = row["meta"]
 
-                elif row["id"].startswith("issn"):
-                    id = row["id"].replace('issn:', '')
-                    index['issn'][id] = row["meta"]
+            elif row["id"].startswith("isbn"):
+                id = row["id"].replace('isbn:', '')
+                index['isbn'][id] = row["meta"]
 
-                elif row["id"].startswith("isbn"):
-                    id = row["id"].replace('isbn:', '')
-                    index['isbn'][id] = row["meta"]
+            elif row["id"].startswith("orcid"):
+                id = row["id"].replace('orcid:', '')
+                index['orcid'][id] = row["meta"]
 
-                elif row["id"].startswith("orcid"):
-                    id = row["id"].replace('orcid:', '')
-                    index['orcid'][id] = row["meta"]
+            elif row["id"].startswith("pmid"):
+                id = row["id"].replace('pmid:', '')
+                index['pmid'][id] = row["meta"]
 
-                elif row["id"].startswith("pmid"):
-                    id = row["id"].replace('pmid:', '')
-                    index['pmid'][id] = row["meta"]
+            elif row["id"].startswith("pmcid"):
+                id = row["id"].replace('pmcid:', '')
+                index['pmcid'][id] = row["meta"]
 
-                elif row["id"].startswith("pmcid"):
-                    id = row["id"].replace('pmcid:', '')
-                    index['pmcid'][id] = row["meta"]
+            elif row["id"].startswith("url"):
+                id = row["id"].replace('url:', '')
+                index['url'][id] = row["meta"]
 
-                elif row["id"].startswith("url"):
-                    id = row["id"].replace('url:', '')
-                    index['url'][id] = row["meta"]
+            elif row["id"].startswith("viaf"):
+                id = row["id"].replace('viaf:', '')
+                index['viaf'][id] = row["meta"]
 
-                elif row["id"].startswith("viaf"):
-                    id = row["id"].replace('viaf:', '')
-                    index['viaf'][id] = row["meta"]
-
-                elif row["id"].startswith("wikidata"):
-                    id = row["id"].replace('wikidata:', '')
-                    index['wikidata'][id] = row["meta"]
+            elif row["id"].startswith("wikidata"):
+                id = row["id"].replace('wikidata:', '')
+                index['wikidata'][id] = row["meta"]
 
         return index
 
@@ -413,10 +405,8 @@ class Creator():
             url_ar = URIRef(self.url + ar_id)
             pub_ed_role = self.setgraph.add_ar("agent", source_agent=None, source=None, res=url_ar)
 
-            if self.type == "journal article" and self.issue_graph:
-                pub_ed_role.create_editor(self.issue_graph)
-            elif self.type == "journal article" and not self.issue_graph and self.vol_graph:
-                pub_ed_role.create_editor(self.vol_graph)
+            if self.type == "proceedings article" and self.venue_graph:
+                pub_ed_role.create_editor(self.venue_graph)
             elif (self.type == "book chapter" or self.type == "book part") and self.venue_graph:
                 pub_ed_role.create_editor(self.venue_graph)
             else:

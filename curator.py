@@ -5,7 +5,7 @@ from datetime import datetime
 
 class Curator:
 
-    def __init__(self, data, ts, info_dir, prefix="060", separator=None, filename=None, path=None):
+    def __init__(self, data, ts, info_dir, prefix="060", separator=None):
 
         self.finder = ResourceFinder(ts)
         self.separator = separator
@@ -42,6 +42,8 @@ class Curator:
         self.new_sequence_list = list()
         self.data = data
 
+
+    def curator(self, filename=None, path_csv=None, path_index=None):
         for row in self.data:
             self.log[self.rowcnt] = dict()
             key_list = ["id", "author", "venue", "editor", "publisher", "page", "volume", "issue", "pub_date", "type"]
@@ -74,13 +76,11 @@ class Curator:
         self.log = self.log_update()
         self.dry()
 
-        self.path = path
-        if self.path:
-            if not os.path.exists(os.path.dirname(self.path)):
-                os.makedirs(os.path.dirname(self.path))
+
+        path_index = os.path.join(path_index, filename)
 
         self.filename = filename
-        self.indexer()
+        self.indexer(path_index, path_csv)
 
 
     #ID
@@ -198,7 +198,6 @@ class Curator:
                     self.vvi[metaval]["volume"][vol] = dict()
                     self.vvi[metaval]["volume"][vol]["id"] = vol_meta
                     self.vvi[metaval]["volume"][vol]["issue"] = dict()
-
 
             elif row['volume'] and row["type"] == "journal volume":
                 vol = row["volume"].strip()
@@ -356,6 +355,12 @@ class Curator:
                             metaval = self.id_worker("publisher", name, ra_id_list, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
                         else:
                             metaval = self.id_worker(col_name, name, ra_id_list, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=False)
+                        if col_name != "publisher" and metaval in self.radict:
+                            actual_name = self.radict[metaval]["title"]
+                            if not actual_name.split(",")[1].strip() and name.split(",")[1].strip(): #first name found!
+                                srnm = actual_name.split(",")[0]
+                                nm = name.split(",")[1]
+                                self.radict[metaval]["title"] = srnm + ", " + nm
                     else:
                         metaval = self.new_entity(self.radict, name)
                     if new_elem_seq:
@@ -685,21 +690,16 @@ class Curator:
 
 
     @staticmethod
-    def write_csv(path, list):
+    def write_csv(path, datalist):
+        if not os.path.exists(os.path.dirname(path)):
+            os.makedirs(os.path.dirname(path))
         with open(path, 'w', newline='', encoding="utf-8") as output_file:
-            dict_writer = csv.DictWriter(output_file, list[0].keys(), delimiter='\t')
+            dict_writer = csv.DictWriter(output_file, datalist[0].keys(), delimiter=',', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
             dict_writer.writeheader()
-            dict_writer.writerows(list)
+            dict_writer.writerows(datalist)
 
-    @staticmethod
-    def write_txt():
-        pass
 
-    def indexer (self):
-        if self.path:
-            path = self.path
-        else:
-            path = ""
+    def indexer (self, path_index, path_csv):
 
         #ID
         self.index_id_ra = list()
@@ -791,29 +791,32 @@ class Curator:
                     self.VolIss[x] = self.vvi[x]
 
         if self.filename:
-            ra_path = path + "index_id_ra_" + self.filename + ".csv"
+            ra_path = os.path.join(path_index, "index_id_ra.csv")
             self.write_csv(ra_path, self.index_id_ra)
 
-            br_path = path + "index_id_br_" + self.filename + ".csv"
+            br_path = os.path.join(path_index, "index_id_br.csv")
             self.write_csv(br_path, self.index_id_br)
 
-            ar_path = path + "index_ar_" + self.filename + ".csv"
+            ar_path = os.path.join(path_index, "index_ar.csv")
             self.write_csv(ar_path, self.ar_index)
 
-            re_path = path + "index_re_" + self.filename + ".csv"
+            re_path = os.path.join(path_index , "index_re.csv")
             self.write_csv(re_path, self.re_index)
 
-            vvi_file = path + "index_vi_" + self.filename + ".json"
+            vvi_file = os.path.join(path_index, "index_vi.json")
+            if not os.path.exists(os.path.dirname(vvi_file)):
+                os.makedirs(os.path.dirname(vvi_file))
             with open(vvi_file, 'w') as fp:
                 json.dump(self.VolIss, fp)
 
             if self.log:
-                log_file = path + "log_" + self.filename + ".json"
+                log_file = os.path.join(path_index + "log.json")
                 with open(log_file, 'w') as lf:
                     json.dump(self.log, lf)
 
             if self.data:
-                data_file = path + "data_" + self.filename + ".csv"
+                name = self.filename + ".csv"
+                data_file = os.path.join(path_csv, name)
                 self.write_csv(data_file, self.data)
 
 
@@ -1033,6 +1036,7 @@ class Curator:
         entity_dict[metaval]["ids"] = list()
         entity_dict[metaval]["others"] = list()
         entity_dict[metaval]["title"] = name
+
         return metaval
 
 
@@ -1052,8 +1056,9 @@ class Curator:
             if value in path:
                 if "wannabe" in path[value]["id"]:
                     old_meta = path[value]["id"]
-                    self.update(self.brdict, meta, old_meta, row["title"])
-                    path[value]["id"] = meta
+                    if meta != old_meta:
+                        self.update(self.brdict, meta, old_meta, row["title"])
+                        path[value]["id"] = meta
                 else:
                     old_meta = path[value]["id"]
                     if "wannabe" not in old_meta and old_meta not in self.brdict:
@@ -1108,7 +1113,7 @@ class Curator:
 
     @staticmethod
     def string_fix(st):
-        dash_list = ["‐", "–", "—", "−", "‑", "⁃", "­"]     #Hyphen, En-Dash, Em-Dash, Minus Sign, Non-breaking Hyphen, Hyphen Bullet, Soft Hyphen
+        dash_list = ["‐", "–", "—", "−", "‑", "⁃", "­", "‒"]     #Hyphen, En-Dash, Em-Dash, Minus Sign, Non-breaking Hyphen, Hyphen Bullet, Soft Hyphen, Figure Dash
         for d in dash_list:
             if d in st:
                     st.replace(d, "-")
@@ -1135,12 +1140,47 @@ class Curator:
 
 
     def check_equality(self):
+        partialcnt = 0
         for row in self.data:
             if "wannabe" in row["id"]:
                 for i in self.brdict:
                     if row["id"] in self.brdict[i]["others"] and "wannabe" not in i:
                         row["id"] = i
                         self.equalizer(row, i)
+                        return
+                other_rowcnt = 0
+                for other_row in self.data:
+                    if other_row["id"] == row["id"] and partialcnt != other_rowcnt:
+                        if row["pub_date"] and row["pub_date"] != other_row["pub_date"]:
+                            if other_row["pub_date"]:
+                                self.log[other_rowcnt]["pub_date"]["status"] = "NEW VALUE PROPOSED"
+                            other_row["pub_date"] = row["pub_date"]
+                        if row["page"] and row["page"] != other_row["page"]:
+                            if other_row["page"]:
+                                self.log[other_rowcnt]["page"]["status"] = "NEW VALUE PROPOSED"
+                            other_row["page"] = row["page"]
+                        if row["type"] and row["type"] != other_row["type"]:
+                            if other_row["type"]:
+                                self.log[other_rowcnt]["type"]["status"] = "NEW VALUE PROPOSED"
+                            other_row["type"] = row["type"]
+                        if row["venue"] and row["venue"] != other_row["venue"]:
+                            if other_row["venue"]:
+                                self.log[other_rowcnt]["venue"]["status"] = "NEW VALUE PROPOSED"
+                            other_row["venue"] = row["venue"]
+                        if row["volume"] and row["volume"] != other_row["volume"]:
+                            if other_row["volume"]:
+                                self.log[other_rowcnt]["volume"]["status"] = "NEW VALUE PROPOSED"
+                            other_row["volume"] = row["volume"]
+                        if row["issue"] and row["issue"] != other_row["issue"]:
+                            if other_row["issue"]:
+                                self.log[other_rowcnt]["issue"]["status"] = "NEW VALUE PROPOSED"
+                            other_row["issue"] = row["issue"]
+                    other_rowcnt += 1
+            partialcnt += 1
+
+
+
+
 
 
 

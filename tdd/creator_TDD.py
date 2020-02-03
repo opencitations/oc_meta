@@ -16,28 +16,36 @@ def hack_dates():
     if XSD.gYearMonth in _toPythonMapping:
         _toPythonMapping.pop(XSD.gYearMonth)
 
+def open_csv(path):
+    with open(path, 'r', encoding="utf-8") as csvfile:
+        reader = csv.DictReader(csvfile, delimiter=",")
+        data = [dict(x) for x in reader]
+        return data
+
+def open_json(path):
+    with open(path) as json_file:
+        data = json.load(json_file)
+        return data
 
 #creator executor
 def prepare2test(name):
-
-    testcase_csv = "testcases/testcase_data/testcase_" + name + "_data.csv"
-    testcase_id_br = "testcases/testcase_data/indices/" + name + "/index_id_br_" + name + ".csv"
-    testcase_id_ra = "testcases/testcase_data/indices/" + name + "/index_id_ra_" + name + ".csv"
-    testcase_ar = "testcases/testcase_data/indices/" + name + "/index_ar_" + name + ".csv"
-    testcase_re = "testcases/testcase_data/indices/" + name + "/index_re_" + name + ".csv"
-    testcase_vi = "testcases/testcase_data/indices/" + name + "/index_vi_" + name + ".json"
+    data = open_csv("testcases/testcase_data/testcase_" + name + "_data.csv")
+    testcase_id_br = open_csv("testcases/testcase_data/indices/" + name + "/index_id_br_" + name + ".csv")
+    testcase_id_ra = open_csv("testcases/testcase_data/indices/" + name + "/index_id_ra_" + name + ".csv")
+    testcase_ar = open_csv("testcases/testcase_data/indices/" + name + "/index_ar_" + name + ".csv")
+    testcase_re = open_csv("testcases/testcase_data/indices/" + name + "/index_re_" + name + ".csv")
+    testcase_vi = open_json("testcases/testcase_data/indices/" + name + "/index_vi_" + name + ".json")
     testcase_ttl = "testcases/testcase_" + name + ".ttl"
 
-    with open(testcase_csv, 'r') as csvfile:
-        reader = csv.DictReader(csvfile, delimiter="\t")
-        data = [dict(x) for x in reader]
+
 
     creator = Creator(data, "https://w3id.org/oc/meta/", testcase_id_ra, testcase_id_br, testcase_re, testcase_ar, testcase_vi)
+    creator_setgraph = creator.creator()
     test_graph = Graph()
     hack_dates()
     test_graph = test_graph.parse(testcase_ttl, format="ttl")
     new_graph = Graph()
-    for g in creator.setgraph.graphs():
+    for g in creator_setgraph.graphs():
         new_graph += g
     return test_graph, new_graph
 

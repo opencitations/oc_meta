@@ -25,8 +25,7 @@
     ns2:title "Title2" ;
     ns3:hasIdentifier <https://w3id.org/oc/meta/id/0602> ;
     ns4:isDocumentContextFor <https://w3id.org/oc/meta/ar/0604>,
-        <https://w3id.org/oc/meta/ar/0605>,
-        <https://w3id.org/oc/meta/ar/0606> ;
+        <https://w3id.org/oc/meta/ar/0605> ;
     ns7:partOf <https://w3id.org/oc/meta/br/0603> .
 
 <https://w3id.org/oc/meta/ar/0601> a ns4:RoleInTime ;
@@ -56,7 +55,8 @@
 <https://w3id.org/oc/meta/br/0603> a <http://purl.org/spar/fabio/AcademicProceedings>,
         <http://purl.org/spar/fabio/Expression> ;
     ns2:title "Venue2" ;
-    ns3:hasIdentifier <https://w3id.org/oc/meta/id/0603> .
+    ns3:hasIdentifier <https://w3id.org/oc/meta/id/0603> ;
+    ns4:isDocumentContextFor <https://w3id.org/oc/meta/ar/0606> .
 
 <https://w3id.org/oc/meta/id/0601> a ns3:Identifier ;
     ns3:usesIdentifierScheme ns3:doi ;

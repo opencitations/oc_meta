@@ -2,15 +2,15 @@ import os
 from bs4 import BeautifulSoup
 from scripts.csvmanager import CSVManager
 from scripts.id_manager.doimanager import DOIManager
+from argparse import ArgumentParser
 
 
 class index_orcid_doi:
 
-    def __init__(self, summaries_path, csv_path):
+    def __init__(self, csv_path):
         self.doi_index = CSVManager("doi_index.csv")
         self.doimanager = DOIManager(valid_doi=self.doi_index)
         self.csvstorage = CSVManager(csv_path)
-        self.finder(summaries_path)
 
     def finder (self, summaries_path):
         for fold, dirs, files in os.walk(summaries_path):
@@ -39,6 +39,24 @@ class index_orcid_doi:
                                                 orcid = file.replace(".xml", "")
                                                 auto = name + " [" + orcid + "]"
                                                 self.csvstorage.add_value(doi, auto)
+
+
+if __name__ == "__main__":
+    arg_parser = ArgumentParser("index_orcid_doi.py", description="This script allows one to validate and retrieve citationd data "
+                                                      "associated to an OCI (Open Citation Identifier).")
+
+    arg_parser.add_argument("-c", "--csv", dest="csv_path", required=True,
+                            help="The output CSV file path.")
+    arg_parser.add_argument("-s", "--summaries", dest="summaries_path", required=True,
+                            help="The folder path containing orcid sumamries, subfolder will be considered too.")
+
+    args = arg_parser.parse_args()
+
+    iOd = index_orcid_doi(args.csv_path)
+
+    iOd.finder(args.summaries_path)
+
+
 
 
 #index_orcid_doi("C:\\Users\\Fabio\\Documents\\GitHub\\meta\\DEMO\\Peroni\\summaries", "orcid.csv")

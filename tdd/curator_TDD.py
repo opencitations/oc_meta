@@ -29,9 +29,7 @@ def add_data_ts (server):
 
 def datacollect():
     with open("new_test_data.csv", 'r', encoding='utf-8') as csvfile:
-        reader = csv.DictReader(csvfile, delimiter="\t")
-        data = [dict(x) for x in reader]
-
+        data = list(csv.DictReader(csvfile, delimiter=","))
     return data
 
 def prepare2test(data, name):
@@ -48,33 +46,28 @@ def prepare2test(data, name):
     testcase_re = "testcases/testcase_data/indices/" + name + "/index_re_" + name + ".csv"
     testcase_vi = "testcases/testcase_data/indices/" + name + "/index_vi_" + name + ".json"
 
-    curator = Curator(data, server, info_dir="curator_counter/")
+    curator_obj = Curator(data, server, info_dir="curator_counter/")
+    curator_obj.curator()
     with open(testcase_csv, 'r', encoding='utf-8') as csvfile:
-        reader = csv.DictReader(csvfile, delimiter="\t")
-        testcase_csv = [dict(x) for x in reader]
+        testcase_csv = list(csv.DictReader(csvfile, delimiter=","))
 
     with open(testcase_id_br, 'r', encoding='utf-8') as csvfile:
-        reader = csv.DictReader(csvfile, delimiter="\t")
-        testcase_id_br = [dict(x) for x in reader]
+        testcase_id_br = list(csv.DictReader(csvfile, delimiter=","))
 
     with open(testcase_id_ra, 'r', encoding='utf-8') as csvfile:
-        reader = csv.DictReader(csvfile, delimiter="\t")
-        testcase_id_ra = [dict(x) for x in reader]
+        testcase_id_ra = list(csv.DictReader(csvfile, delimiter=","))
 
     with open(testcase_ar, 'r', encoding='utf-8') as csvfile:
-        reader = csv.DictReader(csvfile, delimiter="\t")
-        testcase_ar = [dict(x) for x in reader]
+        testcase_ar = list(csv.DictReader(csvfile, delimiter=","))
 
     with open(testcase_re, 'r', encoding='utf-8') as csvfile:
-        reader = csv.DictReader(csvfile, delimiter="\t")
-        testcase_re = [dict(x) for x in reader]
+        testcase_re = list(csv.DictReader(csvfile, delimiter=","))
 
     with open(testcase_vi) as json_file:
         testcase_vi = json.load(json_file)
     
     testcase = [testcase_csv, testcase_id_br, testcase_id_ra, testcase_ar, testcase_re, testcase_vi]
-    data_curated = [curator.data, curator.index_id_br, curator.index_id_ra, curator.ar_index, curator.re_index, curator.VolIss]
-
+    data_curated = [curator_obj.data, curator_obj.index_id_br, curator_obj.index_id_ra, curator_obj.ar_index, curator_obj.re_index, curator_obj.VolIss]
     return data_curated, testcase
 
 
