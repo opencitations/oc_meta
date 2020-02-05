@@ -343,6 +343,7 @@ class testcase_15 (unittest.TestCase):
 class testcase_16(unittest.TestCase):
 
     def test1(self):
+        #Date cleaning 2019-02-29
         name = "16.1"
         add_data_ts("http://127.0.0.1:9999/blazegraph/sparql")
         #wrong date (2019/02/29)

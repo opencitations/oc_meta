@@ -3,7 +3,7 @@
   <component name="ChangeListManager">
     <list default="true" id="d2b23c46-2db9-4b25-a89e-e1906277cf0f" name="Default" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/run_process.py" beforeDir="false" afterPath="$PROJECT_DIR$/run_process.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tdd/curator_TDD.py" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/curator_TDD.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -47,7 +47,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Python.hhh">
+  <component name="RunManager" selected="Python.dd">
     <configuration name="creator_TDD" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="meta" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -69,7 +69,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="curator_TDD" type="PythonConfigurationType" factoryName="Python" temporary="true">
+    <configuration name="dd" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="meta" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -77,11 +77,11 @@
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
       <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tdd" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/tdd/curator_TDD.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/dd.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -155,18 +155,18 @@
     </configuration>
     <list>
       <item itemvalue="Python.warmup" />
-      <item itemvalue="Python.curator_TDD" />
       <item itemvalue="Python.creator_TDD" />
       <item itemvalue="Python.warmup (1)" />
       <item itemvalue="Python.hhh" />
+      <item itemvalue="Python.dd" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.dd" />
         <item itemvalue="Python.hhh" />
         <item itemvalue="Python.warmup" />
         <item itemvalue="Python.warmup (1)" />
         <item itemvalue="Python.creator_TDD" />
-        <item itemvalue="Python.curator_TDD" />
       </list>
     </recent_temporary>
   </component>
