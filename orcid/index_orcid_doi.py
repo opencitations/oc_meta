@@ -50,12 +50,10 @@ if __name__ == "__main__":
                             help="The output CSV file path.")
     arg_parser.add_argument("-s", "--summaries", dest="summaries_path", required=True,
                             help="The folder path containing orcid summaries, subfolder will be considered too.")
-    arg_parser.add_argument("-v", "--valid", dest="valid_doi", required=True,
-                            help="Filepath of CSv containing valid DOIs.")
 
     args = arg_parser.parse_args()
 
-    iOd = index_orcid_doi(args.csv_path, args.valid_doi)
+    iOd = index_orcid_doi(args.csv_path)
 
     iOd.finder(args.summaries_path)
 
