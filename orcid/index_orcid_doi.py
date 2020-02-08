@@ -7,13 +7,10 @@ from argparse import ArgumentParser
 
 class index_orcid_doi:
 
-    def __init__(self, csv_path, valid_doi):
+    def __init__(self, csv_path):
         if not os.path.exists(os.path.dirname(csv_path)):
             os.makedirs(os.path.dirname(csv_path))
-        if not os.path.exists(os.path.dirname(valid_doi)):
-            os.makedirs(os.path.dirname(valid_doi))
-        self.doi_index = CSVManager(valid_doi)
-        self.doimanager = DOIManager(valid_doi=self.doi_index)
+        self.doimanager = DOIManager(use_api_service=False)
         self.csvstorage = CSVManager(csv_path)
 
     def finder (self, summaries_path):
@@ -37,12 +34,11 @@ class index_orcid_doi:
                                 if type and rel:
                                     if type.get_text().lower() == "doi" and rel.get_text().lower() == "self":
                                         doi = el.find('common:external-id-value').get_text()
-                                        if self.doimanager.is_valid(doi):
-                                            doi = self.doimanager.normalise(doi)
-                                            if doi:
-                                                orcid = file.replace(".xml", "")
-                                                auto = name + " [" + orcid + "]"
-                                                self.csvstorage.add_value(doi, auto)
+                                        doi = self.doimanager.normalise(doi)
+                                        if doi:
+                                            orcid = file.replace(".xml", "")
+                                            auto = name + " [" + orcid + "]"
+                                            self.csvstorage.add_value(doi, auto)
 
 
 if __name__ == "__main__":
