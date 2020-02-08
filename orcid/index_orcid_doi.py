@@ -22,10 +22,13 @@ class index_orcid_doi:
                     g_name = xml_soup.find('personal-details:given-names')
                     f_name = xml_soup.find('personal-details:family-name')
                     if f_name:
+                        f_name = f_name.get_text()
                         if g_name:
                             g_name = g_name.get_text()
-                        f_name = f_name.get_text()
-                        name = f_name + ", " + g_name
+                            name = f_name + ", " + g_name
+                        else:
+                            name = f_name
+
                         ids = xml_soup.findAll('common:external-id')
                         if ids:
                             for el in ids:
