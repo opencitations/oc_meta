@@ -29,15 +29,17 @@ def process(crossref_csv_dir, csv_dir, index_dir, auxiliary_path, triplestore, s
 
             prov_dir = os.path.join(info_dir, "counter_prov/counter_")
 
-
             prov = ProvSet(creator, base_iri, context_path, default_dir, prov_dir,
                            ResourceFinder(base_dir=base_dir, base_iri=base_iri,
                                           tmp_dir=temp_dir_for_rdf_loading,
-                                          context_map= {},
+                                          context_map=
+                                          {context_path: context_file_path},
                                           dir_split=dir_split_number,
                                           n_file_item=items_per_file,
-                                          default_dir=default_dir), dir_split_number,
-                                          items_per_file, "", wanted_label=False)
+                                          default_dir=default_dir),
+                           dir_split_number, items_per_file, "", triplestore_url, wanted_label=False)
+
+
             prov.generate_provenance("https://w3id.org/oc/meta/prov/pa/1")
 
             res_storer = Storer(creator,

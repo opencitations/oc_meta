@@ -15,7 +15,8 @@
 # SOFTWARE.
 
 __author__ = 'essepuntato'
-from rdflib import Graph, Namespace, URIRef
+from rdflib import Graph, Namespace, URIRef, ConjunctiveGraph
+from rdflib.compare import to_isomorphic, graph_diff
 from rdflib.namespace import XSD, RDFS
 from meta.lib.reporter import Reporter
 import re
@@ -75,7 +76,7 @@ class GraphEntity(object):
     uses_identifier_scheme = DATACITE.usesIdentifierScheme
     title = DCTERMS.title
     caption = DEO.Caption # new
-    discourse_element = DOCO.DiscourseElement # new
+    discourse_element = DEO.DiscourseElement # new
     footnote = DOCO.Footnote # new
     paragraph = DOCO.Paragraph # new
     part = DOCO.Part
@@ -641,8 +642,12 @@ class GraphSet(object):
                     cur_short_name = get_short_name(cur_entity)
                     cur_entity_count = get_count(cur_entity)
                     cur_entity_prefix = get_prefix(cur_entity)
-                    related_to_label += " %s %s%s" % (self.labels[cur_short_name], cur_entity_prefix, cur_entity_count)
-                    related_to_short_label += " %s/%s%s" % (cur_short_name, cur_entity_prefix, cur_entity_count)
+                    if cur_short_name == 'ci':
+                        related_to_label += " %s %s" % (self.labels[cur_short_name], cur_entity_count)
+                        related_to_short_label += " %s/%s" % (cur_short_name, cur_entity_count)
+                    else:
+                        related_to_label += " %s %s%s" % (self.labels[cur_short_name], cur_entity_prefix, cur_entity_count)
+                        related_to_short_label += " %s/%s%s" % (cur_short_name, cur_entity_prefix, cur_entity_count)
             else:
                 count = self.supplier_prefix + str(GraphSet._add_number(info_file_path))
 
@@ -837,18 +842,25 @@ class ProvEntity(GraphEntity):
 
 class ProvSet(GraphSet):
     def __init__(self, prov_subj_graph_set, base_iri, context_path, default_dir, info_dir,
-                 resource_finder, dir_split, n_file_item, supplier_prefix,wanted_label=True):
+                 resource_finder, dir_split, n_file_item, supplier_prefix, triplestore_url,wanted_label=True):
         super(ProvSet, self).__init__(base_iri, context_path, info_dir, n_file_item, supplier_prefix,wanted_label=wanted_label)
         self.rf = resource_finder
         self.dir_split = dir_split
         self.default_dir = default_dir
+        if triplestore_url is None:
+            self.ts = None
+        else:
+            self.triplestore_url = triplestore_url
+            self.ts = ConjunctiveGraph('SPARQLUpdateStore')
+            self.ts.open((triplestore_url, triplestore_url))
+
         self.all_subjects = set()
         for cur_subj_g in prov_subj_graph_set.graphs():
             self.all_subjects.add(next(cur_subj_g.subjects(None, None)))
         self.resp = "SPACIN ProvSet"
         self.prov_g = prov_subj_graph_set
 
-        if wanted_label: ##new
+        if wanted_label:
             GraphSet.labels.update(
                  {
                     "pa": "provenance agent",
@@ -857,17 +869,10 @@ class ProvSet(GraphSet):
              )
 
     # Add resources related to provenance information
-    # def add_pa(self, resp_agent=None, res=None):
-    #     return self._add_prov("pa", ProvEntity.prov_agent, res, resp_agent)
 
     def add_se(self, resp_agent=None, prov_subject=None, res=None):
         return self._add_prov("se", ProvEntity.entity, res, resp_agent, prov_subject)
 
-    # def add_ca(self, resp_agent=None, prov_subject=None, res=None):
-    #     return self._add_prov("ca", ProvEntity.activity, res, resp_agent, prov_subject)
-    #
-    # def add_cr(self, resp_agent=None, prov_subject=None, res=None):
-    #     return self._add_prov("cr", ProvEntity.association, res, resp_agent, prov_subject)
 
     def generate_provenance(self, resp_agent, c_time=None, do_insert=True, remove_entity=False):
         time_string = '%Y-%m-%dT%H:%M:%S'
@@ -888,7 +893,6 @@ class ProvSet(GraphSet):
 
             # Load all provenance data of snapshots for that subject
             self.rf.add_prov_triples_in_filesystem(str(prov_subject), "se")
-
             last_snapshot = None
             last_snapshot_res = self.rf.retrieve_last_snapshot(prov_subject)
             if last_snapshot_res is not None:
@@ -901,94 +905,26 @@ class ProvSet(GraphSet):
             if cur_subj.source is not None:
                 cur_snapshot.has_primary_source(cur_subj.source)
             cur_snapshot.has_resp_agent(resp_agent)
-            ## Associations
-            #cur_curator_ass = None
-            #cur_source_ass = None
-
-            # if cur_subj.resp_agent is not None:
-            #     cur_snapshot.has_resp_agent(cur_subj.resp_agent)
-            # else:
-
-            #     # cur_curator_ass = self.add_cr(self.cur_name, cur_subj)
-            #     # cur_curator_ass.has_role_type(ProvEntity.curator)
-            #     cur_curator_agent_res = self.rf.retrieve_provenance_agent_from_name(cur_subj.resp_agent)
-            #
-            #
-            #
-            #     if cur_curator_agent_res is None:
-            #         cur_curator_agent = self.add_pa(self.cur_name)
-            #         #cur_curator_agent.create_name(cur_subj.resp_agent)
-            #         cur_curator_agent.responsible_agent_of(cur_snapshot)
-            #         self.rf.update_graph_set(self)
-            #     else:
-            #         cur_curator_agent = self.add_pa(self.cur_name, cur_curator_agent_res)
-            #         cur_curator_agent.responsible_agent_of(cur_snapshot)
-            #         self.rf.update_graph_set(self)
-                # cur_curator_agent.has_role_in(cur_curator_ass)
-
-            #if cur_subj.source_agent is not None:
-            #     cur_source_ass = self.add_cr(self.cur_name, cur_subj)
-            #     cur_source_ass.has_role_type(ProvEntity.source_provider)
-            #     cur_source_agent_res = self.rf.retrieve_provenance_agent_from_name(cur_subj.source_agent)
-            #     if cur_source_agent_res is None:
-            #         cur_source_agent = self.add_pa(self.cur_name)
-            #         cur_source_agent.create_name(cur_subj.source_agent)
-            #         self.rf.update_graph_set(self)
-            #     else:
-            #         cur_source_agent = self.add_pa(self.cur_name, cur_source_agent_res)
-            #     cur_source_agent.has_role_in(cur_source_ass)
-
-            ## Activity
-            # cur_activity = self.add_ca(self.cur_name, cur_subj)
-            # cur_activity.generates(cur_snapshot)
-            #
-            # if cur_curator_ass is not None:
-            #     cur_activity.involves_agent_with_role(cur_curator_ass)
-            # if cur_source_ass is not None:
-            #     cur_activity.involves_agent_with_role(cur_source_ass)
 
             # Old snapshot
             if last_snapshot is None and do_insert:  # Create a new entity
-                # cur_activity.create_creation_activity()
-                # TODO se description
                 cur_snapshot.create_description("The entity '%s' has been created." % str(cur_subj.res))
-                # cur_activity.create_description("The entity '%s' has been created." % str(cur_subj.res))
             else:
-                update_query_data = None
-                update_description = None
-                if do_insert:
-                    update_query_data = self._create_insert_query(cur_subj.g)
-                    update_description = "The entity '%s' has been extended with" % str(cur_subj.res)
-                else:
-                    update_query_data = self._create_delete_query(cur_subj.g)
-                    if remove_entity:
-                        update_description = "The entity '%s' has been removed." % str(cur_subj.res)
+                if self._are_added_triples(cur_subj): # if diff != 0:
+                    update_query_data = None
+                    update_description = None
+                    if do_insert:
+                        update_query_data = self._are_added_triples(cur_subj)
+                        update_description = "The entity '%s' has been extended with new statements." % str(cur_subj.res)
                     else:
-                        update_description = "Some data of the entity '%s' have been removed. " \
-                                             "The removal has concerned" % str(cur_subj.res)
-
-                if not remove_entity:
-                    if update_query_data[1]:
-                        update_description += " citation data"
-                        if update_query_data[3]:
-                            update_description += ","
-                        elif update_query_data[2]:
-                            update_description += " and"
-                    if update_query_data[2]:
-                        update_description += " identifiers"
-                        if update_query_data[3]:
-                            update_description += " and"
-                    if update_query_data[3]:
-                        if update_query_data[1] or update_query_data[2]:
-                            update_description += " other"
+                        update_query_data = self._create_delete_query(cur_subj.g)
+                        if remove_entity:
+                            update_description = "The entity '%s' has been removed." % str(cur_subj.res)
                         else:
-                            update_description += " one or more"
-                        update_description += " statements"
-                    update_description += "."
+                            update_description = "Some data of the entity '%s' have been removed. " % str(cur_subj.res)
 
-                #cur_activity.create_update_activity()
-                cur_snapshot.create_description(update_description)
-                cur_snapshot.create_update_query(update_query_data[0])
+                    cur_snapshot.create_description(update_description)
+                    cur_snapshot.create_update_query(update_query_data)
 
                 # Note: due to previous processing errors, it would be possible that no snapshot has been created
                 # in the past for an entity, even if the entity actually exists. In this case, since we have to modify
@@ -1017,6 +953,29 @@ class ProvSet(GraphSet):
 
         return u"DELETE DATA { " + query_string + " }", are_citations, are_ids, are_others
 
+
+    def _are_added_triples(self, cur_subj):
+        subj = cur_subj
+        cur_subj_g = cur_subj.g
+        prev_subj_g = Graph()
+        query = "CONSTRUCT {<%s> ?p ?o} WHERE {<%s> ?p ?o}" % (subj , subj)
+        print(query, '\n')
+        result = self.ts.query(query)
+
+        if result:
+            for s,p,o in result:
+                prev_subj_g.add((s,p,o))
+
+            iso1 = to_isomorphic(prev_subj_g)
+            iso2 = to_isomorphic(cur_subj_g)
+            if iso1 == iso2: # the graphs are the same
+                return None
+            else:
+                in_both, in_first, in_second = graph_diff(iso1, iso2)
+                query_string = u"INSERT DATA { GRAPH <%s> { " % cur_subj_g.identifier
+                query_string += in_second.serialize(format="nt11", encoding="utf-8").decode("utf-8")
+                return query_string.replace('\n\n','') + "} }"
+
     @staticmethod
     def __create_process_query(cur_subj_g):
         query_string = u"GRAPH <%s> { " % cur_subj_g.identifier
@@ -1032,7 +991,7 @@ class ProvSet(GraphSet):
                 are_ids = True
             else:
                 are_others = True
-
+        # HERE query ts and do the diff
         query_string += cur_subj_g.serialize(format="nt11", encoding="utf-8").decode("utf-8")
 
         return query_string + "}", are_citations, are_ids, are_others
