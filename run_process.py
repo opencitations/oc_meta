@@ -9,7 +9,7 @@ from argparse import ArgumentParser
 import os
 
 
-def process(crossref_csv_dir, csv_dir, index_dir, auxiliary_path, triplestore, source=None):
+def process(crossref_csv_dir, csv_dir, index_dir, auxiliary_path, source=None):
     for filename in os.listdir(crossref_csv_dir):
         pathoo(auxiliary_path)
         aux_file = open(auxiliary_path, "r+")
@@ -17,7 +17,7 @@ def process(crossref_csv_dir, csv_dir, index_dir, auxiliary_path, triplestore, s
         if filename.endswith(".csv") and filename not in completed:
             filepath = os.path.join(crossref_csv_dir, filename)
             data = unpack(filepath)
-            curator_obj = Curator(data, triplestore, info_dir=info_dir)
+            curator_obj = Curator(data, triplestore_url, info_dir=info_dir)
             name = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")
             pathoo(csv_dir)
             pathoo(index_dir)
@@ -33,7 +33,7 @@ def process(crossref_csv_dir, csv_dir, index_dir, auxiliary_path, triplestore, s
                            ResourceFinder(base_dir=base_dir, base_iri=base_iri,
                                           tmp_dir=temp_dir_for_rdf_loading,
                                           context_map=
-                                          {context_path: context_file_path},
+                                          {},
                                           dir_split=dir_split_number,
                                           n_file_item=items_per_file,
                                           default_dir=default_dir),
@@ -94,12 +94,9 @@ if __name__ == "__main__":
     arg_parser.add_argument("-a", "--aux", dest="auxiliary_path", required=True,
                             help="Txt file containing processed CSV list filepath")
 
-    arg_parser.add_argument("-t", "--tri", dest="triplestore", required=True,
-                            help="Triplestore URL")
-
     arg_parser.add_argument("-s", "--src", dest="source", required=False,
                             help="Data source, not mandatory")
 
     args = arg_parser.parse_args()
 
-    process(args.crossref_csv_dir, args.csv_dir, args.index_dir, args.auxiliary_path, args.triplestore, source=args.source)
+    process(args.crossref_csv_dir, args.csv_dir, args.index_dir, args.auxiliary_path, source=args.source)
