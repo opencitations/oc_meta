@@ -7,13 +7,10 @@ from argparse import ArgumentParser
 
 class index_orcid_doi:
 
-    def __init__(self, csv_path, valid_doi):
+    def __init__(self, csv_path):
         if not os.path.exists(os.path.dirname(csv_path)):
             os.makedirs(os.path.dirname(csv_path))
-        if not os.path.exists(os.path.dirname(valid_doi)):
-            os.makedirs(os.path.dirname(valid_doi))
-        self.doi_index = CSVManager(valid_doi)
-        self.doimanager = DOIManager(valid_doi=self.doi_index)
+        self.doimanager = DOIManager(use_api_service=False)
         self.csvstorage = CSVManager(csv_path)
 
     def finder (self, summaries_path):
@@ -25,10 +22,13 @@ class index_orcid_doi:
                     g_name = xml_soup.find('personal-details:given-names')
                     f_name = xml_soup.find('personal-details:family-name')
                     if f_name:
+                        f_name = f_name.get_text()
                         if g_name:
                             g_name = g_name.get_text()
-                        f_name = f_name.get_text()
-                        name = f_name + ", " + g_name
+                            name = f_name + ", " + g_name
+                        else:
+                            name = f_name
+
                         ids = xml_soup.findAll('common:external-id')
                         if ids:
                             for el in ids:
@@ -37,12 +37,11 @@ class index_orcid_doi:
                                 if type and rel:
                                     if type.get_text().lower() == "doi" and rel.get_text().lower() == "self":
                                         doi = el.find('common:external-id-value').get_text()
-                                        if self.doimanager.is_valid(doi):
-                                            doi = self.doimanager.normalise(doi)
-                                            if doi:
-                                                orcid = file.replace(".xml", "")
-                                                auto = name + " [" + orcid + "]"
-                                                self.csvstorage.add_value(doi, auto)
+                                        doi = self.doimanager.normalise(doi)
+                                        if doi:
+                                            orcid = file.replace(".xml", "")
+                                            auto = name + " [" + orcid + "]"
+                                            self.csvstorage.add_value(doi, auto)
 
 
 if __name__ == "__main__":
@@ -54,12 +53,10 @@ if __name__ == "__main__":
                             help="The output CSV file path.")
     arg_parser.add_argument("-s", "--summaries", dest="summaries_path", required=True,
                             help="The folder path containing orcid summaries, subfolder will be considered too.")
-    arg_parser.add_argument("-v", "--valid", dest="valid_doi", required=True,
-                            help="Filepath of CSv containing valid DOIs.")
 
     args = arg_parser.parse_args()
 
-    iOd = index_orcid_doi(args.csv_path, args.valid_doi)
+    iOd = index_orcid_doi(args.csv_path)
 
     iOd.finder(args.summaries_path)
 
