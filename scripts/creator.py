@@ -40,17 +40,17 @@ class Creator():
             self.vol_graph = None
             self.issue_graph = None
 
-            self.id_job(ids)
-            self.title_job(title)
-            self.author_job(authors)
-            self.pub_date_job(pub_date)
-            self.venue_job(venue, vol, issue)
-            self.page_job(page)
-            self.type_job(self.type)
+            self.id_action(ids)
+            self.title_action(title)
+            self.author_action(authors)
+            self.pub_date_action(pub_date)
+            self.vvi_action(venue, vol, issue)
+            self.page_action(page)
+            self.type_action(self.type)
             if publisher:
-                self.publisher_job(publisher)
+                self.publisher_action(publisher)
             if editor:
-                self.editor_job(editor)
+                self.editor_action(editor)
 
         return self.setgraph
 
@@ -143,7 +143,7 @@ class Creator():
         return index
 
 
-    def id_job (self, ids):
+    def id_action (self, ids):
         idslist = re.split(r'\s+', ids)
 
         #publication id
@@ -157,12 +157,12 @@ class Creator():
         for id in idslist:
             self.id_creator(self.br_graph, id, ra=False)
 
-    def title_job (self, title):
+    def title_action (self, title):
         if title:
             self.br_graph.create_title(title)
 
 
-    def author_job (self, authors):
+    def author_action (self, authors):
         if authors:
             authorslist = re.split(r'\s*;\s*(?=[^]]*(?:\[|$))', authors)
 
@@ -203,7 +203,7 @@ class Creator():
                 if len(aut_role_list) > 1:
                     pub_aut_role.follows(aut_role_list[aut_role_list.index(pub_aut_role)-1])
 
-    def pub_date_job (self, pub_date):
+    def pub_date_action (self, pub_date):
         if pub_date:
             datelist = list()
             datesplit = pub_date.split("-")
@@ -214,7 +214,7 @@ class Creator():
                 datelist.append(int(pub_date))
             self.br_graph.create_pub_date(datelist)
 
-    def venue_job (self, venue, vol, issue):
+    def vvi_action (self, venue, vol, issue):
 
         if venue:
             venue_id = re.search(r'\[\s*(.*?)\s*\]', venue).group(1)
@@ -285,7 +285,7 @@ class Creator():
             self.venue_graph.has_part(self.issue_graph)
 
 
-    def page_job (self, page):
+    def page_action (self, page):
         if page:
             res_em = self.re_index[self.row_meta]
             re_id = "re/" + str(res_em)
@@ -296,7 +296,7 @@ class Creator():
             self.br_graph.has_format(form)
 
 
-    def type_job (self, type):
+    def type_action (self, type):
         if type == "archival document":
             self.br_graph.create_archival_document()
         elif type == "book":
@@ -341,7 +341,7 @@ class Creator():
 
 
 
-    def publisher_job (self, publisher):
+    def publisher_action (self, publisher):
 
         publ_id = re.search(r'\[\s*(.*?)\s*\]', publisher).group(1)
         publ_id_list = publ_id.split(" ")
@@ -370,7 +370,7 @@ class Creator():
 
 
 
-    def editor_job (self, editor):
+    def editor_action (self, editor):
         editorslist = re.split(r'\s*;\s*(?=[^]]*(?:\[|$))', editor)
 
         edit_role_list = list()

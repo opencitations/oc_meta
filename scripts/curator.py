@@ -74,7 +74,7 @@ class Curator:
         self.radict.update(self.conflict_ra)
         self.meta_maker()
         self.log = self.log_update()
-        self.dry()
+        self.enrich()
 
         if path_index:
             path_index = os.path.join(path_index, filename)
@@ -569,7 +569,7 @@ class Curator:
 
 
 
-    def dry(self):
+    def enrich(self):
         for row in self.data:
             if "wannabe" in row["id"]:
                 for i in self.brmeta:

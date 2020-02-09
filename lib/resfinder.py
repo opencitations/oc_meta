@@ -58,8 +58,8 @@ class ResourceFinder(object):
             if os.path.isdir(cur_path):
                 for cur_dir, cur_subdir, cur_files in os.walk(cur_path):
                     for cur_file in cur_files:
-                        if cur_file.endswith(".json") and \
-                           (prov_entity_type is None or cur_file.startswith(prov_entity_type)):
+                        if (cur_file.endswith(".json") or cur_file.endswith(".ttl")) and \
+                           (prov_entity_type is None or cur_file.startswith(prov_entity_type)): #added ttl
                             file_list += [cur_dir + os.sep + cur_file]
 
             for file_path in file_list:

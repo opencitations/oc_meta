@@ -6,7 +6,7 @@ from meta.lib.conf import base_iri, context_path, info_dir, triplestore_url, \
     base_dir, temp_dir_for_rdf_loading, dir_split_number, items_per_file, default_dir
 from datetime import datetime
 from argparse import ArgumentParser
-
+import os
 
 
 def process(crossref_csv_dir, csv_dir, index_dir, auxiliary_path, triplestore, source=None):
@@ -26,7 +26,11 @@ def process(crossref_csv_dir, csv_dir, index_dir, auxiliary_path, triplestore, s
             creator_obj = Creator(curator_obj.data, base_iri, curator_obj.index_id_ra, curator_obj.index_id_br,
                               curator_obj.re_index, curator_obj.ar_index, curator_obj.VolIss)
             creator = creator_obj.creator(source=source)
-            prov = ProvSet(creator, base_iri, context_path, default_dir, "counter_prov/counter_",
+
+            prov_dir = os.path.join(info_dir, "counter_prov/counter_")
+
+
+            prov = ProvSet(creator, base_iri, context_path, default_dir, prov_dir,
                            ResourceFinder(base_dir=base_dir, base_iri=base_iri,
                                           tmp_dir=temp_dir_for_rdf_loading,
                                           context_map= {},

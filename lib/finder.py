@@ -121,7 +121,7 @@ class ResourceFinder:
 
         result = self.__query(query)
         if result["results"]["bindings"]:
-            return str(result["res"]["value"]).replace("https://w3id.org/oc/meta/ra/", "")
+            return str(result["res"]["value"]).replace("https://w3id.org/oc/meta/id/", "")
         else:
             return None
 

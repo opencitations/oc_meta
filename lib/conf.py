@@ -17,13 +17,13 @@
 __author__ = 'essepuntato'
 
 # Official configuration
-base_dir = "srv\\data\\meta\\"
+base_dir = "meta\\demo\\peroni\\corpus\\"
 base_iri = "https://w3id.org/oc/meta/"
 triplestore_url = "http://localhost:9999/blazegraph/sparql"
 triplestore_url_real = ""
 context_path = "https://w3id.org/oc/corpus/context.json"
 context_file_path = "/srv/data/corpus/context.json"
-info_dir = "id-counter/"
+info_dir = "meta\\demo\\peroni\\corpus\\counter\\id-counter\\"
 temp_dir_for_rdf_loading = "/tmp/"
 orcid_conf_path = "/srv/dev/script/spacin/orcid_conf.json"
 reference_dir = "/srv/share/ref/todo/"
@@ -32,7 +32,7 @@ reference_dir_done = "/srv/share/ref/done/"
 dataset_home = "http://opencitations.net/"
 dir_split_number = 10000  # This must be multiple of the following one
 items_per_file = 1000
-default_dir = "_"
+default_dir = ""
 supplier_dir = {
     "101": "01110",
     "102": "01120",

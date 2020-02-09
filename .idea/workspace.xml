@@ -3,7 +3,26 @@
   <component name="ChangeListManager">
     <list default="true" id="d2b23c46-2db9-4b25-a89e-e1906277cf0f" name="Default" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tdd/curator_TDD.py" beforeDir="false" afterPath="$PROJECT_DIR$/tdd/curator_TDD.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/demo/Peroni/CSVe/2020-02-03T19_20_17.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/demo/Peroni/CSVe/2020-02-03T19_20_27.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/demo/Peroni/CSVe/indices/2020-02-03T19_20_17/index_ar.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/demo/Peroni/CSVe/indices/2020-02-03T19_20_17/index_id_br.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/demo/Peroni/CSVe/indices/2020-02-03T19_20_17/index_id_ra.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/demo/Peroni/CSVe/indices/2020-02-03T19_20_17/index_re.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/demo/Peroni/CSVe/indices/2020-02-03T19_20_17/index_vi.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/demo/Peroni/CSVe/indices/2020-02-03T19_20_27/index_ar.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/demo/Peroni/CSVe/indices/2020-02-03T19_20_27/index_id_br.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/demo/Peroni/CSVe/indices/2020-02-03T19_20_27/index_id_ra.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/demo/Peroni/CSVe/indices/2020-02-03T19_20_27/index_re.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/demo/Peroni/CSVe/indices/2020-02-03T19_20_27/index_vi.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/demo/Peroni/CSVe/indices/2020-02-03T19_20_27log.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/demo/Peroni/example.txt" beforeDir="false" afterPath="$PROJECT_DIR$/demo/Peroni/example.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/conf.py" beforeDir="false" afterPath="$PROJECT_DIR$/lib/conf.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/finder.py" beforeDir="false" afterPath="$PROJECT_DIR$/lib/finder.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/resfinder.py" beforeDir="false" afterPath="$PROJECT_DIR$/lib/resfinder.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/run_process.py" beforeDir="false" afterPath="$PROJECT_DIR$/run_process.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/creator.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/creator.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/curator.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/curator.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -47,8 +66,8 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Python.dd">
-    <configuration name="creator_TDD" type="PythonConfigurationType" factoryName="Python" temporary="true">
+  <component name="RunManager" selected="Python.curator_TDD">
+    <configuration name="curator_TDD" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="meta" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -60,7 +79,7 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/tdd/creator_TDD.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/tdd/curator_TDD.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -155,18 +174,18 @@
     </configuration>
     <list>
       <item itemvalue="Python.warmup" />
-      <item itemvalue="Python.creator_TDD" />
       <item itemvalue="Python.warmup (1)" />
       <item itemvalue="Python.hhh" />
       <item itemvalue="Python.dd" />
+      <item itemvalue="Python.curator_TDD" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.curator_TDD" />
         <item itemvalue="Python.dd" />
         <item itemvalue="Python.hhh" />
         <item itemvalue="Python.warmup" />
         <item itemvalue="Python.warmup (1)" />
-        <item itemvalue="Python.creator_TDD" />
       </list>
     </recent_temporary>
   </component>
