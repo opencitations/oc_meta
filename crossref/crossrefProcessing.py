@@ -73,7 +73,7 @@ class crossrefProcessing:
                                 text_title = x["title"]
 
                             soup = BeautifulSoup(text_title, "html.parser")
-                            row["title"] = soup.get_text()
+                            row["title"] = soup.get_text().replace("\n", "")
 
                     #row["author"]
                     if "author" in x:
@@ -100,13 +100,13 @@ class crossrefProcessing:
                                     else:
                                         orcid = None
                                 elif dict_orcid:
-                                    for x in dict_orcid:
-                                        orc_n = dict_orcid[x].split(", ")
+                                    for ori in dict_orcid:
+                                        orc_n = dict_orcid[ori].split(", ")
                                         orc_f = orc_n[0]
                                         orc_g = orc_n[1]
                                         if (f_name.lower() in orc_f.lower() or orc_f.lower() in f_name.lower()):
                                             #and (g_name.lower() in orc_g.lower() or orc_g.lower() in g_name.lower()):
-                                            orcid = x
+                                            orcid = ori
                                 if orcid:
                                     aut = aut + " [" + "orcid:" + str(orcid) + "]"
                                 autlist.append(aut)
@@ -120,9 +120,9 @@ class crossrefProcessing:
                     #row["venue"]
                     if "container-title" in x:
                         if isinstance(x["container-title"], list):
-                            ventit = str(x["container-title"][0])
+                            ventit = str(x["container-title"][0]).replace("\n", "")
                         else:
-                            ventit = str(x["container-title"])
+                            ventit = str(x["container-title"]).replace("\n", "")
                         ven_soup = BeautifulSoup(ventit, "html.parser")
                         ventit = html.unescape(ven_soup.get_text())
                         venidlist = list()

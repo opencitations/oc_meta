@@ -17,13 +17,13 @@
 __author__ = 'essepuntato'
 
 # Official configuration
-base_dir = "meta\\demo\\peroni\\corpus\\"
+base_dir = "meta\\demo\\dumontier\\corpus\\"
 base_iri = "https://w3id.org/oc/meta/"
 triplestore_url = "http://localhost:9999/blazegraph/sparql"
 triplestore_url_real = ""
 context_path = "https://w3id.org/oc/corpus/context.json"
 context_file_path = "/srv/data/corpus/context.json"
-info_dir = "meta\\demo\\peroni\\corpus\\counter\\id-counter\\"
+info_dir = "meta\\demo\\dumontier\\corpus\\counter\\id-counter\\"
 temp_dir_for_rdf_loading = "/tmp/"
 orcid_conf_path = "/srv/dev/script/spacin/orcid_conf.json"
 reference_dir = "/srv/share/ref/todo/"
