@@ -18,7 +18,7 @@ def reset():
     br.close()
 
 def timer():
-    time_tot = 0
+    time_tot = []
     x = 0
     while x < 10:
         x+=1
@@ -29,12 +29,12 @@ process(r"C:\\Users\\Fabio\\Documents\\GitHub\\meta\\DEMO\\Dumontier\\CSV ", r"C
         """
         #elapsed_time = timeit.timeit(code_to_test, number=1)
         elapsed_time = t.timeit(number=1)
-        time_tot += elapsed_time
-        print(elapsed_time)
+        time_tot.append(elapsed_time)
 
 
 
-    print("total = " + str(time_tot/10))
+    print(time_tot)
+    print(sum(time_tot)/10)
 
 
 if __name__ == "__main__":

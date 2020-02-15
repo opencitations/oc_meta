@@ -2,23 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="d2b23c46-2db9-4b25-a89e-e1906277cf0f" name="Default" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/demo/Dumontier/CSVe/2020-02-12T23_08_41.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/demo/Dumontier/CSVe/indices/2020-02-12T23_08_41/index_ar.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/demo/Dumontier/CSVe/indices/2020-02-12T23_08_41/index_id_br.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/demo/Dumontier/CSVe/indices/2020-02-12T23_08_41/index_id_ra.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/demo/Dumontier/CSVe/indices/2020-02-12T23_08_41/index_re.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/demo/Dumontier/CSVe/indices/2020-02-12T23_08_41/index_vi.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/demo/Dumontier/corpus/ar/2/10000/1000.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/demo/Dumontier/corpus/ar/2/10000/1000.ttl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/demo/Dumontier/corpus/ar/2/10000/1000/prov/se.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/demo/Dumontier/corpus/ar/2/10000/1000/prov/se.ttl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/demo/Dumontier/corpus/br/2/10000/1000.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/demo/Dumontier/corpus/br/2/10000/1000.ttl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/demo/Dumontier/corpus/br/2/10000/1000/prov/se.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/demo/Dumontier/corpus/br/2/10000/1000/prov/se.ttl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/demo/Dumontier/corpus/id/2/10000/1000.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/demo/Dumontier/corpus/id/2/10000/1000.ttl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/demo/Dumontier/corpus/id/2/10000/1000/prov/se.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/demo/Dumontier/corpus/id/2/10000/1000/prov/se.ttl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/demo/Dumontier/corpus/ra/2/10000/1000.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/demo/Dumontier/corpus/ra/2/10000/1000.ttl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/demo/Dumontier/corpus/ra/2/10000/1000/prov/se.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/demo/Dumontier/corpus/ra/2/10000/1000/prov/se.ttl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/demo/Dumontier/corpus/re/2/10000/1000.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/demo/Dumontier/corpus/re/2/10000/1000.ttl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/demo/Dumontier/corpus/re/2/10000/1000/prov/se.ttl" beforeDir="false" afterPath="$PROJECT_DIR$/demo/Dumontier/corpus/re/2/10000/1000/prov/se.ttl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/timer.py" beforeDir="false" afterPath="$PROJECT_DIR$/timer.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
