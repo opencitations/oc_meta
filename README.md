@@ -17,15 +17,16 @@ Where:
 
 So far, preprocessing functions dedicated to the management of data coming from [Crossref](https://www.crossref.org/) have also been implemented. As preprocessing these functions must be performed before running "process.py". In particular this pre-processing is dedicated to the bibliographical metadata of the publications involved in the citations stored in [COCI](http://opencitations.net/index/coci), the OpenCitations Index of Crossref open DOI-to-DOI citations.
 
-The preliminary step, ["index\_orcid\_doi.py"](https://github.com/opencitations/meta/blob/master/orcid/index_orcid_doi.py), inside ["orcid"](https://github.com/opencitations/meta/blob/master/orcid) package, generates an index between the author's ORCID and the DOI of the publication, in CSV format starting from the dump of [ORCID](https://orcid.org/) summaries:
+The preliminary step, ["index\_orcid\_doi.py"](https://github.com/opencitations/meta/blob/master/orcid/index_orcid_doi.py), inside ["orcid"](https://github.com/opencitations/meta/blob/master/orcid) package, generates an index between the author's ORCID and publication's in CSV format using Orcid Summaries Dump (e.g. [ORCID_2019_summaries](https://orcid.figshare.com/articles/ORCID_Public_Data_File_2019/9988322)):
 ```console
     python -m meta.orcid.index_orcid_doi -c <PATH> -s <PATH>
 ```
 Where:
 - -c output CSV file path, that is, the ORCID-DOI index.
-- -s orcid summaries dump path, subfolder will be considered too
+- -s orcid summaries dump path, subfolder will be considered too.
 
-Then, real pre-processing is launched through the ["run_preprocess.py"](https://github.com/opencitations/meta/blob/master/run_preprocess.py) file via the prompt command:
+Pre-prochessing function generates raw CSV files using JSON files from Crosseref data dump (e.g. [Crossref Works Dump - August 2019](https://figshare.com/articles/Crossref_Works_Dump_-_August_2019/9751865)), enriching them with ORCID IDs from ORCID-DOI Index generated in previous step.
+This function is launched through the ["run_preprocess.py"](https://github.com/opencitations/meta/blob/master/run_preprocess.py) file via the prompt command:
 ```console
     python -m meta.run_preprocess -c <PATH> -o <PATH> -v <PATH> -w <PATH>
 ```
