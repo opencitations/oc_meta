@@ -213,7 +213,6 @@ class testcase_13 (unittest.TestCase):
 
     def test1(self):
         #1--- meta specified br in a row, wannabe with a new id in a row, meta specified with an id related to wannabe in a row
-        server = 'http://127.0.0.1:9999/blazegraph/sparql'
         name = "13.1"
         data = datacollect()
         partial_data = data[53:56]
@@ -263,7 +262,7 @@ class testcase_14 (unittest.TestCase):
         partial_data = data[60:61]
         data_curated, testcase = prepare2test(partial_data, name)
         self.assertEqual(data_curated, testcase)
-    
+
     def test4(self):
         #meta specified ra in a row, wannabe ra with a new id in a row, meta specified with an id related to wannabe in a ra
         name = "14.4"

@@ -76,6 +76,9 @@ class Curator:
         self.log = self.log_update()
         self.enrich()
 
+        #remove duplicates
+        self.data = list({v['id']:v for v in self.data}.values())
+
         if path_index:
             path_index = os.path.join(path_index, filename)
 
