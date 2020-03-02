@@ -1,6 +1,6 @@
 # OpenCitations Meta Software
 
-OpenCitations Meta will contain bibliographic metadata associated with the documents involved in the citations stored in the OpenCitations infrastructure. The OpenCitations Meta Software performs two main actions, a data curation of the CSV files that are provided and the generation of new RDF files compliant with the OpenCitations Data Model.
+OpenCitations Meta will contain bibliographic metadata associated with the documents involved in the citations stored in the OpenCitations infrastructure. The OpenCitations Meta Software performs two main actions, a data curation of the CSV files that are provided and the generation of new RDF files compliant with the OpenCitations Data Model.
 
 An example of a raw CSV input file can be found in ["example.csv"](https://github.com/opencitations/meta/blob/master/example.csv).
 
