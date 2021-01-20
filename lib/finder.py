@@ -18,10 +18,10 @@ class ResourceFinder:
     def retrieve_br_from_id(self, value, schema):
         schema = GraphEntity.DATACITE + schema
         query = """
-                SELECT DISTINCT ?res (group_concat(DISTINCT  ?title;separator=' ;and; ') as ?title)
-					 (group_concat(DISTINCT  ?id;separator=' ;and; ') as ?id)
-					 (group_concat(?schema;separator=' ;and; ') as ?schema)
-					 (group_concat(DISTINCT  ?value;separator=' ;and; ') as ?value)
+                SELECT DISTINCT ?res (group_concat(DISTINCT  ?title;separator=' ;and; ') as ?title_)
+					 (group_concat(DISTINCT  ?id;separator=' ;and; ') as ?id_)
+					 (group_concat(?schema;separator=' ;and; ') as ?schema_)
+					 (group_concat(DISTINCT  ?value;separator=' ;and; ') as ?value_)
 
 				WHERE {
                     ?res a <%s>.
@@ -44,10 +44,10 @@ class ResourceFinder:
             result_list = list()
             for result in results["results"]["bindings"]:
                 res = str(result["res"]["value"]).replace("https://w3id.org/oc/meta/br/", "")
-                title = str(result["title"]["value"])
-                meta_id_list = str(result["id"]["value"]).replace("https://w3id.org/oc/meta/id/", "").split(" ;and; ")
-                id_schema_list = str(result["schema"]["value"]).replace(GraphEntity.DATACITE, "").split(" ;and; ")
-                id_value_list = str(result["value"]["value"]).split(" ;and; ")
+                title = str(result["title_"]["value"])
+                meta_id_list = str(result["id_"]["value"]).replace("https://w3id.org/oc/meta/id/", "").split(" ;and; ")
+                id_schema_list = str(result["schema_"]["value"]).replace(GraphEntity.DATACITE, "").split(" ;and; ")
+                id_value_list = str(result["value_"]["value"]).split(" ;and; ")
 
                 couple_list = list(zip(id_schema_list,id_value_list))
                 id_list = list()
@@ -63,10 +63,10 @@ class ResourceFinder:
     def retrieve_br_from_meta (self, meta_id):
         uri = "https://w3id.org/oc/meta/br/" + str(meta_id)
         query = """
-                SELECT DISTINCT ?res (group_concat(DISTINCT  ?title;separator=' ;and; ') as ?title)
-                     (group_concat(DISTINCT  ?id;separator=' ;and; ') as ?id)
-                     (group_concat(?schema;separator=' ;and; ') as ?schema)
-                     (group_concat(DISTINCT  ?value;separator=' ;and; ') as ?value)
+                SELECT DISTINCT ?res (group_concat(DISTINCT  ?title;separator=' ;and; ') as ?title_)
+                     (group_concat(DISTINCT  ?id;separator=' ;and; ') as ?id_)
+                     (group_concat(?schema;separator=' ;and; ') as ?schema_)
+                     (group_concat(DISTINCT  ?value;separator=' ;and; ') as ?value_)
 
                 WHERE {
                     ?res a <%s>.
@@ -82,10 +82,10 @@ class ResourceFinder:
         result = self.__query(query)
         if result["results"]["bindings"]:
             result = result["results"]["bindings"][0]
-            title = str(result["title"]["value"])
-            meta_id_list = str(result["id"]["value"]).replace("https://w3id.org/oc/meta/id/", "").split(" ;and; ")
-            id_schema_list = str(result["schema"]["value"]).replace(GraphEntity.DATACITE, "").split(" ;and; ")
-            id_value_list = str(result["value"]["value"]).split(" ;and; ")
+            title = str(result["title_"]["value"])
+            meta_id_list = str(result["id_"]["value"]).replace("https://w3id.org/oc/meta/id/", "").split(" ;and; ")
+            id_schema_list = str(result["schema_"]["value"]).replace(GraphEntity.DATACITE, "").split(" ;and; ")
+            id_value_list = str(result["value_"]["value"]).split(" ;and; ")
 
             couple_list = list(zip(id_schema_list, id_value_list))
             id_list = list()
@@ -132,12 +132,12 @@ class ResourceFinder:
     def retrieve_ra_from_meta (self, meta_id, publisher = False):
         uri = "https://w3id.org/oc/meta/ra/" + str(meta_id)
         query = """
-                        SELECT DISTINCT ?res (group_concat(DISTINCT  ?title;separator=' ;and; ') as ?title)
-                             (group_concat(DISTINCT  ?name;separator=' ;and; ') as ?name)
-                             (group_concat(DISTINCT  ?surname;separator=' ;and; ') as ?surname)
-                             (group_concat(DISTINCT  ?id;separator=' ;and; ') as ?id)
-                             (group_concat(?schema;separator=' ;and; ') as ?schema)
-                             (group_concat(DISTINCT  ?value;separator=' ;and; ') as ?value)
+                        SELECT DISTINCT ?res (group_concat(DISTINCT  ?title;separator=' ;and; ') as ?title_)
+                             (group_concat(DISTINCT  ?name;separator=' ;and; ') as ?name_)
+                             (group_concat(DISTINCT  ?surname;separator=' ;and; ') as ?surname_)
+                             (group_concat(DISTINCT  ?id;separator=' ;and; ') as ?id_)
+                             (group_concat(?schema;separator=' ;and; ') as ?schema_)
+                             (group_concat(DISTINCT  ?value;separator=' ;and; ') as ?value_)
 
                         WHERE {
                             ?res a <%s>.
@@ -155,15 +155,15 @@ class ResourceFinder:
         result = self.__query(query)
         if result["results"]["bindings"]:
             result = result["results"]["bindings"][0]
-            if str(result["title"]["value"]) and publisher:
-                title = str(result["title"]["value"])
-            elif str(result["surname"]["value"]) and not publisher:
-                title = str(result["surname"]["value"]) + ", " + str(result["name"]["value"])
+            if str(result["title_"]["value"]) and publisher:
+                title = str(result["title_"]["value"])
+            elif str(result["surname_"]["value"]) and not publisher:
+                title = str(result["surname_"]["value"]) + ", " + str(result["name_"]["value"])
             else:
                 title = ""
-            meta_id_list = str(result["id"]["value"]).replace("https://w3id.org/oc/meta/id/", "").split(" ;and; ")
-            id_schema_list = str(result["schema"]["value"]).replace(GraphEntity.DATACITE, "").split(" ;and; ")
-            id_value_list = str(result["value"]["value"]).split(" ;and; ")
+            meta_id_list = str(result["id_"]["value"]).replace("https://w3id.org/oc/meta/id/", "").split(" ;and; ")
+            id_schema_list = str(result["schema_"]["value"]).replace(GraphEntity.DATACITE, "").split(" ;and; ")
+            id_value_list = str(result["value_"]["value"]).split(" ;and; ")
 
             couple_list = list(zip(id_schema_list, id_value_list))
             id_list = list()
@@ -183,12 +183,12 @@ class ResourceFinder:
 
         query = """
                 SELECT DISTINCT ?res
-                    (group_concat(DISTINCT  ?title;separator=' ;and; ') as ?title)
-                     (group_concat(DISTINCT  ?name;separator=' ;and; ') as ?name)
-                     (group_concat(DISTINCT  ?surname;separator=' ;and; ') as ?surname)
-                     (group_concat(DISTINCT  ?id;separator=' ;and; ') as ?id)
-                     (group_concat(?schema;separator=' ;and; ') as ?schema)
-                     (group_concat(DISTINCT  ?value;separator=' ;and; ') as ?value)
+                    (group_concat(DISTINCT  ?title;separator=' ;and; ') as ?title_)
+                     (group_concat(DISTINCT  ?name;separator=' ;and; ') as ?name_)
+                     (group_concat(DISTINCT  ?surname;separator=' ;and; ') as ?surname_)
+                     (group_concat(DISTINCT  ?id;separator=' ;and; ') as ?id_)
+                     (group_concat(?schema;separator=' ;and; ') as ?schema_)
+                     (group_concat(DISTINCT  ?value;separator=' ;and; ') as ?value_)
 
                 WHERE {
                     ?res a <%s>.
@@ -214,15 +214,15 @@ class ResourceFinder:
             result_list = list()
             for result in results["results"]["bindings"]:
                 res = str(result["res"]["value"]).replace("https://w3id.org/oc/meta/ra/", "")
-                if str(result["title"]["value"]) and publisher:
-                    title = str(result["title"]["value"])
-                elif str(result["surname"]["value"]) and not publisher:
-                    title = str(result["surname"]["value"]) + ", " + str(result["name"]["value"])
+                if str(result["title_"]["value"]) and publisher:
+                    title = str(result["title_"]["value"])
+                elif str(result["surname_"]["value"]) and not publisher:
+                    title = str(result["surname_"]["value"]) + ", " + str(result["name_"]["value"])
                 else:
                     title = ""
-                meta_id_list = str(result["id"]["value"]).replace("https://w3id.org/oc/meta/id/", "").split(" ;and; ")
-                id_schema_list = str(result["schema"]["value"]).replace(GraphEntity.DATACITE, "").split(" ;and; ")
-                id_value_list = str(result["value"]["value"]).split(" ;and; ")
+                meta_id_list = str(result["id_"]["value"]).replace("https://w3id.org/oc/meta/id/", "").split(" ;and; ")
+                id_schema_list = str(result["schema_"]["value"]).replace(GraphEntity.DATACITE, "").split(" ;and; ")
+                id_value_list = str(result["value_"]["value"]).split(" ;and; ")
 
                 couple_list = list(zip(id_schema_list, id_value_list))
                 id_list = list()
@@ -251,8 +251,8 @@ class ResourceFinder:
     def retrieve_vvi(self, meta, content):
         query = """
                 SELECT DISTINCT ?res 
-                     (group_concat(DISTINCT  ?type;separator=' ;and; ') as ?type)
-					 (group_concat(DISTINCT  ?title;separator=' ;and; ') as ?title)
+                     (group_concat(DISTINCT  ?type;separator=' ;and; ') as ?type_)
+					 (group_concat(DISTINCT  ?title;separator=' ;and; ') as ?title_)
 
 				WHERE {
                     ?res <%s> <%s>.
@@ -266,8 +266,8 @@ class ResourceFinder:
             results = result["results"]["bindings"]
             for x in results:
                 res = str(x["res"]["value"]).replace("https://w3id.org/oc/meta/br/", "")
-                title = str(x["title"]["value"])
-                types = str(x["type"]["value"]).split(" ;and; ")
+                title = str(x["title_"]["value"])
+                types = str(x["type_"]["value"]).split(" ;and; ")
 
                 for t in types:
                     if content:
@@ -373,21 +373,21 @@ class ResourceFinder:
         uri = "https://w3id.org/oc/meta/br/" + str(meta_id)
         query = """
                         SELECT ?res 
-                        (group_concat(DISTINCT  ?type;separator=' ;and; ') as ?type)
-                        (group_concat(DISTINCT  ?date;separator=' ;and; ') as ?date)
-                        (group_concat(DISTINCT  ?num;separator=' ;and; ') as ?num)
-                        (group_concat(DISTINCT  ?part1;separator=' ;and; ') as ?part1)
-                        (group_concat(DISTINCT  ?title1;separator=' ;and; ') as ?title1)
-                        (group_concat(DISTINCT  ?num1;separator=' ;and; ') as ?num1)
-                        (group_concat(DISTINCT  ?type1;separator=' ;and; ') as ?type1)
-                        (group_concat(DISTINCT  ?part2;separator=' ;and; ') as ?part2)
-                        (group_concat(DISTINCT  ?title2;separator=' ;and; ') as ?title2)
-                        (group_concat(DISTINCT  ?num2;separator=' ;and; ') as ?num2)
-                        (group_concat(DISTINCT  ?type2;separator=' ;and; ') as ?type2)
-                        (group_concat(DISTINCT  ?part3;separator=' ;and; ') as ?part3)
-                        (group_concat(DISTINCT  ?title3;separator=' ;and; ') as ?title3)
-                        (group_concat(DISTINCT  ?num3;separator=' ;and; ') as ?num3)
-                        (group_concat(DISTINCT  ?type3;separator=' ;and; ') as ?type3) 
+                        (group_concat(DISTINCT  ?type;separator=' ;and; ') as ?type_)
+                        (group_concat(DISTINCT  ?date;separator=' ;and; ') as ?date_)
+                        (group_concat(DISTINCT  ?num;separator=' ;and; ') as ?num_)
+                        (group_concat(DISTINCT  ?part1;separator=' ;and; ') as ?part1_)
+                        (group_concat(DISTINCT  ?title1;separator=' ;and; ') as ?title1_)
+                        (group_concat(DISTINCT  ?num1;separator=' ;and; ') as ?num1_)
+                        (group_concat(DISTINCT  ?type1;separator=' ;and; ') as ?type1_)
+                        (group_concat(DISTINCT  ?part2;separator=' ;and; ') as ?part2_)
+                        (group_concat(DISTINCT  ?title2;separator=' ;and; ') as ?title2_)
+                        (group_concat(DISTINCT  ?num2;separator=' ;and; ') as ?num2_)
+                        (group_concat(DISTINCT  ?type2;separator=' ;and; ') as ?type2_)
+                        (group_concat(DISTINCT  ?part3;separator=' ;and; ') as ?part3_)
+                        (group_concat(DISTINCT  ?title3;separator=' ;and; ') as ?title3_)
+                        (group_concat(DISTINCT  ?num3;separator=' ;and; ') as ?num3_)
+                        (group_concat(DISTINCT  ?type3;separator=' ;and; ') as ?type3_) 
 
                         WHERE {
                                 ?res a ?type.
@@ -424,24 +424,24 @@ class ResourceFinder:
             res_dict["volume"] = ""
             res_dict["venue"] = ""
 
-            if "date" in result:
-                res_dict["pub_date"] = result["date"]["value"]
+            if "date_" in result:
+                res_dict["pub_date"] = result["date_"]["value"]
             else:
                 res_dict["pub_date"] = ""
 
-            res_dict["type"] = self.typalo(result, "type")
+            res_dict["type"] = self.typalo(result, "type_")
 
             res_dict["page"] = self.re_from_meta(meta_id)
 
-            if "num" in result:
-                if "issue" in self.typalo(result, "type"):
-                    res_dict["issue"] = str(result["num"]["value"])
-                elif "volume" in self.typalo(result, "type"):
-                    res_dict["volume"] = str(result["num"]["value"])
+            if "num_" in result:
+                if "issue" in self.typalo(result, "type_"):
+                    res_dict["issue"] = str(result["num_"]["value"])
+                elif "volume" in self.typalo(result, "type_"):
+                    res_dict["volume"] = str(result["num_"]["value"])
 
-            res_dict = self.vvi_find(result, "part1", "type1", "title1", "num1", res_dict)
-            res_dict = self.vvi_find(result, "part2", "type2", "title2", "num2", res_dict)
-            res_dict = self.vvi_find(result, "part3", "type3", "title3", "num3", res_dict)
+            res_dict = self.vvi_find(result, "part1_", "type1_", "title1_", "num1_", res_dict)
+            res_dict = self.vvi_find(result, "part2_", "type2_", "title2_", "num2_", res_dict)
+            res_dict = self.vvi_find(result, "part3_", "type3_", "title3_", "num3_", res_dict)
 
             return res_dict
         else:
@@ -451,10 +451,10 @@ class ResourceFinder:
 
 
     @staticmethod
-    def typalo(result, type):
+    def typalo(result, type_):
         t_type = ""
-        if "type" in result:
-            ty = result[type]["value"].split(" ;and; ")
+        if type_ in result:
+            ty = result[type_]["value"].split(" ;and; ")
             for t in ty:
                 if "Expression" not in t:
                     t_type = str(t)
@@ -500,15 +500,17 @@ class ResourceFinder:
                         t_type = "standard"
         return t_type
 
-    def vvi_find(self, result, part, type, title, num, dic):
-        typ = self.typalo(result, type)
-        if "issue" in typ:
-            dic["issue"] = str(result[num]["value"])
-        elif "volume" in typ:
-            dic["volume"] = str(result[num]["value"])
-        elif typ:
-            dic["venue"] = result[title]["value"] + " [meta:" + result[part]["value"].replace("https://w3id.org/oc/meta/", "") +"]"
+    def vvi_find(self, result, part_, type_, title_, num_, dic):
+        type_value = self.typalo(result, type_)
+        if "issue" in type_value:
+            dic["issue"] = str(result[num_]["value"])
+        elif "volume" in type_value:
+            dic["volume"] = str(result[num_]["value"])
+        elif type_value:
+            dic["venue"] = result[title_]["value"] + " [meta:" + result[part_]["value"] \
+                .replace("https://w3id.org/oc/meta/", "") + "]"
         return dic
+
 
 
 
