@@ -1,3 +1,4 @@
+from meta.lib.graphlib import ProvSet
 from meta.scripts.creator import *
 from meta.scripts.curator import *
 from meta.lib.storer import *
@@ -24,7 +25,7 @@ def process(crossref_csv_dir, csv_dir, index_dir, auxiliary_path, source=None):
             curator_obj.curator(filename=name, path_csv=csv_dir, path_index=index_dir)
 
             creator_obj = Creator(curator_obj.data, base_iri, curator_obj.index_id_ra, curator_obj.index_id_br,
-                              curator_obj.re_index, curator_obj.ar_index, curator_obj.VolIss)
+                                  curator_obj.re_index, curator_obj.ar_index, curator_obj.VolIss)
             creator = creator_obj.creator(source=source)
 
             prov_dir = os.path.join(info_dir, "counter_prov/counter_")
@@ -32,13 +33,11 @@ def process(crossref_csv_dir, csv_dir, index_dir, auxiliary_path, source=None):
             prov = ProvSet(creator, base_iri, context_path, default_dir, prov_dir,
                            ResourceFinder(base_dir=base_dir, base_iri=base_iri,
                                           tmp_dir=temp_dir_for_rdf_loading,
-                                          context_map=
-                                          {},
+                                          context_map={},
                                           dir_split=dir_split_number,
                                           n_file_item=items_per_file,
                                           default_dir=default_dir),
                            dir_split_number, items_per_file, "", triplestore_url, wanted_label=False)
-
 
             prov.generate_provenance("https://w3id.org/oc/meta/prov/pa/1")
 
@@ -63,7 +62,7 @@ def process(crossref_csv_dir, csv_dir, index_dir, auxiliary_path, source=None):
                 base_dir, base_iri, context_path,
                 temp_dir_for_rdf_loading)
 
-            aux_file.write(filename +"\n")
+            aux_file.write(filename + "\n")
             aux_file.close()
 
 
@@ -71,12 +70,12 @@ def pathoo(path):
     if not os.path.exists(os.path.dirname(path)):
         os.makedirs(os.path.dirname(path))
 
+
 def unpack(path):
     with open(path, 'r', encoding="utf-8") as csvfile:
         reader = csv.DictReader(csvfile, delimiter=",")
         data = [dict(x) for x in reader]
     return data
-
 
 
 if __name__ == "__main__":
