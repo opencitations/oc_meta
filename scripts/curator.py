@@ -1,7 +1,11 @@
-import csv, re, os, json
+import csv
+import re
+import os
+import json
 from meta.lib.finder import *
 from dateutil.parser import parse
 from datetime import datetime
+
 
 class Curator:
 
@@ -22,7 +26,7 @@ class Curator:
         self.brdict = {}
         self.radict = {}
         self.ardict = {}
-        self.vvi = {}  #Venue, Volume, Issue
+        self.vvi = {}  # Venue, Volume, Issue
         self.idra = {}  # key id; value metaid of id related to ra
         self.idbr = {}  # key id; value metaid of id related to br
         self.conflict_br = {}
@@ -33,7 +37,7 @@ class Curator:
         self.armeta = dict()
         self.remeta = dict()
 
-        #wannabe counter
+        # wannabe counter
         self.wnb_cnt = 0
 
         self.rowcnt = 0
@@ -41,7 +45,6 @@ class Curator:
         self.log = dict()
         self.new_sequence_list = list()
         self.data = data
-
 
     def curator(self, filename=None, path_csv=None, path_index=None):
         for row in self.data:
@@ -61,7 +64,7 @@ class Curator:
             self.clean_vvi(row)
             self.rowcnt += 1
 
-        #reset row counter
+        # reset row counter
         self.rowcnt = 0
 
         for row in self.data:
@@ -76,8 +79,8 @@ class Curator:
         self.log = self.log_update()
         self.enrich()
 
-        #remove duplicates
-        self.data = list({v['id']:v for v in self.data}.values())
+        # remove duplicates
+        self.data = list({v['id']: v for v in self.data}.values())
 
         if path_index:
             path_index = os.path.join(path_index, filename)
@@ -85,8 +88,7 @@ class Curator:
         self.filename = filename
         self.indexer(path_index, path_csv)
 
-
-    #ID
+    # ID
     def clean_id(self, row):
         if row['title']:
             name = self.clean_title(row['title'])
@@ -106,68 +108,68 @@ class Curator:
         if "wannabe" not in metaval:
             self.equalizer(row, metaval)
 
-        #page
+        # page
         if row['page']:
             row['page'] = Curator.string_fix(row['page'].strip()).replace("\0", "")
-        #date
+        # date
         if row['pub_date']:
             date = Curator.string_fix(row['pub_date'].strip()).replace("\0", "")
             try:
                 date = self.parse_hack(date)
-            except:
+            except ValueError:
                 try:
                     if len(date) == 10:
                         try:
                             newdate = date[:-3]
                             date = self.parse_hack(newdate)
-                        except:
+                        except ValueError:
                             try:
                                 newdate = date[:-6]
                                 date = self.parse_hack(newdate)
-                            except:
+                            except ValueError:
                                 date = ""
                     elif len(date) == 7:
                         try:
                             newdate = date[:-3]
                             date = self.parse_hack(newdate)
-                        except:
+                        except ValueError:
                             date = ""
                     else:
                         date = ""
-                except:
+                except ValueError:
                     date = ""
 
             row['pub_date'] = date
 
-        #type
+        # type
         if row['type']:
-            type = " ".join((row['type'].strip().lower()).split()).replace("\0", "")
-            if type == "edited book" or type == "monograph":
-                type = "book"
-            elif type == "report series" or type == "standard series":
-                type = "series"
-            if type in {"archival document", "book", "book chapter", "book part", "book section", "book series",
-                        "book set", "data file", "dissertation", "journal", "journal article", "journal issue",
-                        "journal volume", "proceedings article", "proceedings", "reference book", "reference entry",
-                        "series", "report", "standard"}:
-                row['type'] = type
+            entity_type = " ".join((row['type'].strip().lower()).split()).replace("\0", "")
+            if entity_type == "edited book" or entity_type == "monograph":
+                entity_type = "book"
+            elif entity_type == "report series" or entity_type == "standard series":
+                entity_type = "series"
+            if entity_type in {"archival document", "book", "book chapter", "book part", "book section", "book series",
+                               "book set", "data file", "dissertation", "journal", "journal article", "journal issue",
+                               "journal volume", "proceedings article", "proceedings", "reference book",
+                               "reference entry", "series", "report", "standard"}:
+                row['type'] = entity_type
             else:
                 row['type'] = ""
-
 
     # VVI
     def clean_vvi(self, row):
         vol_meta = None
         if row["venue"]:
-            venue_id = re.search(r'\[\s*(.*?)\s*\]', row["venue"])
+            venue_id = re.search(r'\[\s*(.*?)\s*]', row["venue"])
             if venue_id:
-                name = self.clean_title(re.search(r'(.*?)\s*\[.*?\]', row["venue"]).group(1))
+                name = self.clean_title(re.search(r'(.*?)\s*\[.*?]', row["venue"]).group(1))
                 venue_id = venue_id.group(1)
                 if self.separator:
-                    idslist = re.sub(r'\s*\:\s*', ':', venue_id).split(self.separator)
+                    idslist = re.sub(r'\s*:\s*', ':', venue_id).split(self.separator)
                 else:
-                    idslist = re.split(r'\s+', re.sub(r'\s*\:\s*', ':', venue_id))
-                metaval = self.id_worker("venue", name, idslist, ra_ent=False, br_ent=True, vvi_ent=True, publ_entity=False)
+                    idslist = re.split(r'\s+', re.sub(r'\s*:\s*', ':', venue_id))
+                metaval = self.id_worker("venue", name, idslist, ra_ent=False, br_ent=True, vvi_ent=True,
+                                         publ_entity=False)
 
                 if metaval not in self.vvi:
                     ts_vvi = None
@@ -179,7 +181,7 @@ class Curator:
                         self.vvi[metaval]["volume"] = dict()
                         self.vvi[metaval]["issue"] = dict()
                     elif ts_vvi:
-                            self.vvi[metaval] = ts_vvi
+                        self.vvi[metaval] = ts_vvi
 
             else:
                 name = self.clean_title(row['venue'])
@@ -242,143 +244,146 @@ class Curator:
 
     # RA
     def clean_ra(self, row, col_name):
-            if row[col_name]:
-                ra_list = re.split(r'\s*;\s*(?=[^]]*(?:\[|$))', row[col_name]) #split authors by ";" outside "[]" (any spaces before and after ";")
-                if row["id"] in self.brdict:
-                    br_metaval = row["id"]
+        if row[col_name]:
+            # split authors by ";" outside "[]" (any spaces before and after ";")
+            ra_list = re.split(r'\s*;\s*(?=[^]]*(?:\[|$))', row[col_name])
+            if row["id"] in self.brdict:
+                br_metaval = row["id"]
+            else:
+                for x in self.brdict:
+                    if row["id"] in self.brdict[x]["others"]:
+                        br_metaval = x
+                        break
+            if br_metaval not in self.ardict or not self.ardict[br_metaval][col_name]:
+                # new sequence
+                if "wannabe" in br_metaval:
+                    if br_metaval not in self.ardict:
+                        self.ardict[br_metaval] = dict()
+                        self.ardict[br_metaval]["author"] = list()
+                        self.ardict[br_metaval]["editor"] = list()
+                        self.ardict[br_metaval]["publisher"] = list()
+                    sequence = []
                 else:
-                    for x in self.brdict:
-                        if row["id"] in self.brdict[x]["others"]:
-                            br_metaval = x
-                            break
-                if br_metaval not in self.ardict or not self.ardict[br_metaval][col_name]:
-                    #new sequence
-                    if "wannabe" in br_metaval:
+                    # sequence can be in TS
+                    sequence_found = self.finder.retrieve_ra_sequence_from_meta(br_metaval, col_name)
+                    if sequence_found:
+                        sequence = []
+                        for x in sequence_found:
+                            for k in x:
+                                sequence.append(tuple((k, x[k][2])))
+                                if x[k][2] not in self.radict:
+                                    self.radict[x[k][2]] = dict()
+                                    self.radict[x[k][2]]["ids"] = list()
+                                    self.radict[x[k][2]]["others"] = list()
+                                    self.radict[x[k][2]]["title"] = x[k][0]
+                                for i in x[k][1]:
+                                    # other ids after meta
+                                    if i[0] not in self.idra:
+                                        self.idra[i[1]] = i[0]
+                                    if i[1] not in self.radict[x[k][2]]["ids"]:
+                                        self.radict[x[k][2]]["ids"].append(i[1])
+
+                        if br_metaval not in self.ardict:
+                            self.ardict[br_metaval] = dict()
+                            self.ardict[br_metaval]["author"] = list()
+                            self.ardict[br_metaval]["editor"] = list()
+                            self.ardict[br_metaval]["publisher"] = list()
+                            self.ardict[br_metaval][col_name].extend(sequence)
+                        else:
+                            self.ardict[br_metaval][col_name].extend(sequence)
+                    else:
+                        # totally new sequence
                         if br_metaval not in self.ardict:
                             self.ardict[br_metaval] = dict()
                             self.ardict[br_metaval]["author"] = list()
                             self.ardict[br_metaval]["editor"] = list()
                             self.ardict[br_metaval]["publisher"] = list()
                         sequence = []
-                    else:
-                        #sequence can be in TS
-                        sequence_found = self.finder.retrieve_ra_sequence_from_meta(br_metaval, col_name)
-                        if sequence_found:
-                            sequence = []
-                            for x in sequence_found:
-                                for k in x:
-                                    sequence.append(tuple((k, x[k][2])))
-                                    if x[k][2] not in self.radict:
-                                        self.radict[x[k][2]] = dict()
-                                        self.radict[x[k][2]]["ids"] = list()
-                                        self.radict[x[k][2]]["others"] = list()
-                                        self.radict[x[k][2]]["title"] = x[k][0]
-                                    for i in x[k][1]:
-                                        #other ids after meta
-                                        if i[0] not in self.idra:
-                                            self.idra[i[1]] = i[0]
-                                        if i[1] not in self.radict[x[k][2]]["ids"]:
-                                            self.radict[x[k][2]]["ids"].append(i[1])
+            else:
+                sequence = self.ardict[br_metaval][col_name]
 
-                            if br_metaval not in self.ardict:
-                                self.ardict[br_metaval] = dict()
-                                self.ardict[br_metaval]["author"] = list()
-                                self.ardict[br_metaval]["editor"] = list()
-                                self.ardict[br_metaval]["publisher"] = list()
-                                self.ardict[br_metaval][col_name].extend(sequence)
-                            else:
-                                self.ardict[br_metaval][col_name].extend(sequence)
-                        else:
-                            # totally new sequence
-                            if br_metaval not in self.ardict:
-                                self.ardict[br_metaval] = dict()
-                                self.ardict[br_metaval]["author"] = list()
-                                self.ardict[br_metaval]["editor"] = list()
-                                self.ardict[br_metaval]["publisher"] = list()
-                            sequence = []
+            new_sequence = list()
+            change_order = False
+            for pos, ra in enumerate(ra_list):
+                new_elem_seq = True
+                # takes string inside "[]" ignoring any space between (ex: [ TARGET  ] --> TARGET
+                ra_id = re.search(r'\[\s*(.*?)\s*]', ra)
+                if ra_id:
+                    ra_id = ra_id.group(1)
+                    name = self.clean_name(re.search(r'\s*(.*?)\s*\[.*?]', ra).group(1))
                 else:
-                    sequence = self.ardict[br_metaval][col_name]
+                    name = self.clean_name(ra)
 
-                new_sequence = list()
-                change_order = False
-                for pos,ra in enumerate(ra_list):
-                    new_elem_seq = True
-                    ra_id = re.search(r'\[\s*(.*?)\s*\]', ra) #takes string inside "[]" ignoring any space between (ex: [ TARGET  ] --> TARGET
-                    if ra_id:
-                        ra_id = ra_id.group(1)
-                        name = self.clean_name(re.search(r'\s*(.*?)\s*\[.*?\]', ra).group(1))
+                if not ra_id and sequence:
+                    for x, k in sequence:
+                        if self.radict[k]["title"] == name:
+                            ra_id = "meta:ra/" + str(k)
+                            new_elem_seq = False
+                            break
+                if ra_id:
+                    # ra_id = ra_id.group(1)
+                    if self.separator:
+                        ra_id_list = re.sub(r'\s*:\s*', ':', ra_id).split(self.separator)
                     else:
-                        name = self.clean_name(ra)
+                        ra_id_list = re.split(r'\s+', re.sub(r'\s*:\s*', ':', ra_id))
 
-                    if not ra_id and sequence:
-                        for x, k in sequence:
-                            if self.radict[k]["title"] == name:
-                                ra_id = "meta:ra/" + str(k)
-                                new_elem_seq = False
-                                break
-                    if ra_id:
-                        #ra_id = ra_id.group(1)
-                        if self.separator:
-                            ra_id_list = re.sub(r'\s*\:\s*', ':', ra_id).split(self.separator)
-                        else:
-                            ra_id_list = re.split(r'\s+', re.sub(r'\s*\:\s*', ':', ra_id))
+                    if sequence:
+                        kv = None
+                        for ps, el in enumerate(sequence):
+                            k = el[1]
+                            for i in ra_id_list:
+                                if i in self.radict[k]['ids']:
+                                    if ps != pos:
+                                        change_order = True
+                                    new_elem_seq = False
+                                    if "wannabe" not in k:
+                                        kv = k
+                                        for pos, i in enumerate(ra_id_list):
+                                            if "meta" in i:
+                                                ra_id_list[pos] = ""
+                                            break
+                                        ra_id_list = list(filter(None, ra_id_list))
+                                        ra_id_list.append("meta:ra/" + kv)
+                        if not kv:
+                            # new element
+                            for x, k in sequence:
+                                if self.radict[k]['title'] == name:
+                                    new_elem_seq = False
+                                    if "wannabe" not in k:
+                                        kv = k
+                                        for pos, i in enumerate(ra_id_list):
+                                            if "meta" in i:
+                                                ra_id_list[pos] = ""
+                                            break
+                                        ra_id_list = list(filter(None, ra_id_list))
+                                        ra_id_list.append("meta:ra/" + kv)
 
-                        if sequence:
-                            kv = None
-                            for ps, el in enumerate(sequence):
-                                k = el[1]
-                                for i in ra_id_list:
-                                    if i in self.radict[k]['ids']:
-                                        if ps != pos:
-                                            change_order = True
-                                        new_elem_seq = False
-                                        if "wannabe" not in k:
-                                            kv = k
-                                            for pos,i in enumerate(ra_id_list):
-                                                if "meta" in i:
-                                                    ra_id_list[pos] = ""
-                                                break
-                                            ra_id_list = list(filter(None, ra_id_list))
-                                            ra_id_list.append("meta:ra/" + kv)
-                            if not kv:
-                                #new element
-                                for x, k in sequence:
-                                    if self.radict[k]['title'] == name:
-                                        new_elem_seq = False
-                                        if "wannabe" not in k:
-                                            kv = k
-                                            for pos, i in enumerate(ra_id_list):
-                                                if "meta" in i:
-                                                    ra_id_list[pos] = ""
-                                                break
-                                            ra_id_list = list(filter(None, ra_id_list))
-                                            ra_id_list.append("meta:ra/" + kv)
-
-                        if col_name == "publisher":
-                            metaval = self.id_worker("publisher", name, ra_id_list, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
-                        else:
-                            metaval = self.id_worker(col_name, name, ra_id_list, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=False)
-                        if col_name != "publisher" and metaval in self.radict:
-                            actual_name = self.radict[metaval]["title"]
-                            if not actual_name.split(",")[1].strip() and name.split(",")[1].strip(): #first name found!
-                                srnm = actual_name.split(",")[0]
-                                nm = name.split(",")[1]
-                                self.radict[metaval]["title"] = srnm + ", " + nm
+                    if col_name == "publisher":
+                        metaval = self.id_worker("publisher", name, ra_id_list, ra_ent=True, br_ent=False,
+                                                 vvi_ent=False, publ_entity=True)
                     else:
-                        metaval = self.new_entity(self.radict, name)
-                    if new_elem_seq:
-                        added_element = True
-                        role = self.prefix + str(self._add_number(self.ar_info_path))
-                        new_sequence.append(tuple((role, metaval)))
-                        self.new_sequence_list.append(tuple((self.rowcnt, role,  metaval)))
-                if change_order:
-                    self.log[self.rowcnt][col_name]["Info"] = "Proposed new RA sequence: REFUSED"
+                        metaval = self.id_worker(col_name, name, ra_id_list, ra_ent=True, br_ent=False, vvi_ent=False,
+                                                 publ_entity=False)
+                    if col_name != "publisher" and metaval in self.radict:
+                        actual_name = self.radict[metaval]["title"]
+                        if not actual_name.split(",")[1].strip() and name.split(",")[1].strip():  # first name found!
+                            srnm = actual_name.split(",")[0]
+                            nm = name.split(",")[1]
+                            self.radict[metaval]["title"] = srnm + ", " + nm
+                else:
+                    metaval = self.new_entity(self.radict, name)
+                if new_elem_seq:
+                    added_element = True
+                    role = self.prefix + str(self._add_number(self.ar_info_path))
+                    new_sequence.append(tuple((role, metaval)))
+                    self.new_sequence_list.append(tuple((self.rowcnt, role,  metaval)))
+            if change_order:
+                self.log[self.rowcnt][col_name]["Info"] = "Proposed new RA sequence: REFUSED"
 
-                sequence.extend(new_sequence)
-                self.ardict[br_metaval][col_name] = sequence
+            sequence.extend(new_sequence)
+            self.ardict[br_metaval][col_name] = sequence
 
-
-    def find_update_other_ID (self, list2match, metaval, dict2match, temporary_name):
+    def find_update_other_ID(self, list2match, metaval, dict2match, temporary_name):
         found_others = self.local_match(list2match, dict2match)
         if found_others["wannabe"]:
             for obj in found_others["wannabe"]:
@@ -405,7 +410,7 @@ class Curator:
 
     @staticmethod
     # All in One recursion, clean ids and meanwhile check if there's metaId
-    def clean_id_list(id_list, br = True):
+    def clean_id_list(id_list, br=True):
         if br:
             pattern = "br/"
         else:
@@ -421,9 +426,9 @@ class Curator:
             for pos, elem in enumerate(id_list):
                 try:
                     elem = Curator.string_fix(elem)
-                    id = elem.split(":", 1)
-                    value = id[1]
-                    schema = id[0].lower()
+                    identifier = elem.split(":", 1)
+                    value = identifier[1]
+                    schema = identifier[0].lower()
                     if schema == "meta":
                         if "meta:" + pattern in elem:
                             metaid = value.replace(pattern, "")
@@ -432,16 +437,14 @@ class Curator:
                     else:
                         newid = schema + ":" + value
                         id_list[pos] = newid
-                except:
+                except IndexError:
                     id_list[pos] = ""
         if metaid:
             id_list.remove("meta:" + pattern + metaid)
         id_list = list(filter(None, id_list))
         return id_list, metaid
 
-
-
-    def conflict (self, idslist, name, id_dict, col_name):
+    def conflict(self, idslist, name, id_dict, col_name):
         if col_name == "id" or col_name == "venue":
             entity_dict = self.conflict_br
             metaval = self.new_entity(entity_dict, name)
@@ -449,19 +452,17 @@ class Curator:
             entity_dict = self.conflict_ra
             metaval = self.new_entity(entity_dict, name)
         self.log[self.rowcnt][col_name]['Conflict Entity'] = metaval
-        for id in idslist:
-            entity_dict[metaval]["ids"].append(id)
-            if id not in id_dict:
-                ids = id.split(":")
-                found_m = self.finder.retrieve_id(ids[0],ids[1])
+        for identifier in idslist:
+            entity_dict[metaval]["ids"].append(identifier)
+            if identifier not in id_dict:
+                ids = identifier.split(":")
+                found_m = self.finder.retrieve_id(ids[0], ids[1])
                 if found_m:
-                    id_dict[id] = found_m
+                    id_dict[identifier] = found_m
                 else:
                     count = self._add_number(self.id_info_path)
-                    id_dict[id] = self.prefix + str(count)
+                    id_dict[identifier] = self.prefix + str(count)
         return metaval
-
-
 
     def finder_sparql(self, list2find, br=True, ra=False, vvi=False, publ=False):
         match_elem = list()
@@ -469,9 +470,9 @@ class Curator:
         res = None
         for elem in list2find:
             if len(match_elem) < 2:
-                id = elem.split(":")
-                value = id[1]
-                schema = id[0]
+                identifier = elem.split(":")
+                value = identifier[1]
+                schema = identifier[0]
                 if br:
                     res = self.finder.retrieve_br_from_id(value, schema)
                 elif ra:
@@ -483,26 +484,24 @@ class Curator:
                             id_set.add(f[0])
         return match_elem
 
-
     def ra_update(self, row, br_key, col_name):
         if row[col_name]:
             sequence = self.armeta[br_key][col_name]
             ras_list = list()
-            for x,y in sequence:
+            for x, y in sequence:
                 ra_name = self.rameta[y]["title"]
                 ra_ids = " ".join(self.rameta[y]["ids"])
-                ra = ra_name+ " [" + ra_ids + "]"
+                ra = ra_name + " [" + ra_ids + "]"
                 ras_list.append(ra)
             row[col_name] = "; ".join(ras_list)
 
-
     @staticmethod
-    def local_match (list2match, dict2match):
+    def local_match(list2match, dict2match):
         match_elem = dict()
         match_elem["existing"] = list()
         match_elem["wannabe"] = list()
         for elem in list2match:
-            for k,va in dict2match.items():
+            for k, va in dict2match.items():
                 if elem in va["ids"]:
                     if "wannabe" in k:
                         if k not in match_elem["wannabe"]:
@@ -512,9 +511,8 @@ class Curator:
                             match_elem["existing"].append(k)
         return match_elem
 
-
     def meta_ar(self, newkey, oldkey, role):
-        for x,k in self.ardict[oldkey][role]:
+        for x, k in self.ardict[oldkey][role]:
             if "wannabe" in k:
                 for m in self.rameta:
                     if k in self.rameta[m]['others']:
@@ -523,7 +521,6 @@ class Curator:
             else:
                 new_v = k
             self.armeta[newkey][role].append(tuple((x, new_v)))
-
 
     def meta_maker(self):
         for x in self.brdict:
@@ -569,9 +566,6 @@ class Curator:
             self.meta_ar(br_key, x, "editor")
             self.meta_ar(br_key, x, "publisher")
 
-
-
-
     def enrich(self):
         for row in self.data:
             if "wannabe" in row["id"]:
@@ -582,10 +576,10 @@ class Curator:
                 k = row["id"]
 
             if row["page"] and (k not in self.remeta):
-                re = self.finder.re_from_meta(k)
-                if re:
-                    self.remeta[k] = re
-                    row["page"] = re[1]
+                re_meta = self.finder.re_from_meta(k)
+                if re_meta:
+                    self.remeta[k] = re_meta
+                    row["page"] = re_meta[1]
                 else:
                     count = self.prefix + str(self._add_number(self.re_info_path))
                     page = row["page"].strip().replace("\0", "")
@@ -601,7 +595,7 @@ class Curator:
             row["title"] = self.brmeta[k]["title"]
 
             if row["venue"]:
-                venue= row["venue"]
+                venue = row["venue"]
                 if "wannabe" in venue:
                     for i in self.brmeta:
                         if venue in self.brmeta[i]["others"]:
@@ -615,13 +609,12 @@ class Curator:
         if "," in ts_name:
             names = ts_name.split(",")
             if names[0] and not names[1].strip():
-                #there isn't a given name in ts
+                # there isn't a given name in ts
                 if "," in name:
                     gname = name.split(", ")[1]
                     if gname.strip():
                         ts_name = names[0] + ", " + gname
         return ts_name
-
 
     @staticmethod
     def clean_name(name):
@@ -629,7 +622,7 @@ class Curator:
         if "," in name:
             split_name = re.split(r'\s*,\s*', name)
             first_name = split_name[1].split()
-            for pos,w in enumerate(first_name):
+            for pos, w in enumerate(first_name):
                 first_name[pos] = w.title()
             new_first_name = " ".join(first_name)
             surname = split_name[0].split()
@@ -642,11 +635,10 @@ class Curator:
                 new_name = ""
         else:
             split_name = name.split()
-            for pos,w in enumerate(split_name):
+            for pos, w in enumerate(split_name):
                 split_name[pos] = w.capitalize()
             new_name = " ".join(split_name)
         return new_name
-
 
     @staticmethod
     def clean_title(title):
@@ -668,7 +660,7 @@ class Curator:
         try:
             with open(file_path) as f:
                 cur_number = int(f.readlines()[line_number - 1])
-        except:
+        except (ValueError, IOError, IndexError):
             pass  # Do nothing
         return cur_number
 
@@ -693,24 +685,23 @@ class Curator:
             f.writelines(all_lines)
         return cur_number
 
-
     @staticmethod
     def write_csv(path, datalist):
         if not os.path.exists(os.path.dirname(path)):
             os.makedirs(os.path.dirname(path))
         with open(path, 'w', newline='', encoding="utf-8") as output_file:
-            dict_writer = csv.DictWriter(output_file, datalist[0].keys(), delimiter=',', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
+            dict_writer = csv.DictWriter(output_file, datalist[0].keys(), delimiter=',', quotechar='"',
+                                         quoting=csv.QUOTE_NONNUMERIC)
             dict_writer.writeheader()
             dict_writer.writerows(datalist)
 
+    def indexer(self, path_index, path_csv):
 
-    def indexer (self, path_index, path_csv):
-
-        #ID
+        # ID
         self.index_id_ra = list()
         if self.idra:
             for x in self.idra:
-                row= dict()
+                row = dict()
                 row["id"] = str(x)
                 row["meta"] = str(self.idra[x])
                 self.index_id_ra.append(row)
@@ -733,7 +724,7 @@ class Curator:
             row["meta"] = ""
             self.index_id_br.append(row)
 
-        #AR
+        # AR
         self.ar_index = list()
         if self.armeta:
             for x in self.armeta:
@@ -741,8 +732,8 @@ class Curator:
                 index["meta"] = x
                 for y in self.armeta[x]:
                     list_ar = list()
-                    for ar, id in self.armeta[x][y]:
-                        list_ar.append(str(ar) + ", " +  str(id))
+                    for ar, identifier in self.armeta[x][y]:
+                        list_ar.append(str(ar) + ", " + str(identifier))
                     index[y] = "; ".join(list_ar)
                 self.ar_index.append(index)
         else:
@@ -753,7 +744,7 @@ class Curator:
             row["publisher"] = ""
             self.ar_index.append(row)
 
-        #RE
+        # RE
         self.re_index = list()
         if self.remeta:
             for x in self.remeta:
@@ -766,7 +757,7 @@ class Curator:
             row["br"] = ""
             row["re"] = ""
             self.re_index.append(row)
-        #VI
+        # VI
         self.VolIss = dict()
         if self.vvi:
             for x in self.vvi:
@@ -805,7 +796,7 @@ class Curator:
             ar_path = os.path.join(path_index, "index_ar.csv")
             self.write_csv(ar_path, self.ar_index)
 
-            re_path = os.path.join(path_index , "index_re.csv")
+            re_path = os.path.join(path_index, "index_re.csv")
             self.write_csv(re_path, self.re_index)
 
             vvi_file = os.path.join(path_index, "index_vi.json")
@@ -824,9 +815,6 @@ class Curator:
                 data_file = os.path.join(path_csv, name)
                 self.write_csv(data_file, self.data)
 
-
-
-
     def id_worker(self, col_name, name, idslist, ra_ent=False, br_ent=False, vvi_ent=False, publ_entity=False):
 
         if not ra_ent:
@@ -844,12 +832,12 @@ class Curator:
             if metaval in entity_dict:
                 self.find_update_other_ID(idslist, metaval, entity_dict, name)
 
-                for id in idslist:
-                    if id not in entity_dict[metaval]["ids"]:
-                        entity_dict[metaval]["ids"].append(id)
-                    if id not in id_dict:
+                for identifier in idslist:
+                    if identifier not in entity_dict[metaval]["ids"]:
+                        entity_dict[metaval]["ids"].append(identifier)
+                    if identifier not in id_dict:
                         count = self._add_number(self.id_info_path)
-                        id_dict[id] = self.prefix + str(count)
+                        id_dict[identifier] = self.prefix + str(count)
 
                 if not entity_dict[metaval]["title"] and name:
                     entity_dict[metaval]["title"] = name
@@ -857,7 +845,7 @@ class Curator:
             else:
                 found_meta_ts = None
                 if ra_ent:
-                    found_meta_ts = self.finder.retrieve_ra_from_meta(metaval, publisher = publ_entity)
+                    found_meta_ts = self.finder.retrieve_ra_from_meta(metaval, publisher=publ_entity)
                 elif br_ent:
                     found_meta_ts = self.finder.retrieve_br_from_meta(metaval)
 
@@ -873,20 +861,20 @@ class Curator:
 
                     self.find_update_other_ID(idslist, metaval, entity_dict, name)
 
-                    for id in idslist:
-                        if id not in entity_dict[metaval]["ids"]:
-                            entity_dict[metaval]["ids"].append(id)
-                        if id not in id_dict:
+                    for identifier in idslist:
+                        if identifier not in entity_dict[metaval]["ids"]:
+                            entity_dict[metaval]["ids"].append(identifier)
+                        if identifier not in id_dict:
                             count = self._add_number(self.id_info_path)
-                            id_dict[id] = self.prefix + str(count)
+                            id_dict[identifier] = self.prefix + str(count)
 
                     existing_ids = found_meta_ts[1]
 
-                    for id in existing_ids:
-                        if id[1] not in id_dict:
-                            id_dict[id[1]] = id[0]
-                        if id[1] not in entity_dict[metaval]["ids"]:
-                            entity_dict[metaval]["ids"].append(id[1])
+                    for identifier in existing_ids:
+                        if identifier[1] not in id_dict:
+                            id_dict[identifier[1]] = identifier[0]
+                        if identifier[1] not in entity_dict[metaval]["ids"]:
+                            entity_dict[metaval]["ids"].append(identifier[1])
 
                     if not entity_dict[metaval]["title"] and name:
                         entity_dict[metaval]["title"] = name
@@ -908,14 +896,14 @@ class Curator:
                 elif len(local_match["existing"]) == 1:
                     metaval = str(local_match["existing"][0])
                     supsected_ids = list()
-                    for id in idslist:
-                        if id not in entity_dict[metaval]["ids"]:
-                            supsected_ids.append(id)
+                    for identifier in idslist:
+                        if identifier not in entity_dict[metaval]["ids"]:
+                            supsected_ids.append(identifier)
                     if supsected_ids:
-                        sparql_match = self.finder_sparql(supsected_ids, br=br_ent, ra=ra_ent, vvi = vvi_ent, publ = publ_entity)
+                        sparql_match = self.finder_sparql(supsected_ids, br=br_ent, ra=ra_ent, vvi=vvi_ent,
+                                                          publ=publ_entity)
                         if len(sparql_match) > 1:
                             return self.conflict(idslist, name, id_dict, col_name)
-
 
             # ids refers to 1 or more wannabe enitities
             elif local_match["wannabe"]:
@@ -940,18 +928,20 @@ class Curator:
                     entity_dict[metaval]["title"] = name
 
                 supsected_ids = list()
-                for id in idslist:
-                    if id not in entity_dict[metaval]["ids"]:
-                        supsected_ids.append(id)
+                for identifier in idslist:
+                    if identifier not in entity_dict[metaval]["ids"]:
+                        supsected_ids.append(identifier)
                 if supsected_ids:
-                    sparql_match = self.finder_sparql(supsected_ids, br=br_ent, ra=ra_ent, vvi=vvi_ent, publ=publ_entity)
+                    sparql_match = self.finder_sparql(supsected_ids, br=br_ent, ra=ra_ent, vvi=vvi_ent,
+                                                      publ=publ_entity)
                     if sparql_match:
                         if "wannabe" not in metaval or len(sparql_match) > 1:
                             return self.conflict(idslist, name, id_dict, col_name)
                         else:
                             existing_ids = sparql_match[0][2]
                             new_idslist = [x[1] for x in existing_ids]
-                            new_sparql_match = self.finder_sparql(new_idslist, br=br_ent, ra=ra_ent, vvi=vvi_ent, publ=publ_entity)
+                            new_sparql_match = self.finder_sparql(new_idslist, br=br_ent, ra=ra_ent, vvi=vvi_ent,
+                                                                  publ=publ_entity)
                             if len(new_sparql_match) > 1:
                                 return self.conflict(idslist, name, id_dict, col_name)
                             else:
@@ -978,11 +968,11 @@ class Curator:
                                 if not entity_dict[metaval]["title"]:
                                     entity_dict[metaval]["title"] = name
 
-                                for id in existing_ids:
-                                    if id[1] not in id_dict:
-                                        id_dict[id[1]] = id[0]
-                                    if id[1] not in entity_dict[metaval]["ids"]:
-                                        entity_dict[metaval]["ids"].append(id[1])
+                                for identifier in existing_ids:
+                                    if identifier[1] not in id_dict:
+                                        id_dict[identifier[1]] = identifier[0]
+                                    if identifier[1] not in entity_dict[metaval]["ids"]:
+                                        entity_dict[metaval]["ids"].append(identifier[1])
 
             else:
                 sparql_match = self.finder_sparql(idslist, br=br_ent, ra=ra_ent, vvi=vvi_ent, publ=publ_entity)
@@ -991,7 +981,8 @@ class Curator:
                 elif len(sparql_match) == 1:
                     existing_ids = sparql_match[0][2]
                     new_idslist = [x[1] for x in existing_ids]
-                    new_sparql_match = self.finder_sparql(new_idslist, br=br_ent, ra=ra_ent, vvi=vvi_ent, publ=publ_entity)
+                    new_sparql_match = self.finder_sparql(new_idslist, br=br_ent, ra=ra_ent, vvi=vvi_ent,
+                                                          publ=publ_entity)
                     if len(new_sparql_match) > 1:
                         return self.conflict(idslist, name, id_dict, col_name)
                     elif len(new_sparql_match) == 1:
@@ -1007,23 +998,22 @@ class Curator:
                         if not entity_dict[metaval]["title"] and name:
                             entity_dict[metaval]["title"] = name
 
-                        for id in existing_ids:
-                            if id[1] not in id_dict:
-                                id_dict[id[1]] = id[0]
-                            if id[1] not in entity_dict[metaval]["ids"]:
-                                entity_dict[metaval]["ids"].append(id[1])
+                        for identifier in existing_ids:
+                            if identifier[1] not in id_dict:
+                                id_dict[identifier[1]] = identifier[0]
+                            if identifier[1] not in entity_dict[metaval]["ids"]:
+                                entity_dict[metaval]["ids"].append(identifier[1])
 
                 else:
                     metaval = self.new_entity(entity_dict, name)
 
-
-            for id in idslist:
-                if id not in id_dict:
+            for identifier in idslist:
+                if identifier not in id_dict:
                     count = self._add_number(self.id_info_path)
-                    id_dict[id] = self.prefix + str(count)
+                    id_dict[identifier] = self.prefix + str(count)
 
-                if id not in entity_dict[metaval]["ids"]:
-                    entity_dict[metaval]["ids"].append(id)
+                if identifier not in entity_dict[metaval]["ids"]:
+                    entity_dict[metaval]["ids"].append(identifier)
 
             if not entity_dict[metaval]["title"] and name:
                 entity_dict[metaval]["title"] = name
@@ -1032,7 +1022,6 @@ class Curator:
             metaval = self.new_entity(entity_dict, name)
 
         return metaval
-
 
     def new_entity(self, entity_dict, name):
         metaval = "wannabe_" + str(self.wnb_cnt)
@@ -1044,8 +1033,7 @@ class Curator:
 
         return metaval
 
-
-    def volume_issue (self, meta, path, value, row):
+    def volume_issue(self, meta, path, value, row):
         if "wannabe" not in meta:
             if value in path:
                 if "wannabe" in path[value]["id"]:
@@ -1073,16 +1061,16 @@ class Curator:
                         self.brdict[old_meta]['others'] = list()
                         self.brdict[old_meta]['title'] = br4dict[0]
                         for x in br4dict[1]:
-                            id = x[1]
-                            self.brdict[old_meta]['ids'].append(id)
-                            if id not in self.idbr:
-                                self.idbr[id] = x[0]
+                            identifier = x[1]
+                            self.brdict[old_meta]['ids'].append(identifier)
+                            if identifier not in self.idbr:
+                                self.idbr[identifier] = x[0]
 
                     self.update(self.brdict, old_meta, meta, row["title"])
             else:
                 path[value] = dict()
                 path[value]["id"] = meta
-                if "issue" not in path: #it's a Volume
+                if "issue" not in path:  # it's a Volume
                     path[value]["issue"] = dict()
 
     def log_update(self):
@@ -1115,20 +1103,19 @@ class Curator:
                 new_log[x]["id"]["meta"] = met
         return new_log
 
-
     @staticmethod
     def string_fix(st):
-        dash_list = ["‐", "–", "—", "−", "‑", "⁃", "­", "‒"]     #Hyphen, En-Dash, Em-Dash, Minus Sign, Non-breaking Hyphen, Hyphen Bullet, Soft Hyphen, Figure Dash
+        # Hyphen, En-Dash, Em-Dash, Minus Sign, Non-breaking Hyphen, Hyphen Bullet, Soft Hyphen, Figure Dash
+        dash_list = ["‐", "–", "—", "−", "‑", "⁃", "­", "‒"]
         for d in dash_list:
             if d in st:
-                    st.replace(d, "-")
+                st.replace(d, "-")
         if "isbn:" in st:
             st.replace("-", "")
         return st
 
-
     @staticmethod
-    #hack dateutil automatic-today-date
+    # hack dateutil automatic-today-date
     def parse_hack(date):
         dt = parse(date, default=datetime(2001, 1, 1))
         dt2 = parse(date, default=datetime(2002, 2, 2))
@@ -1142,7 +1129,6 @@ class Curator:
         else:
             clean_date = ""
         return clean_date
-
 
     def check_equality(self):
         partialcnt = 0
@@ -1182,13 +1168,6 @@ class Curator:
                             other_row["issue"] = row["issue"]
                     other_rowcnt += 1
             partialcnt += 1
-
-
-
-
-
-
-
 
     def equalizer(self, row, metaval):
         self.log[self.rowcnt]["id"]["status"] = "ENTITY ALREADY EXISTS"
