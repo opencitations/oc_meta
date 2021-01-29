@@ -13,7 +13,7 @@ class index_orcid_doi:
         self.doimanager = DOIManager(use_api_service=False)
         self.csvstorage = CSVManager(csv_path)
 
-    def finder (self, summaries_path):
+    def finder(self, summaries_path):
         for fold, dirs, files in os.walk(summaries_path):
             for file in files:
                 if file.endswith('.xml'):
@@ -32,10 +32,10 @@ class index_orcid_doi:
                         ids = xml_soup.findAll('common:external-id')
                         if ids:
                             for el in ids:
-                                type = el.find('common:external-id-type')
+                                id_type = el.find('common:external-id-type')
                                 rel = el.find('common:external-id-relationship')
-                                if type and rel:
-                                    if type.get_text().lower() == "doi" and rel.get_text().lower() == "self":
+                                if id_type and rel:
+                                    if id_type.get_text().lower() == "doi" and rel.get_text().lower() == "self":
                                         doi = el.find('common:external-id-value').get_text()
                                         doi = self.doimanager.normalise(doi)
                                         if doi:
@@ -45,9 +45,9 @@ class index_orcid_doi:
 
 
 if __name__ == "__main__":
-    arg_parser = ArgumentParser("index_orcid_doi.py", description="This script builds a csv index of DOIs associated with ORCIDs, "
-                                                                  "starting from XML files containing ORCID data.")
-
+    arg_parser = ArgumentParser("index_orcid_doi.py", description="This script builds a csv index of DOIs associated"
+                                                                  " with ORCIDs, starting from XML files containing"
+                                                                  " ORCID data.")
 
     arg_parser.add_argument("-c", "--csv", dest="csv_path", required=True,
                             help="The output CSV file path.")
@@ -60,7 +60,4 @@ if __name__ == "__main__":
 
     iOd.finder(args.summaries_path)
 
-
-
-
-#index_orcid_doi("C:\\Users\\Fabio\\Documents\\GitHub\\meta\\DEMO\\Peroni\\summaries", "orcid.csv")
+    # index_orcid_doi("C:\\Users\\Fabio\\Documents\\GitHub\\meta\\DEMO\\Peroni\\summaries", "orcid.csv")
