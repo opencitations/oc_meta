@@ -1,29 +1,26 @@
 from meta.lib.graphlib import GraphEntity
 from pymantic import sparql
 
+
 class ResourceFinder:
 
     def __init__(self, ts_url):
         self.ts = sparql.SPARQLServer(ts_url)
 
-
     def __query(self, query):
         result = self.ts.query(query)
         return result
 
-
-
-    #_______________________________BR_________________________________#
+    # _______________________________BR_________________________________ #
 
     def retrieve_br_from_id(self, value, schema):
         schema = GraphEntity.DATACITE + schema
         query = """
                 SELECT DISTINCT ?res (group_concat(DISTINCT  ?title;separator=' ;and; ') as ?title_)
-					 (group_concat(DISTINCT  ?id;separator=' ;and; ') as ?id_)
-					 (group_concat(?schema;separator=' ;and; ') as ?schema_)
-					 (group_concat(DISTINCT  ?value;separator=' ;and; ') as ?value_)
-
-				WHERE {
+                    (group_concat(DISTINCT  ?id;separator=' ;and; ') as ?id_)
+                    (group_concat(?schema;separator=' ;and; ') as ?schema_)
+                    (group_concat(DISTINCT  ?value;separator=' ;and; ') as ?value_)
+                WHERE {
                     ?res a <%s>.
                     OPTIONAL {?res <%s> ?title.}
                     ?res <%s> ?id.
@@ -49,18 +46,18 @@ class ResourceFinder:
                 id_schema_list = str(result["schema_"]["value"]).replace(GraphEntity.DATACITE, "").split(" ;and; ")
                 id_value_list = str(result["value_"]["value"]).split(" ;and; ")
 
-                couple_list = list(zip(id_schema_list,id_value_list))
+                couple_list = list(zip(id_schema_list, id_value_list))
                 id_list = list()
                 for x in couple_list:
-                    id = str(x[0]).lower() + ':' + str(x[1])
-                    id_list.append(id)
+                    identifier = str(x[0]).lower() + ':' + str(x[1])
+                    id_list.append(identifier)
                 final_list = list(zip(meta_id_list, id_list))
                 result_list.append(tuple((res, title, final_list)))
             return result_list
         else:
             return None
 
-    def retrieve_br_from_meta (self, meta_id):
+    def retrieve_br_from_meta(self, meta_id):
         uri = "https://w3id.org/oc/meta/br/" + str(meta_id)
         query = """
                 SELECT DISTINCT ?res (group_concat(DISTINCT  ?title;separator=' ;and; ') as ?title_)
@@ -90,18 +87,17 @@ class ResourceFinder:
             couple_list = list(zip(id_schema_list, id_value_list))
             id_list = list()
             for x in couple_list:
-                id = str(x[0]).lower() + ':' + str(x[1])
-                id_list.append(id)
+                identifier = str(x[0]).lower() + ':' + str(x[1])
+                id_list.append(identifier)
             final_list = list(zip(meta_id_list, id_list))
 
             return title, final_list
         else:
             return None
 
+    # _______________________________ID_________________________________ #
 
-    #_______________________________ID_________________________________#
-
-    def retrieve_id (self, value, schema):
+    def retrieve_id(self, value, schema):
         schema = GraphEntity.DATACITE + schema
 
         query = """
@@ -115,9 +111,8 @@ class ResourceFinder:
                             filter(?knownValue = "%s")
                         } group by ?res
 
-                        """ % (
-        GraphEntity.identifier, GraphEntity.uses_identifier_scheme, schema, GraphEntity.has_literal_value,
-        value)
+                        """ % (GraphEntity.identifier, GraphEntity.uses_identifier_scheme, schema,
+                               GraphEntity.has_literal_value, value)
 
         result = self.__query(query)
         if result["results"]["bindings"]:
@@ -125,11 +120,8 @@ class ResourceFinder:
         else:
             return None
 
-
-
-
-    #_______________________________RA_________________________________#
-    def retrieve_ra_from_meta (self, meta_id, publisher = False):
+    # _______________________________RA_________________________________ #
+    def retrieve_ra_from_meta(self, meta_id, publisher=False):
         uri = "https://w3id.org/oc/meta/ra/" + str(meta_id)
         query = """
                         SELECT DISTINCT ?res (group_concat(DISTINCT  ?title;separator=' ;and; ') as ?title_)
@@ -150,8 +142,9 @@ class ResourceFinder:
                             filter(?res = <%s>)
                         } group by ?res
 
-                        """ % (GraphEntity.agent, GraphEntity.given_name, GraphEntity.family_name, GraphEntity.name, GraphEntity.has_identifier,
-                               GraphEntity.uses_identifier_scheme, GraphEntity.has_literal_value, uri)
+                        """ % (GraphEntity.agent, GraphEntity.given_name, GraphEntity.family_name, GraphEntity.name,
+                               GraphEntity.has_identifier, GraphEntity.uses_identifier_scheme,
+                               GraphEntity.has_literal_value, uri)
         result = self.__query(query)
         if result["results"]["bindings"]:
             result = result["results"]["bindings"][0]
@@ -169,14 +162,13 @@ class ResourceFinder:
             id_list = list()
             for x in couple_list:
                 if x[0] and x[1]:
-                    id = str(x[0]).lower() + ':' + str(x[1])
-                    id_list.append(id)
+                    identifier = str(x[0]).lower() + ':' + str(x[1])
+                    id_list.append(identifier)
             final_list = list(zip(meta_id_list, id_list))
 
             return title, final_list
         else:
             return None
-
 
     def retrieve_ra_from_id(self, value, schema, publisher):
         schema = GraphEntity.DATACITE + schema
@@ -204,9 +196,10 @@ class ResourceFinder:
                     filter(?knownValue = "%s")
                 } group by ?res
 
-                """ % (GraphEntity.agent, GraphEntity.given_name, GraphEntity.family_name, GraphEntity.name, GraphEntity.has_identifier,
-                       GraphEntity.uses_identifier_scheme, GraphEntity.has_literal_value, GraphEntity.has_identifier,
-                       GraphEntity.uses_identifier_scheme, schema, GraphEntity.has_literal_value, value)
+                """ % (GraphEntity.agent, GraphEntity.given_name, GraphEntity.family_name, GraphEntity.name,
+                       GraphEntity.has_identifier, GraphEntity.uses_identifier_scheme, GraphEntity.has_literal_value,
+                       GraphEntity.has_identifier, GraphEntity.uses_identifier_scheme, schema,
+                       GraphEntity.has_literal_value, value)
 
         results = self.__query(query)
 
@@ -227,8 +220,8 @@ class ResourceFinder:
                 couple_list = list(zip(id_schema_list, id_value_list))
                 id_list = list()
                 for x in couple_list:
-                    id = str(x[0]).lower() + ':' + str(x[1])
-                    id_list.append(id)
+                    identifier = str(x[0]).lower() + ':' + str(x[1])
+                    id_list.append(identifier)
                 final_list = list(zip(meta_id_list, id_list))
 
                 result_list.append(tuple((res, title, final_list)))
@@ -236,9 +229,7 @@ class ResourceFinder:
         else:
             return None
 
-
-
-    #_______________________________VVI_________________________________#
+    # _______________________________VVI_________________________________ #
 
     def retrieve_venue_from_meta(self, meta_id):
         content = dict()
@@ -247,20 +238,20 @@ class ResourceFinder:
         content = self.retrieve_vvi(meta_id, content)
         return content
 
-
     def retrieve_vvi(self, meta, content):
         query = """
                 SELECT DISTINCT ?res 
-                     (group_concat(DISTINCT  ?type;separator=' ;and; ') as ?type_)
-					 (group_concat(DISTINCT  ?title;separator=' ;and; ') as ?title_)
+                    (group_concat(DISTINCT  ?type;separator=' ;and; ') as ?type_)
+                    (group_concat(DISTINCT  ?title;separator=' ;and; ') as ?title_)
 
-				WHERE {
+                WHERE {
                     ?res <%s> <%s>.
                     ?res a ?type.
                     ?res <%s> ?title.
                 } group by ?res
 
-                """ % (GraphEntity.part_of, "https://w3id.org/oc/meta/br/" + str(meta), GraphEntity.has_sequence_identifier)
+                """ % (GraphEntity.part_of, "https://w3id.org/oc/meta/br/" + str(meta),
+                       GraphEntity.has_sequence_identifier)
         result = self.__query(query)
         if result["results"]["bindings"]:
             results = result["results"]["bindings"]
@@ -286,9 +277,7 @@ class ResourceFinder:
                             content[title]['id'] = res
         return content
 
-
-
-    def retrieve_ra_sequence_from_meta (self, meta_id, col_name):
+    def retrieve_ra_sequence_from_meta(self, meta_id, col_name):
         if col_name == "author":
             role = GraphEntity.author
         elif col_name == "editor":
@@ -309,7 +298,8 @@ class ResourceFinder:
                     filter(?res = <%s>)
                 } 
 
-                """ % (GraphEntity.expression, GraphEntity.is_document_context_for, GraphEntity.role_in_time, GraphEntity.with_role, role, GraphEntity.has_next, GraphEntity.is_held_by, uri)
+                """ % (GraphEntity.expression, GraphEntity.is_document_context_for, GraphEntity.role_in_time,
+                       GraphEntity.with_role, role, GraphEntity.has_next, GraphEntity.is_held_by, uri)
         result = self.__query(query)
         if result["results"]["bindings"]:
             results = result["results"]["bindings"]
@@ -317,14 +307,14 @@ class ResourceFinder:
             for x in results:
                 role = str(x["role"]["value"]).replace("https://w3id.org/oc/meta/ar/", "")
                 if "next" in x:
-                    next = str(x["next"]["value"]).replace("https://w3id.org/oc/meta/ar/", "")
+                    next_role = str(x["next"]["value"]).replace("https://w3id.org/oc/meta/ar/", "")
                 else:
-                    next = ""
+                    next_role = ""
                 agent = str(x["agent"]["value"]).replace("https://w3id.org/oc/meta/ra/", "")
 
                 dict_ar[role] = dict()
 
-                dict_ar[role]["next"] = next
+                dict_ar[role]["next"] = next_role
                 dict_ar[role]["agent"] = agent
 
             ar_list = list()
@@ -334,9 +324,11 @@ class ResourceFinder:
                 for x in dict_ar:
                     if dict_ar[x]["next"] == last:
                         if col_name == "publisher":
-                            agent_info = self.retrieve_ra_from_meta (dict_ar[x]["agent"], publisher = True) + (dict_ar[x]["agent"],)
+                            agent_info = self.retrieve_ra_from_meta(dict_ar[x]["agent"], publisher=True) +\
+                                         (dict_ar[x]["agent"],)
                         else:
-                            agent_info = self.retrieve_ra_from_meta(dict_ar[x]["agent"], publisher = False) + (dict_ar[x]["agent"],)
+                            agent_info = self.retrieve_ra_from_meta(dict_ar[x]["agent"], publisher=False) +\
+                                         (dict_ar[x]["agent"],)
                         ar_dic = dict()
                         ar_dic[x] = agent_info
                         ar_list.append(ar_dic)
@@ -348,7 +340,7 @@ class ResourceFinder:
         else:
             return None
 
-    def re_from_meta (self, meta):
+    def re_from_meta(self, meta):
         uri = "https://w3id.org/oc/meta/br/" + str(meta)
         query = """
                         SELECT DISTINCT ?re ?sp ?ep
@@ -359,15 +351,16 @@ class ResourceFinder:
                             ?re <%s> ?ep.
                         }
 
-                        """ % (uri, GraphEntity.expression, uri, GraphEntity.embodiment, GraphEntity.starting_page, GraphEntity.ending_page)
+                        """ % (uri, GraphEntity.expression, uri, GraphEntity.embodiment, GraphEntity.starting_page,
+                               GraphEntity.ending_page)
         result = self.__query(query)
         if result["results"]["bindings"]:
             meta = result["results"]["bindings"][0]["re"]["value"].replace("https://w3id.org/oc/meta/re/", "")
-            pages = result["results"]["bindings"][0]["sp"]["value"] + "-" + result["results"]["bindings"][0]["ep"]["value"]
-            return (meta, pages)
+            pages = result["results"]["bindings"][0]["sp"]["value"] + "-" +\
+                result["results"]["bindings"][0]["ep"]["value"]
+            return meta, pages
         else:
             return None
-
 
     def retrieve_br_info_from_meta(self, meta_id):
         uri = "https://w3id.org/oc/meta/br/" + str(meta_id)
@@ -411,7 +404,10 @@ class ResourceFinder:
                             filter(?res = <%s>)
                         } group by ?res
 
-                        """ % (GraphEntity.has_publication_date, GraphEntity.has_sequence_identifier, GraphEntity.part_of, GraphEntity.title, GraphEntity.has_sequence_identifier, GraphEntity.part_of, GraphEntity.title, GraphEntity.has_sequence_identifier,GraphEntity.part_of, GraphEntity.title, GraphEntity.has_sequence_identifier,uri)
+                        """ % (GraphEntity.has_publication_date, GraphEntity.has_sequence_identifier,
+                               GraphEntity.part_of, GraphEntity.title, GraphEntity.has_sequence_identifier,
+                               GraphEntity.part_of, GraphEntity.title, GraphEntity.has_sequence_identifier,
+                               GraphEntity.part_of, GraphEntity.title, GraphEntity.has_sequence_identifier, uri)
         result = self.__query(query)
         if result["results"]["bindings"]:
 
@@ -446,9 +442,6 @@ class ResourceFinder:
             return res_dict
         else:
             return None
-
-
-
 
     @staticmethod
     def typalo(result, type_):
@@ -510,7 +503,3 @@ class ResourceFinder:
             dic["venue"] = result[title_]["value"] + " [meta:" + result[part_]["value"] \
                 .replace("https://w3id.org/oc/meta/", "") + "]"
         return dic
-
-
-
-
