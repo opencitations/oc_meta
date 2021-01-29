@@ -1,4 +1,4 @@
-from meta.lib.graphlib import GraphEntity
+from oc_ocdm.graph import GraphEntity
 from pymantic import sparql
 
 
@@ -32,9 +32,10 @@ class ResourceFinder:
                     filter(?knownValue = "%s")
                 } group by ?res
 
-                """ % (GraphEntity.expression, GraphEntity.title, GraphEntity.has_identifier,
-                       GraphEntity.uses_identifier_scheme, GraphEntity.has_literal_value, GraphEntity.has_identifier,
-                       GraphEntity.uses_identifier_scheme, schema, GraphEntity.has_literal_value, value)
+                """ % (GraphEntity.iri_expression, GraphEntity.iri_title, GraphEntity.iri_has_identifier,
+                       GraphEntity.iri_uses_identifier_scheme, GraphEntity.iri_has_literal_value,
+                       GraphEntity.iri_has_identifier, GraphEntity.iri_uses_identifier_scheme, schema,
+                       GraphEntity.iri_has_literal_value, value)
         results = self.__query(query)
 
         if len(results["results"]["bindings"]):
@@ -74,8 +75,8 @@ class ResourceFinder:
                     filter(?res = <%s>)
                 } group by ?res
 
-                """ % (GraphEntity.expression, GraphEntity.title, GraphEntity.has_identifier,
-                       GraphEntity.uses_identifier_scheme, GraphEntity.has_literal_value, uri)
+                """ % (GraphEntity.iri_expression, GraphEntity.iri_title, GraphEntity.iri_has_identifier,
+                       GraphEntity.iri_uses_identifier_scheme, GraphEntity.iri_has_literal_value, uri)
         result = self.__query(query)
         if result["results"]["bindings"]:
             result = result["results"]["bindings"][0]
@@ -111,8 +112,8 @@ class ResourceFinder:
                             filter(?knownValue = "%s")
                         } group by ?res
 
-                        """ % (GraphEntity.identifier, GraphEntity.uses_identifier_scheme, schema,
-                               GraphEntity.has_literal_value, value)
+                        """ % (GraphEntity.iri_identifier, GraphEntity.iri_uses_identifier_scheme, schema,
+                               GraphEntity.iri_has_literal_value, value)
 
         result = self.__query(query)
         if result["results"]["bindings"]:
@@ -142,9 +143,9 @@ class ResourceFinder:
                             filter(?res = <%s>)
                         } group by ?res
 
-                        """ % (GraphEntity.agent, GraphEntity.given_name, GraphEntity.family_name, GraphEntity.name,
-                               GraphEntity.has_identifier, GraphEntity.uses_identifier_scheme,
-                               GraphEntity.has_literal_value, uri)
+                        """ % (GraphEntity.iri_agent, GraphEntity.iri_given_name, GraphEntity.iri_family_name,
+                               GraphEntity.iri_name, GraphEntity.iri_has_identifier,
+                               GraphEntity.iri_uses_identifier_scheme, GraphEntity.iri_has_literal_value, uri)
         result = self.__query(query)
         if result["results"]["bindings"]:
             result = result["results"]["bindings"][0]
@@ -196,10 +197,10 @@ class ResourceFinder:
                     filter(?knownValue = "%s")
                 } group by ?res
 
-                """ % (GraphEntity.agent, GraphEntity.given_name, GraphEntity.family_name, GraphEntity.name,
-                       GraphEntity.has_identifier, GraphEntity.uses_identifier_scheme, GraphEntity.has_literal_value,
-                       GraphEntity.has_identifier, GraphEntity.uses_identifier_scheme, schema,
-                       GraphEntity.has_literal_value, value)
+                """ % (GraphEntity.iri_agent, GraphEntity.iri_given_name, GraphEntity.iri_family_name,
+                       GraphEntity.iri_name, GraphEntity.iri_has_identifier, GraphEntity.iri_uses_identifier_scheme,
+                       GraphEntity.iri_has_literal_value, GraphEntity.iri_has_identifier,
+                       GraphEntity.iri_uses_identifier_scheme, schema, GraphEntity.iri_has_literal_value, value)
 
         results = self.__query(query)
 
@@ -250,8 +251,8 @@ class ResourceFinder:
                     ?res <%s> ?title.
                 } group by ?res
 
-                """ % (GraphEntity.part_of, "https://w3id.org/oc/meta/br/" + str(meta),
-                       GraphEntity.has_sequence_identifier)
+                """ % (GraphEntity.iri_part_of, "https://w3id.org/oc/meta/br/" + str(meta),
+                       GraphEntity.iri_has_sequence_identifier)
         result = self.__query(query)
         if result["results"]["bindings"]:
             results = result["results"]["bindings"]
@@ -279,11 +280,11 @@ class ResourceFinder:
 
     def retrieve_ra_sequence_from_meta(self, meta_id, col_name):
         if col_name == "author":
-            role = GraphEntity.author
+            role = GraphEntity.iri_author
         elif col_name == "editor":
-            role = GraphEntity.editor
+            role = GraphEntity.iri_editor
         else:
-            role = GraphEntity.publisher
+            role = GraphEntity.iri_publisher
         uri = "https://w3id.org/oc/meta/br/" + str(meta_id)
         query = """
                 SELECT DISTINCT ?role ?next ?agent
@@ -298,8 +299,9 @@ class ResourceFinder:
                     filter(?res = <%s>)
                 } 
 
-                """ % (GraphEntity.expression, GraphEntity.is_document_context_for, GraphEntity.role_in_time,
-                       GraphEntity.with_role, role, GraphEntity.has_next, GraphEntity.is_held_by, uri)
+                """ % (GraphEntity.iri_expression, GraphEntity.iri_is_document_context_for,
+                       GraphEntity.iri_role_in_time, GraphEntity.iri_with_role, role, GraphEntity.iri_has_next,
+                       GraphEntity.iri_is_held_by, uri)
         result = self.__query(query)
         if result["results"]["bindings"]:
             results = result["results"]["bindings"]
@@ -351,8 +353,8 @@ class ResourceFinder:
                             ?re <%s> ?ep.
                         }
 
-                        """ % (uri, GraphEntity.expression, uri, GraphEntity.embodiment, GraphEntity.starting_page,
-                               GraphEntity.ending_page)
+                        """ % (uri, GraphEntity.iri_expression, uri, GraphEntity.iri_embodiment,
+                               GraphEntity.iri_starting_page, GraphEntity.iri_ending_page)
         result = self.__query(query)
         if result["results"]["bindings"]:
             meta = result["results"]["bindings"][0]["re"]["value"].replace("https://w3id.org/oc/meta/re/", "")
@@ -404,10 +406,11 @@ class ResourceFinder:
                             filter(?res = <%s>)
                         } group by ?res
 
-                        """ % (GraphEntity.has_publication_date, GraphEntity.has_sequence_identifier,
-                               GraphEntity.part_of, GraphEntity.title, GraphEntity.has_sequence_identifier,
-                               GraphEntity.part_of, GraphEntity.title, GraphEntity.has_sequence_identifier,
-                               GraphEntity.part_of, GraphEntity.title, GraphEntity.has_sequence_identifier, uri)
+                        """ % (GraphEntity.iri_has_publication_date, GraphEntity.iri_has_sequence_identifier,
+                               GraphEntity.iri_part_of, GraphEntity.iri_title, GraphEntity.iri_has_sequence_identifier,
+                               GraphEntity.iri_part_of, GraphEntity.iri_title, GraphEntity.iri_has_sequence_identifier,
+                               GraphEntity.iri_part_of, GraphEntity.iri_title, GraphEntity.iri_has_sequence_identifier,
+                               uri)
         result = self.__query(query)
         if result["results"]["bindings"]:
 
@@ -451,45 +454,45 @@ class ResourceFinder:
             for t in ty:
                 if "Expression" not in t:
                     t_type = str(t)
-                    if str(t_type) == str(GraphEntity.archival_document):
+                    if str(t_type) == str(GraphEntity.iri_archival_document):
                         t_type = "archival document"
-                    if str(t_type) == str(GraphEntity.book):
+                    if str(t_type) == str(GraphEntity.iri_book):
                         t_type = "book"
-                    if str(t_type) == str(GraphEntity.book_chapter):
+                    if str(t_type) == str(GraphEntity.iri_book_chapter):
                         t_type = "book chapter"
-                    if str(t_type) == str(GraphEntity.part):
+                    if str(t_type) == str(GraphEntity.iri_part):
                         t_type = "book part"
-                    if str(t_type) == str(GraphEntity.expression_collection):
+                    if str(t_type) == str(GraphEntity.iri_expression_collection):
                         t_type = "book section"
-                    if str(t_type) == str(GraphEntity.book_series):
+                    if str(t_type) == str(GraphEntity.iri_book_series):
                         t_type = "book series"
-                    if str(t_type) == str(GraphEntity.book_set):
+                    if str(t_type) == str(GraphEntity.iri_book_set):
                         t_type = "book set"
-                    if str(t_type) == str(GraphEntity.data_file):
+                    if str(t_type) == str(GraphEntity.iri_data_file):
                         t_type = "data file"
-                    if str(t_type) == str(GraphEntity.thesis):
+                    if str(t_type) == str(GraphEntity.iri_thesis):
                         t_type = "dissertation"
-                    if str(t_type) == str(GraphEntity.journal):
+                    if str(t_type) == str(GraphEntity.iri_journal):
                         t_type = "journal"
-                    if str(t_type) == str(GraphEntity.journal_article):
+                    if str(t_type) == str(GraphEntity.iri_journal_article):
                         t_type = "journal article"
-                    if str(t_type) == str(GraphEntity.journal_issue):
+                    if str(t_type) == str(GraphEntity.iri_journal_issue):
                         t_type = "journal issue"
-                    if str(t_type) == str(GraphEntity.journal_volume):
+                    if str(t_type) == str(GraphEntity.iri_journal_volume):
                         t_type = "journal volume"
-                    if str(t_type) == str(GraphEntity.proceedings_paper):
+                    if str(t_type) == str(GraphEntity.iri_proceedings_paper):
                         t_type = "proceedings article"
-                    if str(t_type) == str(GraphEntity.academic_proceedings):
+                    if str(t_type) == str(GraphEntity.iri_academic_proceedings):
                         t_type = "proceedings"
-                    if str(t_type) == str(GraphEntity.reference_book):
+                    if str(t_type) == str(GraphEntity.iri_reference_book):
                         t_type = "reference book"
-                    if str(t_type) == str(GraphEntity.reference_entry):
+                    if str(t_type) == str(GraphEntity.iri_reference_entry):
                         t_type = "reference entry"
-                    if str(t_type) == str(GraphEntity.series):
+                    if str(t_type) == str(GraphEntity.iri_series):
                         t_type = "series"
-                    if str(t_type) == str(GraphEntity.report_document):
+                    if str(t_type) == str(GraphEntity.iri_report_document):
                         t_type = "report"
-                    if str(t_type) == str(GraphEntity.specification_document):
+                    if str(t_type) == str(GraphEntity.iri_specification_document):
                         t_type = "standard"
         return t_type
 

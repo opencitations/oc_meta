@@ -68,3 +68,6 @@ supplier_dir = {
 interface = "eth0"
 do_parallel = True
 sharing_dir = "/srv/share/data/"
+
+# New configuration
+resp_agent = "https://w3id.org/oc/meta/prov/pa/1"

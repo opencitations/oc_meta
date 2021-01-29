@@ -1,10 +1,10 @@
-from meta.lib.graphlib import ProvSet
+from oc_ocdm import Storer
+from oc_ocdm.prov import ProvSet
+
 from meta.scripts.creator import *
 from meta.scripts.curator import *
-from meta.lib.storer import *
-from meta.lib.resfinder import ResourceFinder
 from meta.lib.conf import base_iri, context_path, info_dir, triplestore_url, \
-    base_dir, temp_dir_for_rdf_loading, dir_split_number, items_per_file, default_dir
+    base_dir, dir_split_number, items_per_file, default_dir
 from datetime import datetime
 from argparse import ArgumentParser
 import os
@@ -30,37 +30,28 @@ def process(crossref_csv_dir, csv_dir, index_dir, auxiliary_path, source=None):
 
             prov_dir = os.path.join(info_dir, "counter_prov/counter_")
 
-            prov = ProvSet(creator, base_iri, context_path, default_dir, prov_dir,
-                           ResourceFinder(base_dir=base_dir, base_iri=base_iri,
-                                          tmp_dir=temp_dir_for_rdf_loading,
-                                          context_map={},
-                                          dir_split=dir_split_number,
-                                          n_file_item=items_per_file,
-                                          default_dir=default_dir),
-                           dir_split_number, items_per_file, "", triplestore_url, wanted_label=False)
+            prov = ProvSet(creator, base_iri, prov_dir, "", wanted_label=False)
 
-            prov.generate_provenance("https://w3id.org/oc/meta/prov/pa/1")
+            prov.generate_provenance()
 
             res_storer = Storer(creator,
                                 context_map={},
                                 dir_split=dir_split_number,
                                 n_file_item=items_per_file,
                                 default_dir=default_dir,
-                                nt=True)
+                                output_format='nt11')
 
             prov_storer = Storer(prov,
                                  context_map={},
                                  dir_split=dir_split_number,
                                  n_file_item=items_per_file,
-                                 nq=True)
+                                 output_format='nquads')
 
             res_storer.upload_and_store(
-                base_dir, triplestore_url, base_iri, context_path,
-                temp_dir_for_rdf_loading)
+                base_dir, triplestore_url, base_iri, context_path)
 
             prov_storer.store_all(
-                base_dir, base_iri, context_path,
-                temp_dir_for_rdf_loading)
+                base_dir, base_iri, context_path)
 
             aux_file.write(filename + "\n")
             aux_file.close()
