@@ -398,3 +398,6 @@ while x < 17:
     x += 1
     runner = unittest.TextTestRunner()
     runner.run(TestSuit)
+reset()
+server = "http://127.0.0.1:9999/blazegraph/sparql"
+reset_server(server)
