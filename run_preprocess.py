@@ -13,19 +13,20 @@ def preprocess(crossref_json_dir, orcid_doi_filepath, csv_dir, wanted_doi_filepa
             pathoo(filepath)
             data = crossref_csv.csv_creator(json_file)
             with open(filepath, 'w', newline='', encoding="utf-8") as output_file:
-                dict_writer = csv.DictWriter(output_file, data[0].keys(), delimiter=',', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
+                dict_writer = csv.DictWriter(output_file, data[0].keys(), delimiter=',', quotechar='"',
+                                             quoting=csv.QUOTE_NONNUMERIC)
                 dict_writer.writeheader()
                 dict_writer.writerows(data)
+
 
 def pathoo(path):
     if not os.path.exists(os.path.dirname(path)):
         os.makedirs(os.path.dirname(path))
 
 
-
 if __name__ == "__main__":
     arg_parser = ArgumentParser("run_preprocess.py", description="This script create csv files from Crossref json,"
-                                                             " enriching them thanks to an doi-orcid index")
+                                                                 " enriching them thanks to an doi-orcid index")
 
     arg_parser.add_argument("-c", "--crossref", dest="crossref_json_dir", required=True,
                             help="Crossref json files directory")
@@ -39,5 +40,3 @@ if __name__ == "__main__":
     args = arg_parser.parse_args()
 
     preprocess(args.crossref_json_dir, args.orcid_doi_filepath, args.csv_dir, args.wanted_doi_filepath)
-
-

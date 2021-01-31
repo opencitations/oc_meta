@@ -1,4 +1,5 @@
-import json, html, csv
+import json
+import html
 from bs4 import BeautifulSoup
 from meta.lib.id_manager.orcidmanager import ORCIDManager
 from meta.lib.csvmanager import CSVManager
@@ -21,7 +22,7 @@ class crossrefProcessing:
         with open(raw_data_path, encoding="utf-8") as json_file:
 
             raw_data = json.load(json_file)
-            #input_data = raw_data["items"]
+            # input_data = raw_data["items"]
 
             for x in raw_data:
                 if "DOI" in x:
@@ -32,16 +33,16 @@ class crossrefProcessing:
                 if (doi and self.doi_set and doi in self.doi_set) or (doi and not self.doi_set):
                     row = dict()
 
-                    #create empty row
-                    keys = ["id", "title", "author", "pub_date", "venue", "volume", "issue", "page", "type", "publisher",
-                            "editor"]
+                    # create empty row
+                    keys = ["id", "title", "author", "pub_date", "venue", "volume", "issue", "page", "type",
+                            "publisher", "editor"]
                     for k in keys:
                         row[k] = ""
 
                     if "type" in x:
                         row["type"] = x["type"].replace("-", " ")
 
-                    #row["id"]
+                    # row["id"]
                     idlist = list()
                     idlist.append(str("doi:" + doi))
 
@@ -64,7 +65,7 @@ class crossrefProcessing:
                                 self.issn_worker(issnid, idlist)
                     row["id"] = " ".join(idlist)
 
-                    #row["title"]
+                    # row["title"]
                     if "title" in x:
                         if x["title"]:
                             if isinstance(x["title"], list):
@@ -75,7 +76,7 @@ class crossrefProcessing:
                             soup = BeautifulSoup(text_title, "html.parser")
                             row["title"] = soup.get_text().replace("\n", "")
 
-                    #row["author"]
+                    # row["author"]
                     if "author" in x:
                         dict_orcid = None
                         if doi and not all("ORCID" in at for at in x["author"]):
@@ -104,8 +105,8 @@ class crossrefProcessing:
                                         orc_n = dict_orcid[ori].split(", ")
                                         orc_f = orc_n[0]
                                         orc_g = orc_n[1]
-                                        if (f_name.lower() in orc_f.lower() or orc_f.lower() in f_name.lower()):
-                                            #and (g_name.lower() in orc_g.lower() or orc_g.lower() in g_name.lower()):
+                                        if f_name.lower() in orc_f.lower() or orc_f.lower() in f_name.lower():
+                                            # and (g_name.lower() in orc_g.lower() or orc_g.lower() in g_name.lower()):
                                             orcid = ori
                                 if orcid:
                                     aut = aut + " [" + "orcid:" + str(orcid) + "]"
@@ -113,11 +114,11 @@ class crossrefProcessing:
 
                         row["author"] = "; ".join(autlist)
 
-                    #row["date"]
+                    # row["date"]
                     if "issued" in x:
                         row["pub_date"] = "-".join([str(y) for y in x["issued"]["date-parts"][0]])
 
-                    #row["venue"]
+                    # row["venue"]
                     if "container-title" in x:
                         if isinstance(x["container-title"], list):
                             ventit = str(x["container-title"][0]).replace("\n", "")
@@ -196,12 +197,14 @@ class crossrefProcessing:
                 found[orc[1]] = orc[0].lower()
         return found
 
-    def issn_worker (self, issnid, idlist):
+    @staticmethod
+    def issn_worker(issnid, idlist):
         if ISSNManager().is_valid(issnid):
             issnid = ISSNManager().normalise(issnid)
             idlist.append(str("issn:" + issnid))
 
-    def isbn_worker (self, isbnid, idlist):
+    @staticmethod
+    def isbn_worker(isbnid, idlist):
         if ISBNManager().is_valid(isbnid):
             isbnid = ISBNManager().normalise(isbnid)
             idlist.append(str("isbn:" + isbnid))
