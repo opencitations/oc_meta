@@ -47,4 +47,3 @@ class ORCIDManager(IdentifierManager):
         reminder = total % 11
         result = (12 - reminder) % 11
         return (str(result) == orcid[-1]) or (result == 10 and orcid[-1] == "X")
-

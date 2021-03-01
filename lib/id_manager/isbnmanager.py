@@ -1,5 +1,5 @@
 from meta.lib.id_manager.identifiermanager import IdentifierManager
-from re import sub, match
+from re import sub
 
 
 class ISBNManager(IdentifierManager):
@@ -23,18 +23,22 @@ class ISBNManager(IdentifierManager):
         check_digit = False
         if len(isbn) == 13:
             total = 0
-            val=1
+            val = 1
             for x in isbn:
-                if x == "X": x = 10
+                if x == "X":
+                    x = 10
                 total += int(x)*val
                 val = 3 if val == 1 else val == 1
-            if (total % 10) == 0 : check_digit = True
+            if (total % 10) == 0:
+                check_digit = True
         elif len(isbn) == 10:
-            total=0
+            total = 0
             val = 10
             for x in isbn:
-                if x =="X": x = 10
+                if x == "X":
+                    x = 10
                 total += int(x)*val
                 val -= 1
-            if (total % 11) == 0: check_digit = True
+            if (total % 11) == 0:
+                check_digit = True
         return check_digit
