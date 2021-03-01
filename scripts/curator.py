@@ -48,10 +48,18 @@ class Curator:
 
     def curator(self, filename=None, path_csv=None, path_index=None):
         for row in self.data:
-            self.log[self.rowcnt] = dict()
-            key_list = ["id", "author", "venue", "editor", "publisher", "page", "volume", "issue", "pub_date", "type"]
-            for key in key_list:
-                self.log[self.rowcnt][key] = dict()
+            self.log[self.rowcnt] = {
+                "id": {},
+                "author": {},
+                "venue": {},
+                "editor": {},
+                "publisher": {},
+                "page": {},
+                "volume": {},
+                "issue": {},
+                "pub_date": {},
+                "type": {}
+            }
             self.clean_id(row)
             self.rowcnt += 1
 
@@ -888,11 +896,11 @@ class Curator:
             local_match = self.local_match(idslist, entity_dict)
             # check in entity_dict
             if local_match["existing"]:
-                # ids refer to multiple existing enitities
+                # ids refer to multiple existing entities
                 if len(local_match["existing"]) > 1:
                     return self.conflict(idslist, name, id_dict, col_name)
 
-                # ids refer to ONE existing enitity
+                # ids refer to ONE existing entity
                 elif len(local_match["existing"]) == 1:
                     metaval = str(local_match["existing"][0])
                     supsected_ids = list()

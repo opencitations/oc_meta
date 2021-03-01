@@ -8,13 +8,14 @@ from meta.lib.conf import base_iri, context_path, info_dir, triplestore_url, \
 from datetime import datetime
 from argparse import ArgumentParser
 import os
+import csv
 
 
 def process(crossref_csv_dir, csv_dir, index_dir, auxiliary_path, source=None):
     for filename in os.listdir(crossref_csv_dir):
         pathoo(auxiliary_path)
-        aux_file = open(auxiliary_path, "r+")
-        completed = [line.rstrip('\n') for line in aux_file]
+        with open(auxiliary_path, "r") as aux_file:
+            completed = [line.rstrip('\n') for line in aux_file]
         if filename.endswith(".csv") and filename not in completed:
             filepath = os.path.join(crossref_csv_dir, filename)
             data = unpack(filepath)
@@ -53,8 +54,8 @@ def process(crossref_csv_dir, csv_dir, index_dir, auxiliary_path, source=None):
             prov_storer.store_all(
                 base_dir, base_iri, context_path)
 
-            aux_file.write(filename + "\n")
-            aux_file.close()
+            with open(auxiliary_path, "a", encoding='utf-8') as aux_file:
+                aux_file.write(filename + "\n")
 
 
 def pathoo(path):
