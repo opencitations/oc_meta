@@ -100,6 +100,7 @@ class Creator(object):
         index['url'] = dict()
         index['viaf'] = dict()
         index['wikidata'] = dict()
+        index['wikipedia'] = dict()
 
         for row in csv_index:
             if row["id"].startswith("crossref"):
@@ -141,6 +142,10 @@ class Creator(object):
             elif row["id"].startswith("wikidata"):
                 identifier = row["id"].replace('wikidata:', '')
                 index['wikidata'][identifier] = row["meta"]
+
+            elif row["id"].startswith("wikipedia"):
+                identifier = row["id"].replace('wikipedia:', '')
+                index['wikipedia'][identifier] = row["meta"]
 
         return index
 
@@ -493,6 +498,13 @@ class Creator(object):
             url = URIRef(self.url + "id/" + res)
             new_id = self.setgraph.add_id(resp_agent, source_agent=None, source=self.src, res=url)
             new_id.create_wikidata(identifier)
+
+        elif identifier.startswith("wikipedia"):
+            identifier = identifier.replace("wikipedia:", "")
+            res = self.br_index['wikipedia'][identifier]
+            url = URIRef(self.url + "id/" + res)
+            new_id = self.setgraph.add_id(resp_agent, source_agent=None, source=self.src, res=url)
+            new_id.create_wikipedia(identifier)
 
         if new_id:
             graph.has_identifier(new_id)
