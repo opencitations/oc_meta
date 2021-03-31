@@ -8,7 +8,7 @@ idna==2.10
 isodate==0.6.0
 joblib==1.0.0
 lark-parser==0.11.1
-lxml==4.6.2
+lxml==4.6.3
 netifaces==0.10.9
 nltk==3.5
 PyLD==2.0.3
