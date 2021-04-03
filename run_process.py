@@ -4,7 +4,7 @@ from oc_ocdm.prov import ProvSet
 from meta.scripts.creator import *
 from meta.scripts.curator import *
 from meta.lib.conf import base_iri, context_path, info_dir, triplestore_url, \
-    base_dir, dir_split_number, items_per_file, default_dir
+    base_dir, dir_split_number, items_per_file, default_dir, rdf_output_in_chunks
 from datetime import datetime
 from argparse import ArgumentParser
 import os
@@ -49,11 +49,23 @@ def process(crossref_csv_dir, csv_dir, index_dir, auxiliary_path, source=None):
                                  n_file_item=items_per_file,
                                  output_format='nquads')
 
-            res_storer.upload_and_store(
-                base_dir, triplestore_url, base_iri, context_path)
+            if rdf_output_in_chunks:
+                filename_without_csv = filename[:-4]
+                f = os.path.join(base_dir, filename_without_csv + ".ttl")
+                res_storer.store_graphs_in_file(f, context_path)
+                res_storer.upload_all(triplestore_url, base_dir, batch_size=100)
 
-            prov_storer.store_all(
-                base_dir, base_iri, context_path)
+                # Provenance
+                prov_dir = os.path.join(base_dir, 'prov' + os.sep)
+                pathoo(prov_dir)
+                f_prov = os.path.join(prov_dir, filename_without_csv + '.nquads')
+                prov_storer.store_graphs_in_file(f_prov, context_path)
+            else:
+                res_storer.upload_and_store(
+                    base_dir, triplestore_url, base_iri, context_path, batch_size=100)
+
+                prov_storer.store_all(
+                    base_dir, base_iri, context_path)
 
             with open(auxiliary_path, "a", encoding='utf-8') as aux_file:
                 aux_file.write(filename + "\n")

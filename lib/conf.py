@@ -26,3 +26,4 @@ default_dir = "_"
 
 # New configuration
 resp_agent = "https://w3id.org/oc/meta/prov/pa/1"
+rdf_output_in_chunks = True
