@@ -32,7 +32,7 @@ def process(crossref_csv_dir, csv_dir, index_dir, auxiliary_path, source=None):
                                   curator_obj.VolIss)
             creator = creator_obj.creator(source=source)
 
-            prov = ProvSet(creator, base_iri, creator_info_dir, "", wanted_label=False)
+            prov = ProvSet(creator, base_iri, creator_info_dir, wanted_label=False)
 
             prov.generate_provenance()
 
