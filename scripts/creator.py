@@ -8,10 +8,10 @@ from meta.lib.conf import resp_agent
 
 
 class Creator(object):
-    def __init__(self, data, base_iri, ra_index, br_index, re_index_csv, ar_index_csv, vi_index):
+    def __init__(self, data, base_iri, info_dir, ra_index, br_index, re_index_csv, ar_index_csv, vi_index):
         self.url = base_iri
 
-        self.setgraph = GraphSet(self.url, "counter/", "", wanted_label=False)
+        self.setgraph = GraphSet(self.url, info_dir, "", wanted_label=False)
 
         self.ra_index = self.indexer_id(ra_index)
 
@@ -100,6 +100,7 @@ class Creator(object):
         index['url'] = dict()
         index['viaf'] = dict()
         index['wikidata'] = dict()
+        index['wikipedia'] = dict()
 
         for row in csv_index:
             if row["id"].startswith("crossref"):
@@ -142,6 +143,10 @@ class Creator(object):
                 identifier = row["id"].replace('wikidata:', '')
                 index['wikidata'][identifier] = row["meta"]
 
+            elif row["id"].startswith("wikipedia"):
+                identifier = row["id"].replace('wikipedia:', '')
+                index['wikipedia'][identifier] = row["meta"]
+
         return index
 
     def id_action(self, ids):
@@ -153,7 +158,7 @@ class Creator(object):
                 identifier = identifier.replace("meta:", "")
                 self.row_meta = identifier.replace("br/", "")
                 url = URIRef(self.url + identifier)
-                self.br_graph = self.setgraph.add_br(resp_agent, source_agent=None, source=self.src, res=url)
+                self.br_graph = self.setgraph.add_br(resp_agent, source=self.src, res=url)
 
         for identifier in idslist:
             self.id_creator(self.br_graph, identifier, ra=False)
@@ -176,7 +181,7 @@ class Creator(object):
                         identifier = str(identifier).replace('meta:', "")
                         url = URIRef(self.url + identifier)
                         aut_meta = identifier.replace('ra/', "")
-                        pub_aut = self.setgraph.add_ra(resp_agent, source_agent=None, source=self.src, res=url)
+                        pub_aut = self.setgraph.add_ra(resp_agent, source=self.src, res=url)
                         author_name = re.search(r'(.*?)\s*\[.*?]', aut).group(1)
                         if "," in author_name:
                             author_name_splitted = re.split(r'\s*,\s*', author_name)
@@ -196,7 +201,7 @@ class Creator(object):
                 AR = self.ar_index[self.row_meta]["author"][aut_meta]
                 ar_id = "ar/" + str(AR)
                 url_ar = URIRef(self.url + ar_id)
-                pub_aut_role = self.setgraph.add_ar(resp_agent, source_agent=None, source=self.src, res=url_ar)
+                pub_aut_role = self.setgraph.add_ar(resp_agent, source=self.src, res=url_ar)
                 pub_aut_role.create_author()
                 self.br_graph.has_contributor(pub_aut_role)
                 pub_aut_role.is_held_by(pub_aut)
@@ -227,7 +232,7 @@ class Creator(object):
                     ven_id = str(identifier).replace("meta:", "")
                     url = URIRef(self.url + ven_id)
                     venue_title = re.search(r'(.*?)\s*\[.*?]', venue).group(1)
-                    self.venue_graph = self.setgraph.add_br(resp_agent, source_agent=None, source=self.src, res=url)
+                    self.venue_graph = self.setgraph.add_br(resp_agent, source=self.src, res=url)
                     if self.type == "journal article" or self.type == "journal volume" or self.type == "journal issue":
                         self.venue_graph.create_journal()
                     elif self.type == "book chapter" or self.type == "book part":
@@ -250,7 +255,7 @@ class Creator(object):
             vol_meta = self.vi_index[meta_ven]["volume"][vol]["id"]
             vol_meta = "br/" + vol_meta
             url = URIRef(self.url + vol_meta)
-            self.vol_graph = self.setgraph.add_br(resp_agent, source_agent=None, source=self.src, res=url)
+            self.vol_graph = self.setgraph.add_br(resp_agent, source=self.src, res=url)
             self.vol_graph.create_volume()
             self.vol_graph.has_number(vol)
 
@@ -264,7 +269,7 @@ class Creator(object):
 
             iss_meta = "br/" + iss_meta
             url = URIRef(self.url + iss_meta)
-            self.issue_graph = self.setgraph.add_br(resp_agent, source_agent=None, source=self.src, res=url)
+            self.issue_graph = self.setgraph.add_br(resp_agent, source=self.src, res=url)
             self.issue_graph.create_issue()
             self.issue_graph.has_number(issue)
 
@@ -289,7 +294,7 @@ class Creator(object):
             res_em = self.re_index[self.row_meta]
             re_id = "re/" + str(res_em)
             url_re = URIRef(self.url + re_id)
-            form = self.setgraph.add_re(resp_agent, source_agent=None, source=self.src, res=url_re)
+            form = self.setgraph.add_re(resp_agent, source=self.src, res=url_re)
             form.has_starting_page(page)
             form.has_ending_page(page)
             self.br_graph.has_format(form)
@@ -347,7 +352,7 @@ class Creator(object):
                 pub_meta = identifier.replace("ra/", "")
                 url = URIRef(self.url + identifier)
                 publ_name = re.search(r'(.*?)\s*\[.*?]', publisher).group(1)
-                publ = self.setgraph.add_ra(resp_agent, source_agent=None, source=self.src, res=url)
+                publ = self.setgraph.add_ra(resp_agent, source=self.src, res=url)
                 publ.has_name(publ_name)
 
         for identifier in publ_id_list:
@@ -357,7 +362,7 @@ class Creator(object):
         AR = self.ar_index[self.row_meta]["publisher"][pub_meta]
         ar_id = "ar/" + str(AR)
         url_ar = URIRef(self.url + ar_id)
-        publ_role = self.setgraph.add_ar(resp_agent, source_agent=None, source=self.src, res=url_ar)
+        publ_role = self.setgraph.add_ar(resp_agent, source=self.src, res=url_ar)
         publ_role.create_publisher()
         self.br_graph.has_contributor(publ_role)
         publ_role.is_held_by(publ)
@@ -375,7 +380,7 @@ class Creator(object):
                     identifier = str(identifier).replace("meta:", "")
                     ed_meta = identifier.replace("ra/", "")
                     url = URIRef(self.url + identifier)
-                    pub_ed = self.setgraph.add_ra(resp_agent, source_agent=None, source=self.src, res=url)
+                    pub_ed = self.setgraph.add_ra(resp_agent, source=self.src, res=url)
                     editor_name = re.search(r'(.*?)\s*\[.*?]', ed).group(1)
                     if "," in editor_name:
                         editor_name_splitted = re.split(r'\s*,\s*', editor_name)
@@ -395,7 +400,7 @@ class Creator(object):
             AR = self.ar_index[self.row_meta]["editor"][ed_meta]
             ar_id = "ar/" + str(AR)
             url_ar = URIRef(self.url + ar_id)
-            pub_ed_role = self.setgraph.add_ar(resp_agent, source_agent=None, source=self.src, res=url_ar)
+            pub_ed_role = self.setgraph.add_ar(resp_agent, source=self.src, res=url_ar)
 
             if self.type == "proceedings article" and self.venue_graph:
                 pub_ed_role.create_editor()
@@ -421,78 +426,85 @@ class Creator(object):
                 identifier = identifier.replace('crossref:', '')
                 res = self.ra_index['crossref'][identifier]
                 url = URIRef(self.url + "id/" + res)
-                new_id = self.setgraph.add_id(resp_agent, source_agent=None, source=self.src, res=url)
+                new_id = self.setgraph.add_id(resp_agent, source=self.src, res=url)
                 new_id.create_crossref(identifier)
 
             elif identifier.startswith("orcid"):
                 identifier = identifier.replace("orcid:", "")
                 res = self.ra_index['orcid'][identifier]
                 url = URIRef(self.url + "id/" + res)
-                new_id = self.setgraph.add_id(resp_agent, source_agent=None, source=self.src, res=url)
+                new_id = self.setgraph.add_id(resp_agent, source=self.src, res=url)
                 new_id.create_orcid(identifier)
 
             elif identifier.startswith("viaf"):
                 identifier = identifier.replace("viaf:", "")
                 res = self.ra_index['viaf'][identifier]
                 url = URIRef(self.url + "id/" + res)
-                new_id = self.setgraph.add_id(resp_agent, source_agent=None, source=self.src, res=url)
+                new_id = self.setgraph.add_id(resp_agent, source=self.src, res=url)
                 new_id.create_viaf(identifier)
 
             elif identifier.startswith("wikidata"):
                 identifier = identifier.replace("wikidata:", "")
                 res = self.ra_index['wikidata'][identifier]
                 url = URIRef(self.url + "id/" + res)
-                new_id = self.setgraph.add_id(resp_agent, source_agent=None, source=self.src, res=url)
+                new_id = self.setgraph.add_id(resp_agent, source=self.src, res=url)
                 new_id.create_wikidata(identifier)
 
         elif identifier.startswith("doi"):
             identifier = identifier.replace("doi:", "")
             res = self.br_index['doi'][identifier]
             url = URIRef(self.url + "id/" + res)
-            new_id = self.setgraph.add_id(resp_agent, source_agent=None, source=self.src, res=url)
+            new_id = self.setgraph.add_id(resp_agent, source=self.src, res=url)
             new_id.create_doi(identifier)
 
         elif identifier.startswith("issn"):
             identifier = identifier.replace("issn:", "")
             res = self.br_index['issn'][identifier]
             url = URIRef(self.url + "id/" + res)
-            new_id = self.setgraph.add_id(resp_agent, source_agent=None, source=self.src, res=url)
+            new_id = self.setgraph.add_id(resp_agent, source=self.src, res=url)
             new_id.create_issn(identifier)
 
         elif identifier.startswith("isbn"):
             identifier = identifier.replace("isbn:", "")
             res = self.br_index['isbn'][identifier]
             url = URIRef(self.url + "id/" + res)
-            new_id = self.setgraph.add_id(resp_agent, source_agent=None, source=self.src, res=url)
+            new_id = self.setgraph.add_id(resp_agent, source=self.src, res=url)
             new_id.create_isbn(identifier)
 
         elif identifier.startswith("pmid"):
             identifier = identifier.replace("pmid:", "")
             res = self.br_index['pmid'][identifier]
             url = URIRef(self.url + "id/" + res)
-            new_id = self.setgraph.add_id(resp_agent, source_agent=None, source=self.src, res=url)
+            new_id = self.setgraph.add_id(resp_agent, source=self.src, res=url)
             new_id.create_pmid(identifier)
 
         elif identifier.startswith("pmcid"):
             identifier = identifier.replace("pmcid:", "")
             res = self.br_index['pmcid'][identifier]
             url = URIRef(self.url + "id/" + res)
-            new_id = self.setgraph.add_id(resp_agent, source_agent=None, source=self.src, res=url)
+            new_id = self.setgraph.add_id(resp_agent, source=self.src, res=url)
             new_id.create_pmcid(identifier)
 
         elif identifier.startswith("url"):
             identifier = identifier.replace("url:", "")
             res = self.br_index['url'][identifier]
             url = URIRef(self.url + "id/" + res)
-            new_id = self.setgraph.add_id(resp_agent, source_agent=None, source=self.src, res=url)
+            new_id = self.setgraph.add_id(resp_agent, source=self.src, res=url)
             new_id.create_url(identifier)
 
         elif identifier.startswith("wikidata"):
             identifier = identifier.replace("wikidata:", "")
             res = self.br_index['wikidata'][identifier]
             url = URIRef(self.url + "id/" + res)
-            new_id = self.setgraph.add_id(resp_agent, source_agent=None, source=self.src, res=url)
+            new_id = self.setgraph.add_id(resp_agent, source=self.src, res=url)
             new_id.create_wikidata(identifier)
+
+        elif identifier.startswith("wikipedia"):
+            identifier = identifier.replace("wikipedia:", "")
+            res = self.br_index['wikipedia'][identifier]
+            url = URIRef(self.url + "id/" + res)
+            new_id = self.setgraph.add_id(resp_agent, source=self.src, res=url)
+            new_id.create_wikipedia(identifier)
 
         if new_id:
             graph.has_identifier(new_id)

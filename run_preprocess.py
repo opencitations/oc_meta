@@ -1,5 +1,6 @@
 from meta.crossref.crossrefProcessing import *
 import os
+import csv
 from argparse import ArgumentParser
 
 
