@@ -23,6 +23,7 @@ info_dir = "meta\\demo\\dumontier\\corpus\\counter\\id-counter\\"
 dir_split_number = 10000  # This must be multiple of the following one
 items_per_file = 1000
 default_dir = "_"
+supplier_prefix = ""
 
 # New configuration
 resp_agent = "https://w3id.org/oc/meta/prov/pa/1"

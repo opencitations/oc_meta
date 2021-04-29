@@ -4,7 +4,7 @@ from oc_ocdm.prov import ProvSet
 from meta.scripts.creator import *
 from meta.scripts.curator import *
 from meta.lib.conf import base_iri, context_path, info_dir, triplestore_url, \
-    base_dir, dir_split_number, items_per_file, default_dir, rdf_output_in_chunks
+    base_dir, dir_split_number, items_per_file, default_dir, rdf_output_in_chunks, supplier_prefix
 from datetime import datetime
 from argparse import ArgumentParser
 import os
@@ -20,16 +20,16 @@ def process(crossref_csv_dir, csv_dir, index_dir, auxiliary_path, source=None):
             filepath = os.path.join(crossref_csv_dir, filename)
             data = unpack(filepath)
             curator_info_dir = os.path.join(info_dir, 'curator' + os.sep)
-            curator_obj = Curator(data, triplestore_url, info_dir=curator_info_dir)
+            curator_obj = Curator(data, triplestore_url, info_dir=curator_info_dir, prefix=supplier_prefix)
             name = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")
             pathoo(csv_dir)
             pathoo(index_dir)
             curator_obj.curator(filename=name, path_csv=csv_dir, path_index=index_dir)
 
             creator_info_dir = os.path.join(info_dir, 'creator' + os.sep)
-            creator_obj = Creator(curator_obj.data, base_iri, creator_info_dir, curator_obj.index_id_ra,
-                                  curator_obj.index_id_br, curator_obj.re_index, curator_obj.ar_index,
-                                  curator_obj.VolIss)
+            creator_obj = Creator(curator_obj.data, base_iri, creator_info_dir, supplier_prefix,
+                                  curator_obj.index_id_ra, curator_obj.index_id_br, curator_obj.re_index,
+                                  curator_obj.ar_index, curator_obj.VolIss)
             creator = creator_obj.creator(source=source)
 
             prov = ProvSet(creator, base_iri, creator_info_dir, wanted_label=False)
