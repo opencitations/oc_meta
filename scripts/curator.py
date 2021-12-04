@@ -1,3 +1,5 @@
+from typing import List
+
 import csv
 import re
 import os
@@ -44,7 +46,7 @@ class Curator:
 
         self.log = dict()
         self.new_sequence_list = list()
-        self.data = data
+        # self.data = data c'è già alla riga 18
 
     def curator(self, filename=None, path_csv=None, path_index=None):
         for row in self.data:
@@ -427,28 +429,24 @@ class Curator:
         id_list = list(filter(None, id_list))
         how_many_meta = [i for i in id_list if i.lower().startswith('meta')]
         if len(how_many_meta) > 1:
-            for pos, elem in enumerate(id_list):
-                if "meta" in elem:
+            for pos, elem in enumerate(list(id_list)): # bugfix: id_list veniva modificata durante un'iterazione su di essa, causando un IndexError. Pertanto, ho potuto rimuovere anche l'eccezione IndexError.
+                if "meta" in elem.lower(): #bugfix: non funzionava se meta non era scritto in minuscoo
                     id_list[pos] = ""
         else:
-            for pos, elem in enumerate(id_list):
-                try:
-                    elem = Curator.string_fix(elem)
-                    identifier = elem.split(":", 1)
-                    value = identifier[1]
-                    schema = identifier[0].lower()
-                    if schema == "meta":
-                        if "meta:" + pattern in elem:
-                            metaid = value.replace(pattern, "")
-                        else:
-                            id_list[pos] = ""
-                    else:
-                        newid = schema + ":" + value
-                        id_list[pos] = newid
-                except IndexError:
-                    id_list[pos] = ""
-        if metaid:
-            id_list.remove("meta:" + pattern + metaid)
+            for pos, elem in enumerate(list(id_list)):
+                elem = Curator.string_fix(elem)
+                identifier = elem.split(":", 1)
+                value = identifier[1]
+                schema = identifier[0].lower()
+                if schema == "meta":
+                    if "meta:" + pattern in elem.lower():
+                        metaid = value.replace(pattern, "")
+                    id_list[pos] = "" # Basta questo, tanto l'id viene comunque eliminato da id_list in caso contenga lo schema meta:
+                else:
+                    newid = schema + ":" + value
+                    id_list[pos] = newid
+        # if metaid: Non serve, è una ripetizione di id_list[pos] = "". Inoltre, è fragile perché non è detto che meta sia stato scritto in minuscolo.
+        #     id_list.remove("meta:" + pattern + metaid)
         id_list = list(filter(None, id_list))
         return id_list, metaid
 
@@ -468,8 +466,7 @@ class Curator:
                 if found_m:
                     id_dict[identifier] = found_m
                 else:
-                    count = self._add_number(self.id_info_path)
-                    id_dict[identifier] = self.prefix + str(count)
+                    self._update_id_count(id_dict, identifier) # Raggruppato codice ripetuto in una funzione
         return metaval
 
     def finder_sparql(self, list2find, br=True, ra=False, vvi=False, publ=False):
@@ -504,7 +501,7 @@ class Curator:
             row[col_name] = "; ".join(ras_list)
 
     @staticmethod
-    def local_match(list2match, dict2match):
+    def local_match(list2match, dict2match:dict):
         match_elem = dict()
         match_elem["existing"] = list()
         match_elem["wannabe"] = list()
@@ -649,7 +646,7 @@ class Curator:
         return new_name
 
     @staticmethod
-    def clean_title(title):
+    def clean_title(title:str):
         title = title.replace("\0", "")
         if title.isupper():
             title = title.lower()
@@ -822,8 +819,20 @@ class Curator:
                 name = self.filename + ".csv"
                 data_file = os.path.join(path_csv, name)
                 self.write_csv(data_file, self.data)
+    
+    def _update_id_count(self, id_dict, identifier): # Raggruppato codice ripetuto in una funzione
+        count = self._add_number(self.id_info_path)
+        id_dict[identifier] = self.prefix + str(count)
+    
+    def _update_ids_in_entity_dict(self, identifier:str, metaval:str, entity_dict:dict) -> None: # Raggruppato codice ripetuto in una funzione
+        if identifier not in entity_dict[metaval]["ids"]:
+            entity_dict[metaval]["ids"].append(identifier)
+    
+    def _update_title(self, entity_dict, metaval, name): # Raggruppato codice ripetuto in una funzione
+        if not entity_dict[metaval]["title"]:
+            entity_dict[metaval]["title"] = name
 
-    def id_worker(self, col_name, name, idslist, ra_ent=False, br_ent=False, vvi_ent=False, publ_entity=False):
+    def id_worker(self, col_name, name, idslist:List[str], ra_ent=False, br_ent=False, vvi_ent=False, publ_entity=False):
 
         if not ra_ent:
             id_dict = self.idbr
@@ -836,20 +845,17 @@ class Curator:
 
         # there's meta
         if metaval:
+            # MetaID exists among data?
             # meta already in entity_dict (no care about conflicts, we have a meta specified)
+            # Si arriva qui solo se il MetaId è stato precedentemente trovato nel triplestore
             if metaval in entity_dict:
                 self.find_update_other_ID(idslist, metaval, entity_dict, name)
-
                 for identifier in idslist:
-                    if identifier not in entity_dict[metaval]["ids"]:
-                        entity_dict[metaval]["ids"].append(identifier)
+                    self._update_ids_in_entity_dict(identifier, metaval, entity_dict) # Raggruppato codice ripetuto in una funzione
                     if identifier not in id_dict:
-                        count = self._add_number(self.id_info_path)
-                        id_dict[identifier] = self.prefix + str(count)
-
+                        self._update_id_count(id_dict, identifier) # Raggruppato codice ripetuto in una funzione
                 if not entity_dict[metaval]["title"] and name:
                     entity_dict[metaval]["title"] = name
-
             else:
                 found_meta_ts = None
                 if ra_ent:
@@ -858,6 +864,7 @@ class Curator:
                     found_meta_ts = self.finder.retrieve_br_from_meta(metaval)
 
                 # meta in triplestore
+                # 2 Retrieve EntityA data in triplestore to update EntityA inside CSV
                 if found_meta_ts:
                     entity_dict[metaval] = dict()
                     entity_dict[metaval]["ids"] = list()
@@ -868,14 +875,10 @@ class Curator:
                     entity_dict[metaval]["others"] = list()
 
                     self.find_update_other_ID(idslist, metaval, entity_dict, name)
-
                     for identifier in idslist:
-                        if identifier not in entity_dict[metaval]["ids"]:
-                            entity_dict[metaval]["ids"].append(identifier)
+                        self._update_ids_in_entity_dict(identifier, metaval, entity_dict) # Raggruppato codice ripetuto in una funzione
                         if identifier not in id_dict:
-                            count = self._add_number(self.id_info_path)
-                            id_dict[identifier] = self.prefix + str(count)
-
+                            self._update_id_count(id_dict, identifier) # Raggruppato codice ripetuto in una funzione
                     existing_ids = found_meta_ts[1]
 
                     for identifier in existing_ids:
@@ -892,32 +895,37 @@ class Curator:
                     metaval = None
 
         # there's no meta or there was one but it didn't exist
+        # Are there other IDs?
         if idslist and not metaval:
             local_match = self.local_match(idslist, entity_dict)
+            # IDs already exist among data?
             # check in entity_dict
             if local_match["existing"]:
                 # ids refer to multiple existing entities
                 if len(local_match["existing"]) > 1:
+                    # !
                     return self.conflict(idslist, name, id_dict, col_name)
 
                 # ids refer to ONE existing entity
                 elif len(local_match["existing"]) == 1:
                     metaval = str(local_match["existing"][0])
-                    supsected_ids = list()
+                    suspect_ids = list()
                     for identifier in idslist:
                         if identifier not in entity_dict[metaval]["ids"]:
-                            supsected_ids.append(identifier)
-                    if supsected_ids:
-                        sparql_match = self.finder_sparql(supsected_ids, br=br_ent, ra=ra_ent, vvi=vvi_ent,
+                            suspect_ids.append(identifier)
+                    if suspect_ids:
+                        sparql_match = self.finder_sparql(suspect_ids, br=br_ent, ra=ra_ent, vvi=vvi_ent,
                                                           publ=publ_entity)
                         if len(sparql_match) > 1:
+                            # !
                             return self.conflict(idslist, name, id_dict, col_name)
 
-            # ids refers to 1 or more wannabe enitities
+            # ids refers to 1 or more wannabe entities
             elif local_match["wannabe"]:
-                metaval = str(local_match["wannabe"][0])
-                local_match["wannabe"].pop(0)
-
+                # metaval = str(local_match["wannabe"][0])
+                # local_match["wannabe"].pop(0)
+                metaval = str(local_match["wannabe"].pop(0))
+                # 5 Merge data from entityA (CSV) with data from EntityX (CSV)
                 for obj in local_match["wannabe"]:
                     for x in entity_dict[obj]["ids"]:
                         if x not in entity_dict[metaval]["ids"]:
@@ -932,18 +940,18 @@ class Curator:
                         entity_dict[metaval]["title"] = entity_dict[obj]["title"]
                     del entity_dict[obj]
 
-                if not entity_dict[metaval]["title"]:
-                    entity_dict[metaval]["title"] = name
+                self._update_title(entity_dict, metaval, name)
 
-                supsected_ids = list()
+                suspect_ids = list()
                 for identifier in idslist:
                     if identifier not in entity_dict[metaval]["ids"]:
-                        supsected_ids.append(identifier)
-                if supsected_ids:
-                    sparql_match = self.finder_sparql(supsected_ids, br=br_ent, ra=ra_ent, vvi=vvi_ent,
+                        suspect_ids.append(identifier)
+                if suspect_ids:
+                    sparql_match = self.finder_sparql(suspect_ids, br=br_ent, ra=ra_ent, vvi=vvi_ent,
                                                       publ=publ_entity)
                     if sparql_match:
                         if "wannabe" not in metaval or len(sparql_match) > 1:
+                            # !
                             return self.conflict(idslist, name, id_dict, col_name)
                         else:
                             existing_ids = sparql_match[0][2]
@@ -951,6 +959,7 @@ class Curator:
                             new_sparql_match = self.finder_sparql(new_idslist, br=br_ent, ra=ra_ent, vvi=vvi_ent,
                                                                   publ=publ_entity)
                             if len(new_sparql_match) > 1:
+                                # !
                                 return self.conflict(idslist, name, id_dict, col_name)
                             else:
                                 old_metaval = metaval
@@ -973,8 +982,7 @@ class Curator:
                                     entity_dict[metaval]["title"] = entity_dict[old_metaval]["title"]
                                 del entity_dict[old_metaval]
 
-                                if not entity_dict[metaval]["title"]:
-                                    entity_dict[metaval]["title"] = name
+                                self._update_title(entity_dict, metaval, name) # Raggruppato codice ripetuto in una funzione
 
                                 for identifier in existing_ids:
                                     if identifier[1] not in id_dict:
@@ -985,6 +993,7 @@ class Curator:
             else:
                 sparql_match = self.finder_sparql(idslist, br=br_ent, ra=ra_ent, vvi=vvi_ent, publ=publ_entity)
                 if len(sparql_match) > 1:
+                    # !
                     return self.conflict(idslist, name, id_dict, col_name)
                 elif len(sparql_match) == 1:
                     existing_ids = sparql_match[0][2]
@@ -992,6 +1001,7 @@ class Curator:
                     new_sparql_match = self.finder_sparql(new_idslist, br=br_ent, ra=ra_ent, vvi=vvi_ent,
                                                           publ=publ_entity)
                     if len(new_sparql_match) > 1:
+                        # !
                         return self.conflict(idslist, name, id_dict, col_name)
                     elif len(new_sparql_match) == 1:
                         metaval = sparql_match[0][0]
@@ -1017,8 +1027,7 @@ class Curator:
 
             for identifier in idslist:
                 if identifier not in id_dict:
-                    count = self._add_number(self.id_info_path)
-                    id_dict[identifier] = self.prefix + str(count)
+                    self._update_id_count(id_dict, identifier)
 
                 if identifier not in entity_dict[metaval]["ids"]:
                     entity_dict[metaval]["ids"].append(identifier)
@@ -1026,6 +1035,7 @@ class Curator:
             if not entity_dict[metaval]["title"] and name:
                 entity_dict[metaval]["title"] = name
 
+        # 1 EntityA is a new one
         if not idslist and not metaval:
             metaval = self.new_entity(entity_dict, name)
 
@@ -1113,10 +1123,12 @@ class Curator:
 
     @staticmethod
     def string_fix(st):
-        # Hyphen, En-Dash, Em-Dash, Minus Sign, Non-breaking Hyphen, Hyphen Bullet, Soft Hyphen, Figure Dash
-        dash_list = ["‐", "–", "—", "−", "‑", "⁃", "­", "‒"]
+        # En-Dash, Em-Dash, Minus Sign, Non-breaking Hyphen, Hyphen Bullet, Soft Hyphen, Figure Dash
+        # dash_list = ["‐", "–", "—", "−", "‑", "⁃", "­", "‒"]
+        dash_list = ["–", "—", "−", "‑", "⁃", "­", "‒"] # Rimosso l'hyphen dalla lista, in quanto non serve sostituirlo con se stesso
         for d in dash_list:
             if d in st:
+                # Hyphen
                 st.replace(d, "-")
         if "isbn:" in st:
             st.replace("-", "")
@@ -1150,30 +1162,12 @@ class Curator:
                 other_rowcnt = 0
                 for other_row in self.data:
                     if other_row["id"] == row["id"] and partialcnt != other_rowcnt:
-                        if row["pub_date"] and row["pub_date"] != other_row["pub_date"]:
-                            if other_row["pub_date"]:
-                                self.log[other_rowcnt]["pub_date"]["status"] = "NEW VALUE PROPOSED"
-                            other_row["pub_date"] = row["pub_date"]
-                        if row["page"] and row["page"] != other_row["page"]:
-                            if other_row["page"]:
-                                self.log[other_rowcnt]["page"]["status"] = "NEW VALUE PROPOSED"
-                            other_row["page"] = row["page"]
-                        if row["type"] and row["type"] != other_row["type"]:
-                            if other_row["type"]:
-                                self.log[other_rowcnt]["type"]["status"] = "NEW VALUE PROPOSED"
-                            other_row["type"] = row["type"]
-                        if row["venue"] and row["venue"] != other_row["venue"]:
-                            if other_row["venue"]:
-                                self.log[other_rowcnt]["venue"]["status"] = "NEW VALUE PROPOSED"
-                            other_row["venue"] = row["venue"]
-                        if row["volume"] and row["volume"] != other_row["volume"]:
-                            if other_row["volume"]:
-                                self.log[other_rowcnt]["volume"]["status"] = "NEW VALUE PROPOSED"
-                            other_row["volume"] = row["volume"]
-                        if row["issue"] and row["issue"] != other_row["issue"]:
-                            if other_row["issue"]:
-                                self.log[other_rowcnt]["issue"]["status"] = "NEW VALUE PROPOSED"
-                            other_row["issue"] = row["issue"]
+                        fields_to_check = ["pub_date", "page", "type", "venue", "volume", "issue"] # Semplificato codice ripetuto
+                        for field in fields_to_check:
+                            if row[field] and row[field] != other_row[field]:
+                                if other_row[field]:
+                                    self.log[other_rowcnt][field]["status"] = "NEW VALUE PROPOSED"
+                                other_row[field] = row[field]
                     other_rowcnt += 1
             partialcnt += 1
 
