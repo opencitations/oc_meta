@@ -85,8 +85,8 @@ class crossrefProcessing:
                         for at in x["author"]:
                             if "family" in at:
                                 f_name = at["family"]
-                                g_name = at["given"]
                                 if "given" in at:
+                                    g_name = at["given"] # bugfix: l'accesso alla chiave "given" veniva effettuato prima di controllare la sua presenza
                                     aut = f_name + ", " + g_name
                                 else:
                                     aut = f_name + ", "
@@ -200,11 +200,11 @@ class crossrefProcessing:
     @staticmethod
     def issn_worker(issnid, idlist):
         if ISSNManager().is_valid(issnid):
-            issnid = ISSNManager().normalise(issnid)
-            idlist.append(str("issn:" + issnid))
+            issnid = ISSNManager().normalise(issnid, include_prefix=True) # Rimosso codice ripetuto
+            idlist.append(issnid)
 
     @staticmethod
     def isbn_worker(isbnid, idlist):
         if ISBNManager().is_valid(isbnid):
-            isbnid = ISBNManager().normalise(isbnid)
-            idlist.append(str("isbn:" + isbnid))
+            isbnid = ISBNManager().normalise(isbnid, include_prefix=True) # Rimosso codice ripetuto
+            idlist.append(isbnid)

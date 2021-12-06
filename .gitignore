@@ -1,5 +1,6 @@
 .idea/
-/venv/
+/env/
+.vscode/
 *.pyc
 *curator_counter/*
 *counter/*

@@ -14,8 +14,10 @@
 # ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 # SOFTWARE.
 
+from abc import ABC, abstractmethod 
 
-class IdentifierManager(object):
+
+class IdentifierManager(ABC):
     """This is the interface that must be implemented by any identifier manager
     for a particular identifier scheme. It provides the signatures of the methods
     for checking the validity of an identifier and for normalising it."""
@@ -29,8 +31,10 @@ class IdentifierManager(object):
                           "(http://opencitations.net; mailto:contact@opencitations.net)"
         }
 
+    @abstractmethod
     def is_valid(self, id_string):
         pass
 
+    @abstractmethod
     def normalise(self, id_string, include_prefix=False):
         pass

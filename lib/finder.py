@@ -72,9 +72,8 @@ class ResourceFinder:
                     OPTIONAL {?res <%s> ?id.
                         ?id <%s> ?schema.
                         ?id  <%s> ?value.}
-                    filter(?res = <%s>)
+                    BIND (<%s> AS ?res)
                 } group by ?res
-
                 """ % (GraphEntity.iri_expression, GraphEntity.iri_title, GraphEntity.iri_has_identifier,
                        GraphEntity.iri_uses_identifier_scheme, GraphEntity.iri_has_literal_value, uri)
         result = self.__query(query)
