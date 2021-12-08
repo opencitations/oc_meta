@@ -31,7 +31,8 @@ def reset_server(server):
 def add_data_ts(server):
     ts = SPARQLWrapper(server)
     ts.method = "POST"
-    f_path = os.path.abspath("meta/tdd/testcases/ts/testcase_ts-13.ttl").replace("\\", "/")
+    # f_path = os.path.abspath("meta/tdd/testcases/ts/testcase_ts-13.ttl").replace("\\", "/")
+    f_path = "meta/tdd/testcases/ts/testcase_ts-13.ttl"
     ts.setQuery("LOAD <file:" + f_path + ">")
     ts.query()
 
@@ -81,7 +82,7 @@ def prepare2test(data, name):
                     curator_obj.re_index, curator_obj.VolIss]
     return data_curated, testcase
 
-class test_Curator(unittest.TestCase): # Nuovi test
+class test_Curator(unittest.TestCase):
     def test_clean_title(self):
         input = " ""agile""    'Knowledge'   graph   testing ù ò       à  with   TESTaLOD (!incredible!) έτος  汉字"
         output = Curator.clean_title(input)
@@ -401,22 +402,26 @@ def suite(testobj):
     return test_suite
 
 
-'''
-TestSuit = suite(testcase_14)
-runner = unittest.TextTestRunner()
-runner.run(TestSuit)
-'''
-x = 1
-while x < 17:
-    if x < 10:
-        y = "0" + str(x)
-    else:
-        y = str(x)
-    t = "testcase_" + y
-    TestSuit = suite(eval(t))
-    x += 1
-    runner = unittest.TextTestRunner()
-    runner.run(TestSuit)
-reset()
-server = "http://127.0.0.1:9999/blazegraph/sparql"
-reset_server(server)
+# '''
+# TestSuit = suite(testcase_14)
+# runner = unittest.TextTestRunner()
+# runner.run(TestSuit)
+# '''
+# x = 1
+# while x < 17:
+#     if x < 10:
+#         y = "0" + str(x)
+#     else:
+#         y = str(x)
+#     t = "testcase_" + y
+#     TestSuit = suite(eval(t))
+#     x += 1
+#     runner = unittest.TextTestRunner()
+#     runner.run(TestSuit)
+# reset()
+# server = "http://127.0.0.1:9999/blazegraph/sparql"
+# reset_server(server)
+
+if __name__ == '__main__':
+    unittest.main()
+

@@ -143,20 +143,23 @@ def suite(testobj):
     return test_suite
 
 
-'''
-TestSuit = suite(testcase_01)
+# '''
+# TestSuit = suite(testcase_01)
 
-runner = unittest.TextTestRunner()
-runner.run(TestSuit)
-'''
-x = 1
-while x < 11:
-    if x < 10:
-        y = "0" + str(x)
-    else:
-        y = str(x)
-    t = "testcase_" + y
-    TestSuit = suite(eval(t))
-    x += 1
-    runner = unittest.TextTestRunner()
-    runner.run(TestSuit)
+# runner = unittest.TextTestRunner()
+# runner.run(TestSuit)
+# '''
+# x = 1
+# while x < 11:
+#     if x < 10:
+#         y = "0" + str(x)
+#     else:
+#         y = str(x)
+#     t = "testcase_" + y
+#     TestSuit = suite(eval(t))
+#     x += 1
+#     runner = unittest.TextTestRunner()
+#     runner.run(TestSuit)
+
+if __name__ == '__main__':
+    unittest.main()

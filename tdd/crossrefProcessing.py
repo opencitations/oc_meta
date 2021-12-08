@@ -1,7 +1,7 @@
 import unittest
 from crossref.crossrefProcessing import crossrefProcessing
 
-class TestCrossrefProcessing(unittest.TestCase): # nuovi test
+class TestCrossrefProcessing(unittest.TestCase):
 
     def test_issn_worker(self):
         input = "ISSN 1050-124X"

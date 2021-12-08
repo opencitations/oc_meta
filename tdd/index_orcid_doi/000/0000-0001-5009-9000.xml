@@ -1,0 +1,404 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<record:record xmlns:address="http://www.orcid.org/ns/address" xmlns:email="http://www.orcid.org/ns/email" xmlns:history="http://www.orcid.org/ns/history" xmlns:employment="http://www.orcid.org/ns/employment" xmlns:education="http://www.orcid.org/ns/education" xmlns:other-name="http://www.orcid.org/ns/other-name" xmlns:deprecated="http://www.orcid.org/ns/deprecated" xmlns:funding="http://www.orcid.org/ns/funding" xmlns:research-resource="http://www.orcid.org/ns/research-resource" xmlns:service="http://www.orcid.org/ns/service" xmlns:researcher-url="http://www.orcid.org/ns/researcher-url" xmlns:distinction="http://www.orcid.org/ns/distinction" xmlns:internal="http://www.orcid.org/ns/internal" xmlns:membership="http://www.orcid.org/ns/membership" xmlns:person="http://www.orcid.org/ns/person" xmlns:personal-details="http://www.orcid.org/ns/personal-details" xmlns:bulk="http://www.orcid.org/ns/bulk" xmlns:common="http://www.orcid.org/ns/common" xmlns:record="http://www.orcid.org/ns/record" xmlns:keyword="http://www.orcid.org/ns/keyword" xmlns:activities="http://www.orcid.org/ns/activities" xmlns:qualification="http://www.orcid.org/ns/qualification" xmlns:external-identifier="http://www.orcid.org/ns/external-identifier" xmlns:error="http://www.orcid.org/ns/error" xmlns:preferences="http://www.orcid.org/ns/preferences" xmlns:invited-position="http://www.orcid.org/ns/invited-position" xmlns:work="http://www.orcid.org/ns/work" xmlns:peer-review="http://www.orcid.org/ns/peer-review" path="/0000-0001-5009-9000">
+    <common:orcid-identifier>
+        <common:uri>https://orcid.org/0000-0001-5009-9000</common:uri>
+        <common:path>0000-0001-5009-9000</common:path>
+        <common:host>orcid.org</common:host>
+    </common:orcid-identifier>
+    <preferences:preferences>
+        <preferences:locale>fr</preferences:locale>
+    </preferences:preferences>
+    <history:history>
+        <history:creation-method>Member-referred</history:creation-method>
+        <history:submission-date>2013-12-24T16:43:53.927Z</history:submission-date>
+        <common:last-modified-date>2020-08-31T10:58:43.836Z</common:last-modified-date>
+        <history:claimed>true</history:claimed>
+        <history:verified-email>false</history:verified-email>
+        <history:verified-primary-email>false</history:verified-primary-email>
+    </history:history>
+    <person:person path="/0000-0001-5009-9000/person">
+        <person:name visibility="public" path="0000-0001-5009-9000">
+            <common:created-date>2016-04-15T20:45:18.509Z</common:created-date>
+            <common:last-modified-date>2016-04-15T20:45:18.509Z</common:last-modified-date>
+            <personal-details:given-names>Ali</personal-details:given-names>
+            <personal-details:family-name>Gargouri</personal-details:family-name>
+        </person:name>
+        <other-name:other-names path="/0000-0001-5009-9000/other-names"/>
+        <researcher-url:researcher-urls path="/0000-0001-5009-9000/researcher-urls"/>
+        <email:emails path="/0000-0001-5009-9000/email"/>
+        <address:addresses path="/0000-0001-5009-9000/address"/>
+        <keyword:keywords path="/0000-0001-5009-9000/keywords"/>
+        <external-identifier:external-identifiers path="/0000-0001-5009-9000/external-identifiers"/>
+    </person:person>
+    <activities:activities-summary path="/0000-0001-5009-9000/activities">
+        <common:last-modified-date>2020-02-22T15:38:10.028Z</common:last-modified-date>
+        <activities:distinctions path="/0000-0001-5009-9000/distinctions"/>
+        <activities:educations path="/0000-0001-5009-9000/educations"/>
+        <activities:employments path="/0000-0001-5009-9000/employments"/>
+        <activities:fundings path="/0000-0001-5009-9000/fundings"/>
+        <activities:invited-positions path="/0000-0001-5009-9000/invited-positions"/>
+        <activities:memberships path="/0000-0001-5009-9000/memberships"/>
+        <activities:peer-reviews path="/0000-0001-5009-9000/peer-reviews">
+            <common:last-modified-date>2020-01-31T05:11:45.615Z</common:last-modified-date>
+            <activities:group>
+                <common:last-modified-date>2020-01-31T05:11:45.615Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>peer-review</common:external-id-type>
+                        <common:external-id-value>issn:0175-7598</common:external-id-value>
+                    </common:external-id>
+                </common:external-ids>
+                <activities:peer-review-group>
+                    <common:last-modified-date>2020-01-31T05:11:45.615Z</common:last-modified-date>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>source-work-id</common:external-id-type>
+                            <common:external-id-value>f0fe067d-ee45-4cd0-8384-fdaa4ff213e1</common:external-id-value>
+                            <common:external-id-normalized transient="true">f0fe067d-ee45-4cd0-8384-fdaa4ff213e1</common:external-id-normalized>
+                            <common:external-id-url></common:external-id-url>
+                            <common:external-id-relationship>self</common:external-id-relationship>
+                        </common:external-id>
+                    </common:external-ids>
+                    <peer-review:peer-review-summary put-code="1373900" path="/0000-0001-5009-9000/peer-review/1373900" visibility="public" display-index="0">
+                        <common:created-date>2020-01-31T05:11:45.615Z</common:created-date>
+                        <common:last-modified-date>2020-01-31T05:11:45.615Z</common:last-modified-date>
+                        <common:source>
+                            <common:source-client-id>
+<common:uri>https://orcid.org/client/APP-945VYTN20C7BZXYT</common:uri>
+<common:path>APP-945VYTN20C7BZXYT</common:path>
+<common:host>orcid.org</common:host>
+                            </common:source-client-id>
+                            <common:source-name>Springer Nature</common:source-name>
+                        </common:source>
+                        <peer-review:reviewer-role>reviewer</peer-review:reviewer-role>
+                        <common:external-ids>
+                            <common:external-id>
+<common:external-id-type>source-work-id</common:external-id-type>
+<common:external-id-value>f0fe067d-ee45-4cd0-8384-fdaa4ff213e1</common:external-id-value>
+<common:external-id-normalized transient="true">f0fe067d-ee45-4cd0-8384-fdaa4ff213e1</common:external-id-normalized>
+<common:external-id-url></common:external-id-url>
+<common:external-id-relationship>self</common:external-id-relationship>
+                            </common:external-id>
+                        </common:external-ids>
+                        <peer-review:review-type>review</peer-review:review-type>
+                        <peer-review:completion-date>
+                            <common:year>2019</common:year>
+                        </peer-review:completion-date>
+                        <peer-review:review-group-id>issn:0175-7598</peer-review:review-group-id>
+                        <peer-review:convening-organization>
+                            <common:name>Springer Nature</common:name>
+                            <common:address>
+<common:city>New York</common:city>
+<common:country>US</common:country>
+                            </common:address>
+                        </peer-review:convening-organization>
+                    </peer-review:peer-review-summary>
+                </activities:peer-review-group>
+            </activities:group>
+        </activities:peer-reviews>
+        <activities:qualifications path="/0000-0001-5009-9000/qualifications"/>
+        <activities:research-resources path="/0000-0001-5009-9000/research-resources"/>
+        <activities:services path="/0000-0001-5009-9000/services"/>
+        <activities:works path="/0000-0001-5009-9000/works">
+            <common:last-modified-date>2020-02-22T15:38:10.028Z</common:last-modified-date>
+            <activities:group>
+                <common:last-modified-date>2020-02-22T15:38:10.028Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1016/j.indcrop.2020.112103</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1016/j.indcrop.2020.112103</common:external-id-normalized>
+                        <common:external-id-url>https://doi.org/10.1016/j.indcrop.2020.112103</common:external-id-url>
+                        <common:external-id-relationship>self</common:external-id-relationship>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="67078602" path="/0000-0001-5009-9000/work/67078602" visibility="public" display-index="0">
+                    <common:created-date>2020-01-10T05:12:23.436Z</common:created-date>
+                    <common:last-modified-date>2020-02-22T15:38:10.028Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-client-id>
+                            <common:uri>https://orcid.org/client/0000-0001-9884-1913</common:uri>
+                            <common:path>0000-0001-9884-1913</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-client-id>
+                        <common:source-name>Crossref</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Biodiesel-derived crude glycerol as alternative feedstock for single cell oil production by the oleaginous yeast Candida viswanathii Y-E4</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1016/j.indcrop.2020.112103</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1016/j.indcrop.2020.112103</common:external-id-normalized>
+                            <common:external-id-url>https://doi.org/10.1016/j.indcrop.2020.112103</common:external-id-url>
+                            <common:external-id-relationship>self</common:external-id-relationship>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>https://doi.org/10.1016/j.indcrop.2020.112103</common:url>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2020</common:year>
+                        <common:month>03</common:month>
+                    </common:publication-date>
+                    <work:journal-title>Industrial Crops and Products</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2019-12-12T23:39:00.776Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1155/2019/3213521</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1155/2019/3213521</common:external-id-normalized>
+                        <common:external-id-url>https://doi.org/10.1155/2019/3213521</common:external-id-url>
+                        <common:external-id-relationship>self</common:external-id-relationship>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="65976805" path="/0000-0001-5009-9000/work/65976805" visibility="public" display-index="0">
+                    <common:created-date>2019-12-12T23:39:00.776Z</common:created-date>
+                    <common:last-modified-date>2019-12-12T23:39:00.776Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-client-id>
+                            <common:uri>https://orcid.org/client/0000-0001-9884-1913</common:uri>
+                            <common:path>0000-0001-9884-1913</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-client-id>
+                        <common:source-name>Crossref</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Utilization of Wheat Bran Acid Hydrolysate by Rhodotorula mucilaginosa Y-MG1 for Microbial Lipid Production as Feedstock for Biodiesel Synthesis</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1155/2019/3213521</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1155/2019/3213521</common:external-id-normalized>
+                            <common:external-id-url>https://doi.org/10.1155/2019/3213521</common:external-id-url>
+                            <common:external-id-relationship>self</common:external-id-relationship>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>https://doi.org/10.1155/2019/3213521</common:url>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2019</common:year>
+                        <common:month>12</common:month>
+                        <common:day>12</common:day>
+                    </common:publication-date>
+                    <work:journal-title>BioMed Research International</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2018-11-19T16:52:21.291Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1016/j.bioorg.2018.11.028</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1016/j.bioorg.2018.11.028</common:external-id-normalized>
+                        <common:external-id-url>https://doi.org/10.1016/j.bioorg.2018.11.028</common:external-id-url>
+                        <common:external-id-relationship>self</common:external-id-relationship>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="50792798" path="/0000-0001-5009-9000/work/50792798" visibility="public" display-index="0">
+                    <common:created-date>2018-11-19T16:52:21.291Z</common:created-date>
+                    <common:last-modified-date>2018-11-19T16:52:21.291Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-client-id>
+                            <common:uri>https://orcid.org/client/0000-0001-9884-1913</common:uri>
+                            <common:path>0000-0001-9884-1913</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-client-id>
+                        <common:source-name>Crossref</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Anti-melanogenesis potential of a new series of Morita-Baylis-Hillman adducts in B16F10 melanoma cell line</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1016/j.bioorg.2018.11.028</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1016/j.bioorg.2018.11.028</common:external-id-normalized>
+                            <common:external-id-url>https://doi.org/10.1016/j.bioorg.2018.11.028</common:external-id-url>
+                            <common:external-id-relationship>self</common:external-id-relationship>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>https://doi.org/10.1016/j.bioorg.2018.11.028</common:url>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2018</common:year>
+                        <common:month>11</common:month>
+                    </common:publication-date>
+                    <work:journal-title>Bioorganic Chemistry</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2018-03-03T20:56:40.050Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1016/j.bioorg.2018.03.004</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1016/j.bioorg.2018.03.004</common:external-id-normalized>
+                        <common:external-id-url>https://doi.org/10.1016/j.bioorg.2018.03.004</common:external-id-url>
+                        <common:external-id-relationship>self</common:external-id-relationship>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="42263504" path="/0000-0001-5009-9000/work/42263504" visibility="public" display-index="0">
+                    <common:created-date>2018-03-03T16:59:38.595Z</common:created-date>
+                    <common:last-modified-date>2018-03-03T20:56:40.050Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-client-id>
+                            <common:uri>https://orcid.org/client/0000-0001-9884-1913</common:uri>
+                            <common:path>0000-0001-9884-1913</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-client-id>
+                        <common:source-name>Crossref</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Potential antioxidant activity of Morita-Baylis-Hillman adducts</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1016/j.bioorg.2018.03.004</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1016/j.bioorg.2018.03.004</common:external-id-normalized>
+                            <common:external-id-url>https://doi.org/10.1016/j.bioorg.2018.03.004</common:external-id-url>
+                            <common:external-id-relationship>self</common:external-id-relationship>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>https://doi.org/10.1016/j.bioorg.2018.03.004</common:url>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2018</common:year>
+                        <common:month>03</common:month>
+                    </common:publication-date>
+                    <work:journal-title>Bioorganic Chemistry</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2018-03-03T20:56:42.980Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1186/s13568-016-0300-2</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1186/s13568-016-0300-2</common:external-id-normalized>
+                        <common:external-id-url>http://dx.doi.org/10.1186/s13568-016-0300-2</common:external-id-url>
+                        <common:external-id-relationship>self</common:external-id-relationship>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="30136060" path="/0000-0001-5009-9000/work/30136060" visibility="public" display-index="0">
+                    <common:created-date>2017-02-06T12:27:26.992Z</common:created-date>
+                    <common:last-modified-date>2018-03-03T20:56:42.980Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-client-id>
+                            <common:uri>https://orcid.org/client/0000-0001-9884-1913</common:uri>
+                            <common:path>0000-0001-9884-1913</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-client-id>
+                        <common:source-name>Crossref</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Expression, purification and functionality of bioactive recombinant human vascular endothelial growth factor VEGF165 in E. coli</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1186/s13568-016-0300-2</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1186/s13568-016-0300-2</common:external-id-normalized>
+                            <common:external-id-url>http://dx.doi.org/10.1186/s13568-016-0300-2</common:external-id-url>
+                            <common:external-id-relationship>self</common:external-id-relationship>
+                        </common:external-id>
+                    </common:external-ids>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2017</common:year>
+                        <common:month>12</common:month>
+                    </common:publication-date>
+                    <work:journal-title>AMB Express</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2016-01-27T15:43:15.338Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1016/j.toxicon.2014.04.010</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1016/j.toxicon.2014.04.010</common:external-id-normalized>
+                        <common:external-id-url>http://dx.doi.org/10.1016/j.toxicon.2014.04.010</common:external-id-url>
+                        <common:external-id-relationship>self</common:external-id-relationship>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="21886703" path="/0000-0001-5009-9000/work/21886703" visibility="public" display-index="0">
+                    <common:created-date>2016-01-27T15:43:15.338Z</common:created-date>
+                    <common:last-modified-date>2016-01-27T15:43:15.338Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-client-id>
+                            <common:uri>https://orcid.org/client/0000-0001-9884-1913</common:uri>
+                            <common:path>0000-0001-9884-1913</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-client-id>
+                        <common:source-name>Crossref</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Lebecin, a new C-type lectin like protein from Macrovipera lebetina venom with anti-tumor activity against the breast cancer cell line MDA-MB231</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1016/j.toxicon.2014.04.010</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1016/j.toxicon.2014.04.010</common:external-id-normalized>
+                            <common:external-id-url>http://dx.doi.org/10.1016/j.toxicon.2014.04.010</common:external-id-url>
+                            <common:external-id-relationship>self</common:external-id-relationship>
+                        </common:external-id>
+                    </common:external-ids>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2014</common:year>
+                        <common:month>08</common:month>
+                    </common:publication-date>
+                    <work:journal-title>Toxicon</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2016-07-29T05:28:33.310Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1155/2014/691742</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1155/2014/691742</common:external-id-normalized>
+                        <common:external-id-url>http://dx.doi.org/10.1155/2014/691742</common:external-id-url>
+                        <common:external-id-relationship>self</common:external-id-relationship>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="21886704" path="/0000-0001-5009-9000/work/21886704" visibility="public" display-index="0">
+                    <common:created-date>2016-01-27T15:43:15.943Z</common:created-date>
+                    <common:last-modified-date>2016-07-29T05:28:33.310Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-client-id>
+                            <common:uri>https://orcid.org/client/0000-0001-9884-1913</common:uri>
+                            <common:path>0000-0001-9884-1913</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-client-id>
+                        <common:source-name>Crossref</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Identification of a Novel Methylated Gene in Nasopharyngeal Carcinoma: TTC40</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1155/2014/691742</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1155/2014/691742</common:external-id-normalized>
+                            <common:external-id-url>http://dx.doi.org/10.1155/2014/691742</common:external-id-url>
+                            <common:external-id-relationship>self</common:external-id-relationship>
+                        </common:external-id>
+                    </common:external-ids>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2014</common:year>
+                    </common:publication-date>
+                    <work:journal-title>BioMed Research International</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+        </activities:works>
+    </activities:activities-summary>
+</record:record>
