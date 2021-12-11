@@ -15,6 +15,7 @@ class Index_orcid_doi:
         self.treshold = treshold
         self.doimanager = DOIManager(use_api_service=False)
         self.csvstorage = CSVManager(csv_path)
+        # ORCIDs are extracted to skip the corresponding files at the first reading of an existing CSV.
         self.cache = set(el.split(" [")[1][:-1] for _,v in self.csvstorage.data.items() for el in v)
     
     def explorer(self, summaries_path:str, verbose:bool=False) -> None:
