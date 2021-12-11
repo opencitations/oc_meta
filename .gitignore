@@ -2,5 +2,4 @@
 env/
 .vscode/
 *.pyc
-./tdd/curator_counter/
-./tdd/creator_counter/
+creator_counter/
