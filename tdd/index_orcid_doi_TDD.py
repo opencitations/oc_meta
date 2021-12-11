@@ -1,14 +1,14 @@
-import unittest
+import unittest, os
 from meta.orcid.index_orcid_doi import Index_orcid_doi
 from csv import DictReader
+from pprint import pprint
 
 CSV_PATH = 'meta/tdd/index_orcid_doi/output.csv'
-CACHE_PATH = 'meta/tdd/cache.json'
 SUMMARIES_PATH = 'meta/tdd/index_orcid_doi'
 
 class test_Index_orcid_doi(unittest.TestCase):
     def test_explorer(self):
-        iOd = Index_orcid_doi(csv_path=CSV_PATH, cache_path=CACHE_PATH)
+        iOd = Index_orcid_doi(csv_path=CSV_PATH)
         iOd.explorer(summaries_path=SUMMARIES_PATH, verbose=False)
         output = list(DictReader(open(CSV_PATH, 'r', encoding='utf-8')))
         expected_output = [
@@ -20,6 +20,7 @@ class test_Index_orcid_doi(unittest.TestCase):
             {'id': '10.1016/j.toxicon.2014.04.010', 'value': 'Gargouri, Ali [0000-0001-5009-9000]'},
             {'id': '10.1155/2014/691742', 'value': 'Gargouri, Ali [0000-0001-5009-9000]'}
         ]
+        os.remove(CSV_PATH)
         self.assertEqual(output, expected_output)
 
 

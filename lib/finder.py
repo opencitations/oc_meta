@@ -97,26 +97,24 @@ class ResourceFinder:
 
     # _______________________________ID_________________________________ #
 
-    def retrieve_id(self, value, schema):
+    def retrieve_id(self, schema, value):
         schema = GraphEntity.DATACITE + schema
 
         query = """
-                        SELECT DISTINCT ?res 
+        SELECT DISTINCT ?res 
+        WHERE {
+            ?res a <%s>.
+            ?res <%s> <%s>.
+            ?res <%s> ?knownValue.
+            filter(?knownValue = "%s")
+        } group by ?res
 
-
-                        WHERE {
-                            ?res a <%s>.
-                            ?res <%s> <%s>.
-                            ?res <%s> ?knownValue.
-                            filter(?knownValue = "%s")
-                        } group by ?res
-
-                        """ % (GraphEntity.iri_identifier, GraphEntity.iri_uses_identifier_scheme, schema,
-                               GraphEntity.iri_has_literal_value, value)
+        """ % (GraphEntity.iri_identifier, GraphEntity.iri_uses_identifier_scheme, schema,
+                GraphEntity.iri_has_literal_value, value)
 
         result = self.__query(query)
         if result["results"]["bindings"]:
-            return str(result["res"]["value"]).replace("https://w3id.org/oc/meta/id/", "")
+            return str(result["results"]["bindings"][0]["res"]["value"]).replace("https://w3id.org/oc/meta/id/", "")
         else:
             return None
 

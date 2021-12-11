@@ -46,7 +46,6 @@ class Curator:
 
         self.log = dict()
         self.new_sequence_list = list()
-        # self.data = data c'è già alla riga 18
 
     def curator(self, filename=None, path_csv=None, path_index=None):
         for row in self.data:
@@ -441,12 +440,10 @@ class Curator:
                 if schema == "meta":
                     if "meta:" + pattern in elem.lower():
                         metaid = value.replace(pattern, "")
-                    id_list[pos] = "" # Basta questo, tanto l'id viene comunque eliminato da id_list in caso contenga lo schema meta:
+                    id_list[pos] = ""
                 else:
                     newid = schema + ":" + value
                     id_list[pos] = newid
-        # if metaid: Non serve, è una ripetizione di id_list[pos] = "". Inoltre, è fragile perché non è detto che meta sia stato scritto in minuscolo.
-        #     id_list.remove("meta:" + pattern + metaid)
         id_list = list(filter(None, id_list))
         return id_list, metaid
 
@@ -510,7 +507,7 @@ class Curator:
                 if elem in va["ids"]:
                     if "wannabe" in k:
                         if k not in match_elem["wannabe"]:
-                            match_elem["wannabe"].append(k)
+                            match_elem["wannabe"].append(k) # TODO: valutare uso di un set
                     else:
                         if k not in match_elem["existing"]:
                             match_elem["existing"].append(k)
@@ -847,7 +844,6 @@ class Curator:
         if metaval:
             # MetaID exists among data?
             # meta already in entity_dict (no care about conflicts, we have a meta specified)
-            # Si arriva qui solo se il MetaId è stato precedentemente trovato nel triplestore
             if metaval in entity_dict:
                 self.find_update_other_ID(idslist, metaval, entity_dict, name)
                 for identifier in idslist:
@@ -907,7 +903,7 @@ class Curator:
                     return self.conflict(idslist, name, id_dict, col_name)
 
                 # ids refer to ONE existing entity
-                elif len(local_match["existing"]) == 1:
+                elif len(local_match["existing"]) == 1: # TODO: non è testato
                     metaval = str(local_match["existing"][0])
                     suspect_ids = list()
                     for identifier in idslist:
@@ -922,8 +918,6 @@ class Curator:
 
             # ids refers to 1 or more wannabe entities
             elif local_match["wannabe"]:
-                # metaval = str(local_match["wannabe"][0])
-                # local_match["wannabe"].pop(0)
                 metaval = str(local_match["wannabe"].pop(0))
                 # 5 Merge data from entityA (CSV) with data from EntityX (CSV)
                 for obj in local_match["wannabe"]:
@@ -959,9 +953,11 @@ class Curator:
                             new_sparql_match = self.finder_sparql(new_idslist, br=br_ent, ra=ra_ent, vvi=vvi_ent,
                                                                   publ=publ_entity)
                             if len(new_sparql_match) > 1:
+                                # Due entità precedentemente scollegate sul ts ora diventano connesse
                                 # !
                                 return self.conflict(idslist, name, id_dict, col_name)
                             else:
+                                # 4 Merge data from EntityA (CSV) with data from EntityX (CSV) (it has already happened), update both with data from EntityA (RDF)
                                 old_metaval = metaval
                                 metaval = sparql_match[0][0]
                                 entity_dict[metaval] = dict()
@@ -1001,8 +997,11 @@ class Curator:
                     new_sparql_match = self.finder_sparql(new_idslist, br=br_ent, ra=ra_ent, vvi=vvi_ent,
                                                           publ=publ_entity)
                     if len(new_sparql_match) > 1:
+                        # Due entità precedentemente scollegate sul ts ora diventano connesse
                         # !
                         return self.conflict(idslist, name, id_dict, col_name)
+                    # 2 Retrieve EntityA data in triplestore to update EntityA inside CSV
+                    # 3 CONFLICT beteen MetaIDs. MetaID specified in EntityA inside CSV has precedence.
                     elif len(new_sparql_match) == 1:
                         metaval = sparql_match[0][0]
                         entity_dict[metaval] = dict()

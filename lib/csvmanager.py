@@ -14,7 +14,7 @@
 # ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 # SOFTWARE.
 
-from csv import DictReader
+from csv import DictReader, writer
 from io import StringIO
 from os.path import exists, isdir
 from os import walk, sep
@@ -26,11 +26,10 @@ class CSVManager(object):
     easily queried. In addition, it allows one to store new information in the CSV,
     if needed."""
 
-    def __init__(self, csv_path=None, line_threshold=10000, store_new=True):
+    def __init__(self, csv_path=None, line_threshold=10000):
         self.csv_path = csv_path
         self.data = {}
-        self.store_new = store_new
-
+        self.data_to_store = {}
         if csv_path is not None and exists(csv_path):
             CSVManager.__load_all_csv_files([csv_path], self.__load_csv, line_threshold=line_threshold)
 
@@ -68,7 +67,6 @@ class CSVManager(object):
     def __load_all_csv_files(list_of_csv_files, fun, line_threshold, **params):
         result = []
         header = None
-
         for csv_path in list_of_csv_files:
             with open(csv_path, encoding="utf-8") as f:
                 csv_content = ""
@@ -83,8 +81,18 @@ class CSVManager(object):
                         csv_content += line
 
             result.append(fun(csv_content, **params))
-
         return result
+    
+    def dump_data(self) -> None:
+        if not exists(self.csv_path):
+            with open(self.csv_path, "w", encoding='utf-8', newline='') as f:
+                f.write('"id","value"\n')
+        with open(self.csv_path, "a", encoding='utf-8', newline='') as f:
+            csv_writer = writer(f, delimiter=',')
+            for k,v in self.data_to_store.items():
+                for value in v:
+                    csv_writer.writerow([k.replace('"', '""'), value.replace('"', '""')])
+        self.data_to_store = {}
 
     def get_value(self, id_string):
         """It returns the set of values associated to the input 'id_string',
@@ -96,20 +104,9 @@ class CSVManager(object):
         """It adds the value specified in the set of values associated to 'id_string'.
         If the object was created with the option of storing also the data in a CSV
         ('store_new' = True, default behaviour), then it also add new data in the CSV."""
-        if id_string not in self.data:
-            self.data[id_string] = set()
-
-        if value not in self.data[id_string]:
-            self.data[id_string].add(value)
-
-            if self.csv_path is not None and self.store_new:
-                if not exists(self.csv_path):
-                    with open(self.csv_path, "w", encoding='utf-8') as f:
-                        f.write('"id","value"\n')
-
-                with open(self.csv_path, "a", encoding='utf-8') as f:
-                    f.write('"%s","%s"\n' % (id_string.replace('"', '""'),
-                                             value.replace('"', '""')))
+        self.data.setdefault(id_string, set())
+        self.data[id_string].add(value)
+        self.data_to_store[id_string] = self.data[id_string]
 
     def __load_csv(self, csv_string):
         csv_metadata = DictReader(StringIO(csv_string), delimiter=',')

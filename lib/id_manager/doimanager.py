@@ -27,7 +27,7 @@ from requests import ReadTimeout
 class DOIManager(IdentifierManager):
     def __init__(self, valid_doi=None, use_api_service=True):
         if valid_doi is None:
-            valid_doi = CSVManager(store_new=False)
+            valid_doi = CSVManager()
 
         self.api = "https://doi.org/api/handles/"
         self.valid_doi = valid_doi
