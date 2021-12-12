@@ -1,0 +1,864 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<record:record xmlns:address="http://www.orcid.org/ns/address" xmlns:email="http://www.orcid.org/ns/email" xmlns:history="http://www.orcid.org/ns/history" xmlns:employment="http://www.orcid.org/ns/employment" xmlns:education="http://www.orcid.org/ns/education" xmlns:other-name="http://www.orcid.org/ns/other-name" xmlns:deprecated="http://www.orcid.org/ns/deprecated" xmlns:funding="http://www.orcid.org/ns/funding" xmlns:research-resource="http://www.orcid.org/ns/research-resource" xmlns:service="http://www.orcid.org/ns/service" xmlns:researcher-url="http://www.orcid.org/ns/researcher-url" xmlns:distinction="http://www.orcid.org/ns/distinction" xmlns:internal="http://www.orcid.org/ns/internal" xmlns:membership="http://www.orcid.org/ns/membership" xmlns:person="http://www.orcid.org/ns/person" xmlns:personal-details="http://www.orcid.org/ns/personal-details" xmlns:bulk="http://www.orcid.org/ns/bulk" xmlns:common="http://www.orcid.org/ns/common" xmlns:record="http://www.orcid.org/ns/record" xmlns:keyword="http://www.orcid.org/ns/keyword" xmlns:activities="http://www.orcid.org/ns/activities" xmlns:qualification="http://www.orcid.org/ns/qualification" xmlns:external-identifier="http://www.orcid.org/ns/external-identifier" xmlns:error="http://www.orcid.org/ns/error" xmlns:preferences="http://www.orcid.org/ns/preferences" xmlns:invited-position="http://www.orcid.org/ns/invited-position" xmlns:work="http://www.orcid.org/ns/work" xmlns:peer-review="http://www.orcid.org/ns/peer-review" path="/0000-0001-5650-3000">
+    <common:orcid-identifier>
+        <common:uri>https://orcid.org/0000-0001-5650-3000</common:uri>
+        <common:path>0000-0001-5650-3000</common:path>
+        <common:host>orcid.org</common:host>
+    </common:orcid-identifier>
+    <preferences:preferences>
+        <preferences:locale>en</preferences:locale>
+    </preferences:preferences>
+    <history:history>
+        <history:creation-method>website</history:creation-method>
+        <history:submission-date>2013-07-11T14:52:56.072Z</history:submission-date>
+        <common:last-modified-date>2020-09-21T06:08:14.331Z</common:last-modified-date>
+        <history:claimed>true</history:claimed>
+        <history:verified-email>true</history:verified-email>
+        <history:verified-primary-email>true</history:verified-primary-email>
+    </history:history>
+    <person:person path="/0000-0001-5650-3000/person">
+        <person:name visibility="public" path="0000-0001-5650-3000">
+            <common:created-date>2016-04-15T20:53:59.932Z</common:created-date>
+            <common:last-modified-date>2016-04-15T20:53:59.932Z</common:last-modified-date>
+            <personal-details:given-names>Mohamed M</personal-details:given-names>
+            <personal-details:family-name>NasrAllah</personal-details:family-name>
+            <personal-details:credit-name>Mohamed M NasrAllah</personal-details:credit-name>
+        </person:name>
+        <other-name:other-names path="/0000-0001-5650-3000/other-names"/>
+        <researcher-url:researcher-urls path="/0000-0001-5650-3000/researcher-urls"/>
+        <email:emails path="/0000-0001-5650-3000/email"/>
+        <address:addresses path="/0000-0001-5650-3000/address"/>
+        <keyword:keywords path="/0000-0001-5650-3000/keywords"/>
+        <external-identifier:external-identifiers path="/0000-0001-5650-3000/external-identifiers"/>
+    </person:person>
+    <activities:activities-summary path="/0000-0001-5650-3000/activities">
+        <common:last-modified-date>2020-09-21T06:08:14.499Z</common:last-modified-date>
+        <activities:distinctions path="/0000-0001-5650-3000/distinctions"/>
+        <activities:educations path="/0000-0001-5650-3000/educations"/>
+        <activities:employments path="/0000-0001-5650-3000/employments"/>
+        <activities:fundings path="/0000-0001-5650-3000/fundings"/>
+        <activities:invited-positions path="/0000-0001-5650-3000/invited-positions"/>
+        <activities:memberships path="/0000-0001-5650-3000/memberships"/>
+        <activities:peer-reviews path="/0000-0001-5650-3000/peer-reviews">
+            <common:last-modified-date>2020-03-31T04:50:32.994Z</common:last-modified-date>
+            <activities:group>
+                <common:last-modified-date>2020-03-31T04:50:32.994Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>peer-review</common:external-id-type>
+                        <common:external-id-value>issn:1687-8329</common:external-id-value>
+                    </common:external-id>
+                </common:external-ids>
+                <activities:peer-review-group>
+                    <common:last-modified-date>2020-03-31T04:50:32.994Z</common:last-modified-date>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>source-work-id</common:external-id-type>
+                            <common:external-id-value>6fbc0598-e098-4df8-a095-725d932436e1</common:external-id-value>
+                            <common:external-id-normalized transient="true">6fbc0598-e098-4df8-a095-725d932436e1</common:external-id-normalized>
+                            <common:external-id-url></common:external-id-url>
+                            <common:external-id-relationship>self</common:external-id-relationship>
+                        </common:external-id>
+                    </common:external-ids>
+                    <peer-review:peer-review-summary put-code="2000553" path="/0000-0001-5650-3000/peer-review/2000553" visibility="public" display-index="0">
+                        <common:created-date>2020-03-31T04:50:32.994Z</common:created-date>
+                        <common:last-modified-date>2020-03-31T04:50:32.994Z</common:last-modified-date>
+                        <common:source>
+                            <common:source-client-id>
+<common:uri>https://orcid.org/client/APP-945VYTN20C7BZXYT</common:uri>
+<common:path>APP-945VYTN20C7BZXYT</common:path>
+<common:host>orcid.org</common:host>
+                            </common:source-client-id>
+                            <common:source-name>Springer Nature</common:source-name>
+                        </common:source>
+                        <peer-review:reviewer-role>reviewer</peer-review:reviewer-role>
+                        <common:external-ids>
+                            <common:external-id>
+<common:external-id-type>source-work-id</common:external-id-type>
+<common:external-id-value>6fbc0598-e098-4df8-a095-725d932436e1</common:external-id-value>
+<common:external-id-normalized transient="true">6fbc0598-e098-4df8-a095-725d932436e1</common:external-id-normalized>
+<common:external-id-url></common:external-id-url>
+<common:external-id-relationship>self</common:external-id-relationship>
+                            </common:external-id>
+                        </common:external-ids>
+                        <peer-review:review-type>review</peer-review:review-type>
+                        <peer-review:completion-date>
+                            <common:year>2020</common:year>
+                        </peer-review:completion-date>
+                        <peer-review:review-group-id>issn:1687-8329</peer-review:review-group-id>
+                        <peer-review:convening-organization>
+                            <common:name>Springer Nature</common:name>
+                            <common:address>
+<common:city>New York</common:city>
+<common:country>US</common:country>
+                            </common:address>
+                            <common:disambiguated-organization>
+<common:disambiguated-organization-identifier>grid.467660.5</common:disambiguated-organization-identifier>
+<common:disambiguation-source>GRID</common:disambiguation-source>
+                            </common:disambiguated-organization>
+                        </peer-review:convening-organization>
+                    </peer-review:peer-review-summary>
+                </activities:peer-review-group>
+            </activities:group>
+        </activities:peer-reviews>
+        <activities:qualifications path="/0000-0001-5650-3000/qualifications"/>
+        <activities:research-resources path="/0000-0001-5650-3000/research-resources"/>
+        <activities:services path="/0000-0001-5650-3000/services"/>
+        <activities:works path="/0000-0001-5650-3000/works">
+            <common:last-modified-date>2020-09-21T06:08:14.499Z</common:last-modified-date>
+            <activities:group>
+                <common:last-modified-date>2020-09-21T06:08:14.499Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1002/rmv.2149</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1002/rmv.2149</common:external-id-normalized>
+                        <common:external-id-url>https://doi.org/10.1002/rmv.2149</common:external-id-url>
+                        <common:external-id-relationship>self</common:external-id-relationship>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="80646447" path="/0000-0001-5650-3000/work/80646447" visibility="public" display-index="0">
+                    <common:created-date>2020-09-21T06:08:14.499Z</common:created-date>
+                    <common:last-modified-date>2020-09-21T06:08:14.499Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-client-id>
+                            <common:uri>https://orcid.org/client/0000-0001-9884-1913</common:uri>
+                            <common:path>0000-0001-9884-1913</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-client-id>
+                        <common:source-name>Crossref</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Transplantation in the era of the Covid‐19 pandemic: How should transplant patients and programs be handled?</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1002/rmv.2149</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1002/rmv.2149</common:external-id-normalized>
+                            <common:external-id-url>https://doi.org/10.1002/rmv.2149</common:external-id-url>
+                            <common:external-id-relationship>self</common:external-id-relationship>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>https://doi.org/10.1002/rmv.2149</common:url>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2020</common:year>
+                        <common:month>09</common:month>
+                        <common:day>20</common:day>
+                    </common:publication-date>
+                    <work:journal-title>Reviews in Medical Virology</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2020-06-01T22:34:01.469Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1016/j.transproceed.2019.01.147</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1016/j.transproceed.2019.01.147</common:external-id-normalized>
+                        <common:external-id-url>https://doi.org/10.1016/j.transproceed.2019.01.147</common:external-id-url>
+                        <common:external-id-relationship>self</common:external-id-relationship>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="74943587" path="/0000-0001-5650-3000/work/74943587" visibility="public" display-index="1">
+                    <common:created-date>2020-06-01T22:34:01.469Z</common:created-date>
+                    <common:last-modified-date>2020-06-01T22:34:01.469Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0001-5650-3000</common:uri>
+                            <common:path>0000-0001-5650-3000</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Mohamed M NasrAllah</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Impact of Adopting Routine Luminex-Based Pretransplant Assessment of HLA Antibodies on Clinical Practice and Outcomes in Kidney Transplantation</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1016/j.transproceed.2019.01.147</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1016/j.transproceed.2019.01.147</common:external-id-normalized>
+                            <common:external-id-url>https://doi.org/10.1016/j.transproceed.2019.01.147</common:external-id-url>
+                            <common:external-id-relationship>self</common:external-id-relationship>
+                        </common:external-id>
+                        <common:external-id>
+                            <common:external-id-type>issn</common:external-id-type>
+                            <common:external-id-value>0041-1345</common:external-id-value>
+                            <common:external-id-normalized transient="true">0041-1345</common:external-id-normalized>
+                            <common:external-id-url>https://portal.issn.org/resource/ISSN/0041-1345</common:external-id-url>
+                            <common:external-id-relationship>part-of</common:external-id-relationship>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://dx.doi.org/10.1016/j.transproceed.2019.01.147</common:url>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2019</common:year>
+                        <common:month>09</common:month>
+                    </common:publication-date>
+                    <work:journal-title>Transplantation Proceedings</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2020-06-01T22:34:30.603Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1016/j.transproceed.2019.02.044</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1016/j.transproceed.2019.02.044</common:external-id-normalized>
+                        <common:external-id-url>https://doi.org/10.1016/j.transproceed.2019.02.044</common:external-id-url>
+                        <common:external-id-relationship>self</common:external-id-relationship>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="74943597" path="/0000-0001-5650-3000/work/74943597" visibility="public" display-index="1">
+                    <common:created-date>2020-06-01T22:34:30.603Z</common:created-date>
+                    <common:last-modified-date>2020-06-01T22:34:30.603Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0001-5650-3000</common:uri>
+                            <common:path>0000-0001-5650-3000</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Mohamed M NasrAllah</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Micro RNA-192 Is Negatively Associated With Cardiovascular Events Among Wait-Listed Potential Kidney Transplant Recipients on Hemodialysis Over a 5-year Follow-up Period</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1016/j.transproceed.2019.02.044</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1016/j.transproceed.2019.02.044</common:external-id-normalized>
+                            <common:external-id-url>https://doi.org/10.1016/j.transproceed.2019.02.044</common:external-id-url>
+                            <common:external-id-relationship>self</common:external-id-relationship>
+                        </common:external-id>
+                        <common:external-id>
+                            <common:external-id-type>issn</common:external-id-type>
+                            <common:external-id-value>0041-1345</common:external-id-value>
+                            <common:external-id-normalized transient="true">0041-1345</common:external-id-normalized>
+                            <common:external-id-url>https://portal.issn.org/resource/ISSN/0041-1345</common:external-id-url>
+                            <common:external-id-relationship>part-of</common:external-id-relationship>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://dx.doi.org/10.1016/j.transproceed.2019.02.044</common:url>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2019</common:year>
+                        <common:month>09</common:month>
+                    </common:publication-date>
+                    <work:journal-title>Transplantation Proceedings</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2020-06-01T22:35:09.835Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1016/j.ijcard.2016.06.064</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1016/j.ijcard.2016.06.064</common:external-id-normalized>
+                        <common:external-id-url>https://doi.org/10.1016/j.ijcard.2016.06.064</common:external-id-url>
+                        <common:external-id-relationship>self</common:external-id-relationship>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="74943623" path="/0000-0001-5650-3000/work/74943623" visibility="public" display-index="1">
+                    <common:created-date>2020-06-01T22:35:09.835Z</common:created-date>
+                    <common:last-modified-date>2020-06-01T22:35:09.835Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0001-5650-3000</common:uri>
+                            <common:path>0000-0001-5650-3000</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Mohamed M NasrAllah</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Comparing different calcification scores to detect outcomes in chronic kidney disease patients with vascular calcification</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1016/j.ijcard.2016.06.064</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1016/j.ijcard.2016.06.064</common:external-id-normalized>
+                            <common:external-id-url>https://doi.org/10.1016/j.ijcard.2016.06.064</common:external-id-url>
+                            <common:external-id-relationship>self</common:external-id-relationship>
+                        </common:external-id>
+                        <common:external-id>
+                            <common:external-id-type>issn</common:external-id-type>
+                            <common:external-id-value>0167-5273</common:external-id-value>
+                            <common:external-id-normalized transient="true">0167-5273</common:external-id-normalized>
+                            <common:external-id-url>https://portal.issn.org/resource/ISSN/0167-5273</common:external-id-url>
+                            <common:external-id-relationship>part-of</common:external-id-relationship>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://dx.doi.org/10.1016/j.ijcard.2016.06.064</common:url>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2016</common:year>
+                        <common:month>10</common:month>
+                    </common:publication-date>
+                    <work:journal-title>International Journal of Cardiology</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2020-06-01T22:35:41.675Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.4103/1319-2442.190782</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.4103/1319-2442.190782</common:external-id-normalized>
+                        <common:external-id-url>https://doi.org/10.4103/1319-2442.190782</common:external-id-url>
+                        <common:external-id-relationship>self</common:external-id-relationship>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="74943635" path="/0000-0001-5650-3000/work/74943635" visibility="public" display-index="1">
+                    <common:created-date>2020-06-01T22:35:41.675Z</common:created-date>
+                    <common:last-modified-date>2020-06-01T22:35:41.675Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0001-5650-3000</common:uri>
+                            <common:path>0000-0001-5650-3000</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Mohamed M NasrAllah</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>VKORC1 gene (vitamin K epoxide reductase) polymorphisms are associated with cardiovascular disease in chronic kidney disease patients on hemodialysis</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.4103/1319-2442.190782</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.4103/1319-2442.190782</common:external-id-normalized>
+                            <common:external-id-url>https://doi.org/10.4103/1319-2442.190782</common:external-id-url>
+                            <common:external-id-relationship>self</common:external-id-relationship>
+                        </common:external-id>
+                        <common:external-id>
+                            <common:external-id-type>issn</common:external-id-type>
+                            <common:external-id-value>1319-2442</common:external-id-value>
+                            <common:external-id-normalized transient="true">1319-2442</common:external-id-normalized>
+                            <common:external-id-url>https://portal.issn.org/resource/ISSN/1319-2442</common:external-id-url>
+                            <common:external-id-relationship>part-of</common:external-id-relationship>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://dx.doi.org/10.4103/1319-2442.190782</common:url>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2016</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Saudi Journal of Kidney Diseases and Transplantation</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2020-06-01T22:36:14.485Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1053/j.jrn.2015.04.009</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1053/j.jrn.2015.04.009</common:external-id-normalized>
+                        <common:external-id-url>https://doi.org/10.1053/j.jrn.2015.04.009</common:external-id-url>
+                        <common:external-id-relationship>self</common:external-id-relationship>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="74943647" path="/0000-0001-5650-3000/work/74943647" visibility="public" display-index="1">
+                    <common:created-date>2020-06-01T22:36:14.485Z</common:created-date>
+                    <common:last-modified-date>2020-06-01T22:36:14.485Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0001-5650-3000</common:uri>
+                            <common:path>0000-0001-5650-3000</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Mohamed M NasrAllah</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Complementary and Alternative Medicine Use Among Patients With Chronic Kidney Disease and Kidney Transplant Recipients</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1053/j.jrn.2015.04.009</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1053/j.jrn.2015.04.009</common:external-id-normalized>
+                            <common:external-id-url>https://doi.org/10.1053/j.jrn.2015.04.009</common:external-id-url>
+                            <common:external-id-relationship>self</common:external-id-relationship>
+                        </common:external-id>
+                        <common:external-id>
+                            <common:external-id-type>issn</common:external-id-type>
+                            <common:external-id-value>1051-2276</common:external-id-value>
+                            <common:external-id-normalized transient="true">1051-2276</common:external-id-normalized>
+                            <common:external-id-url>https://portal.issn.org/resource/ISSN/1051-2276</common:external-id-url>
+                            <common:external-id-relationship>part-of</common:external-id-relationship>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://dx.doi.org/10.1053/j.jrn.2015.04.009</common:url>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2015</common:year>
+                        <common:month>11</common:month>
+                    </common:publication-date>
+                    <work:journal-title>Journal of Renal Nutrition</work:journal-title>
+                </work:work-summary>
+                <work:work-summary put-code="21889542" path="/0000-0001-5650-3000/work/21889542" visibility="public" display-index="0">
+                    <common:created-date>2016-01-27T16:51:17.043Z</common:created-date>
+                    <common:last-modified-date>2016-09-11T11:01:02.675Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-client-id>
+                            <common:uri>https://orcid.org/client/0000-0001-9884-1913</common:uri>
+                            <common:path>0000-0001-9884-1913</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-client-id>
+                        <common:source-name>Crossref</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Complementary and Alternative Medicine Use Among Patients With Chronic Kidney Disease and Kidney Transplant Recipients</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1053/j.jrn.2015.04.009</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1053/j.jrn.2015.04.009</common:external-id-normalized>
+                            <common:external-id-url>http://dx.doi.org/10.1053/j.jrn.2015.04.009</common:external-id-url>
+                            <common:external-id-relationship>self</common:external-id-relationship>
+                        </common:external-id>
+                    </common:external-ids>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2015</common:year>
+                        <common:month>11</common:month>
+                    </common:publication-date>
+                    <work:journal-title>Journal of Renal Nutrition</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2020-06-01T22:36:39.426Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.26719/2015.21.5.354</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.26719/2015.21.5.354</common:external-id-normalized>
+                        <common:external-id-url>https://doi.org/10.26719/2015.21.5.354</common:external-id-url>
+                        <common:external-id-relationship>self</common:external-id-relationship>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="74943658" path="/0000-0001-5650-3000/work/74943658" visibility="public" display-index="1">
+                    <common:created-date>2020-06-01T22:36:39.426Z</common:created-date>
+                    <common:last-modified-date>2020-06-01T22:36:39.426Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0001-5650-3000</common:uri>
+                            <common:path>0000-0001-5650-3000</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Mohamed M NasrAllah</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Cryoglobulinaemic vasculitis and glomerulonephritis associated with schistosomiasis: a case study</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.26719/2015.21.5.354</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.26719/2015.21.5.354</common:external-id-normalized>
+                            <common:external-id-url>https://doi.org/10.26719/2015.21.5.354</common:external-id-url>
+                            <common:external-id-relationship>self</common:external-id-relationship>
+                        </common:external-id>
+                        <common:external-id>
+                            <common:external-id-type>issn</common:external-id-type>
+                            <common:external-id-value>1020-3397</common:external-id-value>
+                            <common:external-id-normalized transient="true">1020-3397</common:external-id-normalized>
+                            <common:external-id-url>https://portal.issn.org/resource/ISSN/1020-3397</common:external-id-url>
+                            <common:external-id-relationship>part-of</common:external-id-relationship>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://dx.doi.org/10.26719/2015.21.5.354</common:url>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2015</common:year>
+                        <common:month>05</common:month>
+                        <common:day>01</common:day>
+                    </common:publication-date>
+                    <work:journal-title>Eastern Mediterranean Health Journal</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2020-06-01T22:37:14.137Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1093/ckj/sfu046</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1093/ckj/sfu046</common:external-id-normalized>
+                        <common:external-id-url>https://doi.org/10.1093/ckj/sfu046</common:external-id-url>
+                        <common:external-id-relationship>self</common:external-id-relationship>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="74943668" path="/0000-0001-5650-3000/work/74943668" visibility="public" display-index="1">
+                    <common:created-date>2020-06-01T22:37:14.137Z</common:created-date>
+                    <common:last-modified-date>2020-06-01T22:37:14.137Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0001-5650-3000</common:uri>
+                            <common:path>0000-0001-5650-3000</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Mohamed M NasrAllah</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Fasting during the month of Ramadan among patients with chronic kidney disease: renal and cardiovascular outcomes</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1093/ckj/sfu046</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1093/ckj/sfu046</common:external-id-normalized>
+                            <common:external-id-url>https://doi.org/10.1093/ckj/sfu046</common:external-id-url>
+                            <common:external-id-relationship>self</common:external-id-relationship>
+                        </common:external-id>
+                        <common:external-id>
+                            <common:external-id-type>issn</common:external-id-type>
+                            <common:external-id-value>2048-8505</common:external-id-value>
+                            <common:external-id-normalized transient="true">2048-8505</common:external-id-normalized>
+                            <common:external-id-url>https://portal.issn.org/resource/ISSN/2048-8505</common:external-id-url>
+                            <common:external-id-relationship>part-of</common:external-id-relationship>
+                        </common:external-id>
+                        <common:external-id>
+                            <common:external-id-type>issn</common:external-id-type>
+                            <common:external-id-value>2048-8513</common:external-id-value>
+                            <common:external-id-normalized transient="true">2048-8513</common:external-id-normalized>
+                            <common:external-id-url>https://portal.issn.org/resource/ISSN/2048-8513</common:external-id-url>
+                            <common:external-id-relationship>part-of</common:external-id-relationship>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://dx.doi.org/10.1093/ckj/sfu046</common:url>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2014</common:year>
+                        <common:month>08</common:month>
+                        <common:day>01</common:day>
+                    </common:publication-date>
+                    <work:journal-title>Clinical Kidney Journal</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2020-06-01T22:38:14.988Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1007/s00393-012-1058-9</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1007/s00393-012-1058-9</common:external-id-normalized>
+                        <common:external-id-url>https://doi.org/10.1007/s00393-012-1058-9</common:external-id-url>
+                        <common:external-id-relationship>self</common:external-id-relationship>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="74943698" path="/0000-0001-5650-3000/work/74943698" visibility="public" display-index="1">
+                    <common:created-date>2020-06-01T22:38:14.988Z</common:created-date>
+                    <common:last-modified-date>2020-06-01T22:38:14.988Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0001-5650-3000</common:uri>
+                            <common:path>0000-0001-5650-3000</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Mohamed M NasrAllah</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Metabolic syndrome and insulin resistance comorbidity in systemic lupus erythematosus</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1007/s00393-012-1058-9</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1007/s00393-012-1058-9</common:external-id-normalized>
+                            <common:external-id-url>https://doi.org/10.1007/s00393-012-1058-9</common:external-id-url>
+                            <common:external-id-relationship>self</common:external-id-relationship>
+                        </common:external-id>
+                        <common:external-id>
+                            <common:external-id-type>issn</common:external-id-type>
+                            <common:external-id-value>0340-1855</common:external-id-value>
+                            <common:external-id-normalized transient="true">0340-1855</common:external-id-normalized>
+                            <common:external-id-url>https://portal.issn.org/resource/ISSN/0340-1855</common:external-id-url>
+                            <common:external-id-relationship>part-of</common:external-id-relationship>
+                        </common:external-id>
+                        <common:external-id>
+                            <common:external-id-type>issn</common:external-id-type>
+                            <common:external-id-value>1435-1250</common:external-id-value>
+                            <common:external-id-normalized transient="true">1435-1250</common:external-id-normalized>
+                            <common:external-id-url>https://portal.issn.org/resource/ISSN/1435-1250</common:external-id-url>
+                            <common:external-id-relationship>part-of</common:external-id-relationship>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://dx.doi.org/10.1007/s00393-012-1058-9</common:url>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2013</common:year>
+                        <common:month>03</common:month>
+                    </common:publication-date>
+                    <work:journal-title>Zeitschrift für Rheumatologie</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2020-06-01T22:37:37.235Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1159/000356118</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1159/000356118</common:external-id-normalized>
+                        <common:external-id-url>https://doi.org/10.1159/000356118</common:external-id-url>
+                        <common:external-id-relationship>self</common:external-id-relationship>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="74943684" path="/0000-0001-5650-3000/work/74943684" visibility="public" display-index="1">
+                    <common:created-date>2020-06-01T22:37:37.235Z</common:created-date>
+                    <common:last-modified-date>2020-06-01T22:37:37.235Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0001-5650-3000</common:uri>
+                            <common:path>0000-0001-5650-3000</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Mohamed M NasrAllah</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>The Association between Fibroblast Growth Factor-23 and Vascular Calcification Is Mitigated by Inflammation Markers</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1159/000356118</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1159/000356118</common:external-id-normalized>
+                            <common:external-id-url>https://doi.org/10.1159/000356118</common:external-id-url>
+                            <common:external-id-relationship>self</common:external-id-relationship>
+                        </common:external-id>
+                        <common:external-id>
+                            <common:external-id-type>issn</common:external-id-type>
+                            <common:external-id-value>1664-5529</common:external-id-value>
+                            <common:external-id-normalized transient="true">1664-5529</common:external-id-normalized>
+                            <common:external-id-url>https://portal.issn.org/resource/ISSN/1664-5529</common:external-id-url>
+                            <common:external-id-relationship>part-of</common:external-id-relationship>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://dx.doi.org/10.1159/000356118</common:url>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2013</common:year>
+                    </common:publication-date>
+                    <work:journal-title>Nephron Extra</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2020-06-01T22:38:48.606Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1111/1756-185x.12007</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1111/1756-185x.12007</common:external-id-normalized>
+                        <common:external-id-url>https://doi.org/10.1111/1756-185x.12007</common:external-id-url>
+                        <common:external-id-relationship>self</common:external-id-relationship>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="74943756" path="/0000-0001-5650-3000/work/74943756" visibility="public" display-index="1">
+                    <common:created-date>2020-06-01T22:38:48.606Z</common:created-date>
+                    <common:last-modified-date>2020-06-01T22:38:48.606Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0001-5650-3000</common:uri>
+                            <common:path>0000-0001-5650-3000</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Mohamed M NasrAllah</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Insulin resistance and metabolic syndrome in primary gout: relation to punched-out erosions</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1111/1756-185x.12007</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1111/1756-185x.12007</common:external-id-normalized>
+                            <common:external-id-url>https://doi.org/10.1111/1756-185x.12007</common:external-id-url>
+                            <common:external-id-relationship>self</common:external-id-relationship>
+                        </common:external-id>
+                        <common:external-id>
+                            <common:external-id-type>issn</common:external-id-type>
+                            <common:external-id-value>1756-1841</common:external-id-value>
+                            <common:external-id-normalized transient="true">1756-1841</common:external-id-normalized>
+                            <common:external-id-url>https://portal.issn.org/resource/ISSN/1756-1841</common:external-id-url>
+                            <common:external-id-relationship>part-of</common:external-id-relationship>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://dx.doi.org/10.1111/1756-185x.12007</common:url>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2012</common:year>
+                        <common:month>12</common:month>
+                    </common:publication-date>
+                    <work:journal-title>International Journal of Rheumatic Diseases</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2020-06-01T22:39:55.095Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1007/s11255-011-0007-x</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1007/s11255-011-0007-x</common:external-id-normalized>
+                        <common:external-id-url>https://doi.org/10.1007/s11255-011-0007-x</common:external-id-url>
+                        <common:external-id-relationship>self</common:external-id-relationship>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="74943834" path="/0000-0001-5650-3000/work/74943834" visibility="public" display-index="1">
+                    <common:created-date>2020-06-01T22:39:55.095Z</common:created-date>
+                    <common:last-modified-date>2020-06-01T22:39:55.095Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0001-5650-3000</common:uri>
+                            <common:path>0000-0001-5650-3000</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Mohamed M NasrAllah</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Endogenous soluble receptor of advanced glycation end-products (esRAGE) is negatively associated with vascular calcification in non-diabetic hemodialysis patients</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1007/s11255-011-0007-x</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1007/s11255-011-0007-x</common:external-id-normalized>
+                            <common:external-id-url>https://doi.org/10.1007/s11255-011-0007-x</common:external-id-url>
+                            <common:external-id-relationship>self</common:external-id-relationship>
+                        </common:external-id>
+                        <common:external-id>
+                            <common:external-id-type>issn</common:external-id-type>
+                            <common:external-id-value>0301-1623</common:external-id-value>
+                            <common:external-id-normalized transient="true">0301-1623</common:external-id-normalized>
+                            <common:external-id-url>https://portal.issn.org/resource/ISSN/0301-1623</common:external-id-url>
+                            <common:external-id-relationship>part-of</common:external-id-relationship>
+                        </common:external-id>
+                        <common:external-id>
+                            <common:external-id-type>issn</common:external-id-type>
+                            <common:external-id-value>1573-2584</common:external-id-value>
+                            <common:external-id-normalized transient="true">1573-2584</common:external-id-normalized>
+                            <common:external-id-url>https://portal.issn.org/resource/ISSN/1573-2584</common:external-id-url>
+                            <common:external-id-relationship>part-of</common:external-id-relationship>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://dx.doi.org/10.1007/s11255-011-0007-x</common:url>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2012</common:year>
+                        <common:month>08</common:month>
+                    </common:publication-date>
+                    <work:journal-title>International Urology and Nephrology</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2020-06-01T22:40:09.098Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1016/j.jbspin.2011.06.009</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1016/j.jbspin.2011.06.009</common:external-id-normalized>
+                        <common:external-id-url>https://doi.org/10.1016/j.jbspin.2011.06.009</common:external-id-url>
+                        <common:external-id-relationship>self</common:external-id-relationship>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="74943839" path="/0000-0001-5650-3000/work/74943839" visibility="public" display-index="1">
+                    <common:created-date>2020-06-01T22:40:09.098Z</common:created-date>
+                    <common:last-modified-date>2020-06-01T22:40:09.098Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0001-5650-3000</common:uri>
+                            <common:path>0000-0001-5650-3000</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Mohamed M NasrAllah</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Subclinical renal involvement in essential cryoglobulinemic vasculitis and classic polyarteritis nodosa</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1016/j.jbspin.2011.06.009</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1016/j.jbspin.2011.06.009</common:external-id-normalized>
+                            <common:external-id-url>https://doi.org/10.1016/j.jbspin.2011.06.009</common:external-id-url>
+                            <common:external-id-relationship>self</common:external-id-relationship>
+                        </common:external-id>
+                        <common:external-id>
+                            <common:external-id-type>issn</common:external-id-type>
+                            <common:external-id-value>1297-319X</common:external-id-value>
+                            <common:external-id-normalized transient="true">1297-319X</common:external-id-normalized>
+                            <common:external-id-url>https://portal.issn.org/resource/ISSN/1297-319X</common:external-id-url>
+                            <common:external-id-relationship>part-of</common:external-id-relationship>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://dx.doi.org/10.1016/j.jbspin.2011.06.009</common:url>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2012</common:year>
+                        <common:month>05</common:month>
+                    </common:publication-date>
+                    <work:journal-title>Joint Bone Spine</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+            <activities:group>
+                <common:last-modified-date>2020-06-01T22:40:32.267Z</common:last-modified-date>
+                <common:external-ids>
+                    <common:external-id>
+                        <common:external-id-type>doi</common:external-id-type>
+                        <common:external-id-value>10.1093/ndt/gfq089</common:external-id-value>
+                        <common:external-id-normalized transient="true">10.1093/ndt/gfq089</common:external-id-normalized>
+                        <common:external-id-url>https://doi.org/10.1093/ndt/gfq089</common:external-id-url>
+                        <common:external-id-relationship>self</common:external-id-relationship>
+                    </common:external-id>
+                </common:external-ids>
+                <work:work-summary put-code="74943853" path="/0000-0001-5650-3000/work/74943853" visibility="public" display-index="1">
+                    <common:created-date>2020-06-01T22:40:32.267Z</common:created-date>
+                    <common:last-modified-date>2020-06-01T22:40:32.267Z</common:last-modified-date>
+                    <common:source>
+                        <common:source-orcid>
+                            <common:uri>https://orcid.org/0000-0001-5650-3000</common:uri>
+                            <common:path>0000-0001-5650-3000</common:path>
+                            <common:host>orcid.org</common:host>
+                        </common:source-orcid>
+                        <common:source-name>Mohamed M NasrAllah</common:source-name>
+                    </common:source>
+                    <work:title>
+                        <common:title>Fibroblast growth factor-23 (FGF-23) is independently correlated to aortic calcification in haemodialysis patients</common:title>
+                    </work:title>
+                    <common:external-ids>
+                        <common:external-id>
+                            <common:external-id-type>doi</common:external-id-type>
+                            <common:external-id-value>10.1093/ndt/gfq089</common:external-id-value>
+                            <common:external-id-normalized transient="true">10.1093/ndt/gfq089</common:external-id-normalized>
+                            <common:external-id-url>https://doi.org/10.1093/ndt/gfq089</common:external-id-url>
+                            <common:external-id-relationship>self</common:external-id-relationship>
+                        </common:external-id>
+                        <common:external-id>
+                            <common:external-id-type>issn</common:external-id-type>
+                            <common:external-id-value>0931-0509</common:external-id-value>
+                            <common:external-id-normalized transient="true">0931-0509</common:external-id-normalized>
+                            <common:external-id-url>https://portal.issn.org/resource/ISSN/0931-0509</common:external-id-url>
+                            <common:external-id-relationship>part-of</common:external-id-relationship>
+                        </common:external-id>
+                        <common:external-id>
+                            <common:external-id-type>issn</common:external-id-type>
+                            <common:external-id-value>1460-2385</common:external-id-value>
+                            <common:external-id-normalized transient="true">1460-2385</common:external-id-normalized>
+                            <common:external-id-url>https://portal.issn.org/resource/ISSN/1460-2385</common:external-id-url>
+                            <common:external-id-relationship>part-of</common:external-id-relationship>
+                        </common:external-id>
+                    </common:external-ids>
+                    <common:url>http://dx.doi.org/10.1093/ndt/gfq089</common:url>
+                    <work:type>journal-article</work:type>
+                    <common:publication-date>
+                        <common:year>2010</common:year>
+                        <common:month>08</common:month>
+                        <common:day>01</common:day>
+                    </common:publication-date>
+                    <work:journal-title>Nephrology Dialysis Transplantation</work:journal-title>
+                </work:work-summary>
+            </activities:group>
+        </activities:works>
+    </activities:activities-summary>
+</record:record>

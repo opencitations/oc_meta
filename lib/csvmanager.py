@@ -16,8 +16,8 @@
 
 from csv import DictReader, writer
 from io import StringIO
-from os.path import exists, isdir
-from os import walk, sep
+from os.path import exists, isdir, join
+from os import walk, sep, mkdir
 
 
 class CSVManager(object):
@@ -26,12 +26,12 @@ class CSVManager(object):
     easily queried. In addition, it allows one to store new information in the CSV,
     if needed."""
 
-    def __init__(self, csv_path=None, line_threshold=10000):
+    def __init__(self, csv_path:str=None):
         self.csv_path = csv_path
         self.data = {}
-        self.data_to_store = {}
-        if csv_path is not None and exists(csv_path):
-            CSVManager.__load_all_csv_files([csv_path], self.__load_csv, line_threshold=line_threshold)
+        self.data_to_store = list()
+        if self.csv_path is not None:
+            self.__load_csv()
 
     @staticmethod
     def load_csv_column_as_set(file_or_dir_path, key, line_threshold=10000):
@@ -40,7 +40,7 @@ class CSVManager(object):
         if exists(file_or_dir_path):
             file_to_process = []
             if isdir(file_or_dir_path):
-                for cur_dir, cur_subdir, cur_files in walk(file_or_dir_path):
+                for cur_dir, _, cur_files in walk(file_or_dir_path):
                     for cur_file in cur_files:
                         if cur_file.endswith(".csv"):
                             file_to_process.append(cur_dir + sep + cur_file)
@@ -83,16 +83,16 @@ class CSVManager(object):
             result.append(fun(csv_content, **params))
         return result
     
-    def dump_data(self) -> None:
-        if not exists(self.csv_path):
-            with open(self.csv_path, "w", encoding='utf-8', newline='') as f:
+    def dump_data(self, file_name:str) -> None:
+        path = join(self.csv_path, file_name)
+        if not exists(path):
+            with open(path, "w", encoding='utf-8', newline='') as f:
                 f.write('"id","value"\n')
-        with open(self.csv_path, "a", encoding='utf-8', newline='') as f:
+        with open(path, "a", encoding='utf-8', newline='') as f:
             csv_writer = writer(f, delimiter=',')
-            for k,v in self.data_to_store.items():
-                for value in v:
-                    csv_writer.writerow([k.replace('"', '""'), value.replace('"', '""')])
-        self.data_to_store = {}
+            for el in self.data_to_store:
+                csv_writer.writerow([el[0].replace('"', '""'), el[1].replace('"', '""')])
+        self.data_to_store = list()
 
     def get_value(self, id_string):
         """It returns the set of values associated to the input 'id_string',
@@ -105,14 +105,17 @@ class CSVManager(object):
         If the object was created with the option of storing also the data in a CSV
         ('store_new' = True, default behaviour), then it also add new data in the CSV."""
         self.data.setdefault(id_string, set())
-        self.data[id_string].add(value)
-        self.data_to_store[id_string] = self.data[id_string]
+        if value not in self.data[id_string]:
+            self.data[id_string].add(value)
+            self.data_to_store.append([id_string, value])
 
-    def __load_csv(self, csv_string):
-        csv_metadata = DictReader(StringIO(csv_string), delimiter=',')
-        for row in csv_metadata:
-            cur_id = row["id"]
-            if cur_id not in self.data:
-                self.data[cur_id] = set()
-
-            self.data[cur_id].add(row["value"])
+    def __load_csv(self):
+        if not exists(self.csv_path):
+            mkdir(self.csv_path)
+        for dir,_,files in walk(self.csv_path):
+            for file in files:
+                if file.endswith(".csv"):
+                    reader = DictReader(open(join(dir, file), 'r', encoding='utf-8'))
+                    for row in reader:
+                        self.data.setdefault(row['id'], set())
+                        self.data[row['id']].add(row['value'])
