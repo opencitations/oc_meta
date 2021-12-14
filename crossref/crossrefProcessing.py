@@ -47,21 +47,11 @@ class crossrefProcessing:
 
                     if 'ISBN' in x:
                         if row['type'] in {'book', 'monograph', 'edited book'}:
-                            if isinstance(x['ISBN'], list):
-                                for i in x['ISBN']:
-                                    self.issn_worker(str(i), idlist)
-                            else:
-                                isbnid = str(x['ISBN'])
-                                self.isbn_worker(isbnid, idlist)
+                            self.id_worker(x['ISBN'], idlist, self.isbn_worker)
 
                     if 'ISSN' in x:
                         if row['type'] in {'journal', 'series', 'report series', 'standard series'}:
-                            if isinstance(x['ISSN'], list):
-                                for i in x['ISSN']:
-                                    self.issn_worker(str(i), idlist)
-                            else:
-                                issnid = str(x['ISSN'])
-                                self.issn_worker(issnid, idlist)
+                            self.id_worker(x['ISSN'], idlist, self.issn_worker)
                     row['id'] = ' '.join(idlist)
 
                     # row['title']
@@ -96,21 +86,11 @@ class crossrefProcessing:
                             venidlist = list()
                             if 'ISBN' in x:
                                 if row['type'] in {'book chapter', 'book part'}:
-                                    if isinstance(x['ISBN'], list):
-                                        for i in x['ISBN']:
-                                            self.isbn_worker(str(i), venidlist)
-                                    else:
-                                        venisbnid = str(x['ISBN'])
-                                        self.isbn_worker(venisbnid, venidlist)
+                                    self.id_worker(x['ISBN'], venidlist, self.isbn_worker)
 
                             if 'ISSN' in x:
                                 if row['type'] in {'journal article', 'journal volume', 'journal issue'}:
-                                    if isinstance(x['ISSN'], list):
-                                        for i in x['ISSN']:
-                                            self.issn_worker(str(i), venidlist)
-                                    else:
-                                        venissnid = str(x['ISSN'])
-                                        self.issn_worker(venissnid, venidlist)
+                                    self.id_worker(x['ISSN'], venidlist, self.issn_worker)
                             if venidlist:
                                 row['venue'] = ventit + ' [' + ' '.join(venidlist) + ']'
                             else:
@@ -134,6 +114,15 @@ class crossrefProcessing:
                         row['editor'] = '; '.join(editlist)
                     output.append(row)
         return output
+    
+    @staticmethod
+    def id_worker(field, idlist:list, func) -> None:
+        if isinstance(field, list):
+            for i in field:
+                func(str(i), idlist)
+        else:
+            id = str(field)
+            func(id, idlist)
 
     def orcid_finder(self, doi:str) -> dict:
         found = dict()

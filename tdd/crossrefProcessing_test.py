@@ -55,6 +55,17 @@ class TestCrossrefProcessing(unittest.TestCase):
         authors_strings_list = crossref_processor.get_agents_strings_list('10.9799/ksfan.2012.25.1.105', authors_list)
         expected_authors_list = ['Kim, Myung-Hee', 'Seo, Jin-Seon', 'Choi, Mi-Kyeong [orcid:0000-0002-6227-4053]', 'Kim, Eun-Young']
         self.assertEqual(authors_strings_list, expected_authors_list)
+    
+    def test_id_worker(self):
+        field_issn = "ISSN 1050-124X"
+        field_isbn = ["978-1-56619-909-4"]
+        issn_list = list()
+        isbn_list = list()
+        crossrefProcessing.id_worker(field_issn, issn_list, crossrefProcessing.issn_worker)
+        crossrefProcessing.id_worker(field_isbn, isbn_list, crossrefProcessing.isbn_worker)
+        expected_issn_list = ['issn:1050-124X']
+        expected_isbn_list = ['isbn:9781566199094']
+        self.assertEqual((issn_list, isbn_list), (expected_issn_list, expected_isbn_list))
 
     def test_issn_worker(self):
         input = "ISSN 1050-124X"
