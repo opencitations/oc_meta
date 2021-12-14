@@ -1,0 +1,68 @@
+{
+    "items": [
+        {
+            "indexed": {
+                "date-parts": [
+                    [
+                        2020,
+                        4,
+                        11
+                    ]
+                ],
+                "date-time": "2020-04-11T18:40:50Z",
+                "timestamp": 1586630450081
+            },
+            "reference-count": 0,
+            "publisher": "Consulting Company Ucom",
+            "content-domain": {
+                "domain": [],
+                "crossmark-restriction": false
+            },
+            "short-container-title": [],
+            "DOI": "10.17117/na.2015.08.1067",
+            "type": "component",
+            "created": {
+                "date-parts": [
+                    [
+                        2015,
+                        10,
+                        14
+                    ]
+                ],
+                "date-time": "2015-10-14T10:18:20Z",
+                "timestamp": 1444817900000
+            },
+            "source": "Crossref",
+            "is-referenced-by-count": 0,
+            "title": [],
+            "prefix": "10.17117",
+            "member": "6623",
+            "container-title": [],
+            "original-title": [],
+            "deposited": {
+                "date-parts": [
+                    [
+                        2017,
+                        3,
+                        10
+                    ]
+                ],
+                "date-time": "2017-03-10T08:28:15Z",
+                "timestamp": 1489134495000
+            },
+            "score": null,
+            "subtitle": [],
+            "short-title": [],
+            "issued": {
+                "date-parts": [
+                    [
+                        null
+                    ]
+                ]
+            },
+            "references-count": 0,
+            "URL": "http://dx.doi.org/10.17117/na.2015.08.1067",
+            "relation": {}
+        }
+    ]
+}

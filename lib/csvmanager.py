@@ -50,7 +50,6 @@ class CSVManager(object):
             for item in CSVManager.__load_all_csv_files(file_to_process, CSVManager.__load_csv_by_key,
                                                         line_threshold=line_threshold, key=key):
                 result.update(item)
-
         return result
 
     @staticmethod

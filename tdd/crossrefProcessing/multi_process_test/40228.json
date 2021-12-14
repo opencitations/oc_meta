@@ -1,0 +1,253 @@
+{
+    "items": [
+        {
+            "indexed": {
+                "date-parts": [
+                    [
+                        2020,
+                        11,
+                        5
+                    ]
+                ],
+                "date-time": "2020-11-05T13:45:00Z",
+                "timestamp": 1604583900287
+            },
+            "reference-count": 19,
+            "publisher": "The Korean Society of Food and Nutrition",
+            "issue": "1",
+            "content-domain": {
+                "domain": [],
+                "crossmark-restriction": false
+            },
+            "short-container-title": [
+                "The Korean Journal of Food And Nutrition"
+            ],
+            "published-print": {
+                "date-parts": [
+                    [
+                        2012,
+                        3,
+                        31
+                    ]
+                ]
+            },
+            "DOI": "10.9799/ksfan.2012.25.1.069",
+            "type": "journal-article",
+            "created": {
+                "date-parts": [
+                    [
+                        2013,
+                        9,
+                        3
+                    ]
+                ],
+                "date-time": "2013-09-03T04:57:58Z",
+                "timestamp": 1378184278000
+            },
+            "page": "69-76",
+            "source": "Crossref",
+            "is-referenced-by-count": 2,
+            "title": [
+                "Nonthermal Sterilization and Shelf-life Extension of Seafood Products by Intense Pulsed Light Treatment"
+            ],
+            "prefix": "10.9799",
+            "volume": "25",
+            "author": [
+                {
+                    "given": "Chan-Ick",
+                    "family": "Cheigh",
+                    "affiliation": []
+                },
+                {
+                    "given": "Ji-Hye",
+                    "family": "Mun",
+                    "affiliation": []
+                },
+                {
+                    "given": "Myong-Soo",
+                    "family": "Chung",
+                    "affiliation": []
+                }
+            ],
+            "member": "4768",
+            "container-title": [
+                "The Korean Journal of Food And Nutrition"
+            ],
+            "original-title": [
+                "\uc218\uc0b0\ubb3c\uc758 \ube44\uc5f4\uc0b4\uade0 \ubc0f \uc800\uc7a5\uc131 \ud5a5\uc0c1\uc5d0 \ub300\ud55c \uad11\ud384\uc2a4\uc758 \ud6a8\uacfc"
+            ],
+            "link": [
+                {
+                    "URL": "http://ocean.kisti.re.kr/downfile/crosscheck/ksfn/JAKO201220856665278.pdf",
+                    "content-type": "unspecified",
+                    "content-version": "vor",
+                    "intended-application": "similarity-checking"
+                }
+            ],
+            "deposited": {
+                "date-parts": [
+                    [
+                        2019,
+                        7,
+                        23
+                    ]
+                ],
+                "date-time": "2019-07-23T00:42:52Z",
+                "timestamp": 1563842572000
+            },
+            "score": null,
+            "subtitle": [],
+            "short-title": [],
+            "issued": {
+                "date-parts": [
+                    [
+                        2012,
+                        3,
+                        31
+                    ]
+                ]
+            },
+            "references-count": 19,
+            "URL": "http://dx.doi.org/10.9799/ksfan.2012.25.1.069",
+            "relation": {
+                "cites": []
+            },
+            "ISSN": [
+                "1225-4339"
+            ],
+            "issn-type": [
+                {
+                    "value": "1225-4339",
+                    "type": "print"
+                }
+            ]
+        },
+        {
+            "indexed": {
+                "date-parts": [
+                    [
+                        2020,
+                        3,
+                        29
+                    ]
+                ],
+                "date-time": "2020-03-29T14:28:08Z",
+                "timestamp": 1585492088018
+            },
+            "reference-count": 24,
+            "publisher": "The Korean Society of Food and Nutrition",
+            "issue": "1",
+            "content-domain": {
+                "domain": [],
+                "crossmark-restriction": false
+            },
+            "short-container-title": [
+                "The Korean Journal of Food And Nutrition"
+            ],
+            "published-print": {
+                "date-parts": [
+                    [
+                        2012,
+                        3,
+                        31
+                    ]
+                ]
+            },
+            "DOI": "10.9799/ksfan.2012.25.1.077",
+            "type": "journal-article",
+            "created": {
+                "date-parts": [
+                    [
+                        2013,
+                        9,
+                        3
+                    ]
+                ],
+                "date-time": "2013-09-03T00:57:58Z",
+                "timestamp": 1378169878000
+            },
+            "page": "77-82",
+            "source": "Crossref",
+            "is-referenced-by-count": 4,
+            "title": [
+                "Properties of Immature Green Cherry Tomato Pickles"
+            ],
+            "prefix": "10.9799",
+            "volume": "25",
+            "author": [
+                {
+                    "given": "Jong-Ho",
+                    "family": "Koh",
+                    "affiliation": []
+                },
+                {
+                    "given": "Hae-Hun",
+                    "family": "Shin",
+                    "affiliation": []
+                },
+                {
+                    "given": "Young-Shik",
+                    "family": "Kim",
+                    "affiliation": []
+                },
+                {
+                    "given": "Moo-Chang",
+                    "family": "Kook",
+                    "affiliation": []
+                }
+            ],
+            "member": "4768",
+            "container-title": [
+                "The Korean Journal of Food And Nutrition"
+            ],
+            "original-title": [
+                "\ubbf8\uc219 \uccad\ubc29\uc6b8 \ud1a0\ub9c8\ud1a0 \ud53c\ud074 \uc81c\uc870 \uc870\uac74\uc5d0 \uad00\ud55c \uc5f0\uad6c"
+            ],
+            "link": [
+                {
+                    "URL": "http://ocean.kisti.re.kr/downfile/crosscheck/ksfn/JAKO201220856665280.pdf",
+                    "content-type": "unspecified",
+                    "content-version": "vor",
+                    "intended-application": "similarity-checking"
+                }
+            ],
+            "deposited": {
+                "date-parts": [
+                    [
+                        2017,
+                        6,
+                        21
+                    ]
+                ],
+                "date-time": "2017-06-21T17:12:45Z",
+                "timestamp": 1498065165000
+            },
+            "score": null,
+            "subtitle": [],
+            "short-title": [],
+            "issued": {
+                "date-parts": [
+                    [
+                        2012,
+                        3,
+                        31
+                    ]
+                ]
+            },
+            "references-count": 24,
+            "URL": "http://dx.doi.org/10.9799/ksfan.2012.25.1.077",
+            "relation": {
+                "cites": []
+            },
+            "ISSN": [
+                "1225-4339"
+            ],
+            "issn-type": [
+                {
+                    "value": "1225-4339",
+                    "type": "print"
+                }
+            ]
+        }
+    ]
+}
