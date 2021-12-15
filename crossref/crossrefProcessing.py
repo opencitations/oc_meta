@@ -1,5 +1,6 @@
 import json
 import html
+import gzip
 from bs4 import BeautifulSoup
 from meta.lib.id_manager.orcidmanager import ORCIDManager
 from meta.lib.csvmanager import CSVManager
@@ -19,111 +20,105 @@ class crossrefProcessing:
 
     def csv_creator(self, raw_data_path:str) -> list:
         output = list()
-        with open(raw_data_path, encoding='utf-8') as json_file:
-            raw_data = json.load(json_file)['items']
-            for x in raw_data:
-                if not 'DOI' in x:
-                    continue
-                if isinstance(x['DOI'], list):
-                    doi = DOIManager().normalise(str(x['DOI'][0]))
-                else:
-                    doi = DOIManager().normalise(str(x['DOI']))
-                if (doi and self.doi_set and doi in self.doi_set) or (doi and not self.doi_set):
-                    row = dict()
+        if raw_data_path.endswith('.json'):
+            with open(raw_data_path, 'r', encoding='utf-8') as json_file:
+                raw_data = json.load(json_file)['items']
+        elif raw_data_path.endswith('.json.gz'):
+            with gzip.open(raw_data_path, 'r') as gzip_file:
+                data = gzip_file.read()
+                raw_data = json.loads(data.decode('utf-8'))['items']
+        for x in raw_data:
+            if not 'DOI' in x:
+                continue
+            if isinstance(x['DOI'], list):
+                doi = DOIManager().normalise(str(x['DOI'][0]))
+            else:
+                doi = DOIManager().normalise(str(x['DOI']))
+            if (doi and self.doi_set and doi in self.doi_set) or (doi and not self.doi_set):
+                row = dict()
 
-                    # create empty row
-                    keys = ['id', 'title', 'author', 'pub_date', 'venue', 'volume', 'issue', 'page', 'type',
-                            'publisher', 'editor']
-                    for k in keys:
-                        row[k] = ''
+                # create empty row
+                keys = ['id', 'title', 'author', 'pub_date', 'venue', 'volume', 'issue', 'page', 'type',
+                        'publisher', 'editor']
+                for k in keys:
+                    row[k] = ''
 
-                    if 'type' in x:
-                        if x['type']:
-                            row['type'] = x['type'].replace('-', ' ')
+                if 'type' in x:
+                    if x['type']:
+                        row['type'] = x['type'].replace('-', ' ')
 
-                    # row['id']
-                    idlist = list()
-                    idlist.append(str('doi:' + doi))
+                # row['id']
+                idlist = list()
+                idlist.append(str('doi:' + doi))
 
-                    if 'ISBN' in x:
-                        if row['type'] in {'book', 'monograph', 'edited book'}:
-                            self.id_worker(x['ISBN'], idlist, self.isbn_worker)
+                if 'ISBN' in x:
+                    if row['type'] in {'book', 'monograph', 'edited book'}:
+                        self.id_worker(x['ISBN'], idlist, self.isbn_worker)
 
-                    if 'ISSN' in x:
-                        if row['type'] in {'journal', 'series', 'report series', 'standard series'}:
-                            self.id_worker(x['ISSN'], idlist, self.issn_worker)
-                    row['id'] = ' '.join(idlist)
+                if 'ISSN' in x:
+                    if row['type'] in {'journal', 'series', 'report series', 'standard series'}:
+                        self.id_worker(x['ISSN'], idlist, self.issn_worker)
+                row['id'] = ' '.join(idlist)
 
-                    # row['title']
-                    if 'title' in x:
-                        if x['title']:
-                            if isinstance(x['title'], list):
-                                text_title = x['title'][0]
-                            else:
-                                text_title = x['title']
-
-                            soup = BeautifulSoup(text_title, 'html.parser')
-                            row['title'] = soup.get_text().replace('\n', '')
-
-                    # row['author']
-                    if 'author' in x:
-                        autlist = self.get_agents_strings_list(doi, x['author'])
-                        row['author'] = '; '.join(autlist)
-
-                    # row['date']
-                    if 'issued' in x:
-                        row['pub_date'] = '-'.join([str(y) for y in x['issued']['date-parts'][0]])
-
-                    # row['venue']
-                    if 'container-title' in x:
-                        if x['container-title']:
-                            if isinstance(x['container-title'], list):
-                                ventit = str(x['container-title'][0]).replace('\n', '')
-                            else:
-                                ventit = str(x['container-title']).replace('\n', '')
-                            ven_soup = BeautifulSoup(ventit, 'html.parser')
-                            ventit = html.unescape(ven_soup.get_text())
-                            venidlist = list()
-                            if 'ISBN' in x:
-                                if row['type'] in {'book chapter', 'book part'}:
-                                    self.id_worker(x['ISBN'], venidlist, self.isbn_worker)
-
-                            if 'ISSN' in x:
-                                if row['type'] in {'journal article', 'journal volume', 'journal issue'}:
-                                    self.id_worker(x['ISSN'], venidlist, self.issn_worker)
-                            if venidlist:
-                                row['venue'] = ventit + ' [' + ' '.join(venidlist) + ']'
-                            else:
-                                row['venue'] = ventit
-
-                    if 'volume' in x:
-                        row['volume'] = x['volume']
-                    if 'issue' in x:
-                        row['issue'] = x['issue']
-                    if 'page' in x:
-                        row['page'] = x['page']
-
-                    if 'publisher' in x:
-                        if 'member' in x:
-                            row['publisher'] = x['publisher'] + ' [' + 'crossref:' + x['member'] + ']'
+                # row['title']
+                if 'title' in x:
+                    if x['title']:
+                        if isinstance(x['title'], list):
+                            text_title = x['title'][0]
                         else:
-                            row['publisher'] = x['publisher']
+                            text_title = x['title']
+                        soup = BeautifulSoup(text_title, 'html.parser')
+                        row['title'] = soup.get_text().replace('\n', '')
 
-                    if 'editor' in x:
-                        editlist = self.get_agents_strings_list(doi, x['editor'])
-                        row['editor'] = '; '.join(editlist)
-                    output.append(row)
+                # row['author']
+                if 'author' in x:
+                    autlist = self.get_agents_strings_list(doi, x['author'])
+                    row['author'] = '; '.join(autlist)
+
+                # row['date']
+                if 'issued' in x:
+                    row['pub_date'] = '-'.join([str(y) for y in x['issued']['date-parts'][0]])
+
+                # row['venue']
+                if 'container-title' in x:
+                    if x['container-title']:
+                        if isinstance(x['container-title'], list):
+                            ventit = str(x['container-title'][0]).replace('\n', '')
+                        else:
+                            ventit = str(x['container-title']).replace('\n', '')
+                        ven_soup = BeautifulSoup(ventit, 'html.parser')
+                        ventit = html.unescape(ven_soup.get_text())
+                        venidlist = list()
+                        if 'ISBN' in x:
+                            if row['type'] in {'book chapter', 'book part'}:
+                                self.id_worker(x['ISBN'], venidlist, self.isbn_worker)
+
+                        if 'ISSN' in x:
+                            if row['type'] in {'journal article', 'journal volume', 'journal issue'}:
+                                self.id_worker(x['ISSN'], venidlist, self.issn_worker)
+                        if venidlist:
+                            row['venue'] = ventit + ' [' + ' '.join(venidlist) + ']'
+                        else:
+                            row['venue'] = ventit
+
+                if 'volume' in x:
+                    row['volume'] = x['volume']
+                if 'issue' in x:
+                    row['issue'] = x['issue']
+                if 'page' in x:
+                    row['page'] = x['page']
+
+                if 'publisher' in x:
+                    if x['publisher']:
+                        if 'member' in x:
+                            row['publisher'] = x['publisher'] + ' [' + 'crossref:' + x['member'] + ']' if x['member'] else x['publisher']
+
+                if 'editor' in x:
+                    editlist = self.get_agents_strings_list(doi, x['editor'])
+                    row['editor'] = '; '.join(editlist)
+                output.append(row)
         return output
     
-    @staticmethod
-    def id_worker(field, idlist:list, func) -> None:
-        if isinstance(field, list):
-            for i in field:
-                func(str(i), idlist)
-        else:
-            id = str(field)
-            func(id, idlist)
-
     def orcid_finder(self, doi:str) -> dict:
         found = dict()
         doi = doi.lower()
@@ -169,6 +164,15 @@ class crossrefProcessing:
                     agent_string += ' [' + 'orcid:' + str(orcid) + ']'
                 agents_strings_list.append(agent_string)
         return agents_strings_list
+
+    @staticmethod
+    def id_worker(field, idlist:list, func) -> None:
+        if isinstance(field, list):
+            for i in field:
+                func(str(i), idlist)
+        else:
+            id = str(field)
+            func(id, idlist)
 
     @staticmethod
     def issn_worker(issnid, idlist):

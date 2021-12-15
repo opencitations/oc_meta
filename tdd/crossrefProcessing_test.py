@@ -3,12 +3,14 @@ from crossref.crossrefProcessing import crossrefProcessing
 from run_preprocess import preprocess
 from pprint import pprint
 
-IOD = 'meta/tdd/crossrefProcessing/iod'
-WANTED_DOIS = 'meta/tdd/crossrefProcessing'
-DATA = 'meta/tdd/crossrefProcessing/40228.json'
-DATA_DIR = 'meta/tdd/crossrefProcessing'
-OUTPUT = 'meta/tdd/crossrefProcessing/meta_input'
-MULTIPROCESS_OUTPUT = 'meta/tdd/crossrefProcessing/multi_process_test'
+BASE = 'meta/tdd/crossrefProcessing'
+IOD = f'{BASE}/iod'
+WANTED_DOIS = BASE
+DATA = f'{BASE}/40228.json'
+DATA_DIR = BASE
+OUTPUT = f'{BASE}/meta_input'
+MULTIPROCESS_OUTPUT = f'{BASE}/multi_process_test'
+GZIP_INPUT = f'{BASE}/gzip_test'
 
 class TestCrossrefProcessing(unittest.TestCase):
 
@@ -100,6 +102,23 @@ class TestCrossrefProcessing(unittest.TestCase):
         ]
         self.assertEqual(output, expected_output)
 
+    def test_gzip_input(self):
+        if os.path.exists(OUTPUT):
+            shutil.rmtree(OUTPUT)
+        preprocess(crossref_json_dir=GZIP_INPUT, orcid_doi_filepath=IOD, csv_dir=OUTPUT, wanted_doi_filepath=BASE)
+        output = list()
+        for file in os.listdir(OUTPUT):
+            with open(os.path.join(OUTPUT, file), 'r', encoding='utf-8') as f:
+                output.append(list(csv.DictReader(f)))
+        expected_output = [
+            [
+                {'id': 'doi:10.1001/.389', 'title': 'Decision Making at the Fringe of Evidence: Take What You Can Get', 'author': 'Col, N. F.', 'pub_date': '2006-2-27', 'venue': 'Archives of Internal Medicine [issn:0003-9926]', 'volume': '166', 'issue': '4', 'page': '389-390', 'type': 'journal article', 'publisher': 'American Medical Association (AMA) [crossref:10]', 'editor': ''}
+            ], 
+            [
+                {'id': 'doi:10.1001/archderm.108.4.583b', 'title': 'Letter: Bleaching of hair after use of benzoyl peroxide acne lotions', 'author': 'Bleiberg, J.', 'pub_date': '1973-10-1', 'venue': 'Archives of Dermatology [issn:0003-987X]', 'volume': '108', 'issue': '4', 'page': '583b-583', 'type': 'journal article', 'publisher': 'American Medical Association (AMA) [crossref:10]', 'editor': ''}
+            ]
+        ]
+        self.assertEqual(output, expected_output)        
 
 if __name__ == '__main__':
     unittest.main()
