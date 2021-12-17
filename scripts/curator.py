@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
 import csv
 import re
@@ -28,11 +28,11 @@ class DeduplicationDecisionTree:
         if col_name in {'author', 'editor', 'publisher'}:
             id_dict = indexes.idra
             entity_dict = indexes.radict
-            idslist, metaval = clean_hyphen(idslist, br=False)
+            idslist, metaval = normalize_hyphens(idslist, br=False)
         else:
             id_dict = indexes.idbr
             entity_dict = indexes.brdict
-            idslist, metaval = clean_hyphen(idslist)
+            idslist, metaval = normalize_hyphens(idslist)
         if col_name in {'venue', 'volume', 'issue'}:
             pass
         elif col_name == 'id':
@@ -358,11 +358,11 @@ class Curator:
         self.indexer(path_index, path_csv)
 
     # ID
-    def clean_id(self, row):
+    def clean_id(self, row:Dict[str,str]) -> None:
         if row['title']:
             name = clean_title(row['title'])
         else:
-            name = ""
+            name = ''
 
         if row['id']:
             if self.separator:
@@ -379,35 +379,11 @@ class Curator:
 
         # page
         if row['page']:
-            row['page'] = clean_hyphen(row['page'].strip()).replace("\0", "")
+            row['page'] = normalize_hyphens(row['page'].strip()).replace("\0", "")
         # date
         if row['pub_date']:
-            date = clean_hyphen(row['pub_date'].strip()).replace("\0", "")
-            try:
-                date = self.parse_hack(date)
-            except ValueError:
-                try:
-                    if len(date) == 10:
-                        try:
-                            newdate = date[:-3]
-                            date = self.parse_hack(newdate)
-                        except ValueError:
-                            try:
-                                newdate = date[:-6]
-                                date = self.parse_hack(newdate)
-                            except ValueError:
-                                date = ""
-                    elif len(date) == 7:
-                        try:
-                            newdate = date[:-3]
-                            date = self.parse_hack(newdate)
-                        except ValueError:
-                            date = ""
-                    else:
-                        date = ""
-                except ValueError:
-                    date = ""
-
+            date = normalize_hyphens(row['pub_date'].strip()).replace("\0", "")
+            date = clean_date(date)
             row['pub_date'] = date
 
         # type
@@ -693,7 +669,7 @@ class Curator:
                     id_list[pos] = ""
         else:
             for pos, elem in enumerate(list(id_list)):
-                elem = clean_hyphen(elem)
+                elem = normalize_hyphens(elem)
                 identifier = elem.split(":", 1)
                 value = identifier[1]
                 schema = identifier[0].lower()
@@ -1365,22 +1341,6 @@ class Curator:
                     met = "br/" + str(self.data[x]["id"])
                 new_log[x]["id"]["meta"] = met
         return new_log
-
-    @staticmethod
-    # hack dateutil automatic-today-date
-    def parse_hack(date):
-        dt = parse(date, default=datetime(2001, 1, 1))
-        dt2 = parse(date, default=datetime(2002, 2, 2))
-
-        if dt.year == dt2.year and dt.month == dt2.month and dt.day == dt2.day:
-            clean_date = parse(date).strftime("%Y-%m-%d")
-        elif dt.year == dt2.year and dt.month == dt2.month:
-            clean_date = parse(date).strftime("%Y-%m")
-        elif dt.year == dt2.year:
-            clean_date = parse(date).strftime("%Y")
-        else:
-            clean_date = ""
-        return clean_date
 
     def check_equality(self):
         partialcnt = 0
