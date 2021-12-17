@@ -82,13 +82,7 @@ def prepare2test(data, name):
                     curator_obj.re_index, curator_obj.VolIss]
     return data_curated, testcase
 
-class test_Curator(unittest.TestCase):
-    def test_clean_title(self):
-        input = " ""agile""    'Knowledge'   graph   testing ù ò       à  with   TESTaLOD (!incredible!) έτος  汉字"
-        output = Curator.clean_title(input)
-        expected_output = "Agile 'Knowledge' Graph Testing Ù Ò À With TESTaLOD (!Incredible!) Έτος 汉字"
-        self.assertEqual(output, expected_output)
-    
+class test_Curator(unittest.TestCase):    
     def test_clean_id_list(self):
         input = ["doi:10.001/B-1", "wikidata:B1111111", "META:br/060101"]
         output = Curator.clean_id_list(input, br=True)
