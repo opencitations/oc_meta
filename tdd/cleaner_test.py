@@ -1,13 +1,13 @@
 import unittest
-from meta.scripts.cleaner import *
+from meta.scripts.cleaner import Cleaner
 from pprint import pprint
 
-class test_cleaner(unittest.TestCase):
+class test_Cleaner(unittest.TestCase):
     def test_clen_hyphen(self):
         broken_strings = ['100­101', '100−101', '100–101', '100–101', '100—101', '100⁃101', '100−101']
         fixed_strings = list()
         for string in broken_strings:
-            fixed_string = normalize_hyphens(string)
+            fixed_string = Cleaner(string).normalize_hyphens()
             fixed_strings.append(fixed_string)
         expected_output = ['100-101', '100-101', '100-101', '100-101', '100-101', '100-101', '100-101']
         self.assertEqual(fixed_strings, expected_output)
@@ -22,7 +22,7 @@ class test_cleaner(unittest.TestCase):
         ]
         outputs = list()
         for input in inputs:
-            outputs.append(clean_title(input))
+            outputs.append(Cleaner(input).clean_title())
         expected_output = [
             'OpenCitations, An Infrastructure Organization For Open Scholarship',
             'Opencitations, An Infrastructure Organization For Open Scholarship',
@@ -31,28 +31,12 @@ class test_cleaner(unittest.TestCase):
             '""Agile"" "Knowledge" Graph Testing Ù Ò À With TESTaLOD (!Incredible!) Έτος 汉字'
         ]
         self.assertEqual(outputs, expected_output)
-
-    def testdate_parse_hack_ValueError(self):
-        # All these dates must raise a ValueError
-        inputs = ['2020-02-30', '2020-27-12', '9999-27-12', '100000', 'godopoli']
-        for input in inputs:
-            with self.assertRaises(ValueError):
-                date_parse_hack(input)
-
-    def testdate_parse_hack(self):
-        # All these dates must not raise a ValueError
-        inputs = ['2020-02-11', '2020-12-12', '2000', '2000-12']
-        outputs = list()
-        for input in inputs:
-            outputs.append(date_parse_hack(input))
-        expected_output = ['2020-02-11', '2020-12-12', '2000', '2000-12']
-        self.assertEqual(outputs, expected_output)
     
     def test_clean_date_all_valid(self):
         inputs = ['2020-02-11', '2020-12-12', '2000', '2000-12']
         outputs = list()
         for input in inputs:
-            outputs.append(clean_date(input))
+            outputs.append(Cleaner(input).clean_date())
         expected_output = ['2020-02-11', '2020-12-12', '2000', '2000-12']
         self.assertEqual(outputs, expected_output)
 
@@ -60,8 +44,16 @@ class test_cleaner(unittest.TestCase):
         inputs = ['02-11', '11', '100000', 'godopoli']
         outputs = list()
         for input in inputs:
-            outputs.append(clean_date(input))
+            outputs.append(Cleaner(input).clean_date())
         expected_output = ['', '', '', '']
+        self.assertEqual(outputs, expected_output)
+    
+    def test_clean_name(self):
+        names = ['Peroni, Silvio', 'Peroni, S.', '  Peroni   ,    Silvio  ', 'PERONI, SILVIO', '', 'peroni', 'peroni, Silvio']
+        outputs = list()
+        for name in names:
+            outputs.append(Cleaner(name).clean_name())
+        expected_output = ['Peroni, Silvio', 'Peroni, S.', 'Peroni, Silvio', 'Peroni, Silvio', '', 'Peroni', 'Peroni, Silvio']
         self.assertEqual(outputs, expected_output)
         
 if __name__ == '__main__':

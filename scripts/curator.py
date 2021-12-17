@@ -8,7 +8,7 @@ from dateutil.parser import parse
 from datetime import datetime
 
 from meta.lib.finder import *
-from meta.scripts.cleaner import *
+from meta.scripts.cleaner import Cleaner
 
 
 class Indexes:
@@ -28,11 +28,11 @@ class DeduplicationDecisionTree:
         if col_name in {'author', 'editor', 'publisher'}:
             id_dict = indexes.idra
             entity_dict = indexes.radict
-            idslist, metaval = normalize_hyphens(idslist, br=False)
+            idslist, metaval = self.clean_id_list(idslist, br=False)
         else:
             id_dict = indexes.idbr
             entity_dict = indexes.brdict
-            idslist, metaval = normalize_hyphens(idslist)
+            idslist, metaval = self.clean_id_list(idslist)
         if col_name in {'venue', 'volume', 'issue'}:
             pass
         elif col_name == 'id':
@@ -360,7 +360,7 @@ class Curator:
     # ID
     def clean_id(self, row:Dict[str,str]) -> None:
         if row['title']:
-            name = clean_title(row['title'])
+            name = Cleaner(row['title']).clean_title()
         else:
             name = ''
 
@@ -379,11 +379,11 @@ class Curator:
 
         # page
         if row['page']:
-            row['page'] = normalize_hyphens(row['page'].strip()).replace("\0", "")
+            row['page'] = Cleaner(row['page'].strip()).normalize_hyphens()
         # date
         if row['pub_date']:
-            date = normalize_hyphens(row['pub_date'].strip()).replace("\0", "")
-            date = clean_date(date)
+            date = Cleaner(row['pub_date'].strip()).normalize_hyphens()
+            date = Cleaner(date).clean_date()
             row['pub_date'] = date
 
         # type
@@ -402,12 +402,12 @@ class Curator:
                 row['type'] = ""
 
     # VVI
-    def clean_vvi(self, row):
+    def clean_vvi(self, row:Dict[str, str]):
         vol_meta = None
         if row["venue"]:
             venue_id = re.search(r'\[\s*(.*?)\s*]', row["venue"])
             if venue_id:
-                name = clean_title(re.search(r'(.*?)\s*\[.*?]', row["venue"]).group(1))
+                name = Cleaner(re.search(r'(.*?)\s*\[.*?]', row["venue"]).group(1)).clean_title()
                 venue_id = venue_id.group(1)
                 if self.separator:
                     idslist = re.sub(r'\s*:\s*', ':', venue_id).split(self.separator)
@@ -429,7 +429,7 @@ class Curator:
                         self.vvi[metaval] = ts_vvi
 
             else:
-                name = clean_title(row['venue'])
+                name = Cleaner(row['venue']).clean_title()
                 metaval = self.new_entity(self.brdict, name)
                 self.vvi[metaval] = dict()
                 self.vvi[metaval]["volume"] = dict()
@@ -555,9 +555,9 @@ class Curator:
                 ra_id = re.search(r'\[\s*(.*?)\s*]', ra)
                 if ra_id:
                     ra_id = ra_id.group(1)
-                    name = self.clean_name(re.search(r'\s*(.*?)\s*\[.*?]', ra).group(1))
+                    name = Cleaner(re.search(r'\s*(.*?)\s*\[.*?]', ra).group(1)).clean_name()
                 else:
-                    name = self.clean_name(ra)
+                    name = Cleaner(ra).clean_name()
 
                 if not ra_id and sequence:
                     for x, k in sequence:
@@ -669,7 +669,7 @@ class Curator:
                     id_list[pos] = ""
         else:
             for pos, elem in enumerate(list(id_list)):
-                elem = normalize_hyphens(elem)
+                elem = Cleaner(elem).normalize_hyphens()
                 identifier = elem.split(":", 1)
                 value = identifier[1]
                 schema = identifier[0].lower()
@@ -853,30 +853,6 @@ class Curator:
                     if gname.strip():
                         ts_name = names[0] + ", " + gname
         return ts_name
-
-    @staticmethod
-    def clean_name(name):
-        name = name.replace("\0", "")
-        if "," in name:
-            split_name = re.split(r'\s*,\s*', name)
-            first_name = split_name[1].split()
-            for pos, w in enumerate(first_name):
-                first_name[pos] = w.title()
-            new_first_name = " ".join(first_name)
-            surname = split_name[0].split()
-            for pos, w in enumerate(surname):
-                surname[pos] = w.title()
-            new_surname = " ".join(surname)
-            if new_surname:
-                new_name = new_surname + ", " + new_first_name
-            else:
-                new_name = ""
-        else:
-            split_name = name.split()
-            for pos, w in enumerate(split_name):
-                split_name[pos] = w.capitalize()
-            new_name = " ".join(split_name)
-        return new_name
 
     @staticmethod
     def _read_number(file_path, line_number=1):
