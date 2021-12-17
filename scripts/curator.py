@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 
 import csv
 import re
@@ -8,10 +8,12 @@ from meta.lib.finder import *
 from dateutil.parser import parse
 from datetime import datetime
 
+from meta.scripts.cleaner import *
+
 
 class Curator:
 
-    def __init__(self, data, ts, info_dir, prefix="060", separator=None):
+    def __init__(self, data:List[dict], ts:str, info_dir:str, prefix:str="060", separator:str=None):
 
         self.finder = ResourceFinder(ts)
         self.separator = separator
@@ -119,10 +121,10 @@ class Curator:
 
         # page
         if row['page']:
-            row['page'] = Curator.string_fix(row['page'].strip()).replace("\0", "")
+            row['page'] = clean_hyphen(row['page'].strip()).replace("\0", "")
         # date
         if row['pub_date']:
-            date = Curator.string_fix(row['pub_date'].strip()).replace("\0", "")
+            date = clean_hyphen(row['pub_date'].strip()).replace("\0", "")
             try:
                 date = self.parse_hack(date)
             except ValueError:
@@ -433,7 +435,7 @@ class Curator:
                     id_list[pos] = ""
         else:
             for pos, elem in enumerate(list(id_list)):
-                elem = Curator.string_fix(elem)
+                elem = clean_hyphen(elem)
                 identifier = elem.split(":", 1)
                 value = identifier[1]
                 schema = identifier[0].lower()
@@ -1119,19 +1121,6 @@ class Curator:
                     met = "br/" + str(self.data[x]["id"])
                 new_log[x]["id"]["meta"] = met
         return new_log
-
-    @staticmethod
-    def string_fix(st):
-        # En-Dash, Em-Dash, Minus Sign, Non-breaking Hyphen, Hyphen Bullet, Soft Hyphen, Figure Dash
-        # dash_list = ["‐", "–", "—", "−", "‑", "⁃", "­", "‒"]
-        dash_list = ["–", "—", "−", "‑", "⁃", "­", "‒"] # Rimosso l'hyphen dalla lista, in quanto non serve sostituirlo con se stesso
-        for d in dash_list:
-            if d in st:
-                # Hyphen
-                st.replace(d, "-")
-        if "isbn:" in st:
-            st.replace("-", "")
-        return st
 
     @staticmethod
     # hack dateutil automatic-today-date

@@ -1,3 +1,5 @@
+from typing import List
+
 from oc_ocdm import Storer
 from oc_ocdm.prov import ProvSet
 
@@ -81,7 +83,7 @@ def pathoo(path):
         os.makedirs(os.path.dirname(path))
 
 
-def unpack(path):
+def unpack(path:str) -> List[dict]:
     with open(path, 'r', encoding="utf-8") as csvfile:
         reader = csv.DictReader(csvfile, delimiter=",")
         data = [dict(x) for x in reader]
