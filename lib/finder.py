@@ -1,3 +1,4 @@
+from typing import List
 from oc_ocdm.graph import GraphEntity
 from pymantic import sparql
 
@@ -236,7 +237,47 @@ class ResourceFinder:
         content = self.retrieve_vvi(meta_id, content)
         return content
 
-    def retrieve_vvi(self, meta, content):
+    def retrieve_vvi(self, meta:str, content:dict) -> dict:
+        query = f'''
+            SELECT DISTINCT ?res
+                (GROUP_CONCAT(DISTINCT ?br; separator=' ;and; ') AS ?br_)
+                (GROUP_CONCAT(DISTINCT ?type; separator=' ;and; ') AS ?type_)
+                (GROUP_CONCAT(DISTINCT ?title) AS ?title_)
+            WHERE {{
+                ?res <{GraphEntity.iri_part_of}>+ <https://w3id.org/oc/meta/br/{meta}>;
+                    <{GraphEntity.iri_part_of}> ?br;
+                    a ?type;
+                    <{GraphEntity.iri_has_sequence_identifier}> ?title.
+            }} group by ?res
+        '''
+        result = self.__query(query)
+        if result['results']['bindings']:
+            results = result['results']['bindings']
+            for x in results:
+                res = str(x['res']['value']).replace('https://w3id.org/oc/meta/br/', '')
+                title = str(x['title_']['value'])
+                types = str(x['type_']['value']).split(' ;and; ')
+                if str(GraphEntity.iri_journal_issue) in types:
+                    content['issue'].setdefault(title, dict())
+                    content['issue'][title]['id'] = res
+                elif str(GraphEntity.iri_journal_volume) in types:
+                    content['volume'][title] = dict()
+                    content['volume'][title]['id'] = res
+                    content['volume'][title]['issue'] = dict()
+                    content['volume'][title]['issue'] = self.retrieve_issues_by_volume(results, res)
+        return content
+    
+    def retrieve_issues_by_volume(self, data:List[dict], res:str):
+        content = dict()
+        for item in data:
+            if res in item['br_']['value'] and str(GraphEntity.iri_journal_issue in item['type_']['value']):
+                title = item['title_']['value']
+                content[title] = dict()
+                content[title]['id'] = item['res']['value'].replace('https://w3id.org/oc/meta/br/', '')
+        return content
+    
+    def retrieve_issue(self, meta):
+        content = dict()
         query = """
                 SELECT DISTINCT ?res 
                     (group_concat(DISTINCT  ?type;separator=' ;and; ') as ?type_)
@@ -257,22 +298,9 @@ class ResourceFinder:
                 res = str(x["res"]["value"]).replace("https://w3id.org/oc/meta/br/", "")
                 title = str(x["title_"]["value"])
                 types = str(x["type_"]["value"]).split(" ;and; ")
-
-                for t in types:
-                    if content:
-                        if str(t) == str(GraphEntity.FABIO.JournalIssue):
-                            content["issue"][title] = res
-
-                        elif str(t) == str(GraphEntity.FABIO.JournalVolume):
-                            content["volume"][title] = dict()
-                            content["volume"][title]["id"] = res
-                            content["volume"][title]["issue"] = dict()
-                            content["volume"][title]["issue"] = self.retrieve_vvi(res, None)
-                    else:
-                        if str(t) == str(GraphEntity.FABIO.JournalIssue):
-                            content = dict()
-                            content[title] = dict()
-                            content[title]['id'] = res
+                if str(GraphEntity.iri_journal_issue) in types:
+                    content[title] = dict()
+                    content[title]['id'] = res
         return content
 
     def retrieve_ra_sequence_from_meta(self, meta_id, col_name):

@@ -9,29 +9,30 @@ from meta.lib.conf import base_iri, context_path, info_dir, triplestore_url, \
     base_dir, dir_split_number, items_per_file, default_dir, rdf_output_in_chunks, supplier_prefix
 from datetime import datetime
 from argparse import ArgumentParser
+from csv import DictReader
 import os
-import csv
+from tqdm import tqdm
 
 
-def process(crossref_csv_dir, csv_dir, index_dir, auxiliary_path, source=None):
+def process(crossref_csv_dir, csv_dir, index_dir, auxiliary_path:str, source=None):
+    completed = set()
     if not os.path.exists(auxiliary_path):
         with open(auxiliary_path, 'wt', encoding='utf-8'):
             pass
-
-    for filename in os.listdir(crossref_csv_dir):
-        pathoo(auxiliary_path)
+    else:
         with open(auxiliary_path, "r") as aux_file:
             completed = [line.rstrip('\n') for line in aux_file]
+    pbar = tqdm(total=len(os.listdir(crossref_csv_dir)))
+    for filename in os.listdir(crossref_csv_dir):
         if filename.endswith(".csv") and filename not in completed:
             filepath = os.path.join(crossref_csv_dir, filename)
-            data = unpack(filepath)
+            data = list(DictReader(open(filepath, 'r', encoding='utf8'), delimiter=','))
             curator_info_dir = os.path.join(info_dir, 'curator' + os.sep)
             curator_obj = Curator(data, triplestore_url, info_dir=curator_info_dir, prefix=supplier_prefix)
             name = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")
             pathoo(csv_dir)
             pathoo(index_dir)
             curator_obj.curator(filename=name, path_csv=csv_dir, path_index=index_dir)
-
             creator_info_dir = os.path.join(info_dir, 'creator' + os.sep)
             creator_obj = Creator(curator_obj.data, base_iri, creator_info_dir, supplier_prefix,
                                   curator_obj.index_id_ra, curator_obj.index_id_br, curator_obj.re_index,
@@ -76,18 +77,13 @@ def process(crossref_csv_dir, csv_dir, index_dir, auxiliary_path, source=None):
 
             with open(auxiliary_path, "a", encoding='utf-8') as aux_file:
                 aux_file.write(filename + "\n")
+        pbar.update(1)
+    pbar.close()
 
 
 def pathoo(path):
     if not os.path.exists(os.path.dirname(path)):
         os.makedirs(os.path.dirname(path))
-
-
-def unpack(path:str) -> List[dict]:
-    with open(path, 'r', encoding="utf-8") as csvfile:
-        reader = csv.DictReader(csvfile, delimiter=",")
-        data = [dict(x) for x in reader]
-    return data
 
 
 if __name__ == "__main__":
