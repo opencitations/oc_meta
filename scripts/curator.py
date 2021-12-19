@@ -556,7 +556,7 @@ class Curator:
                 k = row["id"]
 
             if row["page"] and (k not in self.remeta):
-                re_meta = self.finder.re_from_meta(k)
+                re_meta = self.finder.retrieve_re_from_br_meta(k)
                 if re_meta:
                     self.remeta[k] = re_meta
                     row["page"] = re_meta[1]

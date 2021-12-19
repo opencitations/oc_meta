@@ -425,24 +425,32 @@ class ResourceFinder:
         else:
             return None
 
-    def re_from_meta(self, meta):
-        uri = "https://w3id.org/oc/meta/br/" + str(meta)
-        query = """
-                        SELECT DISTINCT ?re ?sp ?ep
-                        WHERE {
-                            <%s> a <%s>.
-                            <%s> <%s> ?re.
-                            ?re <%s> ?sp.
-                            ?re <%s> ?ep.
-                        }
+    def retrieve_re_from_br_meta(self, metaid:str) -> Tuple[str, str]:
+        '''
+            Given a bibliographic resource's MetaID, it returns its resource embodiment's MetaID and pages.
+            The output has the following format: ::
 
-                        """ % (uri, GraphEntity.iri_expression, uri, GraphEntity.iri_embodiment,
-                               GraphEntity.iri_starting_page, GraphEntity.iri_ending_page)
+                (METAID, PAGES)
+                ('2011', '391-397')
+
+            :params metaid: a bibliographic resource's MetaID
+            :type meta_id: str
+            :returns: Tuple[str, str] -- the output is a two-elements tuple, where the first element is the MetaID of the resource embodiment, and the second is a pages' interval. 
+        '''
+        metaid_uri = f'https://w3id.org/oc/meta/br/{str(metaid)}'
+        query = f'''
+            SELECT DISTINCT ?re ?sp ?ep
+            WHERE {{
+                <{metaid_uri}> <{GraphEntity.iri_embodiment}> ?re.
+                ?re <{GraphEntity.iri_starting_page}> ?sp;
+                    <{GraphEntity.iri_ending_page}> ?ep.
+            }}
+        '''
         result = self.__query(query)
-        if result["results"]["bindings"]:
-            meta = result["results"]["bindings"][0]["re"]["value"].replace("https://w3id.org/oc/meta/re/", "")
-            pages = result["results"]["bindings"][0]["sp"]["value"] + "-" +\
-                result["results"]["bindings"][0]["ep"]["value"]
+        if result['results']['bindings']:
+            meta = result['results']['bindings'][0]['re']['value'].replace('https://w3id.org/oc/meta/re/', '')
+            pages = result['results']['bindings'][0]['sp']['value'] + '-' +\
+                result['results']['bindings'][0]['ep']['value']
             return meta, pages
         else:
             return None
@@ -513,7 +521,7 @@ class ResourceFinder:
 
             res_dict["type"] = self.typalo(result, "type_")
 
-            res_dict["page"] = self.re_from_meta(meta_id)
+            res_dict["page"] = self.retrieve_re_from_br_meta(meta_id)
 
             if "num_" in result:
                 if "issue" in self.typalo(result, "type_"):

@@ -119,7 +119,12 @@ class test_ResourceFinder(unittest.TestCase):
             {'5346': ('Kelen, Gabor D.', [('4278', 'orcid:0000-0002-3236-8286')], '3319')}
         ]
         self.assertEqual(output, expected_output)
-
+    
+    def test_retrieve_re_from_br_meta(self):
+        metaid = '2373'
+        output = finder.retrieve_re_from_br_meta(metaid)
+        expected_output = ('2011', '391-397')
+        self.assertEqual(output, expected_output)
 
 if __name__ == '__main__':
     unittest.main()
