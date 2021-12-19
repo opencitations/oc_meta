@@ -195,61 +195,65 @@ class ResourceFinder:
         else:
             return None
 
-    def retrieve_ra_from_id(self, value, schema, publisher):
+    def retrieve_ra_from_id(self, schema:str, value:str, publisher:bool) -> List[Tuple[str, str, list]]:
+        '''
+        Given an identifier, it retrieves responsible agents associated with that identifier, related names and other identifiers MetaIDs and literal values.
+        The output has the following format: ::
+
+            [(METAID, NAME, [(METAID_OF_THE_IDENTIFIER, LITERAL_VALUE)])]
+            [('3309', 'American Medical Association (ama)', [('4274', 'crossref:10')])]
+
+        :params schema: an identifier schema
+        :type schema: str
+        :params value: an identifier literal value
+        :type value: str
+        :params publisher: True if the identifier is associated with a publisher, False otherwise.
+        :type publisher: bool
+        :returns List[Tuple[str, str, list]]: -- it returns a list of three elements tuples. The first element is the MetaID of a responsible agent associated with the input ID. The second element is the name of that responsible agent, if present. The third element is a list of MetaID-ID tuples related to identifiers associated with that responsible agent. 
+        '''
         schema = GraphEntity.DATACITE + schema
-
-        query = """
-                SELECT DISTINCT ?res
-                    (GROUP_CONCAT(DISTINCT  ?title;separator=' ;and; ') AS ?title_)
-                     (GROUP_CONCAT(DISTINCT  ?name;separator=' ;and; ') AS ?name_)
-                     (GROUP_CONCAT(DISTINCT  ?surname;separator=' ;and; ') AS ?surname_)
-                     (GROUP_CONCAT(DISTINCT  ?id;separator=' ;and; ') AS ?id_)
-                     (GROUP_CONCAT(?schema;separator=' ;and; ') AS ?schema_)
-                     (GROUP_CONCAT(DISTINCT  ?value;separator=' ;and; ') AS ?value_)
-
-                WHERE {
-                    ?res a <%s>.
-                    OPTIONAL {?res <%s> ?name. }
-                    OPTIONAL {?res <%s> ?surname.}
-                    OPTIONAL {?res <%s> ?title.}
-                    ?res <%s> ?id.
-                    ?id <%s> ?schema.
-                    ?id  <%s> ?value.
-                    ?res <%s> ?knownId.
-                    ?knownId <%s> <%s>.
-                    ?knownId <%s> ?knownValue.
-                    filter(?knownValue = "%s")
-                } GROUP BY ?res
-
-                """ % (GraphEntity.iri_agent, GraphEntity.iri_given_name, GraphEntity.iri_family_name,
-                       GraphEntity.iri_name, GraphEntity.iri_has_identifier, GraphEntity.iri_uses_identifier_scheme,
-                       GraphEntity.iri_has_literal_value, GraphEntity.iri_has_identifier,
-                       GraphEntity.iri_uses_identifier_scheme, schema, GraphEntity.iri_has_literal_value, value)
-
+        query = f'''
+            SELECT DISTINCT ?res
+                (GROUP_CONCAT(DISTINCT ?name; separator=' ;and; ') AS ?name_)
+                (GROUP_CONCAT(DISTINCT ?givenName; separator=' ;and; ') AS ?givenName_)
+                (GROUP_CONCAT(DISTINCT ?familyName; separator=' ;and; ') AS ?familyName_)
+                (GROUP_CONCAT(DISTINCT ?otherId; separator=' ;and; ') AS ?otherId_)
+                (GROUP_CONCAT(?schema; separator=' ;and; ') AS ?schema_)
+                (GROUP_CONCAT(DISTINCT ?value; separator=' ;and; ') AS ?value_)
+            WHERE {{
+                ?res a <{GraphEntity.iri_agent}>;
+                    <{GraphEntity.iri_has_identifier}> ?knownId;
+                    <{GraphEntity.iri_has_identifier}> ?otherId.
+                ?knownId <{GraphEntity.iri_uses_identifier_scheme}> <{schema}>;
+                    <{GraphEntity.iri_has_literal_value}> '{value}'.
+                OPTIONAL {{?res <{GraphEntity.iri_given_name}> ?givenName.}}
+                OPTIONAL {{?res <{GraphEntity.iri_family_name}> ?familyName.}}
+                OPTIONAL {{?res <{GraphEntity.iri_name}> ?name.}}
+                ?otherId <{GraphEntity.iri_uses_identifier_scheme}> ?schema;
+                    <{GraphEntity.iri_has_literal_value}> ?value.
+            }} GROUP BY ?res
+        '''
         results = self.__query(query)
-
-        if len(results["results"]["bindings"]):
+        if results['results']['bindings']:
             result_list = list()
-            for result in results["results"]["bindings"]:
-                res = str(result["res"]["value"]).replace("https://w3id.org/oc/meta/ra/", "")
-                if str(result["title_"]["value"]) and publisher:
-                    title = str(result["title_"]["value"])
-                elif str(result["surname_"]["value"]) and not publisher:
-                    title = str(result["surname_"]["value"]) + ", " + str(result["name_"]["value"])
+            for result in results['results']['bindings']:
+                res = str(result['res']['value']).replace('https://w3id.org/oc/meta/ra/', '')
+                if str(result['name_']['value']) and publisher:
+                    name = str(result['name_']['value'])
+                elif str(result['familyName_']['value']) and not publisher:
+                    name = str(result['familyName_']['value']) + ', ' + str(result['givenName_']['value'])
                 else:
-                    title = ""
-                meta_id_list = str(result["id_"]["value"]).replace("https://w3id.org/oc/meta/id/", "").split(" ;and; ")
-                id_schema_list = str(result["schema_"]["value"]).replace(GraphEntity.DATACITE, "").split(" ;and; ")
-                id_value_list = str(result["value_"]["value"]).split(" ;and; ")
-
-                couple_list = list(zip(id_schema_list, id_value_list))
+                    name = ''
+                meta_id_list = str(result['otherId_']['value']).replace('https://w3id.org/oc/meta/id/', '').split(' ;and; ')
+                id_schema_list = str(result['schema_']['value']).replace(GraphEntity.DATACITE, '').split(' ;and; ')
+                id_value_list = str(result['value_']['value']).split(' ;and; ')
+                schema_value_list = list(zip(id_schema_list, id_value_list))
                 id_list = list()
-                for x in couple_list:
-                    identifier = str(x[0]).lower() + ':' + str(x[1])
+                for schema, value in schema_value_list:
+                    identifier = f'{schema}:{value}'
                     id_list.append(identifier)
-                final_list = list(zip(meta_id_list, id_list))
-
-                result_list.append(tuple((res, title, final_list)))
+                metaid_id_list = list(zip(meta_id_list, id_list))
+                result_list.append(tuple((res, name, metaid_id_list)))
             return result_list
         else:
             return None

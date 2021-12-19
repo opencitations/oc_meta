@@ -76,6 +76,20 @@ class test_ResourceFinder(unittest.TestCase):
         expected_output = ('American Medical Association (ama)', [('4274', 'crossref:10')])
         self.assertEqual(output, expected_output)
 
+    def test_retrieve_ra_from_id(self):
+        schema = 'orcid'
+        value = '0000-0001-6994-8412'
+        output = finder.retrieve_ra_from_id(schema, value, publisher=False)
+        expected_output = [('4940', 'Alarcon, Louis H.', [('4475', 'orcid:0000-0001-6994-8412')])]
+        self.assertEqual(output, expected_output)
+
+    def test_retrieve_ra_from_id_if_publisher(self):
+        schema = 'crossref'
+        value = '10'
+        output = finder.retrieve_ra_from_id(schema, value, publisher=True)
+        expected_output = [('3309', 'American Medical Association (ama)', [('4274', 'crossref:10')])]
+        self.assertEqual(output, expected_output)
+
     def test_retrieve_vvi_by_venue(self):
         venue_meta = '4387'
         output = finder.retrieve_venue_from_meta(venue_meta)

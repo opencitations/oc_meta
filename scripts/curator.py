@@ -456,7 +456,7 @@ class Curator:
                 if br:
                     res = self.finder.retrieve_br_from_id(schema, value)
                 elif ra:
-                    res = self.finder.retrieve_ra_from_id(value, schema, publ)
+                    res = self.finder.retrieve_ra_from_id(schema, value, publ)
                 if res:
                     for f in res:
                         if f[0] not in id_set:
