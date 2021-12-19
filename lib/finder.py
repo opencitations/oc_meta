@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import List, Dict, Tuple
 from oc_ocdm.graph import GraphEntity
 from pymantic import sparql
 
@@ -14,47 +14,50 @@ class ResourceFinder:
 
     # _______________________________BR_________________________________ #
 
-    def retrieve_br_from_id(self, value, schema):
+    def retrieve_br_from_id(self, schema:str, value:str) -> List[Tuple[str, str, list]]:
+        '''
+        Given an identifier, it retrieves bibliographic resources associated with that identifier, related titles and other identifiers MetaIDs and literal values.
+
+        :params schema: an identifier schema
+        :type schema: str
+        :params value: an identifier literal value
+        :type value: str
+        :returns List[Tuple[str, str, list]]: -- it returns a list of three elements tuples. The first element is the MetaID of a resource associated with the input ID. The second element is a title of that resourse, if present. The third element is a list of MetaID-ID tuples related to identifiers associated with that resource. 
+        '''
         schema = GraphEntity.DATACITE + schema
-        query = """
-                SELECT DISTINCT ?res (group_concat(DISTINCT  ?title;separator=' ;and; ') as ?title_)
-                    (group_concat(DISTINCT  ?id;separator=' ;and; ') as ?id_)
-                    (group_concat(?schema;separator=' ;and; ') as ?schema_)
-                    (group_concat(DISTINCT  ?value;separator=' ;and; ') as ?value_)
-                WHERE {
-                    ?res a <%s>.
-                    OPTIONAL {?res <%s> ?title.}
-                    ?res <%s> ?id.
-                    ?id <%s> ?schema.
-                    ?id  <%s> ?value.
-                    ?res <%s> ?knownId.
-                    ?knownId <%s> <%s>.
-                    ?knownId <%s> ?knownValue.
-                    filter(?knownValue = "%s")
-                } group by ?res
-
-                """ % (GraphEntity.iri_expression, GraphEntity.iri_title, GraphEntity.iri_has_identifier,
-                       GraphEntity.iri_uses_identifier_scheme, GraphEntity.iri_has_literal_value,
-                       GraphEntity.iri_has_identifier, GraphEntity.iri_uses_identifier_scheme, schema,
-                       GraphEntity.iri_has_literal_value, value)
+        query = f'''
+            SELECT DISTINCT ?res (GROUP_CONCAT(DISTINCT ?title; separator=' ;and; ') AS ?title_)
+                (GROUP_CONCAT(DISTINCT ?otherId; separator=' ;and; ') AS ?otherId_)
+                (GROUP_CONCAT(?schema; separator=' ;and; ') AS ?schema_)
+                (GROUP_CONCAT(DISTINCT ?value; separator=' ;and; ') AS ?value_)
+            WHERE {{
+                ?res a <{GraphEntity.iri_expression}>;
+                    <{GraphEntity.iri_has_identifier}> ?knownId;
+                    <{GraphEntity.iri_has_identifier}> ?otherId.
+                OPTIONAL {{?res <{GraphEntity.iri_title}> ?title.}}
+                ?otherId <{GraphEntity.iri_uses_identifier_scheme}> ?schema;
+                    <{GraphEntity.iri_has_literal_value}> ?value.
+                ?knownId <{GraphEntity.iri_uses_identifier_scheme}> <{schema}>;
+                    <{GraphEntity.iri_has_literal_value}> '{value}'.
+            }} GROUP BY ?res
+        '''
         results = self.__query(query)
-
-        if len(results["results"]["bindings"]):
+        if results['results']['bindings']:
+            bindings = results['results']['bindings']
             result_list = list()
-            for result in results["results"]["bindings"]:
-                res = str(result["res"]["value"]).replace("https://w3id.org/oc/meta/br/", "")
-                title = str(result["title_"]["value"])
-                meta_id_list = str(result["id_"]["value"]).replace("https://w3id.org/oc/meta/id/", "").split(" ;and; ")
-                id_schema_list = str(result["schema_"]["value"]).replace(GraphEntity.DATACITE, "").split(" ;and; ")
-                id_value_list = str(result["value_"]["value"]).split(" ;and; ")
-
-                couple_list = list(zip(id_schema_list, id_value_list))
+            for result in bindings:
+                res = str(result['res']['value']).replace('https://w3id.org/oc/meta/br/', '')
+                title = str(result['title_']['value'])
+                metaid_list = str(result['otherId_']['value']).replace('https://w3id.org/oc/meta/id/', '').split(' ;and; ')
+                id_schema_list = str(result['schema_']['value']).replace(GraphEntity.DATACITE, '').split(' ;and; ')
+                id_value_list = str(result['value_']['value']).split(' ;and; ')
+                schema_value_list = list(zip(id_schema_list, id_value_list))
                 id_list = list()
-                for x in couple_list:
-                    identifier = str(x[0]).lower() + ':' + str(x[1])
+                for schema, value in schema_value_list:
+                    identifier = f'{schema}:{value}'
                     id_list.append(identifier)
-                final_list = list(zip(meta_id_list, id_list))
-                result_list.append(tuple((res, title, final_list)))
+                metaid_id_list = list(zip(metaid_list, id_list))
+                result_list.append(tuple((res, title, metaid_id_list)))
             return result_list
         else:
             return None
@@ -62,10 +65,10 @@ class ResourceFinder:
     def retrieve_br_from_meta(self, meta_id):
         uri = "https://w3id.org/oc/meta/br/" + str(meta_id)
         query = """
-                SELECT DISTINCT ?res (group_concat(DISTINCT  ?title;separator=' ;and; ') as ?title_)
-                     (group_concat(DISTINCT  ?id;separator=' ;and; ') as ?id_)
-                     (group_concat(?schema;separator=' ;and; ') as ?schema_)
-                     (group_concat(DISTINCT  ?value;separator=' ;and; ') as ?value_)
+                SELECT DISTINCT ?res (GROUP_CONCAT(DISTINCT  ?title;separator=' ;and; ') AS ?title_)
+                     (GROUP_CONCAT(DISTINCT  ?id;separator=' ;and; ') AS ?id_)
+                     (GROUP_CONCAT(?schema;separator=' ;and; ') AS ?schema_)
+                     (GROUP_CONCAT(DISTINCT  ?value;separator=' ;and; ') AS ?value_)
 
                 WHERE {
                     ?res a <%s>.
@@ -123,12 +126,12 @@ class ResourceFinder:
     def retrieve_ra_from_meta(self, meta_id, publisher=False):
         uri = "https://w3id.org/oc/meta/ra/" + str(meta_id)
         query = """
-                        SELECT DISTINCT ?res (group_concat(DISTINCT  ?title;separator=' ;and; ') as ?title_)
-                             (group_concat(DISTINCT  ?name;separator=' ;and; ') as ?name_)
-                             (group_concat(DISTINCT  ?surname;separator=' ;and; ') as ?surname_)
-                             (group_concat(DISTINCT  ?id;separator=' ;and; ') as ?id_)
-                             (group_concat(?schema;separator=' ;and; ') as ?schema_)
-                             (group_concat(DISTINCT  ?value;separator=' ;and; ') as ?value_)
+                        SELECT DISTINCT ?res (GROUP_CONCAT(DISTINCT  ?title;separator=' ;and; ') AS ?title_)
+                             (GROUP_CONCAT(DISTINCT  ?name;separator=' ;and; ') AS ?name_)
+                             (GROUP_CONCAT(DISTINCT  ?surname;separator=' ;and; ') AS ?surname_)
+                             (GROUP_CONCAT(DISTINCT  ?id;separator=' ;and; ') AS ?id_)
+                             (GROUP_CONCAT(?schema;separator=' ;and; ') AS ?schema_)
+                             (GROUP_CONCAT(DISTINCT  ?value;separator=' ;and; ') AS ?value_)
 
                         WHERE {
                             ?res a <%s>.
@@ -174,12 +177,12 @@ class ResourceFinder:
 
         query = """
                 SELECT DISTINCT ?res
-                    (group_concat(DISTINCT  ?title;separator=' ;and; ') as ?title_)
-                     (group_concat(DISTINCT  ?name;separator=' ;and; ') as ?name_)
-                     (group_concat(DISTINCT  ?surname;separator=' ;and; ') as ?surname_)
-                     (group_concat(DISTINCT  ?id;separator=' ;and; ') as ?id_)
-                     (group_concat(?schema;separator=' ;and; ') as ?schema_)
-                     (group_concat(DISTINCT  ?value;separator=' ;and; ') as ?value_)
+                    (GROUP_CONCAT(DISTINCT  ?title;separator=' ;and; ') AS ?title_)
+                     (GROUP_CONCAT(DISTINCT  ?name;separator=' ;and; ') AS ?name_)
+                     (GROUP_CONCAT(DISTINCT  ?surname;separator=' ;and; ') AS ?surname_)
+                     (GROUP_CONCAT(DISTINCT  ?id;separator=' ;and; ') AS ?id_)
+                     (GROUP_CONCAT(?schema;separator=' ;and; ') AS ?schema_)
+                     (GROUP_CONCAT(DISTINCT  ?value;separator=' ;and; ') AS ?value_)
 
                 WHERE {
                     ?res a <%s>.
@@ -409,21 +412,21 @@ class ResourceFinder:
         uri = "https://w3id.org/oc/meta/br/" + str(meta_id)
         query = """
                         SELECT ?res 
-                        (group_concat(DISTINCT  ?type;separator=' ;and; ') as ?type_)
-                        (group_concat(DISTINCT  ?date;separator=' ;and; ') as ?date_)
-                        (group_concat(DISTINCT  ?num;separator=' ;and; ') as ?num_)
-                        (group_concat(DISTINCT  ?part1;separator=' ;and; ') as ?part1_)
-                        (group_concat(DISTINCT  ?title1;separator=' ;and; ') as ?title1_)
-                        (group_concat(DISTINCT  ?num1;separator=' ;and; ') as ?num1_)
-                        (group_concat(DISTINCT  ?type1;separator=' ;and; ') as ?type1_)
-                        (group_concat(DISTINCT  ?part2;separator=' ;and; ') as ?part2_)
-                        (group_concat(DISTINCT  ?title2;separator=' ;and; ') as ?title2_)
-                        (group_concat(DISTINCT  ?num2;separator=' ;and; ') as ?num2_)
-                        (group_concat(DISTINCT  ?type2;separator=' ;and; ') as ?type2_)
-                        (group_concat(DISTINCT  ?part3;separator=' ;and; ') as ?part3_)
-                        (group_concat(DISTINCT  ?title3;separator=' ;and; ') as ?title3_)
-                        (group_concat(DISTINCT  ?num3;separator=' ;and; ') as ?num3_)
-                        (group_concat(DISTINCT  ?type3;separator=' ;and; ') as ?type3_) 
+                        (GROUP_CONCAT(DISTINCT ?type;separator=' ;and; ') AS ?type_)
+                        (GROUP_CONCAT(DISTINCT ?date;separator=' ;and; ') AS ?date_)
+                        (GROUP_CONCAT(DISTINCT ?num;separator=' ;and; ') AS ?num_)
+                        (GROUP_CONCAT(DISTINCT ?part1;separator=' ;and; ') AS ?part1_)
+                        (GROUP_CONCAT(DISTINCT ?title1;separator=' ;and; ') AS ?title1_)
+                        (GROUP_CONCAT(DISTINCT ?num1;separator=' ;and; ') AS ?num1_)
+                        (GROUP_CONCAT(DISTINCT ?type1;separator=' ;and; ') AS ?type1_)
+                        (GROUP_CONCAT(DISTINCT ?part2;separator=' ;and; ') AS ?part2_)
+                        (GROUP_CONCAT(DISTINCT ?title2;separator=' ;and; ') AS ?title2_)
+                        (GROUP_CONCAT(DISTINCT ?num2;separator=' ;and; ') AS ?num2_)
+                        (GROUP_CONCAT(DISTINCT ?type2;separator=' ;and; ') AS ?type2_)
+                        (GROUP_CONCAT(DISTINCT ?part3;separator=' ;and; ') AS ?part3_)
+                        (GROUP_CONCAT(DISTINCT ?title3;separator=' ;and; ') AS ?title3_)
+                        (GROUP_CONCAT(DISTINCT ?num3;separator=' ;and; ') AS ?num3_)
+                        (GROUP_CONCAT(DISTINCT ?type3;separator=' ;and; ') AS ?type3_) 
 
                         WHERE {
                                 ?res a ?type.

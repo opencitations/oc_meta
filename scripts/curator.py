@@ -454,7 +454,7 @@ class Curator:
                 value = identifier[1]
                 schema = identifier[0]
                 if br:
-                    res = self.finder.retrieve_br_from_id(value, schema)
+                    res = self.finder.retrieve_br_from_id(schema, value)
                 elif ra:
                     res = self.finder.retrieve_ra_from_id(value, schema, publ)
                 if res:

@@ -17,6 +17,28 @@ ts.setQuery(f'LOAD <file:meta/tdd/testcases/ts/real_data.nt>')
 ts.query()
 
 class test_ResourceFinder(unittest.TestCase):
+    def test_retrieve_br_from_id(self):
+        value = '10.1001/.391'
+        schema = 'doi'
+        output = finder.retrieve_br_from_id(schema, value)
+        expected_output = [(
+            '2373', 
+            'Treatment Of Excessive Anticoagulation With Phytonadione (Vitamin K): A Meta-analysis', 
+            [('2239', 'doi:10.1001/.391')]
+        )]
+        self.assertEqual(output, expected_output)
+
+    def test_retrieve_br_from_id_multiple_ids(self):
+        value = '10.1001/.405'
+        schema = 'doi'
+        output = finder.retrieve_br_from_id(schema, value)
+        expected_output = [(
+            '2374', 
+            "Neutropenia In Human Immunodeficiency Virus Infection: Data From The Women's Interagency HIV Study", 
+            [('2240', 'doi:10.1001/.405'), ('5000', 'doi:10.1001/.406')]
+        )]
+        self.assertEqual(output, expected_output)
+
     def test_retrieve_vvi_by_venue(self):
         venue_meta = '4387'
         output = finder.retrieve_venue_from_meta(venue_meta)
