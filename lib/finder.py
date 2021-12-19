@@ -134,52 +134,64 @@ class ResourceFinder:
             return None
 
     # _______________________________RA_________________________________ #
-    def retrieve_ra_from_meta(self, meta_id, publisher=False):
-        uri = "https://w3id.org/oc/meta/ra/" + str(meta_id)
-        query = """
-                        SELECT DISTINCT ?res (GROUP_CONCAT(DISTINCT  ?title;separator=' ;and; ') AS ?title_)
-                             (GROUP_CONCAT(DISTINCT  ?name;separator=' ;and; ') AS ?name_)
-                             (GROUP_CONCAT(DISTINCT  ?surname;separator=' ;and; ') AS ?surname_)
-                             (GROUP_CONCAT(DISTINCT  ?id;separator=' ;and; ') AS ?id_)
-                             (GROUP_CONCAT(?schema;separator=' ;and; ') AS ?schema_)
-                             (GROUP_CONCAT(DISTINCT  ?value;separator=' ;and; ') AS ?value_)
+    def retrieve_ra_from_meta(self, metaid:str, publisher:bool=False) -> Tuple[str, List[Tuple[str, str]]]:
+        '''
+        Given a MetaID, it retrieves the name and id of the responsible agent associated with it, whether it is an author or a publisher.
+        The output has the following format:
 
-                        WHERE {
-                            ?res a <%s>.
-                            OPTIONAL {?res <%s> ?name.}
-                            OPTIONAL {?res <%s> ?surname.}
-                            OPTIONAL {?res <%s> ?title.}
-                            OPTIONAL {?res <%s> ?id.
-                                ?id <%s> ?schema.
-                                ?id  <%s> ?value.}
-                            filter(?res = <%s>)
-                        } GROUP BY ?res
+            ('NAME', [('METAID_OF_THE_IDENTIFIER', 'LITERAL_VALUE')])
+            ('American Medical Association (ama)', [('4274', 'crossref:10')])
 
-                        """ % (GraphEntity.iri_agent, GraphEntity.iri_given_name, GraphEntity.iri_family_name,
-                               GraphEntity.iri_name, GraphEntity.iri_has_identifier,
-                               GraphEntity.iri_uses_identifier_scheme, GraphEntity.iri_has_literal_value, uri)
+        :params metaid: a responsible agent's MetaID
+        :type metaid: str
+        :params publisher: True if the MetaID is associated with a publisher, False otherwise.  
+        :type publisher: bool
+        :returns str: -- it returns a tuple, where the first element is the responsible agent's name, and the second element is a list containing its identifier's MetaID and literal value
+        '''
+        metaid_uri = f'https://w3id.org/oc/meta/ra/{str(metaid)}'
+        query = f'''
+            SELECT DISTINCT ?res 
+                (GROUP_CONCAT(DISTINCT ?name ;separator=' ;and; ') AS ?name_)
+                (GROUP_CONCAT(DISTINCT ?givenName ;separator=' ;and; ') AS ?givenName_)
+                (GROUP_CONCAT(DISTINCT ?familyName ;separator=' ;and; ') AS ?familyName_)
+                (GROUP_CONCAT(DISTINCT ?id; separator=' ;and; ') AS ?id_)
+                (GROUP_CONCAT(?schema; separator=' ;and; ') AS ?schema_)
+                (GROUP_CONCAT(DISTINCT ?value; separator=' ;and; ') AS ?value_)
+            WHERE {{
+                ?res a <{GraphEntity.iri_agent}>.
+                OPTIONAL {{?res <{GraphEntity.iri_given_name}> ?givenName.}}
+                OPTIONAL {{?res <{GraphEntity.iri_family_name}> ?familyName.}}
+                OPTIONAL {{?res <{GraphEntity.iri_name}> ?name.}}
+                OPTIONAL {{
+                    ?res <{GraphEntity.iri_has_identifier}> ?id.
+                    ?id <{GraphEntity.iri_uses_identifier_scheme}> ?schema;
+                        <{GraphEntity.iri_has_literal_value}> ?value.
+                }}
+                BIND (<{metaid_uri}> AS ?res)
+            }} 
+            GROUP BY ?res
+        '''
         result = self.__query(query)
-        if result["results"]["bindings"]:
-            result = result["results"]["bindings"][0]
-            if str(result["title_"]["value"]) and publisher:
-                title = str(result["title_"]["value"])
-            elif str(result["surname_"]["value"]) and not publisher:
-                title = str(result["surname_"]["value"]) + ", " + str(result["name_"]["value"])
+        if result['results']['bindings']:
+            bindings = result['results']['bindings'][0]
+            if str(bindings['name_']['value']) and publisher:
+                name = str(bindings['name_']['value'])
+            elif str(bindings['familyName_']['value']) and not publisher:
+                name = str(bindings['familyName_']['value']) + ', ' + str(bindings['givenName_']['value'])
             else:
-                title = ""
-            meta_id_list = str(result["id_"]["value"]).replace("https://w3id.org/oc/meta/id/", "").split(" ;and; ")
-            id_schema_list = str(result["schema_"]["value"]).replace(GraphEntity.DATACITE, "").split(" ;and; ")
-            id_value_list = str(result["value_"]["value"]).split(" ;and; ")
+                name = ''
+            meta_id_list = str(bindings['id_']['value']).replace('https://w3id.org/oc/meta/id/', '').split(' ;and; ')
+            id_schema_list = str(bindings['schema_']['value']).replace(GraphEntity.DATACITE, '').split(' ;and; ')
+            id_value_list = str(bindings['value_']['value']).split(' ;and; ')
 
-            couple_list = list(zip(id_schema_list, id_value_list))
+            schema_value_list = list(zip(id_schema_list, id_value_list))
             id_list = list()
-            for x in couple_list:
-                if x[0] and x[1]:
-                    identifier = str(x[0]).lower() + ':' + str(x[1])
+            for schema, value in schema_value_list:
+                if schema and value:
+                    identifier = f'{schema}:{value}'
                     id_list.append(identifier)
-            final_list = list(zip(meta_id_list, id_list))
-
-            return title, final_list
+            metaid_id_list = list(zip(meta_id_list, id_list))
+            return name, metaid_id_list
         else:
             return None
 

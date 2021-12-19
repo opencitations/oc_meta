@@ -58,6 +58,24 @@ class test_ResourceFinder(unittest.TestCase):
         expected_output = '2239'
         self.assertEqual(output, expected_output)
 
+    def test_retrieve_ra_from_meta(self):
+        metaid = '3308'
+        output = finder.retrieve_ra_from_meta(metaid, publisher=False)
+        expected_output = ('Dezee, K. J.', [])
+        self.assertEqual(output, expected_output)
+
+    def test_retrieve_ra_from_meta_with_orcid(self):
+        metaid = '4940'
+        output = finder.retrieve_ra_from_meta(metaid, publisher=False)
+        expected_output = ('Alarcon, Louis H.', [('4475', 'orcid:0000-0001-6994-8412')])
+        self.assertEqual(output, expected_output)
+
+    def test_retrieve_ra_from_meta_if_publisher(self):
+        metaid = '3309'
+        output = finder.retrieve_ra_from_meta(metaid, publisher=True)
+        expected_output = ('American Medical Association (ama)', [('4274', 'crossref:10')])
+        self.assertEqual(output, expected_output)
+
     def test_retrieve_vvi_by_venue(self):
         venue_meta = '4387'
         output = finder.retrieve_venue_from_meta(venue_meta)
