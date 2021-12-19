@@ -62,40 +62,45 @@ class ResourceFinder:
         else:
             return None
 
-    def retrieve_br_from_meta(self, meta_id):
-        uri = "https://w3id.org/oc/meta/br/" + str(meta_id)
-        query = """
-                SELECT DISTINCT ?res (GROUP_CONCAT(DISTINCT  ?title;separator=' ;and; ') AS ?title_)
-                     (GROUP_CONCAT(DISTINCT  ?id;separator=' ;and; ') AS ?id_)
-                     (GROUP_CONCAT(?schema;separator=' ;and; ') AS ?schema_)
-                     (GROUP_CONCAT(DISTINCT  ?value;separator=' ;and; ') AS ?value_)
+    def retrieve_br_from_meta(self, metaid:str) -> Tuple[str, List[Tuple[str, str]]]:
+        '''
+        Given a MetaID, it retrieves the title of the bibliographic resource having that MetaID and other identifiers of that entity.
 
-                WHERE {
-                    ?res a <%s>.
-                    OPTIONAL {?res <%s> ?title.}
-                    OPTIONAL {?res <%s> ?id.
-                        ?id <%s> ?schema.
-                        ?id  <%s> ?value.}
-                    BIND (<%s> AS ?res)
-                } group by ?res
-                """ % (GraphEntity.iri_expression, GraphEntity.iri_title, GraphEntity.iri_has_identifier,
-                       GraphEntity.iri_uses_identifier_scheme, GraphEntity.iri_has_literal_value, uri)
+        :params metaid: a MetaID
+        :type metaid: str
+        :returns Tuple[str, List[Tuple[str, str]]]: -- it returns a tuple of two elements. The first element is the resource's title associated with the input MetaID. The second element is a list of MetaID-ID tuples related to identifiers associated with that entity.
+        '''
+        metaid_uri = f'https://w3id.org/oc/meta/br/{str(metaid)}'
+        query = f'''
+            SELECT DISTINCT ?res 
+                (GROUP_CONCAT(DISTINCT  ?title;separator=' ;and; ') AS ?title_)
+                (GROUP_CONCAT(DISTINCT  ?id;separator=' ;and; ') AS ?id_)
+                (GROUP_CONCAT(?schema;separator=' ;and; ') AS ?schema_)
+                (GROUP_CONCAT(DISTINCT  ?value;separator=' ;and; ') AS ?value_)
+            WHERE {{
+                ?res a <{GraphEntity.iri_expression}>.
+                OPTIONAL {{?res <{GraphEntity.iri_title}> ?title.}}
+                OPTIONAL {{?res <{GraphEntity.iri_has_identifier}> ?id.}}
+                OPTIONAL {{?id <{GraphEntity.iri_uses_identifier_scheme}> ?schema.}}
+                OPTIONAL {{?id  <{GraphEntity.iri_has_literal_value}> ?value.}}
+                BIND (<{metaid_uri}> AS ?res)
+            }} GROUP BY ?res
+        '''
         result = self.__query(query)
-        if result["results"]["bindings"]:
-            result = result["results"]["bindings"][0]
-            title = str(result["title_"]["value"])
-            meta_id_list = str(result["id_"]["value"]).replace("https://w3id.org/oc/meta/id/", "").split(" ;and; ")
-            id_schema_list = str(result["schema_"]["value"]).replace(GraphEntity.DATACITE, "").split(" ;and; ")
-            id_value_list = str(result["value_"]["value"]).split(" ;and; ")
-
-            couple_list = list(zip(id_schema_list, id_value_list))
+        if result['results']['bindings']:
+            # By definition, there is only one resource associated with a MetaID
+            bindings = result['results']['bindings'][0]
+            title = str(bindings['title_']['value'])
+            metaid_list = str(bindings['id_']['value']).replace('https://w3id.org/oc/meta/id/', '').split(' ;and; ')
+            id_schema_list = str(bindings['schema_']['value']).replace(GraphEntity.DATACITE, '').split(' ;and; ')
+            id_value_list = str(bindings['value_']['value']).split(' ;and; ')
+            schema_value_list = list(zip(id_schema_list, id_value_list))
             id_list = list()
-            for x in couple_list:
-                identifier = str(x[0]).lower() + ':' + str(x[1])
+            for schema, value in schema_value_list:
+                identifier = f'{schema}:{value}'
                 id_list.append(identifier)
-            final_list = list(zip(meta_id_list, id_list))
-
-            return title, final_list
+            metaid_id_list = list(zip(metaid_list, id_list))
+            return title, metaid_id_list
         else:
             return None
 
@@ -111,7 +116,7 @@ class ResourceFinder:
             ?res <%s> <%s>.
             ?res <%s> ?knownValue.
             filter(?knownValue = "%s")
-        } group by ?res
+        } GROUP BY ?res
 
         """ % (GraphEntity.iri_identifier, GraphEntity.iri_uses_identifier_scheme, schema,
                 GraphEntity.iri_has_literal_value, value)
@@ -142,7 +147,7 @@ class ResourceFinder:
                                 ?id <%s> ?schema.
                                 ?id  <%s> ?value.}
                             filter(?res = <%s>)
-                        } group by ?res
+                        } GROUP BY ?res
 
                         """ % (GraphEntity.iri_agent, GraphEntity.iri_given_name, GraphEntity.iri_family_name,
                                GraphEntity.iri_name, GraphEntity.iri_has_identifier,
@@ -196,7 +201,7 @@ class ResourceFinder:
                     ?knownId <%s> <%s>.
                     ?knownId <%s> ?knownValue.
                     filter(?knownValue = "%s")
-                } group by ?res
+                } GROUP BY ?res
 
                 """ % (GraphEntity.iri_agent, GraphEntity.iri_given_name, GraphEntity.iri_family_name,
                        GraphEntity.iri_name, GraphEntity.iri_has_identifier, GraphEntity.iri_uses_identifier_scheme,
@@ -287,7 +292,7 @@ class ResourceFinder:
                     <{GraphEntity.iri_part_of}> ?container;
                     a ?type;
                     <{GraphEntity.iri_has_sequence_identifier}> ?title.
-            }} group by ?res
+            }} GROUP BY ?res
         '''
         result = self.__query(query)
         if result['results']['bindings']:
@@ -448,7 +453,7 @@ class ResourceFinder:
                                         }
                                 }
                             filter(?res = <%s>)
-                        } group by ?res
+                        } GROUP BY ?res
 
                         """ % (GraphEntity.iri_has_publication_date, GraphEntity.iri_has_sequence_identifier,
                                GraphEntity.iri_part_of, GraphEntity.iri_title, GraphEntity.iri_has_sequence_identifier,

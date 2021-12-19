@@ -38,6 +38,18 @@ class test_ResourceFinder(unittest.TestCase):
             [('2240', 'doi:10.1001/.405'), ('5000', 'doi:10.1001/.406')]
         )]
         self.assertEqual(output, expected_output)
+    
+    def test_retrieve_br_from_meta(self):
+        metaid = '2373'
+        output = finder.retrieve_br_from_meta(metaid)
+        expected_output = ('Treatment Of Excessive Anticoagulation With Phytonadione (Vitamin K): A Meta-analysis', [('2239', 'doi:10.1001/.391')])
+        self.assertEqual(output, expected_output)
+
+    def test_retrieve_br_from_meta_multiple_ids(self):
+        metaid = '2374'
+        output = finder.retrieve_br_from_meta(metaid)
+        expected_output = ("Neutropenia In Human Immunodeficiency Virus Infection: Data From The Women's Interagency HIV Study", [('2240', 'doi:10.1001/.405'), ('5000', 'doi:10.1001/.406')])
+        self.assertEqual(output, expected_output)
 
     def test_retrieve_vvi_by_venue(self):
         venue_meta = '4387'
