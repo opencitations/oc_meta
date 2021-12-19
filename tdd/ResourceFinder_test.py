@@ -51,6 +51,13 @@ class test_ResourceFinder(unittest.TestCase):
         expected_output = ("Neutropenia In Human Immunodeficiency Virus Infection: Data From The Women's Interagency HIV Study", [('2240', 'doi:10.1001/.405'), ('5000', 'doi:10.1001/.406')])
         self.assertEqual(output, expected_output)
 
+    def test_retrieve_metaid_from_id(self):
+        schema = 'doi'
+        value = '10.1001/.391'
+        output = finder.retrieve_metaid_from_id(schema, value)
+        expected_output = '2239'
+        self.assertEqual(output, expected_output)
+
     def test_retrieve_vvi_by_venue(self):
         venue_meta = '4387'
         output = finder.retrieve_venue_from_meta(venue_meta)

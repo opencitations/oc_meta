@@ -106,24 +106,30 @@ class ResourceFinder:
 
     # _______________________________ID_________________________________ #
 
-    def retrieve_id(self, schema, value):
+    def retrieve_metaid_from_id(self, schema:str, value:str) -> str:
+        '''
+        Given the schema and value of an ID, it returns the MetaID associated with that identifier.
+
+        :params schema: an identifier schema
+        :type schema: str
+        :params value: an identifier literal value
+        :type value: str
+        :returns str: -- it returns the MetaID associated with the input ID.
+        '''
         schema = GraphEntity.DATACITE + schema
-
-        query = """
-        SELECT DISTINCT ?res 
-        WHERE {
-            ?res a <%s>.
-            ?res <%s> <%s>.
-            ?res <%s> ?knownValue.
-            filter(?knownValue = "%s")
-        } GROUP BY ?res
-
-        """ % (GraphEntity.iri_identifier, GraphEntity.iri_uses_identifier_scheme, schema,
-                GraphEntity.iri_has_literal_value, value)
-
+        query = f'''
+            SELECT DISTINCT ?res 
+            WHERE {{
+                ?res a <{GraphEntity.iri_identifier}>;
+                    <{GraphEntity.iri_uses_identifier_scheme}> <{schema}>;
+                    <{GraphEntity.iri_has_literal_value}> '{value}'.
+            }} 
+            GROUP BY ?res
+        '''
         result = self.__query(query)
-        if result["results"]["bindings"]:
-            return str(result["results"]["bindings"][0]["res"]["value"]).replace("https://w3id.org/oc/meta/id/", "")
+        if result['results']['bindings']:
+            bindings = result['results']['bindings']
+            return str(bindings[0]['res']['value']).replace('https://w3id.org/oc/meta/id/', '')
         else:
             return None
 

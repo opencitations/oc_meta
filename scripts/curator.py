@@ -437,7 +437,7 @@ class Curator:
             entity_dict[metaval]["ids"].append(identifier)
             if identifier not in id_dict:
                 ids = identifier.split(":")
-                found_m = self.finder.retrieve_id(ids[0], ids[1])
+                found_m = self.finder.retrieve_metaid_from_id(ids[0], ids[1])
                 if found_m:
                     id_dict[identifier] = found_m
                 else:
