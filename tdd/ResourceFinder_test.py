@@ -108,6 +108,17 @@ class test_ResourceFinder(unittest.TestCase):
             }
         }        
         self.assertEqual(output, expected_output)
+    
+    def test_retrieve_ra_sequence_from_br_meta(self):
+        metaid = '2380'
+        output = finder.retrieve_ra_sequence_from_br_meta(metaid, 'author')
+        expected_output = [
+            {'5343': ('Hodge, James G.', [], '3316')}, 
+            {'5344': ('Anderson, Evan D.', [], '3317')}, 
+            {'5345': ('Kirsch, Thomas D.', [], '3318')}, 
+            {'5346': ('Kelen, Gabor D.', [('4278', 'orcid:0000-0002-3236-8286')], '3319')}
+        ]
+        self.assertEqual(output, expected_output)
 
 
 if __name__ == '__main__':

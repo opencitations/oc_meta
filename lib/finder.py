@@ -349,64 +349,76 @@ class ResourceFinder:
                 content[title]['id'] = item['res']['value'].replace('https://w3id.org/oc/meta/br/', '')
         return content
     
-    def retrieve_ra_sequence_from_meta(self, meta_id, col_name):
-        if col_name == "author":
+    def retrieve_ra_sequence_from_br_meta(self, metaid:str, col_name:str) -> List[Tuple[str, tuple, str]]:
+        '''
+        Given a bibliographic resource's MetaID and a field name, it returns its agent roles and responsible agents in the correct order according to the specified field.
+        The output has the following format: ::
+
+            [
+                {METAID_AR_1: (NAME_RA_1, [(METAID_ID_RA_1, LITERAL_VALUE_ID_RA_1)], METAID_RA_1)}, 
+                {METAID_AR_2: (NAME_RA_2, [(METAID_ID_RA_2, LITERAL_VALUE_ID_RA_2)], 'METAID_RA_2)}, 
+                {METAID_AR_N: (NAME_RA_N, [(METAID_ID_RA_N, LITERAL_VALUE_ID_RA_N)], 'METAID_RA_N)}, 
+            ]
+
+            [
+                {'5343': ('Hodge, James G.', [], '3316')}, 
+                {'5344': ('Anderson, Evan D.', [], '3317')}, 
+                {'5345': ('Kirsch, Thomas D.', [], '3318')}, 
+                {'5346': ('Kelen, Gabor D.', [('4278', 'orcid:0000-0002-3236-8286')], '3319')}
+            ]   
+
+        :params metaid: a MetaID
+        :type meta_id: str
+        :params col_name: a MetaID
+        :type col_name: str
+        :returns: List[Tuple[str, tuple, str]] -- the output is a list of three-elements tuples. Each tuple's first and third elements are the MetaIDs of an agent role and responsible agent related to the specified bibliographic resource. The second element is a two-elements tuple, where the first element is the MetaID of the identifier of the responsible agent. In contrast, the second one is the literal value of that id.
+        '''
+        if col_name == 'author':
             role = GraphEntity.iri_author
-        elif col_name == "editor":
+        elif col_name == 'editor':
             role = GraphEntity.iri_editor
         else:
             role = GraphEntity.iri_publisher
-        uri = "https://w3id.org/oc/meta/br/" + str(meta_id)
-        query = """
-                SELECT DISTINCT ?role ?next ?agent
-
-                WHERE {
-                    ?res a <%s>.
-                    ?res <%s> ?role.
-                    ?role a <%s>.
-                    ?role <%s> <%s>.
-                    OPTIONAL {?role <%s> ?next.}
-                    ?role <%s> ?agent.
-                    filter(?res = <%s>)
-                } 
-
-                """ % (GraphEntity.iri_expression, GraphEntity.iri_is_document_context_for,
-                       GraphEntity.iri_role_in_time, GraphEntity.iri_with_role, role, GraphEntity.iri_has_next,
-                       GraphEntity.iri_is_held_by, uri)
+        metaid_uri = f'https://w3id.org/oc/meta/br/{str(metaid)}'
+        query = f'''
+            SELECT DISTINCT ?role ?next ?ra
+            WHERE {{
+                <{metaid_uri}> <{GraphEntity.iri_is_document_context_for}> ?role.
+                ?role <{GraphEntity.iri_with_role}> <{role}>;
+                    <{GraphEntity.iri_is_held_by}> ?ra
+                OPTIONAL {{?role <{GraphEntity.iri_has_next}> ?next.}}
+            }}
+        '''
         result = self.__query(query)
-        if result["results"]["bindings"]:
-            results = result["results"]["bindings"]
+        if result['results']['bindings']:
+            results = result['results']['bindings']
             dict_ar = dict()
-            for x in results:
-                role = str(x["role"]["value"]).replace("https://w3id.org/oc/meta/ar/", "")
-                if "next" in x:
-                    next_role = str(x["next"]["value"]).replace("https://w3id.org/oc/meta/ar/", "")
+            for ra_dict in results:
+                role = str(ra_dict['role']['value']).replace('https://w3id.org/oc/meta/ar/', '')
+                if 'next' in ra_dict:
+                    next_role = str(ra_dict['next']['value']).replace('https://w3id.org/oc/meta/ar/', '')
                 else:
-                    next_role = ""
-                agent = str(x["agent"]["value"]).replace("https://w3id.org/oc/meta/ra/", "")
-
+                    next_role = ''
+                ra = str(ra_dict['ra']['value']).replace('https://w3id.org/oc/meta/ra/', '')
                 dict_ar[role] = dict()
-
-                dict_ar[role]["next"] = next_role
-                dict_ar[role]["agent"] = agent
-
+                dict_ar[role]['next'] = next_role
+                dict_ar[role]['ra'] = ra
             ar_list = list()
-
-            last = ""
+            last = ''
             while dict_ar:
-                for x in dict_ar:
-                    if dict_ar[x]["next"] == last:
-                        if col_name == "publisher":
-                            agent_info = self.retrieve_ra_from_meta(dict_ar[x]["agent"], publisher=True) +\
-                                         (dict_ar[x]["agent"],)
+                for ar_metaid in dict_ar:
+                    if dict_ar[ar_metaid]['next'] == last:
+                        if col_name == 'publisher':
+                            ra_info = self.retrieve_ra_from_meta(dict_ar[ar_metaid]['ra'], publisher=True) +\
+                                         (dict_ar[ar_metaid]['ra'],)
                         else:
-                            agent_info = self.retrieve_ra_from_meta(dict_ar[x]["agent"], publisher=False) +\
-                                         (dict_ar[x]["agent"],)
+                            ra_info = self.retrieve_ra_from_meta(dict_ar[ar_metaid]['ra'], publisher=False) +\
+                                         (dict_ar[ar_metaid]['ra'],)
                         ar_dic = dict()
-                        ar_dic[x] = agent_info
+                        ar_dic[ar_metaid] = ra_info
                         ar_list.append(ar_dic)
-                        last = x
-                        del dict_ar[x]
+                        last = ar_metaid
+                        del dict_ar[ar_metaid]
                         break
             ar_list.reverse()
             return ar_list

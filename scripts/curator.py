@@ -252,7 +252,7 @@ class Curator:
                     sequence = []
                 else:
                     # sequence can be in TS
-                    sequence_found = self.finder.retrieve_ra_sequence_from_meta(br_metaval, col_name)
+                    sequence_found = self.finder.retrieve_ra_sequence_from_br_meta(br_metaval, col_name)
                     if sequence_found:
                         sequence = []
                         for x in sequence_found:
