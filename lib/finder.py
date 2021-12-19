@@ -253,11 +253,14 @@ class ResourceFinder:
         result = self.__query(query)
         if result['results']['bindings']:
             results = result['results']['bindings']
+            there_are_only_issues = True \
+                if not any(str(GraphEntity.iri_journal_volume) in result['type_']['value'] for result in results) \
+                else False
             for x in results:
                 res = str(x['res']['value']).replace('https://w3id.org/oc/meta/br/', '')
                 title = str(x['title_']['value'])
                 types = str(x['type_']['value']).split(' ;and; ')
-                if str(GraphEntity.iri_journal_issue) in types:
+                if str(GraphEntity.iri_journal_issue) in types and there_are_only_issues:
                     content['issue'].setdefault(title, dict())
                     content['issue'][title]['id'] = res
                 elif str(GraphEntity.iri_journal_volume) in types:

@@ -22,7 +22,7 @@ class test_ResourceFinder(unittest.TestCase):
         content = {'issue': dict(), 'volume': dict()}
         output = finder.retrieve_vvi(venue_meta, content)
         expected_output = {
-            'issue': {'4': '4389', '22': '4435', '20': '4436', '21': '4437', '19': '4438'}, 
+            'issue': {}, 
             'volume': {
                 '166': {'id': '4388', 'issue': {'4': {'id': '4389'}}}, 
                 '172': {'id': '4434', 
@@ -41,7 +41,7 @@ class test_ResourceFinder(unittest.TestCase):
         volume_meta = '4434'
         content = {'issue': dict(), 'volume': dict()}
         output = finder.retrieve_vvi(volume_meta, content)
-        expected_output = {'issue': {'22': '4435', '20': '4436', '21': '4437', '19': '4438'}, 'volume': {}}    
+        expected_output = {'issue': {'22': {'id': '4435'}, '20': {'id': '4436'}, '21': {'id': '4437'}, '19': {'id': '4438'}}, 'volume': {}}    
         self.assertEqual(output, expected_output)        
 
 if __name__ == '__main__':
