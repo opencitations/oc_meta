@@ -19,8 +19,7 @@ ts.query()
 class test_ResourceFinder(unittest.TestCase):
     def test_retrieve_vvi_by_venue(self):
         venue_meta = '4387'
-        content = {'issue': dict(), 'volume': dict()}
-        output = finder.retrieve_vvi(venue_meta, content)
+        output = finder.retrieve_venue_from_meta(venue_meta)
         expected_output = {
             'issue': {}, 
             'volume': {
@@ -37,12 +36,6 @@ class test_ResourceFinder(unittest.TestCase):
         }        
         self.assertEqual(output, expected_output)
 
-    def test_retrieve_vvi_by_volume(self):
-        volume_meta = '4434'
-        content = {'issue': dict(), 'volume': dict()}
-        output = finder.retrieve_vvi(volume_meta, content)
-        expected_output = {'issue': {'22': {'id': '4435'}, '20': {'id': '4436'}, '21': {'id': '4437'}, '19': {'id': '4438'}}, 'volume': {}}    
-        self.assertEqual(output, expected_output)        
 
 if __name__ == '__main__':
     unittest.main()

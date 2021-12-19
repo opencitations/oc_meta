@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Dict
 from oc_ocdm.graph import GraphEntity
 from pymantic import sparql
 
@@ -230,22 +230,58 @@ class ResourceFinder:
 
     # _______________________________VVI_________________________________ #
 
-    def retrieve_venue_from_meta(self, meta_id):
+    def retrieve_venue_from_meta(self, meta_id:str) -> Dict[str, Dict[str, str]]:
+        '''
+        Given a MetaID, it returns the structure of volumes and issues contained in the related venue.
+        The output has the following format: ::
+
+            {
+                'issue': {SEQUENCE_IDENTIFIER: {'id': META_ID}},
+                'volume': {
+                    SEQUENCE_IDENTIFIER: {
+                        'id': META_ID,
+                        'issue' {SEQUENCE_IDENTIFIER: {'id': META_ID}}
+                    }
+                }
+            }
+
+            {
+                'issue': {}, 
+                'volume': {
+                    '166': {'id': '4388', 'issue': {'4': {'id': '4389'}}}, 
+                    '172': {'id': '4434', 
+                        'issue': {
+                            '22': {'id': '4435'}, 
+                            '20': {'id': '4436'}, 
+                            '21': {'id': '4437'}, 
+                            '19': {'id': '4438'}
+                        }
+                    }
+                }
+            }    
+
+        The first level 'issue' field includes the issues contained directly in the venue, 
+        while the 'volume' field includes the volumes in the venue and the related issues.
+
+        :params meta_id: a MetaID
+        :type meta_id: str
+        :returns: Dict[str, Dict[str, str]] -- the string with normalized hyphens
+        '''
         content = dict()
-        content["issue"] = dict()
-        content["volume"] = dict()
-        content = self.retrieve_vvi(meta_id, content)
+        content['issue'] = dict()
+        content['volume'] = dict()
+        content = self.__retrieve_vvi(meta_id, content)
         return content
 
-    def retrieve_vvi(self, meta:str, content:dict) -> dict:
+    def __retrieve_vvi(self, meta:str, content:Dict[str, dict]) -> dict:
         query = f'''
             SELECT DISTINCT ?res
-                (GROUP_CONCAT(DISTINCT ?br; separator=' ;and; ') AS ?br_)
+                (GROUP_CONCAT(DISTINCT ?container; separator=' ;and; ') AS ?container_)
                 (GROUP_CONCAT(DISTINCT ?type; separator=' ;and; ') AS ?type_)
                 (GROUP_CONCAT(DISTINCT ?title) AS ?title_)
             WHERE {{
                 ?res <{GraphEntity.iri_part_of}>+ <https://w3id.org/oc/meta/br/{meta}>;
-                    <{GraphEntity.iri_part_of}> ?br;
+                    <{GraphEntity.iri_part_of}> ?container;
                     a ?type;
                     <{GraphEntity.iri_has_sequence_identifier}> ?title.
             }} group by ?res
@@ -253,59 +289,36 @@ class ResourceFinder:
         result = self.__query(query)
         if result['results']['bindings']:
             results = result['results']['bindings']
-            there_are_only_issues = True \
-                if not any(str(GraphEntity.iri_journal_volume) in result['type_']['value'] for result in results) \
-                else False
             for x in results:
                 res = str(x['res']['value']).replace('https://w3id.org/oc/meta/br/', '')
+                container = str(x['container_']['value'])
                 title = str(x['title_']['value'])
                 types = str(x['type_']['value']).split(' ;and; ')
-                if str(GraphEntity.iri_journal_issue) in types and there_are_only_issues:
+                if str(GraphEntity.iri_journal_issue) in types and self.__is_contained_in_venue(results, container):
                     content['issue'].setdefault(title, dict())
                     content['issue'][title]['id'] = res
                 elif str(GraphEntity.iri_journal_volume) in types:
-                    content['volume'][title] = dict()
+                    content['volume'].setdefault(title, dict())
                     content['volume'][title]['id'] = res
-                    content['volume'][title]['issue'] = dict()
-                    content['volume'][title]['issue'] = self.retrieve_issues_by_volume(results, res)
+                    content['volume'][title]['issue'] = self.__retrieve_issues_by_volume(results, res)
         return content
     
-    def retrieve_issues_by_volume(self, data:List[dict], res:str):
+    def __is_contained_in_venue(self, data:List[Dict[str, Dict[str, str]]], container:str) -> bool:
+        is_contained_in_venue = False
+        container_dictionary = next(item for item in data if item['res']['value'] == container)
+        if str(GraphEntity.iri_journal) in container_dictionary['type_']['value'].split(' ;and; '):
+            is_contained_in_venue= True
+        return is_contained_in_venue
+
+    def __retrieve_issues_by_volume(self, data:List[Dict[str, Dict[str, str]]], res:str) -> dict:
         content = dict()
         for item in data:
-            if res in item['br_']['value'] and str(GraphEntity.iri_journal_issue in item['type_']['value']):
+            if res in item['container_']['value'] and str(GraphEntity.iri_journal_issue in item['type_']['value']):
                 title = item['title_']['value']
                 content[title] = dict()
                 content[title]['id'] = item['res']['value'].replace('https://w3id.org/oc/meta/br/', '')
         return content
     
-    def retrieve_issue(self, meta):
-        content = dict()
-        query = """
-                SELECT DISTINCT ?res 
-                    (group_concat(DISTINCT  ?type;separator=' ;and; ') as ?type_)
-                    (group_concat(DISTINCT  ?title;separator=' ;and; ') as ?title_)
-
-                WHERE {
-                    ?res <%s> <%s>.
-                    ?res a ?type.
-                    ?res <%s> ?title.
-                } group by ?res
-
-                """ % (GraphEntity.iri_part_of, "https://w3id.org/oc/meta/br/" + str(meta),
-                       GraphEntity.iri_has_sequence_identifier)
-        result = self.__query(query)
-        if result["results"]["bindings"]:
-            results = result["results"]["bindings"]
-            for x in results:
-                res = str(x["res"]["value"]).replace("https://w3id.org/oc/meta/br/", "")
-                title = str(x["title_"]["value"])
-                types = str(x["type_"]["value"]).split(" ;and; ")
-                if str(GraphEntity.iri_journal_issue) in types:
-                    content[title] = dict()
-                    content[title]['id'] = res
-        return content
-
     def retrieve_ra_sequence_from_meta(self, meta_id, col_name):
         if col_name == "author":
             role = GraphEntity.iri_author
