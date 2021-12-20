@@ -42,7 +42,7 @@ Where:
 
 ## Plugins
 
-### Get DOIs from COCI dump
+### Get DOIs from COCI's dump
 
 You can get a CSV file containing all the DOIs from the [COCI's dump](https://opencitations.net/download). This CSV file can be passed as an input to the `-wanted` argument of [`run_preprocess.py`](https://github.com/opencitations/meta/blob/master/run_preprocess.py). You can obtain this file by using the [`get_dois_from_coci.py`](https://github.com/opencitations/meta/blob/master/coci/get_dois_from_coci.py) script, in the following way:
 ```console
