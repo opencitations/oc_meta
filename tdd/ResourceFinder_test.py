@@ -125,6 +125,72 @@ class test_ResourceFinder(unittest.TestCase):
         output = finder.retrieve_re_from_br_meta(metaid)
         expected_output = ('2011', '391-397')
         self.assertEqual(output, expected_output)
+    
+    def test_retrieve_br_info_from_meta(self):
+        metaid = '2373'
+        output = finder.retrieve_br_info_from_meta(metaid)
+        expected_output = {
+            'pub_date': '2006-02-27', 
+            'type': 'journal article', 
+            'page': ('2011', '391-397'), 
+            'issue': '4', 
+            'volume': '166', 
+            'venue': 'Archives Of Internal Medicine [meta:br/4387]'
+        }
+        self.assertEqual(output, expected_output)
+    
+    def test__type_it(self):
+        result = {
+            'res': {'type': 'uri', 'value': 'https://w3id.org/oc/meta/br/2373'}, 
+            'type_': {'type': 'literal', 'value': 'http://purl.org/spar/fabio/Expression ;and; http://purl.org/spar/fabio/JournalArticle'}, 
+            'date_': {'type': 'literal', 'value': '2006-02-27'}, 
+            'num_': {'type': 'literal', 'value': ''}, 
+            'part1_': {'type': 'literal', 'value': 'https://w3id.org/oc/meta/br/4389'}, 
+            'title1_': {'type': 'literal', 'value': ''}, 
+            'num1_': {'type': 'literal', 'value': '4'}, 
+            'type1_': {'type': 'literal', 'value': 'http://purl.org/spar/fabio/Expression ;and; http://purl.org/spar/fabio/JournalIssue'}, 
+            'part2_': {'type': 'literal', 'value': 'https://w3id.org/oc/meta/br/4388'}, 
+            'title2_': {'type': 'literal', 'value': ''}, 
+            'num2_': {'type': 'literal', 'value': '166'}, 
+            'type2_': {'type': 'literal', 'value': 'http://purl.org/spar/fabio/Expression ;and; http://purl.org/spar/fabio/JournalVolume'}, 
+            'part3_': {'type': 'literal', 'value': 'https://w3id.org/oc/meta/br/4387'}, 
+            'title3_': {'type': 'literal', 'value': 'Archives Of Internal Medicine'}, 
+            'num3_': {'type': 'literal', 'value': ''}, 
+            'type3_': {'type': 'literal', 'value': 'http://purl.org/spar/fabio/Expression ;and; http://purl.org/spar/fabio/Journal'}
+        }
+        type_ = 'type_'
+        output = finder._type_it(result, type_)
+        expected_output = 'journal article'
+        self.assertEqual(output, expected_output)
+    
+    def test__vvi_find(self):
+        result = {
+            'res': {'type': 'uri', 'value': 'https://w3id.org/oc/meta/br/2373'}, 
+            'type_': {'type': 'literal', 'value': 'http://purl.org/spar/fabio/Expression ;and; http://purl.org/spar/fabio/JournalArticle'}, 
+            'date_': {'type': 'literal', 'value': '2006-02-27'}, 
+            'num_': {'type': 'literal', 'value': ''}, 
+            'part1_': {'type': 'literal', 'value': 'https://w3id.org/oc/meta/br/4389'}, 
+            'title1_': {'type': 'literal', 'value': ''}, 
+            'num1_': {'type': 'literal', 'value': '4'}, 
+            'type1_': {'type': 'literal', 'value': 'http://purl.org/spar/fabio/Expression ;and; http://purl.org/spar/fabio/JournalIssue'}, 
+            'part2_': {'type': 'literal', 'value': 'https://w3id.org/oc/meta/br/4388'}, 
+            'title2_': {'type': 'literal', 'value': ''}, 
+            'num2_': {'type': 'literal', 'value': '166'}, 
+            'type2_': {'type': 'literal', 'value': 'http://purl.org/spar/fabio/Expression ;and; http://purl.org/spar/fabio/JournalVolume'}, 
+            'part3_': {'type': 'literal', 'value': 'https://w3id.org/oc/meta/br/4387'}, 
+            'title3_': {'type': 'literal', 'value': 'Archives Of Internal Medicine'}, 
+            'num3_': {'type': 'literal', 'value': ''}, 
+            'type3_': {'type': 'literal', 'value': 'http://purl.org/spar/fabio/Expression ;and; http://purl.org/spar/fabio/Journal'}
+        }
+        part_ = 'part3_'
+        type_ = 'type3_'
+        title_ = 'title3_'
+        num_ = 'num3_'
+        res_dict = {'pub_date': '2006-02-27', 'type': 'journal article', 'page': ('2011', '391-397'), 'issue': '', 'volume': '', 'venue': ''}
+        output = finder._vvi_find(result, part_, type_, title_, num_, res_dict)
+        expected_output = {'pub_date': '2006-02-27', 'type': 'journal article', 'page': ('2011', '391-397'), 'issue': '', 'volume': '', 'venue': 'Archives Of Internal Medicine [meta:br/4387]'}
+        self.assertEqual(output, expected_output)
+
 
 if __name__ == '__main__':
     unittest.main()

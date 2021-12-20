@@ -80,9 +80,10 @@ class ResourceFinder:
             WHERE {{
                 ?res a <{GraphEntity.iri_expression}>.
                 OPTIONAL {{?res <{GraphEntity.iri_title}> ?title.}}
-                OPTIONAL {{?res <{GraphEntity.iri_has_identifier}> ?id.}}
-                OPTIONAL {{?id <{GraphEntity.iri_uses_identifier_scheme}> ?schema.}}
-                OPTIONAL {{?id  <{GraphEntity.iri_has_literal_value}> ?value.}}
+                OPTIONAL {{
+                    ?res <{GraphEntity.iri_has_identifier}> ?id.
+                    ?id <{GraphEntity.iri_uses_identifier_scheme}> ?schema;
+                        <{GraphEntity.iri_has_literal_value}> ?value.}}
                 BIND (<{metaid_uri}> AS ?res)
             }} GROUP BY ?res
         '''
@@ -455,145 +456,160 @@ class ResourceFinder:
         else:
             return None
 
-    def retrieve_br_info_from_meta(self, meta_id):
-        uri = "https://w3id.org/oc/meta/br/" + str(meta_id)
-        query = """
-                        SELECT ?res 
-                        (GROUP_CONCAT(DISTINCT ?type;separator=' ;and; ') AS ?type_)
-                        (GROUP_CONCAT(DISTINCT ?date;separator=' ;and; ') AS ?date_)
-                        (GROUP_CONCAT(DISTINCT ?num;separator=' ;and; ') AS ?num_)
-                        (GROUP_CONCAT(DISTINCT ?part1;separator=' ;and; ') AS ?part1_)
-                        (GROUP_CONCAT(DISTINCT ?title1;separator=' ;and; ') AS ?title1_)
-                        (GROUP_CONCAT(DISTINCT ?num1;separator=' ;and; ') AS ?num1_)
-                        (GROUP_CONCAT(DISTINCT ?type1;separator=' ;and; ') AS ?type1_)
-                        (GROUP_CONCAT(DISTINCT ?part2;separator=' ;and; ') AS ?part2_)
-                        (GROUP_CONCAT(DISTINCT ?title2;separator=' ;and; ') AS ?title2_)
-                        (GROUP_CONCAT(DISTINCT ?num2;separator=' ;and; ') AS ?num2_)
-                        (GROUP_CONCAT(DISTINCT ?type2;separator=' ;and; ') AS ?type2_)
-                        (GROUP_CONCAT(DISTINCT ?part3;separator=' ;and; ') AS ?part3_)
-                        (GROUP_CONCAT(DISTINCT ?title3;separator=' ;and; ') AS ?title3_)
-                        (GROUP_CONCAT(DISTINCT ?num3;separator=' ;and; ') AS ?num3_)
-                        (GROUP_CONCAT(DISTINCT ?type3;separator=' ;and; ') AS ?type3_) 
+    def retrieve_br_info_from_meta(self, metaid:str) -> dict:
+        '''
+            Given a bibliographic resource's MetaID, it returns all the information about that resource.
+            The output has the following format: ::
 
-                        WHERE {
-                                ?res a ?type.
-                                OPTIONAL {?res <%s> ?date.}
-                                OPTIONAL {?res <%s> ?num.}
-                                OPTIONAL {?res <%s> ?part1.
-                                            OPTIONAL {?part1 <%s> ?title1.}
-                                            OPTIONAL {?part1 <%s> ?num1.}
-                                            ?part1 a ?type1.
-                                            OPTIONAL{?part1 <%s> ?part2.
-                                                     OPTIONAL {?part2 <%s> ?title2.}
-                                                        OPTIONAL {?part2 <%s> ?num2.}
-                                                        ?part2 a ?type2.
-                                                     OPTIONAL{?part2 <%s> ?part3.
-                                                              OPTIONAL {?part3 <%s> ?title3.}
-                                                                OPTIONAL {?part3 <%s> ?num3.}
-                                                        ?part3 a ?type3.
-                                                    }
-                                        }
-                                }
-                            filter(?res = <%s>)
-                        } GROUP BY ?res
+                {
+                    'pub_date': PUB_DATE, 
+                    'type': TYPE, 
+                    'page': (METAID, PAGES), 
+                    'issue': ISSUE, 
+                    'volume': VOLUME, 
+                    'venue': VENUE
+                }
+                {
+                    'pub_date': '2006-02-27', 
+                    'type': 'journal article', 
+                    'page': ('2011', '391-397'), 
+                    'issue': '4', 
+                    'volume': '166', 
+                    'venue': 'Archives Of Internal Medicine [meta:br/4387]'
+                }
 
-                        """ % (GraphEntity.iri_has_publication_date, GraphEntity.iri_has_sequence_identifier,
-                               GraphEntity.iri_part_of, GraphEntity.iri_title, GraphEntity.iri_has_sequence_identifier,
-                               GraphEntity.iri_part_of, GraphEntity.iri_title, GraphEntity.iri_has_sequence_identifier,
-                               GraphEntity.iri_part_of, GraphEntity.iri_title, GraphEntity.iri_has_sequence_identifier,
-                               uri)
+            :params metaid: a bibliographic resource's MetaID
+            :type meta_id: str
+            :returns: Tuple[str, str] -- the output is a dictionary including the publication date, type, page, issue, volume, and venue of the specified bibliographic resource.
+        '''
+        metaid_uri = f'https://w3id.org/oc/meta/br/{str(metaid)}'
+        query = f'''
+            SELECT ?res 
+            (GROUP_CONCAT(DISTINCT ?type; separator=' ;and; ') AS ?type_)
+            (GROUP_CONCAT(DISTINCT ?date; separator=' ;and; ') AS ?date_)
+            (GROUP_CONCAT(DISTINCT ?num; separator=' ;and; ') AS ?num_)
+            (GROUP_CONCAT(DISTINCT ?part1; separator=' ;and; ') AS ?part1_)
+            (GROUP_CONCAT(DISTINCT ?title1; separator=' ;and; ') AS ?title1_)
+            (GROUP_CONCAT(DISTINCT ?num1; separator=' ;and; ') AS ?num1_)
+            (GROUP_CONCAT(DISTINCT ?type1; separator=' ;and; ') AS ?type1_)
+            (GROUP_CONCAT(DISTINCT ?part2; separator=' ;and; ') AS ?part2_)
+            (GROUP_CONCAT(DISTINCT ?title2; separator=' ;and; ') AS ?title2_)
+            (GROUP_CONCAT(DISTINCT ?num2; separator=' ;and; ') AS ?num2_)
+            (GROUP_CONCAT(DISTINCT ?type2; separator=' ;and; ') AS ?type2_)
+            (GROUP_CONCAT(DISTINCT ?part3; separator=' ;and; ') AS ?part3_)
+            (GROUP_CONCAT(DISTINCT ?title3; separator=' ;and; ') AS ?title3_)
+            (GROUP_CONCAT(DISTINCT ?num3; separator=' ;and; ') AS ?num3_)
+            (GROUP_CONCAT(DISTINCT ?type3; separator=' ;and; ') AS ?type3_) 
+            WHERE {{
+                ?res a ?type.
+                OPTIONAL {{?res <{GraphEntity.iri_has_publication_date}> ?date.}}
+                OPTIONAL {{?res <{GraphEntity.iri_has_sequence_identifier}> ?num.}}
+                OPTIONAL {{
+                    ?res <{GraphEntity.iri_part_of}> ?part1.
+                    OPTIONAL {{?part1 <{GraphEntity.iri_title}> ?title1.}}
+                    OPTIONAL {{?part1 <{GraphEntity.iri_has_sequence_identifier}> ?num1.}}
+                    ?part1 a ?type1.
+                    OPTIONAL {{
+                        ?part1 <{GraphEntity.iri_part_of}> ?part2.
+                        OPTIONAL {{?part2 <{GraphEntity.iri_title}> ?title2.}}
+                        OPTIONAL {{?part2 <{GraphEntity.iri_has_sequence_identifier}> ?num2.}}
+                        ?part2 a ?type2.
+                        OPTIONAL{{
+                            ?part2 <{GraphEntity.iri_part_of}> ?part3.
+                            OPTIONAL {{?part3 <{GraphEntity.iri_title}> ?title3.}}
+                            OPTIONAL {{?part3 <{GraphEntity.iri_has_sequence_identifier}> ?num3.}}
+                            ?part3 a ?type3.
+                        }}
+                    }}
+                }}
+                BIND (<{metaid_uri}> AS ?res)
+            }} 
+            GROUP BY ?res
+        '''
         result = self.__query(query)
-        if result["results"]["bindings"]:
-
-            result = result["results"]["bindings"][0]
-            res_dict = dict()
-            res_dict["pub_date"] = ""
-            res_dict["type"] = ""
-            res_dict["page"] = ""
-            res_dict["issue"] = ""
-            res_dict["volume"] = ""
-            res_dict["venue"] = ""
-
-            if "date_" in result:
-                res_dict["pub_date"] = result["date_"]["value"]
-            else:
-                res_dict["pub_date"] = ""
-
-            res_dict["type"] = self.typalo(result, "type_")
-
-            res_dict["page"] = self.retrieve_re_from_br_meta(meta_id)
-
-            if "num_" in result:
-                if "issue" in self.typalo(result, "type_"):
-                    res_dict["issue"] = str(result["num_"]["value"])
-                elif "volume" in self.typalo(result, "type_"):
-                    res_dict["volume"] = str(result["num_"]["value"])
-
-            res_dict = self.vvi_find(result, "part1_", "type1_", "title1_", "num1_", res_dict)
-            res_dict = self.vvi_find(result, "part2_", "type2_", "title2_", "num2_", res_dict)
-            res_dict = self.vvi_find(result, "part3_", "type3_", "title3_", "num3_", res_dict)
-
+        if result['results']['bindings']:
+            bindings = result['results']['bindings'][0]
+            res_dict = {
+                'pub_date': '',
+                'type': '',
+                'page': '',
+                'issue': '',
+                'volume': '',
+                'venue': ''
+            }
+            if 'date_' in bindings:
+                res_dict['pub_date'] = bindings['date_']['value']
+            res_dict['type'] = self._type_it(bindings, 'type_')
+            res_dict['page'] = self.retrieve_re_from_br_meta(metaid)
+            if 'num_' in bindings:
+                if 'issue' in self._type_it(bindings, 'type_'):
+                    res_dict['issue'] = str(bindings['num_']['value'])
+                elif 'volume' in self._type_it(bindings, 'type_'):
+                    res_dict['volume'] = str(bindings['num_']['value'])
+            res_dict = self._vvi_find(bindings, 'part1_', 'type1_', 'title1_', 'num1_', res_dict)
+            res_dict = self._vvi_find(bindings, 'part2_', 'type2_', 'title2_', 'num2_', res_dict)
+            res_dict = self._vvi_find(bindings, 'part3_', 'type3_', 'title3_', 'num3_', res_dict)
             return res_dict
         else:
             return None
 
     @staticmethod
-    def typalo(result, type_):
-        t_type = ""
-        if type_ in result:
-            ty = result[type_]["value"].split(" ;and; ")
-            for t in ty:
-                if "Expression" not in t:
-                    t_type = str(t)
-                    if str(t_type) == str(GraphEntity.iri_archival_document):
-                        t_type = "archival document"
-                    if str(t_type) == str(GraphEntity.iri_book):
-                        t_type = "book"
-                    if str(t_type) == str(GraphEntity.iri_book_chapter):
-                        t_type = "book chapter"
-                    if str(t_type) == str(GraphEntity.iri_part):
-                        t_type = "book part"
-                    if str(t_type) == str(GraphEntity.iri_expression_collection):
-                        t_type = "book section"
-                    if str(t_type) == str(GraphEntity.iri_book_series):
-                        t_type = "book series"
-                    if str(t_type) == str(GraphEntity.iri_book_set):
-                        t_type = "book set"
-                    if str(t_type) == str(GraphEntity.iri_data_file):
-                        t_type = "data file"
-                    if str(t_type) == str(GraphEntity.iri_thesis):
-                        t_type = "dissertation"
-                    if str(t_type) == str(GraphEntity.iri_journal):
-                        t_type = "journal"
-                    if str(t_type) == str(GraphEntity.iri_journal_article):
-                        t_type = "journal article"
-                    if str(t_type) == str(GraphEntity.iri_journal_issue):
-                        t_type = "journal issue"
-                    if str(t_type) == str(GraphEntity.iri_journal_volume):
-                        t_type = "journal volume"
-                    if str(t_type) == str(GraphEntity.iri_proceedings_paper):
-                        t_type = "proceedings article"
-                    if str(t_type) == str(GraphEntity.iri_academic_proceedings):
-                        t_type = "proceedings"
-                    if str(t_type) == str(GraphEntity.iri_reference_book):
-                        t_type = "reference book"
-                    if str(t_type) == str(GraphEntity.iri_reference_entry):
-                        t_type = "reference entry"
-                    if str(t_type) == str(GraphEntity.iri_series):
-                        t_type = "series"
-                    if str(t_type) == str(GraphEntity.iri_report_document):
-                        t_type = "report"
-                    if str(t_type) == str(GraphEntity.iri_specification_document):
-                        t_type = "standard"
-        return t_type
+    def _type_it(result:Dict[str, Dict[str, str]], variable:str) -> str:
+        output_type = ''
+        if variable in result:
+            types = result[variable]['value'].split(' ;and; ')
+            for type in types:
+                if type != str(GraphEntity.iri_expression):
+                    output_type = str(type)
+                    if str(output_type) == str(GraphEntity.iri_archival_document):
+                        output_type = 'archival document'
+                    if str(output_type) == str(GraphEntity.iri_book):
+                        output_type = 'book'
+                    if str(output_type) == str(GraphEntity.iri_book_chapter):
+                        output_type = 'book chapter'
+                    if str(output_type) == str(GraphEntity.iri_part):
+                        output_type = 'book part'
+                    if str(output_type) == str(GraphEntity.iri_expression_collection):
+                        output_type = 'book section'
+                    if str(output_type) == str(GraphEntity.iri_book_series):
+                        output_type = 'book series'
+                    if str(output_type) == str(GraphEntity.iri_book_set):
+                        output_type = 'book set'
+                    if str(output_type) == str(GraphEntity.iri_data_file):
+                        output_type = 'data file'
+                    if str(output_type) == str(GraphEntity.iri_thesis):
+                        output_type = 'dissertation'
+                    if str(output_type) == str(GraphEntity.iri_journal):
+                        output_type = 'journal'
+                    if str(output_type) == str(GraphEntity.iri_journal_article):
+                        output_type = 'journal article'
+                    if str(output_type) == str(GraphEntity.iri_journal_issue):
+                        output_type = 'journal issue'
+                    if str(output_type) == str(GraphEntity.iri_journal_volume):
+                        output_type = 'journal volume'
+                    if str(output_type) == str(GraphEntity.iri_proceedings_paper):
+                        output_type = 'proceedings article'
+                    if str(output_type) == str(GraphEntity.iri_academic_proceedings):
+                        output_type = 'proceedings'
+                    if str(output_type) == str(GraphEntity.iri_reference_book):
+                        output_type = 'reference book'
+                    if str(output_type) == str(GraphEntity.iri_reference_entry):
+                        output_type = 'reference entry'
+                    if str(output_type) == str(GraphEntity.iri_series):
+                        output_type = 'series'
+                    if str(output_type) == str(GraphEntity.iri_report_document):
+                        output_type = 'report'
+                    if str(output_type) == str(GraphEntity.iri_specification_document):
+                        output_type = 'standard'
+        return output_type
 
-    def vvi_find(self, result, part_, type_, title_, num_, dic):
-        type_value = self.typalo(result, type_)
-        if "issue" in type_value:
-            dic["issue"] = str(result[num_]["value"])
-        elif "volume" in type_value:
-            dic["volume"] = str(result[num_]["value"])
+    def _vvi_find(self, result:Dict[str, Dict[str, str]], part_:str, type_:str, title_:str, num_:str, res_dict:dict) -> dict:
+        type_value = self._type_it(result, type_)
+        if 'issue' in type_value:
+            res_dict['issue'] = str(result[num_]['value'])
+        elif 'volume' in type_value:
+            res_dict['volume'] = str(result[num_]['value'])
         elif type_value:
-            dic["venue"] = result[title_]["value"] + " [meta:" + result[part_]["value"] \
-                .replace("https://w3id.org/oc/meta/", "") + "]"
-        return dic
+            res_dict['venue'] = result[title_]['value'] + ' [meta:' + result[part_]['value'] \
+                .replace('https://w3id.org/oc/meta/', '') + ']'
+        return res_dict
