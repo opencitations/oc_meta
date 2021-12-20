@@ -396,8 +396,15 @@ class Curator:
         del dict2match[old_meta]
 
     @staticmethod
-    # All in One recursion, clean ids and meanwhile check if there's metaId
-    def clean_id_list(id_list, br=True):
+    def clean_id_list(id_list, br=True) -> Tuple[list, str]:
+        '''
+        Clean IDs in the input list and check if there is a MetaID.
+
+        :params: id_list: a list of IDs
+        :type: id_list: st
+        :params: br: True if the IDs in id_list refer to bibliographic resources, False otherwise
+        :returns: Tuple[list, str]: -- it returns a two-elements tuple, where the first element is the list of cleaned IDs, while the second is a MetaID if any was found.
+        '''
         if br:
             pattern = "br/"
         else:
@@ -406,15 +413,15 @@ class Curator:
         id_list = list(filter(None, id_list))
         how_many_meta = [i for i in id_list if i.lower().startswith('meta')]
         if len(how_many_meta) > 1:
-            for pos, elem in enumerate(list(id_list)): # bugfix: id_list veniva modificata durante un'iterazione su di essa, causando un IndexError. Pertanto, ho potuto rimuovere anche l'eccezione IndexError.
-                if "meta" in elem.lower(): #bugfix: non funzionava se meta non era scritto in minuscoo
+            for pos, elem in enumerate(list(id_list)):
+                if "meta" in elem.lower():
                     id_list[pos] = ""
         else:
             for pos, elem in enumerate(list(id_list)):
                 elem = Cleaner(elem).normalize_hyphens()
                 identifier = elem.split(":", 1)
-                value = identifier[1]
                 schema = identifier[0].lower()
+                value = identifier[1]
                 if schema == "meta":
                     if "meta:" + pattern in elem.lower():
                         metaid = value.replace(pattern, "")
