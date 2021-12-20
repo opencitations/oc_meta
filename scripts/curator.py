@@ -49,7 +49,7 @@ class Curator:
         self.log = dict()
         self.new_sequence_list = list()
 
-    def curator(self, filename=None, path_csv=None, path_index=None):
+    def curator(self, filename:str=None, path_csv:str=None, path_index:str=None):
         for row in self.data:
             self.log[self.rowcnt] = {
                 "id": {},
@@ -396,38 +396,39 @@ class Curator:
         del dict2match[old_meta]
 
     @staticmethod
-    def clean_id_list(id_list, br=True) -> Tuple[list, str]:
+    def clean_id_list(id_list:List[str], br:bool=True) -> Tuple[list, str]:
         '''
         Clean IDs in the input list and check if there is a MetaID.
 
         :params: id_list: a list of IDs
-        :type: id_list: st
+        :type: id_list: List[str]
         :params: br: True if the IDs in id_list refer to bibliographic resources, False otherwise
+        :type: br: bool
         :returns: Tuple[list, str]: -- it returns a two-elements tuple, where the first element is the list of cleaned IDs, while the second is a MetaID if any was found.
         '''
         if br:
-            pattern = "br/"
+            pattern = 'br/'
         else:
-            pattern = "ra/"
-        metaid = ""
+            pattern = 'ra/'
+        metaid = ''
         id_list = list(filter(None, id_list))
         how_many_meta = [i for i in id_list if i.lower().startswith('meta')]
         if len(how_many_meta) > 1:
             for pos, elem in enumerate(list(id_list)):
-                if "meta" in elem.lower():
-                    id_list[pos] = ""
+                if 'meta' in elem.lower():
+                    id_list[pos] = ''
         else:
             for pos, elem in enumerate(list(id_list)):
                 elem = Cleaner(elem).normalize_hyphens()
-                identifier = elem.split(":", 1)
+                identifier = elem.split(':', 1)
                 schema = identifier[0].lower()
                 value = identifier[1]
-                if schema == "meta":
-                    if "meta:" + pattern in elem.lower():
-                        metaid = value.replace(pattern, "")
-                    id_list[pos] = ""
+                if schema == 'meta':
+                    if 'meta:' + pattern in elem.lower():
+                        metaid = value.replace(pattern, '')
+                    id_list[pos] = ''
                 else:
-                    newid = schema + ":" + value
+                    newid = schema + ':' + value
                     id_list[pos] = newid
         id_list = list(filter(None, id_list))
         return id_list, metaid
