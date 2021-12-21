@@ -7,12 +7,12 @@ from tqdm import tqdm
 
 
 class Index_orcid_doi:
-
+    
     def __init__(self, csv_path:str, threshold:int=10000, verbose:bool=False):
         if not os.path.exists(os.path.dirname(csv_path)):
             os.makedirs(os.path.dirname(csv_path))
         self.file_counter = 0
-        self.threshold = int(threshold)
+        self.threshold = 10000 if not threshold else int(threshold)
         self.verbose = verbose
         if self.verbose:
             print("[INFO:CSVManager] Loading existing csv file")
@@ -74,11 +74,11 @@ class Index_orcid_doi:
             # Save file names where nothing was found, to skip them during the next run
             self.csvstorage.add_value('None', f'[{orcid}]')
 
+
 if __name__ == '__main__':
     arg_parser = ArgumentParser('index_orcid_doi.py', description='This script builds a csv index of DOIs associated'
                                                                   ' with ORCIDs, starting from XML files containing'
                                                                   ' ORCID data.')
-
     arg_parser.add_argument('-c', '--csv', dest='csv_path', required=True,
                             help='The output CSV file path.')
     arg_parser.add_argument('-s', '--summaries', dest='summaries_path', required=True,
@@ -87,9 +87,6 @@ if __name__ == '__main__':
                             help='Number of files to save after.')
     arg_parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', required=False,
                             help='Show a loading bar, elapsed time and estimated time.')
-
     args = arg_parser.parse_args()
-
     iOd = Index_orcid_doi(csv_path = args.csv_path, threshold=args.threshold, verbose=args.verbose)
-
     iOd.explorer(summaries_path=args.summaries_path)

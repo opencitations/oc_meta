@@ -18,16 +18,10 @@ class crossrefProcessing:
             self.doi_set = None
         self.orcid_index = CSVManager(orcid_index)
 
-    def csv_creator(self, raw_data_path:str) -> list:
+    def csv_creator(self, data:dict) -> list:
+        data = data['items']
         output = list()
-        if raw_data_path.endswith('.json'):
-            with open(raw_data_path, 'r', encoding='utf-8') as json_file:
-                raw_data = json.load(json_file)['items']
-        elif raw_data_path.endswith('.json.gz'):
-            with gzip.open(raw_data_path, 'r') as gzip_file:
-                data = gzip_file.read()
-                raw_data = json.loads(data.decode('utf-8'))['items']
-        for x in raw_data:
+        for x in data:
             if not 'DOI' in x:
                 continue
             if isinstance(x['DOI'], list):

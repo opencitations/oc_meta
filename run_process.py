@@ -16,6 +16,7 @@ from tqdm import tqdm
 
 def process(crossref_csv_dir:str, csv_dir:str, index_dir:str, auxiliary_path:str, source=None, verbose:bool=False) -> None:
     if not os.path.exists(auxiliary_path):
+        pathoo(auxiliary_path)
         open(auxiliary_path, 'wt', encoding='utf-8')
         completed = set()
     else:
@@ -23,11 +24,9 @@ def process(crossref_csv_dir:str, csv_dir:str, index_dir:str, auxiliary_path:str
             completed = {line.rstrip('\n') for line in aux_file}
     if verbose:
         pbar = tqdm(total=len(os.listdir(crossref_csv_dir)))
-    pathoo(csv_dir)
-    pathoo(index_dir)
-    pathoo(base_dir)
     prov_dir = os.path.join(base_dir, 'prov' + os.sep)
-    pathoo(prov_dir)
+    for dir in [csv_dir, index_dir, base_dir, prov_dir]:
+        pathoo(dir)
     for filename in os.listdir(crossref_csv_dir):
         if filename.endswith(".csv") and filename not in completed:
             filepath = os.path.join(crossref_csv_dir, filename)
@@ -75,7 +74,7 @@ def process(crossref_csv_dir:str, csv_dir:str, index_dir:str, auxiliary_path:str
             with open(auxiliary_path, "a", encoding='utf-8') as aux_file:
                 aux_file.write(filename + "\n")
         if verbose:
-            pbar.update(1)
+            pbar.update()
     if verbose:
         pbar.close()
 

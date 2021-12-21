@@ -1,31 +1,34 @@
 from meta.crossref.crossrefProcessing import *
+from meta.lib.jsonmanager import *
 import os
 import csv
 from argparse import ArgumentParser
 from tqdm import tqdm
 
-def preprocess(crossref_json_dir, orcid_doi_filepath:str, csv_dir:str, wanted_doi_filepath:str=None, verbose:bool=False) -> None:
+def preprocess(crossref_json_dir:str, orcid_doi_filepath:str, csv_dir:str, wanted_doi_filepath:str=None, verbose:bool=False) -> None:
     if verbose:
         log = 'Processing DOI-ORCID index'
         if wanted_doi_filepath:
             log += ' and wanted DOIs CSV'
         print(log)
     crossref_csv = crossrefProcessing(orcid_doi_filepath, wanted_doi_filepath)
+    print(1)
+    all_files, targz_fd = get_all_files(crossref_json_dir)
+    print(2)
     if verbose:
-        pbar = tqdm(total=len(os.listdir(crossref_json_dir)))
-    for filename in os.listdir(crossref_json_dir):
-        if filename.endswith('.json') or filename.endswith('.json.gz'):
-            json_file = os.path.join(crossref_json_dir, filename)
-            new_filename = filename.replace('.gz', '').replace('.json', '.csv')
-            filepath = os.path.join(csv_dir, new_filename)
-            pathoo(filepath)
-            data = crossref_csv.csv_creator(json_file)
-            if data:
-                with open(filepath, 'w', newline='', encoding='utf-8') as output_file:
-                    dict_writer = csv.DictWriter(output_file, data[0].keys(), delimiter=',', quotechar='"',
-                                                quoting=csv.QUOTE_NONNUMERIC)
-                    dict_writer.writeheader()
-                    dict_writer.writerows(data)
+        pbar = tqdm(total=len(all_files))
+    for idx, file in enumerate(all_files):
+        data = load_json(file, targz_fd)
+        new_filename = f'{idx}.csv'
+        filepath = os.path.join(csv_dir, new_filename)
+        pathoo(filepath)
+        data = crossref_csv.csv_creator(data)
+        if data:
+            with open(filepath, 'w', newline='', encoding='utf-8') as output_file:
+                dict_writer = csv.DictWriter(output_file, data[0].keys(), delimiter=',', quotechar='"',
+                                            quoting=csv.QUOTE_NONNUMERIC)
+                dict_writer.writeheader()
+                dict_writer.writerows(data)
         if verbose:
             pbar.update(1)
     if verbose:

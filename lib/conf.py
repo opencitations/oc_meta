@@ -15,11 +15,11 @@
 # SOFTWARE.
 
 # Official configuration
-base_dir = 'D:/meta_output'
+base_dir = 'D:\\meta_output'
 base_iri = 'https://w3id.org/oc/meta/'
 triplestore_url = 'http://localhost:9999/blazegraph/sparql'
 context_path = 'https://w3id.org/oc/corpus/context.json'
-info_dir = f'{base_dir}/counter/id-counter'
+info_dir = f'{base_dir}\\counter\\id-counter'
 dir_split_number = 10000  # This must be multiple of the following one
 items_per_file = 1000
 default_dir = '_'

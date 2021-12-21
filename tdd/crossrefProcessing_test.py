@@ -1,22 +1,24 @@
 import unittest, os, csv, shutil
 from crossref.crossrefProcessing import crossrefProcessing
+from meta.lib.jsonmanager import *
 from run_preprocess import preprocess
 from pprint import pprint
 
-BASE = 'meta/tdd/crossrefProcessing'
-IOD = f'{BASE}/iod'
+BASE = 'meta\\tdd\\crossrefProcessing'
+IOD = f'{BASE}\\iod'
 WANTED_DOIS = BASE
-DATA = f'{BASE}/40228.json'
+DATA = f'{BASE}\\40228.json'
 DATA_DIR = BASE
-OUTPUT = f'{BASE}/meta_input'
-MULTIPROCESS_OUTPUT = f'{BASE}/multi_process_test'
-GZIP_INPUT = f'{BASE}/gzip_test'
+OUTPUT = f'{BASE}\\meta_input'
+MULTIPROCESS_OUTPUT = f'{BASE}\\multi_process_test'
+GZIP_INPUT = f'{BASE}\\gzip_test'
 
 class TestCrossrefProcessing(unittest.TestCase):
 
     def test_csv_creator(self):
         crossref_processor = crossrefProcessing(IOD, WANTED_DOIS)
-        csv_created = crossref_processor.csv_creator(DATA)
+        data = load_json(DATA, None)
+        csv_created = crossref_processor.csv_creator(data)
         expected_output = [
             {'id': 'doi:10.9799/ksfan.2012.25.1.069', 'title': 'Nonthermal Sterilization and Shelf-life Extension of Seafood Products by Intense Pulsed Light Treatment', 'author': 'Cheigh, Chan-Ick; Mun, Ji-Hye; Chung, Myong-Soo', 'pub_date': '2012-3-31', 'venue': 'The Korean Journal of Food And Nutrition [issn:1225-4339]', 'volume': '25', 'issue': '1', 'page': '69-76', 'type': 'journal article', 'publisher': 'The Korean Society of Food and Nutrition [crossref:4768]', 'editor': ''}, 
             {'id': 'doi:10.9799/ksfan.2012.25.1.105', 'title': 'A Study on Dietary Habit and Eating Snack Behaviors of Middle School Students with Different Obesity Indexes in Chungnam Area', 'author': 'Kim, Myung-Hee; Seo, Jin-Seon; Choi, Mi-Kyeong [orcid:0000-0002-6227-4053]; Kim, Eun-Young', 'pub_date': '2012-3-31', 'venue': 'The Korean Journal of Food And Nutrition [issn:1225-4339]', 'volume': '25', 'issue': '1', 'page': '105-115', 'type': 'journal article', 'publisher': 'The Korean Society of Food and Nutrition [crossref:4768]', 'editor': ''}, 
@@ -118,7 +120,16 @@ class TestCrossrefProcessing(unittest.TestCase):
                 {'id': 'doi:10.1001/archderm.108.4.583b', 'title': 'Letter: Bleaching of hair after use of benzoyl peroxide acne lotions', 'author': 'Bleiberg, J.', 'pub_date': '1973-10-1', 'venue': 'Archives of Dermatology [issn:0003-987X]', 'volume': '108', 'issue': '4', 'page': '583b-583', 'type': 'journal article', 'publisher': 'American Medical Association (AMA) [crossref:10]', 'editor': ''}
             ]
         ]
-        self.assertEqual(output, expected_output)        
+        self.assertEqual(output, expected_output)
+
+    def test_tar_gz_file(self):
+        tar_gz_file_path = f'{BASE}/tar_gz_test/40228.tar.gz'
+        result, targz_fd = get_all_files(tar_gz_file_path)
+        for file in result:
+            data = load_json(file, targz_fd)
+            output = data['items'][0]['DOI']
+        expected_output = '10.9799/ksfan.2012.25.1.069'
+        self.assertEqual(output, expected_output)
 
 if __name__ == '__main__':
     unittest.main()
