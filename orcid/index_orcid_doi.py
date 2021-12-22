@@ -1,4 +1,4 @@
-import os, json
+import os
 from bs4 import BeautifulSoup
 from meta.lib.csvmanager import CSVManager
 from meta.lib.id_manager.doimanager import DOIManager
@@ -8,16 +8,14 @@ from tqdm import tqdm
 
 class Index_orcid_doi:
     
-    def __init__(self, csv_path:str, threshold:int=10000, verbose:bool=False):
-        if not os.path.exists(os.path.dirname(csv_path)):
-            os.makedirs(os.path.dirname(csv_path))
+    def __init__(self, output_path:str, threshold:int=10000, low_memory:bool=False, verbose:bool=False):
         self.file_counter = 0
         self.threshold = 10000 if not threshold else int(threshold)
         self.verbose = verbose
         if self.verbose:
             print("[INFO:CSVManager] Loading existing csv file")
         self.doimanager = DOIManager(use_api_service=False)
-        self.csvstorage = CSVManager(csv_path)
+        self.csvstorage = CSVManager(output_path=output_path, line_threshold=threshold, low_memory=low_memory)
         # ORCIDs are extracted to skip the corresponding files at the first reading of an existing CSV.
         self.cache = self.cache = set(el.split("[")[1][:-1].strip() for _,v in self.csvstorage.data.items() for el in v)
     
@@ -79,14 +77,16 @@ if __name__ == '__main__':
     arg_parser = ArgumentParser('index_orcid_doi.py', description='This script builds a csv index of DOIs associated'
                                                                   ' with ORCIDs, starting from XML files containing'
                                                                   ' ORCID data.')
-    arg_parser.add_argument('-c', '--csv', dest='csv_path', required=True,
+    arg_parser.add_argument('-o', '--output', dest='output_path', required=True,
                             help='The output CSV file path.')
     arg_parser.add_argument('-s', '--summaries', dest='summaries_path', required=True,
                             help='The folder path containing orcid summaries, subfolder will be considered too.')
     arg_parser.add_argument('-t', '--threshold', dest='threshold', required=False,
                             help='Number of files to save after.')
+    arg_parser.add_argument('-lm', '--low-memory', dest='low_memory', required=False, action='store_true',
+                            help='Specify this argument if the available RAM is insufficient to accomplish the task. Warning: the processing time will increase.')
     arg_parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', required=False,
                             help='Show a loading bar, elapsed time and estimated time.')
     args = arg_parser.parse_args()
-    iOd = Index_orcid_doi(csv_path = args.csv_path, threshold=args.threshold, verbose=args.verbose)
+    iOd = Index_orcid_doi(output_path = args.output_path, threshold=args.threshold, verbose=args.verbose)
     iOd.explorer(summaries_path=args.summaries_path)
