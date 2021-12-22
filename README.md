@@ -26,6 +26,7 @@ Where:
 - -c --csv: a directory where the output CSV files will be store, that is, the ORCID-DOI index.
 - -s --summaries: ORCID summaries dump path, subfolder will be considered too.
 - -t --threshold: threshold after which to update the output, not mandatory. A new file will be generated each time.
+- -lm --low-memory: specify this argument if the available RAM is insufficient to accomplish the task. Warning: the processing time will increase.
 - -v --verbose: show a loading bar, elapsed time and estimated time, not mandatory.
 
 Pre-prochessing function generates raw CSV files using JSON files from Crosseref data dump (e.g. [Crossref Works Dump - August 2019](https://figshare.com/articles/Crossref_Works_Dump_-_August_2019/9751865)), enriching them with ORCID IDs from ORCID-DOI Index generated in previous step.
