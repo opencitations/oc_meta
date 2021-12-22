@@ -1,4 +1,4 @@
-from plugins.orcid.index_orcid_doi import Index_orcid_doi
+from meta.plugins.orcid.index_orcid_doi import Index_orcid_doi
 from argparse import ArgumentParser
 
 

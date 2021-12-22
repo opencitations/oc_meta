@@ -1,5 +1,5 @@
 from argparse import ArgumentParser
-from plugins.coci.get_dois_from_coci import get_dois_from_coci
+from meta.plugins.coci.get_dois_from_coci import get_dois_from_coci
 
 
 if __name__ == '__main__':
