@@ -4,9 +4,9 @@ OpenCitations Meta will contain bibliographic metadata associated with the docum
 
 An example of a raw CSV input file can be found in [`example.csv`](https://github.com/opencitations/meta/blob/master/example.csv).
 
-The software is launched through the [`run_process.py`](https://github.com/opencitations/meta/blob/master/run_process.py) file via the prompt command:
+The software is launched through the [`meta_process.py`](https://github.com/opencitations/meta/blob/master/run/meta_process.py) file via the prompt command:
 ```console
-    python -m meta.run_process -c <PATH> -v <PATH> -i <PATH> -a <PATH> -s <PATH> -v
+    python -m meta.run.meta_process -c <PATH> -v <PATH> -i <PATH> -a <PATH> -s <PATH> -v
 ```
 Where:
 - -c --crossref : directory where raw CSV files are stored.
@@ -16,11 +16,11 @@ Where:
 - -s --src: data source URL, not mandatory.
 - -v --verbose: show a loading bar, elapsed time and estimated time, not mandatory.
 
-So far, preprocessing functions dedicated to the management of data coming from [Crossref](https://www.crossref.org/) have also been implemented. As preprocessing these functions must be performed before running [`run_process.py`](https://github.com/opencitations/meta/blob/master/run_process.py). In particular this pre-processing is dedicated to the bibliographical metadata of the publications involved in the citations stored in [COCI](http://opencitations.net/index/coci), the OpenCitations Index of Crossref open DOI-to-DOI citations.
+So far, preprocessing functions dedicated to the management of data coming from [Crossref](https://www.crossref.org/) have also been implemented. As preprocessing these functions must be performed before running [`crossref_process.py`](https://github.com/opencitations/meta/blob/master/run/crossref_process.py). In particular this pre-processing is dedicated to the bibliographical metadata of the publications involved in the citations stored in [COCI](http://opencitations.net/index/coci), the OpenCitations Index of Crossref open DOI-to-DOI citations.
 
-The preliminary step, [`index_orcid_doi.py`](https://github.com/opencitations/meta/blob/master/orcid/index_orcid_doi.py), inside [`orcid`](https://github.com/opencitations/meta/blob/master/orcid) package, generates an index between the author's ORCID and publication's in CSV format using Orcid Summaries Dump (e.g. [ORCID_2019_summaries](https://orcid.figshare.com/articles/ORCID_Public_Data_File_2019/9988322)):
+The preliminary step, [`orcid_process.py`](https://github.com/opencitations/meta/blob/master/run/orcid_process.py), generates an index between the author's ORCID and publication's in CSV format using Orcid Summaries Dump (e.g. [ORCID_2019_summaries](https://orcid.figshare.com/articles/ORCID_Public_Data_File_2019/9988322)):
 ```console
-    python -m meta.orcid.index_orcid_doi -s <PATH> -out <PATH> -t <INTEGER> -lm -v
+    python -m meta.run.orcid_process -s <PATH> -out <PATH> -t <INTEGER> -lm -v
 ```
 Where:
 - -s --summaries: ORCID summaries dump path, subfolder will be considered too.
@@ -30,9 +30,9 @@ Where:
 - -v --verbose: show a loading bar, elapsed time and estimated time, not mandatory.
 
 Pre-prochessing function generates raw CSV files using JSON files from Crosseref data dump (e.g. [Crossref Works Dump - August 2019](https://figshare.com/articles/Crossref_Works_Dump_-_August_2019/9751865)), enriching them with ORCID IDs from ORCID-DOI Index generated in previous step.
-This function is launched through the [`run_preprocess.py`](https://github.com/opencitations/meta/blob/master/run_preprocess.py) file via the prompt command:
+This function is launched through the [`crossref_process.py`](https://github.com/opencitations/meta/blob/master/run/crossref_process.py) file via the prompt command:
 ```console
-    python -m meta.run_preprocess -c <PATH> -o <PATH> -out <PATH> -w <PATH> -v
+    python -m meta.run.crossref_process -c <PATH> -o <PATH> -out <PATH> -w <PATH> -v
 ```
 Where:
 - -c --crossref: Crossref JSON files directory (input files).
@@ -45,9 +45,9 @@ Where:
 
 ### Get DOIs from COCI's dump
 
-You can get a CSV file containing all the DOIs from the [COCI's dump](https://opencitations.net/download). This CSV file can be passed as an input to the `-wanted` argument of [`run_preprocess.py`](https://github.com/opencitations/meta/blob/master/run_preprocess.py). You can obtain this file by using the [`get_dois_from_coci.py`](https://github.com/opencitations/meta/blob/master/coci/get_dois_from_coci.py) script, in the following way:
+You can get a CSV file containing all the DOIs from the [COCI's dump](https://opencitations.net/download). This CSV file can be passed as an input to the `-wanted` argument of [`crossref_process.py`](https://github.com/opencitations/meta/blob/master/run/crossref_process.py). You can obtain this file by using the [`coci_process.py`](https://github.com/opencitations/meta/blob/master/run/coci_process.py) script, in the following way:
 ```console
-    python -m meta.coci.get_dois_from_coci -c <PATH> -out <PATH> -v
+    python -m meta.run.coci.coci_process -c <PATH> -out <PATH> -v
 ```
 Where:
 - -c --coci: COCI's dump path.
