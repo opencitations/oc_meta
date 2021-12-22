@@ -1,5 +1,5 @@
 import unittest, os, shutil
-from meta.orcid.index_orcid_doi import Index_orcid_doi
+from meta.plugins.orcid.index_orcid_doi import Index_orcid_doi
 from csv import DictReader, DictWriter
 from pprint import pprint
 

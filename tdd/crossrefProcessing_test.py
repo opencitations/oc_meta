@@ -1,7 +1,7 @@
 import unittest, os, csv, shutil
-from crossref.crossrefProcessing import crossrefProcessing
+from plugins.crossref.crossrefProcessing import crossrefProcessing
 from meta.lib.jsonmanager import *
-from run_preprocess import preprocess
+from run.crossref_process import preprocess
 from pprint import pprint
 
 BASE = 'meta\\tdd\\crossrefProcessing'

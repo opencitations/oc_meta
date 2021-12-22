@@ -1,4 +1,4 @@
-from meta.crossref.crossrefProcessing import *
+from meta.plugins.crossref.crossrefProcessing import *
 from meta.lib.jsonmanager import *
 import os
 import csv

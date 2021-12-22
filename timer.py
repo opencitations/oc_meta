@@ -1,5 +1,5 @@
 import timeit
-from meta.run_process import process
+from run.meta_process import process
 from pymantic import sparql
 import shutil
 import os

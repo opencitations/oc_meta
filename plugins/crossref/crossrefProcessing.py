@@ -1,6 +1,4 @@
-import json
 import html
-import gzip
 from bs4 import BeautifulSoup
 from meta.lib.id_manager.orcidmanager import ORCIDManager
 from meta.lib.csvmanager import CSVManager

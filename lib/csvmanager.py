@@ -35,7 +35,7 @@ class CSVManager(object):
         if output_path is not None:
             self.existing_files = self.__get_existing_files()
             if low_memory:
-                self.__load_all_csv_files(fun=self.__low_memory_load, line_threshold=line_threshold)
+                self.__load_all_csv_files(self.existing_files, fun=self.__low_memory_load, line_threshold=line_threshold)
             else:
                 self.__load_csv()
     
@@ -74,10 +74,11 @@ class CSVManager(object):
             result.add(row[key])
         return result
 
-    def __load_all_csv_files(self, fun, line_threshold, **params):
+    @staticmethod
+    def __load_all_csv_files(file_to_process, fun, line_threshold, **params):
         result = []
         header = None
-        for csv_path in self.existing_files:
+        for csv_path in file_to_process:
             with open(csv_path, encoding='utf-8') as f:
                 csv_content = ''
                 for idx, line in enumerate(f.readlines()):
