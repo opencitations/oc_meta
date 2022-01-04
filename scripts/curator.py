@@ -13,7 +13,7 @@ from meta.scripts.cleaner import Cleaner
 
 class Curator:
 
-    def __init__(self, data:List[dict], ts:str, info_dir:str, prefix:str="060", separator:str=None):
+    def __init__(self, data:List[dict], ts:str, info_dir:str, prefix:str='060', separator:str=None):
 
         self.finder = ResourceFinder(ts)
         self.separator = separator
@@ -21,11 +21,11 @@ class Curator:
         self.prefix = prefix
 
         # Counter local paths
-        self.br_info_path = info_dir + "br.txt"
-        self.id_info_path = info_dir + "id.txt"
-        self.ra_info_path = info_dir + "ra.txt"
-        self.ar_info_path = info_dir + "ar.txt"
-        self.re_info_path = info_dir + "re.txt"
+        self.br_info_path = info_dir + 'br.txt'
+        self.id_info_path = info_dir + 'id.txt'
+        self.ra_info_path = info_dir + 'ra.txt'
+        self.ar_info_path = info_dir + 'ar.txt'
+        self.re_info_path = info_dir + 're.txt'
         
         self.brdict = {}
         self.radict = {}
@@ -52,16 +52,16 @@ class Curator:
     def curator(self, filename:str=None, path_csv:str=None, path_index:str=None):
         for row in self.data:
             self.log[self.rowcnt] = {
-                "id": {},
-                "author": {},
-                "venue": {},
-                "editor": {},
-                "publisher": {},
-                "page": {},
-                "volume": {},
-                "issue": {},
-                "pub_date": {},
-                "type": {}
+                'id': {},
+                'author': {},
+                'venue': {},
+                'editor': {},
+                'publisher': {},
+                'page': {},
+                'volume': {},
+                'issue': {},
+                'pub_date': {},
+                'type': {}
             }
             self.clean_id(row)
             self.rowcnt += 1
@@ -79,9 +79,9 @@ class Curator:
         self.rowcnt = 0
 
         for row in self.data:
-            self.clean_ra(row, "author")
-            self.clean_ra(row, "publisher")
-            self.clean_ra(row, "editor")
+            self.clean_ra(row, 'author')
+            self.clean_ra(row, 'publisher')
+            self.clean_ra(row, 'editor')
             self.rowcnt += 1
 
         self.brdict.update(self.conflict_br)
@@ -111,12 +111,12 @@ class Curator:
                 idslist = re.sub(r'\s*:\s*', ':', row['id']).split(self.separator)
             else:
                 idslist = re.split(r'\s+', re.sub(r'\s*:\s*', ':', row['id']))
-            metaval = self.id_worker("id", name, idslist, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
+            metaval = self.id_worker('id', name, idslist, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
         else:
             metaval = self.new_entity(self.brdict, name)
 
         row['id'] = metaval
-        if "wannabe" not in metaval:
+        if 'wannabe' not in metaval:
             self.equalizer(row, metaval)
 
         # page
@@ -130,43 +130,43 @@ class Curator:
 
         # type
         if row['type']:
-            entity_type = " ".join((row['type'].strip().lower()).split()).replace("\0", "")
-            if entity_type == "edited book" or entity_type == "monograph":
-                entity_type = "book"
-            elif entity_type == "report series" or entity_type == "standard series":
-                entity_type = "series"
-            if entity_type in {"archival document", "book", "book chapter", "book part", "book section", "book series",
-                               "book set", "data file", "dissertation", "journal", "journal article", "journal issue",
-                               "journal volume", "proceedings article", "proceedings", "reference book",
-                               "reference entry", "series", "report", "standard"}:
+            entity_type = ' '.join((row['type'].strip().lower()).split()).replace('\0', '')
+            if entity_type == 'edited book' or entity_type == 'monograph':
+                entity_type = 'book'
+            elif entity_type == 'report series' or entity_type == 'standard series':
+                entity_type = 'series'
+            if entity_type in {'archival document', 'book', 'book chapter', 'book part', 'book section', 'book series',
+                               'book set', 'data file', 'dissertation', 'journal', 'journal article', 'journal issue',
+                               'journal volume', 'proceedings article', 'proceedings', 'reference book',
+                               'reference entry', 'series', 'report', 'standard'}:
                 row['type'] = entity_type
             else:
-                row['type'] = ""
+                row['type'] = ''
 
     # VVI
     def clean_vvi(self, row:Dict[str, str]):
         vol_meta = None
-        if row["venue"]:
-            venue_id = re.search(r'\[\s*(.*?)\s*]', row["venue"])
+        if row['venue']:
+            venue_id = re.search(r'\[\s*(.*?)\s*]', row['venue'])
             if venue_id:
-                name = Cleaner(re.search(r'(.*?)\s*\[.*?]', row["venue"]).group(1)).clean_title()
+                name = Cleaner(re.search(r'(.*?)\s*\[.*?]', row['venue']).group(1)).clean_title()
                 venue_id = venue_id.group(1)
                 if self.separator:
                     idslist = re.sub(r'\s*:\s*', ':', venue_id).split(self.separator)
                 else:
                     idslist = re.split(r'\s+', re.sub(r'\s*:\s*', ':', venue_id))
-                metaval = self.id_worker("venue", name, idslist, ra_ent=False, br_ent=True, vvi_ent=True,
+                metaval = self.id_worker('venue', name, idslist, ra_ent=False, br_ent=True, vvi_ent=True,
                                          publ_entity=False)
 
                 if metaval not in self.vvi:
                     ts_vvi = None
-                    if "wannabe" not in metaval:
+                    if 'wannabe' not in metaval:
                         ts_vvi = self.finder.retrieve_venue_from_meta(metaval)
 
-                    if "wannabe" in metaval or not ts_vvi:
+                    if 'wannabe' in metaval or not ts_vvi:
                         self.vvi[metaval] = dict()
-                        self.vvi[metaval]["volume"] = dict()
-                        self.vvi[metaval]["issue"] = dict()
+                        self.vvi[metaval]['volume'] = dict()
+                        self.vvi[metaval]['issue'] = dict()
                     elif ts_vvi:
                         self.vvi[metaval] = ts_vvi
 
@@ -174,60 +174,60 @@ class Curator:
                 name = Cleaner(row['venue']).clean_title()
                 metaval = self.new_entity(self.brdict, name)
                 self.vvi[metaval] = dict()
-                self.vvi[metaval]["volume"] = dict()
-                self.vvi[metaval]["issue"] = dict()
+                self.vvi[metaval]['volume'] = dict()
+                self.vvi[metaval]['issue'] = dict()
 
-            row["venue"] = metaval
+            row['venue'] = metaval
 
         # VOLUME
-            if row["volume"] and (row["type"] == "journal issue" or row["type"] == "journal article"):
-                vol = row["volume"].strip().replace("\0", "")
-                row["volume"] = vol
-                if vol in self.vvi[metaval]["volume"]:
-                    vol_meta = self.vvi[metaval]["volume"][vol]["id"]
+            if row['volume'] and (row['type'] == 'journal issue' or row['type'] == 'journal article'):
+                vol = row['volume'].strip().replace('\0', '')
+                row['volume'] = vol
+                if vol in self.vvi[metaval]['volume']:
+                    vol_meta = self.vvi[metaval]['volume'][vol]['id']
                 else:
-                    vol_meta = self.new_entity(self.brdict, "")
-                    self.vvi[metaval]["volume"][vol] = dict()
-                    self.vvi[metaval]["volume"][vol]["id"] = vol_meta
-                    self.vvi[metaval]["volume"][vol]["issue"] = dict()
+                    vol_meta = self.new_entity(self.brdict, '')
+                    self.vvi[metaval]['volume'][vol] = dict()
+                    self.vvi[metaval]['volume'][vol]['id'] = vol_meta
+                    self.vvi[metaval]['volume'][vol]['issue'] = dict()
 
-            elif row['volume'] and row["type"] == "journal volume":
-                vol = row["volume"].strip().replace("\0", "")
-                row["volume"] = ""
-                row["issue"] = ""
-                vol_meta = row["id"]
-                self.volume_issue(vol_meta, self.vvi[metaval]["volume"], vol, row)
+            elif row['volume'] and row['type'] == 'journal volume':
+                vol = row['volume'].strip().replace('\0', '')
+                row['volume'] = ''
+                row['issue'] = ''
+                vol_meta = row['id']
+                self.volume_issue(vol_meta, self.vvi[metaval]['volume'], vol, row)
 
             # ISSUE
-            if row["issue"] and row["type"] == "journal article":
-                issue = row["issue"].strip().replace("\0", "")
-                row["issue"] = issue
+            if row['issue'] and row['type'] == 'journal article':
+                issue = row['issue'].strip().replace('\0', '')
+                row['issue'] = issue
                 if vol_meta:
                     # issue inside vol
-                    if issue not in self.vvi[metaval]["volume"][vol]["issue"]:
-                        issue_meta = self.new_entity(self.brdict, "")
-                        self.vvi[metaval]["volume"][vol]["issue"][issue] = dict()
-                        self.vvi[metaval]["volume"][vol]["issue"][issue]['id'] = issue_meta
+                    if issue not in self.vvi[metaval]['volume'][vol]['issue']:
+                        issue_meta = self.new_entity(self.brdict, '')
+                        self.vvi[metaval]['volume'][vol]['issue'][issue] = dict()
+                        self.vvi[metaval]['volume'][vol]['issue'][issue]['id'] = issue_meta
 
                 else:
                     # issue inside venue (without volume)
-                    if issue not in self.vvi[metaval]["issue"]:
-                        issue_meta = self.new_entity(self.brdict, "")
-                        self.vvi[metaval]["issue"][issue] = dict()
-                        self.vvi[metaval]["issue"][issue]['id'] = issue_meta
+                    if issue not in self.vvi[metaval]['issue']:
+                        issue_meta = self.new_entity(self.brdict, '')
+                        self.vvi[metaval]['issue'][issue] = dict()
+                        self.vvi[metaval]['issue'][issue]['id'] = issue_meta
 
-            elif row["issue"] and row["type"] == "journal issue":
-                issue = row["issue"].strip().replace("\0", "")
-                row["issue"] = ""
-                issue_meta = row["id"]
+            elif row['issue'] and row['type'] == 'journal issue':
+                issue = row['issue'].strip().replace('\0', '')
+                row['issue'] = ''
+                issue_meta = row['id']
                 if vol_meta:
-                    self.volume_issue(issue_meta, self.vvi[metaval]["volume"][vol]["issue"], issue, row)
+                    self.volume_issue(issue_meta, self.vvi[metaval]['volume'][vol]['issue'], issue, row)
                 else:
-                    self.volume_issue(issue_meta, self.vvi[metaval]["issue"], issue, row)
+                    self.volume_issue(issue_meta, self.vvi[metaval]['issue'], issue, row)
         else:
-            row["venue"] = ""
-            row["volume"] = ""
-            row["issue"] = ""
+            row['venue'] = ''
+            row['volume'] = ''
+            row['issue'] = ''
 
     # RA
     def clean_ra(self, row, col_name):
@@ -370,33 +370,30 @@ class Curator:
             sequence.extend(new_sequence)
             self.ardict[br_metaval][col_name] = sequence
 
-    def find_update_other_ID(self, list2match, metaval, dict2match, temporary_name):
-        found_others = self.local_match(list2match, dict2match)
-        if found_others["wannabe"]:
-            for obj in found_others["wannabe"]:
-                self.update(dict2match, metaval, obj, temporary_name)
+    def __find_update_other_ID(self, list_to_match, metaval, dict_to_match, temporary_name):
+        found_others = self.__local_match(list_to_match, dict_to_match)
+        if found_others['wannabe']:
+            for old_meta in found_others['wannabe']:
+                self.update(dict_to_match, metaval, old_meta, temporary_name)
 
     @staticmethod
-    def update(dict2match, metaval, old_meta, temporary_name):
-        for x in dict2match[old_meta]["ids"]:
-            if x not in dict2match[metaval]["ids"]:
-                dict2match[metaval]["ids"].append(x)
-
-        for x in dict2match[old_meta]["others"]:
-            if x not in dict2match[metaval]["others"]:
-                dict2match[metaval]["others"].append(x)
-
-        dict2match[metaval]["others"].append(old_meta)
-
-        if not dict2match[metaval]["title"]:
-            if dict2match[old_meta]["title"]:
-                dict2match[metaval]["title"] = dict2match[old_meta]["title"]
+    def update(dict_to_match:Dict[str, Dict[str, list]], metaval:str, old_meta:str, temporary_name:str) -> None:
+        for x in dict_to_match[old_meta]['ids']:
+            if x not in dict_to_match[metaval]['ids']:
+                dict_to_match[metaval]['ids'].append(x)
+        for x in dict_to_match[old_meta]['others']:
+            if x not in dict_to_match[metaval]['others']:
+                dict_to_match[metaval]['others'].append(x)
+        dict_to_match[metaval]['others'].append(old_meta)
+        if not dict_to_match[metaval]['title']:
+            if dict_to_match[old_meta]['title']:
+                dict_to_match[metaval]['title'] = dict_to_match[old_meta]['title']
             else:
-                dict2match[metaval]["title"] = temporary_name
-        del dict2match[old_meta]
+                dict_to_match[metaval]['title'] = temporary_name
+        del dict_to_match[old_meta]
 
     @staticmethod
-    def clean_id_list(id_list:List[str], br:bool=True) -> Tuple[list, str]:
+    def clean_id_list(id_list:List[str], br:bool) -> Tuple[list, str]:
         '''
         Clean IDs in the input list and check if there is a MetaID.
 
@@ -434,22 +431,22 @@ class Curator:
         return id_list, metaid
 
     def conflict(self, idslist, name, id_dict, col_name):
-        if col_name == "id" or col_name == "venue":
+        if col_name == 'id' or col_name == 'venue':
             entity_dict = self.conflict_br
             metaval = self.new_entity(entity_dict, name)
-        elif col_name == "author" or col_name == "editor" or col_name == "publisher":
+        elif col_name == 'author' or col_name == 'editor' or col_name == 'publisher':
             entity_dict = self.conflict_ra
             metaval = self.new_entity(entity_dict, name)
         self.log[self.rowcnt][col_name]['Conflict Entity'] = metaval
         for identifier in idslist:
-            entity_dict[metaval]["ids"].append(identifier)
+            entity_dict[metaval]['ids'].append(identifier)
             if identifier not in id_dict:
-                ids = identifier.split(":")
+                ids = identifier.split(':')
                 found_m = self.finder.retrieve_metaid_from_id(ids[0], ids[1])
                 if found_m:
                     id_dict[identifier] = found_m
                 else:
-                    self._update_id_count(id_dict, identifier) # Raggruppato codice ripetuto in una funzione
+                    self.__update_id_count(id_dict, identifier) # Raggruppato codice ripetuto in una funzione
         return metaval
 
     def finder_sparql(self, list2find, br=True, ra=False, vvi=False, publ=False):
@@ -458,7 +455,7 @@ class Curator:
         res = None
         for elem in list2find:
             if len(match_elem) < 2:
-                identifier = elem.split(":")
+                identifier = elem.split(':')
                 value = identifier[1]
                 schema = identifier[0]
                 if br:
@@ -477,31 +474,31 @@ class Curator:
             sequence = self.armeta[br_key][col_name]
             ras_list = list()
             for x, y in sequence:
-                ra_name = self.rameta[y]["title"]
-                ra_ids = " ".join(self.rameta[y]["ids"])
-                ra = ra_name + " [" + ra_ids + "]"
+                ra_name = self.rameta[y]['title']
+                ra_ids = ' '.join(self.rameta[y]['ids'])
+                ra = ra_name + ' [' + ra_ids + ']'
                 ras_list.append(ra)
-            row[col_name] = "; ".join(ras_list)
+            row[col_name] = '; '.join(ras_list)
 
     @staticmethod
-    def local_match(list2match, dict2match:dict):
+    def __local_match(list_to_match, dict_to_match:dict):
         match_elem = dict()
-        match_elem["existing"] = list()
-        match_elem["wannabe"] = list()
-        for elem in list2match:
-            for k, va in dict2match.items():
-                if elem in va["ids"]:
-                    if "wannabe" in k:
-                        if k not in match_elem["wannabe"]:
-                            match_elem["wannabe"].append(k) # TODO: valutare uso di un set
+        match_elem['existing'] = list()
+        match_elem['wannabe'] = list()
+        for elem in list_to_match:
+            for k, va in dict_to_match.items():
+                if elem in va['ids']:
+                    if 'wannabe' in k:
+                        if k not in match_elem['wannabe']:
+                            match_elem['wannabe'].append(k) # TODO: valutare uso di un set
                     else:
-                        if k not in match_elem["existing"]:
-                            match_elem["existing"].append(k)
+                        if k not in match_elem['existing']:
+                            match_elem['existing'].append(k)
         return match_elem
 
     def meta_ar(self, newkey, oldkey, role):
         for x, k in self.ardict[oldkey][role]:
-            if "wannabe" in k:
+            if 'wannabe' in k:
                 for m in self.rameta:
                     if k in self.rameta[m]['others']:
                         new_v = m
@@ -512,96 +509,96 @@ class Curator:
 
     def meta_maker(self):
         for x in self.brdict:
-            if "wannabe" in x:
+            if 'wannabe' in x:
                 other = x
                 count = self._add_number(self.br_info_path)
                 meta = self.prefix + str(count)
                 self.brmeta[meta] = self.brdict[x]
-                self.brmeta[meta]["others"].append(other)
-                self.brmeta[meta]["ids"].append("meta:br/" + meta)
+                self.brmeta[meta]['others'].append(other)
+                self.brmeta[meta]['ids'].append('meta:br/' + meta)
             else:
                 self.brmeta[x] = self.brdict[x]
-                self.brmeta[x]["ids"].append("meta:br/" + x)
+                self.brmeta[x]['ids'].append('meta:br/' + x)
 
         for x in self.radict:
-            if "wannabe" in x:
+            if 'wannabe' in x:
                 other = x
                 count = self._add_number(self.ra_info_path)
                 meta = self.prefix + str(count)
                 self.rameta[meta] = self.radict[x]
-                self.rameta[meta]["others"].append(other)
-                self.rameta[meta]["ids"].append("meta:ra/" + meta)
+                self.rameta[meta]['others'].append(other)
+                self.rameta[meta]['ids'].append('meta:ra/' + meta)
 
             else:
                 self.rameta[x] = self.radict[x]
-                self.rameta[x]["ids"].append("meta:ra/" + x)
+                self.rameta[x]['ids'].append('meta:ra/' + x)
 
         for x in self.ardict:
-            if "wannabe" in x:
+            if 'wannabe' in x:
                 for w in self.brmeta:
-                    if x in self.brmeta[w]["others"]:
+                    if x in self.brmeta[w]['others']:
                         br_key = w
                         break
             else:
                 br_key = x
 
             self.armeta[br_key] = dict()
-            self.armeta[br_key]["author"] = list()
-            self.armeta[br_key]["editor"] = list()
-            self.armeta[br_key]["publisher"] = list()
+            self.armeta[br_key]['author'] = list()
+            self.armeta[br_key]['editor'] = list()
+            self.armeta[br_key]['publisher'] = list()
 
-            self.meta_ar(br_key, x, "author")
-            self.meta_ar(br_key, x, "editor")
-            self.meta_ar(br_key, x, "publisher")
+            self.meta_ar(br_key, x, 'author')
+            self.meta_ar(br_key, x, 'editor')
+            self.meta_ar(br_key, x, 'publisher')
 
     def enrich(self):
         for row in self.data:
-            if "wannabe" in row["id"]:
+            if 'wannabe' in row['id']:
                 for i in self.brmeta:
-                    if row["id"] in self.brmeta[i]["others"]:
+                    if row['id'] in self.brmeta[i]['others']:
                         k = i
             else:
-                k = row["id"]
+                k = row['id']
 
-            if row["page"] and (k not in self.remeta):
+            if row['page'] and (k not in self.remeta):
                 re_meta = self.finder.retrieve_re_from_br_meta(k)
                 if re_meta:
                     self.remeta[k] = re_meta
-                    row["page"] = re_meta[1]
+                    row['page'] = re_meta[1]
                 else:
                     count = self.prefix + str(self._add_number(self.re_info_path))
-                    page = row["page"].strip().replace("\0", "")
+                    page = row['page'].strip().replace('\0', '')
                     self.remeta[k] = (count, page)
-                    row["page"] = page
+                    row['page'] = page
             elif k in self.remeta:
-                row["page"] = self.remeta[k][1]
+                row['page'] = self.remeta[k][1]
 
-            self.ra_update(row, k, "author")
-            self.ra_update(row, k, "publisher")
-            self.ra_update(row, k, "editor")
-            row["id"] = " ".join(self.brmeta[k]["ids"])
-            row["title"] = self.brmeta[k]["title"]
+            self.ra_update(row, k, 'author')
+            self.ra_update(row, k, 'publisher')
+            self.ra_update(row, k, 'editor')
+            row['id'] = ' '.join(self.brmeta[k]['ids'])
+            row['title'] = self.brmeta[k]['title']
 
-            if row["venue"]:
-                venue = row["venue"]
-                if "wannabe" in venue:
+            if row['venue']:
+                venue = row['venue']
+                if 'wannabe' in venue:
                     for i in self.brmeta:
-                        if venue in self.brmeta[i]["others"]:
+                        if venue in self.brmeta[i]['others']:
                             ve = i
                 else:
                     ve = venue
-                row["venue"] = self.brmeta[ve]["title"] + " [" + " ".join(self.brmeta[ve]["ids"]) + "]"
+                row['venue'] = self.brmeta[ve]['title'] + ' [' + ' '.join(self.brmeta[ve]['ids']) + ']'
 
     @staticmethod
     def name_check(ts_name, name):
-        if "," in ts_name:
-            names = ts_name.split(",")
+        if ',' in ts_name:
+            names = ts_name.split(',')
             if names[0] and not names[1].strip():
                 # there isn't a given name in ts
-                if "," in name:
-                    gname = name.split(", ")[1]
+                if ',' in name:
+                    gname = name.split(', ')[1]
                     if gname.strip():
-                        ts_name = names[0] + ", " + gname
+                        ts_name = names[0] + ', ' + gname
         return ts_name
 
     @staticmethod
@@ -756,33 +753,39 @@ class Curator:
                 json.dump(self.VolIss, fp)
 
             if self.log:
-                log_file = os.path.join(path_index + "log.json")
+                log_file = os.path.join(path_index + 'log.json')
                 with open(log_file, 'w') as lf:
                     json.dump(self.log, lf)
 
             if self.data:
-                name = self.filename + ".csv"
+                name = self.filename + '.csv'
                 data_file = os.path.join(path_csv, name)
                 self.write_csv(data_file, self.data)
     
-    def _update_id_count(self, id_dict, identifier): # Raggruppato codice ripetuto in una funzione
+    def __update_id_count(self, id_dict, identifier):
         count = self._add_number(self.id_info_path)
         id_dict[identifier] = self.prefix + str(count)
+        
+    def merge_entities_in_csv(self, idslist:list, metaval:str, name:str, entity_dict:Dict[str, Dict[str, list]], id_dict:dict) -> None:
+        self.__find_update_other_ID(idslist, metaval, entity_dict, name)
+        for identifier in idslist:
+            if identifier not in entity_dict[metaval]['ids']:
+                entity_dict[metaval]['ids'].append(identifier)
+            if identifier not in id_dict:
+                self.__update_id_count(id_dict, identifier)
+        if not entity_dict[metaval]['title'] and name:
+            entity_dict[metaval]['title'] = name
     
-    def _update_ids_in_entity_dict(self, identifier:str, metaval:str, entity_dict:dict) -> None: # Raggruppato codice ripetuto in una funzione
-        if identifier not in entity_dict[metaval]["ids"]:
-            entity_dict[metaval]["ids"].append(identifier)
-    
-    def _update_title(self, entity_dict, metaval, name): # Raggruppato codice ripetuto in una funzione
-        if not entity_dict[metaval]["title"]:
-            entity_dict[metaval]["title"] = name
+    def _update_title(self, entity_dict, metaval, name):
+        if not entity_dict[metaval]['title']:
+            entity_dict[metaval]['title'] = name
 
     def id_worker(self, col_name, name, idslist:List[str], ra_ent=False, br_ent=False, vvi_ent=False, publ_entity=False):
 
         if not ra_ent:
             id_dict = self.idbr
             entity_dict = self.brdict
-            idslist, metaval = self.clean_id_list(idslist)
+            idslist, metaval = self.clean_id_list(idslist, br=True)
         else:
             id_dict = self.idra
             entity_dict = self.radict
@@ -793,13 +796,7 @@ class Curator:
             # MetaID exists among data?
             # meta already in entity_dict (no care about conflicts, we have a meta specified)
             if metaval in entity_dict:
-                self.find_update_other_ID(idslist, metaval, entity_dict, name)
-                for identifier in idslist:
-                    self._update_ids_in_entity_dict(identifier, metaval, entity_dict) # Raggruppato codice ripetuto in una funzione
-                    if identifier not in id_dict:
-                        self._update_id_count(id_dict, identifier) # Raggruppato codice ripetuto in una funzione
-                if not entity_dict[metaval]["title"] and name:
-                    entity_dict[metaval]["title"] = name
+                self.merge_entities_in_csv(idslist, metaval, name, entity_dict, id_dict)
             else:
                 found_meta_ts = None
                 if ra_ent:
@@ -811,29 +808,20 @@ class Curator:
                 # 2 Retrieve EntityA data in triplestore to update EntityA inside CSV
                 if found_meta_ts:
                     entity_dict[metaval] = dict()
-                    entity_dict[metaval]["ids"] = list()
-                    if col_name == "author" or col_name == "editor":
-                        entity_dict[metaval]["title"] = self.name_check(found_meta_ts[0], name)
+                    entity_dict[metaval]['ids'] = list()
+                    if col_name == 'author' or col_name == 'editor':
+                        entity_dict[metaval]['title'] = self.name_check(found_meta_ts[0], name)
                     else:
-                        entity_dict[metaval]["title"] = found_meta_ts[0]
-                    entity_dict[metaval]["others"] = list()
-
-                    self.find_update_other_ID(idslist, metaval, entity_dict, name)
-                    for identifier in idslist:
-                        self._update_ids_in_entity_dict(identifier, metaval, entity_dict) # Raggruppato codice ripetuto in una funzione
-                        if identifier not in id_dict:
-                            self._update_id_count(id_dict, identifier) # Raggruppato codice ripetuto in una funzione
+                        entity_dict[metaval]['title'] = found_meta_ts[0]
+                    entity_dict[metaval]['others'] = list()
+                    self.merge_entities_in_csv(idslist, metaval, name, entity_dict, id_dict)
                     existing_ids = found_meta_ts[1]
 
                     for identifier in existing_ids:
                         if identifier[1] not in id_dict:
                             id_dict[identifier[1]] = identifier[0]
-                        if identifier[1] not in entity_dict[metaval]["ids"]:
-                            entity_dict[metaval]["ids"].append(identifier[1])
-
-                    if not entity_dict[metaval]["title"] and name:
-                        entity_dict[metaval]["title"] = name
-
+                        if identifier[1] not in entity_dict[metaval]['ids']:
+                            entity_dict[metaval]['ids'].append(identifier[1])
                 # wrong meta
                 else:
                     metaval = None
@@ -841,21 +829,21 @@ class Curator:
         # there's no meta or there was one but it didn't exist
         # Are there other IDs?
         if idslist and not metaval:
-            local_match = self.local_match(idslist, entity_dict)
+            local_match = self.__local_match(idslist, entity_dict)
             # IDs already exist among data?
             # check in entity_dict
-            if local_match["existing"]:
+            if local_match['existing']:
                 # ids refer to multiple existing entities
-                if len(local_match["existing"]) > 1:
+                if len(local_match['existing']) > 1:
                     # !
                     return self.conflict(idslist, name, id_dict, col_name)
 
                 # ids refer to ONE existing entity
-                elif len(local_match["existing"]) == 1: # TODO: non è testato
-                    metaval = str(local_match["existing"][0])
+                elif len(local_match['existing']) == 1: # TODO: non è testato
+                    metaval = str(local_match['existing'][0])
                     suspect_ids = list()
                     for identifier in idslist:
-                        if identifier not in entity_dict[metaval]["ids"]:
+                        if identifier not in entity_dict[metaval]['ids']:
                             suspect_ids.append(identifier)
                     if suspect_ids:
                         sparql_match = self.finder_sparql(suspect_ids, br=br_ent, ra=ra_ent, vvi=vvi_ent,
@@ -865,34 +853,34 @@ class Curator:
                             return self.conflict(idslist, name, id_dict, col_name)
 
             # ids refers to 1 or more wannabe entities
-            elif local_match["wannabe"]:
-                metaval = str(local_match["wannabe"].pop(0))
+            elif local_match['wannabe']:
+                metaval = str(local_match['wannabe'].pop(0))
                 # 5 Merge data from entityA (CSV) with data from EntityX (CSV)
-                for obj in local_match["wannabe"]:
-                    for x in entity_dict[obj]["ids"]:
-                        if x not in entity_dict[metaval]["ids"]:
-                            entity_dict[metaval]["ids"].append(x)
+                for obj in local_match['wannabe']:
+                    for x in entity_dict[obj]['ids']:
+                        if x not in entity_dict[metaval]['ids']:
+                            entity_dict[metaval]['ids'].append(x)
 
-                    for x in entity_dict[obj]["others"]:
-                        if x not in entity_dict[metaval]["others"]:
-                            entity_dict[metaval]["others"].append(x)
+                    for x in entity_dict[obj]['others']:
+                        if x not in entity_dict[metaval]['others']:
+                            entity_dict[metaval]['others'].append(x)
 
-                    entity_dict[metaval]["others"].append(obj)
-                    if entity_dict[obj]["title"]:
-                        entity_dict[metaval]["title"] = entity_dict[obj]["title"]
+                    entity_dict[metaval]['others'].append(obj)
+                    if entity_dict[obj]['title']:
+                        entity_dict[metaval]['title'] = entity_dict[obj]['title']
                     del entity_dict[obj]
 
                 self._update_title(entity_dict, metaval, name)
 
                 suspect_ids = list()
                 for identifier in idslist:
-                    if identifier not in entity_dict[metaval]["ids"]:
+                    if identifier not in entity_dict[metaval]['ids']:
                         suspect_ids.append(identifier)
                 if suspect_ids:
                     sparql_match = self.finder_sparql(suspect_ids, br=br_ent, ra=ra_ent, vvi=vvi_ent,
                                                       publ=publ_entity)
                     if sparql_match:
-                        if "wannabe" not in metaval or len(sparql_match) > 1:
+                        if 'wannabe' not in metaval or len(sparql_match) > 1:
                             # !
                             return self.conflict(idslist, name, id_dict, col_name)
                         else:
@@ -909,21 +897,21 @@ class Curator:
                                 old_metaval = metaval
                                 metaval = sparql_match[0][0]
                                 entity_dict[metaval] = dict()
-                                entity_dict[metaval]["ids"] = list()
-                                entity_dict[metaval]["others"] = list()
-                                entity_dict[metaval]["title"] = ""
-                                for x in entity_dict[old_metaval]["ids"]:
-                                    if x not in entity_dict[metaval]["ids"]:
-                                        entity_dict[metaval]["ids"].append(x)
+                                entity_dict[metaval]['ids'] = list()
+                                entity_dict[metaval]['others'] = list()
+                                entity_dict[metaval]['title'] = ''
+                                for x in entity_dict[old_metaval]['ids']:
+                                    if x not in entity_dict[metaval]['ids']:
+                                        entity_dict[metaval]['ids'].append(x)
 
-                                for x in entity_dict[old_metaval]["others"]:
-                                    if x not in entity_dict[metaval]["others"]:
-                                        entity_dict[metaval]["others"].append(x)
+                                for x in entity_dict[old_metaval]['others']:
+                                    if x not in entity_dict[metaval]['others']:
+                                        entity_dict[metaval]['others'].append(x)
 
-                                entity_dict[metaval]["others"].append(old_metaval)
+                                entity_dict[metaval]['others'].append(old_metaval)
 
-                                if entity_dict[old_metaval]["title"]:
-                                    entity_dict[metaval]["title"] = entity_dict[old_metaval]["title"]
+                                if entity_dict[old_metaval]['title']:
+                                    entity_dict[metaval]['title'] = entity_dict[old_metaval]['title']
                                 del entity_dict[old_metaval]
 
                                 self._update_title(entity_dict, metaval, name) # Raggruppato codice ripetuto in una funzione
@@ -931,8 +919,8 @@ class Curator:
                                 for identifier in existing_ids:
                                     if identifier[1] not in id_dict:
                                         id_dict[identifier[1]] = identifier[0]
-                                    if identifier[1] not in entity_dict[metaval]["ids"]:
-                                        entity_dict[metaval]["ids"].append(identifier[1])
+                                    if identifier[1] not in entity_dict[metaval]['ids']:
+                                        entity_dict[metaval]['ids'].append(identifier[1])
 
             else:
                 sparql_match = self.finder_sparql(idslist, br=br_ent, ra=ra_ent, vvi=vvi_ent, publ=publ_entity)
@@ -953,34 +941,35 @@ class Curator:
                     elif len(new_sparql_match) == 1:
                         metaval = sparql_match[0][0]
                         entity_dict[metaval] = dict()
-                        entity_dict[metaval]["ids"] = list()
-                        entity_dict[metaval]["others"] = list()
-                        if col_name == "author" or col_name == "editor":
-                            entity_dict[metaval]["title"] = self.name_check(sparql_match[0][1], name)
+                        entity_dict[metaval]['ids'] = list()
+                        entity_dict[metaval]['others'] = list()
+                        if col_name == 'author' or col_name == 'editor':
+                            entity_dict[metaval]['title'] = self.name_check(sparql_match[0][1], name)
                         else:
-                            entity_dict[metaval]["title"] = sparql_match[0][1]
+                            entity_dict[metaval]['title'] = sparql_match[0][1]
 
-                        if not entity_dict[metaval]["title"] and name:
-                            entity_dict[metaval]["title"] = name
+                        if not entity_dict[metaval]['title'] and name:
+                            entity_dict[metaval]['title'] = name
 
                         for identifier in existing_ids:
                             if identifier[1] not in id_dict:
                                 id_dict[identifier[1]] = identifier[0]
-                            if identifier[1] not in entity_dict[metaval]["ids"]:
-                                entity_dict[metaval]["ids"].append(identifier[1])
+                            if identifier[1] not in entity_dict[metaval]['ids']:
+                                entity_dict[metaval]['ids'].append(identifier[1])
 
                 else:
+                    # 1 EntityA is a new one
                     metaval = self.new_entity(entity_dict, name)
 
             for identifier in idslist:
                 if identifier not in id_dict:
-                    self._update_id_count(id_dict, identifier)
+                    self.__update_id_count(id_dict, identifier)
 
-                if identifier not in entity_dict[metaval]["ids"]:
-                    entity_dict[metaval]["ids"].append(identifier)
+                if identifier not in entity_dict[metaval]['ids']:
+                    entity_dict[metaval]['ids'].append(identifier)
 
-            if not entity_dict[metaval]["title"] and name:
-                entity_dict[metaval]["title"] = name
+            if not entity_dict[metaval]['title'] and name:
+                entity_dict[metaval]['title'] = name
 
         # 1 EntityA is a new one
         if not idslist and not metaval:
@@ -989,37 +978,37 @@ class Curator:
         return metaval
 
     def new_entity(self, entity_dict, name):
-        metaval = "wannabe_" + str(self.wnb_cnt)
+        metaval = 'wannabe_' + str(self.wnb_cnt)
         self.wnb_cnt += 1
         entity_dict[metaval] = dict()
-        entity_dict[metaval]["ids"] = list()
-        entity_dict[metaval]["others"] = list()
-        entity_dict[metaval]["title"] = name
+        entity_dict[metaval]['ids'] = list()
+        entity_dict[metaval]['others'] = list()
+        entity_dict[metaval]['title'] = name
 
         return metaval
 
     def volume_issue(self, meta, path, value, row):
-        if "wannabe" not in meta:
+        if 'wannabe' not in meta:
             if value in path:
-                if "wannabe" in path[value]["id"]:
-                    old_meta = path[value]["id"]
-                    self.update(self.brdict, meta, old_meta, row["title"])
-                    path[value]["id"] = meta
+                if 'wannabe' in path[value]['id']:
+                    old_meta = path[value]['id']
+                    self.update(self.brdict, meta, old_meta, row['title'])
+                    path[value]['id'] = meta
             else:
                 path[value] = dict()
-                path[value]["id"] = meta
-                if "issue" not in path:
-                    path[value]["issue"] = dict()
+                path[value]['id'] = meta
+                if 'issue' not in path:
+                    path[value]['issue'] = dict()
         else:
             if value in path:
-                if "wannabe" in path[value]["id"]:
-                    old_meta = path[value]["id"]
+                if 'wannabe' in path[value]['id']:
+                    old_meta = path[value]['id']
                     if meta != old_meta:
-                        self.update(self.brdict, meta, old_meta, row["title"])
-                        path[value]["id"] = meta
+                        self.update(self.brdict, meta, old_meta, row['title'])
+                        path[value]['id'] = meta
                 else:
-                    old_meta = path[value]["id"]
-                    if "wannabe" not in old_meta and old_meta not in self.brdict:
+                    old_meta = path[value]['id']
+                    if 'wannabe' not in old_meta and old_meta not in self.brdict:
                         br4dict = self.finder.retrieve_br_from_meta(old_meta)
                         self.brdict[old_meta] = dict()
                         self.brdict[old_meta]['ids'] = list()
@@ -1031,80 +1020,80 @@ class Curator:
                             if identifier not in self.idbr:
                                 self.idbr[identifier] = x[0]
 
-                    self.update(self.brdict, old_meta, meta, row["title"])
+                    self.update(self.brdict, old_meta, meta, row['title'])
             else:
                 path[value] = dict()
-                path[value]["id"] = meta
-                if "issue" not in path:  # it's a Volume
-                    path[value]["issue"] = dict()
+                path[value]['id'] = meta
+                if 'issue' not in path:  # it's a Volume
+                    path[value]['issue'] = dict()
 
     def log_update(self):
         new_log = dict()
         for x in self.log:
             if any(self.log[x][y].values() for y in self.log[x]):
                 for y in self.log[x]:
-                    if "Conflict Entity" in self.log[x][y]:
-                        v = self.log[x][y]["Conflict Entity"]
-                        if "wannabe" in v:
-                            if y == "id" or y == "venue":
+                    if 'Conflict Entity' in self.log[x][y]:
+                        v = self.log[x][y]['Conflict Entity']
+                        if 'wannabe' in v:
+                            if y == 'id' or y == 'venue':
                                 for brm in self.brmeta:
-                                    if v in self.brmeta[brm]["others"]:
-                                        m = "br/" + str(brm)
-                            elif y == "author" or y == "editor" or y == "publisher":
+                                    if v in self.brmeta[brm]['others']:
+                                        m = 'br/' + str(brm)
+                            elif y == 'author' or y == 'editor' or y == 'publisher':
                                 for ram in self.rameta:
-                                    if v in self.rameta[ram]["others"]:
-                                        m = "ra/" + str(ram)
+                                    if v in self.rameta[ram]['others']:
+                                        m = 'ra/' + str(ram)
                         else:
                             m = v
-                        self.log[x][y]["Conflict Entity"] = m
+                        self.log[x][y]['Conflict Entity'] = m
                 new_log[x] = self.log[x]
 
-                if "wannabe" in self.data[x]["id"]:
+                if 'wannabe' in self.data[x]['id']:
                     for brm in self.brmeta:
-                        if self.data[x]["id"] in self.brmeta[brm]["others"]:
-                            met = "br/" + str(brm)
+                        if self.data[x]['id'] in self.brmeta[brm]['others']:
+                            met = 'br/' + str(brm)
                 else:
-                    met = "br/" + str(self.data[x]["id"])
-                new_log[x]["id"]["meta"] = met
+                    met = 'br/' + str(self.data[x]['id'])
+                new_log[x]['id']['meta'] = met
         return new_log
 
     def check_equality(self):
         partialcnt = 0
         for row in self.data:
-            if "wannabe" in row["id"]:
+            if 'wannabe' in row['id']:
                 for i in self.brdict:
-                    if row["id"] in self.brdict[i]["others"] and "wannabe" not in i:
-                        row["id"] = i
+                    if row['id'] in self.brdict[i]['others'] and 'wannabe' not in i:
+                        row['id'] = i
                         self.equalizer(row, i)
                         return
                 other_rowcnt = 0
                 for other_row in self.data:
-                    if other_row["id"] == row["id"] and partialcnt != other_rowcnt:
-                        fields_to_check = ["pub_date", "page", "type", "venue", "volume", "issue"] # Semplificato codice ripetuto
+                    if other_row['id'] == row['id'] and partialcnt != other_rowcnt:
+                        fields_to_check = ['pub_date', 'page', 'type', 'venue', 'volume', 'issue'] # Semplificato codice ripetuto
                         for field in fields_to_check:
                             if row[field] and row[field] != other_row[field]:
                                 if other_row[field]:
-                                    self.log[other_rowcnt][field]["status"] = "NEW VALUE PROPOSED"
+                                    self.log[other_rowcnt][field]['status'] = 'NEW VALUE PROPOSED'
                                 other_row[field] = row[field]
                     other_rowcnt += 1
             partialcnt += 1
 
     def equalizer(self, row, metaval):
-        self.log[self.rowcnt]["id"]["status"] = "ENTITY ALREADY EXISTS"
+        self.log[self.rowcnt]['id']['status'] = 'ENTITY ALREADY EXISTS'
         known_data = self.finder.retrieve_br_info_from_meta(metaval)
-        row["venue"] = known_data["venue"]
-        row["volume"] = known_data["volume"]
-        row["issue"] = known_data["issue"]
-        if known_data["pub_date"]:
-            row["pub_date"] = known_data["pub_date"]
-        elif row["pub_date"]:
-            self.log[self.rowcnt]["pub_date"]["status"] = "NEW VALUE PROPOSED"
-        if known_data["page"]:
-            row["page"] = known_data["page"][1]
-            self.remeta[metaval] = known_data["page"]
-        elif row["page"]:
-            self.log[self.rowcnt]["page"]["status"] = "NEW VALUE PROPOSED"
-        if known_data["type"]:
-            row["type"] = known_data["type"]
-        elif row["type"]:
-            self.log[self.rowcnt]["type"]["status"] = "NEW VALUE PROPOSED"
+        row['venue'] = known_data['venue']
+        row['volume'] = known_data['volume']
+        row['issue'] = known_data['issue']
+        if known_data['pub_date']:
+            row['pub_date'] = known_data['pub_date']
+        elif row['pub_date']:
+            self.log[self.rowcnt]['pub_date']['status'] = 'NEW VALUE PROPOSED'
+        if known_data['page']:
+            row['page'] = known_data['page'][1]
+            self.remeta[metaval] = known_data['page']
+        elif row['page']:
+            self.log[self.rowcnt]['page']['status'] = 'NEW VALUE PROPOSED'
+        if known_data['type']:
+            row['type'] = known_data['type']
+        elif row['type']:
+            self.log[self.rowcnt]['type']['status'] = 'NEW VALUE PROPOSED'
