@@ -129,7 +129,8 @@ class test_Curator(unittest.TestCase):
         output = Curator._add_number(input)
         expected_output = 1
         self.assertEqual(output, expected_output)
-    
+
+class test_id_worker(unittest.TestCase):
     def test_id_worker_1(self):
         # 1 EntityA is a new one
         add_data_ts()
@@ -251,11 +252,9 @@ class test_Curator(unittest.TestCase):
         name = 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'
         idslist = ['doi:10.1001/2013.jamasurg.270']
         meta_id = curator.id_worker('id', name, idslist, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
-        output = (meta_id, curator.brdict, curator.radict, curator.idbr, curator.idra, curator.conflict_br, curator.conflict_ra, curator.log)
+        output = (meta_id, curator.idbr, curator.idra, curator.conflict_br, curator.conflict_ra, curator.log)
         expected_output = (
             'wannabe_0', 
-            {}, 
-            {}, 
             {'doi:10.1001/2013.jamasurg.270': '2585'}, 
             {}, 
             {'wannabe_0': {'ids': ['doi:10.1001/2013.jamasurg.270'], 'others': [], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}}, 
@@ -272,16 +271,145 @@ class test_Curator(unittest.TestCase):
         curator = prepareCurator(list())
         curator.log[0] = {'author': {}}
         meta_id = curator.id_worker('author', name, idslist, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=False)
-        output = (meta_id, curator.brdict, curator.radict, curator.idbr, curator.idra, curator.conflict_br, curator.conflict_ra, curator.log)
+        output = (meta_id, curator.idbr, curator.idra, curator.conflict_br, curator.conflict_ra, curator.log)
         expected_output = (
             'wannabe_0', 
-            {}, 
-            {}, 
             {}, 
             {'orcid:0000-0001-6994-8412': '4475'}, 
             {}, 
             {'wannabe_0': {'ids': ['orcid:0000-0001-6994-8412'], 'others': [], 'title': 'Alarcon, Louis H.'}}, 
             {0: {'author': {'Conflict Entity': 'wannabe_0'}}}
+        )
+        self.assertEqual(output, expected_output)
+    
+    def test_conflict_existing(self):
+        # ID already exist in entity_dict but refer to multiple entities having a MetaID
+        reset_server()
+        br_dict = {
+            'meta:br/0601': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'], 'others': [], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}, 
+            'meta:br/0602': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph150-en'], 'others': [], 'title': 'Contributions To GDP Growth And Inflation: South Africa'}, 
+            'meta:br/0603': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'], 'others': [], 'title': 'Official Loans To The Governments Of Greece, Ireland And Portugal'}, 
+        }
+        name = 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'
+        idslist = ['doi:10.1787/eco_outlook-v2011-2-graph138-en']
+        curator = prepareCurator(list())
+        curator.log[0] = {'id': {}}
+        curator.brdict = br_dict
+        meta_id = curator.id_worker('id', name, idslist, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
+        output = (meta_id, curator.idbr, curator.idra, curator.conflict_br, curator.conflict_ra, curator.log)
+        expected_output = (
+            'wannabe_0', 
+            {'doi:10.1787/eco_outlook-v2011-2-graph138-en': '0601'}, 
+            {}, 
+            {'wannabe_0': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'], 'others': [], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}}, 
+            {}, 
+            {0: {'id': {'Conflict Entity': 'wannabe_0'}}}
+        )
+        self.assertEqual(output, expected_output)
+
+    def test_no_conflict_existing(self):
+        # ID already exist in entity_dict and refer to one entity
+        reset_server()
+        br_dict = {
+            'meta:br/0601': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'], 'others': [], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}, 
+            'meta:br/0602': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph150-en'], 'others': [], 'title': 'Contributions To GDP Growth And Inflation: South Africa'}, 
+            'meta:br/0603': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph18-en'], 'others': [], 'title': 'Official Loans To The Governments Of Greece, Ireland And Portugal'}, 
+        }
+        name = 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: Japan' # The first title must have precedence (China, not Japan)
+        idslist = ['doi:10.1787/eco_outlook-v2011-2-graph138-en']
+        curator = prepareCurator(list())
+        curator.log[0] = {'id': {}}
+        curator.brdict = br_dict
+        meta_id = curator.id_worker('id', name, idslist, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
+        output = (meta_id, curator.idbr, curator.idra, curator.conflict_br, curator.conflict_ra, curator.log)
+        expected_output = (
+            'meta:br/0601', 
+            {'doi:10.1787/eco_outlook-v2011-2-graph138-en': '0601'}, 
+            {}, 
+            {}, 
+            {}, 
+            {0: {'id': {}}}
+        )
+        self.assertEqual(output, expected_output)
+
+    def test_conflict_suspect_id_among_existing(self):
+        # ID already exist in entity_dict and refer to one entity having a MetaID, but there is another ID not in entity_dict that highlights a conflict on ts
+        add_data_ts()
+        br_dict = {
+            'meta:br/0601': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'], 'others': [], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}, 
+            'meta:br/0602': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph150-en'], 'others': [], 'title': 'Contributions To GDP Growth And Inflation: South Africa'}, 
+            'meta:br/0603': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph18-en'], 'others': [], 'title': 'Official Loans To The Governments Of Greece, Ireland And Portugal'}, 
+        }
+        name = 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: Japan' # The first title must have precedence (China, not Japan)
+        idslist = ['doi:10.1787/eco_outlook-v2011-2-graph138-en', 'doi:10.1001/2013.jamasurg.270']
+        curator = prepareCurator(data_collect(REAL_DATA_CSV))
+        curator.log[0] = {'id': {}}
+        curator.brdict = br_dict
+        meta_id = curator.id_worker('id', name, idslist, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
+        output = (meta_id, curator.idbr, curator.idra, curator.conflict_br, curator.conflict_ra, curator.log)
+        expected_output = (
+            'wannabe_0', 
+            {
+                'doi:10.1787/eco_outlook-v2011-2-graph138-en': '0601', 
+                'doi:10.1001/2013.jamasurg.270': '2585'
+            }, 
+            {}, 
+            {'wannabe_0': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en', 'doi:10.1001/2013.jamasurg.270'], 'others': [], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: Japan'}}, 
+            {}, 
+            {0: {'id': {'Conflict Entity': 'wannabe_0'}}}
+        )
+        self.assertEqual(output, expected_output)
+
+    def test_conflict_suspect_id_among_wannabe(self):
+        # ID already exist in entity_dict and refer to one temporary, but there is another ID not in entity_dict that highlights a conflict on ts
+        add_data_ts()
+        br_dict = {
+            'wannabe_0': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'], 'others': [], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}, 
+            'wannabe_2': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph150-en'], 'others': [], 'title': 'Contributions To GDP Growth And Inflation: South Africa'}, 
+            'wannabe_3': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph18-en'], 'others': [], 'title': 'Official Loans To The Governments Of Greece, Ireland And Portugal'}, 
+        }
+        name = 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: Japan' # The first title must have precedence (China, not Japan)
+        idslist = ['doi:10.1787/eco_outlook-v2011-2-graph138-en', 'doi:10.1001/2013.jamasurg.270']
+        curator = prepareCurator(data_collect(REAL_DATA_CSV))
+        curator.log[0] = {'id': {}}
+        curator.brdict = br_dict
+        meta_id = curator.id_worker('id', name, idslist, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
+        output = (meta_id, curator.idbr, curator.idra, curator.conflict_br, curator.conflict_ra, curator.log)
+        expected_output = (
+            'wannabe_0', 
+            {
+                'doi:10.1787/eco_outlook-v2011-2-graph138-en': '0601', 
+                'doi:10.1001/2013.jamasurg.270': '2585'
+            }, 
+            {}, 
+            {'wannabe_0': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en', 'doi:10.1001/2013.jamasurg.270'], 'others': [], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: Japan'}}, 
+            {}, 
+            {0: {'id': {'Conflict Entity': 'wannabe_0'}}}
+        )
+        self.assertEqual(output, expected_output)
+
+    def test_id_worker_5(self):
+        # ID already exist in entity_dict but refer to multiple entities
+        reset_server()
+        br_dict = {
+            'wannabe_0': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'], 'others': [], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}, 
+            'wannabe_1': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph150-en'], 'others': [], 'title': 'Contributions To GDP Growth And Inflation: South Africa'}, 
+            'wannabe_2': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'], 'others': [], 'title': 'Official Loans To The Governments Of Greece, Ireland And Portugal'}, 
+        }
+        name = 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'
+        idslist = ['doi:10.1787/eco_outlook-v2011-2-graph138-en']
+        curator = prepareCurator(list())
+        curator.brdict = br_dict
+        curator.wnb_cnt = 2
+        meta_id = curator.id_worker('id', name, idslist, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
+        output = (meta_id, curator.idbr, curator.idra, curator.conflict_br, curator.conflict_ra, curator.log)
+        expected_output = (
+            'wannabe_0', 
+            {'doi:10.1787/eco_outlook-v2011-2-graph138-en': '0601'}, 
+            {}, 
+            {}, 
+            {}, 
+            {}
         )
         self.assertEqual(output, expected_output)
 

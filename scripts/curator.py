@@ -1,12 +1,10 @@
 from typing import List, Tuple, Dict
-
 import csv
 import re
 import os
 import json
 from dateutil.parser import parse
 from datetime import datetime
-
 from meta.lib.finder import *
 from meta.scripts.cleaner import Cleaner
 
@@ -370,28 +368,6 @@ class Curator:
             sequence.extend(new_sequence)
             self.ardict[br_metaval][col_name] = sequence
 
-    def __find_update_other_ID(self, list_to_match, metaval, dict_to_match, temporary_name):
-        found_others = self.__local_match(list_to_match, dict_to_match)
-        if found_others['wannabe']:
-            for old_meta in found_others['wannabe']:
-                self.update(dict_to_match, metaval, old_meta, temporary_name)
-
-    @staticmethod
-    def update(dict_to_match:Dict[str, Dict[str, list]], metaval:str, old_meta:str, temporary_name:str) -> None:
-        for x in dict_to_match[old_meta]['ids']:
-            if x not in dict_to_match[metaval]['ids']:
-                dict_to_match[metaval]['ids'].append(x)
-        for x in dict_to_match[old_meta]['others']:
-            if x not in dict_to_match[metaval]['others']:
-                dict_to_match[metaval]['others'].append(x)
-        dict_to_match[metaval]['others'].append(old_meta)
-        if not dict_to_match[metaval]['title']:
-            if dict_to_match[old_meta]['title']:
-                dict_to_match[metaval]['title'] = dict_to_match[old_meta]['title']
-            else:
-                dict_to_match[metaval]['title'] = temporary_name
-        del dict_to_match[old_meta]
-
     @staticmethod
     def clean_id_list(id_list:List[str], br:bool) -> Tuple[list, str]:
         '''
@@ -444,7 +420,6 @@ class Curator:
                 found_metaid = self.finder.retrieve_metaid_from_id(schema_value[0], schema_value[1])
                 if found_metaid:
                     id_dict[identifier] = found_metaid
-                # Questo non viene mai eseguito by design
                 else:
                     self.__update_id_count(id_dict, identifier)
         return metaval
@@ -765,23 +740,38 @@ class Curator:
     def __update_id_count(self, id_dict, identifier):
         count = self._add_number(self.id_info_path)
         id_dict[identifier] = self.prefix + str(count)
+
+    @staticmethod
+    def merge(dict_to_match:Dict[str, Dict[str, list]], metaval:str, old_meta:str, temporary_name:str) -> None:
+        for x in dict_to_match[old_meta]['ids']:
+            if x not in dict_to_match[metaval]['ids']:
+                dict_to_match[metaval]['ids'].append(x)
+        for x in dict_to_match[old_meta]['others']:
+            if x not in dict_to_match[metaval]['others']:
+                dict_to_match[metaval]['others'].append(x)
+        dict_to_match[metaval]['others'].append(old_meta)
+        if not dict_to_match[metaval]['title']:
+            if dict_to_match[old_meta]['title']:
+                dict_to_match[metaval]['title'] = dict_to_match[old_meta]['title']
+            else:
+                dict_to_match[metaval]['title'] = temporary_name
+        del dict_to_match[old_meta]
         
     def merge_entities_in_csv(self, idslist:list, metaval:str, name:str, entity_dict:Dict[str, Dict[str, list]], id_dict:dict) -> None:
-        self.__find_update_other_ID(idslist, metaval, entity_dict, name)
+        found_others = self.__local_match(idslist, entity_dict)
+        if found_others['wannabe']:
+            for old_meta in found_others['wannabe']:
+                self.merge(entity_dict, metaval, old_meta, name)
         for identifier in idslist:
             if identifier not in entity_dict[metaval]['ids']:
                 entity_dict[metaval]['ids'].append(identifier)
             if identifier not in id_dict:
                 self.__update_id_count(id_dict, identifier)
+        # Update title if no found_others['wannabe']
         if not entity_dict[metaval]['title'] and name:
             entity_dict[metaval]['title'] = name
     
-    def _update_title(self, entity_dict, metaval, name):
-        if not entity_dict[metaval]['title']:
-            entity_dict[metaval]['title'] = name
-
     def id_worker(self, col_name, name, idslist:List[str], ra_ent=False, br_ent=False, vvi_ent=False, publ_entity=False):
-
         if not ra_ent:
             id_dict = self.idbr
             entity_dict = self.brdict
@@ -790,7 +780,6 @@ class Curator:
             id_dict = self.idra
             entity_dict = self.radict
             idslist, metaval = self.clean_id_list(idslist, br=False)
-
         # there's meta
         if metaval:
             # MetaID exists among data?
@@ -803,7 +792,6 @@ class Curator:
                     found_meta_ts = self.finder.retrieve_ra_from_meta(metaval, publisher=publ_entity)
                 elif br_ent:
                     found_meta_ts = self.finder.retrieve_br_from_meta(metaval)
-
                 # meta in triplestore
                 # 2 Retrieve EntityA data in triplestore to update EntityA inside CSV
                 if found_meta_ts:
@@ -825,7 +813,6 @@ class Curator:
                 # wrong meta
                 else:
                     metaval = None
-
         # there's no meta or there was one but it didn't exist
         # Are there other IDs?
         if idslist and not metaval:
@@ -837,9 +824,8 @@ class Curator:
                 if len(local_match['existing']) > 1:
                     # !
                     return self.conflict(idslist, name, id_dict, col_name)
-
                 # ids refer to ONE existing entity
-                elif len(local_match['existing']) == 1: # TODO: non è testato
+                elif len(local_match['existing']) == 1:
                     metaval = str(local_match['existing'][0])
                     suspect_ids = list()
                     for identifier in idslist:
@@ -851,27 +837,12 @@ class Curator:
                         if len(sparql_match) > 1:
                             # !
                             return self.conflict(idslist, name, id_dict, col_name)
-
             # ids refers to 1 or more wannabe entities
             elif local_match['wannabe']:
                 metaval = str(local_match['wannabe'].pop(0))
                 # 5 Merge data from entityA (CSV) with data from EntityX (CSV)
-                for obj in local_match['wannabe']:
-                    for x in entity_dict[obj]['ids']:
-                        if x not in entity_dict[metaval]['ids']:
-                            entity_dict[metaval]['ids'].append(x)
-
-                    for x in entity_dict[obj]['others']:
-                        if x not in entity_dict[metaval]['others']:
-                            entity_dict[metaval]['others'].append(x)
-
-                    entity_dict[metaval]['others'].append(obj)
-                    if entity_dict[obj]['title']:
-                        entity_dict[metaval]['title'] = entity_dict[obj]['title']
-                    del entity_dict[obj]
-
-                self._update_title(entity_dict, metaval, name)
-
+                for old_meta in local_match['wannabe']:
+                    self.merge(entity_dict, metaval, old_meta, name)
                 suspect_ids = list()
                 for identifier in idslist:
                     if identifier not in entity_dict[metaval]['ids']:
@@ -900,28 +871,12 @@ class Curator:
                                 entity_dict[metaval]['ids'] = list()
                                 entity_dict[metaval]['others'] = list()
                                 entity_dict[metaval]['title'] = ''
-                                for x in entity_dict[old_metaval]['ids']:
-                                    if x not in entity_dict[metaval]['ids']:
-                                        entity_dict[metaval]['ids'].append(x)
-
-                                for x in entity_dict[old_metaval]['others']:
-                                    if x not in entity_dict[metaval]['others']:
-                                        entity_dict[metaval]['others'].append(x)
-
-                                entity_dict[metaval]['others'].append(old_metaval)
-
-                                if entity_dict[old_metaval]['title']:
-                                    entity_dict[metaval]['title'] = entity_dict[old_metaval]['title']
-                                del entity_dict[old_metaval]
-
-                                self._update_title(entity_dict, metaval, name)
-
+                                self.merge(entity_dict, metaval, old_metaval, name)
                                 for identifier in existing_ids:
                                     if identifier[1] not in id_dict:
                                         id_dict[identifier[1]] = identifier[0]
                                     if identifier[1] not in entity_dict[metaval]['ids']:
                                         entity_dict[metaval]['ids'].append(identifier[1])
-
             else:
                 sparql_match = self.finder_sparql(idslist, br=br_ent, ra=ra_ent, vvi=vvi_ent, publ=publ_entity)
                 if len(sparql_match) > 1:
@@ -970,11 +925,9 @@ class Curator:
 
             if not entity_dict[metaval]['title'] and name:
                 entity_dict[metaval]['title'] = name
-
         # 1 EntityA is a new one
         if not idslist and not metaval:
             metaval = self.new_entity(entity_dict, name)
-
         return metaval
 
     def new_entity(self, entity_dict, name):
@@ -992,7 +945,7 @@ class Curator:
             if value in path:
                 if 'wannabe' in path[value]['id']:
                     old_meta = path[value]['id']
-                    self.update(self.brdict, meta, old_meta, row['title'])
+                    self.merge(self.brdict, meta, old_meta, row['title'])
                     path[value]['id'] = meta
             else:
                 path[value] = dict()
@@ -1004,7 +957,7 @@ class Curator:
                 if 'wannabe' in path[value]['id']:
                     old_meta = path[value]['id']
                     if meta != old_meta:
-                        self.update(self.brdict, meta, old_meta, row['title'])
+                        self.merge(self.brdict, meta, old_meta, row['title'])
                         path[value]['id'] = meta
                 else:
                     old_meta = path[value]['id']
@@ -1020,7 +973,7 @@ class Curator:
                             if identifier not in self.idbr:
                                 self.idbr[identifier] = x[0]
 
-                    self.update(self.brdict, old_meta, meta, row['title'])
+                    self.merge(self.brdict, old_meta, meta, row['title'])
             else:
                 path[value] = dict()
                 path[value]['id'] = meta

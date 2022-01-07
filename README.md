@@ -47,7 +47,7 @@ Where:
 
 You can get a CSV file containing all the DOIs from the [COCI's dump](https://opencitations.net/download). This CSV file can be passed as an input to the `-wanted` argument of [`crossref_process.py`](https://github.com/opencitations/meta/blob/master/run/crossref_process.py). You can obtain this file by using the [`coci_process.py`](https://github.com/opencitations/meta/blob/master/run/coci_process.py) script, in the following way:
 ```console
-    python -m meta.run.coci.coci_process -c <PATH> -out <PATH> -v
+    python -m meta.run.coci_process -c <PATH> -out <PATH> -v
 ```
 Where:
 - -c --coci: COCI's dump path.
