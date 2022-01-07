@@ -230,23 +230,23 @@ class Curator:
     # RA
     def clean_ra(self, row, col_name):
         if row[col_name]:
-            # split authors by ";" outside "[]" (any spaces before and after ";")
+            # split authors by ';' outside '[]' (any spaces before and after ';')
             ra_list = re.split(r'\s*;\s*(?=[^]]*(?:\[|$))', row[col_name])
-            if row["id"] in self.brdict:
-                br_metaval = row["id"]
+            if row['id'] in self.brdict:
+                br_metaval = row['id']
             else:
                 for x in self.brdict:
-                    if row["id"] in self.brdict[x]["others"]:
+                    if row['id'] in self.brdict[x]['others']:
                         br_metaval = x
                         break
             if br_metaval not in self.ardict or not self.ardict[br_metaval][col_name]:
                 # new sequence
-                if "wannabe" in br_metaval:
+                if 'wannabe' in br_metaval:
                     if br_metaval not in self.ardict:
                         self.ardict[br_metaval] = dict()
-                        self.ardict[br_metaval]["author"] = list()
-                        self.ardict[br_metaval]["editor"] = list()
-                        self.ardict[br_metaval]["publisher"] = list()
+                        self.ardict[br_metaval]['author'] = list()
+                        self.ardict[br_metaval]['editor'] = list()
+                        self.ardict[br_metaval]['publisher'] = list()
                     sequence = []
                 else:
                     # sequence can be in TS
@@ -258,21 +258,21 @@ class Curator:
                                 sequence.append(tuple((k, x[k][2])))
                                 if x[k][2] not in self.radict:
                                     self.radict[x[k][2]] = dict()
-                                    self.radict[x[k][2]]["ids"] = list()
-                                    self.radict[x[k][2]]["others"] = list()
-                                    self.radict[x[k][2]]["title"] = x[k][0]
+                                    self.radict[x[k][2]]['ids'] = list()
+                                    self.radict[x[k][2]]['others'] = list()
+                                    self.radict[x[k][2]]['title'] = x[k][0]
                                 for i in x[k][1]:
                                     # other ids after meta
                                     if i[0] not in self.idra:
                                         self.idra[i[1]] = i[0]
-                                    if i[1] not in self.radict[x[k][2]]["ids"]:
-                                        self.radict[x[k][2]]["ids"].append(i[1])
+                                    if i[1] not in self.radict[x[k][2]]['ids']:
+                                        self.radict[x[k][2]]['ids'].append(i[1])
 
                         if br_metaval not in self.ardict:
                             self.ardict[br_metaval] = dict()
-                            self.ardict[br_metaval]["author"] = list()
-                            self.ardict[br_metaval]["editor"] = list()
-                            self.ardict[br_metaval]["publisher"] = list()
+                            self.ardict[br_metaval]['author'] = list()
+                            self.ardict[br_metaval]['editor'] = list()
+                            self.ardict[br_metaval]['publisher'] = list()
                             self.ardict[br_metaval][col_name].extend(sequence)
                         else:
                             self.ardict[br_metaval][col_name].extend(sequence)
@@ -280,9 +280,9 @@ class Curator:
                         # totally new sequence
                         if br_metaval not in self.ardict:
                             self.ardict[br_metaval] = dict()
-                            self.ardict[br_metaval]["author"] = list()
-                            self.ardict[br_metaval]["editor"] = list()
-                            self.ardict[br_metaval]["publisher"] = list()
+                            self.ardict[br_metaval]['author'] = list()
+                            self.ardict[br_metaval]['editor'] = list()
+                            self.ardict[br_metaval]['publisher'] = list()
                         sequence = []
             else:
                 sequence = self.ardict[br_metaval][col_name]
@@ -291,7 +291,7 @@ class Curator:
             change_order = False
             for pos, ra in enumerate(ra_list):
                 new_elem_seq = True
-                # takes string inside "[]" ignoring any space between (ex: [ TARGET  ] --> TARGET
+                # takes string inside '[]' ignoring any space between (ex: [ TARGET  ] --> TARGET
                 ra_id = re.search(r'\[\s*(.*?)\s*]', ra)
                 if ra_id:
                     ra_id = ra_id.group(1)
@@ -301,8 +301,8 @@ class Curator:
 
                 if not ra_id and sequence:
                     for x, k in sequence:
-                        if self.radict[k]["title"] == name:
-                            ra_id = "meta:ra/" + str(k)
+                        if self.radict[k]['title'] == name:
+                            ra_id = 'meta:ra/' + str(k)
                             new_elem_seq = False
                             break
                 if ra_id:
@@ -321,40 +321,40 @@ class Curator:
                                     if ps != pos:
                                         change_order = True
                                     new_elem_seq = False
-                                    if "wannabe" not in k:
+                                    if 'wannabe' not in k:
                                         kv = k
                                         for pos, i in enumerate(ra_id_list):
-                                            if "meta" in i:
-                                                ra_id_list[pos] = ""
+                                            if 'meta' in i:
+                                                ra_id_list[pos] = ''
                                             break
                                         ra_id_list = list(filter(None, ra_id_list))
-                                        ra_id_list.append("meta:ra/" + kv)
+                                        ra_id_list.append('meta:ra/' + kv)
                         if not kv:
                             # new element
                             for x, k in sequence:
                                 if self.radict[k]['title'] == name:
                                     new_elem_seq = False
-                                    if "wannabe" not in k:
+                                    if 'wannabe' not in k:
                                         kv = k
                                         for pos, i in enumerate(ra_id_list):
-                                            if "meta" in i:
-                                                ra_id_list[pos] = ""
+                                            if 'meta' in i:
+                                                ra_id_list[pos] = ''
                                             break
                                         ra_id_list = list(filter(None, ra_id_list))
-                                        ra_id_list.append("meta:ra/" + kv)
+                                        ra_id_list.append('meta:ra/' + kv)
 
-                    if col_name == "publisher":
-                        metaval = self.id_worker("publisher", name, ra_id_list, ra_ent=True, br_ent=False,
+                    if col_name == 'publisher':
+                        metaval = self.id_worker('publisher', name, ra_id_list, ra_ent=True, br_ent=False,
                                                  vvi_ent=False, publ_entity=True)
                     else:
                         metaval = self.id_worker(col_name, name, ra_id_list, ra_ent=True, br_ent=False, vvi_ent=False,
                                                  publ_entity=False)
-                    if col_name != "publisher" and metaval in self.radict:
-                        actual_name = self.radict[metaval]["title"]
-                        if not actual_name.split(",")[1].strip() and name.split(",")[1].strip():  # first name found!
-                            srnm = actual_name.split(",")[0]
-                            nm = name.split(",")[1]
-                            self.radict[metaval]["title"] = srnm + ", " + nm
+                    if col_name != 'publisher' and metaval in self.radict:
+                        actual_name = self.radict[metaval]['title']
+                        if not actual_name.split(',')[1].strip() and name.split(',')[1].strip():  # first name found!
+                            srnm = actual_name.split(',')[0]
+                            nm = name.split(',')[1]
+                            self.radict[metaval]['title'] = srnm + ', ' + nm
                 else:
                     metaval = self.new_entity(self.radict, name)
                 if new_elem_seq:
@@ -363,7 +363,7 @@ class Curator:
                     new_sequence.append(tuple((role, metaval)))
                     self.new_sequence_list.append(tuple((self.rowcnt, role,  metaval)))
             if change_order:
-                self.log[self.rowcnt][col_name]["Info"] = "Proposed new RA sequence: REFUSED"
+                self.log[self.rowcnt][col_name]['Info'] = 'Proposed new RA sequence: REFUSED'
 
             sequence.extend(new_sequence)
             self.ardict[br_metaval][col_name] = sequence
@@ -600,10 +600,10 @@ class Curator:
         zero_line_number = line_number - 1
         for i in range(line_number):
             if i >= line_len:
-                all_lines += ["\n"]
+                all_lines += ['\n']
             if i == zero_line_number:
-                all_lines[i] = str(cur_number) + "\n"
-        with open(file_path, "w") as f:
+                all_lines[i] = str(cur_number) + '\n'
+        with open(file_path, 'w') as f:
             f.writelines(all_lines)
         return cur_number
 
@@ -611,7 +611,7 @@ class Curator:
     def write_csv(path, datalist):
         if not os.path.exists(os.path.dirname(path)):
             os.makedirs(os.path.dirname(path))
-        with open(path, 'w', newline='', encoding="utf-8") as output_file:
+        with open(path, 'w', newline='', encoding='utf-8') as output_file:
             dict_writer = csv.DictWriter(output_file, datalist[0].keys(), delimiter=',', quotechar='"',
                                          quoting=csv.QUOTE_NONNUMERIC)
             dict_writer.writeheader()
@@ -624,26 +624,26 @@ class Curator:
         if self.idra:
             for x in self.idra:
                 row = dict()
-                row["id"] = str(x)
-                row["meta"] = str(self.idra[x])
+                row['id'] = str(x)
+                row['meta'] = str(self.idra[x])
                 self.index_id_ra.append(row)
         else:
             row = dict()
-            row["id"] = ""
-            row["meta"] = ""
+            row['id'] = ''
+            row['meta'] = ''
             self.index_id_ra.append(row)
 
         self.index_id_br = list()
         if self.idbr:
             for x in self.idbr:
                 row = dict()
-                row["id"] = str(x)
-                row["meta"] = str(self.idbr[x])
+                row['id'] = str(x)
+                row['meta'] = str(self.idbr[x])
                 self.index_id_br.append(row)
         else:
             row = dict()
-            row["id"] = ""
-            row["meta"] = ""
+            row['id'] = ''
+            row['meta'] = ''
             self.index_id_br.append(row)
 
         # AR
@@ -651,19 +651,19 @@ class Curator:
         if self.armeta:
             for x in self.armeta:
                 index = dict()
-                index["meta"] = x
+                index['meta'] = x
                 for y in self.armeta[x]:
                     list_ar = list()
                     for ar, identifier in self.armeta[x][y]:
-                        list_ar.append(str(ar) + ", " + str(identifier))
-                    index[y] = "; ".join(list_ar)
+                        list_ar.append(str(ar) + ', ' + str(identifier))
+                    index[y] = '; '.join(list_ar)
                 self.ar_index.append(index)
         else:
             row = dict()
-            row["meta"] = ""
-            row["author"] = ""
-            row["editor"] = ""
-            row["publisher"] = ""
+            row['meta'] = ''
+            row['author'] = ''
+            row['editor'] = ''
+            row['publisher'] = ''
             self.ar_index.append(row)
 
         # RE
@@ -671,57 +671,57 @@ class Curator:
         if self.remeta:
             for x in self.remeta:
                 r = dict()
-                r["br"] = x
-                r["re"] = str(self.remeta[x][0])
+                r['br'] = x
+                r['re'] = str(self.remeta[x][0])
                 self.re_index.append(r)
         else:
             row = dict()
-            row["br"] = ""
-            row["re"] = ""
+            row['br'] = ''
+            row['re'] = ''
             self.re_index.append(row)
         # VI
         self.VolIss = dict()
         if self.vvi:
             for x in self.vvi:
-                if self.vvi[x]["issue"]:
-                    for iss in self.vvi[x]["issue"]:
-                        if "wannabe" in self.vvi[x]["issue"][iss]["id"]:
+                if self.vvi[x]['issue']:
+                    for iss in self.vvi[x]['issue']:
+                        if 'wannabe' in self.vvi[x]['issue'][iss]['id']:
                             for i in self.brmeta:
-                                if self.vvi[x]["issue"][iss]["id"] in self.brmeta[i]["others"]:
-                                    self.vvi[x]["issue"][iss]["id"] = str(i)
-                if self.vvi[x]["volume"]:
-                    for vol in self.vvi[x]["volume"]:
-                        if "wannabe" in self.vvi[x]["volume"][vol]["id"]:
+                                if self.vvi[x]['issue'][iss]['id'] in self.brmeta[i]['others']:
+                                    self.vvi[x]['issue'][iss]['id'] = str(i)
+                if self.vvi[x]['volume']:
+                    for vol in self.vvi[x]['volume']:
+                        if 'wannabe' in self.vvi[x]['volume'][vol]['id']:
                             for i in self.brmeta:
-                                if self.vvi[x]["volume"][vol]["id"] in self.brmeta[i]["others"]:
-                                    self.vvi[x]["volume"][vol]["id"] = str(i)
-                        if self.vvi[x]["volume"][vol]["issue"]:
-                            for iss in self.vvi[x]["volume"][vol]["issue"]:
-                                if "wannabe" in self.vvi[x]["volume"][vol]["issue"][iss]["id"]:
+                                if self.vvi[x]['volume'][vol]['id'] in self.brmeta[i]['others']:
+                                    self.vvi[x]['volume'][vol]['id'] = str(i)
+                        if self.vvi[x]['volume'][vol]['issue']:
+                            for iss in self.vvi[x]['volume'][vol]['issue']:
+                                if 'wannabe' in self.vvi[x]['volume'][vol]['issue'][iss]['id']:
                                     for i in self.brmeta:
-                                        if self.vvi[x]["volume"][vol]["issue"][iss]["id"] in self.brmeta[i]["others"]:
-                                            self.vvi[x]["volume"][vol]["issue"][iss]["id"] = str(i)
-                if "wannabe" in x:
+                                        if self.vvi[x]['volume'][vol]['issue'][iss]['id'] in self.brmeta[i]['others']:
+                                            self.vvi[x]['volume'][vol]['issue'][iss]['id'] = str(i)
+                if 'wannabe' in x:
                     for i in self.brmeta:
-                        if x in self.brmeta[i]["others"]:
+                        if x in self.brmeta[i]['others']:
                             self.VolIss[i] = self.vvi[x]
                 else:
                     self.VolIss[x] = self.vvi[x]
 
         if self.filename:
-            ra_path = os.path.join(path_index, "index_id_ra.csv")
+            ra_path = os.path.join(path_index, 'index_id_ra.csv')
             self.write_csv(ra_path, self.index_id_ra)
 
-            br_path = os.path.join(path_index, "index_id_br.csv")
+            br_path = os.path.join(path_index, 'index_id_br.csv')
             self.write_csv(br_path, self.index_id_br)
 
-            ar_path = os.path.join(path_index, "index_ar.csv")
+            ar_path = os.path.join(path_index, 'index_ar.csv')
             self.write_csv(ar_path, self.ar_index)
 
-            re_path = os.path.join(path_index, "index_re.csv")
+            re_path = os.path.join(path_index, 'index_re.csv')
             self.write_csv(re_path, self.re_index)
 
-            vvi_file = os.path.join(path_index, "index_vi.json")
+            vvi_file = os.path.join(path_index, 'index_vi.json')
             if not os.path.exists(os.path.dirname(vvi_file)):
                 os.makedirs(os.path.dirname(vvi_file))
             with open(vvi_file, 'w') as fp:
@@ -804,7 +804,6 @@ class Curator:
                     entity_dict[metaval]['others'] = list()
                     self.merge_entities_in_csv(idslist, metaval, name, entity_dict, id_dict)
                     existing_ids = found_meta_ts[1]
-
                     for identifier in existing_ids:
                         if identifier[1] not in id_dict:
                             id_dict[identifier[1]] = identifier[0]
@@ -832,8 +831,7 @@ class Curator:
                         if identifier not in entity_dict[metaval]['ids']:
                             suspect_ids.append(identifier)
                     if suspect_ids:
-                        sparql_match = self.finder_sparql(suspect_ids, br=br_ent, ra=ra_ent, vvi=vvi_ent,
-                                                          publ=publ_entity)
+                        sparql_match = self.finder_sparql(suspect_ids, br=br_ent, ra=ra_ent, vvi=vvi_ent, publ=publ_entity)
                         if len(sparql_match) > 1:
                             # !
                             return self.conflict(idslist, name, id_dict, col_name)
@@ -848,8 +846,7 @@ class Curator:
                     if identifier not in entity_dict[metaval]['ids']:
                         suspect_ids.append(identifier)
                 if suspect_ids:
-                    sparql_match = self.finder_sparql(suspect_ids, br=br_ent, ra=ra_ent, vvi=vvi_ent,
-                                                      publ=publ_entity)
+                    sparql_match = self.finder_sparql(suspect_ids, br=br_ent, ra=ra_ent, vvi=vvi_ent, publ=publ_entity)
                     if sparql_match:
                         if 'wannabe' not in metaval or len(sparql_match) > 1:
                             # !
@@ -857,13 +854,13 @@ class Curator:
                         else:
                             existing_ids = sparql_match[0][2]
                             new_idslist = [x[1] for x in existing_ids]
-                            new_sparql_match = self.finder_sparql(new_idslist, br=br_ent, ra=ra_ent, vvi=vvi_ent,
-                                                                  publ=publ_entity)
-                            if len(new_sparql_match) > 1:
-                                # Due entità precedentemente scollegate sul ts ora diventano connesse
+                            new_sparql_match = self.finder_sparql(new_idslist, br=br_ent, ra=ra_ent, vvi=vvi_ent, publ=publ_entity)
+                            if len(new_sparql_match) > 1: # TODO mai testato
+                                # Two entities previously disconnected on the triplestore now become connected
                                 # !
                                 return self.conflict(idslist, name, id_dict, col_name)
                             else:
+                                # TODO mai testato
                                 # 4 Merge data from EntityA (CSV) with data from EntityX (CSV) (it has already happened), update both with data from EntityA (RDF)
                                 old_metaval = metaval
                                 metaval = sparql_match[0][0]
@@ -885,8 +882,7 @@ class Curator:
                 elif len(sparql_match) == 1:
                     existing_ids = sparql_match[0][2]
                     new_idslist = [x[1] for x in existing_ids]
-                    new_sparql_match = self.finder_sparql(new_idslist, br=br_ent, ra=ra_ent, vvi=vvi_ent,
-                                                          publ=publ_entity)
+                    new_sparql_match = self.finder_sparql(new_idslist, br=br_ent, ra=ra_ent, vvi=vvi_ent, publ=publ_entity)
                     if len(new_sparql_match) > 1:
                         # Due entità precedentemente scollegate sul ts ora diventano connesse
                         # !
@@ -911,18 +907,14 @@ class Curator:
                                 id_dict[identifier[1]] = identifier[0]
                             if identifier[1] not in entity_dict[metaval]['ids']:
                                 entity_dict[metaval]['ids'].append(identifier[1])
-
                 else:
                     # 1 EntityA is a new one
                     metaval = self.new_entity(entity_dict, name)
-
             for identifier in idslist:
                 if identifier not in id_dict:
                     self.__update_id_count(id_dict, identifier)
-
                 if identifier not in entity_dict[metaval]['ids']:
                     entity_dict[metaval]['ids'].append(identifier)
-
             if not entity_dict[metaval]['title'] and name:
                 entity_dict[metaval]['title'] = name
         # 1 EntityA is a new one

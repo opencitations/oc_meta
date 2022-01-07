@@ -130,6 +130,7 @@ class test_Curator(unittest.TestCase):
         expected_output = 1
         self.assertEqual(output, expected_output)
 
+
 class test_id_worker(unittest.TestCase):
     def test_id_worker_1(self):
         # 1 EntityA is a new one
