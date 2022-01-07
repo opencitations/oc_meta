@@ -33,7 +33,7 @@ class Curator:
         self.vvi = {}  # Venue, Volume, Issue
         self.idra = {}  # key id; value metaid of id related to ra
         self.idbr = {}  # key id; value metaid of id related to br
-        self.conflict_br = {}
+        self.conflict_br:Dict[str, Dict[str, list]] = {}
         self.conflict_ra = {}
 
         self.rameta = dict()
@@ -430,30 +430,30 @@ class Curator:
         id_list = list(filter(None, id_list))
         return id_list, metaid
 
-    def conflict(self, idslist, name, id_dict, col_name):
+    def conflict(self, idslist:List[str], name:str, id_dict:dict, col_name:str) -> str:
         if col_name == 'id' or col_name == 'venue':
             entity_dict = self.conflict_br
-            metaval = self.new_entity(entity_dict, name)
         elif col_name == 'author' or col_name == 'editor' or col_name == 'publisher':
             entity_dict = self.conflict_ra
-            metaval = self.new_entity(entity_dict, name)
+        metaval = self.new_entity(entity_dict, name)
         self.log[self.rowcnt][col_name]['Conflict Entity'] = metaval
         for identifier in idslist:
             entity_dict[metaval]['ids'].append(identifier)
             if identifier not in id_dict:
-                ids = identifier.split(':')
-                found_m = self.finder.retrieve_metaid_from_id(ids[0], ids[1])
-                if found_m:
-                    id_dict[identifier] = found_m
+                schema_value = identifier.split(':')
+                found_metaid = self.finder.retrieve_metaid_from_id(schema_value[0], schema_value[1])
+                if found_metaid:
+                    id_dict[identifier] = found_metaid
+                # Questo non viene mai eseguito by design
                 else:
-                    self.__update_id_count(id_dict, identifier) # Raggruppato codice ripetuto in una funzione
+                    self.__update_id_count(id_dict, identifier)
         return metaval
 
-    def finder_sparql(self, list2find, br=True, ra=False, vvi=False, publ=False):
+    def finder_sparql(self, list_to_find, br=True, ra=False, vvi=False, publ=False):
         match_elem = list()
         id_set = set()
         res = None
-        for elem in list2find:
+        for elem in list_to_find:
             if len(match_elem) < 2:
                 identifier = elem.split(':')
                 value = identifier[1]
@@ -914,7 +914,7 @@ class Curator:
                                     entity_dict[metaval]['title'] = entity_dict[old_metaval]['title']
                                 del entity_dict[old_metaval]
 
-                                self._update_title(entity_dict, metaval, name) # Raggruppato codice ripetuto in una funzione
+                                self._update_title(entity_dict, metaval, name)
 
                                 for identifier in existing_ids:
                                     if identifier[1] not in id_dict:
