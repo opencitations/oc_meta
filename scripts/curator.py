@@ -99,11 +99,19 @@ class Curator:
 
     # ID
     def clean_id(self, row:Dict[str,str]) -> None:
+        '''
+        This method iterates on all elements of the 'id' column to merge duplicates, 
+        identify conflicts and, finally, enrich and clean the fields related to id, 
+        title, venue, volume, issue, page, publication date and type.
+
+        :params row: a dictionary representing a CSV row
+        :type row: Dict[str, str]
+        :returns: None -- This method modifies the input CSV row without returning it.
+        '''
         if row['title']:
             name = Cleaner(row['title']).clean_title()
         else:
             name = ''
-
         if row['id']:
             if self.separator:
                 idslist = re.sub(r'\s*:\s*', ':', row['id']).split(self.separator)
@@ -112,11 +120,10 @@ class Curator:
             metaval = self.id_worker('id', name, idslist, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
         else:
             metaval = self.new_entity(self.brdict, name)
-
+        row['title'] = self.brdict[metaval]['title'] if metaval in self.brdict else self.conflict_br[metaval]['title']
         row['id'] = metaval
         if 'wannabe' not in metaval:
             self.equalizer(row, metaval)
-
         # page
         if row['page']:
             row['page'] = Cleaner(row['page'].strip()).normalize_hyphens()
@@ -125,7 +132,6 @@ class Curator:
             date = Cleaner(row['pub_date'].strip()).normalize_hyphens()
             date = Cleaner(date).clean_date()
             row['pub_date'] = date
-
         # type
         if row['type']:
             entity_type = ' '.join((row['type'].strip().lower()).split()).replace('\0', '')
@@ -1014,8 +1020,7 @@ class Curator:
                 other_rowcnt = 0
                 for other_row in self.data:
                     if other_row['id'] == row['id'] and partialcnt != other_rowcnt:
-                        fields_to_check = ['pub_date', 'page', 'type', 'venue', 'volume', 'issue'] # Semplificato codice ripetuto
-                        for field in fields_to_check:
+                        for field in ['pub_date', 'page', 'type', 'venue', 'volume', 'issue']:
                             if row[field] and row[field] != other_row[field]:
                                 if other_row[field]:
                                     self.log[other_rowcnt][field]['status'] = 'NEW VALUE PROPOSED'

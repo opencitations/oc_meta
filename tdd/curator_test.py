@@ -142,6 +142,14 @@ class test_Curator(unittest.TestCase):
             {'id': '', 'title': '', 'author': '', 'pub_date': '1972-12-01', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '106', 'issue': '6', 'page': '837-838', 'type': 'journal article', 'publisher': '', 'editor': ''}
         )
         self.assertEqual(output, expected_output)
+    
+    def test_clean_id(self):
+        curator = prepareCurator(list())
+        row = {'id': 'doi:10.1001/archderm.104.1.106', 'title': 'Multiple Blasto', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}
+        curator.log[0] = {'id': {}}
+        curator.clean_id(row)
+        expected_output = {'id': '3757', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}
+        self.assertEqual(row, expected_output)
 
 
 class test_id_worker(unittest.TestCase):
@@ -622,6 +630,7 @@ class testcase_13(unittest.TestCase):
         name = '13.3'
         partial_data = data[57:58]
         data_curated, testcase = prepare_to_test(partial_data, name)
+        # print(partial_data, '\n\n', data_curated, '\n\n', testcase)
         self.assertEqual(data_curated, testcase)
 
 

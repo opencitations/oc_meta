@@ -60,7 +60,7 @@ class Cleaner:
     def clean_title(self) -> str:
         '''
         Concerning titles of bibliographic resources ('venue' and 'title' columns), 
-        every word that comies a title is capitalized except for those that have capitals within them 
+        every word in the title is capitalized except for those that have capitals within them 
         (probably acronyms, e.g. 'FaBiO and CiTO'). This exception, however, does not include entirely capitalized titles. 
         Finally, null characters and spaces are removed.
 
