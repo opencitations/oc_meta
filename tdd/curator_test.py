@@ -206,6 +206,18 @@ class test_id_worker(unittest.TestCase):
         expected_output = ('3309', {}, {'3309': {'ids': ['crossref:10'], 'others': [], 'title': 'American Medical Association (ama)'}}, {}, {'crossref:10': '4274'}, {}, {}, {})
         self.assertEqual(output, expected_output)
 
+    def test_id_worker_3(self):
+        # 2 Retrieve EntityA data in triplestore to update EntityA inside CSV. MetaID on ts has precedence
+        curator = prepareCurator(list())
+        add_data_ts(SERVER, REAL_DATA_RDF)
+        name = 'American Medical Association (AMA)' # *(ama) on the ts. The name on the ts must prevail
+        # ID and MetaID, but it's meta:id/4274 on ts
+        idslist = ['crossref:10', 'meta:id/4275']
+        wannabe_id = curator.id_worker('editor', name, idslist, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
+        output = (wannabe_id, curator.brdict, curator.radict, curator.idbr, curator.idra, curator.conflict_br, curator.conflict_ra, curator.log)
+        expected_output = ('3309', {}, {'3309': {'ids': ['crossref:10'], 'others': [], 'title': 'American Medical Association (ama)'}}, {}, {'crossref:10': '4274'}, {}, {}, {})
+        self.assertEqual(output, expected_output)
+
     def test_id_worker_2_meta_in_entity_dict(self):
         # MetaID exists among data.
         # MetaID already in entity_dict (no care about conflicts, we have a MetaID specified)
@@ -389,8 +401,32 @@ class test_id_worker(unittest.TestCase):
         )
         self.assertEqual(output, expected_output)
 
+    def test_id_worker_4(self):
+        # 4 Merge data from EntityA (CSV) with data from EntityX (CSV), update both with data from EntityA (RDF)
+        add_data_ts()
+        br_dict = {
+            'wannabe_0': {'ids': ['doi:10.1001/archderm.104.1.106'], 'others': [], 'title': 'Multiple eloids'}, 
+            'wannabe_1': {'ids': ['doi:10.1001/archderm.104.1.106'], 'others': [], 'title': 'Multiple Blastoids'}, 
+        }
+        name = 'Multiple Palloids'
+        idslist = ['doi:10.1001/archderm.104.1.106', 'pmid:29098884']
+        curator = prepareCurator(list())
+        curator.brdict = br_dict
+        curator.wnb_cnt = 2
+        meta_id = curator.id_worker('id', name, idslist, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
+        output = (meta_id, curator.idbr, curator.idra, curator.conflict_br, curator.conflict_ra, curator.log)
+        expected_output = (
+            '3757', 
+            {'doi:10.1001/archderm.104.1.106': '3624', 'pmid:29098884': '2000000'}, 
+            {}, 
+            {}, 
+            {}, 
+            {}
+        )
+        self.assertEqual(output, expected_output)
+
     def test_id_worker_5(self):
-        # ID already exist in entity_dict but refer to multiple entities
+        # ID already exist in entity_dict and refer to one or more temporary entities -> collective merge
         reset_server()
         br_dict = {
             'wannabe_0': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'], 'others': [], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}, 
