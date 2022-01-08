@@ -12,19 +12,16 @@ from meta.scripts.cleaner import Cleaner
 class Curator:
 
     def __init__(self, data:List[dict], ts:str, info_dir:str, prefix:str='060', separator:str=None):
-
         self.finder = ResourceFinder(ts)
         self.separator = separator
         self.data = data
         self.prefix = prefix
-
         # Counter local paths
         self.br_info_path = info_dir + 'br.txt'
         self.id_info_path = info_dir + 'id.txt'
         self.ra_info_path = info_dir + 'ra.txt'
         self.ar_info_path = info_dir + 'ar.txt'
         self.re_info_path = info_dir + 're.txt'
-        
         self.brdict = {}
         self.radict = {}
         self.ardict = {}
@@ -33,17 +30,12 @@ class Curator:
         self.idbr = {}  # key id; value metaid of id related to br
         self.conflict_br:Dict[str, Dict[str, list]] = {}
         self.conflict_ra = {}
-
         self.rameta = dict()
         self.brmeta = dict()
         self.armeta = dict()
         self.remeta = dict()
-
-        # wannabe counter
-        self.wnb_cnt = 0
-
+        self.wnb_cnt = 0 # wannabe counter
         self.rowcnt = 0
-
         self.log = dict()
         self.new_sequence_list = list()
 
@@ -63,45 +55,39 @@ class Curator:
             }
             self.clean_id(row)
             self.rowcnt += 1
-
-        self.rowcnt -= 1
         self.check_equality()
-
         # reset row counter
         self.rowcnt = 0
         for row in self.data:
             self.clean_vvi(row)
             self.rowcnt += 1
-
         # reset row counter
         self.rowcnt = 0
-
         for row in self.data:
             self.clean_ra(row, 'author')
             self.clean_ra(row, 'publisher')
             self.clean_ra(row, 'editor')
             self.rowcnt += 1
-
         self.brdict.update(self.conflict_br)
         self.radict.update(self.conflict_ra)
         self.meta_maker()
         self.log = self.log_update()
         self.enrich()
-
         # remove duplicates
         self.data = list({v['id']: v for v in self.data}.values())
-
         if path_index:
             path_index = os.path.join(path_index, filename)
-
         self.filename = filename
         self.indexer(path_index, path_csv)
 
     # ID
     def clean_id(self, row:Dict[str,str]) -> None:
         '''
-        This method iterates on all elements of the 'id' column to merge duplicates, 
-        identify conflicts and, finally, enrich and clean the fields related to id, 
+        The 'clean id()' function is executed for each CSV row. 
+        In this process, any duplicates are detected by the IDs in the 'id' column. 
+        For each line, a wannabeID or, if the bibliographic resource was found in the triplestore, 
+        a MetaID is assigned.  
+        Finally, this method enrich and clean the fields related to the 
         title, venue, volume, issue, page, publication date and type.
 
         :params row: a dictionary representing a CSV row
@@ -159,30 +145,24 @@ class Curator:
                     idslist = re.sub(r'\s*:\s*', ':', venue_id).split(self.separator)
                 else:
                     idslist = re.split(r'\s+', re.sub(r'\s*:\s*', ':', venue_id))
-                metaval = self.id_worker('venue', name, idslist, ra_ent=False, br_ent=True, vvi_ent=True,
-                                         publ_entity=False)
-
+                metaval = self.id_worker('venue', name, idslist, ra_ent=False, br_ent=True, vvi_ent=True, publ_entity=False)
                 if metaval not in self.vvi:
                     ts_vvi = None
                     if 'wannabe' not in metaval:
                         ts_vvi = self.finder.retrieve_venue_from_meta(metaval)
-
                     if 'wannabe' in metaval or not ts_vvi:
                         self.vvi[metaval] = dict()
                         self.vvi[metaval]['volume'] = dict()
                         self.vvi[metaval]['issue'] = dict()
                     elif ts_vvi:
                         self.vvi[metaval] = ts_vvi
-
             else:
                 name = Cleaner(row['venue']).clean_title()
                 metaval = self.new_entity(self.brdict, name)
                 self.vvi[metaval] = dict()
                 self.vvi[metaval]['volume'] = dict()
                 self.vvi[metaval]['issue'] = dict()
-
             row['venue'] = metaval
-
         # VOLUME
             if row['volume'] and (row['type'] == 'journal issue' or row['type'] == 'journal article'):
                 vol = row['volume'].strip().replace('\0', '')
@@ -194,14 +174,12 @@ class Curator:
                     self.vvi[metaval]['volume'][vol] = dict()
                     self.vvi[metaval]['volume'][vol]['id'] = vol_meta
                     self.vvi[metaval]['volume'][vol]['issue'] = dict()
-
             elif row['volume'] and row['type'] == 'journal volume':
                 vol = row['volume'].strip().replace('\0', '')
                 row['volume'] = ''
                 row['issue'] = ''
                 vol_meta = row['id']
                 self.volume_issue(vol_meta, self.vvi[metaval]['volume'], vol, row)
-
             # ISSUE
             if row['issue'] and row['type'] == 'journal article':
                 issue = row['issue'].strip().replace('\0', '')
@@ -212,14 +190,12 @@ class Curator:
                         issue_meta = self.new_entity(self.brdict, '')
                         self.vvi[metaval]['volume'][vol]['issue'][issue] = dict()
                         self.vvi[metaval]['volume'][vol]['issue'][issue]['id'] = issue_meta
-
                 else:
                     # issue inside venue (without volume)
                     if issue not in self.vvi[metaval]['issue']:
                         issue_meta = self.new_entity(self.brdict, '')
                         self.vvi[metaval]['issue'][issue] = dict()
                         self.vvi[metaval]['issue'][issue]['id'] = issue_meta
-
             elif row['issue'] and row['type'] == 'journal issue':
                 issue = row['issue'].strip().replace('\0', '')
                 row['issue'] = ''
@@ -935,7 +911,6 @@ class Curator:
         entity_dict[metaval]['ids'] = list()
         entity_dict[metaval]['others'] = list()
         entity_dict[metaval]['title'] = name
-
         return metaval
 
     def volume_issue(self, meta, path, value, row):
@@ -1008,25 +983,32 @@ class Curator:
                 new_log[x]['id']['meta'] = met
         return new_log
 
-    def check_equality(self):
-        partialcnt = 0
+    def check_equality(self) -> None:
+        '''
+        The 'check equality()' function merge duplicate entities. 
+        Moreover, it modifies the CSV cells, giving precedence to the first found information 
+        or data in the triplestore in the case of already existing entities. 
+
+        :returns: None -- This method updates the CSV rows and returns None.
+        '''
+        self.rowcnt = 0
         for row in self.data:
             if 'wannabe' in row['id']:
-                for i in self.brdict:
-                    if row['id'] in self.brdict[i]['others'] and 'wannabe' not in i:
-                        row['id'] = i
-                        self.equalizer(row, i)
-                        return
+                for id in self.brdict:
+                    if row['id'] in self.brdict[id]['others'] and 'wannabe' not in id:
+                        row['id'] = id
+                        self.equalizer(row, id)
+                        break
                 other_rowcnt = 0
                 for other_row in self.data:
-                    if other_row['id'] == row['id'] and partialcnt != other_rowcnt:
+                    if other_row['id'] == row['id'] and self.rowcnt != other_rowcnt: # if it is another row
                         for field in ['pub_date', 'page', 'type', 'venue', 'volume', 'issue']:
                             if row[field] and row[field] != other_row[field]:
                                 if other_row[field]:
                                     self.log[other_rowcnt][field]['status'] = 'NEW VALUE PROPOSED'
                                 other_row[field] = row[field]
                     other_rowcnt += 1
-            partialcnt += 1
+            self.rowcnt += 1
 
     def equalizer(self, row:Dict[str, str], metaval:str) -> None:
         '''

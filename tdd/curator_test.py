@@ -150,6 +150,43 @@ class test_Curator(unittest.TestCase):
         curator.clean_id(row)
         expected_output = {'id': '3757', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}
         self.assertEqual(row, expected_output)
+    
+    def test_check_equality(self):
+        data = [
+            {'id': '3757', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''},
+            {'id': 'wannabe_0', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-02', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''},
+            {'id': 'wannabe_0', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-03', 'venue': 'Archives Of Blast [meta:br/4416]', 'volume': '105', 'issue': '2', 'page': '106-108', 'type': 'journal volume', 'publisher': '', 'editor': ''},
+        ]
+        curator = prepareCurator(list())
+        curator.data = data
+        for i in range(3):
+            curator.log[i] = {
+                'id': {},
+                'author': {},
+                'venue': {},
+                'editor': {},
+                'publisher': {},
+                'page': {},
+                'volume': {},
+                'issue': {},
+                'pub_date': {},
+                'type': {}
+            }
+        curator.brdict = {'3757': {'ids': ['doi:10.1001/archderm.104.1.106', 'pmid:29098884'], 'title': 'Multiple Keloids', 'others': ['wannabe_0']}}
+        curator.check_equality()
+        expected_output = (
+            [
+                {'id': '3757', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}, 
+                {'id': '3757', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''},
+                {'id': '3757', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}
+            ],
+            {
+                0: {'id': {}, 'author': {}, 'venue': {}, 'editor': {}, 'publisher': {}, 'page': {}, 'volume': {}, 'issue': {}, 'pub_date': {}, 'type': {}}, 
+                1: {'id': {'status': 'ENTITY ALREADY EXISTS'}, 'author': {}, 'venue': {}, 'editor': {}, 'publisher': {}, 'page': {}, 'volume': {}, 'issue': {}, 'pub_date': {}, 'type': {}}, 
+                2: {'id': {'status': 'ENTITY ALREADY EXISTS'}, 'author': {}, 'venue': {}, 'editor': {}, 'publisher': {}, 'page': {}, 'volume': {}, 'issue': {}, 'pub_date': {}, 'type': {}}
+            }
+        )
+        self.assertEqual((curator.data, curator.log), expected_output)
 
 
 class test_id_worker(unittest.TestCase):
