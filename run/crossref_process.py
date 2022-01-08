@@ -12,9 +12,7 @@ def preprocess(crossref_json_dir:str, orcid_doi_filepath:str, csv_dir:str, wante
             log += ' and wanted DOIs CSV'
         print(log)
     crossref_csv = crossrefProcessing(orcid_doi_filepath, wanted_doi_filepath)
-    print(1)
     all_files, targz_fd = get_all_files(crossref_json_dir)
-    print(2)
     if verbose:
         pbar = tqdm(total=len(all_files))
     for idx, file in enumerate(all_files):

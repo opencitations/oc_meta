@@ -1023,7 +1023,16 @@ class Curator:
                     other_rowcnt += 1
             partialcnt += 1
 
-    def equalizer(self, row, metaval):
+    def equalizer(self, row:Dict[str, str], metaval:str) -> None:
+        '''
+        Given a CSV row and its MetaID, this function equates the information present in the CSV with that present on the triplestore.
+
+        :params row: a dictionary representing a CSV row
+        :type row: Dict[str, str]
+        :params metaval: the MetaID identifying the bibliographic resource contained in the input CSV row
+        :type metaval: str
+        :returns: None -- This method modifies the input CSV row without returning it.
+        '''
         self.log[self.rowcnt]['id']['status'] = 'ENTITY ALREADY EXISTS'
         known_data = self.finder.retrieve_br_info_from_meta(metaval)
         row['venue'] = known_data['venue']

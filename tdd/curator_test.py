@@ -129,6 +129,19 @@ class test_Curator(unittest.TestCase):
         output = Curator._add_number(input)
         expected_output = 1
         self.assertEqual(output, expected_output)
+    
+    def test_equalizer(self):
+        add_data_ts()
+        curator = prepareCurator(list())
+        row = {'id': '', 'title': '', 'author': '', 'pub_date': '1972-12-01', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}
+        curator.log[0] = {'id': {}}
+        curator.equalizer(row, '4125')
+        output = (curator.log, row)
+        expected_output = (
+            {0: {'id': {'status': 'ENTITY ALREADY EXISTS'}}}, 
+            {'id': '', 'title': '', 'author': '', 'pub_date': '1972-12-01', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '106', 'issue': '6', 'page': '837-838', 'type': 'journal article', 'publisher': '', 'editor': ''}
+        )
+        self.assertEqual(output, expected_output)
 
 
 class test_id_worker(unittest.TestCase):
