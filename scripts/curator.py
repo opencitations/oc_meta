@@ -21,8 +21,8 @@ class Curator:
         self.ar_info_path = info_dir + 'ar.txt'
         self.re_info_path = info_dir + 're.txt'
         self.brdict = {}
-        self.radict = {}
-        self.ardict = {}
+        self.radict:Dict[str, Dict[str, list]] = {}
+        self.ardict:Dict[str, Dict[str, list]] = {}
         self.vvi = {}  # Venue, Volume, Issue
         self.idra = {}  # key id; value metaid of id related to ra
         self.idbr = {}  # key id; value metaid of id related to br
@@ -252,15 +252,24 @@ class Curator:
 
     # RA
     def clean_ra(self, row, col_name):
+        '''
+        This method performs the deduplication process for responsible agents (authors, publishers and editors).
+
+        :params row: a dictionary representing a CSV row
+        :type row: Dict[str, str]
+        :params col_name: the CSV column name. It can be 'author', 'publisher', or 'editor'
+        :type col_name: str
+        :returns: None -- This method modifies self.ardict, self.radict, and self.idra, and returns None.
+        '''
         if row[col_name]:
             # split authors by ';' outside '[]' (any spaces before and after ';')
             ra_list = re.split(r'\s*;\s*(?=[^]]*(?:\[|$))', row[col_name])
             if row['id'] in self.brdict:
                 br_metaval = row['id']
             else:
-                for x in self.brdict:
-                    if row['id'] in self.brdict[x]['others']:
-                        br_metaval = x
+                for id in self.brdict:
+                    if row['id'] in self.brdict[id]['others']:
+                        br_metaval = id
                         break
             if br_metaval not in self.ardict or not self.ardict[br_metaval][col_name]:
                 # new sequence
@@ -276,20 +285,23 @@ class Curator:
                     sequence_found = self.finder.retrieve_ra_sequence_from_br_meta(br_metaval, col_name)
                     if sequence_found:
                         sequence = []
-                        for x in sequence_found:
-                            for k in x:
-                                sequence.append(tuple((k, x[k][2])))
-                                if x[k][2] not in self.radict:
-                                    self.radict[x[k][2]] = dict()
-                                    self.radict[x[k][2]]['ids'] = list()
-                                    self.radict[x[k][2]]['others'] = list()
-                                    self.radict[x[k][2]]['title'] = x[k][0]
-                                for i in x[k][1]:
+                        for agent in sequence_found:
+                            for ar_metaid in agent:
+                                ra_metaid = agent[ar_metaid][2]
+                                sequence.append(tuple((ar_metaid, ra_metaid)))
+                                if ra_metaid not in self.radict:
+                                    self.radict[ra_metaid] = dict()
+                                    self.radict[ra_metaid]['ids'] = list()
+                                    self.radict[ra_metaid]['others'] = list()
+                                    self.radict[ra_metaid]['title'] = agent[ar_metaid][0]
+                                for identifier in agent[ar_metaid][1]:
                                     # other ids after meta
-                                    if i[0] not in self.idra:
-                                        self.idra[i[1]] = i[0]
-                                    if i[1] not in self.radict[x[k][2]]['ids']:
-                                        self.radict[x[k][2]]['ids'].append(i[1])
+                                    id_metaid = identifier[0]
+                                    literal = identifier[1]
+                                    if id_metaid not in self.idra:
+                                        self.idra[literal] = id_metaid
+                                    if literal not in self.radict[ra_metaid]['ids']:
+                                        self.radict[ra_metaid]['ids'].append(literal)
 
                         if br_metaval not in self.ardict:
                             self.ardict[br_metaval] = dict()
@@ -309,85 +321,76 @@ class Curator:
                         sequence = []
             else:
                 sequence = self.ardict[br_metaval][col_name]
-
             new_sequence = list()
             change_order = False
             for pos, ra in enumerate(ra_list):
                 new_elem_seq = True
                 # takes string inside '[]' ignoring any space between (ex: [ TARGET  ] --> TARGET
-                ra_id = re.search(r'\[\s*(.*?)\s*]', ra)
+                ra_id = re.search(r'\[\s*(.*?)\s*\]', ra)
                 if ra_id:
                     ra_id = ra_id.group(1)
-                    name = Cleaner(re.search(r'\s*(.*?)\s*\[.*?]', ra).group(1)).clean_name()
+                    name = Cleaner(re.search(r'\s*(.*?)\s*\[.*?\]', ra).group(1)).clean_name()
                 else:
                     name = Cleaner(ra).clean_name()
-
                 if not ra_id and sequence:
-                    for x, k in sequence:
-                        if self.radict[k]['title'] == name:
-                            ra_id = 'meta:ra/' + str(k)
+                    for _, ra_metaid in sequence:
+                        if self.radict[ra_metaid]['title'] == name:
+                            ra_id = 'meta:ra/' + str(ra_metaid)
                             new_elem_seq = False
                             break
                 if ra_id:
-                    # ra_id = ra_id.group(1)
                     if self.separator:
                         ra_id_list = re.sub(r'\s*:\s*', ':', ra_id).split(self.separator)
                     else:
                         ra_id_list = re.split(r'\s+', re.sub(r'\s*:\s*', ':', ra_id))
-
                     if sequence:
-                        kv = None
+                        ar_ra = None
                         for ps, el in enumerate(sequence):
-                            k = el[1]
-                            for i in ra_id_list:
-                                if i in self.radict[k]['ids']:
+                            ra_metaid = el[1]
+                            for literal in ra_id_list:
+                                if literal in self.radict[ra_metaid]['ids']:
                                     if ps != pos:
                                         change_order = True
                                     new_elem_seq = False
-                                    if 'wannabe' not in k:
-                                        kv = k
-                                        for pos, i in enumerate(ra_id_list):
-                                            if 'meta' in i:
+                                    if 'wannabe' not in ra_metaid:
+                                        ar_ra = ra_metaid
+                                        for pos, literal_value in enumerate(ra_id_list):
+                                            if 'meta' in literal_value:
                                                 ra_id_list[pos] = ''
                                             break
                                         ra_id_list = list(filter(None, ra_id_list))
-                                        ra_id_list.append('meta:ra/' + kv)
-                        if not kv:
+                                        ra_id_list.append('meta:ra/' + ar_ra)
+                        if not ar_ra:
                             # new element
-                            for x, k in sequence:
-                                if self.radict[k]['title'] == name:
+                            for ar_metaid, ra_metaid in sequence:
+                                if self.radict[ra_metaid]['title'] == name:
                                     new_elem_seq = False
-                                    if 'wannabe' not in k:
-                                        kv = k
+                                    if 'wannabe' not in ra_metaid:
+                                        ar_ra = ra_metaid
                                         for pos, i in enumerate(ra_id_list):
                                             if 'meta' in i:
                                                 ra_id_list[pos] = ''
                                             break
                                         ra_id_list = list(filter(None, ra_id_list))
-                                        ra_id_list.append('meta:ra/' + kv)
-
+                                        ra_id_list.append('meta:ra/' + ar_ra)
                     if col_name == 'publisher':
-                        metaval = self.id_worker('publisher', name, ra_id_list, ra_ent=True, br_ent=False,
-                                                 vvi_ent=False, publ_entity=True)
+                        metaval = self.id_worker('publisher', name, ra_id_list, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
                     else:
-                        metaval = self.id_worker(col_name, name, ra_id_list, ra_ent=True, br_ent=False, vvi_ent=False,
-                                                 publ_entity=False)
+                        metaval = self.id_worker(col_name, name, ra_id_list, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=False)
                     if col_name != 'publisher' and metaval in self.radict:
-                        actual_name = self.radict[metaval]['title']
-                        if not actual_name.split(',')[1].strip() and name.split(',')[1].strip():  # first name found!
-                            srnm = actual_name.split(',')[0]
-                            nm = name.split(',')[1]
-                            self.radict[metaval]['title'] = srnm + ', ' + nm
+                        full_name:str = self.radict[metaval]['title']
+                        first_name = name.split(',')[1].strip()
+                        if not full_name.split(',')[1].strip() and first_name:  # first name found!
+                            given_name = full_name.split(',')[0]
+                            self.radict[metaval]['title'] = given_name + ', ' + first_name
                 else:
                     metaval = self.new_entity(self.radict, name)
                 if new_elem_seq:
-                    added_element = True
                     role = self.prefix + str(self._add_number(self.ar_info_path))
                     new_sequence.append(tuple((role, metaval)))
                     self.new_sequence_list.append(tuple((self.rowcnt, role,  metaval)))
             if change_order:
                 self.log[self.rowcnt][col_name]['Info'] = 'Proposed new RA sequence: REFUSED'
-
             sequence.extend(new_sequence)
             self.ardict[br_metaval][col_name] = sequence
 

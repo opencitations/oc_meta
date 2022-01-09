@@ -247,6 +247,41 @@ class test_Curator(unittest.TestCase):
     #     row = {'id': 'wannabe_0', 'title': 'Title1', 'author': 'Surname1, Name1 [orcid:0000-0001]', 'pub_date': '', 'venue': '060301', 'volume': '', 'issue': '', 'page': '266-278', 'type': 'journal volume', 'publisher': 'pub1 [crossref:1111]', 'editor': ''}
     #     curator.volume_issue(meta, path, value, row)
 
+    def test_clean_ra_with_br_metaid(self):
+        add_data_ts()
+        # One author is in the triplestore, the other is not. 
+        # br_metaval is a MetaID
+        # There are two ids for one author
+        row = {'id': '3757', 'title': 'Multiple Keloids', 'author': 'Curth, W.; McSorley, J. [orcid:0000-0002-8420-0698 schema:12345]', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}
+        curator = prepareCurator(list())
+        curator.brdict = {'3757': {'ids': ['doi:10.1001/archderm.104.1.106'], 'title': 'Multiple Keloids', 'others': []}}
+        curator.clean_ra(row, 'author')
+        output = (curator.ardict, curator.radict, curator.idra)
+        expected_output = (
+            {'3757': {'author': [('9445', '6033'), ('0601', 'wannabe_0')], 'editor': [], 'publisher': []}}, 
+            {'6033': {'ids': [], 'others': [], 'title': 'Curth, W.'}, 'wannabe_0': {'ids': ['orcid:0000-0002-8420-0698', 'schema:12345'], 'others': [], 'title': 'Mcsorley, J.'}}, 
+            {'orcid:0000-0002-8420-0698': '0601', 'schema:12345': '0602'}
+        )
+        self.assertEqual(output, expected_output)
+
+    def test_clean_ra_with_br_wannabe(self):
+        add_data_ts()
+        # Authors not on the triplestore. 
+        # br_metaval is a wannabe
+        row = {'id': 'wannabe_0', 'title': 'Multiple Keloids', 'author': 'Curth, W. [orcid:0000-0002-8420-0697] ; McSorley, J. [orcid:0000-0002-8420-0698]', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}
+        curator = prepareCurator(list())
+        curator.brdict = {'wannabe_0': {'ids': ['doi:10.1001/archderm.104.1.106'], 'title': 'Multiple Keloids', 'others': []}}
+        curator.wnb_cnt = 1
+        curator.clean_ra(row, 'author')
+        output = (curator.ardict, curator.radict, curator.idra)
+        expected_output = (
+            {'wannabe_0': {'author': [('0601', 'wannabe_1'), ('0602', 'wannabe_2')], 'editor': [], 'publisher': []}}, 
+            {'wannabe_1': {'ids': ['orcid:0000-0002-8420-0697'], 'others': [], 'title': 'Curth, W.'}, 'wannabe_2': {'ids': ['orcid:0000-0002-8420-0698'], 'others': [], 'title': 'Mcsorley, J.'}}, 
+            {'orcid:0000-0002-8420-0697': '0601', 'orcid:0000-0002-8420-0698': '0602'}
+        )
+        self.assertEqual(output, expected_output)
+
+
 class test_id_worker(unittest.TestCase):
     def test_id_worker_1(self):
         # 1 EntityA is a new one
@@ -813,7 +848,6 @@ class testcase_15(unittest.TestCase):
         name = '15.6'
         data = data_collect(MANUAL_DATA_CSV)
         partial_data = data[72:73]
-        print(partial_data)
         data_curated, testcase = prepare_to_test(partial_data, name)
         self.assertEqual(data_curated, testcase)
 

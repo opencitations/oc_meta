@@ -350,7 +350,7 @@ class ResourceFinder:
                 content[title]['id'] = item['res']['value'].replace('https://w3id.org/oc/meta/br/', '')
         return content
     
-    def retrieve_ra_sequence_from_br_meta(self, metaid:str, col_name:str) -> List[Tuple[str, tuple, str]]:
+    def retrieve_ra_sequence_from_br_meta(self, metaid:str, col_name:str) -> List[Tuple[str, list, str]]:
         '''
         Given a bibliographic resource's MetaID and a field name, it returns its agent roles and responsible agents in the correct order according to the specified field.
         The output has the following format: ::
