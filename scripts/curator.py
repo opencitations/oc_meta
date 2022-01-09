@@ -3,8 +3,6 @@ import csv
 import re
 import os
 import json
-from dateutil.parser import parse
-from datetime import datetime
 from meta.lib.finder import *
 from meta.scripts.cleaner import Cleaner
 
@@ -134,12 +132,55 @@ class Curator:
                 row['type'] = ''
 
     # VVI
-    def clean_vvi(self, row:Dict[str, str]):
+    def clean_vvi(self, row:Dict[str, str]) -> None:
+        '''
+        This method performs the deduplication process for venues, volumes and issues.
+        The acquired information is stored in the 'vvi' dictionary, that has the following format: ::
+
+            {
+                VENUE_IDENTIFIER: {
+                    'issue': {SEQUENCE_IDENTIFIER: {'id': META_ID}},
+                    'volume': {
+                        SEQUENCE_IDENTIFIER: {
+                            'id': META_ID,
+                            'issue' {SEQUENCE_IDENTIFIER: {'id': META_ID}}
+                        }
+                    }
+                }
+            }
+
+            {
+                '4416': {
+                    'issue': {}, 
+                    'volume': {
+                        '166': {'id': '4388', 'issue': {'4': {'id': '4389'}}}, 
+                        '172': {'id': '4434', 
+                            'issue': {
+                                '22': {'id': '4435'}, 
+                                '20': {'id': '4436'}, 
+                                '21': {'id': '4437'}, 
+                                '19': {'id': '4438'}
+                            }
+                        }
+                    }
+                }
+            }   
+
+        :params row: a dictionary representing a CSV row
+        :type row: Dict[str, str]
+        :returns: None -- This method modifies the input CSV row without returning it.
+        '''
         vol_meta = None
-        if row['venue']:
-            venue_id = re.search(r'\[\s*(.*?)\s*]', row['venue'])
+        id = row['id']
+        venue = row['venue']
+        volume = row['volume']
+        issue = row['issue']
+        type = row['type']
+        # Venue
+        if venue:
+            venue_id = re.search(r'\[\s*(.*?)\s*\]', venue)
             if venue_id:
-                name = Cleaner(re.search(r'(.*?)\s*\[.*?]', row['venue']).group(1)).clean_title()
+                name = Cleaner(re.search(r'(.*?)\s*\[.*?\]', venue).group(1)).clean_title()
                 venue_id = venue_id.group(1)
                 if self.separator:
                     idslist = re.sub(r'\s*:\s*', ':', venue_id).split(self.separator)
@@ -157,51 +198,51 @@ class Curator:
                     elif ts_vvi:
                         self.vvi[metaval] = ts_vvi
             else:
-                name = Cleaner(row['venue']).clean_title()
+                name = Cleaner(venue).clean_title()
                 metaval = self.new_entity(self.brdict, name)
                 self.vvi[metaval] = dict()
                 self.vvi[metaval]['volume'] = dict()
                 self.vvi[metaval]['issue'] = dict()
             row['venue'] = metaval
-        # VOLUME
-            if row['volume'] and (row['type'] == 'journal issue' or row['type'] == 'journal article'):
-                vol = row['volume'].strip().replace('\0', '')
-                row['volume'] = vol
-                if vol in self.vvi[metaval]['volume']:
-                    vol_meta = self.vvi[metaval]['volume'][vol]['id']
+            # Volume
+            if volume and (type == 'journal issue' or type == 'journal article'):
+                volume = volume.strip().replace('\0', '')
+                row['volume'] = volume
+                if volume in self.vvi[metaval]['volume']:
+                    vol_meta = self.vvi[metaval]['volume'][volume]['id']
                 else:
                     vol_meta = self.new_entity(self.brdict, '')
-                    self.vvi[metaval]['volume'][vol] = dict()
-                    self.vvi[metaval]['volume'][vol]['id'] = vol_meta
-                    self.vvi[metaval]['volume'][vol]['issue'] = dict()
-            elif row['volume'] and row['type'] == 'journal volume':
-                vol = row['volume'].strip().replace('\0', '')
+                    self.vvi[metaval]['volume'][volume] = dict()
+                    self.vvi[metaval]['volume'][volume]['id'] = vol_meta
+                    self.vvi[metaval]['volume'][volume]['issue'] = dict()
+            elif volume and type == 'journal volume':
+                volume = volume.strip().replace('\0', '')
                 row['volume'] = ''
                 row['issue'] = ''
-                vol_meta = row['id']
-                self.volume_issue(vol_meta, self.vvi[metaval]['volume'], vol, row)
-            # ISSUE
-            if row['issue'] and row['type'] == 'journal article':
-                issue = row['issue'].strip().replace('\0', '')
+                vol_meta = id
+                self.volume_issue(vol_meta, self.vvi[metaval]['volume'], volume, row)
+            # Issue
+            if issue and type == 'journal article':
+                issue = issue.strip().replace('\0', '')
                 row['issue'] = issue
                 if vol_meta:
-                    # issue inside vol
-                    if issue not in self.vvi[metaval]['volume'][vol]['issue']:
+                    # issue inside volume
+                    if issue not in self.vvi[metaval]['volume'][volume]['issue']:
                         issue_meta = self.new_entity(self.brdict, '')
-                        self.vvi[metaval]['volume'][vol]['issue'][issue] = dict()
-                        self.vvi[metaval]['volume'][vol]['issue'][issue]['id'] = issue_meta
+                        self.vvi[metaval]['volume'][volume]['issue'][issue] = dict()
+                        self.vvi[metaval]['volume'][volume]['issue'][issue]['id'] = issue_meta
                 else:
                     # issue inside venue (without volume)
                     if issue not in self.vvi[metaval]['issue']:
                         issue_meta = self.new_entity(self.brdict, '')
                         self.vvi[metaval]['issue'][issue] = dict()
                         self.vvi[metaval]['issue'][issue]['id'] = issue_meta
-            elif row['issue'] and row['type'] == 'journal issue':
-                issue = row['issue'].strip().replace('\0', '')
+            elif issue and type == 'journal issue':
+                issue = issue.strip().replace('\0', '')
                 row['issue'] = ''
-                issue_meta = row['id']
+                issue_meta = id
                 if vol_meta:
-                    self.volume_issue(issue_meta, self.vvi[metaval]['volume'][vol]['issue'], issue, row)
+                    self.volume_issue(issue_meta, self.vvi[metaval]['volume'][volume]['issue'], issue, row)
                 else:
                     self.volume_issue(issue_meta, self.vvi[metaval]['issue'], issue, row)
         else:
@@ -913,7 +954,7 @@ class Curator:
         entity_dict[metaval]['title'] = name
         return metaval
 
-    def volume_issue(self, meta, path, value, row):
+    def volume_issue(self, meta:str, path:Dict[str, Dict[str, str]], value:str, row:Dict[str, str]) -> None:
         if 'wannabe' not in meta:
             if value in path:
                 if 'wannabe' in path[value]['id']:

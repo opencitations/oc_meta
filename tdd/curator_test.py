@@ -188,6 +188,64 @@ class test_Curator(unittest.TestCase):
         )
         self.assertEqual((curator.data, curator.log), expected_output)
 
+    def test_clean_vvi_all_data_on_ts(self):
+        # All data are already on the triplestore. They need to be retrieved and organized correctly
+        add_data_ts()
+        row = {'id': '3757', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}
+        curator = prepareCurator(list())
+        curator.clean_vvi(row)
+        expected_output = {
+            '4416': {
+                'issue': {}, 
+                'volume': {
+                    '107': {'id': '4733', 'issue': {'1': {'id': '4734'}, '2': {'id': '4735'}, '3': {'id': '4736'}, '4': {'id': '4737'}, '5': {'id': '4738'}, '6': {'id': '4739'}}}, 
+                    '108': {'id': '4740', 'issue': {'1': {'id': '4741'}, '2': {'id': '4742'}, '3': {'id': '4743'}, '4': {'id': '4744'}}}, 
+                    '104': {'id': '4712', 'issue': {'1': {'id': '4713'}, '2': {'id': '4714'}, '3': {'id': '4715'}, '4': {'id': '4716'}, '5': {'id': '4717'}, '6': {'id': '4718'}}}, 
+                    '148': {'id': '4417', 'issue': {'12': {'id': '4418'}, '11': {'id': '4419'}}}, 
+                    '100': {'id': '4684', 'issue': {'1': {'id': '4685'}, '2': {'id': '4686'}, '3': {'id': '4687'}, '4': {'id': '4688'}, '5': {'id': '4689'}, '6': {'id': '4690'}}}, 
+                    '101': {'id': '4691', 'issue': {'1': {'id': '4692'}, '2': {'id': '4693'}, '3': {'id': '4694'}, '4': {'id': '4695'}, '5': {'id': '4696'}, '6': {'id': '4697'}}}, 
+                    '102': {'id': '4698', 'issue': {'1': {'id': '4699'}, '2': {'id': '4700'}, '3': {'id': '4701'}, '4': {'id': '4702'}, '5': {'id': '4703'}, '6': {'id': '4704'}}}, 
+                    '103': {'id': '4705', 'issue': {'1': {'id': '4706'}, '2': {'id': '4707'}, '3': {'id': '4708'}, '4': {'id': '4709'}, '5': {'id': '4710'}, '6': {'id': '4711'}}}, 
+                    '105': {'id': '4719', 'issue': {'1': {'id': '4720'}, '2': {'id': '4721'}, '3': {'id': '4722'}, '4': {'id': '4723'}, '5': {'id': '4724'}, '6': {'id': '4725'}}}, 
+                    '106': {'id': '4726', 'issue': {'6': {'id': '4732'}, '1': {'id': '4727'}, '2': {'id': '4728'}, '3': {'id': '4729'}, '4': {'id': '4730'}, '5': {'id': '4731'}}}
+                }
+            }
+        }
+        self.assertEqual(curator.vvi, expected_output)
+
+    def test_clean_vvi_new_venue(self):
+        # It is a new venue
+        add_data_ts()
+        row = {'id': 'wannabe_1', 'title': 'Money growth, interest rates, inflation and raw materials prices: China', 'author': '', 'pub_date': '2011-11-28', 'venue': 'OECD Economic Outlook', 'volume': '2011', 'issue': '2', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}
+        curator = prepareCurator(list())
+        curator.clean_vvi(row)
+        expected_output = {'wannabe_0': {'volume': {'2011': {'id': 'wannabe_1', 'issue': {'2': {'id': 'wannabe_2'}}}}, 'issue': {}}}
+        self.assertEqual(curator.vvi, expected_output)
+
+    def test_clean_vvi_new_volume_and_issue(self):
+        # There are a new volume and a new issue
+        add_data_ts()
+        row = {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': 'Archives Of Surgery [meta:br/4480]', 'volume': '99', 'issue': '1', 'page': '', 'type': 'journal article', 'publisher': '', 'editor': ''}
+        curator = prepareCurator(list())
+        curator.clean_vvi(row)
+        expected_output = {
+            '4480': {
+                'issue': {}, 
+                'volume': {
+                    '147': {'id': '4481', 'issue': {'11': {'id': '4482'}, '12': {'id': '4487'}}}, 
+                    '99': {'id': 'wannabe_0', 'issue': {'1': {'id': 'wannabe_1'}}}
+                }
+            }
+        }
+        self.assertEqual(curator.vvi, expected_output)
+
+    # def test_volume_issue(self):
+    #     curator = prepareCurator(list())
+    #     meta = 'wannabe_0' 
+    #     path = {'1': {'id': '060310', 'issue': {'5-6': {'id': '060300'}}}} 
+    #     value = '1' 
+    #     row = {'id': 'wannabe_0', 'title': 'Title1', 'author': 'Surname1, Name1 [orcid:0000-0001]', 'pub_date': '', 'venue': '060301', 'volume': '', 'issue': '', 'page': '266-278', 'type': 'journal volume', 'publisher': 'pub1 [crossref:1111]', 'editor': ''}
+    #     curator.volume_issue(meta, path, value, row)
 
 class test_id_worker(unittest.TestCase):
     def test_id_worker_1(self):
@@ -667,7 +725,6 @@ class testcase_13(unittest.TestCase):
         name = '13.3'
         partial_data = data[57:58]
         data_curated, testcase = prepare_to_test(partial_data, name)
-        # print(partial_data, '\n\n', data_curated, '\n\n', testcase)
         self.assertEqual(data_curated, testcase)
 
 
@@ -756,6 +813,7 @@ class testcase_15(unittest.TestCase):
         name = '15.6'
         data = data_collect(MANUAL_DATA_CSV)
         partial_data = data[72:73]
+        print(partial_data)
         data_curated, testcase = prepare_to_test(partial_data, name)
         self.assertEqual(data_curated, testcase)
 
