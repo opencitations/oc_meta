@@ -12,7 +12,7 @@ class Index_orcid_doi:
         self.threshold = 10000 if not threshold else int(threshold)
         self.verbose = verbose
         if self.verbose:
-            print("[INFO:CSVManager] Loading existing csv file")
+            print("[INFO: CSVManager] Loading existing csv file")
         self.doimanager = DOIManager(use_api_service=False)
         self.csvstorage = CSVManager(output_path=output_path, line_threshold=threshold, low_memory=low_memory)
         # ORCIDs are extracted to skip the corresponding files at the first reading of an existing CSV.
@@ -20,7 +20,7 @@ class Index_orcid_doi:
     
     def explorer(self, summaries_path:str) -> None:
         if self.verbose:
-            print("[INFO:Index_orcid_doi] Counting files to process")
+            print("[INFO: Index_orcid_doi] Counting files to process")
         files_to_process = [os.path.join(fold,file) for fold, _, files in os.walk(summaries_path) for file in files if file.replace('.xml', '') not in self.cache]
         processed_files = len(self.cache)
         del self.cache

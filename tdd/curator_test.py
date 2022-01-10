@@ -280,7 +280,21 @@ class test_Curator(unittest.TestCase):
             {'orcid:0000-0002-8420-0697': '0601', 'orcid:0000-0002-8420-0698': '0602'}
         )
         self.assertEqual(output, expected_output)
-
+    
+    def test_meta_maker(self):
+        curator = prepareCurator(list())
+        curator.brdict = {'3757': {'ids': ['doi:10.1001/archderm.104.1.106', 'pmid:29098884'], 'title': 'Multiple Keloids', 'others': []}, '4416': {'ids': ['issn:0003-987X'], 'title': 'Archives Of Dermatology', 'others': []}}
+        curator.radict = {'6033': {'ids': [], 'others': [], 'title': 'Curth, W.'}, 'wannabe_0': {'ids': ['orcid:0000-0002-8420-0698', 'schema:12345'], 'others': [], 'title': 'Mcsorley, J.'}}
+        curator.ardict = {'3757': {'author': [('9445', '6033'), ('0601', 'wannabe_0')], 'editor': [], 'publisher': []}}
+        curator.vvi = {'4416': {'issue': {}, 'volume': {'107': {'id': '4733', 'issue': {'1': {'id': '4734'}, '2': {'id': '4735'}, '3': {'id': '4736'}, '4': {'id': '4737'}, '5': {'id': '4738'}, '6': {'id': '4739'}}}, '108': {'id': '4740', 'issue': {'1': {'id': '4741'}, '2': {'id': '4742'}, '3': {'id': '4743'}, '4': {'id': '4744'}}}, '104': {'id': '4712', 'issue': {'1': {'id': '4713'}, '2': {'id': '4714'}, '3': {'id': '4715'}, '4': {'id': '4716'}, '5': {'id': '4717'}, '6': {'id': '4718'}}}, '148': {'id': '4417', 'issue': {'12': {'id': '4418'}, '11': {'id': '4419'}}}, '100': {'id': '4684', 'issue': {'1': {'id': '4685'}, '2': {'id': '4686'}, '3': {'id': '4687'}, '4': {'id': '4688'}, '5': {'id': '4689'}, '6': {'id': '4690'}}}, '101': {'id': '4691', 'issue': {'1': {'id': '4692'}, '2': {'id': '4693'}, '3': {'id': '4694'}, '4': {'id': '4695'}, '5': {'id': '4696'}, '6': {'id': '4697'}}}, '102': {'id': '4698', 'issue': {'1': {'id': '4699'}, '2': {'id': '4700'}, '3': {'id': '4701'}, '4': {'id': '4702'}, '5': {'id': '4703'}, '6': {'id': '4704'}}}, '103': {'id': '4705', 'issue': {'1': {'id': '4706'}, '2': {'id': '4707'}, '3': {'id': '4708'}, '4': {'id': '4709'}, '5': {'id': '4710'}, '6': {'id': '4711'}}}, '105': {'id': '4719', 'issue': {'1': {'id': '4720'}, '2': {'id': '4721'}, '3': {'id': '4722'}, '4': {'id': '4723'}, '5': {'id': '4724'}, '6': {'id': '4725'}}}, '106': {'id': '4726', 'issue': {'6': {'id': '4732'}, '1': {'id': '4727'}, '2': {'id': '4728'}, '3': {'id': '4729'}, '4': {'id': '4730'}, '5': {'id': '4731'}}}}}}
+        curator.meta_maker()
+        output = (curator.brmeta, curator.rameta, curator.armeta)
+        expected_output = (
+            {'3757': {'ids': ['doi:10.1001/archderm.104.1.106', 'pmid:29098884', 'meta:br/3757'], 'title': 'Multiple Keloids', 'others': []}, '4416': {'ids': ['issn:0003-987X', 'meta:br/4416'], 'title': 'Archives Of Dermatology', 'others': []}},
+            {'6033': {'ids': ['meta:ra/6033'], 'others': [], 'title': 'Curth, W.'}, '0601': {'ids': ['orcid:0000-0002-8420-0698', 'schema:12345', 'meta:ra/0601'], 'others': ['wannabe_0'], 'title': 'Mcsorley, J.'}},
+            {'3757': {'author': [('9445', '6033'), ('0601', '0601')], 'editor': [], 'publisher': []}}
+        )
+        self.assertEqual(output, expected_output)
 
 class test_id_worker(unittest.TestCase):
     def test_id_worker_1(self):

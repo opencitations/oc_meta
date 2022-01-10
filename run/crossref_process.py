@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 def preprocess(crossref_json_dir:str, orcid_doi_filepath:str, csv_dir:str, wanted_doi_filepath:str=None, verbose:bool=False) -> None:
     if verbose:
-        log = 'Processing DOI-ORCID index'
+        log = '[INFO: crossref_process] Processing DOI-ORCID index'
         if wanted_doi_filepath:
             log += ' and wanted DOIs CSV'
         print(log)

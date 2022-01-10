@@ -21,16 +21,16 @@ from os import walk, sep
 from json import load, loads
 
 
-def get_all_files(i_dir_or_targz_file:str):
+def get_all_files(is_dir_or_targz_file:str):
     result = []
     targz_fd = None
-    if isdir(i_dir_or_targz_file):
-        for cur_dir, _, cur_files in walk(i_dir_or_targz_file):
+    if isdir(is_dir_or_targz_file):
+        for cur_dir, _, cur_files in walk(is_dir_or_targz_file):
             for cur_file in cur_files:
                 if cur_file.endswith(".json") or cur_file.endswith(".json.gz") and not basename(cur_file).startswith("."):
                     result.append(cur_dir + sep + cur_file)                    
-    elif i_dir_or_targz_file.endswith("tar.gz"):
-        targz_fd = tarfile.open(i_dir_or_targz_file, "r:gz", encoding="utf-8")
+    elif is_dir_or_targz_file.endswith("tar.gz"):
+        targz_fd = tarfile.open(is_dir_or_targz_file, "r:gz", encoding="utf-8")
         for cur_file in targz_fd:
             if cur_file.name.endswith(".json") and not basename(cur_file.name).startswith("."):
                 result.append(cur_file)

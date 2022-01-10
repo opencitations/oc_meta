@@ -9,6 +9,8 @@ def get_dois_from_coci(coci_dir:str, output_file_path:str, verbose:bool=False) -
             reader = csv.DictReader(f)
             for row in reader:
                 dois_found.add(row['doi'])
+        if verbose:
+            print(f'[INFO: coci_process] {len(dois_found)} DOIs found')
     if verbose:
         file_count = sum(len(files) for _, _, files in os.walk(coci_dir))
         pbar = tqdm(total=file_count)
@@ -32,3 +34,5 @@ def get_dois_from_coci(coci_dir:str, output_file_path:str, verbose:bool=False) -
                     writer.writerows(output_csv)
             pbar.update(1)
     pbar.close()
+    if verbose:
+        print(f'[INFO: COCI_PROCESS] {len(dois_found)} DOIs stored')

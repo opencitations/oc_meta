@@ -497,7 +497,7 @@ class Curator:
                             match_elem['existing'].append(k)
         return match_elem
 
-    def meta_ar(self, newkey, oldkey, role):
+    def __meta_ar(self, newkey, oldkey, role):
         for x, k in self.ardict[oldkey][role]:
             if 'wannabe' in k:
                 for m in self.rameta:
@@ -509,48 +509,47 @@ class Curator:
             self.armeta[newkey][role].append(tuple((x, new_v)))
 
     def meta_maker(self):
-        for x in self.brdict:
-            if 'wannabe' in x:
-                other = x
+        '''
+        For each dictionary ('brdict', 'ardict', 'radict') the corresponding MetaID dictionary is created
+        ('brmeta', 'armeta', and 'rameta').
+        '''
+        for identifier in self.brdict:
+            if 'wannabe' in identifier:
+                other = identifier
                 count = self._add_number(self.br_info_path)
                 meta = self.prefix + str(count)
-                self.brmeta[meta] = self.brdict[x]
+                self.brmeta[meta] = self.brdict[identifier]
                 self.brmeta[meta]['others'].append(other)
                 self.brmeta[meta]['ids'].append('meta:br/' + meta)
             else:
-                self.brmeta[x] = self.brdict[x]
-                self.brmeta[x]['ids'].append('meta:br/' + x)
-
-        for x in self.radict:
-            if 'wannabe' in x:
-                other = x
+                self.brmeta[identifier] = self.brdict[identifier]
+                self.brmeta[identifier]['ids'].append('meta:br/' + identifier)
+        for identifier in self.radict:
+            if 'wannabe' in identifier:
+                other = identifier
                 count = self._add_number(self.ra_info_path)
                 meta = self.prefix + str(count)
-                self.rameta[meta] = self.radict[x]
+                self.rameta[meta] = self.radict[identifier]
                 self.rameta[meta]['others'].append(other)
                 self.rameta[meta]['ids'].append('meta:ra/' + meta)
-
             else:
-                self.rameta[x] = self.radict[x]
-                self.rameta[x]['ids'].append('meta:ra/' + x)
-
-        for x in self.ardict:
-            if 'wannabe' in x:
-                for w in self.brmeta:
-                    if x in self.brmeta[w]['others']:
-                        br_key = w
+                self.rameta[identifier] = self.radict[identifier]
+                self.rameta[identifier]['ids'].append('meta:ra/' + identifier)
+        for ar_id in self.ardict:
+            if 'wannabe' in ar_id:
+                for br_id in self.brmeta:
+                    if ar_id in self.brmeta[br_id]['others']:
+                        br_key = br_id
                         break
             else:
-                br_key = x
-
+                br_key = ar_id
             self.armeta[br_key] = dict()
             self.armeta[br_key]['author'] = list()
             self.armeta[br_key]['editor'] = list()
             self.armeta[br_key]['publisher'] = list()
-
-            self.meta_ar(br_key, x, 'author')
-            self.meta_ar(br_key, x, 'editor')
-            self.meta_ar(br_key, x, 'publisher')
+            self.__meta_ar(br_key, ar_id, 'author')
+            self.__meta_ar(br_key, ar_id, 'editor')
+            self.__meta_ar(br_key, ar_id, 'publisher')
 
     def enrich(self):
         for row in self.data:
