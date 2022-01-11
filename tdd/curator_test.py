@@ -296,6 +296,22 @@ class test_Curator(unittest.TestCase):
         )
         self.assertEqual(output, expected_output)
 
+    def test_enricher(self):
+        curator = prepareCurator(list())
+        curator.data = [{'id': 'wannabe_0', 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China', 'author': '', 'pub_date': '2011-11-28', 'venue': 'wannabe_1', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': 'OECD [crossref:1963]', 'editor': ''},]
+        curator.brmeta = {
+            '0601': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en', 'meta:br/0601'], 'others': ['wannabe_0'], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}, 
+            '0602': {'ids': ['meta:br/0604'], 'others': ['wannabe_1'], 'title': 'OECD Economic Outlook'}
+        }
+        curator.armeta = {'0601': {'author': [], 'editor': [], 'publisher': [('0601', '0601')]}}
+        curator.rameta = {'0601': {'ids': ['crossref:1963', 'meta:ra/0601'], 'others': ['wannabe_2'], 'title': 'Oecd'}}
+        curator.remeta = dict()
+        curator.enrich()
+        output = curator.data
+        expected_output = [{'id': 'doi:10.1787/eco_outlook-v2011-2-graph138-en meta:br/0601', 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China', 'author': '', 'pub_date': '2011-11-28', 'venue': 'OECD Economic Outlook [meta:br/0604]', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': 'Oecd [crossref:1963 meta:ra/0601]', 'editor': ''}]
+        self.assertEqual(output, expected_output)
+
+
 class test_id_worker(unittest.TestCase):
     def test_id_worker_1(self):
         # 1 EntityA is a new one

@@ -470,13 +470,13 @@ class Curator:
                             id_set.add(f[0])
         return match_elem
 
-    def ra_update(self, row, br_key, col_name):
+    def ra_update(self, row:dict, br_key:str, col_name:str) -> None:
         if row[col_name]:
             sequence = self.armeta[br_key][col_name]
             ras_list = list()
-            for x, y in sequence:
-                ra_name = self.rameta[y]['title']
-                ra_ids = ' '.join(self.rameta[y]['ids'])
+            for _, ra_id in sequence:
+                ra_name = self.rameta[ra_id]['title']
+                ra_ids = ' '.join(self.rameta[ra_id]['ids'])
                 ra = ra_name + ' [' + ra_ids + ']'
                 ras_list.append(ra)
             row[col_name] = '; '.join(ras_list)
@@ -552,33 +552,34 @@ class Curator:
             self.__meta_ar(br_key, ar_id, 'publisher')
 
     def enrich(self):
+        '''
+        This method replaces the wannabeID placeholders with the
+        actual data and MetaIDs as a result of the deduplication process.
+        '''
         for row in self.data:
             if 'wannabe' in row['id']:
-                for i in self.brmeta:
-                    if row['id'] in self.brmeta[i]['others']:
-                        k = i
+                for br_metaid in self.brmeta:
+                    if row['id'] in self.brmeta[br_metaid]['others']:
+                        metaid = br_metaid
             else:
-                k = row['id']
-
-            if row['page'] and (k not in self.remeta):
-                re_meta = self.finder.retrieve_re_from_br_meta(k)
+                metaid = row['id']
+            if row['page'] and (metaid not in self.remeta):
+                re_meta = self.finder.retrieve_re_from_br_meta(metaid)
                 if re_meta:
-                    self.remeta[k] = re_meta
+                    self.remeta[metaid] = re_meta
                     row['page'] = re_meta[1]
                 else:
                     count = self.prefix + str(self._add_number(self.re_info_path))
                     page = row['page'].strip().replace('\0', '')
-                    self.remeta[k] = (count, page)
+                    self.remeta[metaid] = (count, page)
                     row['page'] = page
-            elif k in self.remeta:
-                row['page'] = self.remeta[k][1]
-
-            self.ra_update(row, k, 'author')
-            self.ra_update(row, k, 'publisher')
-            self.ra_update(row, k, 'editor')
-            row['id'] = ' '.join(self.brmeta[k]['ids'])
-            row['title'] = self.brmeta[k]['title']
-
+            elif metaid in self.remeta:
+                row['page'] = self.remeta[metaid][1]
+            self.ra_update(row, metaid, 'author')
+            self.ra_update(row, metaid, 'publisher')
+            self.ra_update(row, metaid, 'editor')
+            row['id'] = ' '.join(self.brmeta[metaid]['ids'])
+            row['title'] = self.brmeta[metaid]['title']
             if row['venue']:
                 venue = row['venue']
                 if 'wannabe' in venue:
