@@ -5,15 +5,18 @@ import csv
 from SPARQLWrapper import SPARQLWrapper
 from pprint import pprint
 from oc_ocdm import Storer
+from datetime import datetime
 
 
 SERVER = 'http://127.0.0.1:9999/blazegraph/sparql'
-MANUAL_DATA_CSV = 'meta/tdd/manual_data.csv'
-MANUAL_DATA_RDF = 'meta/tdd/testcases/ts/testcase_ts-13.ttl'
-REAL_DATA_CSV = 'meta/tdd/real_data.csv'
-REAL_DATA_RDF = 'meta/tdd/testcases/ts/real_data.nt'
+BASE_DIR = 'meta/tdd'
+MANUAL_DATA_CSV = f'{BASE_DIR}/manual_data.csv'
+MANUAL_DATA_RDF = f'{BASE_DIR}/testcases/ts/testcase_ts-13.ttl'
+REAL_DATA_CSV = f'{BASE_DIR}/real_data.csv'
+REAL_DATA_RDF = f'{BASE_DIR}/testcases/ts/real_data.nt'
 BASE_IRI = 'https://w3id.org/oc/meta/'
-CURATOR_COUNTER_DIR = 'meta/tdd/curator_counter'
+CURATOR_COUNTER_DIR = f'{BASE_DIR}/curator_counter'
+OUTPUT_DIR = f'{BASE_DIR}/output'
 
 
 def get_path(path:str) -> str:
@@ -298,7 +301,7 @@ class test_Curator(unittest.TestCase):
 
     def test_enricher(self):
         curator = prepareCurator(list())
-        curator.data = [{'id': 'wannabe_0', 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China', 'author': '', 'pub_date': '2011-11-28', 'venue': 'wannabe_1', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': 'OECD [crossref:1963]', 'editor': ''},]
+        curator.data = [{'id': 'wannabe_0', 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China', 'author': '', 'pub_date': '2011-11-28', 'venue': 'wannabe_1', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': 'OECD [crossref:1963]', 'editor': ''}]
         curator.brmeta = {
             '0601': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en', 'meta:br/0601'], 'others': ['wannabe_0'], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}, 
             '0602': {'ids': ['meta:br/0604'], 'others': ['wannabe_1'], 'title': 'OECD Economic Outlook'}

@@ -634,17 +634,15 @@ class Curator:
         return cur_number
 
     @staticmethod
-    def write_csv(path, datalist):
+    def write_csv(path:str, datalist:List[dict]) -> None:
         if not os.path.exists(os.path.dirname(path)):
             os.makedirs(os.path.dirname(path))
         with open(path, 'w', newline='', encoding='utf-8') as output_file:
-            dict_writer = csv.DictWriter(output_file, datalist[0].keys(), delimiter=',', quotechar='"',
-                                         quoting=csv.QUOTE_NONNUMERIC)
+            dict_writer = csv.DictWriter(output_file, datalist[0].keys(), delimiter=',', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
             dict_writer.writeheader()
             dict_writer.writerows(datalist)
 
-    def indexer(self, path_index, path_csv):
-
+    def indexer(self, path_index:str, path_csv:str) -> None:
         # ID
         self.index_id_ra = list()
         if self.idra:
@@ -671,7 +669,6 @@ class Curator:
             row['id'] = ''
             row['meta'] = ''
             self.index_id_br.append(row)
-
         # AR
         self.ar_index = list()
         if self.armeta:
@@ -691,7 +688,6 @@ class Curator:
             row['editor'] = ''
             row['publisher'] = ''
             self.ar_index.append(row)
-
         # RE
         self.re_index = list()
         if self.remeta:
@@ -733,31 +729,24 @@ class Curator:
                             self.VolIss[i] = self.vvi[x]
                 else:
                     self.VolIss[x] = self.vvi[x]
-
         if self.filename:
             ra_path = os.path.join(path_index, 'index_id_ra.csv')
             self.write_csv(ra_path, self.index_id_ra)
-
             br_path = os.path.join(path_index, 'index_id_br.csv')
             self.write_csv(br_path, self.index_id_br)
-
             ar_path = os.path.join(path_index, 'index_ar.csv')
             self.write_csv(ar_path, self.ar_index)
-
             re_path = os.path.join(path_index, 'index_re.csv')
             self.write_csv(re_path, self.re_index)
-
             vvi_file = os.path.join(path_index, 'index_vi.json')
             if not os.path.exists(os.path.dirname(vvi_file)):
                 os.makedirs(os.path.dirname(vvi_file))
             with open(vvi_file, 'w') as fp:
                 json.dump(self.VolIss, fp)
-
             if self.log:
                 log_file = os.path.join(path_index + 'log.json')
                 with open(log_file, 'w') as lf:
                     json.dump(self.log, lf)
-
             if self.data:
                 name = self.filename + '.csv'
                 data_file = os.path.join(path_csv, name)
