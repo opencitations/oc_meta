@@ -39,11 +39,9 @@ class Creator(object):
             self.type = row['type']
             publisher = row['publisher']
             editor = row['editor']
-
             self.venue_graph = None
             self.vol_graph = None
             self.issue_graph = None
-
             self.id_action(ids)
             self.title_action(title)
             self.author_action(authors)
@@ -55,7 +53,6 @@ class Creator(object):
                 self.publisher_action(publisher)
             if editor:
                 self.editor_action(editor)
-
         return self.setgraph
 
     @staticmethod
@@ -100,7 +97,6 @@ class Creator(object):
 
     def id_action(self, ids):
         idslist = re.split(r'\s+', ids)
-
         # publication id
         for identifier in idslist:
             if 'meta:' in identifier:
@@ -108,7 +104,6 @@ class Creator(object):
                 self.row_meta = identifier.replace('br/', '')
                 url = URIRef(self.url + identifier)
                 self.br_graph = self.setgraph.add_br(resp_agent, source=self.src, res=url)
-
         for identifier in idslist:
             self.id_creator(self.br_graph, identifier, ra=False)
 
@@ -119,33 +114,29 @@ class Creator(object):
     def author_action(self, authors):
         if authors:
             authorslist = re.split(r'\s*;\s*(?=[^]]*(?:\[|$))', authors)
-
             aut_role_list = list()
             for aut in authorslist:
-                aut_id = re.search(r'\[\s*(.*?)\s*]', aut).group(1)
+                aut_id = re.search(r'\[\s*(.*?)\s*\]', aut).group(1)
                 aut_id_list = aut_id.split(' ')
-
                 for identifier in aut_id_list:
                     if 'meta:' in identifier:
                         identifier = str(identifier).replace('meta:', '')
                         url = URIRef(self.url + identifier)
                         aut_meta = identifier.replace('ra/', '')
                         pub_aut = self.setgraph.add_ra(resp_agent, source=self.src, res=url)
-                        author_name = re.search(r'(.*?)\s*\[.*?]', aut).group(1)
+                        author_name = re.search(r'(.*?)\s*\[.*?\]', aut).group(1)
                         if ',' in author_name:
                             author_name_splitted = re.split(r'\s*,\s*', author_name)
-                            firstName = author_name_splitted[1]
-                            lastName = author_name_splitted[0]
-                            if firstName.strip():
-                                pub_aut.has_given_name(firstName)
-                            pub_aut.has_family_name(lastName)
+                            first_name = author_name_splitted[1]
+                            last_name = author_name_splitted[0]
+                            if first_name.strip():
+                                pub_aut.has_given_name(first_name)
+                            pub_aut.has_family_name(last_name)
                         else:
                             pub_aut.has_name(author_name)
-
                 # lists of authors' IDs
                 for identifier in aut_id_list:
                     self.id_creator(pub_aut, identifier, ra=True)
-
                 # Author ROLE
                 AR = self.ar_index[self.row_meta]['author'][aut_meta]
                 ar_id = 'ar/' + str(AR)
@@ -171,16 +162,14 @@ class Creator(object):
             self.br_graph.has_pub_date(str_date)
 
     def vvi_action(self, venue, vol, issue):
-
         if venue:
-            venue_id = re.search(r'\[\s*(.*?)\s*]', venue).group(1)
+            venue_id = re.search(r'\[\s*(.*?)\s*\]', venue).group(1)
             venue_id_list = venue_id.split(' ')
-
             for identifier in venue_id_list:
                 if 'meta:' in identifier:
                     ven_id = str(identifier).replace('meta:', '')
                     url = URIRef(self.url + ven_id)
-                    venue_title = re.search(r'(.*?)\s*\[.*?]', venue).group(1)
+                    venue_title = re.search(r'(.*?)\s*\[.*?\]', venue).group(1)
                     self.venue_graph = self.setgraph.add_br(resp_agent, source=self.src, res=url)
                     if self.type == 'journal article' or self.type == 'journal volume' or self.type == 'journal issue':
                         self.venue_graph.create_journal()
@@ -192,14 +181,10 @@ class Creator(object):
                         self.venue_graph.create_report_series()
                     elif self.type == 'standard':
                         self.venue_graph.create_standard_series()
-
                     self.venue_graph.has_title(venue_title)
-
             for identifier in venue_id_list:
                 self.id_creator(self.venue_graph, identifier, ra=False)
-
         if (self.type == 'journal article' or self.type == 'journal issue') and vol:
-
             meta_ven = ven_id.replace('br/', '')
             vol_meta = self.vi_index[meta_ven]['volume'][vol]['id']
             vol_meta = 'br/' + vol_meta
@@ -207,33 +192,26 @@ class Creator(object):
             self.vol_graph = self.setgraph.add_br(resp_agent, source=self.src, res=url)
             self.vol_graph.create_volume()
             self.vol_graph.has_number(vol)
-
         if self.type == 'journal article' and issue:
-
             meta_ven = ven_id.replace('br/', '')
             if vol:
                 iss_meta = self.vi_index[meta_ven]['volume'][vol]['issue'][issue]['id']
             else:
                 iss_meta = self.vi_index[meta_ven]['issue'][issue]['id']
-
             iss_meta = 'br/' + iss_meta
             url = URIRef(self.url + iss_meta)
             self.issue_graph = self.setgraph.add_br(resp_agent, source=self.src, res=url)
             self.issue_graph.create_issue()
             self.issue_graph.has_number(issue)
-
         if venue and vol and issue:
             self.br_graph.is_part_of(self.issue_graph)
             self.issue_graph.is_part_of(self.vol_graph)
             self.vol_graph.is_part_of(self.venue_graph)
-
         elif venue and vol and not issue:
             self.br_graph.is_part_of(self.vol_graph)
             self.vol_graph.is_part_of(self.venue_graph)
-
         elif venue and not vol and not issue:
             self.br_graph.is_part_of(self.venue_graph)
-
         elif venue and not vol and issue:
             self.br_graph.is_part_of(self.issue_graph)
             self.issue_graph.is_part_of(self.venue_graph)
@@ -291,22 +269,18 @@ class Creator(object):
             self.br_graph.create_series()
 
     def publisher_action(self, publisher):
-
-        publ_id = re.search(r'\[\s*(.*?)\s*]', publisher).group(1)
+        publ_id = re.search(r'\[\s*(.*?)\s*\]', publisher).group(1)
         publ_id_list = publ_id.split(' ')
-
         for identifier in publ_id_list:
             if 'meta:' in identifier:
                 identifier = str(identifier).replace('meta:', '')
                 pub_meta = identifier.replace('ra/', '')
                 url = URIRef(self.url + identifier)
-                publ_name = re.search(r'(.*?)\s*\[.*?]', publisher).group(1)
+                publ_name = re.search(r'(.*?)\s*\[.*?\]', publisher).group(1)
                 publ = self.setgraph.add_ra(resp_agent, source=self.src, res=url)
                 publ.has_name(publ_name)
-
         for identifier in publ_id_list:
             self.id_creator(publ, identifier, ra=True)
-
         # publisherRole
         AR = self.ar_index[self.row_meta]['publisher'][pub_meta]
         ar_id = 'ar/' + str(AR)
@@ -318,12 +292,10 @@ class Creator(object):
 
     def editor_action(self, editor):
         editorslist = re.split(r'\s*;\s*(?=[^]]*(?:\[|$))', editor)
-
         edit_role_list = list()
         for ed in editorslist:
-            ed_id = re.search(r'\[\s*(.*?)\s*]', ed).group(1)
+            ed_id = re.search(r'\[\s*(.*?)\s*\]', ed).group(1)
             ed_id_list = ed_id.split(' ')
-
             for identifier in ed_id_list:
                 if 'meta:' in identifier:
                     identifier = str(identifier).replace('meta:', '')
@@ -340,17 +312,14 @@ class Creator(object):
                         pub_ed.has_family_name(lastName)
                     else:
                         pub_ed.has_name(editor_name)
-
             # lists of editor's IDs
             for identifier in ed_id_list:
                 self.id_creator(pub_ed, identifier, ra=True)
-
             # editorRole
             AR = self.ar_index[self.row_meta]['editor'][ed_meta]
             ar_id = 'ar/' + str(AR)
             url_ar = URIRef(self.url + ar_id)
             pub_ed_role = self.setgraph.add_ar(resp_agent, source=self.src, res=url_ar)
-
             if self.type == 'proceedings article' and self.venue_graph:
                 pub_ed_role.create_editor()
                 self.venue_graph.has_contributor(pub_ed_role)
@@ -360,7 +329,6 @@ class Creator(object):
             else:
                 pub_ed_role.create_editor()
                 self.br_graph.has_contributor(pub_ed_role)
-
             pub_ed_role.is_held_by(pub_ed)
             edit_role_list.append(pub_ed_role)
             if len(edit_role_list) > 1:
