@@ -15,7 +15,7 @@
 # SOFTWARE.
 
 # Official configuration
-base_dir = 'D:\\meta_output'
+base_dir = 'C:\\meta_output'
 base_iri = 'https://w3id.org/oc/meta/'
 triplestore_url = 'http://localhost:9999/blazegraph/sparql'
 context_path = 'https://w3id.org/oc/corpus/context.json'
@@ -26,5 +26,5 @@ default_dir = '_'
 supplier_prefix = '060'
 
 # New configuration
-resp_agent = 'https://w3id.org/oc/meta/prov/pa/1'
+resp_agent = 'https://orcid.org/0000-0002-8420-0696'
 rdf_output_in_chunks = True

@@ -1,0 +1,47 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+# Copyright (c) 2016, Silvio Peroni <essepuntato@gmail.com>
+# Copyright (c) 2022, Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# Permission to use, copy, modify, and/or distribute this software for any purpose
+# with or without fee is hereby granted, provided that the above copyright notice
+# and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED 'AS IS' AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+# FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT,
+# OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
+# DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS
+# ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
+# SOFTWARE.
+
+# Mandatory settings
+triplestore_url: http://localhost:9999/blazegraph/sparql
+info_dir: C:/meta_output/info_dir
+# A URI string representing the provenance agent which is considered responsible for the RDF graph manipulation
+resp_agent: https://orcid.org/0000-0002-8420-0696
+# Directory where raw CSV files are stored
+input_csv_dir: 'C:/Users/arcangelo.massari2/OneDrive - Alma Mater Studiorum Università di Bologna/Desktop/meta-repo/meta_input'
+# Directory where cleaned CSVs will be stored
+output_csv_dir: C:/meta_output/csv
+# Directory where both output RDF data and provenance files will be stored
+output_rdf_dir: C:/meta_output/rdf
+# Indices are products of the CSV cleaning step, and they are necessary for RDFs creation
+indexes_dir: C:/meta_output/indexes
+# Path of a txt file containing a list of processed CSVs
+cache_path: C:/meta_output/cache.txt
+
+# Optional settings
+base_iri: https://w3id.org/oc/meta/
+context_path: https://w3id.org/oc/corpus/context.json
+# dir_split_number's value must be multiple of items_per_file's value
+dir_split_number: 10000
+items_per_file: 1000
+default_dir: _
+supplier_prefix: '060'
+rdf_output_in_chunks: True
+# Data source URL
+source: https://api.crossref.org/
+# Show a loading bar, elapsed time and estimated time
+verbose: True
+

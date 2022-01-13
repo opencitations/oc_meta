@@ -23,8 +23,7 @@ def preprocess(crossref_json_dir:str, orcid_doi_filepath:str, csv_dir:str, wante
         data = crossref_csv.csv_creator(data)
         if data:
             with open(filepath, 'w', newline='', encoding='utf-8') as output_file:
-                dict_writer = csv.DictWriter(output_file, data[0].keys(), delimiter=',', quotechar='"',
-                                            quoting=csv.QUOTE_NONNUMERIC)
+                dict_writer = csv.DictWriter(output_file, data[0].keys(), delimiter=',', quotechar='"', quoting=csv.QUOTE_NONNUMERIC, escapechar='\\')
                 dict_writer.writeheader()
                 dict_writer.writerows(data)
         if verbose:

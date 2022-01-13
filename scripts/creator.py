@@ -5,13 +5,11 @@ from rdflib import URIRef
 from oc_ocdm.graph import GraphSet
 from oc_ocdm.graph.entities.bibliographic_entity import BibliographicEntity
 
-from meta.lib.conf import resp_agent
-
-
 class Creator(object):
-    def __init__(self, data, base_iri, info_dir, supplier_prefix, ra_index, br_index, re_index_csv, ar_index_csv, vi_index):
+    def __init__(self, data, base_iri, info_dir, supplier_prefix, resp_agent, ra_index, br_index, re_index_csv, ar_index_csv, vi_index):
         self.url = base_iri
         self.setgraph = GraphSet(self.url, info_dir, supplier_prefix, wanted_label=False)
+        self.resp_agent = resp_agent
 
         self.ra_id_schemas = {'crossref', 'orcid', 'viaf', 'wikidata'}
         self.br_id_schemas = {'doi', 'issn', 'isbn', 'pmid', 'pmcid', 'url', 'wikidata', 'wikipedia'}
@@ -103,7 +101,7 @@ class Creator(object):
                 identifier = identifier.replace('meta:', '')
                 self.row_meta = identifier.replace('br/', '')
                 url = URIRef(self.url + identifier)
-                self.br_graph = self.setgraph.add_br(resp_agent, source=self.src, res=url)
+                self.br_graph = self.setgraph.add_br(self.resp_agent, source=self.src, res=url)
         for identifier in idslist:
             self.id_creator(self.br_graph, identifier, ra=False)
 
@@ -123,7 +121,7 @@ class Creator(object):
                         identifier = str(identifier).replace('meta:', '')
                         url = URIRef(self.url + identifier)
                         aut_meta = identifier.replace('ra/', '')
-                        pub_aut = self.setgraph.add_ra(resp_agent, source=self.src, res=url)
+                        pub_aut = self.setgraph.add_ra(self.resp_agent, source=self.src, res=url)
                         author_name = re.search(r'(.*?)\s*\[.*?\]', aut).group(1)
                         if ',' in author_name:
                             author_name_splitted = re.split(r'\s*,\s*', author_name)
@@ -141,7 +139,7 @@ class Creator(object):
                 AR = self.ar_index[self.row_meta]['author'][aut_meta]
                 ar_id = 'ar/' + str(AR)
                 url_ar = URIRef(self.url + ar_id)
-                pub_aut_role = self.setgraph.add_ar(resp_agent, source=self.src, res=url_ar)
+                pub_aut_role = self.setgraph.add_ar(self.resp_agent, source=self.src, res=url_ar)
                 pub_aut_role.create_author()
                 self.br_graph.has_contributor(pub_aut_role)
                 pub_aut_role.is_held_by(pub_aut)
@@ -170,7 +168,7 @@ class Creator(object):
                     ven_id = str(identifier).replace('meta:', '')
                     url = URIRef(self.url + ven_id)
                     venue_title = re.search(r'(.*?)\s*\[.*?\]', venue).group(1)
-                    self.venue_graph = self.setgraph.add_br(resp_agent, source=self.src, res=url)
+                    self.venue_graph = self.setgraph.add_br(self.resp_agent, source=self.src, res=url)
                     if self.type == 'journal article' or self.type == 'journal volume' or self.type == 'journal issue':
                         self.venue_graph.create_journal()
                     elif self.type == 'book chapter' or self.type == 'book part':
@@ -189,7 +187,7 @@ class Creator(object):
             vol_meta = self.vi_index[meta_ven]['volume'][vol]['id']
             vol_meta = 'br/' + vol_meta
             url = URIRef(self.url + vol_meta)
-            self.vol_graph = self.setgraph.add_br(resp_agent, source=self.src, res=url)
+            self.vol_graph = self.setgraph.add_br(self.resp_agent, source=self.src, res=url)
             self.vol_graph.create_volume()
             self.vol_graph.has_number(vol)
         if self.type == 'journal article' and issue:
@@ -200,7 +198,7 @@ class Creator(object):
                 iss_meta = self.vi_index[meta_ven]['issue'][issue]['id']
             iss_meta = 'br/' + iss_meta
             url = URIRef(self.url + iss_meta)
-            self.issue_graph = self.setgraph.add_br(resp_agent, source=self.src, res=url)
+            self.issue_graph = self.setgraph.add_br(self.resp_agent, source=self.src, res=url)
             self.issue_graph.create_issue()
             self.issue_graph.has_number(issue)
         if venue and vol and issue:
@@ -221,7 +219,7 @@ class Creator(object):
             res_em = self.re_index[self.row_meta]
             re_id = 're/' + str(res_em)
             url_re = URIRef(self.url + re_id)
-            form = self.setgraph.add_re(resp_agent, source=self.src, res=url_re)
+            form = self.setgraph.add_re(self.resp_agent, source=self.src, res=url_re)
             form.has_starting_page(page)
             form.has_ending_page(page)
             self.br_graph.has_format(form)
@@ -277,7 +275,7 @@ class Creator(object):
                 pub_meta = identifier.replace('ra/', '')
                 url = URIRef(self.url + identifier)
                 publ_name = re.search(r'(.*?)\s*\[.*?\]', publisher).group(1)
-                publ = self.setgraph.add_ra(resp_agent, source=self.src, res=url)
+                publ = self.setgraph.add_ra(self.resp_agent, source=self.src, res=url)
                 publ.has_name(publ_name)
         for identifier in publ_id_list:
             self.id_creator(publ, identifier, ra=True)
@@ -285,7 +283,7 @@ class Creator(object):
         AR = self.ar_index[self.row_meta]['publisher'][pub_meta]
         ar_id = 'ar/' + str(AR)
         url_ar = URIRef(self.url + ar_id)
-        publ_role = self.setgraph.add_ar(resp_agent, source=self.src, res=url_ar)
+        publ_role = self.setgraph.add_ar(self.resp_agent, source=self.src, res=url_ar)
         publ_role.create_publisher()
         self.br_graph.has_contributor(publ_role)
         publ_role.is_held_by(publ)
@@ -301,7 +299,7 @@ class Creator(object):
                     identifier = str(identifier).replace('meta:', '')
                     ed_meta = identifier.replace('ra/', '')
                     url = URIRef(self.url + identifier)
-                    pub_ed = self.setgraph.add_ra(resp_agent, source=self.src, res=url)
+                    pub_ed = self.setgraph.add_ra(self.resp_agent, source=self.src, res=url)
                     editor_name = re.search(r'(.*?)\s*\[.*?]', ed).group(1)
                     if ',' in editor_name:
                         editor_name_splitted = re.split(r'\s*,\s*', editor_name)
@@ -319,7 +317,7 @@ class Creator(object):
             AR = self.ar_index[self.row_meta]['editor'][ed_meta]
             ar_id = 'ar/' + str(AR)
             url_ar = URIRef(self.url + ar_id)
-            pub_ed_role = self.setgraph.add_ar(resp_agent, source=self.src, res=url_ar)
+            pub_ed_role = self.setgraph.add_ar(self.resp_agent, source=self.src, res=url_ar)
             if self.type == 'proceedings article' and self.venue_graph:
                 pub_ed_role.create_editor()
                 self.venue_graph.has_contributor(pub_ed_role)
@@ -342,7 +340,7 @@ class Creator(object):
                     identifier = identifier.replace(f'{ra_id_schema}:', '')
                     res = self.ra_index[ra_id_schema][identifier]
                     url = URIRef(self.url + 'id/' + res)
-                    new_id = self.setgraph.add_id(resp_agent, source=self.src, res=url)
+                    new_id = self.setgraph.add_id(self.resp_agent, source=self.src, res=url)
                     getattr(new_id, f'create_{ra_id_schema}')(identifier)
         else:
             for br_id_schema in self.br_id_schemas:
@@ -350,7 +348,7 @@ class Creator(object):
                     identifier = identifier.replace(f'{br_id_schema}:', '')
                     res = self.br_index[br_id_schema][identifier]
                     url = URIRef(self.url + 'id/' + res)
-                    new_id = self.setgraph.add_id(resp_agent, source=self.src, res=url)
+                    new_id = self.setgraph.add_id(self.resp_agent, source=self.src, res=url)
                     getattr(new_id, f'create_{br_id_schema}')(identifier)
         if new_id:
             graph.has_identifier(new_id)
