@@ -1,6 +1,7 @@
 import re
 from dateutil.parser import parse
 from datetime import datetime
+from meta.lib.master_of_regex import *
 
 class Cleaner:
     def __init__(self, string:str):
@@ -141,7 +142,7 @@ class Cleaner:
         '''
         name = self.string
         if ',' in name:
-            split_name = re.split(r'\s*,\s*', name)
+            split_name = re.split(comma_and_spaces, name)
             first_name = split_name[1].split()
             for i, w in enumerate(first_name):
                 first_name[i] = w.title()

@@ -4,6 +4,7 @@ from oc_ocdm.support import create_date
 from rdflib import URIRef
 from oc_ocdm.graph import GraphSet
 from oc_ocdm.graph.entities.bibliographic_entity import BibliographicEntity
+from meta.lib.master_of_regex import *
 
 class Creator(object):
     def __init__(self, data, base_iri, info_dir, supplier_prefix, resp_agent, ra_index, br_index, re_index_csv, ar_index_csv, vi_index):
@@ -94,7 +95,7 @@ class Creator(object):
         return index
 
     def id_action(self, ids):
-        idslist = re.split(r'\s+', ids)
+        idslist = re.split(one_or_more_spaces, ids)
         # publication id
         for identifier in idslist:
             if 'meta:' in identifier:
@@ -111,10 +112,11 @@ class Creator(object):
 
     def author_action(self, authors):
         if authors:
-            authorslist = re.split(r'\s*;\s*(?=[^]]*(?:\[|$))', authors)
+            authorslist = re.split(semicolon_in_ra_field, authors)
             aut_role_list = list()
             for aut in authorslist:
-                aut_id = re.search(r'\[\s*(.*?)\s*\]', aut).group(1)
+                aut_and_ids = re.search(name_and_ids, aut)
+                aut_id = aut_and_ids.group(2)
                 aut_id_list = aut_id.split(' ')
                 for identifier in aut_id_list:
                     if 'meta:' in identifier:
@@ -122,9 +124,9 @@ class Creator(object):
                         url = URIRef(self.url + identifier)
                         aut_meta = identifier.replace('ra/', '')
                         pub_aut = self.setgraph.add_ra(self.resp_agent, source=self.src, res=url)
-                        author_name = re.search(r'(.*?)\s*\[.*?\]', aut).group(1)
+                        author_name = aut_and_ids.group(1)
                         if ',' in author_name:
-                            author_name_splitted = re.split(r'\s*,\s*', author_name)
+                            author_name_splitted = re.split(comma_and_spaces, author_name)
                             first_name = author_name_splitted[1]
                             last_name = author_name_splitted[0]
                             if first_name.strip():
@@ -161,13 +163,14 @@ class Creator(object):
 
     def vvi_action(self, venue, vol, issue):
         if venue:
-            venue_id = re.search(r'\[\s*(.*?)\s*\]', venue).group(1)
+            venue_and_ids = re.search(name_and_ids, venue)
+            venue_id = venue_and_ids.group(2)
             venue_id_list = venue_id.split(' ')
             for identifier in venue_id_list:
                 if 'meta:' in identifier:
                     ven_id = str(identifier).replace('meta:', '')
                     url = URIRef(self.url + ven_id)
-                    venue_title = re.search(r'(.*?)\s*\[.*?\]', venue).group(1)
+                    venue_title = venue_and_ids.group(1)
                     self.venue_graph = self.setgraph.add_br(self.resp_agent, source=self.src, res=url)
                     if self.type == 'journal article' or self.type == 'journal volume' or self.type == 'journal issue':
                         self.venue_graph.create_journal()
@@ -267,14 +270,15 @@ class Creator(object):
             self.br_graph.create_series()
 
     def publisher_action(self, publisher):
-        publ_id = re.search(r'\[\s*(.*?)\s*\]', publisher).group(1)
+        publ_and_ids = re.search(name_and_ids, publisher)
+        publ_id = publ_and_ids.group(2)
         publ_id_list = publ_id.split(' ')
         for identifier in publ_id_list:
             if 'meta:' in identifier:
                 identifier = str(identifier).replace('meta:', '')
                 pub_meta = identifier.replace('ra/', '')
                 url = URIRef(self.url + identifier)
-                publ_name = re.search(r'(.*?)\s*\[.*?\]', publisher).group(1)
+                publ_name = publ_and_ids.group(1)
                 publ = self.setgraph.add_ra(self.resp_agent, source=self.src, res=url)
                 publ.has_name(publ_name)
         for identifier in publ_id_list:
@@ -289,10 +293,11 @@ class Creator(object):
         publ_role.is_held_by(publ)
 
     def editor_action(self, editor):
-        editorslist = re.split(r'\s*;\s*(?=[^]]*(?:\[|$))', editor)
+        editorslist = re.split(semicolon_in_ra_field, editor)
         edit_role_list = list()
         for ed in editorslist:
-            ed_id = re.search(r'\[\s*(.*?)\s*\]', ed).group(1)
+            ed_and_ids = re.search(name_and_ids, ed)
+            ed_id = ed_and_ids.group(2)
             ed_id_list = ed_id.split(' ')
             for identifier in ed_id_list:
                 if 'meta:' in identifier:
@@ -300,9 +305,9 @@ class Creator(object):
                     ed_meta = identifier.replace('ra/', '')
                     url = URIRef(self.url + identifier)
                     pub_ed = self.setgraph.add_ra(self.resp_agent, source=self.src, res=url)
-                    editor_name = re.search(r'(.*?)\s*\[.*?]', ed).group(1)
+                    editor_name = ed_and_ids.group(1)
                     if ',' in editor_name:
-                        editor_name_splitted = re.split(r'\s*,\s*', editor_name)
+                        editor_name_splitted = re.split(comma_and_spaces, editor_name)
                         firstName = editor_name_splitted[1]
                         lastName = editor_name_splitted[0]
                         if firstName.strip():

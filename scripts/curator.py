@@ -5,6 +5,7 @@ import os
 import json
 from meta.lib.finder import *
 from meta.scripts.cleaner import Cleaner
+from meta.lib.master_of_regex import *
 
 
 class Curator:
@@ -98,9 +99,9 @@ class Curator:
             name = ''
         if row['id']:
             if self.separator:
-                idslist = re.sub(r'\s*:\s*', ':', row['id']).split(self.separator)
+                idslist = re.sub(colon_and_spaces, ':', row['id']).split(self.separator)
             else:
-                idslist = re.split(r'\s+', re.sub(r'\s*:\s*', ':', row['id']))
+                idslist = re.split(one_or_more_spaces, re.sub(colon_and_spaces, ':', row['id']))
             metaval = self.id_worker('id', name, idslist, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
         else:
             metaval = self.new_entity(self.brdict, name)
@@ -178,14 +179,14 @@ class Curator:
         type = row['type']
         # Venue
         if venue:
-            venue_id = re.search(r'\[\s*(.*?)\s*\]', venue)
+            venue_id = re.search(name_and_ids, venue)
             if venue_id:
-                name = Cleaner(re.search(r'(.*?)\s*\[.*?\]', venue).group(1)).clean_title()
-                venue_id = venue_id.group(1)
+                name = Cleaner(venue_id.group(1)).clean_title()
+                venue_id = venue_id.group(2)
                 if self.separator:
-                    idslist = re.sub(r'\s*:\s*', ':', venue_id).split(self.separator)
+                    idslist = re.sub(colon_and_spaces, ':', venue_id).split(self.separator)
                 else:
-                    idslist = re.split(r'\s+', re.sub(r'\s*:\s*', ':', venue_id))
+                    idslist = re.split(one_or_more_spaces, re.sub(colon_and_spaces, ':', venue_id))
                 metaval = self.id_worker('venue', name, idslist, ra_ent=False, br_ent=True, vvi_ent=True, publ_entity=False)
                 if metaval not in self.vvi:
                     ts_vvi = None
@@ -321,15 +322,13 @@ class Curator:
                 sequence = self.ardict[br_metaval][col_name]
             new_sequence = list()
             change_order = False
-            # split authors by ';' outside '[]' (any spaces before and after ';')
-            ra_list = re.split(r'\s*;\s*(?![^\[]*?\](?:\s*;\s*|$))', row[col_name])
+            ra_list = re.split(semicolon_in_ra_field, row[col_name])
             for pos, ra in enumerate(ra_list):
                 new_elem_seq = True
-                # takes string inside '[]' ignoring any space between (ex: [ TARGET  ] --> TARGET
-                ra_id = re.search(r'\[\s*(.*?)\s*\]', ra)
+                ra_id = re.search(name_and_ids, ra)
                 if ra_id:
-                    ra_id = ra_id.group(1)
-                    name = Cleaner(re.search(r'\s*(.*?)\s*\[.*?\]', ra).group(1)).clean_name()
+                    name = Cleaner(ra_id.group(1)).clean_name()
+                    ra_id = ra_id.group(2)
                 else:
                     name = Cleaner(ra).clean_name()
                 if not ra_id and sequence:
@@ -340,9 +339,9 @@ class Curator:
                             break
                 if ra_id:
                     if self.separator:
-                        ra_id_list = re.sub(r'\s*:\s*', ':', ra_id).split(self.separator)
+                        ra_id_list = re.sub(colon_and_spaces, ':', ra_id).split(self.separator)
                     else:
-                        ra_id_list = re.split(r'\s+', re.sub(r'\s*:\s*', ':', ra_id))
+                        ra_id_list = re.split(one_or_more_spaces, re.sub(colon_and_spaces, ':', ra_id))
                     if sequence:
                         ar_ra = None
                         for ps, el in enumerate(sequence):
