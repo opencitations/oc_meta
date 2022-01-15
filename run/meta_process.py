@@ -36,13 +36,13 @@ class MetaProcess:
     def process(self) -> None:
         if not os.path.exists(self.cache_path):
             pathoo(self.cache_path)
-            # open(self.cache_path, 'wt', encoding='utf-8')
             completed = set()
         else:
             with open(self.cache_path, 'r', encoding='utf-8') as cache_file:
                 completed = {line.rstrip('\n') for line in cache_file}
         if self.verbose:
             pbar = tqdm(total=len(os.listdir(self.input_csv_dir)))
+            pbar.update(len(completed))
         prov_dir = os.path.join(self.base_dir, 'prov' + os.sep)
         for dir in [self.output_csv_dir, self.indexes_dir, self.base_dir, prov_dir]:
             pathoo(dir)
@@ -57,9 +57,17 @@ class MetaProcess:
                 curator_obj.curator(filename=name, path_csv=self.output_csv_dir, path_index=self.indexes_dir)
                 # Creator
                 creator_info_dir = os.path.join(self.info_dir, 'creator' + os.sep)
-                creator_obj = Creator(curator_obj.data, self.base_iri, creator_info_dir, self.supplier_prefix, self.resp_agent,
-                                    curator_obj.index_id_ra, curator_obj.index_id_br, curator_obj.re_index,
-                                    curator_obj.ar_index, curator_obj.VolIss)
+                creator_obj = Creator(
+                    data=curator_obj.data, 
+                    base_iri=self.base_iri, 
+                    info_dir=creator_info_dir, 
+                    supplier_prefix=self.supplier_prefix, 
+                    resp_agent=self.resp_agent,
+                    ra_index=curator_obj.index_id_ra, 
+                    br_index=curator_obj.index_id_br, 
+                    re_index_csv=curator_obj.re_index,
+                    ar_index_csv=curator_obj.ar_index, 
+                    vi_index=curator_obj.VolIss)
                 creator = creator_obj.creator(source=self.source)
                 # Provenance
                 prov = ProvSet(creator, self.base_iri, creator_info_dir, wanted_label=False)

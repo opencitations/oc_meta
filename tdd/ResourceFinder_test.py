@@ -81,8 +81,8 @@ class test_ResourceFinder(unittest.TestCase):
         value = '0000-0001-6994-8412'
         output = finder.retrieve_ra_from_id(schema, value, publisher=False)
         expected_output = [
-            ('1000000', 'Alarcon, Louis H.', [('4475', 'orcid:0000-0001-6994-8412')]),
-            ('4940', 'Alarcon, Louis H.', [('4475', 'orcid:0000-0001-6994-8412')])
+            ('4940', 'Alarcon, Louis H.', [('4475', 'orcid:0000-0001-6994-8412')]),
+            ('1000000', 'Alarcon, Louis H.', [('4475', 'orcid:0000-0001-6994-8412')])
         ]
         self.assertEqual(output, expected_output)
 

@@ -38,7 +38,7 @@ context_path: https://w3id.org/oc/corpus/context.json
 dir_split_number: 10000
 items_per_file: 1000
 default_dir: _
-supplier_prefix: '060'
+supplier_prefix: ''
 rdf_output_in_chunks: True
 # Data source URL
 source: https://api.crossref.org/

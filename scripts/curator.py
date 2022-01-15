@@ -262,8 +262,6 @@ class Curator:
         :returns: None -- This method modifies self.ardict, self.radict, and self.idra, and returns None.
         '''
         if row[col_name]:
-            # split authors by ';' outside '[]' (any spaces before and after ';')
-            ra_list = re.split(r'\s*;\s*(?=[^]]*(?:\[|$))', row[col_name])
             if row['id'] in self.brdict:
                 br_metaval = row['id']
             else:
@@ -323,6 +321,8 @@ class Curator:
                 sequence = self.ardict[br_metaval][col_name]
             new_sequence = list()
             change_order = False
+            # split authors by ';' outside '[]' (any spaces before and after ';')
+            ra_list = re.split(r'\s*;\s*(?![^\[]*?\](?:\s*;\s*|$))', row[col_name])
             for pos, ra in enumerate(ra_list):
                 new_elem_seq = True
                 # takes string inside '[]' ignoring any space between (ex: [ TARGET  ] --> TARGET
