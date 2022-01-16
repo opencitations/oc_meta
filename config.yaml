@@ -16,31 +16,38 @@
 # SOFTWARE.
 
 # Mandatory settings
+
+# Endpoint URL to load the output RDF
 triplestore_url: http://localhost:9999/blazegraph/sparql
+# A support folder to save counters of the various types of entities. It must not be deleted or moved until the end of the Meta process.
 info_dir: C:/meta_output/info_dir
 # A URI string representing the provenance agent which is considered responsible for the RDF graph manipulation
 resp_agent: https://orcid.org/0000-0002-8420-0696
 # Directory where raw CSV files are stored
 input_csv_dir: 'C:/Users/arcangelo.massari2/OneDrive - Alma Mater Studiorum Università di Bologna/Desktop/meta-repo/meta_input'
-# Directory where cleaned CSVs will be stored
+# Directory where cleaned CSV files will be stored
 output_csv_dir: C:/meta_output/csv
 # Directory where both output RDF data and provenance files will be stored
 output_rdf_dir: C:/meta_output/rdf
-# Indices are products of the CSV cleaning step, and they are necessary for RDFs creation
+# Indices are products of the CSV cleaning step, and they are necessary for RDF files' creation
 indexes_dir: C:/meta_output/indexes
-# Path of a txt file containing a list of processed CSVs
+# Path of a text file containing a list of processed CSVs. It will be created if it doesn't exist. This file is helpful to avoid repeating the process twice for the same file.
 cache_path: C:/meta_output/cache.txt
 
 # Optional settings
+
+# The base URI of entities on Meta. This setting can be safely left as is.
 base_iri: https://w3id.org/oc/meta/
+# URL where the namespaces and prefixes used in the OpenCitations Data Model are defined. This setting can be safely left as is.
 context_path: https://w3id.org/oc/corpus/context.json
 # dir_split_number's value must be multiple of items_per_file's value
 dir_split_number: 10000
 items_per_file: 1000
 default_dir: _
+# A prefix for the sequential number in entities’ URIs. This setting can be safely left as is.
 supplier_prefix: ''
 rdf_output_in_chunks: True
-# Data source URL
+# Data source URL. This setting can be safely left as is.
 source: https://api.crossref.org/
 # Show a loading bar, elapsed time and estimated time
 verbose: True

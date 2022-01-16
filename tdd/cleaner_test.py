@@ -1,5 +1,5 @@
 import unittest
-from meta.scripts.cleaner import Cleaner
+from meta.lib.cleaner import Cleaner
 from pprint import pprint
 
 class test_Cleaner(unittest.TestCase):
@@ -49,12 +49,13 @@ class test_Cleaner(unittest.TestCase):
         self.assertEqual(outputs, expected_output)
     
     def test_clean_name(self):
-        names = ['Peroni, Silvio', 'Peroni, S.', '  Peroni   ,    Silvio  ', 'PERONI, SILVIO', '', 'peroni', 'peroni, Silvio']
+        names = ['Peroni, Silvio', 'Peroni, S.', '  Peroni   ,    Silvio  ', 'PERONI, SILVIO', '', 'peroni', 'peroni, Silvio', 'McSorley, Stephen', 'OECD']
         outputs = list()
         for name in names:
             outputs.append(Cleaner(name).clean_name())
-        expected_output = ['Peroni, Silvio', 'Peroni, S.', 'Peroni, Silvio', 'Peroni, Silvio', '', 'Peroni', 'Peroni, Silvio']
+        expected_output = ['Peroni, Silvio', 'Peroni, S.', 'Peroni, Silvio', 'Peroni, Silvio', '', 'Peroni', 'Peroni, Silvio', 'McSorley, Stephen', 'Oecd']
         self.assertEqual(outputs, expected_output)
-        
+
+
 if __name__ == '__main__':
     unittest.main()

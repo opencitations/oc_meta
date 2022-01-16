@@ -4,7 +4,7 @@ import re
 import os
 import json
 from meta.lib.finder import *
-from meta.scripts.cleaner import Cleaner
+from meta.lib.cleaner import Cleaner
 from meta.lib.master_of_regex import *
 
 

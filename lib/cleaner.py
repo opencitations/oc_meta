@@ -145,11 +145,11 @@ class Cleaner:
             split_name = re.split(comma_and_spaces, name)
             first_name = split_name[1].split()
             for i, w in enumerate(first_name):
-                first_name[i] = w.title()
+                first_name[i] = Cleaner(w).clean_title()
             new_first_name = ' '.join(first_name)
             surname = split_name[0].split()
             for i, w in enumerate(surname):
-                surname[i] = w.title()
+                surname[i] = Cleaner(w).clean_title()
             new_surname = ' '.join(surname)
             if new_surname:
                 new_name = new_surname + ', ' + new_first_name
@@ -158,6 +158,6 @@ class Cleaner:
         else:
             split_name = name.split()
             for i, w in enumerate(split_name):
-                split_name[i] = w.capitalize()
+                split_name[i] = Cleaner(w).clean_title()
             new_name = ' '.join(split_name)
         return new_name
