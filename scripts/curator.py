@@ -322,7 +322,11 @@ class Curator:
                 sequence = self.ardict[br_metaval][col_name]
             new_sequence = list()
             change_order = False
-            ra_list = re.split(semicolon_in_ra_field, row[col_name])
+            if col_name in {'author', 'editor'}:
+                pattern = semicolon_in_people_field 
+            elif col_name == 'publisher': 
+                pattern = semicolon_in_publisher_field
+            ra_list = re.split(pattern, row[col_name])
             for pos, ra in enumerate(ra_list):
                 new_elem_seq = True
                 ra_id = re.search(name_and_ids, ra)

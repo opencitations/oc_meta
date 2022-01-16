@@ -42,7 +42,6 @@ class MetaProcess:
                 completed = {line.rstrip('\n') for line in cache_file}
         if self.verbose:
             pbar = tqdm(total=len(os.listdir(self.input_csv_dir)))
-            pbar.update(len(completed))
         prov_dir = os.path.join(self.base_dir, 'prov' + os.sep)
         for dir in [self.output_csv_dir, self.indexes_dir, self.base_dir, prov_dir]:
             pathoo(dir)
@@ -98,7 +97,7 @@ class MetaProcess:
                 with open(self.cache_path, 'a', encoding='utf-8') as aux_file:
                     aux_file.write(filename + '\n')
             if self.verbose:
-                pbar.update()
+                pbar.update(1)
         if self.verbose:
             pbar.close()
 

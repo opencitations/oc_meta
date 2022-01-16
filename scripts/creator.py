@@ -112,7 +112,7 @@ class Creator(object):
 
     def author_action(self, authors):
         if authors:
-            authorslist = re.split(semicolon_in_ra_field, authors)
+            authorslist = re.split(semicolon_in_people_field, authors)
             aut_role_list = list()
             for aut in authorslist:
                 aut_and_ids = re.search(name_and_ids, aut)
@@ -293,7 +293,7 @@ class Creator(object):
         publ_role.is_held_by(publ)
 
     def editor_action(self, editor):
-        editorslist = re.split(semicolon_in_ra_field, editor)
+        editorslist = re.split(semicolon_in_people_field, editor)
         edit_role_list = list()
         for ed in editorslist:
             ed_and_ids = re.search(name_and_ids, ed)

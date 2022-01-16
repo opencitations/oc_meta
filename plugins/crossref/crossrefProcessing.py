@@ -148,9 +148,7 @@ class crossrefProcessing:
                     for ori in dict_orcid:
                         orc_n = dict_orcid[ori].split(', ')
                         orc_f = orc_n[0]
-                        # orc_g = orc_n[1]
                         if f_name.lower() in orc_f.lower() or orc_f.lower() in f_name.lower():
-                            # and (g_name.lower() in orc_g.lower() or orc_g.lower() in g_name.lower()):
                             orcid = ori
                 if orcid:
                     agent_string += ' [' + 'orcid:' + str(orcid) + ']'

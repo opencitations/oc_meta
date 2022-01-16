@@ -298,6 +298,21 @@ class test_Curator(unittest.TestCase):
             {'orcid:0000-0002-8976-6074': '0601', 'orcid:0;000-0002-8976-6074': '0602', 'orcid:0000-0;002-8976-6074': '0603'}
         )
         self.assertEqual(output, expected_output)
+
+    def test_clean_ra_with_empty_square_brackets(self):
+        add_data_ts()
+        # One author's name contains a closed square bracket.
+        row = {'id': '3757', 'title': 'Multiple Keloids', 'author': 'Bernacki, Edward J. [    ]', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}
+        curator = prepareCurator(list())
+        curator.brdict = {'3757': {'ids': ['doi:10.1001/archderm.104.1.106'], 'title': 'Multiple Keloids', 'others': []}}
+        curator.clean_ra(row, 'author')
+        output = (curator.ardict, curator.radict, curator.idra)
+        expected_output = (
+            {'3757': {'author': [('9445', '6033'), ('0601', 'wannabe_0')], 'editor': [], 'publisher': []}},
+            {'6033': {'ids': [], 'others': [], 'title': 'Curth, W.'}, 'wannabe_0': {'ids': [], 'others': [], 'title': 'Bernacki, Edward J.'}},
+            {}
+        )
+        self.assertEqual(output, expected_output)
     
     def test_meta_maker(self):
         curator = prepareCurator(list())
