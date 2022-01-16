@@ -8,7 +8,7 @@ An example of a raw CSV input file can be found in [`example.csv`](https://githu
 - [Meta](#meta)
 - [Plugins](#plugins)
   * [Get a DOI-ORCID index](#get-a-doi-orcid-index)
-  * [Get row CSV files from Crossref](#get-row-csv-files-from-crossref)
+  * [Get raw CSV files from Crossref](#get-raw-csv-files-from-crossref)
   * [Get DOIs from COCI's dump](#get-dois-from-coci-s-dump)
 
 ## Meta
