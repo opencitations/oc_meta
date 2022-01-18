@@ -18,13 +18,13 @@
 # Mandatory settings
 
 # Endpoint URL to load the output RDF
-triplestore_url: http://localhost:9999/blazegraph/sparql
+triplestore_url: http://localhost:19999/blazegraph/sparql
 # A support folder to save counters of the various types of entities. It must not be deleted or moved until the end of the Meta process.
 info_dir: C:/meta_output/info_dir
 # A URI string representing the provenance agent which is considered responsible for the RDF graph manipulation
 resp_agent: https://orcid.org/0000-0002-8420-0696
 # Directory where raw CSV files are stored
-input_csv_dir: 'C:/Users/arcangelo.massari2/OneDrive - Alma Mater Studiorum Università di Bologna/Desktop/meta-repo/meta_input'
+input_csv_dir: 'C:\meta\meta_input'
 # Directory where cleaned CSV files will be stored
 output_csv_dir: C:/meta_output/csv
 # Directory where both output RDF data and provenance files will be stored

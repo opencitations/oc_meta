@@ -6,9 +6,10 @@ from meta.scripts.curator import *
 from datetime import datetime
 from argparse import ArgumentParser
 from csv import DictReader
+import yaml
 import os
 from tqdm import tqdm
-import yaml
+
 
 class MetaProcess:
     def __init__(self, config:str):
@@ -45,6 +46,7 @@ class MetaProcess:
         prov_dir = os.path.join(self.base_dir, 'prov' + os.sep)
         for dir in [self.output_csv_dir, self.indexes_dir, self.base_dir, prov_dir]:
             pathoo(dir)
+        csv.field_size_limit(1000000)
         for filename in os.listdir(self.input_csv_dir):
             if filename.endswith('.csv') and filename not in completed:
                 filepath = os.path.join(self.input_csv_dir, filename)

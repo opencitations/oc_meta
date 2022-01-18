@@ -20,6 +20,7 @@ class TestCrossrefProcessing(unittest.TestCase):
         data = load_json(DATA, None)
         csv_created = crossref_processor.csv_creator(data)
         expected_output = [
+            {'id': 'doi:10.47886/9789251092637.ch7', 'title': 'Freshwater, Fish and the Future: Proceedings of the Global Cross-Sectoral Conference', 'author': '', 'pub_date': '2016', 'venue': 'Freshwater, Fish and the Future: Proceedings of the Global Cross-Sectoral Conference', 'volume': '', 'issue': '', 'page': '', 'type': 'book chapter', 'publisher': 'American Fisheries Society [crossref:460]', 'editor': 'Lymer, David; Marttin, Felix; Marmulla, Gerd; Bartley, Devin M.'},
             {'id': 'doi:10.9799/ksfan.2012.25.1.069', 'title': 'Nonthermal Sterilization and Shelf-life Extension of Seafood Products by Intense Pulsed Light Treatment', 'author': 'Cheigh, Chan-Ick; Mun, Ji-Hye; Chung, Myong-Soo', 'pub_date': '2012-3-31', 'venue': 'The Korean Journal of Food And Nutrition [issn:1225-4339]', 'volume': '25', 'issue': '1', 'page': '69-76', 'type': 'journal article', 'publisher': 'The Korean Society of Food and Nutrition [crossref:4768]', 'editor': ''}, 
             {'id': 'doi:10.9799/ksfan.2012.25.1.105', 'title': 'A Study on Dietary Habit and Eating Snack Behaviors of Middle School Students with Different Obesity Indexes in Chungnam Area', 'author': 'Kim, Myung-Hee; Seo, Jin-Seon; Choi, Mi-Kyeong [orcid:0000-0002-6227-4053]; Kim, Eun-Young', 'pub_date': '2012-3-31', 'venue': 'The Korean Journal of Food And Nutrition [issn:1225-4339]', 'volume': '25', 'issue': '1', 'page': '105-115', 'type': 'journal article', 'publisher': 'The Korean Society of Food and Nutrition [crossref:4768]', 'editor': ''}, 
             {'id': 'doi:10.9799/ksfan.2012.25.1.123', 'title': 'The Protective Effects of Chrysanthemum cornarium L. var. spatiosum Extract on HIT-T15 Pancreatic β-Cells against Alloxan-induced Oxidative Stress', 'author': 'Kim, In-Hye; Cho, Kang-Jin; Ko, Jeong-Sook; Kim, Jae-Hyun; Om, Ae-Son', 'pub_date': '2012-3-31', 'venue': 'The Korean Journal of Food And Nutrition [issn:1225-4339]', 'volume': '25', 'issue': '1', 'page': '123-131', 'type': 'journal article', 'publisher': 'The Korean Society of Food and Nutrition [crossref:4768]', 'editor': ''}
@@ -35,24 +36,24 @@ class TestCrossrefProcessing(unittest.TestCase):
     def test_get_agents_strings_list(self):
         authors_list = [
             {
-                "given": "Myung-Hee",
-                "family": "Kim",
-                "affiliation": []
+                'given': 'Myung-Hee',
+                'family': 'Kim',
+                'affiliation': []
             },
             {
-                "given": "Jin-Seon",
-                "family": "Seo",
-                "affiliation": []
+                'given': 'Jin-Seon',
+                'family': 'Seo',
+                'affiliation': []
             },
             {
-                "given": "Mi-Kyeong",
-                "family": "Choi",
-                "affiliation": []
+                'given': 'Mi-Kyeong',
+                'family': 'Choi',
+                'affiliation': []
             },
             {
-                "given": "Eun-Young",
-                "family": "Kim",
-                "affiliation": []
+                'given': 'Eun-Young',
+                'family': 'Kim',
+                'affiliation': []
             }
         ]
         crossref_processor = crossrefProcessing(IOD, WANTED_DOIS)
@@ -61,8 +62,8 @@ class TestCrossrefProcessing(unittest.TestCase):
         self.assertEqual(authors_strings_list, expected_authors_list)
     
     def test_id_worker(self):
-        field_issn = "ISSN 1050-124X"
-        field_isbn = ["978-1-56619-909-4"]
+        field_issn = 'ISSN 1050-124X'
+        field_isbn = ['978-1-56619-909-4']
         issn_list = list()
         isbn_list = list()
         crossrefProcessing.id_worker(field_issn, issn_list, crossrefProcessing.issn_worker)
@@ -72,17 +73,17 @@ class TestCrossrefProcessing(unittest.TestCase):
         self.assertEqual((issn_list, isbn_list), (expected_issn_list, expected_isbn_list))
 
     def test_issn_worker(self):
-        input = "ISSN 1050-124X"
+        input = 'ISSN 1050-124X'
         output = list()
         crossrefProcessing.issn_worker(input, output)
-        expected_output = ["issn:1050-124X"]
+        expected_output = ['issn:1050-124X']
         self.assertEqual(output, expected_output)
 
     def test_isbn_worker(self):
-        input = "978-1-56619-909-4"
+        input = '978-1-56619-909-4'
         output = list()
         crossrefProcessing.isbn_worker(input, output)
-        expected_output = ["isbn:9781566199094"]
+        expected_output = ['isbn:9781566199094']
         self.assertEqual(output, expected_output)
     
     def test_preprocess(self):

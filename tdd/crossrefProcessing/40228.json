@@ -4,6 +4,135 @@
             "indexed": {
                 "date-parts": [
                     [
+                        2021,
+                        12,
+                        13
+                    ]
+                ],
+                "date-time": "2021-12-13T09:21:23Z",
+                "timestamp": 1639387283862
+            },
+            "reference-count": 0,
+            "publisher": "American Fisheries Society",
+            "content-domain": {
+                "domain": [],
+                "crossmark-restriction": false
+            },
+            "short-container-title": [],
+            "published-print": {
+                "date-parts": [
+                    [
+                        2016
+                    ]
+                ]
+            },
+            "abstract": "<jats:p>&lt;em&gt;Abstract&lt;\/em&gt; .\u2014To better reflect the true value of inland capture fisheries in the international discourse, we provide a new estimate of theoretical annual fisheries harvest from inland waters per continent and type of aquatic habitat. The estimate is based on an assessment of recent estimates of global inland aquatic habitat areas and average yield measurements from these habitats.<\/jats:p>",
+            "DOI": "10.47886\/9789251092637.ch7",
+            "type": "book-chapter",
+            "created": {
+                "date-parts": [
+                    [
+                        2021,
+                        1,
+                        9
+                    ]
+                ],
+                "date-time": "2021-01-09T15:17:36Z",
+                "timestamp": 1610205456000
+            },
+            "source": "Crossref",
+            "is-referenced-by-count": 3,
+            "title": [
+                "Freshwater, Fish and the Future: Proceedings of the Global Cross-Sectoral Conference"
+            ],
+            "prefix": "10.47886",
+            "member": "460",
+            "container-title": [
+                "Freshwater, Fish and the Future: Proceedings of the Global Cross-Sectoral Conference"
+            ],
+            "original-title": [],
+            "deposited": {
+                "date-parts": [
+                    [
+                        2021,
+                        1,
+                        9
+                    ]
+                ],
+                "date-time": "2021-01-09T15:17:58Z",
+                "timestamp": 1610205478000
+            },
+            "score": 1,
+            "subtitle": [],
+            "editor": [
+                {
+                    "given": "David",
+                    "family": "Lymer",
+                    "sequence": "first",
+                    "affiliation": []
+                },
+                {
+                    "name": "Food and Agriculture Organization of the United Nations Fisheries and Aquaculture Department Viale delle Terme di Caracalla, Rome 00153, Italy",
+                    "sequence": "first",
+                    "affiliation": []
+                },
+                {
+                    "given": "Felix",
+                    "family": "Marttin",
+                    "sequence": "additional",
+                    "affiliation": []
+                },
+                {
+                    "given": "Gerd",
+                    "family": "Marmulla",
+                    "sequence": "additional",
+                    "affiliation": []
+                },
+                {
+                    "given": "Devin M.",
+                    "family": "Bartley",
+                    "sequence": "additional",
+                    "affiliation": []
+                },
+                {
+                    "name": "Food and Agriculture Organization of the United Nations Fisheries and Aquaculture Department Viale delle Terme di Caracalla, Rome 00153, Italy",
+                    "sequence": "additional",
+                    "affiliation": []
+                },
+                {
+                    "name": "Food and Agriculture Organization of the United Nations Fisheries and Aquaculture Department Viale delle Terme di Caracalla, Rome 00153, Italy",
+                    "sequence": "additional",
+                    "affiliation": []
+                },
+                {
+                    "name": "Food and Agriculture Organization of the United Nations Fisheries and Aquaculture Department Viale delle Terme di Caracalla, Rome 00153, Italy",
+                    "sequence": "additional",
+                    "affiliation": []
+                }
+            ],
+            "short-title": [],
+            "issued": {
+                "date-parts": [
+                    [
+                        2016
+                    ]
+                ]
+            },
+            "references-count": 0,
+            "URL": "http:\/\/dx.doi.org\/10.47886\/9789251092637.ch7",
+            "relation": {},
+            "published": {
+                "date-parts": [
+                    [
+                        2016
+                    ]
+                ]
+            }
+        },
+        {
+            "indexed": {
+                "date-parts": [
+                    [
                         2020,
                         11,
                         5
