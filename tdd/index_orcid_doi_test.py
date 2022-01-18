@@ -3,8 +3,8 @@ from meta.plugins.orcid.index_orcid_doi import Index_orcid_doi
 from csv import DictReader, DictWriter
 from pprint import pprint
 
-CSV_PATH = 'meta\\tdd\\index_orcid_doi\\output'
-SUMMARIES_PATH = 'meta\\tdd\\index_orcid_doi\\orcid'
+CSV_PATH = os.path.join('meta', 'tdd', 'index_orcid_doi', 'output')
+SUMMARIES_PATH = os.path.join('meta', 'tdd', 'index_orcid_doi', 'orcid')
 
 def load_files_from_dir(dir:str):
     output = list()
@@ -18,8 +18,8 @@ class test_Index_orcid_doi(unittest.TestCase):
     def test_explorer(self):
         iOd = Index_orcid_doi(output_path=CSV_PATH, verbose=False)
         iOd.explorer(summaries_path=SUMMARIES_PATH)
-        output = load_files_from_dir(CSV_PATH)
-        expected_output = [
+        output = sorted(load_files_from_dir(CSV_PATH), key=lambda d: d['id'])
+        expected_output = sorted([
             {'id': 'None', 'value': '[0000-0001-5002-1000]'},
             {'id': '10.1016/j.indcrop.2020.112103', 'value': 'Gargouri, Ali [0000-0001-5009-9000]'},
             {'id': '10.1155/2019/3213521', 'value': 'Gargouri, Ali [0000-0001-5009-9000]'},
@@ -42,7 +42,7 @@ class test_Index_orcid_doi(unittest.TestCase):
             {'id': '10.1007/s11255-011-0007-x', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'}, 
             {'id': '10.1016/j.jbspin.2011.06.009', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'}, 
             {'id': '10.1093/ndt/gfq089', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'}
-        ]
+        ], key=lambda d: d['id'])
         shutil.rmtree(CSV_PATH)
         self.assertEqual(output, expected_output)
 
@@ -102,8 +102,8 @@ class test_Index_orcid_doi(unittest.TestCase):
     def test_low_memory(self):
         iOd = Index_orcid_doi(output_path=CSV_PATH, low_memory=True, verbose=False)
         iOd.explorer(summaries_path=SUMMARIES_PATH)
-        output = load_files_from_dir(CSV_PATH)
-        expected_output = [
+        output = sorted(load_files_from_dir(CSV_PATH), key=lambda d: d['id'])
+        expected_output = sorted([
             {'id': 'None', 'value': '[0000-0001-5002-1000]'},
             {'id': '10.1016/j.indcrop.2020.112103', 'value': 'Gargouri, Ali [0000-0001-5009-9000]'},
             {'id': '10.1155/2019/3213521', 'value': 'Gargouri, Ali [0000-0001-5009-9000]'},
@@ -126,7 +126,7 @@ class test_Index_orcid_doi(unittest.TestCase):
             {'id': '10.1007/s11255-011-0007-x', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'}, 
             {'id': '10.1016/j.jbspin.2011.06.009', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'}, 
             {'id': '10.1093/ndt/gfq089', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'}
-        ]
+        ], key=lambda d: d['id'])
         shutil.rmtree(CSV_PATH)
         self.assertEqual(output, expected_output)
 
