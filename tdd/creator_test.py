@@ -93,7 +93,6 @@ class testcase_05(unittest.TestCase):
         # testcase5: NO ID scenario
         name = "05"
         test_graph, new_graph = prepare2test(name)
-
         self.assertEqual(compare.isomorphic(new_graph, test_graph), True)
 
 

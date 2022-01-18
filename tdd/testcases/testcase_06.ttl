@@ -423,5 +423,5 @@
 
 <https://w3id.org/oc/meta/ra/0602> a ns5:Agent ;
     ns3:hasIdentifier <https://w3id.org/oc/meta/id/0602> ;
-    ns5:name "Pubx" .
+    ns5:name "pubX" .
 
