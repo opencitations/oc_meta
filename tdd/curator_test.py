@@ -262,7 +262,7 @@ class test_Curator(unittest.TestCase):
         output = (curator.ardict, curator.radict, curator.idra)
         expected_output = (
             {'3757': {'author': [('9445', '6033'), ('0601', 'wannabe_0')], 'editor': [], 'publisher': []}}, 
-            {'6033': {'ids': [], 'others': [], 'title': 'Curth, W.'}, 'wannabe_0': {'ids': ['orcid:0000-0002-8420-0698', 'schema:12345'], 'others': [], 'title': 'Mcsorley, J.'}}, 
+            {'6033': {'ids': [], 'others': [], 'title': 'Curth, W.'}, 'wannabe_0': {'ids': ['orcid:0000-0002-8420-0698', 'schema:12345'], 'others': [], 'title': 'McSorley, J.'}}, 
             {'orcid:0000-0002-8420-0698': '0601', 'schema:12345': '0602'}
         )
         self.assertEqual(output, expected_output)
@@ -279,7 +279,7 @@ class test_Curator(unittest.TestCase):
         output = (curator.ardict, curator.radict, curator.idra)
         expected_output = (
             {'wannabe_0': {'author': [('0601', 'wannabe_1'), ('0602', 'wannabe_2')], 'editor': [], 'publisher': []}}, 
-            {'wannabe_1': {'ids': ['orcid:0000-0002-8420-0697'], 'others': [], 'title': 'Curth, W.'}, 'wannabe_2': {'ids': ['orcid:0000-0002-8420-0698'], 'others': [], 'title': 'Mcsorley, J.'}}, 
+            {'wannabe_1': {'ids': ['orcid:0000-0002-8420-0697'], 'others': [], 'title': 'Curth, W.'}, 'wannabe_2': {'ids': ['orcid:0000-0002-8420-0698'], 'others': [], 'title': 'McSorley, J.'}}, 
             {'orcid:0000-0002-8420-0697': '0601', 'orcid:0000-0002-8420-0698': '0602'}
         )
         self.assertEqual(output, expected_output)
