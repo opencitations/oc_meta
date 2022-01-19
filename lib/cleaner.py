@@ -6,10 +6,9 @@ from meta.lib.master_of_regex import *
 class Cleaner:
     def __init__(self, string:str):
         '''
-        :params string: the string to be cleaned. Null characters are immediately removed
+        :params string: the string to be cleaned.
         :type string: str
         '''
-        self.string = string.replace("\0", "")
 
     def normalize_hyphens(self) -> str:
         '''

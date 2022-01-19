@@ -50,7 +50,9 @@ class MetaProcess:
         for filename in os.listdir(self.input_csv_dir):
             if filename.endswith('.csv') and filename not in completed:
                 filepath = os.path.join(self.input_csv_dir, filename)
-                data = list(DictReader(open(filepath, 'r', encoding='utf8'), delimiter=','))
+                data_initial = open(filepath, 'r', encoding='utf8')
+                valid_data = (line.replace('\0','') for line in data_initial)
+                data = list(DictReader(valid_data, delimiter=','))
                 # Curator
                 curator_info_dir = os.path.join(self.info_dir, 'curator' + os.sep)
                 curator_obj = Curator(data, self.triplestore_url, info_dir=curator_info_dir, prefix=self.supplier_prefix)
