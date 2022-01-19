@@ -4,14 +4,14 @@ from meta.lib.jsonmanager import *
 from meta.run.crossref_process import preprocess
 from pprint import pprint
 
-BASE = 'meta\\tdd\\crossrefProcessing'
-IOD = f'{BASE}\\iod'
+BASE = os.path.join('meta', 'tdd', 'crossrefProcessing')
+IOD = os.path.join(BASE, 'iod')
 WANTED_DOIS = BASE
-DATA = f'{BASE}\\40228.json'
+DATA = os.path.join(BASE, '40228.json')
 DATA_DIR = BASE
-OUTPUT = f'{BASE}\\meta_input'
-MULTIPROCESS_OUTPUT = f'{BASE}\\multi_process_test'
-GZIP_INPUT = f'{BASE}\\gzip_test'
+OUTPUT = os.path.join(BASE, 'meta_input')
+MULTIPROCESS_OUTPUT = os.path.join(BASE, 'multi_process_test')
+GZIP_INPUT = os.path.join(BASE, 'gzip_test')
 
 class TestCrossrefProcessing(unittest.TestCase):
 
@@ -91,19 +91,19 @@ class TestCrossrefProcessing(unittest.TestCase):
         if os.path.exists(OUTPUT):
             shutil.rmtree(OUTPUT)
         preprocess(crossref_json_dir=MULTIPROCESS_OUTPUT, orcid_doi_filepath=IOD, csv_dir=OUTPUT, wanted_doi_filepath=None)
-        output = list()
+        output = dict()
         for file in os.listdir(OUTPUT):
             with open(os.path.join(OUTPUT, file), 'r', encoding='utf-8') as f:
-                output.append(list(csv.DictReader(f)))
-        expected_output = [
-            [
+                output[file] = list(csv.DictReader(f))
+        expected_output = {
+            '1.csv': [
                 {'id': 'doi:10.17117/na.2015.08.1067', 'title': '', 'author': '', 'pub_date': 'None', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': 'component', 'publisher': 'Consulting Company Ucom [crossref:6623]', 'editor': ''}
             ],
-            [
+            '0.csv': [
                 {'id': 'doi:10.9799/ksfan.2012.25.1.069', 'title': 'Nonthermal Sterilization and Shelf-life Extension of Seafood Products by Intense Pulsed Light Treatment', 'author': 'Cheigh, Chan-Ick; Mun, Ji-Hye; Chung, Myong-Soo', 'pub_date': '2012-3-31', 'venue': 'The Korean Journal of Food And Nutrition [issn:1225-4339]', 'volume': '25', 'issue': '1', 'page': '69-76', 'type': 'journal article', 'publisher': 'The Korean Society of Food and Nutrition [crossref:4768]', 'editor': ''},
                 {'id': 'doi:10.9799/ksfan.2012.25.1.077', 'title': 'Properties of Immature Green Cherry Tomato Pickles', 'author': 'Koh, Jong-Ho; Shin, Hae-Hun; Kim, Young-Shik; Kook, Moo-Chang', 'pub_date': '2012-3-31', 'venue': 'The Korean Journal of Food And Nutrition [issn:1225-4339]', 'volume': '25', 'issue': '1', 'page': '77-82', 'type': 'journal article', 'publisher': 'The Korean Society of Food and Nutrition [crossref:4768]', 'editor': ''}
             ]
-        ]
+        }
         self.assertEqual(output, expected_output)
 
     def test_gzip_input(self):
