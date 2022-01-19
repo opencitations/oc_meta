@@ -9,5 +9,5 @@ if __name__ == '__main__':
     arg_parser.add_argument('-out', '--output', dest='output_dir', required=True,
                         help='The Meta input CSV files directory.')
     args = arg_parser.parse_args()
-    output = split_by_publisher(args.meta_input)
+    output = run(args.meta_input, args.output_dir)
     # dump_csvs_by_publisher(output, args.output_dir)
