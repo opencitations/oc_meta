@@ -58,7 +58,6 @@ class TestCrossrefProcessing(unittest.TestCase):
         ]
         crossref_processor = crossrefProcessing(IOD, WANTED_DOIS)
         authors_strings_list = crossref_processor.get_agents_strings_list('10.9799/ksfan.2012.25.1.105', authors_list)
-        print(authors_strings_list)
         expected_authors_list = ['Kim, Myung-Hee', 'Seo, Jin-Seon', 'Choi, Mi-Kyeong [orcid:0000-0002-6227-4053]', 'Kim, Eun-Young']
         self.assertEqual(authors_strings_list, expected_authors_list)
     
@@ -96,10 +95,10 @@ class TestCrossrefProcessing(unittest.TestCase):
             with open(os.path.join(OUTPUT, file), 'r', encoding='utf-8') as f:
                 output[file] = list(csv.DictReader(f))
         expected_output = {
-            '1.csv': [
+            '0.csv': [
                 {'id': 'doi:10.17117/na.2015.08.1067', 'title': '', 'author': '', 'pub_date': 'None', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': 'component', 'publisher': 'Consulting Company Ucom [crossref:6623]', 'editor': ''}
             ],
-            '0.csv': [
+            '1.csv': [
                 {'id': 'doi:10.9799/ksfan.2012.25.1.069', 'title': 'Nonthermal Sterilization and Shelf-life Extension of Seafood Products by Intense Pulsed Light Treatment', 'author': 'Cheigh, Chan-Ick; Mun, Ji-Hye; Chung, Myong-Soo', 'pub_date': '2012-3-31', 'venue': 'The Korean Journal of Food And Nutrition [issn:1225-4339]', 'volume': '25', 'issue': '1', 'page': '69-76', 'type': 'journal article', 'publisher': 'The Korean Society of Food and Nutrition [crossref:4768]', 'editor': ''},
                 {'id': 'doi:10.9799/ksfan.2012.25.1.077', 'title': 'Properties of Immature Green Cherry Tomato Pickles', 'author': 'Koh, Jong-Ho; Shin, Hae-Hun; Kim, Young-Shik; Kook, Moo-Chang', 'pub_date': '2012-3-31', 'venue': 'The Korean Journal of Food And Nutrition [issn:1225-4339]', 'volume': '25', 'issue': '1', 'page': '77-82', 'type': 'journal article', 'publisher': 'The Korean Society of Food and Nutrition [crossref:4768]', 'editor': ''}
             ]

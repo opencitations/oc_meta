@@ -55,6 +55,14 @@ class test_Cleaner(unittest.TestCase):
             outputs.append(Cleaner(name).clean_name())
         expected_output = ['Peroni, Silvio', 'Peroni, S.', 'Peroni, Silvio', 'Peroni, Silvio', '', 'Peroni', 'Peroni, Silvio', 'McSorley, Stephen', 'Oecd']
         self.assertEqual(outputs, expected_output)
+    
+    def test_remove_unwanted_characters(self):
+        names = ['Edward ].', 'Bernacki', 'Tom??&OV0165;', 'Gavin         E.', 'Andr[eacute]']
+        outputs = list()
+        for name in names:
+            outputs.append(Cleaner(name).remove_unwanted_characters())
+        expected_output = ['Edward', 'Bernacki', 'Tom&OV0165', 'Gavin E.', 'Andreacute']
+        self.assertEqual(outputs, expected_output)
 
 
 if __name__ == '__main__':

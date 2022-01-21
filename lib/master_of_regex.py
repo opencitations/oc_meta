@@ -45,3 +45,8 @@ comma_and_spaces = '\s*,\s*'
 It captures one or more spaces.
 '''
 one_or_more_spaces = '\s+'
+
+'''
+It captures any pages range separator.
+'''
+pages_separator = '[^A-Za-z\d]+(?=[A-Za-z\d]+)'

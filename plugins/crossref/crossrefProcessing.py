@@ -1,10 +1,13 @@
 import html
+import re
 from bs4 import BeautifulSoup
 from meta.lib.id_manager.orcidmanager import ORCIDManager
 from meta.lib.csvmanager import CSVManager
 from meta.lib.id_manager.issnmanager import ISSNManager
 from meta.lib.id_manager.isbnmanager import ISBNManager
 from meta.lib.id_manager.doimanager import DOIManager
+from meta.lib.cleaner import Cleaner
+from meta.lib.master_of_regex import *
 
 
 class crossrefProcessing:
@@ -98,7 +101,8 @@ class crossrefProcessing:
                 if 'issue' in x:
                     row['issue'] = x['issue']
                 if 'page' in x:
-                    row['page'] = x['page']
+                    pages = '-'.join(re.split(pages_separator, x['page']))
+                    row['page'] = pages
 
                 if 'publisher' in x:
                     if x['publisher']:
@@ -128,9 +132,9 @@ class crossrefProcessing:
             dict_orcid = self.orcid_finder(doi)
         for agent in agents_list:
             if 'family' in agent:
-                f_name = agent['family']
+                f_name = Cleaner(agent['family']).remove_unwanted_characters()
                 if 'given' in agent:
-                    g_name = agent['given']
+                    g_name = Cleaner(agent['given']).remove_unwanted_characters()
                     agent_string = f_name + ', ' + g_name
                 else:
                     agent_string = f_name + ', '
