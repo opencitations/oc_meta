@@ -4,12 +4,12 @@ from pprint import pprint
 
 class test_Cleaner(unittest.TestCase):
     def test_clen_hyphen(self):
-        broken_strings = ['100­101', '100−101', '100–101', '100–101', '100—101', '100⁃101', '100−101']
+        broken_strings = ['100­101', '100−101', '100–101', '100–101', '100—101', '100⁃101', '100−101', '100➖101', '100Ⲻ101', '100﹘101']
         fixed_strings = list()
         for string in broken_strings:
             fixed_string = Cleaner(string).normalize_hyphens()
             fixed_strings.append(fixed_string)
-        expected_output = ['100-101', '100-101', '100-101', '100-101', '100-101', '100-101', '100-101']
+        expected_output = ['100-101', '100-101', '100-101', '100-101', '100-101', '100-101', '100-101', '100-101', '100-101', '100-101']
         self.assertEqual(fixed_strings, expected_output)
     
     def test_clean_title(self):
@@ -57,11 +57,11 @@ class test_Cleaner(unittest.TestCase):
         self.assertEqual(outputs, expected_output)
     
     def test_remove_unwanted_characters(self):
-        names = ['Edward ].', 'Bernacki', 'Tom??&OV0165;', 'Gavin         E.', 'Andr[eacute]']
+        names = ['Edward ].', 'Bernacki', 'Tom??&OV0165;', 'Gavin         E.', 'Andr[eacute]', 'Albers\u2010Miller']
         outputs = list()
         for name in names:
             outputs.append(Cleaner(name).remove_unwanted_characters())
-        expected_output = ['Edward', 'Bernacki', 'Tom&OV0165', 'Gavin E.', 'Andreacute']
+        expected_output = ['Edward', 'Bernacki', 'Tom&OV0165', 'Gavin E.', 'Andreacute', 'Albers-Miller']
         self.assertEqual(outputs, expected_output)
 
 

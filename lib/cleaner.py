@@ -29,6 +29,12 @@ class Cleaner:
             * - U+00AD
                 - ­
                 - Soft hyphen
+            * - U+06D4
+                - ۔
+                - Arabic Full Stop
+            * - U+2010
+                - ‐
+                - Hyphen
             * - U+2011
                 - −
                 - Non-breaking Hyphen
@@ -47,11 +53,20 @@ class Cleaner:
             * - U+2212
                 - −
                 - Minus Sign
+            * - U+2796
+                - ➖
+                - Heavy Minus Sign
+            * - U+2CBA
+                - Ⲻ
+                - Coptic Capital Letter Dialect-p Ni
+            * - U+FE58
+                - ﹘
+                - Small Em Dash
 
         :returns: str -- the string with normalized hyphens
         '''
         string = self.string
-        wrong_characters = ['\u00AD', '\u2011', '\u2012', '\u2013', '\u2014', '\u2043', '\u2212']
+        wrong_characters = ['\u00AD', '\u06D4', '\u2010', '\u2011', '\u2012', '\u2013', '\u2014', '\u2043', '\u2212', '\u2796', '\u2CBA', '\uFE58']
         for c in wrong_characters:
             string = string.replace(c, '\u002D')
         if 'isbn:' in string: # TODO: mettere a parte utilizzando il normalizer (single-responsability principle)
@@ -167,14 +182,18 @@ class Cleaner:
         This method helps remove unwanted characters from authors' names. 
         Such characters are all characters other than letters, numbers, space, or dots that are not preceded by letters and '&'. 
         Numbers and '&' are significant if the author is an organization and not a person.
+        Finally, hyphens are normalized, Unicode encodings decoded, and extra spaces removed.
 
         :returns: str -- The cleaned name
         '''
         clean_string = str()
-        for i, c in enumerate(self.string):
+        temp_str = Cleaner(self.string).normalize_hyphens()
+        # Decode unicode characters (Albers\u2010Miller)
+        temp_str = temp_str.encode("utf-8").decode("utf-8")
+        for i, c in enumerate(temp_str):
             # e.g. Col, N.F.
-            if c in {'.'}:
-                if self.string[i-1].isalpha():
+            if c == '.':
+                if temp_str[i-1].isalpha():
                     clean_string += c
             # e.g. Mun, Ji-Hye
             elif c.isdigit() or c.isalpha() or c in {'&', '-', ' '}:

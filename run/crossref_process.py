@@ -2,6 +2,7 @@ from meta.plugins.crossref.crossrefProcessing import *
 from meta.lib.jsonmanager import *
 import os
 import csv
+import json
 from argparse import ArgumentParser
 from tqdm import tqdm
 
@@ -11,7 +12,9 @@ def preprocess(crossref_json_dir:str, orcid_doi_filepath:str, csv_dir:str, wante
         if wanted_doi_filepath:
             log += ' and wanted DOIs CSV'
         print(log)
-    crossref_csv = crossrefProcessing(orcid_doi_filepath, wanted_doi_filepath)
+    crossref_csv = crossrefProcessing(None, wanted_doi_filepath)
+    if verbose:
+        print(f'[INFO: crossref_process] Getting all files from {crossref_json_dir}')
     all_files, targz_fd = get_all_files(crossref_json_dir)
     if verbose:
         pbar = tqdm(total=len(all_files))
@@ -20,12 +23,17 @@ def preprocess(crossref_json_dir:str, orcid_doi_filepath:str, csv_dir:str, wante
         new_filename = f'{idx}.csv'
         filepath = os.path.join(csv_dir, new_filename)
         pathoo(filepath)
-        data = crossref_csv.csv_creator(data)
+        data, log = crossref_csv.csv_creator(data)
         if data:
             with open(filepath, 'w', newline='', encoding='utf-8') as output_file:
                 dict_writer = csv.DictWriter(output_file, data[0].keys(), delimiter=',', quotechar='"', quoting=csv.QUOTE_NONNUMERIC, escapechar='\\')
                 dict_writer.writeheader()
                 dict_writer.writerows(data)
+        if log:
+            log_file_name = f'{idx}_log.json'
+            log_file_path = os.path.join(csv_dir, log_file_name)
+            with open(log_file_path, 'w', encoding='utf-8') as logfile:
+                json.dump(log, logfile)
         if verbose:
             pbar.update(1)
     if verbose:
