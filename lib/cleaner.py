@@ -176,28 +176,24 @@ class Cleaner:
                 split_name[i] = Cleaner(w).clean_title()
             new_name = ' '.join(split_name)
         return new_name
-    
+        
     def remove_unwanted_characters(self) -> str:
         '''
         This method helps remove unwanted characters from authors' names. 
-        Such characters are all characters other than letters, numbers, space, or dots that are not preceded by letters and '&'. 
+        Such characters are all characters other than letters, numbers, space, '&', apostroph, or dots that are not preceded by letters. 
         Numbers and '&' are significant if the author is an organization and not a person.
         Finally, hyphens are normalized, Unicode encodings decoded, and extra spaces removed.
 
         :returns: str -- The cleaned name
         '''
+        unwanted_characters = {'[', ']', '?', ';'}
         clean_string = str()
-        temp_str = Cleaner(self.string).normalize_hyphens()
-        # Decode unicode characters (Albers\u2010Miller)
-        temp_str = temp_str.encode("utf-8").decode("utf-8")
-        for i, c in enumerate(temp_str):
-            # e.g. Col, N.F.
+        for i, c in enumerate(self.string):
             if c == '.':
-                if temp_str[i-1].isalpha():
+                if self.string[i-1].isalpha():
                     clean_string += c
-            # e.g. Mun, Ji-Hye
-            elif c.isdigit() or c.isalpha() or c in {'&', '-', ' '}:
+            elif c not in unwanted_characters:
                 clean_string += c
-        # Remove multiple spaces and strip
         clean_string = ' '.join(clean_string.split()).strip()
+        clean_string = Cleaner(clean_string).normalize_hyphens()
         return clean_string

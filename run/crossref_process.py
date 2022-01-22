@@ -23,17 +23,12 @@ def preprocess(crossref_json_dir:str, orcid_doi_filepath:str, csv_dir:str, wante
         new_filename = f'{idx}.csv'
         filepath = os.path.join(csv_dir, new_filename)
         pathoo(filepath)
-        data, log = crossref_csv.csv_creator(data)
+        data = crossref_csv.csv_creator(data)
         if data:
             with open(filepath, 'w', newline='', encoding='utf-8') as output_file:
                 dict_writer = csv.DictWriter(output_file, data[0].keys(), delimiter=',', quotechar='"', quoting=csv.QUOTE_NONNUMERIC, escapechar='\\')
                 dict_writer.writeheader()
                 dict_writer.writerows(data)
-        if log:
-            log_file_name = f'{idx}_log.json'
-            log_file_path = os.path.join(csv_dir, log_file_name)
-            with open(log_file_path, 'w', encoding='utf-8') as logfile:
-                json.dump(log, logfile)
         if verbose:
             pbar.update(1)
     if verbose:

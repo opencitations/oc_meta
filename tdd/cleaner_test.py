@@ -57,11 +57,11 @@ class test_Cleaner(unittest.TestCase):
         self.assertEqual(outputs, expected_output)
     
     def test_remove_unwanted_characters(self):
-        names = ['Edward ].', 'Bernacki', 'Tom??&OV0165;', 'Gavin         E.', 'Andr[eacute]', 'Albers\u2010Miller']
+        names = ['Edward ].', 'Bernacki', 'Tom??&OV0165;', 'Gavin         E.', 'Andr[eacute]', 'Albers\u2010Miller', "O'Connor", 'O\u2019Connell', 'Gonz\u0301alez-Santiago', 'Gonz\u00e1lez-Benito']
         outputs = list()
         for name in names:
             outputs.append(Cleaner(name).remove_unwanted_characters())
-        expected_output = ['Edward', 'Bernacki', 'Tom&OV0165', 'Gavin E.', 'Andreacute', 'Albers-Miller']
+        expected_output = ['Edward', 'Bernacki', 'Tom&OV0165', 'Gavin E.', 'Andreacute', 'Albers-Miller', "O'Connor", 'O’Connell', 'Gonźalez-Santiago', 'González-Benito']
         self.assertEqual(outputs, expected_output)
 
 

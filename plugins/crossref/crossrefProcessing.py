@@ -1,5 +1,6 @@
 import html
 import re
+import warnings
 from bs4 import BeautifulSoup
 from meta.lib.id_manager.orcidmanager import ORCIDManager
 from meta.lib.csvmanager import CSVManager
@@ -9,6 +10,7 @@ from meta.lib.id_manager.doimanager import DOIManager
 from meta.lib.cleaner import Cleaner
 from meta.lib.master_of_regex import *
 
+warnings.filterwarnings("ignore", category=UserWarning, module='bs4')
 
 class crossrefProcessing:
 
@@ -18,7 +20,6 @@ class crossrefProcessing:
         else:
             self.doi_set = None
         self.orcid_index = CSVManager(orcid_index)
-        self.log = dict()
 
     def csv_creator(self, data:dict) -> list:
         data = data['items']
@@ -103,8 +104,6 @@ class crossrefProcessing:
                     row['issue'] = x['issue']
                 if 'page' in x:
                     pages = '-'.join(re.split(pages_separator, x['page']))
-                    if pages != x['page']:
-                        self.log.setdefault(doi, list()).append(f"{x['page']}->{pages}")
                     row['page'] = pages
 
                 if 'publisher' in x:
@@ -116,7 +115,7 @@ class crossrefProcessing:
                     editlist = self.get_agents_strings_list(doi, x['editor'])
                     row['editor'] = '; '.join(editlist)
                 output.append(row)
-        return output, self.log
+        return output
     
     def orcid_finder(self, doi:str) -> dict:
         found = dict()
@@ -136,12 +135,8 @@ class crossrefProcessing:
         for agent in agents_list:
             if 'family' in agent:
                 f_name = Cleaner(agent['family']).remove_unwanted_characters()
-                if f_name != agent['family']:
-                    self.log.setdefault(doi, list()).append(f"{agent['family']}->{f_name}")
                 if 'given' in agent:
                     g_name = Cleaner(agent['given']).remove_unwanted_characters()
-                    if g_name != agent['given']:
-                        self.log.setdefault(doi, list()).append(f"{agent['given']}->{g_name}")
                     agent_string = f_name + ', ' + g_name
                 else:
                     agent_string = f_name + ', '
