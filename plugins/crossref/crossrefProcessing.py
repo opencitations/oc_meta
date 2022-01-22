@@ -1,6 +1,8 @@
 import html
 import re
 import warnings
+from typing import Dict
+from csv import DictReader
 from bs4 import BeautifulSoup
 from meta.lib.id_manager.orcidmanager import ORCIDManager
 from meta.lib.csvmanager import CSVManager
@@ -14,13 +16,11 @@ warnings.filterwarnings("ignore", category=UserWarning, module='bs4')
 
 class crossrefProcessing:
 
-    def __init__(self, orcid_index:str, doi_csv:str=None):
-        if doi_csv:
-            self.doi_set = CSVManager.load_csv_column_as_set(doi_csv, 'doi')
-        else:
-            self.doi_set = None
+    def __init__(self, orcid_index:str, doi_csv:str=None, publishers_filepath:str=None):
+        self.doi_set = CSVManager.load_csv_column_as_set(doi_csv, 'doi') if doi_csv else None
+        self.publishers_mapping = self.load_publishers_mapping(publishers_filepath) if publishers_filepath else None
         self.orcid_index = CSVManager(orcid_index)
-
+    
     def csv_creator(self, data:dict) -> list:
         data = data['items']
         output = list()
@@ -135,6 +135,7 @@ class crossrefProcessing:
         if not all('ORCID' in agent for agent in agents_list):
             dict_orcid = self.orcid_finder(doi)
         for agent in agents_list:
+            agent_string = None
             if 'family' in agent:
                 f_name = Cleaner(agent['family']).remove_unwanted_characters()
                 if 'given' in agent:
@@ -144,7 +145,6 @@ class crossrefProcessing:
                     agent_string = f_name + ', '
             elif 'name' in agent:
                 agent_string = Cleaner(agent['name']).remove_unwanted_characters()
-                agents_strings_list.append(agent_string)
             orcid = None
             if 'ORCID' in agent:
                 if isinstance(agent['ORCID'], list):
@@ -163,7 +163,8 @@ class crossrefProcessing:
                         orcid = ori
             if orcid:
                 agent_string += ' [' + 'orcid:' + str(orcid) + ']'
-            agents_strings_list.append(agent_string)
+            if agent_string:
+                agents_strings_list.append(agent_string)
         return agents_strings_list
 
     @staticmethod
@@ -186,3 +187,15 @@ class crossrefProcessing:
         if ISBNManager().is_valid(isbnid):
             isbnid = ISBNManager().normalise(isbnid, include_prefix=True)
             idlist.append(isbnid)
+
+    @staticmethod
+    def load_publishers_mapping(publishers_filepath:str) -> dict:
+        publishers_mapping: Dict[str, Dict[str, set]] = dict()
+        with open(publishers_filepath, 'r', encoding='utf-8') as f:
+            data = DictReader(f)
+            for row in data:
+                id = row['id']
+                publishers_mapping.setdefault(id, dict())
+                publishers_mapping[id]['name'] = row['name']
+                publishers_mapping[id].setdefault('prefixes', set()).add(row['prefix'])
+        return publishers_mapping

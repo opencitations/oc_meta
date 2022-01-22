@@ -12,6 +12,7 @@ DATA_DIR = BASE
 OUTPUT = os.path.join(BASE, 'meta_input')
 MULTIPROCESS_OUTPUT = os.path.join(BASE, 'multi_process_test')
 GZIP_INPUT = os.path.join(BASE, 'gzip_test')
+PUBLISHERS_MAPPING = os.path.join(BASE, 'publishers.csv')
 
 class TestCrossrefProcessing(unittest.TestCase):
 
@@ -20,7 +21,7 @@ class TestCrossrefProcessing(unittest.TestCase):
         data = load_json(DATA, None)
         csv_created = crossref_processor.csv_creator(data)
         expected_output = [
-            {'id': 'doi:10.47886/9789251092637.ch7', 'title': 'Freshwater, Fish and the Future: Proceedings of the Global Cross-Sectoral Conference', 'author': '', 'pub_date': '2016', 'venue': 'Freshwater, Fish and the Future: Proceedings of the Global Cross-Sectoral Conference', 'volume': '', 'issue': '', 'page': '', 'type': 'book chapter', 'publisher': 'American Fisheries Society [crossref:460]', 'editor': 'Lymer, David; Food and Agriculture Organization of the United Nations Fisheries and Aquaculture Department Viale delle Terme di Caracalla, Rome 00153, Italy; Food and Agriculture Organization of the United Nations Fisheries and Aquaculture Department Viale delle Terme di Caracalla, Rome 00153, Italy; Marttin, Felix; Marmulla, Gerd; Bartley, Devin M.'},
+            {'id': 'doi:10.47886/9789251092637.ch7', 'title': 'Freshwater, Fish and the Future: Proceedings of the Global Cross-Sectoral Conference', 'author': '', 'pub_date': '2016', 'venue': 'Freshwater, Fish and the Future: Proceedings of the Global Cross-Sectoral Conference', 'volume': '', 'issue': '', 'page': '', 'type': 'book chapter', 'publisher': 'American Fisheries Society [crossref:460]', 'editor': 'Lymer, David; Food and Agriculture Organization of the United Nations Fisheries and Aquaculture Department Viale delle Terme di Caracalla, Rome 00153, Italy; Marttin, Felix; Marmulla, Gerd; Bartley, Devin M.'},
             {'id': 'doi:10.9799/ksfan.2012.25.1.069', 'title': 'Nonthermal Sterilization and Shelf-life Extension of Seafood Products by Intense Pulsed Light Treatment', 'author': 'Cheigh, Chan-Ick; Mun, Ji-Hye; Chung, Myong-Soo', 'pub_date': '2012-3-31', 'venue': 'The Korean Journal of Food And Nutrition [issn:1225-4339]', 'volume': '25', 'issue': '1', 'page': '69-76', 'type': 'journal article', 'publisher': 'The Korean Society of Food and Nutrition [crossref:4768]', 'editor': ''}, 
             {'id': 'doi:10.9799/ksfan.2012.25.1.105', 'title': 'A Study on Dietary Habit and Eating Snack Behaviors of Middle School Students with Different Obesity Indexes in Chungnam Area', 'author': 'Kim, Myung-Hee; Seo, Jin-Seon; Choi, Mi-Kyeong [orcid:0000-0002-6227-4053]; Kim, Eun-Young', 'pub_date': '2012-3-31', 'venue': 'The Korean Journal of Food And Nutrition [issn:1225-4339]', 'volume': '25', 'issue': '1', 'page': '105-115', 'type': 'journal article', 'publisher': 'The Korean Society of Food and Nutrition [crossref:4768]', 'editor': ''}, 
             {'id': 'doi:10.9799/ksfan.2012.25.1.123', 'title': 'The Protective Effects of Chrysanthemum cornarium L. var. spatiosum Extract on HIT-T15 Pancreatic β-Cells against Alloxan-induced Oxidative Stress', 'author': 'Kim, In-Hye; Cho, Kang-Jin; Ko, Jeong-Sook; Kim, Jae-Hyun; Om, Ae-Son', 'pub_date': '2012-3-31', 'venue': 'The Korean Journal of Food And Nutrition [issn:1225-4339]', 'volume': '25', 'issue': '1', 'page': '123-131', 'type': 'journal article', 'publisher': 'The Korean Society of Food and Nutrition [crossref:4768]', 'editor': ''}
@@ -89,7 +90,7 @@ class TestCrossrefProcessing(unittest.TestCase):
     def test_preprocess(self):
         if os.path.exists(OUTPUT):
             shutil.rmtree(OUTPUT)
-        preprocess(crossref_json_dir=MULTIPROCESS_OUTPUT, orcid_doi_filepath=IOD, csv_dir=OUTPUT, wanted_doi_filepath=None)
+        preprocess(crossref_json_dir=MULTIPROCESS_OUTPUT, publishers_filepath=None, orcid_doi_filepath=IOD, csv_dir=OUTPUT, wanted_doi_filepath=None)
         output = dict()
         for file in os.listdir(OUTPUT):
             with open(os.path.join(OUTPUT, file), 'r', encoding='utf-8') as f:
@@ -108,7 +109,7 @@ class TestCrossrefProcessing(unittest.TestCase):
     def test_gzip_input(self):
         if os.path.exists(OUTPUT):
             shutil.rmtree(OUTPUT)
-        preprocess(crossref_json_dir=GZIP_INPUT, orcid_doi_filepath=IOD, csv_dir=OUTPUT, wanted_doi_filepath=BASE)
+        preprocess(crossref_json_dir=GZIP_INPUT, publishers_filepath=None, orcid_doi_filepath=IOD, csv_dir=OUTPUT, wanted_doi_filepath=BASE)
         output = list()
         for file in os.listdir(OUTPUT):
             with open(os.path.join(OUTPUT, file), 'r', encoding='utf-8') as f:
@@ -131,6 +132,20 @@ class TestCrossrefProcessing(unittest.TestCase):
             output = data['items'][0]['DOI']
         expected_output = '10.9799/ksfan.2012.25.1.069'
         self.assertEqual(output, expected_output)
+    
+    def test_load_publishers_mapping(self):
+        output = crossrefProcessing.load_publishers_mapping(publishers_filepath=PUBLISHERS_MAPPING)
+        expected_output = {
+            '1': {'name': 'Annals of Family Medicine', 'prefixes': {'10.1370'}},
+            '2': {'name': 'American Association of Petroleum Geologists AAPG/Datapages', 'prefixes': {'10.15530', '10.1306'}},
+            '3': {'name': 'American Association of Physics Teachers (AAPT)','prefixes': {'10.1119'}},
+            '6': {'name': 'American College of Medical Physics (ACMP)','prefixes': {'10.1120'}},
+            '9': {'name': 'Allen Press', 'prefixes': {'10.1043'}},
+            '10': {'name': 'American Medical Association (AMA)', 'prefixes': {'10.1001'}},
+            '11': {'name': 'American Economic Association', 'prefixes': {'10.1257'}}
+        }
+        self.assertEqual(output, expected_output)
+
 
 if __name__ == '__main__':
     unittest.main()
