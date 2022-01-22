@@ -65,7 +65,9 @@ class crossrefProcessing:
                         else:
                             text_title = x['title']
                         soup = BeautifulSoup(text_title, 'html.parser')
-                        row['title'] = soup.get_text().replace('\n', '')
+                        title_soup = soup.get_text().replace('\n', '')
+                        title = html.unescape(title_soup)
+                        row['title'] = title
 
                 # row['author']
                 if 'author' in x:
@@ -140,25 +142,28 @@ class crossrefProcessing:
                     agent_string = f_name + ', ' + g_name
                 else:
                     agent_string = f_name + ', '
-                orcid = None
-                if 'ORCID' in agent:
-                    if isinstance(agent['ORCID'], list):
-                        orcid = str(agent['ORCID'][0])
-                    else:
-                        orcid = str(agent['ORCID'])
-                    if ORCIDManager().is_valid(orcid):
-                        orcid = ORCIDManager().normalise(orcid)
-                    else:
-                        orcid = None
-                elif dict_orcid:
-                    for ori in dict_orcid:
-                        orc_n = dict_orcid[ori].split(', ')
-                        orc_f = orc_n[0]
-                        if f_name.lower() in orc_f.lower() or orc_f.lower() in f_name.lower():
-                            orcid = ori
-                if orcid:
-                    agent_string += ' [' + 'orcid:' + str(orcid) + ']'
+            elif 'name' in agent:
+                agent_string = Cleaner(agent['name']).remove_unwanted_characters()
                 agents_strings_list.append(agent_string)
+            orcid = None
+            if 'ORCID' in agent:
+                if isinstance(agent['ORCID'], list):
+                    orcid = str(agent['ORCID'][0])
+                else:
+                    orcid = str(agent['ORCID'])
+                if ORCIDManager().is_valid(orcid):
+                    orcid = ORCIDManager().normalise(orcid)
+                else:
+                    orcid = None
+            elif dict_orcid:
+                for ori in dict_orcid:
+                    orc_n = dict_orcid[ori].split(', ')
+                    orc_f = orc_n[0]
+                    if f_name.lower() in orc_f.lower() or orc_f.lower() in f_name.lower():
+                        orcid = ori
+            if orcid:
+                agent_string += ' [' + 'orcid:' + str(orcid) + ']'
+            agents_strings_list.append(agent_string)
         return agents_strings_list
 
     @staticmethod

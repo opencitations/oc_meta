@@ -1,4 +1,5 @@
 import re
+import html
 from dateutil.parser import parse
 from datetime import datetime
 from meta.lib.master_of_regex import *
@@ -196,4 +197,5 @@ class Cleaner:
                 clean_string += c
         clean_string = ' '.join(clean_string.split()).strip()
         clean_string = Cleaner(clean_string).normalize_hyphens()
+        clean_string = html.unescape(clean_string)
         return clean_string
