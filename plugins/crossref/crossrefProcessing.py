@@ -182,7 +182,8 @@ class crossrefProcessing:
                 else:
                     agent_string = f_name + ', '
             elif 'name' in agent:
-                agent_string = Cleaner(agent['name']).remove_unwanted_characters()
+                agent_string = f_name = Cleaner(agent['name']).remove_unwanted_characters()
+                f_name = agent_string.split()[-1]
             orcid = None
             if 'ORCID' in agent:
                 if isinstance(agent['ORCID'], list):
