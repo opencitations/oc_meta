@@ -7,9 +7,15 @@ from tqdm import tqdm
 
 def preprocess(crossref_json_dir:str, publishers_filepath:str, orcid_doi_filepath:str, csv_dir:str, wanted_doi_filepath:str=None, verbose:bool=False) -> None:
     if verbose:
-        log = '[INFO: crossref_process] Processing DOI-ORCID index'
-        if wanted_doi_filepath:
-            log += ' and wanted DOIs CSV'
+        if publishers_filepath or orcid_doi_filepath or wanted_doi_filepath:
+            what = list()
+            if publishers_filepath:
+                what.append('publishers mapping')
+            if orcid_doi_filepath:
+                what.append('DOI-ORCID index')
+            if wanted_doi_filepath:
+                what.append('wanted DOIs CSV')
+            log = '[INFO: crossref_process] Processing: ' + '; '.join(what)
         print(log)
     crossref_csv = crossrefProcessing(orcid_index=orcid_doi_filepath, doi_csv=wanted_doi_filepath, publishers_filepath=publishers_filepath)
     if verbose:

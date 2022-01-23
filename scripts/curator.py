@@ -323,10 +323,9 @@ class Curator:
             new_sequence = list()
             change_order = False
             if col_name in {'author', 'editor'}:
-                pattern = semicolon_in_people_field 
+                ra_list = re.split(semicolon_in_people_field, row[col_name])
             elif col_name == 'publisher': 
-                pattern = semicolon_in_publisher_field
-            ra_list = re.split(pattern, row[col_name])
+                ra_list = [row[col_name]]
             for pos, ra in enumerate(ra_list):
                 new_elem_seq = True
                 ra_id = re.search(name_and_ids, ra)

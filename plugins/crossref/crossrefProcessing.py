@@ -74,9 +74,12 @@ class crossrefProcessing:
                     autlist = self.get_agents_strings_list(doi, x['author'])
                     row['author'] = '; '.join(autlist)
 
-                # row['date']
+                # row['pub_date']
                 if 'issued' in x:
-                    row['pub_date'] = '-'.join([str(y) for y in x['issued']['date-parts'][0]])
+                    if x['issued']['date-parts'][0][0]:
+                        row['pub_date'] = '-'.join([str(y) for y in x['issued']['date-parts'][0]])
+                    else:
+                        row['pub_date'] = ''
 
                 # row['venue']
                 if 'container-title' in x:
