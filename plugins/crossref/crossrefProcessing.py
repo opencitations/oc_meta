@@ -108,10 +108,7 @@ class crossrefProcessing:
                     pages = '-'.join(re.split(pages_separator, x['page']))
                     row['page'] = pages
 
-                if 'publisher' in x:
-                    if x['publisher']:
-                        if 'member' in x:
-                            row['publisher'] = x['publisher'] + ' [' + 'crossref:' + x['member'] + ']' if x['member'] else x['publisher']
+                row['publisher'] = self.get_publisher_name(doi, x)                        
 
                 if 'editor' in x:
                     editlist = self.get_agents_strings_list(doi, x['editor'])
@@ -128,6 +125,44 @@ class crossrefProcessing:
                 orc = orc.replace(']', '').split(' [')
                 found[orc[1]] = orc[0].lower()
         return found
+    
+    def get_publisher_name(self, doi:str, item:dict) -> str:
+        '''
+        This function aims to return a publisher's name and id. If a mapping was provided, 
+        it is used to find the publisher's standardized name from its id or DOI prefix. 
+
+        :params doi: the item's DOI
+        :type doi: str
+        :params item: the item's dictionary
+        :type item: dict
+        :returns: str -- The output is a string in the format 'NAME [SCHEMA:ID]', for example, 'American Medical Association (AMA) [crossref:10]'. If the id does not exist, the output is only the name. Finally, if there is no publisher, the output is an empty string.
+        '''
+        data = {
+            'publisher': '',
+            'member': None,
+            'prefix': doi.split('/')[0]
+        }
+        for field in {'publisher', 'member', 'prefix'}:
+            if field in item:
+                if item[field]:
+                    data[field] = item[field]
+        publisher = data['publisher']
+        member = data['member']
+        prefix = data['prefix']
+        if self.publishers_mapping:
+            if member:
+                name = self.publishers_mapping[member]['name']
+                name_and_id = f'{name} [crossref:{member}]'
+            else:
+                member_dict = next(({member:data} for member, data in self.publishers_mapping.items() if prefix in data['prefixes']), None)
+                if member_dict:
+                    member = list(member_dict.keys())[0]
+                    name_and_id = f"{member_dict[member]['name']} [crossref:{member}]"
+                else:
+                    name_and_id = publisher
+        else:
+            name_and_id = f'{publisher} [crossref:{member}]' if member else publisher
+        return name_and_id
     
     def get_agents_strings_list(self, doi:str, agents_list:str) -> list:
         agents_strings_list = list()

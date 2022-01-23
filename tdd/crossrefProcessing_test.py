@@ -6,7 +6,7 @@ from pprint import pprint
 
 BASE = os.path.join('meta', 'tdd', 'crossrefProcessing')
 IOD = os.path.join(BASE, 'iod')
-WANTED_DOIS = BASE
+WANTED_DOIS = os.path.join(BASE, 'wanted_dois.csv')
 DATA = os.path.join(BASE, '40228.json')
 DATA_DIR = BASE
 OUTPUT = os.path.join(BASE, 'meta_input')
@@ -17,7 +17,7 @@ PUBLISHERS_MAPPING = os.path.join(BASE, 'publishers.csv')
 class TestCrossrefProcessing(unittest.TestCase):
 
     def test_csv_creator(self):
-        crossref_processor = crossrefProcessing(IOD, WANTED_DOIS)
+        crossref_processor = crossrefProcessing(orcid_index=IOD, doi_csv=WANTED_DOIS, publishers_filepath=None)
         data = load_json(DATA, None)
         csv_created = crossref_processor.csv_creator(data)
         expected_output = [
@@ -95,6 +95,7 @@ class TestCrossrefProcessing(unittest.TestCase):
         for file in os.listdir(OUTPUT):
             with open(os.path.join(OUTPUT, file), 'r', encoding='utf-8') as f:
                 output[file] = list(csv.DictReader(f))
+        # print(output)
         expected_output = {
             '0.csv': [
                 {'id': 'doi:10.17117/na.2015.08.1067', 'title': '', 'author': '', 'pub_date': 'None', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': 'component', 'publisher': 'Consulting Company Ucom [crossref:6623]', 'editor': ''}
@@ -109,7 +110,7 @@ class TestCrossrefProcessing(unittest.TestCase):
     def test_gzip_input(self):
         if os.path.exists(OUTPUT):
             shutil.rmtree(OUTPUT)
-        preprocess(crossref_json_dir=GZIP_INPUT, publishers_filepath=None, orcid_doi_filepath=IOD, csv_dir=OUTPUT, wanted_doi_filepath=BASE)
+        preprocess(crossref_json_dir=GZIP_INPUT, publishers_filepath=None, orcid_doi_filepath=IOD, csv_dir=OUTPUT, wanted_doi_filepath=WANTED_DOIS)
         output = list()
         for file in os.listdir(OUTPUT):
             with open(os.path.join(OUTPUT, file), 'r', encoding='utf-8') as f:
@@ -142,9 +143,35 @@ class TestCrossrefProcessing(unittest.TestCase):
             '6': {'name': 'American College of Medical Physics (ACMP)','prefixes': {'10.1120'}},
             '9': {'name': 'Allen Press', 'prefixes': {'10.1043'}},
             '10': {'name': 'American Medical Association (AMA)', 'prefixes': {'10.1001'}},
-            '11': {'name': 'American Economic Association', 'prefixes': {'10.1257'}}
+            '11': {'name': 'American Economic Association', 'prefixes': {'10.1257'}},
+            '460': {'name': 'American Fisheries Society', 'prefixes': {'10.1577', '10.47886'}}
         }
         self.assertEqual(output, expected_output)
+    
+    def test_get_publisher_name(self):
+        # The item's member is in the publishers' mapping
+        item = {
+            "publisher": "American Fisheries Society",
+            "DOI": "10.47886\/9789251092637.ch7",
+            "prefix": "10.47886",
+            "member": "460"
+        }
+        doi = '10.47886/9789251092637.ch7'
+        crossref_processor = crossrefProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
+        publisher_name = crossref_processor.get_publisher_name(doi, item)
+        self.assertEqual(publisher_name, 'American Fisheries Society [crossref:460]')
+
+    def test_get_publisher_name_no_member(self):
+        # The item has no member, but the DOI prefix is the publishers' mapping
+        item = {
+            "publisher": "American Fisheries Society",
+            "DOI": "10.47886/9789251092637.ch7",
+            "prefix": "10.47886"
+        }
+        doi = '10.47886/9789251092637.ch7'
+        crossref_processor = crossrefProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
+        publisher_name = crossref_processor.get_publisher_name(doi, item)
+        self.assertEqual(publisher_name, 'American Fisheries Society [crossref:460]')
 
 
 if __name__ == '__main__':
