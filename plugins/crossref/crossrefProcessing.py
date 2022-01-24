@@ -170,6 +170,7 @@ class crossrefProcessing:
     def get_agents_strings_list(self, doi:str, agents_list:str) -> list:
         agents_strings_list = list()
         dict_orcid = None
+        f_name = None
         if not all('ORCID' in agent for agent in agents_list):
             dict_orcid = self.orcid_finder(doi)
         for agent in agents_list:

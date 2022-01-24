@@ -3,6 +3,7 @@ from meta.scripts.creator import *
 import csv
 from rdflib.term import _toPythonMapping
 from rdflib import XSD, compare, Graph
+from oc_ocdm.graph import GraphSet
 import os
 import json
 
@@ -55,6 +56,37 @@ def prepare2test(name):
         new_graph += g
     return test_graph, new_graph
 
+class test_Creator(unittest.TestCase):
+    def test_vvi_action(self):
+        base_iri = 'https://w3id.org/oc/meta/'
+        creator_info_dir = os.path.join("meta", "tdd", "creator_counter")
+        vvi = {'0602': {'issue': {}, 'volume': {'107': {'id': '4733', 'issue': {'1': {'id': '4734'}, '2': {'id': '4735'}, '3': {'id': '4736'}, '4': {'id': '4737'}, '5': {'id': '4738'}, '6': {'id': '4739'}}}, '108': {'id': '4740', 'issue': {'1': {'id': '4741'}, '2': {'id': '4742'}, '3': {'id': '4743'}, '4': {'id': '4744'}}}, '104': {'id': '4712', 'issue': {'1': {'id': '4713'}, '2': {'id': '4714'}, '3': {'id': '4715'}, '4': {'id': '4716'}, '5': {'id': '4717'}, '6': {'id': '4718'}}}, '148': {'id': '4417', 'issue': {'12': {'id': '4418'}, '11': {'id': '4419'}}}, '100': {'id': '4684', 'issue': {'1': {'id': '4685'}, '2': {'id': '4686'}, '3': {'id': '4687'}, '4': {'id': '4688'}, '5': {'id': '4689'}, '6': {'id': '4690'}}}, '101': {'id': '4691', 'issue': {'1': {'id': '4692'}, '2': {'id': '4693'}, '3': {'id': '4694'}, '4': {'id': '4695'}, '5': {'id': '4696'}, '6': {'id': '4697'}}}, '102': {'id': '4698', 'issue': {'1': {'id': '4699'}, '2': {'id': '4700'}, '3': {'id': '4701'}, '4': {'id': '4702'}, '5': {'id': '4703'}, '6': {'id': '4704'}}}, '103': {'id': '4705', 'issue': {'1': {'id': '4706'}, '2': {'id': '4707'}, '3': {'id': '4708'}, '4': {'id': '4709'}, '5': {'id': '4710'}, '6': {'id': '4711'}}}, '105': {'id': '4719', 'issue': {'1': {'id': '4720'}, '2': {'id': '4721'}, '3': {'id': '4722'}, '4': {'id': '4723'}, '5': {'id': '4724'}, '6': {'id': '4725'}}}, '106': {'id': '4726', 'issue': {'6': {'id': '4732'}, '1': {'id': '4727'}, '2': {'id': '4728'}, '3': {'id': '4729'}, '4': {'id': '4730'}, '5': {'id': '4731'}}}}}}
+        creator = Creator([], base_iri, creator_info_dir, "060", 'https://orcid.org/0000-0002-8420-0696', [], [], [], [], vvi)
+        creator.src = None
+        creator.type = 'journal article'
+        creator.br_graph = creator.setgraph.add_br('https://orcid.org/0000-0002-8420-0696', None, URIRef(f'{base_iri}br/0601'))
+        creator.vvi_action('OECD [meta:br/0602]', '107', '1')
+        output_graph = Graph()
+        for g in creator.setgraph.graphs():
+            output_graph += g
+        expected_data = '''
+            <https://w3id.org/oc/meta/br/0602> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression>.
+            <https://w3id.org/oc/meta/br/0602> <http://purl.org/dc/terms/title> "OECD".
+            <https://w3id.org/oc/meta/br/0602> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Journal>.
+            <https://w3id.org/oc/meta/br/4733> <http://purl.org/spar/fabio/hasSequenceIdentifier> "107".
+            <https://w3id.org/oc/meta/br/4733> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression>.
+            <https://w3id.org/oc/meta/br/4733> <http://purl.org/vocab/frbr/core#partOf> <https://w3id.org/oc/meta/br/0602>.
+            <https://w3id.org/oc/meta/br/4733> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/JournalVolume>.
+            <https://w3id.org/oc/meta/br/4734> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/JournalIssue>.
+            <https://w3id.org/oc/meta/br/4734> <http://purl.org/vocab/frbr/core#partOf> <https://w3id.org/oc/meta/br/4733>.
+            <https://w3id.org/oc/meta/br/4734> <http://purl.org/spar/fabio/hasSequenceIdentifier> "1".
+            <https://w3id.org/oc/meta/br/4734> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression>.
+            <https://w3id.org/oc/meta/br/0601> <http://purl.org/vocab/frbr/core#partOf> <https://w3id.org/oc/meta/br/4734>.
+            <https://w3id.org/oc/meta/br/0601> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression>.
+        '''
+        expected_graph = Graph()
+        expected_graph = expected_graph.parse(data=expected_data, format="nt")
+        self.assertEqual(compare.isomorphic(output_graph, expected_graph), True)
 
 class testcase_01(unittest.TestCase):
     def test(self):
