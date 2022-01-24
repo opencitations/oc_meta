@@ -24,7 +24,7 @@ info_dir: C:/meta_output/info_dir
 # A URI string representing the provenance agent which is considered responsible for the RDF graph manipulation
 resp_agent: https://orcid.org/0000-0002-8420-0696
 # Directory where raw CSV files are stored
-input_csv_dir: 'C:\meta\meta_input'
+input_csv_dir: 'C:/meta/meta_input'
 # Directory where cleaned CSV files will be stored
 output_csv_dir: C:/meta_output/csv
 # Directory where both output RDF data and provenance files will be stored
@@ -45,7 +45,7 @@ dir_split_number: 10000
 items_per_file: 1000
 default_dir: _
 # A prefix for the sequential number in entities’ URIs. This setting can be safely left as is.
-supplier_prefix: ''
+supplier_prefix: '060'
 rdf_output_in_chunks: True
 # Data source URL. This setting can be safely left as is.
 source: https://api.crossref.org/

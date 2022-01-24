@@ -111,6 +111,12 @@ class test_ResourceFinder(unittest.TestCase):
             }
         }        
         self.assertEqual(output, expected_output)
+
+    def test_retrieve_vvi_issue_in_venue(self):
+        venue_meta = '0604749'
+        output = finder.retrieve_venue_from_meta(venue_meta)
+        expected_output = {'issue': {'15': {'id': '0604750'}, '13': {'id': '0605379'}, '14': {'id': '0606696'}}, 'volume': {}}       
+        self.assertEqual(output, expected_output)
     
     def test_retrieve_ra_sequence_from_br_meta(self):
         metaid = '2380'

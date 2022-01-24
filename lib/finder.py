@@ -325,7 +325,7 @@ class ResourceFinder:
                 container = str(x['container_']['value'])
                 title = str(x['title_']['value'])
                 types = str(x['type_']['value']).split(' ;and; ')
-                if str(GraphEntity.iri_journal_issue) in types and self.__is_contained_in_venue(results, container):
+                if str(GraphEntity.iri_journal_issue) in types and container == f'https://w3id.org/oc/meta/br/{meta}':
                     content['issue'].setdefault(title, dict())
                     content['issue'][title]['id'] = res
                 elif str(GraphEntity.iri_journal_volume) in types:
@@ -333,13 +333,6 @@ class ResourceFinder:
                     content['volume'][title]['id'] = res
                     content['volume'][title]['issue'] = self.__retrieve_issues_by_volume(results, res)
         return content
-    
-    def __is_contained_in_venue(self, data:List[Dict[str, Dict[str, str]]], container:str) -> bool:
-        is_contained_in_venue = False
-        container_dictionary = next(item for item in data if item['res']['value'] == container)
-        if str(GraphEntity.iri_journal) in container_dictionary['type_']['value'].split(' ;and; '):
-            is_contained_in_venue= True
-        return is_contained_in_venue
 
     def __retrieve_issues_by_volume(self, data:List[Dict[str, Dict[str, str]]], res:str) -> dict:
         content = dict()
