@@ -62,7 +62,7 @@ Where:
 
 ### Get a Crossref member-name-prefix index
 
-['crossref_publishers_extractor.py'](https://github.com/opencitations/meta/blob/master/run/crossref_publishers_extractor.py) generates an index between Crossref members' ids, names and DOI prefixes. The output is a CSV file with three columns, 'id', 'name', and 'prefix'.
+[`crossref_publishers_extractor.py`](https://github.com/opencitations/meta/blob/master/run/crossref_publishers_extractor.py) generates an index between Crossref members' ids, names and DOI prefixes. The output is a CSV file with three columns, 'id', 'name', and 'prefix'.
 This process can be run via the following command:
 
 ```console
