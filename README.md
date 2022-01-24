@@ -10,7 +10,7 @@ An example of a raw CSV input file can be found in [`example.csv`](https://githu
     * [Get a DOI-ORCID index](#get-a-doi-orcid-index)
     * [Get a Crossref member-name-prefix index](#get-a-crossref-member-name-prefix-index)
     * [Get raw CSV files from Crossref](#get-raw-csv-files-from-crossref)
-    * [Get DOIs from COCI's dump](#get-dois-from-coci-s-dump)
+    * [Get DOIs from COCI](#get-dois-from-coci)
 
 ## Meta
 
@@ -88,7 +88,7 @@ Where:
 - -w --wanted: path of a CSV file containing what DOI to process, not mandatory.     
 - -v --verbose: show a loading bar, elapsed time and estimated time, not mandatory.
 
-### Get DOIs from COCI's dump
+### Get DOIs from COCI
 
 You can get a CSV file containing all the DOIs from the [COCI's dump](https://opencitations.net/download). This CSV file can be passed as an input to the `-wanted` argument of [`crossref_process.py`](https://github.com/opencitations/meta/blob/master/run/crossref_process.py). You can obtain this file by using the [`coci_process.py`](https://github.com/opencitations/meta/blob/master/run/coci_process.py) script, in the following way:
 ```console
