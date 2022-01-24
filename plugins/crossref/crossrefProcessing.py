@@ -183,7 +183,7 @@ class crossrefProcessing:
                     agent_string = f_name + ', '
             elif 'name' in agent:
                 agent_string = f_name = Cleaner(agent['name']).remove_unwanted_characters()
-                f_name = agent_string.split()[-1]
+                f_name = agent_string.split()[-1] if ' ' in agent_string else None
             orcid = None
             if 'ORCID' in agent:
                 if isinstance(agent['ORCID'], list):
@@ -194,7 +194,7 @@ class crossrefProcessing:
                     orcid = ORCIDManager().normalise(orcid)
                 else:
                     orcid = None
-            elif dict_orcid:
+            elif dict_orcid and f_name:
                 for ori in dict_orcid:
                     orc_n = dict_orcid[ori].split(', ')
                     orc_f = orc_n[0]

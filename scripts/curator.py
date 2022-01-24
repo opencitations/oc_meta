@@ -645,43 +645,43 @@ class Curator:
             dict_writer.writerows(datalist)
 
     def indexer(self, path_index:str, path_csv:str) -> None:
+        '''
+        This method is used to transform idra, idbr, armeta, remeta, brmeta and vvi in such a way as to be saved as csv and json files.
+        As for venue, volume and issues, this method also takes care of replacing any wannabe_id with a meta_id.
+        Finally, it generates the enriched CSV and saves it.
+
+        :params path_index: a directory path. It will contain the indexes
+        :type path_index: str
+        :params path_csv: a file path. It will be the output enriched CSV
+        :type path_csv: str
+        '''
         # ID
         self.index_id_ra = list()
-        if self.idra:
-            for x in self.idra:
-                row = dict()
-                row['id'] = str(x)
-                row['meta'] = str(self.idra[x])
-                self.index_id_ra.append(row)
-        else:
-            row = dict()
-            row['id'] = ''
-            row['meta'] = ''
-            self.index_id_ra.append(row)
-
         self.index_id_br = list()
-        if self.idbr:
-            for x in self.idbr:
+        for entity_type in {'ra', 'br'}:
+            cur_index = getattr(self, f'id{entity_type}')
+            if cur_index:
+                for literal in cur_index:
+                    row = dict()
+                    row['id'] = str(literal)
+                    row['meta'] = str(cur_index[literal])
+                    getattr(self, f'index_id_{entity_type}').append(row)
+            else:
                 row = dict()
-                row['id'] = str(x)
-                row['meta'] = str(self.idbr[x])
-                self.index_id_br.append(row)
-        else:
-            row = dict()
-            row['id'] = ''
-            row['meta'] = ''
-            self.index_id_br.append(row)
+                row['id'] = ''
+                row['meta'] = ''
+                getattr(self, f'index_id_{entity_type}').append(row)
         # AR
         self.ar_index = list()
         if self.armeta:
-            for x in self.armeta:
+            for metaid in self.armeta:
                 index = dict()
-                index['meta'] = x
-                for y in self.armeta[x]:
+                index['meta'] = metaid
+                for role in self.armeta[metaid]:
                     list_ar = list()
-                    for ar, identifier in self.armeta[x][y]:
-                        list_ar.append(str(ar) + ', ' + str(identifier))
-                    index[y] = '; '.join(list_ar)
+                    for ar, ra in self.armeta[metaid][role]:
+                        list_ar.append(str(ar) + ', ' + str(ra))
+                    index[role] = '; '.join(list_ar)
                 self.ar_index.append(index)
         else:
             row = dict()
@@ -706,32 +706,40 @@ class Curator:
         # VI
         self.VolIss = dict()
         if self.vvi:
-            for x in self.vvi:
-                if self.vvi[x]['issue']:
-                    for iss in self.vvi[x]['issue']:
-                        if 'wannabe' in self.vvi[x]['issue'][iss]['id']:
-                            for i in self.brmeta:
-                                if self.vvi[x]['issue'][iss]['id'] in self.brmeta[i]['others']:
-                                    self.vvi[x]['issue'][iss]['id'] = str(i)
-                if self.vvi[x]['volume']:
-                    for vol in self.vvi[x]['volume']:
-                        if 'wannabe' in self.vvi[x]['volume'][vol]['id']:
-                            for i in self.brmeta:
-                                if self.vvi[x]['volume'][vol]['id'] in self.brmeta[i]['others']:
-                                    self.vvi[x]['volume'][vol]['id'] = str(i)
-                        if self.vvi[x]['volume'][vol]['issue']:
-                            for iss in self.vvi[x]['volume'][vol]['issue']:
-                                if 'wannabe' in self.vvi[x]['volume'][vol]['issue'][iss]['id']:
-                                    for i in self.brmeta:
-                                        if self.vvi[x]['volume'][vol]['issue'][iss]['id'] in self.brmeta[i]['others']:
-                                            self.vvi[x]['volume'][vol]['issue'][iss]['id'] = str(i)
-                if 'wannabe' in x:
-                    for i in self.brmeta:
-                        if x in self.brmeta[i]['others']:
-                            self.VolIss[i] = self.vvi[x]
+            for venue_meta in self.vvi:
+                venue_issue = self.vvi[venue_meta]['issue']
+                if venue_issue:
+                    for issue in venue_issue:
+                        issue_id = venue_issue[issue]['id']
+                        if 'wannabe' in issue_id:
+                            for br_meta in self.brmeta:
+                                if issue_id in self.brmeta[br_meta]['others']:
+                                    self.vvi[venue_meta]['issue'][issue]['id'] = str(br_meta)
+                venue_volume = self.vvi[venue_meta]['volume']
+                if venue_volume:
+                    for volume in venue_volume:
+                        volume_id = venue_volume[volume]['id']
+                        if 'wannabe' in volume_id:
+                            for br_meta in self.brmeta:
+                                if volume_id in self.brmeta[br_meta]['others']:
+                                    self.vvi[venue_meta]['volume'][volume]['id'] = str(br_meta)
+                        if venue_volume[volume]['issue']:
+                            volume_issue = venue_volume[volume]['issue']
+                            for issue in volume_issue:
+                                volume_issue_id = volume_issue[issue]['id']
+                                if 'wannabe' in volume_issue_id:
+                                    for br_meta in self.brmeta:
+                                        if volume_issue_id in self.brmeta[br_meta]['others']:
+                                            self.vvi[venue_meta]['volume'][volume]['issue'][issue]['id'] = str(br_meta)
+                if 'wannabe' in venue_meta:
+                    for br_meta in self.brmeta:
+                        if venue_meta in self.brmeta[br_meta]['others']:
+                            self.VolIss[br_meta] = self.vvi[venue_meta]
                 else:
-                    self.VolIss[x] = self.vvi[x]
+                    self.VolIss[venue_meta] = self.vvi[venue_meta]
         if self.filename:
+            if not os.path.exists(path_index):
+                os.makedirs(path_index)
             ra_path = os.path.join(path_index, 'index_id_ra.csv')
             self.write_csv(ra_path, self.index_id_ra)
             br_path = os.path.join(path_index, 'index_id_br.csv')
@@ -741,8 +749,6 @@ class Curator:
             re_path = os.path.join(path_index, 'index_re.csv')
             self.write_csv(re_path, self.re_index)
             vvi_file = os.path.join(path_index, 'index_vi.json')
-            if not os.path.exists(os.path.dirname(vvi_file)):
-                os.makedirs(os.path.dirname(vvi_file))
             with open(vvi_file, 'w') as fp:
                 json.dump(self.VolIss, fp)
             if self.log:
