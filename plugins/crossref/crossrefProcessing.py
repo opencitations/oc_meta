@@ -82,26 +82,7 @@ class crossrefProcessing:
                         row['pub_date'] = ''
 
                 # row['venue']
-                if 'container-title' in x:
-                    if x['container-title']:
-                        if isinstance(x['container-title'], list):
-                            ventit = str(x['container-title'][0]).replace('\n', '')
-                        else:
-                            ventit = str(x['container-title']).replace('\n', '')
-                        ven_soup = BeautifulSoup(ventit, 'html.parser')
-                        ventit = html.unescape(ven_soup.get_text())
-                        venidlist = list()
-                        if 'ISBN' in x:
-                            if row['type'] in {'book chapter', 'book part'}:
-                                self.id_worker(x['ISBN'], venidlist, self.isbn_worker)
-
-                        if 'ISSN' in x:
-                            if row['type'] in {'journal article', 'journal volume', 'journal issue'}:
-                                self.id_worker(x['ISSN'], venidlist, self.issn_worker)
-                        if venidlist:
-                            row['venue'] = ventit + ' [' + ' '.join(venidlist) + ']'
-                        else:
-                            row['venue'] = ventit
+                row['venue'] = self.get_venue_name(x, row)
 
                 if 'volume' in x:
                     row['volume'] = x['volume']
@@ -167,6 +148,48 @@ class crossrefProcessing:
             name_and_id = f'{publisher} [crossref:{member}]' if member else publisher
         return name_and_id
     
+    def get_venue_name(self, item:dict, row:dict) -> str:
+        '''
+        This method deals with generating the venue's name, followed by id in square brackets, separated by spaces. 
+        HTML tags are deleted and HTML entities escaped. In addition, any ISBN and ISSN are validated. 
+        Finally, the square brackets in the venue name are replaced by round brackets to avoid conflicts with the ids enclosures.
+
+        :params item: the item's dictionary
+        :type item: dict
+        :params row: a CSV row
+        :type row: dict
+        :returns: str -- The output is a string in the format 'NAME [SCHEMA:ID]', for example, 'Nutrition & Food Science [issn:0034-6659]'. If the id does not exist, the output is only the name. Finally, if there is no venue, the output is an empty string.
+        '''
+        name_and_id = ''
+        if 'container-title' in item:
+            if item['container-title']:
+                if isinstance(item['container-title'], list):
+                    ventit = str(item['container-title'][0]).replace('\n', '')
+                else:
+                    ventit = str(item['container-title']).replace('\n', '')
+                ven_soup = BeautifulSoup(ventit, 'html.parser')
+                ventit = html.unescape(ven_soup.get_text())
+                ambiguous_brackets = re.search(ids_inside_square_brackets, ventit)
+                if ambiguous_brackets:
+                    match = ambiguous_brackets.group(1)
+                    open_bracket = ventit.find(match) - 1
+                    close_bracket = ventit.find(match) + len(match)
+                    ventit = ventit[:open_bracket] + '(' + ventit[open_bracket + 1:]
+                    ventit = ventit[:close_bracket] + ')' + ventit[close_bracket + 1:]
+                venidlist = list()
+                if 'ISBN' in item:
+                    if row['type'] in {'book chapter', 'book part'}:
+                        self.id_worker(item['ISBN'], venidlist, self.isbn_worker)
+
+                if 'ISSN' in item:
+                    if row['type'] in {'journal article', 'journal volume', 'journal issue'}:
+                        self.id_worker(item['ISSN'], venidlist, self.issn_worker)
+                if venidlist:
+                    name_and_id = ventit + ' [' + ' '.join(venidlist) + ']'
+                else:
+                    name_and_id = ventit
+        return name_and_id
+    
     def get_agents_strings_list(self, doi:str, agents_list:str) -> list:
         agents_strings_list = list()
         dict_orcid = None
@@ -183,8 +206,10 @@ class crossrefProcessing:
                 else:
                     agent_string = f_name + ', '
             elif 'name' in agent:
-                agent_string = f_name = Cleaner(agent['name']).remove_unwanted_characters()
+                agent_string = Cleaner(agent['name']).remove_unwanted_characters()
                 f_name = agent_string.split()[-1] if ' ' in agent_string else None
+            elif 'family' not in agent and 'given' in agent:
+                agent_string = ', ' + Cleaner(agent['name']).remove_unwanted_characters()
             orcid = None
             if 'ORCID' in agent:
                 if isinstance(agent['ORCID'], list):

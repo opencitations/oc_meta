@@ -150,10 +150,10 @@ class TestCrossrefProcessing(unittest.TestCase):
     def test_get_publisher_name(self):
         # The item's member is in the publishers' mapping
         item = {
-            "publisher": "American Fisheries Society",
-            "DOI": "10.47886\/9789251092637.ch7",
-            "prefix": "10.47886",
-            "member": "460"
+            'publisher': 'American Fisheries Society',
+            'DOI': '10.47886\/9789251092637.ch7',
+            'prefix': '10.47886',
+            'member': '460'
         }
         doi = '10.47886/9789251092637.ch7'
         crossref_processor = crossrefProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
@@ -163,15 +163,33 @@ class TestCrossrefProcessing(unittest.TestCase):
     def test_get_publisher_name_no_member(self):
         # The item has no member, but the DOI prefix is the publishers' mapping
         item = {
-            "publisher": "American Fisheries Society",
-            "DOI": "10.47886/9789251092637.ch7",
-            "prefix": "10.47886"
+            'publisher': 'American Fisheries Society',
+            'DOI': '10.47886/9789251092637.ch7',
+            'prefix': '10.47886'
         }
         doi = '10.47886/9789251092637.ch7'
         crossref_processor = crossrefProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
         publisher_name = crossref_processor.get_publisher_name(doi, item)
         self.assertEqual(publisher_name, 'American Fisheries Society [crossref:460]')
+    
+    def test_get_venue_name(self):
+        item = {
+            'container-title': ['Cerebrospinal Fluid [Working Title]'],
+        }
+        row = {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': 'journal article', 'publisher': '', 'editor': ''}
+        crossref_processor = crossrefProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
+        venue_name = crossref_processor.get_venue_name(item, row)
+        self.assertEqual(venue_name, 'Cerebrospinal Fluid (Working Title)')
 
+    def test_get_venue_name_with_ISSN(self):
+        item = {
+            'container-title': ["troitel'stvo: nauka i obrazovanie [Construction: Science and Education]"],
+            'ISSN': '2305-5502'
+        }
+        row = {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': 'journal article', 'publisher': '', 'editor': ''}
+        crossref_processor = crossrefProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
+        venue_name = crossref_processor.get_venue_name(item, row)
+        self.assertEqual(venue_name, "troitel'stvo: nauka i obrazovanie (Construction: Science and Education) [issn:2305-5502]")
 
 if __name__ == '__main__':
     unittest.main()

@@ -381,10 +381,11 @@ class Curator:
                         metaval = self.id_worker(col_name, name, ra_id_list, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=False)
                     if col_name != 'publisher' and metaval in self.radict:
                         full_name:str = self.radict[metaval]['title']
-                        first_name = name.split(',')[1].strip()
-                        if not full_name.split(',')[1].strip() and first_name:  # first name found!
-                            given_name = full_name.split(',')[0]
-                            self.radict[metaval]['title'] = given_name + ', ' + first_name
+                        if ',' in name and ',' in full_name:
+                            first_name = name.split(',')[1].strip()
+                            if not full_name.split(',')[1].strip() and first_name:  # first name found!
+                                given_name = full_name.split(',')[0]
+                                self.radict[metaval]['title'] = given_name + ', ' + first_name
                 else:
                     metaval = self.new_entity(self.radict, name)
                 if new_elem_seq:
