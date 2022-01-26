@@ -9,10 +9,10 @@ import shutil
 
 
 SERVER = 'http://127.0.0.1:9999/blazegraph/sparql'
-BASE_DIR = 'meta/tdd'
+BASE_DIR = os.path.join('meta', 'tdd')
 MANUAL_DATA_CSV = f'{BASE_DIR}/manual_data.csv'
 MANUAL_DATA_RDF = f'{BASE_DIR}/testcases/ts/testcase_ts-13.ttl'
-REAL_DATA_CSV = f'{BASE_DIR}/real_data.csv'
+REAL_DATA_CSV = os.path.join(BASE_DIR, 'real_data.csv')
 REAL_DATA_RDF = f'{BASE_DIR}/testcases/ts/real_data.nt'
 BASE_IRI = 'https://w3id.org/oc/meta/'
 CURATOR_COUNTER_DIR = f'{BASE_DIR}/curator_counter'

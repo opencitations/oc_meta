@@ -209,7 +209,7 @@ class crossrefProcessing:
                 agent_string = Cleaner(agent['name']).remove_unwanted_characters()
                 f_name = agent_string.split()[-1] if ' ' in agent_string else None
             elif 'family' not in agent and 'given' in agent:
-                agent_string = ', ' + Cleaner(agent['name']).remove_unwanted_characters()
+                agent_string = ', ' + Cleaner(agent['given']).remove_unwanted_characters()
             orcid = None
             if 'ORCID' in agent:
                 if isinstance(agent['ORCID'], list):
@@ -226,7 +226,7 @@ class crossrefProcessing:
                     orc_f = orc_n[0]
                     if f_name.lower() in orc_f.lower() or orc_f.lower() in f_name.lower():
                         orcid = ori
-            if orcid:
+            if agent_string and orcid:
                 agent_string += ' [' + 'orcid:' + str(orcid) + ']'
             if agent_string:
                 agents_strings_list.append(agent_string)

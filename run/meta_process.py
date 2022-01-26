@@ -5,9 +5,9 @@ from meta.scripts.creator import *
 from meta.scripts.curator import *
 from datetime import datetime
 from argparse import ArgumentParser
-from csv import DictReader
 import yaml
 import os
+import csv
 from tqdm import tqdm
 
 
@@ -46,13 +46,11 @@ class MetaProcess:
         prov_dir = os.path.join(self.base_dir, 'prov' + os.sep)
         for dir in [self.output_csv_dir, self.indexes_dir, self.base_dir, prov_dir]:
             pathoo(dir)
-        csv.field_size_limit(1000000)
+        csv.field_size_limit(128)
         for filename in os.listdir(self.input_csv_dir):
             if filename.endswith('.csv') and filename not in completed:
                 filepath = os.path.join(self.input_csv_dir, filename)
-                data_initial = open(filepath, 'r', encoding='utf8')
-                valid_data = (line.replace('\0','') for line in data_initial)
-                data = list(DictReader(valid_data, delimiter=','))
+                data = get_data(filepath)
                 # Curator
                 curator_info_dir = os.path.join(self.info_dir, 'curator' + os.sep)
                 curator_obj = Curator(data, self.triplestore_url, info_dir=curator_info_dir, prefix=self.supplier_prefix)
@@ -104,6 +102,23 @@ class MetaProcess:
                 pbar.update(1)
         if self.verbose:
             pbar.close()
+
+def get_data(filepath:str) -> List[dict]:
+    field_size_changed = False
+    cur_field_size = 128
+    data = list()
+    while not data:
+        try:
+            data_initial = open(filepath, 'r', encoding='utf8')
+            valid_data = (line.replace('\0','') for line in data_initial)
+            data = list(csv.DictReader(valid_data, delimiter=','))
+        except csv.Error:
+            cur_field_size *= 2
+            csv.field_size_limit(cur_field_size)
+            field_size_changed = True
+    if field_size_changed:
+        csv.field_size_limit(128)
+    return data
 
 def pathoo(path):
     if not os.path.exists(os.path.dirname(path)):
