@@ -187,7 +187,7 @@ class Cleaner:
 
         :returns: str -- The cleaned name
         '''
-        unwanted_characters = {'[', ']', '?', ';'}
+        unwanted_characters = {'[', ']', '{', '}', '(', ')', '?', ';', ','}
         clean_string = str()
         for i, c in enumerate(self.string):
             if c == '.':

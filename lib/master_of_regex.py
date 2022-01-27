@@ -10,7 +10,7 @@ Before the colon, there must be any character that is not a square bracket
 to prevent that in strings like 'Boezaart, Andr[eacute] [meta:123]' the id captured is '[eacute] [meta:123]'.
 Alternatively, empty square brackets containing one or more spaces also represent a valid match.
 '''
-ids_inside_square_brackets = '\[\s*(.*?)\s*\]'
+ids_inside_square_brackets = '\[\s*((?:[^\s]+:[^\s]+)?(?:\s+[^\s]+:[^\s]+)*)\s*\]'
 
 '''
 It gets the name and ids in two capturing groups.
