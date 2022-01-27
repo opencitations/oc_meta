@@ -1,7 +1,7 @@
 import html
 import re
 import warnings
-from typing import Dict
+from typing import Dict, List
 from csv import DictReader
 from bs4 import BeautifulSoup
 from meta.lib.id_manager.orcidmanager import ORCIDManager
@@ -103,11 +103,12 @@ class crossrefProcessing:
     def orcid_finder(self, doi:str) -> dict:
         found = dict()
         doi = doi.lower()
-        orcids = self.orcid_index.get_value(doi)
-        if orcids:
-            for orc in orcids:
-                orc = orc.replace(']', '').split(' [')
-                found[orc[1]] = orc[0].lower()
+        people:List[str] = self.orcid_index.get_value(doi)
+        if people:
+            for person in people:
+                orcid = re.search(orcid_pattern, person).group(0)
+                name:str = person[:person.find(orcid)-1]
+                found[orcid] = name.strip().lower()
         return found
     
     def get_publisher_name(self, doi:str, item:dict) -> str:

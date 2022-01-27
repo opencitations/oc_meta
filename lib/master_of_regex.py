@@ -38,3 +38,8 @@ one_or_more_spaces = '\s+'
 It captures any pages range separator.
 '''
 pages_separator = '[^A-Za-z\d]+(?=[A-Za-z\d]+)'
+
+'''
+It captures an ORCID
+'''
+orcid_pattern = '([0-9]{4}-){3}[0-9]{3}[0-9X]'

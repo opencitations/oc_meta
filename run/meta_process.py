@@ -56,46 +56,46 @@ class MetaProcess:
                 curator_obj = Curator(data, self.triplestore_url, info_dir=curator_info_dir, prefix=self.supplier_prefix)
                 name = datetime.now().strftime('%Y-%m-%dT%H_%M_%S')
                 curator_obj.curator(filename=name, path_csv=self.output_csv_dir, path_index=self.indexes_dir)
-                # Creator
-                creator_info_dir = os.path.join(self.info_dir, 'creator' + os.sep)
-                creator_obj = Creator(
-                    data=curator_obj.data, 
-                    base_iri=self.base_iri, 
-                    info_dir=creator_info_dir, 
-                    supplier_prefix=self.supplier_prefix, 
-                    resp_agent=self.resp_agent,
-                    ra_index=curator_obj.index_id_ra, 
-                    br_index=curator_obj.index_id_br, 
-                    re_index_csv=curator_obj.re_index,
-                    ar_index_csv=curator_obj.ar_index, 
-                    vi_index=curator_obj.VolIss)
-                creator = creator_obj.creator(source=self.source)
-                # Provenance
-                prov = ProvSet(creator, self.base_iri, creator_info_dir, wanted_label=False)
-                prov.generate_provenance()
-                # Storer
-                res_storer = Storer(creator,
-                                    context_map={},
-                                    dir_split=self.dir_split_number,
-                                    n_file_item=self.items_per_file,
-                                    default_dir=self.default_dir,
-                                    output_format='nt11')
-                prov_storer = Storer(prov,
-                                    context_map={},
-                                    dir_split=self.dir_split_number,
-                                    n_file_item=self.items_per_file,
-                                    output_format='nquads')
-                if self.rdf_output_in_chunks:
-                    filename_without_csv = filename[:-4]
-                    f = os.path.join(self.base_dir, filename_without_csv + '.nt')
-                    res_storer.store_graphs_in_file(f, self.context_path)
-                    res_storer.upload_all(self.triplestore_url, self.base_dir, batch_size=100)
-                    # Provenance
-                    f_prov = os.path.join(prov_dir, filename_without_csv + '.nq')
-                    prov_storer.store_graphs_in_file(f_prov, self.context_path)
-                else:
-                    res_storer.upload_and_store(self.base_dir, self.triplestore_url, self.base_iri, self.context_path, batch_size=100)
-                    prov_storer.store_all(self.base_dir, self.base_iri, self.context_path)
+                # # Creator
+                # creator_info_dir = os.path.join(self.info_dir, 'creator' + os.sep)
+                # creator_obj = Creator(
+                #     data=curator_obj.data, 
+                #     base_iri=self.base_iri, 
+                #     info_dir=creator_info_dir, 
+                #     supplier_prefix=self.supplier_prefix, 
+                #     resp_agent=self.resp_agent,
+                #     ra_index=curator_obj.index_id_ra, 
+                #     br_index=curator_obj.index_id_br, 
+                #     re_index_csv=curator_obj.re_index,
+                #     ar_index_csv=curator_obj.ar_index, 
+                #     vi_index=curator_obj.VolIss)
+                # creator = creator_obj.creator(source=self.source)
+                # # Provenance
+                # prov = ProvSet(creator, self.base_iri, creator_info_dir, wanted_label=False)
+                # prov.generate_provenance()
+                # # Storer
+                # res_storer = Storer(creator,
+                #                     context_map={},
+                #                     dir_split=self.dir_split_number,
+                #                     n_file_item=self.items_per_file,
+                #                     default_dir=self.default_dir,
+                #                     output_format='nt11')
+                # prov_storer = Storer(prov,
+                #                     context_map={},
+                #                     dir_split=self.dir_split_number,
+                #                     n_file_item=self.items_per_file,
+                #                     output_format='nquads')
+                # if self.rdf_output_in_chunks:
+                #     filename_without_csv = filename[:-4]
+                #     f = os.path.join(self.base_dir, filename_without_csv + '.nt')
+                #     res_storer.store_graphs_in_file(f, self.context_path)
+                #     res_storer.upload_all(self.triplestore_url, self.base_dir, batch_size=100)
+                #     # Provenance
+                #     f_prov = os.path.join(prov_dir, filename_without_csv + '.nq')
+                #     prov_storer.store_graphs_in_file(f_prov, self.context_path)
+                # else:
+                #     res_storer.upload_and_store(self.base_dir, self.triplestore_url, self.base_iri, self.context_path, batch_size=100)
+                #     prov_storer.store_all(self.base_dir, self.base_iri, self.context_path)
                 with open(self.cache_path, 'a', encoding='utf-8') as aux_file:
                     aux_file.write(filename + '\n')
             if self.verbose:
