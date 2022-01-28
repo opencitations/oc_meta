@@ -236,7 +236,7 @@ class crossrefProcessing:
             elif 'name' in agent:
                 agent_string = Cleaner(agent['name']).remove_unwanted_characters()
                 f_name = agent_string.split()[-1] if ' ' in agent_string else None
-            elif 'family' not in agent and 'given' in agent:
+            elif 'given' in agent and 'family' not in agent:
                 agent_string = ', ' + Cleaner(agent['given']).remove_unwanted_characters()
             orcid = None
             if 'ORCID' in agent:

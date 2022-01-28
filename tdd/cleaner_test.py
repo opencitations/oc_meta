@@ -64,6 +64,15 @@ class test_Cleaner(unittest.TestCase):
         expected_output = ['Edward', 'Bernacki', 'Tom&OV0165', 'Gavin E.', 'Andreacute', 'Albers-Miller', "O'Connor", 'O’Connell', 'Gonźalez-Santiago', 'González-Benito', 'André']
         self.assertEqual(outputs, expected_output)
 
+    def test_normalize_spaces(self):
+        broken_strings = ['100\u0009101', '100\u00AD101', '100\u200B101', '100\u202F101']
+        fixed_strings = list()
+        for string in broken_strings:
+            fixed_string = Cleaner(string).normalize_spaces()
+            fixed_strings.append(fixed_string)
+        expected_output = ['100 101', '100 101', '100 101', '100 101']
+        self.assertEqual(fixed_strings, expected_output)
+
 
 if __name__ == '__main__':
     unittest.main()

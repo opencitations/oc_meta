@@ -67,11 +67,40 @@ class Cleaner:
         :returns: str -- the string with normalized hyphens
         '''
         string = self.string
-        wrong_characters = ['\u00AD', '\u06D4', '\u2010', '\u2011', '\u2012', '\u2013', '\u2014', '\u2043', '\u2212', '\u2796', '\u2CBA', '\uFE58']
+        wrong_characters = {'\u00AD', '\u06D4', '\u2010', '\u2011', '\u2012', '\u2013', '\u2014', '\u2043', '\u2212', '\u2796', '\u2CBA', '\uFE58'}
         for c in wrong_characters:
             string = string.replace(c, '\u002D')
         if 'isbn:' in string: # TODO: mettere a parte utilizzando il normalizer (single-responsability principle)
             string.replace(u'\u002D', '')
+        return string
+    
+    def normalize_spaces(self) -> str:
+        '''
+        It replaces any ambiguous spaces with a space.
+
+        .. list-table:: List of the various characters similar to the space
+            :widths: 25 25 50
+            :header-rows: 1
+
+            * - UTF-8
+                - NAME
+            * - U+0020
+                - Space
+            * - U+0009
+                - Character Tabulation
+            * - U+00AD
+                - No-break space
+            * - U+200B
+                - Zero width space
+            * - U+202F
+                - Narrow no-break space
+
+        :returns: str -- the string with normalized spaces
+        '''
+        string = self.string
+        wrong_characters = {'\u0009', '\u00AD', '\u200B', '\u202F'}
+        for c in wrong_characters:
+            string = string.replace(c, '\u0020')
         return string
 
     def clean_title(self) -> str:
@@ -83,7 +112,7 @@ class Cleaner:
 
         :returns: str -- The cleaned title
         '''
-        title = self.string
+        title = Cleaner(self.string).normalize_spaces()
         if title.isupper():
             title = title.lower()
         words = title.split()
