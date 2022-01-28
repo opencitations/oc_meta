@@ -59,7 +59,27 @@ class TestCrossrefProcessing(unittest.TestCase):
         ]
         crossref_processor = CrossrefProcessing(IOD, WANTED_DOIS)
         authors_strings_list = crossref_processor.get_agents_strings_list('10.9799/ksfan.2012.25.1.105', authors_list)
+        # print(authors_strings_list)
         expected_authors_list = ['Kim, Myung-Hee', 'Seo, Jin-Seon', 'Choi, Mi-Kyeong [orcid:0000-0002-6227-4053]', 'Kim, Eun-Young']
+        self.assertEqual(authors_strings_list, expected_authors_list)
+
+    def test_get_agents_strings_list_same_family(self):
+        # Two authors have the same family name
+        authors_list = [
+            {
+                'given': 'Mi-Kyeong',
+                'family': 'Choi',
+                'affiliation': []
+            },
+            {
+                'given': 'Kim',
+                'family': 'Choi',
+                'affiliation': []
+            }
+        ]
+        crossref_processor = CrossrefProcessing(IOD, WANTED_DOIS)
+        authors_strings_list = crossref_processor.get_agents_strings_list('10.9799/ksfan.2012.25.1.105', authors_list)
+        expected_authors_list = ['Choi, Mi-Kyeong [orcid:0000-0002-6227-4053]', 'Choi, Kim']
         self.assertEqual(authors_strings_list, expected_authors_list)
     
     def test_id_worker(self):

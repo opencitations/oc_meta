@@ -218,42 +218,48 @@ class CrossrefProcessing:
                     name_and_id = ventit
         return name_and_id
     
-    def get_agents_strings_list(self, doi:str, agents_list:str) -> list:
+    def get_agents_strings_list(self, doi:str, agents_list:List[dict]) -> list:
         agents_strings_list = list()
         dict_orcid = None
-        f_name = None
         if not all('ORCID' in agent for agent in agents_list):
             dict_orcid = self.orcid_finder(doi)
+        agents_list = [{k:Cleaner(v).remove_unwanted_characters() if k in {'family', 'given', 'name'} else v for k,v in agent_dict.items()} for agent_dict in agents_list]
         for agent in agents_list:
+            f_name = None
+            g_name = None
             agent_string = None
             if 'family' in agent:
-                f_name = Cleaner(agent['family']).remove_unwanted_characters()
+                f_name = agent['family']
                 if 'given' in agent:
-                    g_name = Cleaner(agent['given']).remove_unwanted_characters()
+                    g_name = agent['given']
                     agent_string = f_name + ', ' + g_name
                 else:
                     agent_string = f_name + ', '
             elif 'name' in agent:
-                agent_string = Cleaner(agent['name']).remove_unwanted_characters()
+                agent_string = agent['name']
                 f_name = agent_string.split()[-1] if ' ' in agent_string else None
             elif 'given' in agent and 'family' not in agent:
-                agent_string = ', ' + Cleaner(agent['given']).remove_unwanted_characters()
+                agent_string = ', ' + agent['given']
             orcid = None
             if 'ORCID' in agent:
                 if isinstance(agent['ORCID'], list):
                     orcid = str(agent['ORCID'][0])
                 else:
                     orcid = str(agent['ORCID'])
-                if ORCIDManager().is_valid(orcid):
-                    orcid = ORCIDManager().normalise(orcid)
-                else:
-                    orcid = None
+                orcid = ORCIDManager().normalise(orcid) if ORCIDManager().is_valid(orcid) else None
             elif dict_orcid and f_name:
                 for ori in dict_orcid:
-                    orc_n = dict_orcid[ori].split(', ')
-                    orc_f = orc_n[0]
+                    orc_n:List[str] = dict_orcid[ori].split(', ')
+                    orc_f = orc_n[0].lower()
+                    orc_g = orc_n[1]
                     if f_name.lower() in orc_f.lower() or orc_f.lower() in f_name.lower():
-                        orcid = ori
+                        # If there is more than one person with the same family name
+                        if len([person for person in agents_list if person['family'].lower() == f_name.lower()]) > 1 and g_name:
+                            # Try to match the given names' initials
+                            if orc_g[0].lower() == g_name[0].lower():
+                                orcid = ori
+                        else:
+                            orcid = ori
             if agent_string and orcid:
                 agent_string += ' [' + 'orcid:' + str(orcid) + ']'
             if agent_string:
