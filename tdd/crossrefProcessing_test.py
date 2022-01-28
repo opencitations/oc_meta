@@ -119,7 +119,7 @@ class TestCrossrefProcessing(unittest.TestCase):
                 {'id': 'doi:10.1001/.389', 'title': 'Decision Making at the Fringe of Evidence: Take What You Can Get', 'author': 'Col, N. F.', 'pub_date': '2006-2-27', 'venue': 'Archives of Internal Medicine [issn:0003-9926]', 'volume': '166', 'issue': '4', 'page': '389-390', 'type': 'journal article', 'publisher': 'American Medical Association (AMA) [crossref:10]', 'editor': ''}
             ], 
             [
-                {'id': 'doi:10.1001/archderm.108.4.583b', 'title': 'Letter: Bleaching of hair after use of benzoyl peroxide acne lotions', 'author': 'Bleiberg, J.', 'pub_date': '1973-10-1', 'venue': 'Archives of Dermatology [issn:0003-987X]', 'volume': '108', 'issue': '4', 'page': '583b-583', 'type': 'journal article', 'publisher': 'American Medical Association (AMA) [crossref:10]', 'editor': ''}
+                {'id': 'doi:10.1001/archderm.108.4.583b', 'title': 'Letter: Bleaching of hair after use of benzoyl peroxide acne lotions', 'author': 'Bleiberg, J.', 'pub_date': '1973-10-1', 'venue': 'Archives of Dermatology [issn:0003-987X]', 'volume': '108', 'issue': '4', 'page': '583-583', 'type': 'journal article', 'publisher': 'American Medical Association (AMA) [crossref:10]', 'editor': ''}
             ]
         ]
         self.assertEqual(output, expected_output)
@@ -190,6 +190,48 @@ class TestCrossrefProcessing(unittest.TestCase):
         crossref_processor = crossrefProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
         venue_name = crossref_processor.get_venue_name(item, row)
         self.assertEqual(venue_name, "troitel'stvo: nauka i obrazovanie [Construction: Science and Education] [issn:2305-5502]")
+    
+    def test_get_pages(self):
+        item = {
+            'page': '469-476'
+        }
+        crossref_processor = crossrefProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
+        pages = crossref_processor.get_pages(item)
+        self.assertEqual(pages, '469-476')
+
+    def test_get_pages_right_letter(self):
+        item = {
+            'page': 'G22'
+        }
+        crossref_processor = crossrefProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
+        pages = crossref_processor.get_pages(item)
+        self.assertEqual(pages, 'G22')
+
+    def test_get_pages_wrong_letter(self):
+        item = {
+            'page': '583b-584'
+        }
+        crossref_processor = crossrefProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
+        pages = crossref_processor.get_pages(item)
+        self.assertEqual(pages, '583-584')
+
+    def test_get_pages_roman_letters(self):
+        item = {
+            'page': 'iv-l'
+        }
+        crossref_processor = crossrefProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
+        pages = crossref_processor.get_pages(item)
+        self.assertEqual(pages, 'iv-l')
+
+    def test_get_pages_non_roman_letters(self):
+        item = {
+            'page': 'kj-hh'
+        }
+        crossref_processor = crossrefProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
+        pages = crossref_processor.get_pages(item)
+        self.assertEqual(pages, '')
+
+
 
 if __name__ == '__main__':
     unittest.main()

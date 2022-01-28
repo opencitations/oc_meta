@@ -89,8 +89,7 @@ class crossrefProcessing:
                 if 'issue' in x:
                     row['issue'] = x['issue']
                 if 'page' in x:
-                    pages = '-'.join(re.split(pages_separator, x['page']))
-                    row['page'] = pages
+                    row['page'] = self.get_pages(x)
 
                 row['publisher'] = self.get_publisher_name(doi, x)                        
 
@@ -110,6 +109,34 @@ class crossrefProcessing:
                 name:str = person[:person.find(orcid)-1]
                 found[orcid] = name.strip().lower()
         return found
+    
+    def get_pages(self, item:dict) -> str:
+        '''
+        This function returns the pages interval. 
+
+        :params item: the item's dictionary
+        :type item: dict
+        :returns: str -- The output is a string in the format 'START-END', for example, '583-584'. If there are no pages, the output is an empty string.
+        '''
+        roman_letters = {'I', 'V', 'X', 'L', 'C', 'D', 'M'}
+        pages_list = re.split(pages_separator, item['page'])
+        clean_pages_list = list()
+        for page in pages_list:
+            # e.g. 583-584
+            if all(c.isdigit() for c in page):
+                clean_pages_list.append(page)
+            # e.g. G27. It is a born digital document. PeerJ uses this approach, where G27 identifies the whole document, since it has no pages.
+            elif len(pages_list) == 1:
+                clean_pages_list.append(page)
+            # e.g. iv-vii. This syntax is used in the prefaces.
+            elif all(c.upper() in roman_letters for c in page):
+                clean_pages_list.append(page)
+            # 583b-584. It is an error. The b must be removed.
+            elif any(c.isdigit() for c in page):
+                page_without_letters = ''.join([c for c in page if c.isdigit()])
+                clean_pages_list.append(page_without_letters)
+        pages = '-'.join(clean_pages_list)
+        return pages
     
     def get_publisher_name(self, doi:str, item:dict) -> str:
         '''
