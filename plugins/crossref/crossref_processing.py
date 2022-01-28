@@ -14,7 +14,7 @@ from meta.lib.master_of_regex import *
 
 warnings.filterwarnings("ignore", category=UserWarning, module='bs4')
 
-class crossrefProcessing:
+class CrossrefProcessing:
 
     def __init__(self, orcid_index:str, doi_csv:str=None, publishers_filepath:str=None):
         self.doi_set = CSVManager.load_csv_column_as_set(doi_csv, 'doi') if doi_csv else None

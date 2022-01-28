@@ -1,4 +1,4 @@
-from meta.plugins.crossref.crossrefProcessing import *
+from meta.plugins.crossref.crossref_processing import *
 from meta.lib.jsonmanager import *
 import os
 import csv
@@ -17,7 +17,7 @@ def preprocess(crossref_json_dir:str, publishers_filepath:str, orcid_doi_filepat
                 what.append('wanted DOIs CSV')
             log = '[INFO: crossref_process] Processing: ' + '; '.join(what)
             print(log)
-    crossref_csv = crossrefProcessing(orcid_index=orcid_doi_filepath, doi_csv=wanted_doi_filepath, publishers_filepath=publishers_filepath)
+    crossref_csv = CrossrefProcessing(orcid_index=orcid_doi_filepath, doi_csv=wanted_doi_filepath, publishers_filepath=publishers_filepath)
     if verbose:
         print(f'[INFO: crossref_process] Getting all files from {crossref_json_dir}')
     all_files, targz_fd = get_all_files(crossref_json_dir)

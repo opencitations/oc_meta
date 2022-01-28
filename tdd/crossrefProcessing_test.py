@@ -1,10 +1,10 @@
 import unittest, os, csv, shutil
-from meta.plugins.crossref.crossrefProcessing import crossrefProcessing
+from meta.plugins.crossref.crossref_processing import CrossrefProcessing
 from meta.lib.jsonmanager import *
 from meta.run.crossref_process import preprocess
 from pprint import pprint
 
-BASE = os.path.join('meta', 'tdd', 'crossrefProcessing')
+BASE = os.path.join('meta', 'tdd', 'crossref_processing')
 IOD = os.path.join(BASE, 'iod')
 WANTED_DOIS = os.path.join(BASE, 'wanted_dois.csv')
 DATA = os.path.join(BASE, '40228.json')
@@ -17,7 +17,7 @@ PUBLISHERS_MAPPING = os.path.join(BASE, 'publishers.csv')
 class TestCrossrefProcessing(unittest.TestCase):
 
     def test_csv_creator(self):
-        crossref_processor = crossrefProcessing(orcid_index=IOD, doi_csv=WANTED_DOIS, publishers_filepath=None)
+        crossref_processor = CrossrefProcessing(orcid_index=IOD, doi_csv=WANTED_DOIS, publishers_filepath=None)
         data = load_json(DATA, None)
         csv_created = crossref_processor.csv_creator(data)
         expected_output = [
@@ -29,7 +29,7 @@ class TestCrossrefProcessing(unittest.TestCase):
         self.assertEqual(csv_created, expected_output)
 
     def test_orcid_finder(self):
-        crossref_processor = crossrefProcessing(IOD, WANTED_DOIS)
+        crossref_processor = CrossrefProcessing(IOD, WANTED_DOIS)
         orcid_found = crossref_processor.orcid_finder('10.9799/ksfan.2012.25.1.105')
         expected_output = {'0000-0002-6227-4053': 'choi, mi-kyeong'}
         self.assertEqual(orcid_found, expected_output)
@@ -57,7 +57,7 @@ class TestCrossrefProcessing(unittest.TestCase):
                 'affiliation': []
             }
         ]
-        crossref_processor = crossrefProcessing(IOD, WANTED_DOIS)
+        crossref_processor = CrossrefProcessing(IOD, WANTED_DOIS)
         authors_strings_list = crossref_processor.get_agents_strings_list('10.9799/ksfan.2012.25.1.105', authors_list)
         expected_authors_list = ['Kim, Myung-Hee', 'Seo, Jin-Seon', 'Choi, Mi-Kyeong [orcid:0000-0002-6227-4053]', 'Kim, Eun-Young']
         self.assertEqual(authors_strings_list, expected_authors_list)
@@ -67,8 +67,8 @@ class TestCrossrefProcessing(unittest.TestCase):
         field_isbn = ['978-1-56619-909-4']
         issn_list = list()
         isbn_list = list()
-        crossrefProcessing.id_worker(field_issn, issn_list, crossrefProcessing.issn_worker)
-        crossrefProcessing.id_worker(field_isbn, isbn_list, crossrefProcessing.isbn_worker)
+        CrossrefProcessing.id_worker(field_issn, issn_list, CrossrefProcessing.issn_worker)
+        CrossrefProcessing.id_worker(field_isbn, isbn_list, CrossrefProcessing.isbn_worker)
         expected_issn_list = ['issn:1050-124X']
         expected_isbn_list = ['isbn:9781566199094']
         self.assertEqual((issn_list, isbn_list), (expected_issn_list, expected_isbn_list))
@@ -76,14 +76,14 @@ class TestCrossrefProcessing(unittest.TestCase):
     def test_issn_worker(self):
         input = 'ISSN 1050-124X'
         output = list()
-        crossrefProcessing.issn_worker(input, output)
+        CrossrefProcessing.issn_worker(input, output)
         expected_output = ['issn:1050-124X']
         self.assertEqual(output, expected_output)
 
     def test_isbn_worker(self):
         input = '978-1-56619-909-4'
         output = list()
-        crossrefProcessing.isbn_worker(input, output)
+        CrossrefProcessing.isbn_worker(input, output)
         expected_output = ['isbn:9781566199094']
         self.assertEqual(output, expected_output)
     
@@ -134,7 +134,7 @@ class TestCrossrefProcessing(unittest.TestCase):
         self.assertEqual(output, expected_output)
     
     def test_load_publishers_mapping(self):
-        output = crossrefProcessing.load_publishers_mapping(publishers_filepath=PUBLISHERS_MAPPING)
+        output = CrossrefProcessing.load_publishers_mapping(publishers_filepath=PUBLISHERS_MAPPING)
         expected_output = {
             '1': {'name': 'Annals of Family Medicine', 'prefixes': {'10.1370'}},
             '2': {'name': 'American Association of Petroleum Geologists AAPG/Datapages', 'prefixes': {'10.15530', '10.1306'}},
@@ -156,7 +156,7 @@ class TestCrossrefProcessing(unittest.TestCase):
             'member': '460'
         }
         doi = '10.47886/9789251092637.ch7'
-        crossref_processor = crossrefProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
+        crossref_processor = CrossrefProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
         publisher_name = crossref_processor.get_publisher_name(doi, item)
         self.assertEqual(publisher_name, 'American Fisheries Society [crossref:460]')
 
@@ -168,7 +168,7 @@ class TestCrossrefProcessing(unittest.TestCase):
             'prefix': '10.47886'
         }
         doi = '10.47886/9789251092637.ch7'
-        crossref_processor = crossrefProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
+        crossref_processor = CrossrefProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
         publisher_name = crossref_processor.get_publisher_name(doi, item)
         self.assertEqual(publisher_name, 'American Fisheries Society [crossref:460]')
     
@@ -177,7 +177,7 @@ class TestCrossrefProcessing(unittest.TestCase):
             'container-title': ['Cerebrospinal Fluid [Working Title]'],
         }
         row = {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': 'journal article', 'publisher': '', 'editor': ''}
-        crossref_processor = crossrefProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
+        crossref_processor = CrossrefProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
         venue_name = crossref_processor.get_venue_name(item, row)
         self.assertEqual(venue_name, 'Cerebrospinal Fluid [Working Title]')
 
@@ -187,7 +187,7 @@ class TestCrossrefProcessing(unittest.TestCase):
             'ISSN': '2305-5502'
         }
         row = {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': 'journal article', 'publisher': '', 'editor': ''}
-        crossref_processor = crossrefProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
+        crossref_processor = CrossrefProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
         venue_name = crossref_processor.get_venue_name(item, row)
         self.assertEqual(venue_name, "troitel'stvo: nauka i obrazovanie [Construction: Science and Education] [issn:2305-5502]")
     
@@ -195,7 +195,7 @@ class TestCrossrefProcessing(unittest.TestCase):
         item = {
             'page': '469-476'
         }
-        crossref_processor = crossrefProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
+        crossref_processor = CrossrefProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
         pages = crossref_processor.get_pages(item)
         self.assertEqual(pages, '469-476')
 
@@ -203,7 +203,7 @@ class TestCrossrefProcessing(unittest.TestCase):
         item = {
             'page': 'G22'
         }
-        crossref_processor = crossrefProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
+        crossref_processor = CrossrefProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
         pages = crossref_processor.get_pages(item)
         self.assertEqual(pages, 'G22')
 
@@ -211,7 +211,7 @@ class TestCrossrefProcessing(unittest.TestCase):
         item = {
             'page': '583b-584'
         }
-        crossref_processor = crossrefProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
+        crossref_processor = CrossrefProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
         pages = crossref_processor.get_pages(item)
         self.assertEqual(pages, '583-584')
 
@@ -219,7 +219,7 @@ class TestCrossrefProcessing(unittest.TestCase):
         item = {
             'page': 'iv-l'
         }
-        crossref_processor = crossrefProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
+        crossref_processor = CrossrefProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
         pages = crossref_processor.get_pages(item)
         self.assertEqual(pages, 'iv-l')
 
@@ -227,7 +227,7 @@ class TestCrossrefProcessing(unittest.TestCase):
         item = {
             'page': 'kj-hh'
         }
-        crossref_processor = crossrefProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
+        crossref_processor = CrossrefProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
         pages = crossref_processor.get_pages(item)
         self.assertEqual(pages, '')
 
