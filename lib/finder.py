@@ -1,15 +1,18 @@
 from typing import List, Dict, Tuple
 from oc_ocdm.graph import GraphEntity
-from pymantic import sparql
+from SPARQLWrapper import SPARQLWrapper, JSON, GET
 
 
 class ResourceFinder:
 
     def __init__(self, ts_url):
-        self.ts = sparql.SPARQLServer(ts_url)
+        self.ts = SPARQLWrapper(ts_url)
+        self.ts.setReturnFormat(JSON)
+        self.ts.setMethod(GET)
 
     def __query(self, query):
-        result = self.ts.query(query)
+        self.ts.setQuery(query)
+        result = self.ts.queryAndConvert()
         return result
 
     # _______________________________BR_________________________________ #
