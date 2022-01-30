@@ -74,7 +74,8 @@ class Cleaner:
             string.replace(u'\u002D', '')
         return string
     
-    def normalize_spaces(self) -> str:
+    @staticmethod
+    def normalize_spaces(string:str) -> str:
         '''
         It replaces any ambiguous spaces with a space.
 
@@ -88,7 +89,7 @@ class Cleaner:
                 - Space
             * - U+0009
                 - Character Tabulation
-            * - U+00AD
+            * - U+00A0
                 - No-break space
             * - U+200B
                 - Zero width space
@@ -97,8 +98,7 @@ class Cleaner:
 
         :returns: str -- the string with normalized spaces
         '''
-        string = self.string
-        wrong_characters = {'\u0009', '\u00AD', '\u200B', '\u202F'}
+        wrong_characters = {'\u0009', '\u00A0', '\u200B', '\u202F'}
         for c in wrong_characters:
             string = string.replace(c, '\u0020')
         return string
@@ -112,7 +112,7 @@ class Cleaner:
 
         :returns: str -- The cleaned title
         '''
-        title = Cleaner(self.string).normalize_spaces()
+        title = self.string
         if title.isupper():
             title = title.lower()
         words = title.split()

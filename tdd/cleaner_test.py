@@ -65,10 +65,10 @@ class test_Cleaner(unittest.TestCase):
         self.assertEqual(outputs, expected_output)
 
     def test_normalize_spaces(self):
-        broken_strings = ['100\u0009101', '100\u00AD101', '100\u200B101', '100\u202F101']
+        broken_strings = ['100\u0009101', '100\u00A0101', '100\u200B101', '100\u202F101']
         fixed_strings = list()
         for string in broken_strings:
-            fixed_string = Cleaner(string).normalize_spaces()
+            fixed_string = Cleaner.normalize_spaces(string)
             fixed_strings.append(fixed_string)
         expected_output = ['100 101', '100 101', '100 101', '100 101']
         self.assertEqual(fixed_strings, expected_output)

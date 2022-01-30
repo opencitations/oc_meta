@@ -2,7 +2,7 @@ import unittest
 from meta.scripts.curator import *
 from meta.scripts.creator import Creator
 import csv
-from SPARQLWrapper import SPARQLWrapper
+from SPARQLWrapper import SPARQLWrapper, POST
 from pprint import pprint
 from oc_ocdm import Storer
 import shutil
@@ -37,8 +37,10 @@ def reset():
         br.write('0')
 
 def reset_server(server:str=SERVER) -> None:
-    ts = sparql.SPARQLServer(server)
-    ts.update('delete{?x ?y ?z} where{?x ?y ?z}')
+    ts = SPARQLWrapper(server)
+    ts.setQuery('delete{?x ?y ?z} where{?x ?y ?z}')
+    ts.setMethod(POST)
+    ts.query()
 
 def add_data_ts(server:str=SERVER, data_path:str=REAL_DATA_RDF):
     reset_server(server)

@@ -44,7 +44,8 @@ class MetaProcess:
         if self.verbose:
             pbar = tqdm(total=len(os.listdir(self.input_csv_dir)))
         prov_dir = os.path.join(self.base_dir, 'prov' + os.sep)
-        for dir in [self.output_csv_dir, self.indexes_dir, self.base_dir, prov_dir]:
+        nt_dir = os.path.join(self.base_dir, 'nt' + os.sep)
+        for dir in [self.output_csv_dir, self.indexes_dir, self.base_dir, prov_dir, nt_dir]:
             pathoo(dir)
         csv.field_size_limit(128)
         for filename in os.listdir(self.input_csv_dir):
@@ -85,9 +86,10 @@ class MetaProcess:
                                     dir_split=self.dir_split_number,
                                     n_file_item=self.items_per_file,
                                     output_format='nquads')
+                self.store_json_ld(creator)
                 if self.rdf_output_in_chunks:
                     filename_without_csv = filename[:-4]
-                    f = os.path.join(self.base_dir, filename_without_csv + '.nt')
+                    f = os.path.join(self.base_dir, 'nt', filename_without_csv + '.nt')
                     res_storer.store_graphs_in_file(f, self.context_path)
                     res_storer.upload_all(self.triplestore_url, self.base_dir, batch_size=100)
                     # Provenance
@@ -103,6 +105,17 @@ class MetaProcess:
         if self.verbose:
             pbar.close()
 
+    def store_json_ld(self, creator:Creator) -> None:
+        json_ld_storer = Storer(creator,
+            context_map={},
+            dir_split=self.dir_split_number,
+            n_file_item=self.items_per_file,
+            default_dir=self.default_dir,
+            output_format='json-ld')
+        base_dir = os.path.join(self.base_dir, 'jsonld/')
+        json_ld_storer.store_all(base_dir=base_dir, base_iri=self.base_iri, context_path=self.context_path)
+
+
 def get_data(filepath:str) -> List[dict]:
     field_size_changed = False
     cur_field_size = 128
@@ -110,7 +123,7 @@ def get_data(filepath:str) -> List[dict]:
     while not data:
         try:
             data_initial = open(filepath, 'r', encoding='utf8')
-            valid_data = (line.replace('\0','') for line in data_initial)
+            valid_data = (Cleaner.normalize_spaces(line).replace('\0','') for line in data_initial)
             data = list(csv.DictReader(valid_data, delimiter=','))
         except csv.Error:
             cur_field_size *= 2
@@ -123,7 +136,6 @@ def get_data(filepath:str) -> List[dict]:
 def pathoo(path):
     if not os.path.exists(os.path.dirname(path)):
         os.makedirs(os.path.dirname(path))
-
 
 if __name__ == '__main__':
     arg_parser = ArgumentParser('run_process.py', description='This script runs OCMeta data processing workflow')

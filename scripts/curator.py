@@ -13,7 +13,7 @@ class Curator:
     def __init__(self, data:List[dict], ts:str, info_dir:str, prefix:str='060', separator:str=None):
         self.finder = ResourceFinder(ts)
         self.separator = separator
-        self.data = data
+        self.data = [{field:value.strip() for field,value in row.items()} for row in data]
         self.prefix = prefix
         # Counter local paths
         self.br_info_path = info_dir + 'br.txt'
@@ -111,15 +111,15 @@ class Curator:
             self.equalizer(row, metaval)
         # page
         if row['page']:
-            row['page'] = Cleaner(row['page'].strip()).normalize_hyphens()
+            row['page'] = Cleaner(row['page']).normalize_hyphens()
         # date
         if row['pub_date']:
-            date = Cleaner(row['pub_date'].strip()).normalize_hyphens()
+            date = Cleaner(row['pub_date']).normalize_hyphens()
             date = Cleaner(date).clean_date()
             row['pub_date'] = date
         # type
         if row['type']:
-            entity_type = ' '.join((row['type'].strip().lower()).split()).replace('\0', '')
+            entity_type = ' '.join((row['type'].lower()).split())
             if entity_type == 'edited book' or entity_type == 'monograph':
                 entity_type = 'book'
             elif entity_type == 'report series' or entity_type == 'standard series':
@@ -207,7 +207,6 @@ class Curator:
             row['venue'] = metaval
             # Volume
             if volume and (type == 'journal issue' or type == 'journal article'):
-                volume = volume.strip().replace('\0', '')
                 row['volume'] = volume
                 if volume in self.vvi[metaval]['volume']:
                     vol_meta = self.vvi[metaval]['volume'][volume]['id']
@@ -217,14 +216,12 @@ class Curator:
                     self.vvi[metaval]['volume'][volume]['id'] = vol_meta
                     self.vvi[metaval]['volume'][volume]['issue'] = dict()
             elif volume and type == 'journal volume':
-                volume = volume.strip().replace('\0', '')
                 row['volume'] = ''
                 row['issue'] = ''
                 vol_meta = id
                 self.volume_issue(vol_meta, self.vvi[metaval]['volume'], volume, row)
             # Issue
             if issue and type == 'journal article':
-                issue = issue.strip().replace('\0', '')
                 row['issue'] = issue
                 if vol_meta:
                     # issue inside volume
@@ -239,7 +236,6 @@ class Curator:
                         self.vvi[metaval]['issue'][issue] = dict()
                         self.vvi[metaval]['issue'][issue]['id'] = issue_meta
             elif issue and type == 'journal issue':
-                issue = issue.strip().replace('\0', '')
                 row['issue'] = ''
                 issue_meta = id
                 if vol_meta:
@@ -573,7 +569,7 @@ class Curator:
                     row['page'] = re_meta[1]
                 else:
                     count = self.prefix + str(self._add_number(self.re_info_path))
-                    page = row['page'].strip().replace('\0', '')
+                    page = row['page']
                     self.remeta[metaid] = (count, page)
                     row['page'] = page
             elif metaid in self.remeta:
