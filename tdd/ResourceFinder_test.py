@@ -5,8 +5,9 @@ from pprint import pprint
 
 
 ENDPOINT = 'http://localhost:9999/blazegraph/sparql'
+BASE_IRI = 'https://w3id.org/oc/meta'
 REAL_DATA_FILE = 'meta/tdd/testcases/ts/real_data.nt'
-finder = ResourceFinder(ENDPOINT)
+finder = ResourceFinder(ENDPOINT, BASE_IRI)
 # Clear ts
 ts = SPARQLWrapper(ENDPOINT)
 ts.setMethod(POST)

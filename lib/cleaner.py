@@ -95,10 +95,16 @@ class Cleaner:
                 - Zero width space
             * - U+202F
                 - Narrow no-break space
+            * - U+2003
+                - Em Space
+            * - U+2005
+                - Four-Per-Em Space
+            * - U+2009
+                - Thin Space
 
         :returns: str -- the string with normalized spaces
         '''
-        wrong_characters = {'\u0009', '\u00A0', '\u200B', '\u202F'}
+        wrong_characters = {'\u0009', '\u00A0', '\u200B', '\u202F', '\u2003', '\u2005', '\u2009'}
         for c in wrong_characters:
             string = string.replace(c, '\u0020')
         return string
@@ -225,6 +231,6 @@ class Cleaner:
             elif c not in unwanted_characters:
                 clean_string += c
         clean_string = ' '.join(clean_string.split()).strip()
-        clean_string = Cleaner(clean_string).normalize_hyphens()
         clean_string = html.unescape(clean_string)
+        clean_string = Cleaner(clean_string).normalize_hyphens()
         return clean_string

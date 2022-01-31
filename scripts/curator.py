@@ -10,8 +10,8 @@ from meta.lib.master_of_regex import *
 
 class Curator:
 
-    def __init__(self, data:List[dict], ts:str, info_dir:str, prefix:str='060', separator:str=None):
-        self.finder = ResourceFinder(ts)
+    def __init__(self, data:List[dict], ts:str, info_dir:str, prefix:str='060', separator:str=None, base_iri:str='https://w3id.org/oc/meta'):
+        self.finder = ResourceFinder(ts, base_iri)
         self.separator = separator
         self.data = [{field:value.strip() for field,value in row.items()} for row in data]
         self.prefix = prefix

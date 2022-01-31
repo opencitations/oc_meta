@@ -5,10 +5,11 @@ from SPARQLWrapper import SPARQLWrapper, JSON, GET
 
 class ResourceFinder:
 
-    def __init__(self, ts_url):
+    def __init__(self, ts_url, base_iri:str):
         self.ts = SPARQLWrapper(ts_url)
         self.ts.setReturnFormat(JSON)
         self.ts.setMethod(GET)
+        self.base_iri = base_iri[:-1] if base_iri[:-1] == '/' else base_iri
 
     def __query(self, query):
         self.ts.setQuery(query)
@@ -49,9 +50,9 @@ class ResourceFinder:
             bindings = results['results']['bindings']
             result_list = list()
             for result in bindings:
-                res = str(result['res']['value']).replace('https://w3id.org/oc/meta/br/', '')
+                res = str(result['res']['value']).replace(f'{self.base_iri}/br/', '')
                 title = str(result['title_']['value'])
-                metaid_list = str(result['otherId_']['value']).replace('https://w3id.org/oc/meta/id/', '').split(' ;and; ')
+                metaid_list = str(result['otherId_']['value']).replace(f'{self.base_iri}/id/', '').split(' ;and; ')
                 id_schema_list = str(result['schema_']['value']).replace(GraphEntity.DATACITE, '').split(' ;and; ')
                 id_value_list = str(result['value_']['value']).split(' ;and; ')
                 schema_value_list = list(zip(id_schema_list, id_value_list))
@@ -73,7 +74,7 @@ class ResourceFinder:
         :type metaid: str
         :returns Tuple[str, List[Tuple[str, str]]]: -- it returns a tuple of two elements. The first element is the resource's title associated with the input MetaID. The second element is a list of MetaID-ID tuples related to identifiers associated with that entity.
         '''
-        metaid_uri = f'https://w3id.org/oc/meta/br/{str(metaid)}'
+        metaid_uri = f'{self.base_iri}/br/{str(metaid)}'
         query = f'''
             SELECT DISTINCT ?res 
                 (GROUP_CONCAT(DISTINCT  ?title;separator=' ;and; ') AS ?title_)
@@ -95,7 +96,7 @@ class ResourceFinder:
             # By definition, there is only one resource associated with a MetaID
             bindings = result['results']['bindings'][0]
             title = str(bindings['title_']['value'])
-            metaid_list = str(bindings['id_']['value']).replace('https://w3id.org/oc/meta/id/', '').split(' ;and; ')
+            metaid_list = str(bindings['id_']['value']).replace(f'{self.base_iri}/id/', '').split(' ;and; ')
             id_schema_list = str(bindings['schema_']['value']).replace(GraphEntity.DATACITE, '').split(' ;and; ')
             id_value_list = str(bindings['value_']['value']).split(' ;and; ')
             schema_value_list = list(zip(id_schema_list, id_value_list))
@@ -133,7 +134,7 @@ class ResourceFinder:
         result = self.__query(query)
         if result['results']['bindings']:
             bindings = result['results']['bindings']
-            return str(bindings[0]['res']['value']).replace('https://w3id.org/oc/meta/id/', '')
+            return str(bindings[0]['res']['value']).replace(f'{self.base_iri}/id/', '')
         else:
             return None
 
@@ -152,7 +153,7 @@ class ResourceFinder:
         :type publisher: bool
         :returns str: -- it returns a tuple, where the first element is the responsible agent's name, and the second element is a list containing its identifier's MetaID and literal value
         '''
-        metaid_uri = f'https://w3id.org/oc/meta/ra/{str(metaid)}'
+        metaid_uri = f'{self.base_iri}/ra/{str(metaid)}'
         query = f'''
             SELECT DISTINCT ?res 
                 (GROUP_CONCAT(DISTINCT ?name ;separator=' ;and; ') AS ?name_)
@@ -184,7 +185,7 @@ class ResourceFinder:
                 name = str(bindings['familyName_']['value']) + ', ' + str(bindings['givenName_']['value'])
             else:
                 name = ''
-            meta_id_list = str(bindings['id_']['value']).replace('https://w3id.org/oc/meta/id/', '').split(' ;and; ')
+            meta_id_list = str(bindings['id_']['value']).replace(f'{self.base_iri}/id/', '').split(' ;and; ')
             id_schema_list = str(bindings['schema_']['value']).replace(GraphEntity.DATACITE, '').split(' ;and; ')
             id_value_list = str(bindings['value_']['value']).split(' ;and; ')
 
@@ -241,14 +242,14 @@ class ResourceFinder:
         if results['results']['bindings']:
             result_list = list()
             for result in results['results']['bindings']:
-                res = str(result['res']['value']).replace('https://w3id.org/oc/meta/ra/', '')
+                res = str(result['res']['value']).replace(f'{self.base_iri}/ra/', '')
                 if str(result['name_']['value']) and publisher:
                     name = str(result['name_']['value'])
                 elif str(result['familyName_']['value']) and not publisher:
                     name = str(result['familyName_']['value']) + ', ' + str(result['givenName_']['value'])
                 else:
                     name = ''
-                meta_id_list = str(result['otherId_']['value']).replace('https://w3id.org/oc/meta/id/', '').split(' ;and; ')
+                meta_id_list = str(result['otherId_']['value']).replace(f'{self.base_iri}/id/', '').split(' ;and; ')
                 id_schema_list = str(result['schema_']['value']).replace(GraphEntity.DATACITE, '').split(' ;and; ')
                 id_value_list = str(result['value_']['value']).split(' ;and; ')
                 schema_value_list = list(zip(id_schema_list, id_value_list))
@@ -314,7 +315,7 @@ class ResourceFinder:
                 (GROUP_CONCAT(DISTINCT ?type; separator=' ;and; ') AS ?type_)
                 (GROUP_CONCAT(DISTINCT ?title) AS ?title_)
             WHERE {{
-                ?res <{GraphEntity.iri_part_of}>+ <https://w3id.org/oc/meta/br/{meta}>;
+                ?res <{GraphEntity.iri_part_of}>+ <{self.base_iri}/br/{meta}>;
                     <{GraphEntity.iri_part_of}> ?container;
                     a ?type;
                     <{GraphEntity.iri_has_sequence_identifier}> ?title.
@@ -324,11 +325,11 @@ class ResourceFinder:
         if result['results']['bindings']:
             results = result['results']['bindings']
             for x in results:
-                res = str(x['res']['value']).replace('https://w3id.org/oc/meta/br/', '')
+                res = str(x['res']['value']).replace(f'{self.base_iri}/br/', '')
                 container = str(x['container_']['value'])
                 title = str(x['title_']['value'])
                 types = str(x['type_']['value']).split(' ;and; ')
-                if str(GraphEntity.iri_journal_issue) in types and container == f'https://w3id.org/oc/meta/br/{meta}':
+                if str(GraphEntity.iri_journal_issue) in types and container == f'{self.base_iri}/br/{meta}':
                     content['issue'].setdefault(title, dict())
                     content['issue'][title]['id'] = res
                 elif str(GraphEntity.iri_journal_volume) in types:
@@ -343,18 +344,18 @@ class ResourceFinder:
             if res in item['container_']['value'] and str(GraphEntity.iri_journal_issue in item['type_']['value']):
                 title = item['title_']['value']
                 content[title] = dict()
-                content[title]['id'] = item['res']['value'].replace('https://w3id.org/oc/meta/br/', '')
+                content[title]['id'] = item['res']['value'].replace(f'{self.base_iri}/br/', '')
         return content
     
-    def retrieve_ra_sequence_from_br_meta(self, metaid:str, col_name:str) -> List[Tuple[str, list, str]]:
+    def retrieve_ra_sequence_from_br_meta(self, metaid:str, col_name:str) -> List[Dict[str, tuple]]:
         '''
         Given a bibliographic resource's MetaID and a field name, it returns its agent roles and responsible agents in the correct order according to the specified field.
         The output has the following format: ::
 
             [
                 {METAID_AR_1: (NAME_RA_1, [(METAID_ID_RA_1, LITERAL_VALUE_ID_RA_1)], METAID_RA_1)}, 
-                {METAID_AR_2: (NAME_RA_2, [(METAID_ID_RA_2, LITERAL_VALUE_ID_RA_2)], 'METAID_RA_2)}, 
-                {METAID_AR_N: (NAME_RA_N, [(METAID_ID_RA_N, LITERAL_VALUE_ID_RA_N)], 'METAID_RA_N)}, 
+                {METAID_AR_2: (NAME_RA_2, [(METAID_ID_RA_2, LITERAL_VALUE_ID_RA_2)], METAID_RA_2)}, 
+                {METAID_AR_N: (NAME_RA_N, [(METAID_ID_RA_N, LITERAL_VALUE_ID_RA_N)], METAID_RA_N)}, 
             ]
 
             [
@@ -368,7 +369,7 @@ class ResourceFinder:
         :type meta_id: str
         :params col_name: a MetaID
         :type col_name: str
-        :returns: List[Tuple[str, tuple, str]] -- the output is a list of three-elements tuples. Each tuple's first and third elements are the MetaIDs of an agent role and responsible agent related to the specified bibliographic resource. The second element is a two-elements tuple, where the first element is the MetaID of the identifier of the responsible agent. In contrast, the second one is the literal value of that id.
+        :returns: List[Dict[str, tuple]] -- the output is a list of three-elements tuples. Each tuple's first and third elements are the MetaIDs of an agent role and responsible agent related to the specified bibliographic resource. The second element is a two-elements tuple, where the first element is the MetaID of the identifier of the responsible agent. In contrast, the second one is the literal value of that id.
         '''
         if col_name == 'author':
             role = GraphEntity.iri_author
@@ -376,7 +377,7 @@ class ResourceFinder:
             role = GraphEntity.iri_editor
         else:
             role = GraphEntity.iri_publisher
-        metaid_uri = f'https://w3id.org/oc/meta/br/{str(metaid)}'
+        metaid_uri = f'{self.base_iri}/br/{str(metaid)}'
         query = f'''
             SELECT DISTINCT ?role ?next ?ra
             WHERE {{
@@ -391,12 +392,12 @@ class ResourceFinder:
             results = result['results']['bindings']
             dict_ar = dict()
             for ra_dict in results:
-                role = str(ra_dict['role']['value']).replace('https://w3id.org/oc/meta/ar/', '')
+                role = str(ra_dict['role']['value']).replace(f'{self.base_iri}/ar/', '')
                 if 'next' in ra_dict:
-                    next_role = str(ra_dict['next']['value']).replace('https://w3id.org/oc/meta/ar/', '')
+                    next_role = str(ra_dict['next']['value']).replace(f'{self.base_iri}/ar/', '')
                 else:
                     next_role = ''
-                ra = str(ra_dict['ra']['value']).replace('https://w3id.org/oc/meta/ra/', '')
+                ra = str(ra_dict['ra']['value']).replace(f'{self.base_iri}/ra/', '')
                 dict_ar[role] = dict()
                 dict_ar[role]['next'] = next_role
                 dict_ar[role]['ra'] = ra
@@ -434,7 +435,7 @@ class ResourceFinder:
             :type meta_id: str
             :returns: Tuple[str, str] -- the output is a two-elements tuple, where the first element is the MetaID of the resource embodiment, and the second is a pages' interval. 
         '''
-        metaid_uri = f'https://w3id.org/oc/meta/br/{str(metaid)}'
+        metaid_uri = f'{self.base_iri}/br/{str(metaid)}'
         query = f'''
             SELECT DISTINCT ?re ?sp ?ep
             WHERE {{
@@ -445,7 +446,7 @@ class ResourceFinder:
         '''
         result = self.__query(query)
         if result['results']['bindings']:
-            meta = result['results']['bindings'][0]['re']['value'].replace('https://w3id.org/oc/meta/re/', '')
+            meta = result['results']['bindings'][0]['re']['value'].replace(f'{self.base_iri}/re/', '')
             pages = result['results']['bindings'][0]['sp']['value'] + '-' +\
                 result['results']['bindings'][0]['ep']['value']
             return meta, pages
@@ -478,7 +479,7 @@ class ResourceFinder:
             :type meta_id: str
             :returns: Tuple[str, str] -- the output is a dictionary including the publication date, type, page, issue, volume, and venue of the specified bibliographic resource.
         '''
-        metaid_uri = f'https://w3id.org/oc/meta/br/{str(metaid)}'
+        metaid_uri = f'{self.base_iri}/br/{str(metaid)}'
         query = f'''
             SELECT ?res 
             (GROUP_CONCAT(DISTINCT ?type; separator=' ;and; ') AS ?type_)
@@ -607,5 +608,30 @@ class ResourceFinder:
             res_dict['volume'] = str(result[num_]['value'])
         elif type_value:
             res_dict['venue'] = result[title_]['value'] + ' [meta:' + result[part_]['value'] \
-                .replace('https://w3id.org/oc/meta/', '') + ']'
+                .replace(f'{self.base_iri}/', '') + ']'
         return res_dict
+    
+    def retrieve_publisher_from_br_metaid(self, metaid:str):
+        query = f'''
+        SELECT *
+        WHERE {{
+
+        }}
+        '''
+    
+    def check_existence(self, res:str) -> bool:
+        query = f'''
+            ASK {{
+                BIND (<{res}> AS ?r)
+                {{ ?r ?p ?o }}
+                UNION
+                {{ ?s ?r ?o }}
+                UNION
+                {{ ?s ?p ?r }}
+            }}
+        '''
+        result = self.__query(query)
+        if result:
+            return bool(result['boolean'])
+        else:
+            return False
