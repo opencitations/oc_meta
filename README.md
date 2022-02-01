@@ -27,23 +27,23 @@ The configuration file is a YAML file with the following keys.
 
 | Setting                 | Mandatory | Description                                                                                                                                                                   |
 | ----------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| triplestore\_url        | ✓         | Endpoint URL to load the output RDF.                                                                                                                                          |
-| info\_dir               | ✓         | A support folder to save counters of the various types of entities. It must not be deleted or moved until the end of the Meta process.                                        |
-| resp\_agent             | ✓         | A URI string representing the provenance agent which is considered responsible for the RDF graph manipulation.                                                                |
+| triplestore\_url        | ✓         | Endpoint URL to load the output RDF                                                                                                                                          |
+| info\_dir               | ✓         | A support folder to save counters of the various types of entities. It must not be deleted or moved until the end of the Meta process                                        |
+| resp\_agent             | ✓         | A URI string representing the provenance agent which is considered responsible for the RDF graph manipulation                                                                |
 | input\_csv\_dir         | ✓         | Directory where raw CSV files are stored                                                                                                                                      |
 | output\_csv\_dir        | ✓         | Directory where cleaned CSV files will be stored                                                                                                                              |
 | output\_rdf\_dir        | ✓         | Directory where both output RDF data and provenance files will be stored                                                                                                      |
 | indexes\_dir            | ✓         | Indices are products of the CSV cleaning step, and they are necessary for RDF files' creation                                                                                 |
 | cache\_path             | ✓         | Path of a text file containing a list of processed CSVs. It will be created if it doesn't exist. This file is helpful to avoid repeating the process twice for the same file. |
-| base\_iri               | ☓         | The base URI of entities on Meta. This setting can be safely left as is.                                                                                                      |
-| context\_path           | ☓         | URL where the namespaces and prefixes used in the OpenCitations Data Model are defined. This setting can be safely left as is.                                                |
-| dir\_split\_number      | ☓         | Number of files per folder. dir_split_number's value must be multiple of items_per_file's value. This parameter is useful only if you choose to return the output in json-ld format.                                                                                                                                                                              |
-| items\_per\_file        | ☓         | Number of items per file. This parameter is useful only if you choose to return the output in json-ld format.                                                                                                                                                                              |
+| base\_iri               | ☓         | The base URI of entities on Meta. This setting can be safely left as is                                                                                                      |
+| context\_path           | ☓         | URL where the namespaces and prefixes used in the OpenCitations Data Model are defined. This setting can be safely left as is                                                |
+| dir\_split\_number      | ☓         | Number of files per folder. dir_split_number's value must be multiple of items_per_file's value. This parameter is useful only if you choose to return the output in json-ld format                                                                                                                                                                              |
+| items\_per\_file        | ☓         | Number of items per file. This parameter is useful only if you choose to return the output in json-ld format                                                                                                                                                                              |
 | default\_dir            | ☓         |                                                                                                                                                                               |
-| supplier\_prefix        | ☓         | A prefix for the sequential number in entities’ URIs. This setting can be safely left as is.                                                                                  |
+| supplier\_prefix        | ☓         | A prefix for the sequential number in entities’ URIs. This setting can be safely left as is                                                                                  |
 | rdf\_output\_in\_chunks | ☓         |                                                                                                                                                                               |
-| source                  | ☓         | Data source URL. This setting can be safely left as is.                                                                                                                       |
-| verbose                 | ☓         | Show a loading bar, elapsed time and estimated time. This setting can be safely left as is.                                                                                   |
+| source                  | ☓         | Data source URL. This setting can be safely left as is                                                                                                                       |
+| verbose                 | ☓         | Show a loading bar, elapsed time and estimated time. This setting can be safely left as is                                                                                   |
 
 ## Plugins
 
@@ -119,5 +119,5 @@ The configuration file is a YAML file with the following keys.
 | supplier\_prefix   | ☓         | A prefix for the sequential number in entities’ URIs. This setting can be safely left as is                                                |
 | dir\_split\_number | ☓         | Number of files per folder. dir\_split\_number's value must be multiple of items\_per\_file's value. This setting can be safely left as is |
 | items\_per\_file   | ☓         | Number of items per file. This setting can be safely left as is                                                                            |
-| verbose            | ☓         | Show a loading bar, elapsed time and estimated time. This setting can be safely left as is.                                                |
+| verbose            | ☓         | Show a loading bar, elapsed time and estimated time. This setting can be safely left as is                                                |
 
