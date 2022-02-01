@@ -54,7 +54,7 @@ class MetaProcess:
                 data = get_data(filepath)
                 # Curator
                 curator_info_dir = os.path.join(self.info_dir, 'curator' + os.sep)
-                curator_obj = Curator(data, self.triplestore_url, info_dir=curator_info_dir, prefix=self.supplier_prefix)
+                curator_obj = Curator(data, self.triplestore_url, info_dir=curator_info_dir, base_iri=self.base_iri, prefix=self.supplier_prefix)
                 name = datetime.now().strftime('%Y-%m-%dT%H_%M_%S')
                 curator_obj.curator(filename=name, path_csv=self.output_csv_dir, path_index=self.indexes_dir)
                 # Creator
@@ -138,7 +138,7 @@ def pathoo(path):
         os.makedirs(os.path.dirname(path))
 
 if __name__ == '__main__':
-    arg_parser = ArgumentParser('run_process.py', description='This script runs OCMeta data processing workflow')
+    arg_parser = ArgumentParser('meta_process.py', description='This script runs OCMeta data processing workflow')
     arg_parser.add_argument('-c', '--config', dest='config', required=True,
                             help='Configuration file directory')
     args = arg_parser.parse_args()

@@ -613,13 +613,34 @@ class ResourceFinder:
     
     def retrieve_publisher_from_br_metaid(self, metaid:str):
         query = f'''
-        SELECT *
-        WHERE {{
-
-        }}
+            SELECT DISTINCT ?ra ?schema ?literal_value ?name
+            WHERE {{
+                <{self.base_iri}/br/{metaid}> ^<{str(GraphEntity.iri_part_of)}>*/<{str(GraphEntity.iri_is_document_context_for)}> ?ar.
+                ?ar <{str(GraphEntity.iri_with_role)}> <{str(GraphEntity.iri_publisher)}>;
+                    <{str(GraphEntity.iri_is_held_by)}> ?ra.
+                ?ra <{str(GraphEntity.iri_has_identifier)}>/<{str(GraphEntity.iri_uses_identifier_scheme)}> ?schema;
+                    <{str(GraphEntity.iri_has_identifier)}>/<{str(GraphEntity.iri_has_literal_value)}> ?literal_value;
+                    <{str(GraphEntity.iri_name)}> ?name.
+            }}
         '''
+        result = self.__query(query)
+        publisher = ''
+        if result['results']['bindings']:
+            bindings = result['results']['bindings']
+            publishers = list()
+            for binding in bindings:
+                pub_metaid = binding['ra']['value'].replace(f'{self.base_iri}/ra/', '')
+                pub_name = binding['name']['value']
+                pub_schema = binding['schema']['value'].replace(f'{str(GraphEntity.DATACITE)}', '')
+                pub_literal = binding['literal_value']['value']
+                pub_id = f'{pub_schema}:{pub_literal}'
+                pub_full_name = f'{pub_name} [meta:ra/{pub_metaid} {pub_id}]'
+                publishers.append(pub_full_name)
+            publisher = '; '.join(publishers)
+        return publisher
     
     def check_existence(self, res:str) -> bool:
+        it_exists = False
         query = f'''
             ASK {{
                 BIND (<{res}> AS ?r)
@@ -632,6 +653,5 @@ class ResourceFinder:
         '''
         result = self.__query(query)
         if result:
-            return bool(result['boolean'])
-        else:
-            return False
+            it_exists = bool(result['boolean'])
+        return it_exists

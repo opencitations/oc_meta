@@ -14,15 +14,24 @@
 # ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 # SOFTWARE.
 
+# Mandatory settings
 
-from meta.plugins.csv_generator.csv_generator import *
-from argparse import ArgumentParser
+# URL of the endpoint where the data are located
+triplestore_url: http://localhost:29999/blazegraph/sparql
+# Directory where the output CSV files will be stored
+output_csv_dir: C:\Users\arcangelo.massari2\OneDrive - Alma Mater Studiorum Università di Bologna\Desktop\csv
+# The folder where the counters of the various types of entities are stored.
+info_dir: C:/meta_output/info_dir
+
+# Optional settings
+
+# The base IRI of entities on the triplestore. This setting can be safely left as is.
+base_iri: https://w3id.org/oc/meta/
+# A prefix for the sequential number in entities’ URIs. This setting can be safely left as is.
+supplier_prefix: '060'
+# Number of rows per CSV. This setting can be safely left as is.
+threshold: 100
+# Show a loading bar, elapsed time and estimated time
+verbose: True
 
 
-if __name__ == '__main__':
-    arg_parser = ArgumentParser('csv_generator.py', description='This script generates output CSVs from the OpenCitations Meta triplestore')
-    arg_parser.add_argument('-c', '--config', dest='config', required=True,
-                            help='Configuration file directory')
-    args = arg_parser.parse_args()
-    csv_generator = CSVGenerator(args.config)
-    csv_generator.generate_csv()

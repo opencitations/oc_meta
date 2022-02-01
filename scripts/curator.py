@@ -10,7 +10,7 @@ from meta.lib.master_of_regex import *
 
 class Curator:
 
-    def __init__(self, data:List[dict], ts:str, info_dir:str, prefix:str='060', separator:str=None, base_iri:str='https://w3id.org/oc/meta'):
+    def __init__(self, data:List[dict], ts:str, info_dir:str, base_iri:str='https://w3id.org/oc/meta', prefix:str='060', separator:str=None):
         self.finder = ResourceFinder(ts, base_iri)
         self.separator = separator
         self.data = [{field:value.strip() for field,value in row.items()} for row in data]
@@ -633,11 +633,12 @@ class Curator:
         return cur_number
 
     @staticmethod
-    def write_csv(path:str, datalist:List[dict]) -> None:
+    def write_csv(path:str, datalist:List[dict], fieldnames:list=None) -> None:
+        fieldnames = datalist[0].keys() if fieldnames is None else fieldnames
         if not os.path.exists(os.path.dirname(path)):
             os.makedirs(os.path.dirname(path))
         with open(path, 'w', newline='', encoding='utf-8') as output_file:
-            dict_writer = csv.DictWriter(output_file, datalist[0].keys(), delimiter=',', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
+            dict_writer = csv.DictWriter(output_file, fieldnames, delimiter=',', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
             dict_writer.writeheader()
             dict_writer.writerows(datalist)
 

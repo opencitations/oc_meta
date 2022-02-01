@@ -252,6 +252,20 @@ class test_Curator(unittest.TestCase):
     #     row = {'id': 'wannabe_0', 'title': 'Title1', 'author': 'Surname1, Name1 [orcid:0000-0001]', 'pub_date': '', 'venue': '060301', 'volume': '', 'issue': '', 'page': '266-278', 'type': 'journal volume', 'publisher': 'pub1 [crossref:1111]', 'editor': ''}
     #     curator.volume_issue(meta, path, value, row)
 
+    def test_clean_ra_overlapping_surnames(self):
+        # The surname of one author is included in the surname of another.
+        row = {'id': 'wannabe_0', 'title': 'Giant Oyster Mushroom Pleurotus giganteus (Agaricomycetes) Enhances Adipocyte Differentiation and Glucose Uptake via Activation of PPARγ and Glucose Transporters 1 and 4 in 3T3-L1 Cells', 'author': 'Paravamsivam, Puvaneswari; Heng, Chua Kek; Malek, Sri Nurestri Abdul [orcid:0000-0001-6278-8559]; Sabaratnam, Vikineswary; M, Ravishankar Ram; Kuppusamy, Umah Rani', 'pub_date': '2016', 'venue': 'International Journal of Medicinal Mushrooms [issn:1521-9437]', 'volume': '18', 'issue': '9', 'page': '821-831', 'type': 'journal article', 'publisher': 'Begell House [crossref:613]', 'editor': ''}
+        curator = prepareCurator(list())
+        curator.brdict = {'wannabe_0': {'ids': ['doi:10.1615/intjmedmushrooms.v18.i9.60'], 'title': 'Giant Oyster Mushroom Pleurotus giganteus (Agaricomycetes) Enhances Adipocyte Differentiation and Glucose Uptake via Activation of PPARγ and Glucose Transporters 1 and 4 in 3T3-L1 Cells', 'others': []}}
+        curator.clean_ra(row, 'author')
+        output = (curator.ardict, curator.radict, curator.idra)
+        expected_output = (
+            {'wannabe_0': {'author': [('0601', 'wannabe_0'), ('0602', 'wannabe_1'), ('0603', 'wannabe_2'), ('0604', 'wannabe_3'), ('0605', 'wannabe_4'), ('0606', 'wannabe_5')], 'editor': [], 'publisher': []}}, 
+            {'wannabe_0': {'ids': [], 'others': [], 'title': 'Paravamsivam, Puvaneswari'}, 'wannabe_1': {'ids': [], 'others': [], 'title': 'Heng, Chua Kek'}, 'wannabe_2': {'ids': ['orcid:0000-0001-6278-8559'], 'others': [], 'title': 'Malek, Sri Nurestri Abdul'}, 'wannabe_3': {'ids': [], 'others': [], 'title': 'Sabaratnam, Vikineswary'}, 'wannabe_4': {'ids': [], 'others': [], 'title': 'M, Ravishankar Ram'}, 'wannabe_5': {'ids': [], 'others': [], 'title': 'Kuppusamy, Umah Rani'}},
+            {'orcid:0000-0001-6278-8559': '0601'}
+        )
+        self.assertEqual(output, expected_output)
+
     def test_clean_ra_with_br_metaid(self):
         add_data_ts()
         # One author is in the triplestore, the other is not. 

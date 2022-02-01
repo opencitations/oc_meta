@@ -1,5 +1,6 @@
 import unittest, os, csv, shutil
 from meta.plugins.crossref.crossref_processing import CrossrefProcessing
+from meta.lib.csvmanager import CSVManager
 from meta.lib.jsonmanager import *
 from meta.run.crossref_process import preprocess
 from pprint import pprint
@@ -33,6 +34,54 @@ class TestCrossrefProcessing(unittest.TestCase):
         orcid_found = crossref_processor.orcid_finder('10.9799/ksfan.2012.25.1.105')
         expected_output = {'0000-0002-6227-4053': 'choi, mi-kyeong'}
         self.assertEqual(orcid_found, expected_output)
+
+    def test_get_agents_strings_list_overlapping_surnames(self):
+        # The surname of one author is included in the surname of another.
+        authors_list = [
+            {
+                "given": "Puvaneswari",
+                "family": "Paravamsivam",
+                "sequence": "first",
+                "affiliation": []
+            },
+            {
+                "given": "Chua Kek",
+                "family": "Heng",
+                "sequence": "additional",
+                "affiliation": []
+            },
+            {
+                "given": "Sri Nurestri Abdul",
+                "family": "Malek",
+                "sequence": "additional",
+                "affiliation": []
+            },
+            {
+                "given": "Vikineswary",
+                "family": "Sabaratnam",
+                "sequence": "additional",
+                "affiliation": []
+            },
+            {
+                "given": "Ravishankar Ram",
+                "family": "M",
+                "sequence": "additional",
+                "affiliation": []
+            },
+            {
+                "given": "Umah Rani",
+                "family": "Kuppusamy",
+                "sequence": "additional",
+                "affiliation": []
+            }
+        ]
+        crossref_processor = CrossrefProcessing(None, None)
+        csv_manager = CSVManager()
+        csv_manager.data = {'10.9799/ksfan.2012.25.1.105': {'Malek, Sri Nurestri Abdul [orcid:0000-0001-6278-8559]'}}
+        crossref_processor.orcid_index = csv_manager
+        authors_strings_list = crossref_processor.get_agents_strings_list('10.9799/ksfan.2012.25.1.105', authors_list)
+        expected_authors_list = ['Paravamsivam, Puvaneswari', 'Heng, Chua Kek', 'Malek, Sri Nurestri Abdul [orcid:0000-0001-6278-8559]', 'Sabaratnam, Vikineswary', 'M, Ravishankar Ram', 'Kuppusamy, Umah Rani']
+        self.assertEqual(authors_strings_list, expected_authors_list)
 
     def test_get_agents_strings_list(self):
         authors_list = [
