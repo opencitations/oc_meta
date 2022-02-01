@@ -11,6 +11,7 @@ An example of a raw CSV input file can be found in [`example.csv`](https://githu
     * [Get a Crossref member-name-prefix index](#get-a-crossref-member-name-prefix-index)
     * [Get raw CSV files from Crossref](#get-raw-csv-files-from-crossref)
     * [Get DOIs from COCI](#get-dois-from-coci)
+    * [GGenerate CSVs from triplestore](#generate-csvs-from-triplestore)
 
 ## Meta
 
@@ -36,8 +37,8 @@ The configuration file is a YAML file with the following keys.
 | cache\_path             | ✓         | Path of a text file containing a list of processed CSVs. It will be created if it doesn't exist. This file is helpful to avoid repeating the process twice for the same file. |
 | base\_iri               | ☓         | The base URI of entities on Meta. This setting can be safely left as is.                                                                                                      |
 | context\_path           | ☓         | URL where the namespaces and prefixes used in the OpenCitations Data Model are defined. This setting can be safely left as is.                                                |
-| dir\_split\_number      | ☓         |                                                                                                                                                                               |
-| items\_per\_file        | ☓         |                                                                                                                                                                               |
+| dir\_split\_number      | ☓         | Number of files per folder. dir_split_number's value must be multiple of items_per_file's value. This parameter is useful only if you choose to return the output in json-ld format.                                                                                                                                                                              |
+| items\_per\_file        | ☓         | Number of items per file. This parameter is useful only if you choose to return the output in json-ld format.                                                                                                                                                                              |
 | default\_dir            | ☓         |                                                                                                                                                                               |
 | supplier\_prefix        | ☓         | A prefix for the sequential number in entities’ URIs. This setting can be safely left as is.                                                                                  |
 | rdf\_output\_in\_chunks | ☓         |                                                                                                                                                                               |
@@ -98,4 +99,25 @@ Where:
 - -c --coci: COCI's dump path.
 - -out --output: path of the output CSV file.
 - -v --verbose: show a loading bar, elapsed time and estimated time, not mandatory.
+
+### Generate CSVs from triplestore
+
+This plugin generates CSVs from the Meta triplestore. You can run the [`csv_generator.py`](https://github.com/opencitations/meta/blob/master/plugins/csv_generator/csv_generator.py) script in the following way:
+```console
+    python -m meta.run.csv_generator -c <PATH>
+```
+Where:
+- -c --config : path to the configuration file.
+The configuration file is a YAML file with the following keys.
+
+| Setting            | Mandatory | Description                                                                                                                                |
+| ------------------ | --------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| triplestore\_url   | ✓         | URL of the endpoint where the data are located                                                                                             |
+| output\_csv\_dir   | ✓         | Directory where the output CSV files will be stored                                                                                        |
+| info\_dir          | ✓         | The folder where the counters of the various types of entities are stored.                                                                 |
+| base\_iri          | ☓         | The base IRI of entities on the triplestore. This setting can be safely left as is                                                         |
+| supplier\_prefix   | ☓         | A prefix for the sequential number in entities’ URIs. This setting can be safely left as is                                                |
+| dir\_split\_number | ☓         | Number of files per folder. dir\_split\_number's value must be multiple of items\_per\_file's value. This setting can be safely left as is |
+| items\_per\_file   | ☓         | Number of items per file. This setting can be safely left as is                                                                            |
+| verbose            | ☓         | Show a loading bar, elapsed time and estimated time. This setting can be safely left as is.                                                |
 
