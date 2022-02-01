@@ -11,7 +11,7 @@ An example of a raw CSV input file can be found in [`example.csv`](https://githu
     * [Get a Crossref member-name-prefix index](#get-a-crossref-member-name-prefix-index)
     * [Get raw CSV files from Crossref](#get-raw-csv-files-from-crossref)
     * [Get DOIs from COCI](#get-dois-from-coci)
-    * [GGenerate CSVs from triplestore](#generate-csvs-from-triplestore)
+    * [Generate CSVs from triplestore](#generate-csvs-from-triplestore)
 
 ## Meta
 
