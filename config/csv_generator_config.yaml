@@ -29,8 +29,10 @@ info_dir: C:/meta_output/info_dir
 base_iri: https://w3id.org/oc/meta/
 # A prefix for the sequential number in entities’ URIs. This setting can be safely left as is.
 supplier_prefix: '060'
-# Number of rows per CSV. This setting can be safely left as is.
-threshold: 100
+# Number of files per folder. dir_split_number's value must be multiple of items_per_file's value. This setting can be safely left as is.
+dir_split_number: 10
+# Number of items per file. This setting can be safely left as is.
+items_per_file: 5
 # Show a loading bar, elapsed time and estimated time
 verbose: True
 

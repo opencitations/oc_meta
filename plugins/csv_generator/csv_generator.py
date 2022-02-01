@@ -13,11 +13,12 @@ class CSVGenerator:
         with open(config, encoding='utf-8') as file:
             settings = yaml.full_load(file)
         triplestore_url = settings['triplestore_url']
-        self.output_csv_dir = settings['output_csv_dir']
         self.info_dir = settings['info_dir']
         self.base_iri = settings['base_iri'][:-1] if settings['base_iri'][-1] == '/' else settings['base_iri']
         self.supplier_prefix = settings['supplier_prefix']
-        self.threshold = settings['threshold']
+        self.dir_split_number = settings['dir_split_number']
+        self.output_csv_dir = os.path.join(settings['output_csv_dir'], str(self.supplier_prefix))
+        self.items_per_file = settings['items_per_file']
         self.verbose = settings['verbose']
         self.finder = ResourceFinder(triplestore_url, self.base_iri)        
     
@@ -25,14 +26,13 @@ class CSVGenerator:
         counter = 1
         br_info_dir_path = os.path.join(self.info_dir, 'creator', f'info_file_br.txt')
         number_of_entities = self.read_number(br_info_dir_path)
-        pbar = tqdm(total=number_of_entities) if self.verbose else None
-        if os.path.exists(self.output_csv_dir):
-            cache = sorted(os.listdir(self.output_csv_dir), key=lambda x: int(x.replace('.csv', '')))[-1]
-            cache = int(cache.replace('.csv', ''))
-            counter += cache
-            if self.verbose:
-                pbar.update(cache)
-        output = list()
+        last_file, dir_number = self.skip_files()
+        counter += last_file
+        self.cur_output_dir = os.path.join(self.output_csv_dir, str(dir_number))
+        if self.verbose:
+            pbar = tqdm(total=number_of_entities)
+            pbar.update(last_file)
+        self.data = list()
         while counter <= number_of_entities:
             row = dict()
             metaid = self.supplier_prefix + str(counter)
@@ -44,7 +44,7 @@ class CSVGenerator:
                 # Pub_date, Volume, Issue, Type
                 row.update(br_info)
                 # Id
-                ids = [id[1] for id in br_title_and_ids[1] if br_title_and_ids[1]]
+                ids = [id[1] for id in br_title_and_ids[1]]
                 row['id'] = f'meta:br/{metaid} ' + ' '.join(ids)
                 # Title
                 row['title'] = br_title_and_ids[0]
@@ -63,12 +63,8 @@ class CSVGenerator:
                 # Publisher
                 row['publisher'] = self.finder.retrieve_publisher_from_br_metaid(metaid)
                 row = {k:v if v else '' for k,v in row.items()}
-                output.append(row)
-            if counter % self.threshold == 0:
-                path = os.path.join(self.output_csv_dir, f'{counter}.csv')
-                fieldnames = ['id', 'title', 'author', 'pub_date', 'venue', 'volume', 'issue', 'page', 'type', 'publisher', 'editor']
-                Curator.write_csv(path, output, fieldnames)
-                output = list()
+                self.data.append(row)
+            self.store_csv(counter)
             counter += 1
             if self.verbose:
                 pbar.update()
@@ -90,6 +86,31 @@ class CSVGenerator:
                     full_resp_agents.append(full_resp_agent)
             output = '; '.join(full_resp_agents)
         return output
+    
+    def store_csv(self, counter:int) -> None:
+        if counter != 0 and counter % self.items_per_file == 0:
+            if os.path.exists(self.cur_output_dir):
+                if len(os.listdir(self.cur_output_dir)) % self.dir_split_number == 0:
+                    cur_dir = str(int(counter - self.items_per_file + self.dir_split_number * self.items_per_file))
+                    self.cur_output_dir = os.path.join(self.output_csv_dir, cur_dir)
+            path = os.path.join(self.cur_output_dir, f'{counter}.csv')
+            fieldnames = ['id', 'title', 'author', 'pub_date', 'venue', 'volume', 'issue', 'page', 'type', 'publisher', 'editor']
+            Curator.write_csv(path, self.data, fieldnames)
+            self.data = list()
+    
+    def skip_files(self) -> Tuple[int, int]:
+        last_file = 0
+        dir_number = self.dir_split_number * self.items_per_file
+        if os.path.exists(self.output_csv_dir):
+            folders = os.listdir(self.output_csv_dir)
+            if folders:
+                last_folder = sorted(folders, key=lambda x: int(x))[-1]
+                files = os.listdir(os.path.join(self.output_csv_dir, last_folder))
+                if files:
+                    last_file = sorted(files, key=lambda x: int(x.replace('.csv', '')))[-1]
+                    last_file = int(last_file.replace('.csv', ''))
+                    dir_number = dir_number * len(folders)
+        return last_file, dir_number
 
     @staticmethod
     def read_number(file_path: str) -> Tuple[int, int]:
