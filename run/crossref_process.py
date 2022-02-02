@@ -2,6 +2,8 @@ from meta.plugins.crossref.crossref_processing import *
 from meta.lib.jsonmanager import *
 import os
 import csv
+import sys
+import yaml
 from argparse import ArgumentParser
 from tqdm import tqdm
 
@@ -44,22 +46,32 @@ def pathoo(path:str) -> None:
         os.makedirs(os.path.dirname(path))
 
 if __name__ == '__main__':
-    arg_parser = ArgumentParser('run_preprocess.py', description='This script create csv files from Crossref json,'
-                                                                 ' enriching them thanks to an doi-orcid index')
-
-    arg_parser.add_argument('-c', '--crossref', dest='crossref_json_dir', required=True,
+    arg_parser = ArgumentParser('crossref_process.py', description='This script creates CSV files from Crossref JSON files, enriching them through of a DOI-ORCID index')
+    arg_parser.add_argument('-c', '--config', dest='config', required=False,
+                            help='Configuration file path')
+    required = all(arg in sys.argv for arg in {'--config', '-c'})
+    arg_parser.add_argument('-cf', '--crossref', dest='crossref_json_dir', required=required,
                             help='Crossref json files directory')
+    arg_parser.add_argument('-out', '--output', dest='csv_dir', required=required,
+                            help='Directory where CSV will be stored')
     arg_parser.add_argument('-p', '--publishers', dest='publishers_filepath', required=False,
                             help='CSV file path containing information about publishers (id, name, prefix)')
     arg_parser.add_argument('-o', '--orcid', dest='orcid_doi_filepath', required=False,
-                            help='Orcid-doi index filepath, to enrich data')
-    arg_parser.add_argument('-out', '--output', dest='csv_dir', required=True,
-                            help='Directory where CSV will be stored')
+                            help='DOI-ORCID index filepath, to enrich data')
     arg_parser.add_argument('-w', '--wanted', dest='wanted_doi_filepath', required=False,
                             help='A CSV filepath containing what DOI to process, not mandatory')
     arg_parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', required=False,
                             help='Show a loading bar, elapsed time and estimated time')
-
     args = arg_parser.parse_args()
-
-    preprocess(crossref_json_dir=args.crossref_json_dir, publishers_filepath=args.publishers_filepath, orcid_doi_filepath=args.orcid_doi_filepath, csv_dir=args.csv_dir, wanted_doi_filepath=args.wanted_doi_filepath, verbose=args.verbose)
+    config = args.config
+    settings = None
+    if config:
+        with open(config, encoding='utf-8') as file:
+            settings = yaml.full_load(file)
+    crossref_json_dir = settings['crossref_json_dir'] if settings else args.crossref_json_dir
+    csv_dir = settings['output'] if settings else args.csv_dir
+    publishers_filepath = settings['publishers_filepath'] if settings else args.publishers_filepath
+    orcid_doi_filepath = settings['orcid_doi_filepath'] if settings else args.orcid_doi_filepath
+    wanted_doi_filepath = settings['wanted_doi_filepath'] if settings else args.wanted_doi_filepath
+    verbose = settings['verbose'] if settings else args.verbose
+    preprocess(crossref_json_dir=crossref_json_dir, publishers_filepath=publishers_filepath, orcid_doi_filepath=orcid_doi_filepath, csv_dir=csv_dir, wanted_doi_filepath=wanted_doi_filepath, verbose=verbose)

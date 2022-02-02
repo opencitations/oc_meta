@@ -1,0 +1,33 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+# Copyright (c) 2022, Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# Permission to use, copy, modify, and/or distribute this software for any purpose
+# with or without fee is hereby granted, provided that the above copyright notice
+# and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED 'AS IS' AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+# FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT,
+# OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
+# DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS
+# ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
+# SOFTWARE.
+
+# Mandatory settings
+
+# Crossref JSON files directory (input files)
+crossref_json_dir: C:\Users\arcangelo.massari2\Downloads\crossref-data-2022-01.tar.gz
+# Directory where output CSVs will be stored
+output: C:\meta\meta_input
+
+# Optional settings
+
+# CSV file path containing information about publishers (id, name, prefix). This file can be generated via meta.run.crossref_publishers_extractor
+publishers_filepath: C:\meta\publishers.csv
+# ORCID-DOI index directory. It can be generated via meta.run.orcid_process
+orcid_doi_filepath: C:\meta\doi_orcid_index
+# Path of a CSV file containing what DOI to process. This file can be generated via meta.run.coci_process, if COCI's DOIs are needed
+wanted_doi_filepath: C:\meta\coci_doi.csv
+# Show a loading bar, elapsed time and estimated time
+verbose: True
