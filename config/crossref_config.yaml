@@ -19,7 +19,7 @@
 # Crossref JSON files directory (input files)
 crossref_json_dir: C:\Users\arcangelo.massari2\Downloads\crossref-data-2022-01.tar.gz
 # Directory where output CSVs will be stored
-output: C:\meta\meta_input
+output: C:\meta\meta_input_new
 
 # Optional settings
 
