@@ -113,7 +113,7 @@ You can get a CSV file containing all the DOIs from the [COCI's dump](https://op
     python -m meta.run.coci_process -c <PATH> -out <PATH> -v
 ```
 Where:
-- -c --coci: COCI's dump path.
+- -c --coci: COCI's dump path. It may contain either .zip or .csv files previously extracted.
 - -out --output: path of the output CSV file.
 - -v --verbose: show a loading bar, elapsed time and estimated time, not mandatory.
 
