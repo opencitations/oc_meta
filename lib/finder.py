@@ -9,7 +9,7 @@ class ResourceFinder:
         self.ts = SPARQLWrapper(ts_url)
         self.ts.setReturnFormat(JSON)
         self.ts.setMethod(GET)
-        self.base_iri = base_iri[:-1] if base_iri[:-1] == '/' else base_iri
+        self.base_iri = base_iri[:-1] if base_iri[-1] == '/' else base_iri
 
     def __query(self, query):
         self.ts.setQuery(query)
@@ -479,7 +479,8 @@ class ResourceFinder:
             :type meta_id: str
             :returns: Tuple[str, str] -- the output is a dictionary including the publication date, type, page, issue, volume, and venue of the specified bibliographic resource.
         '''
-        metaid_uri = f'{self.base_iri}/br/{str(metaid)}'
+        metaid = str(metaid)
+        metaid_uri = f'{self.base_iri}/br/{metaid}' if self.base_iri not in metaid else metaid
         query = f'''
             SELECT ?res 
             (GROUP_CONCAT(DISTINCT ?type; separator=' ;and; ') AS ?type_)

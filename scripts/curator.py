@@ -259,13 +259,12 @@ class Curator:
         :returns: None -- This method modifies self.ardict, self.radict, and self.idra, and returns None.
         '''
         if row[col_name]:
-            if row['id'] in self.brdict:
+            if row['id'] in self.brdict or row['id'] in self.conflict_br:
                 br_metaval = row['id']
             else:
-                for id in self.brdict:
-                    if row['id'] in self.brdict[id]['others']:
-                        br_metaval = id
-                        break
+                other_id = [id for id in self.brdict if row['id'] in self.brdict[id]['others']]
+                conflict_id = [id for id in self.conflict_br if row['id'] in self.conflict_br[id]['others']]
+                br_metaval = other_id[0] if other_id else conflict_id[0]
             if br_metaval not in self.ardict or not self.ardict[br_metaval][col_name]:
                 # new sequence
                 if 'wannabe' in br_metaval:
