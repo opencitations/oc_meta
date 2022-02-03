@@ -19,7 +19,7 @@
 # URL of the endpoint where the data are located
 triplestore_url: http://localhost:29999/blazegraph/sparql
 # Directory where the output CSV files will be stored
-output_csv_dir: C:\Users\arcangelo.massari2\OneDrive - Alma Mater Studiorum Università di Bologna\Desktop\csv
+output_csv_dir: C:/Users/arcangelo.massari2/OneDrive - Alma Mater Studiorum Università di Bologna/Desktop/csv
 # The folder where the counters of the various types of entities are stored
 info_dir: C:/meta_output/info_dir
 

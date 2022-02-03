@@ -49,7 +49,7 @@ if __name__ == '__main__':
     arg_parser = ArgumentParser('crossref_process.py', description='This script creates CSV files from Crossref JSON files, enriching them through of a DOI-ORCID index')
     arg_parser.add_argument('-c', '--config', dest='config', required=False,
                             help='Configuration file path')
-    required = all(arg in sys.argv for arg in {'--config', '-c'})
+    required = not any(arg in sys.argv for arg in {'--config', '-c'})
     arg_parser.add_argument('-cf', '--crossref', dest='crossref_json_dir', required=required,
                             help='Crossref json files directory')
     arg_parser.add_argument('-out', '--output', dest='csv_dir', required=required,
