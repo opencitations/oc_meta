@@ -1,9 +1,11 @@
 from typing import List, Tuple, Dict
-import csv
 import re
 import os
 import json
+import random
+
 from meta.lib.finder import *
+from meta.lib.file_manager import *
 from meta.lib.cleaner import Cleaner
 from meta.lib.master_of_regex import *
 
@@ -14,6 +16,7 @@ class Curator:
         self.finder = ResourceFinder(ts, base_iri)
         self.separator = separator
         self.data = [{field:value.strip() for field,value in row.items()} for row in data]
+        # self.data = random.sample(data, 10)
         self.prefix = prefix
         # Counter local paths
         self.br_info_path = info_dir + 'br.txt'
@@ -631,16 +634,6 @@ class Curator:
             f.writelines(all_lines)
         return cur_number
 
-    @staticmethod
-    def write_csv(path:str, datalist:List[dict], fieldnames:list=None) -> None:
-        fieldnames = datalist[0].keys() if fieldnames is None else fieldnames
-        if not os.path.exists(os.path.dirname(path)):
-            os.makedirs(os.path.dirname(path))
-        with open(path, 'w', newline='', encoding='utf-8') as output_file:
-            dict_writer = csv.DictWriter(output_file, fieldnames, delimiter=',', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
-            dict_writer.writeheader()
-            dict_writer.writerows(datalist)
-
     def indexer(self, path_index:str, path_csv:str) -> None:
         '''
         This method is used to transform idra, idbr, armeta, remeta, brmeta and vvi in such a way as to be saved as csv and json files.
@@ -738,13 +731,13 @@ class Curator:
             if not os.path.exists(path_index):
                 os.makedirs(path_index)
             ra_path = os.path.join(path_index, 'index_id_ra.csv')
-            self.write_csv(ra_path, self.index_id_ra)
+            write_csv(ra_path, self.index_id_ra)
             br_path = os.path.join(path_index, 'index_id_br.csv')
-            self.write_csv(br_path, self.index_id_br)
+            write_csv(br_path, self.index_id_br)
             ar_path = os.path.join(path_index, 'index_ar.csv')
-            self.write_csv(ar_path, self.ar_index)
+            write_csv(ar_path, self.ar_index)
             re_path = os.path.join(path_index, 'index_re.csv')
-            self.write_csv(re_path, self.re_index)
+            write_csv(re_path, self.re_index)
             vvi_file = os.path.join(path_index, 'index_vi.json')
             with open(vvi_file, 'w') as fp:
                 json.dump(self.VolIss, fp)
@@ -755,7 +748,7 @@ class Curator:
             if self.data:
                 name = self.filename + '.csv'
                 data_file = os.path.join(path_csv, name)
-                self.write_csv(data_file, self.data)
+                write_csv(data_file, self.data)
     
     def __update_id_count(self, id_dict, identifier):
         count = self._add_number(self.id_info_path)

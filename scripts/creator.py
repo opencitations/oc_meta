@@ -1,10 +1,10 @@
 import re
-
 from oc_ocdm.support import create_date
 from rdflib import URIRef
 from oc_ocdm.graph import GraphSet
 from oc_ocdm.graph.entities.bibliographic_entity import BibliographicEntity
 from meta.lib.master_of_regex import *
+
 
 class Creator(object):
     def __init__(self, data, base_iri, info_dir, supplier_prefix, resp_agent, ra_index, br_index, re_index_csv, ar_index_csv, vi_index):

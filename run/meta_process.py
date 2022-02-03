@@ -1,6 +1,7 @@
 from oc_ocdm import Storer
 from oc_ocdm.prov import ProvSet
 
+from meta.lib.file_manager import *
 from meta.scripts.creator import *
 from meta.scripts.curator import *
 from datetime import datetime
@@ -116,26 +117,6 @@ class MetaProcess:
         json_ld_storer.store_all(base_dir=base_dir, base_iri=self.base_iri, context_path=self.context_path)
 
 
-def get_data(filepath:str) -> List[dict]:
-    field_size_changed = False
-    cur_field_size = 128
-    data = list()
-    while not data:
-        try:
-            data_initial = open(filepath, 'r', encoding='utf8')
-            valid_data = (Cleaner.normalize_spaces(line).replace('\0','') for line in data_initial)
-            data = list(csv.DictReader(valid_data, delimiter=','))
-        except csv.Error:
-            cur_field_size *= 2
-            csv.field_size_limit(cur_field_size)
-            field_size_changed = True
-    if field_size_changed:
-        csv.field_size_limit(128)
-    return data
-
-def pathoo(path):
-    if not os.path.exists(os.path.dirname(path)):
-        os.makedirs(os.path.dirname(path))
 
 if __name__ == '__main__':
     arg_parser = ArgumentParser('meta_process.py', description='This script runs OCMeta data processing workflow')
