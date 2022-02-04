@@ -17,19 +17,19 @@ class MetaProcess:
         with open(config, encoding='utf-8') as file:
             settings = yaml.full_load(file)
         self.triplestore_url = settings['triplestore_url']
-        self.info_dir = settings['info_dir']
+        self.info_dir = normalize_path(settings['info_dir'])
         self.resp_agent = settings['resp_agent']
-        self.input_csv_dir = settings['input_csv_dir']
-        self.output_csv_dir = settings['output_csv_dir']
-        self.base_dir = settings['output_rdf_dir']
-        self.indexes_dir = settings['indexes_dir']
-        self.cache_path = settings['cache_path']
+        self.input_csv_dir = normalize_path(settings['input_csv_dir'])
+        self.output_csv_dir = normalize_path(settings['output_csv_dir'])
+        self.base_dir = normalize_path(settings['output_rdf_dir'])
+        self.indexes_dir = normalize_path(settings['indexes_dir'])
+        self.cache_path = normalize_path(settings['cache_path'])
 
         self.base_iri = settings['base_iri']
         self.context_path = settings['context_path']
         self.dir_split_number = settings['dir_split_number']
         self.items_per_file = settings['items_per_file']
-        self.default_dir = settings['default_dir']
+        self.default_dir = normalize_path(settings['default_dir'])
         self.rdf_output_in_chunks = settings['rdf_output_in_chunks']
         self.supplier_prefix = settings['supplier_prefix']
         self.source = settings['source']

@@ -3,7 +3,7 @@ import re
 import yaml
 from meta.lib.master_of_regex import *
 from meta.lib.finder import ResourceFinder
-from meta.scripts.curator import Curator
+from meta.lib.file_manager import write_csv
 from typing import Tuple
 from tqdm import tqdm
 
@@ -20,6 +20,7 @@ class CSVGenerator:
         self.output_csv_dir = os.path.join(settings['output_csv_dir'], str(self.supplier_prefix))
         self.items_per_file = settings['items_per_file']
         self.verbose = settings['verbose']
+        self.forbidden_types = {'journal issue', 'journal volume', 'journal', 'book set', 'book series', 'book part', 'book section'}
         self.finder = ResourceFinder(triplestore_url, self.base_iri)        
     
     def generate_csv(self):
@@ -37,8 +38,8 @@ class CSVGenerator:
             row = dict()
             metaid = self.supplier_prefix + str(counter)
             res = f'{self.base_iri}/br/{metaid}'
-            res_exists = self.finder.check_existence(res)
-            if res_exists:
+            res_exists_and_is_relevant = self.finder.check_type(res=res, forbidden_types=self.forbidden_types)
+            if res_exists_and_is_relevant:
                 br_info = self.finder.retrieve_br_info_from_meta(metaid)
                 br_title_and_ids = self.finder.retrieve_br_from_meta(metaid)
                 # Pub_date, Volume, Issue, Type
@@ -95,7 +96,7 @@ class CSVGenerator:
                     self.cur_output_dir = os.path.join(self.output_csv_dir, cur_dir)
             path = os.path.join(self.cur_output_dir, f'{counter}.csv')
             fieldnames = ['id', 'title', 'author', 'pub_date', 'venue', 'volume', 'issue', 'page', 'type', 'publisher', 'editor']
-            Curator.write_csv(path, self.data, fieldnames)
+            write_csv(path=path, datalist=self.data, fieldnames=fieldnames, mode='w')
             self.data = list()
     
     def skip_files(self) -> Tuple[int, int]:

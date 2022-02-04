@@ -32,18 +32,18 @@ def run(csv_dir: str, output_dir: str, wanted_dois:str, verbose:bool=False) -> N
         pbar = tqdm(total=len(files))
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
-    relevant_venues = list()
+    output_path = os.path.join(output_dir, 'relevant_venues.csv')
     for file in files:
         if file.endswith(".csv"):
             file_path = os.path.join(csv_dir, file)
-            get_relevant_venues(file_path, relevant_venues, doi_set)
+            relevant_venues_found = get_relevant_venues(file_path, doi_set)
+            if relevant_venues_found:
+                write_csv(path=output_path, datalist=relevant_venues_found, mode='a')
         if verbose:
             pbar.update()
     if verbose:
         pbar.close()
-    output_path = os.path.join(output_dir, 'relevant_venues.csv')
-    write_csv(path=output_path, datalist=relevant_venues)
-
+    
 def split_by_publisher(file_path: str, output_dir: str) -> None:
     data = get_data(file_path)
     data_by_publisher:Dict[str, List] = dict()
@@ -56,17 +56,19 @@ def split_by_publisher(file_path: str, output_dir: str) -> None:
         publisher = publisher.replace(':', '_')
         publisher += '.csv'
         output_file_path = os.path.join(output_dir, publisher)
-        write_csv(path=output_file_path, datalist=data)
+        write_csv(path=output_file_path, datalist=data, mode='w')
 
-def get_relevant_venues(file_path:str, relevant_venues:list, doi_set:set=None) -> None:
+def get_relevant_venues(file_path:str, doi_set:set=None) -> List[dict]:
+    relevant_venues = list()
     data = get_data(file_path)
     for row in data:
         if row['venue']:
             if doi_set:
-                if any(id in doi_set for id in row['id'].split()):
+                if any(id.replace('doi:', '') in doi_set for id in row['id'].split()):
                     relevant_venues.append(generate_venue_row(row))
             else:
                 relevant_venues.append(generate_venue_row(row))
+    return relevant_venues
 
 def generate_venue_row(row:dict) -> dict:
     venue_row = {k:'' for k,_ in row.items()}

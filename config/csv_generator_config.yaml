@@ -17,11 +17,11 @@
 # Mandatory settings
 
 # URL of the endpoint where the data are located
-triplestore_url: http://localhost:29999/blazegraph/sparql
+triplestore_url: http://localhost:19999/blazegraph/sparql
 # Directory where the output CSV files will be stored
 output_csv_dir: C:/Users/arcangelo.massari2/OneDrive - Alma Mater Studiorum Università di Bologna/Desktop/csv
 # The folder where the counters of the various types of entities are stored
-info_dir: C:/meta_output/info_dir
+info_dir: C:\Users\arcangelo.massari2\OneDrive - Alma Mater Studiorum Università di Bologna\Desktop\meta_output\output\info_dir
 
 # Optional settings
 
@@ -30,9 +30,9 @@ base_iri: https://w3id.org/oc/meta/
 # A prefix for the sequential number in entities’ URIs. This setting can be safely left as is
 supplier_prefix: '060'
 # Number of files per folder. dir_split_number's value must be multiple of items_per_file's value. This setting can be safely left as is
-dir_split_number: 10
+dir_split_number: 10000
 # Number of items per file. This setting can be safely left as is
-items_per_file: 5
+items_per_file: 1000
 # Show a loading bar, elapsed time and estimated time
 verbose: True
 

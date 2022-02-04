@@ -640,19 +640,19 @@ class ResourceFinder:
             publisher = '; '.join(publishers)
         return publisher
     
-    def check_existence(self, res:str) -> bool:
-        it_exists = False
+    def check_type(self, res:str, forbidden_types:set) -> bool:
+        allowed_type = False
         query = f'''
-            ASK {{
-                BIND (<{res}> AS ?r)
-                {{ ?r ?p ?o }}
-                UNION
-                {{ ?s ?r ?o }}
-                UNION
-                {{ ?s ?p ?r }}
+            SELECT
+            (GROUP_CONCAT(DISTINCT ?type; separator=' ;and; ') AS ?type_)
+            WHERE {{
+                <{res}> a ?type.
             }}
         '''
-        result = self.__query(query)
-        if result:
-            it_exists = bool(result['boolean'])
-        return it_exists
+        results = self.__query(query)
+        bindings = results['results']['bindings']
+        for binding in bindings:
+            type_label = self._type_it(binding, 'type_')
+            if type_label not in forbidden_types:
+                allowed_type = True
+        return allowed_type
