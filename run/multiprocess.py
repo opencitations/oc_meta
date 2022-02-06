@@ -10,7 +10,9 @@ if __name__ == '__main__':
                         help='The Meta input CSV files directory.')
     arg_parser.add_argument('-w', '--wanted', dest='wanted_dois', required=False,
                             help='A CSV filepath containing what DOI to process, not mandatory')
+    arg_parser.add_argument('-i', '--items_per_file', dest='items_per_file', required=False,
+                            help='Number of items per file')
     arg_parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', required=False,
                             help='Show a loading bar, elapsed time and estimated time')
     args = arg_parser.parse_args()
-    output = run(csv_dir=args.meta_input, output_dir=args.output_dir, wanted_dois=args.wanted_dois, verbose=args.verbose)
+    prepare_multiprocess(csv_dir=args.meta_input, output_dir=args.output_dir, wanted_dois=args.wanted_dois, items_per_file=args.items_per_file, verbose=args.verbose)

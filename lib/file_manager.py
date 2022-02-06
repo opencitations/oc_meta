@@ -1,10 +1,10 @@
 import csv
 import os
-from typing import List
+from typing import List, Dict
 from meta.lib.cleaner import Cleaner
 
 
-def get_data(filepath:str) -> List[dict]:
+def get_data(filepath:str) -> List[Dict[str, str]]:
     field_size_changed = False
     cur_field_size = 128
     data = list()
@@ -29,9 +29,11 @@ def write_csv(path:str, datalist:List[dict], fieldnames:list=None, mode:str='w')
     fieldnames = datalist[0].keys() if fieldnames is None else fieldnames
     if not os.path.exists(os.path.dirname(path)):
         os.makedirs(os.path.dirname(path))
+    file_exists = os.path.isfile(path)
     with open(path, mode, newline='', encoding='utf-8') as output_file:
         dict_writer = csv.DictWriter(output_file, fieldnames, delimiter=',', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
-        dict_writer.writeheader()
+        if not file_exists:
+            dict_writer.writeheader()
         dict_writer.writerows(datalist)
 
 def normalize_path(path:str) -> str:

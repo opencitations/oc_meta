@@ -17,33 +17,89 @@
 
 import os, re
 from typing import List, Dict
-from meta.lib.file_manager import *
-from meta.lib.master_of_regex import *
+from meta.lib.file_manager import pathoo, get_data, write_csv
+from meta.lib.master_of_regex import ids_inside_square_brackets, name_and_ids
 from meta.lib.csvmanager import CSVManager
 from tqdm import tqdm
 
 
-def run(csv_dir: str, output_dir: str, wanted_dois:str, verbose:bool=False) -> None:
-    if verbose:
+def prepare_multiprocess(csv_dir: str, output_dir: str, wanted_dois:str, items_per_file:int=None, verbose:bool=False) -> None:
+    if verbose and wanted_dois:
         print('[INFO:prepare_multiprocess] Getting the wanted DOIs')
     doi_set = CSVManager.load_csv_column_as_set(wanted_dois, 'doi') if wanted_dois else None
     files = os.listdir(csv_dir)
     if verbose:
         pbar = tqdm(total=len(files))
-    if not os.path.exists(output_dir):
-        os.mkdir(output_dir)
-    output_path = os.path.join(output_dir, 'relevant_venues.csv')
+    pathoo(output_dir)
+    venue_by_id = dict()
     for file in files:
         if file.endswith(".csv"):
             file_path = os.path.join(csv_dir, file)
-            relevant_venues_found = get_relevant_venues(file_path, doi_set)
-            if relevant_venues_found:
-                write_csv(path=output_path, datalist=relevant_venues_found, mode='a')
+            get_relevant_venues(file_path=file_path, venue_by_id=venue_by_id, doi_set=doi_set)
         if verbose:
             pbar.update()
     if verbose:
         pbar.close()
-    
+    venue_merged = do_collective_merge(venue_by_id, verbose)
+    save_relevant_venues(venue_merged, items_per_file, output_dir)          
+
+def get_relevant_venues(file_path:str, venue_by_id:dict, doi_set:set=None) -> None:
+    data = get_data(file_path)
+    for row in data:
+        if row['venue']:
+            venue_name_and_ids = re.search(name_and_ids, row['venue'])
+            venue_name = venue_name_and_ids.group(1) if venue_name_and_ids else row['venue']
+            venue_ids = venue_name_and_ids.group(2) if venue_name_and_ids else None
+            relevant_doi = any(id.replace('doi:', '') in doi_set for id in row['id'].split()) if doi_set else True
+            if venue_ids and relevant_doi:
+                venue_ids_list = venue_ids.split()
+                first_id = venue_ids_list[0]
+                venue_by_id.setdefault(first_id, {'others': set(), 'name': venue_name})
+                venue_by_id[first_id]['others'].update({id for id in venue_ids_list if id != first_id})
+
+def do_collective_merge(venue_by_id:dict, verbose:bool) -> dict:
+    if verbose:
+        print('[INFO:prepare_multiprocess] Merging the relevant venues found')
+        pbar = tqdm(total=len(venue_by_id))
+    venue_merged = dict()
+    for id, data in venue_by_id.items():
+        if id in venue_merged:
+            key_to_update = id
+        else:
+            key_to_update = next((k for k,v in venue_merged.items() if id in v['others']), None)
+        if key_to_update:
+            venue_merged[key_to_update]['others'].update(data['others'])
+        else:
+            venue_merged[id] = data
+        if verbose:
+            pbar.update()
+    if verbose:
+        pbar.close()
+    return venue_merged
+
+def save_relevant_venues(venue_by_id:dict, items_per_file:int, output_dir:str):
+    fieldnames = ['id', 'title', 'author', 'pub_date', 'venue', 'volume', 'issue', 'page', 'type', 'publisher', 'editor']
+    rows = list()
+    chunks = 1000 if items_per_file is None else int(items_per_file)
+    saved_chunks = 0
+    output_length = len(venue_by_id)
+    for venue_id, data in venue_by_id.items():
+        row = dict()
+        ids = list(data['others'])
+        ids.append(venue_id)
+        row['id'] = ' '.join(ids)
+        row['title'] = data['name']
+        row['type'] = 'journal'
+        rows.append(row)
+        data_about_to_end = (output_length - saved_chunks) < chunks
+        if len(rows) == chunks or data_about_to_end:
+            saved_chunks = saved_chunks + chunks if not data_about_to_end else output_length
+            filename = 'relevant_venues.csv' if not items_per_file else f"{str(saved_chunks)}.csv"
+            output_path = os.path.join(output_dir, filename)
+            mode = 'a' if not items_per_file else 'w'
+            write_csv(path=output_path, datalist=rows, fieldnames=fieldnames, mode=mode)
+            rows = list()
+
 def split_by_publisher(file_path: str, output_dir: str) -> None:
     data = get_data(file_path)
     data_by_publisher:Dict[str, List] = dict()
@@ -57,25 +113,3 @@ def split_by_publisher(file_path: str, output_dir: str) -> None:
         publisher += '.csv'
         output_file_path = os.path.join(output_dir, publisher)
         write_csv(path=output_file_path, datalist=data, mode='w')
-
-def get_relevant_venues(file_path:str, doi_set:set=None) -> List[dict]:
-    relevant_venues = list()
-    data = get_data(file_path)
-    for row in data:
-        if row['venue']:
-            if doi_set:
-                if any(id.replace('doi:', '') in doi_set for id in row['id'].split()):
-                    relevant_venues.append(generate_venue_row(row))
-            else:
-                relevant_venues.append(generate_venue_row(row))
-    return relevant_venues
-
-def generate_venue_row(row:dict) -> dict:
-    venue_row = {k:'' for k,_ in row.items()}
-    venue_name_and_ids = re.search(name_and_ids, row['venue'])
-    venue_name = venue_name_and_ids.group(1) if venue_name_and_ids else row['venue']
-    venue_ids = venue_name_and_ids.group(2) if venue_name_and_ids else ''
-    venue_row['id'] = venue_ids
-    venue_row['title'] = venue_name
-    venue_row['type'] = 'journal'
-    return venue_row

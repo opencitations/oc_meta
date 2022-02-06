@@ -16,7 +16,7 @@ class Curator:
         self.finder = ResourceFinder(ts, base_iri)
         self.separator = separator
         self.data = [{field:value.strip() for field,value in row.items()} for row in data]
-        # self.data = random.sample(data, 10)
+        # self.data = random.sample(self.data, 10)
         self.prefix = prefix
         # Counter local paths
         self.br_info_path = info_dir + 'br.txt'

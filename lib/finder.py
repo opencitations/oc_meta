@@ -653,6 +653,6 @@ class ResourceFinder:
         bindings = results['results']['bindings']
         for binding in bindings:
             type_label = self._type_it(binding, 'type_')
-            if type_label not in forbidden_types:
+            if type_label and type_label not in forbidden_types:
                 allowed_type = True
         return allowed_type
