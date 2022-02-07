@@ -87,8 +87,8 @@ class MetaProcess:
                                     dir_split=self.dir_split_number,
                                     n_file_item=self.items_per_file,
                                     output_format='nquads')
-                self.store_json_ld(creator)
                 if self.rdf_output_in_chunks:
+                    self.store_json_ld(creator)
                     filename_without_csv = filename[:-4]
                     f = os.path.join(self.base_dir, 'nt', filename_without_csv + '.nt')
                     res_storer.store_graphs_in_file(f, self.context_path)

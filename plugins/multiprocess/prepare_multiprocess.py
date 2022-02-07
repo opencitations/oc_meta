@@ -23,7 +23,7 @@ from meta.lib.csvmanager import CSVManager
 from tqdm import tqdm
 
 
-def prepare_multiprocess(csv_dir: str, output_dir: str, wanted_dois:str, items_per_file:int=None, verbose:bool=False) -> None:
+def prepare_relevant_venues(csv_dir: str, output_dir: str, wanted_dois:str, items_per_file:int, verbose:bool=False) -> None:
     if verbose and wanted_dois:
         print('[INFO:prepare_multiprocess] Getting the wanted DOIs')
     doi_set = CSVManager.load_csv_column_as_set(wanted_dois, 'doi') if wanted_dois else None
@@ -80,7 +80,7 @@ def do_collective_merge(venue_by_id:dict, verbose:bool) -> dict:
 def save_relevant_venues(venue_by_id:dict, items_per_file:int, output_dir:str):
     fieldnames = ['id', 'title', 'author', 'pub_date', 'venue', 'volume', 'issue', 'page', 'type', 'publisher', 'editor']
     rows = list()
-    chunks = 1000 if items_per_file is None else int(items_per_file)
+    chunks = int(items_per_file)
     saved_chunks = 0
     output_length = len(venue_by_id)
     for venue_id, data in venue_by_id.items():
@@ -94,22 +94,33 @@ def save_relevant_venues(venue_by_id:dict, items_per_file:int, output_dir:str):
         data_about_to_end = (output_length - saved_chunks) < chunks
         if len(rows) == chunks or data_about_to_end:
             saved_chunks = saved_chunks + chunks if not data_about_to_end else output_length
-            filename = 'relevant_venues.csv' if not items_per_file else f"{str(saved_chunks)}.csv"
+            filename = f"{str(saved_chunks)}.csv"
             output_path = os.path.join(output_dir, filename)
-            mode = 'a' if not items_per_file else 'w'
-            write_csv(path=output_path, datalist=rows, fieldnames=fieldnames, mode=mode)
+            write_csv(path=output_path, datalist=rows, fieldnames=fieldnames)
             rows = list()
 
-def split_by_publisher(file_path: str, output_dir: str) -> None:
-    data = get_data(file_path)
-    data_by_publisher:Dict[str, List] = dict()
-    for row in data:
-        if row['publisher']:
-            id = re.search(ids_inside_square_brackets, row['publisher'])
-            publisher = id.group(1) if id else row['publisher']
-            data_by_publisher.setdefault(publisher, list()).append(row)
-    for publisher, data in data_by_publisher.items():
-        publisher = publisher.replace(':', '_')
-        publisher += '.csv'
-        output_file_path = os.path.join(output_dir, publisher)
-        write_csv(path=output_file_path, datalist=data, mode='w')
+def split_by_publisher(csv_dir: str, output_dir: str, verbose:bool=False) -> None:
+    files = os.listdir(csv_dir)
+    pathoo(output_dir)
+    if verbose:
+        print('[INFO:prepare_multiprocess] Splitting CSVs by publishers')
+        pbar = tqdm(total=len(files))
+    for file in files:
+        if file.endswith(".csv"):
+            file_path = os.path.join(csv_dir, file)
+            data = get_data(file_path)
+            data_by_publisher:Dict[str, List] = dict()
+            for row in data:
+                if row['publisher']:
+                    id = re.search(ids_inside_square_brackets, row['publisher'])
+                    publisher = id.group(1) if id else row['publisher']
+                    data_by_publisher.setdefault(publisher, list()).append(row)
+            for publisher, data in data_by_publisher.items():
+                publisher = publisher.replace(':', '_')
+                publisher += '.csv'
+                output_file_path = os.path.join(output_dir, publisher)
+                write_csv(path=output_file_path, datalist=data)
+        if verbose:
+            pbar.update()
+    if verbose:
+        pbar.close()

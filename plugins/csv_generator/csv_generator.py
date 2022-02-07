@@ -100,7 +100,7 @@ class CSVGenerator:
                     self.cur_output_dir = os.path.join(self.output_csv_dir, cur_dir)
             path = os.path.join(self.cur_output_dir, f'{counter}.csv')
             fieldnames = ['id', 'title', 'author', 'pub_date', 'venue', 'volume', 'issue', 'page', 'type', 'publisher', 'editor']
-            write_csv(path=path, datalist=self.data, fieldnames=fieldnames, mode='w')
+            write_csv(path=path, datalist=self.data, fieldnames=fieldnames)
             self.data = list()
     
     def __skip_files(self) -> Tuple[int, int]:
