@@ -1,8 +1,9 @@
 ISC License (ISC)
 ==================================
-_Copyright 2016 Silvio Peroni <essepuntato@gmail.com>_  
-_Copyright 2020 Fabio Mariani <fabio.mariani555@gmail.com>_  
-_Copyright 2022 Arcangelo Massari <arcangelo.massari@unibo.it>_
+_Copyright 2019 Silvio Peroni <essepuntato@gmail.com>_  
+_Copyright 2019-2020 Fabio Mariani <fabio.mariani555@gmail.com>_  
+_Copyright 2021 Simone Persiani <iosonopersia@gmail.com>_  
+_Copyright 2021-2022 Arcangelo Massari <arcangelo.massari@unibo.it>_
 
 Permission to use, copy, modify, and/or distribute this software for any purpose with or
 without fee is hereby granted, provided that the above copyright notice and this permission
