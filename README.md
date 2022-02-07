@@ -12,6 +12,7 @@ An example of a raw CSV input file can be found in [`example.csv`](https://githu
     * [Get raw CSV files from Crossref](#get-raw-csv-files-from-crossref)
     * [Get DOIs from COCI](#get-dois-from-coci)
     * [Generate CSVs from triplestore](#generate-csvs-from-triplestore)
+    * [Prepare the multiprocess](#prepare-the-multiprocess)
 
 ## Meta
 
@@ -137,4 +138,17 @@ The configuration file is a YAML file with the following keys (an example can be
 | dir\_split\_number | ☓         | Number of files per folder. dir\_split\_number's value must be multiple of items\_per\_file's value. This setting can be safely left as is |
 | items\_per\_file   | ☓         | Number of items per file. This setting can be safely left as is                                                                            |
 | verbose            | ☓         | Show a loading bar, elapsed time and estimated time. This setting can be safely left as is                                                |
+
+### Prepare the multiprocess
+
+Before running Meta in multiprocess, it is necessary to prepare the input files. In particular, the CSV files must be divided by publisher, and venues loaded on the triplestore, in order not to generate duplicates during the multiprocess. These operations can be done by simply running the following script:
+
+```console
+    python -m meta.run.prepare_multiprocess -c <PATH>
+```
+
+Where:
+- -c --config : Path to the same configuration file you want to use for Meta.
+
+Afterwards, launch Meta in multi-process by specifying the same configuration file. All the required modifications are done automatically.
 
