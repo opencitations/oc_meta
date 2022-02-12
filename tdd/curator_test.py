@@ -149,6 +149,7 @@ class test_Curator(unittest.TestCase):
         self.assertEqual(output, expected_output)
     
     def test_clean_id(self):
+        add_data_ts()
         curator = prepareCurator(list())
         row = {'id': 'doi:10.1001/archderm.104.1.106', 'title': 'Multiple Blasto', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}
         curator.log[0] = {'id': {}}
@@ -157,6 +158,7 @@ class test_Curator(unittest.TestCase):
         self.assertEqual(row, expected_output)
     
     def test_check_equality(self):
+        add_data_ts()
         data = [
             {'id': '3757', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''},
             {'id': 'wannabe_0', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-02', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''},

@@ -21,7 +21,8 @@ class MetaProcess:
         self.resp_agent = settings['resp_agent']
         self.input_csv_dir = normalize_path(settings['input_csv_dir'])
         self.output_csv_dir = normalize_path(settings['output_csv_dir'])
-        self.base_dir = normalize_path(settings['output_rdf_dir'])
+        base_dir = normalize_path(settings['output_rdf_dir'])
+        self.base_dir = f'{base_dir}/' if base_dir[-1] != '/' else base_dir
         self.indexes_dir = normalize_path(settings['indexes_dir'])
         self.cache_path = normalize_path(settings['cache_path'])
 
@@ -42,14 +43,18 @@ class MetaProcess:
         else:
             with open(self.cache_path, 'r', encoding='utf-8') as cache_file:
                 completed = {line.rstrip('\n') for line in cache_file}
+        files_in_input_csv_dir = os.listdir(self.input_csv_dir)
         if self.verbose:
-            pbar = tqdm(total=len(os.listdir(self.input_csv_dir)))
-        prov_dir = os.path.join(self.base_dir, 'prov' + os.sep)
-        nt_dir = os.path.join(self.base_dir, 'nt' + os.sep)
-        for dir in [self.output_csv_dir, self.indexes_dir, self.base_dir, prov_dir, nt_dir]:
+            pbar = tqdm(total=len(files_in_input_csv_dir))
+        for dir in [self.output_csv_dir, self.indexes_dir, self.base_dir]:
             pathoo(dir)
+        if self.rdf_output_in_chunks:
+            prov_dir = os.path.join(self.base_dir, 'prov' + os.sep)
+            nt_dir = os.path.join(self.base_dir, 'nt' + os.sep)
+            for dir in [prov_dir, nt_dir]:
+                pathoo(dir)
         csv.field_size_limit(128)
-        for filename in os.listdir(self.input_csv_dir):
+        for filename in files_in_input_csv_dir:
             if filename.endswith('.csv') and filename not in completed:
                 filepath = os.path.join(self.input_csv_dir, filename)
                 data = get_data(filepath)
@@ -88,7 +93,6 @@ class MetaProcess:
                                     n_file_item=self.items_per_file,
                                     output_format='nquads')
                 if self.rdf_output_in_chunks:
-                    self.store_json_ld(creator)
                     filename_without_csv = filename[:-4]
                     f = os.path.join(self.base_dir, 'nt', filename_without_csv + '.nt')
                     res_storer.store_graphs_in_file(f, self.context_path)
@@ -102,24 +106,13 @@ class MetaProcess:
                 with open(self.cache_path, 'a', encoding='utf-8') as aux_file:
                     aux_file.write(filename + '\n')
             if self.verbose:
-                pbar.update(1)
+                pbar.update()
         if self.verbose:
             pbar.close()
 
-    def store_json_ld(self, creator:Creator) -> None:
-        json_ld_storer = Storer(creator,
-            context_map={},
-            dir_split=self.dir_split_number,
-            n_file_item=self.items_per_file,
-            default_dir=self.default_dir,
-            output_format='json-ld')
-        base_dir = os.path.join(self.base_dir, 'jsonld/')
-        json_ld_storer.store_all(base_dir=base_dir, base_iri=self.base_iri, context_path=self.context_path)
-
-
 
 if __name__ == '__main__':
-    arg_parser = ArgumentParser('meta_process.py', description='This script runs OCMeta data processing workflow')
+    arg_parser = ArgumentParser('meta_process.py', description='This script runs the OCMeta data processing workflow')
     arg_parser.add_argument('-c', '--config', dest='config', required=True,
                             help='Configuration file directory')
     args = arg_parser.parse_args()

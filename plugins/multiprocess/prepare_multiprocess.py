@@ -23,7 +23,7 @@ from meta.lib.csvmanager import CSVManager
 from tqdm import tqdm
 
 
-def prepare_relevant_venues(csv_dir: str, output_dir: str, wanted_dois:str, items_per_file:int, verbose:bool=False) -> None:
+def prepare_relevant_venues(csv_dir: str, output_dir: str, items_per_file:int, verbose:bool=False) -> None:
     '''
     This function receives an input folder containing CSVs formatted for Meta. 
     It output other CSVs, including deduplicated venues only. 
@@ -33,17 +33,12 @@ def prepare_relevant_venues(csv_dir: str, output_dir: str, wanted_dois:str, item
     :type csv_dir: str
     :params output_dir: the location of the folder to save to output file
     :type output_dir: str
-    :params wanted_dois: the path of the CSV file containing the list of DOIs to consider
-    :type wanted_dois: str
     :params items_per_file: an integer to specify how many rows to insert in each output file
     :type items_per_file: int
     :params verbose: if True, show a loading bar, elapsed, and estimated time
     :type verbose: bool
     :returns: None -- This function returns None and saves the output CSV files in the `output_dir` folder
     '''
-    if verbose and wanted_dois:
-        print('[INFO:prepare_multiprocess] Getting the wanted DOIs')
-    doi_set = CSVManager.load_csv_column_as_set(wanted_dois, 'doi') if wanted_dois else None
     files = os.listdir(csv_dir)
     if verbose:
         pbar = tqdm(total=len(files))
@@ -52,7 +47,7 @@ def prepare_relevant_venues(csv_dir: str, output_dir: str, wanted_dois:str, item
     for file in files:
         if file.endswith(".csv"):
             file_path = os.path.join(csv_dir, file)
-            __get_relevant_venues(file_path=file_path, venue_by_id=venue_by_id, doi_set=doi_set)
+            __get_relevant_venues(file_path=file_path, venue_by_id=venue_by_id)
         if verbose:
             pbar.update()
     if verbose:
@@ -60,15 +55,14 @@ def prepare_relevant_venues(csv_dir: str, output_dir: str, wanted_dois:str, item
     venue_merged = __do_collective_merge(venue_by_id, verbose)
     __save_relevant_venues(venue_merged, items_per_file, output_dir)          
 
-def __get_relevant_venues(file_path:str, venue_by_id:dict, doi_set:set=None) -> None:
+def __get_relevant_venues(file_path:str, venue_by_id:dict) -> None:
     data = get_data(file_path)
     for row in data:
         if row['venue']:
             venue_name_and_ids = re.search(name_and_ids, row['venue'])
             venue_name = venue_name_and_ids.group(1) if venue_name_and_ids else row['venue']
             venue_ids = venue_name_and_ids.group(2) if venue_name_and_ids else None
-            relevant_doi = any(id.replace('doi:', '') in doi_set for id in row['id'].split()) if doi_set else True
-            if venue_ids and relevant_doi:
+            if venue_ids:
                 venue_ids_list = venue_ids.split()
                 first_id = venue_ids_list[0]
                 venue_by_id.setdefault(first_id, {'others': set(), 'name': venue_name})

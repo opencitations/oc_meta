@@ -17,11 +17,10 @@ if __name__ == '__main__':
     with open(config, encoding='utf-8') as file:
         settings = yaml.full_load(file)
     csv_dir = normalize_path(settings['input_csv_dir'])
-    wanted_dois = settings['wanted_dois']
     items_per_file = settings['items_per_file']
     verbose = settings['verbose']
     
-    prepare_relevant_venues(csv_dir=csv_dir, output_dir=TMP_DIR, wanted_dois=wanted_dois, items_per_file=items_per_file, verbose=verbose)
+    prepare_relevant_venues(csv_dir=csv_dir, output_dir=TMP_DIR, items_per_file=items_per_file, verbose=verbose)
     meta_process = MetaProcess(config)
     meta_process.input_csv_dir = TMP_DIR
     meta_process.process()

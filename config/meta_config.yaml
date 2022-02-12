@@ -48,6 +48,8 @@ items_per_file: 1000
 default_dir: _
 # A prefix for the sequential number in entities’ URIs. This setting can be safely left as is.
 supplier_prefix: '060'
+# If True, save all the graphset and provset in one file, and save all the graphset on the triplestore. 
+# If False, the graphs are saved according to the usual OpenCitations strategy (the "complex" hierarchy of folders and subfolders for each type of entity).
 rdf_output_in_chunks: True
 # Data source URL. This setting can be safely left as is.
 source: https://api.crossref.org/

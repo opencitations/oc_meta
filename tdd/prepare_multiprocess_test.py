@@ -13,7 +13,7 @@ CSV_DIR = os.path.join(BASE, 'input')
 
 class TestPrepareMultiprocess(unittest.TestCase):
     def test_prepare_relevant_venues(self):
-        prepare_relevant_venues(csv_dir=CSV_DIR, output_dir=TMP_DIR, wanted_dois=None, items_per_file=1, verbose=False)
+        prepare_relevant_venues(csv_dir=CSV_DIR, output_dir=TMP_DIR, items_per_file=1, verbose=False)
         with open(os.path.join(TMP_DIR, '1.csv'), 'r', encoding='utf-8') as f:
             output = list(DictReader(f))
         expected_output = [{'id': 'issn:1225-4339', 'title': 'The Korean Journal of Food And Nutrition', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': 'journal', 'publisher': '', 'editor': ''}]
