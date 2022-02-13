@@ -3,6 +3,11 @@ import html
 from dateutil.parser import parse
 from datetime import datetime
 from meta.lib.master_of_regex import *
+from meta.lib.id_manager.issnmanager import ISSNManager
+from meta.lib.id_manager.isbnmanager import ISBNManager
+from meta.lib.id_manager.doimanager import DOIManager
+from meta.lib.id_manager.orcidmanager import ORCIDManager
+from typing import Union
 
 class Cleaner:
     def __init__(self, string:str):
@@ -70,7 +75,7 @@ class Cleaner:
         wrong_characters = {'\u00AD', '\u06D4', '\u2010', '\u2011', '\u2012', '\u2013', '\u2014', '\u2043', '\u2212', '\u2796', '\u2CBA', '\uFE58'}
         for c in wrong_characters:
             string = string.replace(c, '\u002D')
-        if 'isbn:' in string: # TODO: mettere a parte utilizzando il normalizer (single-responsability principle)
+        if 'isbn:' in string:
             string.replace(u'\u002D', '')
         return string
     
@@ -234,3 +239,25 @@ class Cleaner:
         clean_string = html.unescape(clean_string)
         clean_string = Cleaner(clean_string).normalize_hyphens()
         return clean_string
+    
+    def normalize_id(self) -> Union[str, None]:
+        '''
+        This function verifies and normalizes identifiers whose schema corresponds to a DOI, an ISSN, an ISBN or an ORCID.
+
+        :returns: str -- The normalized identifier
+        '''
+        identifier = self.string.split(':', 1)
+        schema = identifier[0].lower()
+        value = identifier[1]
+        if schema == 'doi':
+            valid_id = DOIManager().normalise(value, include_prefix=True) if DOIManager(use_api_service=False).is_valid(value) else None
+        elif schema == 'isbn':
+            valid_id = ISBNManager().normalise(value, include_prefix=True) if ISBNManager().is_valid(value) else None
+        elif schema == 'issn':
+            valid_id = ISSNManager().normalise(value, include_prefix=True) if ISSNManager().is_valid(value) else None
+        elif schema == 'orcid':
+            valid_id = ORCIDManager().normalise(value, include_prefix=True) if ORCIDManager().is_valid(value) else None
+        else:
+            valid_id = f'{schema}:{value}'
+        return valid_id
+            

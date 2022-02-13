@@ -406,10 +406,7 @@ class Curator:
         :type: br: bool
         :returns: Tuple[list, str]: -- it returns a two-elements tuple, where the first element is the list of cleaned IDs, while the second is a MetaID if any was found.
         '''
-        if br:
-            pattern = 'br/'
-        else:
-            pattern = 'ra/'
+        pattern = 'br/' if br else 'ra/'
         metaid = ''
         id_list = list(filter(None, id_list))
         how_many_meta = [i for i in id_list if i.lower().startswith('meta')]
@@ -428,8 +425,8 @@ class Curator:
                         metaid = value.replace(pattern, '')
                     id_list[pos] = ''
                 else:
-                    newid = schema + ':' + value
-                    id_list[pos] = newid
+                    normalized_id = Cleaner(elem).normalize_id()
+                    id_list[pos] = normalized_id
         id_list = list(filter(None, id_list))
         return id_list, metaid
 

@@ -53,6 +53,8 @@ def prepare2test(name):
     test_graph = test_graph.parse(testcase_ttl, format="ttl")
     new_graph = Graph()
     for g in creator_setgraph.graphs():
+        for triple in g.triples((None, None, None)):
+            print(triple)
         new_graph += g
     return test_graph, new_graph
 

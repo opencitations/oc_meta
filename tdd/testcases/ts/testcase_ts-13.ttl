@@ -54,7 +54,7 @@
 
 <https://w3id.org/oc/meta/id/060101> a ns1:Identifier ;
     ns1:usesIdentifierScheme ns1:doi ;
-    ns2:hasLiteralValue "1" .
+    ns2:hasLiteralValue "10.1001/jamapediatrics.2016.0073" .
 
 <https://w3id.org/oc/meta/id/060102> a ns1:Identifier ;
     ns1:usesIdentifierScheme ns1:doi ;
@@ -62,7 +62,7 @@
 
 <https://w3id.org/oc/meta/id/060103> a ns1:Identifier ;
     ns1:usesIdentifierScheme ns1:doi ;
-    ns2:hasLiteralValue "3" .
+    ns2:hasLiteralValue "10.1001/jamainternmed.2016.1384" .
 
 <https://w3id.org/oc/meta/id/060111> a ns1:Identifier ;
     ns1:usesIdentifierScheme ns1:viaf ;
@@ -96,11 +96,11 @@
 
 <https://w3id.org/oc/meta/id/060310> a ns1:Identifier ;
     ns1:usesIdentifierScheme ns1:doi ;
-    ns2:hasLiteralValue "310" .
+    ns2:hasLiteralValue "10.1001/jamainternmed.2016.0909" .
 
 <https://w3id.org/oc/meta/id/060301> a ns1:Identifier ;
     ns1:usesIdentifierScheme ns1:doi ;
-    ns2:hasLiteralValue "301" .
+    ns2:hasLiteralValue "10.1001/jama.2016.4932" .
 
 <https://w3id.org/oc/meta/id/060007> a ns1:Identifier ;
     ns1:usesIdentifierScheme ns1:wikidata ;

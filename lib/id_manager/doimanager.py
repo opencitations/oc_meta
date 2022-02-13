@@ -43,17 +43,17 @@ class DOIManager(IdentifierManager):
 
     def is_valid(self, id_string):
         doi = self.normalise(id_string, include_prefix=True)
-
         if doi is None:
             return False
-        else:
+        elif self.use_api_service:
             if self.valid_doi.get_value(doi) is None:
                 if self.__doi_exists(doi):
                     self.valid_doi.add_value(doi, "v")
                 else:
                     self.valid_doi.add_value(doi, "i")
-
             return "v" in self.valid_doi.get_value(doi)
+        elif doi and not self.use_api_service:
+            return True
 
     def normalise(self, id_string, include_prefix=False):
         try:
@@ -62,19 +62,16 @@ class DOIManager(IdentifierManager):
         except:  # Any error in processing the DOI will return None
             return None
 
-    def __doi_exists(self, doi_full):
-        doi = self.normalise(doi_full)
-        if self.use_api_service:
-            tentative = 3
-            while tentative:
-                tentative -= 1
-                try:
-                    r = get(self.api + quote(doi), headers=self.headers, timeout=30)
-                    if r.status_code == 200:
-                        r.encoding = "utf-8"
-                        json_res = loads(r.text)
-                        return json_res.get("responseCode") == 1
-                except ReadTimeout:
-                    pass  # Do nothing, just try again
-
+    def __doi_exists(self, doi):
+        tentative = 3
+        while tentative:
+            tentative -= 1
+            try:
+                r = get(self.api + quote(doi), headers=self.headers, timeout=30)
+                if r.status_code == 200:
+                    r.encoding = "utf-8"
+                    json_res = loads(r.text)
+                    return json_res.get("responseCode") == 1
+            except ReadTimeout:
+                pass  # Do nothing, just try again
         return False

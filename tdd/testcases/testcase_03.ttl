@@ -74,7 +74,7 @@
 
 <https://w3id.org/oc/meta/id/06011> a ns1:Identifier ;
     ns1:usesIdentifierScheme ns1:orcid ;
-    ns4:hasLiteralValue "0000-0003" .
+    ns4:hasLiteralValue "0000-0001-5366-5194" .
 
 <https://w3id.org/oc/meta/id/06012> a ns1:Identifier ;
     ns1:usesIdentifierScheme ns1:viaf ;
@@ -102,11 +102,11 @@
 
 <https://w3id.org/oc/meta/id/0605> a ns1:Identifier ;
     ns1:usesIdentifierScheme ns1:issn ;
-    ns4:hasLiteralValue "1114" .
+    ns4:hasLiteralValue "1479-6708" .
 
 <https://w3id.org/oc/meta/id/0606> a ns1:Identifier ;
     ns1:usesIdentifierScheme ns1:orcid ;
-    ns4:hasLiteralValue "0000-0001" .
+    ns4:hasLiteralValue "0000-0003-0530-4305" .
 
 <https://w3id.org/oc/meta/id/0607> a ns1:Identifier ;
     ns1:usesIdentifierScheme ns1:viaf ;
