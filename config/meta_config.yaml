@@ -53,6 +53,8 @@ supplier_prefix: '060'
 rdf_output_in_chunks: True
 # Data source URL. This setting can be safely left as is.
 source: https://api.crossref.org/
+# If True, use the DOI API service to check if DOIs are valid
+use_doi_api_service: False
 # Show a loading bar, elapsed time and estimated time
 verbose: True
 

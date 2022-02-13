@@ -1,9 +1,11 @@
 from oc_ocdm import Storer
 from oc_ocdm.prov import ProvSet
 
-from meta.lib.file_manager import *
-from meta.scripts.creator import *
-from meta.scripts.curator import *
+from meta.lib.file_manager import get_data, normalize_path, pathoo
+from meta.scripts.creator import Creator
+from meta.scripts.curator import Curator
+from meta.lib.csvmanager import CSVManager
+
 from datetime import datetime
 from argparse import ArgumentParser
 import yaml
@@ -34,6 +36,7 @@ class MetaProcess:
         self.rdf_output_in_chunks = settings['rdf_output_in_chunks']
         self.supplier_prefix = settings['supplier_prefix']
         self.source = settings['source']
+        self.valid_dois_cache = CSVManager() if bool(settings['supplier_prefix']) == True else None
         self.verbose = settings['verbose']
 
     def process(self) -> None:
@@ -60,7 +63,13 @@ class MetaProcess:
                 data = get_data(filepath)
                 # Curator
                 curator_info_dir = os.path.join(self.info_dir, 'curator' + os.sep)
-                curator_obj = Curator(data, self.triplestore_url, info_dir=curator_info_dir, base_iri=self.base_iri, prefix=self.supplier_prefix)
+                curator_obj = Curator(
+                    data=data, 
+                    ts=self.triplestore_url, 
+                    info_dir=curator_info_dir, 
+                    base_iri=self.base_iri, 
+                    prefix=self.supplier_prefix, 
+                    valid_dois_cache=self.valid_dois_cache)
                 name = datetime.now().strftime('%Y-%m-%dT%H_%M_%S')
                 curator_obj.curator(filename=name, path_csv=self.output_csv_dir, path_index=self.indexes_dir)
                 # Creator
@@ -82,16 +91,16 @@ class MetaProcess:
                 prov.generate_provenance()
                 # Storer
                 res_storer = Storer(creator,
-                                    context_map={},
-                                    dir_split=self.dir_split_number,
-                                    n_file_item=self.items_per_file,
-                                    default_dir=self.default_dir,
-                                    output_format='nt11')
+                    context_map={},
+                    dir_split=self.dir_split_number,
+                    n_file_item=self.items_per_file,
+                    default_dir=self.default_dir,
+                    output_format='nt11')
                 prov_storer = Storer(prov,
-                                    context_map={},
-                                    dir_split=self.dir_split_number,
-                                    n_file_item=self.items_per_file,
-                                    output_format='nquads')
+                    context_map={},
+                    dir_split=self.dir_split_number,
+                    n_file_item=self.items_per_file,
+                    output_format='nquads')
                 if self.rdf_output_in_chunks:
                     filename_without_csv = filename[:-4]
                     f = os.path.join(self.base_dir, 'nt', filename_without_csv + '.nt')

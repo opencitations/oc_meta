@@ -42,7 +42,7 @@ class DOIManager(IdentifierManager):
             self.valid_doi.add_value(doi, "v")
 
     def is_valid(self, id_string):
-        doi = self.normalise(id_string, include_prefix=True)
+        doi = self.normalise(id_string, include_prefix=False)
         if doi is None:
             return False
         elif self.use_api_service:

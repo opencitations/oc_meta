@@ -7,6 +7,7 @@ from meta.lib.id_manager.issnmanager import ISSNManager
 from meta.lib.id_manager.isbnmanager import ISBNManager
 from meta.lib.id_manager.doimanager import DOIManager
 from meta.lib.id_manager.orcidmanager import ORCIDManager
+from meta.lib.csvmanager import CSVManager
 from typing import Union
 
 class Cleaner:
@@ -240,23 +241,28 @@ class Cleaner:
         clean_string = Cleaner(clean_string).normalize_hyphens()
         return clean_string
     
-    def normalize_id(self) -> Union[str, None]:
+    def normalize_id(self, valid_dois_cache:CSVManager=None) -> Union[str, None]:
         '''
         This function verifies and normalizes identifiers whose schema corresponds to a DOI, an ISSN, an ISBN or an ORCID.
 
-        :returns: str -- The normalized identifier
+        :returns: Union[str, None] -- The normalized identifier if it is valid, None otherwise
         '''
         identifier = self.string.split(':', 1)
         schema = identifier[0].lower()
         value = identifier[1]
         if schema == 'doi':
-            valid_id = DOIManager().normalise(value, include_prefix=True) if DOIManager(use_api_service=False).is_valid(value) else None
+            use_api_service = True if valid_dois_cache is not None else False
+            doi_manager = DOIManager(valid_doi=valid_dois_cache, use_api_service=use_api_service)
+            valid_id = doi_manager.normalise(value, include_prefix=True) if doi_manager.is_valid(value) else None
         elif schema == 'isbn':
-            valid_id = ISBNManager().normalise(value, include_prefix=True) if ISBNManager().is_valid(value) else None
+            isbn_manager = ISBNManager()
+            valid_id = isbn_manager.normalise(value, include_prefix=True) if isbn_manager.is_valid(value) else None
         elif schema == 'issn':
-            valid_id = ISSNManager().normalise(value, include_prefix=True) if ISSNManager().is_valid(value) else None
+            issn_manager = ISSNManager()
+            valid_id = issn_manager.normalise(value, include_prefix=True) if issn_manager.is_valid(value) else None
         elif schema == 'orcid':
-            valid_id = ORCIDManager().normalise(value, include_prefix=True) if ORCIDManager().is_valid(value) else None
+            orcid_manager = ORCIDManager()
+            valid_id = orcid_manager.normalise(value, include_prefix=True) if orcid_manager.is_valid(value) else None
         else:
             valid_id = f'{schema}:{value}'
         return valid_id

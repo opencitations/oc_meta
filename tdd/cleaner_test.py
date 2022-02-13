@@ -1,5 +1,6 @@
 import unittest
 from meta.lib.cleaner import Cleaner
+from meta.lib.csvmanager import CSVManager
 from pprint import pprint
 
 class test_Cleaner(unittest.TestCase):
@@ -72,7 +73,28 @@ class test_Cleaner(unittest.TestCase):
             fixed_strings.append(fixed_string)
         expected_output = ['100 101', '100 101', '100 101', '100 101']
         self.assertEqual(fixed_strings, expected_output)
+    
+    def test_normalize_id(self):
+        identifiers = ['doi:10.1123/ijatt.2015-0070', 'doi:1', 'orcid:0000-0003-0530-4305', 'orcid:0000-0000', 'issn:1479-6708', 'issn:0000', 'isbn:9783319403120', 'isbn:0000-0000']
+        output = list()
+        csv_manager = CSVManager()
+        for id in identifiers:
+            output.append(Cleaner(id).normalize_id(valid_dois_cache=csv_manager))
+        expected_output = ['doi:10.1123/ijatt.2015-0070', None, 'orcid:0000-0003-0530-4305', None, 'issn:1479-6708', None, 'isbn:9783319403120', None]
+        self.assertEqual(output, expected_output)
 
+    def test_normalize_id_with_cache(self):
+        identifiers = ['doi:10.1123/ijatt']
+        output_data = list()
+        csv_manager = CSVManager()
+        csv_manager.data = {'10.1123/ijatt.2015-0070': {'v'}}
+        for id in identifiers:
+            output_data.append(Cleaner(id).normalize_id(valid_dois_cache=csv_manager))
+        expected_data = [None]
+        expected_cache = {'10.1123/ijatt.2015-0070': {'v'}, '10.1123/ijatt': {'i'}}
+        output = (csv_manager.data, output_data)
+        expected_output = (expected_cache, expected_data)
+        self.assertEqual(output, expected_output)
 
 if __name__ == '__main__':
     unittest.main()

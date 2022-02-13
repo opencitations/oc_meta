@@ -2,17 +2,17 @@ from typing import List, Tuple, Dict
 import re
 import os
 import json
-import random
 
 from meta.lib.finder import *
 from meta.lib.file_manager import *
 from meta.lib.cleaner import Cleaner
 from meta.lib.master_of_regex import *
+from meta.lib.csvmanager import CSVManager
 
 
 class Curator:
 
-    def __init__(self, data:List[dict], ts:str, info_dir:str, base_iri:str='https://w3id.org/oc/meta', prefix:str='060', separator:str=None):
+    def __init__(self, data:List[dict], ts:str, info_dir:str, base_iri:str='https://w3id.org/oc/meta', prefix:str='060', separator:str=None, valid_dois_cache:CSVManager=None):
         self.finder = ResourceFinder(ts, base_iri)
         self.separator = separator
         self.data = [{field:value.strip() for field,value in row.items()} for row in data]
@@ -40,6 +40,7 @@ class Curator:
         self.rowcnt = 0
         self.log = dict()
         self.new_sequence_list = list()
+        self.valid_dois_cache = valid_dois_cache
 
     def curator(self, filename:str=None, path_csv:str=None, path_index:str=None):
         for row in self.data:
@@ -396,7 +397,7 @@ class Curator:
             self.ardict[br_metaval][col_name] = sequence
 
     @staticmethod
-    def clean_id_list(id_list:List[str], br:bool) -> Tuple[list, str]:
+    def clean_id_list(id_list:List[str], br:bool, valid_dois_cache:CSVManager=None) -> Tuple[list, str]:
         '''
         Clean IDs in the input list and check if there is a MetaID.
 
@@ -425,7 +426,7 @@ class Curator:
                         metaid = value.replace(pattern, '')
                     id_list[pos] = ''
                 else:
-                    normalized_id = Cleaner(elem).normalize_id()
+                    normalized_id = Cleaner(elem).normalize_id(valid_dois_cache=valid_dois_cache)
                     id_list[pos] = normalized_id
         id_list = list(filter(None, id_list))
         return id_list, metaid
@@ -785,11 +786,11 @@ class Curator:
         if not ra_ent:
             id_dict = self.idbr
             entity_dict = self.brdict
-            idslist, metaval = self.clean_id_list(idslist, br=True)
+            idslist, metaval = self.clean_id_list(idslist, br=True, valid_dois_cache=self.valid_dois_cache)
         else:
             id_dict = self.idra
             entity_dict = self.radict
-            idslist, metaval = self.clean_id_list(idslist, br=False)
+            idslist, metaval = self.clean_id_list(idslist, br=False, valid_dois_cache=self.valid_dois_cache)
         # there's meta
         if metaval:
             # MetaID exists among data?
