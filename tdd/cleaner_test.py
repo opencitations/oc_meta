@@ -75,7 +75,7 @@ class test_Cleaner(unittest.TestCase):
         self.assertEqual(fixed_strings, expected_output)
     
     def test_normalize_id(self):
-        identifiers = ['doi:10.1123/ijatt.2015-0070', 'doi:1', 'orcid:0000-0003-0530-4305', 'orcid:0000-0000', 'issn:1479-6708', 'issn:0000', 'isbn:9783319403120', 'isbn:0000-0000']
+        identifiers = ['doi:10.1123/ijatt.2015-0070', 'doi:1', 'orcid:0000-0003-0530-4305', 'orcid:0000-0000', 'issn:1479-6708', 'issn:0000-0000', 'isbn:9783319403120', 'isbn:0000-0000']
         output = list()
         csv_manager = CSVManager()
         for id in identifiers:

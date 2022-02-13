@@ -26,7 +26,7 @@ class ISSNManager(IdentifierManager):
 
     def is_valid(self, id_string):
         issn = self.normalise(id_string)
-        return issn is not None and match("^[0-9]{4}-[0-9]{3}[0-9X]$", issn) and ISSNManager.__check_digit(issn)
+        return issn is not None and issn != '0000-0000' and match("^[0-9]{4}-[0-9]{3}[0-9X]$", issn) and ISSNManager.__check_digit(issn)
 
     def normalise(self, id_string, include_prefix=False):
         try:
