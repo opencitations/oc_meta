@@ -10,9 +10,9 @@ def get_data(filepath:str) -> List[Dict[str, str]]:
     data = list()
     while not data:
         try:
-            data_initial = open(filepath, 'r', encoding='utf8')
-            valid_data = (Cleaner.normalize_spaces(line).replace('\0','') for line in data_initial)
-            data = list(csv.DictReader(valid_data, delimiter=','))
+            with open(filepath, 'r', encoding='utf8') as data_initial:
+                valid_data = (Cleaner.normalize_spaces(line).replace('\0','') for line in data_initial)
+                data = list(csv.DictReader(valid_data, delimiter=','))
         except csv.Error:
             cur_field_size *= 2
             csv.field_size_limit(cur_field_size)

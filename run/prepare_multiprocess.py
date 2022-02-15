@@ -31,3 +31,4 @@ if __name__ == '__main__':
     for file in os.listdir(TMP_DIR):
         shutil.move(os.path.join(TMP_DIR, file), csv_dir)
     shutil.rmtree(TMP_DIR)
+    os.remove(meta_process.cache_path)
