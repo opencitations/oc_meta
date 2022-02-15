@@ -1,7 +1,10 @@
 import csv
 import os
-from typing import List, Dict
+import sys
+from contextlib import contextmanager
 from meta.lib.cleaner import Cleaner
+from typing import List, Dict
+
 
 
 def get_data(filepath:str) -> List[Dict[str, str]]:
@@ -36,3 +39,13 @@ def write_csv(path:str, datalist:List[dict], fieldnames:list=None) -> None:
 def normalize_path(path:str) -> str:
     normal_path = path.replace('\\', '/').replace('/', os.sep)
     return normal_path
+
+@contextmanager
+def suppress_stdout():
+    with open(os.devnull, "w") as devnull:
+        old_stdout = sys.stdout
+        sys.stdout = devnull
+        try:  
+            yield
+        finally:
+            sys.stdout = old_stdout

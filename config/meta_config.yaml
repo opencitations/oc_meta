@@ -56,7 +56,7 @@ source: https://api.crossref.org/
 # If True, use the DOI API service to check if DOIs are valid
 use_doi_api_service: False
 # If True, the Meta software runs in multiprocess
-run_in_multiprocess: False
+run_in_multiprocess: True
 # Show a loading bar, elapsed time and estimated time
 verbose: True
 

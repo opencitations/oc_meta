@@ -1,21 +1,19 @@
 from oc_ocdm import Storer
 from oc_ocdm.prov import ProvSet
 
-from meta.lib.file_manager import get_data, normalize_path, pathoo
+from meta.lib.file_manager import get_data, normalize_path, pathoo, suppress_stdout
 from meta.scripts.creator import Creator
 from meta.scripts.curator import Curator
 from meta.lib.csvmanager import CSVManager
 
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from itertools import repeat
 from datetime import datetime
 from argparse import ArgumentParser
-from math import ceil
 import yaml
 import os
 import csv
 from tqdm import tqdm
-from typing import Set, Union
+from typing import Set
 
 class MetaProcess:
     def __init__(self, config:str):
@@ -37,10 +35,11 @@ class MetaProcess:
         self.items_per_file = settings['items_per_file']
         self.default_dir = normalize_path(settings['default_dir'])
         self.rdf_output_in_chunks = settings['rdf_output_in_chunks']
-        self.supplier_prefix = settings['supplier_prefix']
         self.source = settings['source']
         self.valid_dois_cache = CSVManager() if bool(settings['supplier_prefix']) == True else None
         self.run_in_multiprocess = bool(settings['run_in_multiprocess'])
+        supplier_prefix:str = settings['supplier_prefix']
+        self.supplier_prefix = supplier_prefix[:-1] if self.run_in_multiprocess and supplier_prefix.endswith('0') else supplier_prefix
         self.verbose = settings['verbose']
 
     def prepare_folders(self) -> Set[str]:
@@ -74,6 +73,7 @@ class MetaProcess:
         curator_obj = Curator(data=data, ts=self.triplestore_url, info_dir=curator_info_dir, base_iri=self.base_iri, prefix=supplier_prefix, valid_dois_cache=self.valid_dois_cache)
         name = datetime.now().strftime('%Y-%m-%dT%H_%M_%S') + supplier_prefix
         curator_obj.curator(filename=name, path_csv=self.output_csv_dir, path_index=self.indexes_dir)
+        # with suppress_stdout():
         # Creator
         creator_info_dir = os.path.join(info_dir, 'creator' + os.sep)
         creator_obj = Creator(
@@ -84,7 +84,7 @@ class MetaProcess:
         prov = ProvSet(creator, self.base_iri, creator_info_dir, wanted_label=False)
         prov.generate_provenance()
         # Storer
-        res_storer = Storer(creator, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, default_dir=self.default_dir, output_format='nt11')
+        res_storer = Storer(creator, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, default_dir=self.default_dir, output_format='json-ld')
         prov_storer = Storer(prov, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, output_format='nquads')
         if self.rdf_output_in_chunks:
             filename_without_csv = filename[:-4]
@@ -99,7 +99,6 @@ class MetaProcess:
             prov_storer.store_all(self.output_rdf_dir, self.base_iri, self.context_path)
         with open(self.cache_path, 'a', encoding='utf-8') as aux_file:
             aux_file.write(filename + '\n')
-
 
 if __name__ == '__main__':
     arg_parser = ArgumentParser('meta_process.py', description='This script runs the OCMeta data processing workflow')
@@ -120,10 +119,14 @@ if __name__ == '__main__':
             workers.extend(valid_workers)
             counter -=1
         with ProcessPoolExecutor() as executor:
-            results = [executor.submit(meta_process.run_meta_process, filename, worker_number) for filename, worker_number in zip(files_to_be_processed, workers)]
-            for f in as_completed(results):
-                pbar.update() if pbar else None
-                print(f.result())
+            try:
+                results = [executor.submit(meta_process.run_meta_process, filename, worker_number) for filename, worker_number in zip(files_to_be_processed, workers)]
+                for f in as_completed(results):
+                    pbar.update() if pbar else None
+                    if f.result() is not None:
+                        print(f'En error occurred: {f.result()}')
+            except KeyboardInterrupt:
+                executor.shutdown(wait=False, cancel_futures=True)
     else:
         for filename in files_to_be_processed:
             meta_process.run_meta_process(filename)
