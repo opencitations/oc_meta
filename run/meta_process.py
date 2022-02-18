@@ -64,7 +64,7 @@ class MetaProcess:
 
     def curate_and_create(self, filename:str, worker_number:int=None) -> Tuple[Storer, Storer, str]:
         filepath = os.path.join(self.input_csv_dir, filename)
-        data = get_data(filepath)[:10]
+        data = get_data(filepath)
         if worker_number:
             worker_number = worker_number + 1 if worker_number % 10 == 0 else worker_number
         supplier_prefix = self.supplier_prefix if worker_number is None else f'{self.supplier_prefix}{str(worker_number)}0'
@@ -100,10 +100,7 @@ class MetaProcess:
             res_storer.upload_and_store(self.output_rdf_dir, self.triplestore_url, self.base_iri, self.context_path, batch_size=100)
             prov_storer.store_all(self.output_rdf_dir, self.base_iri, self.context_path)
     
-
-def run_meta_process(config_path:str) -> None:
-    meta_process = MetaProcess(config=config_path)
-    # Start the Meta process
+def run_meta_process(meta_process:MetaProcess) -> None:
     files_to_be_processed = meta_process.prepare_folders()
     pbar = tqdm(total=len(files_to_be_processed)) if meta_process.verbose else None
     max_workers = meta_process.workers_number
@@ -126,4 +123,5 @@ if __name__ == '__main__':
     arg_parser = ArgumentParser('meta_process.py', description='This script runs the OCMeta data processing workflow')
     arg_parser.add_argument('-c', '--config', dest='config', required=True, help='Configuration file directory')
     args = arg_parser.parse_args()
-    run_meta_process(args.config)
+    meta_process = MetaProcess(config=args.config)
+    run_meta_process(meta_process=meta_process)

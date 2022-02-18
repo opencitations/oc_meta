@@ -15,19 +15,19 @@
 # SOFTWARE.
 
 
-import os, re
-from typing import List, Dict
 from meta.lib.file_manager import pathoo, get_data, write_csv
-from meta.lib.master_of_regex import ids_inside_square_brackets, name_and_ids
-from meta.lib.csvmanager import CSVManager
+from meta.lib.master_of_regex import ids_inside_square_brackets, name_and_ids, semicolon_in_people_field
+from typing import List, Dict
 from tqdm import tqdm
+import os
+import re
 
 
-def prepare_relevant_venues(csv_dir: str, output_dir: str, items_per_file:int, verbose:bool=False) -> None:
+def prepare_relevant_items(csv_dir:str, output_dir:str, items_per_file:int, verbose:bool) -> None:
     '''
     This function receives an input folder containing CSVs formatted for Meta. 
-    It output other CSVs, including deduplicated venues only. 
-    You can specify the list of desired DOIs and how many items to insert in each output file.
+    It output other CSVs, including deduplicated items only. 
+    You can specify how many items to insert in each output file.
 
     :params csv_dir: the path to the folder containing the input CSV files
     :type csv_dir: str
@@ -39,70 +39,91 @@ def prepare_relevant_venues(csv_dir: str, output_dir: str, items_per_file:int, v
     :type verbose: bool
     :returns: None -- This function returns None and saves the output CSV files in the `output_dir` folder
     '''
-    files = os.listdir(csv_dir)
+    files = os.listdir(csv_dir)[:10]
     if verbose:
         pbar = tqdm(total=len(files))
     pathoo(output_dir)
-    venue_by_id = dict()
+    items_by_id = dict()
     for file in files:
         if file.endswith(".csv"):
             file_path = os.path.join(csv_dir, file)
-            __get_relevant_venues(file_path=file_path, venue_by_id=venue_by_id)
+            data = get_data(file_path)
+            __get_relevant_venues(data=data, items_by_id=items_by_id)
+            __get_resp_agents(data=data, items_by_id=items_by_id)
         if verbose:
             pbar.update()
     if verbose:
         pbar.close()
-    venue_merged = __do_collective_merge(venue_by_id, verbose)
-    __save_relevant_venues(venue_merged, items_per_file, output_dir)          
+    item_merged = __do_collective_merge(items_by_id, verbose)
+    __save_relevant_items(item_merged, items_per_file, output_dir)          
 
-def __get_relevant_venues(file_path:str, venue_by_id:dict) -> None:
-    data = get_data(file_path)
+def __get_relevant_venues(data:List[dict], items_by_id:dict) -> None:
     for row in data:
         if row['venue']:
-            venue_name_and_ids = re.search(name_and_ids, row['venue'])
-            venue_name = venue_name_and_ids.group(1) if venue_name_and_ids else row['venue']
-            venue_ids = venue_name_and_ids.group(2) if venue_name_and_ids else None
-            if venue_ids:
-                venue_ids_list = venue_ids.split()
-                first_id = venue_ids_list[0]
-                venue_by_id.setdefault(first_id, {'others': set(), 'name': venue_name})
-                venue_by_id[first_id]['others'].update({id for id in venue_ids_list if id != first_id})
+            __update_items_by_id(item=row['venue'], field='journal', items_by_id=items_by_id)
 
-def __do_collective_merge(venue_by_id:dict, verbose:bool) -> dict:
+def __get_resp_agents(data:List[dict], items_by_id:Dict[str, Dict[str, set]]) -> None:
+    for row in data:
+        for field in {'author', 'editor'}:
+            if row[field]:
+                resp_agents = re.split(semicolon_in_people_field, row[field])
+                for resp_agent in resp_agents:
+                    # Whether the responsible agent is listed as an author or editor is not important. 
+                    # In fact, the agent role will not be recorded on the triplestore, 
+                    # but the only information registered will be the people and their identifier
+                    __update_items_by_id(item=resp_agent, field='author', items_by_id=items_by_id)
+
+def __update_items_by_id(item:str, field:str,  items_by_id:Dict[str, Dict[str, set]]) -> None:
+    full_name_and_ids = re.search(name_and_ids, item)
+    name = full_name_and_ids.group(1) if full_name_and_ids else item
+    ids = full_name_and_ids.group(2) if full_name_and_ids else None
+    if ids:
+        ids_list = ids.split()
+        first_id = ids_list[0]
+        items_by_id.setdefault(first_id, {'others': set(), 'name': name, 'type': field})
+        items_by_id[first_id]['others'].update({id for id in ids_list if id != first_id})
+
+def __do_collective_merge(items_by_id:dict, verbose:bool) -> dict:
     if verbose:
-        print('[INFO:prepare_multiprocess] Merging the relevant venues found')
-        pbar = tqdm(total=len(venue_by_id))
-    venue_merged = dict()
-    for id, data in venue_by_id.items():
-        if id in venue_merged:
+        print('[INFO:prepare_multiprocess] Merging the relevant items found')
+        pbar = tqdm(total=len(items_by_id))
+    item_merged = dict()
+    for id, data in items_by_id.items():
+        if id in item_merged:
             key_to_update = id
         else:
-            key_to_update = next((k for k,v in venue_merged.items() if id in v['others']), None)
+            key_to_update = next((k for k,v in item_merged.items() if id in v['others']), None)
         if key_to_update:
-            venue_merged[key_to_update]['others'].update(data['others'])
+            item_merged[key_to_update]['others'].update(data['others'])
         else:
-            venue_merged[id] = data
+            item_merged[id] = data
         if verbose:
             pbar.update()
     if verbose:
         pbar.close()
-    return venue_merged
+    return item_merged
 
-def __save_relevant_venues(venue_by_id:dict, items_per_file:int, output_dir:str):
+def __save_relevant_items(items_by_id:dict, items_per_file:int, output_dir:str):
     fieldnames = ['id', 'title', 'author', 'pub_date', 'venue', 'volume', 'issue', 'page', 'type', 'publisher', 'editor']
     rows = list()
     chunks = int(items_per_file)
     saved_chunks = 0
-    output_length = len(venue_by_id)
-    for venue_id, data in venue_by_id.items():
+    output_length = len(items_by_id)
+    for item_id, data in items_by_id.items():
+        item_type = data['type']
         row = dict()
-        ids = list(data['others'])
-        ids.append(venue_id)
-        row['id'] = ' '.join(ids)
-        row['title'] = data['name']
-        row['type'] = 'journal'
+        ids_list = list(data['others'])
+        ids_list.append(item_id)
+        name = data['name']
+        ids = ' '.join(ids_list)
+        if item_type == 'journal':
+            row['id'] = ids
+            row['title'] = name
+            row['type'] = item_type
+        elif item_type == 'author':
+            row[item_type] = f'{name} [{ids}]'
         rows.append(row)
-        data_about_to_end = (output_length - saved_chunks) < chunks
+        data_about_to_end = (output_length - saved_chunks) < chunks and (output_length - saved_chunks) == len(rows)
         if len(rows) == chunks or data_about_to_end:
             saved_chunks = saved_chunks + chunks if not data_about_to_end else output_length
             filename = f"{str(saved_chunks)}.csv"
@@ -113,7 +134,7 @@ def __save_relevant_venues(venue_by_id:dict, items_per_file:int, output_dir:str)
 def split_by_publisher(csv_dir: str, output_dir: str, verbose:bool=False) -> None:
     '''
     This function receives an input folder containing CSVs formatted for Meta. 
-    It output other CSVs divided by publisher. The output files names match the publishers’s ids and contain only documents published by that publisher.
+    It output other CSVs divided by publisher. The output files names match the publishers's ids and contain only documents published by that publisher.
     For example, a file containing documents published by the American Mathematical Society on Crossref will be called crossref_14.csv, because this publisher has id 14 on Crossref.
 
     :params csv_dir: the path to the folder containing the input CSV files

@@ -21,7 +21,7 @@
 # Endpoint URL to load the output RDF
 triplestore_url: http://localhost:19999/blazegraph/sparql
 # Directory where raw CSV files are stored
-input_csv_dir: C:/Users/arcangelo.massari2/OneDrive - Alma Mater Studiorum Università di Bologna/Desktop/meta_output/meta_input
+input_csv_dir: C:/Users/arcangelo.massari2/OneDrive - Alma Mater Studiorum Università di Bologna/Desktop/meta-repo/meta_input
 # The path to the base directory to save all output files
 base_output_dir: C:/Users/arcangelo.massari2/OneDrive - Alma Mater Studiorum Università di Bologna/Desktop/meta-repo/output
 # A URI string representing the provenance agent which is considered responsible for the RDF graph manipulation
@@ -49,7 +49,7 @@ source: https://api.crossref.org/
 # If True, use the DOI API service to check if DOIs are valid
 use_doi_api_service: False
 # Number of cores to devote to the Meta process
-workers_number: 1
+workers_number: 24
 # Show a loading bar, elapsed time and estimated time
 verbose: True
 
