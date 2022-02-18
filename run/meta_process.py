@@ -6,40 +6,41 @@ from meta.scripts.creator import Creator
 from meta.scripts.curator import Curator
 from meta.lib.csvmanager import CSVManager
 
-from concurrent.futures import ProcessPoolExecutor, as_completed
-from datetime import datetime
-from argparse import ArgumentParser
 import yaml
 import os
 import csv
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from datetime import datetime
+from argparse import ArgumentParser
 from tqdm import tqdm
-from typing import Set
+from typing import Set, Tuple
 
 class MetaProcess:
     def __init__(self, config:str):
         with open(config, encoding='utf-8') as file:
             settings = yaml.full_load(file)
+        # Mandatory settings
         self.triplestore_url = settings['triplestore_url']
-        self.info_dir = normalize_path(settings['info_dir'])
-        self.resp_agent = settings['resp_agent']
         self.input_csv_dir = normalize_path(settings['input_csv_dir'])
-        self.output_csv_dir = normalize_path(settings['output_csv_dir'])
-        output_rdf_dir = normalize_path(settings['output_rdf_dir'])
-        self.output_rdf_dir = f'{output_rdf_dir}/' if output_rdf_dir[-1] != '/' else output_rdf_dir
-        self.indexes_dir = normalize_path(settings['indexes_dir'])
-        self.cache_path = normalize_path(settings['cache_path'])
-
+        self.base_output_dir = normalize_path(settings['base_output_dir'])
+        self.resp_agent = settings['resp_agent']
+        self.info_dir = os.path.join(self.base_output_dir, 'info_dir')
+        self.output_csv_dir = os.path.join(self.base_output_dir, 'csv')
+        self.output_rdf_dir = os.path.join(self.base_output_dir, f'rdf{os.sep}')
+        self.indexes_dir = os.path.join(self.base_output_dir, 'indexes')
+        self.cache_path = os.path.join(self.base_output_dir, 'cache.txt')
+        # Optional settings
         self.base_iri = settings['base_iri']
         self.context_path = settings['context_path']
         self.dir_split_number = settings['dir_split_number']
         self.items_per_file = settings['items_per_file']
-        self.default_dir = normalize_path(settings['default_dir'])
+        self.default_dir = settings['default_dir']
         self.rdf_output_in_chunks = settings['rdf_output_in_chunks']
         self.source = settings['source']
-        self.valid_dois_cache = CSVManager() if bool(settings['supplier_prefix']) == True else None
-        self.run_in_multiprocess = bool(settings['run_in_multiprocess'])
+        self.valid_dois_cache = CSVManager() if bool(settings['use_doi_api_service']) == True else None
+        self.workers_number = int(settings['workers_number'])
         supplier_prefix:str = settings['supplier_prefix']
-        self.supplier_prefix = supplier_prefix[:-1] if self.run_in_multiprocess and supplier_prefix.endswith('0') else supplier_prefix
+        self.supplier_prefix = supplier_prefix[:-1] if self.workers_number > 1 and supplier_prefix.endswith('0') else supplier_prefix
         self.verbose = settings['verbose']
 
     def prepare_folders(self) -> Set[str]:
@@ -54,28 +55,27 @@ class MetaProcess:
         for dir in [self.output_csv_dir, self.indexes_dir, self.output_rdf_dir]:
             pathoo(dir)
         if self.rdf_output_in_chunks:
+            data_dir = os.path.join(self.output_rdf_dir, 'data' + os.sep)
             prov_dir = os.path.join(self.output_rdf_dir, 'prov' + os.sep)
-            nt_dir = os.path.join(self.output_rdf_dir, 'nt' + os.sep)
-            for dir in [prov_dir, nt_dir]:
+            for dir in [prov_dir, data_dir]:
                 pathoo(dir)
         csv.field_size_limit(128)
         return files_to_be_processed
 
-    def run_meta_process(self, filename:str, worker_number:int=None) -> None:
+    def curate_and_create(self, filename:str, worker_number:int=None) -> Tuple[Storer, Storer, str]:
         filepath = os.path.join(self.input_csv_dir, filename)
-        data = get_data(filepath)
+        data = get_data(filepath)[:10]
         if worker_number:
             worker_number = worker_number + 1 if worker_number % 10 == 0 else worker_number
         supplier_prefix = self.supplier_prefix if worker_number is None else f'{self.supplier_prefix}{str(worker_number)}0'
         # Curator
-        info_dir = os.path.join(self.info_dir, supplier_prefix) if worker_number else self.info_dir
-        curator_info_dir = os.path.join(info_dir, 'curator' + os.sep)
+        self.info_dir = os.path.join(self.info_dir, supplier_prefix) if worker_number else self.info_dir
+        curator_info_dir = os.path.join(self.info_dir, 'curator' + os.sep)
         curator_obj = Curator(data=data, ts=self.triplestore_url, info_dir=curator_info_dir, base_iri=self.base_iri, prefix=supplier_prefix, valid_dois_cache=self.valid_dois_cache)
-        name = datetime.now().strftime('%Y-%m-%dT%H_%M_%S') + supplier_prefix
+        name = f"{datetime.now().strftime('%Y-%m-%dT%H_%M_%S')}_{supplier_prefix}"
         curator_obj.curator(filename=name, path_csv=self.output_csv_dir, path_index=self.indexes_dir)
-        # with suppress_stdout():
         # Creator
-        creator_info_dir = os.path.join(info_dir, 'creator' + os.sep)
+        creator_info_dir = os.path.join(self.info_dir, 'creator' + os.sep)
         creator_obj = Creator(
             data=curator_obj.data, base_iri=self.base_iri, info_dir=creator_info_dir, supplier_prefix=supplier_prefix, resp_agent=self.resp_agent, ra_index=curator_obj.index_id_ra, 
             br_index=curator_obj.index_id_br, re_index_csv=curator_obj.re_index, ar_index_csv=curator_obj.ar_index, vi_index=curator_obj.VolIss)
@@ -85,50 +85,45 @@ class MetaProcess:
         prov.generate_provenance()
         # Storer
         res_storer = Storer(creator, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, default_dir=self.default_dir, output_format='json-ld')
-        prov_storer = Storer(prov, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, output_format='nquads')
+        prov_storer = Storer(prov, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, output_format='json-ld')
+        return res_storer, prov_storer, filename
+    
+    def store_data_and_prov(self, res_storer:Storer, prov_storer:Storer, filename:str) -> None:
         if self.rdf_output_in_chunks:
             filename_without_csv = filename[:-4]
-            f = os.path.join(self.output_rdf_dir, 'nt', filename_without_csv + '.nt')
+            f = os.path.join(self.output_rdf_dir, 'data', filename_without_csv + '.json')
             res_storer.store_graphs_in_file(f, self.context_path)
             res_storer.upload_all(self.triplestore_url, self.output_rdf_dir, batch_size=100)
-            # Provenance
-            f_prov = os.path.join(self.output_rdf_dir, 'prov', filename_without_csv + '.nq')
+            f_prov = os.path.join(self.output_rdf_dir, 'prov', filename_without_csv + '.json')
             prov_storer.store_graphs_in_file(f_prov, self.context_path)
         else:
             res_storer.upload_and_store(self.output_rdf_dir, self.triplestore_url, self.base_iri, self.context_path, batch_size=100)
             prov_storer.store_all(self.output_rdf_dir, self.base_iri, self.context_path)
-        with open(self.cache_path, 'a', encoding='utf-8') as aux_file:
-            aux_file.write(filename + '\n')
+    
+
+def run_meta_process(config_path:str) -> None:
+    meta_process = MetaProcess(config=config_path)
+    # Start the Meta process
+    files_to_be_processed = meta_process.prepare_folders()
+    pbar = tqdm(total=len(files_to_be_processed)) if meta_process.verbose else None
+    max_workers = meta_process.workers_number
+    multiples_of_ten = {i for i in range(max_workers) if i % 10 == 0}
+    workers = [i for i in range(max_workers+len(multiples_of_ten)) if i not in multiples_of_ten]
+    while len(files_to_be_processed) > 0:
+        with ProcessPoolExecutor() as executor:
+            results = [executor.submit(meta_process.curate_and_create, filename, worker_number) for filename, worker_number in zip(files_to_be_processed, workers)]
+            for f in as_completed(results):
+                res_storer, prov_storer, processed_file = f.result()
+                # with suppress_stdout():
+                meta_process.store_data_and_prov(res_storer=res_storer, prov_storer=prov_storer, filename=processed_file)
+                files_to_be_processed.remove(processed_file)
+                with open(meta_process.cache_path, 'a', encoding='utf-8') as aux_file:
+                    aux_file.write(processed_file + '\n')
+                pbar.update() if pbar else None
+    pbar.close() if pbar else None
 
 if __name__ == '__main__':
     arg_parser = ArgumentParser('meta_process.py', description='This script runs the OCMeta data processing workflow')
     arg_parser.add_argument('-c', '--config', dest='config', required=True, help='Configuration file directory')
     args = arg_parser.parse_args()
-    meta_process = MetaProcess(config=args.config)
-    # Start the Meta process
-    files_to_be_processed = meta_process.prepare_folders()
-    max_workers = os.cpu_count()
-    supplier_prefix = meta_process.supplier_prefix
-    pbar = tqdm(total=len(files_to_be_processed)) if meta_process.verbose else None
-    if meta_process.run_in_multiprocess:
-        counter = len(files_to_be_processed)
-        workers = list()
-        while counter:
-            multiples_of_ten = {i for i in range(max_workers) if i % 10 == 0}
-            valid_workers = [i for i in range(max_workers+len(multiples_of_ten)) if i not in multiples_of_ten]
-            workers.extend(valid_workers)
-            counter -=1
-        with ProcessPoolExecutor() as executor:
-            try:
-                results = [executor.submit(meta_process.run_meta_process, filename, worker_number) for filename, worker_number in zip(files_to_be_processed, workers)]
-                for f in as_completed(results):
-                    pbar.update() if pbar else None
-                    if f.result() is not None:
-                        print(f'En error occurred: {f.result()}')
-            except KeyboardInterrupt:
-                executor.shutdown(wait=False, cancel_futures=True)
-    else:
-        for filename in files_to_be_processed:
-            meta_process.run_meta_process(filename)
-            pbar.update() if pbar else None
-    pbar.close() if pbar else None
+    run_meta_process(args.config)

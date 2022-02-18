@@ -20,20 +20,12 @@
 
 # Endpoint URL to load the output RDF
 triplestore_url: http://localhost:19999/blazegraph/sparql
-# A support folder to save counters of the various types of entities. It must not be deleted or moved until the end of the Meta process
-info_dir: C:/Users/arcangelo.massari2/OneDrive - Alma Mater Studiorum Università di Bologna/Desktop/meta_output/output/info_dir
-# A URI string representing the provenance agent which is considered responsible for the RDF graph manipulation
-resp_agent: https://orcid.org/0000-0002-8420-0696
 # Directory where raw CSV files are stored
 input_csv_dir: C:/Users/arcangelo.massari2/OneDrive - Alma Mater Studiorum Università di Bologna/Desktop/meta_output/meta_input
-# Directory where cleaned CSV files will be stored
-output_csv_dir: C:/Users/arcangelo.massari2/OneDrive - Alma Mater Studiorum Università di Bologna/Desktop/meta_output/output/csv
-# Directory where both output RDF data and provenance files will be stored
-output_rdf_dir: C:/Users/arcangelo.massari2/OneDrive - Alma Mater Studiorum Università di Bologna/Desktop/meta_output/output/rdf
-# Indices are products of the CSV cleaning step, and they are necessary for RDF files' creation
-indexes_dir: C:/Users/arcangelo.massari2/OneDrive - Alma Mater Studiorum Università di Bologna/Desktop/meta_output/output/indexes
-# Path of a text file containing a list of processed CSVs. It will be created if it doesn't exist. This file is helpful to avoid repeating the process twice for the same file
-cache_path: C:/Users/arcangelo.massari2/OneDrive - Alma Mater Studiorum Università di Bologna/Desktop/meta_output/output/cache.txt
+# The path to the base directory to save all output files
+base_output_dir: C:/Users/arcangelo.massari2/OneDrive - Alma Mater Studiorum Università di Bologna/Desktop/meta-repo/output
+# A URI string representing the provenance agent which is considered responsible for the RDF graph manipulation
+resp_agent: https://orcid.org/0000-0002-8420-0696
 
 # Optional settings
 
@@ -45,6 +37,7 @@ context_path: https://w3id.org/oc/corpus/context.json
 dir_split_number: 10000
 # Number of items per file. This parameter is useful only if you choose to return the output in json-ld format
 items_per_file: 1000
+# This value is used as the default prefix if no prefix is specified. It is a deprecated parameter, valid only for backward compatibility and can safely be ignored
 default_dir: _
 # A prefix for the sequential number in entities’ URIs. This setting can be safely left as is
 supplier_prefix: '060'
@@ -55,8 +48,8 @@ rdf_output_in_chunks: False
 source: https://api.crossref.org/
 # If True, use the DOI API service to check if DOIs are valid
 use_doi_api_service: False
-# If True, the Meta software runs in multiprocess
-run_in_multiprocess: True
+# Number of cores to devote to the Meta process
+workers_number: 1
 # Show a loading bar, elapsed time and estimated time
 verbose: True
 
