@@ -46,7 +46,8 @@ class TestPrepareMultiprocess(unittest.TestCase):
         item_1 = 'Venue [id:a id:b id:c]'
         item_2 = 'Venue [id:a id:d]'
         item_3 = 'Venue [id:e id:d]'
-        items = [item_1, item_2, item_3]
+        item_4 = 'Venue [id:e id:f]'
+        items = [item_1, item_2, item_3, item_4]
         for item in items:
             _update_items_by_id(item=item, field='journal', items_by_id=items_by_id)
         expected_output = {
@@ -54,7 +55,8 @@ class TestPrepareMultiprocess(unittest.TestCase):
             'id:b': {'others': {'id:c', 'id:a'}, 'name': 'Venue', 'type': 'journal'}, 
             'id:c': {'others': {'id:b', 'id:a'}, 'name': 'Venue', 'type': 'journal'}, 
             'id:d': {'others': {'id:e', 'id:a'}, 'name': 'Venue', 'type': 'journal'}, 
-            'id:e': {'others': {'id:d'}, 'name': 'Venue', 'type': 'journal'}}
+            'id:e': {'others': {'id:d', 'id:f'}, 'name': 'Venue', 'type': 'journal'},
+            'id:f': {'others': {'id:e'}, 'name': 'Venue', 'type': 'journal'}}
         self.assertEqual(items_by_id, expected_output)
 
     def test__do_collective_merge(self):
@@ -63,10 +65,13 @@ class TestPrepareMultiprocess(unittest.TestCase):
             'id:b': {'others': {'id:c', 'id:a'}, 'name': 'Venue', 'type': 'journal'}, 
             'id:c': {'others': {'id:b', 'id:a'}, 'name': 'Venue', 'type': 'journal'}, 
             'id:d': {'others': {'id:e', 'id:a'}, 'name': 'Venue', 'type': 'journal'}, 
-            'id:e': {'others': {'id:d'}, 'name': 'Venue', 'type': 'journal'}}
+            'id:e': {'others': {'id:d', 'id:f'}, 'name': 'Venue', 'type': 'journal'},
+            'id:f': {'others': {'id:e'}, 'name': 'Venue', 'type': 'journal'},
+            'id:h': {'others': {}, 'name': 'Other venue', 'type': 'journal'}}
         output = _do_collective_merge(items)
         expected_output = {
-            'id:a': {'name': 'Venue', 'type': 'journal', 'others': {'id:d', 'id:b', 'id:e', 'id:c'}}}
+            'id:a': {'name': 'Venue', 'type': 'journal', 'others': {'id:d', 'id:b', 'id:e', 'id:c', 'id:f'}},
+            'id:h': {'others': set(), 'name': 'Other venue', 'type': 'journal'}}
         self.assertEqual(output, expected_output)
 
 if __name__ == '__main__':

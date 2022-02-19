@@ -26,6 +26,8 @@ import os
 import re
 
 
+FORBIDDEN_IDS = {'issn:0000-0000'}
+
 def prepare_relevant_items(csv_dir:str, output_dir:str, items_per_file:int, verbose:bool) -> None:
     '''
     This function receives an input folder containing CSVs formatted for Meta. 
@@ -90,6 +92,7 @@ def _update_items_by_id(item:str, field:str,  items_by_id:Dict[str, Dict[str, se
 def _do_collective_merge(items_by_id:dict, verbose:bool=False) -> dict:
     if verbose:
         print('[INFO:prepare_multiprocess] Merging the relevant items found')
+        pbar = tqdm(total=len(items_by_id))
     merged_by_key:Dict[str, Dict[str, set]] = dict()
     ids_checked = set()
     for id, data in items_by_id.items():
@@ -98,13 +101,25 @@ def _do_collective_merge(items_by_id:dict, verbose:bool=False) -> dict:
             all_ids.update(data['others'])
             for other in data['others']:
                 if other not in ids_checked:
-                    all_ids.update({item for item in items_by_id[other]['others'] if item != id})
-            merged_by_key[id] = {'name': data['name'], 'type': data['type'], 'name': data['name']}
-            merged_by_key[id]['others'] = all_ids
-            ids_checked.update(all_ids)
-            ids_checked.add(id)
+                    ids_found = __find_all_ids_by_key(items_by_id, key=other)
+                    all_ids.update({item for item in ids_found if item != id})
+                    ids_checked.update(ids_found)
+            merged_by_key[id] = {'name': data['name'], 'type': data['type'], 'others': all_ids}
+        pbar.update() if verbose else None
+    pbar.close() if verbose else None
     del items_by_id
     return merged_by_key
+
+def __find_all_ids_by_key(items_by_id:dict, key:str):
+    visited_items = set()
+    items_to_visit = {item for item in items_by_id[key]['others']}
+    while items_to_visit:
+        for item in set(items_to_visit):
+            if item not in visited_items:
+                visited_items.add(item)
+                items_to_visit.update({item for item in items_by_id[item]['others'] if item not in visited_items})
+            items_to_visit.remove(item)
+    return visited_items
 
 def __save_relevant_items(items_by_id:dict, items_per_file:int, output_dir:str):
     fieldnames = ['id', 'title', 'author', 'pub_date', 'venue', 'volume', 'issue', 'page', 'type', 'publisher', 'editor']
@@ -133,25 +148,6 @@ def __save_relevant_items(items_by_id:dict, items_per_file:int, output_dir:str):
             output_path = os.path.join(output_dir, filename)
             write_csv(path=output_path, datalist=rows, fieldnames=fieldnames)
             rows = list()
-
-def run_custom_meta_process(meta_process:MetaProcess):
-    files_to_be_processed = meta_process.prepare_folders()
-    pbar = tqdm(total=len(files_to_be_processed)) if meta_process.verbose else None
-    max_workers = meta_process.workers_number
-    multiples_of_ten = {i for i in range(max_workers) if i % 10 == 0}
-    workers = [i for i in range(max_workers+len(multiples_of_ten)) if i not in multiples_of_ten]
-    while len(files_to_be_processed) > 0:
-        with ProcessPoolExecutor() as executor:
-            results = [executor.submit(meta_process.curate_and_create, filename, worker_number) for filename, worker_number in zip(files_to_be_processed, workers)]
-            for f in as_completed(results):
-                res_storer, prov_storer, processed_file = f.result()
-                # with suppress_stdout():
-                meta_process.store_data_and_prov(res_storer=res_storer, prov_storer=prov_storer, filename=processed_file)
-                files_to_be_processed.remove(processed_file)
-                with open(meta_process.cache_path, 'a', encoding='utf-8') as aux_file:
-                    aux_file.write(processed_file + '\n')
-                pbar.update() if pbar else None
-    pbar.close() if pbar else None
 
 def delete_unwanted_statements(meta_process:MetaProcess):
     indexes_dir = meta_process.indexes_dir
