@@ -46,7 +46,7 @@ class TestPrepareMultiprocess(unittest.TestCase):
         item_1 = 'Venue [id:a id:b id:c]'
         item_2 = 'Venue [id:a id:d]'
         item_3 = 'Venue [id:e id:d]'
-        item_4 = 'Venue [id:e id:f]'
+        item_4 = 'Venue [id:e id:f issn:0000-0000]'
         items = [item_1, item_2, item_3, item_4]
         for item in items:
             _update_items_by_id(item=item, field='journal', items_by_id=items_by_id)

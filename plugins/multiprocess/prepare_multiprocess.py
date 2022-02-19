@@ -84,7 +84,7 @@ def _update_items_by_id(item:str, field:str,  items_by_id:Dict[str, Dict[str, se
     name = full_name_and_ids.group(1) if full_name_and_ids else item
     ids = full_name_and_ids.group(2) if full_name_and_ids else None
     if ids:
-        ids_list = ids.split()
+        ids_list = [identifier for identifier in ids.split() if identifier not in FORBIDDEN_IDS]
         for id in ids_list:
             items_by_id.setdefault(id, {'others': set(), 'name': name, 'type': field})
             items_by_id[id]['others'].update({other for other in ids_list if other != id})
