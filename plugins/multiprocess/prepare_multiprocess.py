@@ -15,8 +15,11 @@
 # SOFTWARE.
 
 
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from meta.lib.file_manager import pathoo, get_data, write_csv
 from meta.lib.master_of_regex import ids_inside_square_brackets, name_and_ids, semicolon_in_people_field
+from meta.run.meta_process import MetaProcess
+from SPARQLWrapper import SPARQLWrapper, POST
 from typing import List, Dict
 from tqdm import tqdm
 import os
@@ -39,13 +42,13 @@ def prepare_relevant_items(csv_dir:str, output_dir:str, items_per_file:int, verb
     :type verbose: bool
     :returns: None -- This function returns None and saves the output CSV files in the `output_dir` folder
     '''
-    files = os.listdir(csv_dir)[:10]
+    files = os.listdir(csv_dir)
     if verbose:
         pbar = tqdm(total=len(files))
     pathoo(output_dir)
     items_by_id = dict()
     for file in files:
-        if file.endswith(".csv"):
+        if file.endswith('.csv'):
             file_path = os.path.join(csv_dir, file)
             data = get_data(file_path)
             __get_relevant_venues(data=data, items_by_id=items_by_id)
@@ -54,13 +57,14 @@ def prepare_relevant_items(csv_dir:str, output_dir:str, items_per_file:int, verb
             pbar.update()
     if verbose:
         pbar.close()
-    item_merged = __do_collective_merge(items_by_id, verbose)
-    __save_relevant_items(item_merged, items_per_file, output_dir)          
+    item_merged = _do_collective_merge(items_by_id, verbose)
+    __save_relevant_items(item_merged, items_per_file, output_dir)
+    del item_merged   
 
 def __get_relevant_venues(data:List[dict], items_by_id:dict) -> None:
     for row in data:
         if row['venue']:
-            __update_items_by_id(item=row['venue'], field='journal', items_by_id=items_by_id)
+            _update_items_by_id(item=row['venue'], field='journal', items_by_id=items_by_id)
 
 def __get_resp_agents(data:List[dict], items_by_id:Dict[str, Dict[str, set]]) -> None:
     for row in data:
@@ -71,37 +75,36 @@ def __get_resp_agents(data:List[dict], items_by_id:Dict[str, Dict[str, set]]) ->
                     # Whether the responsible agent is listed as an author or editor is not important. 
                     # In fact, the agent role will not be recorded on the triplestore, 
                     # but the only information registered will be the people and their identifier
-                    __update_items_by_id(item=resp_agent, field='author', items_by_id=items_by_id)
+                    _update_items_by_id(item=resp_agent, field='author', items_by_id=items_by_id)
 
-def __update_items_by_id(item:str, field:str,  items_by_id:Dict[str, Dict[str, set]]) -> None:
+def _update_items_by_id(item:str, field:str,  items_by_id:Dict[str, Dict[str, set]]) -> None:
     full_name_and_ids = re.search(name_and_ids, item)
     name = full_name_and_ids.group(1) if full_name_and_ids else item
     ids = full_name_and_ids.group(2) if full_name_and_ids else None
     if ids:
         ids_list = ids.split()
-        first_id = ids_list[0]
-        items_by_id.setdefault(first_id, {'others': set(), 'name': name, 'type': field})
-        items_by_id[first_id]['others'].update({id for id in ids_list if id != first_id})
+        for id in ids_list:
+            items_by_id.setdefault(id, {'others': set(), 'name': name, 'type': field})
+            items_by_id[id]['others'].update({other for other in ids_list if other != id})
 
-def __do_collective_merge(items_by_id:dict, verbose:bool) -> dict:
+def _do_collective_merge(items_by_id:dict, verbose:bool=False) -> dict:
     if verbose:
         print('[INFO:prepare_multiprocess] Merging the relevant items found')
-        pbar = tqdm(total=len(items_by_id))
-    item_merged = dict()
+    merged_by_key:Dict[str, Dict[str, set]] = dict()
+    ids_checked = set()
     for id, data in items_by_id.items():
-        if id in item_merged:
-            key_to_update = id
-        else:
-            key_to_update = next((k for k,v in item_merged.items() if id in v['others']), None)
-        if key_to_update:
-            item_merged[key_to_update]['others'].update(data['others'])
-        else:
-            item_merged[id] = data
-        if verbose:
-            pbar.update()
-    if verbose:
-        pbar.close()
-    return item_merged
+        if id not in ids_checked:
+            all_ids = set()
+            all_ids.update(data['others'])
+            for other in data['others']:
+                if other not in ids_checked:
+                    all_ids.update({item for item in items_by_id[other]['others'] if item != id})
+            merged_by_key[id] = {'name': data['name'], 'type': data['type'], 'name': data['name']}
+            merged_by_key[id]['others'] = all_ids
+            ids_checked.update(all_ids)
+            ids_checked.add(id)
+    del items_by_id
+    return merged_by_key
 
 def __save_relevant_items(items_by_id:dict, items_per_file:int, output_dir:str):
     fieldnames = ['id', 'title', 'author', 'pub_date', 'venue', 'volume', 'issue', 'page', 'type', 'publisher', 'editor']
@@ -126,12 +129,68 @@ def __save_relevant_items(items_by_id:dict, items_per_file:int, output_dir:str):
         data_about_to_end = (output_length - saved_chunks) < chunks and (output_length - saved_chunks) == len(rows)
         if len(rows) == chunks or data_about_to_end:
             saved_chunks = saved_chunks + chunks if not data_about_to_end else output_length
-            filename = f"{str(saved_chunks)}.csv"
+            filename = f'{str(saved_chunks)}.csv'
             output_path = os.path.join(output_dir, filename)
             write_csv(path=output_path, datalist=rows, fieldnames=fieldnames)
             rows = list()
 
-def split_by_publisher(csv_dir: str, output_dir: str, verbose:bool=False) -> None:
+def run_custom_meta_process(meta_process:MetaProcess):
+    files_to_be_processed = meta_process.prepare_folders()
+    pbar = tqdm(total=len(files_to_be_processed)) if meta_process.verbose else None
+    max_workers = meta_process.workers_number
+    multiples_of_ten = {i for i in range(max_workers) if i % 10 == 0}
+    workers = [i for i in range(max_workers+len(multiples_of_ten)) if i not in multiples_of_ten]
+    while len(files_to_be_processed) > 0:
+        with ProcessPoolExecutor() as executor:
+            results = [executor.submit(meta_process.curate_and_create, filename, worker_number) for filename, worker_number in zip(files_to_be_processed, workers)]
+            for f in as_completed(results):
+                res_storer, prov_storer, processed_file = f.result()
+                # with suppress_stdout():
+                meta_process.store_data_and_prov(res_storer=res_storer, prov_storer=prov_storer, filename=processed_file)
+                files_to_be_processed.remove(processed_file)
+                with open(meta_process.cache_path, 'a', encoding='utf-8') as aux_file:
+                    aux_file.write(processed_file + '\n')
+                pbar.update() if pbar else None
+    pbar.close() if pbar else None
+
+def delete_unwanted_statements(meta_process:MetaProcess):
+    indexes_dir = meta_process.indexes_dir
+    files = [os.path.join(fold,file) for fold, _, files in os.walk(indexes_dir) for file in files if file == 'index_ar.csv']
+    verbose = meta_process.verbose
+    if verbose:
+        print('[INFO:prepare_multiprocess] Deleting unwanted statements from the triplestore')
+        pbar = tqdm(total=len(files))
+    base_iri = meta_process.base_iri[:-1] if meta_process.base_iri[-1] == '/' else meta_process.base_iri
+    triplestore_url = meta_process.triplestore_url
+    with ProcessPoolExecutor(meta_process.workers_number) as executor:
+        results = [executor.submit(__submit_delete_query, file_path, triplestore_url, base_iri) for file_path in files]
+        for _ in as_completed(results):
+            pbar.update() if verbose else None
+    pbar.close() if verbose else None
+    
+def __submit_delete_query(file_path:str, triplestore_url:str, base_iri:str):
+    sparql = SPARQLWrapper(triplestore_url)
+    sparql.setMethod(POST)
+    data = get_data(file_path)
+    for row in data:
+        br_metaid = row['meta']
+        ar_metaid = row['author'].split(', ')[0]
+        query = f'''
+            DELETE {{
+                ?s ?p ?o.
+            }}
+            WHERE {{
+                ?s ?p ?o.
+                VALUES ?s {{
+                    <{base_iri}/br/{br_metaid}>
+                    <{base_iri}/ar/{ar_metaid}>
+                }}
+            }}
+        '''
+        sparql.setQuery(query)
+        sparql.query()
+
+def split_by_publisher(csv_dir:str, output_dir:str, verbose:bool=False) -> None:
     '''
     This function receives an input folder containing CSVs formatted for Meta. 
     It output other CSVs divided by publisher. The output files names match the publishers's ids and contain only documents published by that publisher.
@@ -151,7 +210,7 @@ def split_by_publisher(csv_dir: str, output_dir: str, verbose:bool=False) -> Non
         print('[INFO:prepare_multiprocess] Splitting CSVs by publishers')
         pbar = tqdm(total=len(files))
     for file in files:
-        if file.endswith(".csv"):
+        if file.endswith('.csv'):
             file_path = os.path.join(csv_dir, file)
             data = get_data(file_path)
             data_by_publisher:Dict[str, List] = dict()

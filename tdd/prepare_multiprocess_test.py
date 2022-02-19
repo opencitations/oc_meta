@@ -1,5 +1,5 @@
 from csv import DictReader
-from meta.plugins.multiprocess.prepare_multiprocess import prepare_relevant_items, split_by_publisher
+from meta.plugins.multiprocess.prepare_multiprocess import prepare_relevant_items, split_by_publisher, _do_collective_merge, _update_items_by_id
 import os
 import shutil
 import unittest
@@ -40,6 +40,34 @@ class TestPrepareMultiprocess(unittest.TestCase):
             'crossref_6623.csv': [{'id': 'doi:10.17117/na.2015.08.1067', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': 'component', 'publisher': 'Consulting Company Ucom [crossref:6623]', 'editor': 'NAIMI, ELMEHDI [orcid:0000-0002-4126-8519]'}]}
         self.assertEqual(output, expected_output)
         shutil.rmtree(TMP_DIR)
+        
+    def test__update_items_by_id(self):
+        items_by_id = dict()
+        item_1 = 'Venue [id:a id:b id:c]'
+        item_2 = 'Venue [id:a id:d]'
+        item_3 = 'Venue [id:e id:d]'
+        items = [item_1, item_2, item_3]
+        for item in items:
+            _update_items_by_id(item=item, field='journal', items_by_id=items_by_id)
+        expected_output = {
+            'id:a': {'others': {'id:b', 'id:c', 'id:d'}, 'name': 'Venue', 'type': 'journal'}, 
+            'id:b': {'others': {'id:c', 'id:a'}, 'name': 'Venue', 'type': 'journal'}, 
+            'id:c': {'others': {'id:b', 'id:a'}, 'name': 'Venue', 'type': 'journal'}, 
+            'id:d': {'others': {'id:e', 'id:a'}, 'name': 'Venue', 'type': 'journal'}, 
+            'id:e': {'others': {'id:d'}, 'name': 'Venue', 'type': 'journal'}}
+        self.assertEqual(items_by_id, expected_output)
+
+    def test__do_collective_merge(self):
+        items = {
+            'id:a': {'others': {'id:b', 'id:c', 'id:d'}, 'name': 'Venue', 'type': 'journal'}, 
+            'id:b': {'others': {'id:c', 'id:a'}, 'name': 'Venue', 'type': 'journal'}, 
+            'id:c': {'others': {'id:b', 'id:a'}, 'name': 'Venue', 'type': 'journal'}, 
+            'id:d': {'others': {'id:e', 'id:a'}, 'name': 'Venue', 'type': 'journal'}, 
+            'id:e': {'others': {'id:d'}, 'name': 'Venue', 'type': 'journal'}}
+        output = _do_collective_merge(items)
+        expected_output = {
+            'id:a': {'name': 'Venue', 'type': 'journal', 'others': {'id:d', 'id:b', 'id:e', 'id:c'}}}
+        self.assertEqual(output, expected_output)
 
 if __name__ == '__main__':
     unittest.main()

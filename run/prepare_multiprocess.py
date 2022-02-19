@@ -1,7 +1,24 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+# Copyright (c) 2022 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# Permission to use, copy, modify, and/or distribute this software for any purpose
+# with or without fee is hereby granted, provided that the above copyright notice
+# and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED 'AS IS' AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+# FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT,
+# OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
+# DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS
+# ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
+# SOFTWARE
+
+
 from argparse import ArgumentParser
 from meta.lib.file_manager import normalize_path
 from meta.run.meta_process import MetaProcess, run_meta_process
-from meta.plugins.multiprocess.prepare_multiprocess import prepare_relevant_items, split_by_publisher
+from meta.plugins.multiprocess.prepare_multiprocess import prepare_relevant_items, split_by_publisher, delete_unwanted_statements
 import os
 import shutil
 import yaml
@@ -10,9 +27,8 @@ import yaml
 TMP_DIR = './tmp_dir'
 
 if __name__ == '__main__':
-    arg_parser = ArgumentParser('prepare_multiprocess.py', description='Venues are preprocessed not to create duplicates when running Meta in multi-process')
-    arg_parser.add_argument('-c', '--config', dest='config', required=True,
-                        help='Configuration file path')
+    arg_parser = ArgumentParser('prepare_multiprocess.py', description='Venues, authors and editors are preprocessed not to create duplicates when running Meta in multi-process')
+    arg_parser.add_argument('-c', '--config', dest='config', required=True, help='Configuration file path')
     args = arg_parser.parse_args()
     config = args.config
     with open(config, encoding='utf-8') as file:
@@ -26,10 +42,12 @@ if __name__ == '__main__':
     meta_process.input_csv_dir = TMP_DIR
     run_meta_process(meta_process=meta_process)
     shutil.rmtree(TMP_DIR)
+    delete_unwanted_statements(meta_process=meta_process)
     split_by_publisher(csv_dir=csv_dir, output_dir=TMP_DIR, verbose=verbose)
     os.rename(csv_dir, csv_dir + '_old')
     os.mkdir(csv_dir)
     for file in os.listdir(TMP_DIR):
         shutil.move(os.path.join(TMP_DIR, file), csv_dir)
-    shutil.rmtree(TMP_DIR)
+    for dir in {TMP_DIR, meta_process.output_csv_dir, meta_process.indexes_dir, meta_process.output_rdf_dir}:
+        shutil.rmtree(dir)
     os.remove(meta_process.cache_path)

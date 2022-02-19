@@ -111,8 +111,8 @@ def run_meta_process(meta_process:MetaProcess) -> None:
             results = [executor.submit(meta_process.curate_and_create, filename, worker_number) for filename, worker_number in zip(files_to_be_processed, workers)]
             for f in as_completed(results):
                 res_storer, prov_storer, processed_file = f.result()
-                # with suppress_stdout():
-                meta_process.store_data_and_prov(res_storer=res_storer, prov_storer=prov_storer, filename=processed_file)
+                with suppress_stdout():
+                    meta_process.store_data_and_prov(res_storer=res_storer, prov_storer=prov_storer, filename=processed_file)
                 files_to_be_processed.remove(processed_file)
                 with open(meta_process.cache_path, 'a', encoding='utf-8') as aux_file:
                     aux_file.write(processed_file + '\n')
