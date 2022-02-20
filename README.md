@@ -40,6 +40,8 @@ The configuration file is a YAML file with the following keys (an example can be
 | supplier\_prefix        | ☓         | A prefix for the sequential number in entities’ URIs. This setting can be safely left as is                                                                                                                                                                    |
 | rdf\_output\_in\_chunks | ☓         | If True, save all the graphset and provset in one file, and save all the graphset on the triplestore. If False, the graphs are saved according to the usual OpenCitations strategy (the "complex" hierarchy of folders and subfolders for each type of entity) |
 | source                  | ☓         | Data source URL. This setting can be safely left as is                                                                                                                                                                                                         |
+| use\_doi\_api\_service  | ☓         | If True, use the DOI API service to check if DOIs are valid                                                                                                                                                                                                    |
+| workers\_number         | ☓         | Number of cores to devote to the Meta process                                                                                                                                                                                                                  |
 | verbose                 | ☓         | Show a loading bar, elapsed time and estimated time. This setting can be safely left as is                                                                                                                                                                     |
 
 ## Plugins
@@ -137,7 +139,7 @@ The configuration file is a YAML file with the following keys (an example can be
 
 ### Prepare the multiprocess
 
-Before running Meta in multiprocess, it is necessary to prepare the input files. In particular, the CSV files must be divided by publisher, and venues loaded on the triplestore, in order not to generate duplicates during the multiprocess. These operations can be done by simply running the following script:
+Before running Meta in multiprocess, it is necessary to prepare the input files. In particular, the CSV files must be divided by publisher, while venues and authors having an identifier must be loaded on the triplestore, in order not to generate duplicates during the multiprocess. These operations can be done by simply running the following script:
 
 ```console
     python -m meta.run.prepare_multiprocess -c <PATH>
