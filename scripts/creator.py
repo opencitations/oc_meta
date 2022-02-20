@@ -254,10 +254,14 @@ class Creator(object):
             self.br_graph.create_issue()
         elif entity_type == 'journal volume':
             self.br_graph.create_volume()
-        elif entity_type == 'proceedings article':
-            self.br_graph.create_proceedings_article()
+        elif entity_type == 'peer review':
+            self.br_graph.create_peer_review()
         elif entity_type == 'proceedings':
             self.br_graph.create_proceedings()
+        elif entity_type == 'proceedings article':
+            self.br_graph.create_proceedings_article()
+        elif entity_type == 'proceedings series':
+            self.br_graph.create_proceedings_series()
         elif entity_type == 'reference book':
             self.br_graph.create_reference_book()
         elif entity_type == 'reference entry':
@@ -268,6 +272,8 @@ class Creator(object):
             self.br_graph.create_standard()
         elif entity_type == 'series':
             self.br_graph.create_series()
+        elif entity_type == 'web content':
+            self.br_graph.create_web_content()
 
     def publisher_action(self, publisher):
         publ_and_ids = re.search(name_and_ids, publisher)

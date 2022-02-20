@@ -14,7 +14,7 @@ ts.setMethod(POST)
 ts.setQuery('DELETE {?s ?p ?o} WHERE {?s ?p ?o}')
 ts.query()
 # Upload data
-ts.setQuery(f'LOAD <file:meta/tdd/testcases/ts/real_data.nt>')
+ts.setQuery(f'LOAD <file:{REAL_DATA_FILE}>')
 ts.query()
 
 class test_ResourceFinder(unittest.TestCase):

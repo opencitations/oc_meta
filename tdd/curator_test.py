@@ -46,7 +46,6 @@ def add_data_ts(server:str=SERVER, data_path:str=REAL_DATA_RDF):
     reset_server(server)
     ts = SPARQLWrapper(server)
     ts.method = 'POST'
-    # f_path = os.path.abspath('meta/tdd/testcases/ts/testcase_ts-13.ttl').replace('\\', '/')
     f_path = get_path(data_path)
     ts.setQuery(f'LOAD <file:{f_path}>')
     ts.query()

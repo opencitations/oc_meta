@@ -126,12 +126,14 @@ class Curator:
             entity_type = ' '.join((row['type'].lower()).split())
             if entity_type == 'edited book' or entity_type == 'monograph':
                 entity_type = 'book'
-            elif entity_type == 'report series' or entity_type == 'standard series':
+            elif entity_type == 'report series' or entity_type == 'standard series' or entity_type == 'proceedings series':
                 entity_type = 'series'
+            elif entity_type == 'posted content':
+                entity_type = 'web content'
             if entity_type in {'archival document', 'book', 'book chapter', 'book part', 'book section', 'book series',
                                'book set', 'data file', 'dissertation', 'journal', 'journal article', 'journal issue',
-                               'journal volume', 'proceedings article', 'proceedings', 'reference book',
-                               'reference entry', 'series', 'report', 'standard'}:
+                               'journal volume', 'peer review', 'proceedings article', 'proceedings', 'reference book',
+                               'reference entry', 'series', 'report', 'standard', 'web content'}:
                 row['type'] = entity_type
             else:
                 row['type'] = ''
