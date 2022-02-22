@@ -15,11 +15,8 @@
 # SOFTWARE.
 
 
-from concurrent.futures import ProcessPoolExecutor, as_completed
 from meta.lib.file_manager import pathoo, get_data, write_csv
 from meta.lib.master_of_regex import ids_inside_square_brackets, name_and_ids, semicolon_in_people_field
-from meta.run.meta_process import MetaProcess
-from SPARQLWrapper import SPARQLWrapper, POST
 from typing import List, Dict
 from tqdm import tqdm
 import os
@@ -59,9 +56,11 @@ def prepare_relevant_items(csv_dir:str, output_dir:str, items_per_file:int, verb
             pbar.update()
     if verbose:
         pbar.close()
-    item_merged = _do_collective_merge(items_by_id, verbose)
-    __save_relevant_items(item_merged, items_per_file, output_dir)
-    del item_merged   
+    items_merged = _do_collective_merge(items_by_id, verbose)
+    venues_merged = {k:v for k,v in items_merged.items() if v['type'] == 'journal'}
+    resp_agents_merged = {k:v for k,v in items_merged.items() if v['type'] == 'author'}    
+    __save_relevant_items(venues_merged, items_per_file, os.path.join(output_dir, 'venues'))
+    __save_relevant_items(resp_agents_merged, items_per_file, os.path.join(output_dir, 'people'))
 
 def __get_relevant_venues(data:List[dict], items_by_id:dict) -> None:
     for row in data:
@@ -148,43 +147,6 @@ def __save_relevant_items(items_by_id:dict, items_per_file:int, output_dir:str):
             output_path = os.path.join(output_dir, filename)
             write_csv(path=output_path, datalist=rows, fieldnames=fieldnames)
             rows = list()
-
-def delete_unwanted_statements(meta_process:MetaProcess):
-    indexes_dir = meta_process.indexes_dir
-    files = [os.path.join(fold,file) for fold, _, files in os.walk(indexes_dir) for file in files if file == 'index_ar.csv']
-    verbose = meta_process.verbose
-    if verbose:
-        print('[INFO:prepare_multiprocess] Deleting unwanted statements from the triplestore')
-        pbar = tqdm(total=len(files))
-    base_iri = meta_process.base_iri[:-1] if meta_process.base_iri[-1] == '/' else meta_process.base_iri
-    triplestore_url = meta_process.triplestore_url
-    with ProcessPoolExecutor(meta_process.workers_number) as executor:
-        results = [executor.submit(__submit_delete_query, file_path, triplestore_url, base_iri) for file_path in files]
-        for _ in as_completed(results):
-            pbar.update() if verbose else None
-    pbar.close() if verbose else None
-    
-def __submit_delete_query(file_path:str, triplestore_url:str, base_iri:str):
-    sparql = SPARQLWrapper(triplestore_url)
-    sparql.setMethod(POST)
-    data = get_data(file_path)
-    for row in data:
-        br_metaid = row['meta']
-        ar_metaid = row['author'].split(', ')[0]
-        query = f'''
-            DELETE {{
-                ?s ?p ?o.
-            }}
-            WHERE {{
-                ?s ?p ?o.
-                VALUES ?s {{
-                    <{base_iri}/br/{br_metaid}>
-                    <{base_iri}/ar/{ar_metaid}>
-                }}
-            }}
-        '''
-        sparql.setQuery(query)
-        sparql.query()
 
 def split_by_publisher(csv_dir:str, output_dir:str, verbose:bool=False) -> None:
     '''

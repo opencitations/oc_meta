@@ -17,7 +17,7 @@ ts.query()
 ts.setQuery(f'LOAD <file:{REAL_DATA_FILE}>')
 ts.query()
 
-class test_ResourceFinder(unittest.TestCase):
+class TestResourceFinder(unittest.TestCase):
     def test_retrieve_br_from_id(self):
         value = '10.1001/.391'
         schema = 'doi'

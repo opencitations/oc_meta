@@ -1,8 +1,29 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+# Copyright 2019 Silvio Peroni <essepuntato@gmail.com>
+# Copyright 2019-2020 Fabio Mariani <fabio.mariani555@gmail.com>
+# Copyright 2021 Simone Persiani <iosonopersia@gmail.com>
+# Copyright 2021-2022 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# Permission to use, copy, modify, and/or distribute this software for any purpose
+# with or without fee is hereby granted, provided that the above copyright notice
+# and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED 'AS IS' AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+# FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT,
+# OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
+# DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS
+# ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
+# SOFTWARE.
+
+
 from oc_ocdm import Storer
 from oc_ocdm.prov import ProvSet
 
 from meta.lib.file_manager import get_data, normalize_path, pathoo, suppress_stdout
 from meta.scripts.creator import Creator
+from meta.plugins.multiprocess.resp_agents_creator import RespAgentsCreator
 from meta.scripts.curator import Curator
 from meta.lib.csvmanager import CSVManager
 
@@ -62,7 +83,7 @@ class MetaProcess:
         csv.field_size_limit(128)
         return files_to_be_processed
 
-    def curate_and_create(self, filename:str, worker_number:int=None) -> Tuple[Storer, Storer, str]:
+    def curate_and_create(self, filename:str, worker_number:int=None, resp_agents_only:bool=False) -> Tuple[Storer, Storer, str]:
         filepath = os.path.join(self.input_csv_dir, filename)
         data = get_data(filepath)
         if worker_number:
@@ -76,9 +97,13 @@ class MetaProcess:
         curator_obj.curator(filename=name, path_csv=self.output_csv_dir, path_index=self.indexes_dir)
         # Creator
         creator_info_dir = os.path.join(self.info_dir, 'creator' + os.sep)
-        creator_obj = Creator(
-            data=curator_obj.data, base_iri=self.base_iri, info_dir=creator_info_dir, supplier_prefix=supplier_prefix, resp_agent=self.resp_agent, ra_index=curator_obj.index_id_ra, 
-            br_index=curator_obj.index_id_br, re_index_csv=curator_obj.re_index, ar_index_csv=curator_obj.ar_index, vi_index=curator_obj.VolIss)
+        if resp_agents_only:
+            creator_obj = RespAgentsCreator(
+                data=curator_obj.data, base_iri=self.base_iri, info_dir=creator_info_dir, supplier_prefix=supplier_prefix, resp_agent=self.resp_agent, ra_index=curator_obj.index_id_ra)
+        else:
+            creator_obj = Creator(
+                data=curator_obj.data, base_iri=self.base_iri, info_dir=creator_info_dir, supplier_prefix=supplier_prefix, resp_agent=self.resp_agent, ra_index=curator_obj.index_id_ra, 
+                br_index=curator_obj.index_id_br, re_index_csv=curator_obj.re_index, ar_index_csv=curator_obj.ar_index, vi_index=curator_obj.VolIss)
         creator = creator_obj.creator(source=self.source)
         # Provenance
         prov = ProvSet(creator, self.base_iri, creator_info_dir, wanted_label=False)
@@ -100,15 +125,15 @@ class MetaProcess:
             res_storer.upload_and_store(self.output_rdf_dir, self.triplestore_url, self.base_iri, self.context_path, batch_size=100)
             prov_storer.store_all(self.output_rdf_dir, self.base_iri, self.context_path)
     
-def run_meta_process(meta_process:MetaProcess) -> None:
+def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False) -> None:
     files_to_be_processed = meta_process.prepare_folders()
     pbar = tqdm(total=len(files_to_be_processed)) if meta_process.verbose else None
     max_workers = meta_process.workers_number
     multiples_of_ten = {i for i in range(max_workers) if i % 10 == 0}
     workers = [i for i in range(max_workers+len(multiples_of_ten)) if i not in multiples_of_ten]
     while len(files_to_be_processed) > 0:
-        with ProcessPoolExecutor() as executor:
-            results = [executor.submit(meta_process.curate_and_create, filename, worker_number) for filename, worker_number in zip(files_to_be_processed, workers)]
+        with ProcessPoolExecutor(max_workers = max_workers) as executor:
+            results = [executor.submit(meta_process.curate_and_create, filename, worker_number, resp_agents_only) for filename, worker_number in zip(files_to_be_processed, workers)]
             for f in as_completed(results):
                 res_storer, prov_storer, processed_file = f.result()
                 with suppress_stdout():
