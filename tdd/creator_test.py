@@ -1,11 +1,11 @@
-import unittest
+from meta.plugins.multiprocess.resp_agents_creator import RespAgentsCreator
 from meta.scripts.creator import *
-import csv
-from rdflib.term import _toPythonMapping
 from rdflib import XSD, compare, Graph
-from oc_ocdm.graph import GraphSet
-import os
+from rdflib.term import _toPythonMapping
+import csv
 import json
+import os
+import unittest
 
 
 # The following function has been added for handling gYear and gYearMonth correctly.
@@ -22,9 +22,8 @@ def hack_dates():
 def open_csv(path):
     path = os.path.abspath(path)
     with open(path, 'r', encoding="utf-8") as csvfile:
-        reader = csv.DictReader(csvfile, delimiter=",")
-        data = [dict(csv_dict) for csv_dict in reader]
-        return data
+        reader = list(csv.DictReader(csvfile, delimiter=","))
+        return reader
 
 
 def open_json(path):
@@ -87,6 +86,44 @@ class test_Creator(unittest.TestCase):
         expected_graph = Graph()
         expected_graph = expected_graph.parse(data=expected_data, format="nt")
         self.assertEqual(compare.isomorphic(output_graph, expected_graph), True)
+
+class test_RespAgentsCreator(unittest.TestCase):
+    def test_creator(self):
+        data = open_csv("meta/tdd/testcases/testcase_data/resp_agents_curator_output.csv")
+        creator_info_dir = os.path.join("meta", "tdd", "creator_counter")
+        testcase_id_ra = open_csv("meta/tdd/testcases/testcase_data/indices/resp_agents_curator_output/index_id_ra.csv")
+        creator = RespAgentsCreator(data, "https://w3id.org/oc/meta/", creator_info_dir, "060", 'https://orcid.org/0000-0002-8420-0696', testcase_id_ra)
+        creator_graphset = creator.creator()
+        output_graph = Graph()
+        for g in creator_graphset.graphs():
+            output_graph += g
+        expected_data = '''
+            <https://w3id.org/oc/meta/ra/0601> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0601> .
+            <https://w3id.org/oc/meta/ra/0601> <http://xmlns.com/foaf/0.1/givenName> "Ron J." .
+            <https://w3id.org/oc/meta/ra/0601> <http://xmlns.com/foaf/0.1/familyName> "Deckert" .
+            <https://w3id.org/oc/meta/ra/0601> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> .
+            <https://w3id.org/oc/meta/id/0601> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "0000-0003-2100-6412" .
+            <https://w3id.org/oc/meta/id/0601> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/datacite/Identifier> .
+            <https://w3id.org/oc/meta/id/0601> <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/orcid> .
+            <https://w3id.org/oc/meta/ra/0602> <http://xmlns.com/foaf/0.1/givenName> "Juan M." .
+            <https://w3id.org/oc/meta/ra/0602> <http://xmlns.com/foaf/0.1/familyName> "Ruso" .
+            <https://w3id.org/oc/meta/ra/0602> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> .
+            <https://w3id.org/oc/meta/ra/0602> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0602> .
+            <https://w3id.org/oc/meta/id/0602> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "0000-0001-5909-6754" .
+            <https://w3id.org/oc/meta/id/0602> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/datacite/Identifier> .
+            <https://w3id.org/oc/meta/id/0602> <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/orcid> .
+            <https://w3id.org/oc/meta/ra/0603> <http://xmlns.com/foaf/0.1/familyName> "Sarmiento" .
+            <https://w3id.org/oc/meta/ra/0603> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0603> .
+            <https://w3id.org/oc/meta/ra/0603> <http://xmlns.com/foaf/0.1/givenName> "Félix" .
+            <https://w3id.org/oc/meta/ra/0603> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> .
+            <https://w3id.org/oc/meta/id/0603> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/datacite/Identifier> .
+            <https://w3id.org/oc/meta/id/0603> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "0000-0002-4487-6894" .
+            <https://w3id.org/oc/meta/id/0603> <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/orcid> .
+        '''
+        expected_graph = Graph()
+        expected_graph = expected_graph.parse(data=expected_data, format="nt")
+        self.assertEqual(compare.isomorphic(output_graph, expected_graph), True)
+
 
 class testcase_01(unittest.TestCase):
     def test(self):

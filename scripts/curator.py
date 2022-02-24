@@ -1,13 +1,12 @@
-from typing import List, Tuple, Dict
-import re
-import os
-import json
-
+from meta.lib.cleaner import Cleaner
+from meta.lib.csvmanager import CSVManager
 from meta.lib.finder import *
 from meta.lib.file_manager import *
-from meta.lib.cleaner import Cleaner
 from meta.lib.master_of_regex import *
-from meta.lib.csvmanager import CSVManager
+from typing import List, Tuple, Dict
+import json
+import os
+import re
 
 
 class Curator:
@@ -16,7 +15,6 @@ class Curator:
         self.finder = ResourceFinder(ts, base_iri)
         self.separator = separator
         self.data = [{field:value.strip() for field,value in row.items()} for row in data]
-        # self.data = random.sample(self.data, 10)
         self.prefix = prefix
         # Counter local paths
         self.br_info_path = info_dir + 'br.txt'

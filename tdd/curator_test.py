@@ -1,11 +1,12 @@
-import unittest
-from meta.scripts.curator import *
+from meta.plugins.multiprocess.resp_agents_curator import RespAgentsCurator
 from meta.scripts.creator import Creator
-import csv
-from SPARQLWrapper import SPARQLWrapper, POST
-from pprint import pprint
+from meta.scripts.curator import *
 from oc_ocdm import Storer
+from pprint import pprint
+from SPARQLWrapper import SPARQLWrapper, POST
+import csv
 import shutil
+import unittest
 
 
 SERVER = 'http://127.0.0.1:9999/blazegraph/sparql'
@@ -102,9 +103,12 @@ def prepare_to_test(data, name):
                     curator_obj.re_index, curator_obj.VolIss]
     return data_curated, testcase
 
-def prepareCurator(data:list, server:str=SERVER) -> Curator:
+def prepareCurator(data:list, server:str=SERVER, resp_agents_only:bool=False) -> Curator:
     reset()
-    return Curator(data, server, info_dir=get_path(f'{CURATOR_COUNTER_DIR}/'))
+    if resp_agents_only:
+        return RespAgentsCurator(data, server, info_dir=get_path(f'{CURATOR_COUNTER_DIR}/'))
+    else:
+        return Curator(data, server, info_dir=get_path(f'{CURATOR_COUNTER_DIR}/'))
 
 
 class test_Curator(unittest.TestCase):
@@ -382,6 +386,64 @@ class test_Curator(unittest.TestCase):
         output = (index_ar, index_id_br, index_id_ra, index_re, index_vi)
         expected_output = (expected_index_ar, expected_index_id_br, expected_index_id_ra, expected_index_re, expected_index_vi)
         shutil.rmtree(OUTPUT_DIR)
+        self.assertEqual(output, expected_output)
+
+
+class test_RespAgentsCurator(unittest.TestCase):
+    def test_curator(self):
+        reset()
+        data = [
+            {'id': '', 'title': '', 'author': 'Deckert, Ron J. [orcid:0000-0003-2100-6412]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''},
+            {'id': '', 'title': '', 'author': 'Ruso, Juan M. [orcid:0000-0001-5909-6754]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''},
+            {'id': '', 'title': '', 'author': 'Sarmiento, Félix [orcid:0000-0002-4487-6894]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}
+        ]
+        resp_agents_curator = prepareCurator(data=data, server=SERVER, resp_agents_only=True)
+        resp_agents_curator.curator(filename='resp_agents_curator_output', path_csv='meta/tdd/testcases/testcase_data', path_index='meta/tdd/testcases/testcase_data/indices')
+        output = (resp_agents_curator.data, resp_agents_curator.radict, resp_agents_curator.idra, resp_agents_curator.rameta)
+        expected_output = (
+            [
+                {'id': '', 'title': '', 'author': 'Deckert, Ron J. [orcid:0000-0003-2100-6412 meta:ra/0601]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}, 
+                {'id': '', 'title': '', 'author': 'Ruso, Juan M. [orcid:0000-0001-5909-6754 meta:ra/0602]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}, 
+                {'id': '', 'title': '', 'author': 'Sarmiento, Félix [orcid:0000-0002-4487-6894 meta:ra/0603]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}],
+                {
+                    'wannabe_0': {'ids': ['orcid:0000-0003-2100-6412', 'meta:ra/0601'], 'others': ['wannabe_0'], 'title': 'Deckert, Ron J.'}, 
+                    'wannabe_1': {'ids': ['orcid:0000-0001-5909-6754', 'meta:ra/0602'], 'others': ['wannabe_1'], 'title': 'Ruso, Juan M.'}, 
+                    'wannabe_2': {'ids': ['orcid:0000-0002-4487-6894', 'meta:ra/0603'], 'others': ['wannabe_2'], 'title': 'Sarmiento, Félix'}},
+                {'orcid:0000-0003-2100-6412': '0601', 'orcid:0000-0001-5909-6754': '0602', 'orcid:0000-0002-4487-6894': '0603'},
+                {
+                    '0601': {'ids': ['orcid:0000-0003-2100-6412', 'meta:ra/0601'], 'others': ['wannabe_0'], 'title': 'Deckert, Ron J.'}, 
+                    '0602': {'ids': ['orcid:0000-0001-5909-6754', 'meta:ra/0602'], 'others': ['wannabe_1'], 'title': 'Ruso, Juan M.'}, 
+                    '0603': {'ids': ['orcid:0000-0002-4487-6894', 'meta:ra/0603'], 'others': ['wannabe_2'], 'title': 'Sarmiento, Félix'}}
+        )
+        self.assertEqual(output, expected_output)
+
+    def test_curator_ra_on_ts(self):
+        # A responsible agent is already on the triplestore
+        add_data_ts(server=SERVER, data_path=REAL_DATA_RDF)
+        self.maxDiff = None
+        data = [
+            {'id': '', 'title': '', 'author': 'Deckert, Ron J. [orcid:0000-0003-2100-6412]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''},
+            {'id': '', 'title': '', 'author': 'Mehrotra, Ateev [orcid:0000-0003-2223-1582]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''},
+            {'id': '', 'title': '', 'author': 'Sarmiento, Félix [orcid:0000-0002-4487-6894]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}
+        ]
+        resp_agents_curator = prepareCurator(data=data, server=SERVER, resp_agents_only=True)
+        resp_agents_curator.curator()
+        output = (resp_agents_curator.data, resp_agents_curator.radict, resp_agents_curator.idra, resp_agents_curator.rameta)
+        expected_output = (
+            [
+                {'id': '', 'title': '', 'author': 'Deckert, Ron J. [orcid:0000-0003-2100-6412 meta:ra/0601]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}, 
+                {'id': '', 'title': '', 'author': 'Mehrotra, Ateev [orcid:0000-0003-2223-1582 meta:ra/3976]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}, 
+                {'id': '', 'title': '', 'author': 'Sarmiento, Félix [orcid:0000-0002-4487-6894 meta:ra/0602]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}],
+                {
+                    'wannabe_0': {'ids': ['orcid:0000-0003-2100-6412', 'meta:ra/0601'], 'others': ['wannabe_0'], 'title': 'Deckert, Ron J.'}, 
+                    '3976': {'ids': ['orcid:0000-0003-2223-1582', 'meta:ra/3976'], 'others': [], 'title': 'Mehrotra, Ateev'}, 
+                    'wannabe_1': {'ids': ['orcid:0000-0002-4487-6894', 'meta:ra/0602'], 'others': ['wannabe_1'], 'title': 'Sarmiento, Félix'}},
+                {'orcid:0000-0003-2100-6412': '0601', 'orcid:0000-0003-2223-1582': '4351', 'orcid:0000-0002-4487-6894': '0602'},
+                {
+                    '0601': {'ids': ['orcid:0000-0003-2100-6412', 'meta:ra/0601'], 'others': ['wannabe_0'], 'title': 'Deckert, Ron J.'}, 
+                    '3976': {'ids': ['orcid:0000-0003-2223-1582', 'meta:ra/3976'], 'others': [], 'title': 'Mehrotra, Ateev'}, 
+                    '0602': {'ids': ['orcid:0000-0002-4487-6894', 'meta:ra/0602'], 'others': ['wannabe_1'], 'title': 'Sarmiento, Félix'}}
+        )
         self.assertEqual(output, expected_output)
 
 

@@ -45,48 +45,54 @@ def prepare_relevant_items(csv_dir:str, output_dir:str, items_per_file:int, verb
     if verbose:
         pbar = tqdm(total=len(files))
     pathoo(output_dir)
-    items_by_id = dict()
+    venues_by_id = dict()
+    resp_agents_by_id = dict()
     for file in files:
         if file.endswith('.csv'):
             file_path = os.path.join(csv_dir, file)
             data = get_data(file_path)
-            __get_relevant_venues(data=data, items_by_id=items_by_id)
-            __get_resp_agents(data=data, items_by_id=items_by_id)
+            _get_relevant_venues(data=data, items_by_id=venues_by_id)
+            _get_resp_agents(data=data, items_by_id=resp_agents_by_id)
         if verbose:
             pbar.update()
     if verbose:
         pbar.close()
-    items_merged = _do_collective_merge(items_by_id, verbose)
-    venues_merged = {k:v for k,v in items_merged.items() if v['type'] == 'journal'}
-    resp_agents_merged = {k:v for k,v in items_merged.items() if v['type'] == 'author'}    
-    __save_relevant_items(venues_merged, items_per_file, os.path.join(output_dir, 'venues'))
-    __save_relevant_items(resp_agents_merged, items_per_file, os.path.join(output_dir, 'people'))
+    venues_merged = _do_collective_merge(venues_by_id, verbose)
+    resp_agents_merged = _do_collective_merge(resp_agents_by_id, verbose)
+    fieldnames = ['id', 'title', 'author', 'pub_date', 'venue', 'volume', 'issue', 'page', 'type', 'publisher', 'editor']
+    __save_relevant_venues(venues_merged, items_per_file, output_dir, fieldnames)
+    __save_resp_agents(resp_agents_merged, items_per_file, output_dir, fieldnames)
 
-def __get_relevant_venues(data:List[dict], items_by_id:dict) -> None:
+def _get_relevant_venues(data:List[dict], items_by_id:Dict[str, Dict[str, set]]) -> None:
     for row in data:
+        venue = row['venue']
         if row['venue']:
-            _update_items_by_id(item=row['venue'], field='journal', items_by_id=items_by_id)
+            full_name_and_ids = re.search(name_and_ids, venue)
+            name = full_name_and_ids.group(1) if full_name_and_ids else venue
+            ids = full_name_and_ids.group(2) if full_name_and_ids else None
+            if ids:
+                ids_list = [identifier for identifier in ids.split() if identifier not in FORBIDDEN_IDS]
+                for id in ids_list:
+                    items_by_id.setdefault(id, {'others': set(), 'name': name, 'type': 'journal', 'volume': set(), 'issue': set()})
+                    items_by_id[id]['others'].update({other for other in ids_list if other != id})
+                    for content in {'volume', 'issue'}:
+                        if row[content]:
+                            items_by_id[id][content].add(row[content])
 
-def __get_resp_agents(data:List[dict], items_by_id:Dict[str, Dict[str, set]]) -> None:
+def _get_resp_agents(data:List[dict], items_by_id:Dict[str, Dict[str, set]]) -> None:
     for row in data:
         for field in {'author', 'editor'}:
             if row[field]:
                 resp_agents = re.split(semicolon_in_people_field, row[field])
                 for resp_agent in resp_agents:
-                    # Whether the responsible agent is listed as an author or editor is not important. 
-                    # In fact, the agent role will not be recorded on the triplestore, 
-                    # but the only information registered will be the people and their identifier
-                    _update_items_by_id(item=resp_agent, field='author', items_by_id=items_by_id)
-
-def _update_items_by_id(item:str, field:str,  items_by_id:Dict[str, Dict[str, set]]) -> None:
-    full_name_and_ids = re.search(name_and_ids, item)
-    name = full_name_and_ids.group(1) if full_name_and_ids else item
-    ids = full_name_and_ids.group(2) if full_name_and_ids else None
-    if ids:
-        ids_list = [identifier for identifier in ids.split() if identifier not in FORBIDDEN_IDS]
-        for id in ids_list:
-            items_by_id.setdefault(id, {'others': set(), 'name': name, 'type': field})
-            items_by_id[id]['others'].update({other for other in ids_list if other != id})
+                    full_name_and_ids = re.search(name_and_ids, resp_agent)
+                    name = full_name_and_ids.group(1) if full_name_and_ids else resp_agent
+                    ids = full_name_and_ids.group(2) if full_name_and_ids else None
+                    if ids:
+                        ids_list = [identifier for identifier in ids.split() if identifier not in FORBIDDEN_IDS]
+                        for id in ids_list:
+                            items_by_id.setdefault(id, {'others': set(), 'name': name, 'type': 'author'})
+                            items_by_id[id]['others'].update({other for other in ids_list if other != id})
 
 def _do_collective_merge(items_by_id:dict, verbose:bool=False) -> dict:
     if verbose:
@@ -97,13 +103,22 @@ def _do_collective_merge(items_by_id:dict, verbose:bool=False) -> dict:
     for id, data in items_by_id.items():
         if id not in ids_checked:
             all_ids = set()
-            all_ids.update(data['others'])
-            for other in data['others']:
-                if other not in ids_checked:
-                    ids_found = __find_all_ids_by_key(items_by_id, key=other)
-                    all_ids.update({item for item in ids_found if item != id})
-                    ids_checked.update(ids_found)
+            all_contents = None
+            if data['others']:
+                all_ids.update(data['others'])
+                for other in data['others']:
+                    if other not in ids_checked:
+                        ids_found = __find_all_ids_by_key(items_by_id, key=other)
+                        all_ids.update({item for item in ids_found if item != id})
+                        ids_checked.update(ids_found)
+            else:
+                ids_found = {id}
+            if 'volume' in data and 'issue' in data:
+                all_contents = __find_all_contents(contents={'volume', 'issue'}, items_by_id=items_by_id, all_ids=ids_found)                        
             merged_by_key[id] = {'name': data['name'], 'type': data['type'], 'others': all_ids}
+            if all_contents:
+                for content_name, content_value in all_contents.items():
+                    merged_by_key[id][content_name] = content_value
         pbar.update() if verbose else None
     pbar.close() if verbose else None
     del items_by_id
@@ -120,33 +135,66 @@ def __find_all_ids_by_key(items_by_id:dict, key:str):
             items_to_visit.remove(item)
     return visited_items
 
-def __save_relevant_items(items_by_id:dict, items_per_file:int, output_dir:str):
-    fieldnames = ['id', 'title', 'author', 'pub_date', 'venue', 'volume', 'issue', 'page', 'type', 'publisher', 'editor']
+def __find_all_contents(contents:set, items_by_id:dict, all_ids:set):
+    all_contents = dict()
+    for content in contents:
+        all_contents[content] = set()
+        for id in all_ids:
+            all_contents.setdefault(content, set()).update(items_by_id[id][content])
+    return all_contents
+
+def __save_relevant_venues(items_by_id:dict, items_per_file:int, output_dir:str, fieldnames:list):
+    output_dir = os.path.join(output_dir, 'venues')
+    rows = list()
+    chunks = int(items_per_file)
+    saved_chunks = 0
+    output_length = len(items_by_id) + len([content for field in {'issue', 'volume'} for _, data in items_by_id.items() for content in data[field]])
+    for item_id, data in items_by_id.items():
+        item_type = data['type']
+        row = dict()
+        name, ids = __get_name_and_ids(item_id, data)
+        if item_type == 'journal':
+            row['id'] = ids
+            row['title'] = name
+            row['type'] = item_type
+            for content in {'volume', 'issue'}:
+                for number in data[content]:
+                    container_row = dict()
+                    container_row[content] = number
+                    container_row['venue'] = f'{name} [{ids}]'
+                    container_row['type'] = f'journal {content}'
+                    rows.append(container_row)
+                    rows, saved_chunks = __store_data(rows, output_length, chunks, saved_chunks, output_dir, fieldnames)
+        rows.append(row)
+        rows, saved_chunks = __store_data(rows, output_length, chunks, saved_chunks, output_dir, fieldnames)
+
+def __save_resp_agents(items_by_id:dict, items_per_file:int, output_dir:str, fieldnames:list):
+    output_dir = os.path.join(output_dir, 'people')
     rows = list()
     chunks = int(items_per_file)
     saved_chunks = 0
     output_length = len(items_by_id)
     for item_id, data in items_by_id.items():
-        item_type = data['type']
-        row = dict()
-        ids_list = list(data['others'])
-        ids_list.append(item_id)
-        name = data['name']
-        ids = ' '.join(ids_list)
-        if item_type == 'journal':
-            row['id'] = ids
-            row['title'] = name
-            row['type'] = item_type
-        elif item_type == 'author':
-            row[item_type] = f'{name} [{ids}]'
-        rows.append(row)
-        data_about_to_end = (output_length - saved_chunks) < chunks and (output_length - saved_chunks) == len(rows)
-        if len(rows) == chunks or data_about_to_end:
-            saved_chunks = saved_chunks + chunks if not data_about_to_end else output_length
-            filename = f'{str(saved_chunks)}.csv'
-            output_path = os.path.join(output_dir, filename)
-            write_csv(path=output_path, datalist=rows, fieldnames=fieldnames)
-            rows = list()
+        name, ids = __get_name_and_ids(item_id, data)
+        rows.append({'author': f'{name} [{ids}]'})
+        rows, saved_chunks = __store_data(rows, output_length, chunks, saved_chunks, output_dir, fieldnames)
+
+def __store_data(rows:list, output_length:int, chunks:int, saved_chunks:int, output_dir:str, fieldnames:str) -> list:
+    data_about_to_end = (output_length - saved_chunks) < chunks and (output_length - saved_chunks) == len(rows)
+    if len(rows) == chunks or data_about_to_end:
+        saved_chunks = saved_chunks + chunks if not data_about_to_end else output_length
+        filename = f'{str(saved_chunks)}.csv'
+        output_path = os.path.join(output_dir, filename)
+        write_csv(path=output_path, datalist=rows, fieldnames=fieldnames)
+        rows = list()
+    return rows, saved_chunks
+
+def __get_name_and_ids(item_id, data):
+    ids_list = list(data['others'])
+    ids_list.append(item_id)
+    name = data['name']
+    ids = ' '.join(ids_list)
+    return name, ids
 
 def split_by_publisher(csv_dir:str, output_dir:str, verbose:bool=False) -> None:
     '''

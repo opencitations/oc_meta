@@ -24,6 +24,7 @@ from oc_ocdm.prov import ProvSet
 from meta.lib.file_manager import get_data, normalize_path, pathoo, suppress_stdout
 from meta.scripts.creator import Creator
 from meta.plugins.multiprocess.resp_agents_creator import RespAgentsCreator
+from meta.plugins.multiprocess.resp_agents_curator import RespAgentsCurator
 from meta.scripts.curator import Curator
 from meta.lib.csvmanager import CSVManager
 
@@ -61,7 +62,7 @@ class MetaProcess:
         self.valid_dois_cache = CSVManager() if bool(settings['use_doi_api_service']) == True else None
         self.workers_number = int(settings['workers_number'])
         supplier_prefix:str = settings['supplier_prefix']
-        self.supplier_prefix = supplier_prefix[:-1] if self.workers_number > 1 and supplier_prefix.endswith('0') else supplier_prefix
+        self.supplier_prefix = supplier_prefix[:-1] if supplier_prefix.endswith('0') else supplier_prefix
         self.verbose = settings['verbose']
 
     def prepare_folders(self) -> Set[str]:
@@ -86,13 +87,14 @@ class MetaProcess:
     def curate_and_create(self, filename:str, worker_number:int=None, resp_agents_only:bool=False) -> Tuple[Storer, Storer, str]:
         filepath = os.path.join(self.input_csv_dir, filename)
         data = get_data(filepath)
-        if worker_number:
-            worker_number = worker_number + 1 if worker_number % 10 == 0 else worker_number
         supplier_prefix = self.supplier_prefix if worker_number is None else f'{self.supplier_prefix}{str(worker_number)}0'
         # Curator
         self.info_dir = os.path.join(self.info_dir, supplier_prefix) if worker_number else self.info_dir
         curator_info_dir = os.path.join(self.info_dir, 'curator' + os.sep)
-        curator_obj = Curator(data=data, ts=self.triplestore_url, info_dir=curator_info_dir, base_iri=self.base_iri, prefix=supplier_prefix, valid_dois_cache=self.valid_dois_cache)
+        if resp_agents_only:
+            curator_obj = RespAgentsCurator(data=data, ts=self.triplestore_url, info_dir=curator_info_dir, base_iri=self.base_iri, prefix=supplier_prefix)
+        else:
+            curator_obj = Curator(data=data, ts=self.triplestore_url, info_dir=curator_info_dir, base_iri=self.base_iri, prefix=supplier_prefix, valid_dois_cache=self.valid_dois_cache)
         name = f"{datetime.now().strftime('%Y-%m-%dT%H_%M_%S')}_{supplier_prefix}"
         curator_obj.curator(filename=name, path_csv=self.output_csv_dir, path_index=self.indexes_dir)
         # Creator
