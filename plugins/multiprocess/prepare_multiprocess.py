@@ -63,7 +63,7 @@ def prepare_relevant_items(csv_dir:str, output_dir:str, items_per_file:int, verb
     __save_relevant_venues(venues_merged, items_per_file, output_dir, fieldnames)
     __save_resp_agents(resp_agents_merged, items_per_file, output_dir, fieldnames)
 
-def _get_relevant_venues(data:List[dict], items_by_id:Dict[str, Dict[str, set]]) -> None:
+def _get_relevant_venues(data:List[dict], items_by_id:Dict[str, dict]) -> None:
     for row in data:
         venue = row['venue']
         if row['venue']:
@@ -73,11 +73,16 @@ def _get_relevant_venues(data:List[dict], items_by_id:Dict[str, Dict[str, set]])
             if ids:
                 ids_list = [identifier for identifier in ids.split() if identifier not in FORBIDDEN_IDS]
                 for id in ids_list:
-                    items_by_id.setdefault(id, {'others': set(), 'name': name, 'type': 'journal', 'volume': set(), 'issue': set()})
+                    items_by_id.setdefault(id, {'others': set(), 'name': name, 'type': 'journal', 'volume': dict(), 'issue': set()})
                     items_by_id[id]['others'].update({other for other in ids_list if other != id})
-                    for content in {'volume', 'issue'}:
-                        if row[content]:
-                            items_by_id[id][content].add(row[content])
+                    volume = row['volume']
+                    issue = row['issue']
+                    if volume:
+                        items_by_id[id]['volume'].setdefault(volume, set())
+                        if issue:
+                            items_by_id[id]['volume'][volume].add(issue)
+                    elif not volume and issue:
+                        items_by_id[id]['issue'].add(issue)
 
 def _get_resp_agents(data:List[dict], items_by_id:Dict[str, Dict[str, set]]) -> None:
     for row in data:
@@ -103,7 +108,7 @@ def _do_collective_merge(items_by_id:dict, verbose:bool=False) -> dict:
     for id, data in items_by_id.items():
         if id not in ids_checked:
             all_ids = set()
-            all_contents = None
+            all_vi = None
             if data['others']:
                 all_ids.update(data['others'])
                 for other in data['others']:
@@ -114,11 +119,11 @@ def _do_collective_merge(items_by_id:dict, verbose:bool=False) -> dict:
             else:
                 ids_found = {id}
             if 'volume' in data and 'issue' in data:
-                all_contents = __find_all_contents(contents={'volume', 'issue'}, items_by_id=items_by_id, all_ids=ids_found)                        
+                all_vi = __find_all_vi(items_by_id=items_by_id, all_ids=ids_found)                        
             merged_by_key[id] = {'name': data['name'], 'type': data['type'], 'others': all_ids}
-            if all_contents:
-                for content_name, content_value in all_contents.items():
-                    merged_by_key[id][content_name] = content_value
+            if all_vi:
+                merged_by_key[id]['volume'] = all_vi['volume']
+                merged_by_key[id]['issue'] = all_vi['issue']
         pbar.update() if verbose else None
     pbar.close() if verbose else None
     del items_by_id
@@ -135,20 +140,26 @@ def __find_all_ids_by_key(items_by_id:dict, key:str):
             items_to_visit.remove(item)
     return visited_items
 
-def __find_all_contents(contents:set, items_by_id:dict, all_ids:set):
-    all_contents = dict()
-    for content in contents:
-        all_contents[content] = set()
-        for id in all_ids:
-            all_contents.setdefault(content, set()).update(items_by_id[id][content])
-    return all_contents
+def __find_all_vi(items_by_id:dict, all_ids:set) -> dict:
+    all_vi = {'volume': dict(), 'issue': set()}
+    for id in all_ids:
+        for volume, volume_issues in items_by_id[id]['volume'].items():
+            all_vi['volume'].setdefault(volume, set()).update(volume_issues)
+        for venue_issues in items_by_id[id]['issue']:
+            all_vi['issue'].update(venue_issues)
+    return all_vi
 
 def __save_relevant_venues(items_by_id:dict, items_per_file:int, output_dir:str, fieldnames:list):
     output_dir = os.path.join(output_dir, 'venues')
     rows = list()
     chunks = int(items_per_file)
     saved_chunks = 0
-    output_length = len(items_by_id) + len([content for field in {'issue', 'volume'} for _, data in items_by_id.items() for content in data[field]])
+    vi_number = 0
+    for _, data in items_by_id.items():
+        for _, issues in data['volume'].items():
+            vi_number = vi_number + len(issues) if issues else vi_number + 1
+        vi_number += len(data['issue'])
+    output_length = len(items_by_id) + vi_number
     for item_id, data in items_by_id.items():
         item_type = data['type']
         row = dict()
@@ -157,14 +168,27 @@ def __save_relevant_venues(items_by_id:dict, items_per_file:int, output_dir:str,
             row['id'] = ids
             row['title'] = name
             row['type'] = item_type
-            for content in {'volume', 'issue'}:
-                for number in data[content]:
-                    container_row = dict()
-                    container_row[content] = number
-                    container_row['venue'] = f'{name} [{ids}]'
-                    container_row['type'] = f'journal {content}'
-                    rows.append(container_row)
+            for volume, volume_issues in data['volume'].items():
+                volume_row = dict()
+                volume_row['volume'] = volume
+                volume_row['venue'] = f'{name} [{ids}]'
+                volume_row['type'] = 'journal volume'
+                if volume_issues:
+                    for volume_issue in volume_issues:
+                        volume_issue_row = dict(volume_row)
+                        volume_issue_row['issue'] = volume_issue
+                        rows.append(volume_issue_row)
+                        rows, saved_chunks = __store_data(rows, output_length, chunks, saved_chunks, output_dir, fieldnames)
+                else:
+                    rows.append(volume_row)
                     rows, saved_chunks = __store_data(rows, output_length, chunks, saved_chunks, output_dir, fieldnames)
+            for venue_issue in data['issue']:
+                issue_row = dict()
+                issue_row['venue'] = f'{name} [{ids}]'
+                issue_row['issue'] = venue_issue
+                issue_row['type'] = 'journal issue'
+                rows.append(issue_row)
+                rows, saved_chunks = __store_data(rows, output_length, chunks, saved_chunks, output_dir, fieldnames)
         rows.append(row)
         rows, saved_chunks = __store_data(rows, output_length, chunks, saved_chunks, output_dir, fieldnames)
 

@@ -176,11 +176,11 @@ class Curator:
         :returns: None -- This method modifies the input CSV row without returning it.
         '''
         vol_meta = None
-        id = row['id']
+        br_id = row['id']
         venue = row['venue']
         volume = row['volume']
         issue = row['issue']
-        type = row['type']
+        br_type = row['type']
         # Venue
         if venue:
             venue_id = re.search(name_and_ids, venue)
@@ -210,7 +210,7 @@ class Curator:
                 self.vvi[metaval]['issue'] = dict()
             row['venue'] = metaval
             # Volume
-            if volume and (type == 'journal issue' or type == 'journal article'):
+            if volume and (br_type == 'journal issue' or br_type == 'journal article'):
                 row['volume'] = volume
                 if volume in self.vvi[metaval]['volume']:
                     vol_meta = self.vvi[metaval]['volume'][volume]['id']
@@ -219,13 +219,13 @@ class Curator:
                     self.vvi[metaval]['volume'][volume] = dict()
                     self.vvi[metaval]['volume'][volume]['id'] = vol_meta
                     self.vvi[metaval]['volume'][volume]['issue'] = dict()
-            elif volume and type == 'journal volume':
+            elif volume and br_type == 'journal volume':
                 row['volume'] = ''
                 row['issue'] = ''
-                vol_meta = id
+                vol_meta = br_id
                 self.volume_issue(vol_meta, self.vvi[metaval]['volume'], volume, row)
             # Issue
-            if issue and type == 'journal article':
+            if issue and br_type == 'journal article':
                 row['issue'] = issue
                 if vol_meta:
                     # issue inside volume
@@ -239,9 +239,9 @@ class Curator:
                         issue_meta = self.new_entity(self.brdict, '')
                         self.vvi[metaval]['issue'][issue] = dict()
                         self.vvi[metaval]['issue'][issue]['id'] = issue_meta
-            elif issue and type == 'journal issue':
+            elif issue and br_type == 'journal issue':
                 row['issue'] = ''
-                issue_meta = id
+                issue_meta = br_id
                 if vol_meta:
                     self.volume_issue(issue_meta, self.vvi[metaval]['volume'][volume]['issue'], issue, row)
                 else:
@@ -974,7 +974,6 @@ class Curator:
                             self.brdict[old_meta]['ids'].append(identifier)
                             if identifier not in self.idbr:
                                 self.idbr[identifier] = x[0]
-
                     self.merge(self.brdict, old_meta, meta, row['title'])
             else:
                 path[value] = dict()

@@ -24,8 +24,6 @@ import shutil
 import yaml
 
 
-TMP_DIR = './tmp_dir'
-
 if __name__ == '__main__':
     arg_parser = ArgumentParser('prepare_multiprocess.py', description='Venues, authors and editors are preprocessed not to create duplicates when running Meta in multi-process')
     arg_parser.add_argument('-c', '--config', dest='config', required=True, help='Configuration file path')
@@ -36,9 +34,9 @@ if __name__ == '__main__':
     csv_dir = normalize_path(settings['input_csv_dir'])
     items_per_file = settings['items_per_file']
     verbose = settings['verbose']
-    
-    prepare_relevant_items(csv_dir=csv_dir, output_dir=TMP_DIR, items_per_file=items_per_file, verbose=verbose)
     meta_process = MetaProcess(config)
+    TMP_DIR = os.path.join(meta_process.base_output_dir, 'tmp')
+    prepare_relevant_items(csv_dir=csv_dir, output_dir=TMP_DIR, items_per_file=items_per_file, verbose=verbose)
     meta_process.input_csv_dir = os.path.join(TMP_DIR, 'venues')
     run_meta_process(meta_process=meta_process)
     meta_process.input_csv_dir = os.path.join(TMP_DIR, 'people')
