@@ -205,25 +205,25 @@ class Creator(object):
                     self.venue_graph.has_title(venue_title)
             for identifier in venue_id_list:
                 self.id_creator(self.venue_graph, identifier, ra=False)
-        if (self.type == 'journal article' or self.type == 'journal issue') and vol:
-            meta_ven = ven_id.replace('br/', '')
-            vol_meta = self.vi_index[meta_ven]['volume'][vol]['id']
-            vol_meta = 'br/' + vol_meta
-            url = URIRef(self.url + vol_meta)
-            self.vol_graph = self.setgraph.add_br(self.resp_agent, source=self.src, res=url)
-            self.vol_graph.create_volume()
-            self.vol_graph.has_number(vol)
-        if self.type == 'journal article' and issue:
+        if self.type == 'journal article' or self.type == 'journal issue' or self.type == 'journal volume':
             meta_ven = ven_id.replace('br/', '')
             if vol:
-                iss_meta = self.vi_index[meta_ven]['volume'][vol]['issue'][issue]['id']
-            else:
-                iss_meta = self.vi_index[meta_ven]['issue'][issue]['id']
-            iss_meta = 'br/' + iss_meta
-            url = URIRef(self.url + iss_meta)
-            self.issue_graph = self.setgraph.add_br(self.resp_agent, source=self.src, res=url)
-            self.issue_graph.create_issue()
-            self.issue_graph.has_number(issue)
+                vol_meta = self.vi_index[meta_ven]['volume'][vol]['id']
+                vol_meta = 'br/' + vol_meta
+                vol_url = URIRef(self.url + vol_meta)
+                self.vol_graph = self.setgraph.add_br(self.resp_agent, source=self.src, res=vol_url)
+                self.vol_graph.create_volume()
+                self.vol_graph.has_number(vol)
+            if issue:
+                if vol:
+                    issue_meta = self.vi_index[meta_ven]['volume'][vol]['issue'][issue]['id']
+                else:
+                    issue_meta = self.vi_index[meta_ven]['issue'][issue]['id']
+                issue_meta = 'br/' + issue_meta
+                issue_url = URIRef(self.url + issue_meta)
+                self.issue_graph = self.setgraph.add_br(self.resp_agent, source=self.src, res=issue_url)
+                self.issue_graph.create_issue()
+                self.issue_graph.has_number(issue)
         if venue and vol and issue:
             self.br_graph.is_part_of(self.issue_graph)
             self.issue_graph.is_part_of(self.vol_graph)

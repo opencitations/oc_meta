@@ -53,10 +53,8 @@ def prepare_relevant_items(csv_dir:str, output_dir:str, items_per_file:int, verb
             data = get_data(file_path)
             _get_relevant_venues(data=data, items_by_id=venues_by_id)
             _get_resp_agents(data=data, items_by_id=resp_agents_by_id)
-        if verbose:
-            pbar.update()
-    if verbose:
-        pbar.close()
+        pbar.update() if verbose else None
+    pbar.close() if verbose else None
     venues_merged = _do_collective_merge(venues_by_id, verbose)
     resp_agents_merged = _do_collective_merge(resp_agents_by_id, verbose)
     fieldnames = ['id', 'title', 'author', 'pub_date', 'venue', 'volume', 'issue', 'page', 'type', 'publisher', 'editor']
@@ -146,7 +144,7 @@ def __find_all_vi(items_by_id:dict, all_ids:set) -> dict:
         for volume, volume_issues in items_by_id[id]['volume'].items():
             all_vi['volume'].setdefault(volume, set()).update(volume_issues)
         for venue_issues in items_by_id[id]['issue']:
-            all_vi['issue'].update(venue_issues)
+            all_vi['issue'].add(venue_issues)
     return all_vi
 
 def __save_relevant_venues(items_by_id:dict, items_per_file:int, output_dir:str, fieldnames:list):
@@ -172,14 +170,15 @@ def __save_relevant_venues(items_by_id:dict, items_per_file:int, output_dir:str,
                 volume_row = dict()
                 volume_row['volume'] = volume
                 volume_row['venue'] = f'{name} [{ids}]'
-                volume_row['type'] = 'journal volume'
                 if volume_issues:
+                    volume_row['type'] = 'journal issue'
                     for volume_issue in volume_issues:
                         volume_issue_row = dict(volume_row)
                         volume_issue_row['issue'] = volume_issue
                         rows.append(volume_issue_row)
                         rows, saved_chunks = __store_data(rows, output_length, chunks, saved_chunks, output_dir, fieldnames)
                 else:
+                    volume_row['type'] = 'journal volume'
                     rows.append(volume_row)
                     rows, saved_chunks = __store_data(rows, output_length, chunks, saved_chunks, output_dir, fieldnames)
             for venue_issue in data['issue']:

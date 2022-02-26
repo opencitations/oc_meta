@@ -211,7 +211,6 @@ class Curator:
             row['venue'] = metaval
             # Volume
             if volume and (br_type == 'journal issue' or br_type == 'journal article'):
-                row['volume'] = volume
                 if volume in self.vvi[metaval]['volume']:
                     vol_meta = self.vvi[metaval]['volume'][volume]['id']
                 else:
@@ -220,8 +219,8 @@ class Curator:
                     self.vvi[metaval]['volume'][volume]['id'] = vol_meta
                     self.vvi[metaval]['volume'][volume]['issue'] = dict()
             elif volume and br_type == 'journal volume':
-                row['volume'] = ''
-                row['issue'] = ''
+                # row['volume'] = ''
+                # row['issue'] = ''
                 vol_meta = br_id
                 self.volume_issue(vol_meta, self.vvi[metaval]['volume'], volume, row)
             # Issue
@@ -240,7 +239,7 @@ class Curator:
                         self.vvi[metaval]['issue'][issue] = dict()
                         self.vvi[metaval]['issue'][issue]['id'] = issue_meta
             elif issue and br_type == 'journal issue':
-                row['issue'] = ''
+                # row['issue'] = ''
                 issue_meta = br_id
                 if vol_meta:
                     self.volume_issue(issue_meta, self.vvi[metaval]['volume'][volume]['issue'], issue, row)
