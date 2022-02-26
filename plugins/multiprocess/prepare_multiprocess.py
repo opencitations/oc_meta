@@ -64,23 +64,27 @@ def prepare_relevant_items(csv_dir:str, output_dir:str, items_per_file:int, verb
 def _get_relevant_venues(data:List[dict], items_by_id:Dict[str, dict]) -> None:
     for row in data:
         venue = row['venue']
-        if row['venue']:
+        ids = None
+        if venue:
             full_name_and_ids = re.search(name_and_ids, venue)
             name = full_name_and_ids.group(1) if full_name_and_ids else venue
             ids = full_name_and_ids.group(2) if full_name_and_ids else None
-            if ids:
-                ids_list = [identifier for identifier in ids.split() if identifier not in FORBIDDEN_IDS]
-                for id in ids_list:
-                    items_by_id.setdefault(id, {'others': set(), 'name': name, 'type': 'journal', 'volume': dict(), 'issue': set()})
-                    items_by_id[id]['others'].update({other for other in ids_list if other != id})
-                    volume = row['volume']
-                    issue = row['issue']
-                    if volume:
-                        items_by_id[id]['volume'].setdefault(volume, set())
-                        if issue:
-                            items_by_id[id]['volume'][volume].add(issue)
-                    elif not volume and issue:
-                        items_by_id[id]['issue'].add(issue)
+        elif row['type'] == 'journal':
+            name = row['title']
+            ids = row['id']
+        if ids:
+            ids_list = [identifier for identifier in ids.split() if identifier not in FORBIDDEN_IDS]
+            for id in ids_list:
+                items_by_id.setdefault(id, {'others': set(), 'name': name, 'type': 'journal', 'volume': dict(), 'issue': set()})
+                items_by_id[id]['others'].update({other for other in ids_list if other != id})
+                volume = row['volume']
+                issue = row['issue']
+                if volume:
+                    items_by_id[id]['volume'].setdefault(volume, set())
+                    if issue:
+                        items_by_id[id]['volume'][volume].add(issue)
+                elif not volume and issue:
+                    items_by_id[id]['issue'].add(issue)
 
 def _get_resp_agents(data:List[dict], items_by_id:Dict[str, Dict[str, set]]) -> None:
     for row in data:
@@ -152,12 +156,13 @@ def __save_relevant_venues(items_by_id:dict, items_per_file:int, output_dir:str,
     rows = list()
     chunks = int(items_per_file)
     saved_chunks = 0
-    vi_number = 0
+    output_length = 0
     for _, data in items_by_id.items():
         for _, issues in data['volume'].items():
-            vi_number = vi_number + len(issues) if issues else vi_number + 1
-        vi_number += len(data['issue'])
-    output_length = len(items_by_id) + vi_number
+            output_length = output_length + len(issues) if issues else output_length + 1
+        output_length += len(data['issue'])
+        if not data['volume'] and not data['issue']:
+            output_length += 1
     for item_id, data in items_by_id.items():
         item_type = data['type']
         row = dict()
@@ -188,8 +193,9 @@ def __save_relevant_venues(items_by_id:dict, items_per_file:int, output_dir:str,
                 issue_row['type'] = 'journal issue'
                 rows.append(issue_row)
                 rows, saved_chunks = __store_data(rows, output_length, chunks, saved_chunks, output_dir, fieldnames)
-        rows.append(row)
-        rows, saved_chunks = __store_data(rows, output_length, chunks, saved_chunks, output_dir, fieldnames)
+            if not data['volume'] and not data['issue']:
+                rows.append(row)
+                rows, saved_chunks = __store_data(rows, output_length, chunks, saved_chunks, output_dir, fieldnames)
 
 def __save_resp_agents(items_by_id:dict, items_per_file:int, output_dir:str, fieldnames:list):
     output_dir = os.path.join(output_dir, 'people')
