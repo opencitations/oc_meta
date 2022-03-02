@@ -17,17 +17,17 @@
 # Mandatory settings
 
 # Crossref JSON files directory (input files)
-crossref_json_dir: C:/Users/arcangelo.massari2/Downloads/crossref-data-2022-01.tar.gz
+crossref_json_dir: D:/crossref_unzipped
 # Directory where output CSVs will be stored
-output: C:/meta/meta_input
+output: D:/meta_input
 
 # Optional settings
 
 # CSV file path containing information about publishers (id, name, prefix). This file can be generated via meta.run.crossref_publishers_extractor
-publishers_filepath: C:/meta/publishers.csv
+publishers_filepath: D:/pre_data/publishers.csv
 # ORCID-DOI index directory. It can be generated via meta.run.orcid_process
-orcid_doi_filepath: C:/meta/doi_orcid_index
+orcid_doi_filepath: D:/pre_data/doi_orcid_index
 # Path of a CSV file containing what DOI to process. This file can be generated via meta.run.coci_process, if COCI's DOIs are needed
-wanted_doi_filepath: C:/meta/coci_doi.csv
+wanted_doi_filepath: D:/pre_data/coci_doi.csv
 # Show a loading bar, elapsed time and estimated time
 verbose: True

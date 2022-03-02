@@ -232,6 +232,24 @@ class test_Curator(unittest.TestCase):
         expected_output = {'wannabe_0': {'volume': {'2011': {'id': 'wannabe_1', 'issue': {'2': {'id': 'wannabe_2'}}}}, 'issue': {}}}
         self.assertEqual(curator.vvi, expected_output)
 
+    def test_clean_vvi_invalid_volume(self):
+        # The data must be invalidated, because the resource is journal volume but an issue has also been specified
+        add_data_ts()
+        row = {'id': 'wannabe_1', 'title': '', 'author': '', 'pub_date': '', 'venue': 'OECD Economic Outlook', 'volume': '2011', 'issue': '2', 'page': '', 'type': 'journal volume', 'publisher': '', 'editor': ''}
+        curator = prepareCurator(list())
+        curator.clean_vvi(row)
+        expected_output = {'wannabe_0': {'volume': {}, 'issue': {}}}
+        self.assertEqual(curator.vvi, expected_output)
+
+    def test_clean_vvi_invalid_venue(self):
+        # The data must be invalidated, because the resource is journal but a volume has also been specified
+        add_data_ts()
+        row = {'id': 'wannabe_1', 'title': '', 'author': '', 'pub_date': '', 'venue': 'OECD Economic Outlook', 'volume': '2011', 'issue': '', 'page': '', 'type': 'journal', 'publisher': '', 'editor': ''}
+        curator = prepareCurator(list())
+        curator.clean_vvi(row)
+        expected_output = {'wannabe_0': {'volume': {}, 'issue': {}}}
+        self.assertEqual(curator.vvi, expected_output)
+
     def test_clean_vvi_new_volume_and_issue(self):
         # There are a new volume and a new issue
         add_data_ts()

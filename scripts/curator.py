@@ -183,6 +183,11 @@ class Curator:
         br_type = row['type']
         # Venue
         if venue:
+            # The data must be invalidated, because the resource is journal but a volume or an issue have also been specified
+            if br_type == 'journal' and (volume or issue):
+                row['venue'] = ''
+                row['volume'] = ''
+                row['issue'] = ''
             venue_id = re.search(name_and_ids, venue)
             if venue_id:
                 name = Cleaner(venue_id.group(1)).clean_title()
@@ -219,10 +224,13 @@ class Curator:
                     self.vvi[metaval]['volume'][volume]['id'] = vol_meta
                     self.vvi[metaval]['volume'][volume]['issue'] = dict()
             elif volume and br_type == 'journal volume':
-                # row['volume'] = ''
-                # row['issue'] = ''
-                vol_meta = br_id
-                self.volume_issue(vol_meta, self.vvi[metaval]['volume'], volume, row)
+                # The data must be invalidated, because the resource is journal volume but an issue has also been specified
+                if issue:
+                    row['volume'] = ''
+                    row['issue'] = ''
+                else:
+                    vol_meta = br_id
+                    self.volume_issue(vol_meta, self.vvi[metaval]['volume'], volume, row)
             # Issue
             if issue and br_type == 'journal article':
                 row['issue'] = issue
@@ -239,7 +247,6 @@ class Curator:
                         self.vvi[metaval]['issue'][issue] = dict()
                         self.vvi[metaval]['issue'][issue]['id'] = issue_meta
             elif issue and br_type == 'journal issue':
-                # row['issue'] = ''
                 issue_meta = br_id
                 if vol_meta:
                     self.volume_issue(issue_meta, self.vvi[metaval]['volume'][volume]['issue'], issue, row)
