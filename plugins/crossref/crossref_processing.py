@@ -49,11 +49,11 @@ class CrossrefProcessing:
                 idlist.append(str('doi:' + doi))
 
                 if 'ISBN' in x:
-                    if row['type'] in {'book', 'monograph', 'edited book'}:
+                    if row['type'] in {'book', 'dissertation', 'edited book', 'monograph', 'reference book', 'report', 'standard'}:
                         self.id_worker(x['ISBN'], idlist, self.isbn_worker)
 
                 if 'ISSN' in x:
-                    if row['type'] in {'journal', 'series', 'report series', 'standard series'}:
+                    if row['type'] in {'book series', 'book set', 'journal', 'proceedings series', 'report series', 'series', 'standard series'}:
                         self.id_worker(x['ISSN'], idlist, self.issn_worker)
                 row['id'] = ' '.join(idlist)
 
@@ -206,11 +206,11 @@ class CrossrefProcessing:
                     ventit = ventit[:close_bracket] + ')' + ventit[close_bracket + 1:]
                 venidlist = list()
                 if 'ISBN' in item:
-                    if row['type'] in {'book chapter', 'book part'}:
+                    if row['type'] in {'book chapter', 'book part', 'book section', 'book track', 'reference entry'}:
                         self.id_worker(item['ISBN'], venidlist, self.isbn_worker)
 
                 if 'ISSN' in item:
-                    if row['type'] in {'journal article', 'journal volume', 'journal issue'}:
+                    if row['type'] in {'book', 'edited book', 'journal article', 'journal volume', 'journal issue', 'monograph', 'proceedings', 'reference book', 'reference entry', 'report'}:
                         self.id_worker(item['ISSN'], venidlist, self.issn_worker)
                 if venidlist:
                     name_and_id = ventit + ' [' + ' '.join(venidlist) + ']'
