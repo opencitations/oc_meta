@@ -151,6 +151,16 @@ class test_Curator(unittest.TestCase):
         )
         self.assertEqual(output, expected_output)
     
+    def test_clean_id_metaid_not_in_ts(self):
+        # A MetaId was specified, but it is not on ts. Therefore, it is invalid
+        add_data_ts()
+        curator = prepareCurator(list())
+        row = {'id': 'meta:br/131313', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}
+        curator.log[0] = {'id': {}}
+        curator.clean_id(row)
+        expected_output = {'id': 'wannabe_0', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}
+        self.assertEqual(row, expected_output)
+
     def test_clean_id(self):
         add_data_ts()
         curator = prepareCurator(list())

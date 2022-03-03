@@ -161,8 +161,12 @@ class CrossrefProcessing:
         publisher = data['publisher']
         member = data['member']
         prefix = data['prefix']
+        relevant_member = False
+        if self.publishers_mapping and member:
+            if member in self.publishers_mapping:
+                relevant_member = True
         if self.publishers_mapping:
-            if member:
+            if relevant_member:
                 name = self.publishers_mapping[member]['name']
                 name_and_id = f'{name} [crossref:{member}]'
             else:
