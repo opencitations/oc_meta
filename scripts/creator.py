@@ -184,26 +184,20 @@ class Creator(object):
     def vvi_action(self, venue, vol, issue):
         if venue:
             venue_and_ids = re.search(name_and_ids, venue)
-            venue_id = venue_and_ids.group(2)
-            venue_id_list = venue_id.split(' ')
-            for identifier in venue_id_list:
+            venue_ids = venue_and_ids.group(2)
+            venue_ids_list = venue_ids.split()
+            for identifier in venue_ids_list:
                 if 'meta:' in identifier:
                     ven_id = str(identifier).replace('meta:', '')
                     url = URIRef(self.url + ven_id)
                     venue_title = venue_and_ids.group(1)
                     self.venue_graph = self.setgraph.add_br(self.resp_agent, source=self.src, res=url)
-                    if self.type == 'journal article' or self.type == 'journal volume' or self.type == 'journal issue':
-                        self.venue_graph.create_journal()
-                    elif self.type == 'book chapter' or self.type == 'book part':
-                        self.venue_graph.create_book()
-                    elif self.type == 'proceedings article':
-                        self.venue_graph.create_proceedings()
-                    elif self.type == 'report':
-                        self.venue_graph.create_report_series()
-                    elif self.type == 'standard':
-                        self.venue_graph.create_standard_series()
+                    venue_type = self.get_venue_type(self.type, venue_ids_list)
+                    if venue_type:
+                        venue_type = venue_type.replace(' ', '_')
+                        getattr(self.venue_graph, f'create_{venue_type}')()
                     self.venue_graph.has_title(venue_title)
-            for identifier in venue_id_list:
+            for identifier in venue_ids_list:
                 self.id_creator(self.venue_graph, identifier, ra=False)
         if self.type == 'journal article' or self.type == 'journal issue' or self.type == 'journal volume':
             meta_ven = ven_id.replace('br/', '')
@@ -236,6 +230,33 @@ class Creator(object):
         elif venue and not vol and issue:
             self.br_graph.is_part_of(self.issue_graph)
             self.issue_graph.is_part_of(self.venue_graph)
+
+    @classmethod
+    def get_venue_type(cls, br_type:str, venue_ids:list) -> str:
+        if br_type in {'journal article', 'journal volume', 'journal issue'}:
+            venue_type = 'journal'
+        elif br_type in {'book chapter', 'book part', 'book section', 'book track'}:
+            venue_type = 'book'
+        elif br_type in {'book', 'edited book', 'monograph', 'reference book'}:
+            venue_type = 'book series'
+        elif br_type == 'proceedings article':
+            venue_type = 'proceedings'
+        elif br_type in {'proceedings', 'report', 'standard'}:
+            venue_type = 'series'
+        elif br_type == 'reference entry':
+            schemas = {venue_id.split(':')[0] for venue_id in venue_ids}
+            if 'isbn' in schemas and 'issn' not in schemas:
+                venue_type = 'reference book'
+            elif 'issn' in schemas and 'isbn' not in schemas:
+                venue_type = 'journal'
+            elif 'issn' in schemas and 'isbn' in schemas:
+                # It is undecidable
+                venue_type = ''
+        elif br_type == 'report series':
+            venue_type = 'report series'
+        elif not br_type:
+            venue_type = ''
+        return venue_type
 
     def page_action(self, page):
         if page:

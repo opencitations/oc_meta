@@ -37,10 +37,14 @@ if __name__ == '__main__':
     meta_process = MetaProcess(config)
     TMP_DIR = os.path.join(meta_process.base_output_dir, 'tmp')
     prepare_relevant_items(csv_dir=csv_dir, output_dir=TMP_DIR, items_per_file=items_per_file, verbose=verbose)
-    meta_process.input_csv_dir = os.path.join(TMP_DIR, 'venues')
-    run_meta_process(meta_process=meta_process)
-    meta_process.input_csv_dir = os.path.join(TMP_DIR, 'people')
-    run_meta_process(meta_process=meta_process, resp_agents_only=True)
+    venues_dir = os.path.join(TMP_DIR, 'venues')
+    if os.path.exists(venues_dir):
+        meta_process.input_csv_dir = venues_dir
+        run_meta_process(meta_process=meta_process)
+    people_dir = os.path.join(TMP_DIR, 'people')
+    if os.path.exists(people_dir):
+        meta_process.input_csv_dir = people_dir
+        run_meta_process(meta_process=meta_process, resp_agents_only=True)
     shutil.rmtree(TMP_DIR)
     split_by_publisher(csv_dir=csv_dir, output_dir=TMP_DIR, verbose=verbose)
     os.rename(csv_dir, csv_dir + '_old')
