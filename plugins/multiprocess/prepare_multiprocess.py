@@ -97,23 +97,27 @@ def _get_relevant_venues(data:List[dict], items_by_id:Dict[str, dict]) -> None:
             full_name_and_ids = re.search(name_and_ids, venue)
             name = full_name_and_ids.group(1) if full_name_and_ids else venue
             ids = full_name_and_ids.group(2) if full_name_and_ids else None
-            br_type = Creator.get_venue_type(row['type'], ids)
-            venues.append((name, ids, br_type))
+            if ids:
+                try:
+                    br_type = Creator.get_venue_type(row['type'], ids.split())
+                except UnboundLocalError:
+                    print(f"[INFO:prepare_multiprocess] I found the venue {row['venue']} for the resource of type {row['type']}, but I don't know how to handle it")
+                    raise UnboundLocalError
+                venues.append((name, ids, br_type))
         for venue_tuple in venues:
             name, ids, br_type = venue_tuple
-            if ids:
-                ids_list = [identifier for identifier in ids.split() if identifier not in FORBIDDEN_IDS]
-                for id in ids_list:
-                    items_by_id.setdefault(id, {'others': set(), 'name': name, 'type': br_type, 'volume': dict(), 'issue': set()})
-                    items_by_id[id]['others'].update({other for other in ids_list if other != id})
-                    volume = row['volume']
-                    issue = row['issue']
-                    if volume:
-                        items_by_id[id]['volume'].setdefault(volume, set())
-                        if issue:
-                            items_by_id[id]['volume'][volume].add(issue)
-                    elif not volume and issue:
-                        items_by_id[id]['issue'].add(issue)
+            ids_list = [identifier for identifier in ids.split() if identifier not in FORBIDDEN_IDS]
+            for id in ids_list:
+                items_by_id.setdefault(id, {'others': set(), 'name': name, 'type': br_type, 'volume': dict(), 'issue': set()})
+                items_by_id[id]['others'].update({other for other in ids_list if other != id})
+                volume = row['volume']
+                issue = row['issue']
+                if volume:
+                    items_by_id[id]['volume'].setdefault(volume, set())
+                    if issue:
+                        items_by_id[id]['volume'][volume].add(issue)
+                elif not volume and issue:
+                    items_by_id[id]['issue'].add(issue)
 
 def _get_resp_agents(data:List[dict], items_by_id:Dict[str, Dict[str, set]]) -> None:
     for row in data:

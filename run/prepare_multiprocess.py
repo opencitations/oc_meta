@@ -51,6 +51,4 @@ if __name__ == '__main__':
     os.mkdir(csv_dir)
     for file in os.listdir(TMP_DIR):
         shutil.move(os.path.join(TMP_DIR, file), csv_dir)
-    for dir in {TMP_DIR, meta_process.output_csv_dir, meta_process.indexes_dir, meta_process.output_rdf_dir}:
-        shutil.rmtree(dir)
     os.remove(meta_process.cache_path)
