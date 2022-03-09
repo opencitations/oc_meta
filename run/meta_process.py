@@ -144,6 +144,7 @@ def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False) -> N
                 with open(meta_process.cache_path, 'a', encoding='utf-8') as aux_file:
                     aux_file.write(processed_file + '\n')
                 pbar.update() if pbar else None
+    os.remove(meta_process.cache_path)
     pbar.close() if pbar else None
 
 if __name__ == '__main__':
