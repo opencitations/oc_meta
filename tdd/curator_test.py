@@ -423,6 +423,21 @@ class test_Curator(unittest.TestCase):
         expected_output = (expected_index_ar, expected_index_id_br, expected_index_id_ra, expected_index_re, expected_index_vi)
         shutil.rmtree(OUTPUT_DIR)
         self.assertEqual(output, expected_output)
+    
+    def test_is_a_valid_row(self):
+        rows = [
+            {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''},
+            {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '1', 'issue': '', 'page': '', 'type': 'journal volume', 'publisher': '', 'editor': ''},
+            {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '1', 'page': '', 'type': 'journal issue', 'publisher': '', 'editor': ''},
+            {'id': 'id:1234', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}
+        ]
+        output = []
+        curator = prepareCurator(list())
+        for row in rows:
+            output.append(curator.is_a_valid_row(row))
+        expected_output = [False, False, False, True]
+        self.assertEqual(output, expected_output)
+        
 
 
 class test_RespAgentsCurator(unittest.TestCase):

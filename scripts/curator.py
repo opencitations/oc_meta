@@ -1073,7 +1073,14 @@ class Curator:
         elif row['type']:
             self.log[self.rowcnt]['type']['status'] = 'NEW VALUE PROPOSED'
     
-    def is_a_valid_row(self, row:dict) -> bool:
+    def is_a_valid_row(self, row:Dict[str, str]) -> bool:
+        '''
+        This method discards invalid rows in the input CSV file.
+
+        :params row: a dictionary representing a CSV row
+        :type row: Dict[str, str]
+        :returns: bool -- This method returns True if the row is valid, False if it is invalid.
+        '''
         if all(not row[value] for value in row):
             return False
         br_type = ' '.join((row['type'].lower()).split())
