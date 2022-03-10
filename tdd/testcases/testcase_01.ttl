@@ -108,8 +108,8 @@
     ns6:hasLiteralValue "B5" .
 
 <https://w3id.org/oc/meta/id/0606> a ns1:Identifier ;
-    ns1:usesIdentifierScheme ns1:isbn ;
-    ns6:hasLiteralValue "9783319444536" .
+    ns1:usesIdentifierScheme ns1:issn ;
+    ns6:hasLiteralValue "1479-6708" .
 
 <https://w3id.org/oc/meta/id/0607> a ns1:Identifier ;
     ns1:usesIdentifierScheme ns1:orcid ;

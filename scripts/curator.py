@@ -1089,7 +1089,7 @@ class Curator:
         br_venue = row['venue']
         br_volume = row['volume']
         br_issue = row['issue']
-        if br_type in {'book', 'dataset', 'dissertation', 'edited book', 'journal article', 'monograph', 
+        if br_type in {'book', 'data file', 'dataset', 'dissertation', 'edited book', 'journal article', 'monograph', 
                         'other', 'peer review', 'posted content', 'web content', 'proceedings article', 'report', 'reference book'}:
             is_a_valid_row = True if br_title and br_author else False
         elif br_type in {'book chapter', 'book part', 'book section', 'book track', 'reference entry'}:

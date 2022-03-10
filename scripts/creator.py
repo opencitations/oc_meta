@@ -233,6 +233,7 @@ class Creator(object):
 
     @classmethod
     def get_venue_type(cls, br_type:str, venue_ids:str) -> str:
+        schemas = {venue_id.split(':')[0] for venue_id in venue_ids}
         if br_type in {'journal article', 'journal volume', 'journal issue'}:
             venue_type = 'journal'
         elif br_type in {'book chapter', 'book part', 'book section', 'book track'}:
@@ -244,18 +245,27 @@ class Creator(object):
         elif br_type in {'proceedings', 'report', 'standard'}:
             venue_type = 'series'
         elif br_type == 'reference entry':
-            schemas = {venue_id.split(':')[0] for venue_id in venue_ids}
-            if 'isbn' in schemas and 'issn' not in schemas:
-                venue_type = 'reference book'
-            elif 'issn' in schemas and 'isbn' not in schemas:
-                venue_type = 'journal'
-            elif 'issn' in schemas and 'isbn' in schemas:
-                # It is undecidable
-                venue_type = ''
+            venue_type = 'reference book'
         elif br_type == 'report series':
             venue_type = 'report series'
         elif not br_type:
             venue_type = ''
+        # Check the type based on the identifier scheme
+        if any(identifier for identifier in venue_ids if not identifier.startswith('meta:')):
+            if venue_type in {'journal', 'book series', 'series', 'report series'}:
+                if 'isbn' in schemas or 'issn' not in schemas:
+                    # It is undecidable
+                    venue_type = ''
+            elif venue_type in {'book', 'proceedings'}:
+                if 'issn' in schemas or 'isbn' not in schemas:
+                    venue_type = ''
+            elif venue_type == 'reference book':
+                if 'isbn' in schemas and 'issn' not in schemas:
+                    venue_type = 'reference book'
+                elif 'issn' in schemas and 'isbn' not in schemas:
+                    venue_type = 'journal'
+                elif 'issn' in schemas and 'isbn' in schemas:
+                    venue_type = ''
         return venue_type
 
     def page_action(self, page):

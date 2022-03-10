@@ -74,50 +74,49 @@
 <https://w3id.org/oc/meta/br/0606> a ns6:Book,
         ns6:Expression ;
     ns9:title "Venue2" ;
-    ns4:hasIdentifier <https://w3id.org/oc/meta/id/0608>,
-        <https://w3id.org/oc/meta/id/0609> .
+    ns4:hasIdentifier <https://w3id.org/oc/meta/id/0608>.
 
 <https://w3id.org/oc/meta/id/0601> a ns4:Identifier ;
     ns4:usesIdentifierScheme ns4:doi ;
     ns3:hasLiteralValue "10.001/b-1" .
 
-<https://w3id.org/oc/meta/id/06010> a ns4:Identifier ;
+<https://w3id.org/oc/meta/id/0609> a ns4:Identifier ;
     ns4:usesIdentifierScheme ns4:orcid ;
     ns3:hasLiteralValue "0000-0003-0530-4305" .
 
-<https://w3id.org/oc/meta/id/06011> a ns4:Identifier ;
+<https://w3id.org/oc/meta/id/06010> a ns4:Identifier ;
     ns4:usesIdentifierScheme ns4:viaf ;
     ns3:hasLiteralValue "1111111" .
 
-<https://w3id.org/oc/meta/id/06012> a ns4:Identifier ;
+<https://w3id.org/oc/meta/id/06011> a ns4:Identifier ;
     ns4:usesIdentifierScheme ns4:wikidata ;
     ns3:hasLiteralValue "Q1111111" .
 
-<https://w3id.org/oc/meta/id/06013> a ns4:Identifier ;
+<https://w3id.org/oc/meta/id/06012> a ns4:Identifier ;
     ns4:usesIdentifierScheme ns4:wikidata ;
     ns3:hasLiteralValue "11111112" .
 
-<https://w3id.org/oc/meta/id/06014> a ns4:Identifier ;
+<https://w3id.org/oc/meta/id/06013> a ns4:Identifier ;
     ns4:usesIdentifierScheme ns4:orcid ;
     ns3:hasLiteralValue "0000-0002-8420-0696" .
 
-<https://w3id.org/oc/meta/id/06015> a ns4:Identifier ;
+<https://w3id.org/oc/meta/id/06014> a ns4:Identifier ;
     ns4:usesIdentifierScheme ns4:viaf ;
     ns3:hasLiteralValue "222222" .
 
-<https://w3id.org/oc/meta/id/06016> a ns4:Identifier ;
+<https://w3id.org/oc/meta/id/06015> a ns4:Identifier ;
     ns4:usesIdentifierScheme ns4:wikidata ;
     ns3:hasLiteralValue "Q2222222" .
 
-<https://w3id.org/oc/meta/id/06017> a ns4:Identifier ;
+<https://w3id.org/oc/meta/id/06016> a ns4:Identifier ;
     ns4:usesIdentifierScheme ns4:crossref ;
     ns3:hasLiteralValue "1111" .
 
-<https://w3id.org/oc/meta/id/06018> a ns4:Identifier ;
+<https://w3id.org/oc/meta/id/06017> a ns4:Identifier ;
     ns4:usesIdentifierScheme ns4:orcid ;
     ns3:hasLiteralValue "0000-0001-5366-5194" .
 
-<https://w3id.org/oc/meta/id/06019> a ns4:Identifier ;
+<https://w3id.org/oc/meta/id/06018> a ns4:Identifier ;
     ns4:usesIdentifierScheme ns4:viaf ;
     ns3:hasLiteralValue "1111113" .
 
@@ -125,15 +124,15 @@
     ns4:usesIdentifierScheme ns4:wikidata ;
     ns3:hasLiteralValue "B1111111" .
 
-<https://w3id.org/oc/meta/id/06020> a ns4:Identifier ;
+<https://w3id.org/oc/meta/id/06019> a ns4:Identifier ;
     ns4:usesIdentifierScheme ns4:wikidata ;
     ns3:hasLiteralValue "Q1111113" .
 
-<https://w3id.org/oc/meta/id/06021> a ns4:Identifier ;
+<https://w3id.org/oc/meta/id/06020> a ns4:Identifier ;
     ns4:usesIdentifierScheme ns4:wikidata ;
     ns3:hasLiteralValue "11111113" .
 
-<https://w3id.org/oc/meta/id/06022> a ns4:Identifier ;
+<https://w3id.org/oc/meta/id/06021> a ns4:Identifier ;
     ns4:usesIdentifierScheme ns4:crossref ;
     ns3:hasLiteralValue "1112" .
 
@@ -154,39 +153,35 @@
     ns3:hasLiteralValue "www.example.com" .
 
 <https://w3id.org/oc/meta/id/0607> a ns4:Identifier ;
+    ns4:usesIdentifierScheme ns4:issn ;
+    ns3:hasLiteralValue "1479-6708" .
+
+<https://w3id.org/oc/meta/id/0608> a ns4:Identifier ;
     ns4:usesIdentifierScheme ns4:isbn ;
     ns3:hasLiteralValue "9783319444536" .
 
-<https://w3id.org/oc/meta/id/0608> a ns4:Identifier ;
-    ns4:usesIdentifierScheme ns4:issn ;
-    ns3:hasLiteralValue "2341-4022" .
-
-<https://w3id.org/oc/meta/id/0609> a ns4:Identifier ;
-    ns4:usesIdentifierScheme ns4:issn ;
-    ns3:hasLiteralValue "1750-743X" .
-
 <https://w3id.org/oc/meta/ra/0601> a ns8:Agent ;
-    ns4:hasIdentifier <https://w3id.org/oc/meta/id/06010>,
+    ns4:hasIdentifier <https://w3id.org/oc/meta/id/0609>,
+        <https://w3id.org/oc/meta/id/06010>,
         <https://w3id.org/oc/meta/id/06011>,
-        <https://w3id.org/oc/meta/id/06012>,
-        <https://w3id.org/oc/meta/id/06013> ;
+        <https://w3id.org/oc/meta/id/06012> ;
     ns8:familyName "Surname1" ;
     ns8:givenName "Name1" .
 
 <https://w3id.org/oc/meta/ra/0603> a ns8:Agent ;
-    ns4:hasIdentifier <https://w3id.org/oc/meta/id/06017> ;
+    ns4:hasIdentifier <https://w3id.org/oc/meta/id/06016> ;
     ns8:name "Pub1" .
 
 <https://w3id.org/oc/meta/ra/0604> a ns8:Agent ;
-    ns4:hasIdentifier <https://w3id.org/oc/meta/id/06018>,
+    ns4:hasIdentifier <https://w3id.org/oc/meta/id/06017>,
+        <https://w3id.org/oc/meta/id/06018>,
         <https://w3id.org/oc/meta/id/06019>,
-        <https://w3id.org/oc/meta/id/06020>,
-        <https://w3id.org/oc/meta/id/06021> ;
+        <https://w3id.org/oc/meta/id/06020> ;
     ns8:familyName "Surname3" ;
     ns8:givenName "Name3" .
 
 <https://w3id.org/oc/meta/ra/0605> a ns8:Agent ;
-    ns4:hasIdentifier <https://w3id.org/oc/meta/id/06022> ;
+    ns4:hasIdentifier <https://w3id.org/oc/meta/id/06021> ;
     ns8:name "Pub2" .
 
 <https://w3id.org/oc/meta/re/0601> a ns6:Manifestation ;
@@ -206,9 +201,9 @@
     ns2:withRole ns2:author .
 
 <https://w3id.org/oc/meta/ra/0602> a ns8:Agent ;
-    ns4:hasIdentifier <https://w3id.org/oc/meta/id/06014>,
-        <https://w3id.org/oc/meta/id/06015>,
-        <https://w3id.org/oc/meta/id/06016> ;
+    ns4:hasIdentifier <https://w3id.org/oc/meta/id/06013>,
+        <https://w3id.org/oc/meta/id/06014>,
+        <https://w3id.org/oc/meta/id/06015> ;
     ns8:familyName "Surname2" ;
     ns8:givenName "Name2" .
 

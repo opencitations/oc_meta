@@ -201,12 +201,12 @@
     ns6:hasLiteralValue "10.001/b-1" .
 
 <https://w3id.org/oc/meta/id/06010> a ns3:Identifier ;
-    ns3:usesIdentifierScheme ns3:isbn ;
-    ns6:hasLiteralValue "9781137465450" .
+    ns3:usesIdentifierScheme ns3:issn ;
+    ns6:hasLiteralValue "0040-6090" .
 
 <https://w3id.org/oc/meta/id/06011> a ns3:Identifier ;
-    ns3:usesIdentifierScheme ns3:isbn ;
-    ns6:hasLiteralValue "9783319403144" .
+    ns3:usesIdentifierScheme ns3:issn ;
+    ns6:hasLiteralValue "0090-4295" .
 
 <https://w3id.org/oc/meta/id/06012> a ns3:Identifier ;
     ns3:usesIdentifierScheme ns3:orcid ;
@@ -249,16 +249,16 @@
     ns6:hasLiteralValue "10.006/b-6" .
 
 <https://w3id.org/oc/meta/id/0607> a ns3:Identifier ;
-    ns3:usesIdentifierScheme ns3:isbn ;
-    ns6:hasLiteralValue "9783319444536" .
+    ns3:usesIdentifierScheme ns3:issn ;
+    ns6:hasLiteralValue "0098-7484" .
 
 <https://w3id.org/oc/meta/id/0608> a ns3:Identifier ;
-    ns3:usesIdentifierScheme ns3:isbn ;
-    ns6:hasLiteralValue "9783319444529" .
+    ns3:usesIdentifierScheme ns3:issn ;
+    ns6:hasLiteralValue "0003-987X" .
 
 <https://w3id.org/oc/meta/id/0609> a ns3:Identifier ;
-    ns3:usesIdentifierScheme ns3:isbn ;
-    ns6:hasLiteralValue "9783319121277" .
+    ns3:usesIdentifierScheme ns3:issn ;
+    ns6:hasLiteralValue "0041-1345" .
 
 <https://w3id.org/oc/meta/ra/0604> a ns4:Agent ;
     ns3:hasIdentifier <https://w3id.org/oc/meta/id/06015>,

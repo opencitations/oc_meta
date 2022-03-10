@@ -48,24 +48,25 @@ class TestPrepareMultiprocess(unittest.TestCase):
         
     def test__get_relevant_venues(self):
         items_by_id = dict()
-        item_1 = {'venue': 'Venue [id:a id:b id:c]', 'volume': '1', 'issue': 'a', 'type': 'journal article'}
-        item_2 = {'venue': 'Venue [id:a id:d]', 'volume': '2', 'issue': 'b', 'type': 'journal article'}
-        item_3 = {'venue': 'Venue [id:e id:d]', 'volume': '3', 'issue': 'c', 'type': 'journal article'}
-        item_4 = {'venue': 'Venue [id:e id:f issn:0000-0000]', 'volume': '', 'issue': 'd', 'type': 'journal article'}
-        item_5 = {'venue': 'Venue [id:f]', 'volume': '', 'issue': 'e', 'type': 'journal article'}
+        self.maxDiff = None
+        item_1 = {'venue': 'Venue [issn:0098-7484 issn:0003-987X issn:0041-1345]', 'volume': '1', 'issue': 'a', 'type': 'journal article'}
+        item_2 = {'venue': 'Venue [issn:0098-7484 issn:0040-6090]', 'volume': '2', 'issue': 'b', 'type': 'journal article'}
+        item_3 = {'venue': 'Venue [issn:0090-4295 issn:0040-6090]', 'volume': '3', 'issue': 'c', 'type': 'journal article'}
+        item_4 = {'venue': 'Venue [issn:0090-4295 issn:2341-4022 issn:0000-0000]', 'volume': '', 'issue': 'd', 'type': 'journal article'}
+        item_5 = {'venue': 'Venue [issn:2341-4022]', 'volume': '', 'issue': 'e', 'type': 'journal article'}
         item_6 = {'id': 'isbn:9789089646491', 'title': 'Transit Migration in Europe', 'venue': '', 'volume': '', 'issue': '', 'type': 'book'}
-        item_7 = {'id': 'isbn:9789089646491', 'title': 'Transit Migration in Europe', 'venue': 'An Introduction to Immigrant Incorporation Studies [isbn:9789089646484]', 'volume': '', 'issue': '', 'type': 'book'}
+        item_7 = {'id': 'isbn:9789089646491', 'title': 'Transit Migration in Europe', 'venue': 'An Introduction to Immigrant Incorporation Studies [issn:1750-743X]', 'volume': '', 'issue': '', 'type': 'book'}
         items = [item_1, item_2, item_3, item_4, item_5, item_6, item_7]
         _get_relevant_venues(data= items, items_by_id=items_by_id)
         expected_output = {
-            'id:a': {'others': {'id:c', 'id:d', 'id:b'}, 'name': 'Venue', 'type': 'journal', 'volume': {'1': {'a'}, '2': {'b'}}, 'issue': set()}, 
-            'id:b': {'others': {'id:c', 'id:a'}, 'name': 'Venue', 'type': 'journal', 'volume': {'1': {'a'}}, 'issue': set()}, 
-            'id:c': {'others': {'id:a', 'id:b'}, 'name': 'Venue', 'type': 'journal', 'volume': {'1': {'a'}}, 'issue': set()}, 
-            'id:d': {'others': {'id:a', 'id:e'}, 'name': 'Venue', 'type': 'journal', 'volume': {'2': {'b'}, '3': {'c'}}, 'issue': set()}, 
-            'id:e': {'others': {'id:f', 'id:d'}, 'name': 'Venue', 'type': 'journal', 'volume': {'3': {'c'}}, 'issue': {'d'}}, 
-            'id:f': {'others': {'id:e'}, 'name': 'Venue', 'type': 'journal', 'volume': dict(), 'issue': {'d', 'e'}},
+            'issn:0098-7484': {'others': {'issn:0041-1345', 'issn:0040-6090', 'issn:0003-987X'}, 'name': 'Venue', 'type': 'journal', 'volume': {'1': {'a'}, '2': {'b'}}, 'issue': set()}, 
+            'issn:0003-987X': {'others': {'issn:0041-1345', 'issn:0098-7484'}, 'name': 'Venue', 'type': 'journal', 'volume': {'1': {'a'}}, 'issue': set()}, 
+            'issn:0041-1345': {'others': {'issn:0098-7484', 'issn:0003-987X'}, 'name': 'Venue', 'type': 'journal', 'volume': {'1': {'a'}}, 'issue': set()}, 
+            'issn:0040-6090': {'others': {'issn:0098-7484', 'issn:0090-4295'}, 'name': 'Venue', 'type': 'journal', 'volume': {'2': {'b'}, '3': {'c'}}, 'issue': set()}, 
+            'issn:0090-4295': {'others': {'issn:2341-4022', 'issn:0040-6090'}, 'name': 'Venue', 'type': 'journal', 'volume': {'3': {'c'}}, 'issue': {'d'}}, 
+            'issn:2341-4022': {'others': {'issn:0090-4295'}, 'name': 'Venue', 'type': 'journal', 'volume': dict(), 'issue': {'d', 'e'}},
             'isbn:9789089646491': {'others': set(), 'name': 'Transit Migration in Europe', 'type': 'book', 'volume': dict(), 'issue': set()}, 
-            'isbn:9789089646484': {'others': set(), 'name': 'An Introduction to Immigrant Incorporation Studies', 'type': 'book series', 'volume': dict(), 'issue': set()}}
+            'issn:1750-743X': {'others': set(), 'name': 'An Introduction to Immigrant Incorporation Studies', 'type': 'book series', 'volume': dict(), 'issue': set()}}
         self.assertEqual(items_by_id, expected_output)
 
     def test__get_resp_agents(self):

@@ -164,7 +164,6 @@ class testcase_05(unittest.TestCase):
         test_graph, new_graph = prepare2test(name)
         self.assertEqual(compare.isomorphic(new_graph, test_graph), True)
 
-
 class testcase_06(unittest.TestCase):
     def test(self):
         # testcase6: ALL types test

@@ -214,7 +214,7 @@ class CrossrefProcessing:
                         self.id_worker(item['ISBN'], venidlist, self.isbn_worker)
 
                 if 'ISSN' in item:
-                    if row['type'] in {'book', 'dataset', 'edited book', 'journal article', 'journal volume', 'journal issue', 'monograph', 'proceedings', 'peer review', 'reference book', 'reference entry', 'report'}:
+                    if row['type'] in {'book', 'data file', 'dataset', 'edited book', 'journal article', 'journal volume', 'journal issue', 'monograph', 'proceedings', 'peer review', 'reference book', 'reference entry', 'report'}:
                         self.id_worker(item['ISSN'], venidlist, self.issn_worker)
                 if venidlist:
                     name_and_id = ventit + ' [' + ' '.join(venidlist) + ']'
