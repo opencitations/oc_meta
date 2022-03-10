@@ -37,6 +37,7 @@ from argparse import ArgumentParser
 from tqdm import tqdm
 from typing import Set, Tuple
 
+
 class MetaProcess:
     def __init__(self, config:str):
         with open(config, encoding='utf-8') as file:

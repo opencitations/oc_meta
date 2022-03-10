@@ -232,7 +232,7 @@ class Creator(object):
             self.issue_graph.is_part_of(self.venue_graph)
 
     @classmethod
-    def get_venue_type(cls, br_type:str, venue_ids:list) -> str:
+    def get_venue_type(cls, br_type:str, venue_ids:str) -> str:
         if br_type in {'journal article', 'journal volume', 'journal issue'}:
             venue_type = 'journal'
         elif br_type in {'book chapter', 'book part', 'book section', 'book track'}:
@@ -283,7 +283,7 @@ class Creator(object):
             self.br_graph.create_book_series()
         elif entity_type == 'book set':
             self.br_graph.create_book_set()
-        elif entity_type == 'data file':
+        elif entity_type in {'data file', 'dataset'}:
             self.br_graph.create_dataset()
         elif entity_type == 'dissertation':
             self.br_graph.create_dissertation()

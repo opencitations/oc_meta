@@ -14,7 +14,7 @@ class Curator:
     def __init__(self, data:List[dict], ts:str, info_dir:str, base_iri:str='https://w3id.org/oc/meta', prefix:str='060', separator:str=None, valid_dois_cache:CSVManager=None):
         self.finder = ResourceFinder(ts, base_iri)
         self.separator = separator
-        self.data = [{field:value.strip() for field,value in row.items()} for row in data]
+        self.data = [{field:value.strip() for field,value in row.items()} for row in data if self.is_a_valid_row(row)]
         self.prefix = prefix
         # Counter local paths
         self.br_info_path = info_dir + 'br.txt'
@@ -129,7 +129,7 @@ class Curator:
             elif entity_type == 'posted content':
                 entity_type = 'web content'
             if entity_type in {'archival document', 'book', 'book chapter', 'book part', 'book section', 'book series',
-                               'book set', 'data file', 'dissertation', 'journal', 'journal article', 'journal issue',
+                               'book set', 'data file', 'dataset', 'dissertation', 'journal', 'journal article', 'journal issue',
                                'journal volume', 'peer review', 'proceedings article', 'proceedings', 'reference book',
                                'reference entry', 'series', 'report', 'standard', 'web content'}:
                 row['type'] = entity_type
@@ -1072,3 +1072,27 @@ class Curator:
             row['type'] = known_data['type']
         elif row['type']:
             self.log[self.rowcnt]['type']['status'] = 'NEW VALUE PROPOSED'
+    
+    def is_a_valid_row(self, row:dict) -> bool:
+        if all(not row[value] for value in row):
+            return False
+        br_type = ' '.join((row['type'].lower()).split())
+        br_title = row['title']
+        br_author = row['author']
+        br_venue = row['venue']
+        br_volume = row['volume']
+        br_issue = row['issue']
+        if br_type in {'book', 'dataset', 'dissertation', 'edited book', 'journal article', 'monograph', 
+                        'other', 'peer review', 'posted content', 'web content', 'proceedings article', 'report', 'reference book'}:
+            is_a_valid_row = True if br_title and br_author else False
+        elif br_type in {'book chapter', 'book part', 'book section', 'book track', 'reference entry'}:
+            is_a_valid_row = True if br_title and br_venue else False
+        elif br_type in {'book series', 'book set', 'component', 'journal', 'proceedings', 'proceedings series', 'report series', 'standard', 'standard series'}:
+            is_a_valid_row = True if br_title else False
+        elif br_type == 'journal volume':
+            is_a_valid_row = True if br_venue and (br_volume or br_title) else False
+        elif br_type == 'journal issue':
+            is_a_valid_row = True if br_venue and (br_issue or br_title) else False
+        elif br_type == '':
+            is_a_valid_row = True
+        return is_a_valid_row
