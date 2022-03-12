@@ -298,8 +298,33 @@ class TestCrossrefProcessing(unittest.TestCase):
         crossref_processor = CrossrefProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
         pages = crossref_processor.get_pages(item)
         self.assertEqual(pages, '')
+    
+    def test_report_series_venue_id(self):
+        crossref_processor = CrossrefProcessing(orcid_index=IOD, doi_csv=WANTED_DOIS, publishers_filepath=None)
+        item = {'items': [{
+            'DOI': '10.1007/978-3-030-00668-6_8',
+            'container-title': ["troitel'stvo: nauka i obrazovanie [Construction: Science and Education]"],
+            'ISSN': '2305-5502',
+            'type': 'report-series'
+        }]}
+        crossref_processor = CrossrefProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
+        output = crossref_processor.csv_creator(data=item)
+        expected_output = [{'id': 'doi:10.1007/978-3-030-00668-6_8', 'title': '', 'author': '', 'pub_date': '', 'venue': "troitel'stvo: nauka i obrazovanie [Construction: Science and Education] [issn:2305-5502]", 'volume': '', 'issue': '', 'page': '', 'type': 'report series', 'publisher': '', 'editor': ''}]
+        self.assertEqual(output, expected_output)
 
-
+    def test_report_series_br_id(self):
+        crossref_processor = CrossrefProcessing(orcid_index=IOD, doi_csv=WANTED_DOIS, publishers_filepath=None)
+        item = {'items': [{
+            'DOI': '10.1007/978-3-030-00668-6_8',
+            'container-title': [],
+            'ISSN': '2305-5502',
+            'type': 'report-series'
+        }]}
+        crossref_processor = CrossrefProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
+        output = crossref_processor.csv_creator(data=item)
+        expected_output = [{'id': 'doi:10.1007/978-3-030-00668-6_8 issn:2305-5502', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': 'report series', 'publisher': '', 'editor': ''}]
+        print(output)
+        self.assertEqual(output, expected_output)
 
 if __name__ == '__main__':
     unittest.main()

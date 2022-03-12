@@ -53,8 +53,15 @@ class CrossrefProcessing:
                         self.id_worker(x['ISBN'], idlist, self.isbn_worker)
 
                 if 'ISSN' in x:
-                    if row['type'] in {'book series', 'book set', 'journal', 'proceedings series', 'report series', 'series', 'standard series'}:
+                    if row['type'] in {'book series', 'book set', 'journal', 'proceedings series', 'series', 'standard series'}:
                         self.id_worker(x['ISSN'], idlist, self.issn_worker)
+                    elif row['type'] == 'report series':
+                        br_id = True
+                        if 'container-title' in x:
+                            if x['container-title']:
+                                br_id = False
+                        if br_id:
+                            self.id_worker(x['ISSN'], idlist, self.issn_worker)
                 row['id'] = ' '.join(idlist)
 
                 # row['title']
@@ -216,6 +223,10 @@ class CrossrefProcessing:
                 if 'ISSN' in item:
                     if row['type'] in {'book', 'data file', 'dataset', 'edited book', 'journal article', 'journal volume', 'journal issue', 'monograph', 'proceedings', 'peer review', 'reference book', 'reference entry', 'report'}:
                         self.id_worker(item['ISSN'], venidlist, self.issn_worker)
+                    elif row['type'] == 'report series':
+                        if 'container-title' in item:
+                            if item['container-title']:
+                                self.id_worker(item['ISSN'], venidlist, self.issn_worker)
                 if venidlist:
                     name_and_id = ventit + ' [' + ' '.join(venidlist) + ']'
                 else:

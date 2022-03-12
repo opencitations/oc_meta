@@ -2,7 +2,7 @@ from dateutil import parser
 from typing import List, Dict, Tuple
 from oc_ocdm.graph import GraphEntity
 from oc_ocdm.prov.prov_entity import ProvEntity
-from oc_ocdm.support import get_count
+from oc_ocdm.support import get_count, find_paths
 from SPARQLWrapper import SPARQLWrapper, JSON, GET
 from time_agnostic_library.agnostic_entity import AgnosticEntity
 
