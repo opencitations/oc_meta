@@ -1,0 +1,50 @@
+<https://w3id.org/oc/meta/ra/4321/prov/se/1> <http://www.w3.org/ns/prov#generatedAtTime> "2021-10-10T23:44:45.000Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> <https://w3id.org/oc/meta/ra/4321/prov/> .
+<https://w3id.org/oc/meta/ra/4321/prov/se/1> <http://www.w3.org/ns/prov#hadPrimarySource> <https://api.crossref.org/works/10.1007/s11192-021-03940-z> <https://w3id.org/oc/meta/ra/4321/prov/> .
+<https://w3id.org/oc/meta/ra/4321/prov/se/1> <http://www.w3.org/ns/prov#specializationOf> <https://w3id.org/oc/meta/ra/4321> <https://w3id.org/oc/meta/ra/4321/prov/> .
+<https://w3id.org/oc/meta/ra/4321/prov/se/1> <http://www.w3.org/ns/prov#wasAttributedTo> <https://orcid.org/0000-0002-8420-0696> <https://w3id.org/oc/meta/ra/4321/prov/> .
+<https://w3id.org/oc/meta/ra/4321/prov/se/1> <http://www.w3.org/ns/prov#invalidatedAtTime> "2021-10-11T10:25:36.000Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> <https://w3id.org/oc/meta/ra/4321/prov/> .
+<https://w3id.org/oc/meta/ra/4321/prov/se/1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/prov#Entity> <https://w3id.org/oc/meta/ra/4321/prov/> .
+<https://w3id.org/oc/meta/ra/4321/prov/se/1> <http://purl.org/dc/terms/description> "The entity 'https://w3id.org/oc/meta/ra/4321' has been created." <https://w3id.org/oc/meta/ra/4321/prov/> .
+<https://w3id.org/oc/meta/ra/4321/prov/se/2> <http://www.w3.org/ns/prov#generatedAtTime> "2021-10-11T10:25:36.000Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> <https://w3id.org/oc/meta/ra/4321/prov/> .
+<https://w3id.org/oc/meta/ra/4321/prov/se/2> <http://www.w3.org/ns/prov#specializationOf> <https://w3id.org/oc/meta/ra/4321> <https://w3id.org/oc/meta/ra/4321/prov/> .
+<https://w3id.org/oc/meta/ra/4321/prov/se/2> <http://www.w3.org/ns/prov#wasAttributedTo> <https://orcid.org/0000-0002-8420-0696> <https://w3id.org/oc/meta/ra/4321/prov/> .
+<https://w3id.org/oc/meta/ra/4321/prov/se/2> <http://www.w3.org/ns/prov#invalidatedAtTime> "2021-10-15T05:54:30.000Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> <https://w3id.org/oc/meta/ra/4321/prov/> .
+<https://w3id.org/oc/meta/ra/4321/prov/se/2> <http://www.w3.org/ns/prov#wasDerivedFrom> <https://w3id.org/oc/meta/ra/1012/prov/se/1> <https://w3id.org/oc/meta/ra/4321/prov/> .
+<https://w3id.org/oc/meta/ra/4321/prov/se/2> <http://www.w3.org/ns/prov#wasDerivedFrom> <https://w3id.org/oc/meta/ra/2015/prov/se/1> <https://w3id.org/oc/meta/ra/4321/prov/> .
+<https://w3id.org/oc/meta/ra/4321/prov/se/2> <http://www.w3.org/ns/prov#wasDerivedFrom> <https://w3id.org/oc/meta/ra/3252/prov/se/1> <https://w3id.org/oc/meta/ra/4321/prov/> .
+<https://w3id.org/oc/meta/ra/4321/prov/se/2> <http://www.w3.org/ns/prov#wasDerivedFrom> <https://w3id.org/oc/meta/ra/3307/prov/se/1> <https://w3id.org/oc/meta/ra/4321/prov/> .
+<https://w3id.org/oc/meta/ra/4321/prov/se/2> <http://www.w3.org/ns/prov#wasDerivedFrom> <https://w3id.org/oc/meta/ra/4321/prov/se/1> <https://w3id.org/oc/meta/ra/4321/prov/> .
+<https://w3id.org/oc/meta/ra/4321/prov/se/2> <http://www.w3.org/ns/prov#wasDerivedFrom> <https://w3id.org/oc/meta/ra/4330/prov/se/1> <https://w3id.org/oc/meta/ra/4321/prov/> .
+<https://w3id.org/oc/meta/ra/4321/prov/se/2> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/prov#Entity> <https://w3id.org/oc/meta/ra/4321/prov/> .
+<https://w3id.org/oc/meta/ra/4321/prov/se/2> <http://purl.org/dc/terms/description> "The entity 'https://w3id.org/oc/meta/ra/4321' has been merged with 'https://w3id.org/oc/meta/ra/4330', 'https://w3id.org/oc/meta/ra/1012', 'https://w3id.org/oc/meta/ra/3252', 'https://w3id.org/oc/meta/ra/3307', 'https://w3id.org/oc/meta/ra/2015'." <https://w3id.org/oc/meta/ra/4321/prov/> .
+<https://w3id.org/oc/meta/ra/4321/prov/se/3> <http://www.w3.org/ns/prov#generatedAtTime> "2021-10-15T05:54:30.000Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> <https://w3id.org/oc/meta/ra/4321/prov/> .
+<https://w3id.org/oc/meta/ra/4321/prov/se/3> <http://www.w3.org/ns/prov#specializationOf> <https://w3id.org/oc/meta/ra/4321> <https://w3id.org/oc/meta/ra/4321/prov/> .
+<https://w3id.org/oc/meta/ra/4321/prov/se/3> <http://www.w3.org/ns/prov#wasAttributedTo> <https://orcid.org/0000-0002-8420-0696> <https://w3id.org/oc/meta/ra/4321/prov/> .
+<https://w3id.org/oc/meta/ra/4321/prov/se/3> <http://www.w3.org/ns/prov#invalidatedAtTime> "2021-10-15T05:54:30.000Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> <https://w3id.org/oc/meta/ra/4321/prov/> .
+<https://w3id.org/oc/meta/ra/4321/prov/se/3> <http://www.w3.org/ns/prov#wasDerivedFrom> <https://w3id.org/oc/meta/ra/4321/prov/se/2> <https://w3id.org/oc/meta/ra/4321/prov/> .
+<https://w3id.org/oc/meta/ra/4321/prov/se/3> <https://w3id.org/oc/ontology/hasUpdateQuery> "DELETE DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/4321> <http://xmlns.com/foaf/0.1/familyName> \"Sandnes\"^^<http://www.w3.org/2001/XMLSchema#string> .\n<https://w3id.org/oc/meta/ra/4321> <http://xmlns.com/foaf/0.1/name> \"Frode Eika Sandnes\"^^<http://www.w3.org/2001/XMLSchema#string> .\n<https://w3id.org/oc/meta/ra/4321> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/17177> .\n<https://w3id.org/oc/meta/ra/4321> <http://xmlns.com/foaf/0.1/givenName> \"Frode Eika\"^^<http://www.w3.org/2001/XMLSchema#string> .\n<https://w3id.org/oc/meta/ra/4321> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> . } }" <https://w3id.org/oc/meta/ra/4321/prov/> .
+<https://w3id.org/oc/meta/ra/4321/prov/se/3> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/prov#Entity> <https://w3id.org/oc/meta/ra/4321/prov/> .
+<https://w3id.org/oc/meta/ra/4321/prov/se/3> <http://purl.org/dc/terms/description> "The entity 'https://w3id.org/oc/meta/ra/4321' has been deleted." <https://w3id.org/oc/meta/ra/4321/prov/> .
+<https://w3id.org/oc/meta/ra/38013/prov/se/1> <http://www.w3.org/ns/prov#generatedAtTime> "2021-10-14T22:24:21.000Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> <https://w3id.org/oc/meta/ra/38013/prov/> .
+<https://w3id.org/oc/meta/ra/38013/prov/se/1> <http://www.w3.org/ns/prov#hadPrimarySource> <https://api.crossref.org/works/10.1007/s11192-016-2075-2> <https://w3id.org/oc/meta/ra/38013/prov/> .
+<https://w3id.org/oc/meta/ra/38013/prov/se/1> <http://www.w3.org/ns/prov#specializationOf> <https://w3id.org/oc/meta/ra/38013> <https://w3id.org/oc/meta/ra/38013/prov/> .
+<https://w3id.org/oc/meta/ra/38013/prov/se/1> <http://www.w3.org/ns/prov#wasAttributedTo> <https://orcid.org/0000-0002-8420-0696> <https://w3id.org/oc/meta/ra/38013/prov/> .
+<https://w3id.org/oc/meta/ra/38013/prov/se/1> <http://www.w3.org/ns/prov#invalidatedAtTime> "2021-10-15T05:54:30.000Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> <https://w3id.org/oc/meta/ra/38013/prov/> .
+<https://w3id.org/oc/meta/ra/38013/prov/se/1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/prov#Entity> <https://w3id.org/oc/meta/ra/38013/prov/> .
+<https://w3id.org/oc/meta/ra/38013/prov/se/1> <http://purl.org/dc/terms/description> "The entity 'https://w3id.org/oc/meta/ra/38013' has been created." <https://w3id.org/oc/meta/ra/38013/prov/> .
+<https://w3id.org/oc/meta/ra/38013/prov/se/2> <http://www.w3.org/ns/prov#generatedAtTime> "2021-10-15T05:54:30.000Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> <https://w3id.org/oc/meta/ra/38013/prov/> .
+<https://w3id.org/oc/meta/ra/38013/prov/se/2> <http://www.w3.org/ns/prov#specializationOf> <https://w3id.org/oc/meta/ra/38013> <https://w3id.org/oc/meta/ra/38013/prov/> .
+<https://w3id.org/oc/meta/ra/38013/prov/se/2> <http://www.w3.org/ns/prov#wasAttributedTo> <https://orcid.org/0000-0002-8420-0696> <https://w3id.org/oc/meta/ra/38013/prov/> .
+<https://w3id.org/oc/meta/ra/38013/prov/se/2> <http://www.w3.org/ns/prov#wasDerivedFrom> <https://w3id.org/oc/meta/ra/4321/prov/se/2> <https://w3id.org/oc/meta/ra/38013/prov/> .
+<https://w3id.org/oc/meta/ra/38013/prov/se/2> <http://www.w3.org/ns/prov#wasDerivedFrom> <https://w3id.org/oc/meta/ra/38013/prov/se/1> <https://w3id.org/oc/meta/ra/38013/prov/> .
+<https://w3id.org/oc/meta/ra/38013/prov/se/2> <http://www.w3.org/ns/prov#wasDerivedFrom> <https://w3id.org/oc/meta/ra/38015/prov/se/1> <https://w3id.org/oc/meta/ra/38013/prov/> .
+<https://w3id.org/oc/meta/ra/38013/prov/se/2> <http://www.w3.org/ns/prov#wasDerivedFrom> <https://w3id.org/oc/meta/ra/38256/prov/se/1> <https://w3id.org/oc/meta/ra/38013/prov/> .
+<https://w3id.org/oc/meta/ra/38013/prov/se/2> <http://www.w3.org/ns/prov#wasDerivedFrom> <https://w3id.org/oc/meta/ra/78934/prov/se/1> <https://w3id.org/oc/meta/ra/38013/prov/> .
+<https://w3id.org/oc/meta/ra/38013/prov/se/2> <http://www.w3.org/ns/prov#wasDerivedFrom> <https://w3id.org/oc/meta/ra/81108/prov/se/1> <https://w3id.org/oc/meta/ra/38013/prov/> .
+<https://w3id.org/oc/meta/ra/38013/prov/se/2> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/prov#Entity> <https://w3id.org/oc/meta/ra/38013/prov/> .
+<https://w3id.org/oc/meta/ra/38013/prov/se/2> <http://purl.org/dc/terms/description> "The entity 'https://w3id.org/oc/meta/ra/38013' has been merged with 'https://w3id.org/oc/meta/ra/38015', 'https://w3id.org/oc/meta/ra/38256', 'https://w3id.org/oc/meta/ra/4321', 'https://w3id.org/oc/meta/ra/81108', 'https://w3id.org/oc/meta/ra/78934'." <https://w3id.org/oc/meta/ra/38013/prov/> .
+<https://w3id.org/oc/meta/ra/38013> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/157190> <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/ra/38013> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/ra/38013> <http://xmlns.com/foaf/0.1/familyName> "Sandnes" <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/ra/38013> <http://xmlns.com/foaf/0.1/givenName> "Frode Eika" <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/ra/38013> <http://xmlns.com/foaf/0.1/name> "Frode Eika Sandnes" <https://w3id.org/oc/meta/ra/> .

@@ -11,8 +11,10 @@ import re
 
 class Curator:
 
-    def __init__(self, data:List[dict], ts:str, info_dir:str, base_iri:str='https://w3id.org/oc/meta', prefix:str='060', separator:str=None, valid_dois_cache:CSVManager=None):
+    def __init__(self, data:List[dict], ts:str, prov_config:str, info_dir:str, base_iri:str='https://w3id.org/oc/meta', prefix:str='060', separator:str=None, valid_dois_cache:CSVManager=None):
         self.finder = ResourceFinder(ts, base_iri)
+        self.base_iri = base_iri
+        self.prov_config = prov_config
         self.separator = separator
         self.data = [{field:value.strip() for field,value in row.items()} for row in data if self.is_a_valid_row(row)]
         self.prefix = prefix
@@ -826,9 +828,12 @@ class Curator:
                             id_dict[identifier[1]] = identifier[0]
                         if identifier[1] not in entity_dict[metaval]['ids']:
                             entity_dict[metaval]['ids'].append(identifier[1])
-                # wrong meta
+                # Look for MetaId in the provenance
                 else:
-                    metaval = None
+                    entity_type = 'br' if br_ent or vvi_ent else 'ra' 
+                    metaid_uri = f'{self.base_iri}/{entity_type}/{str(metaval)}'
+                    # The entity MetaId after merge if it was merged, None otherwise. If None, the MetaId is considered invalid
+                    metaval = self.finder.retrieve_metaid_from_merged_entity(metaid_uri=metaid_uri, prov_config=self.prov_config)
         # there's no meta or there was one but it didn't exist
         # Are there other IDs?
         if idslist and not metaval:

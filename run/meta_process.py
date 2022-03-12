@@ -18,24 +18,23 @@
 # SOFTWARE.
 
 
-from oc_ocdm import Storer
-from oc_ocdm.prov import ProvSet
-
-from meta.lib.file_manager import get_data, normalize_path, pathoo, suppress_stdout
-from meta.scripts.creator import Creator
-from meta.plugins.multiprocess.resp_agents_creator import RespAgentsCreator
-from meta.plugins.multiprocess.resp_agents_curator import RespAgentsCurator
-from meta.scripts.curator import Curator
-from meta.lib.csvmanager import CSVManager
-
-import yaml
-import os
-import csv
+from argparse import ArgumentParser
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from datetime import datetime
-from argparse import ArgumentParser
+from meta.lib.csvmanager import CSVManager
+from meta.lib.file_manager import get_data, normalize_path, pathoo, suppress_stdout
+from meta.plugins.multiprocess.resp_agents_creator import RespAgentsCreator
+from meta.plugins.multiprocess.resp_agents_curator import RespAgentsCurator
+from meta.scripts.creator import Creator
+from meta.scripts.curator import Curator
+from oc_ocdm import Storer
+from oc_ocdm.prov import ProvSet
+from time_agnostic_library.support import generate_config_file
 from tqdm import tqdm
 from typing import Set, Tuple
+import csv
+import os
+import yaml
 
 
 class MetaProcess:
@@ -65,6 +64,12 @@ class MetaProcess:
         supplier_prefix:str = settings['supplier_prefix']
         self.supplier_prefix = supplier_prefix[:-1] if supplier_prefix.endswith('0') else supplier_prefix
         self.verbose = settings['verbose']
+        # Time-Agnostic_library integration
+        self.time_agnostic_library_config = os.path.join(os.path.dirname(config), 'time_agnostic_library_config.json')
+        if not os.path.exists(self.time_agnostic_library_config):
+            generate_config_file(config_path=self.time_agnostic_library_config, dataset_urls=[self.triplestore_url], dataset_dirs=list(),
+                provenance_urls=settings['provenance_endpoints'], provenance_dirs=settings['provenance_dirs'], 
+                blazegraph_full_text_search=settings['blazegraph_full_text_search'], cache_triplestore_url=settings['cache_triplestore_url'])
 
     def prepare_folders(self) -> Set[str]:
         if not os.path.exists(self.cache_path):
@@ -93,9 +98,9 @@ class MetaProcess:
         self.info_dir = os.path.join(self.info_dir, supplier_prefix) if worker_number else self.info_dir
         curator_info_dir = os.path.join(self.info_dir, 'curator' + os.sep)
         if resp_agents_only:
-            curator_obj = RespAgentsCurator(data=data, ts=self.triplestore_url, info_dir=curator_info_dir, base_iri=self.base_iri, prefix=supplier_prefix)
+            curator_obj = RespAgentsCurator(data=data, ts=self.triplestore_url, prov_config=self.time_agnostic_library_config, info_dir=curator_info_dir, base_iri=self.base_iri, prefix=supplier_prefix)
         else:
-            curator_obj = Curator(data=data, ts=self.triplestore_url, info_dir=curator_info_dir, base_iri=self.base_iri, prefix=supplier_prefix, valid_dois_cache=self.valid_dois_cache)
+            curator_obj = Curator(data=data, ts=self.triplestore_url, prov_config=self.time_agnostic_library_config, info_dir=curator_info_dir, base_iri=self.base_iri, prefix=supplier_prefix, valid_dois_cache=self.valid_dois_cache)
         name = f"{datetime.now().strftime('%Y-%m-%dT%H_%M_%S')}_{supplier_prefix}"
         curator_obj.curator(filename=name, path_csv=self.output_csv_dir, path_index=self.indexes_dir)
         # Creator

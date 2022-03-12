@@ -42,7 +42,7 @@ def normalize_path(path:str) -> str:
 
 @contextmanager
 def suppress_stdout():
-    with open(os.devnull, "w") as devnull:
+    with open(os.devnull, 'w') as devnull:
         old_stdout = sys.stdout
         sys.stdout = devnull
         try:  

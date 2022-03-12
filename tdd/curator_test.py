@@ -15,9 +15,11 @@ MANUAL_DATA_CSV = f'{BASE_DIR}/manual_data.csv'
 MANUAL_DATA_RDF = f'{BASE_DIR}/testcases/ts/testcase_ts-13.ttl'
 REAL_DATA_CSV = os.path.join(BASE_DIR, 'real_data.csv')
 REAL_DATA_RDF = f'{BASE_DIR}/testcases/ts/real_data.nt'
+REAL_DATA_RDF_WITH_PROV = f'{BASE_DIR}/testcases/ts/real_data_with_prov.nq'
 BASE_IRI = 'https://w3id.org/oc/meta/'
 CURATOR_COUNTER_DIR = f'{BASE_DIR}/curator_counter'
 OUTPUT_DIR = f'{BASE_DIR}/output'
+PROV_CONFIG = f'{BASE_DIR}/prov_config.json'
 
 
 def get_path(path:str) -> str:
@@ -78,7 +80,7 @@ def prepare_to_test(data, name):
     testcase_re = get_path('meta/tdd/testcases/testcase_data/indices/' + name + '/index_re_' + name + '.csv')
     testcase_vi = get_path('meta/tdd/testcases/testcase_data/indices/' + name + '/index_vi_' + name + '.json')
 
-    curator_obj = Curator(data, SERVER, info_dir=get_path(f'{CURATOR_COUNTER_DIR}/'))
+    curator_obj = Curator(data, SERVER, prov_config=PROV_CONFIG, info_dir=get_path(f'{CURATOR_COUNTER_DIR}/'))
     curator_obj.curator()
     with open(testcase_csv, 'r', encoding='utf-8') as csvfile:
         testcase_csv = list(csv.DictReader(csvfile, delimiter=','))
@@ -106,9 +108,9 @@ def prepare_to_test(data, name):
 def prepareCurator(data:list, server:str=SERVER, resp_agents_only:bool=False) -> Curator:
     reset()
     if resp_agents_only:
-        return RespAgentsCurator(data, server, info_dir=get_path(f'{CURATOR_COUNTER_DIR}/'))
+        return RespAgentsCurator(data, server, prov_config=PROV_CONFIG, info_dir=get_path(f'{CURATOR_COUNTER_DIR}/'))
     else:
-        return Curator(data, server, info_dir=get_path(f'{CURATOR_COUNTER_DIR}/'))
+        return Curator(data, server, prov_config=PROV_CONFIG, info_dir=get_path(f'{CURATOR_COUNTER_DIR}/'))
 
 
 class test_Curator(unittest.TestCase):
@@ -816,6 +818,16 @@ class test_id_worker(unittest.TestCase):
             {}
         )
         self.assertEqual(output, expected_output)
+
+    def test_metaid_in_prov(self):
+        # MetaID not found in data, but found in the provenance metadata.
+        reset_server()
+        add_data_ts(server=SERVER, data_path=REAL_DATA_RDF_WITH_PROV)
+        name = ''
+        idslist = ['meta:ra/4321']
+        curator = prepareCurator(list())
+        meta_id = curator.id_worker('id', name, idslist, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=False)
+        self.assertEqual(meta_id, '38013')
 
 
 class testcase_01(unittest.TestCase):

@@ -1,6 +1,11 @@
+from dateutil import parser
 from typing import List, Dict, Tuple
 from oc_ocdm.graph import GraphEntity
+from oc_ocdm.prov.prov_entity import ProvEntity
+from oc_ocdm.support import get_count
 from SPARQLWrapper import SPARQLWrapper, JSON, GET
+from time_agnostic_library.agnostic_entity import AgnosticEntity
+
 
 
 class ResourceFinder:
@@ -137,6 +142,44 @@ class ResourceFinder:
             return str(bindings[0]['res']['value']).replace(f'{self.base_iri}/id/', '')
         else:
             return None
+
+    def retrieve_metaid_from_merged_entity(self, metaid_uri:str, prov_config:str) -> str:
+        '''
+        It looks for MetaId in the provenance. If the input entity was deleted due to a merge, this function returns the target entity. Otherwise, it returns None.
+
+        :params metaid_uri: a MetaId URI
+        :type metaid_uri: str
+        :params prov_config: the path of the configuration file required by time-agnostic-library
+        :type prov_config: str
+        :returns str: -- It returns the MetaID associated with the target entity after a merge. If there was no merge, it returns None.
+        '''
+        metaval = None
+        agnostic_meta = AgnosticEntity(res=metaid_uri, related_entities_history=False, config_path=prov_config)
+        agnostic_meta_history = agnostic_meta.get_history(include_prov_metadata=True)
+        meta_history_data = agnostic_meta_history[0][metaid_uri]
+        if meta_history_data:
+            meta_history_metadata = agnostic_meta_history[1][metaid_uri]
+            penultimate_snapshot = sorted(
+                meta_history_metadata.items(),
+                key=lambda x: parser.parse(x[1]['generatedAtTime']).replace(tzinfo=None),
+                reverse=True
+            )[1][0]
+            query_if_it_was_merged = f'''
+                SELECT DISTINCT ?se
+                WHERE {{
+                    ?se a <{ProvEntity.iri_entity}>;
+                        <{ProvEntity.iri_was_derived_from}> <{penultimate_snapshot}>.
+                }}
+            '''
+            results = self.__query(query_if_it_was_merged)['results']['bindings']
+            # The entity was merged to another
+            merged_entity = [se for se in results if metaid_uri not in se['se']['value']]
+            if merged_entity:
+                merged_entity:str = merged_entity[0]['se']['value']
+                merged_entity = merged_entity.split('/prov/')[0]
+                merged_entity = get_count(merged_entity)
+                metaval = merged_entity
+            return metaval
 
     # _______________________________RA_________________________________ #
     def retrieve_ra_from_meta(self, metaid:str, publisher:bool=False) -> Tuple[str, List[Tuple[str, str]]]:
