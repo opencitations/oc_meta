@@ -172,7 +172,8 @@
     ns1:isDocumentContextFor <https://w3id.org/oc/meta/ar/06013>,
         <https://w3id.org/oc/meta/ar/06014> .
 
-<https://w3id.org/oc/meta/br/0608> a <http://purl.org/spar/fabio/Expression> ;
+<https://w3id.org/oc/meta/br/0608> a <http://purl.org/spar/fabio/Expression>,
+        <http://purl.org/spar/fabio/Book> ;
     ns4:publicationDate "1995"^^xsd:gYear ;
     ns2:title "Title8" ;
     ns1:isDocumentContextFor <https://w3id.org/oc/meta/ar/06015>,

@@ -1086,25 +1086,27 @@ class Curator:
         :type row: Dict[str, str]
         :returns: bool -- This method returns True if the row is valid, False if it is invalid.
         '''
+        if row['id']:
+            return True
         if all(not row[value] for value in row):
             return False
         br_type = ' '.join((row['type'].lower()).split())
         br_title = row['title']
         br_author = row['author']
+        br_editor = row['editor']
+        br_pub_date = row['pub_date']
         br_venue = row['venue']
         br_volume = row['volume']
         br_issue = row['issue']
-        if br_type in {'book', 'data file', 'dataset', 'dissertation', 'edited book', 'journal article', 'monograph', 
+        if not br_type or br_type in {'book', 'data file', 'dataset', 'dissertation', 'edited book', 'journal article', 'monograph', 
                         'other', 'peer review', 'posted content', 'web content', 'proceedings article', 'report', 'reference book'}:
-            is_a_valid_row = True if br_title and br_author else False
-        elif br_type in {'book chapter', 'book part', 'book section', 'book track', 'reference entry'}:
+            is_a_valid_row = True if br_title and br_pub_date and (br_author or br_editor) else False
+        elif br_type in {'book chapter', 'book part', 'book section', 'book track', 'component', 'reference entry'}:
             is_a_valid_row = True if br_title and br_venue else False
-        elif br_type in {'book series', 'book set', 'component', 'journal', 'proceedings', 'proceedings series', 'report series', 'standard', 'standard series'}:
+        elif br_type in {'book series', 'book set', 'journal', 'proceedings', 'proceedings series', 'report series', 'standard', 'standard series'}:
             is_a_valid_row = True if br_title else False
         elif br_type == 'journal volume':
             is_a_valid_row = True if br_venue and (br_volume or br_title) else False
         elif br_type == 'journal issue':
             is_a_valid_row = True if br_venue and (br_issue or br_title) else False
-        elif br_type == '':
-            is_a_valid_row = True
         return is_a_valid_row

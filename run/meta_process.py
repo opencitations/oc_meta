@@ -68,7 +68,7 @@ class MetaProcess:
         self.time_agnostic_library_config = os.path.join(os.path.dirname(config), 'time_agnostic_library_config.json')
         if not os.path.exists(self.time_agnostic_library_config):
             generate_config_file(config_path=self.time_agnostic_library_config, dataset_urls=[self.triplestore_url], dataset_dirs=list(),
-                provenance_urls=settings['provenance_endpoints'], provenance_dirs=settings['provenance_dirs'], 
+                provenance_urls=settings['provenance_endpoints'], provenance_dirs=list(), 
                 blazegraph_full_text_search=settings['blazegraph_full_text_search'], cache_triplestore_url=settings['cache_triplestore_url'])
 
     def prepare_folders(self) -> Set[str]:
