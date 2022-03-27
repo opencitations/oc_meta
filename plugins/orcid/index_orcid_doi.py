@@ -43,30 +43,30 @@ class Index_orcid_doi:
         orcid = file.replace('.xml', '')[-19:]
         valid_doi = False
         if file.endswith('.xml'):
-            xml_file = open(file, 'r', encoding='utf-8')
-            xml_soup = BeautifulSoup(xml_file, 'xml')
-            ids = xml_soup.findAll('common:external-id')                
-            if ids:
-                for el in ids:
-                    id_type = el.find('common:external-id-type')
-                    rel = el.find('common:external-id-relationship')
-                    if id_type and rel:
-                        if id_type.get_text().lower() == 'doi' and rel.get_text().lower() == 'self':
-                            doi = el.find('common:external-id-value').get_text()
-                            doi = self.doimanager.normalise(doi)
-                            if doi:
-                                g_name = xml_soup.find('personal-details:given-names')
-                                f_name = xml_soup.find('personal-details:family-name')
-                                if f_name:
-                                    f_name = f_name.get_text()
-                                    if g_name:
-                                        g_name = g_name.get_text()
-                                        name = f_name + ', ' + g_name
-                                    else:
-                                        name = f_name
-                                    auto = name + ' [' + orcid + ']'
-                                    valid_doi = True
-                                    self.csvstorage.add_value(doi, auto)
+            with open(file, 'r', encoding='utf-8') as xml_file:
+                xml_soup = BeautifulSoup(xml_file, 'xml')
+                ids = xml_soup.findAll('common:external-id')                
+                if ids:
+                    for el in ids:
+                        id_type = el.find('common:external-id-type')
+                        rel = el.find('common:external-id-relationship')
+                        if id_type and rel:
+                            if id_type.get_text().lower() == 'doi' and rel.get_text().lower() == 'self':
+                                doi = el.find('common:external-id-value').get_text()
+                                doi = self.doimanager.normalise(doi)
+                                if doi:
+                                    g_name = xml_soup.find('personal-details:given-names')
+                                    f_name = xml_soup.find('personal-details:family-name')
+                                    if f_name:
+                                        f_name = f_name.get_text()
+                                        if g_name:
+                                            g_name = g_name.get_text()
+                                            name = f_name + ', ' + g_name
+                                        else:
+                                            name = f_name
+                                        auto = name + ' [' + orcid + ']'
+                                        valid_doi = True
+                                        self.csvstorage.add_value(doi, auto)
         if not valid_doi:
             # Save file names where nothing was found, to skip them during the next run
             self.csvstorage.add_value('None', f'[{orcid}]')

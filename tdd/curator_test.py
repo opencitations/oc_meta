@@ -411,11 +411,16 @@ class test_Curator(unittest.TestCase):
             }
         }
         curator.indexer(path_index, path_csv)
-        index_ar = list(csv.DictReader(open(os.path.join(path_index, 'index_ar.csv'))))
-        index_id_br = list(csv.DictReader(open(os.path.join(path_index, 'index_id_br.csv'))))
-        index_id_ra = list(csv.DictReader(open(os.path.join(path_index, 'index_id_ra.csv'))))
-        index_re = list(csv.DictReader(open(os.path.join(path_index, 'index_re.csv'))))
-        index_vi = json.load(open(os.path.join(path_index, 'index_vi.json')))
+        with open(os.path.join(path_index, 'index_ar.csv'), 'r', encoding='utf-8') as f:
+            index_ar = list(csv.DictReader(f))
+        with open(os.path.join(path_index, 'index_id_br.csv'), 'r', encoding='utf-8') as f:
+            index_id_br = list(csv.DictReader(f))
+        with open(os.path.join(path_index, 'index_id_ra.csv'), 'r', encoding='utf-8') as f:
+            index_id_ra = list(csv.DictReader(f))
+        with open(os.path.join(path_index, 'index_vi.json'), 'r', encoding='utf-8') as f:
+            index_vi = json.load(f)
+        with open(os.path.join(path_index, 'index_re.csv'), 'r', encoding='utf-8') as f:
+            index_re = list(csv.DictReader(f))
         expected_index_ar = [{'meta': '2585', 'author': '9445, 0602; 0601, 0601', 'editor': '', 'publisher': ''}]
         expected_index_id_br = [{'id': 'doi:10.1001/2013.jamasurg.270', 'meta': '2585'}]
         expected_index_id_ra = [{'id': 'orcid:0000-0003-0530-4305', 'meta': '0601'}, {'id': 'schema:12345', 'meta': '0602'}]

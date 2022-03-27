@@ -8,9 +8,9 @@ SUMMARIES_PATH = os.path.join('meta', 'tdd', 'index_orcid_doi', 'orcid')
 
 def load_files_from_dir(dir:str):
     output = list()
-    for dir, _, files in os.walk(dir):
-        for file in files:
-            output.extend(list(DictReader(open(os.path.join(dir, file), 'r', encoding='utf-8'))))
+    for file in sorted(os.listdir(dir), key=lambda filename: int(filename.split('-')[0].replace('.csv', ''))):
+        with open(os.path.join(dir, file), 'r', encoding='utf-8') as f:
+            output.extend(list(DictReader(f)))
     return output
 
 
@@ -87,7 +87,6 @@ class test_Index_orcid_doi(unittest.TestCase):
             {'id': '10.1007/s11255-011-0007-x', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'}, 
             {'id': '10.1016/j.jbspin.2011.06.009', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'}, 
             {'id': '10.1093/ndt/gfq089', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'},
-            {'id': 'None', 'value': '[0000-0001-5002-1000]'},
             {'id': '10.1016/j.indcrop.2020.112103', 'value': 'Gargouri, Ali [0000-0001-5009-9000]'},
             {'id': '10.1155/2019/3213521', 'value': 'Gargouri, Ali [0000-0001-5009-9000]'},
             {'id': '10.1016/j.bioorg.2018.11.028', 'value': 'Gargouri, Ali [0000-0001-5009-9000]'},
@@ -95,6 +94,7 @@ class test_Index_orcid_doi(unittest.TestCase):
             {'id': '10.1186/s13568-016-0300-2', 'value': 'Gargouri, Ali [0000-0001-5009-9000]'},
             {'id': '10.1016/j.toxicon.2014.04.010', 'value': 'Gargouri, Ali [0000-0001-5009-9000]'},
             {'id': '10.1155/2014/691742', 'value': 'Gargouri, Ali [0000-0001-5009-9000]'},
+            {'id': 'None', 'value': '[0000-0001-5002-1000]'}
         ]
         shutil.rmtree(CSV_PATH)
         self.assertEqual((output, cache), (expected_output, {'0000-0001-5650-3000'}))
@@ -171,7 +171,6 @@ class test_Index_orcid_doi(unittest.TestCase):
             {'id': '10.1007/s11255-011-0007-x', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'}, 
             {'id': '10.1016/j.jbspin.2011.06.009', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'}, 
             {'id': '10.1093/ndt/gfq089', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'},
-            {'id': 'None', 'value': '[0000-0001-5002-1000]'},
             {'id': '10.1016/j.indcrop.2020.112103', 'value': 'Gargouri, Ali [0000-0001-5009-9000]'},
             {'id': '10.1155/2019/3213521', 'value': 'Gargouri, Ali [0000-0001-5009-9000]'},
             {'id': '10.1016/j.bioorg.2018.11.028', 'value': 'Gargouri, Ali [0000-0001-5009-9000]'},
@@ -179,6 +178,7 @@ class test_Index_orcid_doi(unittest.TestCase):
             {'id': '10.1186/s13568-016-0300-2', 'value': 'Gargouri, Ali [0000-0001-5009-9000]'},
             {'id': '10.1016/j.toxicon.2014.04.010', 'value': 'Gargouri, Ali [0000-0001-5009-9000]'},
             {'id': '10.1155/2014/691742', 'value': 'Gargouri, Ali [0000-0001-5009-9000]'},
+            {'id': 'None', 'value': '[0000-0001-5002-1000]'}
         ]
         shutil.rmtree(CSV_PATH)
         self.assertEqual((output, cache), (expected_output, {'0000-0001-5650-3000'}))

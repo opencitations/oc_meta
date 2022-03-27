@@ -125,10 +125,11 @@ class CSVManager(object):
 
     def __load_csv(self):
         for file in self.existing_files:
-            reader = DictReader(open(file, 'r', encoding='utf-8'))
-            for row in reader:
-                self.data.setdefault(row['id'], set())
-                self.data[row['id']].add(row['value'])
+            with open(file, 'r', encoding='utf-8') as f:
+                reader = DictReader(f)
+                for row in reader:
+                    self.data.setdefault(row['id'], set())
+                    self.data[row['id']].add(row['value'])
     
     def __low_memory_load(self, csv_string:str):
         csv_metadata = DictReader(StringIO(csv_string), delimiter=',')
