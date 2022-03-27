@@ -28,7 +28,7 @@ def get_dois_from_coci(coci_dir:str, output_file_path:str, verbose:bool=False) -
                 if verbose:
                     pbar.update()
             elif file.endswith('.zip'):
-                with ZipFile(os.path.join(coci_dir, fold, file), 'r') as archive:
+                with ZipFile(os.path.join(coci_dir, file), 'r') as archive:
                     for name in archive.namelist():
                         output_csv = list()
                         with archive.open(name) as infile:
@@ -63,9 +63,9 @@ def get_files_count(coci_dir:str) -> int:
         file_count = sum(len(files) for _, _, files in os.walk(coci_dir))
     elif any(file.endswith('.zip') for  _, _, files in os.walk(coci_dir) for file in files):
         file_count = 0
-        for fold, _, files in os.walk(coci_dir):
+        for _, _, files in os.walk(coci_dir):
             for file in files:
-                with ZipFile(os.path.join(coci_dir, fold, file), 'r') as archive:
+                with ZipFile(os.path.join(coci_dir, file), 'r') as archive:
                     file_count += len(archive.namelist())
     return file_count
 

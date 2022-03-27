@@ -29,7 +29,7 @@ from meta.scripts.creator import Creator
 from meta.scripts.curator import Curator
 from oc_ocdm import Storer
 from oc_ocdm.prov import ProvSet
-from time_agnostic_library.support import generate_config_file
+# from time_agnostic_library.support import generate_config_file
 from tqdm import tqdm
 from typing import Set, Tuple
 import csv
@@ -66,10 +66,10 @@ class MetaProcess:
         self.verbose = settings['verbose']
         # Time-Agnostic_library integration
         self.time_agnostic_library_config = os.path.join(os.path.dirname(config), 'time_agnostic_library_config.json')
-        if not os.path.exists(self.time_agnostic_library_config):
-            generate_config_file(config_path=self.time_agnostic_library_config, dataset_urls=[self.triplestore_url], dataset_dirs=list(),
-                provenance_urls=settings['provenance_endpoints'], provenance_dirs=list(), 
-                blazegraph_full_text_search=settings['blazegraph_full_text_search'], cache_triplestore_url=settings['cache_triplestore_url'])
+        # if not os.path.exists(self.time_agnostic_library_config):
+        #     generate_config_file(config_path=self.time_agnostic_library_config, dataset_urls=[self.triplestore_url], dataset_dirs=list(),
+        #         provenance_urls=settings['provenance_endpoints'], provenance_dirs=list(), 
+        #         blazegraph_full_text_search=settings['blazegraph_full_text_search'], cache_triplestore_url=settings['cache_triplestore_url'])
 
     def prepare_folders(self) -> Set[str]:
         if not os.path.exists(self.cache_path):
@@ -144,8 +144,8 @@ def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False) -> N
             results = [executor.submit(meta_process.curate_and_create, filename, worker_number, resp_agents_only) for filename, worker_number in zip(files_to_be_processed, workers)]
             for f in as_completed(results):
                 res_storer, prov_storer, processed_file = f.result()
-                with suppress_stdout():
-                    meta_process.store_data_and_prov(res_storer=res_storer, prov_storer=prov_storer, filename=processed_file)
+                # with suppress_stdout():
+                meta_process.store_data_and_prov(res_storer=res_storer, prov_storer=prov_storer, filename=processed_file)
                 files_to_be_processed.remove(processed_file)
                 with open(meta_process.cache_path, 'a', encoding='utf-8') as aux_file:
                     aux_file.write(processed_file + '\n')
