@@ -80,6 +80,8 @@ class MetaProcess:
                 completed = {line.rstrip('\n') for line in cache_file}
         files_in_input_csv_dir = {filename for filename in os.listdir(self.input_csv_dir) if filename.endswith('.csv')}
         files_to_be_processed = files_in_input_csv_dir.difference(completed)
+        if all(filename.replace('.csv', '').isdigit() for filename in files_to_be_processed):
+            files_to_be_processed = sorted(files_to_be_processed, key=lambda filename: int(filename.replace('.csv', '')))
         for dir in [self.output_csv_dir, self.indexes_dir, self.output_rdf_dir]:
             pathoo(dir)
         if self.rdf_output_in_chunks:
