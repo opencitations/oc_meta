@@ -28,5 +28,7 @@ publishers_filepath: /srv/meta/publishers.csv
 orcid_doi_filepath: /srv/meta/doi_orcid_index
 # Path of a CSV file containing what DOI to process. This file can be generated via meta.run.coci_process, if COCI's DOIs are needed
 wanted_doi_filepath: /srv/meta/coci_dois.csv
+# The cache file path. This file will be deleted at the end of the process
+cache_filepath: /srv/meta/cache.txt
 # Show a loading bar, elapsed time and estimated time
 verbose: False

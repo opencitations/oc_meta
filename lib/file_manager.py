@@ -3,7 +3,7 @@ import os
 import sys
 from contextlib import contextmanager
 from meta.lib.cleaner import Cleaner
-from typing import List, Dict
+from typing import List, Dict, Set
 
 
 
@@ -39,6 +39,16 @@ def write_csv(path:str, datalist:List[dict], fieldnames:list=None) -> None:
 def normalize_path(path:str) -> str:
     normal_path = path.replace('\\', '/').replace('/', os.sep)
     return normal_path
+
+def init_cache(cache_filepath:str) -> Set[str]:
+    completed = set()
+    if cache_filepath:
+        if not os.path.exists(cache_filepath):
+            pathoo(cache_filepath)
+        else:
+            with open(cache_filepath, 'r', encoding='utf-8') as cache_file:
+                completed = {line.rstrip('\n') for line in cache_file}
+    return completed
 
 @contextmanager
 def suppress_stdout():

@@ -22,7 +22,7 @@ from argparse import ArgumentParser
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from datetime import datetime
 from meta.lib.csvmanager import CSVManager
-from meta.lib.file_manager import get_data, normalize_path, pathoo, suppress_stdout
+from meta.lib.file_manager import get_data, normalize_path, pathoo, suppress_stdout, init_cache
 from meta.plugins.multiprocess.resp_agents_creator import RespAgentsCreator
 from meta.plugins.multiprocess.resp_agents_curator import RespAgentsCurator
 from meta.scripts.creator import Creator
@@ -72,12 +72,7 @@ class MetaProcess:
         #         blazegraph_full_text_search=settings['blazegraph_full_text_search'], cache_triplestore_url=settings['cache_triplestore_url'])
 
     def prepare_folders(self) -> Set[str]:
-        if not os.path.exists(self.cache_path):
-            pathoo(self.cache_path)
-            completed = set()
-        else:
-            with open(self.cache_path, 'r', encoding='utf-8') as cache_file:
-                completed = {line.rstrip('\n') for line in cache_file}
+        completed = init_cache(self.cache_path)
         files_in_input_csv_dir = {filename for filename in os.listdir(self.input_csv_dir) if filename.endswith('.csv')}
         files_to_be_processed = files_in_input_csv_dir.difference(completed)
         if all(filename.replace('.csv', '').isdigit() for filename in files_to_be_processed):

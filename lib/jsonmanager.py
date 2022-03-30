@@ -14,25 +14,29 @@
 # ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 # SOFTWARE.
 
-from typing import Union
-import tarfile, gzip
-from os.path import isdir, basename
-from os import walk, sep
+
 from json import load, loads
+from meta.lib.file_manager import init_cache
+from os import walk, sep
+from os.path import isdir, basename
+from typing import Union
+import gzip
+import tarfile
 
 
-def get_all_files(is_dir_or_targz_file:str):
+def get_all_files(is_dir_or_targz_file:str, cache_filepath:str=None):
     result = []
     targz_fd = None
+    cache = init_cache(cache_filepath)
     if isdir(is_dir_or_targz_file):
         for cur_dir, _, cur_files in walk(is_dir_or_targz_file):
             for cur_file in cur_files:
-                if cur_file.endswith(".json") or cur_file.endswith(".json.gz") and not basename(cur_file).startswith("."):
+                if (cur_file.endswith(".json") or cur_file.endswith(".json.gz")) and not basename(cur_file).startswith(".") and not cur_file in cache:
                     result.append(cur_dir + sep + cur_file)                    
     elif is_dir_or_targz_file.endswith("tar.gz"):
         targz_fd = tarfile.open(is_dir_or_targz_file, "r:gz", encoding="utf-8")
         for cur_file in targz_fd:
-            if cur_file.name.endswith(".json") and not basename(cur_file.name).startswith("."):
+            if cur_file.name.endswith(".json") and not basename(cur_file.name).startswith(".") and not cur_file.name in cache:
                 result.append(cur_file)
     else:
         print("It is not possible to process the input path.")

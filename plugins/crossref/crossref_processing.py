@@ -16,9 +16,10 @@ warnings.filterwarnings("ignore", category=UserWarning, module='bs4')
 
 class CrossrefProcessing:
 
-    def __init__(self, orcid_index:str, doi_csv:str=None, publishers_filepath:str=None):
+    def __init__(self, orcid_index:str=None, doi_csv:str=None, publishers_filepath:str=None):
         self.doi_set = CSVManager.load_csv_column_as_set(doi_csv, 'doi') if doi_csv else None
         self.publishers_mapping = self.load_publishers_mapping(publishers_filepath) if publishers_filepath else None
+        orcid_index = orcid_index if orcid_index else None
         self.orcid_index = CSVManager(orcid_index)
     
     def csv_creator(self, data:dict) -> list:
