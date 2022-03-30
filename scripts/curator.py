@@ -177,6 +177,7 @@ class Curator:
         :type row: Dict[str, str]
         :returns: None -- This method modifies the input CSV row without returning it.
         '''
+        Cleaner.clean_volume_and_issue(row=row)
         vol_meta = None
         br_id = row['id']
         venue = row['venue']

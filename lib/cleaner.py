@@ -8,7 +8,8 @@ from meta.lib.id_manager.isbnmanager import ISBNManager
 from meta.lib.id_manager.doimanager import DOIManager
 from meta.lib.id_manager.orcidmanager import ORCIDManager
 from meta.lib.csvmanager import CSVManager
-from typing import Union
+from meta.lib.master_of_regex import volumes_valid_patterns, issues_valid_patterns, invalid_vi_patterns
+from typing import Union, Tuple
 
 class Cleaner:
     def __init__(self, string:str):
@@ -267,7 +268,80 @@ class Cleaner:
             valid_id = f'{schema}:{value}'
         return valid_id
 
+    @classmethod
+    def clean_volume_and_issue(cls, row:dict) -> None:
+        output = {'volume': '', 'issue': '', 'pub_date': ''}
+        for field in {'volume', 'issue'}:
+            vi = row[field]
+            vi = Cleaner(vi).normalize_hyphens()
+            vi = Cleaner(vi).normalize_spaces().strip()
+            vi = html.unescape(vi)
+            for pattern, strategy in invalid_vi_patterns.items():
+                pattern = f'^{pattern}$'
+                capturing_groups = re.search(pattern, vi, re.IGNORECASE)
+                if capturing_groups:
+                    if strategy == 'del':
+                        row[field] = ''
+                    elif strategy == 'do_nothing':
+                        row[field] = vi
+                    elif strategy == 's)':
+                        row[field] = f'{vi}s)'
+                    else:
+                        row[field] = ''
+                        whatever, volume, issue, pub_date = cls.fix_invalid_vi(capturing_groups, strategy)
+                        row[field] = whatever if whatever else row[field]
+                        output['volume'] = volume if volume else ''
+                        output['issue'] = issue if issue else ''
+                        output['pub_date'] = pub_date if pub_date else ''
+        row['volume'] = output['volume'] if not row['volume'] else row['volume']
+        row['issue'] = output['issue'] if not row['issue'] else row['issue']
+        row['pub_date'] = output['pub_date'] if not row['pub_date'] else row['pub_date']
+        switch_vi = {'volume': '', 'issue': ''}
+        for field in {'volume', 'issue'}:
+            vi = row[field]
+            for pattern in volumes_valid_patterns:
+                pattern = f'^{pattern}$'
+                if re.search(pattern, vi, re.IGNORECASE):
+                    if field == 'issue':
+                        switch_vi['volume'] = vi
+            for pattern in issues_valid_patterns:
+                pattern = f'^{pattern}$'
+                if re.search(pattern, vi, re.IGNORECASE):
+                    if field == 'volume':
+                        switch_vi['issue'] = vi
+        if switch_vi['volume'] and switch_vi['issue']:
+            row['volume'] = switch_vi['volume']
+            row['issue'] = switch_vi['issue']
+        elif switch_vi['volume'] and not row['volume']:
+            row['volume'] = switch_vi['volume']
+            row['issue'] = ''
+        elif switch_vi['issue'] and not row['issue']:
+            row['issue'] = switch_vi['issue']
+            row['volume'] = ''
+    
+    @staticmethod
+    def fix_invalid_vi(capturing_groups:re.Match, strategy:str) -> Tuple[str, str, str, str]:
+        vol_group = 1 if 'vol_iss' in strategy else 2
+        iss_group = 1 if 'iss_vol' in strategy else 2
+        whatever = None
+        volume = None
+        issue = None
+        pub_date = None
+        if 'vol' in strategy and 'iss' in strategy:
+            volume = capturing_groups.group(vol_group)
+            issue = capturing_groups.group(iss_group)
+            if 'year' in strategy:
+                pub_date = capturing_groups.group(3)
+        elif strategy == 'all':
+            whatever = capturing_groups.group(1)
+        elif strategy == 'sep':
+            first = capturing_groups.group(1)
+            second = capturing_groups.group(2)
+            whatever = f'{first}-{second}'
+        return whatever, volume, issue, pub_date
+
     def remove_ascii(self):
         unwanted_chars = '\x00\x01\x02\x03\x04\x05\x06\x07\x08\t\n\x0b\x0c\r\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x7f\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9a\x9b\x9c\x9d\x9e\x9f\xa0\xa1\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xab\xac\xad\xae\xaf\xb0\xb1\xb2\xb3\xb4\xb5\xb6\xb7\xb8\xb9\xba\xbb\xbc\xbd\xbe\xbf\xc0\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8\xc9\xca\xcb\xcc\xcd\xce\xcf\xd0\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xdb\xdc\xdd\xde\xdf\xe0\xe1\xe2\xe3\xe4\xe5\xe6\xe7\xe8\xe9\xea\xeb\xec\xed\xee\xef\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff'
-        clean_string = ''.join([(' ' if c in unwanted_chars else c) for c in self.string])
+        clean_string = ''.join([' ' if c in unwanted_chars else c for c in self.string])
+        clean_string = ' '.join(clean_string.split())
         return clean_string           
