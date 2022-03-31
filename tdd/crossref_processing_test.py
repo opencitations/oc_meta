@@ -161,16 +161,15 @@ class TestCrossrefProcessing(unittest.TestCase):
             shutil.rmtree(OUTPUT)
         preprocess(crossref_json_dir=MULTIPROCESS_OUTPUT, publishers_filepath=None, orcid_doi_filepath=IOD, csv_dir=OUTPUT, wanted_doi_filepath=None)
         output = dict()
-        meta_input = sorted(os.listdir(OUTPUT), key=lambda filename: int(filename.replace('.csv', '')))
-        for file in meta_input:
+        for file in os.listdir(OUTPUT):
             with open(os.path.join(OUTPUT, file), 'r', encoding='utf-8') as f:
                 output[file] = list(csv.DictReader(f))
         expected_output = {
-            '0.csv': [
+            '40228.csv': [
                 {'id': 'doi:10.9799/ksfan.2012.25.1.069', 'title': 'Nonthermal Sterilization and Shelf-life Extension of Seafood Products by Intense Pulsed Light Treatment', 'author': 'Cheigh, Chan-Ick; Mun, Ji-Hye; Chung, Myong-Soo', 'pub_date': '2012-3-31', 'venue': 'The Korean Journal of Food And Nutrition [issn:1225-4339]', 'volume': '25', 'issue': '1', 'page': '69-76', 'type': 'journal article', 'publisher': 'The Korean Society of Food and Nutrition [crossref:4768]', 'editor': ''},
                 {'id': 'doi:10.9799/ksfan.2012.25.1.077', 'title': 'Properties of Immature Green Cherry Tomato Pickles', 'author': 'Koh, Jong-Ho; Shin, Hae-Hun; Kim, Young-Shik; Kook, Moo-Chang', 'pub_date': '2012-3-31', 'venue': 'The Korean Journal of Food And Nutrition [issn:1225-4339]', 'volume': '25', 'issue': '1', 'page': '77-82', 'type': 'journal article', 'publisher': 'The Korean Society of Food and Nutrition [crossref:4768]', 'editor': ''}
             ],
-            '1.csv': [
+            '30719.csv': [
                 {'id': 'doi:10.17117/na.2015.08.1067', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': 'component', 'publisher': 'Consulting Company Ucom [crossref:6623]', 'editor': ''}
             ]
         }
@@ -180,19 +179,15 @@ class TestCrossrefProcessing(unittest.TestCase):
         if os.path.exists(OUTPUT):
             shutil.rmtree(OUTPUT)
         preprocess(crossref_json_dir=GZIP_INPUT, publishers_filepath=None, orcid_doi_filepath=IOD, csv_dir=OUTPUT, wanted_doi_filepath=WANTED_DOIS)
-        output = list()
-        meta_input = sorted(os.listdir(OUTPUT), key=lambda filename: int(filename.replace('.csv', '')))
-        for file in meta_input:
+        output = dict()
+        for file in os.listdir(OUTPUT):
+            print(file)
             with open(os.path.join(OUTPUT, file), 'r', encoding='utf-8') as f:
-                output.append(list(csv.DictReader(f)))
-        expected_output = [
-            [
-                {'id': 'doi:10.1001/archderm.108.4.583b', 'title': 'Letter: Bleaching of hair after use of benzoyl peroxide acne lotions', 'author': 'Bleiberg, J.', 'pub_date': '1973-10-1', 'venue': 'Archives of Dermatology [issn:0003-987X]', 'volume': '108', 'issue': '4', 'page': '583-583', 'type': 'journal article', 'publisher': 'American Medical Association (AMA) [crossref:10]', 'editor': ''}
-            ],
-            [
-                {'id': 'doi:10.1001/.389', 'title': 'Decision Making at the Fringe of Evidence: Take What You Can Get', 'author': 'Col, N. F.', 'pub_date': '2006-2-27', 'venue': 'Archives of Internal Medicine [issn:0003-9926]', 'volume': '166', 'issue': '4', 'page': '389-390', 'type': 'journal article', 'publisher': 'American Medical Association (AMA) [crossref:10]', 'editor': ''}
-            ]
-        ]
+                output[file] = list(csv.DictReader(f))
+        expected_output = {
+            '0.csv': [{'id': 'doi:10.1001/.389', 'title': 'Decision Making at the Fringe of Evidence: Take What You Can Get', 'author': 'Col, N. F.', 'pub_date': '2006-2-27', 'venue': 'Archives of Internal Medicine [issn:0003-9926]', 'volume': '166', 'issue': '4', 'page': '389-390', 'type': 'journal article', 'publisher': 'American Medical Association (AMA) [crossref:10]', 'editor': ''}],
+            '1.csv': [{'id': 'doi:10.1001/archderm.108.4.583b', 'title': 'Letter: Bleaching of hair after use of benzoyl peroxide acne lotions', 'author': 'Bleiberg, J.', 'pub_date': '1973-10-1', 'venue': 'Archives of Dermatology [issn:0003-987X]', 'volume': '108', 'issue': '4', 'page': '583-583', 'type': 'journal article', 'publisher': 'American Medical Association (AMA) [crossref:10]', 'editor': ''}]
+        }
         self.assertEqual(output, expected_output)
 
     def test_tar_gz_file(self):

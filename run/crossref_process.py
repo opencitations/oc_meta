@@ -26,9 +26,10 @@ def preprocess(crossref_json_dir:str, publishers_filepath:str, orcid_doi_filepat
     all_files, targz_fd = get_all_files(crossref_json_dir, cache)
     if verbose:
         pbar = tqdm(total=len(all_files))
-    for idx, file in enumerate(all_files):
-        data = load_json(file, targz_fd)
-        filepath = os.path.join(csv_dir, f'{idx}.csv')
+    for filename in all_files:
+        data = load_json(filename, targz_fd)
+        filename_without_ext = filename.replace('.json', '').replace('.tar', '').replace('.gz', '')
+        filepath = os.path.join(csv_dir, f'{os.path.basename(filename_without_ext)}.csv')
         pathoo(filepath)
         data = crossref_csv.csv_creator(data)
         if data:
@@ -38,7 +39,7 @@ def preprocess(crossref_json_dir:str, publishers_filepath:str, orcid_doi_filepat
                 dict_writer.writerows(data)
         if cache:
             with open(cache, 'a', encoding='utf-8') as aux_file:
-                aux_file.write(os.path.basename(file) + '\n')
+                aux_file.write(os.path.basename(filename) + '\n')
         pbar.update() if verbose else None
     pbar.close() if verbose else None
 
@@ -69,8 +70,8 @@ if __name__ == '__main__':
     config = args.config
     settings = None
     if config:
-        with open(config, encoding='utf-8') as file:
-            settings = yaml.full_load(file)
+        with open(config, encoding='utf-8') as f:
+            settings = yaml.full_load(f)
     crossref_json_dir = settings['crossref_json_dir'] if settings else args.crossref_json_dir
     crossref_json_dir = normalize_path(crossref_json_dir)
     csv_dir = settings['output'] if settings else args.csv_dir
