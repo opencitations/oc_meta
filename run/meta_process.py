@@ -134,8 +134,8 @@ def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False) -> N
     files_to_be_processed = meta_process.prepare_folders()
     pbar = tqdm(total=len(files_to_be_processed)) if meta_process.verbose else None
     max_workers = meta_process.workers_number
-    multiples_of_ten = {i for i in range(max_workers) if i % 10 == 0}
-    workers = [i for i in range(max_workers+len(multiples_of_ten)) if i not in multiples_of_ten]
+    multiples_of_ten = {i for i in range(max_workers+1) if int(i) % 10 == 0}
+    workers = [i for i in range(max_workers+len(multiples_of_ten)-1) if i not in multiples_of_ten]
     while len(files_to_be_processed) > 0:
         with ProcessPoolExecutor(max_workers = max_workers) as executor:
             results = [executor.submit(meta_process.curate_and_create, filename, worker_number, resp_agents_only) for filename, worker_number in zip(files_to_be_processed, workers)]

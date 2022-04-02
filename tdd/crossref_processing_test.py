@@ -181,7 +181,6 @@ class TestCrossrefProcessing(unittest.TestCase):
         preprocess(crossref_json_dir=GZIP_INPUT, publishers_filepath=None, orcid_doi_filepath=IOD, csv_dir=OUTPUT, wanted_doi_filepath=WANTED_DOIS)
         output = dict()
         for file in os.listdir(OUTPUT):
-            print(file)
             with open(os.path.join(OUTPUT, file), 'r', encoding='utf-8') as f:
                 output[file] = list(csv.DictReader(f))
         expected_output = {

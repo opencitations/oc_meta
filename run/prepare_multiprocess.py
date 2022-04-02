@@ -51,3 +51,4 @@ if __name__ == '__main__':
     os.mkdir(csv_dir)
     for file in os.listdir(TMP_DIR):
         shutil.move(os.path.join(TMP_DIR, file), csv_dir)
+    shutil.rmtree(TMP_DIR)

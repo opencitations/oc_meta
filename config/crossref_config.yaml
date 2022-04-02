@@ -31,4 +31,4 @@ wanted_doi_filepath: /srv/meta/coci_dois.csv
 # The cache file path. This file will be deleted at the end of the process
 cache_filepath: /srv/meta/cache.txt
 # Show a loading bar, elapsed time and estimated time
-verbose: False
+verbose: True
