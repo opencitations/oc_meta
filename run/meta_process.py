@@ -29,7 +29,7 @@ from meta.scripts.creator import Creator
 from meta.scripts.curator import Curator
 from oc_ocdm import Storer
 from oc_ocdm.prov import ProvSet
-# from time_agnostic_library.support import generate_config_file
+from time_agnostic_library.support import generate_config_file
 from tqdm import tqdm
 from typing import Set, Tuple
 import csv
@@ -66,10 +66,11 @@ class MetaProcess:
         self.verbose = settings['verbose']
         # Time-Agnostic_library integration
         self.time_agnostic_library_config = os.path.join(os.path.dirname(config), 'time_agnostic_library_config.json')
-        # if not os.path.exists(self.time_agnostic_library_config):
-        #     generate_config_file(config_path=self.time_agnostic_library_config, dataset_urls=[self.triplestore_url], dataset_dirs=list(),
-        #         provenance_urls=settings['provenance_endpoints'], provenance_dirs=list(), 
-        #         blazegraph_full_text_search=settings['blazegraph_full_text_search'], cache_triplestore_url=settings['cache_triplestore_url'])
+        if not os.path.exists(self.time_agnostic_library_config):
+            generate_config_file(config_path=self.time_agnostic_library_config, dataset_urls=[self.triplestore_url], dataset_dirs=list(),
+                provenance_urls=settings['provenance_endpoints'], provenance_dirs=list(), 
+                blazegraph_full_text_search=settings['blazegraph_full_text_search'], graphdb_connector_name=settings['graphdb_connector_name'], 
+                cache_endpoint=settings['cache_endpoint'], cache_update_endpoint=settings['cache_update_endpoint'])
 
     def prepare_folders(self) -> Set[str]:
         completed = init_cache(self.cache_path)
@@ -77,6 +78,8 @@ class MetaProcess:
         files_to_be_processed = files_in_input_csv_dir.difference(completed)
         if all(filename.replace('.csv', '').isdigit() for filename in files_to_be_processed):
             files_to_be_processed = sorted(files_to_be_processed, key=lambda filename: int(filename.replace('.csv', '')))
+        elif all(filename.split('_')[-1].isdigit() for filename in files_to_be_processed):
+            files_to_be_processed = sorted(files_to_be_processed, key=lambda filename: int(filename.split('_')[-1].replace('.csv', '')))
         for dir in [self.output_csv_dir, self.indexes_dir, self.output_rdf_dir]:
             pathoo(dir)
         if self.rdf_output_in_chunks:
