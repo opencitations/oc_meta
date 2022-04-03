@@ -41,6 +41,9 @@ def preprocess(crossref_json_dir:str, publishers_filepath:str, orcid_doi_filepat
             with open(cache, 'a', encoding='utf-8') as aux_file:
                 aux_file.write(os.path.basename(filename) + '\n')
         pbar.update() if verbose else None
+    if cache:
+        if os.path.exists(cache):
+            os.remove(cache)
     pbar.close() if verbose else None
 
 def pathoo(path:str) -> None:

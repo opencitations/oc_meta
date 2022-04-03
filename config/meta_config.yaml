@@ -23,9 +23,9 @@ triplestore_url: http://127.0.0.1:9999/blazegraph/sparql
 # A list of triplestore URLs containing provenance metadata
 provenance_endpoints: []
 # Directory where raw CSV files are stored
-input_csv_dir: /home/arcangelo/meta_input
+input_csv_dir: /srv/meta/meta_input
 # The path to the base directory to save all output files
-base_output_dir: /home/arcangelo/meta_output
+base_output_dir: /srv/meta/meta_output
 # A URI string representing the provenance agent which is considered responsible for the RDF graph manipulation
 resp_agent: https://orcid.org/0000-0002-8420-0696
 
@@ -51,7 +51,7 @@ source: https://api.crossref.org/
 # If True, use the DOI API service to check if DOIs are valid
 use_doi_api_service: False
 # Number of cores to devote to the Meta process
-workers_number: 1
+workers_number: 10
 # True if Blazegraph was used as a triplestore, and a textual index was built to speed up queries. For more information, see https://github.com/blazegraph/database/wiki/Rebuild_Text_Index_Procedure
 blazegraph_full_text_search: False
 # The name of the Lucene connector if GraphDB was used as a triplestore and a textual index was built to speed up queries. For more information, see https://graphdb.ontotext.com/documentation/free/general-full-text-search-with-connectors.html
