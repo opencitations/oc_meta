@@ -78,7 +78,7 @@ class MetaProcess:
         files_to_be_processed = files_in_input_csv_dir.difference(completed)
         if all(filename.replace('.csv', '').isdigit() for filename in files_to_be_processed):
             files_to_be_processed = sorted(files_to_be_processed, key=lambda filename: int(filename.replace('.csv', '')))
-        elif all(filename.split('_')[-1].isdigit() for filename in files_to_be_processed):
+        elif all(filename.split('_')[-1].replace('.csv', '').isdigit() for filename in files_to_be_processed):
             files_to_be_processed = sorted(files_to_be_processed, key=lambda filename: int(filename.split('_')[-1].replace('.csv', '')))
         for dir in [self.output_csv_dir, self.indexes_dir, self.output_rdf_dir]:
             pathoo(dir)
@@ -91,6 +91,7 @@ class MetaProcess:
         return files_to_be_processed
 
     def curate_and_create(self, filename:str, worker_number:int=None, resp_agents_only:bool=False) -> Tuple[Storer, Storer, str]:
+        # print(filename)
         filepath = os.path.join(self.input_csv_dir, filename)
         data = get_data(filepath)
         supplier_prefix = self.supplier_prefix if worker_number is None else f'{self.supplier_prefix}{str(worker_number)}0'

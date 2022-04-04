@@ -19,7 +19,7 @@
 # Mandatory settings
 
 # Endpoint URL to load the output RDF
-triplestore_url: http://127.0.0.1:9999/blazegraph/sparql
+triplestore_url: http://127.0.0.1:19999/blazegraph/sparql
 # A list of triplestore URLs containing provenance metadata
 provenance_endpoints: []
 # Directory where raw CSV files are stored

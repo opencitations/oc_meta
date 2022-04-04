@@ -248,7 +248,7 @@ class Creator(object):
             venue_type = 'reference book'
         elif br_type == 'report series':
             venue_type = 'report series'
-        elif not br_type:
+        else:
             venue_type = ''
         # Check the type based on the identifier scheme
         if any(identifier for identifier in venue_ids if not identifier.startswith('meta:')):
