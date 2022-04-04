@@ -33,16 +33,19 @@ if __name__ == '__main__':
         settings = yaml.full_load(file)
     csv_dir = normalize_path(settings['input_csv_dir'])
     items_per_file = settings['items_per_file']
+    workers_numbers = settings['workers_number']
     verbose = settings['verbose']
     meta_process = MetaProcess(config)
     TMP_DIR = os.path.join(meta_process.base_output_dir, 'tmp')
     prepare_relevant_items(csv_dir=csv_dir, output_dir=TMP_DIR, items_per_file=items_per_file, verbose=verbose)
     venues_dir = os.path.join(TMP_DIR, 'venues')
     if os.path.exists(venues_dir):
+        meta_process.workers_number = 1
         meta_process.input_csv_dir = venues_dir
         run_meta_process(meta_process=meta_process)
     people_dir = os.path.join(TMP_DIR, 'people')
     if os.path.exists(people_dir):
+        meta_process.workers_number = workers_numbers
         meta_process.input_csv_dir = people_dir
         run_meta_process(meta_process=meta_process, resp_agents_only=True)
     shutil.rmtree(TMP_DIR)
