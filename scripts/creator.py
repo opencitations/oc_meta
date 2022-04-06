@@ -192,7 +192,11 @@ class Creator(object):
                     url = URIRef(self.url + ven_id)
                     venue_title = venue_and_ids.group(1)
                     self.venue_graph = self.setgraph.add_br(self.resp_agent, source=self.src, res=url)
-                    venue_type = self.get_venue_type(self.type, venue_ids_list)
+                    try:
+                        venue_type = self.get_venue_type(self.type, venue_ids_list)
+                    except UnboundLocalError:
+                        print(f"[INFO:Creator] I found the venue {venue} for the resource of type {self.type}, but I don't know how to handle it")
+                        raise UnboundLocalError
                     if venue_type:
                         venue_type = venue_type.replace(' ', '_')
                         getattr(self.venue_graph, f'create_{venue_type}')()
@@ -248,7 +252,7 @@ class Creator(object):
             venue_type = 'reference book'
         elif br_type == 'report series':
             venue_type = 'report series'
-        else:
+        elif not br_type:
             venue_type = ''
         # Check the type based on the identifier scheme
         if any(identifier for identifier in venue_ids if not identifier.startswith('meta:')):
@@ -329,7 +333,7 @@ class Creator(object):
     def publisher_action(self, publisher):
         publ_and_ids = re.search(name_and_ids, publisher)
         publ_id = publ_and_ids.group(2)
-        publ_id_list = publ_id.split(' ')
+        publ_id_list = publ_id.split()
         for identifier in publ_id_list:
             if 'meta:' in identifier:
                 identifier = str(identifier).replace('meta:', '')

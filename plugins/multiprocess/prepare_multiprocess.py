@@ -25,7 +25,7 @@ import re
 
 
 FORBIDDEN_IDS = {'issn:0000-0000'}
-VENUES = {'book', 'book-series', 'book-set', 'edited-book', 'journal', 'journal-volume', 'journal-issue', 'monograph', 'proceedings-series', 'proceedings', 'reference-book', 'report-series', 'standard-series'}
+VENUES = {'archival-document', 'book', 'book-part', 'book-section', 'book-series', 'book-set', 'edited-book', 'journal', 'journal-volume', 'journal-issue', 'monograph', 'proceedings-series', 'proceedings', 'reference-book', 'report-series', 'standard-series'}
 
 def prepare_relevant_items(csv_dir:str, output_dir:str, items_per_file:int, verbose:bool) -> None:
     '''
@@ -47,45 +47,24 @@ def prepare_relevant_items(csv_dir:str, output_dir:str, items_per_file:int, verb
     pbar = tqdm(total=len(files)) if verbose else None
     pathoo(output_dir)
     venues_by_id = dict()
+    publishers_by_id = dict()
     resp_agents_by_id = dict()
-    multi_pub_venues = dict()
-    pub_by_venue = dict()
-    # Look for all venues and responsible agents
+    # Look for all venues, responsible agents, and publishers
     for file in files:
         data = get_data(file)
         _get_relevant_venues(data=data, items_by_id=venues_by_id)
+        _get_publishers(data=data, items_by_id=publishers_by_id)
         _get_resp_agents(data=data, items_by_id=resp_agents_by_id)
         pbar.update() if verbose else None
     pbar.close() if verbose else None
     pbar = tqdm(total=len(files)) if verbose else None
-    # Look for venues published by more than one publisher
-    for file in files:
-        data = get_data(file)
-        _find_multi_pub_venues(data, pub_by_venue, multi_pub_venues, venues_by_id)
-        pbar.update() if verbose else None
-    pbar.close() if verbose else None
-    venues_merged = _do_collective_merge(multi_pub_venues, verbose)
+    venues_merged = _do_collective_merge(venues_by_id, verbose)
+    publishers_merged = _do_collective_merge(publishers_by_id, verbose)
     resp_agents_merged = _do_collective_merge(resp_agents_by_id, verbose)
     fieldnames = ['id', 'title', 'author', 'pub_date', 'venue', 'volume', 'issue', 'page', 'type', 'publisher', 'editor']
     __save_relevant_venues(venues_merged, items_per_file, output_dir, fieldnames)
-    __save_resp_agents(resp_agents_merged, items_per_file, output_dir, fieldnames)
-
-def _find_multi_pub_venues(data:List[dict], pub_by_venue:Dict[str, set], multi_pub_venues:dict, venues_by_id:dict) -> None:
-    for row in data:
-        pub_ids = re.search(ids_inside_square_brackets, row['publisher'])
-        venue_ids = re.search(ids_inside_square_brackets, row['venue'])
-        if pub_ids and venue_ids:
-            pub_ids = pub_ids.group(1).split()
-            venue_ids = venue_ids.group(1).split()
-            for pub_id in pub_ids:
-                for venue_id in venue_ids:
-                    if venue_id not in multi_pub_venues:
-                        pub_by_venue.setdefault(venue_id, set()).add(pub_id)
-                        if len(pub_by_venue[venue_id]) > 1:
-                            all_ids = __find_all_ids_by_key(venues_by_id, key=venue_id)
-                            all_ids.add(venue_id)
-                            for venue_by_id in all_ids:
-                                multi_pub_venues[venue_by_id] = venues_by_id[venue_by_id]
+    __save_data(resp_agents_merged, items_per_file, output_dir, fieldnames, ('people', 'author'))
+    __save_data(publishers_merged, items_per_file, output_dir, fieldnames, ('publishers', 'publisher'))
 
 def _get_relevant_venues(data:List[dict], items_by_id:Dict[str, dict]) -> None:
     for row in data:
@@ -118,6 +97,16 @@ def _get_relevant_venues(data:List[dict], items_by_id:Dict[str, dict]) -> None:
                         items_by_id[id]['volume'][volume].add(issue)
                 elif not volume and issue:
                     items_by_id[id]['issue'].add(issue)
+
+def _get_publishers(data:List[dict], items_by_id:Dict[str, dict]) -> None:
+    for row in data:
+        pub_name_and_ids = re.search(name_and_ids, row['publisher'])
+        if pub_name_and_ids:
+            pub_name = pub_name_and_ids.group(1)
+            pub_ids = pub_name_and_ids.group(2).split()
+            for pub_id in pub_ids:
+                items_by_id.setdefault(pub_id, {'others': set(), 'name': pub_name, 'type': 'publisher'})
+                items_by_id[pub_id]['others'].update({other for other in pub_ids if other != pub_id})
 
 def _get_resp_agents(data:List[dict], items_by_id:Dict[str, Dict[str, set]]) -> None:
     for row in data:
@@ -229,15 +218,17 @@ def __save_relevant_venues(items_by_id:dict, items_per_file:int, output_dir:str,
             rows.append(row)
             rows, saved_chunks = __store_data(rows, output_length, chunks, saved_chunks, output_dir, fieldnames)
 
-def __save_resp_agents(items_by_id:dict, items_per_file:int, output_dir:str, fieldnames:list):
-    output_dir = os.path.join(output_dir, 'people')
+def __save_data(items_by_id:dict, items_per_file:int, output_dir:str, fieldnames:list, datatype:tuple):
+    folder = datatype[0]
+    field = datatype[1]
+    output_dir = os.path.join(output_dir, folder)
     rows = list()
     chunks = int(items_per_file)
     saved_chunks = 0
     output_length = len(items_by_id)
     for item_id, data in items_by_id.items():
         name, ids = __get_name_and_ids(item_id, data)
-        rows.append({'author': f'{name} [{ids}]'})
+        rows.append({field: f'{name} [{ids}]'})
         rows, saved_chunks = __store_data(rows, output_length, chunks, saved_chunks, output_dir, fieldnames)
 
 def __store_data(rows:list, output_length:int, chunks:int, saved_chunks:int, output_dir:str, fieldnames:str) -> list:
@@ -256,40 +247,3 @@ def __get_name_and_ids(item_id, data):
     name = data['name']
     ids = ' '.join(ids_list)
     return name, ids
-
-def split_by_publisher(csv_dir:str, output_dir:str, verbose:bool=False) -> None:
-    '''
-    This function receives an input folder containing CSVs formatted for Meta. 
-    It output other CSVs divided by publisher. The output files names match the publishers's ids and contain only documents published by that publisher.
-    For example, a file containing documents published by the American Mathematical Society on Crossref will be called crossref_14.csv, because this publisher has id 14 on Crossref.
-
-    :params csv_dir: the path to the folder containing the input CSV files
-    :type csv_dir: str
-    :params output_dir: the location of the folder to save to output file
-    :type output_dir: str
-    :params verbose: if True, show a loading bar, elapsed, and estimated time
-    :type verbose: bool
-    :returns: None -- This function returns None and saves the output CSV files in the `output_dir` folder
-    '''
-    files = os.listdir(csv_dir)
-    pathoo(output_dir)
-    if verbose:
-        print('[INFO:prepare_multiprocess] Splitting CSVs by publishers')
-        pbar = tqdm(total=len(files))
-    for file in files:
-        if file.endswith('.csv'):
-            file_path = os.path.join(csv_dir, file)
-            data = get_data(file_path)
-            data_by_publisher:Dict[str, List] = dict()
-            for row in data:
-                if row['publisher']:
-                    id = re.search(ids_inside_square_brackets, row['publisher'])
-                    publisher = id.group(1) if id else row['publisher']
-                    data_by_publisher.setdefault(publisher, list()).append(row)
-            for publisher, data in data_by_publisher.items():
-                publisher = publisher.replace(':', '_')
-                publisher += '.csv'
-                output_file_path = os.path.join(output_dir, publisher)
-                write_csv(path=output_file_path, datalist=data)
-        pbar.update() if verbose else None
-    pbar.close() if verbose else None

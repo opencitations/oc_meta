@@ -18,7 +18,7 @@
 from argparse import ArgumentParser
 from meta.lib.file_manager import normalize_path
 from meta.run.meta_process import MetaProcess, run_meta_process
-from meta.plugins.multiprocess.prepare_multiprocess import prepare_relevant_items, split_by_publisher
+from meta.plugins.multiprocess.prepare_multiprocess import prepare_relevant_items
 import os
 import shutil
 import yaml
@@ -43,15 +43,13 @@ if __name__ == '__main__':
         meta_process.workers_number = 1
         meta_process.input_csv_dir = venues_dir
         run_meta_process(meta_process=meta_process)
+    meta_process.workers_number = workers_numbers
+    publishers_dir = os.path.join(TMP_DIR, 'publishers')
+    if os.path.exists(publishers_dir):
+        meta_process.input_csv_dir = publishers_dir
+        run_meta_process(meta_process=meta_process, resp_agents_only=True)
     people_dir = os.path.join(TMP_DIR, 'people')
     if os.path.exists(people_dir):
-        meta_process.workers_number = workers_numbers
         meta_process.input_csv_dir = people_dir
         run_meta_process(meta_process=meta_process, resp_agents_only=True)
-    shutil.rmtree(TMP_DIR)
-    split_by_publisher(csv_dir=csv_dir, output_dir=TMP_DIR, verbose=verbose)
-    os.rename(csv_dir, csv_dir + '_old')
-    os.mkdir(csv_dir)
-    for file in os.listdir(TMP_DIR):
-        shutil.move(os.path.join(TMP_DIR, file), csv_dir)
     shutil.rmtree(TMP_DIR)

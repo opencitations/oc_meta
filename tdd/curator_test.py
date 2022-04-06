@@ -450,6 +450,32 @@ class test_Curator(unittest.TestCase):
 
 
 class test_RespAgentsCurator(unittest.TestCase):
+    def test_curator_publishers(self):
+        reset()
+        data = [
+            {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': 'American Medical Association (AMA) [crossref:10 crossref:9999]', 'editor': ''}, 
+            {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': 'Elsevier BV [crossref:78]', 'editor': ''}, 
+            {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': 'Wiley [crossref:311]', 'editor': ''}]
+        resp_agents_curator = prepareCurator(data=data, server=SERVER, resp_agents_only=True)
+        resp_agents_curator.curator(filename=None, path_csv=None, path_index=None)
+        output = (resp_agents_curator.data, resp_agents_curator.radict, resp_agents_curator.idra, resp_agents_curator.rameta)
+        expected_output = (
+            [
+                {'id': '', 'title': '', 'author': '', 'venue': '', 'editor': '', 'publisher': 'American Medical Association (ama) [crossref:10 crossref:9999 meta:ra/3309]', 'page': '', 'volume': '', 'issue': '', 'pub_date': '', 'type': ''}, 
+                {'id': '', 'title': '', 'author': '', 'venue': '', 'editor': '', 'publisher': 'Elsevier Bv [crossref:78 meta:ra/0601]', 'page': '', 'volume': '', 'issue': '', 'pub_date': '', 'type': ''}, 
+                {'id': '', 'title': '', 'author': '', 'venue': '', 'editor': '', 'publisher': 'Wiley [crossref:311 meta:ra/0602]', 'page': '', 'volume': '', 'issue': '', 'pub_date': '', 'type': ''}],
+            {
+                '3309': {'ids': ['crossref:10', 'crossref:9999', 'meta:ra/3309'], 'others': [], 'title': 'American Medical Association (ama)'}, 
+                'wannabe_0': {'ids': ['crossref:78', 'meta:ra/0601'], 'others': ['wannabe_0'], 'title': 'Elsevier Bv'}, 
+                'wannabe_1': {'ids': ['crossref:311', 'meta:ra/0602'], 'others': ['wannabe_1'], 'title': 'Wiley'}},
+            {'crossref:10': '4274', 'crossref:9999': '0601', 'crossref:78': '0602', 'crossref:311': '0603'},
+            {
+                '3309': {'ids': ['crossref:10', 'crossref:9999', 'meta:ra/3309'], 'others': [], 'title': 'American Medical Association (ama)'}, 
+                '0601': {'ids': ['crossref:78', 'meta:ra/0601'], 'others': ['wannabe_0'], 'title': 'Elsevier Bv'}, 
+                '0602': {'ids': ['crossref:311', 'meta:ra/0602'], 'others': ['wannabe_1'], 'title': 'Wiley'}}        
+        )
+        self.assertEqual(output, expected_output)
+
     def test_curator(self):
         reset()
         data = [

@@ -39,7 +39,13 @@ class RespAgentsCreator(Creator):
         self.src = source
         for row in self.data:
             authors = row['author']
+            publisher = row['publisher']
+            editor = row['editor']
             self.author_action(authors)
+            if publisher:
+                self.publisher_action(publisher)
+            if editor:
+                self.editor_action(editor)
         return self.setgraph
 
     def author_action(self, authors):
@@ -67,3 +73,42 @@ class RespAgentsCreator(Creator):
                 # lists of authors' IDs
                 for identifier in aut_id_list:
                     self.id_creator(pub_aut, identifier, ra=True)
+
+    def publisher_action(self, publisher):
+        publ_and_ids = re.search(name_and_ids, publisher)
+        publ_id = publ_and_ids.group(2)
+        publ_id_list = publ_id.split()
+        for identifier in publ_id_list:
+            if 'meta:' in identifier:
+                identifier = str(identifier).replace('meta:', '')
+                url = URIRef(self.url + identifier)
+                publ_name = publ_and_ids.group(1)
+                publ = self.setgraph.add_ra(self.resp_agent, source=self.src, res=url)
+                publ.has_name(publ_name)
+        for identifier in publ_id_list:
+            self.id_creator(publ, identifier, ra=True)
+
+    def editor_action(self, editor):
+        editorslist = re.split(semicolon_in_people_field, editor)
+        for ed in editorslist:
+            ed_and_ids = re.search(name_and_ids, ed)
+            ed_id = ed_and_ids.group(2)
+            ed_id_list = ed_id.split(' ')
+            for identifier in ed_id_list:
+                if 'meta:' in identifier:
+                    identifier = str(identifier).replace('meta:', '')
+                    url = URIRef(self.url + identifier)
+                    pub_ed = self.setgraph.add_ra(self.resp_agent, source=self.src, res=url)
+                    editor_name = ed_and_ids.group(1)
+                    if ',' in editor_name:
+                        editor_name_splitted = re.split(comma_and_spaces, editor_name)
+                        firstName = editor_name_splitted[1]
+                        lastName = editor_name_splitted[0]
+                        if firstName.strip():
+                            pub_ed.has_given_name(firstName)
+                        pub_ed.has_family_name(lastName)
+                    else:
+                        pub_ed.has_name(editor_name)
+            # lists of editor's IDs
+            for identifier in ed_id_list:
+                self.id_creator(pub_ed, identifier, ra=True)

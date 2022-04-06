@@ -29,6 +29,7 @@ import re
 class RespAgentsCurator(Curator):
     def __init__(self, data:List[dict], ts:str, prov_config:str, info_dir:str, base_iri:str='https://w3id.org/oc/meta', prefix:str='060', separator:str=None):
         self.finder = ResourceFinder(ts, base_iri)
+        self.prov_config = prov_config
         self.separator = separator
         self.data = [{field:value.strip() for field,value in row.items()} for row in data]
         self.prefix = prefix
@@ -57,6 +58,8 @@ class RespAgentsCurator(Curator):
                 'type': {}
             }
             self.clean_ra(row, 'author')
+            self.clean_ra(row, 'publisher')
+            self.clean_ra(row, 'editor')
             self.rowcnt += 1
         self.radict.update(self.conflict_ra)
         self.meta_maker()
@@ -78,7 +81,11 @@ class RespAgentsCurator(Curator):
         :returns: None -- This method modifies self.radict and self.idra, and returns None.
         '''
         if row[col_name]:
-            ra_list = re.split(semicolon_in_people_field, row[col_name])
+            if col_name in {'author', 'editor'}:
+                ra_list = re.split(semicolon_in_people_field, row[col_name])
+            elif col_name == 'publisher': 
+                ra_list = [row[col_name]]
+            ra_metaids = list()
             for ra in ra_list:
                 ra_id = re.search(name_and_ids, ra)
                 name = Cleaner(ra_id.group(1)).clean_name()
@@ -87,14 +94,19 @@ class RespAgentsCurator(Curator):
                     ra_id_list = re.sub(colon_and_spaces, ':', ra_id).split(self.separator)
                 else:
                     ra_id_list = re.split(one_or_more_spaces, re.sub(colon_and_spaces, ':', ra_id))
-                metaval = self.id_worker(col_name, name, ra_id_list)
-                if metaval in self.radict:
+                if col_name == 'publisher':
+                    metaval = self.id_worker('publisher', name, ra_id_list, publ_entity=True)
+                else:
+                    metaval = self.id_worker(col_name, name, ra_id_list, publ_entity=False)
+                if col_name != 'publisher' and metaval in self.radict:
                     full_name:str = self.radict[metaval]['title']
                     if ',' in name and ',' in full_name:
                         first_name = name.split(',')[1].strip()
                         if not full_name.split(',')[1].strip() and first_name:  # first name found!
                             given_name = full_name.split(',')[0]
                             self.radict[metaval]['title'] = given_name + ', ' + first_name
+                ra_metaids.append(f'{name} [meta:ra/{metaval}]')
+            row[col_name] = '; '.join(ra_metaids)
 
     def meta_maker(self):
         '''
@@ -151,7 +163,7 @@ class RespAgentsCurator(Curator):
                 write_csv(data_file, self.data)
 
     @staticmethod
-    def clean_id_list(id_list:List[str], br:bool) -> Tuple[list, str]:
+    def clean_id_list(id_list:List[str]) -> Tuple[list, str]:
         '''
         Clean IDs in the input list and check if there is a MetaID.
 
@@ -161,7 +173,7 @@ class RespAgentsCurator(Curator):
         :type: br: bool
         :returns: Tuple[list, str]: -- it returns a two-elements tuple, where the first element is the list of cleaned IDs, while the second is a MetaID if any was found.
         '''
-        pattern = 'br/' if br else 'ra/'
+        pattern = 'ra/'
         metaid = ''
         id_list = list(filter(None, id_list))
         how_many_meta = [i for i in id_list if i.lower().startswith('meta')]
@@ -185,10 +197,10 @@ class RespAgentsCurator(Curator):
         id_list = list(filter(None, id_list))
         return id_list, metaid
 
-    def id_worker(self, col_name, name, idslist:List[str]):
+    def id_worker(self, col_name, name, idslist:List[str], publ_entity:bool):
         id_dict = self.idra
         entity_dict = self.radict
-        idslist, metaval = self.clean_id_list(idslist, br=False)
+        idslist, metaval = self.clean_id_list(idslist)
         # there's meta
         if metaval:
             # MetaID exists among data?
@@ -197,7 +209,7 @@ class RespAgentsCurator(Curator):
                 self.merge_entities_in_csv(idslist, metaval, name, entity_dict, id_dict)
             else:
                 found_meta_ts = None
-                found_meta_ts = self.finder.retrieve_ra_from_meta(metaval, publisher=False)
+                found_meta_ts = self.finder.retrieve_ra_from_meta(metaval, publisher=publ_entity)
                 # meta in triplestore
                 # 2 Retrieve EntityA data in triplestore to update EntityA inside CSV
                 if found_meta_ts:
@@ -239,7 +251,7 @@ class RespAgentsCurator(Curator):
                         if identifier not in entity_dict[metaval]['ids']:
                             suspect_ids.append(identifier)
                     if suspect_ids:
-                        sparql_match = self.finder_sparql(suspect_ids, br=False, ra=True, vvi=False, publ=False)
+                        sparql_match = self.finder_sparql(suspect_ids, br=False, ra=True, vvi=False, publ=publ_entity)
                         if len(sparql_match) > 1:
                             # !
                             return self.conflict(idslist, name, id_dict, col_name)
@@ -254,7 +266,7 @@ class RespAgentsCurator(Curator):
                     if identifier not in entity_dict[metaval]['ids']:
                         suspect_ids.append(identifier)
                 if suspect_ids:
-                    sparql_match = self.finder_sparql(suspect_ids, br=False, ra=True, vvi=False, publ=False)
+                    sparql_match = self.finder_sparql(suspect_ids, br=False, ra=True, vvi=False, publ=publ_entity)
                     if sparql_match:
                         if 'wannabe' not in metaval or len(sparql_match) > 1:
                             # Two entities previously disconnected on the triplestore now become connected
@@ -263,7 +275,7 @@ class RespAgentsCurator(Curator):
                         else:
                             existing_ids = sparql_match[0][2]
                             new_idslist = [x[1] for x in existing_ids]
-                            new_sparql_match = self.finder_sparql(new_idslist, br=False, ra=True, vvi=False, publ=False)
+                            new_sparql_match = self.finder_sparql(new_idslist, br=False, ra=True, vvi=False, publ=publ_entity)
                             if len(new_sparql_match) > 1:
                                 # Two entities previously disconnected on the triplestore now become connected
                                 # !
@@ -283,14 +295,14 @@ class RespAgentsCurator(Curator):
                                     if identifier[1] not in entity_dict[metaval]['ids']:
                                         entity_dict[metaval]['ids'].append(identifier[1])
             else:
-                sparql_match = self.finder_sparql(idslist, br=False, ra=True, vvi=False, publ=False)
+                sparql_match = self.finder_sparql(idslist, br=False, ra=True, vvi=False, publ=publ_entity)
                 if len(sparql_match) > 1:
                     # !
                     return self.conflict(idslist, name, id_dict, col_name)
                 elif len(sparql_match) == 1:
                     existing_ids = sparql_match[0][2]
                     new_idslist = [x[1] for x in existing_ids]
-                    new_sparql_match = self.finder_sparql(new_idslist, br=False, ra=True, vvi=False, publ=False)
+                    new_sparql_match = self.finder_sparql(new_idslist, br=False, ra=True, vvi=False, publ=publ_entity)
                     if len(new_sparql_match) > 1:
                         # Two entities previously disconnected on the triplestore now become connected
                         # !
@@ -335,26 +347,25 @@ class RespAgentsCurator(Curator):
         This method replaces the wannabeID placeholders with the
         actual data and MetaIDs as a result of the deduplication process.
         '''
-        self.data = list()
-        for _, data in self.rameta.items():
-            row = {
-                'id': '',
-                'title': '',
-                'author': '',
-                'venue': '',
-                'editor': '',
-                'publisher': '',
-                'page': '',
-                'volume': '',
-                'issue': '',
-                'pub_date': '',
-                'type': ''
-            }
-            ra_name = data['title']
-            ra_ids = ' '.join(data['ids'])
-            ra = ra_name + ' [' + ra_ids + ']'
-            row['author'] = ra
-            self.data.append(row)
+        for row in self.data:
+            for field in {'author', 'editor', 'publisher'}:
+                if row[field]:
+                    ras_list = list()
+                    if field in {'author', 'editor'}:
+                        ra_list = re.split(semicolon_in_people_field, row[field])
+                    else:
+                        ra_list = [row[field]]
+                    for ra_entity in ra_list:
+                        metaid = re.search(name_and_ids, ra_entity).group(2).replace('meta:ra/', '')
+                        if 'wannabe' in metaid:
+                            for ra_metaid in self.rameta:
+                                if metaid in self.rameta[ra_metaid]['others']:
+                                    metaid = ra_metaid
+                        ra_name = self.rameta[metaid]['title']
+                        ra_ids = ' '.join(self.rameta[metaid]['ids'])
+                        ra = ra_name + ' [' + ra_ids + ']'
+                        ras_list.append(ra)
+                    row[field] = '; '.join(ras_list)
 
     @staticmethod
     def __local_match(list_to_match, dict_to_match:dict):
