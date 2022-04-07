@@ -315,9 +315,11 @@ class Cleaner:
         elif switch_vi['volume'] and not row['volume']:
             row['volume'] = switch_vi['volume']
             row['issue'] = ''
+            row['type'] = 'journal volume' if row['type'] == 'journal issue' else row['type']
         elif switch_vi['issue'] and not row['issue']:
             row['issue'] = switch_vi['issue']
             row['volume'] = ''
+            row['type'] = 'journal issue' if row['type'] == 'journal volume' else row['type']
     
     @staticmethod
     def fix_invalid_vi(capturing_groups:re.Match, strategy:str) -> Tuple[str, str, str, str]:

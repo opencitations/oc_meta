@@ -91,7 +91,6 @@ class MetaProcess:
         return files_to_be_processed
 
     def curate_and_create(self, filename:str, worker_number:int=None, resp_agents_only:bool=False) -> Tuple[Storer, Storer, str]:
-        # print(filename)
         filepath = os.path.join(self.input_csv_dir, filename)
         data = get_data(filepath)
         supplier_prefix = self.supplier_prefix if worker_number is None else f'{self.supplier_prefix}{str(worker_number)}0'
