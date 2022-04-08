@@ -46,12 +46,15 @@ def prepare_relevant_items(csv_dir:str, output_dir:str, items_per_file:int, verb
     files = [os.path.join(csv_dir, file) for file in os.listdir(csv_dir) if file.endswith('.csv')]
     pbar = tqdm(total=len(files)) if verbose else None
     pathoo(output_dir)
+    ids_found = set()
+    rows_with_duplicated_ids = list()
     venues_by_id = dict()
     publishers_by_id = dict()
     resp_agents_by_id = dict()
     # Look for all venues, responsible agents, and publishers
     for file in files:
         data = get_data(file)
+        _get_duplicated_ids(data=data, ids_found=ids_found, rows_with_duplicated_ids=rows_with_duplicated_ids)
         _get_relevant_venues(data=data, items_by_id=venues_by_id)
         _get_publishers(data=data, items_by_id=publishers_by_id)
         _get_resp_agents(data=data, items_by_id=resp_agents_by_id)
@@ -62,9 +65,20 @@ def prepare_relevant_items(csv_dir:str, output_dir:str, items_per_file:int, verb
     publishers_merged = _do_collective_merge(publishers_by_id, verbose)
     resp_agents_merged = _do_collective_merge(resp_agents_by_id, verbose)
     fieldnames = ['id', 'title', 'author', 'pub_date', 'venue', 'volume', 'issue', 'page', 'type', 'publisher', 'editor']
+    write_csv(path=os.path.join(output_dir, 'ids'), datalist=rows_with_duplicated_ids, fieldnames=fieldnames)
     __save_relevant_venues(venues_merged, items_per_file, output_dir, fieldnames)
     __save_data(resp_agents_merged, items_per_file, output_dir, fieldnames, ('people', 'author'))
     __save_data(publishers_merged, items_per_file, output_dir, fieldnames, ('publishers', 'publisher'))
+
+def _get_duplicated_ids(data:List[dict], ids_found:set, rows_with_duplicated_ids:list) -> None:
+    for row in data:
+        ids = set(row['id'].split())
+        venue_ids = re.search(ids_inside_square_brackets, row['venue'])
+        venue_ids = set(venue_ids.groups(1)) if venue_ids else set()
+        to_be_checked = ids.union(venue_ids)
+        if any(identifier in ids_found for identifier in to_be_checked):
+            rows_with_duplicated_ids.append(row)
+        ids_found.update(ids)
 
 def _get_relevant_venues(data:List[dict], items_by_id:Dict[str, dict]) -> None:
     for row in data:

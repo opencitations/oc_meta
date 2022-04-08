@@ -44,6 +44,10 @@ if __name__ == '__main__':
         meta_process.input_csv_dir = venues_dir
         run_meta_process(meta_process=meta_process)
     meta_process.workers_number = workers_numbers
+    ids_dir = os.path.join(TMP_DIR, 'ids')
+    if os.path.exists(ids_dir):
+        meta_process.input_csv_dir = ids_dir
+        run_meta_process(meta_process=meta_process)
     publishers_dir = os.path.join(TMP_DIR, 'publishers')
     if os.path.exists(publishers_dir):
         meta_process.input_csv_dir = publishers_dir
