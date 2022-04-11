@@ -21,6 +21,7 @@
 from argparse import ArgumentParser
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from datetime import datetime
+from itertools import cycle
 from meta.lib.csvmanager import CSVManager
 from meta.lib.file_manager import get_data, normalize_path, pathoo, suppress_stdout, init_cache, sort_files
 from meta.plugins.multiprocess.resp_agents_creator import RespAgentsCreator
@@ -89,7 +90,7 @@ class MetaProcess:
     def curate_and_create(self, filename:str, worker_number:int=None, resp_agents_only:bool=False) -> Tuple[Storer, Storer, str]:
         filepath = os.path.join(self.input_csv_dir, filename)
         data = get_data(filepath)
-        supplier_prefix = self.supplier_prefix if worker_number is None else f'{self.supplier_prefix}{str(worker_number)}0'
+        supplier_prefix = f'{self.supplier_prefix}0' if worker_number is None else f'{self.supplier_prefix}{str(worker_number)}0'
         # Curator
         self.info_dir = os.path.join(self.info_dir, supplier_prefix) if worker_number else self.info_dir
         curator_info_dir = os.path.join(self.info_dir, 'curator' + os.sep)
@@ -97,7 +98,7 @@ class MetaProcess:
             curator_obj = RespAgentsCurator(data=data, ts=self.triplestore_url, prov_config=self.time_agnostic_library_config, info_dir=curator_info_dir, base_iri=self.base_iri, prefix=supplier_prefix)
         else:
             curator_obj = Curator(data=data, ts=self.triplestore_url, prov_config=self.time_agnostic_library_config, info_dir=curator_info_dir, base_iri=self.base_iri, prefix=supplier_prefix, valid_dois_cache=self.valid_dois_cache)
-        name = f"{datetime.now().strftime('%Y-%m-%dT%H_%M_%S')}_{supplier_prefix}"
+        name = f"{datetime.now().strftime('%Y-%m-%dT%H_%M_%S_%f')}_{supplier_prefix}"
         curator_obj.curator(filename=name, path_csv=self.output_csv_dir, path_index=self.indexes_dir)
         # Creator
         creator_info_dir = os.path.join(self.info_dir, 'creator' + os.sep)
@@ -135,24 +136,30 @@ def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False) -> N
     max_workers = meta_process.workers_number
     if max_workers == 0:
         workers = list(range(1, os.cpu_count()))
-    elif max_workers == 1:
-        workers = [1]
     else:
         multiples_of_ten = {i for i in range(1, max_workers+1) if int(i) % 10 == 0}
         workers = [i for i in range(1, max_workers+len(multiples_of_ten)+1) if i not in multiples_of_ten]
-    while len(files_to_be_processed) > 0:
-        with ProcessPoolExecutor(max_workers = max_workers) as executor:
-            results = [executor.submit(meta_process.curate_and_create, file_to_be_processed, worker_number, resp_agents_only) for file_to_be_processed, worker_number in zip(files_to_be_processed, workers)]
-            for f in as_completed(results):
-                res_storer, prov_storer, processed_file = f.result()
-                # with suppress_stdout():
-                meta_process.store_data_and_prov(res_storer=res_storer, prov_storer=prov_storer, filename=processed_file)
-                files_to_be_processed.remove(processed_file)
+    if max_workers > 1:
+        with ProcessPoolExecutor(max_workers=max_workers) as executor:
+            futures = [executor.submit(meta_process.curate_and_create, file_to_be_processed, worker_number, resp_agents_only) for file_to_be_processed, worker_number in zip(files_to_be_processed, cycle(workers))]
+            for future in as_completed(futures):
+                res_storer, prov_storer, processed_file = future.result()
+                with suppress_stdout():
+                    meta_process.store_data_and_prov(res_storer, prov_storer, processed_file)
                 with open(meta_process.cache_path, 'a', encoding='utf-8') as aux_file:
                     aux_file.write(processed_file + '\n')
                 pbar.update() if pbar else None
+    elif max_workers == 1:
+        for file_to_be_processed in files_to_be_processed:
+            res_storer, prov_storer, processed_file = meta_process.curate_and_create(file_to_be_processed, None, resp_agents_only)
+            with suppress_stdout():
+                meta_process.store_data_and_prov(res_storer, prov_storer, processed_file)
+            with open(meta_process.cache_path, 'a', encoding='utf-8') as aux_file:
+                aux_file.write(processed_file + '\n')
+            pbar.update() if pbar else None
     os.remove(meta_process.cache_path)
     pbar.close() if pbar else None
+
 
 if __name__ == '__main__':
     arg_parser = ArgumentParser('meta_process.py', description='This script runs the OCMeta data processing workflow')
