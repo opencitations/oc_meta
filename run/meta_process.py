@@ -34,6 +34,7 @@ from time_agnostic_library.support import generate_config_file
 from tqdm import tqdm
 from typing import Set, Tuple
 import csv
+import multiprocessing
 import os
 import yaml
 
@@ -116,50 +117,52 @@ class MetaProcess:
         # Storer
         res_storer = Storer(creator, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, default_dir=self.default_dir, output_format='json-ld')
         prov_storer = Storer(prov, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, output_format='json-ld')
-        return res_storer, prov_storer, filename
+        # with suppress_stdout():
+        self.store_data_and_prov(res_storer, prov_storer, filename)
+        return filename
     
     def store_data_and_prov(self, res_storer:Storer, prov_storer:Storer, filename:str) -> None:
         if self.rdf_output_in_chunks:
             filename_without_csv = filename[:-4]
             f = os.path.join(self.output_rdf_dir, 'data', filename_without_csv + '.json')
+            lock.acquire()
             res_storer.store_graphs_in_file(f, self.context_path)
+            lock.release()
             res_storer.upload_all(self.triplestore_url, self.output_rdf_dir, batch_size=100)
             f_prov = os.path.join(self.output_rdf_dir, 'prov', filename_without_csv + '.json')
             prov_storer.store_graphs_in_file(f_prov, self.context_path)
         else:
-            res_storer.upload_and_store(self.output_rdf_dir, self.triplestore_url, self.base_iri, self.context_path, batch_size=100)
+            lock.acquire()
+            res_storer.store_all(base_dir=self.output_rdf_dir, base_iri=self.base_iri, context_path=self.context_path)
             prov_storer.store_all(self.output_rdf_dir, self.base_iri, self.context_path)
-    
+            lock.release()
+            res_storer.upload_all(triplestore_url=self.triplestore_url, base_dir=self.output_rdf_dir, batch_size=100)
+
 def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False) -> None:
     files_to_be_processed = meta_process.prepare_folders()
     pbar = tqdm(total=len(files_to_be_processed)) if meta_process.verbose else None
     max_workers = meta_process.workers_number
     if max_workers == 0:
         workers = list(range(1, os.cpu_count()))
+    elif max_workers == 1:
+        workers = [None]
     else:
         multiples_of_ten = {i for i in range(1, max_workers+1) if int(i) % 10 == 0}
         workers = [i for i in range(1, max_workers+len(multiples_of_ten)+1) if i not in multiples_of_ten]
-    if max_workers > 1:
-        with ProcessPoolExecutor(max_workers=max_workers) as executor:
-            futures = [executor.submit(meta_process.curate_and_create, file_to_be_processed, worker_number, resp_agents_only) for file_to_be_processed, worker_number in zip(files_to_be_processed, cycle(workers))]
-            for future in as_completed(futures):
-                res_storer, prov_storer, processed_file = future.result()
-                with suppress_stdout():
-                    meta_process.store_data_and_prov(res_storer, prov_storer, processed_file)
-                with open(meta_process.cache_path, 'a', encoding='utf-8') as aux_file:
-                    aux_file.write(processed_file + '\n')
-                pbar.update() if pbar else None
-    elif max_workers == 1:
-        for file_to_be_processed in files_to_be_processed:
-            res_storer, prov_storer, processed_file = meta_process.curate_and_create(file_to_be_processed, None, resp_agents_only)
-            with suppress_stdout():
-                meta_process.store_data_and_prov(res_storer, prov_storer, processed_file)
+    l = multiprocessing.Lock()
+    with ProcessPoolExecutor(max_workers=max_workers, initializer=init_lock, initargs=(l,)) as executor:
+        futures = [executor.submit(meta_process.curate_and_create, file_to_be_processed, worker_number, resp_agents_only) for file_to_be_processed, worker_number in zip(files_to_be_processed, cycle(workers))]
+        for future in as_completed(futures):
+            processed_file = future.result()
             with open(meta_process.cache_path, 'a', encoding='utf-8') as aux_file:
                 aux_file.write(processed_file + '\n')
             pbar.update() if pbar else None
     os.remove(meta_process.cache_path)
     pbar.close() if pbar else None
 
+def init_lock(l):
+    global lock
+    lock = l
 
 if __name__ == '__main__':
     arg_parser = ArgumentParser('meta_process.py', description='This script runs the OCMeta data processing workflow')
