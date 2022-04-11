@@ -41,12 +41,10 @@ class TestPrepareMultiprocess(unittest.TestCase):
             {'id': 'issn:2341-4022', 'title': '', 'author': '', 'pub_date': '', 'venue': 'Transit Migration in Europe [issn:0003-987X]', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}, 
             {'id': 'issn:0098-7484', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}]
         ids_found = set()
-        rows_with_duplicated_ids = list()
-        _get_duplicated_ids(data, ids_found, rows_with_duplicated_ids)
-        expected_output = [
-            {'id': 'issn:2341-4022', 'title': '', 'author': '', 'pub_date': '', 'venue': 'Transit Migration in Europe [issn:0003-987X]', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}, 
-            {'id': 'issn:0098-7484', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}]
-        self.assertEqual(rows_with_duplicated_ids, expected_output)
+        items_by_id = dict()
+        _get_duplicated_ids(data, ids_found, items_by_id)
+        expected_output = {'issn:2341-4022': {'others': set(), 'name': '', 'type': 'id'}, 'issn:0098-7484': {'others': set(), 'name': '', 'type': 'id'}}
+        self.assertEqual(items_by_id, expected_output)
     
     def test__get_relevant_venues(self):
         items_by_id = dict()

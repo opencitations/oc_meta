@@ -15,7 +15,7 @@
 # SOFTWARE.
 
 
-from meta.lib.file_manager import pathoo, get_data, write_csv
+from meta.lib.file_manager import pathoo, get_data, write_csv, sort_files
 from meta.lib.master_of_regex import ids_inside_square_brackets, name_and_ids, semicolon_in_people_field
 from meta.scripts.creator import Creator
 from typing import Dict, List
@@ -43,41 +43,45 @@ def prepare_relevant_items(csv_dir:str, output_dir:str, items_per_file:int, verb
     :type verbose: bool
     :returns: None -- This function returns None and saves the output CSV files in the `output_dir` folder
     '''
-    files = [os.path.join(csv_dir, file) for file in os.listdir(csv_dir) if file.endswith('.csv')]
+    files = [os.path.join(csv_dir, file) for file in sort_files(os.listdir(csv_dir)) if file.endswith('.csv')]
     pbar = tqdm(total=len(files)) if verbose else None
     pathoo(output_dir)
     ids_found = set()
-    rows_with_duplicated_ids = list()
+    duplicated_ids = dict()
     venues_by_id = dict()
     publishers_by_id = dict()
     resp_agents_by_id = dict()
     # Look for all venues, responsible agents, and publishers
     for file in files:
         data = get_data(file)
-        _get_duplicated_ids(data=data, ids_found=ids_found, rows_with_duplicated_ids=rows_with_duplicated_ids)
+        _get_duplicated_ids(data=data, ids_found=ids_found, items_by_id=duplicated_ids)
         _get_relevant_venues(data=data, items_by_id=venues_by_id)
         _get_publishers(data=data, items_by_id=publishers_by_id)
         _get_resp_agents(data=data, items_by_id=resp_agents_by_id)
         pbar.update() if verbose else None
     pbar.close() if verbose else None
     pbar = tqdm(total=len(files)) if verbose else None
+    ids_merged = _do_collective_merge(duplicated_ids, verbose)
     venues_merged = _do_collective_merge(venues_by_id, verbose)
     publishers_merged = _do_collective_merge(publishers_by_id, verbose)
     resp_agents_merged = _do_collective_merge(resp_agents_by_id, verbose)
     fieldnames = ['id', 'title', 'author', 'pub_date', 'venue', 'volume', 'issue', 'page', 'type', 'publisher', 'editor']
-    write_csv(path=os.path.join(output_dir, 'ids'), datalist=rows_with_duplicated_ids, fieldnames=fieldnames)
     __save_relevant_venues(venues_merged, items_per_file, output_dir, fieldnames)
-    __save_data(resp_agents_merged, items_per_file, output_dir, fieldnames, ('people', 'author'))
-    __save_data(publishers_merged, items_per_file, output_dir, fieldnames, ('publishers', 'publisher'))
+    __save_ids(ids_merged, items_per_file, output_dir, fieldnames)
+    __save_responsible_agents(resp_agents_merged, items_per_file, output_dir, fieldnames, ('people', 'author'))
+    __save_responsible_agents(publishers_merged, items_per_file, output_dir, fieldnames, ('publishers', 'publisher'))
 
-def _get_duplicated_ids(data:List[dict], ids_found:set, rows_with_duplicated_ids:list) -> None:
+def _get_duplicated_ids(data:List[dict], ids_found:set, items_by_id:Dict[str, dict]) -> None:
     for row in data:
         ids = set(row['id'].split())
         venue_ids = re.search(ids_inside_square_brackets, row['venue'])
         venue_ids = set(venue_ids.groups(1)) if venue_ids else set()
         to_be_checked = ids.union(venue_ids)
         if any(identifier in ids_found for identifier in to_be_checked):
-            rows_with_duplicated_ids.append(row)
+            ids_list = list(ids)
+            first_id = ids_list[0]
+            items_by_id.setdefault(first_id, {'others': set(), 'name': row['title'], 'type': 'id'})
+            items_by_id[first_id]['others'].update({other for other in ids_list if other != first_id})
         ids_found.update(ids)
 
 def _get_relevant_venues(data:List[dict], items_by_id:Dict[str, dict]) -> None:
@@ -232,7 +236,7 @@ def __save_relevant_venues(items_by_id:dict, items_per_file:int, output_dir:str,
             rows.append(row)
             rows, saved_chunks = __store_data(rows, output_length, chunks, saved_chunks, output_dir, fieldnames)
 
-def __save_data(items_by_id:dict, items_per_file:int, output_dir:str, fieldnames:list, datatype:tuple):
+def __save_responsible_agents(items_by_id:dict, items_per_file:int, output_dir:str, fieldnames:list, datatype:tuple):
     folder = datatype[0]
     field = datatype[1]
     output_dir = os.path.join(output_dir, folder)
@@ -243,6 +247,17 @@ def __save_data(items_by_id:dict, items_per_file:int, output_dir:str, fieldnames
     for item_id, data in items_by_id.items():
         name, ids = __get_name_and_ids(item_id, data)
         rows.append({field: f'{name} [{ids}]'})
+        rows, saved_chunks = __store_data(rows, output_length, chunks, saved_chunks, output_dir, fieldnames)
+
+def __save_ids(items_by_id:dict, items_per_file:int, output_dir:str, fieldnames:list):
+    output_dir = os.path.join(output_dir, 'ids')
+    rows = list()
+    chunks = int(items_per_file)
+    saved_chunks = 0
+    output_length = len(items_by_id)
+    for item_id, data in items_by_id.items():
+        _, ids = __get_name_and_ids(item_id, data)
+        rows.append({'id': ids})
         rows, saved_chunks = __store_data(rows, output_length, chunks, saved_chunks, output_dir, fieldnames)
 
 def __store_data(rows:list, output_length:int, chunks:int, saved_chunks:int, output_dir:str, fieldnames:str) -> list:

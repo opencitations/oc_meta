@@ -22,7 +22,7 @@ from argparse import ArgumentParser
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from datetime import datetime
 from meta.lib.csvmanager import CSVManager
-from meta.lib.file_manager import get_data, normalize_path, pathoo, suppress_stdout, init_cache
+from meta.lib.file_manager import get_data, normalize_path, pathoo, suppress_stdout, init_cache, sort_files
 from meta.plugins.multiprocess.resp_agents_creator import RespAgentsCreator
 from meta.plugins.multiprocess.resp_agents_curator import RespAgentsCurator
 from meta.scripts.creator import Creator
@@ -75,11 +75,7 @@ class MetaProcess:
     def prepare_folders(self) -> Set[str]:
         completed = init_cache(self.cache_path)
         files_in_input_csv_dir = {filename for filename in os.listdir(self.input_csv_dir) if filename.endswith('.csv')}
-        files_to_be_processed = files_in_input_csv_dir.difference(completed)
-        if all(filename.replace('.csv', '').isdigit() for filename in files_to_be_processed):
-            files_to_be_processed = sorted(files_to_be_processed, key=lambda filename: int(filename.replace('.csv', '')))
-        elif all(filename.split('_')[-1].replace('.csv', '').isdigit() for filename in files_to_be_processed):
-            files_to_be_processed = sorted(files_to_be_processed, key=lambda filename: int(filename.split('_')[-1].replace('.csv', '')))
+        files_to_be_processed = sort_files(files_in_input_csv_dir.difference(completed))
         for dir in [self.output_csv_dir, self.indexes_dir, self.output_rdf_dir]:
             pathoo(dir)
         if self.rdf_output_in_chunks:

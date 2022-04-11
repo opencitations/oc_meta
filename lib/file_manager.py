@@ -59,3 +59,10 @@ def suppress_stdout():
             yield
         finally:
             sys.stdout = old_stdout
+
+def sort_files(files_to_be_processed:list) -> None:
+    if all(filename.replace('.csv', '').isdigit() for filename in files_to_be_processed):
+        files_to_be_processed = sorted(files_to_be_processed, key=lambda filename: int(filename.replace('.csv', '')))
+    elif all(filename.split('_')[-1].replace('.csv', '').isdigit() for filename in files_to_be_processed):
+        files_to_be_processed = sorted(files_to_be_processed, key=lambda filename: int(filename.split('_')[-1].replace('.csv', '')))
+    return files_to_be_processed
