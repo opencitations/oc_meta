@@ -270,9 +270,9 @@ class CrossrefProcessing:
                     orc_g = orc_n[1] if len(orc_n) == 2 else None
                     if f_name.lower() in orc_f.lower() or orc_f.lower() in f_name.lower():
                         # If there is more than one person for whom the previous condition is true
-                        if len([person for person in agents_list if 'family' in person if person['family'].lower() in orc_f.lower() or orc_f.lower() in person['family'].lower()]) > 1 and g_name and orc_g:
+                        if len([person for person in agents_list if 'family' in person if person['family'] if person['family'].lower() in orc_f.lower() or orc_f.lower() in person['family'].lower()]) > 1 and g_name and orc_g:
                             # Try to match the given names' initials
-                            if len([person for person in agents_list if 'given' in person if person['given'][0].lower() == orc_g[0].lower()]) > 1:
+                            if len([person for person in agents_list if 'given' in person if person['given'] if person['given'][0].lower() == orc_g[0].lower()]) > 1:
                                 if orc_g.lower() == g_name.lower():
                                     orcid = ori
                             elif orc_g[0].lower() == g_name[0].lower():

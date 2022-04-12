@@ -40,10 +40,10 @@ class TestPrepareMultiprocess(unittest.TestCase):
             {'id': 'issn:0090-4295', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}, 
             {'id': 'issn:2341-4022', 'title': '', 'author': '', 'pub_date': '', 'venue': 'Transit Migration in Europe [issn:0003-987X]', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}, 
             {'id': 'issn:0098-7484', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}]
-        ids_found = set()
+        ids_found = {'issn:2341-4022'}
         items_by_id = dict()
         _get_duplicated_ids(data, ids_found, items_by_id)
-        expected_output = {'issn:2341-4022': {'others': set(), 'name': '', 'type': 'id'}, 'issn:0098-7484': {'others': set(), 'name': '', 'type': 'id'}}
+        expected_output = {'issn:2341-4022': {'others': set(), 'name': '', 'type': ''}}
         self.assertEqual(items_by_id, expected_output)
     
     def test__get_relevant_venues(self):

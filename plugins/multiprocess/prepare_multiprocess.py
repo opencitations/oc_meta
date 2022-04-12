@@ -72,16 +72,15 @@ def prepare_relevant_items(csv_dir:str, output_dir:str, items_per_file:int, verb
     __save_responsible_agents(publishers_merged, items_per_file, output_dir, fieldnames, ('publishers', 'publisher'))
 
 def _get_duplicated_ids(data:List[dict], ids_found:set, items_by_id:Dict[str, dict]) -> None:
+    cur_file_ids = set()
     for row in data:
         ids = set(row['id'].split())
-        venue_ids = re.search(ids_inside_square_brackets, row['venue'])
-        venue_ids = set(venue_ids.groups(1)) if venue_ids else set()
-        to_be_checked = ids.union(venue_ids)
-        if any(identifier in ids_found for identifier in to_be_checked):
+        if any(identifier in ids_found and not identifier in cur_file_ids for identifier in ids):
             ids_list = list(ids)
             first_id = ids_list[0]
-            items_by_id.setdefault(first_id, {'others': set(), 'name': row['title'], 'type': 'id'})
+            items_by_id.setdefault(first_id, {'others': set(), 'name': '', 'type': ''})
             items_by_id[first_id]['others'].update({other for other in ids_list if other != first_id})
+        cur_file_ids.update(ids)   
         ids_found.update(ids)
 
 def _get_relevant_venues(data:List[dict], items_by_id:Dict[str, dict]) -> None:
