@@ -1,5 +1,6 @@
 from csv import DictReader
-from meta.plugins.multiprocess.prepare_multiprocess import prepare_relevant_items, _do_collective_merge, _get_relevant_venues, _get_resp_agents, _get_publishers, _get_duplicated_ids
+from meta.lib.file_manager import get_data
+from meta.plugins.multiprocess.prepare_multiprocess import prepare_relevant_items, _do_collective_merge, _get_relevant_venues, _get_resp_agents, _get_publishers, _get_duplicated_ids, split_csvs_in_chunks
 from pprint import pprint
 import os
 import shutil
@@ -38,12 +39,14 @@ class TestPrepareMultiprocess(unittest.TestCase):
         data = [
             {'id': 'issn:0098-7484 issn:0003-987X', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}, 
             {'id': 'issn:0090-4295', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}, 
-            {'id': 'issn:2341-4022', 'title': '', 'author': '', 'pub_date': '', 'venue': 'Transit Migration in Europe [issn:0003-987X]', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}, 
+            {'id': 'issn:2341-4022 issn:2341-4023', 'title': '', 'author': '', 'pub_date': '', 'venue': 'Transit Migration in Europe [issn:0003-987X]', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}, 
             {'id': 'issn:0098-7484', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}]
         ids_found = {'issn:2341-4022'}
         items_by_id = dict()
         _get_duplicated_ids(data, ids_found, items_by_id)
-        expected_output = {'issn:2341-4022': {'others': set(), 'name': '', 'type': ''}}
+        expected_output = {
+            'issn:2341-4022': {'others': {'issn:2341-4023'}, 'name': '', 'type': ''}, 
+            'issn:2341-4023': {'others': {'issn:2341-4022'}, 'name': '', 'type': ''}}
         self.assertEqual(items_by_id, expected_output)
     
     def test__get_relevant_venues(self):
@@ -132,6 +135,16 @@ class TestPrepareMultiprocess(unittest.TestCase):
             vi_number += len(data['issue'])
         expected_output = {'id:a': {'name': 'Venue', 'type': 'journal', 'others': {'id:c', 'id:f', 'id:e', 'id:b', 'id:d'}, 'volume': {'1': {'a'}, '2': {'b', 'c'}, '3': {'c'}}, 'issue': {'vol. 17, n° 2', 'e', 'd'}}}
         self.assertEqual(output, expected_output)
+    
+    def test_split_csvs_in_chunk(self):
+        CHUNK_SIZE = 1
+        split_csvs_in_chunks(csv_dir=CSV_DIR, output_dir=TMP_DIR, chunk_size=CHUNK_SIZE, verbose=False)
+        output = list()
+        for file in os.listdir(TMP_DIR):
+            output.append(len(get_data(os.path.join(TMP_DIR, file))))
+        expected_output = [CHUNK_SIZE for _ in os.listdir(TMP_DIR)]
+        self.assertEqual(output, expected_output)
+        shutil.rmtree(TMP_DIR)
     
 
 if __name__ == '__main__':

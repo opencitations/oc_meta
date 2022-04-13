@@ -74,14 +74,13 @@ def prepare_relevant_items(csv_dir:str, output_dir:str, items_per_file:int, verb
 def _get_duplicated_ids(data:List[dict], ids_found:set, items_by_id:Dict[str, dict]) -> None:
     cur_file_ids = set()
     for row in data:
-        ids = set(row['id'].split())
-        if any(identifier in ids_found and not identifier in cur_file_ids for identifier in ids):
-            ids_list = list(ids)
-            first_id = ids_list[0]
-            items_by_id.setdefault(first_id, {'others': set(), 'name': '', 'type': ''})
-            items_by_id[first_id]['others'].update({other for other in ids_list if other != first_id})
-        cur_file_ids.update(ids)   
-        ids_found.update(ids)
+        ids_list = row['id'].split()
+        if any(id in ids_found and not id in cur_file_ids for id in ids_list):
+            for id in ids_list:
+                items_by_id.setdefault(id, {'others': set(), 'name': '', 'type': ''})
+                items_by_id[id]['others'].update({other for other in ids_list if other != id})
+        cur_file_ids.update(set(ids_list))   
+        ids_found.update(set(ids_list))
 
 def _get_relevant_venues(data:List[dict], items_by_id:Dict[str, dict]) -> None:
     for row in data:
@@ -275,3 +274,38 @@ def __get_name_and_ids(item_id, data):
     name = data['name']
     ids = ' '.join(ids_list)
     return name, ids
+
+def split_csvs_in_chunks(csv_dir:str, output_dir:str, chunk_size:int, verbose:bool=False) -> None:
+    '''
+    This function splits all CSVs in a folder in smaller CSVs having a specified number of rows.
+
+    :params csv_dir: the path to the folder containing the input CSV files
+    :type csv_dir: str
+    :params output_dir: the location of the folder to save to output files
+    :type output_dir: str
+    :params chunk_size: an integer to specify how many rows to insert in each output file
+    :type chunk_size: int
+    :params verbose: if True, show a loading bar, elapsed, and estimated time
+    :type verbose: bool
+    :returns: None -- This function returns None and saves the output CSV files in the `output_dir` folder
+    '''
+    files = [os.path.join(csv_dir, file) for file in sort_files(os.listdir(csv_dir)) if file.endswith('.csv')]
+    if verbose:
+        print('[INFO:prepare_multiprocess] Splitting CSVs in chunks')
+        pbar = tqdm(total=len(files))
+    pathoo(output_dir)
+    chunk = list()
+    counter = 0
+    for file in files:
+        data = get_data(file)
+        for row in data:
+            chunk.append(row)
+            counter += 1
+            cur_chunk_size = len(chunk)
+            if cur_chunk_size % chunk_size == 0:
+                write_csv(os.path.join(output_dir, f'{counter}.csv'), chunk)
+                chunk = list()                
+        pbar.update() if verbose else None
+    if len(chunk):
+        write_csv(os.path.join(output_dir, f'{counter}.csv'), chunk)
+    pbar.close() if verbose else None
