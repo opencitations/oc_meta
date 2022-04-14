@@ -46,6 +46,7 @@ class Curator:
         for row in self.data:
             self.log[self.rowcnt] = {
                 'id': {},
+                'title': {},
                 'author': {},
                 'venue': {},
                 'editor': {},
@@ -788,9 +789,12 @@ class Curator:
                 entity_dict[metaval]['ids'].append(identifier)
             if identifier not in id_dict:
                 self.__update_id_count(id_dict, identifier)
-        # Update title if no found_others['wannabe']
+        self.__update_title(entity_dict, metaval, name)
+    
+    def __update_title(self, entity_dict:dict, metaval:str, name:str) -> None:
         if not entity_dict[metaval]['title'] and name:
             entity_dict[metaval]['title'] = name
+            self.log[self.rowcnt]['title']['status'] = 'NEW VALUE PROPOSED'
     
     def id_worker(self, col_name, name, idslist:List[str], ra_ent=False, br_ent=False, vvi_ent=False, publ_entity=False):
         if not ra_ent:
@@ -922,10 +926,7 @@ class Curator:
                             entity_dict[metaval]['title'] = self.name_check(sparql_match[0][1], name)
                         else:
                             entity_dict[metaval]['title'] = sparql_match[0][1]
-
-                        if not entity_dict[metaval]['title'] and name:
-                            entity_dict[metaval]['title'] = name
-
+                        self.__update_title(entity_dict, metaval, name)
                         for identifier in existing_ids:
                             if identifier[1] not in id_dict:
                                 id_dict[identifier[1]] = identifier[0]
@@ -939,8 +940,7 @@ class Curator:
                     self.__update_id_count(id_dict, identifier)
                 if identifier not in entity_dict[metaval]['ids']:
                     entity_dict[metaval]['ids'].append(identifier)
-            if not entity_dict[metaval]['title'] and name:
-                entity_dict[metaval]['title'] = name
+            self.__update_title(entity_dict, metaval, name)
         # 1 EntityA is a new one
         if not idslist and not metaval:
             metaval = self.new_entity(entity_dict, name)
