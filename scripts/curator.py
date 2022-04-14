@@ -58,7 +58,7 @@ class Curator:
             }
             self.clean_id(row)
             self.rowcnt += 1
-        self.check_equality()
+        self.merge_duplicate_entities()
         # reset row counter
         self.rowcnt = 0
         for row in self.data:
@@ -1024,9 +1024,9 @@ class Curator:
                 new_log[x]['id']['meta'] = met
         return new_log
 
-    def check_equality(self) -> None:
+    def merge_duplicate_entities(self) -> None:
         '''
-        The 'check equality()' function merge duplicate entities. 
+        The 'merge_duplicate_entities()' function merge duplicate entities. 
         Moreover, it modifies the CSV cells, giving precedence to the first found information 
         or data in the triplestore in the case of already existing entities. 
 
