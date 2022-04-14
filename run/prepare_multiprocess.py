@@ -37,28 +37,26 @@ if __name__ == '__main__':
     verbose = settings['verbose']
     meta_process = MetaProcess(config)
     TMP_DIR = os.path.join(meta_process.base_output_dir, 'tmp')
-    split_csvs_in_chunks(csv_dir=csv_dir, output_dir=TMP_DIR, chunk_size=1000, verbose=verbose)
-    os.rename(csv_dir, csv_dir + '_old')
-    os.mkdir(csv_dir)
-    for file in os.listdir(TMP_DIR):
-        shutil.move(os.path.join(TMP_DIR, file), csv_dir)
-    prepare_relevant_items(csv_dir=csv_dir, output_dir=TMP_DIR, items_per_file=items_per_file, verbose=verbose)
-    venues_dir = os.path.join(TMP_DIR, 'venues')
-    if os.path.exists(venues_dir):
+    if not all(os.path.exists(os.path.join(TMP_DIR, directory)) for directory in ['venues', 'ids', 'publishers', 'people']):
+        split_csvs_in_chunks(csv_dir=csv_dir, output_dir=TMP_DIR, chunk_size=1000, verbose=verbose)
+        os.rename(csv_dir, csv_dir + '_old')
+        os.mkdir(csv_dir)
+        for file in os.listdir(TMP_DIR):
+            shutil.move(os.path.join(TMP_DIR, file), csv_dir)
+        prepare_relevant_items(csv_dir=csv_dir, output_dir=TMP_DIR, items_per_file=items_per_file, verbose=verbose)
+    else:
+        venues_dir = os.path.join(TMP_DIR, 'venues')
         meta_process.workers_number = 1
         meta_process.input_csv_dir = venues_dir
         run_meta_process(meta_process=meta_process)
-    meta_process.workers_number = workers_numbers
-    ids_dir = os.path.join(TMP_DIR, 'ids')
-    if os.path.exists(ids_dir):
+        meta_process.workers_number = workers_numbers
+        ids_dir = os.path.join(TMP_DIR, 'ids')
         meta_process.input_csv_dir = ids_dir
         run_meta_process(meta_process=meta_process)
-    publishers_dir = os.path.join(TMP_DIR, 'publishers')
-    if os.path.exists(publishers_dir):
+        publishers_dir = os.path.join(TMP_DIR, 'publishers')
         meta_process.input_csv_dir = publishers_dir
         run_meta_process(meta_process=meta_process, resp_agents_only=True)
-    people_dir = os.path.join(TMP_DIR, 'people')
-    if os.path.exists(people_dir):
+        people_dir = os.path.join(TMP_DIR, 'people')
         meta_process.input_csv_dir = people_dir
         run_meta_process(meta_process=meta_process, resp_agents_only=True)
     shutil.rmtree(TMP_DIR)
