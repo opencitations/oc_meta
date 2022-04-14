@@ -64,6 +64,12 @@ class test_Cleaner(unittest.TestCase):
             outputs.append(Cleaner(name).remove_unwanted_characters())
         expected_output = ['Edward', 'Bernacki', 'Tom&OV0165', 'Gavin E.', 'Andreacute', 'Albers-Miller', "O'Connor", 'O’Connell', 'Gonźalez-Santiago', 'González-Benito', 'André']
         self.assertEqual(outputs, expected_output)
+    
+    def test_clean_ra_list(self):
+        names = ['Not Available, Not Available', 'Peroni, Not Available', 'Not Available, Silvio', 'Not Available', 'Peroni, Silvio']
+        output = Cleaner.clean_ra_list(names)
+        expected_output = ['Peroni, ', 'Peroni, Silvio']
+        self.assertEqual(output, expected_output)
 
     def test_normalize_spaces(self):
         broken_strings = ['100\u0009101', '100\u00A0101', '100\u200B101', '100\u202F101']
@@ -155,7 +161,8 @@ class test_Cleaner(unittest.TestCase):
             {'pub_date': '', 'volume': '5', 'issue': '6', 'type': ''},
             {'pub_date': '', 'volume': 'Issue 2. pp. 94-185', 'issue': '6', 'type': ''},
             {'pub_date': '', 'volume': '', 'issue': '6', 'type': ''},
-            {'pub_date': '', 'volume': '5', 'issue': '', 'type': ''}
+            {'pub_date': '', 'volume': '5', 'issue': '', 'type': ''},
+            {'pub_date': '', 'volume': 'Not Available', 'issue': 'not available', 'type': ''}
         ]
         for row in invalid_vi_rows:
             Cleaner.clean_volume_and_issue(row)
@@ -217,7 +224,8 @@ class test_Cleaner(unittest.TestCase):
             {'pub_date': '', 'volume': '5', 'issue': '6', 'type': ''},
             {'pub_date': '', 'volume': 'Issue 2. pp. 94-185', 'issue': '6', 'type': ''},
             {'pub_date': '', 'volume': '', 'issue': '6', 'type': ''},
-            {'pub_date': '', 'volume': '5', 'issue': '', 'type': ''}
+            {'pub_date': '', 'volume': '5', 'issue': '', 'type': ''},
+            {'pub_date': '', 'volume': '', 'issue': '', 'type': ''}
         ]
         self.assertEqual(invalid_vi_rows, expected_output)
     

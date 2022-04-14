@@ -242,6 +242,32 @@ class Cleaner:
         clean_string = Cleaner(clean_string).normalize_hyphens()
         return clean_string
     
+    @staticmethod
+    def clean_ra_list(ra_list:list) -> list:
+        '''
+        This method removes responsible agents reported as 'Not Available'.
+
+        :returns: list -- The cleaned responsible agents' list
+        '''
+        new_ra_list = list()
+        for ra in ra_list:
+            if ',' in ra:
+                split_name = re.split(comma_and_spaces, ra)
+                first_name = split_name[1] if split_name[1].lower() != 'not available' else ''
+                given_name = split_name[0] if split_name[0].lower() != 'not available' else ''
+                if given_name:
+                    if first_name:
+                        new_ra_list.append(ra)
+                    else:
+                        new_ra_list.append(f'{given_name}, ')
+                else:
+                    continue
+            else:
+                if ra.lower() != 'not available':
+                    new_ra_list.append(ra)
+        return new_ra_list
+        
+    
     def normalize_id(self, valid_dois_cache:CSVManager=None) -> Union[str, None]:
         '''
         This function verifies and normalizes identifiers whose schema corresponds to a DOI, an ISSN, an ISBN or an ORCID.

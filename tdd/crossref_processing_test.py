@@ -129,6 +129,25 @@ class TestCrossrefProcessing(unittest.TestCase):
         authors_strings_list = crossref_processor.get_agents_strings_list('10.9799/ksfan.2012.25.1.105', authors_list)
         expected_authors_list = ['Choi, Mi-Kyeong [orcid:0000-0002-6227-4053]', 'Choi, Mi-Hong']
         self.assertEqual(authors_strings_list, expected_authors_list)
+
+    def test_get_agents_strings_list_homonyms(self):
+        # Two authors have the same family name and the same given name
+        authors_list = [
+            {
+                'given': 'Mi-Kyeong',
+                'family': 'Choi',
+                'affiliation': []
+            },
+            {
+                'given': 'Mi-Kyeong',
+                'family': 'Choi',
+                'affiliation': []
+            }
+        ]
+        crossref_processor = CrossrefProcessing(IOD, WANTED_DOIS)
+        authors_strings_list = crossref_processor.get_agents_strings_list('10.9799/ksfan.2012.25.1.105', authors_list)
+        expected_authors_list = ['Choi, Mi-Kyeong', 'Choi, Mi-Kyeong']
+        self.assertEqual(authors_strings_list, expected_authors_list)
     
     def test_id_worker(self):
         field_issn = 'ISSN 1050-124X'

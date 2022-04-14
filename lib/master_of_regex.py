@@ -102,7 +102,7 @@ invalid_vi_patterns = {
     f'issues?\s{vi_pattern}\svol\.?(?:ume)?\s{vi_pattern}(?:.*?{year_pattern}.*?)?': 'iss_vol_year',
     f"{vi_pattern}\s?\({vi_pattern}'{year_pattern}\)": 'vol_iss_year',
     f'cilt[{separators}\s]\s?{vi_pattern}[{separators}\s]sayı[{separators}\s]\s?{vi_pattern}(?:[{separators}\s]\s?temmuz\s{year_pattern})?': 'vol_iss_year',
-    '&na;|n\/a': 'del',
+    '&na;|n\/a|not\savailable': 'del',
     '[\:\-\.`ё/]': 'del',
     f'\${{[{alphabets}]+(\.[{alphabets}]+)?}}': 'del',
     f"[&\/_,:+;\|`'#]\s*{vi_pattern}": 'all',

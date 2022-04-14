@@ -86,6 +86,7 @@ class RespAgentsCurator(Curator):
             elif col_name == 'publisher': 
                 ra_list = [row[col_name]]
             ra_metaids = list()
+            ra_list = Cleaner.clean_ra_list(ra_list)
             for ra in ra_list:
                 ra_id = re.search(name_and_ids, ra)
                 name = Cleaner(ra_id.group(1)).clean_name()
