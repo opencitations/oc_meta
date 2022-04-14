@@ -540,7 +540,7 @@ class ResourceFinder:
             (GROUP_CONCAT(DISTINCT ?part3; separator=' ;and; ') AS ?part3_)
             (GROUP_CONCAT(DISTINCT ?title3; separator=' ;and; ') AS ?title3_)
             (GROUP_CONCAT(DISTINCT ?num3; separator=' ;and; ') AS ?num3_)
-            (GROUP_CONCAT(DISTINCT ?type3; separator=' ;and; ') AS ?type3_) 
+            (GROUP_CONCAT(DISTINCT ?type3; separator=' ;and; ') AS ?type3_)
             WHERE {{
                 ?res a ?type.
                 OPTIONAL {{?res <{GraphEntity.iri_has_publication_date}> ?date.}}

@@ -64,6 +64,8 @@ class test_ProcessTest(unittest.TestCase):
         run_meta_process(meta_process)
         meta_process.input_csv_dir = os.path.join(BASE_DIR, 'input_2')
         run_meta_process(meta_process)
+        meta_process.input_csv_dir = os.path.join(BASE_DIR, 'input')
+        run_meta_process(meta_process)
         # output = list()
         # for dirpath, _, filenames in os.walk(os.path.join(BASE_DIR, 'output', 'csv')):
         #     for file in filenames:

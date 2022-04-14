@@ -39,7 +39,6 @@ class Curator:
         self.wnb_cnt = 0 # wannabe counter
         self.rowcnt = 0
         self.log = dict()
-        self.new_sequence_list = list()
         self.valid_dois_cache = valid_dois_cache
 
     def curator(self, filename:str=None, path_csv:str=None, path_index:str=None):
@@ -401,9 +400,8 @@ class Curator:
                 if new_elem_seq:
                     role = self.prefix + str(self._add_number(self.ar_info_path))
                     new_sequence.append(tuple((role, metaval)))
-                    self.new_sequence_list.append(tuple((self.rowcnt, role,  metaval)))
             if change_order:
-                self.log[self.rowcnt][col_name]['Info'] = 'Proposed new RA sequence: REFUSED'
+                self.log[self.rowcnt][col_name]['Info'] = 'New RA sequence proposed: refused'
             sequence.extend(new_sequence)
             self.ardict[br_metaval][col_name] = sequence
 
@@ -448,7 +446,7 @@ class Curator:
         elif col_name == 'author' or col_name == 'editor' or col_name == 'publisher':
             entity_dict = self.conflict_ra
         metaval = self.new_entity(entity_dict, name)
-        self.log[self.rowcnt][col_name]['Conflict Entity'] = metaval
+        self.log[self.rowcnt][col_name]['Conflict entity'] = metaval
         for identifier in idslist:
             entity_dict[metaval]['ids'].append(identifier)
             if identifier not in id_dict:
@@ -794,7 +792,7 @@ class Curator:
     def __update_title(self, entity_dict:dict, metaval:str, name:str) -> None:
         if not entity_dict[metaval]['title'] and name:
             entity_dict[metaval]['title'] = name
-            self.log[self.rowcnt]['title']['status'] = 'NEW VALUE PROPOSED'
+            self.log[self.rowcnt]['title']['status'] = 'New value proposed'
     
     def id_worker(self, col_name, name, idslist:List[str], ra_ent=False, br_ent=False, vvi_ent=False, publ_entity=False):
         if not ra_ent:
@@ -999,8 +997,8 @@ class Curator:
         for x in self.log:
             if any(self.log[x][y].values() for y in self.log[x]):
                 for y in self.log[x]:
-                    if 'Conflict Entity' in self.log[x][y]:
-                        v = self.log[x][y]['Conflict Entity']
+                    if 'Conflict entity' in self.log[x][y]:
+                        v = self.log[x][y]['Conflict entity']
                         if 'wannabe' in v:
                             if y == 'id' or y == 'venue':
                                 for brm in self.brmeta:
@@ -1012,7 +1010,7 @@ class Curator:
                                         m = 'ra/' + str(ram)
                         else:
                             m = v
-                        self.log[x][y]['Conflict Entity'] = m
+                        self.log[x][y]['Conflict entity'] = m
                 new_log[x] = self.log[x]
 
                 if 'wannabe' in self.data[x]['id']:
@@ -1046,7 +1044,7 @@ class Curator:
                         for field in ['pub_date', 'page', 'type', 'venue', 'volume', 'issue']:
                             if row[field] and row[field] != other_row[field]:
                                 if other_row[field]:
-                                    self.log[other_rowcnt][field]['status'] = 'NEW VALUE PROPOSED'
+                                    self.log[other_rowcnt][field]['status'] = 'New value proposed'
                                 other_row[field] = row[field]
                     other_rowcnt += 1
             self.rowcnt += 1
@@ -1061,18 +1059,40 @@ class Curator:
         :type metaval: str
         :returns: None -- This method modifies the input CSV row without returning it.
         '''
-        self.log[self.rowcnt]['id']['status'] = 'ENTITY ALREADY EXISTS'
+        self.log[self.rowcnt]['id']['status'] = 'Entity already exists'
         known_data = self.finder.retrieve_br_info_from_meta(metaval)
+        known_data['author'] = self.__get_resp_agents(metaval, 'author')
+        known_data['editor'] = self.__get_resp_agents(metaval, 'editor')
+        known_data['publisher'] = self.finder.retrieve_publisher_from_br_metaid(metaval)
         for datum in ['venue', 'volume', 'issue', 'pub_date', 'type']:
             if known_data[datum]:
                 row[datum] = known_data[datum]
             elif row[datum]:
-                self.log[self.rowcnt][datum]['status'] = 'NEW VALUE PROPOSED'
+                self.log[self.rowcnt][datum]['status'] = 'New value proposed'
+        for role in ['author', 'editor', 'publisher']:
+            if known_data[role] and not row[role]:
+                row[role] = known_data[role]
         if known_data['page']:
             row['page'] = known_data['page'][1]
             self.remeta[metaval] = known_data['page']
         elif row['page']:
-            self.log[self.rowcnt]['page']['status'] = 'NEW VALUE PROPOSED'
+            self.log[self.rowcnt]['page']['status'] = 'New value proposed'
+
+    def __get_resp_agents(self, metaid:str, column:str) -> str:
+        resp_agents = self.finder.retrieve_ra_sequence_from_br_meta(metaid, column)
+        output = ''
+        if resp_agents:
+            full_resp_agents = list()
+            for item in resp_agents:
+                for _, resp_agent in item.items():
+                    author_name = resp_agent[0]
+                    ids = [f'meta:ra/{resp_agent[2]}']
+                    ids.extend([id[1] for id in resp_agent[1]])
+                    author_ids = '[' + ' '.join(ids) + ']'
+                    full_resp_agent =  author_name + ' ' + author_ids
+                    full_resp_agents.append(full_resp_agent)
+            output = '; '.join(full_resp_agents)
+        return output
     
     def is_a_valid_row(self, row:Dict[str, str]) -> bool:
         '''

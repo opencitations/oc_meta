@@ -108,9 +108,10 @@ def prepare_to_test(data, name):
 def prepareCurator(data:list, server:str=SERVER, resp_agents_only:bool=False) -> Curator:
     reset()
     if resp_agents_only:
-        return RespAgentsCurator(data, server, prov_config=PROV_CONFIG, info_dir=get_path(f'{CURATOR_COUNTER_DIR}/'))
+        curator = RespAgentsCurator(data, server, prov_config=PROV_CONFIG, info_dir=get_path(f'{CURATOR_COUNTER_DIR}/'))
     else:
-        return Curator(data, server, prov_config=PROV_CONFIG, info_dir=get_path(f'{CURATOR_COUNTER_DIR}/'))
+        curator = Curator(data, server, prov_config=PROV_CONFIG, info_dir=get_path(f'{CURATOR_COUNTER_DIR}/'))
+    return curator
 
 
 class test_Curator(unittest.TestCase):
@@ -148,8 +149,8 @@ class test_Curator(unittest.TestCase):
         curator.equalizer(row, '4125')
         output = (curator.log, row)
         expected_output = (
-            {0: {'id': {'status': 'ENTITY ALREADY EXISTS'}}}, 
-            {'id': '', 'title': '', 'author': '', 'pub_date': '1972-12-01', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '106', 'issue': '6', 'page': '837-838', 'type': 'journal article', 'publisher': '', 'editor': ''}
+            {0: {'id': {'status': 'Entity already exists'}}}, 
+            {'id': '', 'title': '', 'author': 'Katz, R. [meta:ra/6376]', 'pub_date': '1972-12-01', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '106', 'issue': '6', 'page': '837-838', 'type': 'journal article', 'publisher': 'American Medical Association (ama) [meta:ra/3309 crossref:10]', 'editor': ''}
         )
         self.assertEqual(output, expected_output)
     
@@ -169,7 +170,7 @@ class test_Curator(unittest.TestCase):
         row = {'id': 'doi:10.1001/archderm.104.1.106', 'title': 'Multiple Blasto', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}
         curator.log[0] = {'id': {}}
         curator.clean_id(row)
-        expected_output = {'id': '3757', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}
+        expected_output = {'id': '3757', 'title': 'Multiple Keloids', 'author': 'Curth, W. [meta:ra/6033]', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': 'American Medical Association (ama) [meta:ra/3309 crossref:10]', 'editor': ''}
         self.assertEqual(row, expected_output)
     
     def test_merge_duplicate_entities(self):
@@ -199,13 +200,13 @@ class test_Curator(unittest.TestCase):
         expected_output = (
             [
                 {'id': '3757', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}, 
-                {'id': '3757', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''},
-                {'id': '3757', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}
+                {'id': '3757', 'title': 'Multiple Keloids', 'author': 'Curth, W. [meta:ra/6033]', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': 'American Medical Association (ama) [meta:ra/3309 crossref:10]', 'editor': ''},
+                {'id': '3757', 'title': 'Multiple Keloids', 'author': 'Curth, W. [meta:ra/6033]', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': 'American Medical Association (ama) [meta:ra/3309 crossref:10]', 'editor': ''}
             ],
             {
                 0: {'id': {}, 'author': {}, 'venue': {}, 'editor': {}, 'publisher': {}, 'page': {}, 'volume': {}, 'issue': {}, 'pub_date': {}, 'type': {}}, 
-                1: {'id': {'status': 'ENTITY ALREADY EXISTS'}, 'author': {}, 'venue': {}, 'editor': {}, 'publisher': {}, 'page': {}, 'volume': {}, 'issue': {}, 'pub_date': {}, 'type': {}}, 
-                2: {'id': {'status': 'ENTITY ALREADY EXISTS'}, 'author': {}, 'venue': {}, 'editor': {}, 'publisher': {}, 'page': {}, 'volume': {}, 'issue': {}, 'pub_date': {}, 'type': {}}
+                1: {'id': {'status': 'Entity already exists'}, 'author': {}, 'venue': {}, 'editor': {}, 'publisher': {}, 'page': {}, 'volume': {}, 'issue': {}, 'pub_date': {}, 'type': {}}, 
+                2: {'id': {'status': 'Entity already exists'}, 'author': {}, 'venue': {}, 'editor': {}, 'publisher': {}, 'page': {}, 'volume': {}, 'issue': {}, 'pub_date': {}, 'type': {}}
             }
         )
         self.assertEqual((curator.data, curator.log), expected_output)
@@ -291,6 +292,7 @@ class test_Curator(unittest.TestCase):
         # The surname of one author is included in the surname of another.
         row = {'id': 'wannabe_0', 'title': 'Giant Oyster Mushroom Pleurotus giganteus (Agaricomycetes) Enhances Adipocyte Differentiation and Glucose Uptake via Activation of PPARγ and Glucose Transporters 1 and 4 in 3T3-L1 Cells', 'author': 'Paravamsivam, Puvaneswari; Heng, Chua Kek; Malek, Sri Nurestri Abdul [orcid:0000-0001-6278-8559]; Sabaratnam, Vikineswary; M, Ravishankar Ram; Kuppusamy, Umah Rani', 'pub_date': '2016', 'venue': 'International Journal of Medicinal Mushrooms [issn:1521-9437]', 'volume': '18', 'issue': '9', 'page': '821-831', 'type': 'journal article', 'publisher': 'Begell House [crossref:613]', 'editor': ''}
         curator = prepareCurator(list())
+
         curator.brdict = {'wannabe_0': {'ids': ['doi:10.1615/intjmedmushrooms.v18.i9.60'], 'title': 'Giant Oyster Mushroom Pleurotus giganteus (Agaricomycetes) Enhances Adipocyte Differentiation and Glucose Uptake via Activation of PPARγ and Glucose Transporters 1 and 4 in 3T3-L1 Cells', 'others': []}}
         curator.clean_ra(row, 'author')
         output = (curator.ardict, curator.radict, curator.idra)
@@ -654,7 +656,7 @@ class test_id_worker(unittest.TestCase):
         expected_output = (
             'wannabe_0',
             {'wannabe_0': {'ids': ['doi:10.1001/2013.jamasurg.270'], 'others': [], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}},
-            {0: {'id': {'Conflict Entity': 'wannabe_0'}}}, 
+            {0: {'id': {'Conflict entity': 'wannabe_0'}}}, 
             {'doi:10.1001/2013.jamasurg.270': '2585'}
         )
         self.assertEqual(output, expected_output)
@@ -674,7 +676,7 @@ class test_id_worker(unittest.TestCase):
             {}, 
             {'wannabe_0': {'ids': ['doi:10.1001/2013.jamasurg.270'], 'others': [], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}}, 
             {}, 
-            {0: {'id': {'Conflict Entity': 'wannabe_0'}}}
+            {0: {'id': {'Conflict entity': 'wannabe_0'}}}
         )
         self.assertEqual(output, expected_output)
 
@@ -693,7 +695,7 @@ class test_id_worker(unittest.TestCase):
             {'orcid:0000-0001-6994-8412': '4475'}, 
             {}, 
             {'wannabe_0': {'ids': ['orcid:0000-0001-6994-8412'], 'others': [], 'title': 'Alarcon, Louis H.'}}, 
-            {0: {'author': {'Conflict Entity': 'wannabe_0'}}}
+            {0: {'author': {'Conflict entity': 'wannabe_0'}}}
         )
         self.assertEqual(output, expected_output)
     
@@ -718,7 +720,7 @@ class test_id_worker(unittest.TestCase):
             {}, 
             {'wannabe_0': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'], 'others': [], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}}, 
             {}, 
-            {0: {'id': {'Conflict Entity': 'wannabe_0'}}}
+            {0: {'id': {'Conflict entity': 'wannabe_0'}}}
         )
         self.assertEqual(output, expected_output)
 
@@ -771,7 +773,7 @@ class test_id_worker(unittest.TestCase):
             {}, 
             {'wannabe_0': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en', 'doi:10.1001/2013.jamasurg.270'], 'others': [], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: Japan'}}, 
             {}, 
-            {0: {'id': {'Conflict Entity': 'wannabe_0'}}}
+            {0: {'id': {'Conflict entity': 'wannabe_0'}}}
         )
         self.assertEqual(output, expected_output)
 
@@ -799,7 +801,7 @@ class test_id_worker(unittest.TestCase):
             {}, 
             {'wannabe_0': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en', 'doi:10.1001/2013.jamasurg.270'], 'others': [], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: Japan'}}, 
             {}, 
-            {0: {'id': {'Conflict Entity': 'wannabe_0'}}}
+            {0: {'id': {'Conflict entity': 'wannabe_0'}}}
         )
         self.assertEqual(output, expected_output)
 
