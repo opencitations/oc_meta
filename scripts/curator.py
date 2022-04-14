@@ -1063,22 +1063,16 @@ class Curator:
         '''
         self.log[self.rowcnt]['id']['status'] = 'ENTITY ALREADY EXISTS'
         known_data = self.finder.retrieve_br_info_from_meta(metaval)
-        row['venue'] = known_data['venue']
-        row['volume'] = known_data['volume']
-        row['issue'] = known_data['issue']
-        if known_data['pub_date']:
-            row['pub_date'] = known_data['pub_date']
-        elif row['pub_date']:
-            self.log[self.rowcnt]['pub_date']['status'] = 'NEW VALUE PROPOSED'
+        for datum in ['venue', 'volume', 'issue', 'pub_date', 'type']:
+            if known_data[datum]:
+                row[datum] = known_data[datum]
+            elif row[datum]:
+                self.log[self.rowcnt][datum]['status'] = 'NEW VALUE PROPOSED'
         if known_data['page']:
             row['page'] = known_data['page'][1]
             self.remeta[metaval] = known_data['page']
         elif row['page']:
             self.log[self.rowcnt]['page']['status'] = 'NEW VALUE PROPOSED'
-        if known_data['type']:
-            row['type'] = known_data['type']
-        elif row['type']:
-            self.log[self.rowcnt]['type']['status'] = 'NEW VALUE PROPOSED'
     
     def is_a_valid_row(self, row:Dict[str, str]) -> bool:
         '''

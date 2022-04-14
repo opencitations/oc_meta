@@ -40,14 +40,14 @@ class ResourceFinder:
                 (GROUP_CONCAT(?schema; separator=' ;and; ') AS ?schema_)
                 (GROUP_CONCAT(DISTINCT ?value; separator=' ;and; ') AS ?value_)
             WHERE {{
+                ?knownId  <{GraphEntity.iri_has_literal_value}> '{value}';
+                    <{GraphEntity.iri_uses_identifier_scheme}> <{schema}>.
                 ?res a <{GraphEntity.iri_expression}>;
                     <{GraphEntity.iri_has_identifier}> ?knownId;
                     <{GraphEntity.iri_has_identifier}> ?otherId.
                 OPTIONAL {{?res <{GraphEntity.iri_title}> ?title.}}
                 ?otherId <{GraphEntity.iri_uses_identifier_scheme}> ?schema;
                     <{GraphEntity.iri_has_literal_value}> ?value.
-                ?knownId <{GraphEntity.iri_uses_identifier_scheme}> <{schema}>;
-                    <{GraphEntity.iri_has_literal_value}> '{value}'.
             }} GROUP BY ?res
         '''
         results = self.__query(query)
@@ -130,9 +130,9 @@ class ResourceFinder:
         query = f'''
             SELECT DISTINCT ?res 
             WHERE {{
-                ?res a <{GraphEntity.iri_identifier}>;
+                ?res <{GraphEntity.iri_has_literal_value}> '{value}';
                     <{GraphEntity.iri_uses_identifier_scheme}> <{schema}>;
-                    <{GraphEntity.iri_has_literal_value}> '{value}'.
+                    a <{GraphEntity.iri_identifier}>.
             }} 
             GROUP BY ?res
         '''
@@ -269,11 +269,11 @@ class ResourceFinder:
                 (GROUP_CONCAT(?schema; separator=' ;and; ') AS ?schema_)
                 (GROUP_CONCAT(DISTINCT ?value; separator=' ;and; ') AS ?value_)
             WHERE {{
+                ?knownId <{GraphEntity.iri_has_literal_value}> '{value}';
+                    <{GraphEntity.iri_uses_identifier_scheme}> <{schema}>.
                 ?res a <{GraphEntity.iri_agent}>;
                     <{GraphEntity.iri_has_identifier}> ?knownId;
                     <{GraphEntity.iri_has_identifier}> ?otherId.
-                ?knownId <{GraphEntity.iri_uses_identifier_scheme}> <{schema}>;
-                    <{GraphEntity.iri_has_literal_value}> '{value}'.
                 OPTIONAL {{?res <{GraphEntity.iri_given_name}> ?givenName.}}
                 OPTIONAL {{?res <{GraphEntity.iri_family_name}> ?familyName.}}
                 OPTIONAL {{?res <{GraphEntity.iri_name}> ?name.}}

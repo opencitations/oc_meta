@@ -25,7 +25,7 @@ provenance_endpoints: []
 # Directory where raw CSV files are stored
 input_csv_dir: meta/tdd/prepare_multiprocess/input
 # The path to the base directory to save all output files
-base_output_dir: meta/tdd/meta_process/output
+base_output_dir: meta/tdd/meta_process/output_2
 # A URI string representing the provenance agent which is considered responsible for the RDF graph manipulation
 resp_agent: https://orcid.org/0000-0002-8420-0696
 
