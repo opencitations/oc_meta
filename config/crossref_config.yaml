@@ -17,7 +17,7 @@
 # Mandatory settings
 
 # Crossref JSON files directory (input files)
-crossref_json_dir: /srv/meta/crossref_unzipped
+crossref_json_dir: /srv/meta/crossref_dump
 # Directory where output CSVs will be stored
 output: /srv/meta/meta_input
 # Optional settings
