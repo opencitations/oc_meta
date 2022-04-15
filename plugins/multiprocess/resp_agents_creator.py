@@ -15,6 +15,7 @@
 # SOFTWARE.
 
 
+from meta.lib.finder import ResourceFinder
 from meta.lib.master_of_regex import comma_and_spaces, name_and_ids, semicolon_in_people_field
 from meta.scripts.creator import Creator
 from oc_ocdm.graph import GraphSet
@@ -23,9 +24,10 @@ import re
 
 
 class RespAgentsCreator(Creator):
-    def __init__(self, data, base_iri, info_dir, supplier_prefix, resp_agent, ra_index):
+    def __init__(self, data:list, endpoint:str, base_iri:str, info_dir:str, supplier_prefix:str, resp_agent:str, ra_index:dict):
         self.url = base_iri
         self.setgraph = GraphSet(self.url, info_dir, supplier_prefix, wanted_label=False)
+        self.finder = ResourceFinder(ts_url = endpoint, base_iri = base_iri)
         self.resp_agent = resp_agent
 
         self.ra_id_schemas = {'crossref', 'orcid', 'viaf', 'wikidata'}
@@ -59,7 +61,8 @@ class RespAgentsCreator(Creator):
                     if 'meta:' in identifier:
                         identifier = str(identifier).replace('meta:', '')
                         url = URIRef(self.url + identifier)
-                        pub_aut = self.setgraph.add_ra(self.resp_agent, source=self.src, res=url)
+                        preexisting_graph = self.finder.get_preexisting_graph(url)
+                        pub_aut = self.setgraph.add_ra(self.resp_agent, source=self.src, res=url, preexisting_graph=preexisting_graph)
                         author_name = aut_and_ids.group(1)
                         if ',' in author_name:
                             author_name_splitted = re.split(comma_and_spaces, author_name)
@@ -83,7 +86,8 @@ class RespAgentsCreator(Creator):
                 identifier = str(identifier).replace('meta:', '')
                 url = URIRef(self.url + identifier)
                 publ_name = publ_and_ids.group(1)
-                publ = self.setgraph.add_ra(self.resp_agent, source=self.src, res=url)
+                preexisting_graph = self.finder.get_preexisting_graph(url)
+                publ = self.setgraph.add_ra(self.resp_agent, source=self.src, res=url, preexisting_graph=preexisting_graph)
                 publ.has_name(publ_name)
         for identifier in publ_id_list:
             self.id_creator(publ, identifier, ra=True)
@@ -98,7 +102,8 @@ class RespAgentsCreator(Creator):
                 if 'meta:' in identifier:
                     identifier = str(identifier).replace('meta:', '')
                     url = URIRef(self.url + identifier)
-                    pub_ed = self.setgraph.add_ra(self.resp_agent, source=self.src, res=url)
+                    preexisting_graph = self.finder.get_preexisting_graph(url)
+                    pub_ed = self.setgraph.add_ra(self.resp_agent, source=self.src, res=url, preexisting_graph=preexisting_graph)
                     editor_name = ed_and_ids.group(1)
                     if ',' in editor_name:
                         editor_name_splitted = re.split(comma_and_spaces, editor_name)

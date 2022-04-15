@@ -1,5 +1,6 @@
 from meta.plugins.multiprocess.resp_agents_creator import RespAgentsCreator
 from meta.scripts.creator import *
+from meta.tdd.curator_test import reset_server
 from rdflib import XSD, compare, Graph
 from rdflib.term import _toPythonMapping
 import csv
@@ -7,6 +8,8 @@ import json
 import os
 import unittest
 
+
+SERVER = 'http://127.0.0.1:9999/blazegraph/sparql'
 
 # The following function has been added for handling gYear and gYearMonth correctly.
 # Source: https://github.com/opencitations/script/blob/master/ocdm/storer.py
@@ -35,6 +38,7 @@ def open_json(path):
 
 # creator executor
 def prepare2test(name):
+    reset_server()
     data = open_csv("meta/tdd/testcases/testcase_data/testcase_" + name + "_data.csv")
     testcase_id_br = open_csv("meta/tdd/testcases/testcase_data/indices/" + name + "/index_id_br_" + name + ".csv")
     testcase_id_ra = open_csv("meta/tdd/testcases/testcase_data/indices/" + name + "/index_id_ra_" + name + ".csv")
@@ -44,7 +48,7 @@ def prepare2test(name):
     testcase_ttl = "meta/tdd/testcases/testcase_" + name + ".ttl"
 
     creator_info_dir = os.path.join("meta", "tdd", "creator_counter")
-    creator = Creator(data, "https://w3id.org/oc/meta/", creator_info_dir, "060", 'https://orcid.org/0000-0002-8420-0696', testcase_id_ra, testcase_id_br,
+    creator = Creator(data, SERVER, "https://w3id.org/oc/meta/", creator_info_dir, "060", 'https://orcid.org/0000-0002-8420-0696', testcase_id_ra, testcase_id_br,
                       testcase_re, testcase_ar, testcase_vi)
     creator_setgraph = creator.creator()
     test_graph = Graph()
@@ -60,10 +64,11 @@ class test_Creator(unittest.TestCase):
         base_iri = 'https://w3id.org/oc/meta/'
         creator_info_dir = os.path.join("meta", "tdd", "creator_counter")
         vvi = {'0602': {'issue': {}, 'volume': {'107': {'id': '4733', 'issue': {'1': {'id': '4734'}, '2': {'id': '4735'}, '3': {'id': '4736'}, '4': {'id': '4737'}, '5': {'id': '4738'}, '6': {'id': '4739'}}}, '108': {'id': '4740', 'issue': {'1': {'id': '4741'}, '2': {'id': '4742'}, '3': {'id': '4743'}, '4': {'id': '4744'}}}, '104': {'id': '4712', 'issue': {'1': {'id': '4713'}, '2': {'id': '4714'}, '3': {'id': '4715'}, '4': {'id': '4716'}, '5': {'id': '4717'}, '6': {'id': '4718'}}}, '148': {'id': '4417', 'issue': {'12': {'id': '4418'}, '11': {'id': '4419'}}}, '100': {'id': '4684', 'issue': {'1': {'id': '4685'}, '2': {'id': '4686'}, '3': {'id': '4687'}, '4': {'id': '4688'}, '5': {'id': '4689'}, '6': {'id': '4690'}}}, '101': {'id': '4691', 'issue': {'1': {'id': '4692'}, '2': {'id': '4693'}, '3': {'id': '4694'}, '4': {'id': '4695'}, '5': {'id': '4696'}, '6': {'id': '4697'}}}, '102': {'id': '4698', 'issue': {'1': {'id': '4699'}, '2': {'id': '4700'}, '3': {'id': '4701'}, '4': {'id': '4702'}, '5': {'id': '4703'}, '6': {'id': '4704'}}}, '103': {'id': '4705', 'issue': {'1': {'id': '4706'}, '2': {'id': '4707'}, '3': {'id': '4708'}, '4': {'id': '4709'}, '5': {'id': '4710'}, '6': {'id': '4711'}}}, '105': {'id': '4719', 'issue': {'1': {'id': '4720'}, '2': {'id': '4721'}, '3': {'id': '4722'}, '4': {'id': '4723'}, '5': {'id': '4724'}, '6': {'id': '4725'}}}, '106': {'id': '4726', 'issue': {'6': {'id': '4732'}, '1': {'id': '4727'}, '2': {'id': '4728'}, '3': {'id': '4729'}, '4': {'id': '4730'}, '5': {'id': '4731'}}}}}}
-        creator = Creator([], base_iri, creator_info_dir, "060", 'https://orcid.org/0000-0002-8420-0696', [], [], [], [], vvi)
+        creator = Creator([], SERVER, base_iri, creator_info_dir, "060", 'https://orcid.org/0000-0002-8420-0696', [], [], [], [], vvi)
         creator.src = None
         creator.type = 'journal article'
-        creator.br_graph = creator.setgraph.add_br('https://orcid.org/0000-0002-8420-0696', None, URIRef(f'{base_iri}br/0601'))
+        preexisting_graph = creator.finder.get_preexisting_graph(URIRef(f'{base_iri}br/0601'))
+        creator.br_graph = creator.setgraph.add_br('https://orcid.org/0000-0002-8420-0696', None, URIRef(f'{base_iri}br/0601'), preexisting_graph=preexisting_graph)
         creator.vvi_action('OECD [meta:br/0602]', '107', '1')
         output_graph = Graph()
         for g in creator.setgraph.graphs():
@@ -89,10 +94,11 @@ class test_Creator(unittest.TestCase):
 
 class test_RespAgentsCreator(unittest.TestCase):
     def test_creator(self):
+        reset_server()
         data = open_csv("meta/tdd/testcases/testcase_data/resp_agents_curator_output.csv")
         creator_info_dir = os.path.join("meta", "tdd", "creator_counter")
         testcase_id_ra = open_csv("meta/tdd/testcases/testcase_data/indices/resp_agents_curator_output/index_id_ra.csv")
-        creator = RespAgentsCreator(data, "https://w3id.org/oc/meta/", creator_info_dir, "060", 'https://orcid.org/0000-0002-8420-0696', testcase_id_ra)
+        creator = RespAgentsCreator(data, SERVER, "https://w3id.org/oc/meta/", creator_info_dir, "060", 'https://orcid.org/0000-0002-8420-0696', testcase_id_ra)
         creator_graphset = creator.creator()
         output_graph = Graph()
         for g in creator_graphset.graphs():

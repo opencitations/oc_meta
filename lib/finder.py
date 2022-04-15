@@ -3,7 +3,8 @@ from typing import List, Dict, Tuple
 from oc_ocdm.graph import GraphEntity
 from oc_ocdm.prov.prov_entity import ProvEntity
 from oc_ocdm.support import get_count, find_paths
-from SPARQLWrapper import SPARQLWrapper, JSON, GET
+from rdflib import Graph
+from SPARQLWrapper import SPARQLWrapper, JSON, GET, RDF
 from time_agnostic_library.agnostic_entity import AgnosticEntity
 
 
@@ -699,3 +700,18 @@ class ResourceFinder:
             if type_label and type_label not in forbidden_types:
                 allowed_type = True
         return allowed_type
+    
+    def get_preexisting_graph(self, res:str) -> Graph:
+        query_subj = f"""
+            CONSTRUCT {{
+                <{res}> ?p ?o.
+            }}
+            WHERE {{
+                <{res}> ?p ?o.
+            }}
+        """
+        self.ts.setReturnFormat(RDF)
+        graph_subj = self.__query(query_subj)
+        self.ts.setReturnFormat(JSON)
+        graph_subj = graph_subj if len(graph_subj) else None
+        return graph_subj
