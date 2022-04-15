@@ -105,11 +105,11 @@ class MetaProcess:
         creator_info_dir = os.path.join(self.info_dir, 'creator' + os.sep)
         if resp_agents_only:
             creator_obj = RespAgentsCreator(
-                data=curator_obj.data, endpoint=self.triplestore_url, base_iri=self.base_iri, info_dir=creator_info_dir, supplier_prefix=supplier_prefix, resp_agent=self.resp_agent, ra_index=curator_obj.index_id_ra)
+                data=curator_obj.data, endpoint=self.triplestore_url, base_iri=self.base_iri, info_dir=creator_info_dir, supplier_prefix=supplier_prefix, resp_agent=self.resp_agent, ra_index=curator_obj.index_id_ra, preexisting_entities=curator_obj.preexisting_entities)
         else:
             creator_obj = Creator(
                 data=curator_obj.data, endpoint=self.triplestore_url, base_iri=self.base_iri, info_dir=creator_info_dir, supplier_prefix=supplier_prefix, resp_agent=self.resp_agent, ra_index=curator_obj.index_id_ra, 
-                br_index=curator_obj.index_id_br, re_index_csv=curator_obj.re_index, ar_index_csv=curator_obj.ar_index, vi_index=curator_obj.VolIss)
+                br_index=curator_obj.index_id_br, re_index_csv=curator_obj.re_index, ar_index_csv=curator_obj.ar_index, vi_index=curator_obj.VolIss, preexisting_entities=curator_obj.preexisting_entities)
         creator = creator_obj.creator(source=self.source)
         # Provenance
         prov = ProvSet(creator, self.base_iri, creator_info_dir, wanted_label=False)

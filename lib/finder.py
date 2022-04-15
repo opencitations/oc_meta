@@ -3,8 +3,8 @@ from typing import List, Dict, Tuple
 from oc_ocdm.graph import GraphEntity
 from oc_ocdm.prov.prov_entity import ProvEntity
 from oc_ocdm.support import get_count, find_paths
-from rdflib import Graph
-from SPARQLWrapper import SPARQLWrapper, JSON, GET, RDF
+from rdflib import ConjunctiveGraph, ConjunctiveGraph
+from SPARQLWrapper import SPARQLWrapper, JSON, GET, RDFXML
 from time_agnostic_library.agnostic_entity import AgnosticEntity
 
 
@@ -701,7 +701,7 @@ class ResourceFinder:
                 allowed_type = True
         return allowed_type
     
-    def get_preexisting_graph(self, res:str) -> Graph:
+    def get_preexisting_graph(self, res:str) -> ConjunctiveGraph:
         query_subj = f"""
             CONSTRUCT {{
                 <{res}> ?p ?o.
@@ -710,7 +710,7 @@ class ResourceFinder:
                 <{res}> ?p ?o.
             }}
         """
-        self.ts.setReturnFormat(RDF)
+        self.ts.setReturnFormat(RDFXML)
         graph_subj = self.__query(query_subj)
         self.ts.setReturnFormat(JSON)
         graph_subj = graph_subj if len(graph_subj) else None

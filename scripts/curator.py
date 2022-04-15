@@ -40,6 +40,7 @@ class Curator:
         self.rowcnt = 0
         self.log = dict()
         self.valid_dois_cache = valid_dois_cache
+        self.preexisting_entities = set()
 
     def curator(self, filename:str=None, path_csv:str=None, path_index:str=None):
         for row in self.data:
@@ -514,6 +515,7 @@ class Curator:
                         break
             else:
                 new_v = k
+                self.preexisting_entities.add(f'ar/{new_v}')
             self.armeta[newkey][role].append(tuple((x, new_v)))
 
     def meta_maker(self):
@@ -532,6 +534,7 @@ class Curator:
             else:
                 self.brmeta[identifier] = self.brdict[identifier]
                 self.brmeta[identifier]['ids'].append('meta:br/' + identifier)
+                self.preexisting_entities.add(f'br/{identifier}')
         for identifier in self.radict:
             if 'wannabe' in identifier:
                 other = identifier
@@ -543,6 +546,7 @@ class Curator:
             else:
                 self.rameta[identifier] = self.radict[identifier]
                 self.rameta[identifier]['ids'].append('meta:ra/' + identifier)
+                self.preexisting_entities.add(f'ra/{identifier}')
         for ar_id in self.ardict:
             if 'wannabe' in ar_id:
                 for br_id in self.brmeta:

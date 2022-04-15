@@ -42,6 +42,7 @@ class RespAgentsCurator(Curator):
         self.wnb_cnt = 0 # wannabe counter
         self.rowcnt = 0
         self.log = dict()
+        self.preexisting_entities = set()
 
     def curator(self, filename:str=None, path_csv:str=None, path_index:str=None):
         for row in self.data:
@@ -124,6 +125,7 @@ class RespAgentsCurator(Curator):
             else:
                 self.rameta[identifier] = self.radict[identifier]
                 self.rameta[identifier]['ids'].append('meta:ra/' + identifier)
+                self.preexisting_entities.add(f'ra/{identifier}')
 
     def indexer(self, path_index:str, path_csv:str) -> None:
         '''

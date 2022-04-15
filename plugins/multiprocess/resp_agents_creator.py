@@ -24,17 +24,16 @@ import re
 
 
 class RespAgentsCreator(Creator):
-    def __init__(self, data:list, endpoint:str, base_iri:str, info_dir:str, supplier_prefix:str, resp_agent:str, ra_index:dict):
+    def __init__(self, data:list, endpoint:str, base_iri:str, info_dir:str, supplier_prefix:str, resp_agent:str, ra_index:dict, preexisting_entities:set):
         self.url = base_iri
         self.setgraph = GraphSet(self.url, info_dir, supplier_prefix, wanted_label=False)
         self.finder = ResourceFinder(ts_url = endpoint, base_iri = base_iri)
         self.resp_agent = resp_agent
-
         self.ra_id_schemas = {'crossref', 'orcid', 'viaf', 'wikidata'}
         self.br_id_schemas = {'doi', 'issn', 'isbn', 'pmid', 'pmcid', 'url', 'wikidata', 'wikipedia'}
         self.schemas = self.ra_id_schemas.union(self.br_id_schemas)
-
         self.ra_index = self.indexer_id(ra_index)
+        self.preexisting_entities = preexisting_entities
         self.data = data
 
     def creator(self, source=None):
@@ -60,8 +59,9 @@ class RespAgentsCreator(Creator):
                 for identifier in aut_id_list:
                     if 'meta:' in identifier:
                         identifier = str(identifier).replace('meta:', '')
+                        preexisting_entity = True if identifier in self.preexisting_entities else False
                         url = URIRef(self.url + identifier)
-                        preexisting_graph = self.finder.get_preexisting_graph(url)
+                        preexisting_graph = self.finder.get_preexisting_graph(url) if preexisting_entity else None
                         pub_aut = self.setgraph.add_ra(self.resp_agent, source=self.src, res=url, preexisting_graph=preexisting_graph)
                         author_name = aut_and_ids.group(1)
                         if ',' in author_name:
@@ -84,9 +84,10 @@ class RespAgentsCreator(Creator):
         for identifier in publ_id_list:
             if 'meta:' in identifier:
                 identifier = str(identifier).replace('meta:', '')
+                preexisting_entity = True if identifier in self.preexisting_entities else False
                 url = URIRef(self.url + identifier)
                 publ_name = publ_and_ids.group(1)
-                preexisting_graph = self.finder.get_preexisting_graph(url)
+                preexisting_graph = self.finder.get_preexisting_graph(url) if preexisting_entity else None
                 publ = self.setgraph.add_ra(self.resp_agent, source=self.src, res=url, preexisting_graph=preexisting_graph)
                 publ.has_name(publ_name)
         for identifier in publ_id_list:
@@ -101,8 +102,9 @@ class RespAgentsCreator(Creator):
             for identifier in ed_id_list:
                 if 'meta:' in identifier:
                     identifier = str(identifier).replace('meta:', '')
+                    preexisting_entity = True if identifier in self.preexisting_entities else False
                     url = URIRef(self.url + identifier)
-                    preexisting_graph = self.finder.get_preexisting_graph(url)
+                    preexisting_graph = self.finder.get_preexisting_graph(url) if preexisting_entity else None
                     pub_ed = self.setgraph.add_ra(self.resp_agent, source=self.src, res=url, preexisting_graph=preexisting_graph)
                     editor_name = ed_and_ids.group(1)
                     if ',' in editor_name:
