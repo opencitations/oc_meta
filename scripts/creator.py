@@ -48,7 +48,6 @@ class Creator(object):
 
     def creator(self, source=None):
         self.src = source
-        count = 0
         for row in self.data:
             self.row_meta = ''
             ids = row['id']
@@ -76,8 +75,6 @@ class Creator(object):
                 self.publisher_action(publisher)
             if editor:
                 self.editor_action(editor)
-            count += 1
-            print(count)
         return self.setgraph
 
     @staticmethod
@@ -432,8 +429,8 @@ class Creator(object):
             for ra_id_schema in self.ra_id_schemas:
                 if identifier.startswith(ra_id_schema):
                     identifier = identifier.replace(f'{ra_id_schema}:', '')
-                    preexisting_entity = True if identifier in self.preexisting_entities else False
                     res = self.ra_index[ra_id_schema][identifier]
+                    preexisting_entity = True if f'id/{res}' in self.preexisting_entities else False
                     url = URIRef(self.url + 'id/' + res)
                     preexisting_graph = self.finder.get_preexisting_graph(url) if preexisting_entity else None
                     new_id = self.setgraph.add_id(self.resp_agent, source=self.src, res=url, preexisting_graph=preexisting_graph)
@@ -442,8 +439,8 @@ class Creator(object):
             for br_id_schema in self.br_id_schemas:
                 if identifier.startswith(br_id_schema):
                     identifier = identifier.replace(f'{br_id_schema}:', '')
-                    preexisting_entity = True if identifier in self.preexisting_entities else False
                     res = self.br_index[br_id_schema][identifier]
+                    preexisting_entity = True if f'id/{res}' in self.preexisting_entities else False
                     url = URIRef(self.url + 'id/' + res)
                     preexisting_graph = self.finder.get_preexisting_graph(url) if preexisting_entity else None
                     new_id = self.setgraph.add_id(self.resp_agent, source=self.src, res=url, preexisting_graph=preexisting_graph)

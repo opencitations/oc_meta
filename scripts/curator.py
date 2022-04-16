@@ -74,6 +74,7 @@ class Curator:
             self.rowcnt += 1
         self.brdict.update(self.conflict_br)
         self.radict.update(self.conflict_ra)
+        self.get_preexisting_entities()
         self.meta_maker()
         self.log = self.log_update()
         self.enrich()
@@ -515,8 +516,33 @@ class Curator:
                         break
             else:
                 new_v = k
-                self.preexisting_entities.add(f'ar/{new_v}')
             self.armeta[newkey][role].append(tuple((x, new_v)))
+
+    def __tree_traverse(self, tree:dict, key:str, values:List[Tuple]) -> None:
+        for k, v in tree.items():
+            if k == key:
+                values.append(v)
+            elif isinstance(v, dict):
+                found = self.__tree_traverse(v, key, values)
+                if found is not None:  
+                    values.append(found)
+    
+    def get_preexisting_entities(self) -> None:
+        for entity_type in {'br', 'ra'}:
+            for entity_metaid, data in getattr(self, f'{entity_type}dict').items():
+                if not entity_metaid.startswith('wannabe'):
+                    self.preexisting_entities.add(f'{entity_type}/{entity_metaid}')
+                    for entity_id_literal in data['ids']:
+                        preexisting_entity_id_metaid = getattr(self, f'id{entity_type}')[entity_id_literal]
+                        self.preexisting_entities.add(f'id/{preexisting_entity_id_metaid}')
+        for ar_metaid, _ in self.ardict.items():
+            if not ar_metaid.startswith('wannabe'):
+                self.preexisting_entities.add(f'ar/{ar_metaid}')
+        for venue_metaid, vi in self.vvi.items():
+            if not venue_metaid.startswith('wannabe'):
+                wannabe_preexisting_vis = list()
+                self.__tree_traverse(vi, 'id', wannabe_preexisting_vis)
+                self.preexisting_entities.update({f'br/{vi_metaid}' for vi_metaid in wannabe_preexisting_vis if not vi_metaid.startswith('wannabe')})
 
     def meta_maker(self):
         '''
@@ -534,7 +560,6 @@ class Curator:
             else:
                 self.brmeta[identifier] = self.brdict[identifier]
                 self.brmeta[identifier]['ids'].append('meta:br/' + identifier)
-                self.preexisting_entities.add(f'br/{identifier}')
         for identifier in self.radict:
             if 'wannabe' in identifier:
                 other = identifier
@@ -546,7 +571,6 @@ class Curator:
             else:
                 self.rameta[identifier] = self.radict[identifier]
                 self.rameta[identifier]['ids'].append('meta:ra/' + identifier)
-                self.preexisting_entities.add(f'ra/{identifier}')
         for ar_id in self.ardict:
             if 'wannabe' in ar_id:
                 for br_id in self.brmeta:
@@ -644,6 +668,13 @@ class Curator:
         with open(file_path, 'w') as f:
             f.writelines(all_lines)
         return cur_number
+    
+    def __update_id_and_entity_dict(self, existing_ids:list, id_dict:dict, entity_dict:Dict[str, Dict[str, list]], metaval:str) -> None:
+        for identifier in existing_ids:
+            if identifier[1] not in id_dict:
+                id_dict[identifier[1]] = identifier[0]
+            if identifier[1] not in entity_dict[metaval]['ids']:
+                entity_dict[metaval]['ids'].append(identifier[1])
 
     def indexer(self, path_index:str, path_csv:str) -> None:
         '''
@@ -831,11 +862,7 @@ class Curator:
                     entity_dict[metaval]['others'] = list()
                     self.merge_entities_in_csv(idslist, metaval, name, entity_dict, id_dict)
                     existing_ids = found_meta_ts[1]
-                    for identifier in existing_ids:
-                        if identifier[1] not in id_dict:
-                            id_dict[identifier[1]] = identifier[0]
-                        if identifier[1] not in entity_dict[metaval]['ids']:
-                            entity_dict[metaval]['ids'].append(identifier[1])
+                    self.__update_id_and_entity_dict(existing_ids, id_dict, entity_dict, metaval)
                 # Look for MetaId in the provenance
                 else:
                     entity_type = 'br' if br_ent or vvi_ent else 'ra' 
@@ -899,11 +926,7 @@ class Curator:
                                 entity_dict[metaval]['others'] = list()
                                 entity_dict[metaval]['title'] = sparql_match[0][1] if sparql_match[0][1] else ''
                                 self.merge(entity_dict, metaval, old_metaval, sparql_match[0][1])
-                                for identifier in existing_ids:
-                                    if identifier[1] not in id_dict:
-                                        id_dict[identifier[1]] = identifier[0]
-                                    if identifier[1] not in entity_dict[metaval]['ids']:
-                                        entity_dict[metaval]['ids'].append(identifier[1])
+                                self.__update_id_and_entity_dict(existing_ids, id_dict, entity_dict, metaval)
             else:
                 sparql_match = self.finder_sparql(idslist, br=br_ent, ra=ra_ent, vvi=vvi_ent, publ=publ_entity)
                 if len(sparql_match) > 1:
@@ -929,11 +952,7 @@ class Curator:
                         else:
                             entity_dict[metaval]['title'] = sparql_match[0][1]
                         self.__update_title(entity_dict, metaval, name)
-                        for identifier in existing_ids:
-                            if identifier[1] not in id_dict:
-                                id_dict[identifier[1]] = identifier[0]
-                            if identifier[1] not in entity_dict[metaval]['ids']:
-                                entity_dict[metaval]['ids'].append(identifier[1])
+                        self.__update_id_and_entity_dict(existing_ids, id_dict, entity_dict, metaval)
                 else:
                     # 1 EntityA is a new one
                     metaval = self.new_entity(entity_dict, name)
@@ -1079,6 +1098,7 @@ class Curator:
         if known_data['page']:
             row['page'] = known_data['page'][1]
             self.remeta[metaval] = known_data['page']
+            self.preexisting_entities.add(f're/{metaval}')
         elif row['page']:
             self.log[self.rowcnt]['page']['status'] = 'New value proposed'
 

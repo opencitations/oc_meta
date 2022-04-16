@@ -3,7 +3,7 @@ from typing import List, Dict, Tuple
 from oc_ocdm.graph import GraphEntity
 from oc_ocdm.prov.prov_entity import ProvEntity
 from oc_ocdm.support import get_count, find_paths
-from rdflib import ConjunctiveGraph, ConjunctiveGraph
+from rdflib import Graph, Literal, URIRef
 from SPARQLWrapper import SPARQLWrapper, JSON, GET, RDFXML
 from time_agnostic_library.agnostic_entity import AgnosticEntity
 
@@ -701,7 +701,7 @@ class ResourceFinder:
                 allowed_type = True
         return allowed_type
     
-    def get_preexisting_graph(self, res:str) -> ConjunctiveGraph:
+    def get_preexisting_graph(self, res:str) -> Graph:
         query_subj = f"""
             CONSTRUCT {{
                 <{res}> ?p ?o.
@@ -712,6 +712,15 @@ class ResourceFinder:
         """
         self.ts.setReturnFormat(RDFXML)
         graph_subj = self.__query(query_subj)
+        untyped_graph_subj = Graph()
+        for triple in graph_subj.triples((None, None, None)):
+            remove_datatype = False
+            if isinstance(triple[2], Literal):
+                if triple[2].datatype == URIRef('http://www.w3.org/2001/XMLSchema#string'):
+                    remove_datatype = True
+                    untyped_literal = Literal(lexical_or_value=str(triple[2]), datatype=None)
+                    untyped_triple = (triple[0], triple[1], untyped_literal)
+            untyped_graph_subj.add(untyped_triple) if remove_datatype else untyped_graph_subj.add(triple)
         self.ts.setReturnFormat(JSON)
-        graph_subj = graph_subj if len(graph_subj) else None
-        return graph_subj
+        untyped_graph_subj = untyped_graph_subj if len(untyped_graph_subj) else None
+        return untyped_graph_subj
