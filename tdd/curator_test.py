@@ -448,6 +448,17 @@ class test_Curator(unittest.TestCase):
             output.append(curator.is_a_valid_row(row))
         expected_output = [False, False, False, True, False, True]
         self.assertEqual(output, expected_output)
+    
+    def test_get_preexisting_entities(self):
+        add_data_ts()
+        row = {'id': 'meta:br/2715', 'title': 'Image Of The Year For 2012', 'author': '', 'pub_date': '', 'venue': 'Archives Of Surgery [meta:br/4480]', 'volume': '99', 'issue': '1', 'page': '', 'type': 'journal article', 'publisher': '', 'editor': ''}
+        curator = prepareCurator(data=[row])
+        curator.curator()
+        expected_output = (
+            {'ra/3309', 'br/4487', 'br/2715', 'id/2581', 'ar/7240', 'id/4270', 'id/4274', 'br/4481', 'br/4480', 'br/4482', 're/2350'},
+            [{'id': 'doi:10.1001/2013.jamasurg.202 meta:br/2715', 'title': 'Image Of The Year For 2012', 'author': '', 'pub_date': '2012-12-01', 'venue': 'Archives Of Surgery [issn:0004-0010 meta:br/4480]', 'volume': '147', 'issue': '12', 'page': '1140-1140', 'type': 'journal article', 'publisher': 'American Medical Association (ama) [crossref:10 meta:ra/3309]', 'editor': ''}]
+        )
+        self.assertEqual((curator.preexisting_entities, curator.data), expected_output)
         
 
 

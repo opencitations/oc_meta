@@ -535,14 +535,18 @@ class Curator:
                     for entity_id_literal in data['ids']:
                         preexisting_entity_id_metaid = getattr(self, f'id{entity_type}')[entity_id_literal]
                         self.preexisting_entities.add(f'id/{preexisting_entity_id_metaid}')
-        for ar_metaid, _ in self.ardict.items():
-            if not ar_metaid.startswith('wannabe'):
-                self.preexisting_entities.add(f'ar/{ar_metaid}')
+        for _, roles in self.ardict.items():
+            for _, ar_ras in roles.items():
+                for ar_ra in ar_ras:
+                    if not ar_ra[0].startswith('wannabe'):
+                        self.preexisting_entities.add(f'ar/{ar_ra[0]}')
         for venue_metaid, vi in self.vvi.items():
             if not venue_metaid.startswith('wannabe'):
                 wannabe_preexisting_vis = list()
                 self.__tree_traverse(vi, 'id', wannabe_preexisting_vis)
                 self.preexisting_entities.update({f'br/{vi_metaid}' for vi_metaid in wannabe_preexisting_vis if not vi_metaid.startswith('wannabe')})
+        for _, re_metaid in self.remeta.items():
+            self.preexisting_entities.add(f're/{re_metaid[0]}')
 
     def meta_maker(self):
         '''
@@ -1098,7 +1102,6 @@ class Curator:
         if known_data['page']:
             row['page'] = known_data['page'][1]
             self.remeta[metaval] = known_data['page']
-            self.preexisting_entities.add(f're/{metaval}')
         elif row['page']:
             self.log[self.rowcnt]['page']['status'] = 'New value proposed'
 
