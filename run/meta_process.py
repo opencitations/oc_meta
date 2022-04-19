@@ -19,7 +19,6 @@
 
 
 from argparse import ArgumentParser
-from concurrent.futures import ProcessPoolExecutor, as_completed
 from datetime import datetime
 from itertools import cycle
 from meta.lib.csvmanager import CSVManager
@@ -28,6 +27,7 @@ from meta.plugins.multiprocess.resp_agents_creator import RespAgentsCreator
 from meta.plugins.multiprocess.resp_agents_curator import RespAgentsCurator
 from meta.scripts.creator import Creator
 from meta.scripts.curator import Curator
+from multiprocessing import Pool
 from oc_ocdm import Storer
 from oc_ocdm.prov import ProvSet
 from time_agnostic_library.support import generate_config_file
@@ -150,10 +150,10 @@ def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False) -> N
         multiples_of_ten = {i for i in range(1, max_workers+1) if int(i) % 10 == 0}
         workers = [i for i in range(1, max_workers+len(multiples_of_ten)+1) if i not in multiples_of_ten]
     l = multiprocessing.Lock()
-    with ProcessPoolExecutor(max_workers=max_workers, initializer=init_lock, initargs=(l,)) as executor:
-        futures = [executor.submit(meta_process.curate_and_create, file_to_be_processed, worker_number, resp_agents_only) for file_to_be_processed, worker_number in zip(files_to_be_processed, cycle(workers))]
-        for future in as_completed(futures):
-            processed_file = future.result()
+    with Pool(processes=max_workers, initializer=init_lock, initargs=(l,), maxtasksperchild=1) as executor:
+        futures = [executor.apply_async(func=meta_process.curate_and_create, args=(file_to_be_processed, worker_number, resp_agents_only)) for file_to_be_processed, worker_number in zip(files_to_be_processed, cycle(workers))]
+        for future in futures:
+            processed_file = future.get()
             with open(meta_process.cache_path, 'a', encoding='utf-8') as aux_file:
                 aux_file.write(processed_file + '\n')
             pbar.update() if pbar else None
