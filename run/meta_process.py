@@ -27,12 +27,12 @@ from meta.plugins.multiprocess.resp_agents_creator import RespAgentsCreator
 from meta.plugins.multiprocess.resp_agents_curator import RespAgentsCurator
 from meta.scripts.creator import Creator
 from meta.scripts.curator import Curator
-from multiprocessing import Pool
+from multiprocessing.pool import ApplyResult, Pool
 from oc_ocdm import Storer
 from oc_ocdm.prov import ProvSet
 from time_agnostic_library.support import generate_config_file
 from tqdm import tqdm
-from typing import Set, Tuple
+from typing import List, Set, Tuple
 import csv
 import multiprocessing
 import os
@@ -53,6 +53,7 @@ class MetaProcess:
         self.output_rdf_dir = os.path.join(self.base_output_dir, f'rdf{os.sep}')
         self.indexes_dir = os.path.join(self.base_output_dir, 'indexes')
         self.cache_path = os.path.join(self.base_output_dir, 'cache.txt')
+        self.errors_path = os.path.join(self.base_output_dir, 'errors.txt')
         # Optional settings
         self.base_iri = settings['base_iri']
         self.context_path = settings['context_path']
@@ -89,37 +90,40 @@ class MetaProcess:
         return files_to_be_processed
 
     def curate_and_create(self, filename:str, worker_number:int=None, resp_agents_only:bool=False) -> Tuple[Storer, Storer, str]:
-        filepath = os.path.join(self.input_csv_dir, filename)
-        data = get_data(filepath)
-        supplier_prefix = f'{self.supplier_prefix}0' if worker_number is None else f'{self.supplier_prefix}{str(worker_number)}0'
-        # Curator
-        self.info_dir = os.path.join(self.info_dir, supplier_prefix) if worker_number else self.info_dir
-        curator_info_dir = os.path.join(self.info_dir, 'curator' + os.sep)
-        if resp_agents_only:
-            curator_obj = RespAgentsCurator(data=data, ts=self.triplestore_url, prov_config=self.time_agnostic_library_config, info_dir=curator_info_dir, base_iri=self.base_iri, prefix=supplier_prefix)
-        else:
-            curator_obj = Curator(data=data, ts=self.triplestore_url, prov_config=self.time_agnostic_library_config, info_dir=curator_info_dir, base_iri=self.base_iri, prefix=supplier_prefix, valid_dois_cache=self.valid_dois_cache)
-        name = f"{datetime.now().strftime('%Y-%m-%dT%H_%M_%S_%f')}_{supplier_prefix}"
-        curator_obj.curator(filename=name, path_csv=self.output_csv_dir, path_index=self.indexes_dir)
-        # Creator
-        creator_info_dir = os.path.join(self.info_dir, 'creator' + os.sep)
-        if resp_agents_only:
-            creator_obj = RespAgentsCreator(
-                data=curator_obj.data, endpoint=self.triplestore_url, base_iri=self.base_iri, info_dir=creator_info_dir, supplier_prefix=supplier_prefix, resp_agent=self.resp_agent, ra_index=curator_obj.index_id_ra, preexisting_entities=curator_obj.preexisting_entities)
-        else:
-            creator_obj = Creator(
-                data=curator_obj.data, endpoint=self.triplestore_url, base_iri=self.base_iri, info_dir=creator_info_dir, supplier_prefix=supplier_prefix, resp_agent=self.resp_agent, ra_index=curator_obj.index_id_ra, 
-                br_index=curator_obj.index_id_br, re_index_csv=curator_obj.re_index, ar_index_csv=curator_obj.ar_index, vi_index=curator_obj.VolIss, preexisting_entities=curator_obj.preexisting_entities)
-        creator = creator_obj.creator(source=self.source)
-        # Provenance
-        prov = ProvSet(creator, self.base_iri, creator_info_dir, wanted_label=False)
-        prov.generate_provenance()
-        # Storer
-        res_storer = Storer(creator, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, default_dir=self.default_dir, output_format='json-ld')
-        prov_storer = Storer(prov, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, output_format='json-ld')
-        with suppress_stdout():
-            self.store_data_and_prov(res_storer, prov_storer, filename)
-        return filename
+        try:
+            filepath = os.path.join(self.input_csv_dir, filename)
+            data = get_data(filepath)
+            supplier_prefix = f'{self.supplier_prefix}0' if worker_number is None else f'{self.supplier_prefix}{str(worker_number)}0'
+            # Curator
+            self.info_dir = os.path.join(self.info_dir, supplier_prefix) if worker_number else self.info_dir
+            curator_info_dir = os.path.join(self.info_dir, 'curator' + os.sep)
+            if resp_agents_only:
+                curator_obj = RespAgentsCurator(data=data, ts=self.triplestore_url, prov_config=self.time_agnostic_library_config, info_dir=curator_info_dir, base_iri=self.base_iri, prefix=supplier_prefix)
+            else:
+                curator_obj = Curator(data=data, ts=self.triplestore_url, prov_config=self.time_agnostic_library_config, info_dir=curator_info_dir, base_iri=self.base_iri, prefix=supplier_prefix, valid_dois_cache=self.valid_dois_cache)
+            name = f"{datetime.now().strftime('%Y-%m-%dT%H_%M_%S_%f')}_{supplier_prefix}"
+            curator_obj.curator(filename=name, path_csv=self.output_csv_dir, path_index=self.indexes_dir)
+            # Creator
+            creator_info_dir = os.path.join(self.info_dir, 'creator' + os.sep)
+            if resp_agents_only:
+                creator_obj = RespAgentsCreator(
+                    data=curator_obj.data, endpoint=self.triplestore_url, base_iri=self.base_iri, info_dir=creator_info_dir, supplier_prefix=supplier_prefix, resp_agent=self.resp_agent, ra_index=curator_obj.index_id_ra, preexisting_entities=curator_obj.preexisting_entities)
+            else:
+                creator_obj = Creator(
+                    data=curator_obj.data, endpoint=self.triplestore_url, base_iri=self.base_iri, info_dir=creator_info_dir, supplier_prefix=supplier_prefix, resp_agent=self.resp_agent, ra_index=curator_obj.index_id_ra,
+                    br_index=curator_obj.index_id_br, re_index_csv=curator_obj.re_index, ar_index_csv=curator_obj.ar_index, vi_index=curator_obj.VolIss, preexisting_entities=curator_obj.preexisting_entities)
+            creator = creator_obj.creator(source=self.source)
+            # Provenance
+            prov = ProvSet(creator, self.base_iri, creator_info_dir, wanted_label=False)
+            prov.generate_provenance()
+            # Storer
+            res_storer = Storer(creator, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, default_dir=self.default_dir, output_format='json-ld')
+            prov_storer = Storer(prov, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, output_format='json-ld')
+            with suppress_stdout():
+                self.store_data_and_prov(res_storer, prov_storer, filename)
+            return {'success': filename}
+        except Exception as e:
+            return {'error': filename, 'msg': e}
     
     def store_data_and_prov(self, res_storer:Storer, prov_storer:Storer, filename:str) -> None:
         if self.rdf_output_in_chunks:
@@ -151,13 +155,17 @@ def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False) -> N
         workers = [i for i in range(1, max_workers+len(multiples_of_ten)+1) if i not in multiples_of_ten]
     l = multiprocessing.Lock()
     with Pool(processes=max_workers, initializer=init_lock, initargs=(l,), maxtasksperchild=1) as executor:
-        futures = [executor.apply_async(func=meta_process.curate_and_create, args=(file_to_be_processed, worker_number, resp_agents_only)) for file_to_be_processed, worker_number in zip(files_to_be_processed, cycle(workers))]
+        futures:List[ApplyResult] = [executor.apply_async(func=meta_process.curate_and_create, args=(file_to_be_processed, worker_number, resp_agents_only)) for file_to_be_processed, worker_number in zip(files_to_be_processed, cycle(workers))]
         for future in futures:
             processed_file = future.get()
-            with open(meta_process.cache_path, 'a', encoding='utf-8') as aux_file:
-                aux_file.write(processed_file + '\n')
+            if 'success' in processed_file:
+                with open(meta_process.cache_path, 'a', encoding='utf-8') as aux_file:
+                    aux_file.write(processed_file['success'] + '\n')
+            elif 'error' in processed_file:
+                with open(meta_process.errors_path, 'a', encoding='utf-8') as aux_file:
+                    aux_file.write(f'{processed_file["error"]}: {processed_file["msg"]}' + '\n')
             pbar.update() if pbar else None
-    os.remove(meta_process.cache_path)
+    os.rename(meta_process.cache_path, meta_process.cache_path.replace('.txt', f'_{datetime.now().strftime("%Y-%m-%dT%H_%M_%S_%f")}.txt'))
     pbar.close() if pbar else None
 
 def init_lock(l):

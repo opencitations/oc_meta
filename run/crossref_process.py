@@ -1,12 +1,14 @@
-from meta.plugins.crossref.crossref_processing import *
+from argparse import ArgumentParser
 from meta.lib.file_manager import normalize_path
 from meta.lib.jsonmanager import *
-import os
-import csv
-import sys
-import yaml
-from argparse import ArgumentParser
+from meta.plugins.crossref.crossref_processing import *
+from tarfile import TarInfo
 from tqdm import tqdm
+import csv
+import yaml
+import os
+import sys
+
 
 def preprocess(crossref_json_dir:str, publishers_filepath:str, orcid_doi_filepath:str, csv_dir:str, wanted_doi_filepath:str=None, cache:str=None, verbose:bool=False) -> None:
     if verbose:
@@ -28,6 +30,7 @@ def preprocess(crossref_json_dir:str, publishers_filepath:str, orcid_doi_filepat
         pbar = tqdm(total=len(all_files))
     for filename in all_files:
         data = load_json(filename, targz_fd)
+        filename = filename.name if isinstance(filename, TarInfo) else filename
         filename_without_ext = filename.replace('.json', '').replace('.tar', '').replace('.gz', '')
         filepath = os.path.join(csv_dir, f'{os.path.basename(filename_without_ext)}.csv')
         pathoo(filepath)
