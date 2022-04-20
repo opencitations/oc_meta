@@ -47,17 +47,20 @@ def prepare_relevant_items(csv_dir:str, output_dir:str, items_per_file:int, verb
     pbar = tqdm(total=len(files)) if verbose else None
     pathoo(output_dir)
     ids_found = set()
+    venues_found = set()
     duplicated_ids = dict()
     venues_by_id = dict()
+    publishers_found = set()
     publishers_by_id = dict()
+    resp_agents_found = set()
     resp_agents_by_id = dict()
     # Look for all venues, responsible agents, and publishers
     for file in files:
         data = get_data(file)
         _get_duplicated_ids(data=data, ids_found=ids_found, items_by_id=duplicated_ids)
-        _get_relevant_venues(data=data, items_by_id=venues_by_id)
-        _get_publishers(data=data, items_by_id=publishers_by_id)
-        _get_resp_agents(data=data, items_by_id=resp_agents_by_id)
+        _get_relevant_venues(data=data, ids_found=venues_found, items_by_id=venues_by_id)
+        _get_publishers(data=data, ids_found=publishers_found, items_by_id=publishers_by_id)
+        _get_resp_agents(data=data, ids_found=resp_agents_found, items_by_id=resp_agents_by_id)
         pbar.update() if verbose else None
     pbar.close() if verbose else None
     pbar = tqdm(total=len(files)) if verbose else None
@@ -66,6 +69,8 @@ def prepare_relevant_items(csv_dir:str, output_dir:str, items_per_file:int, verb
     publishers_merged = _do_collective_merge(publishers_by_id, verbose)
     resp_agents_merged = _do_collective_merge(resp_agents_by_id, verbose)
     fieldnames = ['id', 'title', 'author', 'pub_date', 'venue', 'volume', 'issue', 'page', 'type', 'publisher', 'editor']
+    # Remove overlaps between ids and venues
+    venues_merged = {k:v for k,v in venues_merged.items() if k not in ids_merged}
     __save_relevant_venues(venues_merged, items_per_file, output_dir, fieldnames)
     __save_ids(ids_merged, items_per_file, output_dir, fieldnames)
     __save_responsible_agents(resp_agents_merged, items_per_file, output_dir, fieldnames, ('people', 'author'))
@@ -75,14 +80,15 @@ def _get_duplicated_ids(data:List[dict], ids_found:set, items_by_id:Dict[str, di
     cur_file_ids = set()
     for row in data:
         ids_list = row['id'].split()
-        if any(id in ids_found and not id in cur_file_ids for id in ids_list):
+        if any(id in ids_found and (id not in cur_file_ids or id in items_by_id) for id in ids_list):
             for id in ids_list:
-                items_by_id.setdefault(id, {'others': set(), 'name': '', 'type': ''})
+                items_by_id.setdefault(id, {'others': set(), 'name': row['title'], 'page': row['page'], 'type': row['type']})
                 items_by_id[id]['others'].update({other for other in ids_list if other != id})
         cur_file_ids.update(set(ids_list))   
         ids_found.update(set(ids_list))
 
-def _get_relevant_venues(data:List[dict], items_by_id:Dict[str, dict]) -> None:
+def _get_relevant_venues(data:List[dict], ids_found:set, items_by_id:Dict[str, dict]) -> None:
+    cur_file_ids = set()
     for row in data:
         venue = row['venue']
         venues = list()
@@ -102,29 +108,37 @@ def _get_relevant_venues(data:List[dict], items_by_id:Dict[str, dict]) -> None:
         for venue_tuple in venues:
             name, ids, br_type = venue_tuple
             ids_list = [identifier for identifier in ids.split() if identifier not in FORBIDDEN_IDS]
-            for id in ids_list:
-                items_by_id.setdefault(id, {'others': set(), 'name': name, 'type': br_type, 'volume': dict(), 'issue': set()})
-                items_by_id[id]['others'].update({other for other in ids_list if other != id})
-                volume = row['volume']
-                issue = row['issue']
-                if volume:
-                    items_by_id[id]['volume'].setdefault(volume, set())
-                    if issue:
-                        items_by_id[id]['volume'][volume].add(issue)
-                elif not volume and issue:
-                    items_by_id[id]['issue'].add(issue)
+            if any(id in ids_found and (id not in cur_file_ids or id in items_by_id) for id in ids_list):
+                for id in ids_list:
+                    items_by_id.setdefault(id, {'others': set(), 'name': name, 'type': br_type, 'volume': dict(), 'issue': set()})
+                    items_by_id[id]['others'].update({other for other in ids_list if other != id})
+                    volume = row['volume']
+                    issue = row['issue']
+                    if volume:
+                        items_by_id[id]['volume'].setdefault(volume, set())
+                        if issue:
+                            items_by_id[id]['volume'][volume].add(issue)
+                    elif not volume and issue:
+                        items_by_id[id]['issue'].add(issue)
+            cur_file_ids.update(set(ids_list))   
+            ids_found.update(set(ids_list))
 
-def _get_publishers(data:List[dict], items_by_id:Dict[str, dict]) -> None:
+def _get_publishers(data:List[dict], ids_found:set, items_by_id:Dict[str, dict]) -> None:
+    cur_file_ids = set()
     for row in data:
         pub_name_and_ids = re.search(name_and_ids, row['publisher'])
         if pub_name_and_ids:
             pub_name = pub_name_and_ids.group(1)
             pub_ids = pub_name_and_ids.group(2).split()
-            for pub_id in pub_ids:
-                items_by_id.setdefault(pub_id, {'others': set(), 'name': pub_name, 'type': 'publisher'})
-                items_by_id[pub_id]['others'].update({other for other in pub_ids if other != pub_id})
+            if any(id in ids_found and (id not in cur_file_ids or id in items_by_id) for id in pub_ids):
+                for pub_id in pub_ids:
+                    items_by_id.setdefault(pub_id, {'others': set(), 'name': pub_name, 'type': 'publisher'})
+                    items_by_id[pub_id]['others'].update({other for other in pub_ids if other != pub_id})
+            cur_file_ids.update(set(pub_ids))   
+            ids_found.update(set(pub_ids))
 
-def _get_resp_agents(data:List[dict], items_by_id:Dict[str, Dict[str, set]]) -> None:
+def _get_resp_agents(data:List[dict], ids_found:set, items_by_id:Dict[str, Dict[str, set]]) -> None:
+    cur_file_ids = set()
     for row in data:
         for field in {'author', 'editor'}:
             if row[field]:
@@ -135,9 +149,12 @@ def _get_resp_agents(data:List[dict], items_by_id:Dict[str, Dict[str, set]]) -> 
                     ids = full_name_and_ids.group(2) if full_name_and_ids else None
                     if ids:
                         ids_list = [identifier for identifier in ids.split() if identifier not in FORBIDDEN_IDS]
-                        for id in ids_list:
-                            items_by_id.setdefault(id, {'others': set(), 'name': name, 'type': 'author'})
-                            items_by_id[id]['others'].update({other for other in ids_list if other != id})
+                        if any(id in ids_found and (id not in cur_file_ids or id in items_by_id) for id in ids_list):
+                            for id in ids_list:
+                                items_by_id.setdefault(id, {'others': set(), 'name': name, 'type': 'author'})
+                                items_by_id[id]['others'].update({other for other in ids_list if other != id})
+                        cur_file_ids.update(set(ids_list))   
+                        ids_found.update(set(ids_list))
 
 def _do_collective_merge(items_by_id:dict, verbose:bool=False) -> dict:
     if verbose:
@@ -159,8 +176,8 @@ def _do_collective_merge(items_by_id:dict, verbose:bool=False) -> dict:
             else:
                 ids_found = {id}
             if 'volume' in data and 'issue' in data:
-                all_vi = __find_all_vi(items_by_id=items_by_id, all_ids=ids_found)                        
-            merged_by_key[id] = {'name': data['name'], 'type': data['type'], 'others': all_ids}
+                all_vi = __find_all_vi(items_by_id=items_by_id, all_ids=ids_found)     
+            merged_by_key[id] = {k:v if not k == 'others' else all_ids for k,v in data.items()}                   
             if all_vi:
                 merged_by_key[id]['volume'] = all_vi['volume']
                 merged_by_key[id]['issue'] = all_vi['issue']
@@ -254,8 +271,8 @@ def __save_ids(items_by_id:dict, items_per_file:int, output_dir:str, fieldnames:
     saved_chunks = 0
     output_length = len(items_by_id)
     for item_id, data in items_by_id.items():
-        _, ids = __get_name_and_ids(item_id, data)
-        rows.append({'id': ids})
+        name, ids = __get_name_and_ids(item_id, data)
+        rows.append({'id': ids, 'title': name, 'page': data['page'], 'type': data['type']})
         rows, saved_chunks = __store_data(rows, output_length, chunks, saved_chunks, output_dir, fieldnames)
 
 def __store_data(rows:list, output_length:int, chunks:int, saved_chunks:int, output_dir:str, fieldnames:str) -> list:
@@ -268,10 +285,10 @@ def __store_data(rows:list, output_length:int, chunks:int, saved_chunks:int, out
         rows = list()
     return rows, saved_chunks
 
-def __get_name_and_ids(item_id, data):
+def __get_name_and_ids(item_id:str, data:dict):
     ids_list = list(data['others'])
     ids_list.append(item_id)
-    name = data['name']
+    name = data['name'] if 'name' in data else ''
     ids = ' '.join(ids_list)
     return name, ids
 

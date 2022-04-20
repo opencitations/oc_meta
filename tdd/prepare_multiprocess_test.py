@@ -13,7 +13,7 @@ CSV_DIR = os.path.join(BASE, 'input')
 
 
 class TestPrepareMultiprocess(unittest.TestCase):
-    def test_prepare_relevant_venues(self):
+    def test_prepare_relevant_items(self):
         prepare_relevant_items(csv_dir=CSV_DIR, output_dir=TMP_DIR, items_per_file=3, verbose=False)
         output = list()
         for root, _, files in os.walk(TMP_DIR):
@@ -22,31 +22,28 @@ class TestPrepareMultiprocess(unittest.TestCase):
                     with open(os.path.join(root, file), 'r', encoding='utf-8') as f:
                         output.extend(list(DictReader(f)))
         expected_output = [
-            {'id': '', 'title': '', 'author': 'NAIMI, ELMEHDI [orcid:0000-0002-4126-8519]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}, 
-            {'id': '', 'title': '', 'author': 'Chung, Myong-Soo [orcid:0000-0002-9666-2513]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}, 
+            {'id': 'doi:10.9799/ksfan.2012.25.1.069', 'title': 'Nonthermal Sterilization and Shelf-life Extension of Seafood Products by Intense Pulsed Light Treatment', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '69-76', 'type': 'journal article', 'publisher': '', 'editor': ''}, 
             {'id': '', 'title': '', 'author': 'Cheigh, Chan-Ick [orcid:0000-0003-2542-5788]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}, 
-            {'id': '', 'title': '', 'author': 'Kim, Young-Shik [orcid:0000-0001-5673-6314]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}, 
-            {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': 'The Korean Journal of Food And Nutrition [issn:1225-4339]', 'volume': '25', 'issue': '1', 'page': '', 'type': 'journal issue', 'publisher': '', 'editor': ''},
-            {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': 'The Korean Journal of Food And Nutrition [issn:1225-4339]', 'volume': '26', 'issue': '', 'page': '', 'type': 'journal volume', 'publisher': '', 'editor': ''}, 
-            {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': 'The Korean Journal of Food And Nutrition [issn:1225-4339]', 'volume': '', 'issue': '2', 'page': '', 'type': 'journal issue', 'publisher': '', 'editor': ''},
-            {'id': 'issn:0009-7322 issn:1524-4539', 'title': 'Circulation', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': 'journal', 'publisher': '', 'editor': ''},
+            {'id': '', 'title': '', 'author': 'Chung, Myong-Soo [orcid:0000-0002-9666-2513]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}, 
             {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': 'Consulting Company Ucom [crossref:6623]', 'editor': ''}, 
-            {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': 'The Korean Society of Food and Nutrition [crossref:4768]', 'editor': ''}]
+            {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': 'The Korean Society of Food and Nutrition [crossref:4768]', 'editor': ''}, 
+            {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': 'The Korean Journal of Food And Nutrition [issn:1225-4339]', 'volume': '25', 'issue': '1', 'page': '', 'type': 'journal issue', 'publisher': '', 'editor': ''}, 
+            {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': 'The Korean Journal of Food And Nutrition [issn:1225-4339]', 'volume': '', 'issue': '2', 'page': '', 'type': 'journal issue', 'publisher': '', 'editor': ''}]
         shutil.rmtree(TMP_DIR)
         self.assertEqual(sorted(output, key=lambda x: x['id']+x['title']+x['author']+x['issue']+x['volume']+x['type']), sorted(expected_output, key=lambda x: x['id']+x['title']+x['author']+x['issue']+x['volume']+x['type']))
         
     def test__get_duplicated_ids(self):
         data = [
-            {'id': 'issn:0098-7484 issn:0003-987X', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}, 
+            {'id': 'issn:0098-7484 issn:0003-987X', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '50-55', 'type': '', 'publisher': '', 'editor': ''}, 
             {'id': 'issn:0090-4295', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}, 
-            {'id': 'issn:2341-4022 issn:2341-4023', 'title': '', 'author': '', 'pub_date': '', 'venue': 'Transit Migration in Europe [issn:0003-987X]', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}, 
-            {'id': 'issn:0098-7484', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}]
+            {'id': 'issn:2341-4022 issn:2341-4023', 'title': 'Acta urológica portuguesa', 'author': '', 'pub_date': '', 'venue': 'Transit Migration in Europe [issn:0003-987X]', 'volume': '', 'issue': '', 'page': '25', 'type': 'journal', 'publisher': '', 'editor': ''}, 
+            {'id': 'issn:0098-7484', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '50-55', 'type': '', 'publisher': '', 'editor': ''}]
         ids_found = {'issn:2341-4022'}
         items_by_id = dict()
         _get_duplicated_ids(data, ids_found, items_by_id)
         expected_output = {
-            'issn:2341-4022': {'others': {'issn:2341-4023'}, 'name': '', 'type': ''}, 
-            'issn:2341-4023': {'others': {'issn:2341-4022'}, 'name': '', 'type': ''}}
+            'issn:2341-4022': {'others': {'issn:2341-4023'}, 'name': 'Acta urológica portuguesa', 'page': '25', 'type': 'journal'}, 
+            'issn:2341-4023': {'others': {'issn:2341-4022'}, 'name': 'Acta urológica portuguesa', 'page': '25', 'type': 'journal'}}
         self.assertEqual(items_by_id, expected_output)
     
     def test__get_relevant_venues(self):
@@ -60,7 +57,7 @@ class TestPrepareMultiprocess(unittest.TestCase):
         item_6 = {'id': 'isbn:9789089646491', 'title': 'Transit Migration in Europe', 'venue': '', 'volume': '', 'issue': '', 'type': 'book'}
         item_7 = {'id': 'isbn:9789089646491', 'title': 'Transit Migration in Europe', 'venue': 'An Introduction to Immigrant Incorporation Studies [issn:1750-743X]', 'volume': '', 'issue': '', 'type': 'book'}
         items = [item_1, item_2, item_3, item_4, item_5, item_6, item_7]
-        _get_relevant_venues(data= items, items_by_id=items_by_id)
+        _get_relevant_venues(data= items, ids_found={'issn:0098-7484', 'issn:2341-4022', 'isbn:9789089646491', 'issn:1750-743X'}, items_by_id=items_by_id)
         expected_output = {
             'issn:0098-7484': {'others': {'issn:0041-1345', 'issn:0040-6090', 'issn:0003-987X'}, 'name': 'Venue', 'type': 'journal', 'volume': {'1': {'a'}, '2': {'b'}}, 'issue': set()}, 
             'issn:0003-987X': {'others': {'issn:0041-1345', 'issn:0098-7484'}, 'name': 'Venue', 'type': 'journal', 'volume': {'1': {'a'}}, 'issue': set()}, 
@@ -81,12 +78,10 @@ class TestPrepareMultiprocess(unittest.TestCase):
             {'id': '', 'title': '', 'author': 'Cheigh, Chan-Ick [orcid:0000-0003-2542-5788]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': 'Wiley [crossref:311]', 'editor': ''}, 
             {'id': '', 'title': '', 'author': 'Kim, Young-Shik [orcid:0000-0001-5673-6314]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': 'Wiley [crossref:311]', 'editor': ''}, 
             {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': 'The Korean Journal of Food And Nutrition [issn:1225-4339]', 'volume': '25', 'issue': '1', 'page': '', 'type': 'journal issue', 'publisher': '', 'editor': ''}]
-        _get_publishers(data= items, items_by_id=items_by_id)
+        _get_publishers(data=items, ids_found={'crossref:10'}, items_by_id=items_by_id)
         expected_output = {
             'crossref:10': {'others': {'crossref:9999'}, 'name': 'American Medical Association (AMA)', 'type': 'publisher'}, 
-            'crossref:9999': {'others': {'crossref:10'}, 'name': 'American Medical Association (AMA)', 'type': 'publisher'},
-            'crossref:78': {'others': set(), 'name': 'Elsevier BV', 'type': 'publisher'}, 
-            'crossref:311': {'others': set(), 'name': 'Wiley', 'type': 'publisher'}}
+            'crossref:9999': {'others': {'crossref:10'}, 'name': 'American Medical Association (AMA)', 'type': 'publisher'}}
         self.assertEqual(items_by_id, expected_output)
 
     def test__get_resp_agents(self):
@@ -96,7 +91,7 @@ class TestPrepareMultiprocess(unittest.TestCase):
         item_3 = {'author': 'Massari, A [viaf:1]', 'editor': ''}
         item_4 = {'author': 'Peroni, Silvio [orcid:0000-0003-0530-4305]', 'editor': ''}
         items = [item_1, item_2, item_3, item_4]
-        _get_resp_agents(data= items, items_by_id=items_by_id)
+        _get_resp_agents(data=items, ids_found={'orcid:0000-0002-8420-0696', 'orcid:0000-0003-0530-4305'}, items_by_id=items_by_id)
         expected_output = {
             'orcid:0000-0002-8420-0696': {'others': {'viaf:1'}, 'name': 'Massari, Arcangelo', 'type': 'author'}, 
             'viaf:1': {'others': {'orcid:0000-0002-8420-0696'}, 'name': 'Massari, A.', 'type': 'author'}, 
