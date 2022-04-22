@@ -71,7 +71,7 @@ def prepare_relevant_items(csv_dir:str, output_dir:str, items_per_file:int, verb
     fieldnames = ['id', 'title', 'author', 'pub_date', 'venue', 'volume', 'issue', 'page', 'type', 'publisher', 'editor']
     # Remove overlaps between ids and venues
     venues_merged = {k:v for k,v in venues_merged.items() if k not in ids_merged}
-    __save_relevant_venues(venues_merged, output_dir, fieldnames)
+    __save_relevant_venues(venues_merged, items_per_file, output_dir, fieldnames)
     __save_ids(ids_merged, items_per_file, output_dir, fieldnames)
     __save_responsible_agents(resp_agents_merged, items_per_file, output_dir, fieldnames, ('people', 'author'))
     __save_responsible_agents(publishers_merged, items_per_file, output_dir, fieldnames, ('publishers', 'publisher'))
@@ -206,9 +206,10 @@ def __find_all_vi(items_by_id:dict, all_ids:set) -> dict:
             all_vi['issue'].add(venue_issues)
     return all_vi
 
-def __save_relevant_venues(items_by_id:dict, output_dir:str, fieldnames:list):
+def __save_relevant_venues(items_by_id:dict, items_per_file:int, output_dir:str, fieldnames:list):
     output_dir = os.path.join(output_dir, 'venues')
     rows = list()
+    counter = 0
     for item_id, data in items_by_id.items():
         item_type = data['type']
         row = dict()
@@ -237,12 +238,12 @@ def __save_relevant_venues(items_by_id:dict, output_dir:str, fieldnames:list):
             rows.append(issue_row)
         if not data['volume'] and not data['issue']:
             rows.append(row)
-        output_path = os.path.join(output_dir, f"{item_id.replace(':', '_').replace('/', '-')}.csv")
-        if os.path.exists(output_path):
-            preexisting_data = get_data(output_path)
-            rows.append(preexisting_data)
-        write_csv(output_path, rows, fieldnames)
-        rows = list()
+        if len(rows) >= items_per_file:
+            output_path = os.path.join(output_dir, f"{counter}.csv")
+            write_csv(output_path, rows, fieldnames)
+            rows = list()
+            counter += 1
+    write_csv(output_path, rows, fieldnames)
 
 def __save_responsible_agents(items_by_id:dict, items_per_file:int, output_dir:str, fieldnames:list, datatype:tuple):
     folder = datatype[0]
