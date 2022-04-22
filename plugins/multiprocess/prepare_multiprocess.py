@@ -16,7 +16,7 @@
 
 
 from meta.lib.file_manager import pathoo, get_data, write_csv, sort_files
-from meta.lib.master_of_regex import ids_inside_square_brackets, name_and_ids, semicolon_in_people_field
+from meta.lib.master_of_regex import name_and_ids, semicolon_in_people_field
 from meta.scripts.creator import Creator
 from typing import Dict, List
 from tqdm import tqdm
@@ -71,7 +71,7 @@ def prepare_relevant_items(csv_dir:str, output_dir:str, items_per_file:int, verb
     fieldnames = ['id', 'title', 'author', 'pub_date', 'venue', 'volume', 'issue', 'page', 'type', 'publisher', 'editor']
     # Remove overlaps between ids and venues
     venues_merged = {k:v for k,v in venues_merged.items() if k not in ids_merged}
-    __save_relevant_venues(venues_merged, items_per_file, output_dir, fieldnames)
+    __save_relevant_venues(venues_merged, output_dir, fieldnames)
     __save_ids(ids_merged, items_per_file, output_dir, fieldnames)
     __save_responsible_agents(resp_agents_merged, items_per_file, output_dir, fieldnames, ('people', 'author'))
     __save_responsible_agents(publishers_merged, items_per_file, output_dir, fieldnames, ('publishers', 'publisher'))
@@ -206,18 +206,9 @@ def __find_all_vi(items_by_id:dict, all_ids:set) -> dict:
             all_vi['issue'].add(venue_issues)
     return all_vi
 
-def __save_relevant_venues(items_by_id:dict, items_per_file:int, output_dir:str, fieldnames:list):
+def __save_relevant_venues(items_by_id:dict, output_dir:str, fieldnames:list):
     output_dir = os.path.join(output_dir, 'venues')
     rows = list()
-    chunks = int(items_per_file)
-    saved_chunks = 0
-    output_length = 0
-    for _, data in items_by_id.items():
-        for _, issues in data['volume'].items():
-            output_length = output_length + len(issues) if issues else output_length + 1
-        output_length += len(data['issue'])
-        if not data['volume'] and not data['issue']:
-            output_length += 1
     for item_id, data in items_by_id.items():
         item_type = data['type']
         row = dict()
@@ -235,21 +226,23 @@ def __save_relevant_venues(items_by_id:dict, items_per_file:int, output_dir:str,
                     volume_issue_row = dict(volume_row)
                     volume_issue_row['issue'] = volume_issue
                     rows.append(volume_issue_row)
-                    rows, saved_chunks = __store_data(rows, output_length, chunks, saved_chunks, output_dir, fieldnames)
             else:
                 volume_row['type'] = 'journal volume'
                 rows.append(volume_row)
-                rows, saved_chunks = __store_data(rows, output_length, chunks, saved_chunks, output_dir, fieldnames)
         for venue_issue in data['issue']:
             issue_row = dict()
             issue_row['venue'] = f'{name} [{ids}]'
             issue_row['issue'] = venue_issue
             issue_row['type'] = 'journal issue'
             rows.append(issue_row)
-            rows, saved_chunks = __store_data(rows, output_length, chunks, saved_chunks, output_dir, fieldnames)
         if not data['volume'] and not data['issue']:
             rows.append(row)
-            rows, saved_chunks = __store_data(rows, output_length, chunks, saved_chunks, output_dir, fieldnames)
+        output_path = os.path.join(output_dir, f"{item_id.replace(':', '_').replace('/', '-')}.csv")
+        if os.path.exists(output_path):
+            preexisting_data = get_data(output_path)
+            rows.append(preexisting_data)
+        write_csv(output_path, rows, fieldnames)
+        rows = list()
 
 def __save_responsible_agents(items_by_id:dict, items_per_file:int, output_dir:str, fieldnames:list, datatype:tuple):
     folder = datatype[0]

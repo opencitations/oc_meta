@@ -45,10 +45,8 @@ if __name__ == '__main__':
             shutil.move(os.path.join(TMP_DIR, file), csv_dir)
         prepare_relevant_items(csv_dir=csv_dir, output_dir=TMP_DIR, items_per_file=items_per_file, verbose=verbose)
     venues_dir = os.path.join(TMP_DIR, 'venues')
-    meta_process.workers_number = 1
     meta_process.input_csv_dir = venues_dir
     run_meta_process(meta_process=meta_process)
-    meta_process.workers_number = workers_numbers
     ids_dir = os.path.join(TMP_DIR, 'ids')
     meta_process.input_csv_dir = ids_dir
     run_meta_process(meta_process=meta_process)
