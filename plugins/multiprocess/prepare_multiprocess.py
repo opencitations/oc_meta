@@ -243,6 +243,7 @@ def __save_relevant_venues(items_by_id:dict, items_per_file:int, output_dir:str,
             write_csv(output_path, rows, fieldnames)
             rows = list()
             counter += 1
+    output_path = os.path.join(output_dir, f"{counter}.csv")
     write_csv(output_path, rows, fieldnames)
 
 def __save_responsible_agents(items_by_id:dict, items_per_file:int, output_dir:str, fieldnames:list, datatype:tuple):

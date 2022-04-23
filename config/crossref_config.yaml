@@ -17,9 +17,10 @@
 # Mandatory settings
 
 # Crossref JSON files directory (input files)
-crossref_json_dir: /srv/meta/crossref_dump
+crossref_json_dir: /srv/meta/crossref-data-2022-03.tar.gz
 # Directory where output CSVs will be stored
 output: /srv/meta/meta_input
+
 # Optional settings
 
 # CSV file path containing information about publishers (id, name, prefix). This file can be generated via meta.run.crossref_publishers_extractor

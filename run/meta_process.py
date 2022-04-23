@@ -119,8 +119,12 @@ class MetaProcess:
             # Storer
             res_storer = Storer(creator, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, default_dir=self.default_dir, output_format='json-ld')
             prov_storer = Storer(prov, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, output_format='json-ld')
+            if self.verbose:
+                print(f'[Storer: INFO] Worker {worker_number} is writing to files and triplestore')
             with suppress_stdout():
                 self.store_data_and_prov(res_storer, prov_storer, filename)
+            if self.verbose:
+                print(f'[Storer: INFO] Worker {worker_number} finished writing')
             return {'success': filename}
         except Exception as e:
             return {'error': filename, 'msg': e}
