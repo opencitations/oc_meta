@@ -119,8 +119,8 @@ class MetaProcess:
             # Storer
             res_storer = Storer(creator, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, default_dir=self.default_dir, output_format='json-ld')
             prov_storer = Storer(prov, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, output_format='json-ld')
-            with suppress_stdout():
-                self.store_data_and_prov(res_storer, prov_storer, filename)
+            # with suppress_stdout():
+            self.store_data_and_prov(res_storer, prov_storer, filename)
             return {'success': filename}
         except Exception as e:
             return {'error': filename, 'msg': e}
@@ -149,8 +149,7 @@ def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False) -> N
     else:
         multiples_of_ten = {i for i in range(1, max_workers+1) if int(i) % 10 == 0}
         workers = [i for i in range(1, max_workers+len(multiples_of_ten)+1) if i not in multiples_of_ten]
-    l = multiprocessing.Lock() if max_workers != 1 else None
-    with Pool(processes=max_workers, initializer=init_lock, initargs=(l,), maxtasksperchild=1) as executor:
+    with Pool(processes=max_workers, maxtasksperchild=1) as executor:
         futures:List[ApplyResult] = [executor.apply_async(func=meta_process.curate_and_create, args=(file_to_be_processed, worker_number, resp_agents_only)) for file_to_be_processed, worker_number in zip(files_to_be_processed, cycle(workers))]
         for future in futures:
             processed_file = future.get()
@@ -165,9 +164,6 @@ def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False) -> N
         os.rename(meta_process.cache_path, meta_process.cache_path.replace('.txt', f'_{datetime.now().strftime("%Y-%m-%dT%H_%M_%S_%f")}.txt'))
     pbar.close() if pbar else None
 
-def init_lock(l):
-    global lock
-    lock = l
 
 if __name__ == '__main__':
     arg_parser = ArgumentParser('meta_process.py', description='This script runs the OCMeta data processing workflow')
