@@ -701,26 +701,30 @@ class ResourceFinder:
                 allowed_type = True
         return allowed_type
     
-    def get_preexisting_graph(self, res:str) -> Graph:
-        query_subj = f"""
-            CONSTRUCT {{
-                <{res}> ?p ?o.
-            }}
-            WHERE {{
-                <{res}> ?p ?o.
-            }}
-        """
-        self.ts.setReturnFormat(RDFXML)
-        graph_subj = self.__query(query_subj)
-        untyped_graph_subj = Graph()
-        for triple in graph_subj.triples((None, None, None)):
-            remove_datatype = False
-            if isinstance(triple[2], Literal):
-                if triple[2].datatype == URIRef('http://www.w3.org/2001/XMLSchema#string'):
-                    remove_datatype = True
-                    untyped_literal = Literal(lexical_or_value=str(triple[2]), datatype=None)
-                    untyped_triple = (triple[0], triple[1], untyped_literal)
-            untyped_graph_subj.add(untyped_triple) if remove_datatype else untyped_graph_subj.add(triple)
-        self.ts.setReturnFormat(JSON)
-        untyped_graph_subj = untyped_graph_subj if len(untyped_graph_subj) else None
+    def get_preexisting_graph(self, res:str, preexisting_graphs:dict) -> Graph:
+        if res in preexisting_graphs:
+            return preexisting_graphs[res]
+        else:
+            query_subj = f"""
+                CONSTRUCT {{
+                    <{res}> ?p ?o.
+                }}
+                WHERE {{
+                    <{res}> ?p ?o.
+                }}
+            """
+            self.ts.setReturnFormat(RDFXML)
+            graph_subj = self.__query(query_subj)
+            untyped_graph_subj = Graph()
+            for triple in graph_subj.triples((None, None, None)):
+                remove_datatype = False
+                if isinstance(triple[2], Literal):
+                    if triple[2].datatype == URIRef('http://www.w3.org/2001/XMLSchema#string'):
+                        remove_datatype = True
+                        untyped_literal = Literal(lexical_or_value=str(triple[2]), datatype=None)
+                        untyped_triple = (triple[0], triple[1], untyped_literal)
+                untyped_graph_subj.add(untyped_triple) if remove_datatype else untyped_graph_subj.add(triple)
+            self.ts.setReturnFormat(JSON)
+            untyped_graph_subj = untyped_graph_subj if len(untyped_graph_subj) else None
+            preexisting_graphs[res] = untyped_graph_subj
         return untyped_graph_subj

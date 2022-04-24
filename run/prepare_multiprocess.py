@@ -18,7 +18,7 @@
 from argparse import ArgumentParser
 from meta.lib.file_manager import normalize_path
 from meta.run.meta_process import MetaProcess, run_meta_process
-from meta.plugins.multiprocess.prepare_multiprocess import prepare_relevant_items, split_csvs_in_chunks
+from meta.plugins.multiprocess.prepare_multiprocess import prepare_relevant_items
 import os
 import shutil
 import yaml
@@ -38,11 +38,6 @@ if __name__ == '__main__':
     meta_process = MetaProcess(config)
     TMP_DIR = os.path.join(meta_process.base_output_dir, 'tmp')
     if not all(os.path.exists(os.path.join(TMP_DIR, directory)) for directory in ['venues', 'ids', 'publishers', 'people']):
-        split_csvs_in_chunks(csv_dir=csv_dir, output_dir=TMP_DIR, chunk_size=1000, verbose=verbose)
-        os.rename(csv_dir, csv_dir + '_old')
-        os.mkdir(csv_dir)
-        for file in os.listdir(TMP_DIR):
-            shutil.move(os.path.join(TMP_DIR, file), csv_dir)
         prepare_relevant_items(csv_dir=csv_dir, output_dir=TMP_DIR, items_per_file=items_per_file, verbose=verbose)
     venues_dir = os.path.join(TMP_DIR, 'venues')
     meta_process.input_csv_dir = venues_dir

@@ -44,6 +44,7 @@ class Creator(object):
         self.ar_index = self.index_ar(ar_index_csv)
         self.vi_index = vi_index
         self.preexisting_entities = preexisting_entities
+        self.preexisting_graphs = dict()
         self.data = data
 
     def creator(self, source=None):
@@ -126,7 +127,7 @@ class Creator(object):
                 preexisting_entity = True if identifier in self.preexisting_entities else False
                 self.row_meta = identifier.replace('br/', '')
                 url = URIRef(self.url + identifier)
-                preexisting_graph = self.finder.get_preexisting_graph(url) if preexisting_entity else None
+                preexisting_graph = self.finder.get_preexisting_graph(url, self.preexisting_graphs) if preexisting_entity else None
                 self.br_graph = self.setgraph.add_br(self.resp_agent, source=self.src, res=url, preexisting_graph=preexisting_graph)
         for identifier in idslist:
             self.id_creator(self.br_graph, identifier, ra=False)
@@ -149,7 +150,7 @@ class Creator(object):
                         preexisting_entity = True if identifier in self.preexisting_entities else False
                         url = URIRef(self.url + identifier)
                         aut_meta = identifier.replace('ra/', '')
-                        preexisting_graph = self.finder.get_preexisting_graph(url) if preexisting_entity else None
+                        preexisting_graph = self.finder.get_preexisting_graph(url, self.preexisting_graphs) if preexisting_entity else None
                         pub_aut = self.setgraph.add_ra(self.resp_agent, source=self.src, res=url, preexisting_graph=preexisting_graph)
                         author_name = aut_and_ids.group(1)
                         if ',' in author_name:
@@ -169,7 +170,7 @@ class Creator(object):
                 ar_id = 'ar/' + str(AR)
                 preexisting_entity = True if ar_id in self.preexisting_entities else False
                 url_ar = URIRef(self.url + ar_id)
-                preexisting_graph = self.finder.get_preexisting_graph(url_ar) if preexisting_entity else None
+                preexisting_graph = self.finder.get_preexisting_graph(url_ar, self.preexisting_graphs) if preexisting_entity else None
                 pub_aut_role = self.setgraph.add_ar(self.resp_agent, source=self.src, res=url_ar, preexisting_graph=preexisting_graph)
                 pub_aut_role.create_author()
                 self.br_graph.has_contributor(pub_aut_role)
@@ -201,7 +202,7 @@ class Creator(object):
                     preexisting_entity = True if ven_id in self.preexisting_entities else False
                     url = URIRef(self.url + ven_id)
                     venue_title = venue_and_ids.group(1)
-                    preexisting_graph = self.finder.get_preexisting_graph(url) if preexisting_entity else None
+                    preexisting_graph = self.finder.get_preexisting_graph(url, self.preexisting_graphs) if preexisting_entity else None
                     self.venue_graph = self.setgraph.add_br(self.resp_agent, source=self.src, res=url, preexisting_graph=preexisting_graph)
                     try:
                         venue_type = self.get_venue_type(self.type, venue_ids_list)
@@ -221,7 +222,7 @@ class Creator(object):
                     vol_meta = 'br/' + vol_meta
                     preexisting_entity = True if vol_meta in self.preexisting_entities else False
                     vol_url = URIRef(self.url + vol_meta)
-                    preexisting_graph = self.finder.get_preexisting_graph(vol_url) if preexisting_entity else None
+                    preexisting_graph = self.finder.get_preexisting_graph(vol_url, self.preexisting_graphs) if preexisting_entity else None
                     self.vol_graph = self.setgraph.add_br(self.resp_agent, source=self.src, res=vol_url, preexisting_graph=preexisting_graph)
                     self.vol_graph.create_volume()
                     self.vol_graph.has_number(vol)
@@ -233,7 +234,7 @@ class Creator(object):
                     issue_meta = 'br/' + issue_meta
                     preexisting_entity = True if issue_meta in self.preexisting_entities else False
                     issue_url = URIRef(self.url + issue_meta)
-                    preexisting_graph = self.finder.get_preexisting_graph(issue_url) if preexisting_entity else None
+                    preexisting_graph = self.finder.get_preexisting_graph(issue_url, self.preexisting_graphs) if preexisting_entity else None
                     self.issue_graph = self.setgraph.add_br(self.resp_agent, source=self.src, res=issue_url, preexisting_graph=preexisting_graph)
                     self.issue_graph.create_issue()
                     self.issue_graph.has_number(issue)
@@ -267,7 +268,7 @@ class Creator(object):
             venue_type = 'reference book'
         elif br_type == 'report series':
             venue_type = 'report series'
-        elif not br_type:
+        elif not br_type or br_type in {'dataset', 'data file'}:
             venue_type = ''
         # Check the type based on the identifier scheme
         if any(identifier for identifier in venue_ids if not identifier.startswith('meta:')):
@@ -293,7 +294,7 @@ class Creator(object):
             re_id = 're/' + str(res_em)
             preexisting_entity = True if re_id in self.preexisting_entities else False
             url_re = URIRef(self.url + re_id)
-            preexisting_graph = self.finder.get_preexisting_graph(url_re) if preexisting_entity else None
+            preexisting_graph = self.finder.get_preexisting_graph(url_re, self.preexisting_graphs) if preexisting_entity else None
             form = self.setgraph.add_re(self.resp_agent, source=self.src, res=url_re, preexisting_graph=preexisting_graph)
             form.has_starting_page(page)
             form.has_ending_page(page)
@@ -358,7 +359,7 @@ class Creator(object):
                 pub_meta = identifier.replace('ra/', '')
                 url = URIRef(self.url + identifier)
                 publ_name = publ_and_ids.group(1)
-                preexisting_graph = self.finder.get_preexisting_graph(url) if preexisting_entity else None
+                preexisting_graph = self.finder.get_preexisting_graph(url, self.preexisting_graphs) if preexisting_entity else None
                 publ = self.setgraph.add_ra(self.resp_agent, source=self.src, res=url, preexisting_graph=preexisting_graph)
                 publ.has_name(publ_name)
         for identifier in publ_id_list:
@@ -368,7 +369,7 @@ class Creator(object):
         ar_id = 'ar/' + str(AR)
         preexisting_entity = True if ar_id in self.preexisting_entities else False
         url_ar = URIRef(self.url + ar_id)
-        preexisting_graph = self.finder.get_preexisting_graph(url_ar)
+        preexisting_graph = self.finder.get_preexisting_graph(url_ar, self.preexisting_graphs)
         publ_role = self.setgraph.add_ar(self.resp_agent, source=self.src, res=url_ar, preexisting_graph=preexisting_graph)
         publ_role.create_publisher()
         self.br_graph.has_contributor(publ_role)
@@ -387,7 +388,7 @@ class Creator(object):
                     preexisting_entity = True if identifier in self.preexisting_entities else False
                     ed_meta = identifier.replace('ra/', '')
                     url = URIRef(self.url + identifier)
-                    preexisting_graph = self.finder.get_preexisting_graph(url) if preexisting_entity else None
+                    preexisting_graph = self.finder.get_preexisting_graph(url, self.preexisting_graphs) if preexisting_entity else None
                     pub_ed = self.setgraph.add_ra(self.resp_agent, source=self.src, res=url, preexisting_graph=preexisting_graph)
                     editor_name = ed_and_ids.group(1)
                     if ',' in editor_name:
@@ -407,7 +408,7 @@ class Creator(object):
             ar_id = 'ar/' + str(AR)
             preexisting_entity = True if ar_id in self.preexisting_entities else False
             url_ar = URIRef(self.url + ar_id)
-            preexisting_graph = self.finder.get_preexisting_graph(url_ar) if preexisting_entity else None
+            preexisting_graph = self.finder.get_preexisting_graph(url_ar, self.preexisting_graphs) if preexisting_entity else None
             pub_ed_role = self.setgraph.add_ar(self.resp_agent, source=self.src, res=url_ar, preexisting_graph=preexisting_graph)
             if self.type == 'proceedings article' and self.venue_graph:
                 pub_ed_role.create_editor()
@@ -432,7 +433,7 @@ class Creator(object):
                     res = self.ra_index[ra_id_schema][identifier]
                     preexisting_entity = True if f'id/{res}' in self.preexisting_entities else False
                     url = URIRef(self.url + 'id/' + res)
-                    preexisting_graph = self.finder.get_preexisting_graph(url) if preexisting_entity else None
+                    preexisting_graph = self.finder.get_preexisting_graph(url, self.preexisting_graphs) if preexisting_entity else None
                     new_id = self.setgraph.add_id(self.resp_agent, source=self.src, res=url, preexisting_graph=preexisting_graph)
                     getattr(new_id, f'create_{ra_id_schema}')(identifier)
         else:
@@ -442,7 +443,7 @@ class Creator(object):
                     res = self.br_index[br_id_schema][identifier]
                     preexisting_entity = True if f'id/{res}' in self.preexisting_entities else False
                     url = URIRef(self.url + 'id/' + res)
-                    preexisting_graph = self.finder.get_preexisting_graph(url) if preexisting_entity else None
+                    preexisting_graph = self.finder.get_preexisting_graph(url, self.preexisting_graphs) if preexisting_entity else None
                     new_id = self.setgraph.add_id(self.resp_agent, source=self.src, res=url, preexisting_graph=preexisting_graph)
                     getattr(new_id, f'create_{br_id_schema}')(identifier)
         if new_id:

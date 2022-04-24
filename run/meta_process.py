@@ -119,12 +119,8 @@ class MetaProcess:
             # Storer
             res_storer = Storer(creator, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, default_dir=self.default_dir, output_format='json-ld')
             prov_storer = Storer(prov, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, output_format='json-ld')
-            if self.verbose:
-                print(f'[Storer: INFO] Worker {worker_number} is writing to files and triplestore')
             with suppress_stdout():
                 self.store_data_and_prov(res_storer, prov_storer, filename)
-            if self.verbose:
-                print(f'[Storer: INFO] Worker {worker_number} finished writing')
             return {'success': filename}
         except Exception as e:
             return {'error': filename, 'msg': e}
@@ -133,17 +129,13 @@ class MetaProcess:
         if self.rdf_output_in_chunks:
             filename_without_csv = filename[:-4]
             f = os.path.join(self.output_rdf_dir, 'data', filename_without_csv + '.json')
-            lock.acquire()
             res_storer.store_graphs_in_file(f, self.context_path)
-            lock.release()
             res_storer.upload_all(self.triplestore_url, self.output_rdf_dir, batch_size=100)
             f_prov = os.path.join(self.output_rdf_dir, 'prov', filename_without_csv + '.json')
             prov_storer.store_graphs_in_file(f_prov, self.context_path)
         else:
-            lock.acquire()
             res_storer.store_all(base_dir=self.output_rdf_dir, base_iri=self.base_iri, context_path=self.context_path)
             prov_storer.store_all(self.output_rdf_dir, self.base_iri, self.context_path)
-            lock.release()
             res_storer.upload_all(triplestore_url=self.triplestore_url, base_dir=self.output_rdf_dir, batch_size=100)
 
 def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False) -> None:
@@ -157,7 +149,7 @@ def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False) -> N
     else:
         multiples_of_ten = {i for i in range(1, max_workers+1) if int(i) % 10 == 0}
         workers = [i for i in range(1, max_workers+len(multiples_of_ten)+1) if i not in multiples_of_ten]
-    l = multiprocessing.Lock()
+    l = multiprocessing.Lock() if max_workers != 1 else None
     with Pool(processes=max_workers, initializer=init_lock, initargs=(l,), maxtasksperchild=1) as executor:
         futures:List[ApplyResult] = [executor.apply_async(func=meta_process.curate_and_create, args=(file_to_be_processed, worker_number, resp_agents_only)) for file_to_be_processed, worker_number in zip(files_to_be_processed, cycle(workers))]
         for future in futures:
@@ -169,7 +161,8 @@ def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False) -> N
                 with open(meta_process.errors_path, 'a', encoding='utf-8') as aux_file:
                     aux_file.write(f'{processed_file["error"]}: {processed_file["msg"]}' + '\n')
             pbar.update() if pbar else None
-    os.rename(meta_process.cache_path, meta_process.cache_path.replace('.txt', f'_{datetime.now().strftime("%Y-%m-%dT%H_%M_%S_%f")}.txt'))
+    if os.path.exists(meta_process.cache_path):
+        os.rename(meta_process.cache_path, meta_process.cache_path.replace('.txt', f'_{datetime.now().strftime("%Y-%m-%dT%H_%M_%S_%f")}.txt'))
     pbar.close() if pbar else None
 
 def init_lock(l):

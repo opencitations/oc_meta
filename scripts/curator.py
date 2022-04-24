@@ -538,7 +538,7 @@ class Curator:
         for _, roles in self.ardict.items():
             for _, ar_ras in roles.items():
                 for ar_ra in ar_ras:
-                    if not ar_ra[0].startswith('wannabe'):
+                    if not ar_ra[1].startswith('wannabe'):
                         self.preexisting_entities.add(f'ar/{ar_ra[0]}')
         for venue_metaid, vi in self.vvi.items():
             if not venue_metaid.startswith('wannabe'):

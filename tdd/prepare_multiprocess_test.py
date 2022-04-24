@@ -1,6 +1,6 @@
 from csv import DictReader
 from meta.lib.file_manager import get_data
-from meta.plugins.multiprocess.prepare_multiprocess import prepare_relevant_items, _do_collective_merge, _get_relevant_venues, _get_resp_agents, _get_publishers, _get_duplicated_ids, split_csvs_in_chunks
+from meta.plugins.multiprocess.prepare_multiprocess import prepare_relevant_items, _do_collective_merge, _get_relevant_venues, _get_resp_agents, _get_publishers, _get_duplicated_ids
 from pprint import pprint
 import os
 import shutil
@@ -23,12 +23,11 @@ class TestPrepareMultiprocess(unittest.TestCase):
                         output.extend(list(DictReader(f)))
         expected_output = [
             {'id': 'doi:10.9799/ksfan.2012.25.1.069', 'title': 'Nonthermal Sterilization and Shelf-life Extension of Seafood Products by Intense Pulsed Light Treatment', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '69-76', 'type': 'journal article', 'publisher': '', 'editor': ''}, 
-            {'id': '', 'title': '', 'author': 'Cheigh, Chan-Ick [orcid:0000-0003-2542-5788]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}, 
             {'id': '', 'title': '', 'author': 'Chung, Myong-Soo [orcid:0000-0002-9666-2513]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}, 
+            {'id': '', 'title': '', 'author': 'Cheigh, Chan-Ick [orcid:0000-0003-2542-5788]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}, 
             {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': 'Consulting Company Ucom [crossref:6623]', 'editor': ''}, 
             {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': 'The Korean Society of Food and Nutrition [crossref:4768]', 'editor': ''}, 
-            {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': 'The Korean Journal of Food And Nutrition [issn:1225-4339]', 'volume': '25', 'issue': '1', 'page': '', 'type': 'journal issue', 'publisher': '', 'editor': ''}, 
-            {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': 'The Korean Journal of Food And Nutrition [issn:1225-4339]', 'volume': '', 'issue': '2', 'page': '', 'type': 'journal issue', 'publisher': '', 'editor': ''}]
+            {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': 'The Korean Journal of Food And Nutrition [issn:1225-4339]', 'volume': '25', 'issue': '1', 'page': '', 'type': 'journal issue', 'publisher': '', 'editor': ''}]
         shutil.rmtree(TMP_DIR)
         self.assertEqual(sorted(output, key=lambda x: x['id']+x['title']+x['author']+x['issue']+x['volume']+x['type']), sorted(expected_output, key=lambda x: x['id']+x['title']+x['author']+x['issue']+x['volume']+x['type']))
         
@@ -57,16 +56,16 @@ class TestPrepareMultiprocess(unittest.TestCase):
         item_6 = {'id': 'isbn:9789089646491', 'title': 'Transit Migration in Europe', 'venue': '', 'volume': '', 'issue': '', 'type': 'book'}
         item_7 = {'id': 'isbn:9789089646491', 'title': 'Transit Migration in Europe', 'venue': 'An Introduction to Immigrant Incorporation Studies [issn:1750-743X]', 'volume': '', 'issue': '', 'type': 'book'}
         items = [item_1, item_2, item_3, item_4, item_5, item_6, item_7]
-        _get_relevant_venues(data= items, ids_found={'issn:0098-7484', 'issn:2341-4022', 'isbn:9789089646491', 'issn:1750-743X'}, items_by_id=items_by_id)
+        _get_relevant_venues(data= items, ids_found={'issn:0098-7484': {'volumes': {'1': {'a'}}, 'issues': set()}, 'issn:2341-4022': {'volumes': dict(), 'issues': {'d', 'e'}}, 'isbn:9789089646491': {'volumes': dict(), 'issues': set()}, 'issn:1750-743X': {'volumes': dict(), 'issues': set()}}, items_by_id=items_by_id, overlapping_ids=dict())
         expected_output = {
-            'issn:0098-7484': {'others': {'issn:0041-1345', 'issn:0040-6090', 'issn:0003-987X'}, 'name': 'Venue', 'type': 'journal', 'volume': {'1': {'a'}, '2': {'b'}}, 'issue': set()}, 
+            'issn:0098-7484': {'others': {'issn:0041-1345', 'issn:0040-6090', 'issn:0003-987X'}, 'name': 'Venue', 'type': 'journal', 'volume': {'1': {'a'}}, 'issue': set()}, 
             'issn:0003-987X': {'others': {'issn:0041-1345', 'issn:0098-7484'}, 'name': 'Venue', 'type': 'journal', 'volume': {'1': {'a'}}, 'issue': set()}, 
             'issn:0041-1345': {'others': {'issn:0098-7484', 'issn:0003-987X'}, 'name': 'Venue', 'type': 'journal', 'volume': {'1': {'a'}}, 'issue': set()}, 
-            'issn:0040-6090': {'others': {'issn:0098-7484', 'issn:0090-4295'}, 'name': 'Venue', 'type': 'journal', 'volume': {'2': {'b'}, '3': {'c'}}, 'issue': set()}, 
-            'issn:0090-4295': {'others': {'issn:2341-4022', 'issn:0040-6090'}, 'name': 'Venue', 'type': 'journal', 'volume': {'3': {'c'}}, 'issue': {'d'}}, 
-            'issn:2341-4022': {'others': {'issn:0090-4295'}, 'name': 'Venue', 'type': 'journal', 'volume': dict(), 'issue': {'d', 'e'}},
-            'isbn:9789089646491': {'others': set(), 'name': 'Transit Migration in Europe', 'type': 'book', 'volume': dict(), 'issue': set()}, 
-            'issn:1750-743X': {'others': set(), 'name': 'An Introduction to Immigrant Incorporation Studies', 'type': 'book series', 'volume': dict(), 'issue': set()}}
+            'issn:0040-6090': {'others': {'issn:0090-4295', 'issn:0098-7484'}, 'name': 'Venue', 'type': 'journal', 'volume': {}, 'issue': set()}, 
+            'issn:0090-4295': {'others': {'issn:2341-4022', 'issn:0040-6090'}, 'name': 'Venue', 'type': 'journal', 'volume': {}, 'issue': {'d'}}, 
+            'issn:2341-4022': {'others': {'issn:0090-4295'}, 'name': 'Venue', 'type': 'journal', 'volume': {}, 'issue': {'d', 'e'}}, 
+            'isbn:9789089646491': {'others': set(), 'name': 'Transit Migration in Europe', 'type': 'book', 'volume': {}, 'issue': set()}, 
+            'issn:1750-743X': {'others': set(), 'name': 'An Introduction to Immigrant Incorporation Studies', 'type': 'book series', 'volume': {}, 'issue': set()}}
         self.assertEqual(items_by_id, expected_output)
 
     def test__get_publishers(self):
@@ -130,17 +129,7 @@ class TestPrepareMultiprocess(unittest.TestCase):
             vi_number += len(data['issue'])
         expected_output = {'id:a': {'name': 'Venue', 'type': 'journal', 'others': {'id:c', 'id:f', 'id:e', 'id:b', 'id:d'}, 'volume': {'1': {'a'}, '2': {'b', 'c'}, '3': {'c'}}, 'issue': {'vol. 17, n° 2', 'e', 'd'}}}
         self.assertEqual(output, expected_output)
-    
-    def test_split_csvs_in_chunk(self):
-        CHUNK_SIZE = 1
-        split_csvs_in_chunks(csv_dir=CSV_DIR, output_dir=TMP_DIR, chunk_size=CHUNK_SIZE, verbose=False)
-        output = list()
-        for file in os.listdir(TMP_DIR):
-            output.append(len(get_data(os.path.join(TMP_DIR, file))))
-        expected_output = [CHUNK_SIZE for _ in os.listdir(TMP_DIR)]
-        self.assertEqual(output, expected_output)
-        shutil.rmtree(TMP_DIR)
-    
+        
 
 if __name__ == '__main__':
     unittest.main()

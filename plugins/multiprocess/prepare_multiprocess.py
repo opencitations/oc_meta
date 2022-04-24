@@ -47,7 +47,7 @@ def prepare_relevant_items(csv_dir:str, output_dir:str, items_per_file:int, verb
     pbar = tqdm(total=len(files)) if verbose else None
     pathoo(output_dir)
     ids_found = set()
-    venues_found = set()
+    venues_found = dict()
     duplicated_ids = dict()
     venues_by_id = dict()
     publishers_found = set()
@@ -58,7 +58,7 @@ def prepare_relevant_items(csv_dir:str, output_dir:str, items_per_file:int, verb
     for file in files:
         data = get_data(file)
         _get_duplicated_ids(data=data, ids_found=ids_found, items_by_id=duplicated_ids)
-        _get_relevant_venues(data=data, ids_found=venues_found, items_by_id=venues_by_id)
+        _get_relevant_venues(data=data, ids_found=venues_found, items_by_id=venues_by_id, overlapping_ids=ids_found)
         _get_publishers(data=data, ids_found=publishers_found, items_by_id=publishers_by_id)
         _get_resp_agents(data=data, ids_found=resp_agents_found, items_by_id=resp_agents_by_id)
         pbar.update() if verbose else None
@@ -69,8 +69,6 @@ def prepare_relevant_items(csv_dir:str, output_dir:str, items_per_file:int, verb
     publishers_merged = _do_collective_merge(publishers_by_id, verbose)
     resp_agents_merged = _do_collective_merge(resp_agents_by_id, verbose)
     fieldnames = ['id', 'title', 'author', 'pub_date', 'venue', 'volume', 'issue', 'page', 'type', 'publisher', 'editor']
-    # Remove overlaps between ids and venues
-    venues_merged = {k:v for k,v in venues_merged.items() if k not in ids_merged}
     __save_relevant_venues(venues_merged, items_per_file, output_dir, fieldnames)
     __save_ids(ids_merged, items_per_file, output_dir, fieldnames)
     __save_responsible_agents(resp_agents_merged, items_per_file, output_dir, fieldnames, ('people', 'author'))
@@ -87,8 +85,8 @@ def _get_duplicated_ids(data:List[dict], ids_found:set, items_by_id:Dict[str, di
         cur_file_ids.update(set(ids_list))   
         ids_found.update(set(ids_list))
 
-def _get_relevant_venues(data:List[dict], ids_found:set, items_by_id:Dict[str, dict]) -> None:
-    cur_file_ids = set()
+def _get_relevant_venues(data:List[dict], ids_found:dict, items_by_id:Dict[str, dict], overlapping_ids:dict) -> None:
+    cur_file_ids = dict()
     for row in data:
         venue = row['venue']
         venues = list()
@@ -108,20 +106,40 @@ def _get_relevant_venues(data:List[dict], ids_found:set, items_by_id:Dict[str, d
         for venue_tuple in venues:
             name, ids, br_type = venue_tuple
             ids_list = [identifier for identifier in ids.split() if identifier not in FORBIDDEN_IDS]
+            if any(id in overlapping_ids for id in ids_list):
+                continue
             if any(id in ids_found and (id not in cur_file_ids or id in items_by_id) for id in ids_list):
                 for id in ids_list:
                     items_by_id.setdefault(id, {'others': set(), 'name': name, 'type': br_type, 'volume': dict(), 'issue': set()})
                     items_by_id[id]['others'].update({other for other in ids_list if other != id})
-                    volume = row['volume']
-                    issue = row['issue']
-                    if volume:
+            for id in ids_list:
+                ids_found.setdefault(id, {'volumes': dict(), 'issues': set()})
+                cur_file_ids.setdefault(id, {'volumes': dict(), 'issues': set()})
+            volume = row['volume']
+            issue = row['issue']
+            if volume:
+                if any(volume in ids_found[id]['volumes'] and volume not in cur_file_ids[id]['volumes'] for id in ids_list):
+                    for id in ids_list:
                         items_by_id[id]['volume'].setdefault(volume, set())
-                        if issue:
+                for id in ids_list:
+                    ids_found[id]['volumes'].setdefault(volume, set())
+                    cur_file_ids[id]['volumes'].setdefault(volume, set())                        
+                if issue:
+                    if any(issue in ids_found[id]['volumes'][volume] and issue not in cur_file_ids[id]['volumes'][volume] for id in ids_list):
+                        for id in ids_list:
+                            items_by_id[id]['volume'].setdefault(volume, set())
                             items_by_id[id]['volume'][volume].add(issue)
-                    elif not volume and issue:
+                    for id in ids_list:
+                        cur_file_ids[id]['volumes'][volume].add(issue)
+                        ids_found[id]['volumes'][volume].add(issue)
+            elif not volume and issue:
+                if any(issue in ids_found[id]['issues'] and issue not in cur_file_ids[id]['issues'] for id in ids_list):
+                    for id in ids_list:
                         items_by_id[id]['issue'].add(issue)
-            cur_file_ids.update(set(ids_list))   
-            ids_found.update(set(ids_list))
+                for id in ids_list:
+                    ids_found[id]['issues'].add(row['issue'])
+                    cur_file_ids[id]['issues'].add(row['issue'])
+                
 
 def _get_publishers(data:List[dict], ids_found:set, items_by_id:Dict[str, dict]) -> None:
     cur_file_ids = set()
@@ -157,9 +175,6 @@ def _get_resp_agents(data:List[dict], ids_found:set, items_by_id:Dict[str, Dict[
                         ids_found.update(set(ids_list))
 
 def _do_collective_merge(items_by_id:dict, verbose:bool=False) -> dict:
-    if verbose:
-        print('[INFO:prepare_multiprocess] Merging the relevant items found')
-        pbar = tqdm(total=len(items_by_id))
     merged_by_key:Dict[str, Dict[str, set]] = dict()
     ids_checked = set()
     for id, data in items_by_id.items():
@@ -181,8 +196,6 @@ def _do_collective_merge(items_by_id:dict, verbose:bool=False) -> dict:
             if all_vi:
                 merged_by_key[id]['volume'] = all_vi['volume']
                 merged_by_key[id]['issue'] = all_vi['issue']
-        pbar.update() if verbose else None
-    pbar.close() if verbose else None
     del items_by_id
     return merged_by_key
 
@@ -286,38 +299,3 @@ def __get_name_and_ids(item_id:str, data:dict):
     name = data['name'] if 'name' in data else ''
     ids = ' '.join(ids_list)
     return name, ids
-
-def split_csvs_in_chunks(csv_dir:str, output_dir:str, chunk_size:int, verbose:bool=False) -> None:
-    '''
-    This function splits all CSVs in a folder in smaller CSVs having a specified number of rows.
-
-    :params csv_dir: the path to the folder containing the input CSV files
-    :type csv_dir: str
-    :params output_dir: the location of the folder to save to output files
-    :type output_dir: str
-    :params chunk_size: an integer to specify how many rows to insert in each output file
-    :type chunk_size: int
-    :params verbose: if True, show a loading bar, elapsed, and estimated time
-    :type verbose: bool
-    :returns: None -- This function returns None and saves the output CSV files in the `output_dir` folder
-    '''
-    files = [os.path.join(csv_dir, file) for file in sort_files(os.listdir(csv_dir)) if file.endswith('.csv')]
-    if verbose:
-        print('[INFO:prepare_multiprocess] Splitting CSVs in chunks')
-        pbar = tqdm(total=len(files))
-    pathoo(output_dir)
-    chunk = list()
-    counter = 0
-    for file in files:
-        data = get_data(file)
-        for row in data:
-            chunk.append(row)
-            counter += 1
-            cur_chunk_size = len(chunk)
-            if cur_chunk_size % chunk_size == 0:
-                write_csv(os.path.join(output_dir, f'{counter}.csv'), chunk)
-                chunk = list()                
-        pbar.update() if verbose else None
-    if len(chunk):
-        write_csv(os.path.join(output_dir, f'{counter}.csv'), chunk)
-    pbar.close() if verbose else None
