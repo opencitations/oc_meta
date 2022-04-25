@@ -1,6 +1,6 @@
 from csv import DictReader
 from meta.lib.file_manager import get_data
-from meta.plugins.multiprocess.prepare_multiprocess import prepare_relevant_items, _do_collective_merge, _get_relevant_venues, _get_resp_agents, _get_publishers, _get_duplicated_ids
+from meta.plugins.multiprocess.prepare_multiprocess import prepare_relevant_items, _do_collective_merge, _get_relevant_venues, _get_resp_agents, _get_publishers, _get_duplicated_ids, split_csvs_in_chunks
 from pprint import pprint
 import os
 import shutil
@@ -129,6 +129,16 @@ class TestPrepareMultiprocess(unittest.TestCase):
             vi_number += len(data['issue'])
         expected_output = {'id:a': {'name': 'Venue', 'type': 'journal', 'others': {'id:c', 'id:f', 'id:e', 'id:b', 'id:d'}, 'volume': {'1': {'a'}, '2': {'b', 'c'}, '3': {'c'}}, 'issue': {'vol. 17, n° 2', 'e', 'd'}}}
         self.assertEqual(output, expected_output)
+
+    def test_split_csvs_in_chunk(self):
+        CHUNK_SIZE = 1
+        split_csvs_in_chunks(csv_dir=CSV_DIR, output_dir=TMP_DIR, chunk_size=CHUNK_SIZE, verbose=False)
+        output = list()
+        for file in os.listdir(TMP_DIR):
+            output.append(len(get_data(os.path.join(TMP_DIR, file))))
+        expected_output = [CHUNK_SIZE for _ in os.listdir(TMP_DIR)]
+        self.assertEqual(output, expected_output)
+        shutil.rmtree(TMP_DIR)
         
 
 if __name__ == '__main__':

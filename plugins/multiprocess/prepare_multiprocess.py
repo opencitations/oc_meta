@@ -299,3 +299,38 @@ def __get_name_and_ids(item_id:str, data:dict):
     name = data['name'] if 'name' in data else ''
     ids = ' '.join(ids_list)
     return name, ids
+
+def split_csvs_in_chunks(csv_dir:str, output_dir:str, chunk_size:int, verbose:bool=False) -> None:
+    '''
+    This function splits all CSVs in a folder in smaller CSVs having a specified number of rows.
+
+    :params csv_dir: the path to the folder containing the input CSV files
+    :type csv_dir: str
+    :params output_dir: the location of the folder to save to output files
+    :type output_dir: str
+    :params chunk_size: an integer to specify how many rows to insert in each output file
+    :type chunk_size: int
+    :params verbose: if True, show a loading bar, elapsed, and estimated time
+    :type verbose: bool
+    :returns: None -- This function returns None and saves the output CSV files in the `output_dir` folder
+    '''
+    files = [os.path.join(csv_dir, file) for file in sort_files(os.listdir(csv_dir)) if file.endswith('.csv')]
+    if verbose:
+        print('[INFO:prepare_multiprocess] Splitting CSVs in chunks')
+        pbar = tqdm(total=len(files))
+    pathoo(output_dir)
+    chunk = list()
+    counter = 0
+    for file in files:
+        data = get_data(file)
+        for row in data:
+            chunk.append(row)
+            counter += 1
+            cur_chunk_size = len(chunk)
+            if cur_chunk_size % chunk_size == 0:
+                write_csv(os.path.join(output_dir, f'{counter}.csv'), chunk)
+                chunk = list()                
+        pbar.update() if verbose else None
+    if len(chunk):
+        write_csv(os.path.join(output_dir, f'{counter}.csv'), chunk)
+    pbar.close() if verbose else None
