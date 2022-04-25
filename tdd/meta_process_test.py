@@ -71,12 +71,14 @@ class test_ProcessTest(unittest.TestCase):
         for dirpath, _, filenames in os.walk(os.path.join(output_folder, 'rdf')):
             if dirpath.endswith('prov'):
                 for filename in filenames:
-                    with open(os.path.join(dirpath, filename), 'r', encoding='utf-8') as f:
-                        provenance = json.load(f)
-                        essential_provenance = [{graph:[{p:set(v[0]['@value'].split('INSERT DATA { GRAPH <https://w3id.org/oc/meta/br/> { ')[1].split(' } }')[0].split('\n')) if '@value' in v[0] else v if isinstance(v, list) else v for p,v in se.items() 
-                            if p not in {'http://www.w3.org/ns/prov#generatedAtTime', 'http://purl.org/dc/terms/description', '@type', 'http://www.w3.org/ns/prov#hadPrimarySource', 'http://www.w3.org/ns/prov#wasAttributedTo', 'http://www.w3.org/ns/prov#invalidatedAtTime'}} 
-                            for se in sorted(ses, key=lambda d: d['@id'])] for graph,ses in entity.items() if graph != '@id'} for entity in sorted(provenance, key=lambda x:x['@id'])]
-                        output[dirpath.split(os.sep)[5]] = essential_provenance
+                    if filename.endswith('.json'):
+                        filepath = os.path.join(dirpath, filename)
+                        with open(filepath, 'r', encoding='utf-8') as f:
+                            provenance = json.load(f)
+                            essential_provenance = [{graph:[{p:set(v[0]['@value'].split('INSERT DATA { GRAPH <https://w3id.org/oc/meta/br/> { ')[1].split(' } }')[0].split('\n')) if '@value' in v[0] else v if isinstance(v, list) else v for p,v in se.items() 
+                                if p not in {'http://www.w3.org/ns/prov#generatedAtTime', 'http://purl.org/dc/terms/description', '@type', 'http://www.w3.org/ns/prov#hadPrimarySource', 'http://www.w3.org/ns/prov#wasAttributedTo', 'http://www.w3.org/ns/prov#invalidatedAtTime'}} 
+                                for se in sorted(ses, key=lambda d: d['@id'])] for graph,ses in entity.items() if graph != '@id'} for entity in sorted(provenance, key=lambda x:x['@id'])]
+                            output[dirpath.split(os.sep)[5]] = essential_provenance
         expected_output = {
             'ar': [
                 {'@graph': [{'@id': 'https://w3id.org/oc/meta/ar/0601/prov/se/1', 'http://www.w3.org/ns/prov#specializationOf': [{'@id': 'https://w3id.org/oc/meta/ar/0601'}]}]}, 
