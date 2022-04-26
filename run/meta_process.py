@@ -117,10 +117,10 @@ class MetaProcess:
             prov = ProvSet(creator, self.base_iri, creator_info_dir, wanted_label=False)
             prov.generate_provenance()
             # Storer
-            res_storer = Storer(creator, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, default_dir=self.default_dir, output_format='json-ld')
-            prov_storer = Storer(prov, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, output_format='json-ld')
-            with suppress_stdout():
-                self.store_data_and_prov(res_storer, prov_storer, filename)
+            res_storer = Storer(creator, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, default_dir=self.default_dir, output_format='json-ld', lock=lock)
+            prov_storer = Storer(prov, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, output_format='json-ld', lock=lock)
+            # with suppress_stdout():
+            self.store_data_and_prov(res_storer, prov_storer, filename)
             return {'success': filename}
         except Exception as e:
             return {'error': filename, 'msg': e}
@@ -138,6 +138,13 @@ class MetaProcess:
             prov_storer.store_all(self.output_rdf_dir, self.base_iri, self.context_path)
             res_storer.upload_all(triplestore_url=self.triplestore_url, base_dir=self.output_rdf_dir, batch_size=100)
 
+def init_global_lock(the_lock:multiprocessing.Lock):
+    """
+    Initialize each process with global variable lock.
+    """
+    global lock
+    lock = the_lock
+
 def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False) -> None:
     files_to_be_processed = meta_process.prepare_folders()
     pbar = tqdm(total=len(files_to_be_processed)) if meta_process.verbose else None
@@ -149,7 +156,8 @@ def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False) -> N
     else:
         multiples_of_ten = {i for i in range(1, max_workers+1) if int(i) % 10 == 0}
         workers = [i for i in range(1, max_workers+len(multiples_of_ten)+1) if i not in multiples_of_ten]
-    with Pool(processes=max_workers, maxtasksperchild=1) as executor:
+    lock = multiprocessing.Lock() if max_workers != 1 else None
+    with Pool(processes=max_workers, maxtasksperchild=1, initializer=init_global_lock, initargs=(lock,)) as executor:
         futures:List[ApplyResult] = [executor.apply_async(func=meta_process.curate_and_create, args=(file_to_be_processed, worker_number, resp_agents_only)) for file_to_be_processed, worker_number in zip(files_to_be_processed, cycle(workers))]
         for future in futures:
             processed_file = future.get()
