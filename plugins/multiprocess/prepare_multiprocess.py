@@ -21,6 +21,7 @@ from meta.scripts.creator import Creator
 from typing import Dict, List
 from tqdm import tqdm
 import os
+import psutil
 import re
 
 
@@ -303,6 +304,8 @@ def __get_name_and_ids(item_id:str, data:dict):
 def split_csvs_in_chunks(csv_dir:str, output_dir:str, chunk_size:int, verbose:bool=False) -> None:
     '''
     This function splits all CSVs in a folder in smaller CSVs having a specified number of rows.
+    Moreover, this function tries, where possible, to keep in a single file the bibliographic resources contained in the same venue. 
+    For this reason, the final rows number could be slightly over the specified one.
 
     :params csv_dir: the path to the folder containing the input CSV files
     :type csv_dir: str
@@ -315,22 +318,139 @@ def split_csvs_in_chunks(csv_dir:str, output_dir:str, chunk_size:int, verbose:bo
     :returns: None -- This function returns None and saves the output CSV files in the `output_dir` folder
     '''
     files = [os.path.join(csv_dir, file) for file in sort_files(os.listdir(csv_dir)) if file.endswith('.csv')]
+    pid = psutil.Process(os.getpid())
+    venues_occurrences = __index_all_venues(files, verbose)
+    __split_csvs_by_venues(files, venues_occurrences, output_dir, pid, verbose)
+    __split_in_chunks(output_dir, chunk_size, verbose)
+
+def __index_all_venues(files:list, verbose:bool) -> dict:
     if verbose:
-        print('[INFO:prepare_multiprocess] Splitting CSVs in chunks')
+        print('[INFO:prepare_multiprocess] Scanning venues')
         pbar = tqdm(total=len(files))
+    venues_occurrences = dict()
+    for file in files:
+        data = get_data(file)
+        for row in data:
+            venues = list()
+            if row['type'] in VENUES:
+                venues.append(row['id'].split())
+            venue_and_ids = re.search(name_and_ids, row['venue'])
+            if venue_and_ids:
+                ids = venue_and_ids.group(2).split()
+                venues.append(ids)
+            for venue_ids in venues:
+                for venue_id in venue_ids:
+                    venues_occurrences.setdefault(venue_id, {'others': set()})
+                    venues_occurrences[venue_id]['others'].update({other for other in venue_ids if other != venue_id})
+        pbar.update() if verbose else None
+    pbar.close() if verbose else None
+    return venues_occurrences
+
+def __split_csvs_by_venues(files:list, venues_occurrences:dict, output_dir:str, pid:psutil.Process, verbose:bool):
     pathoo(output_dir)
-    chunk = list()
+    if verbose:
+        print('[INFO:prepare_multiprocess] Splitting CSVs by venue')
+        pbar = tqdm(total=len(files))
+    chunk_venues = dict()
+    chunk_no_venues = dict()
+    existing_files = set()
+    no_venues_outdata = list()
     counter = 0
     for file in files:
         data = get_data(file)
         for row in data:
-            chunk.append(row)
-            counter += 1
-            cur_chunk_size = len(chunk)
-            if cur_chunk_size % chunk_size == 0:
-                write_csv(os.path.join(output_dir, f'{counter}.csv'), chunk)
-                chunk = list()                
+            venues = list()
+            if row['type'] in VENUES:
+                venues.append(row['id'].split())
+            venue_and_ids = re.search(name_and_ids, row['venue'])
+            if venue_and_ids:
+                ids = venue_and_ids.group(2).split()
+                venues.append(ids)
+            if venues:
+                output_filepath = None
+                for venue_ids in venues:
+                    all_ids:list = venue_ids
+                    all_ids.extend(__find_all_ids_by_key(venues_occurrences, key=all_ids[0]))
+                    for any_id in all_ids:
+                        filename = any_id.replace(':', '').replace('/', '').replace('\\', '')
+                        if os.path.join(output_dir, f'{filename}.csv') in existing_files:
+                            output_filepath = os.path.join(output_dir, f'{filename}.csv')
+                filename = all_ids[0].replace(':', '').replace('/', '').replace('\\', '')
+                output_filepath = os.path.join(output_dir, f'{filename}.csv') if not output_filepath else output_filepath
+                chunk_venues.setdefault(output_filepath, list()).append(row)
+                chunk_venues = __dump_if_chunk_size(chunk_venues, existing_files, pid)
+            elif not venues:
+                no_venues_outdata.append(row)
+                if len(no_venues_outdata) == 1000:
+                    no_venues_filepath = os.path.join(output_dir, f'no_venues_{counter}.csv')
+                    chunk_no_venues[no_venues_filepath] = no_venues_outdata
+                    counter += 1
+                    no_venues_outdata = list()
+                chunk_no_venues = __dump_if_chunk_size(chunk_no_venues, existing_files, pid)
         pbar.update() if verbose else None
-    if len(chunk):
-        write_csv(os.path.join(output_dir, f'{counter}.csv'), chunk)
     pbar.close() if verbose else None
+    if no_venues_outdata:
+        no_venues_filepath = os.path.join(output_dir, f'no_venues_{counter}.csv')
+        chunk_no_venues[no_venues_filepath] = no_venues_outdata
+    for chunk in [chunk_venues, chunk_no_venues]:
+        for filepath, dump in chunk.items():
+            all_data = get_data(filepath) if os.path.exists(filepath) else list()
+            all_data.extend(dump)
+            write_csv(filepath, all_data)
+        del chunk
+
+def __split_in_chunks(output_dir:str, chunk_size:int, verbose:bool):
+    files = os.listdir(output_dir)
+    if verbose:
+        print('[INFO:prepare_multiprocess] Splitting CSVs in chunks')
+        pbar = tqdm(total=len(files))
+    even_chunk = list()
+    counter = 0
+    for file in files:
+        filepath = os.path.join(output_dir, file)
+        data = get_data(filepath)
+        len_data = len(data)
+        if len_data > chunk_size:
+            while len_data > chunk_size:
+                write_csv(os.path.join(output_dir, f'{counter}.csv'), data[:chunk_size])
+                counter += 1
+                del data[:chunk_size]
+                len_data = len(data)
+            even_chunk.extend(data)
+            if len(even_chunk) >= chunk_size:
+                write_csv(os.path.join(output_dir, f'{counter}.csv'), even_chunk)
+                counter += 1
+                even_chunk = list()
+        elif len_data <= chunk_size:
+            even_chunk.extend(data)
+            if len(even_chunk) >= chunk_size:
+                write_csv(os.path.join(output_dir, f'{counter}.csv'), even_chunk)
+                counter += 1
+                even_chunk = list()
+        os.remove(filepath)
+        pbar.update() if verbose else None
+    pbar.close() if verbose else None
+    if even_chunk:
+        write_csv(os.path.join(output_dir, f'{counter}.csv'), even_chunk)
+
+def __dump_if_chunk_size(chunk:dict, existing_files:set, pid:psutil.Process) -> dict:
+    memory_used = pid.memory_info().rss / (1024.0 ** 3)
+    if memory_used > 10:
+        for filepath, dump in chunk.items():
+            all_data = get_data(filepath) if os.path.exists(filepath) else list()
+            all_data.extend(dump)
+            write_csv(filepath, all_data)
+            existing_files.add(filepath)
+        return dict()
+    return chunk
+
+def __find_all_ids_by_key(items_by_id:dict, key:str):
+    visited_items = set()
+    items_to_visit = {item for item in items_by_id[key]['others']}
+    while items_to_visit:
+        for item in set(items_to_visit):
+            if item not in visited_items:
+                visited_items.add(item)
+                items_to_visit.update({item for item in items_by_id[item]['others'] if item not in visited_items})
+            items_to_visit.remove(item)
+    return visited_items

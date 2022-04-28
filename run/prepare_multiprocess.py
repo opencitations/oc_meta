@@ -46,7 +46,6 @@ if __name__ == '__main__':
         prepare_relevant_items(csv_dir=csv_dir, output_dir=TMP_DIR, items_per_file=items_per_file, verbose=verbose)
     venues_dir = os.path.join(TMP_DIR, 'venues')
     meta_process.input_csv_dir = venues_dir
-    meta_process.workers_number = 1
     run_meta_process(meta_process=meta_process)
     ids_dir = os.path.join(TMP_DIR, 'ids')
     meta_process.input_csv_dir = ids_dir
