@@ -1,5 +1,6 @@
 .idea/
 env/
+dist/
 .vscode/
 *.pyc
 creator_counter/
