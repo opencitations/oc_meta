@@ -4,3 +4,7 @@ env/
 *.pyc
 creator_counter/
 meta_input/
+blazegraph*
+*.log
+prova.py
+.env
