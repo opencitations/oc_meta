@@ -145,6 +145,8 @@ class TestPrepareMultiprocess(unittest.TestCase):
             '1.csv': [
                 {'id': 'issn:1524-4539 issn:0009-7322', 'title': 'Circulation', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': 'journal', 'publisher': '', 'editor': ''}
             ]}
+        output = {k:sorted(sorted(d.items()) for d in v) for k, v in output.items()}
+        expected_output = {k:sorted(sorted(d.items()) for d in v) for k, v in expected_output.items()}
         shutil.rmtree(TMP_DIR)
         self.assertEqual(output, expected_output)
         
