@@ -1,4 +1,4 @@
-from subprocess import CREATE_NEW_CONSOLE, Popen
+from subprocess import Popen
 import os
 import time
 import wget
@@ -8,8 +8,7 @@ def launch_blazegraph(port:int):
     Launch Blazegraph triplestore at a given port.
     '''
     Popen(
-        ['java', '-server', '-Xmx4g', '-Dcom.bigdata.journal.AbstractJournal.file=./blazegraph.jnl', f'-Djetty.port={port}', '-jar', f'./blazegraph.jar'],
-        creationflags=CREATE_NEW_CONSOLE
+        ['java', '-server', '-Xmx4g', '-Dcom.bigdata.journal.AbstractJournal.file=./blazegraph.jnl', f'-Djetty.port={port}', '-jar', f'./blazegraph.jar']
     )
 
 def main():
