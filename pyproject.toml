@@ -6,7 +6,7 @@ authors = ["Arcangelo Massari <arcangelomas@gmail.com>", "Fabio Mariani", "Simon
 license = "ISC License"
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "^3.7"
 argparse = "^1.4.0"
 lxml = "^4.8.0"
 beautifulsoup4 = "^4.11.1"
