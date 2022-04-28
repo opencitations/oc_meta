@@ -70,7 +70,6 @@ class test_ProcessTest(unittest.TestCase):
         output = dict()
         for dirpath, _, filenames in os.walk(os.path.join(output_folder, 'rdf')):
             if dirpath.endswith('prov'):
-                print(dirpath)
                 for filename in filenames:
                     if filename.endswith('.json'):
                         filepath = os.path.join(dirpath, filename)

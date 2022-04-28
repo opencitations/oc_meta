@@ -20,10 +20,11 @@ time-agnostic-library = "^3.1.0"
 tqdm = "^4.64.0"
 
 [tool.poetry.dev-dependencies]
+wget = "^3.2"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-test = 'meta.tests.run_all_tests:main'
+test = 'test.run_all_tests:main'
