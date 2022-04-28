@@ -3,9 +3,9 @@ import shutil
 import unittest
 from csv import DictReader
 from meta.plugins.csv_generator.csv_generator import CSVGenerator
-from meta.tdd.curator_test import reset_server, add_data_ts, SERVER
+from test.curator_test import reset_server, add_data_ts, SERVER
 
-BASE = os.path.join('meta', 'tdd', 'csv_generator')
+BASE = os.path.join('test', 'csv_generator')
 CONFIG = os.path.join(BASE, 'csv_generator_config.yaml')
 OUTPUT_DIR = os.path.join(BASE, 'csv')
 REAL_DATA_RDF = os.path.join(BASE, 'real_data.nt')

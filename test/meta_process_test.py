@@ -1,6 +1,6 @@
 from meta.lib.file_manager import get_data
 from meta.run.meta_process import MetaProcess, run_meta_process
-from meta.tdd.curator_test import reset_server
+from test.curator_test import reset_server
 import json
 import os
 import shutil
@@ -8,7 +8,7 @@ import sys
 import unittest
 
 
-BASE_DIR = os.path.join('meta', 'tdd', 'meta_process')
+BASE_DIR = os.path.join('test', 'meta_process')
 
 
 class test_ProcessTest(unittest.TestCase):
@@ -70,6 +70,7 @@ class test_ProcessTest(unittest.TestCase):
         output = dict()
         for dirpath, _, filenames in os.walk(os.path.join(output_folder, 'rdf')):
             if dirpath.endswith('prov'):
+                print(dirpath)
                 for filename in filenames:
                     if filename.endswith('.json'):
                         filepath = os.path.join(dirpath, filename)
@@ -78,7 +79,7 @@ class test_ProcessTest(unittest.TestCase):
                             essential_provenance = [{graph:[{p:set(v[0]['@value'].split('INSERT DATA { GRAPH <https://w3id.org/oc/meta/br/> { ')[1].split(' } }')[0].split('\n')) if '@value' in v[0] else v if isinstance(v, list) else v for p,v in se.items() 
                                 if p not in {'http://www.w3.org/ns/prov#generatedAtTime', 'http://purl.org/dc/terms/description', '@type', 'http://www.w3.org/ns/prov#hadPrimarySource', 'http://www.w3.org/ns/prov#wasAttributedTo', 'http://www.w3.org/ns/prov#invalidatedAtTime'}} 
                                 for se in sorted(ses, key=lambda d: d['@id'])] for graph,ses in entity.items() if graph != '@id'} for entity in sorted(provenance, key=lambda x:x['@id'])]
-                            output[dirpath.split(os.sep)[5]] = essential_provenance
+                            output[dirpath.split(os.sep)[4]] = essential_provenance
         expected_output = {
             'ar': [
                 {'@graph': [{'@id': 'https://w3id.org/oc/meta/ar/0601/prov/se/1', 'http://www.w3.org/ns/prov#specializationOf': [{'@id': 'https://w3id.org/oc/meta/ar/0601'}]}]}, 

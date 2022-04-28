@@ -7,7 +7,7 @@ import shutil
 import unittest
 
 
-BASE = os.path.join('meta', 'tdd', 'prepare_multiprocess')
+BASE = os.path.join('test', 'prepare_multiprocess')
 TMP_DIR = os.path.join(BASE, 'tmp')
 CSV_DIR = os.path.join(BASE, 'input')
 

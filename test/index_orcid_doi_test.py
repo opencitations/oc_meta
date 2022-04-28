@@ -3,8 +3,8 @@ from meta.plugins.orcid.index_orcid_doi import Index_orcid_doi
 from csv import DictReader, DictWriter
 from pprint import pprint
 
-CSV_PATH = os.path.join('meta', 'tdd', 'index_orcid_doi', 'output')
-SUMMARIES_PATH = os.path.join('meta', 'tdd', 'index_orcid_doi', 'orcid')
+CSV_PATH = os.path.join('test', 'index_orcid_doi', 'output')
+SUMMARIES_PATH = os.path.join('test', 'index_orcid_doi', 'orcid')
 
 def load_files_from_dir(dir:str):
     output = list()

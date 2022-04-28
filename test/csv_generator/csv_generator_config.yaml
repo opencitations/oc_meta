@@ -19,9 +19,9 @@
 # URL of the endpoint where the data are located
 triplestore_url: http://localhost:9999/blazegraph/sparql
 # Directory where the output CSV files will be stored
-output_csv_dir: meta/tdd/csv_generator/csv
+output_csv_dir: test/csv_generator/csv
 # The folder where the counters of the various types of entities are stored
-info_dir: meta/tdd/csv_generator/info_dir
+info_dir: test/csv_generator/info_dir
 
 # Optional settings
 

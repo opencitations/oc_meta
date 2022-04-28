@@ -5,7 +5,7 @@ from meta.lib.jsonmanager import *
 from meta.run.crossref_process import preprocess
 from pprint import pprint
 
-BASE = os.path.join('meta', 'tdd', 'crossref_processing')
+BASE = os.path.join('test', 'crossref_processing')
 IOD = os.path.join(BASE, 'iod')
 WANTED_DOIS = os.path.join(BASE, 'wanted_dois.csv')
 DATA = os.path.join(BASE, '40228.json')

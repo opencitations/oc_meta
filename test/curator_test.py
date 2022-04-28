@@ -10,7 +10,7 @@ import unittest
 
 
 SERVER = 'http://127.0.0.1:9999/blazegraph/sparql'
-BASE_DIR = os.path.join('meta', 'tdd')
+BASE_DIR = os.path.join('test')
 MANUAL_DATA_CSV = f'{BASE_DIR}/manual_data.csv'
 MANUAL_DATA_RDF = f'{BASE_DIR}/testcases/ts/testcase_ts-13.ttl'
 REAL_DATA_CSV = os.path.join(BASE_DIR, 'real_data.csv')
@@ -73,12 +73,12 @@ def prepare_to_test(data, name):
     if float(name) > 12:
         add_data_ts(SERVER, MANUAL_DATA_RDF)
 
-    testcase_csv = get_path('meta/tdd/testcases/testcase_data/testcase_' + name + '_data.csv')
-    testcase_id_br = get_path('meta/tdd/testcases/testcase_data/indices/' + name + '/index_id_br_' + name + '.csv')
-    testcase_id_ra = get_path('meta/tdd/testcases/testcase_data/indices/' + name + '/index_id_ra_' + name + '.csv')
-    testcase_ar = get_path('meta/tdd/testcases/testcase_data/indices/' + name + '/index_ar_' + name + '.csv')
-    testcase_re = get_path('meta/tdd/testcases/testcase_data/indices/' + name + '/index_re_' + name + '.csv')
-    testcase_vi = get_path('meta/tdd/testcases/testcase_data/indices/' + name + '/index_vi_' + name + '.json')
+    testcase_csv = get_path('test/testcases/testcase_data/testcase_' + name + '_data.csv')
+    testcase_id_br = get_path('test/testcases/testcase_data/indices/' + name + '/index_id_br_' + name + '.csv')
+    testcase_id_ra = get_path('test/testcases/testcase_data/indices/' + name + '/index_id_ra_' + name + '.csv')
+    testcase_ar = get_path('test/testcases/testcase_data/indices/' + name + '/index_ar_' + name + '.csv')
+    testcase_re = get_path('test/testcases/testcase_data/indices/' + name + '/index_re_' + name + '.csv')
+    testcase_vi = get_path('test/testcases/testcase_data/indices/' + name + '/index_vi_' + name + '.json')
 
     curator_obj = Curator(data, SERVER, prov_config=PROV_CONFIG, info_dir=get_path(f'{CURATOR_COUNTER_DIR}/'))
     curator_obj.curator()
@@ -497,7 +497,7 @@ class test_RespAgentsCurator(unittest.TestCase):
             {'id': '', 'title': '', 'author': 'Sarmiento, Félix [orcid:0000-0002-4487-6894]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}
         ]
         resp_agents_curator = prepareCurator(data=data, server=SERVER, resp_agents_only=True)
-        resp_agents_curator.curator(filename='resp_agents_curator_output', path_csv='meta/tdd/testcases/testcase_data', path_index='meta/tdd/testcases/testcase_data/indices')
+        resp_agents_curator.curator(filename='resp_agents_curator_output', path_csv='test/testcases/testcase_data', path_index='test/testcases/testcase_data/indices')
         output = (resp_agents_curator.data, resp_agents_curator.radict, resp_agents_curator.idra, resp_agents_curator.rameta)
         expected_output = (
             [
