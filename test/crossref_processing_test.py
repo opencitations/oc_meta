@@ -1,8 +1,8 @@
 import unittest, os, csv, shutil
-from meta.plugins.crossref.crossref_processing import CrossrefProcessing
-from meta.lib.csvmanager import CSVManager
-from meta.lib.jsonmanager import *
-from meta.run.crossref_process import preprocess
+from oc_meta.plugins.crossref.crossref_processing import CrossrefProcessing
+from oc_meta.lib.csvmanager import CSVManager
+from oc_meta.lib.jsonmanager import *
+from oc_meta.run.crossref_process import preprocess
 from pprint import pprint
 
 BASE = os.path.join('test', 'crossref_processing')

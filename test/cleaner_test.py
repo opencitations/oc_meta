@@ -1,6 +1,6 @@
 import unittest
-from meta.lib.cleaner import Cleaner
-from meta.lib.csvmanager import CSVManager
+from oc_meta.lib.cleaner import Cleaner
+from oc_meta.lib.csvmanager import CSVManager
 from pprint import pprint
 
 class test_Cleaner(unittest.TestCase):

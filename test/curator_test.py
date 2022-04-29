@@ -1,6 +1,6 @@
-from meta.plugins.multiprocess.resp_agents_curator import RespAgentsCurator
-from meta.scripts.creator import Creator
-from meta.scripts.curator import *
+from oc_meta.plugins.multiprocess.resp_agents_curator import RespAgentsCurator
+from oc_meta.scripts.creator import Creator
+from oc_meta.scripts.curator import *
 from oc_ocdm import Storer
 from pprint import pprint
 from SPARQLWrapper import SPARQLWrapper, POST

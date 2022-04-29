@@ -1,5 +1,5 @@
 import unittest
-from meta.lib.finder import ResourceFinder
+from oc_meta.lib.finder import ResourceFinder
 from SPARQLWrapper import SPARQLWrapper, POST
 from pprint import pprint
 

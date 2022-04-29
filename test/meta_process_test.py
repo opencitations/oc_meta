@@ -1,5 +1,5 @@
-from meta.lib.file_manager import get_data
-from meta.run.meta_process import MetaProcess, run_meta_process
+from oc_meta.lib.file_manager import get_data
+from oc_meta.run.meta_process import MetaProcess, run_meta_process
 from test.curator_test import reset_server
 import json
 import os

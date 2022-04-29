@@ -2,7 +2,7 @@ import os
 import shutil
 import unittest
 from csv import DictReader
-from meta.plugins.csv_generator.csv_generator import CSVGenerator
+from oc_meta.plugins.csv_generator.csv_generator import CSVGenerator
 from test.curator_test import reset_server, add_data_ts, SERVER
 
 BASE = os.path.join('test', 'csv_generator')

@@ -1,5 +1,5 @@
-from meta.plugins.multiprocess.resp_agents_creator import RespAgentsCreator
-from meta.scripts.creator import *
+from oc_meta.plugins.multiprocess.resp_agents_creator import RespAgentsCreator
+from oc_meta.scripts.creator import *
 from test.curator_test import reset_server
 from rdflib import XSD, compare, Graph
 from rdflib.term import _toPythonMapping

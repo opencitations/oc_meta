@@ -1,6 +1,6 @@
 from csv import DictReader
-from meta.lib.file_manager import get_data
-from meta.plugins.multiprocess.prepare_multiprocess import prepare_relevant_items, _do_collective_merge, _get_relevant_venues, _get_resp_agents, _get_publishers, _get_duplicated_ids, split_csvs_in_chunks
+from oc_meta.lib.file_manager import get_data
+from oc_meta.plugins.multiprocess.prepare_multiprocess import prepare_relevant_items, _do_collective_merge, _get_relevant_venues, _get_resp_agents, _get_publishers, _get_duplicated_ids, split_csvs_in_chunks
 from pprint import pprint
 import os
 import shutil
