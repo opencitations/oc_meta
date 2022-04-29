@@ -1,4 +1,9 @@
 [<img src="https://img.shields.io/badge/powered%20by-OpenCitations-%239931FC?labelColor=2D22DE" />](http://opencitations.net)
+[![Python package](https://github.com/opencitations/oc_meta/actions/workflows/python-package.yml/badge.svg)](https://github.com/opencitations/oc_meta/actions/workflows/python-package.yml)
+![GitHub top language](https://img.shields.io/github/languages/top/opencitations/oc_meta)
+![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/opencitations/oc_meta)
+
+
 
 # OpenCitations Meta Software
 
