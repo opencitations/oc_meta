@@ -1,3 +1,4 @@
+from filelock import FileLock
 from meta.lib.cleaner import Cleaner
 from meta.lib.csvmanager import CSVManager
 from meta.lib.finder import *
@@ -643,34 +644,32 @@ class Curator:
         return ts_name
 
     @staticmethod
-    def _read_number(file_path, line_number=1):
-        cur_number = 0
-        try:
-            with open(file_path) as f:
-                cur_number = int(f.readlines()[line_number - 1])
-        except (ValueError, IOError, IndexError):
-            pass  # Do nothing
+    def _read_number(file_path:str, line_number:int=1) -> int: 
+        with open(file_path) as f:
+            cur_number = int(f.readlines()[line_number - 1])
         return cur_number
 
     @staticmethod
-    def _add_number(file_path, line_number=1):
-        cur_number = Curator._read_number(file_path, line_number) + 1
+    def _add_number(file_path:str, line_number:int=1) -> int:
         if not os.path.exists(os.path.dirname(file_path)):
             os.makedirs(os.path.dirname(file_path))
-        if os.path.exists(file_path):
-            with open(file_path) as f:
-                all_lines = f.readlines()
-        else:
-            all_lines = []
-        line_len = len(all_lines)
-        zero_line_number = line_number - 1
-        for i in range(line_number):
-            if i >= line_len:
-                all_lines += ['\n']
-            if i == zero_line_number:
-                all_lines[i] = str(cur_number) + '\n'
-        with open(file_path, 'w') as f:
-            f.writelines(all_lines)
+        lock = FileLock(f'{file_path}.lock')
+        with lock:
+            cur_number = Curator._read_number(file_path, line_number) + 1 if os.path.exists(file_path) else 1
+            if os.path.exists(file_path):
+                with open(file_path) as f:
+                    all_lines = f.readlines()
+            else:
+                all_lines = []
+            line_len = len(all_lines)
+            zero_line_number = line_number - 1
+            for i in range(line_number):
+                if i >= line_len:
+                    all_lines += ['\n']
+                if i == zero_line_number:
+                    all_lines[i] = str(cur_number) + '\n'
+            with open(file_path, 'w') as f:
+                f.writelines(all_lines)
         return cur_number
     
     def __update_id_and_entity_dict(self, existing_ids:list, id_dict:dict, entity_dict:Dict[str, Dict[str, list]], metaval:str) -> None:

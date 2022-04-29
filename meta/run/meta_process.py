@@ -34,7 +34,6 @@ from time_agnostic_library.support import generate_config_file
 from tqdm import tqdm
 from typing import List, Set, Tuple
 import csv
-import multiprocessing
 import os
 import yaml
 
@@ -139,6 +138,7 @@ class MetaProcess:
             res_storer.upload_all(triplestore_url=self.triplestore_url, base_dir=self.output_rdf_dir, batch_size=100)
 
 def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False) -> None:
+    delete_lock_files(base_dirs=[meta_process.output_rdf_dir, meta_process.info_dir])
     files_to_be_processed = meta_process.prepare_folders()
     pbar = tqdm(total=len(files_to_be_processed)) if meta_process.verbose else None
     max_workers = meta_process.workers_number
@@ -163,6 +163,14 @@ def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False) -> N
     if os.path.exists(meta_process.cache_path):
         os.rename(meta_process.cache_path, meta_process.cache_path.replace('.txt', f'_{datetime.now().strftime("%Y-%m-%dT%H_%M_%S_%f")}.txt'))
     pbar.close() if pbar else None
+    delete_lock_files(base_dirs=[meta_process.output_rdf_dir, meta_process.info_dir])
+
+def delete_lock_files(base_dirs:str) -> None:
+    for base_dir in base_dirs:
+        for dirpath, _, filenames in os.walk(base_dir):
+            for filename in filenames:
+                if filename.endswith('.lock'):
+                    os.remove(os.path.join(dirpath, filename))
 
 
 if __name__ == '__main__':
