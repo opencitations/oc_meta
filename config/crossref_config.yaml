@@ -23,11 +23,11 @@ output: /srv/meta/meta_input
 
 # Optional settings
 
-# CSV file path containing information about publishers (id, name, prefix). This file can be generated via meta.run.crossref_publishers_extractor
+# CSV file path containing information about publishers (id, name, prefix). This file can be generated via oc_meta.run.crossref_publishers_extractor
 publishers_filepath: /srv/meta/publishers.csv
-# ORCID-DOI index directory. It can be generated via meta.run.orcid_process
+# ORCID-DOI index directory. It can be generated via oc_meta.run.orcid_process
 orcid_doi_filepath: /srv/meta/doi_orcid_index
-# Path of a CSV file containing what DOI to process. This file can be generated via meta.run.coci_process, if COCI's DOIs are needed
+# Path of a CSV file containing what DOI to process. This file can be generated via oc_meta.run.coci_process, if COCI's DOIs are needed
 wanted_doi_filepath: /srv/meta/coci_dois.csv
 # The cache file path. This file will be deleted at the end of the process
 cache_filepath: /srv/meta/cache.txt

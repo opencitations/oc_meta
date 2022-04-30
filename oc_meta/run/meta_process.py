@@ -122,7 +122,9 @@ class MetaProcess:
                 self.store_data_and_prov(res_storer, prov_storer, filename)
             return {'success': filename}
         except Exception as e:
-            return {'error': filename, 'msg': e}
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(e).__name__, e.args)
+            return {'error': filename, 'msg': message}
     
     def store_data_and_prov(self, res_storer:Storer, prov_storer:Storer, filename:str) -> None:
         if self.rdf_output_in_chunks:

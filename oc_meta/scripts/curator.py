@@ -769,7 +769,15 @@ class Curator:
                 if 'wannabe' in venue_meta:
                     for br_meta in self.brmeta:
                         if venue_meta in self.brmeta[br_meta]['others']:
-                            self.VolIss[br_meta] = self.vvi[venue_meta]
+                            if br_meta in self.VolIss:
+                                for vvi_v in self.vvi[venue_meta]['volume']:
+                                    if vvi_v in self.VolIss[br_meta]['volume']:
+                                        self.VolIss[br_meta]['volume'][volume]['issue'].update(self.vvi[venue_meta]['volume'][volume]['issue'])
+                                    else:
+                                        self.VolIss[br_meta]['volume'][volume] = self.vvi[venue_meta]['volume'][volume]
+                                self.VolIss[br_meta]['issue'].update(self.vvi[venue_meta]['issue'])
+                            else:
+                                self.VolIss[br_meta] = self.vvi[venue_meta]
                 else:
                     self.VolIss[venue_meta] = self.vvi[venue_meta]
         if self.filename:

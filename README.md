@@ -21,7 +21,7 @@ An example of a raw CSV input file can be found in [`example.csv`](https://githu
 The Meta process is launched through the [`meta_process.py`](https://github.com/opencitations/meta/blob/master/run/meta_process.py) file via the prompt command:
 
 ```console
-    python -m meta.run.meta_process -c <PATH>
+    python -m oc_meta.run.meta_process -c <PATH>
 ```
 Where:
 - -c --config : path to the configuration file.
@@ -53,7 +53,7 @@ The configuration file is a YAML file with the following keys (an example can be
 [`orcid_process.py`](https://github.com/opencitations/meta/blob/master/run/orcid_process.py) generates an index between DOIs and the author's ORCIDs using the ORCID Summaries Dump (e.g. [ORCID_2019_summaries](https://orcid.figshare.com/articles/ORCID_Public_Data_File_2019/9988322)). The output is a folder containing CSV files with two columns, 'id' and 'value', where 'id' is a DOI or None, and 'value' is an ORCID. This process can be run via the following commad:
 
 ```console
-    python -m meta.run.orcid_process -s <PATH> -out <PATH> -t <INTEGER> -lm -v
+    python -m oc_meta.run.orcid_process -s <PATH> -out <PATH> -t <INTEGER> -lm -v
 ```
 Where:
 - -s --summaries: ORCID summaries dump path, subfolder will be considered too.
@@ -68,7 +68,7 @@ Where:
 This process can be run via the following command:
 
 ```console
-    python -m meta.run.crossref_publishers_extractor -o <PATH>
+    python -m oc_meta.run.crossref_publishers_extractor -o <PATH>
 ```
 
 Where:
@@ -80,7 +80,7 @@ This process generates raw CSV files using JSON files from the Crossref data dum
 This function is launched through the [`crossref_process.py`](https://github.com/opencitations/meta/blob/master/run/crossref_process.py) file via the prompt command:
 
 ```console
-    python -m meta.run.crossref_process -cf <PATH> -o <PATH> -out <PATH> -w <PATH> -v
+    python -m oc_meta.run.crossref_process -cf <PATH> -o <PATH> -out <PATH> -w <PATH> -v
 ```
 Where:
 - -cf --crossref: Crossref JSON files directory (input files).
@@ -92,7 +92,7 @@ Where:
 
 As the parameters are many, you can also specify them via YAML configuration file. In this case, the process is launched via the command:
 ```console
-    python -m meta.run.crossref_process -c <PATH>
+    python -m oc_meta.run.crossref_process -c <PATH>
 ```
 Where:
 - -c --config : path to the configuration file.
@@ -103,15 +103,15 @@ The configuration file is a YAML file with the following keys (an example can be
 | --------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | crossref\_json\_dir   | ✓         | Crossref JSON files directory (input files)                                                                                         |
 | output                | ✓         | Directory where output CSVs will be stored                                                                                          |
-| orcid\_doi\_filepath  | ☓         | ORCID-DOI index directory. It can be generated via meta.run.orcid\_process                                                          |
-| wanted\_doi\_filepath | ☓         | Path of a CSV file containing what DOI to process. This file can be generated via meta.run.coci\_process, if COCI's DOIs are needed |
+| orcid\_doi\_filepath  | ☓         | ORCID-DOI index directory. It can be generated via oc_meta.run.orcid\_process                                                          |
+| wanted\_doi\_filepath | ☓         | Path of a CSV file containing what DOI to process. This file can be generated via oc_meta.run.coci\_process, if COCI's DOIs are needed |
 | verbose               | ☓         | Show a loading bar, elapsed time and estimated time. This setting can be safely left as is.                                         |
 
 ### Get DOIs from COCI
 
 You can get a CSV file containing all the DOIs from the [COCI's dump](https://opencitations.net/download). This CSV file can be passed as an input to the `-wanted` argument of [`crossref_process.py`](https://github.com/opencitations/meta/blob/master/run/crossref_process.py). You can obtain this file by using the [`coci_process.py`](https://github.com/opencitations/meta/blob/master/run/coci_process.py) script, in the following way:
 ```console
-    python -m meta.run.coci_process -c <PATH> -out <PATH> -v
+    python -m oc_meta.run.coci_process -c <PATH> -out <PATH> -v
 ```
 Where:
 - -c --coci: COCI's dump path. It may contain either .zip or .csv files previously extracted.
@@ -122,7 +122,7 @@ Where:
 
 This plugin generates CSVs from the Meta triplestore. You can run the [`csv_generator.py`](https://github.com/opencitations/meta/blob/master/plugins/csv_generator/csv_generator.py) script in the following way:
 ```console
-    python -m meta.run.csv_generator -c <PATH>
+    python -m oc_meta.run.csv_generator -c <PATH>
 ```
 Where:
 - -c --config : path to the configuration file.
@@ -144,7 +144,7 @@ The configuration file is a YAML file with the following keys (an example can be
 Before running Meta in multiprocess, it is necessary to prepare the input files. In particular, the CSV files must be divided by publisher, while venues and authors having an identifier must be loaded on the triplestore, in order not to generate duplicates during the multiprocess. These operations can be done by simply running the following script:
 
 ```console
-    python -m meta.run.prepare_multiprocess -c <PATH>
+    python -m oc_meta.run.prepare_multiprocess -c <PATH>
 ```
 
 Where:
