@@ -207,8 +207,8 @@ class Creator(object):
                     try:
                         venue_type = self.get_venue_type(self.type, venue_ids_list)
                     except UnboundLocalError:
-                        print(f"[INFO:Creator] I found the venue {venue} for the resource of type {self.type}, but I don't know how to handle it")
-                        raise UnboundLocalError
+                        error_message = f"[INFO:Creator] I found the venue {venue} for the resource of type {self.type}, but I don't know how to handle it"
+                        raise UnboundLocalError(msg=error_message)
                     if venue_type:
                         venue_type = venue_type.replace(' ', '_')
                         getattr(self.venue_graph, f'create_{venue_type}')()
@@ -262,12 +262,12 @@ class Creator(object):
             venue_type = 'book series'
         elif br_type == 'proceedings article':
             venue_type = 'proceedings'
-        elif br_type in {'proceedings', 'report', 'standard'}:
+        elif br_type in {'proceedings', 'report', 'standard', 'series'}:
             venue_type = 'series'
         elif br_type == 'reference entry':
             venue_type = 'reference book'
-        elif br_type == 'report series':
-            venue_type = 'report series'
+        # elif br_type == 'report series':
+        #     venue_type = 'report series'
         elif not br_type or br_type in {'dataset', 'data file'}:
             venue_type = ''
         # Check the type based on the identifier scheme
@@ -319,6 +319,8 @@ class Creator(object):
             self.br_graph.create_dataset()
         elif entity_type == 'dissertation':
             self.br_graph.create_dissertation()
+        # elif entity_type == 'edited book':
+        #     self.br_graph.create_edited_book()
         elif entity_type == 'journal':
             self.br_graph.create_journal()
         elif entity_type == 'journal article':
@@ -327,24 +329,30 @@ class Creator(object):
             self.br_graph.create_issue()
         elif entity_type == 'journal volume':
             self.br_graph.create_volume()
+        # elif entity_type == 'monograph':
+        #     self.br_graph.create_monograph()
         elif entity_type == 'peer review':
             self.br_graph.create_peer_review()
         elif entity_type == 'proceedings':
             self.br_graph.create_proceedings()
         elif entity_type == 'proceedings article':
             self.br_graph.create_proceedings_article()
-        elif entity_type == 'proceedings series':
-            self.br_graph.create_proceedings_series()
+        # elif entity_type == 'proceedings series':
+        #     self.br_graph.create_proceedings_series()
         elif entity_type == 'reference book':
             self.br_graph.create_reference_book()
         elif entity_type == 'reference entry':
             self.br_graph.create_reference_entry()
         elif entity_type == 'report':
             self.br_graph.create_report()
+        elif entity_type == 'report series':
+            self.br_graph.create_report_series()
         elif entity_type == 'standard':
             self.br_graph.create_standard()
         elif entity_type == 'series':
             self.br_graph.create_series()
+        # elif entity_type == 'standard series':
+        #     self.br_graph.create_standard_series()()
         elif entity_type == 'web content':
             self.br_graph.create_web_content()
 
