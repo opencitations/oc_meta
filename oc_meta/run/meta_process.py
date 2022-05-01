@@ -30,6 +30,8 @@ from oc_meta.scripts.curator import Curator
 from multiprocessing.pool import ApplyResult, Pool
 from oc_ocdm import Storer
 from oc_ocdm.prov import ProvSet
+from shutil import make_archive
+from sys import platform
 from time_agnostic_library.support import generate_config_file
 from tqdm import tqdm
 from typing import List, Set, Tuple
@@ -151,29 +153,50 @@ def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False) -> N
     else:
         multiples_of_ten = {i for i in range(1, max_workers+1) if int(i) % 10 == 0}
         workers = [i for i in range(1, max_workers+len(multiples_of_ten)+1) if i not in multiples_of_ten]
-    with Pool(processes=max_workers, maxtasksperchild=1) as executor:
-        futures:List[ApplyResult] = [executor.apply_async(func=meta_process.curate_and_create, args=(file_to_be_processed, worker_number, resp_agents_only)) for file_to_be_processed, worker_number in zip(files_to_be_processed, cycle(workers))]
-        for future in futures:
-            processed_file = future.get()
-            if 'success' in processed_file:
-                with open(meta_process.cache_path, 'a', encoding='utf-8') as aux_file:
-                    aux_file.write(processed_file['success'] + '\n')
-            elif 'error' in processed_file:
-                with open(meta_process.errors_path, 'a', encoding='utf-8') as aux_file:
-                    aux_file.write(f'{processed_file["error"]}: {processed_file["msg"]}' + '\n')
-            pbar.update() if pbar else None
+    is_unix = platform in {'linux', 'linux2', 'darwin'}
+    files_chunks = chunks(files_to_be_processed, 2) if is_unix else [files_to_be_processed]
+    for files_chunk in files_chunks:
+        with Pool(processes=max_workers, maxtasksperchild=1) as executor:
+            futures:List[ApplyResult] = [executor.apply_async(
+                func=meta_process.curate_and_create, 
+                args=(file_to_be_processed, worker_number, resp_agents_only)) 
+                for file_to_be_processed, worker_number in zip(files_chunk, cycle(workers))]
+            for future in futures:
+                callback(future, meta_process, pbar)
+        delete_lock_files(base_dirs=[meta_process.output_rdf_dir, meta_process.info_dir])
+        if is_unix:
+            save_results(meta_process.base_output_dir)
     if os.path.exists(meta_process.cache_path):
         os.rename(meta_process.cache_path, meta_process.cache_path.replace('.txt', f'_{datetime.now().strftime("%Y-%m-%dT%H_%M_%S_%f")}.txt'))
     pbar.close() if pbar else None
-    delete_lock_files(base_dirs=[meta_process.output_rdf_dir, meta_process.info_dir])
+    if not is_unix:
+        delete_lock_files(base_dirs=[meta_process.output_rdf_dir, meta_process.info_dir])
 
-def delete_lock_files(base_dirs:str) -> None:
+def callback(future:ApplyResult, meta_process:MetaProcess, pbar:tqdm):
+    processed_file = future.get()
+    if 'success' in processed_file:
+        with open(meta_process.cache_path, 'a', encoding='utf-8') as aux_file:
+            aux_file.write(processed_file['success'] + '\n')
+    elif 'error' in processed_file:
+        with open(meta_process.errors_path, 'a', encoding='utf-8') as aux_file:
+            aux_file.write(f'{processed_file["error"]}: {processed_file["msg"]}' + '\n')
+    pbar.update() if pbar else None
+
+def chunks(lst:list, n:int) -> List[list]:
+    '''Yield successive n-sized chunks from lst.'''
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
+
+def delete_lock_files(base_dirs:list) -> None:
     for base_dir in base_dirs:
         for dirpath, _, filenames in os.walk(base_dir):
             for filename in filenames:
                 if filename.endswith('.lock'):
                     os.remove(os.path.join(dirpath, filename))
 
+def save_results(output_dirpath:str) -> None:
+    output_dirname = f"meta_output_{datetime.now().strftime('%Y-%m-%dT%H_%M_%S_%f')}"
+    make_archive(base_name=output_dirname, format='zip', root_dir='../', base_dir=output_dirpath)
 
 if __name__ == '__main__':
     arg_parser = ArgumentParser('meta_process.py', description='This script runs the OCMeta data processing workflow')
