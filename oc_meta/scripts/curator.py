@@ -772,9 +772,9 @@ class Curator:
                             if br_meta in self.VolIss:
                                 for vvi_v in self.vvi[venue_meta]['volume']:
                                     if vvi_v in self.VolIss[br_meta]['volume']:
-                                        self.VolIss[br_meta]['volume'][volume]['issue'].update(self.vvi[venue_meta]['volume'][volume]['issue'])
+                                        self.VolIss[br_meta]['volume'][vvi_v]['issue'].update(self.vvi[venue_meta]['volume'][vvi_v]['issue'])
                                     else:
-                                        self.VolIss[br_meta]['volume'][volume] = self.vvi[venue_meta]['volume'][volume]
+                                        self.VolIss[br_meta]['volume'].update(self.vvi[venue_meta]['volume'])
                                 self.VolIss[br_meta]['issue'].update(self.vvi[venue_meta]['issue'])
                             else:
                                 self.VolIss[br_meta] = self.vvi[venue_meta]
