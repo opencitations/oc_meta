@@ -155,7 +155,7 @@ def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False) -> N
         multiples_of_ten = {i for i in range(1, max_workers+1) if int(i) % 10 == 0}
         workers = [i for i in range(1, max_workers+len(multiples_of_ten)+1) if i not in multiples_of_ten]
     is_unix = platform in {'linux', 'linux2', 'darwin'}
-    files_chunks = chunks(files_to_be_processed, 1000) if is_unix else [files_to_be_processed]
+    files_chunks = chunks(list(files_to_be_processed), 2) if is_unix else [files_to_be_processed]
     for files_chunk in files_chunks:
         with Pool(processes=max_workers, maxtasksperchild=1) as executor:
             futures:List[ApplyResult] = [executor.apply_async(
@@ -199,7 +199,7 @@ def save_results(output_dirpath:str) -> None:
     output_dirname = f"meta_output_{datetime.now().strftime('%Y-%m-%dT%H_%M_%S_%f')}"
     parent_dir = Path(output_dirpath)
     parent_dir = parent_dir.parent.absolute()
-    make_archive(base_name=output_dirname, format='zip', root_dir=parent_dir, base_dir=output_dirpath)
+    make_archive(base_name=output_dirname, format='zip', base_dir=output_dirpath)
 
 if __name__ == '__main__':
     arg_parser = ArgumentParser('meta_process.py', description='This script runs the OCMeta data processing workflow')

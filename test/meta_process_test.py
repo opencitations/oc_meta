@@ -10,6 +10,10 @@ import unittest
 
 BASE_DIR = os.path.join('test', 'meta_process')
 
+def delete_output_zip(base_dir:str) -> None:
+    for file in os.listdir(base_dir):
+        if file.startswith('meta_output') and file.endswith('.zip'):
+            os.remove(os.path.join(base_dir, file))
 
 class test_ProcessTest(unittest.TestCase):
     def test_get_data(self):
@@ -35,6 +39,7 @@ class test_ProcessTest(unittest.TestCase):
         output = sorted(sorted(d.items()) for d in output)
         expected_output = sorted(sorted(d.items()) for d in expected_output)
         shutil.rmtree(output_folder)
+        delete_output_zip('.')
         self.assertEqual(output, expected_output)
 
     def test_run_meta_process_two_workers(self):
@@ -48,6 +53,7 @@ class test_ProcessTest(unittest.TestCase):
             for file in filenames:
                 output.extend(get_data(os.path.join(dirpath, file)))
         shutil.rmtree(output_folder)
+        delete_output_zip('.')
         expected_output = [
             {'id': 'doi:10.17117/na.2015.08.1067 meta:br/06101', 'title': '', 'author': '', 'pub_date': '', 'venue': 'The Korean Journal Of Food And Nutrition [issn:1225-4339 meta:br/06103]', 'volume': '26', 'issue': '', 'page': '', 'type': 'journal article', 'publisher': 'Consulting Company Ucom [crossref:6623 meta:ra/06101]', 'editor': 'Naimi, Elmehdi [orcid:0000-0002-4126-8519 meta:ra/06102]'}, 
             {'id': 'issn:1524-4539 issn:0009-7322 meta:br/06102', 'title': 'Circulation', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': 'journal', 'publisher': '', 'editor': ''}, 
@@ -108,6 +114,7 @@ class test_ProcessTest(unittest.TestCase):
             're': [
                 {'@graph': [{'@id': 'https://w3id.org/oc/meta/re/0601/prov/se/1', 'http://www.w3.org/ns/prov#specializationOf': [{'@id': 'https://w3id.org/oc/meta/re/0601'}]}]}]}
         shutil.rmtree(output_folder)
+        delete_output_zip('.')
         self.assertEqual(output, expected_output)
 
 
