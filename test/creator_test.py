@@ -35,7 +35,6 @@ def open_json(path):
         data = json.load(json_file)
         return data
 
-
 # creator executor
 def prepare2test(name):
     reset_server()
@@ -47,7 +46,7 @@ def prepare2test(name):
     testcase_vi = open_json("test/testcases/testcase_data/indices/" + name + "/index_vi_" + name + ".json")
     testcase_ttl = "test/testcases/testcase_" + name + ".ttl"
 
-    creator_info_dir = os.path.join("meta", "tdd", "creator_counter")
+    creator_info_dir = os.path.join("test", "creator_counter")
     creator = Creator(data, SERVER, "https://w3id.org/oc/meta/", creator_info_dir, "060", 'https://orcid.org/0000-0002-8420-0696', testcase_id_ra, testcase_id_br,
                       testcase_re, testcase_ar, testcase_vi, set())
     creator_setgraph = creator.creator()
@@ -62,7 +61,7 @@ def prepare2test(name):
 class test_Creator(unittest.TestCase):
     def test_vvi_action(self):
         base_iri = 'https://w3id.org/oc/meta/'
-        creator_info_dir = os.path.join("meta", "tdd", "creator_counter")
+        creator_info_dir = os.path.join("test", "creator_counter")
         vvi = {'0602': {'issue': {}, 'volume': {'107': {'id': '4733', 'issue': {'1': {'id': '4734'}, '2': {'id': '4735'}, '3': {'id': '4736'}, '4': {'id': '4737'}, '5': {'id': '4738'}, '6': {'id': '4739'}}}, '108': {'id': '4740', 'issue': {'1': {'id': '4741'}, '2': {'id': '4742'}, '3': {'id': '4743'}, '4': {'id': '4744'}}}, '104': {'id': '4712', 'issue': {'1': {'id': '4713'}, '2': {'id': '4714'}, '3': {'id': '4715'}, '4': {'id': '4716'}, '5': {'id': '4717'}, '6': {'id': '4718'}}}, '148': {'id': '4417', 'issue': {'12': {'id': '4418'}, '11': {'id': '4419'}}}, '100': {'id': '4684', 'issue': {'1': {'id': '4685'}, '2': {'id': '4686'}, '3': {'id': '4687'}, '4': {'id': '4688'}, '5': {'id': '4689'}, '6': {'id': '4690'}}}, '101': {'id': '4691', 'issue': {'1': {'id': '4692'}, '2': {'id': '4693'}, '3': {'id': '4694'}, '4': {'id': '4695'}, '5': {'id': '4696'}, '6': {'id': '4697'}}}, '102': {'id': '4698', 'issue': {'1': {'id': '4699'}, '2': {'id': '4700'}, '3': {'id': '4701'}, '4': {'id': '4702'}, '5': {'id': '4703'}, '6': {'id': '4704'}}}, '103': {'id': '4705', 'issue': {'1': {'id': '4706'}, '2': {'id': '4707'}, '3': {'id': '4708'}, '4': {'id': '4709'}, '5': {'id': '4710'}, '6': {'id': '4711'}}}, '105': {'id': '4719', 'issue': {'1': {'id': '4720'}, '2': {'id': '4721'}, '3': {'id': '4722'}, '4': {'id': '4723'}, '5': {'id': '4724'}, '6': {'id': '4725'}}}, '106': {'id': '4726', 'issue': {'6': {'id': '4732'}, '1': {'id': '4727'}, '2': {'id': '4728'}, '3': {'id': '4729'}, '4': {'id': '4730'}, '5': {'id': '4731'}}}}}}
         creator = Creator([], SERVER, base_iri, creator_info_dir, "060", 'https://orcid.org/0000-0002-8420-0696', [], [], [], [], vvi, set())
         creator.src = None
@@ -96,7 +95,7 @@ class test_RespAgentsCreator(unittest.TestCase):
     def test_creator(self):
         reset_server()
         data = open_csv("test/testcases/testcase_data/resp_agents_curator_output.csv")
-        creator_info_dir = os.path.join("meta", "tdd", "creator_counter")
+        creator_info_dir = os.path.join("test", "creator_counter")
         testcase_id_ra = open_csv("test/testcases/testcase_data/indices/resp_agents_curator_output/index_id_ra.csv")
         creator = RespAgentsCreator(data, SERVER, "https://w3id.org/oc/meta/", creator_info_dir, "060", 'https://orcid.org/0000-0002-8420-0696', testcase_id_ra, set())
         creator_graphset = creator.creator()
