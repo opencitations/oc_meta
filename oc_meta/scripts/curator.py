@@ -769,17 +769,9 @@ class Curator:
                 if 'wannabe' in venue_meta:
                     for br_meta in self.brmeta:
                         if venue_meta in self.brmeta[br_meta]['others']:
-                            if br_meta in self.VolIss:
-                                for vvi_v in self.vvi[venue_meta]['volume']:
-                                    if vvi_v in self.VolIss[br_meta]['volume']:
-                                        self.VolIss[br_meta]['volume'][vvi_v]['issue'].update(self.vvi[venue_meta]['volume'][vvi_v]['issue'])
-                                    else:
-                                        self.VolIss[br_meta]['volume'][vvi_v] = self.vvi[venue_meta]['volume'][vvi_v]
-                                self.VolIss[br_meta]['issue'].update(self.vvi[venue_meta]['issue'])
-                            else:
-                                self.VolIss[br_meta] = self.vvi[venue_meta]
+                            self.__merge_VolIss_with_vvi(br_meta, venue_meta)
                 else:
-                    self.VolIss[venue_meta] = self.vvi[venue_meta]
+                    self.__merge_VolIss_with_vvi(venue_meta, venue_meta)
         if self.filename:
             if not os.path.exists(path_index):
                 os.makedirs(path_index)
@@ -802,6 +794,17 @@ class Curator:
                 name = self.filename + '.csv'
                 data_file = os.path.join(path_csv, name)
                 write_csv(data_file, self.data)
+    
+    def __merge_VolIss_with_vvi(self, VolIss_venue_meta:str, vvi_venue_meta:str) -> None:
+        if VolIss_venue_meta in self.VolIss:
+            for vvi_v in self.vvi[vvi_venue_meta]['volume']:
+                if vvi_v in self.VolIss[VolIss_venue_meta]['volume']:
+                    self.VolIss[VolIss_venue_meta]['volume'][vvi_v]['issue'].update(self.vvi[vvi_venue_meta]['volume'][vvi_v]['issue'])
+                else:
+                    self.VolIss[VolIss_venue_meta]['volume'][vvi_v] = self.vvi[vvi_venue_meta]['volume'][vvi_v]
+            self.VolIss[VolIss_venue_meta]['issue'].update(self.vvi[vvi_venue_meta]['issue'])
+        else:
+            self.VolIss[VolIss_venue_meta] = self.vvi[vvi_venue_meta]
     
     def __update_id_count(self, id_dict, identifier):
         count = self._add_number(self.id_info_path)

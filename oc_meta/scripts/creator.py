@@ -67,11 +67,7 @@ class Creator(object):
             self.issue_graph = None
             self.id_action(ids)
             self.title_action(title)
-            try:
-                self.author_action(authors)
-            except AttributeError:
-                print(row)
-                raise(AttributeError)
+            self.author_action(authors)
             self.pub_date_action(pub_date)
             self.vvi_action(venue, vol, issue)
             self.page_action(page)
