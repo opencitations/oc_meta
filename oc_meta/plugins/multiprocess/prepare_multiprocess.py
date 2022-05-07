@@ -16,7 +16,7 @@
 
 
 from oc_meta.lib.file_manager import pathoo, get_data, write_csv, sort_files
-from oc_meta.lib.master_of_regex import name_and_ids, semicolon_in_people_field
+from oc_meta.lib.master_of_regex import comma_and_spaces, name_and_ids, semicolon_in_people_field
 from oc_meta.scripts.creator import Creator
 from typing import Dict, List
 from tqdm import tqdm
@@ -65,10 +65,10 @@ def prepare_relevant_items(csv_dir:str, output_dir:str, items_per_file:int, verb
         pbar.update() if verbose else None
     pbar.close() if verbose else None
     pbar = tqdm(total=len(files)) if verbose else None
-    ids_merged = _do_collective_merge(duplicated_ids, verbose)
-    venues_merged = _do_collective_merge(venues_by_id, verbose)
-    publishers_merged = _do_collective_merge(publishers_by_id, verbose)
-    resp_agents_merged = _do_collective_merge(resp_agents_by_id, verbose)
+    ids_merged = _do_collective_merge(duplicated_ids)
+    venues_merged = _do_collective_merge(venues_by_id)
+    publishers_merged = _do_collective_merge(publishers_by_id)
+    resp_agents_merged = _do_collective_merge(resp_agents_by_id)
     fieldnames = ['id', 'title', 'author', 'pub_date', 'venue', 'volume', 'issue', 'page', 'type', 'publisher', 'editor']
     __save_relevant_venues(venues_merged, items_per_file, output_dir, fieldnames)
     __save_ids(ids_merged, items_per_file, output_dir, fieldnames)
@@ -81,8 +81,13 @@ def _get_duplicated_ids(data:List[dict], ids_found:set, items_by_id:Dict[str, di
         ids_list = row['id'].split()
         if any(id in ids_found and (id not in cur_file_ids or id in items_by_id) for id in ids_list):
             for id in ids_list:
-                items_by_id.setdefault(id, {'others': set(), 'name': row['title'], 'page': row['page'], 'type': row['type']})
+                items_by_id.setdefault(id, {'others': set()})
                 items_by_id[id]['others'].update({other for other in ids_list if other != id})
+                for field in ['title', 'author', 'pub_date', 'venue', 'volume', 'issue', 'page', 'type', 'publisher', 'editor']:
+                    if field in items_by_id[id]:
+                        if items_by_id[id][field]:
+                            continue
+                    items_by_id[id][field] = row[field]
         cur_file_ids.update(set(ids_list))   
         ids_found.update(set(ids_list))
 
@@ -168,14 +173,39 @@ def _get_resp_agents(data:List[dict], ids_found:set, items_by_id:Dict[str, Dict[
                     ids = full_name_and_ids.group(2) if full_name_and_ids else None
                     if ids:
                         ids_list = [identifier for identifier in ids.split() if identifier not in FORBIDDEN_IDS]
+                        richest_name = _find_all_names(items_by_id, ids_list, name)
                         if any(id in ids_found and (id not in cur_file_ids or id in items_by_id) for id in ids_list):
                             for id in ids_list:
-                                items_by_id.setdefault(id, {'others': set(), 'name': name, 'type': 'author'})
+                                items_by_id.setdefault(id, {'others': set(), 'type': 'author'})
+                                items_by_id[id]['name'] = richest_name
                                 items_by_id[id]['others'].update({other for other in ids_list if other != id})
                         cur_file_ids.update(set(ids_list))   
                         ids_found.update(set(ids_list))
 
-def _do_collective_merge(items_by_id:dict, verbose:bool=False) -> dict:
+def _find_all_names(items_by_id:Dict[str, Dict[str, set]], ids_list:list, cur_name:str) -> str:
+    all_names = {cur_name}
+    for id in ids_list:
+        if id in items_by_id:
+            all_names.add(items_by_id[id]['name'])
+    all_names_parsed = set()
+    for name in all_names:
+        if ',' in name:
+            split_name = re.split(comma_and_spaces, name)
+            first_name = split_name[1].strip()
+            surname = split_name[0].strip()
+            all_names_parsed.add((surname, first_name))
+        else:
+            all_names_parsed.add((name,))
+    richest_first_name = ''
+    richest_surname = ''
+    for name in all_names_parsed:
+        if name[0] > richest_surname:
+            richest_surname = name[0]
+        if name[1] > richest_first_name:
+            richest_first_name = name[1]
+    return f'{richest_surname}, {richest_first_name}'.strip()
+
+def _do_collective_merge(items_by_id:dict) -> dict:
     merged_by_key:Dict[str, Dict[str, set]] = dict()
     ids_checked = set()
     for id, data in items_by_id.items():
@@ -192,8 +222,12 @@ def _do_collective_merge(items_by_id:dict, verbose:bool=False) -> dict:
             else:
                 ids_found = {id}
             if 'volume' in data and 'issue' in data:
-                all_vi = __find_all_vi(items_by_id=items_by_id, all_ids=ids_found)     
-            merged_by_key[id] = {k:v if not k == 'others' else all_ids for k,v in data.items()}                   
+                if isinstance(data['volume'], dict):
+                    all_vi = __find_all_vi(items_by_id=items_by_id, all_ids=ids_found)
+            if data['type'] == 'author':
+                richest_name = _find_all_names(items_by_id, all_ids, data['name'])
+                data['name'] = richest_name
+            merged_by_key[id] = {k:v if not k == 'others' else all_ids for k,v in data.items()}
             if all_vi:
                 merged_by_key[id]['volume'] = all_vi['volume']
                 merged_by_key[id]['issue'] = all_vi['issue']
@@ -280,8 +314,13 @@ def __save_ids(items_by_id:dict, items_per_file:int, output_dir:str, fieldnames:
     saved_chunks = 0
     output_length = len(items_by_id)
     for item_id, data in items_by_id.items():
-        name, ids = __get_name_and_ids(item_id, data)
-        rows.append({'id': ids, 'title': name, 'page': data['page'], 'type': data['type']})
+        ids_list = list(data['others'])
+        ids_list.append(item_id)
+        ids = ' '.join(ids_list)
+        output_row = {'id': ids}
+        for field in [f for f in fieldnames if f != 'id']:
+            output_row[field] = data[field]
+        rows.append(output_row)
         rows, saved_chunks = __store_data(rows, output_length, chunks, saved_chunks, output_dir, fieldnames)
 
 def __store_data(rows:list, output_length:int, chunks:int, saved_chunks:int, output_dir:str, fieldnames:str) -> list:

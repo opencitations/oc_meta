@@ -23,7 +23,7 @@ class TestPrepareMultiprocess(unittest.TestCase):
                     with open(os.path.join(root, file), 'r', encoding='utf-8') as f:
                         output.extend(list(DictReader(f)))
         expected_output = [
-            {'id': 'doi:10.9799/ksfan.2012.25.1.069', 'title': 'Nonthermal Sterilization and Shelf-life Extension of Seafood Products by Intense Pulsed Light Treatment', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '69-76', 'type': 'journal article', 'publisher': '', 'editor': ''}, 
+            {'id': 'doi:10.9799/ksfan.2012.25.1.069', 'title': 'Nonthermal Sterilization and Shelf-life Extension of Seafood Products by Intense Pulsed Light Treatment', 'author': 'Cheigh, Chan-Ick [orcid:0000-0003-2542-5788]; Mun, Ji-Hye; Chung, Myong-Soo', 'pub_date': '2012-3-31', 'venue': 'The Korean Journal of Food And Nutrition [issn:1225-4339]', 'volume': '25', 'issue': '1', 'page': '69-76', 'type': 'journal article', 'publisher': 'Consulting Company Ucom [crossref:6623]', 'editor': 'Chung, Myong-Soo [orcid:0000-0002-9666-2513]'}, 
             {'id': '', 'title': '', 'author': 'Chung, Myong-Soo [orcid:0000-0002-9666-2513]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}, 
             {'id': '', 'title': '', 'author': 'Cheigh, Chan-Ick [orcid:0000-0003-2542-5788]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}, 
             {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': 'Consulting Company Ucom [crossref:6623]', 'editor': ''}, 
@@ -42,8 +42,8 @@ class TestPrepareMultiprocess(unittest.TestCase):
         items_by_id = dict()
         _get_duplicated_ids(data, ids_found, items_by_id)
         expected_output = {
-            'issn:2341-4022': {'others': {'issn:2341-4023'}, 'name': 'Acta urológica portuguesa', 'page': '25', 'type': 'journal'}, 
-            'issn:2341-4023': {'others': {'issn:2341-4022'}, 'name': 'Acta urológica portuguesa', 'page': '25', 'type': 'journal'}}
+            'issn:2341-4022': {'others': {'issn:2341-4023'}, 'title': 'Acta urológica portuguesa', 'author': '', 'pub_date': '', 'venue': 'Transit Migration in Europe [issn:0003-987X]', 'volume': '', 'issue': '', 'page': '25', 'type': 'journal', 'publisher': '', 'editor': ''}, 
+            'issn:2341-4023': {'others': {'issn:2341-4022'}, 'title': 'Acta urológica portuguesa', 'author': '', 'pub_date': '', 'venue': 'Transit Migration in Europe [issn:0003-987X]', 'volume': '', 'issue': '', 'page': '25', 'type': 'journal', 'publisher': '', 'editor': ''}}
         self.assertEqual(items_by_id, expected_output)
     
     def test__get_relevant_venues(self):
@@ -86,15 +86,16 @@ class TestPrepareMultiprocess(unittest.TestCase):
 
     def test__get_resp_agents(self):
         items_by_id = dict()
-        item_1 = {'author': 'Massari, Arcangelo [orcid:0000-0002-8420-0696]', 'editor': ''}
-        item_2 = {'author': '', 'editor': 'Massari, A. [orcid:0000-0002-8420-0696 viaf:1]'}
-        item_3 = {'author': 'Massari, A [viaf:1]', 'editor': ''}
-        item_4 = {'author': 'Peroni, Silvio [orcid:0000-0003-0530-4305]', 'editor': ''}
-        items = [item_1, item_2, item_3, item_4]
+        items = [
+            {'author': 'Massari, [orcid:0000-0002-8420-0696]', 'editor': ''},
+            {'author': '', 'editor': 'Massari, A. [orcid:0000-0002-8420-0696 viaf:1]'},
+            {'author': 'Massari, Arcangelo [viaf:1]', 'editor': ''},
+            {'author': 'Peroni, Silvio [orcid:0000-0003-0530-4305]', 'editor': ''}
+        ]
         _get_resp_agents(data=items, ids_found={'orcid:0000-0002-8420-0696', 'orcid:0000-0003-0530-4305'}, items_by_id=items_by_id)
         expected_output = {
-            'orcid:0000-0002-8420-0696': {'others': {'viaf:1'}, 'name': 'Massari, Arcangelo', 'type': 'author'}, 
-            'viaf:1': {'others': {'orcid:0000-0002-8420-0696'}, 'name': 'Massari, A.', 'type': 'author'}, 
+            'orcid:0000-0002-8420-0696': {'others': {'viaf:1'}, 'name': 'Massari, A.', 'type': 'author'}, 
+            'viaf:1': {'others': {'orcid:0000-0002-8420-0696'}, 'name': 'Massari, Arcangelo', 'type': 'author'}, 
             'orcid:0000-0003-0530-4305': {'others': set(), 'name': 'Peroni, Silvio', 'type': 'author'}}
         self.assertEqual(items_by_id, expected_output)
     
@@ -118,17 +119,15 @@ class TestPrepareMultiprocess(unittest.TestCase):
             'id:c': {'others': {'id:a', 'id:b'}, 'name': 'Venue', 'type': 'journal', 'volume': {'1': {'a'}}, 'issue': set()}, 
             'id:d': {'others': {'id:a', 'id:e'}, 'name': 'Venue', 'type': 'journal', 'volume': {'2': {'c'}, '3': {'c'}}, 'issue': set()}, 
             'id:e': {'others': {'id:f', 'id:d'}, 'name': 'Venue', 'type': 'journal', 'volume': {'3': {'c'}}, 'issue': {'d'}}, 
-            'id:f': {'others': {'id:e'}, 'name': 'Venue', 'type': 'journal', 'volume': dict(), 'issue': {'vol. 17, n° 2', 'e'}}}
+            'id:f': {'others': {'id:e'}, 'name': 'Venue', 'type': 'journal', 'volume': dict(), 'issue': {'vol. 17, n° 2', 'e'}},
+            'orcid:0000-0002-8420-0696': {'others': {'viaf:1'}, 'name': 'Massari, A.', 'type': 'author'}, 
+            'viaf:1': {'others': {'orcid:0000-0002-8420-0696'}, 'name': 'Massari, Arcangelo', 'type': 'author'}, 
+            'orcid:0000-0003-0530-4305': {'others': set(), 'name': 'Peroni, Silvio', 'type': 'author'}}
         output = _do_collective_merge(items)
-        vi_number = 0
-        for _, data in output.items():
-            for _, issues in data['volume'].items():
-                if issues:
-                    vi_number += len(issues)
-                elif not issues:
-                    vi_number += 1
-            vi_number += len(data['issue'])
-        expected_output = {'id:a': {'name': 'Venue', 'type': 'journal', 'others': {'id:c', 'id:f', 'id:e', 'id:b', 'id:d'}, 'volume': {'1': {'a'}, '2': {'b', 'c'}, '3': {'c'}}, 'issue': {'vol. 17, n° 2', 'e', 'd'}}}
+        expected_output = {
+            'id:a': {'others': {'id:c', 'id:b', 'id:f', 'id:d', 'id:e'}, 'name': 'Venue', 'type': 'journal', 'volume': {'1': {'a'}, '2': {'b', 'c'}, '3': {'c'}}, 'issue': {'vol. 17, n° 2', 'd', 'e'}}, 
+            'orcid:0000-0002-8420-0696': {'others': {'viaf:1'}, 'name': 'Massari, Arcangelo', 'type': 'author'}, 
+            'orcid:0000-0003-0530-4305': {'others': set(), 'name': 'Peroni, Silvio', 'type': 'author'}}
         self.assertEqual(output, expected_output)
 
     def test_split_csvs_in_chunk(self):
