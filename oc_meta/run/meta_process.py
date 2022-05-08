@@ -45,6 +45,7 @@ class MetaProcess:
     def __init__(self, config:str):
         with open(config, encoding='utf-8') as file:
             settings = yaml.full_load(file)
+        self.config = config
         # Mandatory settings
         self.triplestore_url = settings['triplestore_url']
         self.input_csv_dir = normalize_path(settings['input_csv_dir'])
@@ -92,6 +93,8 @@ class MetaProcess:
         return files_to_be_processed
 
     def curate_and_create(self, filename:str, worker_number:int=None, resp_agents_only:bool=False) -> Tuple[Storer, Storer, str]:
+        if os.path.exists(os.path.join(self.base_output_dir, '.stop')):
+            return {'skip': filename}
         try:
             filepath = os.path.join(self.input_csv_dir, filename)
             data = get_data(filepath)
@@ -155,6 +158,7 @@ def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False) -> N
         multiples_of_ten = {i for i in range(1, max_workers+1) if int(i) % 10 == 0}
         workers = [i for i in range(1, max_workers+len(multiples_of_ten)+1) if i not in multiples_of_ten]
     is_unix = platform in {'linux', 'linux2', 'darwin'}
+    generate_gentle_buttons(meta_process.base_output_dir, meta_process.config, is_unix)
     files_chunks = chunks(list(files_to_be_processed), 2) if is_unix else [files_to_be_processed]
     for files_chunk in files_chunks:
         with Pool(processes=max_workers, maxtasksperchild=1) as executor:
@@ -165,9 +169,9 @@ def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False) -> N
             for future in futures:
                 callback(future, meta_process, pbar)
         delete_lock_files(base_dirs=[meta_process.output_rdf_dir, meta_process.info_dir])
-        if is_unix:
+        if is_unix and not os.path.exists(os.path.join(meta_process.base_output_dir, '.stop')):
             save_results(meta_process.base_output_dir)
-    if os.path.exists(meta_process.cache_path):
+    if os.path.exists(meta_process.cache_path) and not os.path.exists(os.path.join(meta_process.base_output_dir, '.stop')):
         os.rename(meta_process.cache_path, meta_process.cache_path.replace('.txt', f'_{datetime.now().strftime("%Y-%m-%dT%H_%M_%S_%f")}.txt'))
     pbar.close() if pbar else None
     if not is_unix:
@@ -181,6 +185,8 @@ def callback(future:ApplyResult, meta_process:MetaProcess, pbar:tqdm):
     elif 'error' in processed_file:
         with open(meta_process.errors_path, 'a', encoding='utf-8') as aux_file:
             aux_file.write(f'{processed_file["error"]}: {processed_file["msg"]}' + '\n')
+    elif 'skip' in processed_file:
+        pass
     pbar.update() if pbar else None
 
 def chunks(lst:list, n:int) -> List[list]:
@@ -200,6 +206,16 @@ def save_results(output_dirpath:str) -> None:
     parent_dir = Path(output_dirpath)
     parent_dir = parent_dir.parent.absolute()
     make_archive(base_name=output_dirname, format='zip', base_dir=output_dirpath)
+
+def generate_gentle_buttons(dir:str, config:str, is_unix:bool):
+    if os.path.exists(os.path.join(dir, '.stop')):
+        os.remove(os.path.join(dir, '.stop'))
+    ext = 'sh' if is_unix else 'bat'
+    with open (f'gently_run.{ext}', 'w') as rsh:
+        rsh.write(f'python -m oc_meta.lib.stopper -t "{dir}" --remove\npython -m oc_meta.run.meta_process -c {config}')
+    with open (f'gently_stop.{ext}', 'w') as rsh:
+        rsh.write(f'python -m oc_meta.lib.stopper -t "{dir}" --add')
+
 
 if __name__ == '__main__':
     arg_parser = ArgumentParser('meta_process.py', description='This script runs the OCMeta data processing workflow')

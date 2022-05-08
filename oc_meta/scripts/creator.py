@@ -266,8 +266,8 @@ class Creator(object):
             venue_type = 'series'
         elif br_type == 'reference entry':
             venue_type = 'reference book'
-        # elif br_type == 'report series':
-        #     venue_type = 'report series'
+        elif br_type == 'report series':
+            venue_type = 'report series'
         elif not br_type or br_type in {'dataset', 'data file'}:
             venue_type = ''
         # Check the type based on the identifier scheme

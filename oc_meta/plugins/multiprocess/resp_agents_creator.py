@@ -34,6 +34,7 @@ class RespAgentsCreator(Creator):
         self.schemas = self.ra_id_schemas.union(self.br_id_schemas)
         self.ra_index = self.indexer_id(ra_index)
         self.preexisting_entities = preexisting_entities
+        self.preexisting_graphs = dict()
         self.data = data
 
     def creator(self, source=None):
@@ -61,7 +62,7 @@ class RespAgentsCreator(Creator):
                         identifier = str(identifier).replace('meta:', '')
                         preexisting_entity = True if identifier in self.preexisting_entities else False
                         url = URIRef(self.url + identifier)
-                        preexisting_graph = self.finder.get_preexisting_graph(url) if preexisting_entity else None
+                        preexisting_graph = self.finder.get_preexisting_graph(url, self.preexisting_graphs) if preexisting_entity else None
                         pub_aut = self.setgraph.add_ra(self.resp_agent, source=self.src, res=url, preexisting_graph=preexisting_graph)
                         author_name = aut_and_ids.group(1)
                         if ',' in author_name:
@@ -87,7 +88,7 @@ class RespAgentsCreator(Creator):
                 preexisting_entity = True if identifier in self.preexisting_entities else False
                 url = URIRef(self.url + identifier)
                 publ_name = publ_and_ids.group(1)
-                preexisting_graph = self.finder.get_preexisting_graph(url) if preexisting_entity else None
+                preexisting_graph = self.finder.get_preexisting_graph(url, self.preexisting_graphs) if preexisting_entity else None
                 publ = self.setgraph.add_ra(self.resp_agent, source=self.src, res=url, preexisting_graph=preexisting_graph)
                 publ.has_name(publ_name)
         for identifier in publ_id_list:
@@ -104,7 +105,7 @@ class RespAgentsCreator(Creator):
                     identifier = str(identifier).replace('meta:', '')
                     preexisting_entity = True if identifier in self.preexisting_entities else False
                     url = URIRef(self.url + identifier)
-                    preexisting_graph = self.finder.get_preexisting_graph(url) if preexisting_entity else None
+                    preexisting_graph = self.finder.get_preexisting_graph(url, self.preexisting_graphs) if preexisting_entity else None
                     pub_ed = self.setgraph.add_ra(self.resp_agent, source=self.src, res=url, preexisting_graph=preexisting_graph)
                     editor_name = ed_and_ids.group(1)
                     if ',' in editor_name:

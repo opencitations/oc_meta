@@ -64,7 +64,6 @@ def prepare_relevant_items(csv_dir:str, output_dir:str, items_per_file:int, verb
         _get_resp_agents(data=data, ids_found=resp_agents_found, items_by_id=resp_agents_by_id)
         pbar.update() if verbose else None
     pbar.close() if verbose else None
-    pbar = tqdm(total=len(files)) if verbose else None
     ids_merged = _do_collective_merge(duplicated_ids)
     venues_merged = _do_collective_merge(venues_by_id)
     publishers_merged = _do_collective_merge(publishers_by_id)
@@ -201,8 +200,9 @@ def _find_all_names(items_by_id:Dict[str, Dict[str, set]], ids_list:list, cur_na
     for name in all_names_parsed:
         if name[0] > richest_surname:
             richest_surname = name[0]
-        if name[1] > richest_first_name:
-            richest_first_name = name[1]
+        if len(name) == 2:
+            if name[1] > richest_first_name:
+                richest_first_name = name[1]
     return f'{richest_surname}, {richest_first_name}'.strip()
 
 def _do_collective_merge(items_by_id:dict) -> dict:
