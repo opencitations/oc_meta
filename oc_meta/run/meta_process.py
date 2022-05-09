@@ -159,7 +159,7 @@ def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False) -> N
         workers = [i for i in range(1, max_workers+len(multiples_of_ten)+1) if i not in multiples_of_ten]
     is_unix = platform in {'linux', 'linux2', 'darwin'}
     generate_gentle_buttons(meta_process.base_output_dir, meta_process.config, is_unix)
-    files_chunks = chunks(list(files_to_be_processed), 2) if is_unix else [files_to_be_processed]
+    files_chunks = chunks(list(files_to_be_processed), 1000) if is_unix else [files_to_be_processed]
     for files_chunk in files_chunks:
         with Pool(processes=max_workers, maxtasksperchild=1) as executor:
             futures:List[ApplyResult] = [executor.apply_async(
