@@ -9,3 +9,6 @@ blazegraph*
 *.log
 prova.py
 .env
+*.bat 
+*.sh
+*.lock

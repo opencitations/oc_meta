@@ -57,7 +57,7 @@ class TestPrepareMultiprocess(unittest.TestCase):
         item_6 = {'id': 'isbn:9789089646491', 'title': 'Transit Migration in Europe', 'venue': '', 'volume': '', 'issue': '', 'type': 'book'}
         item_7 = {'id': 'isbn:9789089646491', 'title': 'Transit Migration in Europe', 'venue': 'An Introduction to Immigrant Incorporation Studies [issn:1750-743X]', 'volume': '', 'issue': '', 'type': 'book'}
         items = [item_1, item_2, item_3, item_4, item_5, item_6, item_7]
-        _get_relevant_venues(data= items, ids_found={'issn:0098-7484': {'volumes': {'1': {'a'}}, 'issues': set()}, 'issn:2341-4022': {'volumes': dict(), 'issues': {'d', 'e'}}, 'isbn:9789089646491': {'volumes': dict(), 'issues': set()}, 'issn:1750-743X': {'volumes': dict(), 'issues': set()}}, items_by_id=items_by_id, overlapping_ids=dict())
+        _get_relevant_venues(data= items, ids_found={'issn:0098-7484': {'volumes': {'1': {'a'}}, 'issues': set()}, 'issn:2341-4022': {'volumes': dict(), 'issues': {'d', 'e'}}, 'isbn:9789089646491': {'volumes': dict(), 'issues': set()}, 'issn:1750-743X': {'volumes': dict(), 'issues': set()}}, items_by_id=items_by_id)
         expected_output = {
             'issn:0098-7484': {'others': {'issn:0041-1345', 'issn:0040-6090', 'issn:0003-987X'}, 'name': 'Venue', 'type': 'journal', 'volume': {'1': {'a'}}, 'issue': set()}, 
             'issn:0003-987X': {'others': {'issn:0041-1345', 'issn:0098-7484'}, 'name': 'Venue', 'type': 'journal', 'volume': {'1': {'a'}}, 'issue': set()}, 

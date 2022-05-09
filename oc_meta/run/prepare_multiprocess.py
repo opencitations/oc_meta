@@ -47,14 +47,13 @@ if __name__ == '__main__':
     venues_dir = os.path.join(TMP_DIR, 'venues')
     meta_process.input_csv_dir = venues_dir
     run_meta_process(meta_process=meta_process)
-    ids_dir = os.path.join(TMP_DIR, 'ids')
-    meta_process.input_csv_dir = ids_dir
-    meta_process.workers_number = workers_numbers
-    run_meta_process(meta_process=meta_process)
     publishers_dir = os.path.join(TMP_DIR, 'publishers')
     meta_process.input_csv_dir = publishers_dir
     run_meta_process(meta_process=meta_process, resp_agents_only=True)
     people_dir = os.path.join(TMP_DIR, 'people')
     meta_process.input_csv_dir = people_dir
     run_meta_process(meta_process=meta_process, resp_agents_only=True)
+    ids_dir = os.path.join(TMP_DIR, 'ids')
+    meta_process.input_csv_dir = ids_dir
+    run_meta_process(meta_process=meta_process)
     shutil.rmtree(TMP_DIR)

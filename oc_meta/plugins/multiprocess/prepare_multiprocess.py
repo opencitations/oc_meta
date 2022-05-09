@@ -59,7 +59,7 @@ def prepare_relevant_items(csv_dir:str, output_dir:str, items_per_file:int, verb
     for file in files:
         data = get_data(file)
         _get_duplicated_ids(data=data, ids_found=ids_found, items_by_id=duplicated_ids)
-        _get_relevant_venues(data=data, ids_found=venues_found, items_by_id=venues_by_id, overlapping_ids=ids_found)
+        _get_relevant_venues(data=data, ids_found=venues_found, items_by_id=venues_by_id)
         _get_publishers(data=data, ids_found=publishers_found, items_by_id=publishers_by_id)
         _get_resp_agents(data=data, ids_found=resp_agents_found, items_by_id=resp_agents_by_id)
         pbar.update() if verbose else None
@@ -90,7 +90,7 @@ def _get_duplicated_ids(data:List[dict], ids_found:set, items_by_id:Dict[str, di
         cur_file_ids.update(set(ids_list))   
         ids_found.update(set(ids_list))
 
-def _get_relevant_venues(data:List[dict], ids_found:dict, items_by_id:Dict[str, dict], overlapping_ids:dict) -> None:
+def _get_relevant_venues(data:List[dict], ids_found:dict, items_by_id:Dict[str, dict]) -> None:
     cur_file_ids = dict()
     for row in data:
         venue = row['venue']
@@ -111,8 +111,6 @@ def _get_relevant_venues(data:List[dict], ids_found:dict, items_by_id:Dict[str, 
         for venue_tuple in venues:
             name, ids, br_type = venue_tuple
             ids_list = [identifier for identifier in ids.split() if identifier not in FORBIDDEN_IDS]
-            if any(id in overlapping_ids for id in ids_list):
-                continue
             if any(id in ids_found and (id not in cur_file_ids or id in items_by_id) for id in ids_list):
                 for id in ids_list:
                     items_by_id.setdefault(id, {'others': set(), 'name': name, 'type': br_type, 'volume': dict(), 'issue': set()})
