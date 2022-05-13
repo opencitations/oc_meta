@@ -29,12 +29,16 @@ def preprocess(crossref_json_dir:str, publishers_filepath:str, orcid_doi_filepat
     if verbose:
         pbar = tqdm(total=len(all_files))
     for filename in all_files:
-        data = load_json(filename, targz_fd)
+        source_data = load_json(filename, targz_fd)
         filename = filename.name if isinstance(filename, TarInfo) else filename
         filename_without_ext = filename.replace('.json', '').replace('.tar', '').replace('.gz', '')
         filepath = os.path.join(csv_dir, f'{os.path.basename(filename_without_ext)}.csv')
         pathoo(filepath)
-        data = crossref_csv.csv_creator(data)
+        data = list()
+        for item in source_data['items']:
+            tabular_data = crossref_csv.csv_creator(item)
+            if tabular_data:
+                data.append(tabular_data)
         if data:
             with open(filepath, 'w', newline='', encoding='utf-8') as output_file:
                 dict_writer = csv.DictWriter(output_file, data[0].keys(), delimiter=',', quotechar='"', quoting=csv.QUOTE_NONNUMERIC, escapechar='\\')

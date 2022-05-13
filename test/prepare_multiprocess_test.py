@@ -57,7 +57,7 @@ class TestPrepareMultiprocess(unittest.TestCase):
         item_6 = {'id': 'isbn:9789089646491', 'title': 'Transit Migration in Europe', 'venue': '', 'volume': '', 'issue': '', 'type': 'book'}
         item_7 = {'id': 'isbn:9789089646491', 'title': 'Transit Migration in Europe', 'venue': 'An Introduction to Immigrant Incorporation Studies [issn:1750-743X]', 'volume': '', 'issue': '', 'type': 'book'}
         items = [item_1, item_2, item_3, item_4, item_5, item_6, item_7]
-        _get_relevant_venues(data= items, ids_found={'issn:0098-7484': {'volumes': {'1': {'a'}}, 'issues': set()}, 'issn:2341-4022': {'volumes': dict(), 'issues': {'d', 'e'}}, 'isbn:9789089646491': {'volumes': dict(), 'issues': set()}, 'issn:1750-743X': {'volumes': dict(), 'issues': set()}}, items_by_id=items_by_id)
+        _get_relevant_venues(data= items, ids_found={'issn:0098-7484': {'volumes': {'1': {'a'}}, 'issues': set()}, 'issn:2341-4022': {'volumes': dict(), 'issues': {'d', 'e'}}, 'isbn:9789089646491': {'volumes': dict(), 'issues': set()}, 'issn:1750-743X': {'volumes': dict(), 'issues': set()}}, items_by_id=items_by_id, duplicated_items=items_by_id)
         expected_output = {
             'issn:0098-7484': {'others': {'issn:0041-1345', 'issn:0040-6090', 'issn:0003-987X'}, 'name': 'Venue', 'type': 'journal', 'volume': {'1': {'a'}}, 'issue': set()}, 
             'issn:0003-987X': {'others': {'issn:0041-1345', 'issn:0098-7484'}, 'name': 'Venue', 'type': 'journal', 'volume': {'1': {'a'}}, 'issue': set()}, 
@@ -71,6 +71,7 @@ class TestPrepareMultiprocess(unittest.TestCase):
 
     def test__get_publishers(self):
         items_by_id = dict()
+        duplicated_items = dict()
         self.maxDiff = None
         items = [
             {'id': '', 'title': '', 'author': 'NAIMI, ELMEHDI [orcid:0000-0002-4126-8519]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': 'American Medical Association (AMA) [crossref:10 crossref:9999]', 'editor': ''}, 
@@ -78,26 +79,27 @@ class TestPrepareMultiprocess(unittest.TestCase):
             {'id': '', 'title': '', 'author': 'Cheigh, Chan-Ick [orcid:0000-0003-2542-5788]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': 'Wiley [crossref:311]', 'editor': ''}, 
             {'id': '', 'title': '', 'author': 'Kim, Young-Shik [orcid:0000-0001-5673-6314]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': 'Wiley [crossref:311]', 'editor': ''}, 
             {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': 'The Korean Journal of Food And Nutrition [issn:1225-4339]', 'volume': '25', 'issue': '1', 'page': '', 'type': 'journal issue', 'publisher': '', 'editor': ''}]
-        _get_publishers(data=items, ids_found={'crossref:10'}, items_by_id=items_by_id)
+        _get_publishers(data=items, ids_found={'crossref:10'}, items_by_id=items_by_id, duplicated_items=duplicated_items)
         expected_output = {
             'crossref:10': {'others': {'crossref:9999'}, 'name': 'American Medical Association (AMA)', 'type': 'publisher'}, 
             'crossref:9999': {'others': {'crossref:10'}, 'name': 'American Medical Association (AMA)', 'type': 'publisher'}}
-        self.assertEqual(items_by_id, expected_output)
+        self.assertEqual(duplicated_items, expected_output)
 
     def test__get_resp_agents(self):
         items_by_id = dict()
+        duplicated_items = dict()
         items = [
             {'author': 'Massari, [orcid:0000-0002-8420-0696]', 'editor': ''},
             {'author': '', 'editor': 'Massari, A. [orcid:0000-0002-8420-0696 viaf:1]'},
             {'author': 'Massari, Arcangelo [viaf:1]', 'editor': ''},
             {'author': 'Peroni, Silvio [orcid:0000-0003-0530-4305]', 'editor': ''}
         ]
-        _get_resp_agents(data=items, ids_found={'orcid:0000-0002-8420-0696', 'orcid:0000-0003-0530-4305'}, items_by_id=items_by_id)
+        _get_resp_agents(data=items, ids_found={'orcid:0000-0002-8420-0696', 'orcid:0000-0003-0530-4305'}, items_by_id=items_by_id, duplicated_items=duplicated_items)
         expected_output = {
             'orcid:0000-0002-8420-0696': {'others': {'viaf:1'}, 'name': 'Massari, A.', 'type': 'author'}, 
             'viaf:1': {'others': {'orcid:0000-0002-8420-0696'}, 'name': 'Massari, Arcangelo', 'type': 'author'}, 
             'orcid:0000-0003-0530-4305': {'others': set(), 'name': 'Peroni, Silvio', 'type': 'author'}}
-        self.assertEqual(items_by_id, expected_output)
+        self.assertEqual(duplicated_items, expected_output)
     
     def test__merge_publishers(self):
         publishers_by_id = {
@@ -105,7 +107,7 @@ class TestPrepareMultiprocess(unittest.TestCase):
             'crossref:9999': {'others': {'crossref:10'}, 'name': 'American Medical Association (AMA)', 'type': 'publisher'},
             'crossref:78': {'others': set(), 'name': 'Elsevier BV', 'type': 'publisher'}, 
             'crossref:311': {'others': set(), 'name': 'Wiley', 'type': 'publisher'}}
-        output = _do_collective_merge(publishers_by_id)
+        output = _do_collective_merge(publishers_by_id, publishers_by_id)
         expected_output = {
             'crossref:10': {'name': 'American Medical Association (AMA)', 'type': 'publisher', 'others': {'crossref:9999'}}, 
             'crossref:78': {'name': 'Elsevier BV', 'type': 'publisher', 'others': set()}, 
@@ -123,7 +125,7 @@ class TestPrepareMultiprocess(unittest.TestCase):
             'orcid:0000-0002-8420-0696': {'others': {'viaf:1'}, 'name': 'Massari, A.', 'type': 'author'}, 
             'viaf:1': {'others': {'orcid:0000-0002-8420-0696'}, 'name': 'Massari, Arcangelo', 'type': 'author'}, 
             'orcid:0000-0003-0530-4305': {'others': set(), 'name': 'Peroni, Silvio', 'type': 'author'}}
-        output = _do_collective_merge(items)
+        output = _do_collective_merge(items, items)
         expected_output = {
             'id:a': {'others': {'id:c', 'id:b', 'id:f', 'id:d', 'id:e'}, 'name': 'Venue', 'type': 'journal', 'volume': {'1': {'a'}, '2': {'b', 'c'}, '3': {'c'}}, 'issue': {'vol. 17, n° 2', 'd', 'e'}}, 
             'orcid:0000-0002-8420-0696': {'others': {'viaf:1'}, 'name': 'Massari, Arcangelo', 'type': 'author'}, 

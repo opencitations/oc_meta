@@ -20,14 +20,18 @@ class TestCrossrefProcessing(unittest.TestCase):
     def test_csv_creator(self):
         crossref_processor = CrossrefProcessing(orcid_index=IOD, doi_csv=WANTED_DOIS, publishers_filepath=None)
         data = load_json(DATA, None)
-        csv_created = crossref_processor.csv_creator(data)
+        output = list()
+        for item in data['items']:
+            tabular_data = crossref_processor.csv_creator(item)
+            if tabular_data:
+                output.append(tabular_data)
         expected_output = [
             {'id': 'doi:10.47886/9789251092637.ch7', 'title': 'Freshwater, Fish and the Future: Proceedings of the Global Cross-Sectoral Conference', 'author': '', 'pub_date': '2016', 'venue': 'Freshwater, Fish and the Future: Proceedings of the Global Cross-Sectoral Conference', 'volume': '', 'issue': '', 'page': '', 'type': 'book chapter', 'publisher': 'American Fisheries Society [crossref:460]', 'editor': 'Lymer, David; Food and Agriculture Organization of the United Nations Fisheries and Aquaculture Department Viale delle Terme di Caracalla Rome 00153 Italy; Marttin, Felix; Marmulla, Gerd; Bartley, Devin M.'},
             {'id': 'doi:10.9799/ksfan.2012.25.1.069', 'title': 'Nonthermal Sterilization and Shelf-life Extension of Seafood Products by Intense Pulsed Light Treatment', 'author': 'Cheigh, Chan-Ick; Mun, Ji-Hye; Chung, Myong-Soo', 'pub_date': '2012-3-31', 'venue': 'The Korean Journal of Food And Nutrition [issn:1225-4339]', 'volume': '25', 'issue': '1', 'page': '69-76', 'type': 'journal article', 'publisher': 'The Korean Society of Food and Nutrition [crossref:4768]', 'editor': ''}, 
             {'id': 'doi:10.9799/ksfan.2012.25.1.105', 'title': 'A Study on Dietary Habit and Eating Snack Behaviors of Middle School Students with Different Obesity Indexes in Chungnam Area', 'author': 'Kim, Myung-Hee; Seo, Jin-Seon; Choi, Mi-Kyeong [orcid:0000-0002-6227-4053]; Kim, Eun-Young', 'pub_date': '2012-3-31', 'venue': 'The Korean Journal of Food And Nutrition [issn:1225-4339]', 'volume': '25', 'issue': '1', 'page': '105-115', 'type': 'journal article', 'publisher': 'The Korean Society of Food and Nutrition [crossref:4768]', 'editor': ''}, 
             {'id': 'doi:10.9799/ksfan.2012.25.1.123', 'title': 'The Protective Effects of Chrysanthemum cornarium L. var. spatiosum Extract on HIT-T15 Pancreatic β-Cells against Alloxan-induced Oxidative Stress', 'author': 'Kim, In-Hye; Cho, Kang-Jin; Ko, Jeong-Sook; Kim, Jae-Hyun; Om, Ae-Son', 'pub_date': '2012-3-31', 'venue': 'The Korean Journal of Food And Nutrition [issn:1225-4339]', 'volume': '25', 'issue': '1', 'page': '123-131', 'type': 'journal article', 'publisher': 'The Korean Society of Food and Nutrition [crossref:4768]', 'editor': ''}
         ]
-        self.assertEqual(csv_created, expected_output)
+        self.assertEqual(output, expected_output)
 
     def test_orcid_finder(self):
         crossref_processor = CrossrefProcessing(IOD, WANTED_DOIS)
@@ -317,27 +321,31 @@ class TestCrossrefProcessing(unittest.TestCase):
     
     def test_report_series_venue_id(self):
         crossref_processor = CrossrefProcessing(orcid_index=IOD, doi_csv=WANTED_DOIS, publishers_filepath=None)
-        item = {'items': [{
+        items = {'items': [{
             'DOI': '10.1007/978-3-030-00668-6_8',
             'container-title': ["troitel'stvo: nauka i obrazovanie [Construction: Science and Education]"],
             'ISSN': '2305-5502',
             'type': 'report-series'
         }]}
         crossref_processor = CrossrefProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
-        output = crossref_processor.csv_creator(data=item)
+        output = list()
+        for item in items['items']:
+            output.append(crossref_processor.csv_creator(item))
         expected_output = [{'id': 'doi:10.1007/978-3-030-00668-6_8', 'title': '', 'author': '', 'pub_date': '', 'venue': "troitel'stvo: nauka i obrazovanie [Construction: Science and Education] [issn:2305-5502]", 'volume': '', 'issue': '', 'page': '', 'type': 'report series', 'publisher': '', 'editor': ''}]
         self.assertEqual(output, expected_output)
 
     def test_report_series_br_id(self):
         crossref_processor = CrossrefProcessing(orcid_index=IOD, doi_csv=WANTED_DOIS, publishers_filepath=None)
-        item = {'items': [{
+        items = {'items': [{
             'DOI': '10.1007/978-3-030-00668-6_8',
             'container-title': [],
             'ISSN': '2305-5502',
             'type': 'report-series'
         }]}
         crossref_processor = CrossrefProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
-        output = crossref_processor.csv_creator(data=item)
+        output = list()
+        for item in items['items']:
+            output.append(crossref_processor.csv_creator(item))
         expected_output = [{'id': 'doi:10.1007/978-3-030-00668-6_8 issn:2305-5502', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': 'report series', 'publisher': '', 'editor': ''}]
         self.assertEqual(output, expected_output)
 

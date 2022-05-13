@@ -45,15 +45,18 @@ if __name__ == '__main__':
             shutil.move(os.path.join(TMP_DIR, file), csv_dir)
         prepare_relevant_items(csv_dir=csv_dir, output_dir=TMP_DIR, items_per_file=items_per_file, verbose=verbose)
     venues_dir = os.path.join(TMP_DIR, 'venues')
-    meta_process.input_csv_dir = venues_dir
-    run_meta_process(meta_process=meta_process)
+    if os.path.isdir(venues_dir):
+        meta_process.input_csv_dir = venues_dir
+        run_meta_process(meta_process=meta_process)
     publishers_dir = os.path.join(TMP_DIR, 'publishers')
-    meta_process.input_csv_dir = publishers_dir
-    run_meta_process(meta_process=meta_process, resp_agents_only=True)
+    if os.path.isdir(publishers_dir):
+        meta_process.input_csv_dir = publishers_dir
+        run_meta_process(meta_process=meta_process, resp_agents_only=True)
     people_dir = os.path.join(TMP_DIR, 'people')
-    meta_process.input_csv_dir = people_dir
-    run_meta_process(meta_process=meta_process, resp_agents_only=True)
+    if os.path.isdir(people_dir):
+        meta_process.input_csv_dir = people_dir
+        run_meta_process(meta_process=meta_process, resp_agents_only=True)
     ids_dir = os.path.join(TMP_DIR, 'ids')
-    meta_process.input_csv_dir = ids_dir
-    run_meta_process(meta_process=meta_process)
-    shutil.rmtree(TMP_DIR)
+    if os.path.isdir(ids_dir):
+        meta_process.input_csv_dir = ids_dir
+        run_meta_process(meta_process=meta_process)
