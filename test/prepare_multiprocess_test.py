@@ -1,6 +1,6 @@
 from csv import DictReader
 from oc_meta.lib.file_manager import get_data
-from oc_meta.plugins.multiprocess.prepare_multiprocess import prepare_relevant_items, _do_collective_merge, _get_relevant_venues, _get_resp_agents, _get_publishers, _get_duplicated_ids, split_csvs_in_chunks
+from oc_meta.plugins.multiprocess.prepare_multiprocess import prepare_relevant_items, _do_collective_merge, _get_relevant_venues, _get_resp_agents, _get_publishers, _get_duplicated_ids, split_csvs_in_chunks, _enrich_duplicated_ids_found
 from pprint import pprint
 from sys import platform
 import os
@@ -158,6 +158,17 @@ class TestPrepareMultiprocess(unittest.TestCase):
         expected_output = expected_output_unix if is_unix else expected_output_windows
         shutil.rmtree(TMP_DIR)
         self.assertEqual(output, expected_output)
+    
+    def test__enrich_duplicated_ids_found(self):
+        data = [{'id': 'issn:2341-4022', 'title': 'Acta urológica portuguesa 1', 'author': 'Cheigh, Chan-Ick [orcid:0000-0003-2542-5788]', 'pub_date': '2012-3-31', 'venue': 'Transit Migration in Europe [issn:0003-987X]', 'volume': '25', 'issue': '1', 'page': '25', 'type': 'journal article', 'publisher': 'Consulting Company Ucom [crossref:6623]', 'editor': 'Chung, Myong-Soo [orcid:0000-0002-9666-2513]'}]
+        items_by_id = {
+            'issn:2341-4022': {'others': {'issn:2341-4023'}, 'title': 'Acta urológica portuguesa', 'author': 'Cheigh, Chan-Ick', 'pub_date': '2012-3-31', 'venue': 'Transit Migration in Europe [issn:0003-987X]', 'volume': '', 'issue': '', 'page': '25', 'type': 'journal article', 'publisher': '', 'editor': 'Chung, Myong-Soo'}, 
+            'issn:2341-4023': {'others': {'issn:2341-4022'}, 'title': 'Acta urológica portuguesa', 'author': 'Cheigh, Chan-Ick', 'pub_date': '2012-3-31', 'venue': 'Transit Migration in Europe [issn:0003-987X]', 'volume': '', 'issue': '', 'page': '25', 'type': 'journal article', 'publisher': '', 'editor': 'Chung, Myong-Soo'}}
+        _enrich_duplicated_ids_found(data, items_by_id)
+        expected_output = {
+            'issn:2341-4022': {'others': {'issn:2341-4023'}, 'title': 'Acta urológica portuguesa 1', 'author': 'Cheigh, Chan-Ick [orcid:0000-0003-2542-5788]', 'pub_date': '2012-3-31', 'venue': 'Transit Migration in Europe [issn:0003-987X]', 'volume': '25', 'issue': '1', 'page': '25', 'type': 'journal article', 'publisher': 'Consulting Company Ucom [crossref:6623]', 'editor': 'Chung, Myong-Soo [orcid:0000-0002-9666-2513]'}, 
+            'issn:2341-4023': {'others': {'issn:2341-4022'}, 'title': 'Acta urológica portuguesa 1', 'author': 'Cheigh, Chan-Ick [orcid:0000-0003-2542-5788]', 'pub_date': '2012-3-31', 'venue': 'Transit Migration in Europe [issn:0003-987X]', 'volume': '25', 'issue': '1', 'page': '25', 'type': 'journal article', 'publisher': 'Consulting Company Ucom [crossref:6623]', 'editor': 'Chung, Myong-Soo [orcid:0000-0002-9666-2513]'}}
+        self.assertEqual(items_by_id, expected_output)
         
 
 if __name__ == '__main__':
