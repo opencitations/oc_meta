@@ -27,6 +27,7 @@ from oc_meta.plugins.multiprocess.resp_agents_creator import RespAgentsCreator
 from oc_meta.plugins.multiprocess.resp_agents_curator import RespAgentsCurator
 from oc_meta.scripts.creator import Creator
 from oc_meta.scripts.curator import Curator
+from multiprocessing import get_context
 from multiprocessing.pool import ApplyResult, Pool
 from oc_ocdm import Storer
 from oc_ocdm.prov import ProvSet
@@ -161,7 +162,7 @@ def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False) -> N
     generate_gentle_buttons(meta_process.base_output_dir, meta_process.config, is_unix)
     files_chunks = chunks(list(files_to_be_processed), 1000) if is_unix else [files_to_be_processed]
     for files_chunk in files_chunks:
-        with Pool(processes=max_workers, maxtasksperchild=1) as executor:
+        with get_context("spawn").Pool(processes=max_workers, maxtasksperchild=1) as executor:
             futures:List[ApplyResult] = [executor.apply_async(
                 func=meta_process.curate_and_create, 
                 args=(file_to_be_processed, worker_number, resp_agents_only)) 
