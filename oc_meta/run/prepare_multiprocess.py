@@ -56,6 +56,7 @@ if __name__ == '__main__':
     if os.path.isdir(people_dir):
         meta_process.input_csv_dir = people_dir
         run_meta_process(meta_process=meta_process, resp_agents_only=True)
+    meta_process.workers_number = 1
     ids_dir = os.path.join(TMP_DIR, 'ids')
     if os.path.isdir(ids_dir):
         meta_process.input_csv_dir = ids_dir
