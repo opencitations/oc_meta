@@ -108,8 +108,9 @@ class ResourceFinder:
             schema_value_list = list(zip(id_schema_list, id_value_list))
             id_list = list()
             for schema, value in schema_value_list:
-                identifier = f'{schema}:{value}'
-                id_list.append(identifier)
+                if schema and value:
+                    identifier = f'{schema}:{value}'
+                    id_list.append(identifier)
             metaid_id_list = list(zip(metaid_list, id_list))
             return title, metaid_id_list
         else:
