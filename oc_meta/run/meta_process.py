@@ -20,6 +20,7 @@
 
 from argparse import ArgumentParser
 from datetime import datetime
+from filelock import FileLock
 from itertools import cycle
 from oc_meta.lib.csvmanager import CSVManager
 from oc_meta.lib.file_manager import get_data, normalize_path, pathoo, suppress_stdout, init_cache, sort_files
@@ -125,13 +126,25 @@ class MetaProcess:
             prov_storer = Storer(prov, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, output_format='json-ld')
             with suppress_stdout():
                 self.store_data_and_prov(res_storer, prov_storer, filename)
-            with open(cache_path, 'a', encoding='utf-8') as aux_file:
-                aux_file.write(filename + '\n')
+            lock = FileLock(f'{cache_path}.lock')
+            with lock:
+                if not os.path.exists(cache_path):
+                    with open(cache_path, 'w', encoding='utf-8') as aux_file:
+                        aux_file.write(filename + '\n')
+                else:
+                    with open(cache_path, 'r', encoding='utf-8') as aux_file:
+                        data = aux_file.read().splitlines()
+                        data.append(filename)
+                        data_sorted = sorted(data, key=lambda filename: int(filename.replace('.csv', '')), reverse=False)
+                    with open(cache_path, 'w', encoding='utf-8') as aux_file:
+                        aux_file.write('\n'.join(data_sorted))
         except Exception as e:
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(e).__name__, e.args)
-            with open(errors_path, 'a', encoding='utf-8') as aux_file:
-                aux_file.write(f'{filename}: {message}' + '\n')
+            lock = FileLock(cache_path)
+            with lock:
+                with open(errors_path, 'a', encoding='utf-8') as aux_file:
+                    aux_file.write(f'{filename}: {message}' + '\n')
     
     def store_data_and_prov(self, res_storer:Storer, prov_storer:Storer, filename:str) -> None:
         if self.rdf_output_in_chunks:
@@ -147,7 +160,7 @@ class MetaProcess:
             res_storer.upload_all(triplestore_url=self.triplestore_url, base_dir=self.output_rdf_dir, batch_size=100)
 
 def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False) -> None:
-    delete_lock_files(base_dirs=[meta_process.output_rdf_dir, meta_process.info_dir])
+    delete_lock_files(base_dir=meta_process.base_output_dir)
     files_to_be_processed = meta_process.prepare_folders()
     max_workers = meta_process.workers_number
     if max_workers == 0:
@@ -168,25 +181,24 @@ def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False) -> N
                 for file_to_be_processed, worker_number in zip(files_chunk, cycle(workers))]
             for future in futures:
                 future.get()
-        delete_lock_files(base_dirs=[meta_process.output_rdf_dir, meta_process.info_dir])
+        delete_lock_files(base_dir=meta_process.base_output_dir)
         if is_unix and not os.path.exists(os.path.join(meta_process.base_output_dir, '.stop')):
             save_results(meta_process.base_output_dir)
     if os.path.exists(meta_process.cache_path) and not os.path.exists(os.path.join(meta_process.base_output_dir, '.stop')):
         os.rename(meta_process.cache_path, meta_process.cache_path.replace('.txt', f'_{datetime.now().strftime("%Y-%m-%dT%H_%M_%S_%f")}.txt'))
     if not is_unix:
-        delete_lock_files(base_dirs=[meta_process.output_rdf_dir, meta_process.info_dir])
+        delete_lock_files(base_dir=meta_process.base_output_dir)
 
 def chunks(lst:list, n:int) -> List[list]:
     '''Yield successive n-sized chunks from lst.'''
     for i in range(0, len(lst), n):
         yield lst[i:i + n]
 
-def delete_lock_files(base_dirs:list) -> None:
-    for base_dir in base_dirs:
-        for dirpath, _, filenames in os.walk(base_dir):
-            for filename in filenames:
-                if filename.endswith('.lock'):
-                    os.remove(os.path.join(dirpath, filename))
+def delete_lock_files(base_dir:list) -> None:
+    for dirpath, _, filenames in os.walk(base_dir):
+        for filename in filenames:
+            if filename.endswith('.lock'):
+                os.remove(os.path.join(dirpath, filename))
 
 def save_results(output_dirpath:str) -> None:
     output_dirname = f"meta_output_{datetime.now().strftime('%Y-%m-%dT%H_%M_%S_%f')}"
