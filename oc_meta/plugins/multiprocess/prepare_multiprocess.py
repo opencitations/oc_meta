@@ -67,6 +67,14 @@ def prepare_relevant_items(csv_dir:str, output_dir:str, items_per_file:int, verb
         _get_resp_agents(data=data, ids_found=resp_agents_found, items_by_id=resp_agents_by_id, duplicated_items=duplicated_resp_agents)
         pbar.update() if verbose else None
     pbar.close() if verbose else None
+    if verbose:
+        print('[INFO:prepare_multiprocess] Enriching the duplicated bibliographic resources found')
+        pbar = tqdm(total=len(files))
+    for file in files:
+        data = get_data(file)
+        _enrich_duplicated_ids_found(data, duplicated_ids)
+        pbar.update() if verbose else None
+    pbar.close() if verbose else None
     ids_merged = _do_collective_merge(duplicated_ids, duplicated_ids)
     venues_merged = _do_collective_merge(venues_by_id, duplicated_venues)
     publishers_merged = _do_collective_merge(publishers_by_id, duplicated_publishers)
@@ -87,11 +95,23 @@ def _get_duplicated_ids(data:List[dict], ids_found:set, items_by_id:Dict[str, di
                 items_by_id[id]['others'].update({other for other in ids_list if other != id})
                 for field in ['title', 'author', 'pub_date', 'venue', 'volume', 'issue', 'page', 'type', 'publisher', 'editor']:
                     if field in items_by_id[id]:
-                        if items_by_id[id][field]:
+                        if len(row[field]) < len(items_by_id[id][field]):
                             continue
                     items_by_id[id][field] = row[field]
         cur_file_ids.update(set(ids_list))   
         ids_found.update(set(ids_list))
+
+def _enrich_duplicated_ids_found(data:List[dict], items_by_id:Dict[str, dict]) -> None:
+    for row in data:
+        br_ids = row['id'].split()
+        for br_id in br_ids:
+            if br_id in items_by_id:
+                all_ids = __find_all_ids_by_key(items_by_id, br_id)
+                for field, value in row.items():
+                    if field != 'id':
+                        for all_id in all_ids:
+                            if len(value) > len(items_by_id[all_id][field]):
+                                items_by_id[all_id][field] = value
 
 def _get_relevant_venues(data:List[dict], ids_found:dict, items_by_id:Dict[str, dict], duplicated_items:Dict[str, dict]) -> None:
     cur_file_ids = dict()

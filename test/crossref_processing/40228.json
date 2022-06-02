@@ -170,12 +170,14 @@
                 {
                     "given": "Chan-Ick",
                     "family": "Cheigh",
-                    "affiliation": []
+                    "affiliation": [],
+                    "ORCID": "http://orcid.org/0000-0002-6227-4053"
                 },
                 {
                     "given": "Ji-Hye",
                     "family": "Mun",
-                    "affiliation": []
+                    "affiliation": [],
+                    "ORCID": ["0000-0002-6227-4053"]
                 },
                 {
                     "given": "Myong-Soo",
