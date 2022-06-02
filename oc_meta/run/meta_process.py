@@ -27,7 +27,6 @@ from oc_meta.plugins.multiprocess.resp_agents_creator import RespAgentsCreator
 from oc_meta.plugins.multiprocess.resp_agents_curator import RespAgentsCurator
 from oc_meta.scripts.creator import Creator
 from oc_meta.scripts.curator import Curator
-from multiprocessing import get_context
 from multiprocessing.pool import ApplyResult, Pool
 from oc_ocdm import Storer
 from oc_ocdm.prov import ProvSet
@@ -35,8 +34,7 @@ from pathlib import Path
 from shutil import make_archive
 from sys import platform
 from time_agnostic_library.support import generate_config_file
-from tqdm import tqdm
-from typing import List, Set, Tuple
+from typing import List, Set
 import csv
 import os
 import yaml
@@ -93,9 +91,9 @@ class MetaProcess:
         csv.field_size_limit(128)
         return files_to_be_processed
 
-    def curate_and_create(self, filename:str, worker_number:int=None, resp_agents_only:bool=False) -> Tuple[Storer, Storer, str]:
+    def curate_and_create(self, filename:str, cache_path:str, errors_path:str, worker_number:int=None, resp_agents_only:bool=False) -> None:
         if os.path.exists(os.path.join(self.base_output_dir, '.stop')):
-            return {'skip': filename}
+            return
         try:
             filepath = os.path.join(self.input_csv_dir, filename)
             data = get_data(filepath)
@@ -127,11 +125,13 @@ class MetaProcess:
             prov_storer = Storer(prov, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, output_format='json-ld')
             with suppress_stdout():
                 self.store_data_and_prov(res_storer, prov_storer, filename)
-            return {'success': filename}
+            with open(cache_path, 'a', encoding='utf-8') as aux_file:
+                aux_file.write(filename + '\n')
         except Exception as e:
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(e).__name__, e.args)
-            return {'error': filename, 'msg': message}
+            with open(errors_path, 'a', encoding='utf-8') as aux_file:
+                aux_file.write(f'{filename}: {message}' + '\n')
     
     def store_data_and_prov(self, res_storer:Storer, prov_storer:Storer, filename:str) -> None:
         if self.rdf_output_in_chunks:
@@ -149,7 +149,6 @@ class MetaProcess:
 def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False) -> None:
     delete_lock_files(base_dirs=[meta_process.output_rdf_dir, meta_process.info_dir])
     files_to_be_processed = meta_process.prepare_folders()
-    pbar = tqdm(total=len(files_to_be_processed)) if meta_process.verbose else None
     max_workers = meta_process.workers_number
     if max_workers == 0:
         workers = list(range(1, os.cpu_count()))
@@ -162,33 +161,20 @@ def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False) -> N
     generate_gentle_buttons(meta_process.base_output_dir, meta_process.config, is_unix)
     files_chunks = chunks(list(files_to_be_processed), 1000) if is_unix else [files_to_be_processed]
     for files_chunk in files_chunks:
-        with get_context("spawn").Pool(processes=max_workers, maxtasksperchild=1) as executor:
+        with Pool(processes=max_workers, maxtasksperchild=1) as executor:
             futures:List[ApplyResult] = [executor.apply_async(
                 func=meta_process.curate_and_create, 
-                args=(file_to_be_processed, worker_number, resp_agents_only)) 
+                args=(file_to_be_processed, meta_process.cache_path, meta_process.errors_path, worker_number, resp_agents_only)) 
                 for file_to_be_processed, worker_number in zip(files_chunk, cycle(workers))]
             for future in futures:
-                callback(future, meta_process, pbar)
+                future.get()
         delete_lock_files(base_dirs=[meta_process.output_rdf_dir, meta_process.info_dir])
         if is_unix and not os.path.exists(os.path.join(meta_process.base_output_dir, '.stop')):
             save_results(meta_process.base_output_dir)
     if os.path.exists(meta_process.cache_path) and not os.path.exists(os.path.join(meta_process.base_output_dir, '.stop')):
         os.rename(meta_process.cache_path, meta_process.cache_path.replace('.txt', f'_{datetime.now().strftime("%Y-%m-%dT%H_%M_%S_%f")}.txt'))
-    pbar.close() if pbar else None
     if not is_unix:
         delete_lock_files(base_dirs=[meta_process.output_rdf_dir, meta_process.info_dir])
-
-def callback(future:ApplyResult, meta_process:MetaProcess, pbar:tqdm):
-    processed_file = future.get()
-    if 'success' in processed_file:
-        with open(meta_process.cache_path, 'a', encoding='utf-8') as aux_file:
-            aux_file.write(processed_file['success'] + '\n')
-    elif 'error' in processed_file:
-        with open(meta_process.errors_path, 'a', encoding='utf-8') as aux_file:
-            aux_file.write(f'{processed_file["error"]}: {processed_file["msg"]}' + '\n')
-    elif 'skip' in processed_file:
-        pass
-    pbar.update() if pbar else None
 
 def chunks(lst:list, n:int) -> List[list]:
     '''Yield successive n-sized chunks from lst.'''
