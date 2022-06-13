@@ -1,6 +1,6 @@
 #url /api/v1
 #type api
-#base https://w3id.org/oc/meta/
+#base http://127.0.0.1:8080
 #title REST API for OC Meta
 #description This is the REST API for OC Meta, the OpenCitations Index containing bibliographic metadata associated with the documents involved in the citations stored in the OpenCitations infrastructure. All the present operations return either a JSON document (default) or a CSV document according to the mimetype specified in the `Accept` header of the request. If you would like to suggest an additional operation to be included in this API, please use the [issue tracker](https://github.com/opencitations/api/issues) of the OpenCitations APIs available on GitHub.
 #version Version 1.0.0 (2020-06-10)
@@ -8,10 +8,12 @@
 #license This document is licensed with a [Creative Commons Attribution 4.0 International License](https://creativecommons.org/licenses/by/4.0/legalcode), while the REST API itself has been created using [RAMOSE](https://github.com/opencitations/ramose), the *Restful API Manager Over SPARQL Endpoints* created by [Silvio Peroni](https://orcid.org/0000-0003-0530-4305), which is licensed with an [ISC license](https://opensource.org/licenses/ISC).
 #endpoint http://127.0.0.1:9999/blazegraph/sparql
 #method get
+#addon oc_meta_addon
 
 #url /metadata/{ids}
 #type operation
-preprocess lower(ids) --> encode(dois) --> split_dois(dois)
+#preprocess split_ids(ids)
+#postprocess create_metadata_output()
 #method get
 #description This operation retrieves the bibliographic metadata for each of the bibliographic entities identified by one or more input IDs.
 
@@ -20,7 +22,7 @@ It is possible to specify one or more IDs as input of this operation. In this ca
 * *id*: the IDs of the bibliographic entity;
 * *title*: the title of the bibliographic entity;
 * *author*: the semicolon-separated list of authors of the bibliographic entity;
-* *year*: the year of publication of the bibliographic entity;
+* *date*: the date of publication of the bibliographic entity;
 * *source_title*: the title of the venue where the bibliographic entity has been published;
 * *source_id*: the semicolon-separated list of identifiers referring to the source where the bibliographic entity has been published;
 * *volume*: the number of the volume in which the bibliographic entity has been published;
@@ -28,7 +30,7 @@ It is possible to specify one or more IDs as input of this operation. In this ca
 * *page*: the starting and ending pages of the bibliographic entity in the context of the venue where it has been published;
 * *type*: the type of the bibliographic entity;
 #call /metadata/10.1108/jd-12-2013-0166__10.6084/m9.figshare.3443876
-#field_type str(id) str(title) str(author) datetime(year) str(source_title) str(source_id) str(volume) str(issue) str(page) str(type)
+#field_type str(id) str(title) str(author) datetime(date) str(source_title) str(source_id) str(volume) str(issue) str(page) str(type)
 #output_json [
     {
         "author": "Peroni, Silvio; Dutton, Alexander; Gray, Tanya; Shotton, David",
@@ -36,7 +38,7 @@ It is possible to specify one or more IDs as input of this operation. In this ca
         "page": "253-277",
         "source_id": "issn:0022-0418",
         "source_title": "Journal Of Documentation",
-        "year": "2015",
+        "date": "01-05-2015",
         "id": "10.1108/jd-12-2013-0166",
         "title": "Setting Our Bibliographic References Free: Towards Open Citation Data",
         "issue": "2",
@@ -62,8 +64,8 @@ PREFIX frbr: <http://purl.org/vocab/frbr/core#>
 PREFIX fabio: <http://purl.org/spar/fabio/>
 PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
 SELECT ?res 
-(GROUP_CONCAT(DISTINCT ?type; separator=' ;and; ') AS ?type_)
-(GROUP_CONCAT(DISTINCT ?date; separator=' ;and; ') AS ?date_)
+(GROUP_CONCAT(DISTINCT ?type_; separator=' ;and; ') AS ?type)
+(GROUP_CONCAT(DISTINCT ?date_; separator=' ;and; ') AS ?date)
 (GROUP_CONCAT(DISTINCT ?num; separator=' ;and; ') AS ?num_)
 (GROUP_CONCAT(DISTINCT ?part1; separator=' ;and; ') AS ?part1_)
 (GROUP_CONCAT(DISTINCT ?title1; separator=' ;and; ') AS ?title1_)
@@ -79,8 +81,8 @@ SELECT ?res
 (GROUP_CONCAT(DISTINCT ?type3; separator=' ;and; ') AS ?type3_)
 WHERE {
   	?res datacite:hasIdentifier/literal:hasLiteralValue ?literalValue.
-    ?res a ?type.
-    OPTIONAL {?res prism:publicationDate ?date.}
+    ?res a ?type_.
+    OPTIONAL {?res prism:publicationDate ?date_.}
     OPTIONAL {?res fabio:hasSequenceIdentifier ?num.}
     OPTIONAL {
         ?res frbr:partOf ?part1.
