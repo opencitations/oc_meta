@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "oc_meta"
-version = "0.1.0"
+version = "0.1.1"
 description = "OpenCitations Meta contains bibliographic metadata associated with the documents involved in the citations stored in the OpenCitations infrastructure. The OpenCitations Meta Software performs two main actions: a data curation of the provided CSV files and the generation of new RDF files compliant with the OpenCitations Data Model."
 authors = ["Arcangelo Massari <arcangelomas@gmail.com>", "Fabio Mariani", "Simone Persiani <iosonopersia@gmail.com>"]
 license = "ISC License"
