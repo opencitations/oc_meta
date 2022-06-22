@@ -133,9 +133,9 @@ class MetaProcess:
                         aux_file.write(filename + '\n')
                 else:
                     with open(cache_path, 'r', encoding='utf-8') as aux_file:
-                        data = aux_file.read().splitlines()
-                        data.append(filename)
-                        data_sorted = sorted(data, key=lambda filename: int(filename.replace('.csv', '')), reverse=False)
+                        cache_data = aux_file.read().splitlines()
+                        cache_data.append(filename)
+                        data_sorted = sorted(cache_data, key=lambda filename: int(filename.replace('.csv', '')), reverse=False)
                     with open(cache_path, 'w', encoding='utf-8') as aux_file:
                         aux_file.write('\n'.join(data_sorted))
         except Exception as e:

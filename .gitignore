@@ -12,3 +12,5 @@ prova.py
 *.bat 
 *.sh
 *.lock
+*meta_output*.zip
+nohup.out
