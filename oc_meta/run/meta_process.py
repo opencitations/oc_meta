@@ -28,14 +28,14 @@ from oc_meta.plugins.multiprocess.resp_agents_creator import RespAgentsCreator
 from oc_meta.plugins.multiprocess.resp_agents_curator import RespAgentsCurator
 from oc_meta.scripts.creator import Creator
 from oc_meta.scripts.curator import Curator
-from multiprocessing.pool import ApplyResult, Pool
 from oc_ocdm import Storer
 from oc_ocdm.prov import ProvSet
 from pathlib import Path
+from pebble import ProcessPool, ProcessFuture
 from shutil import make_archive
 from sys import platform
 from time_agnostic_library.support import generate_config_file
-from typing import List, Set
+from typing import List, Set, Tuple
 import csv
 import os
 import yaml
@@ -126,25 +126,11 @@ class MetaProcess:
             prov_storer = Storer(prov, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, output_format='json-ld')
             with suppress_stdout():
                 self.store_data_and_prov(res_storer, prov_storer, filename)
-            lock = FileLock(f'{cache_path}.lock')
-            with lock:
-                if not os.path.exists(cache_path):
-                    with open(cache_path, 'w', encoding='utf-8') as aux_file:
-                        aux_file.write(filename + '\n')
-                else:
-                    with open(cache_path, 'r', encoding='utf-8') as aux_file:
-                        cache_data = aux_file.read().splitlines()
-                        cache_data.append(filename)
-                        data_sorted = sorted(cache_data, key=lambda filename: int(filename.replace('.csv', '')), reverse=False)
-                    with open(cache_path, 'w', encoding='utf-8') as aux_file:
-                        aux_file.write('\n'.join(data_sorted))
+            return {'message': 'success'}, cache_path, errors_path, filename
         except Exception as e:
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(e).__name__, e.args)
-            lock = FileLock(cache_path)
-            with lock:
-                with open(errors_path, 'a', encoding='utf-8') as aux_file:
-                    aux_file.write(f'{filename}: {message}' + '\n')
+            return {'message': message}, cache_path, errors_path, filename
     
     def store_data_and_prov(self, res_storer:Storer, prov_storer:Storer, filename:str) -> None:
         if self.rdf_output_in_chunks:
@@ -174,13 +160,12 @@ def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False) -> N
     generate_gentle_buttons(meta_process.base_output_dir, meta_process.config, is_unix)
     files_chunks = chunks(list(files_to_be_processed), 1000) if is_unix else [files_to_be_processed]
     for files_chunk in files_chunks:
-        with Pool(processes=max_workers, maxtasksperchild=1) as executor:
-            futures:List[ApplyResult] = [executor.apply_async(
-                func=meta_process.curate_and_create, 
-                args=(file_to_be_processed, meta_process.cache_path, meta_process.errors_path, worker_number, resp_agents_only)) 
-                for file_to_be_processed, worker_number in zip(files_chunk, cycle(workers))]
-            for future in futures:
-                future.get()
+        with ProcessPool(max_workers=max_workers, max_tasks=1) as executor:
+            for file_to_be_processed, worker_number in zip(files_chunk, cycle(workers)):
+                future:ProcessFuture = executor.schedule(
+                    function=meta_process.curate_and_create, 
+                    args=(file_to_be_processed, meta_process.cache_path, meta_process.errors_path, worker_number, resp_agents_only)) 
+                future.add_done_callback(task_done) 
         delete_lock_files(base_dir=meta_process.base_output_dir)
         if is_unix and not os.path.exists(os.path.join(meta_process.base_output_dir, '.stop')):
             save_results(meta_process.base_output_dir)
@@ -188,6 +173,23 @@ def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False) -> N
         os.rename(meta_process.cache_path, meta_process.cache_path.replace('.txt', f'_{datetime.now().strftime("%Y-%m-%dT%H_%M_%S_%f")}.txt'))
     if not is_unix:
         delete_lock_files(base_dir=meta_process.base_output_dir)
+
+def task_done(task_output:ProcessFuture) -> None:
+    message, cache_path, errors_path, filename = task_output.result()
+    if message['message'] == 'success':
+        if not os.path.exists(cache_path):
+            with open(cache_path, 'w', encoding='utf-8') as aux_file:
+                aux_file.write(filename + '\n')
+        else:
+            with open(cache_path, 'r', encoding='utf-8') as aux_file:
+                cache_data = aux_file.read().splitlines()
+                cache_data.append(filename)
+                data_sorted = sorted(cache_data, key=lambda filename: int(filename.replace('.csv', '')), reverse=False)
+            with open(cache_path, 'w', encoding='utf-8') as aux_file:
+                aux_file.write('\n'.join(data_sorted))
+    else:
+        with open(errors_path, 'a', encoding='utf-8') as aux_file:
+            aux_file.write(f'{filename}: {message["message"]}' + '\n')
 
 def chunks(lst:list, n:int) -> List[list]:
     '''Yield successive n-sized chunks from lst.'''

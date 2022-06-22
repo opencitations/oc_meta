@@ -170,6 +170,14 @@ rdflib = ">=6.0.0,<7.0.0"
 SPARQLWrapper = ">=1.8.5,<2.0.0"
 
 [[package]]
+name = "pebble"
+version = "4.6.3"
+description = "Threading and multiprocessing eye-candy."
+category = "main"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "psutil"
 version = "5.9.0"
 description = "Cross-platform lib for process and system monitoring in Python."
@@ -445,7 +453,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "f19aee15724957de953abef6d4bb635efcdf2dec37ca2eae158fe700f5875416"
+content-hash = "45bb0a31976ca0037a6f2bb2683a09166a422f2fbd531444cb5df251fb8841f1"
 
 [metadata.files]
 antlr4-python3-runtime = [
@@ -568,6 +576,10 @@ lxml = [
 oc-ocdm = [
     {file = "oc_ocdm-7.0.0-py3-none-any.whl", hash = "sha256:11e3c73d225049cd1d529632b6a571702b9473cc0ebc7bc3cd1917d4f09e8fb7"},
     {file = "oc_ocdm-7.0.0.tar.gz", hash = "sha256:f73884bcd24f589d3090da3c7d0afba4a11641d1664b64a99cb349135bae111d"},
+]
+pebble = [
+    {file = "Pebble-4.6.3-py2.py3-none-any.whl", hash = "sha256:46e02767b239a29b8150466514fabb5c6632bea8c9b7456dfdb715f4636fc8a3"},
+    {file = "Pebble-4.6.3.tar.gz", hash = "sha256:694e1105db888f3576b8f00662f90b057cf3780e6f8b7f57955a568008d0f497"},
 ]
 psutil = [
     {file = "psutil-5.9.0-cp27-cp27m-manylinux2010_i686.whl", hash = "sha256:55ce319452e3d139e25d6c3f85a1acf12d1607ddedea5e35fb47a552c051161b"},
