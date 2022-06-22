@@ -103,7 +103,7 @@ As the parameters are many, you can also specify them via YAML configuration fil
 Where:
 - -c --config : path to the configuration file.
 
-The configuration file is a YAML file with the following keys (an example can be found in [`config/crossref_config.yaml`](https://github.com/opencitations/meta/blob/master/config/crossref_config.yaml)).
+The configuration file is a YAML file with the following keys (an example can be found in [`config/crossref_config.yaml`](https://github.com/opencitations/meta/blob/master/config/crossref_config.yaml).
 
 | Setting               | Mandatory | Description                                                                                                                         |
 | --------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------- |
