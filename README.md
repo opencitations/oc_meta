@@ -18,7 +18,7 @@ An example of a raw CSV input file can be found in [`example.csv`](https://githu
     * [Get a DOI-ORCID index](#get-a-doi-orcid-index)
     * [Get a Crossref member-name-prefix index](#get-a-crossref-member-name-prefix-index)
     * [Get raw CSV files from Crossref](#get-raw-csv-files-from-crossref)
-    * [Get DOIs from COCI](#get-dois-from-coci)
+    * [Get IDs from citations](#get-ids-from-citations)
     * [Generate CSVs from triplestore](#generate-csvs-from-triplestore)
     * [Prepare the multiprocess](#prepare-the-multiprocess)
 
@@ -113,15 +113,16 @@ The configuration file is a YAML file with the following keys (an example can be
 | wanted\_doi\_filepath | ☓         | Path of a CSV file containing what DOI to process. This file can be generated via oc_meta.run.coci\_process, if COCI's DOIs are needed |
 | verbose               | ☓         | Show a loading bar, elapsed time and estimated time. This setting can be safely left as is.                                         |
 
-### Get DOIs from COCI
+### Get IDs from citations
 
-You can get a CSV file containing all the DOIs from the [COCI's dump](https://opencitations.net/download). This CSV file can be passed as an input to the `-wanted` argument of [`crossref_process.py`](https://github.com/opencitations/meta/blob/master/run/crossref_process.py). You can obtain this file by using the [`coci_process.py`](https://github.com/opencitations/meta/blob/master/run/coci_process.py) script, in the following way:
+You can get a CSV file containing all the IDs from citation data organized in the CSV format accepted by OpenCitations. This CSV file can be passed as an input to the `-wanted` argument of [`crossref_process.py`](https://github.com/opencitations/meta/blob/master/run/crossref_process.py). You can obtain this file by using the [`get_ids_from_citations.py`](https://github.com/opencitations/meta/blob/master/run/get_ids_from_citations.py) script, in the following way:
 ```console
-    python -m oc_meta.run.coci_process -c <PATH> -out <PATH> -v
+    python -m oc_meta.run.get_ids_from_citations -c <PATH> -out <PATH> -v
 ```
 Where:
-- -c --coci: COCI's dump path. It may contain either .zip or .csv files previously extracted.
-- -out --output: path of the output CSV file.
+- -c --citations: the directory containing the citations files, either in CSV or ZIP format
+- -out --output: directory of the output CSV files
+- -t --threshold: number of files to save after
 - -v --verbose: show a loading bar, elapsed time and estimated time, not mandatory.
 
 ### Generate CSVs from triplestore
