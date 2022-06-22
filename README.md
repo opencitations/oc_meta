@@ -117,7 +117,7 @@ The configuration file is a YAML file with the following keys (an example can be
 
 You can get a CSV file containing all the IDs from citation data organized in the CSV format accepted by OpenCitations. This CSV file can be passed as an input to the `-wanted` argument of [`crossref_process.py`](https://github.com/opencitations/meta/blob/master/run/crossref_process.py). You can obtain this file by using the [`get_ids_from_citations.py`](https://github.com/opencitations/oc_meta/blob/master/oc_meta/run/get_ids_from_citations.py) script, in the following way:
 ```console
-    python -m oc_meta.run.get_ids_from_citations -c <PATH> -out <PATH> -v
+    python -m oc_meta.run.get_ids_from_citations -c <PATH> -out <PATH> -t <INTEGER> -v
 ```
 Where:
 - -c --citations: the directory containing the citations files, either in CSV or ZIP format
