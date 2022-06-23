@@ -10,9 +10,10 @@
 #method get
 #addon oc_meta_addon
 
-#url /metadata/{ids}
+#url /metadata/{scheme}/{literal_values}
+#scheme str(\"?doi|issn|isbn|pmid\"?)
 #type operation
-#preprocess split_ids(ids)
+#preprocess split_ids(literal_values)
 #postprocess create_metadata_output()
 #method get
 #description This operation retrieves the bibliographic metadata for each of the bibliographic entities identified by one or more input IDs.
@@ -80,7 +81,9 @@ SELECT ?res
 (GROUP_CONCAT(DISTINCT ?num3; separator=' ;and; ') AS ?num3_)
 (GROUP_CONCAT(DISTINCT ?type3; separator=' ;and; ') AS ?type3_)
 WHERE {
-  	?res datacite:hasIdentifier/literal:hasLiteralValue ?literalValue.
+  	?res datacite:hasIdentifier ?identifier.
+    ?identifier datacite:usesIdentifierScheme datacite:[[scheme]];
+        literal:hasLiteralValue ?literalValue.
     ?res a ?type_.
     OPTIONAL {?res prism:publicationDate ?date_.}
     OPTIONAL {?res fabio:hasSequenceIdentifier ?num.}
@@ -102,6 +105,6 @@ WHERE {
             }
         }   
     }
-    VALUES ?literalValue {[[ids]]}
+    VALUES ?literalValue {[[literal_values]]}
 }
 GROUP BY ?res

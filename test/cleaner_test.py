@@ -1,7 +1,7 @@
-import unittest
 from oc_meta.lib.cleaner import Cleaner
 from oc_meta.lib.csvmanager import CSVManager
 from pprint import pprint
+import unittest
 
 class test_Cleaner(unittest.TestCase):
     def test_clen_hyphen(self):

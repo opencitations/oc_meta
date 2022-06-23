@@ -146,8 +146,8 @@ class GraphEntity():
     iri_distant_citation: ClassVar[URIRef] = CITO.DistantCitation
     iri_has_format: ClassVar[URIRef] = DCTERMS["format"]
 
-def split_ids(s):
-    return "\"%s\"" % "\" \"".join(s.split("__")),
+def split_ids(literal_values:str) -> str:
+    return "\"%s\"" % "\" \"".join(literal_values.split("__")),
 
 def create_metadata_output(results):
     header:list = results[0]
