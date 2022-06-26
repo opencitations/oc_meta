@@ -1,4 +1,25 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+# Copyright 2019 Silvio Peroni <essepuntato@gmail.com>
+# Copyright 2019-2020 Fabio Mariani <fabio.mariani555@gmail.com>
+# Copyright 2021 Simone Persiani <iosonopersia@gmail.com>
+# Copyright 2021-2022 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# Permission to use, copy, modify, and/or distribute this software for any purpose
+# with or without fee is hereby granted, provided that the above copyright notice
+# and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED 'AS IS' AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+# FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT,
+# OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
+# DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS
+# ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
+# SOFTWARE.
+
+
 from filelock import FileLock
+from oc_meta.constants import CONTAINER_EDITOR_TYPES
 from oc_meta.lib.cleaner import Cleaner
 from oc_meta.lib.csvmanager import CSVManager
 from oc_meta.lib.finder import *
@@ -275,11 +296,12 @@ class Curator:
         :returns: None -- This method modifies self.ardict, self.radict, and self.idra, and returns None.
         '''
         if row[col_name]:
-            if row['id'] in self.brdict or row['id'] in self.conflict_br:
-                br_metaval = row['id']
+            br_metaval_to_check = row['venue'] if col_name == 'editor' and row['author'] and row['venue'] and row['type'] in CONTAINER_EDITOR_TYPES else row['id']
+            if br_metaval_to_check in self.brdict or br_metaval_to_check in self.conflict_br:
+                br_metaval = br_metaval_to_check
             else:
-                other_id = [id for id in self.brdict if row['id'] in self.brdict[id]['others']]
-                conflict_id = [id for id in self.conflict_br if row['id'] in self.conflict_br[id]['others']]
+                other_id = [id for id in self.brdict if br_metaval_to_check in self.brdict[id]['others']]
+                conflict_id = [id for id in self.conflict_br if br_metaval_to_check in self.conflict_br[id]['others']]
                 br_metaval = other_id[0] if other_id else conflict_id[0]
             if br_metaval not in self.ardict or not self.ardict[br_metaval][col_name]:
                 # new sequence
@@ -340,10 +362,11 @@ class Curator:
             ra_list = Cleaner.clean_ra_list(ra_list)
             for pos, ra in enumerate(ra_list):
                 new_elem_seq = True
-                ra_id = re.search(name_and_ids, ra)
-                if ra_id:
-                    name = Cleaner(ra_id.group(1)).clean_name()
-                    ra_id = ra_id.group(2)
+                ra_id = None
+                ra_id_match = re.search(name_and_ids, ra)
+                if ra_id_match:
+                    name = Cleaner(ra_id_match.group(1)).clean_name()
+                    ra_id = ra_id_match.group(2)
                 else:
                     name = Cleaner(ra).clean_name()
                 if not ra_id and sequence:
@@ -616,9 +639,6 @@ class Curator:
                     row['page'] = page
             elif metaid in self.remeta:
                 row['page'] = self.remeta[metaid][1]
-            self.ra_update(row, metaid, 'author')
-            self.ra_update(row, metaid, 'publisher')
-            self.ra_update(row, metaid, 'editor')
             row['id'] = ' '.join(self.brmeta[metaid]['ids'])
             row['title'] = self.brmeta[metaid]['title']
             if row['venue']:
@@ -630,6 +650,10 @@ class Curator:
                 else:
                     ve = venue
                 row['venue'] = self.brmeta[ve]['title'] + ' [' + ' '.join(self.brmeta[ve]['ids']) + ']'
+            br_key_for_editor = ve if row['author'] and row['venue'] and row['type'] in CONTAINER_EDITOR_TYPES else metaid
+            self.ra_update(row, metaid, 'author')
+            self.ra_update(row, metaid, 'publisher')
+            self.ra_update(row, br_key_for_editor, 'editor')
 
     @staticmethod
     def name_check(ts_name, name):

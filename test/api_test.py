@@ -16,45 +16,31 @@ class test_API(unittest.TestCase):
         status, result, format = op.exec()
         status_expected = 200
         result_expected = [
-            {
-                'res': 'https://w3id.org/oc/meta/br/2392', 
-                'type': 'journal article', 
-                'date': '2012-09-05', 
-                'num_': '', 
-                'part1_': 'https://w3id.org/oc/meta/br/4396', 
-                'title1_': '', 
-                'num1_': '9', 
-                'type1_': 'http://purl.org/spar/fabio/Expression ;and; http://purl.org/spar/fabio/JournalIssue', 
-                'part2_': 'https://w3id.org/oc/meta/br/4394', 
-                'title2_': '', 
-                'num2_': '308', 
-                'type2_': 'http://purl.org/spar/fabio/Expression ;and; http://purl.org/spar/fabio/JournalVolume', 
-                'part3_': 'https://w3id.org/oc/meta/br/4393', 
-                'title3_': 'Jama', 
-                'num3_': '', 'type3_': 
-                'http://purl.org/spar/fabio/Expression ;and; http://purl.org/spar/fabio/Journal'
+            {'res': 'https://w3id.org/oc/meta/br/2389', 
+            'id': 'doi:10.1001/2012.jama.10456', 
+            'title': 'Cardiovascular Risk Assessment In The 21St Century', 
+            'author': {'Wilson, Peter W. F.', 'Gaziano, J. Michael'}, 
+            'date': '2012-08-22', 
+            'issue': '8', 
+            'volume': '308', 
+            'venue': 'Jama [issn:0098-7484]', 
+            'type': 'journal article', 
+            'publisher': 'American Medical Association (ama) [crossref:10]', 
+            'editor': ''
             }, 
-            {
-                'res': 'https://w3id.org/oc/meta/br/2389', 
-                'type': 'journal article', 
-                'date': '2012-08-22', 
-                'num_': '', 
-                'part1_': 'https://w3id.org/oc/meta/br/4397', 
-                'title1_': '', 
-                'num1_': '8', 
-                'type1_': 'http://purl.org/spar/fabio/Expression ;and; http://purl.org/spar/fabio/JournalIssue', 
-                'part2_': 'https://w3id.org/oc/meta/br/4394', 
-                'title2_': '', 
-                'num2_': '308', 
-                'type2_': 'http://purl.org/spar/fabio/Expression ;and; http://purl.org/spar/fabio/JournalVolume', 
-                'part3_': 'https://w3id.org/oc/meta/br/4393', 
-                'title3_': 'Jama', 
-                'num3_': '', 
-                'type3_': 'http://purl.org/spar/fabio/Expression ;and; http://purl.org/spar/fabio/Journal'
-            }
-        ]
+            {'res': 'https://w3id.org/oc/meta/br/2392', 
+            'id': 'doi:10.1001/2012.jama.10503', 
+            'title': 'Aortic Stiffness, Blood Pressure Progression, And Incident Hypertension', 
+            'author': {'Kaess, Bernhard M.', 'Rong, Jian', 'Vasan, Ramachandran S.', 'Mitchell, Gary F.', 'Hamburg, Naomi M. [orcid:0000-0001-5504-5589]', 'Levy, Daniel [orcid:0000-0003-1843-8724]', 'Benjamin, Emelia J. [orcid:0000-0003-4076-2336]', 'Larson, Martin G. [orcid:0000-0002-9631-1254]', 'Vita, Joseph A. [orcid:0000-0001-5607-1797]'}, 
+            'date': '2012-09-05', 
+            'issue': '9', 
+            'volume': '308', 
+            'venue': 'Jama [issn:0098-7484]', 
+            'type': 'journal article', 
+            'publisher': 'American Medical Association (ama) [crossref:10]', 
+            'editor': ''}]
         format_expected = 'application/json'
-        output = status, json.loads(result), format
+        output = status, [{k:set(v.split('; ')) if k=='author' else v for k,v in el.items()} for el in json.loads(result)], format
         expected_output = status_expected, result_expected, format_expected
         self.assertEqual(output, expected_output)
 

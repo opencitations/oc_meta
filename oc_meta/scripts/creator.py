@@ -18,6 +18,7 @@
 # SOFTWARE.
 
 
+from oc_meta.constants import CONTAINER_EDITOR_TYPES
 from oc_meta.lib.finder import ResourceFinder
 from oc_meta.lib.master_of_regex import comma_and_spaces, name_and_ids, one_or_more_spaces, semicolon_in_people_field
 from oc_ocdm.graph import GraphSet
@@ -51,6 +52,7 @@ class Creator(object):
         self.src = source
         for row in self.data:
             self.row_meta = ''
+            self.venue_meta = ''
             ids = row['id']
             title = row['title']
             authors = row['author']
@@ -66,16 +68,14 @@ class Creator(object):
             self.vol_graph = None
             self.issue_graph = None
             self.id_action(ids)
+            self.vvi_action(venue, vol, issue)
             self.title_action(title)
             self.author_action(authors)
             self.pub_date_action(pub_date)
-            self.vvi_action(venue, vol, issue)
             self.page_action(page)
             self.type_action(self.type)
-            if publisher:
-                self.publisher_action(publisher)
-            if editor:
-                self.editor_action(editor)
+            self.publisher_action(publisher)
+            self.editor_action(editor, authors)
         return self.setgraph
 
     @staticmethod
@@ -199,6 +199,7 @@ class Creator(object):
             for identifier in venue_ids_list:
                 if 'meta:' in identifier:
                     ven_id = str(identifier).replace('meta:', '')
+                    self.venue_meta = ven_id
                     preexisting_entity = True if ven_id in self.preexisting_entities else False
                     url = URIRef(self.url + ven_id)
                     venue_title = venue_and_ids.group(1)
@@ -357,80 +358,79 @@ class Creator(object):
             self.br_graph.create_web_content()
 
     def publisher_action(self, publisher):
-        publ_and_ids = re.search(name_and_ids, publisher)
-        publ_id = publ_and_ids.group(2)
-        publ_id_list = publ_id.split()
-        for identifier in publ_id_list:
-            if 'meta:' in identifier:
-                identifier = str(identifier).replace('meta:', '')
-                preexisting_entity = True if identifier in self.preexisting_entities else False
-                pub_meta = identifier.replace('ra/', '')
-                url = URIRef(self.url + identifier)
-                publ_name = publ_and_ids.group(1)
-                preexisting_graph = self.finder.get_preexisting_graph(url, self.preexisting_graphs) if preexisting_entity else None
-                publ = self.setgraph.add_ra(self.resp_agent, source=self.src, res=url, preexisting_graph=preexisting_graph)
-                publ.has_name(publ_name)
-        for identifier in publ_id_list:
-            self.id_creator(publ, identifier, ra=True)
-        # publisherRole
-        AR = self.ar_index[self.row_meta]['publisher'][pub_meta]
-        ar_id = 'ar/' + str(AR)
-        preexisting_entity = True if ar_id in self.preexisting_entities else False
-        url_ar = URIRef(self.url + ar_id)
-        preexisting_graph = self.finder.get_preexisting_graph(url_ar, self.preexisting_graphs)
-        publ_role = self.setgraph.add_ar(self.resp_agent, source=self.src, res=url_ar, preexisting_graph=preexisting_graph)
-        publ_role.create_publisher()
-        self.br_graph.has_contributor(publ_role)
-        publ_role.is_held_by(publ)
-
-    def editor_action(self, editor):
-        editorslist = re.split(semicolon_in_people_field, editor)
-        edit_role_list = list()
-        for ed in editorslist:
-            ed_and_ids = re.search(name_and_ids, ed)
-            ed_id = ed_and_ids.group(2)
-            ed_id_list = ed_id.split(' ')
-            for identifier in ed_id_list:
+        if publisher:
+            publ_and_ids = re.search(name_and_ids, publisher)
+            publ_id = publ_and_ids.group(2)
+            publ_id_list = publ_id.split()
+            for identifier in publ_id_list:
                 if 'meta:' in identifier:
                     identifier = str(identifier).replace('meta:', '')
                     preexisting_entity = True if identifier in self.preexisting_entities else False
-                    ed_meta = identifier.replace('ra/', '')
+                    pub_meta = identifier.replace('ra/', '')
                     url = URIRef(self.url + identifier)
+                    publ_name = publ_and_ids.group(1)
                     preexisting_graph = self.finder.get_preexisting_graph(url, self.preexisting_graphs) if preexisting_entity else None
-                    pub_ed = self.setgraph.add_ra(self.resp_agent, source=self.src, res=url, preexisting_graph=preexisting_graph)
-                    editor_name = ed_and_ids.group(1)
-                    if ',' in editor_name:
-                        editor_name_splitted = re.split(comma_and_spaces, editor_name)
-                        firstName = editor_name_splitted[1]
-                        lastName = editor_name_splitted[0]
-                        if firstName.strip():
-                            pub_ed.has_given_name(firstName)
-                        pub_ed.has_family_name(lastName)
-                    else:
-                        pub_ed.has_name(editor_name)
-            # lists of editor's IDs
-            for identifier in ed_id_list:
-                self.id_creator(pub_ed, identifier, ra=True)
-            # editorRole
-            AR = self.ar_index[self.row_meta]['editor'][ed_meta]
+                    publ = self.setgraph.add_ra(self.resp_agent, source=self.src, res=url, preexisting_graph=preexisting_graph)
+                    publ.has_name(publ_name)
+            for identifier in publ_id_list:
+                self.id_creator(publ, identifier, ra=True)
+            # publisherRole
+            AR = self.ar_index[self.row_meta]['publisher'][pub_meta]
             ar_id = 'ar/' + str(AR)
             preexisting_entity = True if ar_id in self.preexisting_entities else False
             url_ar = URIRef(self.url + ar_id)
-            preexisting_graph = self.finder.get_preexisting_graph(url_ar, self.preexisting_graphs) if preexisting_entity else None
-            pub_ed_role = self.setgraph.add_ar(self.resp_agent, source=self.src, res=url_ar, preexisting_graph=preexisting_graph)
-            if self.type == 'proceedings article' and self.venue_graph:
+            preexisting_graph = self.finder.get_preexisting_graph(url_ar, self.preexisting_graphs)
+            publ_role = self.setgraph.add_ar(self.resp_agent, source=self.src, res=url_ar, preexisting_graph=preexisting_graph)
+            publ_role.create_publisher()
+            self.br_graph.has_contributor(publ_role)
+            publ_role.is_held_by(publ)
+
+    def editor_action(self, editor, row_author):
+        if editor:
+            editorslist = re.split(semicolon_in_people_field, editor)
+            edit_role_list = list()
+            for ed in editorslist:
+                ed_and_ids = re.search(name_and_ids, ed)
+                ed_id = ed_and_ids.group(2)
+                ed_id_list = ed_id.split(' ')
+                for identifier in ed_id_list:
+                    if 'meta:' in identifier:
+                        identifier = str(identifier).replace('meta:', '')
+                        preexisting_entity = True if identifier in self.preexisting_entities else False
+                        ed_meta = identifier.replace('ra/', '')
+                        url = URIRef(self.url + identifier)
+                        preexisting_graph = self.finder.get_preexisting_graph(url, self.preexisting_graphs) if preexisting_entity else None
+                        pub_ed = self.setgraph.add_ra(self.resp_agent, source=self.src, res=url, preexisting_graph=preexisting_graph)
+                        editor_name = ed_and_ids.group(1)
+                        if ',' in editor_name:
+                            editor_name_splitted = re.split(comma_and_spaces, editor_name)
+                            firstName = editor_name_splitted[1]
+                            lastName = editor_name_splitted[0]
+                            if firstName.strip():
+                                pub_ed.has_given_name(firstName)
+                            pub_ed.has_family_name(lastName)
+                        else:
+                            pub_ed.has_name(editor_name)
+                # lists of editor's IDs
+                for identifier in ed_id_list:
+                    self.id_creator(pub_ed, identifier, ra=True)
+                # editorRole
+                br_key = self.venue_meta.replace('br/', '') if row_author and self.venue_graph and self.type in CONTAINER_EDITOR_TYPES else self.row_meta
+                AR = self.ar_index[br_key]['editor'][ed_meta]
+                ar_id = 'ar/' + str(AR)
+                preexisting_entity = True if ar_id in self.preexisting_entities else False
+                url_ar = URIRef(self.url + ar_id)
+                preexisting_graph = self.finder.get_preexisting_graph(url_ar, self.preexisting_graphs) if preexisting_entity else None
+                pub_ed_role = self.setgraph.add_ar(self.resp_agent, source=self.src, res=url_ar, preexisting_graph=preexisting_graph)
                 pub_ed_role.create_editor()
-                self.venue_graph.has_contributor(pub_ed_role)
-            elif (self.type == 'book chapter' or self.type == 'book part') and self.venue_graph:
-                pub_ed_role.create_editor()
-                self.venue_graph.has_contributor(pub_ed_role)
-            else:
-                pub_ed_role.create_editor()
-                self.br_graph.has_contributor(pub_ed_role)
-            pub_ed_role.is_held_by(pub_ed)
-            edit_role_list.append(pub_ed_role)
-            if len(edit_role_list) > 1:
-                edit_role_list[edit_role_list.index(pub_ed_role)-1].has_next(pub_ed_role)
+                if self.type in CONTAINER_EDITOR_TYPES and self.venue_graph and row_author:
+                    self.venue_graph.has_contributor(pub_ed_role)
+                else:
+                    self.br_graph.has_contributor(pub_ed_role)
+                pub_ed_role.is_held_by(pub_ed)
+                edit_role_list.append(pub_ed_role)
+                if len(edit_role_list) > 1:
+                    edit_role_list[edit_role_list.index(pub_ed_role)-1].has_next(pub_ed_role)
 
     def id_creator(self, graph:BibliographicEntity, identifier:str, ra:bool) -> None:
         new_id = None
