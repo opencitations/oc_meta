@@ -14,7 +14,7 @@ BASE_DIR = os.path.join('test', 'meta_process')
 def delete_output_zip(base_dir:str, start_time:datetime) -> None:
     for file in os.listdir(base_dir):
         if file.startswith('meta_output') and file.endswith('.zip'):
-            file_creation_time = file.split('meta_output')[1].replace('.zip', '')
+            file_creation_time = file.split('meta_output_')[1].replace('.zip', '')
             file_creation_time = datetime.strptime(file_creation_time, '%Y-%m-%dT%H_%M_%S_%f')
             was_created_after_time = True if file_creation_time > start_time else False
             if was_created_after_time:
