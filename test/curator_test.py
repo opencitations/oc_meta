@@ -377,6 +377,7 @@ class test_Curator(unittest.TestCase):
         curator.armeta = {'0601': {'author': [], 'editor': [], 'publisher': [('0601', '0601')]}}
         curator.rameta = {'0601': {'ids': ['crossref:1963', 'meta:ra/0601'], 'others': ['wannabe_2'], 'title': 'Oecd'}}
         curator.remeta = dict()
+        curator.meta_maker()
         curator.enrich()
         output = curator.data
         expected_output = [{'id': 'doi:10.1787/eco_outlook-v2011-2-graph138-en meta:br/0601', 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China', 'author': '', 'pub_date': '2011-11-28', 'venue': 'OECD Economic Outlook [meta:br/0604]', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': 'Oecd [crossref:1963 meta:ra/0601]', 'editor': ''}]
@@ -412,6 +413,7 @@ class test_Curator(unittest.TestCase):
                 }
             }
         }
+        curator.meta_maker()
         curator.indexer(path_index, path_csv)
         with open(os.path.join(path_index, 'index_ar.csv'), 'r', encoding='utf-8') as f:
             index_ar = list(csv.DictReader(f))

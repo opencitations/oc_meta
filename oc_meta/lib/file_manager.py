@@ -29,7 +29,10 @@ def pathoo(path):
         os.makedirs(os.path.dirname(path))
 
 def write_csv(path:str, datalist:List[dict], fieldnames:list=None) -> None:
-    fieldnames = datalist[0].keys() if fieldnames is None else fieldnames
+    if not datalist:
+        fieldnames = []
+    else:
+        fieldnames = datalist[0].keys() if fieldnames is None else fieldnames
     pathoo(path)
     with open(path, 'w', newline='', encoding='utf-8') as output_file:
         dict_writer = csv.DictWriter(f=output_file, fieldnames=fieldnames, delimiter=',', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)

@@ -14,3 +14,7 @@ prova.py
 *.lock
 *meta_output*.zip
 nohup.out
+examples_cache.sqlite
+examples_cache.sqlite-journal
+example_citations.csv
+example_metadata.csv

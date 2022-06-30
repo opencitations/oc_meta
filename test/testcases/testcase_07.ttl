@@ -18,8 +18,7 @@
     ns8:title "Title1" ;
     ns3:hasIdentifier <https://w3id.org/oc/meta/id/0601> ;
     ns1:isDocumentContextFor <https://w3id.org/oc/meta/ar/0601>,
-        <https://w3id.org/oc/meta/ar/0602>,
-        <https://w3id.org/oc/meta/ar/0603> ;
+        <https://w3id.org/oc/meta/ar/0602> ;
     ns2:embodiment <https://w3id.org/oc/meta/re/0601> ;
     ns2:partOf <https://w3id.org/oc/meta/br/0609> .
 
@@ -29,7 +28,6 @@
     ns8:title "Title2" ;
     ns3:hasIdentifier <https://w3id.org/oc/meta/id/0602> ;
     ns1:isDocumentContextFor <https://w3id.org/oc/meta/ar/0604>,
-        <https://w3id.org/oc/meta/ar/0606>,
         <https://w3id.org/oc/meta/ar/0605> ;
     ns2:embodiment <https://w3id.org/oc/meta/re/0602> ;
     ns2:partOf <https://w3id.org/oc/meta/br/06011> .
@@ -159,6 +157,7 @@
 <https://w3id.org/oc/meta/br/06011> a ns7:Expression,
         ns7:JournalIssue ;
     ns7:hasSequenceIdentifier "5-6" ;
+    ns1:isDocumentContextFor <https://w3id.org/oc/meta/ar/0606> ;
     ns2:partOf <https://w3id.org/oc/meta/br/06010> .
 
 <https://w3id.org/oc/meta/br/06012> a ns7:Expression,
@@ -194,6 +193,7 @@
 <https://w3id.org/oc/meta/br/0609> a ns7:Expression,
         ns7:JournalIssue ;
     ns7:hasSequenceIdentifier "5-6" ;
+    ns1:isDocumentContextFor <https://w3id.org/oc/meta/ar/0603> ;
     ns2:partOf <https://w3id.org/oc/meta/br/0608> .
 
 <https://w3id.org/oc/meta/id/0601> a ns3:Identifier ;

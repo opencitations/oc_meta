@@ -17,4 +17,4 @@
 
 FORBIDDEN_IDS = {'issn:0000-0000'}
 VENUES = {'archival-document', 'book', 'book-part', 'book-section', 'book-series', 'book-set', 'edited-book', 'journal', 'journal-volume', 'journal-issue', 'monograph', 'proceedings-series', 'proceedings', 'reference-book', 'report-series', 'standard-series'}
-CONTAINER_EDITOR_TYPES = {'proceedings article', 'book chapter', 'book part', 'book section', 'book track', 'component', 'reference entry'}
+CONTAINER_EDITOR_TYPES = {'book chapter', 'book part', 'book section', 'book track', 'component', 'journal article', 'proceedings article', 'reference entry'}

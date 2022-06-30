@@ -24,6 +24,7 @@ Pebble = "^4.6.3"
 
 [tool.poetry.dev-dependencies]
 wget = "^3.2"
+requests-cache = "^0.9.4"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

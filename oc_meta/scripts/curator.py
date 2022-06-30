@@ -296,7 +296,7 @@ class Curator:
         :returns: None -- This method modifies self.ardict, self.radict, and self.idra, and returns None.
         '''
         if row[col_name]:
-            br_metaval_to_check = row['venue'] if col_name == 'editor' and row['author'] and row['venue'] and row['type'] in CONTAINER_EDITOR_TYPES else row['id']
+            br_metaval_to_check = get_edited_br_metaid(row, self.vvi, row['id'], row['venue']) if col_name == 'editor' else row['id']
             if br_metaval_to_check in self.brdict or br_metaval_to_check in self.conflict_br:
                 br_metaval = br_metaval_to_check
             else:
@@ -574,8 +574,8 @@ class Curator:
 
     def meta_maker(self):
         '''
-        For each dictionary ('brdict', 'ardict', 'radict') the corresponding MetaID dictionary is created
-        ('brmeta', 'armeta', and 'rameta').
+        For each dictionary ('brdict', 'ardict', 'radict', 'vvi') the corresponding MetaID dictionary is created
+        ('brmeta', 'armeta', 'rameta', and 'vvi').
         '''
         for identifier in self.brdict:
             if 'wannabe' in identifier:
@@ -614,6 +614,39 @@ class Curator:
             self.__meta_ar(br_key, ar_id, 'author')
             self.__meta_ar(br_key, ar_id, 'editor')
             self.__meta_ar(br_key, ar_id, 'publisher')
+        self.VolIss = dict()
+        if self.vvi:
+            for venue_meta in self.vvi:
+                venue_issue = self.vvi[venue_meta]['issue']
+                if venue_issue:
+                    for issue in venue_issue:
+                        issue_id = venue_issue[issue]['id']
+                        if 'wannabe' in issue_id:
+                            for br_meta in self.brmeta:
+                                if issue_id in self.brmeta[br_meta]['others']:
+                                    self.vvi[venue_meta]['issue'][issue]['id'] = str(br_meta)
+                venue_volume = self.vvi[venue_meta]['volume']
+                if venue_volume:
+                    for volume in venue_volume:
+                        volume_id = venue_volume[volume]['id']
+                        if 'wannabe' in volume_id:
+                            for br_meta in self.brmeta:
+                                if volume_id in self.brmeta[br_meta]['others']:
+                                    self.vvi[venue_meta]['volume'][volume]['id'] = str(br_meta)
+                        if venue_volume[volume]['issue']:
+                            volume_issue = venue_volume[volume]['issue']
+                            for issue in volume_issue:
+                                volume_issue_id = volume_issue[issue]['id']
+                                if 'wannabe' in volume_issue_id:
+                                    for br_meta in self.brmeta:
+                                        if volume_issue_id in self.brmeta[br_meta]['others']:
+                                            self.vvi[venue_meta]['volume'][volume]['issue'][issue]['id'] = str(br_meta)
+                if 'wannabe' in venue_meta:
+                    for br_meta in self.brmeta:
+                        if venue_meta in self.brmeta[br_meta]['others']:
+                            self.__merge_VolIss_with_vvi(br_meta, venue_meta)
+                else:
+                    self.__merge_VolIss_with_vvi(venue_meta, venue_meta)
 
     def enrich(self):
         '''
@@ -641,16 +674,17 @@ class Curator:
                 row['page'] = self.remeta[metaid][1]
             row['id'] = ' '.join(self.brmeta[metaid]['ids'])
             row['title'] = self.brmeta[metaid]['title']
+            venue_metaid = None
             if row['venue']:
                 venue = row['venue']
                 if 'wannabe' in venue:
                     for i in self.brmeta:
                         if venue in self.brmeta[i]['others']:
-                            ve = i
+                            venue_metaid = i
                 else:
-                    ve = venue
-                row['venue'] = self.brmeta[ve]['title'] + ' [' + ' '.join(self.brmeta[ve]['ids']) + ']'
-            br_key_for_editor = ve if row['author'] and row['venue'] and row['type'] in CONTAINER_EDITOR_TYPES else metaid
+                    venue_metaid = venue
+                row['venue'] = self.brmeta[venue_metaid]['title'] + ' [' + ' '.join(self.brmeta[venue_metaid]['ids']) + ']'
+            br_key_for_editor = get_edited_br_metaid(row, self.VolIss, metaid, venue_metaid)
             self.ra_update(row, metaid, 'author')
             self.ra_update(row, metaid, 'publisher')
             self.ra_update(row, br_key_for_editor, 'editor')
@@ -762,40 +796,6 @@ class Curator:
             row['br'] = ''
             row['re'] = ''
             self.re_index.append(row)
-        # VI
-        self.VolIss = dict()
-        if self.vvi:
-            for venue_meta in self.vvi:
-                venue_issue = self.vvi[venue_meta]['issue']
-                if venue_issue:
-                    for issue in venue_issue:
-                        issue_id = venue_issue[issue]['id']
-                        if 'wannabe' in issue_id:
-                            for br_meta in self.brmeta:
-                                if issue_id in self.brmeta[br_meta]['others']:
-                                    self.vvi[venue_meta]['issue'][issue]['id'] = str(br_meta)
-                venue_volume = self.vvi[venue_meta]['volume']
-                if venue_volume:
-                    for volume in venue_volume:
-                        volume_id = venue_volume[volume]['id']
-                        if 'wannabe' in volume_id:
-                            for br_meta in self.brmeta:
-                                if volume_id in self.brmeta[br_meta]['others']:
-                                    self.vvi[venue_meta]['volume'][volume]['id'] = str(br_meta)
-                        if venue_volume[volume]['issue']:
-                            volume_issue = venue_volume[volume]['issue']
-                            for issue in volume_issue:
-                                volume_issue_id = volume_issue[issue]['id']
-                                if 'wannabe' in volume_issue_id:
-                                    for br_meta in self.brmeta:
-                                        if volume_issue_id in self.brmeta[br_meta]['others']:
-                                            self.vvi[venue_meta]['volume'][volume]['issue'][issue]['id'] = str(br_meta)
-                if 'wannabe' in venue_meta:
-                    for br_meta in self.brmeta:
-                        if venue_meta in self.brmeta[br_meta]['others']:
-                            self.__merge_VolIss_with_vvi(br_meta, venue_meta)
-                else:
-                    self.__merge_VolIss_with_vvi(venue_meta, venue_meta)
         if self.filename:
             if not os.path.exists(path_index):
                 os.makedirs(path_index)
@@ -1187,3 +1187,23 @@ class Curator:
         elif br_type == 'journal issue':
             is_a_valid_row = True if br_venue and (br_issue or br_title) else False
         return is_a_valid_row
+
+def get_edited_br_metaid(row:dict, vvi_index:dict, metaid:str, venue_metaid:str):
+    if row['author'] and row['venue'] and row['type'] in CONTAINER_EDITOR_TYPES:
+        vol = row['volume']
+        issue = row['issue']
+        if vol:
+            vol_meta = vvi_index[venue_metaid]['volume'][vol]['id']
+        if issue:
+            if vol:
+                issue_meta = vvi_index[venue_metaid]['volume'][vol]['issue'][issue]['id']
+            else:
+                issue_meta = vvi_index[venue_metaid]['issue'][issue]['id']
+        edited_br_metaid = \
+            venue_metaid if row['type'] != 'journal article' \
+            else issue_meta if row['issue'] \
+            else vol_meta if row['volume'] \
+            else metaid
+    else:
+        edited_br_metaid = metaid
+    return edited_br_metaid

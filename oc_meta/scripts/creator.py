@@ -21,10 +21,13 @@
 from oc_meta.constants import CONTAINER_EDITOR_TYPES
 from oc_meta.lib.finder import ResourceFinder
 from oc_meta.lib.master_of_regex import comma_and_spaces, name_and_ids, one_or_more_spaces, semicolon_in_people_field
+from oc_meta.scripts.curator import get_edited_br_metaid
 from oc_ocdm.graph import GraphSet
+from oc_ocdm.graph.entities.bibliographic import BibliographicResource
 from oc_ocdm.graph.entities.bibliographic_entity import BibliographicEntity
 from oc_ocdm.support import create_date
 from rdflib import URIRef
+from typing import List
 import re
 
 
@@ -75,7 +78,7 @@ class Creator(object):
             self.page_action(page)
             self.type_action(self.type)
             self.publisher_action(publisher)
-            self.editor_action(editor, authors)
+            self.editor_action(editor, row)
         return self.setgraph
 
     @staticmethod
@@ -199,7 +202,7 @@ class Creator(object):
             for identifier in venue_ids_list:
                 if 'meta:' in identifier:
                     ven_id = str(identifier).replace('meta:', '')
-                    self.venue_meta = ven_id
+                    self.venue_meta = ven_id.replace('br/', '')
                     preexisting_entity = True if ven_id in self.preexisting_entities else False
                     url = URIRef(self.url + ven_id)
                     venue_title = venue_and_ids.group(1)
@@ -217,9 +220,8 @@ class Creator(object):
             for identifier in venue_ids_list:
                 self.id_creator(self.venue_graph, identifier, ra=False)
             if self.type == 'journal article' or self.type == 'journal issue' or self.type == 'journal volume':
-                meta_ven = ven_id.replace('br/', '')
                 if vol:
-                    vol_meta = self.vi_index[meta_ven]['volume'][vol]['id']
+                    vol_meta = self.vi_index[self.venue_meta]['volume'][vol]['id']
                     vol_meta = 'br/' + vol_meta
                     preexisting_entity = True if vol_meta in self.preexisting_entities else False
                     vol_url = URIRef(self.url + vol_meta)
@@ -229,9 +231,9 @@ class Creator(object):
                     self.vol_graph.has_number(vol)
                 if issue:
                     if vol:
-                        issue_meta = self.vi_index[meta_ven]['volume'][vol]['issue'][issue]['id']
+                        issue_meta = self.vi_index[self.venue_meta]['volume'][vol]['issue'][issue]['id']
                     else:
-                        issue_meta = self.vi_index[meta_ven]['issue'][issue]['id']
+                        issue_meta = self.vi_index[self.venue_meta]['issue'][issue]['id']
                     issue_meta = 'br/' + issue_meta
                     preexisting_entity = True if issue_meta in self.preexisting_entities else False
                     issue_url = URIRef(self.url + issue_meta)
@@ -385,7 +387,7 @@ class Creator(object):
             self.br_graph.has_contributor(publ_role)
             publ_role.is_held_by(publ)
 
-    def editor_action(self, editor, row_author):
+    def editor_action(self, editor, row):
         if editor:
             editorslist = re.split(semicolon_in_people_field, editor)
             edit_role_list = list()
@@ -415,7 +417,7 @@ class Creator(object):
                 for identifier in ed_id_list:
                     self.id_creator(pub_ed, identifier, ra=True)
                 # editorRole
-                br_key = self.venue_meta.replace('br/', '') if row_author and self.venue_graph and self.type in CONTAINER_EDITOR_TYPES else self.row_meta
+                br_key = get_edited_br_metaid(row, self.vi_index, self.row_meta, self.venue_meta)
                 AR = self.ar_index[br_key]['editor'][ed_meta]
                 ar_id = 'ar/' + str(AR)
                 preexisting_entity = True if ar_id in self.preexisting_entities else False
@@ -423,14 +425,18 @@ class Creator(object):
                 preexisting_graph = self.finder.get_preexisting_graph(url_ar, self.preexisting_graphs) if preexisting_entity else None
                 pub_ed_role = self.setgraph.add_ar(self.resp_agent, source=self.src, res=url_ar, preexisting_graph=preexisting_graph)
                 pub_ed_role.create_editor()
-                if self.type in CONTAINER_EDITOR_TYPES and self.venue_graph and row_author:
-                    self.venue_graph.has_contributor(pub_ed_role)
-                else:
-                    self.br_graph.has_contributor(pub_ed_role)
+                br_graphs:List[BibliographicResource] = [self.br_graph, self.issue_graph, self.vol_graph, self.venue_graph]
+                for graph in br_graphs:
+                    if br_key == self.__res_metaid(graph):
+                        graph.has_contributor(pub_ed_role)
                 pub_ed_role.is_held_by(pub_ed)
                 edit_role_list.append(pub_ed_role)
                 if len(edit_role_list) > 1:
                     edit_role_list[edit_role_list.index(pub_ed_role)-1].has_next(pub_ed_role)
+    
+    def __res_metaid(self, graph:BibliographicResource):
+        if graph:
+            return graph.res.replace(f'{self.url}br/','')
 
     def id_creator(self, graph:BibliographicEntity, identifier:str, ra:bool) -> None:
         new_id = None
