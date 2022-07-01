@@ -251,7 +251,7 @@ class Curator:
                     self.vvi[metaval]['volume'][volume]['id'] = vol_meta
                     self.vvi[metaval]['volume'][volume]['issue'] = dict()
             elif volume and br_type == 'journal volume':
-                # The data must be invalidated, because the resource is journal volume but an issue has also been specified
+                # The data must be invalidated, because the resource is a journal volume but an issue has also been specified
                 if issue:
                     row['volume'] = ''
                     row['issue'] = ''
@@ -296,13 +296,23 @@ class Curator:
         :returns: None -- This method modifies self.ardict, self.radict, and self.idra, and returns None.
         '''
         if row[col_name]:
-            br_metaval_to_check = get_edited_br_metaid(row, self.vvi, row['id'], row['venue']) if col_name == 'editor' else row['id']
-            if br_metaval_to_check in self.brdict or br_metaval_to_check in self.conflict_br:
+            if col_name == 'editor':
+                br_metaval_to_check, editor_is_a_vi = get_edited_br_metaid(row, self.vvi, row['id'], row['venue']) 
+            else:
+                br_metaval_to_check = row['id']
+                editor_is_a_vi = False
+            if br_metaval_to_check in self.brdict or br_metaval_to_check in self.conflict_br or br_metaval_to_check in self.vvi:
+                br_metaval = br_metaval_to_check
+            elif editor_is_a_vi:
                 br_metaval = br_metaval_to_check
             else:
-                other_id = [id for id in self.brdict if br_metaval_to_check in self.brdict[id]['others']]
-                conflict_id = [id for id in self.conflict_br if br_metaval_to_check in self.conflict_br[id]['others']]
-                br_metaval = other_id[0] if other_id else conflict_id[0]
+                try:
+                    other_id = [id for id in self.brdict if br_metaval_to_check in self.brdict[id]['others']]
+                    conflict_id = [id for id in self.conflict_br if br_metaval_to_check in self.conflict_br[id]['others']]
+                    br_metaval = other_id[0] if other_id else conflict_id[0]
+                except IndexError:
+                    print(row, col_name, editor_is_a_vi, br_metaval_to_check)
+                    raise(IndexError)
             if br_metaval not in self.ardict or not self.ardict[br_metaval][col_name]:
                 # new sequence
                 if 'wannabe' in br_metaval:
@@ -684,7 +694,7 @@ class Curator:
                 else:
                     venue_metaid = venue
                 row['venue'] = self.brmeta[venue_metaid]['title'] + ' [' + ' '.join(self.brmeta[venue_metaid]['ids']) + ']'
-            br_key_for_editor = get_edited_br_metaid(row, self.VolIss, metaid, venue_metaid)
+            br_key_for_editor, _ = get_edited_br_metaid(row, self.VolIss, metaid, venue_metaid)
             self.ra_update(row, metaid, 'author')
             self.ra_update(row, metaid, 'publisher')
             self.ra_update(row, br_key_for_editor, 'editor')
@@ -1188,7 +1198,8 @@ class Curator:
             is_a_valid_row = True if br_venue and (br_issue or br_title) else False
         return is_a_valid_row
 
-def get_edited_br_metaid(row:dict, vvi_index:dict, metaid:str, venue_metaid:str):
+def get_edited_br_metaid(row:dict, vvi_index:dict, metaid:str, venue_metaid:str) -> Tuple[str, bool]:
+    is_a_vi = False
     if row['author'] and row['venue'] and row['type'] in CONTAINER_EDITOR_TYPES:
         vol = row['volume']
         issue = row['issue']
@@ -1199,11 +1210,16 @@ def get_edited_br_metaid(row:dict, vvi_index:dict, metaid:str, venue_metaid:str)
                 issue_meta = vvi_index[venue_metaid]['volume'][vol]['issue'][issue]['id']
             else:
                 issue_meta = vvi_index[venue_metaid]['issue'][issue]['id']
-        edited_br_metaid = \
-            venue_metaid if row['type'] != 'journal article' \
-            else issue_meta if row['issue'] \
-            else vol_meta if row['volume'] \
-            else metaid
+        if row['type'] != 'journal article':
+            edited_br_metaid = venue_metaid
+        elif row['issue']:
+            edited_br_metaid = issue_meta
+            is_a_vi = True
+        elif row['volume']:
+            edited_br_metaid = vol_meta
+            is_a_vi = True
+        else:
+            edited_br_metaid = metaid
     else:
         edited_br_metaid = metaid
-    return edited_br_metaid
+    return edited_br_metaid, is_a_vi

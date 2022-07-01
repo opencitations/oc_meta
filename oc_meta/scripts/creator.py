@@ -417,7 +417,7 @@ class Creator(object):
                 for identifier in ed_id_list:
                     self.id_creator(pub_ed, identifier, ra=True)
                 # editorRole
-                br_key = get_edited_br_metaid(row, self.vi_index, self.row_meta, self.venue_meta)
+                br_key, _ = get_edited_br_metaid(row, self.vi_index, self.row_meta, self.venue_meta)
                 AR = self.ar_index[br_key]['editor'][ed_meta]
                 ar_id = 'ar/' + str(AR)
                 preexisting_entity = True if ar_id in self.preexisting_entities else False
