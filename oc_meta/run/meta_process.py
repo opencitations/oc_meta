@@ -92,9 +92,9 @@ class MetaProcess:
         csv.field_size_limit(128)
         return files_to_be_processed
 
-    def curate_and_create(self, filename:str, cache_path:str, errors_path:str, worker_number:int=None, resp_agents_only:bool=False) -> None:
+    def curate_and_create(self, filename:str, cache_path:str, errors_path:str, worker_number:int=None, resp_agents_only:bool=False) -> Tuple[dict, str, str, str]:
         if os.path.exists(os.path.join(self.base_output_dir, '.stop')):
-            return
+            return {'message': 'skip'}, cache_path, errors_path, filename
         try:
             filepath = os.path.join(self.input_csv_dir, filename)
             data = get_data(filepath)
@@ -176,7 +176,9 @@ def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False) -> N
 
 def task_done(task_output:ProcessFuture) -> None:
     message, cache_path, errors_path, filename = task_output.result()
-    if message['message'] == 'success':
+    if message['message'] == 'skip':
+        pass
+    elif message['message'] == 'success':
         if not os.path.exists(cache_path):
             with open(cache_path, 'w', encoding='utf-8') as aux_file:
                 aux_file.write(filename + '\n')
