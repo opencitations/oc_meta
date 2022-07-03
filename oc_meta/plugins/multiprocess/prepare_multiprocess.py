@@ -89,7 +89,8 @@ def _get_duplicated_ids(data:List[dict], ids_found:set, items_by_id:Dict[str, di
     cur_file_ids = set()
     for row in data:
         ids_list = row['id'].split()
-        if any(id in ids_found and (id not in cur_file_ids or id in items_by_id) for id in ids_list):
+        if any(id in ids_found and (id not in cur_file_ids or id in items_by_id) for id in ids_list) or \
+                (row['type'] == 'journal article' and row['author'] and row['editor'] and row['venue'] and (row['issue'] or row['volume'])):
             for id in ids_list:
                 items_by_id.setdefault(id, {'others': set()})
                 items_by_id[id]['others'].update({other for other in ids_list if other != id})
