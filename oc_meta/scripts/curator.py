@@ -306,13 +306,9 @@ class Curator:
             elif editor_is_a_vi:
                 br_metaval = br_metaval_to_check
             else:
-                try:
-                    other_id = [id for id in self.brdict if br_metaval_to_check in self.brdict[id]['others']]
-                    conflict_id = [id for id in self.conflict_br if br_metaval_to_check in self.conflict_br[id]['others']]
-                    br_metaval = other_id[0] if other_id else conflict_id[0]
-                except IndexError:
-                    print(row, col_name, editor_is_a_vi, br_metaval_to_check)
-                    raise(IndexError)
+                other_id = [id for id in self.brdict if br_metaval_to_check in self.brdict[id]['others']]
+                conflict_id = [id for id in self.conflict_br if br_metaval_to_check in self.conflict_br[id]['others']]
+                br_metaval = other_id[0] if other_id else conflict_id[0]
             if br_metaval not in self.ardict or not self.ardict[br_metaval][col_name]:
                 # new sequence
                 if 'wannabe' in br_metaval:
@@ -344,7 +340,6 @@ class Curator:
                                         self.idra[literal] = id_metaid
                                     if literal not in self.radict[ra_metaid]['ids']:
                                         self.radict[ra_metaid]['ids'].append(literal)
-
                         if br_metaval not in self.ardict:
                             self.ardict[br_metaval] = dict()
                             self.ardict[br_metaval]['author'] = list()
