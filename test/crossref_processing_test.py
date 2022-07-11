@@ -46,72 +46,90 @@ class TestCrossrefProcessing(unittest.TestCase):
                 "given": "Puvaneswari",
                 "family": "Paravamsivam",
                 "sequence": "first",
-                "affiliation": []
+                "affiliation": [],
+                "role": "author"
             },
             {
                 "given": "Chua Kek",
                 "family": "Heng",
                 "sequence": "additional",
-                "affiliation": []
+                "affiliation": [],
+                "role": "author"
             },
             {
                 "given": "Sri Nurestri Abdul",
                 "family": "Malek",
                 "sequence": "additional",
-                "affiliation": []
+                "affiliation": [],
+                "role": "author"
             },
             {
                 "given": "Vikineswary",
                 "family": "Sabaratnam",
                 "sequence": "additional",
-                "affiliation": []
+                "affiliation": [],
+                "role": "author"
             },
             {
                 "given": "Ravishankar Ram",
                 "family": "M",
                 "sequence": "additional",
-                "affiliation": []
+                "affiliation": [],
+                "role": "author"
+            },
+            {
+                "given": "Sri Nurestri Abdul",
+                "family": "Malek",
+                "sequence": "additional",
+                "affiliation": [],
+                "role": "editor"
             },
             {
                 "given": "Umah Rani",
                 "family": "Kuppusamy",
                 "sequence": "additional",
-                "affiliation": []
+                "affiliation": [],
+                "role": "author"
             }
         ]
         crossref_processor = CrossrefProcessing(None, None)
         csv_manager = CSVManager()
-        csv_manager.data = {'10.9799/ksfan.2012.25.1.105': {'Malek, Sri Nurestri Abdul [orcid:0000-0001-6278-8559]'}}
+        csv_manager.data = {'10.9799/ksfan.2012.25.1.105': {'Malek, Sri Nurestri Abdul [0000-0001-6278-8559]'}}
         crossref_processor.orcid_index = csv_manager
-        authors_strings_list = crossref_processor.get_agents_strings_list('10.9799/ksfan.2012.25.1.105', authors_list)
+        authors_strings_list, editors_strings_list = crossref_processor.get_agents_strings_list('10.9799/ksfan.2012.25.1.105', authors_list)
         expected_authors_list = ['Paravamsivam, Puvaneswari', 'Heng, Chua Kek', 'Malek, Sri Nurestri Abdul [orcid:0000-0001-6278-8559]', 'Sabaratnam, Vikineswary', 'M, Ravishankar Ram', 'Kuppusamy, Umah Rani']
-        self.assertEqual(authors_strings_list, expected_authors_list)
+        expected_editors_list = ['Malek, Sri Nurestri Abdul [orcid:0000-0001-6278-8559]']
+        self.assertEqual((authors_strings_list, editors_strings_list), (expected_authors_list, expected_editors_list))
 
     def test_get_agents_strings_list(self):
         authors_list = [
             {
                 'given': 'Myung-Hee',
                 'family': 'Kim',
-                'affiliation': []
+                'affiliation': [],
+                "role": "author"
             },
             {
                 'given': 'Jin-Seon',
                 'family': 'Seo',
-                'affiliation': []
+                'affiliation': [],
+                "role": "author"
             },
             {
                 'given': 'Mi-Kyeong',
                 'family': 'Choi',
-                'affiliation': []
+                'affiliation': [],
+                "role": "author"
             },
             {
                 'given': 'Eun-Young',
                 'family': 'Kim',
-                'affiliation': []
+                'affiliation': [],
+                "role": "author"
             }
         ]
         crossref_processor = CrossrefProcessing(IOD, WANTED_DOIS)
-        authors_strings_list = crossref_processor.get_agents_strings_list('10.9799/ksfan.2012.25.1.105', authors_list)
+        authors_strings_list, _ = crossref_processor.get_agents_strings_list('10.9799/ksfan.2012.25.1.105', authors_list)
         expected_authors_list = ['Kim, Myung-Hee', 'Seo, Jin-Seon', 'Choi, Mi-Kyeong [orcid:0000-0002-6227-4053]', 'Kim, Eun-Young']
         self.assertEqual(authors_strings_list, expected_authors_list)
 
@@ -121,16 +139,18 @@ class TestCrossrefProcessing(unittest.TestCase):
             {
                 'given': 'Mi-Kyeong',
                 'family': 'Choi',
-                'affiliation': []
+                'affiliation': [],
+                "role": "author"
             },
             {
                 'given': 'Mi-Hong',
                 'family': 'Choi',
-                'affiliation': []
+                'affiliation': [],
+                "role": "author"
             }
         ]
         crossref_processor = CrossrefProcessing(IOD, WANTED_DOIS)
-        authors_strings_list = crossref_processor.get_agents_strings_list('10.9799/ksfan.2012.25.1.105', authors_list)
+        authors_strings_list, _ = crossref_processor.get_agents_strings_list('10.9799/ksfan.2012.25.1.105', authors_list)
         expected_authors_list = ['Choi, Mi-Kyeong [orcid:0000-0002-6227-4053]', 'Choi, Mi-Hong']
         self.assertEqual(authors_strings_list, expected_authors_list)
 
@@ -140,16 +160,18 @@ class TestCrossrefProcessing(unittest.TestCase):
             {
                 'given': 'Mi-Kyeong',
                 'family': 'Choi',
-                'affiliation': []
+                'affiliation': [],
+                "role": "author"
             },
             {
                 'given': 'Mi-Kyeong',
                 'family': 'Choi',
-                'affiliation': []
+                'affiliation': [],
+                "role": "author"
             }
         ]
         crossref_processor = CrossrefProcessing(IOD, WANTED_DOIS)
-        authors_strings_list = crossref_processor.get_agents_strings_list('10.9799/ksfan.2012.25.1.105', authors_list)
+        authors_strings_list, _ = crossref_processor.get_agents_strings_list('10.9799/ksfan.2012.25.1.105', authors_list)
         expected_authors_list = ['Choi, Mi-Kyeong', 'Choi, Mi-Kyeong']
         self.assertEqual(authors_strings_list, expected_authors_list)
 
@@ -159,16 +181,18 @@ class TestCrossrefProcessing(unittest.TestCase):
             {
                 'given': 'Choi',
                 'family': 'Mi-Kyeong',
-                'affiliation': []
+                'affiliation': [],
+                "role": "author"
             },
             {
                 'given': 'Mi-Hong',
                 'family': 'Choi',
-                'affiliation': []
+                'affiliation': [],
+                "role": "author"
             }
         ]
         crossref_processor = CrossrefProcessing(IOD, WANTED_DOIS)
-        authors_strings_list = crossref_processor.get_agents_strings_list('10.9799/ksfan.2012.25.1.105', authors_list)
+        authors_strings_list, _ = crossref_processor.get_agents_strings_list('10.9799/ksfan.2012.25.1.105', authors_list)
         expected_authors_list = ['Mi-Kyeong, Choi', 'Choi, Mi-Hong']
         self.assertEqual(authors_strings_list, expected_authors_list)
     

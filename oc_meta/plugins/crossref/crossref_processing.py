@@ -1,7 +1,7 @@
 import html
 import re
 import warnings
-from typing import Dict, List
+from typing import Dict, List, Tuple
 from csv import DictReader
 from bs4 import BeautifulSoup
 from oc_meta.lib.id_manager.orcidmanager import ORCIDManager
@@ -73,10 +73,20 @@ class CrossrefProcessing:
                     title = html.unescape(title_soup)
                     row['title'] = title
 
+            agents_list = []
+            if 'author' in item:
+                for author in item['author']:
+                    author['role'] = 'author'
+                agents_list.extend(item['author'])
+            if 'editor' in item:
+                for editor in item['editor']:
+                    editor['role'] = 'editor'
+                agents_list.extend(item['editor'])
+            authors_strings_list, editors_string_list = self.get_agents_strings_list(doi, agents_list)
+
             # row['author']
             if 'author' in item:
-                autlist = self.get_agents_strings_list(doi, item['author'])
-                row['author'] = '; '.join(autlist)
+                row['author'] = '; '.join(authors_strings_list)
 
             # row['pub_date']
             if 'issued' in item:
@@ -98,8 +108,7 @@ class CrossrefProcessing:
             row['publisher'] = self.get_publisher_name(doi, item)                        
 
             if 'editor' in item:
-                editlist = self.get_agents_strings_list(doi, item['editor'])
-                row['editor'] = '; '.join(editlist)
+                row['editor'] = '; '.join(editors_string_list)
         return row
     
     def orcid_finder(self, doi:str) -> dict:
@@ -229,13 +238,15 @@ class CrossrefProcessing:
                     name_and_id = ventit
         return name_and_id
     
-    def get_agents_strings_list(self, doi:str, agents_list:List[dict]) -> list:
-        agents_strings_list = list()
+    def get_agents_strings_list(self, doi:str, agents_list:List[dict]) -> Tuple[list, list]:
+        authors_strings_list = list()
+        editors_string_list = list()
         dict_orcid = None
         if not all('ORCID' in agent for agent in agents_list):
             dict_orcid = self.orcid_finder(doi)
         agents_list = [{k:Cleaner(v).remove_unwanted_characters() if k in {'family', 'given', 'name'} else v for k,v in agent_dict.items()} for agent_dict in agents_list]
         for agent in agents_list:
+            cur_role = agent['role']
             f_name = None
             g_name = None
             agent_string = None
@@ -268,23 +279,32 @@ class CrossrefProcessing:
                         if len([person for person in agents_list if 'family' in person if person['family'] if person['family'].lower() in orc_f.lower() or orc_f.lower() in person['family'].lower()]) > 1 and g_name and orc_g:
                             # If there are several authors with the same surname and the same given names' initials
                             if len([person for person in agents_list if 'given' in person if person['given'] if person['given'][0].lower() == orc_g[0].lower()]) > 1:
-                                # If there are no homonyms
-                                if not len([person for person in agents_list if 'given' in person if person['given'] if person['given'].lower() == orc_g.lower()]) > 1:
+                                homonyms_list = [person for person in agents_list if 'given' in person if person['given'] if person['given'].lower() == orc_g.lower()]
+                                # If there are homonyms
+                                if len(homonyms_list) > 1:
+                                    # If such homonyms have different roles from the current role
+                                    if [person for person in homonyms_list if person['role'] != cur_role]:
+                                        if orc_g.lower() == g_name.lower():
+                                            orcid = ori
+                                else:
                                     if orc_g.lower() == g_name.lower():
                                         orcid = ori
                             elif orc_g[0].lower() == g_name[0].lower():
                                 orcid = ori
+                        # If there is a person whose given name is equal to the family name of the current person (a common situation for cjk names)
                         elif any([person for person in agents_list if 'given' in person if person['given'] if person['given'].lower() == f_name.lower()]):
                             if orc_g.lower() == g_name.lower():
                                 orcid = ori
                         else:
                             orcid = ori
-                        
             if agent_string and orcid:
                 agent_string += ' [' + 'orcid:' + str(orcid) + ']'
             if agent_string:
-                agents_strings_list.append(agent_string)
-        return agents_strings_list
+                if agent['role'] == 'author':
+                    authors_strings_list.append(agent_string)
+                elif agent['role'] == 'editor':
+                    editors_string_list.append(agent_string)
+        return authors_strings_list, editors_string_list
 
     @staticmethod
     def id_worker(field, idlist:list, func) -> None:
