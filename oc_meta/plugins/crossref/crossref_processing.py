@@ -274,8 +274,12 @@ class CrossrefProcessing:
                                         orcid = ori
                             elif orc_g[0].lower() == g_name[0].lower():
                                 orcid = ori
+                        elif any([person for person in agents_list if 'given' in person if person['given'] if person['given'].lower() == f_name.lower()]):
+                            if orc_g.lower() == g_name.lower():
+                                orcid = ori
                         else:
                             orcid = ori
+                        
             if agent_string and orcid:
                 agent_string += ' [' + 'orcid:' + str(orcid) + ']'
             if agent_string:

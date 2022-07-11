@@ -152,6 +152,25 @@ class TestCrossrefProcessing(unittest.TestCase):
         authors_strings_list = crossref_processor.get_agents_strings_list('10.9799/ksfan.2012.25.1.105', authors_list)
         expected_authors_list = ['Choi, Mi-Kyeong', 'Choi, Mi-Kyeong']
         self.assertEqual(authors_strings_list, expected_authors_list)
+
+    def test_get_agents_strings_list_inverted_names(self):
+        # One author with an ORCID has as a name the surname of another
+        authors_list = [
+            {
+                'given': 'Choi',
+                'family': 'Mi-Kyeong',
+                'affiliation': []
+            },
+            {
+                'given': 'Mi-Hong',
+                'family': 'Choi',
+                'affiliation': []
+            }
+        ]
+        crossref_processor = CrossrefProcessing(IOD, WANTED_DOIS)
+        authors_strings_list = crossref_processor.get_agents_strings_list('10.9799/ksfan.2012.25.1.105', authors_list)
+        expected_authors_list = ['Mi-Kyeong, Choi', 'Choi, Mi-Hong']
+        self.assertEqual(authors_strings_list, expected_authors_list)
     
     def test_id_worker(self):
         field_issn = 'ISSN 1050-124X'
