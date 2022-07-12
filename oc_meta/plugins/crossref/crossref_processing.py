@@ -275,25 +275,28 @@ class CrossrefProcessing:
                     orc_f = orc_n[0].lower()
                     orc_g = orc_n[1] if len(orc_n) == 2 else None
                     if f_name.lower() in orc_f.lower() or orc_f.lower() in f_name.lower():
-                        # If there are several authors with the same surname
-                        if len([person for person in agents_list if 'family' in person if person['family'] if person['family'].lower() in orc_f.lower() or orc_f.lower() in person['family'].lower()]) > 1 and g_name and orc_g:
-                            # If there are several authors with the same surname and the same given names' initials
-                            if len([person for person in agents_list if 'given' in person if person['given'] if person['given'][0].lower() == orc_g[0].lower()]) > 1:
-                                homonyms_list = [person for person in agents_list if 'given' in person if person['given'] if person['given'].lower() == orc_g.lower()]
-                                # If there are homonyms
-                                if len(homonyms_list) > 1:
-                                    # If such homonyms have different roles from the current role
-                                    if [person for person in homonyms_list if person['role'] != cur_role]:
+                        if g_name and orc_g:
+                            # If there are several authors with the same surname
+                            if len([person for person in agents_list if 'family' in person if person['family'] if person['family'].lower() in orc_f.lower() or orc_f.lower() in person['family'].lower()]) > 1:
+                                # If there are several authors with the same surname and the same given names' initials
+                                if len([person for person in agents_list if 'given' in person if person['given'] if person['given'][0].lower() == orc_g[0].lower()]) > 1:
+                                    homonyms_list = [person for person in agents_list if 'given' in person if person['given'] if person['given'].lower() == orc_g.lower()]
+                                    # If there are homonyms
+                                    if len(homonyms_list) > 1:
+                                        # If such homonyms have different roles from the current role
+                                        if [person for person in homonyms_list if person['role'] != cur_role]:
+                                            if orc_g.lower() == g_name.lower():
+                                                orcid = ori
+                                    else:
                                         if orc_g.lower() == g_name.lower():
                                             orcid = ori
-                                else:
-                                    if orc_g.lower() == g_name.lower():
-                                        orcid = ori
-                            elif orc_g[0].lower() == g_name[0].lower():
-                                orcid = ori
-                        # If there is a person whose given name is equal to the family name of the current person (a common situation for cjk names)
-                        elif any([person for person in agents_list if 'given' in person if person['given'] if person['given'].lower() == f_name.lower()]):
-                            if orc_g.lower() == g_name.lower():
+                                elif orc_g[0].lower() == g_name[0].lower():
+                                    orcid = ori
+                            # If there is a person whose given name is equal to the family name of the current person (a common situation for cjk names)
+                            elif any([person for person in agents_list if 'given' in person if person['given'] if person['given'].lower() == f_name.lower()]):
+                                if orc_g.lower() == g_name.lower():
+                                    orcid = ori
+                            else:
                                 orcid = ori
                         else:
                             orcid = ori
@@ -305,7 +308,7 @@ class CrossrefProcessing:
                 elif agent['role'] == 'editor':
                     editors_string_list.append(agent_string)
         return authors_strings_list, editors_string_list
-
+    
     @staticmethod
     def id_worker(field, idlist:list, func) -> None:
         if isinstance(field, list):
