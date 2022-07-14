@@ -16,7 +16,7 @@
 
 
 from oc_meta.lib.file_manager import pathoo, get_data, write_csv, sort_files
-from oc_meta.lib.master_of_regex import comma_and_spaces, name_and_ids, semicolon_in_people_field
+from oc_meta.lib.master_of_regex import comma_and_spaces, ids_inside_square_brackets, name_and_ids, semicolon_in_people_field
 from oc_meta.scripts.creator import Creator
 from typing import Dict, List
 from tqdm import tqdm
@@ -49,6 +49,7 @@ def prepare_relevant_items(csv_dir:str, output_dir:str, items_per_file:int, verb
     pathoo(output_dir)
     ids_found = set()
     venues_found = dict()
+    vi_with_editor_found = dict()
     duplicated_ids = dict()
     venues_by_id = dict()
     duplicated_venues = dict()
@@ -61,7 +62,7 @@ def prepare_relevant_items(csv_dir:str, output_dir:str, items_per_file:int, verb
     # Look for all venues, responsible agents, and publishers
     for file in files:
         data = get_data(file)
-        _get_duplicated_ids(data=data, ids_found=ids_found, items_by_id=duplicated_ids)
+        _get_duplicated_ids(data=data, ids_found=ids_found, vi_with_editor_found=vi_with_editor_found, items_by_id=duplicated_ids)
         _get_relevant_venues(data=data, ids_found=venues_found, items_by_id=venues_by_id, duplicated_items=duplicated_venues)
         _get_publishers(data=data, ids_found=publishers_found, items_by_id=publishers_by_id, duplicated_items=duplicated_publishers)
         _get_resp_agents(data=data, ids_found=resp_agents_found, items_by_id=resp_agents_by_id, duplicated_items=duplicated_resp_agents)
@@ -85,12 +86,24 @@ def prepare_relevant_items(csv_dir:str, output_dir:str, items_per_file:int, verb
     __save_responsible_agents(resp_agents_merged, items_per_file, output_dir, fieldnames, ('people', 'author'))
     __save_responsible_agents(publishers_merged, items_per_file, output_dir, fieldnames, ('publishers', 'publisher'))
 
-def _get_duplicated_ids(data:List[dict], ids_found:set, items_by_id:Dict[str, dict]) -> None:
+def _get_duplicated_ids(data:List[dict], ids_found:set, vi_with_editor_found:dict, items_by_id:Dict[str, dict]) -> None:
     cur_file_ids = set()
+    cur_file_vi_with_editor = dict()
     for row in data:
         ids_list = row['id'].split()
+        venue_ids = re.search(ids_inside_square_brackets, row['venue'])
+        venue_ids = venue_ids.group(1) if venue_ids else None
+        venue_ids_list = [identifier for identifier in venue_ids.split() if identifier not in FORBIDDEN_IDS] if venue_ids else []
+        editor_refers_to_vi = bool(row['type'] == 'journal article' and row['author'] and row['editor'] and venue_ids_list and (row['issue'] or row['volume']))
+        for id in venue_ids_list:
+            cur_file_vi_with_editor.setdefault(id, {'volumes': set(), 'issues': set()})
+            vi_with_editor_found.setdefault(id, {'volumes': set(), 'issues': set()})
+        for container in ['volume', 'issue']:
+            duplicated_editor = True if editor_refers_to_vi and any(row[container] in vi_with_editor_found[venue_id][f'{container}s'] and row[container] not in cur_file_vi_with_editor[venue_id][f'{container}s'] for venue_id in venue_ids_list) else False
+            if duplicated_editor:
+                break
         if any(id in ids_found and (id not in cur_file_ids or id in items_by_id) for id in ids_list) or \
-                (row['type'] == 'journal article' and row['author'] and row['editor'] and row['venue'] and (row['issue'] or row['volume'])):
+                duplicated_editor:
             for id in ids_list:
                 items_by_id.setdefault(id, {'others': set()})
                 items_by_id[id]['others'].update({other for other in ids_list if other != id})
@@ -101,6 +114,14 @@ def _get_duplicated_ids(data:List[dict], ids_found:set, items_by_id:Dict[str, di
                     items_by_id[id][field] = row[field]
         cur_file_ids.update(set(ids_list))   
         ids_found.update(set(ids_list))
+        if duplicated_editor:
+            for id in venue_ids_list:
+                if row['issue']:
+                    cur_file_vi_with_editor[id]['issues'].add(row['issue'])
+                    vi_with_editor_found[id]['issues'].add(row['issue'])
+                elif row['volume']:
+                    cur_file_vi_with_editor[id]['volumes'].add(row['volume'])
+                    vi_with_editor_found[id]['volumes'].add(row['volume'])
 
 def _enrich_duplicated_ids_found(data:List[dict], items_by_id:Dict[str, dict]) -> None:
     for row in data:
