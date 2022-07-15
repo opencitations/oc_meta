@@ -1,3 +1,4 @@
+from pprint import pprint
 from ramose import APIManager
 import json
 import unittest
@@ -16,23 +17,23 @@ class test_API(unittest.TestCase):
         status, result, format = op.exec()
         status_expected = 200
         result_expected = [
-            {'res': 'https://w3id.org/oc/meta/br/2389', 
-            'id': 'doi:10.1001/2012.jama.10456', 
+            {'id': 'doi:10.1001/2012.jama.10456 meta:br/2389', 
             'title': 'Cardiovascular Risk Assessment In The 21St Century', 
             'author': {'Wilson, Peter W. F.', 'Gaziano, J. Michael'}, 
-            'date': '2012-08-22', 
-            'issue': '8', 
-            'volume': '308', 
+            'date': '2012-08-22',
+            'page': '816',
+            'issue': '8',
+            'volume': '308',
             'venue': 'Jama [issn:0098-7484]', 
             'type': 'journal article', 
             'publisher': 'American Medical Association (ama) [crossref:10]', 
             'editor': ''
             }, 
-            {'res': 'https://w3id.org/oc/meta/br/2392', 
-            'id': 'doi:10.1001/2012.jama.10503', 
+            {'id': 'doi:10.1001/2012.jama.10503 meta:br/2392', 
             'title': 'Aortic Stiffness, Blood Pressure Progression, And Incident Hypertension', 
             'author': {'Kaess, Bernhard M.', 'Rong, Jian', 'Vasan, Ramachandran S.', 'Mitchell, Gary F.', 'Hamburg, Naomi M. [orcid:0000-0001-5504-5589]', 'Levy, Daniel [orcid:0000-0003-1843-8724]', 'Benjamin, Emelia J. [orcid:0000-0003-4076-2336]', 'Larson, Martin G. [orcid:0000-0002-9631-1254]', 'Vita, Joseph A. [orcid:0000-0001-5607-1797]'}, 
-            'date': '2012-09-05', 
+            'date': '2012-09-05',
+            'page': '875',
             'issue': '9', 
             'volume': '308', 
             'venue': 'Jama [issn:0098-7484]', 

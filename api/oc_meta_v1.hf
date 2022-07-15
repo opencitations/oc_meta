@@ -56,29 +56,51 @@ It is possible to specify one or more IDs as input of this operation. In this ca
     }
 ]
 #sparql 
-prefix foaf: <http://xmlns.com/foaf/0.1/>
-prefix pro: <http://purl.org/spar/pro/>
-prefix literal: <http://www.essepuntato.it/2010/06/literalreification/>
-prefix datacite: <http://purl.org/spar/datacite/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX pro: <http://purl.org/spar/pro/>
+PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
+PREFIX datacite: <http://purl.org/spar/datacite/>
 PREFIX dcterm: <http://purl.org/dc/terms/>
 PREFIX frbr: <http://purl.org/vocab/frbr/core#>
 PREFIX fabio: <http://purl.org/spar/fabio/>
 PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
-SELECT ?res (GROUP_CONCAT(DISTINCT ?id_; separator=' ') AS ?id)
-?title 
+SELECT
+(GROUP_CONCAT(DISTINCT ?id_; separator=' ') AS ?id)
+?title
 (GROUP_CONCAT(DISTINCT ?author_; separator='; ') AS ?author)
-?date ?issue ?volume ?venue
+?date ?page ?issue ?volume ?venue
 (GROUP_CONCAT(DISTINCT ?type_; separator=' ;and; ') AS ?type)
 ?publisher
 (GROUP_CONCAT(DISTINCT ?editor_; separator='; ') AS ?editor)
 WHERE {
-  	?res datacite:hasIdentifier ?identifier.
-    ?identifier datacite:usesIdentifierScheme datacite:[[scheme]];
-        literal:hasLiteralValue ?literalValue.
-    VALUES ?literalValue {[[literal_values]]}
- 	BIND(CONCAT(STRAFTER(STR(datacite:[[scheme]]), "http://purl.org/spar/datacite/"), ":", STR(?literalValue)) AS ?id_)
+  	{SELECT ?res ?id_ ?venueName (GROUP_CONCAT(DISTINCT ?venue_ids_; SEPARATOR=' ') AS ?venue_ids)
+    WHERE {
+      ?res datacite:hasIdentifier ?identifier.
+      ?identifier datacite:usesIdentifierScheme datacite:[[scheme]];
+          literal:hasLiteralValue ?literalValue.
+      VALUES ?literalValue {[[literal_values]]}
+      BIND(CONCAT(
+        STRAFTER(STR(datacite:[[scheme]]), "http://purl.org/spar/datacite/"), ":", STR(?literalValue), " ", 
+        "meta:br/", STRAFTER(STR(?res), "/br/")) AS ?id_)
+      OPTIONAL {
+        ?res frbr:partOf+ ?journal.
+        ?journal a fabio:Journal;
+                 dcterm:title ?venueName.
+        OPTIONAL {
+            ?journal datacite:hasIdentifier ?journalIdentifier__.
+            ?journalIdentifier__ datacite:usesIdentifierScheme ?journalIdScheme;
+                       literal:hasLiteralValue ?journalIdLiteralValue.
+            BIND(CONCAT(STRAFTER(STR(?journalIdScheme), "http://purl.org/spar/datacite/"), ":", STR(?journalIdLiteralValue)) AS ?venue_ids_)
+        }
+      }
+    } GROUP BY ?res ?id_ ?venueName}
     ?res a ?type_.
     OPTIONAL {?res prism:publicationDate ?date.}
+  	OPTIONAL {
+      ?res frbr:embodiment ?re.
+      ?re prism:startingPage ?startingPage;
+    	  prism:endingPage ?endingPage.
+      BIND(IF(STR(?startingPage) = STR(?endingPage), STR(?startingPage), CONCAT(STR(?startingPage), '-', STR(?endingPage))) AS ?page)}
   	OPTIONAL {
       ?res pro:isDocumentContextFor ?arAuthor.
       ?arAuthor pro:withRole pro:author;
@@ -138,6 +160,7 @@ WHERE {
       }
       BIND(IF(bound(?publisherIdentifier_), CONCAT(" [", ?publisherIdentifier_, "]"), "") AS ?publisherIdentifier)
       BIND(CONCAT(STR(?publisherName), ?publisherIdentifier) AS ?publisher)
+      
     }
   OPTIONAL {
   	?res frbr:partOf ?resIssue.
@@ -149,19 +172,8 @@ WHERE {
     ?resVolume a fabio:JournalVolume;
               fabio:hasSequenceIdentifier ?volume.
   }
-  OPTIONAL {
-  	?res frbr:partOf+ ?journal.
-    ?journal a fabio:Journal;
-             dcterm:title ?venueName.
-    OPTIONAL {
-    	?journal datacite:hasIdentifier ?journalIdentifier__.
-      	?journalIdentifier__ datacite:usesIdentifierScheme ?journalIdScheme;
-                   literal:hasLiteralValue ?journalIdLiteralValue.
-      	BIND(CONCAT(STRAFTER(STR(?journalIdScheme), "http://purl.org/spar/datacite/"), ":", STR(?journalIdLiteralValue)) AS ?journalIdentifier_)
-    }
-    BIND(IF(bound(?journalIdentifier_), CONCAT(" [", ?journalIdentifier_, "]"), "") AS ?journalIdentifier)
-    BIND(CONCAT(STR(?venueName), ?journalIdentifier) AS ?venue)
-  }
+  BIND(IF(bound(?venue_ids), CONCAT(" [", ?venue_ids, "]"), "") AS ?venueIdentifiers)
+  BIND(CONCAT(STR(?venueName), ?venueIdentifiers) AS ?venue)
   OPTIONAL {?res dcterm:title ?title}
 }
-GROUP BY ?res ?title ?date ?issue ?volume ?venue ?publisher
+GROUP BY ?title ?date ?page ?issue ?volume ?venue ?publisher
