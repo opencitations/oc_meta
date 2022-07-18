@@ -73,7 +73,9 @@ SELECT
 ?publisher
 (GROUP_CONCAT(DISTINCT ?editor_; separator='; ') AS ?editor)
 WHERE {
-  	{SELECT ?res ?id_ ?venueName (GROUP_CONCAT(DISTINCT ?venue_ids_; SEPARATOR=' ') AS ?venue_ids)
+  	{SELECT ?res ?id_ ?venueName ?publisherName
+    (GROUP_CONCAT(DISTINCT ?venue_ids_; SEPARATOR=' ') AS ?venue_ids)
+    (GROUP_CONCAT(DISTINCT ?publisher_ids_; SEPARATOR=' ') AS ?publisher_ids)
     WHERE {
       ?res datacite:hasIdentifier ?identifier.
       ?identifier datacite:usesIdentifierScheme datacite:[[scheme]];
@@ -92,8 +94,20 @@ WHERE {
                        literal:hasLiteralValue ?journalIdLiteralValue.
             BIND(CONCAT(STRAFTER(STR(?journalIdScheme), "http://purl.org/spar/datacite/"), ":", STR(?journalIdLiteralValue)) AS ?venue_ids_)
         }
+        OPTIONAL {
+          ?res pro:isDocumentContextFor ?arPublisher.
+          ?arPublisher pro:withRole pro:publisher;
+                    pro:isHeldBy ?raPublisher.
+          ?raPublisher foaf:name ?publisherName.
+          OPTIONAL {
+            ?raPublisher datacite:hasIdentifier ?publisherIdentifier__.
+            ?publisherIdentifier__ datacite:usesIdentifierScheme ?publisherIdSchema;
+                              literal:hasLiteralValue ?publisherIdLiteralValue.
+            BIND(CONCAT(STRAFTER(STR(?publisherIdSchema), "http://purl.org/spar/datacite/"), ":", STR(?publisherIdLiteralValue)) AS ?publisher_ids_)
+          }
+        }
       }
-    } GROUP BY ?res ?id_ ?venueName}
+    } GROUP BY ?res ?id_ ?venueName ?publisherName}
     ?res a ?type_.
     OPTIONAL {?res prism:publicationDate ?date.}
   	OPTIONAL {
@@ -145,21 +159,6 @@ WHERE {
           ?editorName) 
         AS ?editor_)
     }
-  	OPTIONAL {
-      ?res pro:isDocumentContextFor ?arPublisher.
-      ?arPublisher pro:withRole pro:publisher;
-                pro:isHeldBy ?raPublisher.
-      ?raPublisher foaf:name ?publisherName.
-      OPTIONAL {
-        ?raPublisher datacite:hasIdentifier ?publisherIdentifier__.
-        ?publisherIdentifier__ datacite:usesIdentifierScheme ?publisherIdSchema;
-                          literal:hasLiteralValue ?publisherIdLiteralValue.
-        BIND(CONCAT(STRAFTER(STR(?publisherIdSchema), "http://purl.org/spar/datacite/"), ":", STR(?publisherIdLiteralValue)) AS ?publisherIdentifier_)
-      }
-      BIND(COALESCE(CONCAT(" [", ?publisherIdentifier_, "]"), "") AS ?publisherIdentifier)
-      BIND(CONCAT(STR(?publisherName), ?publisherIdentifier) AS ?publisher)
-      
-    }
   OPTIONAL {
   	?res frbr:partOf ?resIssue.
     ?resIssue a fabio:JournalIssue;
@@ -172,6 +171,8 @@ WHERE {
   }
   BIND(COALESCE(CONCAT(" [", ?venue_ids, "]"), "") AS ?venueIdentifiers)
   BIND(CONCAT(STR(?venueName), ?venueIdentifiers) AS ?venue)
+  BIND(COALESCE(CONCAT(" [", ?publisher_ids, "]"), "") AS ?publisherIdentifiers)
+  BIND(CONCAT(STR(?publisherName), ?publisherIdentifiers) AS ?publisher)
   OPTIONAL {?res dcterm:title ?title}
 }
 GROUP BY ?title ?date ?page ?issue ?volume ?venue ?publisher
