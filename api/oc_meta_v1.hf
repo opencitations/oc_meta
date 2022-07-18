@@ -115,13 +115,12 @@ WHERE {
       OPTIONAL {
         ?raAuthor foaf:givenName ?givenName.
       }
-      BIND(IF(bound(?authorIdentifier_), CONCAT(" [", ?authorIdentifier_, "]"), "") AS ?authorIdentifier)
+      BIND(COALESCE(CONCAT(" [", ?authorIdentifier_, "]"), "") AS ?authorIdentifier)
       BIND(
-        IF(bound(?givenName), 
-           CONCAT(STR(?familyName), ", ", STR(?givenName), ?authorIdentifier), 
-           IF(bound(?name), 
-              ?name, 
-              CONCAT(STR(?familyName), ","))) 
+        COALESCE(
+          CONCAT(STR(?familyName), ", ", STR(?givenName), ?authorIdentifier),
+          CONCAT(STR(?familyName), ","),
+          ?name) 
         AS ?author_)
     }
   	OPTIONAL {
@@ -138,13 +137,12 @@ WHERE {
       OPTIONAL {
         ?raEditor foaf:givenName ?editorGivenName.
       }
-      BIND(IF(bound(?editorIdentifier_), CONCAT(" [", ?editorIdentifier_, "]"), "") AS ?editorIdentifier)
+      BIND(COALESCE(CONCAT(" [", ?editorIdentifier_, "]"), "") AS ?editorIdentifier)
       BIND(
-        IF(bound(?editorGivenName), 
-           CONCAT(STR(?editorFamilyName), ", ", STR(?editorGivenName), ?editorIdentifier), 
-           IF(bound(?editorName), 
-              ?editorName, 
-              CONCAT(STR(?editorFamilyName), ","))) 
+        COALESCE(
+           CONCAT(STR(?editorFamilyName), ", ", STR(?editorGivenName), ?editorIdentifier),
+          CONCAT(STR(?editorFamilyName), ","),
+          ?editorName) 
         AS ?editor_)
     }
   	OPTIONAL {
@@ -158,7 +156,7 @@ WHERE {
                           literal:hasLiteralValue ?publisherIdLiteralValue.
         BIND(CONCAT(STRAFTER(STR(?publisherIdSchema), "http://purl.org/spar/datacite/"), ":", STR(?publisherIdLiteralValue)) AS ?publisherIdentifier_)
       }
-      BIND(IF(bound(?publisherIdentifier_), CONCAT(" [", ?publisherIdentifier_, "]"), "") AS ?publisherIdentifier)
+      BIND(COALESCE(CONCAT(" [", ?publisherIdentifier_, "]"), "") AS ?publisherIdentifier)
       BIND(CONCAT(STR(?publisherName), ?publisherIdentifier) AS ?publisher)
       
     }
@@ -172,7 +170,7 @@ WHERE {
     ?resVolume a fabio:JournalVolume;
               fabio:hasSequenceIdentifier ?volume.
   }
-  BIND(IF(bound(?venue_ids), CONCAT(" [", ?venue_ids, "]"), "") AS ?venueIdentifiers)
+  BIND(COALESCE(CONCAT(" [", ?venue_ids, "]"), "") AS ?venueIdentifiers)
   BIND(CONCAT(STR(?venueName), ?venueIdentifiers) AS ?venue)
   OPTIONAL {?res dcterm:title ?title}
 }
