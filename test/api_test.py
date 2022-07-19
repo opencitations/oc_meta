@@ -41,7 +41,7 @@ class test_API(unittest.TestCase):
             'publisher': 'American Medical Association (ama) [crossref:10]', 
             'editor': ''}]
         format_expected = 'application/json'
-        output = status, [{k:set(v.split('; ')) if k=='author' else v for k,v in el.items()} for el in json.loads(result)], format
+        output = status, sorted([{k:set(v.split('; ')) if k=='author' else v for k,v in el.items()} for el in json.loads(result)], key=lambda x:x['id']), format
         expected_output = status_expected, result_expected, format_expected
         self.assertEqual(output, expected_output)
 
