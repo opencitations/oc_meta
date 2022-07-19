@@ -73,7 +73,9 @@ SELECT
 ?publisher
 (GROUP_CONCAT(DISTINCT ?editor_; separator='; ') AS ?editor)
 WHERE {
-  	{SELECT ?res ?id_ ?venueName ?publisherName
+  	{SELECT ?res ?id_ ?authorName ?venueName ?publisherName ?editorName
+    (GROUP_CONCAT(DISTINCT ?author_id; SEPARATOR=' ') AS ?author_ids)
+    (GROUP_CONCAT(DISTINCT ?editor_id; SEPARATOR=' ') AS ?editor_ids)
     (GROUP_CONCAT(DISTINCT ?venue_ids_; SEPARATOR=' ') AS ?venue_ids)
     (GROUP_CONCAT(DISTINCT ?publisher_ids_; SEPARATOR=' ') AS ?publisher_ids)
     WHERE {
@@ -107,7 +109,47 @@ WHERE {
           }
         }
       }
-    } GROUP BY ?res ?id_ ?venueName ?publisherName}
+      OPTIONAL {
+        ?res pro:isDocumentContextFor ?arAuthor.
+        ?arAuthor pro:withRole pro:author;
+                  pro:isHeldBy ?raAuthor.
+        {?raAuthor foaf:familyName ?familyName.} UNION {?raAuthor foaf:name ?name.}
+        OPTIONAL {
+          ?raAuthor datacite:hasIdentifier ?authorIdentifier.
+          ?authorIdentifier datacite:usesIdentifierScheme ?authorIdSchema;
+                            literal:hasLiteralValue ?authorIdLiteralValue.
+          BIND(CONCAT(STRAFTER(STR(?authorIdSchema), "http://purl.org/spar/datacite/"), ":", STR(?authorIdLiteralValue)) AS ?author_id)
+        }
+        OPTIONAL {
+          ?raAuthor foaf:givenName ?givenName.
+        }
+        BIND(
+          COALESCE(
+            CONCAT(STR(?familyName), ", ", STR(?givenName)),
+            CONCAT(STR(?familyName), ","),
+            ?name) 
+          AS ?authorName)
+      }
+  	  OPTIONAL {
+        ?res pro:isDocumentContextFor ?arEditor.
+        ?arEditor pro:withRole pro:editor;
+                  pro:isHeldBy ?raEditor.
+        {?raEditor foaf:familyName ?editorFamilyName.} UNION {?raEditor foaf:name ?editor_name.}
+        OPTIONAL {
+          ?raEditor datacite:hasIdentifier ?editorIdentifier.
+          ?editorIdentifier datacite:usesIdentifierScheme ?editorIdSchema;
+                            literal:hasLiteralValue ?editorIdLiteralValue.
+          BIND(CONCAT(STRAFTER(STR(?editorIdSchema), "http://purl.org/spar/datacite/"), ":", STR(?editorIdLiteralValue)) AS ?editor_id)
+        }
+        OPTIONAL {?raEditor foaf:givenName ?editorGivenName.}
+        BIND(
+          COALESCE(
+            CONCAT(STR(?editorFamilyName), ", ", STR(?editorGivenName)),
+            CONCAT(STR(?editorFamilyName), ","),
+            ?editor_name) 
+          AS ?editorName)
+      }
+    } GROUP BY ?res ?id_ ?authorName ?editorName ?venueName ?publisherName}
     ?res a ?type_.
     OPTIONAL {?res prism:publicationDate ?date.}
   	OPTIONAL {
@@ -115,50 +157,6 @@ WHERE {
       ?re prism:startingPage ?startingPage;
     	  prism:endingPage ?endingPage.
       BIND(IF(STR(?startingPage) = STR(?endingPage), STR(?startingPage), CONCAT(STR(?startingPage), '-', STR(?endingPage))) AS ?page)}
-  	OPTIONAL {
-      ?res pro:isDocumentContextFor ?arAuthor.
-      ?arAuthor pro:withRole pro:author;
-                pro:isHeldBy ?raAuthor.
-      {?raAuthor foaf:familyName ?familyName.} UNION {?raAuthor foaf:name ?name.}
-      OPTIONAL {
-        ?raAuthor datacite:hasIdentifier ?authorIdentifier__.
-        ?authorIdentifier__ datacite:usesIdentifierScheme ?authorIdSchema;
-                          literal:hasLiteralValue ?authorIdLiteralValue.
-        BIND(CONCAT(STRAFTER(STR(?authorIdSchema), "http://purl.org/spar/datacite/"), ":", STR(?authorIdLiteralValue)) AS ?authorIdentifier_)
-      }
-      OPTIONAL {
-        ?raAuthor foaf:givenName ?givenName.
-      }
-      BIND(COALESCE(CONCAT(" [", ?authorIdentifier_, "]"), "") AS ?authorIdentifier)
-      BIND(
-        COALESCE(
-          CONCAT(STR(?familyName), ", ", STR(?givenName), ?authorIdentifier),
-          CONCAT(STR(?familyName), ","),
-          ?name) 
-        AS ?author_)
-    }
-  	OPTIONAL {
-      ?res pro:isDocumentContextFor ?arEditor.
-      ?arEditor pro:withRole pro:editor;
-                pro:isHeldBy ?raEditor.
-      {?raEditor foaf:familyName ?editorFamilyName.} UNION {?raEditor foaf:name ?editorName.}
-      OPTIONAL {
-        ?raEditor datacite:hasIdentifier ?editorIdentifier__.
-        ?editorIdentifier__ datacite:usesIdentifierScheme ?editorIdSchema;
-                          literal:hasLiteralValue ?editorIdLiteralValue.
-        BIND(CONCAT(STRAFTER(STR(?editorIdSchema), "http://purl.org/spar/datacite/"), ":", STR(?editorIdLiteralValue)) AS ?editorIdentifier_)
-      }
-      OPTIONAL {
-        ?raEditor foaf:givenName ?editorGivenName.
-      }
-      BIND(COALESCE(CONCAT(" [", ?editorIdentifier_, "]"), "") AS ?editorIdentifier)
-      BIND(
-        COALESCE(
-           CONCAT(STR(?editorFamilyName), ", ", STR(?editorGivenName), ?editorIdentifier),
-          CONCAT(STR(?editorFamilyName), ","),
-          ?editorName) 
-        AS ?editor_)
-    }
   OPTIONAL {
   	?res frbr:partOf ?resIssue.
     ?resIssue a fabio:JournalIssue;
@@ -169,7 +167,11 @@ WHERE {
     ?resVolume a fabio:JournalVolume;
               fabio:hasSequenceIdentifier ?volume.
   }
+  BIND(IF(STR(?author_ids) != "", CONCAT(" [", ?author_ids, "]"), "") AS ?authorIdentifiers)
+  BIND(IF(STR(?editor_ids) != "", CONCAT(" [", ?editor_ids, "]"), "") AS ?editorIdentifiers)
   BIND(COALESCE(CONCAT(" [", ?venue_ids, "]"), "") AS ?venueIdentifiers)
+  BIND(CONCAT(STR(?authorName), ?authorIdentifiers) AS ?author_)
+  BIND(CONCAT(STR(?editorName), ?editorIdentifiers) AS ?editor_)
   BIND(CONCAT(STR(?venueName), ?venueIdentifiers) AS ?venue)
   BIND(COALESCE(CONCAT(" [", ?publisher_ids, "]"), "") AS ?publisherIdentifiers)
   BIND(CONCAT(STR(?publisherName), ?publisherIdentifiers) AS ?publisher)
