@@ -35,7 +35,7 @@ class ORCIDManager(IdentifierManager):
             orcid_string = sub("[^X0-9]", "", id_string.upper())
             return "%s%s-%s-%s-%s" % (self.p if include_prefix else "",
                                       orcid_string[:4], orcid_string[4:8], orcid_string[8:12], orcid_string[12:16])
-        except:  # Any error in processing the ISSN will return None
+        except:  # Any error in processing the ORCID will return None
             return None
 
     @staticmethod
