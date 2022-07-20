@@ -106,7 +106,7 @@ class MetaProcess:
                 curator_obj = RespAgentsCurator(data=data, ts=self.triplestore_url, prov_config=self.time_agnostic_library_config, info_dir=curator_info_dir, base_iri=self.base_iri, prefix=supplier_prefix)
             else:
                 curator_obj = Curator(data=data, ts=self.triplestore_url, prov_config=self.time_agnostic_library_config, info_dir=curator_info_dir, base_iri=self.base_iri, prefix=supplier_prefix, valid_dois_cache=self.valid_dois_cache)
-            name = f"{datetime.now().strftime('%Y-%m-%dT%H_%M_%S_%f')}_{supplier_prefix}"
+            name = f"{filename.replace('.csv', '')}_{datetime.now().strftime('%Y-%m-%dT%H-%M-%S')}"
             curator_obj.curator(filename=name, path_csv=self.output_csv_dir, path_index=self.indexes_dir)
             # Creator
             creator_info_dir = os.path.join(self.info_dir, 'creator' + os.sep)
