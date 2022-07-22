@@ -16,18 +16,18 @@
 #preprocess split_ids(literal_values)
 #postprocess create_metadata_output()
 #method get
-#description This operation retrieves the bibliographic metadata for each of the bibliographic entities identified by one or more input IDs.
+#description This operation retrieves the bibliographic metadata for each of the bibliographic entities identified by one or more input IDs
 
-It is possible to specify one or more IDs as input of this operation. In this case, the IDs should be separated with a double underscore ("\_\_") – e.g. "10.1108/jd-12-2013-0166\_\_10.1016/j.websem.2012.08.001\_\_...". The fields returned by this operation are:
+It is possible to specify one or more IDs as input of this operation. In this case, the IDs should be separated with a double underscore ("\_\_") – e.g. "10.1108/jd-12-2013-0166\_\_10.1016/j.websem.2012.08.001". The fields returned by this operation are:
 
-* *id*: the IDs of the bibliographic entity;
-* *title*: the title of the bibliographic entity;
-* *author*: the semicolon-separated list of authors of the bibliographic entity;
-* *date*: the date of publication of the bibliographic entity;
-* *venue*: the title of the venue where the bibliographic entity has been published, followed by the list of identifiers referring that venue;
-* *volume*: the number of the volume in which the bibliographic entity has been published;
-* *issue*: the number of the issue in which the bibliographic entity has been published;
-* *page*: the starting and ending pages of the bibliographic entity in the context of the venue where it has been published;
+* *id*: the IDs of the bibliographic entity
+* *title*: the title of the bibliographic entity
+* *author*: the semicolon-separated list of authors of the bibliographic entity
+* *date*: the date of publication of the bibliographic entity
+* *venue*: the title of the venue where the bibliographic entity has been published, followed by the list of identifiers referring that venue
+* *volume*: the number of the volume in which the bibliographic entity has been published
+* *issue*: the number of the issue in which the bibliographic entity has been published
+* *page*: the starting and ending pages of the bibliographic entity in the context of the venue where it has been published
 * *type*: the type of the bibliographic entity
 #call /metadata/doi/10.1108/jd-12-2013-0166__10.6084/m9.figshare.3443876
 #field_type str(id) str(title) str(author) datetime(date) str(issue) str(volume) str(venue) str(page) str(type) str(publisher) str(editor)
@@ -191,16 +191,18 @@ GROUP BY ?id ?title ?date ?page ?issue ?volume ?venue ?publisher
 #type operation
 #postprocess create_metadata_output()
 #method get
-#description This operation retrieves the bibliographic metadata for each bibliographic entity authored by the person identified by the given ORCID. The fields returned by this operation are:
+#description This operation retrieves the bibliographic metadata for each bibliographic entity authored by the person identified by the given ORCID
 
-* *id*: the IDs of the bibliographic entity;
-* *title*: the title of the bibliographic entity;
-* *author*: the semicolon-separated list of authors of the bibliographic entity;
-* *date*: the date of publication of the bibliographic entity;
-* *venue*: the title of the venue where the bibliographic entity has been published, followed by the list of identifiers referring that venue;
-* *volume*: the number of the volume in which the bibliographic entity has been published;
-* *issue*: the number of the issue in which the bibliographic entity has been published;
-* *page*: the starting and ending pages of the bibliographic entity in the context of the venue where it has been published;
+The fields returned by this operation are:
+
+* *id*: the IDs of the bibliographic entity
+* *title*: the title of the bibliographic entity
+* *author*: the semicolon-separated list of authors of the bibliographic entity
+* *date*: the date of publication of the bibliographic entity
+* *venue*: the title of the venue where the bibliographic entity has been published, followed by the list of identifiers referring that venue
+* *volume*: the number of the volume in which the bibliographic entity has been published
+* *issue*: the number of the issue in which the bibliographic entity has been published
+* *page*: the starting and ending pages of the bibliographic entity in the context of the venue where it has been published
 * *type*: the type of the bibliographic entity
 #call /author/0000-0003-0530-4305
 #field_type str(id) str(title) str(author) datetime(date) str(issue) str(volume) str(venue) str(page) str(type) str(publisher) str(editor)
@@ -361,16 +363,18 @@ GROUP BY ?id ?title ?date ?page ?issue ?volume ?venue ?publisher
 #type operation
 #postprocess create_metadata_output()
 #method get
-#description This operation retrieves the bibliographic metadata for each bibliographic entity edited by the person identified by the given ORCID. The fields returned by this operation are:
+#description This operation retrieves the bibliographic metadata for each bibliographic entity edited by the person identified by the given ORCID
 
-* *id*: the IDs of the bibliographic entity;
-* *title*: the title of the bibliographic entity;
-* *author*: the semicolon-separated list of authors of the bibliographic entity;
-* *date*: the date of publication of the bibliographic entity;
-* *venue*: the title of the venue where the bibliographic entity has been published, followed by the list of identifiers referring that venue;
-* *volume*: the number of the volume in which the bibliographic entity has been published;
-* *issue*: the number of the issue in which the bibliographic entity has been published;
-* *page*: the starting and ending pages of the bibliographic entity in the context of the venue where it has been published;
+The fields returned by this operation are:
+
+* *id*: the IDs of the bibliographic entity
+* *title*: the title of the bibliographic entity
+* *author*: the semicolon-separated list of authors of the bibliographic entity
+* *date*: the date of publication of the bibliographic entity
+* *venue*: the title of the venue where the bibliographic entity has been published, followed by the list of identifiers referring that venue
+* *volume*: the number of the volume in which the bibliographic entity has been published
+* *issue*: the number of the issue in which the bibliographic entity has been published
+* *page*: the starting and ending pages of the bibliographic entity in the context of the venue where it has been published
 * *type*: the type of the bibliographic entity
 #call /editor/0000-0003-2098-4759
 #field_type str(id) str(title) str(author) datetime(date) str(issue) str(volume) str(venue) str(page) str(type) str(publisher) str(editor)
@@ -523,21 +527,21 @@ GROUP BY ?id ?title ?date ?page ?issue ?volume ?venue ?publisher
 #preprocess generate_text_search(fields, text)
 #postprocess create_metadata_output()
 #method get
-#description This operation retrieves the bibliographic metadata for each bibliographic entity whose specified fields contain the given text. 
-It is possible to specify one or more fields as input of this operation. In this case, the fields should be separated with a double underscore ("\_\_") – e.g. "author\_\editor\_\_...".
-The fields returned by this operation are:
+#description This operation retrieves the bibliographic metadata for each bibliographic entity whose specified fields contain the given text
 
-* *id*: the IDs of the bibliographic entity;
-* *title*: the title of the bibliographic entity;
-* *author*: the semicolon-separated list of authors of the bibliographic entity;
-* *date*: the date of publication of the bibliographic entity;
-* *venue*: the title of the venue where the bibliographic entity has been published, followed by the list of identifiers referring that venue;
-* *volume*: the number of the volume in which the bibliographic entity has been published;
-* *issue*: the number of the issue in which the bibliographic entity has been published;
-* *page*: the starting and ending pages of the bibliographic entity in the context of the venue where it has been published;
+It is possible to specify one or more fields as input of this operation. In this case, the fields should be separated with a double underscore ("\_\_") – e.g. "author\_\editor". The fields returned by this operation are:
+
+* *id*: the IDs of the bibliographic entity
+* *title*: the title of the bibliographic entity
+* *author*: the semicolon-separated list of authors of the bibliographic entity
+* *date*: the date of publication of the bibliographic entity
+* *venue*: the title of the venue where the bibliographic entity has been published, followed by the list of identifiers referring that venue
+* *volume*: the number of the volume in which the bibliographic entity has been published
+* *issue*: the number of the issue in which the bibliographic entity has been published
+* *page*: the starting and ending pages of the bibliographic entity in the context of the venue where it has been published
 * *type*: the type of the bibliographic entity
 
-#call search/author/Peroni
+#call /search/author/Peroni
 #field_type str(id) str(title) str(author) datetime(date) str(issue) str(volume) str(venue) str(page) str(type) str(publisher) str(editor)
 #output_json [
     {
