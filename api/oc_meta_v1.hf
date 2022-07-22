@@ -28,7 +28,7 @@ It is possible to specify one or more IDs as input of this operation. In this ca
 * *volume*: the number of the volume in which the bibliographic entity has been published;
 * *issue*: the number of the issue in which the bibliographic entity has been published;
 * *page*: the starting and ending pages of the bibliographic entity in the context of the venue where it has been published;
-* *type*: the type of the bibliographic entity;
+* *type*: the type of the bibliographic entity
 #call /metadata/doi/10.1108/jd-12-2013-0166__10.6084/m9.figshare.3443876
 #field_type str(id) str(title) str(author) datetime(date) str(issue) str(volume) str(venue) str(page) str(type) str(publisher) str(editor)
 #output_json [
@@ -201,7 +201,7 @@ GROUP BY ?id ?title ?date ?page ?issue ?volume ?venue ?publisher
 * *volume*: the number of the volume in which the bibliographic entity has been published;
 * *issue*: the number of the issue in which the bibliographic entity has been published;
 * *page*: the starting and ending pages of the bibliographic entity in the context of the venue where it has been published;
-* *type*: the type of the bibliographic entity;
+* *type*: the type of the bibliographic entity
 #call /author/0000-0003-0530-4305
 #field_type str(id) str(title) str(author) datetime(date) str(issue) str(volume) str(venue) str(page) str(type) str(publisher) str(editor)
 #output_json [
@@ -356,6 +356,7 @@ WHERE {
 }
 GROUP BY ?id ?title ?date ?page ?issue ?volume ?venue ?publisher
 
+
 #url /editor/{orcid}
 #type operation
 #postprocess create_metadata_output()
@@ -370,32 +371,23 @@ GROUP BY ?id ?title ?date ?page ?issue ?volume ?venue ?publisher
 * *volume*: the number of the volume in which the bibliographic entity has been published;
 * *issue*: the number of the issue in which the bibliographic entity has been published;
 * *page*: the starting and ending pages of the bibliographic entity in the context of the venue where it has been published;
-* *type*: the type of the bibliographic entity;
-#call /author/0000-0003-0530-4305
+* *type*: the type of the bibliographic entity
+#call /editor/0000-0003-2098-4759
 #field_type str(id) str(title) str(author) datetime(date) str(issue) str(volume) str(venue) str(page) str(type) str(publisher) str(editor)
 #output_json [
-    {
-        "id": "doi:10.1108/jd-12-2013-0166",
-        "title": "Setting Our Bibliographic References Free: Towards Open Citation Data",
-        "author": "Peroni, Silvio [orcid:0000-0003-0530-4305]; Dutton, Alexander; Gray, Tanya; Shotton, David",
-        "volume": "71",
-        "page": "253-277",
-        "venue": "Journal Of Documentation [issn:0022-0418]",
-        "date": "01-05-2015",
-        "issue": "2",
-        "type": "journal article"
-    },
-    {
-        "id": "doi:10.6084/m9.figshare.3443876",
-        "title": "The OpenCitations Data Model",
-        "author": "Peroni, Silvio [orcid:0000-0003-0530-4305]; Shotton, David [orcid:0000-0001-5506-523X]",
-        "volume": "",
-        "page": "",
-        "venue": "Figshare",
-        "year": "2018",
-        "issue": "",
-        "type": "other"
-    }
+  {
+      "id": "doi:10.1007/978-1-4020-9632-7 meta:br/0601 isbn:9789048127108 isbn:9781402096327",
+      "title": "Adaptive Environmental Management",
+      "author": "",
+      "date": "2009",
+      "page": "",
+      "issue": "",
+      "volume": "",
+      "venue": "",
+      "type": "book",
+      "publisher": "Springer Science And Business Media Llc [crossref:297]",
+      "editor": "Allan, Catherine [orcid:0000-0003-2098-4759]; Stankey, George H."
+  }
 ]
 #sparql 
 PREFIX foaf: <http://xmlns.com/foaf/0.1/>
@@ -433,6 +425,175 @@ WHERE {
     ?knownPerson datacite:hasIdentifier ?knownPersonIdentifier.
     ?knownPersonIdentifier datacite:usesIdentifierScheme datacite:orcid;
                            literal:hasLiteralValue "[[orcid]]".
+    OPTIONAL {
+      ?res frbr:partOf+ ?journal.
+      ?journal a fabio:Journal;
+                dcterm:title ?venueName.
+      OPTIONAL {
+          ?journal datacite:hasIdentifier ?journalIdentifier__.
+          ?journalIdentifier__ datacite:usesIdentifierScheme ?journalIdScheme;
+                      literal:hasLiteralValue ?journalIdLiteralValue.
+          BIND(CONCAT(STRAFTER(STR(?journalIdScheme), "http://purl.org/spar/datacite/"), ":", STR(?journalIdLiteralValue)) AS ?venue_ids_)
+      }
+    }
+    OPTIONAL {
+      ?res pro:isDocumentContextFor ?arPublisher.
+      ?arPublisher pro:withRole pro:publisher;
+                  pro:isHeldBy ?raPublisher.
+      ?raPublisher foaf:name ?publisherName.
+      OPTIONAL {
+        ?raPublisher datacite:hasIdentifier ?publisherIdentifier__.
+        ?publisherIdentifier__ datacite:usesIdentifierScheme ?publisherIdSchema;
+                               literal:hasLiteralValue ?publisherIdLiteralValue.
+        BIND(CONCAT(STRAFTER(STR(?publisherIdSchema), "http://purl.org/spar/datacite/"), ":", STR(?publisherIdLiteralValue)) AS ?publisher_ids_)
+      }
+    }
+    OPTIONAL {
+      ?res pro:isDocumentContextFor ?arAuthor.
+      ?arAuthor pro:withRole pro:author;
+                pro:isHeldBy ?raAuthor.
+      {?raAuthor foaf:familyName ?familyName.} UNION {?raAuthor foaf:name ?name.}
+      OPTIONAL {
+        ?raAuthor datacite:hasIdentifier ?authorIdentifier.
+        ?authorIdentifier datacite:usesIdentifierScheme ?authorIdSchema;
+                          literal:hasLiteralValue ?authorIdLiteralValue.
+        BIND(CONCAT(STRAFTER(STR(?authorIdSchema), "http://purl.org/spar/datacite/"), ":", STR(?authorIdLiteralValue)) AS ?author_id)
+      }
+      OPTIONAL {?raAuthor foaf:givenName ?givenName.}
+      BIND(
+        COALESCE(
+          CONCAT(STR(?familyName), ", ", STR(?givenName)),
+          CONCAT(STR(?familyName), ","),
+          ?name) 
+        AS ?authorName)
+    }
+    OPTIONAL {
+      ?res pro:isDocumentContextFor ?arEditor.
+      ?arEditor pro:withRole pro:editor;
+                pro:isHeldBy ?raEditor.
+      {?raEditor foaf:familyName ?editorFamilyName.} UNION {?raEditor foaf:name ?editor_name.}
+      OPTIONAL {
+        ?raEditor datacite:hasIdentifier ?editorIdentifier.
+        ?editorIdentifier datacite:usesIdentifierScheme ?editorIdSchema;
+                          literal:hasLiteralValue ?editorIdLiteralValue.
+        BIND(CONCAT(STRAFTER(STR(?editorIdSchema), "http://purl.org/spar/datacite/"), ":", STR(?editorIdLiteralValue)) AS ?editor_id)
+      }
+      OPTIONAL {?raEditor foaf:givenName ?editorGivenName.}
+      BIND(
+        COALESCE(
+          CONCAT(STR(?editorFamilyName), ", ", STR(?editorGivenName)),
+          CONCAT(STR(?editorFamilyName), ","),
+          ?editor_name) 
+        AS ?editorName)
+    }
+  } GROUP BY ?res ?id_ ?authorName ?editorName ?venueName ?publisherName}
+  BIND(CONCAT(?ids, " ", "meta:br/", STRAFTER(STR(?res), "/br/")) AS ?id)
+  ?res a ?type_.
+  OPTIONAL {?res dcterm:title ?title}
+  OPTIONAL {?res prism:publicationDate ?date.}
+  OPTIONAL {
+    ?res frbr:embodiment ?re.
+    ?re prism:startingPage ?startingPage;
+      prism:endingPage ?endingPage.
+    BIND(IF(STR(?startingPage) = STR(?endingPage), STR(?startingPage), CONCAT(STR(?startingPage), '-', STR(?endingPage))) AS ?page)}
+  OPTIONAL {
+  	?res frbr:partOf ?resIssue.
+    ?resIssue a fabio:JournalIssue;
+              fabio:hasSequenceIdentifier ?issue.
+  }
+  OPTIONAL {
+  	?res frbr:partOf+ ?resVolume.
+    ?resVolume a fabio:JournalVolume;
+              fabio:hasSequenceIdentifier ?volume.
+  }
+  BIND(IF(STR(?author_ids) != "", CONCAT(" [", ?author_ids, "]"), "") AS ?authorIdentifiers)
+  BIND(IF(STR(?editor_ids) != "", CONCAT(" [", ?editor_ids, "]"), "") AS ?editorIdentifiers)
+  BIND(IF(STR(?venue_ids) != "", CONCAT(" [", ?venue_ids, "]"), "") AS ?venueIdentifiers)
+  BIND(IF(STR(?publisher_ids) != "", CONCAT(" [", ?publisher_ids, "]"), "") AS ?publisherIdentifiers)
+  BIND(CONCAT(STR(?authorName), ?authorIdentifiers) AS ?author_)
+  BIND(CONCAT(STR(?editorName), ?editorIdentifiers) AS ?editor_)
+  BIND(CONCAT(STR(?venueName), ?venueIdentifiers) AS ?venue)
+  BIND(CONCAT(STR(?publisherName), ?publisherIdentifiers) AS ?publisher)
+}
+GROUP BY ?id ?title ?date ?page ?issue ?volume ?venue ?publisher
+
+
+#url /search/{fields}/{text}
+#type operation
+#preprocess generate_text_search(fields, text)
+#postprocess create_metadata_output()
+#method get
+#description This operation retrieves the bibliographic metadata for each bibliographic entity whose specified fields contain the given text. 
+It is possible to specify one or more fields as input of this operation. In this case, the fields should be separated with a double underscore ("\_\_") – e.g. "author\_\editor\_\_...".
+The fields returned by this operation are:
+
+* *id*: the IDs of the bibliographic entity;
+* *title*: the title of the bibliographic entity;
+* *author*: the semicolon-separated list of authors of the bibliographic entity;
+* *date*: the date of publication of the bibliographic entity;
+* *venue*: the title of the venue where the bibliographic entity has been published, followed by the list of identifiers referring that venue;
+* *volume*: the number of the volume in which the bibliographic entity has been published;
+* *issue*: the number of the issue in which the bibliographic entity has been published;
+* *page*: the starting and ending pages of the bibliographic entity in the context of the venue where it has been published;
+* *type*: the type of the bibliographic entity
+
+#call search/author/Peroni
+#field_type str(id) str(title) str(author) datetime(date) str(issue) str(volume) str(venue) str(page) str(type) str(publisher) str(editor)
+#output_json [
+    {
+        "id": "doi:10.1108/jd-12-2013-0166",
+        "title": "Setting Our Bibliographic References Free: Towards Open Citation Data",
+        "author": "Peroni, Silvio [orcid:0000-0003-0530-4305]; Dutton, Alexander; Gray, Tanya; Shotton, David",
+        "volume": "71",
+        "page": "253-277",
+        "venue": "Journal Of Documentation [issn:0022-0418]",
+        "date": "01-05-2015",
+        "issue": "2",
+        "type": "journal article"
+    },
+    {
+        "id": "doi:10.6084/m9.figshare.3443876",
+        "title": "The OpenCitations Data Model",
+        "author": "Peroni, Silvio [orcid:0000-0003-0530-4305]; Shotton, David [orcid:0000-0001-5506-523X]",
+        "volume": "",
+        "page": "",
+        "venue": "Figshare",
+        "year": "2018",
+        "issue": "",
+        "type": "other"
+    }
+]
+#sparql 
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX pro: <http://purl.org/spar/pro/>
+PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
+PREFIX datacite: <http://purl.org/spar/datacite/>
+PREFIX dcterm: <http://purl.org/dc/terms/>
+PREFIX frbr: <http://purl.org/vocab/frbr/core#>
+PREFIX fabio: <http://purl.org/spar/fabio/>
+PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
+PREFIX bds: <http://www.bigdata.com/rdf/search#>
+SELECT
+?id ?title
+(GROUP_CONCAT(DISTINCT ?author_; separator='; ') AS ?author)
+?date ?page ?issue ?volume ?venue
+(GROUP_CONCAT(DISTINCT ?type_; separator=' ;and; ') AS ?type)
+?publisher
+(GROUP_CONCAT(DISTINCT ?editor_; separator='; ') AS ?editor)
+WHERE {
+  {SELECT ?res ?id_ ?authorName ?venueName ?publisherName ?editorName
+  (GROUP_CONCAT(DISTINCT ?id; SEPARATOR=' ') AS ?ids)
+  (GROUP_CONCAT(DISTINCT ?author_id; SEPARATOR=' ') AS ?author_ids)
+  (GROUP_CONCAT(DISTINCT ?editor_id; SEPARATOR=' ') AS ?editor_ids)
+  (GROUP_CONCAT(DISTINCT ?venue_ids_; SEPARATOR=' ') AS ?venue_ids)
+  (GROUP_CONCAT(DISTINCT ?publisher_ids_; SEPARATOR=' ') AS ?publisher_ids)
+  WHERE {
+    ?res a fabio:Expression;
+         datacite:hasIdentifier ?identifier.
+    ?identifier datacite:usesIdentifierScheme ?scheme;
+        literal:hasLiteralValue ?literalValue.
+    BIND(CONCAT(STRAFTER(STR(?scheme), "http://purl.org/spar/datacite/"), ":", STR(?literalValue)) AS ?id)
+    [[fields]]
     OPTIONAL {
       ?res frbr:partOf+ ?journal.
       ?journal a fabio:Journal;
