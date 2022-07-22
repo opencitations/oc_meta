@@ -102,7 +102,7 @@ def _get_duplicated_ids(data:List[dict], ids_found:set, vi_with_editor_found:dic
         if editor_refers_to_vi:
             if row['volume']:
                 for venue_id in venue_ids_list:
-                    if row['volume'] in vi_with_editor_found[venue_id]['volumes'] and row['volume'] not in cur_file_vi_with_editor[venue_id]['volumes']:
+                    if row['volume'] in vi_with_editor_found[venue_id]['volumes']:
                         if row['issue']:
                             if row['issue'] in vi_with_editor_found[venue_id]['volumes'][row['volume']]:
                                 duplicated_editor = True
@@ -110,7 +110,7 @@ def _get_duplicated_ids(data:List[dict], ids_found:set, vi_with_editor_found:dic
                             duplicated_editor = True
             elif row['issue'] and not row['volume']:
                 for venue_id in venue_ids_list: 
-                    if row['issue'] in vi_with_editor_found[venue_id]['issues'] and row['issue'] not in cur_file_vi_with_editor[venue_id]['issues']:
+                    if row['issue'] in vi_with_editor_found[venue_id]['issues']:
                         duplicated_editor = True
         if any(id in ids_found and (id not in cur_file_ids or id in items_by_id) for id in ids_list) or \
                 duplicated_editor:
@@ -127,13 +127,20 @@ def _get_duplicated_ids(data:List[dict], ids_found:set, vi_with_editor_found:dic
         for id in venue_ids_list:
             if row['volume']:
                 cur_file_vi_with_editor[id]['volumes'].setdefault(row['volume'], set())
-                vi_with_editor_found[id]['volumes'].setdefault(row['volume'], set())
                 if row['issue']:
                     cur_file_vi_with_editor[id]['volumes'][row['volume']].add(row['issue'])
-                    vi_with_editor_found[id]['volumes'][row['volume']].add(row['issue'])
             elif row['issue'] and not row['volume']:
                 cur_file_vi_with_editor[id]['issues'].add(row['issue'])
-                vi_with_editor_found[id]['issues'].add(row['issue'])
+    for venue_id in cur_file_vi_with_editor:
+        if venue_id in vi_with_editor_found:
+            for vvi_v in cur_file_vi_with_editor[venue_id]['volumes']:
+                if vvi_v in vi_with_editor_found[venue_id]['volumes']:
+                    vi_with_editor_found[venue_id]['volumes'][vvi_v].update(cur_file_vi_with_editor[venue_id]['volumes'][vvi_v])
+                else:
+                    vi_with_editor_found[venue_id]['volumes'][vvi_v] = cur_file_vi_with_editor[venue_id]['volumes'][vvi_v]
+            vi_with_editor_found[venue_id]['issues'].update(cur_file_vi_with_editor[venue_id]['issues'])
+        else:
+            vi_with_editor_found[venue_id] = cur_file_vi_with_editor[venue_id]
 
 def _enrich_duplicated_ids_found(data:List[dict], items_by_id:Dict[str, dict]) -> None:
     for row in data:
@@ -175,7 +182,6 @@ def _get_relevant_venues(data:List[dict], ids_found:dict, items_by_id:Dict[str, 
             for id in ids_list:
                 items_by_id.setdefault(id, {'others': set(), 'name': name, 'type': br_type, 'volume': dict(), 'issue': set()})
                 items_by_id[id]['others'].update({other for other in ids_list if other != id})
-            for id in ids_list:
                 ids_found.setdefault(id, {'volumes': dict(), 'issues': set()})
                 cur_file_ids.setdefault(id, {'volumes': dict(), 'issues': set()})
             volume = row['volume']
