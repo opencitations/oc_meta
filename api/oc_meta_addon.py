@@ -146,7 +146,6 @@ class TextSearch():
         text_search = header + body + footer
         return text_search
 
-
 def generate_text_search(fields:str, text:str) -> str:
     text_searches = []
     text_search = TextSearch(text)
