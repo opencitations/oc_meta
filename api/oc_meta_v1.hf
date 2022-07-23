@@ -1,6 +1,6 @@
 #url /api/v1
 #type api
-#base http://127.0.0.1:8080
+#base https://oc-meta-test.arcangelomassari.it
 #title REST API for OC Meta
 #description This is the REST API for OC Meta, the OpenCitations Index containing bibliographic metadata associated with the documents involved in the citations stored in the OpenCitations infrastructure. All the present operations return either a JSON document (default) or a CSV document according to the mimetype specified in the `Accept` header of the request. If you would like to suggest an additional operation to be included in this API, please use the [issue tracker](https://github.com/opencitations/api/issues) of the OpenCitations APIs available on GitHub.
 #version Version 1.0.0 (2020-06-10)
@@ -29,30 +29,21 @@ It is possible to specify one or more IDs as input of this operation. In this ca
 * *issue*: the number of the issue in which the bibliographic entity has been published
 * *page*: the starting and ending pages of the bibliographic entity in the context of the venue where it has been published
 * *type*: the type of the bibliographic entity
-#call /metadata/doi/10.1108/jd-12-2013-0166__10.6084/m9.figshare.3443876
+#call /metadata/doi/10.1007/978-1-4020-9632-7
 #field_type str(id) str(title) str(author) datetime(date) str(issue) str(volume) str(venue) str(page) str(type) str(publisher) str(editor)
 #output_json [
     {
-        "id": "doi:10.1108/jd-12-2013-0166",
-        "title": "Setting Our Bibliographic References Free: Towards Open Citation Data",
-        "author": "Peroni, Silvio; Dutton, Alexander; Gray, Tanya; Shotton, David",
-        "volume": "71",
-        "page": "253-277",
-        "venue": "Journal Of Documentation [issn:0022-0418]",
-        "date": "01-05-2015",
-        "issue": "2",
-        "type": "journal article"
-    },
-    {
-        "id": "doi:10.6084/m9.figshare.3443876",
-        "title": "The OpenCitations Data Model",
-        "author": "Peroni, Silvio [orcid:0000-0003-0530-4305]; Shotton, David [orcid:0000-0001-5506-523X]",
-        "volume": "",
+        "id": "doi:10.1007/978-1-4020-9632-7 meta:br/062050946 isbn:9781402096327 isbn:9789048127108",
+        "title": "Adaptive Environmental Management",
+        "author": "",
+        "date": "2009",
         "page": "",
-        "venue": "Figshare",
-        "year": "2018",
         "issue": "",
-        "type": "other"
+        "volume": "",
+        "venue": "",
+        "type": "book",
+        "publisher": "Springer Science And Business Media Llc [crossref:297]",
+        "editor": "Allan, Catherine [orcid:0000-0003-2098-4759]; Stankey, George H."
     }
 ]
 #sparql 
@@ -64,36 +55,38 @@ PREFIX dcterm: <http://purl.org/dc/terms/>
 PREFIX frbr: <http://purl.org/vocab/frbr/core#>
 PREFIX fabio: <http://purl.org/spar/fabio/>
 PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
-SELECT
+SELECT DISTINCT
 ?id ?title
 (GROUP_CONCAT(DISTINCT ?author_; separator='; ') AS ?author)
 ?date ?page ?issue ?volume ?venue ?type
 ?publisher
 (GROUP_CONCAT(DISTINCT ?editor_; separator='; ') AS ?editor)
+WITH {
+  SELECT DISTINCT ?res WHERE {
+    ?res a fabio:Expression;
+          datacite:hasIdentifier ?identifier.
+    ?identifier datacite:usesIdentifierScheme datacite:[[scheme]];
+        literal:hasLiteralValue ?literalValue.
+    VALUES ?literalValue {[[literal_values]]}
+  } LIMIT 1000
+} AS %results
 WHERE {
-  {SELECT ?res ?id_ ?title ?authorName ?venueName ?publisherName ?editorName ?date ?page ?issue ?volume
-  (GROUP_CONCAT(DISTINCT ?other_id; SEPARATOR=' ') AS ?other_ids)
+  {SELECT DISTINCT ?res ?title ?authorName ?venueName ?publisherName ?editorName ?date ?page ?issue ?volume
+  (GROUP_CONCAT(DISTINCT ?id; SEPARATOR=' ') AS ?ids)
   (GROUP_CONCAT(DISTINCT ?author_id; SEPARATOR=' ') AS ?author_ids)
   (GROUP_CONCAT(DISTINCT ?editor_id; SEPARATOR=' ') AS ?editor_ids)
   (GROUP_CONCAT(DISTINCT ?venue_ids_; SEPARATOR=' ') AS ?venue_ids)
   (GROUP_CONCAT(DISTINCT ?type_; separator=' ;and; ') AS ?type)
   (GROUP_CONCAT(DISTINCT ?publisher_ids_; SEPARATOR=' ') AS ?publisher_ids)
   WHERE {
-    ?res a fabio:Expression;
-          datacite:hasIdentifier ?identifier.
-    ?identifier datacite:usesIdentifierScheme datacite:[[scheme]];
-        literal:hasLiteralValue ?literalValue.
-    VALUES ?literalValue {[[literal_values]]}
+    INCLUDE %results
+    ?res a ?type_.
     OPTIONAL {
-      ?res datacite:hasIdentifier ?anotherIdentifier.
-      ?anotherIdentifier datacite:usesIdentifierScheme ?anotherIdentifierScheme;
-                         literal:hasLiteralValue ?anotherIdentifierLiteralValue.
-      FILTER (?anotherIdentifier != ?identifier)
-      BIND(CONCAT(STRAFTER(STR(?anotherIdentifierScheme), "http://purl.org/spar/datacite/"), ":", STR(?anotherIdentifierLiteralValue)) AS ?other_id)
+      ?res datacite:hasIdentifier ?identifier.
+      ?identifier datacite:usesIdentifierScheme ?scheme;
+          literal:hasLiteralValue ?literalValue.
+      BIND(CONCAT(STRAFTER(STR(?scheme), "http://purl.org/spar/datacite/"), ":", STR(?literalValue)) AS ?id)
     }
-    BIND(CONCAT(
-      STRAFTER(STR(datacite:[[scheme]]), "http://purl.org/spar/datacite/"), ":", STR(?literalValue), " ",
-      "meta:br/", STRAFTER(STR(?res), "/br/")) AS ?id_)
     OPTIONAL {
       ?res frbr:partOf+ ?journal.
       ?journal a fabio:Journal;
@@ -155,7 +148,6 @@ WHERE {
           ?editor_name)
         AS ?editorName)
     }
-    ?res a ?type_.
     OPTIONAL {?res dcterm:title ?title.}
     OPTIONAL {?res prism:publicationDate ?date.}
     OPTIONAL {
@@ -173,8 +165,8 @@ WHERE {
       ?resVolume a fabio:JournalVolume;
                 fabio:hasSequenceIdentifier ?volume.
     }
-  } GROUP BY ?res ?id_ ?title ?authorName ?editorName ?venueName ?publisherName ?date ?page ?issue ?volume}
-  BIND(CONCAT(?id_, IF(STR(?other_ids) != "", " ", ""), ?other_ids) AS ?id)
+  } GROUP BY ?res ?title ?authorName ?editorName ?venueName ?publisherName ?date ?page ?issue ?volume}
+  BIND(CONCAT(?ids, IF(STR(?ids) != "", " ", ""), "meta:br/", STRAFTER(STR(?res), "/br/")) AS ?id)
   BIND(IF(STR(?author_ids) != "", CONCAT(" [", ?author_ids, "]"), "") AS ?authorIdentifiers)
   BIND(IF(STR(?editor_ids) != "", CONCAT(" [", ?editor_ids, "]"), "") AS ?editorIdentifiers)
   BIND(IF(STR(?venue_ids) != "", CONCAT(" [", ?venue_ids, "]"), "") AS ?venueIdentifiers)
@@ -204,30 +196,34 @@ The fields returned by this operation are:
 * *issue*: the number of the issue in which the bibliographic entity has been published
 * *page*: the starting and ending pages of the bibliographic entity in the context of the venue where it has been published
 * *type*: the type of the bibliographic entity
-#call /author/0000-0003-0530-4305
+#call /author/0000-0003-1572-6747
 #field_type str(id) str(title) str(author) datetime(date) str(issue) str(volume) str(venue) str(page) str(type) str(publisher) str(editor)
 #output_json [
     {
-        "id": "doi:10.1108/jd-12-2013-0166",
-        "title": "Setting Our Bibliographic References Free: Towards Open Citation Data",
-        "author": "Peroni, Silvio [orcid:0000-0003-0530-4305]; Dutton, Alexander; Gray, Tanya; Shotton, David",
-        "volume": "71",
-        "page": "253-277",
-        "venue": "Journal Of Documentation [issn:0022-0418]",
-        "date": "01-05-2015",
-        "issue": "2",
-        "type": "journal article"
+        "id": "doi:10.1016/b978-0-12-802508-6.00019-3 meta:br/06140145109",
+        "title": "Chaotic Dynamical States In The Izhikevich Neuron Model",
+        "author": "Nishimura, Haruhiko [orcid:0000-0003-1572-6747]; Nobukawa, Sou; Yamanishi, Teruya; Liu, Jian-Qin",
+        "date": "2015",
+        "page": "355-375",
+        "issue": "",
+        "volume": "",
+        "venue": "",
+        "type": "book chapter",
+        "publisher": "Elsevier Bv [crossref:78]",
+        "editor": ""
     },
     {
-        "id": "doi:10.6084/m9.figshare.3443876",
-        "title": "The OpenCitations Data Model",
-        "author": "Peroni, Silvio [orcid:0000-0003-0530-4305]; Shotton, David [orcid:0000-0001-5506-523X]",
-        "volume": "",
+        "id": "doi:10.1109/codit.2018.8394794 meta:br/0660204158",
+        "title": "Induced Synchronization Of Chaos-Chaos Intermittency In Coupled Cubic Maps By External Feedback Signals",
+        "author": "Nishimura, Haruhiko [orcid:0000-0003-1572-6747]; Nobukawa, Sou; Yamanishi, Teruya; Doho, Hirotaka",
+        "date": "2018-04",
         "page": "",
-        "venue": "Figshare",
-        "year": "2018",
         "issue": "",
-        "type": "other"
+        "volume": "",
+        "venue": "",
+        "type": "proceedings article",
+        "publisher": "Institute Of Electrical And Electronics Engineers (Ieee) [crossref:263]",
+        "editor": ""
     }
 ]
 #sparql 
@@ -239,13 +235,23 @@ PREFIX dcterm: <http://purl.org/dc/terms/>
 PREFIX frbr: <http://purl.org/vocab/frbr/core#>
 PREFIX fabio: <http://purl.org/spar/fabio/>
 PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
-SELECT
+SELECT DISTINCT
 ?id ?title
 (GROUP_CONCAT(DISTINCT ?author_; separator='; ') AS ?author)
 ?date ?page ?issue ?volume ?venue ?type ?publisher
 (GROUP_CONCAT(DISTINCT ?editor_; separator='; ') AS ?editor)
+WITH {
+  SELECT DISTINCT ?res WHERE {
+    ?res pro:isDocumentContextFor ?knownAuthor.
+    ?knownAuthor pro:withRole pro:author;
+                 pro:isHeldBy ?knownPerson.
+    ?knownPerson datacite:hasIdentifier ?knownPersonIdentifier.
+    ?knownPersonIdentifier datacite:usesIdentifierScheme datacite:orcid;
+                           literal:hasLiteralValue "[[orcid]]".
+  } LIMIT 1000
+} AS %results
 WHERE {
-  {SELECT ?res ?id_ ?title ?authorName ?venueName ?publisherName ?editorName ?date ?page ?issue ?volume
+  {SELECT DISTINCT ?res ?title ?authorName ?venueName ?publisherName ?editorName ?date ?page ?issue ?volume
   (GROUP_CONCAT(DISTINCT ?anotherIdentifier; SEPARATOR=' ') AS ?other_ids)
   (GROUP_CONCAT(DISTINCT ?id; SEPARATOR=' ') AS ?ids)
   (GROUP_CONCAT(DISTINCT ?type_; separator=' ;and; ') AS ?type)
@@ -254,18 +260,14 @@ WHERE {
   (GROUP_CONCAT(DISTINCT ?venue_ids_; SEPARATOR=' ') AS ?venue_ids)
   (GROUP_CONCAT(DISTINCT ?publisher_ids_; SEPARATOR=' ') AS ?publisher_ids)
   WHERE {
-    ?res pro:isDocumentContextFor ?knownAuthor.
-    ?knownAuthor pro:withRole pro:author;
-                 pro:isHeldBy ?knownPerson.
-    ?knownPerson datacite:hasIdentifier ?knownPersonIdentifier.
-    ?knownPersonIdentifier datacite:usesIdentifierScheme datacite:orcid;
-                           literal:hasLiteralValue "[[orcid]]".
-    ?res a fabio:Expression;
-         datacite:hasIdentifier ?identifier.
-    ?identifier datacite:usesIdentifierScheme ?scheme;
-        literal:hasLiteralValue ?literalValue.
-    BIND(CONCAT(STRAFTER(STR(?scheme), "http://purl.org/spar/datacite/"), ":", STR(?literalValue)) AS ?id)
+    INCLUDE %results
     ?res a ?type_.
+    OPTIONAL {
+      ?res datacite:hasIdentifier ?identifier.
+      ?identifier datacite:usesIdentifierScheme ?scheme;
+          literal:hasLiteralValue ?literalValue.
+      BIND(CONCAT(STRAFTER(STR(?scheme), "http://purl.org/spar/datacite/"), ":", STR(?literalValue)) AS ?id)
+    }
     OPTIONAL {?res dcterm:title ?title}
     OPTIONAL {?res prism:publicationDate ?date.}
     OPTIONAL {
@@ -344,8 +346,8 @@ WHERE {
       ?resVolume a fabio:JournalVolume;
                 fabio:hasSequenceIdentifier ?volume.
     }
-  } GROUP BY ?res ?id_ ?title ?authorName ?editorName ?venueName ?publisherName ?date ?page ?issue ?volume}
-  BIND(CONCAT(?ids, " ", "meta:br/", STRAFTER(STR(?res), "/br/")) AS ?id)
+  } GROUP BY ?res ?title ?authorName ?editorName ?venueName ?publisherName ?date ?page ?issue ?volume}
+  BIND(CONCAT(?ids, IF(STR(?ids) != "", " ", ""), "meta:br/", STRAFTER(STR(?res), "/br/")) AS ?id)
   BIND(IF(STR(?author_ids) != "", CONCAT(" [", ?author_ids, "]"), "") AS ?authorIdentifiers)
   BIND(IF(STR(?editor_ids) != "", CONCAT(" [", ?editor_ids, "]"), "") AS ?editorIdentifiers)
   BIND(IF(STR(?venue_ids) != "", CONCAT(" [", ?venue_ids, "]"), "") AS ?venueIdentifiers)
@@ -400,13 +402,23 @@ PREFIX dcterm: <http://purl.org/dc/terms/>
 PREFIX frbr: <http://purl.org/vocab/frbr/core#>
 PREFIX fabio: <http://purl.org/spar/fabio/>
 PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
-SELECT
+SELECT DISTINCT
 ?id ?title
 (GROUP_CONCAT(DISTINCT ?author_; separator='; ') AS ?author)
 ?date ?page ?issue ?volume ?venue ?type ?publisher
 (GROUP_CONCAT(DISTINCT ?editor_; separator='; ') AS ?editor)
+WITH {
+  SELECT DISTINCT ?res WHERE {
+    ?res pro:isDocumentContextFor ?knownEditor.
+    ?knownEditor pro:withRole pro:editor;
+                 pro:isHeldBy ?knownPerson.
+    ?knownPerson datacite:hasIdentifier ?knownPersonIdentifier.
+    ?knownPersonIdentifier datacite:usesIdentifierScheme datacite:orcid;
+                           literal:hasLiteralValue "[[orcid]]".
+  } LIMIT 1000
+} AS %results
 WHERE {
-  {SELECT ?res ?id_ ?title ?authorName ?venueName ?publisherName ?editorName ?date ?page ?issue ?volume
+  {SELECT DISTINCT ?res ?title ?authorName ?venueName ?publisherName ?editorName ?date ?page ?issue ?volume
   (GROUP_CONCAT(DISTINCT ?anotherIdentifier; SEPARATOR=' ') AS ?other_ids)
   (GROUP_CONCAT(DISTINCT ?id; SEPARATOR=' ') AS ?ids)
   (GROUP_CONCAT(DISTINCT ?type_; separator=' ;and; ') AS ?type)
@@ -415,18 +427,14 @@ WHERE {
   (GROUP_CONCAT(DISTINCT ?venue_ids_; SEPARATOR=' ') AS ?venue_ids)
   (GROUP_CONCAT(DISTINCT ?publisher_ids_; SEPARATOR=' ') AS ?publisher_ids)
   WHERE {
-    ?res pro:isDocumentContextFor ?knownEditor.
-    ?knownEditor pro:withRole pro:editor;
-                 pro:isHeldBy ?knownPerson.
-    ?knownPerson datacite:hasIdentifier ?knownPersonIdentifier.
-    ?knownPersonIdentifier datacite:usesIdentifierScheme datacite:orcid;
-                           literal:hasLiteralValue "[[orcid]]".
-    ?res a fabio:Expression;
-         datacite:hasIdentifier ?identifier.
-    ?identifier datacite:usesIdentifierScheme ?scheme;
-        literal:hasLiteralValue ?literalValue.
-    BIND(CONCAT(STRAFTER(STR(?scheme), "http://purl.org/spar/datacite/"), ":", STR(?literalValue)) AS ?id)
+    INCLUDE %results
     ?res a ?type_.
+    OPTIONAL {
+      ?res datacite:hasIdentifier ?identifier.
+      ?identifier datacite:usesIdentifierScheme ?scheme;
+          literal:hasLiteralValue ?literalValue.
+      BIND(CONCAT(STRAFTER(STR(?scheme), "http://purl.org/spar/datacite/"), ":", STR(?literalValue)) AS ?id)
+    }
     OPTIONAL {?res dcterm:title ?title}
     OPTIONAL {?res prism:publicationDate ?date.}
     OPTIONAL {
@@ -505,8 +513,8 @@ WHERE {
       ?resVolume a fabio:JournalVolume;
                 fabio:hasSequenceIdentifier ?volume.
     }
-  } GROUP BY ?res ?id_ ?title ?authorName ?editorName ?venueName ?publisherName ?date ?page ?issue ?volume}
-  BIND(CONCAT(?ids, " ", "meta:br/", STRAFTER(STR(?res), "/br/")) AS ?id)
+  } GROUP BY ?res ?title ?authorName ?editorName ?venueName ?publisherName ?date ?page ?issue ?volume}
+  BIND(CONCAT(?ids, IF(STR(?ids) != "", " ", ""), "meta:br/", STRAFTER(STR(?res), "/br/")) AS ?id)
   BIND(IF(STR(?author_ids) != "", CONCAT(" [", ?author_ids, "]"), "") AS ?authorIdentifiers)
   BIND(IF(STR(?editor_ids) != "", CONCAT(" [", ?editor_ids, "]"), "") AS ?editorIdentifiers)
   BIND(IF(STR(?venue_ids) != "", CONCAT(" [", ?venue_ids, "]"), "") AS ?venueIdentifiers)
@@ -526,7 +534,10 @@ GROUP BY ?id ?title ?date ?page ?issue ?volume ?venue ?publisher ?type
 #method get
 #description This operation retrieves the bibliographic metadata for each bibliographic entity whose specified fields contain the given text
 
-It is possible to specify one or more fields as input of this operation. In this case, the fields should be separated with a double underscore ("\_\_") – e.g. "author\_\editor". The fields returned by this operation are:
+The textual search is supported on the following fields: title, author, editor, issue, volume, venue, page, and publisher.
+It is possible to specify one or more fields as input of this operation. In this case, the fields should be separated with a double underscore ("\_\_") – e.g. "author\_\editor".
+
+The fields returned by this operation are:
 
 * *id*: the IDs of the bibliographic entity
 * *title*: the title of the bibliographic entity
@@ -538,30 +549,47 @@ It is possible to specify one or more fields as input of this operation. In this
 * *page*: the starting and ending pages of the bibliographic entity in the context of the venue where it has been published
 * *type*: the type of the bibliographic entity
 
-#call /search/author/Peroni
+As for the author and editor fields, the text search must respect the syntax &lt;FAMILY_NAME&gt;&lt;COMMA&gt;&lt;GIVEN_NAME&gt; (e.g., Massari,Arcangelo) or simply &lt;NAME&gt; (University Of New South Wales) in case the author/editor is an organization and not a physical person.
+Here is the list of all possible combinations to perform text search on authors and editors:
+
+<dl>
+  <dt><code>/search/author/massari,arcangelo</code></dt>
+  <dd>All the works of the authors whose given names are Arcangelo and family names are Massari</dd>
+  <dt><code>/search/author/massari,</code></dt>
+  <dd>All the works of the authors whose family names are Massari</dd>
+  <dt><code>/search/author/,arcangelo</code></dt>
+  <dd>All the works of the authors whose given names are Arcangelo</dd>
+  <dt><code>/search/author/research+centre+for+open+scholarly+metadata</code></dt>
+  <dd>All the works authored by the Research Centre for Open Scholarly Metadata</dd>
+</dl>
+#call /search/title/micro-chaos
 #field_type str(id) str(title) str(author) datetime(date) str(issue) str(volume) str(venue) str(page) str(type) str(publisher) str(editor)
 #output_json [
     {
-        "id": "doi:10.1108/jd-12-2013-0166",
-        "title": "Setting Our Bibliographic References Free: Towards Open Citation Data",
-        "author": "Peroni, Silvio [orcid:0000-0003-0530-4305]; Dutton, Alexander; Gray, Tanya; Shotton, David",
-        "volume": "71",
-        "page": "253-277",
-        "venue": "Journal Of Documentation [issn:0022-0418]",
-        "date": "01-05-2015",
-        "issue": "2",
-        "type": "journal article"
+        "id": "doi:10.1101/833772 meta:br/06150125995",
+        "title": "Using Chaos For Facile High-throughput Fabrication Of Ordered Multilayer Micro- And Nanostructures",
+        "author": "De Santiago, Grissel Trujillo-de [orcid:0000-0001-9230-4607]; Chávez-Madero, Carolina; De León-Derby, María Díaz; Samandari, Mohamadmahdi; Ceballos-González, Carlos Fernando; Bolívar-Monsalve, Edna Johana; Mendoza-Buenrostro, Christian Carlos; Holmberg, Sunshine; Garza-Flores, Norma Alicia; Almajhadi, Mohammad Ali; González-Gamboa, Ivonne; Yee-de León, Juan Felipe; Martínez-Chapa, Sergio Omar; Rodríguez, Ciro A.; Wickramasinghe, Hemantha Kumar; Madou, Marc; Khademhosseini, Ali; Zhang, Yu Shrike; Álvarez, Mario Moisés",
+        "date": "2019-11-08",
+        "page": "",
+        "issue": "",
+        "volume": "",
+        "venue": "",
+        "type": "web content",
+        "publisher": "Cold Spring Harbor Laboratory [crossref:246]",
+        "editor": ""
     },
     {
-        "id": "doi:10.6084/m9.figshare.3443876",
-        "title": "The OpenCitations Data Model",
-        "author": "Peroni, Silvio [orcid:0000-0003-0530-4305]; Shotton, David [orcid:0000-0001-5506-523X]",
-        "volume": "",
-        "page": "",
-        "venue": "Figshare",
-        "year": "2018",
-        "issue": "",
-        "type": "other"
+        "id": "doi:10.1007/bf02440161 meta:br/065072334",
+        "title": "Micro-chaos In Digital Control",
+        "author": "Haller, G.; Stépán, G.",
+        "date": "1996-09",
+        "page": "415-448",
+        "issue": "5",
+        "volume": "6",
+        "venue": "Journal Of Nonlinear Science [issn:1432-1467 issn:0938-8974]",
+        "type": "journal article",
+        "publisher": "Springer Science And Business Media Llc [crossref:297]",
+        "editor": ""
     }
 ]
 #sparql 
@@ -573,14 +601,15 @@ PREFIX dcterm: <http://purl.org/dc/terms/>
 PREFIX frbr: <http://purl.org/vocab/frbr/core#>
 PREFIX fabio: <http://purl.org/spar/fabio/>
 PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
-SELECT
+SELECT DISTINCT
 ?id ?title
 (GROUP_CONCAT(DISTINCT ?author_; separator='; ') AS ?author)
 ?date ?page ?issue ?volume ?venue ?type
 ?publisher
 (GROUP_CONCAT(DISTINCT ?editor_; separator='; ') AS ?editor)
+[[fields]]
 WHERE {
-  {SELECT ?res ?id_ ?title ?authorName ?venueName ?publisherName ?editorName ?date ?page ?issue ?volume
+  {SELECT DISTINCT ?res ?title ?authorName ?venueName ?publisherName ?editorName ?date ?page ?issue ?volume
   (GROUP_CONCAT(DISTINCT ?id; SEPARATOR=' ') AS ?ids)
   (GROUP_CONCAT(DISTINCT ?author_id; SEPARATOR=' ') AS ?author_ids)
   (GROUP_CONCAT(DISTINCT ?editor_id; SEPARATOR=' ') AS ?editor_ids)
@@ -588,12 +617,14 @@ WHERE {
   (GROUP_CONCAT(DISTINCT ?type_; separator=' ;and; ') AS ?type)
   (GROUP_CONCAT(DISTINCT ?publisher_ids_; SEPARATOR=' ') AS ?publisher_ids)
   WHERE {
-    ?res a fabio:Expression;
-         datacite:hasIdentifier ?identifier.
-    ?identifier datacite:usesIdentifierScheme ?scheme;
-        literal:hasLiteralValue ?literalValue.
-    BIND(CONCAT(STRAFTER(STR(?scheme), "http://purl.org/spar/datacite/"), ":", STR(?literalValue)) AS ?id)
-    [[fields]]
+    INCLUDE %results
+    ?res a ?type_.
+    OPTIONAL {
+      ?res datacite:hasIdentifier ?identifier.
+      ?identifier datacite:usesIdentifierScheme ?scheme;
+          literal:hasLiteralValue ?literalValue.
+      BIND(CONCAT(STRAFTER(STR(?scheme), "http://purl.org/spar/datacite/"), ":", STR(?literalValue)) AS ?id)
+    }
     OPTIONAL {
       ?res frbr:partOf+ ?journal.
       ?journal a fabio:Journal;
@@ -655,7 +686,6 @@ WHERE {
           ?editor_name)
         AS ?editorName)
     }
-    ?res a ?type_.
     OPTIONAL {?res dcterm:title ?title.}
     OPTIONAL {?res prism:publicationDate ?date.}
     OPTIONAL {
@@ -673,8 +703,8 @@ WHERE {
       ?resVolume a fabio:JournalVolume;
                 fabio:hasSequenceIdentifier ?volume.
     }
-  } GROUP BY ?res ?id_ ?title ?authorName ?editorName ?venueName ?publisherName ?date ?page ?issue ?volume}
-  BIND(CONCAT(?ids, " ", "meta:br/", STRAFTER(STR(?res), "/br/")) AS ?id)
+  } GROUP BY ?res ?title ?authorName ?editorName ?venueName ?publisherName ?date ?page ?issue ?volume}
+  BIND(CONCAT(?ids, IF(STR(?ids) != "", " ", ""), "meta:br/", STRAFTER(STR(?res), "/br/")) AS ?id)
   BIND(IF(STR(?author_ids) != "", CONCAT(" [", ?author_ids, "]"), "") AS ?authorIdentifiers)
   BIND(IF(STR(?editor_ids) != "", CONCAT(" [", ?editor_ids, "]"), "") AS ?editorIdentifiers)
   BIND(IF(STR(?venue_ids) != "", CONCAT(" [", ?venue_ids, "]"), "") AS ?venueIdentifiers)

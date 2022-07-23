@@ -321,6 +321,19 @@ class test_API(unittest.TestCase):
         format_expected = 'application/json'
         result_expected = [
             {
+                "id": "meta:br/0605",
+                "title": "",
+                "author": "",
+                "date": "",
+                "page": "",
+                "issue": "",
+                "volume": "39",
+                "venue": "Journal Of Physics D: Applied Physics [issn:0022-3727 issn:1361-6463]",
+                "type": "journal issue",
+                "publisher": "",
+                "editor": ""
+            },
+            {
                 "id": "doi:10.1088/0022-3727/39/14/017 meta:br/0602",
                 "title": "Diffusion Correction To The Raether–Meek Criterion For The Avalanche-To-Streamer Transition",
                 "author": "Montijn, Carolynne; Ebert, Ute [orcid:0000-0003-3891-6869]",
@@ -348,6 +361,32 @@ class test_API(unittest.TestCase):
         status_expected = 200
         format_expected = 'application/json'
         result_expected = [
+            {
+                "id": "meta:br/0605",
+                "title": "",
+                "author": "",
+                "date": "",
+                "page": "",
+                "issue": "",
+                "volume": "39",
+                "venue": "Journal Of Physics D: Applied Physics [issn:0022-3727 issn:1361-6463]",
+                "type": "journal issue",
+                "publisher": "",
+                "editor": ""
+            },
+            {
+                "id": "meta:br/0604",
+                "title": "",
+                "author": "",
+                "date": "",
+                "page": "",
+                "issue": "",
+                "volume": "",
+                "venue": "Journal Of Physics D: Applied Physics [issn:0022-3727 issn:1361-6463]",
+                "type": "journal volume",
+                "publisher": "",
+                "editor": ""
+            },
             {
                 "id": "doi:10.1088/0022-3727/39/14/017 meta:br/0602",
                 "title": "Diffusion Correction To The Raether–Meek Criterion For The Avalanche-To-Streamer Transition",

@@ -53,7 +53,8 @@ def create_metadata_output(results):
         output_result = list()
         for i, data in enumerate(result):
             if i == header.index('type'):
-                output_result.append((data[0], __postprocess_type(data[1])))
+                beautiful_type = __postprocess_type(data[1])
+                output_result.append((data[0], beautiful_type))
             else:
                 output_result.append(data)
         output_results.append(output_result)
@@ -62,8 +63,11 @@ def create_metadata_output(results):
 def __postprocess_type(types_uris:str) -> str:
     types_uris_list = types_uris.split(' ;and; ')
     types_uris_list.remove('http://purl.org/spar/fabio/Expression')
-    type_uri = types_uris_list[0]
-    type_string = URI_TYPE_DICT[type_uri]
+    if types_uris_list:
+        type_uri = types_uris_list[0]
+        type_string = URI_TYPE_DICT[type_uri]
+    else:
+        type_string = ''
     return type_string
 
 class TextSearch():
@@ -72,32 +76,41 @@ class TextSearch():
     
     def get_text_search_on_title(self) -> str:
         return f'''
-            ?res dcterm:title ?tsTitle.
             {self.__gen_text_search('tsTitle', self.text, True)}
+            ?res dcterm:title ?tsTitle.
         '''
     
     def get_text_search_on_person(self, role:str) -> str:
+        family_name = None
+        given_name = None
+        name = None
+        if ',' in self.text:
+            name_parts = [part.strip() for part in self.text.split(',')]
+            if name_parts:
+                family_name = name_parts[0]
+                if len(name_parts) == 2:
+                    given_name = name_parts[1]
+        else:
+            name = self.text
         role = role.title()
-        return f'''
+        text_search = ''
+        base_query = f'''
             ?res pro:isDocumentContextFor ?ts{role}.
             ?ts{role} pro:withRole pro:{role.lower()};
                     pro:isHeldBy ?ts{role}Ra.
-            {{
-                ?ts{role}Ra foaf:familyName ?ts{role}Fn
-                {self.__gen_text_search(f'ts{role}Fn', self.text, False)}
-            }}
-            UNION
-            {{
-                ?ts{role}Ra foaf:name ?ts{role}Name
-                {self.__gen_text_search(f'ts{role}Name', self.text, False)}
-            }}
-            UNION
-            {{
-                ?ts{role}Ra foaf:givenName ?ts{role}Gn
-                {self.__gen_text_search(f'ts{role}Gn', self.text, False)}
-            }}
         '''
-    
+        if name:
+            text_search += f"{self.__gen_text_search(f'ts{role}Name', name, True)}"
+            base_query += f'?ts{role}Ra foaf:name ?ts{role}Name.'
+        else:
+            if family_name:
+                text_search += f"{self.__gen_text_search(f'ts{role}Fn', family_name, True)}"
+                base_query += f'?ts{role}Ra foaf:familyName ?ts{role}Fn.'
+            if given_name:
+                text_search += f"{self.__gen_text_search(f'ts{role}Gn', given_name, True)}"
+                base_query += f'?ts{role}Ra foaf:givenName ?ts{role}Gn.'
+        return text_search + base_query
+
     def get_text_search_on_publisher(self) -> str:
         return f'''
             ?res pro:isDocumentContextFor ?tsPublisher.
@@ -127,7 +140,7 @@ class TextSearch():
             ?res frbr:partOf+ ?ts{v_or_i}.
             ?ts{v_or_i} a fabio:Journal{v_or_i};
                     fabio:hasSequenceIdentifier ?ts{v_or_i}Number.
-            {self.__gen_text_search(f'ts{v_or_i}Number', self.text, True)}
+            {self.__gen_text_search(f'ts{v_or_i}Number', self.text, False)}
         '''
     
     def get_text_search_on_venue(self) -> str:
@@ -160,4 +173,4 @@ def generate_text_search(fields:str, text:str) -> str:
             text_searches.append(getattr(text_search, f'get_text_search_on_vi')(field))
         else:
             text_searches.append(getattr(text_search, f'get_text_search_on_{field}')())
-    return '{' + '} UNION \n {'.join(text_searches) + '}',
+    return r'WITH { SELECT DISTINCT ?res WHERE {{' + '} UNION \n {'.join(text_searches) + r'}} LIMIT 1000} AS %results',
