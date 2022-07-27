@@ -145,7 +145,7 @@ class test_API(unittest.TestCase):
 
     def test_text_search_author(self):
         operation_url = 'search'
-        request = 'author/Carolynne Montijn'
+        request = 'author/Montijn,Carolynne'
         call = "%s/%s/%s" % (api_base, operation_url, request)
         op = api_manager.get_op(call)
         status, result, format = op.exec()
