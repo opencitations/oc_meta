@@ -24,15 +24,13 @@ class TestPrepareMultiprocess(unittest.TestCase):
                         output.extend(list(DictReader(f)))
         expected_output = [
             {'id': 'doi:10.9799/ksfan.2012.25.1.069', 'title': 'Nonthermal Sterilization and Shelf-life Extension of Seafood Products by Intense Pulsed Light Treatment', 'author': 'Cheigh, Chan-Ick [orcid:0000-0003-2542-5788]; Mun, Ji-Hye; Chung, Myong-Soo', 'pub_date': '2012-3-31', 'venue': 'The Korean Journal of Food And Nutrition [issn:1225-4339]', 'volume': '25', 'issue': '1', 'page': '69-76', 'type': 'journal article', 'publisher': 'The Korean Society of Food and Nutrition [crossref:4768]', 'editor': 'Chung, Myong-Soo [orcid:0000-0002-9666-2513]'}, 
-            {'id': 'doi:10.1128/jb.01991-14', 'title': 'Pseudomonas aeruginosa LysR PA4203 Regulator NmoR Acts as a Repressor of the PA4202            nmoA            Gene, Encoding a Nitronate Monooxygenase', 'author': 'Vercammen, Ken; Wei, Qing; Charlier, Daniel [orcid:0000-0002-6844-376X]', 'pub_date': '2015-3-15', 'venue': 'Journal of Bacteriology [issn:0021-9193 issn:1098-5530]', 'volume': '197', 'issue': '6', 'page': '1026-1039', 'type': 'journal article', 'publisher': 'American Society for Microbiology [crossref:235]', 'editor': "O'Toole, G. A."}, 
             {'id': '', 'title': '', 'author': 'Chung, Myong-Soo [orcid:0000-0002-9666-2513]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}, 
             {'id': '', 'title': '', 'author': 'Cheigh, Chan-Ick [orcid:0000-0003-2542-5788]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}, 
             {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': 'The Korean Society of Food and Nutrition [crossref:4768]', 'editor': ''}, 
             {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': 'Consulting Company Ucom [crossref:6623]', 'editor': ''}, 
             {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': 'American Society for Microbiology [crossref:235]', 'editor': ''}, 
             {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': 'The Korean Journal of Food And Nutrition [issn:1225-4339]', 'volume': '25', 'issue': '1', 'page': '', 'type': 'journal issue', 'publisher': '', 'editor': ''}, 
-            {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': 'Journal of Bacteriology [issn:1098-5530 issn:0021-9193]', 'volume': '197', 'issue': '6', 'page': '', 'type': 'journal issue', 'publisher': '', 'editor': ''},
-            {'id': 'doi:10.1128/jb.01991-15', 'title': '', 'author': 'Vercammen, Ken', 'pub_date': '', 'venue': 'Journal of Bacteriology [issn:0021-9193 issn:1098-5530]', 'volume': '197', 'issue': '6', 'page': '', 'type': 'journal article', 'publisher': '', 'editor': 'Peroni, Silvio'}]
+            {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': 'Journal of Bacteriology [issn:1098-5530 issn:0021-9193]', 'volume': '197', 'issue': '6', 'page': '', 'type': 'journal issue', 'publisher': '', 'editor': ''}]
         shutil.rmtree(TMP_DIR)
         self.assertEqual(sorted(output, key=lambda x: x['id']+x['title']+x['author']+x['venue']+x['issue']+x['volume']+x['type']), sorted(expected_output, key=lambda x: x['id']+x['title']+x['author']+x['venue']+x['issue']+x['volume']+x['type']))
         
@@ -50,13 +48,10 @@ class TestPrepareMultiprocess(unittest.TestCase):
         ]
         ids_found = {'issn:2341-4022'}
         items_by_id = dict()
-        vi_with_editor_found = {'issn:1225-4339': {'volumes': dict(), 'issues': {'2'}}}
-        _get_duplicated_ids(data, ids_found, vi_with_editor_found, items_by_id)
+        _get_duplicated_ids(data, ids_found, items_by_id)
         expected_output = {
             'issn:2341-4022': {'others': {'issn:2341-4023'}, 'title': 'Acta urológica portuguesa', 'author': '', 'pub_date': '', 'venue': 'Transit Migration in Europe [issn:0003-987X]', 'volume': '', 'issue': '', 'page': '25', 'type': 'journal', 'publisher': '', 'editor': ''}, 
-            'issn:2341-4023': {'others': {'issn:2341-4022'}, 'title': 'Acta urológica portuguesa', 'author': '', 'pub_date': '', 'venue': 'Transit Migration in Europe [issn:0003-987X]', 'volume': '', 'issue': '', 'page': '25', 'type': 'journal', 'publisher': '', 'editor': ''}, 
-            'doi:10.9799/ksfan.2012.25.1.077': {'others': set(), 'title': '', 'author': 'Peroni, Silvio', 'pub_date': '', 'venue': 'The Korean Journal of Food And Nutrition [issn:1225-4339]', 'volume': '', 'issue': '2', 'page': '', 'type': 'journal article', 'publisher': '', 'editor': 'Massari, Arcangelo'},
-            'doi:10.9799/ksfan.2012.25.1.078': {'others': set(), 'title': '', 'author': 'Peroni, Silvio', 'pub_date': '', 'venue': 'The Korean Journal of Food And Nutrition [issn:1225-4339]', 'volume': '', 'issue': '2', 'page': '', 'type': 'journal article', 'publisher': '', 'editor': 'Peroni, Silvio'}}
+            'issn:2341-4023': {'others': {'issn:2341-4022'}, 'title': 'Acta urológica portuguesa', 'author': '', 'pub_date': '', 'venue': 'Transit Migration in Europe [issn:0003-987X]', 'volume': '', 'issue': '', 'page': '25', 'type': 'journal', 'publisher': '', 'editor': ''}}
         self.assertEqual(items_by_id, expected_output)
     
     def test__get_relevant_venues(self):
