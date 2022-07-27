@@ -18,7 +18,6 @@
 # SOFTWARE.
 
 
-from oc_meta.constants import CONTAINER_EDITOR_TYPES
 from oc_meta.lib.finder import ResourceFinder
 from oc_meta.lib.master_of_regex import comma_and_spaces, name_and_ids, one_or_more_spaces, semicolon_in_people_field
 from oc_meta.scripts.curator import get_edited_br_metaid
@@ -417,7 +416,7 @@ class Creator(object):
                 for identifier in ed_id_list:
                     self.id_creator(pub_ed, identifier, ra=True)
                 # editorRole
-                br_key, _ = get_edited_br_metaid(row, self.vi_index, self.row_meta, self.venue_meta)
+                br_key = get_edited_br_metaid(row, self.row_meta, self.venue_meta)
                 AR = self.ar_index[br_key]['editor'][ed_meta]
                 ar_id = 'ar/' + str(AR)
                 preexisting_entity = True if ar_id in self.preexisting_entities else False
