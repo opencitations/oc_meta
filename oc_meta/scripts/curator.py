@@ -52,8 +52,6 @@ class Curator:
         self.vvi = {}  # Venue, Volume, Issue
         self.idra = {}  # key id; value metaid of id related to ra
         self.idbr = {}  # key id; value metaid of id related to br
-        self.conflict_br:Dict[str, Dict[str, list]] = {}
-        self.conflict_ra = {}
         self.rameta = dict()
         self.brmeta = dict()
         self.armeta = dict()
@@ -94,8 +92,6 @@ class Curator:
             self.clean_ra(row, 'publisher')
             self.clean_ra(row, 'editor')
             self.rowcnt += 1
-        self.brdict.update(self.conflict_br)
-        self.radict.update(self.conflict_ra)
         self.get_preexisting_entities()
         self.meta_maker()
         self.log = self.log_update()
@@ -133,7 +129,7 @@ class Curator:
             metaval = self.id_worker('id', name, idslist, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
         else:
             metaval = self.new_entity(self.brdict, name)
-        row['title'] = self.brdict[metaval]['title'] if metaval in self.brdict else self.conflict_br[metaval]['title']
+        row['title'] = self.brdict[metaval]['title']
         row['id'] = metaval
         if 'wannabe' not in metaval:
             self.equalizer(row, metaval)
@@ -301,14 +297,12 @@ class Curator:
             else:
                 br_metaval_to_check = row['id']
                 editor_is_a_vi = False
-            if br_metaval_to_check in self.brdict or br_metaval_to_check in self.conflict_br or br_metaval_to_check in self.vvi:
+            if br_metaval_to_check in self.brdict or br_metaval_to_check in self.vvi:
                 br_metaval = br_metaval_to_check
             elif editor_is_a_vi:
                 br_metaval = br_metaval_to_check
             else:
-                other_id = [id for id in self.brdict if br_metaval_to_check in self.brdict[id]['others']]
-                conflict_id = [id for id in self.conflict_br if br_metaval_to_check in self.conflict_br[id]['others']]
-                br_metaval = other_id[0] if other_id else conflict_id[0]
+                br_metaval = [id for id in self.brdict if br_metaval_to_check in self.brdict[id]['others']][0]
             if br_metaval not in self.ardict or not self.ardict[br_metaval][col_name]:
                 # new sequence
                 if 'wannabe' in br_metaval:
@@ -473,10 +467,15 @@ class Curator:
 
     def conflict(self, idslist:List[str], name:str, id_dict:dict, col_name:str) -> str:
         if col_name == 'id' or col_name == 'venue':
-            entity_dict = self.conflict_br
+            entity_dict = self.brdict
         elif col_name == 'author' or col_name == 'editor' or col_name == 'publisher':
-            entity_dict = self.conflict_ra
+            entity_dict = self.radict
         metaval = self.new_entity(entity_dict, name)
+        entity_dict[metaval] = {
+            'ids': list(),
+            'others': list(),
+            'title': name
+        }
         self.log[self.rowcnt][col_name]['Conflict entity'] = metaval
         for identifier in idslist:
             entity_dict[metaval]['ids'].append(identifier)

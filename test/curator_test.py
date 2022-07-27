@@ -556,14 +556,12 @@ class test_id_worker(unittest.TestCase):
         name = 'βέβαιος, α, ον'
         idslist = ['doi:10.1163/2214-8655_lgo_lgo_02_0074_ger']
         wannabe_id = curator.id_worker('id', name, idslist, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
-        output = (wannabe_id, curator.brdict, curator.radict, curator.idbr, curator.idra, curator.conflict_br, curator.conflict_ra, curator.log)
+        output = (wannabe_id, curator.brdict, curator.radict, curator.idbr, curator.idra, curator.log)
         expected_output = (
             'wannabe_0',
             {'wannabe_0': {'ids': ['doi:10.1163/2214-8655_lgo_lgo_02_0074_ger'], 'others': [], 'title': 'βέβαιος, α, ον'}},
             {},
             {'doi:10.1163/2214-8655_lgo_lgo_02_0074_ger': '0601'},
-            {},
-            {},
             {},
             {}
         )
@@ -575,12 +573,10 @@ class test_id_worker(unittest.TestCase):
         name = 'βέβαιος, α, ον'
         idslist = []
         wannabe_id = curator.id_worker('id', name, idslist, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
-        output = (wannabe_id, curator.brdict, curator.radict, curator.idbr, curator.idra, curator.conflict_br, curator.conflict_ra, curator.log)
+        output = (wannabe_id, curator.brdict, curator.radict, curator.idbr, curator.idra, curator.log)
         expected_output = (
             'wannabe_0',
             {'wannabe_0': {'ids': [], 'others': [], 'title': 'βέβαιος, α, ον'}},
-            {},
-            {},
             {},
             {},
             {},
@@ -595,8 +591,8 @@ class test_id_worker(unittest.TestCase):
         name = 'American Medical Association (AMA)' # *(ama) on the ts. The name on the ts must prevail
         idslist = ['crossref:10']
         wannabe_id = curator.id_worker('editor', name, idslist, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
-        output = (wannabe_id, curator.brdict, curator.radict, curator.idbr, curator.idra, curator.conflict_br, curator.conflict_ra, curator.log)
-        expected_output = ('3309', {}, {'3309': {'ids': ['crossref:10'], 'others': [], 'title': 'American Medical Association (ama)'}}, {}, {'crossref:10': '4274'}, {}, {}, {})
+        output = (wannabe_id, curator.brdict, curator.radict, curator.idbr, curator.idra, curator.log)
+        expected_output = ('3309', {}, {'3309': {'ids': ['crossref:10'], 'others': [], 'title': 'American Medical Association (ama)'}}, {}, {'crossref:10': '4274'}, {})
         self.assertEqual(output, expected_output)
 
     def test_id_worker_2_metaid_ts(self):
@@ -607,8 +603,8 @@ class test_id_worker(unittest.TestCase):
         # MetaID only
         idslist = ['meta:ra/3309']
         wannabe_id = curator.id_worker('editor', name, idslist, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
-        output = (wannabe_id, curator.brdict, curator.radict, curator.idbr, curator.idra, curator.conflict_br, curator.conflict_ra, curator.log)
-        expected_output = ('3309', {}, {'3309': {'ids': ['crossref:10'], 'others': [], 'title': 'American Medical Association (ama)'}}, {}, {'crossref:10': '4274'}, {}, {}, {})
+        output = (wannabe_id, curator.brdict, curator.radict, curator.idbr, curator.idra, curator.log)
+        expected_output = ('3309', {}, {'3309': {'ids': ['crossref:10'], 'others': [], 'title': 'American Medical Association (ama)'}}, {}, {'crossref:10': '4274'}, {})
         self.assertEqual(output, expected_output)
 
     def test_id_worker_2_id_metaid_ts(self):
@@ -619,8 +615,8 @@ class test_id_worker(unittest.TestCase):
         # ID and MetaID
         idslist = ['crossref:10', 'meta:id/4274']
         wannabe_id = curator.id_worker('editor', name, idslist, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
-        output = (wannabe_id, curator.brdict, curator.radict, curator.idbr, curator.idra, curator.conflict_br, curator.conflict_ra, curator.log)
-        expected_output = ('3309', {}, {'3309': {'ids': ['crossref:10'], 'others': [], 'title': 'American Medical Association (ama)'}}, {}, {'crossref:10': '4274'}, {}, {}, {})
+        output = (wannabe_id, curator.brdict, curator.radict, curator.idbr, curator.idra, curator.log)
+        expected_output = ('3309', {}, {'3309': {'ids': ['crossref:10'], 'others': [], 'title': 'American Medical Association (ama)'}}, {}, {'crossref:10': '4274'}, {})
         self.assertEqual(output, expected_output)
 
     def test_id_worker_3(self):
@@ -631,14 +627,15 @@ class test_id_worker(unittest.TestCase):
         # ID and MetaID, but it's meta:id/4274 on ts
         idslist = ['crossref:10', 'meta:id/4275']
         wannabe_id = curator.id_worker('editor', name, idslist, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
-        output = (wannabe_id, curator.brdict, curator.radict, curator.idbr, curator.idra, curator.conflict_br, curator.conflict_ra, curator.log)
-        expected_output = ('3309', {}, {'3309': {'ids': ['crossref:10'], 'others': [], 'title': 'American Medical Association (ama)'}}, {}, {'crossref:10': '4274'}, {}, {}, {})
+        output = (wannabe_id, curator.brdict, curator.radict, curator.idbr, curator.idra, curator.log)
+        expected_output = ('3309', {}, {'3309': {'ids': ['crossref:10'], 'others': [], 'title': 'American Medical Association (ama)'}}, {}, {'crossref:10': '4274'}, {})
         self.assertEqual(output, expected_output)
 
     def test_id_worker_2_meta_in_entity_dict(self):
         # MetaID exists among data.
         # MetaID already in entity_dict (no care about conflicts, we have a MetaID specified)
         # 2 Retrieve EntityA data to update EntityA inside CSV
+        reset_server()
         data = data_collect(REAL_DATA_CSV)
         curator = prepareCurator(data)
         curator.curator()
@@ -650,8 +647,8 @@ class test_id_worker(unittest.TestCase):
         meta_id = curator_empty.id_worker('id', name, idslist, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
         # metaval is in entity_dict
         meta_id = curator_empty.id_worker('id', name, idslist, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
-        output = (meta_id, curator_empty.brdict, curator_empty.radict, curator_empty.idbr, curator_empty.idra, curator_empty.conflict_br, curator_empty.conflict_ra, curator_empty.log)
-        expected_output = ('0601', {'0601': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China', 'others': []}}, {}, {'doi:10.1787/eco_outlook-v2011-2-graph138-en': '0601'}, {}, {}, {}, {})
+        output = (meta_id, curator_empty.brdict, curator_empty.radict, curator_empty.idbr, curator_empty.idra, curator_empty.log)
+        expected_output = ('0601', {'0601': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China', 'others': []}}, {}, {'doi:10.1787/eco_outlook-v2011-2-graph138-en': '0601'}, {}, {})
         self.assertEqual(output, expected_output)
 
     def test_id_worker_conflict(self):
@@ -665,7 +662,7 @@ class test_id_worker(unittest.TestCase):
         curator.log[0] = {'id': {}}
         id_dict = dict()
         metaval = curator.conflict(idslist, name, id_dict, 'id') # Only the conflict function is tested here, not id_worker
-        output = (metaval, curator.conflict_br, curator.log, id_dict)
+        output = (metaval, curator.brdict, curator.log, id_dict)
         expected_output = (
             'wannabe_0',
             {'wannabe_0': {'ids': ['doi:10.1001/2013.jamasurg.270'], 'others': [], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}},
@@ -682,13 +679,12 @@ class test_id_worker(unittest.TestCase):
         name = 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'
         idslist = ['doi:10.1001/2013.jamasurg.270']
         meta_id = curator.id_worker('id', name, idslist, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
-        output = (meta_id, curator.idbr, curator.idra, curator.conflict_br, curator.conflict_ra, curator.log)
+        output = (meta_id, curator.idbr, curator.idra, curator.brdict, curator.log)
         expected_output = (
             'wannabe_0', 
             {'doi:10.1001/2013.jamasurg.270': '2585'}, 
             {}, 
             {'wannabe_0': {'ids': ['doi:10.1001/2013.jamasurg.270'], 'others': [], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}}, 
-            {}, 
             {0: {'id': {'Conflict entity': 'wannabe_0'}}}
         )
         self.assertEqual(output, expected_output)
@@ -701,7 +697,7 @@ class test_id_worker(unittest.TestCase):
         curator = prepareCurator(list())
         curator.log[0] = {'author': {}}
         meta_id = curator.id_worker('author', name, idslist, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=False)
-        output = (meta_id, curator.idbr, curator.idra, curator.conflict_br, curator.conflict_ra, curator.log)
+        output = (meta_id, curator.idbr, curator.idra, curator.brdict, curator.radict, curator.log)
         expected_output = (
             'wannabe_0', 
             {}, 
@@ -726,12 +722,27 @@ class test_id_worker(unittest.TestCase):
         curator.log[0] = {'id': {}}
         curator.brdict = br_dict
         meta_id = curator.id_worker('id', name, idslist, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
-        output = (meta_id, curator.idbr, curator.idra, curator.conflict_br, curator.conflict_ra, curator.log)
+        output = (meta_id, curator.idbr, curator.idra, curator.brdict, curator.radict, curator.log)
         expected_output = (
             'wannabe_0', 
             {'doi:10.1787/eco_outlook-v2011-2-graph138-en': '0601'}, 
             {}, 
-            {'wannabe_0': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'], 'others': [], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}}, 
+            {'meta:br/0601': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'],
+                            'others': [],
+                            'title': 'Money Growth, Interest Rates, Inflation And Raw '
+                                        'Materials Prices: China'},
+            'meta:br/0602': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph150-en'],
+                            'others': [],
+                            'title': 'Contributions To GDP Growth And Inflation: South '
+                                        'Africa'},
+            'meta:br/0603': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'],
+                            'others': [],
+                            'title': 'Official Loans To The Governments Of Greece, '
+                                        'Ireland And Portugal'},
+            'wannabe_0': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'],
+                            'others': [],
+                            'title': 'Money Growth, Interest Rates, Inflation And Raw '
+                                    'Materials Prices: China'}},
             {}, 
             {0: {'id': {'Conflict entity': 'wannabe_0'}}}
         )
@@ -751,12 +762,10 @@ class test_id_worker(unittest.TestCase):
         curator.log[0] = {'id': {}}
         curator.brdict = br_dict
         meta_id = curator.id_worker('id', name, idslist, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
-        output = (meta_id, curator.idbr, curator.idra, curator.conflict_br, curator.conflict_ra, curator.log)
+        output = (meta_id, curator.idbr, curator.idra, curator.log)
         expected_output = (
             'meta:br/0601', 
             {'doi:10.1787/eco_outlook-v2011-2-graph138-en': '0601'}, 
-            {}, 
-            {}, 
             {}, 
             {0: {'id': {}}}
         )
@@ -776,7 +785,7 @@ class test_id_worker(unittest.TestCase):
         curator.log[0] = {'id': {}}
         curator.brdict = br_dict
         meta_id = curator.id_worker('id', name, idslist, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
-        output = (meta_id, curator.idbr, curator.idra, curator.conflict_br, curator.conflict_ra, curator.log)
+        output = (meta_id, curator.idbr, curator.idra, curator.brdict, curator.radict, curator.log)
         expected_output = (
             'wannabe_0', 
             {
@@ -784,7 +793,23 @@ class test_id_worker(unittest.TestCase):
                 'doi:10.1001/2013.jamasurg.270': '2585'
             }, 
             {}, 
-            {'wannabe_0': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en', 'doi:10.1001/2013.jamasurg.270'], 'others': [], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: Japan'}}, 
+            {'meta:br/0601': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'],
+                            'others': [],
+                            'title': 'Money Growth, Interest Rates, Inflation And Raw '
+                                        'Materials Prices: China'},
+            'meta:br/0602': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph150-en'],
+                            'others': [],
+                            'title': 'Contributions To GDP Growth And Inflation: South '
+                                        'Africa'},
+            'meta:br/0603': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph18-en'],
+                            'others': [],
+                            'title': 'Official Loans To The Governments Of Greece, '
+                                        'Ireland And Portugal'},
+            'wannabe_0': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en',
+                                    'doi:10.1001/2013.jamasurg.270'],
+                            'others': [],
+                            'title': 'Money Growth, Interest Rates, Inflation And Raw '
+                                    'Materials Prices: Japan'}},
             {}, 
             {0: {'id': {'Conflict entity': 'wannabe_0'}}}
         )
@@ -804,7 +829,7 @@ class test_id_worker(unittest.TestCase):
         curator.log[0] = {'id': {}}
         curator.brdict = br_dict
         meta_id = curator.id_worker('id', name, idslist, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
-        output = (meta_id, curator.idbr, curator.idra, curator.conflict_br, curator.conflict_ra, curator.log)
+        output = (meta_id, curator.idbr, curator.idra, curator.brdict, curator.radict, curator.log)
         expected_output = (
             'wannabe_0', 
             {
@@ -812,7 +837,19 @@ class test_id_worker(unittest.TestCase):
                 'doi:10.1001/2013.jamasurg.270': '2585'
             }, 
             {}, 
-            {'wannabe_0': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en', 'doi:10.1001/2013.jamasurg.270'], 'others': [], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: Japan'}}, 
+            {'wannabe_0': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en',
+                                    'doi:10.1001/2013.jamasurg.270'],
+                            'others': [],
+                            'title': 'Money Growth, Interest Rates, Inflation And Raw '
+                                    'Materials Prices: Japan'},
+            'wannabe_2': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph150-en'],
+                            'others': [],
+                            'title': 'Contributions To GDP Growth And Inflation: South '
+                                    'Africa'},
+            'wannabe_3': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph18-en'],
+                            'others': [],
+                            'title': 'Official Loans To The Governments Of Greece, Ireland '
+                                    'And Portugal'}},
             {}, 
             {0: {'id': {'Conflict entity': 'wannabe_0'}}}
         )
@@ -831,12 +868,10 @@ class test_id_worker(unittest.TestCase):
         curator.brdict = br_dict
         curator.wnb_cnt = 2
         meta_id = curator.id_worker('id', name, idslist, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
-        output = (meta_id, curator.idbr, curator.idra, curator.conflict_br, curator.conflict_ra, curator.log)
+        output = (meta_id, curator.idbr, curator.idra, curator.log)
         expected_output = (
             '3757', 
             {'doi:10.1001/archderm.104.1.106': '3624', 'pmid:29098884': '2000000'}, 
-            {}, 
-            {}, 
             {}, 
             {}
         )
@@ -856,12 +891,10 @@ class test_id_worker(unittest.TestCase):
         curator.brdict = br_dict
         curator.wnb_cnt = 2
         meta_id = curator.id_worker('id', name, idslist, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
-        output = (meta_id, curator.idbr, curator.idra, curator.conflict_br, curator.conflict_ra, curator.log)
+        output = (meta_id, curator.idbr, curator.idra, curator.log)
         expected_output = (
             'wannabe_0', 
             {'doi:10.1787/eco_outlook-v2011-2-graph138-en': '0601'}, 
-            {}, 
-            {}, 
             {}, 
             {}
         )
