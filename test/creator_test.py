@@ -1,3 +1,4 @@
+from oc_meta.lib.file_manager import get_data
 from oc_meta.plugins.multiprocess.resp_agents_creator import RespAgentsCreator
 from oc_meta.scripts.creator import *
 from test.curator_test import reset_server
@@ -21,14 +22,6 @@ def hack_dates():
     if XSD.gYearMonth in _toPythonMapping:
         _toPythonMapping.pop(XSD.gYearMonth)
 
-
-def open_csv(path):
-    path = os.path.abspath(path)
-    with open(path, 'r', encoding="utf-8") as csvfile:
-        reader = list(csv.DictReader(csvfile, delimiter=","))
-        return reader
-
-
 def open_json(path):
     path = os.path.abspath(path)
     with open(path) as json_file:
@@ -38,11 +31,11 @@ def open_json(path):
 # creator executor
 def prepare2test(name):
     reset_server()
-    data = open_csv("test/testcases/testcase_data/testcase_" + name + "_data.csv")
-    testcase_id_br = open_csv("test/testcases/testcase_data/indices/" + name + "/index_id_br_" + name + ".csv")
-    testcase_id_ra = open_csv("test/testcases/testcase_data/indices/" + name + "/index_id_ra_" + name + ".csv")
-    testcase_ar = open_csv("test/testcases/testcase_data/indices/" + name + "/index_ar_" + name + ".csv")
-    testcase_re = open_csv("test/testcases/testcase_data/indices/" + name + "/index_re_" + name + ".csv")
+    data = get_data("test/testcases/testcase_data/testcase_" + name + "_data.csv")
+    testcase_id_br = get_data("test/testcases/testcase_data/indices/" + name + "/index_id_br_" + name + ".csv")
+    testcase_id_ra = get_data("test/testcases/testcase_data/indices/" + name + "/index_id_ra_" + name + ".csv")
+    testcase_ar = get_data("test/testcases/testcase_data/indices/" + name + "/index_ar_" + name + ".csv")
+    testcase_re = get_data("test/testcases/testcase_data/indices/" + name + "/index_re_" + name + ".csv")
     testcase_vi = open_json("test/testcases/testcase_data/indices/" + name + "/index_vi_" + name + ".json")
     testcase_ttl = "test/testcases/testcase_" + name + ".ttl"
 
@@ -95,9 +88,9 @@ class test_Creator(unittest.TestCase):
 class test_RespAgentsCreator(unittest.TestCase):
     def test_creator(self):
         reset_server()
-        data = open_csv("test/testcases/testcase_data/resp_agents_curator_output.csv")
+        data = get_data("test/testcases/testcase_data/resp_agents_curator_output.csv")
         creator_info_dir = os.path.join("test", "creator_counter")
-        testcase_id_ra = open_csv("test/testcases/testcase_data/indices/resp_agents_curator_output/index_id_ra.csv")
+        testcase_id_ra = get_data("test/testcases/testcase_data/indices/resp_agents_curator_output/index_id_ra.csv")
         creator = RespAgentsCreator(data, SERVER, "https://w3id.org/oc/meta/", creator_info_dir, "060", 'https://orcid.org/0000-0002-8420-0696', testcase_id_ra, set())
         creator_graphset = creator.creator()
         output_graph = Graph()

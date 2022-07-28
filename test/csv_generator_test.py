@@ -1,9 +1,10 @@
+from csv import DictReader
+from oc_meta.lib.file_manager import get_data
+from oc_meta.plugins.csv_generator.csv_generator import CSVGenerator
+from test.curator_test import reset_server, add_data_ts, SERVER
 import os
 import shutil
 import unittest
-from csv import DictReader
-from oc_meta.plugins.csv_generator.csv_generator import CSVGenerator
-from test.curator_test import reset_server, add_data_ts, SERVER
 
 BASE = os.path.join('test', 'csv_generator')
 CONFIG = os.path.join(BASE, 'csv_generator_config.yaml')
@@ -16,8 +17,7 @@ class TestCSVGenerator(unittest.TestCase):
         add_data_ts(server=SERVER, data_path=REAL_DATA_RDF)
         csv_generator = CSVGenerator(config=CONFIG)
         csv_generator.generate_csv()
-        with open(os.path.join(OUTPUT_DIR, '060', '100', '10.csv'), 'r', encoding='utf-8') as f:
-            output = list(DictReader(f))
+        output = get_data(os.path.join(OUTPUT_DIR, '060', '100', '10.csv'))
         expected_output = [
             {'id': 'meta:br/0601 doi:10.1108/03068299610124298', 'title': 'Ethics And Efficiency In Organizations', 'author': 'Hausken, Kjell [meta:ra/0601]', 'pub_date': '1996-09', 'venue': 'International Journal Of Social Economics [meta:br/06011 issn:0306-8293]', 'volume': '23', 'issue': '9', 'page': '15-40', 'type': 'journal article', 'publisher': 'Emerald [meta:ra/0602 crossref:140]', 'editor': ''}, 
             {'id': 'meta:br/0602 doi:10.1108/10610429810209746', 'title': 'Steel Price Determination In The European Community', 'author': 'Richardson, P.K. [meta:ra/0603]', 'pub_date': '1998-02', 'venue': 'Journal Of Product & Brand Management [meta:br/06014 issn:1061-0421]', 'volume': '7', 'issue': '1', 'page': '62-73', 'type': 'journal article', 'publisher': 'Emerald [meta:ra/0602 crossref:140]', 'editor': ''}, 
