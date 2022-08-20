@@ -1,10 +1,10 @@
-import csv
-import os
-import sys
 from contextlib import contextmanager
 from oc_meta.lib.cleaner import Cleaner
 from typing import List, Dict, Set
-
+import csv
+import os
+import sys
+import zipfile
 
 
 def get_data(filepath:str) -> List[Dict[str, str]]:
@@ -69,3 +69,16 @@ def sort_files(files_to_be_processed:list) -> None:
     elif all(filename.split('_')[-1].replace('.csv', '').isdigit() for filename in files_to_be_processed):
         files_to_be_processed = sorted(files_to_be_processed, key=lambda filename: int(filename.split('_')[-1].replace('.csv', '')))
     return files_to_be_processed
+
+def zipdir(path, ziph):
+    for root, _, files in os.walk(path):
+        for file in files:
+            ziph.write(os.path.join(root, file),
+                       os.path.relpath(os.path.join(root, file),
+                                       os.path.join(path, '..')))
+
+def zipit(dir_list:list, zip_name:str) -> None:
+    zipf = zipfile.ZipFile(zip_name, 'w', zipfile.ZIP_DEFLATED)
+    for dir in dir_list:
+        zipdir(dir, zipf)
+    zipf.close()

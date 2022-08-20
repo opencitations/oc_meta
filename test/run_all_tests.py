@@ -12,7 +12,7 @@ def launch_blazegraph(port:int):
     )
 
 def main():
-    if not os.path.isfile('blazegraph.jnl'):
+    if not os.path.isfile('blazegraph.jar'):
         url = 'https://github.com/blazegraph/database/releases/download/BLAZEGRAPH_2_1_6_RC/blazegraph.jar'
         wget.download(url=url, out='.')
     launch_blazegraph(9999)

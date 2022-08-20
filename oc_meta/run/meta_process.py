@@ -23,7 +23,7 @@ from datetime import datetime
 from filelock import FileLock
 from itertools import cycle
 from oc_meta.lib.csvmanager import CSVManager
-from oc_meta.lib.file_manager import get_data, normalize_path, pathoo, suppress_stdout, init_cache, sort_files
+from oc_meta.lib.file_manager import get_data, normalize_path, pathoo, suppress_stdout, init_cache, sort_files, zipit
 from oc_meta.plugins.multiprocess.resp_agents_creator import RespAgentsCreator
 from oc_meta.plugins.multiprocess.resp_agents_curator import RespAgentsCurator
 from oc_meta.scripts.creator import Creator
@@ -32,7 +32,6 @@ from oc_ocdm import Storer
 from oc_ocdm.prov import ProvSet
 from pathlib import Path
 from pebble import ProcessPool, ProcessFuture
-from shutil import make_archive
 from sys import platform
 from time_agnostic_library.support import generate_config_file
 from typing import List, Set, Tuple
@@ -53,7 +52,8 @@ class MetaProcess:
         self.resp_agent = settings['resp_agent']
         self.info_dir = os.path.join(self.base_output_dir, 'info_dir')
         self.output_csv_dir = os.path.join(self.base_output_dir, 'csv')
-        self.output_rdf_dir = os.path.join(self.base_output_dir, f'rdf{os.sep}')
+        self.distinct_output_dirs = True if settings['base_output_dir'] != settings['output_rdf_dir'] else False
+        self.output_rdf_dir = normalize_path(settings['output_rdf_dir']) + os.sep + 'rdf' + os.sep
         self.indexes_dir = os.path.join(self.base_output_dir, 'indexes')
         self.cache_path = os.path.join(self.base_output_dir, 'cache.txt')
         self.errors_path = os.path.join(self.base_output_dir, 'errors.txt')
@@ -144,6 +144,12 @@ class MetaProcess:
             res_storer.store_all(base_dir=self.output_rdf_dir, base_iri=self.base_iri, context_path=self.context_path)
             prov_storer.store_all(self.output_rdf_dir, self.base_iri, self.context_path)
             res_storer.upload_all(triplestore_url=self.triplestore_url, base_dir=self.output_rdf_dir, batch_size=100)
+    
+    @classmethod
+    def save_data(cls):
+        output_dirname = f"meta_output_{datetime.now().strftime('%Y-%m-%dT%H_%M_%S_%f')}"
+        dirs_to_zip = [cls.base_output_dir, cls.output_rdf_dir] if cls.distinct_output_dirs else [cls.base_output_dir]
+        zipit([dirs_to_zip, cls.output_rdf_dir], output_dirname)
 
 def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False) -> None:
     delete_lock_files(base_dir=meta_process.base_output_dir)
@@ -158,7 +164,7 @@ def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False) -> N
         workers = [i for i in range(1, max_workers+len(multiples_of_ten)+1) if i not in multiples_of_ten]
     is_unix = platform in {'linux', 'linux2', 'darwin'}
     generate_gentle_buttons(meta_process.base_output_dir, meta_process.config, is_unix)
-    files_chunks = chunks(list(files_to_be_processed), 1000) if is_unix else [files_to_be_processed]
+    files_chunks = chunks(list(files_to_be_processed), 3000) if is_unix else [files_to_be_processed]
     for files_chunk in files_chunks:
         with ProcessPool(max_workers=max_workers, max_tasks=1) as executor:
             for file_to_be_processed, worker_number in zip(files_chunk, cycle(workers)):
@@ -168,7 +174,7 @@ def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False) -> N
                 future.add_done_callback(task_done) 
         delete_lock_files(base_dir=meta_process.base_output_dir)
         if is_unix and not os.path.exists(os.path.join(meta_process.base_output_dir, '.stop')):
-            save_results(meta_process.base_output_dir)
+            meta_process.save_data()
     if os.path.exists(meta_process.cache_path) and not os.path.exists(os.path.join(meta_process.base_output_dir, '.stop')):
         os.rename(meta_process.cache_path, meta_process.cache_path.replace('.txt', f'_{datetime.now().strftime("%Y-%m-%dT%H_%M_%S_%f")}.txt'))
     if not is_unix:
@@ -203,12 +209,6 @@ def delete_lock_files(base_dir:list) -> None:
         for filename in filenames:
             if filename.endswith('.lock'):
                 os.remove(os.path.join(dirpath, filename))
-
-def save_results(output_dirpath:str) -> None:
-    output_dirname = f"meta_output_{datetime.now().strftime('%Y-%m-%dT%H_%M_%S_%f')}"
-    parent_dir = Path(output_dirpath)
-    parent_dir = parent_dir.parent.absolute()
-    make_archive(base_name=output_dirname, format='zip', base_dir=output_dirpath)
 
 def generate_gentle_buttons(dir:str, config:str, is_unix:bool):
     if os.path.exists(os.path.join(dir, '.stop')):

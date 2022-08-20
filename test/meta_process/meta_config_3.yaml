@@ -25,12 +25,14 @@ provenance_endpoints: []
 # Directory where raw CSV files are stored
 input_csv_dir: test/meta_process/base_input
 # The path to the base directory to save all output files
-base_output_dir: test/meta_process/output_3
+base_output_dir: &base_output_dir test/meta_process/output_3
 # A URI string representing the provenance agent which is considered responsible for the RDF graph manipulation
 resp_agent: https://orcid.org/0000-0002-8420-0696
 
 # Optional settings
 
+# Folder where RDF files are saved. Since these files are the heaviest, it is sometimes convenient to save them on HDD, while the triplestore needs to be on SSD for its efficient operation
+output_rdf_dir: *base_output_dir
 # The base URI of entities on Meta. This setting can be safely left as is
 base_iri: https://w3id.org/oc/meta/
 # URL where the namespaces and prefixes used in the OpenCitations Data Model are defined. This setting can be safely left as is

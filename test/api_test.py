@@ -352,7 +352,6 @@ class test_API(unittest.TestCase):
         expected_output = status_expected, result_expected, format_expected
         self.assertEqual(output, expected_output)
 
-    def test_text_search_venue(self):
         operation_url = 'search'
         request = 'venue/Physics'
         call = "%s/%s/%s" % (api_base, operation_url, request)
@@ -361,19 +360,6 @@ class test_API(unittest.TestCase):
         status_expected = 200
         format_expected = 'application/json'
         result_expected = [
-            {
-                "id": "meta:br/0605",
-                "title": "",
-                "author": "",
-                "date": "",
-                "page": "",
-                "issue": "",
-                "volume": "39",
-                "venue": "Journal Of Physics D: Applied Physics [issn:0022-3727 issn:1361-6463]",
-                "type": "journal issue",
-                "publisher": "",
-                "editor": ""
-            },
             {
                 "id": "meta:br/0604",
                 "title": "",
@@ -384,6 +370,19 @@ class test_API(unittest.TestCase):
                 "volume": "",
                 "venue": "Journal Of Physics D: Applied Physics [issn:0022-3727 issn:1361-6463]",
                 "type": "journal volume",
+                "publisher": "",
+                "editor": ""
+            },
+            {
+                "id": "meta:br/0605",
+                "title": "",
+                "author": "",
+                "date": "",
+                "page": "",
+                "issue": "",
+                "volume": "39",
+                "venue": "Journal Of Physics D: Applied Physics [issn:0022-3727 issn:1361-6463]",
+                "type": "journal issue",
                 "publisher": "",
                 "editor": ""
             },
