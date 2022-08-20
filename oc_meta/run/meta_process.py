@@ -145,11 +145,10 @@ class MetaProcess:
             prov_storer.store_all(self.output_rdf_dir, self.base_iri, self.context_path)
             res_storer.upload_all(triplestore_url=self.triplestore_url, base_dir=self.output_rdf_dir, batch_size=100)
     
-    @classmethod
-    def save_data(cls):
-        output_dirname = f"meta_output_{datetime.now().strftime('%Y-%m-%dT%H_%M_%S_%f')}"
-        dirs_to_zip = [cls.base_output_dir, cls.output_rdf_dir] if cls.distinct_output_dirs else [cls.base_output_dir]
-        zipit([dirs_to_zip, cls.output_rdf_dir], output_dirname)
+    def save_data(self):
+        output_dirname = f"meta_output_{datetime.now().strftime('%Y-%m-%dT%H_%M_%S_%f')}.zip"
+        dirs_to_zip = [self.base_output_dir, self.output_rdf_dir] if self.distinct_output_dirs else [self.base_output_dir]
+        zipit(dirs_to_zip, output_dirname)
 
 def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False) -> None:
     delete_lock_files(base_dir=meta_process.base_output_dir)
