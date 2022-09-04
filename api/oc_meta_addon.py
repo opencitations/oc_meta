@@ -90,6 +90,9 @@ class TextSearch():
                 family_name = name_parts[0]
                 if len(name_parts) == 2:
                     given_name = name_parts[1]
+                    given_name = '. '.join(given_name.split('.'))
+                    given_name = ' '.join([f"{name_part.rstrip('.')}.+?" if len(name_part.rstrip('.')) == 1 else name_part for name_part in given_name.split()])
+                    given_name = given_name.replace('*', '.*?')
         else:
             name = self.text
         role = role.title()
@@ -106,10 +109,13 @@ class TextSearch():
             if family_name:
                 text_search += f"{self.__gen_text_search(f'ts{role}Fn', family_name, True)}"
                 base_query += f'?ts{role}Ra foaf:familyName ?ts{role}Fn.'
-            if given_name:
-                text_search += f"{self.__gen_text_search(f'ts{role}Gn', given_name, True)}"
+                if given_name:
+                    base_query += f'?ts{role}Ra foaf:givenName ?ts{role}Gn.'
+                    text_search += f"FILTER REGEX (?ts{role}Gn, '^{given_name}$', 'i')"
+            elif given_name:
                 base_query += f'?ts{role}Ra foaf:givenName ?ts{role}Gn.'
-        return text_search + base_query
+                text_search += f"{self.__gen_text_search(f'ts{role}Gn', given_name, True)}"
+        return base_query + text_search
 
     def get_text_search_on_publisher(self) -> str:
         return f'''
@@ -152,11 +158,9 @@ class TextSearch():
         '''
 
     def __gen_text_search(self, variable:str, text:str, match_all_terms:bool) -> str:
-        header = 'SERVICE <http://www.bigdata.com/rdf/search#search> {\n'
-        body = f"\t?{variable} bds:search '{text}'"
-        body = body + "; bds:matchAllTerms 'true'." if match_all_terms else body
-        footer = '}'
-        text_search = header + body + footer
+        body = f"?{variable} bds:search '{text}'. hint:Prior hint:runFirst true."
+        body = body + f"?{variable} bds:matchAllTerms 'true'." if match_all_terms else body
+        text_search = body
         return text_search
 
 def generate_text_search(fields:str, text:str) -> str:
@@ -173,4 +177,7 @@ def generate_text_search(fields:str, text:str) -> str:
             text_searches.append(getattr(text_search, f'get_text_search_on_vi')(field))
         else:
             text_searches.append(getattr(text_search, f'get_text_search_on_{field}')())
-    return r'WITH { SELECT DISTINCT ?res WHERE {{' + '} UNION \n {'.join(text_searches) + r'}} LIMIT 1000} AS %results',
+    return r'''
+        WITH { SELECT DISTINCT ?res 
+        WHERE {{''' + '} UNION {'.join(text_searches) + \
+        r'}} LIMIT 10000} AS %results',

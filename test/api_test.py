@@ -408,7 +408,7 @@ class test_API(unittest.TestCase):
 
     def test_text_search_all(self):
         operation_url = 'search'
-        request = 'all/Stankey, George H.'
+        request = 'all/Stankey, G H*'
         call = "%s/%s/%s" % (api_base, operation_url, request)
         op = api_manager.get_op(call)
         status, result, format = op.exec()
