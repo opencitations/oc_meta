@@ -14,8 +14,9 @@
 # ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 # SOFTWARE.
 
-__author__ = 'arcangelo7'
+__author__ = 'Arcangelo Massari'
 
+from typing import Tuple
 import re
 
 URI_TYPE_DICT = {
@@ -73,14 +74,25 @@ def __postprocess_type(types_uris:str) -> str:
 class TextSearch():
     def __init__(self, text:str):
         self.text = text
-    
-    def get_text_search_on_title(self) -> str:
+
+    def get_text_search_on_id(self, ts_index:bool) -> str:
+        schema_and_literal_value = self.text.split(':')
+        schema = self.text = schema_and_literal_value[0]
+        literal_value = schema_and_literal_value[1]
         return f'''
-            {self.__gen_text_search('tsTitle', self.text, True)}
-            ?res dcterm:title ?tsTitle.
+            {self.__gen_text_search('tsId', literal_value, True, ts_index)}
+            ?res a fabio:Expression; datacite:hasIdentifier ?tsIdentifier{ts_index}.
+            ?tsIdentifier{ts_index} datacite:usesIdentifierSchema 'datacite:{schema}';
+                          literal:hasLiteralValue '{literal_value}'.
         '''
     
-    def get_text_search_on_person(self, role:str) -> str:
+    def get_text_search_on_title(self, ts_index:bool) -> str:
+        return f'''
+            {self.__gen_text_search(f'tsTitle{ts_index}', self.text, False, ts_index)}
+            ?res dcterm:title ?tsTitle{ts_index}.
+        '''
+    
+    def get_text_search_on_person(self, role:str, ts_index:bool) -> str:
         family_name = None
         given_name = None
         name = None
@@ -98,86 +110,108 @@ class TextSearch():
         role = role.title()
         text_search = ''
         base_query = f'''
-            ?res pro:isDocumentContextFor ?ts{role}.
-            ?ts{role} pro:withRole pro:{role.lower()};
-                    pro:isHeldBy ?ts{role}Ra.
+            ?res pro:isDocumentContextFor ?ts{role}{ts_index}.
+            ?ts{role}{ts_index} pro:withRole pro:{role.lower()};
+                    pro:isHeldBy ?ts{role}Ra{ts_index}.
         '''
         if name:
-            text_search += f"{self.__gen_text_search(f'ts{role}Name', name, True)}"
-            base_query += f'?ts{role}Ra foaf:name ?ts{role}Name.'
+            text_search += f"{self.__gen_text_search(f'ts{role}Name{ts_index}', name, True, ts_index)}"
+            base_query += f'?ts{role}Ra{ts_index} foaf:name ?ts{role}Name.'
         else:
             if family_name:
-                text_search += f"{self.__gen_text_search(f'ts{role}Fn', family_name, True)}"
-                base_query += f'?ts{role}Ra foaf:familyName ?ts{role}Fn.'
+                text_search += f"{self.__gen_text_search(f'ts{role}Fn{ts_index}', family_name, True, ts_index)}"
+                base_query += f'?ts{role}Ra{ts_index} foaf:familyName ?ts{role}Fn{ts_index}.'
                 if given_name:
-                    base_query += f'?ts{role}Ra foaf:givenName ?ts{role}Gn.'
-                    text_search += f"FILTER REGEX (?ts{role}Gn, '^{given_name}$', 'i')"
+                    base_query += f'?ts{role}Ra{ts_index} foaf:givenName ?ts{role}Gn{ts_index}.'
+                    text_search += f"FILTER REGEX (?ts{role}Gn{ts_index}, '^{given_name}$', 'i')"
             elif given_name:
-                base_query += f'?ts{role}Ra foaf:givenName ?ts{role}Gn.'
-                text_search += f"{self.__gen_text_search(f'ts{role}Gn', given_name, True)}"
+                base_query += f'?ts{role}Ra{ts_index} foaf:givenName ?ts{role}Gn{ts_index}.'
+                text_search += f"{self.__gen_text_search(f'ts{role}Gn{ts_index}', given_name, True, ts_index)}"
         return base_query + text_search
 
-    def get_text_search_on_publisher(self) -> str:
+    def get_text_search_on_publisher(self, ts_index:bool) -> str:
         return f'''
-            ?res pro:isDocumentContextFor ?tsPublisher.
-            ?tsPublisher pro:withRole pro:publisher;
-                    pro:isHeldBy ?tsPublisherRa.
-            ?tsPublisherRa foaf:name ?tsPublisherName.
-            {self.__gen_text_search(f'tsPublisherName', self.text, True)}
+            ?res pro:isDocumentContextFor ?tsPublisher{ts_index}.
+            ?tsPublisher{ts_index} pro:withRole pro:publisher;
+                    pro:isHeldBy ?tsPublisherRa{ts_index}.
+            ?tsPublisherRa{ts_index} foaf:name ?tsPublisherName{ts_index}.
+            {self.__gen_text_search(f'tsPublisherName{ts_index}', self.text, False, ts_index)}
         '''
     
-    def get_text_search_on_page(self) -> str:
+    def get_text_search_on_page(self, ts_index:bool) -> str:
         pages_list = re.split('[^A-Za-z\d]+(?=[A-Za-z\d]+)', self.text)
         starting_page = pages_list[0]
         ending_page = pages_list[1] if len(pages_list) == 2 else None
         text_search = f'''
-            ?res frbr:embodiment ?tsEmbodiment.
-            ?tsEmbodiment prism:startingPage ?tsStartingPage;
-                        prism:endingPage ?tsEndingPage.
-            {self.__gen_text_search(f'tsStartingPage', starting_page, True)}
+            ?res frbr:embodiment ?tsEmbodiment{ts_index}.
+            ?tsEmbodiment{ts_index} prism:startingPage ?tsStartingPage{ts_index};
+                        prism:endingPage ?tsEndingPage{ts_index}.
+            {self.__gen_text_search(f'tsStartingPage{ts_index}', starting_page, True, ts_index)}
         '''
         if ending_page:
-            text_search += self.__gen_text_search(f'tsEndingPage', ending_page, True)
+            text_search += self.__gen_text_search(f'tsEndingPage', ending_page, True, ts_index)
         return text_search
     
-    def get_text_search_on_vi(self, vi:str) -> str:
+    def get_text_search_on_vi(self, vi:str, ts_index:bool) -> str:
         v_or_i = vi.title()
         return f'''
-            ?res frbr:partOf+ ?ts{v_or_i}.
-            ?ts{v_or_i} a fabio:Journal{v_or_i};
-                    fabio:hasSequenceIdentifier ?ts{v_or_i}Number.
-            {self.__gen_text_search(f'ts{v_or_i}Number', self.text, False)}
+            ?res frbr:partOf+ ?ts{v_or_i}{ts_index}.
+            ?ts{v_or_i} a fabio:Journal{v_or_i}{ts_index};
+                    fabio:hasSequenceIdentifier ?ts{v_or_i}Number{ts_index}.
+            {self.__gen_text_search(f'ts{v_or_i}Number{ts_index}', self.text, False, ts_index)}
         '''
     
-    def get_text_search_on_venue(self) -> str:
+    def get_text_search_on_venue(self, ts_index:bool) -> str:
         return f'''
-            ?res frbr:partOf+ ?tsVenue.
-            ?tsVenue a fabio:Journal;
-                    dcterm:title ?tsVenueTitle.
-            {self.__gen_text_search('tsVenueTitle', self.text, True)}
+            ?res frbr:partOf+ ?tsVenue{ts_index}.
+            ?tsVenue{ts_index} a fabio:Journal;
+                    dcterm:title ?tsVenueTitle{ts_index}.
+            {self.__gen_text_search(f'tsVenueTitle{ts_index}', self.text, False, ts_index)}
         '''
 
-    def __gen_text_search(self, variable:str, text:str, match_all_terms:bool) -> str:
-        body = f"?{variable} bds:search '{text}'. hint:Prior hint:runFirst true."
-        body = body + f"?{variable} bds:matchAllTerms 'true'." if match_all_terms else body
-        text_search = body
+    def __gen_text_search(self, variable:str, text:str, match_all_terms:bool, ts_index:int) -> str:
+        if str(ts_index).startswith('0'):
+            text = f'"{text}"' if match_all_terms else f'{text}'
+            min_relevance = '1.0' if match_all_terms else '0.7'
+            body = f"?{variable} bds:search '{text}'. hint:Prior hint:runFirst true. ?{variable} bds:matchAllTerms 'true'; bds:minRelevance '{min_relevance}'."
+            text_search = body
+        else:
+            pattern = f'^{text}$' if match_all_terms else text
+            text_search = f"FILTER REGEX (?{variable}, '{pattern}', 'i')"
         return text_search
 
-def generate_text_search(fields:str, text:str) -> str:
-    text_searches = []
-    text_search = TextSearch(text)
-    fields_list = \
-        ['title', 'author', 'editor', 'publisher', 'page', 'issue', 'volume', 'venue'] if fields == 'all' \
-        else fields.split('__') if '__' in fields \
-        else [fields]
-    for field in fields_list:
-        if field in {'editor', 'author'}:
-            text_searches.append(getattr(text_search, f'get_text_search_on_person')(field))
-        elif field in {'volume', 'issue'}:
-            text_searches.append(getattr(text_search, f'get_text_search_on_vi')(field))
+
+def __parse_request(request:str, ts_index:bool) -> Tuple[str, str]:
+    field_value = re.search('(id|title|author|editor|publisher|venue)=(.+)', request)
+    if not field_value:
+        pass
+    field = field_value.group(1)
+    value = field_value.group(2)
+    text_search = None
+    ts = TextSearch(value)
+    if field in {'editor', 'author'}:
+        text_search = getattr(ts, f'get_text_search_on_person')(field, ts_index)
+    elif field in {'volume', 'issue'}:
+        text_search = getattr(ts, f'get_text_search_on_vi')(field, ts_index)
+    else:
+        text_search = getattr(ts, f'get_text_search_on_{field}')(ts_index)
+    return text_search
+
+def generate_text_search(text_search:str) -> str:
+    requests = re.split('&&|\|\|', text_search)
+    text_searches = ''
+    for i, request in enumerate(requests):
+        if i == 0:
+            text_searches += f'{__parse_request(request, i)}'
         else:
-            text_searches.append(getattr(text_search, f'get_text_search_on_{field}')())
-    return r'''
-        WITH { SELECT DISTINCT ?res 
-        WHERE {{''' + '} UNION {'.join(text_searches) + \
-        r'}} LIMIT 10000} AS %results',
+            split_by_request = list(filter(None, text_search.split(request)))
+            cur_sep = split_by_request[0][-2:]
+            if cur_sep == '&&':
+                text_searches += f'{__parse_request(request, i)}'
+            elif cur_sep == '||':
+                text_searches += f'UNION{__parse_request(request, f"0{i}")}'
+    if text_searches and 'UNION' in text_searches:
+        query = '{' + '} UNION {'.join(text_searches.split('UNION')) + '}'
+    elif text_searches and not 'UNION' in text_searches:
+        query = text_searches
+    return 'WITH { SELECT DISTINCT ?res WHERE {' + query + r'} LIMIT 10000} AS %results',

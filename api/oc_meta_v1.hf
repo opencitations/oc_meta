@@ -1,6 +1,6 @@
 #url /api/v1
 #type api
-#base https://oc-meta-test.arcangelomassari.it
+#base https://oc-meta.arcangelomassari.it
 #title REST API for OC Meta
 #description This is the REST API for OC Meta, the OpenCitations Index containing bibliographic metadata associated with the documents involved in the citations stored in the OpenCitations infrastructure. All the present operations return either a JSON document (default) or a CSV document according to the mimetype specified in the `Accept` header of the request. If you would like to suggest an additional operation to be included in this API, please use the [issue tracker](https://github.com/opencitations/api/issues) of the OpenCitations APIs available on GitHub.
 #version Version 1.0.0 (2020-06-10)
@@ -68,7 +68,7 @@ WITH {
     ?identifier datacite:usesIdentifierScheme datacite:[[scheme]];
         literal:hasLiteralValue ?literalValue.
     VALUES ?literalValue {[[literal_values]]}
-  } LIMIT 1000
+  } LIMIT 10000
 } AS %results
 WHERE {
   {SELECT DISTINCT ?res ?title ?authorName ?venueName ?publisherName ?editorName ?date ?page ?issue ?volume
@@ -248,7 +248,7 @@ WITH {
     ?knownPerson datacite:hasIdentifier ?knownPersonIdentifier.
     ?knownPersonIdentifier datacite:usesIdentifierScheme datacite:orcid;
                            literal:hasLiteralValue "[[orcid]]".
-  } LIMIT 1000
+  } LIMIT 10000
 } AS %results
 WHERE {
   {SELECT DISTINCT ?res ?title ?authorName ?venueName ?publisherName ?editorName ?date ?page ?issue ?volume
@@ -415,7 +415,7 @@ WITH {
     ?knownPerson datacite:hasIdentifier ?knownPersonIdentifier.
     ?knownPersonIdentifier datacite:usesIdentifierScheme datacite:orcid;
                            literal:hasLiteralValue "[[orcid]]".
-  } LIMIT 1000
+  } LIMIT 10000
 } AS %results
 WHERE {
   {SELECT DISTINCT ?res ?title ?authorName ?venueName ?publisherName ?editorName ?date ?page ?issue ?volume
@@ -527,9 +527,9 @@ WHERE {
 GROUP BY ?id ?title ?date ?page ?issue ?volume ?venue ?publisher ?type
 
 
-#url /search/{fields}/{text}
+#url /search/{text_search}
 #type operation
-#preprocess generate_text_search(fields, text)
+#preprocess generate_text_search(text_search)
 #postprocess create_metadata_output()
 #method get
 #description This operation retrieves the bibliographic metadata for each bibliographic entity whose specified fields contain the given text
@@ -607,7 +607,7 @@ SELECT DISTINCT
 ?date ?page ?issue ?volume ?venue ?type
 ?publisher
 (GROUP_CONCAT(DISTINCT ?editor_; separator='; ') AS ?editor)
-[[fields]]
+[[text_search]]
 WHERE {
   {SELECT DISTINCT ?res ?title ?authorName ?venueName ?publisherName ?editorName ?date ?page ?issue ?volume
   (GROUP_CONCAT(DISTINCT ?id; SEPARATOR=' ') AS ?ids)
