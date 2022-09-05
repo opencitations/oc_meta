@@ -82,8 +82,8 @@ class TextSearch():
         return f'''
             {self.__gen_text_search('tsId', literal_value, True, ts_index)}
             ?res a fabio:Expression; datacite:hasIdentifier ?tsIdentifier{ts_index}.
-            ?tsIdentifier{ts_index} datacite:usesIdentifierSchema 'datacite:{schema}';
-                          literal:hasLiteralValue '{literal_value}'.
+            ?tsIdentifier{ts_index} datacite:usesIdentifierScheme datacite:{schema};
+                          literal:hasLiteralValue ?tsId.
         '''
     
     def get_text_search_on_title(self, ts_index:bool) -> str:
@@ -172,9 +172,8 @@ class TextSearch():
     def __gen_text_search(self, variable:str, text:str, match_all_terms:bool, ts_index:int) -> str:
         if str(ts_index).startswith('0'):
             text = f'"{text}"' if match_all_terms else f'{text}'
-            min_relevance = '1.0' if match_all_terms else '0.7'
-            body = f"?{variable} bds:search '{text}'. hint:Prior hint:runFirst true. ?{variable} bds:matchAllTerms 'true'; bds:minRelevance '{min_relevance}'."
-            text_search = body
+            min_relevance = f"?{variable} bds:minRelevance '0.7'." if match_all_terms else ''
+            text_search = f"?{variable} bds:search '{text}'. hint:Prior hint:runFirst true. ?{variable} bds:matchAllTerms 'true'. {min_relevance}"
         else:
             pattern = f'^{text}$' if match_all_terms else text
             text_search = f"FILTER REGEX (?{variable}, '{pattern}', 'i')"

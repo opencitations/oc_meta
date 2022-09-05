@@ -120,6 +120,34 @@ class test_API(unittest.TestCase):
         expected_output = status_expected, result_expected, format_expected
         self.assertEqual(output, expected_output)
 
+    def test_text_search_id(self):
+        operation_url = 'search'
+        request = 'id=doi:10.1007/978-1-4020-9632-7'
+        call = "%s/%s/%s" % (api_base, operation_url, request)
+        op = api_manager.get_op(call)
+        status, result, format = op.exec()
+        status_expected = 200
+        format_expected = 'application/json'
+        result_expected = [
+            {
+                "id": "doi:10.1007/978-1-4020-9632-7 isbn:9789048127108 isbn:9781402096327 meta:br/0601",
+                "title": "Adaptive Environmental Management",
+                "author": "",
+                "date": "2009",
+                "page": "",
+                "issue": "",
+                "volume": "",
+                "venue": "",
+                "type": "book",
+                "publisher": "Springer Science And Business Media Llc [crossref:297]",
+                "editor": "Allan, Catherine [orcid:0000-0003-2098-4759]; Stankey, George H."
+            }
+        ]
+        output = status, [{k:set(v.split('; ')) if k in {'author', 'editor'} else set(v.split()) if k == 'id' else v for k,v in el.items()} for el in json.loads(result)], format
+        result_expected = [{k:set(v.split('; ')) if k in {'author', 'editor'} else set(v.split()) if k == 'id' else v for k,v in el.items()} for el in result_expected]
+        expected_output = status_expected, result_expected, format_expected
+        self.assertEqual(output, expected_output)
+
     def test_text_search_title(self):
         operation_url = 'search'
         request = 'title=Adaptive Environmental Management'
