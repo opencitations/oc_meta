@@ -37,7 +37,7 @@ class Creator(object):
         self.resp_agent = resp_agent
         self.finder = ResourceFinder(ts_url = endpoint, base_iri = base_iri)
 
-        self.ra_id_schemas = {'crossref', 'orcid', 'viaf', 'wikidata'}
+        self.ra_id_schemas = {'crossref', 'orcid', 'viaf', 'wikidata', 'ror'}
         self.br_id_schemas = {'doi', 'issn', 'isbn', 'pmid', 'pmcid', 'url', 'wikidata', 'wikipedia'}
         self.schemas = self.ra_id_schemas.union(self.br_id_schemas)
 
