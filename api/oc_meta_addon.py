@@ -132,26 +132,15 @@ class TextSearch():
     def get_text_search_on_publisher(self, ts_index:bool) -> str:
         return f'''
             ?res pro:isDocumentContextFor ?tsPublisher{ts_index}.
+            FILTER NOT EXISTS {{
+                ?res a ?type.
+            VALUES (?type) {{(fabio:JournalIssue) (fabio:JournalVolume)}}}}
             ?tsPublisher{ts_index} pro:withRole pro:publisher;
                     pro:isHeldBy ?tsPublisherRa{ts_index}.
             ?tsPublisherRa{ts_index} foaf:name ?tsPublisherName{ts_index}.
             {self.__gen_text_search(f'tsPublisherName{ts_index}', self.text, False, ts_index)}
         '''
-    
-    def get_text_search_on_page(self, ts_index:bool) -> str:
-        pages_list = re.split('[^A-Za-z\d]+(?=[A-Za-z\d]+)', self.text)
-        starting_page = pages_list[0]
-        ending_page = pages_list[1] if len(pages_list) == 2 else None
-        text_search = f'''
-            ?res frbr:embodiment ?tsEmbodiment{ts_index}.
-            ?tsEmbodiment{ts_index} prism:startingPage ?tsStartingPage{ts_index};
-                        prism:endingPage ?tsEndingPage{ts_index}.
-            {self.__gen_text_search(f'tsStartingPage{ts_index}', starting_page, True, ts_index)}
-        '''
-        if ending_page:
-            text_search += self.__gen_text_search(f'tsEndingPage', ending_page, True, ts_index)
-        return text_search
-    
+        
     def get_text_search_on_vi(self, vi:str, ts_index:bool) -> str:
         v_or_i = vi.title()
         return f'''
@@ -164,6 +153,9 @@ class TextSearch():
     def get_text_search_on_venue(self, ts_index:bool) -> str:
         return f'''
             ?res frbr:partOf+ ?tsVenue{ts_index}.
+            FILTER NOT EXISTS {{
+                ?res a ?type.
+            VALUES (?type) {{(fabio:JournalIssue) (fabio:JournalVolume)}}}}
             ?tsVenue{ts_index} a fabio:Journal;
                     dcterm:title ?tsVenueTitle{ts_index}.
             {self.__gen_text_search(f'tsVenueTitle{ts_index}', self.text, False, ts_index)}
