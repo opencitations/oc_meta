@@ -16,7 +16,7 @@
 
 __author__ = 'Arcangelo Massari'
 
-from typing import Tuple
+from typing import List, Tuple
 import re
 
 URI_TYPE_DICT = {
@@ -131,10 +131,10 @@ class TextSearch():
 
     def get_text_search_on_publisher(self, ts_index:bool) -> str:
         return f'''
-            ?res pro:isDocumentContextFor ?tsPublisher{ts_index}.
-            FILTER NOT EXISTS {{
-                ?res a ?type.
-            VALUES (?type) {{(fabio:JournalIssue) (fabio:JournalVolume)}}}}
+            ?res pro:isDocumentContextFor ?tsPublisher{ts_index};
+                 a ?type.
+            FILTER (?type != fabio:JournalVolume) 
+            FILTER (?type != fabio:JournalIssue)  
             ?tsPublisher{ts_index} pro:withRole pro:publisher;
                     pro:isHeldBy ?tsPublisherRa{ts_index}.
             ?tsPublisherRa{ts_index} foaf:name ?tsPublisherName{ts_index}.
@@ -164,7 +164,7 @@ class TextSearch():
     def __gen_text_search(self, variable:str, text:str, match_all_terms:bool, ts_index:int) -> str:
         if str(ts_index).startswith('0'):
             text = f'"{text}"' if match_all_terms else f'{text}'
-            min_relevance = f"?{variable} bds:minRelevance '0.7'." if match_all_terms else ''
+            min_relevance = f"?{variable} bds:minRelevance '0.4'." if not match_all_terms else ''
             text_search = f"?{variable} bds:search '{text}'. hint:Prior hint:runFirst true. ?{variable} bds:matchAllTerms 'true'. {min_relevance}"
         else:
             pattern = f'^{text}$' if match_all_terms else text
@@ -172,13 +172,10 @@ class TextSearch():
         return text_search
 
 
-def __parse_request(request:str, ts_index:bool) -> Tuple[str, str]:
-    field_value = re.search('(id|title|author|editor|publisher|venue)=(.+)', request)
-    if not field_value:
-        pass
-    field = field_value.group(1)
-    value = field_value.group(2)
+def to_text_search(request:str, ts_index:bool) -> Tuple[str, str]:
     text_search = None
+    field = request[0]
+    value = request[1]
     ts = TextSearch(value)
     if field in {'editor', 'author'}:
         text_search = getattr(ts, f'get_text_search_on_person')(field, ts_index)
@@ -189,20 +186,37 @@ def __parse_request(request:str, ts_index:bool) -> Tuple[str, str]:
     return text_search
 
 def generate_text_search(text_search:str) -> str:
-    requests = re.split('&&|\|\|', text_search)
-    text_searches = ''
-    for i, request in enumerate(requests):
-        if i == 0:
-            text_searches += f'{__parse_request(request, i)}'
-        else:
-            split_by_request = list(filter(None, text_search.split(request)))
-            cur_sep = split_by_request[0][-2:]
-            if cur_sep == '&&':
-                text_searches += f'{__parse_request(request, i)}'
-            elif cur_sep == '||':
-                text_searches += f'UNION{__parse_request(request, f"0{i}")}'
-    if text_searches and 'UNION' in text_searches:
-        query = '{' + '} UNION {'.join(text_searches.split('UNION')) + '}'
-    elif text_searches and not 'UNION' in text_searches:
-        query = text_searches
-    return 'WITH { SELECT DISTINCT ?res WHERE {' + query + r'} LIMIT 10000} AS %results',
+    requests = reorder_requests(text_search)
+    text_searches = []
+    for or_request in requests:
+        and_text_search = ''
+        for i, and_request in enumerate(or_request):
+            and_text_search += f'{to_text_search(and_request, i)}'
+        text_searches.append(and_text_search)
+    if len(text_searches) > 1:
+        query = '{' + '} UNION {'.join(text_searches) + '}'
+    elif len(text_searches) == 1:
+        query = text_searches[0]
+    return 'WITH { SELECT DISTINCT ?res WHERE {' + query + r'} LIMIT 1000} AS %results',
+
+def reorder_requests(text_search:str) -> list:
+    preferred_order = ['id', 'editor', 'author', 'title', 'venue', 'publisher']
+    reordered_requests = []
+    split_by_or = text_search.split('||')
+    for or_request in split_by_or:
+        split_by_and = or_request.split('&&')
+        parsed_and_requests = parse_requests(split_by_and)
+        sorted_and_requests = sorted(parsed_and_requests, key=lambda x: preferred_order.index(x[0]))
+        reordered_requests.append(sorted_and_requests)
+    return reordered_requests
+
+def parse_requests(requests:list) -> List[Tuple]:
+    parsed_requests = list()
+    for request in requests:
+        field_value = re.search('(id|title|author|editor|publisher|venue)=(.+)', request)
+        if not field_value:
+            raise(ValueError('Please specify a key=value pair. Supported keys are id, title, author, editor, publisher, and venue'))
+        field = field_value.group(1)
+        value = field_value.group(2)
+        parsed_requests.append((field, value))
+    return parsed_requests

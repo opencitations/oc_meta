@@ -62,7 +62,6 @@ class test_API(unittest.TestCase):
         format_expected = 'application/json'
         output = status, sorted([{k:set(v.split('; ')) if k in {'author', 'editor'} else set(v.split()) if k == 'id' else v for k,v in el.items()} for el in json.loads(result)], key=lambda x:x['date']), format
         result_expected = sorted([{k:set(v.split('; ')) if k in {'author', 'editor'} else set(v.split()) if k == 'id' else v for k,v in el.items()} for el in result_expected], key=lambda x:x['date'])
-        print(output)
         expected_output = status_expected, result_expected, format_expected
         self.assertEqual(output, expected_output)
 
