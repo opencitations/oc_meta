@@ -145,9 +145,9 @@ class TextSearch():
         v_or_i = vi.title()
         return f'''
             ?res frbr:partOf+ ?ts{v_or_i}{ts_index}.
-            ?ts{v_or_i} a fabio:Journal{v_or_i}{ts_index};
+            ?ts{v_or_i}{ts_index} a fabio:Journal{v_or_i};
                     fabio:hasSequenceIdentifier ?ts{v_or_i}Number{ts_index}.
-            {self.__gen_text_search(f'ts{v_or_i}Number{ts_index}', self.text, False, ts_index)}
+            {self.__gen_text_search(f'ts{v_or_i}Number{ts_index}', self.text, True, ts_index)}
         '''
     
     def get_text_search_on_venue(self, ts_index:bool) -> str:
@@ -200,7 +200,7 @@ def generate_text_search(text_search:str) -> str:
     return 'WITH { SELECT DISTINCT ?res WHERE {' + query + r'} LIMIT 1000} AS %results',
 
 def reorder_requests(text_search:str) -> list:
-    preferred_order = ['id', 'editor', 'author', 'title', 'venue', 'publisher']
+    preferred_order = ['id', 'editor', 'author', 'title', 'venue', 'issue', 'volume', 'publisher']
     reordered_requests = []
     split_by_or = text_search.split('||')
     for or_request in split_by_or:
@@ -213,10 +213,12 @@ def reorder_requests(text_search:str) -> list:
 def parse_requests(requests:list) -> List[Tuple]:
     parsed_requests = list()
     for request in requests:
-        field_value = re.search('(id|title|author|editor|publisher|venue)=(.+)', request)
+        field_value = re.search('(id|title|author|editor|publisher|venue|volume|issue)=(.+)', request)
         if not field_value:
             raise(ValueError('Please specify a key=value pair. Supported keys are id, title, author, editor, publisher, and venue'))
         field = field_value.group(1)
         value = field_value.group(2)
         parsed_requests.append((field, value))
+    if (any(field in {'volume', 'issue'} for field, _ in parsed_requests) and not any(field == 'venue' for field, _ in parsed_requests)):
+        raise(ValueError('Specify the venue if you want to search a volume or an issue'))
     return parsed_requests

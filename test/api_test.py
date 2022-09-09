@@ -287,6 +287,42 @@ class test_API(unittest.TestCase):
         expected_output = status_expected, result_expected, format_expected
         self.assertEqual(output, expected_output)
 
+    def test_text_search_volume_and_issue(self):
+        operation_url = 'search'
+        request = 'venue=Physics&&volume=39&&issue=14'
+        call = "%s/%s/%s" % (api_base, operation_url, request)
+        op = api_manager.get_op(call)
+        status, result, format = op.exec()
+        status_expected = 200
+        format_expected = 'application/json'
+        result_expected = [
+            {
+                "id": "doi:10.1088/0022-3727/39/14/017 meta:br/0602",
+                "title": "Diffusion Correction To The Raether–Meek Criterion For The Avalanche-To-Streamer Transition",
+                "author": "Montijn, Carolynne; Ebert, Ute [orcid:0000-0003-3891-6869]",
+                "date": "2006-06-30",
+                "page": "2979-2992",
+                "issue": "14",
+                "volume": "39",
+                "venue": "Journal Of Physics D: Applied Physics [issn:0022-3727 issn:1361-6463]",
+                "type": "journal article",
+                "publisher": "Iop Publishing [crossref:266]",
+                "editor": ""
+            }
+        ]
+        output = status, sorted([{k:set(v.split('; ')) if k in {'author', 'editor'} else set(v.split()) if k == 'id' else v for k,v in el.items()} for el in json.loads(result)], key=lambda x:''.join(x['id'])), format
+        result_expected = sorted([{k:set(v.split('; ')) if k in {'author', 'editor'} else set(v.split()) if k == 'id' else v for k,v in el.items()} for el in result_expected], key=lambda x:''.join(x['id']))
+        expected_output = status_expected, result_expected, format_expected
+        self.assertEqual(output, expected_output)
+
+    def test_text_search_volume_and_issue_error(self):
+        operation_url = 'search'
+        request = 'volume=39||issue=14'
+        call = "%s/%s/%s" % (api_base, operation_url, request)
+        op = api_manager.get_op(call)
+        status, _, _ = op.exec()
+        self.assertEqual(status, 500)
+
     def test_text_search_venue_and_author(self):
         operation_url = 'search'
         request = 'venue=Physics&&author=Montijn, Carolynne'
