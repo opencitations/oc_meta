@@ -161,8 +161,7 @@ class TextSearch():
             ?res a fabio:Expression.
             OPTIONAL {{?res a ?type__. FILTER (?type__ != fabio:Expression)}}
             FILTER ((!BOUND(?type__) || ?type__ != fabio:JournalVolume) && (!BOUND(?type__) ||?type__ != fabio:JournalIssue))
-            ?tsVenue{ts_index} a fabio:Journal;
-                    dcterm:title ?tsVenueTitle{ts_index}.
+            ?tsVenue{ts_index} dcterm:title ?tsVenueTitle{ts_index}.
             {self.__gen_text_search(f'tsVenueTitle{ts_index}', self.text, False, ts_index)}
         '''
 
