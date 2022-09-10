@@ -17,6 +17,7 @@
 __author__ = 'Arcangelo Massari'
 
 from typing import List, Tuple
+import ramose
 import re
 
 URI_TYPE_DICT = {
@@ -61,11 +62,8 @@ def create_metadata_output(results):
         output_results.append(output_result)
     return output_results, True
 
-def __postprocess_type(types_uris:str) -> str:
-    types_uris_list = types_uris.split(' ;and; ')
-    types_uris_list.remove('http://purl.org/spar/fabio/Expression')
-    if types_uris_list:
-        type_uri = types_uris_list[0]
+def __postprocess_type(type_uri:str) -> str:
+    if type_uri:
         type_string = URI_TYPE_DICT[type_uri]
     else:
         type_string = ''
@@ -82,6 +80,7 @@ class TextSearch():
         return f'''
             {self.__gen_text_search('tsId', literal_value, True, ts_index)}
             ?res a fabio:Expression; datacite:hasIdentifier ?tsIdentifier{ts_index}.
+            OPTIONAL {{?res a ?type__. FILTER (?type__ != fabio:Expression)}}
             ?tsIdentifier{ts_index} datacite:usesIdentifierScheme datacite:{schema};
                           literal:hasLiteralValue ?tsId.
         '''
@@ -89,7 +88,9 @@ class TextSearch():
     def get_text_search_on_title(self, ts_index:bool) -> str:
         return f'''
             {self.__gen_text_search(f'tsTitle{ts_index}', self.text, False, ts_index)}
-            ?res dcterm:title ?tsTitle{ts_index}.
+            ?res dcterm:title ?tsTitle{ts_index};
+                a fabio:Expression.
+            OPTIONAL {{?res a ?type__. FILTER (?type__ != fabio:Expression)}}
         '''
     
     def get_text_search_on_person(self, role:str, ts_index:bool) -> str:
@@ -110,13 +111,16 @@ class TextSearch():
         role = role.title()
         text_search = ''
         base_query = f'''
-            ?res pro:isDocumentContextFor ?ts{role}{ts_index}.
+            ?res pro:isDocumentContextFor ?ts{role}{ts_index};
+                a fabio:Expression.
+            OPTIONAL {{?res a ?type__. FILTER (?type__ != fabio:Expression)}}
             ?ts{role}{ts_index} pro:withRole pro:{role.lower()};
                     pro:isHeldBy ?ts{role}Ra{ts_index}.
         '''
         if name:
             text_search += f"{self.__gen_text_search(f'ts{role}Name{ts_index}', name, True, ts_index)}"
-            base_query += f'?ts{role}Ra{ts_index} foaf:name ?ts{role}Name.'
+            base_query += f'?ts{role}Ra{ts_index} ?namePredicate ?ts{role}Name{ts_index}.'
+            base_query += 'VALUES (?namePredicate) {(foaf:name) (foaf:familyName)}'
         else:
             if family_name:
                 text_search += f"{self.__gen_text_search(f'ts{role}Fn{ts_index}', family_name, True, ts_index)}"
@@ -132,9 +136,8 @@ class TextSearch():
     def get_text_search_on_publisher(self, ts_index:bool) -> str:
         return f'''
             ?res pro:isDocumentContextFor ?tsPublisher{ts_index};
-                 a ?type.
-            FILTER (?type != fabio:JournalVolume) 
-            FILTER (?type != fabio:JournalIssue)  
+                 a fabio:Expression.
+            OPTIONAL {{?res a ?type__. FILTER (?type__ != fabio:Expression)}}
             ?tsPublisher{ts_index} pro:withRole pro:publisher;
                     pro:isHeldBy ?tsPublisherRa{ts_index}.
             ?tsPublisherRa{ts_index} foaf:name ?tsPublisherName{ts_index}.
@@ -144,7 +147,9 @@ class TextSearch():
     def get_text_search_on_vi(self, vi:str, ts_index:bool) -> str:
         v_or_i = vi.title()
         return f'''
-            ?res frbr:partOf+ ?ts{v_or_i}{ts_index}.
+            ?res frbr:partOf+ ?ts{v_or_i}{ts_index};
+                a fabio:Expression.
+            OPTIONAL {{?res a ?type__. FILTER (?type__ != fabio:Expression)}}
             ?ts{v_or_i}{ts_index} a fabio:Journal{v_or_i};
                     fabio:hasSequenceIdentifier ?ts{v_or_i}Number{ts_index}.
             {self.__gen_text_search(f'ts{v_or_i}Number{ts_index}', self.text, True, ts_index)}
@@ -153,9 +158,9 @@ class TextSearch():
     def get_text_search_on_venue(self, ts_index:bool) -> str:
         return f'''
             ?res frbr:partOf+ ?tsVenue{ts_index}.
-            FILTER NOT EXISTS {{
-                ?res a ?type.
-            VALUES (?type) {{(fabio:JournalIssue) (fabio:JournalVolume)}}}}
+            ?res a fabio:Expression.
+            OPTIONAL {{?res a ?type__. FILTER (?type__ != fabio:Expression)}}
+            FILTER ((!BOUND(?type__) || ?type__ != fabio:JournalVolume) && (!BOUND(?type__) ||?type__ != fabio:JournalIssue))
             ?tsVenue{ts_index} a fabio:Journal;
                     dcterm:title ?tsVenueTitle{ts_index}.
             {self.__gen_text_search(f'tsVenueTitle{ts_index}', self.text, False, ts_index)}
@@ -197,10 +202,10 @@ def generate_text_search(text_search:str) -> str:
         query = '{' + '} UNION {'.join(text_searches) + '}'
     elif len(text_searches) == 1:
         query = text_searches[0]
-    return 'WITH { SELECT DISTINCT ?res WHERE {' + query + r'} LIMIT 1000} AS %results',
+    return "WITH { SELECT DISTINCT ?res ?type__ WHERE {" + query + r'} LIMIT 1000} AS %results',
 
 def reorder_requests(text_search:str) -> list:
-    preferred_order = ['id', 'editor', 'author', 'title', 'venue', 'issue', 'volume', 'publisher']
+    preferred_order = ['id', 'editor', 'author', 'title', 'venue', 'publisher', 'volume', 'issue']
     reordered_requests = []
     split_by_or = text_search.split('||')
     for or_request in split_by_or:
