@@ -11,7 +11,7 @@
 #addon oc_meta_addon
 
 #url /metadata/{scheme}/{literal_values}
-#scheme str(\"?doi|issn|isbn|pmid\"?)
+#scheme str(\"?doi|issn|isbn\"?)
 #type operation
 #preprocess split_ids(literal_values)
 #postprocess create_metadata_output()
@@ -573,8 +573,9 @@ GROUP BY ?id
 #method get
 #description This operation retrieves the bibliographic metadata for each bibliographic entity whose specified fields contain the given text
 
-The textual search is supported on the following fields: title, author, editor, issue, volume, venue, page, and publisher.
-It is possible to specify one or more fields as input of this operation. In this case, the fields should be separated with a double underscore ("\_\_") – e.g. "author\_\editor".
+The textual search is supported on the following fields: id, title, author, editor, venue, and publisher. You can also search for a specific volume or issue as long as you also specify the venue. The field and value to be searched must be separated by a <code>=</code> sign, e.g. <code>/search/author=Peroni,Silvio</code>.
+
+Different textual queries can be concatenated using the Boolean operators <code>&&</code> (AND) and <code>||</code> (OR), e.g. <code>author=Peroni,Silvio&&author=Shotton,David||title=OpenCitations,+an+infrastructure+organization+for+open+scholarship</code>
 
 The fields returned by this operation are:
 
@@ -588,12 +589,16 @@ The fields returned by this operation are:
 * *page*: the starting and ending pages of the bibliographic entity in the context of the venue where it has been published
 * *type*: the type of the bibliographic entity
 
-As for the author and editor fields, the text search must respect the syntax &lt;FAMILY_NAME&gt;&lt;COMMA&gt;&lt;GIVEN_NAME&gt; (e.g., Massari,Arcangelo) or simply &lt;NAME&gt; (University Of New South Wales) in case the author/editor is an organization and not a physical person.
+As for the **author** and **editor** fields, the text search should respect the syntax &lt;FAMILY_NAME&gt;&lt;COMMA&gt;&lt;GIVEN_NAME&gt; (e.g., Massari,Arcangelo). In the absence of comma (&lt;NAME&gt;), the search will be performed on both family names organizations (e.g., University Of New South Wales).
+The wildcard <code>*</code> can be used only for the given name, while the family name must be an exact match. Finally, given names with only one letter or with only one letter followed by a dot are treated as initials.
+
 Here is the list of all possible combinations to perform text search on authors and editors:
 
 <dl>
   <dt><code>/search/author/massari,arcangelo</code></dt>
   <dd>All the works of the authors whose given names are Arcangelo and family names are Massari</dd>
+  <dt><code>/search/author/peroni,s</code> or <code>/search/author/peroni,s.</code> or <code>/search/author/peroni,s*</code></dt>
+  <dd>All the works of the authors whose given names begin with S and family names are Peroni.</dd>
   <dt><code>/search/author/massari,</code></dt>
   <dd>All the works of the authors whose family names are Massari</dd>
   <dt><code>/search/author/,arcangelo</code></dt>
@@ -601,7 +606,7 @@ Here is the list of all possible combinations to perform text search on authors 
   <dt><code>/search/author/research+centre+for+open+scholarly+metadata</code></dt>
   <dd>All the works authored by the Research Centre for Open Scholarly Metadata</dd>
 </dl>
-#call /search/title/micro-chaos
+#call /search/title=micro-chaos&&publisher=cold+spring+harbor+laboratory||title=micro-chaos&&publisher=springer
 #field_type str(id) str(title) str(author) datetime(date) str(issue) str(volume) str(venue) str(page) str(type) str(publisher) str(editor)
 #output_json [
     {
