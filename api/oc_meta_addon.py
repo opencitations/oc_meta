@@ -66,7 +66,7 @@ def generate_id_search(ids:str) -> Tuple[str]:
                     literal:hasLiteralValue "{literal_value}".}}
             ''')
         else:
-            raise(ValueError())
+            raise(ValueError(f"The identifier scheme '{scheme}' is not supported. Please use one of the following schemes: doi, issn, isbn, meta, pmid, pmcid, url, wikidata, or wikipedia"))
     ids_search += 'UNION'.join(id_searches)
     return ids_search, 
 

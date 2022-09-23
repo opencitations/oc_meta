@@ -12,6 +12,7 @@
 
 #url /metadata/{ids}
 #type operation
+#ids str((doi|issn|isbn|meta|pmid|pmcid|url|wikidata|wikipedia):[^__]+(__(doi|issn|isbn|meta|pmid|pmcid|url|wikidata|wikipedia):[^__]+)*)
 #preprocess generate_id_search(ids)
 #postprocess create_metadata_output()
 #method get
@@ -187,6 +188,7 @@ GROUP BY ?id
 
 #url /author/{orcid}
 #type operation
+#orcid str(([0-9]{4}-){3}[0-9]{3}[0-9X])
 #postprocess create_metadata_output()
 #method get
 #description This operation retrieves the bibliographic metadata for each bibliographic entity authored by the person identified by the given ORCID
@@ -381,6 +383,7 @@ GROUP BY ?id
 
 #url /editor/{orcid}
 #type operation
+#orcid str(([0-9]{4}-){3}[0-9]{3}[0-9X])
 #postprocess create_metadata_output()
 #method get
 #description This operation retrieves the bibliographic metadata for each bibliographic entity edited by the person identified by the given ORCID
