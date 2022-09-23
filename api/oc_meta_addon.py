@@ -17,7 +17,6 @@
 __author__ = 'Arcangelo Massari'
 
 from typing import List, Tuple
-import ramose
 import re
 
 URI_TYPE_DICT = {
@@ -45,8 +44,31 @@ URI_TYPE_DICT = {
     'http://purl.org/spar/fabio/WebContent': 'web content'}
 
 
-def split_ids(literal_values:str) -> str:
-    return "\"%s\"" % "\" \"".join(literal_values.split("__")),
+def generate_id_search(ids:str) -> Tuple[str]:
+    ids_search = f'''
+        ?res a fabio:Expression;
+            datacite:hasIdentifier ?identifier.
+    '''
+    id_searches = list()
+    for identifier in ids.split('__'):
+        scheme_literal_value = identifier.split(':')
+        scheme = scheme_literal_value[0]
+        literal_value = scheme_literal_value[1]
+        if scheme == 'meta':
+            id_searches.append(f'''
+                {{OPTIONAL {{?res a ?type__. FILTER (?type__ != fabio:Expression)}}
+                BIND(<https://w3id.org/oc/meta/{literal_value}> AS ?res)}}
+            ''')
+        elif scheme in {'doi', 'issn', 'isbn', 'pmid', 'pmcid', 'url', 'wikidata', 'wikipedia'}:
+            id_searches.append(f'''
+                {{OPTIONAL {{?res a ?type__. FILTER (?type__ != fabio:Expression)}}
+                ?identifier datacite:usesIdentifierScheme datacite:{scheme};
+                    literal:hasLiteralValue "{literal_value}".}}
+            ''')
+        else:
+            raise(ValueError())
+    ids_search += 'UNION'.join(id_searches)
+    return ids_search, 
 
 def create_metadata_output(results):
     header:list = results[0]
@@ -201,7 +223,7 @@ def generate_text_search(text_search:str) -> str:
         query = '{' + '} UNION {'.join(text_searches) + '}'
     elif len(text_searches) == 1:
         query = text_searches[0]
-    return "WITH { SELECT DISTINCT ?res ?type__ WHERE {" + query + r'} LIMIT 1000} AS %results',
+    return query,
 
 def reorder_requests(text_search:str) -> list:
     preferred_order = ['id', 'editor', 'author', 'title', 'venue', 'publisher', 'volume', 'issue']

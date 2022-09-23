@@ -10,10 +10,9 @@
 #method post
 #addon oc_meta_addon
 
-#url /metadata/{scheme}/{literal_values}
-#scheme str(\"?doi|issn|isbn\"?)
+#url /metadata/{ids}
 #type operation
-#preprocess split_ids(literal_values)
+#preprocess generate_id_search(ids)
 #postprocess create_metadata_output()
 #method get
 #description This operation retrieves the bibliographic metadata for each of the bibliographic entities identified by one or more input IDs
@@ -70,12 +69,7 @@ SELECT DISTINCT
 WITH {
   SELECT DISTINCT ?res ?type__
   WHERE {
-    ?res a fabio:Expression;
-          datacite:hasIdentifier ?identifier.
-    OPTIONAL {?res a ?type__. FILTER (?type__ != fabio:Expression)}
-    ?identifier datacite:usesIdentifierScheme datacite:[[scheme]];
-        literal:hasLiteralValue ?literalValue.
-    VALUES ?literalValue {[[literal_values]]}
+    [[ids]]
   } LIMIT 1000
 } AS %results
 WHERE {
@@ -657,7 +651,12 @@ SELECT DISTINCT
 (GROUP_CONCAT(DISTINCT ?type_) AS ?type)
 (GROUP_CONCAT(DISTINCT ?publisher_; separator=' ') AS ?publisher)
 (GROUP_CONCAT(DISTINCT ?editor_; separator='; ') AS ?editor)
-[[text_search]]
+WITH {
+  SELECT DISTINCT ?res ?type__
+  WHERE {
+    [[text_search]]
+  } LIMIT 1000
+} AS %results
 WHERE {
   {SELECT DISTINCT ?res ?authorName ?editorName       
   (GROUP_CONCAT(DISTINCT ?title__) AS ?title_)
