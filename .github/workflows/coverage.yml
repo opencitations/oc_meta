@@ -22,6 +22,7 @@ jobs:
       run: poetry run coverage run -m test.run_all_tests -d oc_meta/test/coverage
     - name: Generate the badge
       run: |
+        ls
         cd oc_meta/test/coverage
         coverage-badge -o oc_meta/test/coverage.svg
     - name: Publish the badge on the GitHub repo
