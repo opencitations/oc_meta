@@ -18,12 +18,15 @@ jobs:
         poetry install
         poetry run pip3 install coverage
         poetry run pip3 install coverage-badge
+        wget https://github.com/blazegraph/database/releases/download/BLAZEGRAPH_2_1_6_RC/blazegraph.jar
+        java -server -jar blazegraph.jar
     - name: Check the overage
-      run: poetry run coverage run -m test.run_all_tests -d test/coverage
+      run: poetry run coverage run -m unittest discover -s test -p *_test.py
     - name: Generate the badge
       run: |
-        cd test/coverage
-        ls
+        mv .coverage test/coverage/
+        cd test/coverage/
+        rm coverage.svg
         poetry run coverage-badge -o coverage.svg
     - name: Publish the badge on the GitHub repo
       run: |
