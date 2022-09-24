@@ -20,6 +20,7 @@ jobs:
         poetry run pip3 install coverage-badge
         wget https://github.com/blazegraph/database/releases/download/BLAZEGRAPH_2_1_6_RC/blazegraph.jar
         java -server -jar blazegraph.jar &
+        curl -X POST http://localhost:9999/bigdata/namespace/kb
     - name: Check the overage
       run: poetry run coverage run -m unittest discover -s test -p *_test.py
     - name: Generate the badge
