@@ -1,0 +1,28 @@
+# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Check the coverage and add a badge
+on: push
+jobs:
+  CheckCoverage:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3.0.2
+    - name: Install dependencies
+      run: |
+        pip3 install poetry
+        poetry shell
+        poetry install
+        pip3 install coverage
+        pip3 install coverage-badge
+    - name: Check the overage
+      run: coverage run -m test.run_all_tests -d oc_meta/test/coverage
+    - name: Generate the badge
+      run: |
+        cd oc_meta/test/coverage
+        coverage-badge -o oc_meta/test/coverage.svg
+    - name: Publish the badge on the GitHub repo
+      run: |
+        git add *
+        git commit -m ¨Coverage updated¨
+        git push
