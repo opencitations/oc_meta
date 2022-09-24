@@ -34,27 +34,27 @@ class test_Cleaner(unittest.TestCase):
         self.assertEqual(outputs, expected_output)
     
     def test_clean_date_all_valid(self):
-        inputs = ['2020-02-11', '2020-12-12', '2000', '2000-12']
+        inputs = ['2020-13-50', '2020-02-50', '2020-02-11', '2020-12-12', '2000', '2000-12', '2000-13']
         outputs = list()
         for input in inputs:
             outputs.append(Cleaner(input).clean_date())
-        expected_output = ['2020-02-11', '2020-12-12', '2000', '2000-12']
+        expected_output = ['2020', '2020-02', '2020-02-11', '2020-12-12', '2000', '2000-12', '2000']
         self.assertEqual(outputs, expected_output)
 
     def test_clean_date_all_invalid(self):
-        inputs = ['02-11', '11', '100000', 'godopoli']
+        inputs = ['100000-13-50', '02-11', '11', '100000', 'godopoli']
         outputs = list()
         for input in inputs:
             outputs.append(Cleaner(input).clean_date())
-        expected_output = ['', '', '', '']
+        expected_output = ['', '', '', '', '']
         self.assertEqual(outputs, expected_output)
     
     def test_clean_name(self):
-        names = ['Peroni, Silvio', 'Peroni, S.', '  Peroni   ,    Silvio  ', 'PERONI, SILVIO', '', 'peroni', 'peroni, Silvio', 'McSorley, Stephen', 'OECD']
+        names = ['Peroni, Silvio', 'Peroni, S.', '  Peroni   ,    Silvio  ', 'PERONI, SILVIO', '', 'peroni', 'peroni, Silvio', 'McSorley, Stephen', 'OECD', ',']
         outputs = list()
         for name in names:
             outputs.append(Cleaner(name).clean_name())
-        expected_output = ['Peroni, Silvio', 'Peroni, S.', 'Peroni, Silvio', 'Peroni, Silvio', '', 'Peroni', 'Peroni, Silvio', 'McSorley, Stephen', 'Oecd']
+        expected_output = ['Peroni, Silvio', 'Peroni, S.', 'Peroni, Silvio', 'Peroni, Silvio', '', 'Peroni', 'Peroni, Silvio', 'McSorley, Stephen', 'Oecd', '']
         self.assertEqual(outputs, expected_output)
     
     def test_remove_unwanted_characters(self):
@@ -66,7 +66,7 @@ class test_Cleaner(unittest.TestCase):
         self.assertEqual(outputs, expected_output)
     
     def test_clean_ra_list(self):
-        names = ['Not Available, Not Available', 'Peroni, Not Available', 'Not Available, Silvio', 'Not Available', 'Peroni, Silvio']
+        names = ['Not Available, Not Available', 'Peroni, Not Available', 'Not Available, Silvio', 'Not Available', 'Peroni, Silvio', ',']
         output = Cleaner.clean_ra_list(names)
         expected_output = ['Peroni, ', 'Peroni, Silvio']
         self.assertEqual(output, expected_output)

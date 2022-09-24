@@ -53,7 +53,7 @@ class test_API(unittest.TestCase):
                 "page": "2979-2992",
                 "issue": "14",
                 "volume": "39",
-                "venue": "Journal Of Physics D: Applied Physics [issn:1361-6463 issn:0022-3727]",
+                "venue": "Journal Of Physics D: Applied Physics [issn:0022-3727]",
                 "type": "journal article",
                 "publisher": "Iop Publishing [crossref:266]",
                 "editor": ""
@@ -87,7 +87,7 @@ class test_API(unittest.TestCase):
                 "editor": "Allan, Catherine [orcid:0000-0003-2098-4759]; Stankey, George H."
             },
             {
-                "id": "issn:1361-6463 issn:0022-3727 meta:br/0604",
+                "id": "issn:0022-3727 meta:br/0604",
                 "title": "Journal Of Physics D: Applied Physics",
                 "author": "",
                 "date": "",
@@ -122,7 +122,7 @@ class test_API(unittest.TestCase):
                 "page": "2979-2992",
                 "issue": "14",
                 "volume": "39",
-                "venue": "Journal Of Physics D: Applied Physics [issn:1361-6463 issn:0022-3727]",
+                "venue": "Journal Of Physics D: Applied Physics [issn:0022-3727]",
                 "type": "journal article",
                 "publisher": "Iop Publishing [crossref:266]",
                 "editor": ""
@@ -141,7 +141,7 @@ class test_API(unittest.TestCase):
                 "editor": "Allan, Catherine [orcid:0000-0003-2098-4759]; Stankey, George H."
             },
             {
-                "id": "issn:1361-6463 issn:0022-3727 meta:br/0604",
+                "id": "issn:0022-3727 meta:br/0604",
                 "title": "Journal Of Physics D: Applied Physics",
                 "author": "",
                 "date": "",
@@ -176,7 +176,7 @@ class test_API(unittest.TestCase):
                 "page": "2979-2992",
                 "issue": "14",
                 "volume": "39",
-                "venue": "Journal Of Physics D: Applied Physics [issn:1361-6463 issn:0022-3727]",
+                "venue": "Journal Of Physics D: Applied Physics [issn:0022-3727]",
                 "type": "journal article",
                 "publisher": "Iop Publishing [crossref:266]",
                 "editor": ""
@@ -287,7 +287,7 @@ class test_API(unittest.TestCase):
                 "page": "2979-2992",
                 "issue": "14",
                 "volume": "39",
-                "venue": "Journal Of Physics D: Applied Physics [issn:1361-6463 issn:0022-3727]",
+                "venue": "Journal Of Physics D: Applied Physics [issn:0022-3727]",
                 "type": "journal article",
                 "publisher": "Iop Publishing [crossref:266]",
                 "editor": ""
@@ -315,7 +315,7 @@ class test_API(unittest.TestCase):
                 "page": "2979-2992",
                 "issue": "14",
                 "volume": "39",
-                "venue": "Journal Of Physics D: Applied Physics [issn:1361-6463 issn:0022-3727]",
+                "venue": "Journal Of Physics D: Applied Physics [issn:0022-3727]",
                 "type": "journal article",
                 "publisher": "Iop Publishing [crossref:266]",
                 "editor": ""
@@ -427,7 +427,7 @@ class test_API(unittest.TestCase):
                 "page": "2979-2992",
                 "issue": "14",
                 "volume": "39",
-                "venue": "Journal Of Physics D: Applied Physics [issn:1361-6463 issn:0022-3727]",
+                "venue": "Journal Of Physics D: Applied Physics [issn:0022-3727]",
                 "type": "journal article",
                 "publisher": "Iop Publishing [crossref:266]",
                 "editor": ""
@@ -455,7 +455,7 @@ class test_API(unittest.TestCase):
                 "page": "2979-2992",
                 "issue": "14",
                 "volume": "39",
-                "venue": "Journal Of Physics D: Applied Physics [issn:1361-6463 issn:0022-3727]",
+                "venue": "Journal Of Physics D: Applied Physics [issn:0022-3727]",
                 "type": "journal article",
                 "publisher": "Iop Publishing [crossref:266]",
                 "editor": ""
@@ -491,7 +491,7 @@ class test_API(unittest.TestCase):
                 "page": "2979-2992",
                 "issue": "14",
                 "volume": "39",
-                "venue": "Journal Of Physics D: Applied Physics [issn:1361-6463 issn:0022-3727]",
+                "venue": "Journal Of Physics D: Applied Physics [issn:0022-3727]",
                 "type": "journal article",
                 "publisher": "Iop Publishing [crossref:266]",
                 "editor": ""
@@ -519,7 +519,7 @@ class test_API(unittest.TestCase):
                 "page": "2979-2992",
                 "issue": "14",
                 "volume": "39",
-                "venue": "Journal Of Physics D: Applied Physics [issn:1361-6463 issn:0022-3727]",
+                "venue": "Journal Of Physics D: Applied Physics [issn:0022-3727]",
                 "type": "journal article",
                 "publisher": "Iop Publishing [crossref:266]",
                 "editor": ""
@@ -560,7 +560,7 @@ class test_API(unittest.TestCase):
                 "page": "2979-2992",
                 "issue": "14",
                 "volume": "39",
-                "venue": "Journal Of Physics D: Applied Physics [issn:1361-6463 issn:0022-3727]",
+                "venue": "Journal Of Physics D: Applied Physics [issn:0022-3727]",
                 "type": "journal article",
                 "publisher": "Iop Publishing [crossref:266]",
                 "editor": ""
