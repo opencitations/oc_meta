@@ -23,7 +23,8 @@ jobs:
     - name: Generate the badge
       run: |
         cd test/coverage
-        poetry run coverage-badge -o test/coverage.svg
+        ls
+        poetry run coverage-badge -o coverage.svg
     - name: Publish the badge on the GitHub repo
       run: |
         git add *
