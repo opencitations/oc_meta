@@ -15,7 +15,7 @@
 # SOFTWARE.
 
 
-name: Run the tests
+name: Run tests
 on:
   push:
     branches: [ master ]
@@ -54,9 +54,22 @@ jobs:
         cd test/coverage/
         rm coverage.svg
         poetry run coverage-badge -o coverage.svg
+    - uses: actions/upload-artifact@v3.1.0
+      with:
+          name: coverage-artifact
+          path: test/coverage/
+  PublishBadge:
+    needs: CheckCoverage
+    steps:
+    - uses: actions/checkout@v3.0.2
+    - uses: actions/download-artifact@v3.0.0
+      with:
+        name: coverage-artifact
+        path: test/coverage/
     - name: Publish the badge on the GitHub repo
       run: |
-        ls
+        ls -R
+        git pull
         git add test/coverage/.coverage
         git add test/coverage/coverage.svg
         git config --global user.name 'arcangelo7'
