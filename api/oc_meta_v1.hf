@@ -565,6 +565,7 @@ GROUP BY ?id
 
 #url /search/{text_search}
 #type operation
+#text_search str((id|editor|author|title|venue|publisher|volume|issue)=((?!&&|\|\|).)+((&&|\|\|)(id|editor|author|title|venue|publisher|volume|issue)=((?!&&|\|\|).)+)*)
 #preprocess generate_text_search(text_search)
 #postprocess create_metadata_output()
 #method get
