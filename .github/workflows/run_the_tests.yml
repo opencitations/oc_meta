@@ -1,5 +1,19 @@
-# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
-# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+# Copyright 2022 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# Permission to use, copy, modify, and/or distribute this software for any purpose
+# with or without fee is hereby granted, provided that the above copyright notice
+# and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED 'AS IS' AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+# FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT,
+# OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
+# DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS
+# ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
+# SOFTWARE.
+
 
 name: Run the tests
 on:
@@ -43,8 +57,8 @@ jobs:
     - name: Publish the badge on the GitHub repo
       run: |
         ls
-        git add .coverage
-        git add coverage.svg
+        git add test/coverage/.coverage
+        git add test/coverage/coverage.svg
         git config --global user.name 'arcangelo7'
         git config --global user.email 'arcangelomas@gmail.com'
         git commit -m 'Coverage updated'
