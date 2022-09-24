@@ -100,7 +100,7 @@ class test_Index_orcid_doi(unittest.TestCase):
         self.assertEqual((unordered_output, cache), (expected_output, {'0000-0001-5650-3000'}))
 
     def test_low_memory(self):
-        iOd = Index_orcid_doi(output_path=CSV_PATH, low_memory=True, verbose=False)
+        iOd = Index_orcid_doi(output_path=CSV_PATH, low_memory=True, threshold=10, verbose=False)
         iOd.explorer(summaries_path=SUMMARIES_PATH)
         output = sorted(load_files_from_dir(CSV_PATH), key=lambda d: d['id'])
         expected_output = sorted([

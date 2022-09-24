@@ -8,6 +8,7 @@ from pprint import pprint
 BASE = os.path.join('test', 'crossref_processing')
 IOD = os.path.join(BASE, 'iod')
 WANTED_DOIS = os.path.join(BASE, 'wanted_dois.csv')
+WANTED_DOIS_FOLDER = os.path.join(BASE, 'wanted_dois')
 DATA = os.path.join(BASE, '40228.json')
 DATA_DIR = BASE
 OUTPUT = os.path.join(BASE, 'meta_input')
@@ -18,7 +19,7 @@ PUBLISHERS_MAPPING = os.path.join(BASE, 'publishers.csv')
 class TestCrossrefProcessing(unittest.TestCase):
 
     def test_csv_creator(self):
-        crossref_processor = CrossrefProcessing(orcid_index=IOD, doi_csv=WANTED_DOIS, publishers_filepath=None)
+        crossref_processor = CrossrefProcessing(orcid_index=IOD, doi_csv=WANTED_DOIS_FOLDER, publishers_filepath=None)
         data = load_json(DATA, None)
         output = list()
         for item in data['items']:
