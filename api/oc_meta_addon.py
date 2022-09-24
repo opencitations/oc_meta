@@ -240,8 +240,6 @@ def parse_requests(requests:list) -> List[Tuple]:
     parsed_requests = list()
     for request in requests:
         field_value = re.search(r'(id|title|author|editor|publisher|venue|volume|issue)=((?:(?!&&|\|\|).)+)', request)
-        if not field_value:
-            raise(ValueError('Please specify a key=value pair. Supported keys are id, title, author, editor, publisher, volume, issue, and venue'))
         field = field_value.group(1)
         value = field_value.group(2)
         parsed_requests.append((field, value))

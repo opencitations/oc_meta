@@ -1,6 +1,6 @@
 from datetime import datetime
+import re
 from oc_meta.run.meta_process import MetaProcess, run_meta_process
-from pprint import pprint
 from ramose import APIManager
 from test.curator_test import reset_server
 from test.meta_process_test import delete_output_zip
@@ -53,7 +53,7 @@ class test_API(unittest.TestCase):
                 "page": "2979-2992",
                 "issue": "14",
                 "volume": "39",
-                "venue": "Journal Of Physics D: Applied Physics [issn:0022-3727 issn:1361-6463]",
+                "venue": "Journal Of Physics D: Applied Physics [issn:1361-6463 issn:0022-3727]",
                 "type": "journal article",
                 "publisher": "Iop Publishing [crossref:266]",
                 "editor": ""
@@ -87,7 +87,7 @@ class test_API(unittest.TestCase):
                 "editor": "Allan, Catherine [orcid:0000-0003-2098-4759]; Stankey, George H."
             },
             {
-                "id": "issn:0022-3727 issn:1361-6463 meta:br/0603",
+                "id": "issn:1361-6463 issn:0022-3727 meta:br/0604",
                 "title": "Journal Of Physics D: Applied Physics",
                 "author": "",
                 "date": "",
@@ -122,7 +122,7 @@ class test_API(unittest.TestCase):
                 "page": "2979-2992",
                 "issue": "14",
                 "volume": "39",
-                "venue": "Journal Of Physics D: Applied Physics [issn:0022-3727 issn:1361-6463]",
+                "venue": "Journal Of Physics D: Applied Physics [issn:1361-6463 issn:0022-3727]",
                 "type": "journal article",
                 "publisher": "Iop Publishing [crossref:266]",
                 "editor": ""
@@ -141,7 +141,7 @@ class test_API(unittest.TestCase):
                 "editor": "Allan, Catherine [orcid:0000-0003-2098-4759]; Stankey, George H."
             },
             {
-                "id": "issn:0022-3727 issn:1361-6463 meta:br/0603",
+                "id": "issn:1361-6463 issn:0022-3727 meta:br/0604",
                 "title": "Journal Of Physics D: Applied Physics",
                 "author": "",
                 "date": "",
@@ -176,7 +176,7 @@ class test_API(unittest.TestCase):
                 "page": "2979-2992",
                 "issue": "14",
                 "volume": "39",
-                "venue": "Journal Of Physics D: Applied Physics [issn:0022-3727 issn:1361-6463]",
+                "venue": "Journal Of Physics D: Applied Physics [issn:1361-6463 issn:0022-3727]",
                 "type": "journal article",
                 "publisher": "Iop Publishing [crossref:266]",
                 "editor": ""
@@ -287,9 +287,65 @@ class test_API(unittest.TestCase):
                 "page": "2979-2992",
                 "issue": "14",
                 "volume": "39",
-                "venue": "Journal Of Physics D: Applied Physics [issn:0022-3727 issn:1361-6463]",
+                "venue": "Journal Of Physics D: Applied Physics [issn:1361-6463 issn:0022-3727]",
                 "type": "journal article",
                 "publisher": "Iop Publishing [crossref:266]",
+                "editor": ""
+            }
+        ]
+        output = status, [{k:set(v.split('; ')) if k in {'author', 'editor'} else set(v.split()) if k == 'id' else v for k,v in el.items()} for el in json.loads(result)], format
+        result_expected = [{k:set(v.split('; ')) if k in {'author', 'editor'} else set(v.split()) if k == 'id' else v for k,v in el.items()} for el in result_expected]
+        expected_output = status_expected, result_expected, format_expected
+        self.assertEqual(output, expected_output)
+
+    def test_text_search_given_name(self):
+        operation_url = 'search'
+        request = 'author=,Carolynne'
+        call = "%s/%s/%s" % (api_base, operation_url, request)
+        op = api_manager.get_op(call)
+        status, result, format = op.exec()
+        status_expected = 200
+        format_expected = 'application/json'
+        result_expected = [
+            {
+                "id": "doi:10.1088/0022-3727/39/14/017 meta:br/0602",
+                "title": "Diffusion Correction To The Raether–Meek Criterion For The Avalanche-To-Streamer Transition",
+                "author": "Montijn, Carolynne; Ebert, Ute [orcid:0000-0003-3891-6869]",
+                "date": "2006-06-30",
+                "page": "2979-2992",
+                "issue": "14",
+                "volume": "39",
+                "venue": "Journal Of Physics D: Applied Physics [issn:1361-6463 issn:0022-3727]",
+                "type": "journal article",
+                "publisher": "Iop Publishing [crossref:266]",
+                "editor": ""
+            }
+        ]
+        output = status, [{k:set(v.split('; ')) if k in {'author', 'editor'} else set(v.split()) if k == 'id' else v for k,v in el.items()} for el in json.loads(result)], format
+        result_expected = [{k:set(v.split('; ')) if k in {'author', 'editor'} else set(v.split()) if k == 'id' else v for k,v in el.items()} for el in result_expected]
+        expected_output = status_expected, result_expected, format_expected
+        self.assertEqual(output, expected_output)
+
+    def test_text_search_foaf_name(self):
+        operation_url = 'search'
+        request = 'author=F42'
+        call = "%s/%s/%s" % (api_base, operation_url, request)
+        op = api_manager.get_op(call)
+        status, result, format = op.exec()
+        status_expected = 200
+        format_expected = 'application/json'
+        result_expected = [
+            {
+                "id": "doi:10.1520/f2792-10e01 meta:br/0603",
+                "title": "Terminology For Additive Manufacturing Technologies,",
+                "author": "F42 Committee",
+                "date": "",
+                "page": "",
+                "issue": "",
+                "volume": "",
+                "venue": "",
+                "type": "standard",
+                "publisher": "Astm International [crossref:381]",
                 "editor": ""
             }
         ]
@@ -371,7 +427,7 @@ class test_API(unittest.TestCase):
                 "page": "2979-2992",
                 "issue": "14",
                 "volume": "39",
-                "venue": "Journal Of Physics D: Applied Physics [issn:0022-3727 issn:1361-6463]",
+                "venue": "Journal Of Physics D: Applied Physics [issn:1361-6463 issn:0022-3727]",
                 "type": "journal article",
                 "publisher": "Iop Publishing [crossref:266]",
                 "editor": ""
@@ -399,7 +455,7 @@ class test_API(unittest.TestCase):
                 "page": "2979-2992",
                 "issue": "14",
                 "volume": "39",
-                "venue": "Journal Of Physics D: Applied Physics [issn:0022-3727 issn:1361-6463]",
+                "venue": "Journal Of Physics D: Applied Physics [issn:1361-6463 issn:0022-3727]",
                 "type": "journal article",
                 "publisher": "Iop Publishing [crossref:266]",
                 "editor": ""
@@ -435,7 +491,7 @@ class test_API(unittest.TestCase):
                 "page": "2979-2992",
                 "issue": "14",
                 "volume": "39",
-                "venue": "Journal Of Physics D: Applied Physics [issn:0022-3727 issn:1361-6463]",
+                "venue": "Journal Of Physics D: Applied Physics [issn:1361-6463 issn:0022-3727]",
                 "type": "journal article",
                 "publisher": "Iop Publishing [crossref:266]",
                 "editor": ""
@@ -463,7 +519,7 @@ class test_API(unittest.TestCase):
                 "page": "2979-2992",
                 "issue": "14",
                 "volume": "39",
-                "venue": "Journal Of Physics D: Applied Physics [issn:0022-3727 issn:1361-6463]",
+                "venue": "Journal Of Physics D: Applied Physics [issn:1361-6463 issn:0022-3727]",
                 "type": "journal article",
                 "publisher": "Iop Publishing [crossref:266]",
                 "editor": ""
@@ -504,7 +560,7 @@ class test_API(unittest.TestCase):
                 "page": "2979-2992",
                 "issue": "14",
                 "volume": "39",
-                "venue": "Journal Of Physics D: Applied Physics [issn:0022-3727 issn:1361-6463]",
+                "venue": "Journal Of Physics D: Applied Physics [issn:1361-6463 issn:0022-3727]",
                 "type": "journal article",
                 "publisher": "Iop Publishing [crossref:266]",
                 "editor": ""
