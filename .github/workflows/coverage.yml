@@ -35,5 +35,7 @@ jobs:
     - name: Publish the badge on the GitHub repo
       run: |
         git add *
-        git commit -m ¨Coverage updated¨
+        git config --global user.name 'arcangelo7'
+        git config --global user.email 'arcangelomas@gmail.com'
+        git commit -m 'Coverage updated'
         git push
