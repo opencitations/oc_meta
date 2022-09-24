@@ -140,7 +140,7 @@ class TextSearch():
                     pro:isHeldBy ?ts{role}Ra{ts_index}.
         '''
         if name:
-            text_search += f"{self.__gen_text_search(f'ts{role}Name{ts_index}', name, True, ts_index)}"
+            text_search += f"{self.__gen_text_search(f'ts{role}Name{ts_index}', name, False, ts_index)}"
             base_query += f'?ts{role}Ra{ts_index} ?namePredicate ?ts{role}Name{ts_index}.'
             base_query += 'VALUES (?namePredicate) {(foaf:name) (foaf:familyName)}'
         else:
