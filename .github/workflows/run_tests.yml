@@ -38,8 +38,6 @@ jobs:
       run: |
         pip3 install poetry
         poetry install
-        poetry run pip3 install coverage
-        poetry run pip3 install coverage-badge
     - name: Run Blazegraph
       run: |
         wget https://github.com/blazegraph/database/releases/download/BLAZEGRAPH_2_1_6_RC/blazegraph.jar
