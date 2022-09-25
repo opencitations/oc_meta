@@ -87,12 +87,12 @@ if __name__ == '__main__':
     csv_dir = settings['output'] if settings else args.csv_dir
     csv_dir = normalize_path(csv_dir)
     publishers_filepath = settings['publishers_filepath'] if settings else args.publishers_filepath
-    publishers_filepath = normalize_path(publishers_filepath)
+    publishers_filepath = normalize_path(publishers_filepath) if publishers_filepath else None
     orcid_doi_filepath = settings['orcid_doi_filepath'] if settings else args.orcid_doi_filepath
-    orcid_doi_filepath = normalize_path(orcid_doi_filepath)
+    orcid_doi_filepath = normalize_path(orcid_doi_filepath) if orcid_doi_filepath else None
     wanted_doi_filepath = settings['wanted_doi_filepath'] if settings else args.wanted_doi_filepath
-    wanted_doi_filepath = normalize_path(wanted_doi_filepath)
+    wanted_doi_filepath = normalize_path(wanted_doi_filepath) if wanted_doi_filepath else None
     cache = settings['cache_filepath'] if settings else args.cache
-    cache = normalize_path(cache)
+    cache = normalize_path(cache) if cache else None
     verbose = settings['verbose'] if settings else args.verbose
     preprocess(crossref_json_dir=crossref_json_dir, publishers_filepath=publishers_filepath, orcid_doi_filepath=orcid_doi_filepath, csv_dir=csv_dir, wanted_doi_filepath=wanted_doi_filepath, cache=cache, verbose=verbose)

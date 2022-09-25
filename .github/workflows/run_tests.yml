@@ -47,7 +47,8 @@ jobs:
         python3 -c 'import time; time.sleep(10)'
         curl -X POST  http://localhost:9999/blazegraph/namespace/kb/textIndex?force-index-create=true
     - name: Check the overage
-      run: poetry run coverage run -m unittest discover -s test -p *_test.py
+      run: |
+        poetry run coverage run --rcfile=test/coverage/.coveragerc
     - name: Generate the badge
       run: |
         mv .coverage test/coverage/
@@ -71,7 +72,6 @@ jobs:
       run: |
         ls -R
         git pull
-        git add test/coverage/.coverage
         git add test/coverage/coverage.svg
         git config --global user.name 'arcangelo7'
         git config --global user.email 'arcangelomas@gmail.com'
