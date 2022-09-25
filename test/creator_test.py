@@ -88,9 +88,9 @@ class test_Creator(unittest.TestCase):
 class test_RespAgentsCreator(unittest.TestCase):
     def test_creator(self):
         reset_server()
-        data = get_data("test/testcases/testcase_data/resp_agents_curator_output.csv")
+        data = get_data("test/testcases/testcase_data/resp_agents_creator.csv")
         creator_info_dir = os.path.join("test", "creator_counter")
-        testcase_id_ra = get_data("test/testcases/testcase_data/indices/resp_agents_curator_output/index_id_ra.csv")
+        testcase_id_ra = get_data("test/testcases/testcase_data/indices/resp_agents_creator/index_id_ra.csv")
         creator = RespAgentsCreator(data, SERVER, "https://w3id.org/oc/meta/", creator_info_dir, "060", 'https://orcid.org/0000-0002-8420-0696', testcase_id_ra, set())
         creator_graphset = creator.creator()
         output_graph = Graph()

@@ -22,6 +22,7 @@ filelock = "^3.6.0"
 psutil = "^5.9.0"
 Pebble = "^4.6.3"
 ramose = "^1.0.6"
+oc-idmanager = "0.1.1"
 
 [tool.poetry.dev-dependencies]
 wget = "^3.2"
