@@ -1,6 +1,7 @@
 from oc_meta.lib.file_manager import get_data
 from oc_meta.plugins.get_ids_from_citations import get_ids_from_citations
 import os
+import shutil
 import unittest
 
 
@@ -14,7 +15,8 @@ class test_GetIdsFromCitations(unittest.TestCase):
             get_ids_from_citations(citations_dir=os.path.join(BASE_DIR, 'wrong_input'), output_dir=os.path.join(OUTPUT_DIR, 'wrong_output'), verbose=False)
 
     def test_get_ids_from_citations_csv(self):
-        get_ids_from_citations(citations_dir=os.path.join(BASE_DIR, 'input_csv'), output_dir=os.path.join(OUTPUT_DIR, 'csv'), verbose=False)
+        get_ids_from_citations(citations_dir=os.path.join(BASE_DIR, 'input_csv'), output_dir=os.path.join(OUTPUT_DIR, 'csv'), threshold=3, verbose=True)
+        get_ids_from_citations(citations_dir=os.path.join(BASE_DIR, 'input_csv'), output_dir=os.path.join(OUTPUT_DIR, 'csv'), threshold=2, verbose=True)
         output = list()
         output_dir = os.path.join(OUTPUT_DIR, 'csv')
         for filename in os.listdir(output_dir):
@@ -23,11 +25,12 @@ class test_GetIdsFromCitations(unittest.TestCase):
         self.assertEqual(output, expected_output)
 
     def test_get_ids_from_citations_zip(self):
-        get_ids_from_citations(citations_dir=os.path.join(BASE_DIR, 'input_csv'), output_dir=os.path.join(OUTPUT_DIR, 'zip'), verbose=False)
+        get_ids_from_citations(citations_dir=os.path.join(BASE_DIR, 'input_zip'), output_dir=os.path.join(OUTPUT_DIR, 'zip'), threshold=2, verbose=True)
         output = list()
         output_dir = os.path.join(OUTPUT_DIR, 'zip')
         for filename in os.listdir(output_dir):
             output.extend(get_data(os.path.join(output_dir, filename)))
-        expected_output = [{'id': '2140506'}, {'id': '2942070'}, {'id': '1523579'}, {'id': '7097569'}, {'id': '10.1108/jd-12-2013-0166'}, {'id': '10.1023/a:1021919228368'}, {'id': '10.1093/bioinformatics'}]
-        self.assertEqual(output, expected_output)
+        expected_output = sorted([{'id': '2140506'}, {'id': '2942070'}, {'id': '1523579'}, {'id': '7097569'}, {'id': '10.1108/jd-12-2013-0166'}, {'id': '10.1023/a:1021919228368'}, {'id': '10.1093/bioinformatics'}], key=lambda x:''.join(x['id']))
+        shutil.rmtree(output_dir)
+        self.assertEqual(sorted(output, key=lambda x:''.join(x['id'])), expected_output)
  

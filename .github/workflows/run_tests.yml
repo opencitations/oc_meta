@@ -70,8 +70,8 @@ jobs:
         path: test/coverage/
     - name: Publish the badge on the GitHub repo
       run: |
-        ls -R
         git pull
+        git add test/coverage/.coverage
         git add test/coverage/coverage.svg
         git config --global user.name 'arcangelo7'
         git config --global user.email 'arcangelomas@gmail.com'

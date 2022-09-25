@@ -37,9 +37,10 @@ def get_ids_from_citations(citations_dir:str, output_dir:str, threshold:int=1000
         pbar = tqdm(total=get_files_count(citations_dir))
     file_counter = 1
     output_csv = list()
+    len_ids_found = len(ids_found)
     for fold, _, files in os.walk(citations_dir):
         for file in files:
-            cur_file = file_counter + len(ids_found)
+            cur_file = file_counter + len_ids_found
             if file.endswith('.csv'):
                 data = csv.DictReader(open(os.path.join(fold, file), 'r', encoding='utf8'))
                 process_data(data, ids_found, output_csv)
@@ -52,7 +53,7 @@ def get_ids_from_citations(citations_dir:str, output_dir:str, threshold:int=1000
             elif file.endswith('.zip'):
                 with ZipFile(os.path.join(citations_dir, file), 'r') as archive:
                     for name in archive.namelist():
-                        cur_file = file_counter + len(ids_found)
+                        cur_file = file_counter + len_ids_found
                         with archive.open(name) as infile:
                             data = csv.DictReader(io.TextIOWrapper(infile, 'utf-8'))
                             process_data(data, ids_found, output_csv)

@@ -29,15 +29,13 @@ def pathoo(path):
         os.makedirs(os.path.dirname(path))
 
 def write_csv(path:str, datalist:List[dict], fieldnames:list=None) -> None:
-    if not datalist:
-        fieldnames = []
-    else:
+    if datalist:
         fieldnames = datalist[0].keys() if fieldnames is None else fieldnames
-    pathoo(path)
-    with open(path, 'w', newline='', encoding='utf-8') as output_file:
-        dict_writer = csv.DictWriter(f=output_file, fieldnames=fieldnames, delimiter=',', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
-        dict_writer.writeheader()
-        dict_writer.writerows(datalist)
+        pathoo(path)
+        with open(path, 'w', newline='', encoding='utf-8') as output_file:
+            dict_writer = csv.DictWriter(f=output_file, fieldnames=fieldnames, delimiter=',', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
+            dict_writer.writeheader()
+            dict_writer.writerows(datalist)
 
 def normalize_path(path:str) -> str:
     normal_path = path.replace('\\', '/').replace('/', os.sep)
