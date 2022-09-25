@@ -19,7 +19,7 @@ from oc_meta.plugins.csv_generator.csv_generator import *
 from argparse import ArgumentParser
 
 
-if __name__ == '__main__':
+if __name__ == '__main__': # pragma: no cover
     arg_parser = ArgumentParser('csv_generator.py', description='This script generates output CSVs from the OpenCitations Meta triplestore')
     arg_parser.add_argument('-c', '--config', dest='config', required=True,
                             help='Configuration file directory')

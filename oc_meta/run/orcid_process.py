@@ -2,7 +2,7 @@ from oc_meta.plugins.orcid.index_orcid_doi import Index_orcid_doi
 from argparse import ArgumentParser
 
 
-if __name__ == '__main__':
+if __name__ == '__main__': # pragma: no cover
     arg_parser = ArgumentParser('index_orcid_doi.py', description='This script builds a csv index of DOIs associated'
                                                                   ' with ORCIDs, starting from XML files containing'
                                                                   ' ORCID data.')

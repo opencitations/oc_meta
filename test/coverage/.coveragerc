@@ -1,7 +1,5 @@
 # .coveragerc to control coverage.py
 [run]
 command_line = -m unittest discover -s test -p *_test.py
-
-[report]
-exclude_lines =
-    if __name__ == .__main__.:
+omit =
+    oc_meta/run/*

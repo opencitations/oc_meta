@@ -1192,6 +1192,6 @@ class testcase_16(unittest.TestCase):
         self.assertEqual(data_curated, testcase)
 
 
-if __name__ == '__main__':
+if __name__ == '__main__': # pragma: no cover
     unittest.main()
 

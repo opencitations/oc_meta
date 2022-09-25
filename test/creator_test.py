@@ -203,5 +203,5 @@ class testcase_10(unittest.TestCase):
         self.assertEqual(compare.isomorphic(new_graph, test_graph), True)
 
 
-if __name__ == '__main__':
+if __name__ == '__main__': # pragma: no cover
     unittest.main()

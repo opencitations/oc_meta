@@ -188,5 +188,5 @@ class TestPrepareMultiprocess(unittest.TestCase):
         self.assertEqual(items_by_id, expected_output)
         
 
-if __name__ == '__main__':
+if __name__ == '__main__': # pragma: no cover
     unittest.main()

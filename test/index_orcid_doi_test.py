@@ -183,5 +183,5 @@ class test_Index_orcid_doi(unittest.TestCase):
         shutil.rmtree(CSV_PATH)
         self.assertEqual((unordered_output, cache), (expected_output, {'0000-0001-5650-3000'}))
 
-if __name__ == '__main__':
+if __name__ == '__main__': # pragma: no cover
     unittest.main()

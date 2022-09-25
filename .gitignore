@@ -16,3 +16,4 @@ prova.py
 nohup.out
 examples_cache.sqlite
 examples_cache.sqlite-journal
+.coverage

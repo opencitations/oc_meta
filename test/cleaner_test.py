@@ -238,5 +238,5 @@ class test_Cleaner(unittest.TestCase):
         self.assertEqual(clean_strings, expected_output)
 
 
-if __name__ == '__main__':
+if __name__ == '__main__': # pragma: no cover
     unittest.main()

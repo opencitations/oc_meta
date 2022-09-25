@@ -24,7 +24,7 @@ import shutil
 import yaml
 
 
-if __name__ == '__main__':
+if __name__ == '__main__': # pragma: no cover
     arg_parser = ArgumentParser('prepare_multiprocess.py', description='Venues, authors and editors are preprocessed not to create duplicates when running Meta in multi-process')
     arg_parser.add_argument('-c', '--config', dest='config', required=True, help='Configuration file path')
     args = arg_parser.parse_args()

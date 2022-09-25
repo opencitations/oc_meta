@@ -219,7 +219,7 @@ def generate_gentle_buttons(dir:str, config:str, is_unix:bool):
         rsh.write(f'python -m oc_meta.lib.stopper -t "{dir}" --add')
 
 
-if __name__ == '__main__':
+if __name__ == '__main__': # pragma: no cover
     arg_parser = ArgumentParser('meta_process.py', description='This script runs the OCMeta data processing workflow')
     arg_parser.add_argument('-c', '--config', dest='config', required=True, help='Configuration file directory')
     args = arg_parser.parse_args()

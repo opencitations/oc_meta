@@ -120,7 +120,7 @@ def initializer():
     global pid
     pid = os.getpid()
 
-if __name__ == '__main__':
+if __name__ == '__main__': # pragma: no cover
     max_workers = os.cpu_count()
     files_to_be_processed = os.listdir(CROSSREF_DUMP_DIR)
     if os.path.exists('./example_citations.csv') and os.path.exists('./example_metadata.csv'):
