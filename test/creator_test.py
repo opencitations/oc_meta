@@ -118,6 +118,12 @@ class test_RespAgentsCreator(unittest.TestCase):
             <https://w3id.org/oc/meta/id/0603> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/datacite/Identifier> .
             <https://w3id.org/oc/meta/id/0603> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "0000-0002-4487-6894" .
             <https://w3id.org/oc/meta/id/0603> <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/orcid> .
+            <https://w3id.org/oc/meta/ra/0604> <http://xmlns.com/foaf/0.1/name> "Pub1" .
+            <https://w3id.org/oc/meta/ra/0604> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0604> .
+            <https://w3id.org/oc/meta/ra/0604> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> .
+            <https://w3id.org/oc/meta/id/0604> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/datacite/Identifier> .
+            <https://w3id.org/oc/meta/id/0604> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "1111" .
+            <https://w3id.org/oc/meta/id/0604> <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/crossref> .
         '''
         expected_graph = Graph()
         expected_graph = expected_graph.parse(data=expected_data, format="nt")
