@@ -23,11 +23,7 @@ import html
 from dateutil.parser import parse
 from datetime import datetime
 from oc_meta.lib.master_of_regex import *
-from oc_meta.lib.id_manager.issnmanager import ISSNManager
-from oc_meta.lib.id_manager.isbnmanager import ISBNManager
-from oc_meta.lib.id_manager.doimanager import DOIManager
-from oc_meta.lib.id_manager.orcidmanager import ORCIDManager
-from oc_meta.lib.csvmanager import CSVManager
+from oc_idmanager import DOIManager, ISBNManager, ISSNManager, ORCIDManager
 from oc_meta.lib.master_of_regex import volumes_valid_patterns, issues_valid_patterns, invalid_vi_patterns
 from typing import Union, Tuple
 
@@ -288,7 +284,7 @@ class Cleaner:
         return new_ra_list
         
     
-    def normalize_id(self, valid_dois_cache:CSVManager=None) -> Union[str, None]:
+    def normalize_id(self, valid_dois_cache:dict=dict()) -> Union[str, None]:
         '''
         This function verifies and normalizes identifiers whose schema corresponds to a DOI, an ISSN, an ISBN or an ORCID.
 
@@ -297,19 +293,23 @@ class Cleaner:
         identifier = self.string.split(':', 1)
         schema = identifier[0].lower()
         value = identifier[1]
+        use_api_service = True if valid_dois_cache else False
+        validator = 'is_valid' if use_api_service else 'check_digit'
         if schema == 'doi':
-            use_api_service = True if valid_dois_cache is not None else False
-            doi_manager = DOIManager(valid_doi=valid_dois_cache, use_api_service=use_api_service)
-            valid_id = doi_manager.normalise(value, include_prefix=True) if doi_manager.is_valid(value) else None
+            doi_manager = DOIManager(data=valid_dois_cache, use_api_service=use_api_service)
+            valid_id = doi_manager.normalise(value, include_prefix=True) if getattr(doi_manager, validator)(value) else None
         elif schema == 'isbn':
             isbn_manager = ISBNManager()
-            valid_id = isbn_manager.normalise(value, include_prefix=True) if isbn_manager.is_valid(value) else None
+            valid_id = isbn_manager.normalise(value, include_prefix=True) if getattr(isbn_manager, validator)(value) else None
         elif schema == 'issn':
-            issn_manager = ISSNManager()
-            valid_id = issn_manager.normalise(value, include_prefix=True) if issn_manager.is_valid(value) else None
+            if value == '0000-0000':
+                valid_id = None
+            else:
+                issn_manager = ISSNManager()
+                valid_id = issn_manager.normalise(value, include_prefix=True) if getattr(issn_manager, validator)(value) else None
         elif schema == 'orcid':
             orcid_manager = ORCIDManager()
-            valid_id = orcid_manager.normalise(value, include_prefix=True) if orcid_manager.is_valid(value) else None
+            valid_id = orcid_manager.normalise(value, include_prefix=True) if getattr(orcid_manager, validator)(value) else None
         else:
             valid_id = f'{schema}:{value}'
         return valid_id

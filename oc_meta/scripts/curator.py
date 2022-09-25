@@ -21,7 +21,6 @@
 from filelock import FileLock
 from oc_meta.constants import CONTAINER_EDITOR_TYPES
 from oc_meta.lib.cleaner import Cleaner
-from oc_meta.lib.csvmanager import CSVManager
 from oc_meta.lib.finder import *
 from oc_meta.lib.file_manager import *
 from oc_meta.lib.master_of_regex import *
@@ -33,7 +32,7 @@ import re
 
 class Curator:
 
-    def __init__(self, data:List[dict], ts:str, prov_config:str, info_dir:str, base_iri:str='https://w3id.org/oc/meta', prefix:str='060', separator:str=None, valid_dois_cache:CSVManager=None):
+    def __init__(self, data:List[dict], ts:str, prov_config:str, info_dir:str, base_iri:str='https://w3id.org/oc/meta', prefix:str='060', separator:str=None, valid_dois_cache:dict=dict()):
         self.finder = ResourceFinder(ts, base_iri)
         self.base_iri = base_iri
         self.prov_config = prov_config
@@ -428,7 +427,7 @@ class Curator:
             self.ardict[br_metaval][col_name] = sequence
 
     @staticmethod
-    def clean_id_list(id_list:List[str], br:bool, valid_dois_cache:CSVManager=None) -> Tuple[list, str]:
+    def clean_id_list(id_list:List[str], br:bool, valid_dois_cache:dict=dict()) -> Tuple[list, str]:
         '''
         Clean IDs in the input list and check if there is a MetaID.
 

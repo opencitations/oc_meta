@@ -104,7 +104,7 @@
 
 <https://w3id.org/oc/meta/id/0602> a ns5:Identifier ;
     ns5:usesIdentifierScheme ns5:doi ;
-    ns1:hasLiteralValue "10.001" .
+    ns1:hasLiteralValue "10.001/ee" .
 
 <https://w3id.org/oc/meta/id/0603> a ns5:Identifier ;
     ns5:usesIdentifierScheme ns5:isbn ;
@@ -116,7 +116,7 @@
 
 <https://w3id.org/oc/meta/id/0605> a ns5:Identifier ;
     ns5:usesIdentifierScheme ns5:doi ;
-    ns1:hasLiteralValue "10.002" .
+    ns1:hasLiteralValue "10.002/ll" .
 
 <https://w3id.org/oc/meta/id/0606> a ns5:Identifier ;
     ns5:usesIdentifierScheme ns5:isbn ;

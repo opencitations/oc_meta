@@ -98,7 +98,7 @@
 
 <https://w3id.org/oc/meta/id/0604> a ns1:Identifier ;
     ns1:usesIdentifierScheme ns1:doi ;
-    ns4:hasLiteralValue "10.00222" .
+    ns4:hasLiteralValue "10.00222/bb" .
 
 <https://w3id.org/oc/meta/id/0605> a ns1:Identifier ;
     ns1:usesIdentifierScheme ns1:issn ;

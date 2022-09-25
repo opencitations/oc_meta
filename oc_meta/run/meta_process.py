@@ -20,9 +20,7 @@
 
 from argparse import ArgumentParser
 from datetime import datetime
-from filelock import FileLock
 from itertools import cycle
-from oc_meta.lib.csvmanager import CSVManager
 from oc_meta.lib.file_manager import get_data, normalize_path, pathoo, suppress_stdout, init_cache, sort_files, zipit
 from oc_meta.plugins.multiprocess.resp_agents_creator import RespAgentsCreator
 from oc_meta.plugins.multiprocess.resp_agents_curator import RespAgentsCurator
@@ -30,7 +28,6 @@ from oc_meta.scripts.creator import Creator
 from oc_meta.scripts.curator import Curator
 from oc_ocdm import Storer
 from oc_ocdm.prov import ProvSet
-from pathlib import Path
 from pebble import ProcessPool, ProcessFuture
 from sys import platform
 from time_agnostic_library.support import generate_config_file
@@ -65,7 +62,7 @@ class MetaProcess:
         self.default_dir = settings['default_dir']
         self.rdf_output_in_chunks = settings['rdf_output_in_chunks']
         self.source = settings['source']
-        self.valid_dois_cache = CSVManager() if bool(settings['use_doi_api_service']) == True else None
+        self.valid_dois_cache = dict() if bool(settings['use_doi_api_service']) == True else None
         self.workers_number = int(settings['workers_number'])
         supplier_prefix:str = settings['supplier_prefix']
         self.supplier_prefix = supplier_prefix[:-1] if supplier_prefix.endswith('0') else supplier_prefix
