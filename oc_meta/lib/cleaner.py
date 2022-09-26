@@ -18,14 +18,15 @@
 # SOFTWARE.
 
 
-import re
-import html
 from dateutil.parser import parse
 from datetime import datetime
 from oc_meta.lib.master_of_regex import *
 from oc_idmanager import DOIManager, ISBNManager, ISSNManager, ORCIDManager
 from oc_meta.lib.master_of_regex import volumes_valid_patterns, issues_valid_patterns, invalid_vi_patterns
 from typing import Union, Tuple
+import html
+import re
+
 
 class Cleaner:
     def __init__(self, string:str):
