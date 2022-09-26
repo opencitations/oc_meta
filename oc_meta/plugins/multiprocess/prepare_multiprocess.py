@@ -52,9 +52,6 @@ def prepare_relevant_items(csv_dir:str, output_dir:str, items_per_file:int, verb
     duplicated_ids = dict()
     venues_by_id = dict()
     duplicated_venues = dict()
-    publishers_found = set()
-    publishers_by_id = dict()
-    duplicated_publishers = dict()
     resp_agents_found = set()
     resp_agents_by_id = dict()
     duplicated_resp_agents = dict()
@@ -63,7 +60,6 @@ def prepare_relevant_items(csv_dir:str, output_dir:str, items_per_file:int, verb
         data = get_data(file)
         _get_duplicated_ids(data=data, ids_found=ids_found, items_by_id=duplicated_ids)
         _get_relevant_venues(data=data, ids_found=venues_found, items_by_id=venues_by_id, duplicated_items=duplicated_venues)
-        _get_publishers(data=data, ids_found=publishers_found, items_by_id=publishers_by_id, duplicated_items=duplicated_publishers)
         _get_resp_agents(data=data, ids_found=resp_agents_found, items_by_id=resp_agents_by_id, duplicated_items=duplicated_resp_agents)
         pbar.update() if verbose else None
     pbar.close() if verbose else None
@@ -77,13 +73,11 @@ def prepare_relevant_items(csv_dir:str, output_dir:str, items_per_file:int, verb
     pbar.close() if verbose else None
     ids_merged = _do_collective_merge(duplicated_ids, duplicated_ids)
     venues_merged = _do_collective_merge(venues_by_id, duplicated_venues)
-    publishers_merged = _do_collective_merge(publishers_by_id, duplicated_publishers)
     resp_agents_merged = _do_collective_merge(resp_agents_by_id, duplicated_resp_agents)
     fieldnames = ['id', 'title', 'author', 'pub_date', 'venue', 'volume', 'issue', 'page', 'type', 'publisher', 'editor']
     __save_relevant_venues(venues_merged, items_per_file, output_dir, fieldnames)
     __save_ids(ids_merged, items_per_file, output_dir, fieldnames)
-    __save_responsible_agents(resp_agents_merged, items_per_file, output_dir, fieldnames, ('people', 'author'))
-    __save_responsible_agents(publishers_merged, items_per_file, output_dir, fieldnames, ('publishers', 'publisher'))
+    __save_responsible_agents(resp_agents_merged, items_per_file, output_dir, fieldnames)
 
 def _get_duplicated_ids(data:List[dict], ids_found:set, items_by_id:Dict[str, dict]) -> None:
     cur_file_ids = set()
@@ -168,29 +162,12 @@ def _get_relevant_venues(data:List[dict], ids_found:dict, items_by_id:Dict[str, 
                     ids_found[id]['issues'].add(row['issue'])
                     cur_file_ids[id]['issues'].add(row['issue'])
                 
-def _get_publishers(data:List[dict], ids_found:set, items_by_id:Dict[str, dict], duplicated_items:Dict[str, dict]) -> None:
-    cur_file_ids = set()
-    for row in data:
-        pub_name_and_ids = re.search(name_and_ids, row['publisher'])
-        if pub_name_and_ids:
-            pub_name = pub_name_and_ids.group(1)
-            pub_ids = pub_name_and_ids.group(2).split()
-            if any(id in ids_found and (id not in cur_file_ids or id in duplicated_items) for id in pub_ids):
-                for pub_id in pub_ids:
-                    duplicated_items.setdefault(pub_id, {'others': set(), 'name': pub_name, 'type': 'publisher'})
-                    duplicated_items[pub_id]['others'].update({other for other in pub_ids if other != pub_id})
-            for pub_id in pub_ids:
-                items_by_id.setdefault(pub_id, {'others': set(), 'name': pub_name, 'type': 'publisher'})
-                items_by_id[pub_id]['others'].update({other for other in pub_ids if other != pub_id})
-            cur_file_ids.update(set(pub_ids))   
-            ids_found.update(set(pub_ids))
-
 def _get_resp_agents(data:List[dict], ids_found:set, items_by_id:Dict[str, Dict[str, set]], duplicated_items:Dict[str, dict]) -> None:
     cur_file_ids = set()
     for row in data:
-        for field in {'author', 'editor'}:
+        for field in {'author', 'editor', 'publisher'}:
             if row[field]:
-                resp_agents = re.split(semicolon_in_people_field, row[field])
+                resp_agents = re.split(semicolon_in_people_field, row[field]) if field in {'author', 'editor'} else [row[field]]
                 for resp_agent in resp_agents:
                     full_name_and_ids = re.search(name_and_ids, resp_agent)
                     name = full_name_and_ids.group(1) if full_name_and_ids else resp_agent
@@ -200,11 +177,11 @@ def _get_resp_agents(data:List[dict], ids_found:set, items_by_id:Dict[str, Dict[
                         richest_name = _find_all_names(duplicated_items, ids_list, name)
                         if any(id in ids_found and (id not in cur_file_ids or id in duplicated_items) for id in ids_list):
                             for id in ids_list:
-                                duplicated_items.setdefault(id, {'others': set(), 'type': 'author'})
+                                duplicated_items.setdefault(id, {'others': set(), 'type': field})
                                 duplicated_items[id]['name'] = richest_name
                                 duplicated_items[id]['others'].update({other for other in ids_list if other != id})
                         for id in ids_list:
-                            items_by_id.setdefault(id, {'others': set(), 'type': 'author'})
+                            items_by_id.setdefault(id, {'others': set(), 'type': field})
                             items_by_id[id]['name'] = richest_name
                             items_by_id[id]['others'].update({other for other in ids_list if other != id})
                         cur_file_ids.update(set(ids_list))   
@@ -232,7 +209,8 @@ def _find_all_names(items_by_id:Dict[str, Dict[str, set]], ids_list:list, cur_na
         if len(name) == 2:
             if name[1] > richest_first_name:
                 richest_first_name = name[1]
-    return f'{richest_surname}, {richest_first_name}'.strip()
+    richest_name = f'{richest_surname}, {richest_first_name}'.strip() if ',' in cur_name else richest_surname.strip()
+    return richest_name
 
 def _do_collective_merge(items_by_id:dict, duplicated_items:Dict[str, dict]) -> dict:
     merged_by_key:Dict[str, Dict[str, set]] = dict()
@@ -323,19 +301,17 @@ def __save_relevant_venues(items_by_id:dict, items_per_file:int, output_dir:str,
             rows = list()
             counter += 1
     output_path = os.path.join(output_dir, f"{counter}.csv")
-    if rows:
-        write_csv(output_path, rows, fieldnames)
+    write_csv(output_path, rows, fieldnames)
 
-def __save_responsible_agents(items_by_id:dict, items_per_file:int, output_dir:str, fieldnames:list, datatype:tuple):
-    folder = datatype[0]
-    field = datatype[1]
-    output_dir = os.path.join(output_dir, folder)
+def __save_responsible_agents(items_by_id:dict, items_per_file:int, output_dir:str, fieldnames:list):
     rows = list()
     chunks = int(items_per_file)
     saved_chunks = 0
     output_length = len(items_by_id)
     for item_id, data in items_by_id.items():
         name, ids = __get_name_and_ids(item_id, data)
+        field = data['type']
+        output_dir = os.path.join(output_dir, data['type'])
         rows.append({field: f'{name} [{ids}]'})
         rows, saved_chunks = __store_data(rows, output_length, chunks, saved_chunks, output_dir, fieldnames)
 
