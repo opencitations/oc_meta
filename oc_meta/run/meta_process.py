@@ -121,8 +121,8 @@ class MetaProcess:
             # Storer
             res_storer = Storer(creator, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, default_dir=self.default_dir, output_format='json-ld')
             prov_storer = Storer(prov, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, output_format='json-ld')
-            with suppress_stdout():
-                self.store_data_and_prov(res_storer, prov_storer, filename)
+            # with suppress_stdout():
+            self.store_data_and_prov(res_storer, prov_storer, filename)
             return {'message': 'success'}, cache_path, errors_path, filename
         except Exception as e:
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"

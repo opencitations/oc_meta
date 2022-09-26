@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) 2021, Silvio Peroni <essepuntato@gmail.com>
+# Copyright (c) 2022, Arcangelo Massari <arcangelo.massari@unibo.it>
 #
 # Permission to use, copy, modify, and/or distribute this software for any purpose
 # with or without fee is hereby granted, provided that the above copyright notice
@@ -13,11 +14,13 @@
 # ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 # SOFTWARE.
 
-from requests import get
-from os.path import exists
-from csv import DictReader, DictWriter
+
+from csv import DictReader, DictWriter, QUOTE_NONNUMERIC
 from json import loads
+from os.path import exists
+from requests import get
 from time import sleep
+import html
 
 
 MAX_TRY = 5
@@ -94,7 +97,7 @@ def process(out_path):
                 cur_id = str(publisher["id"])
                 if cur_id not in pub_ids:
                     pub_ids.add(cur_id)
-                    cur_name = publisher["primary-name"]
+                    cur_name = html.unescape(publisher["primary-name"])
                     prefixes = set()
                     for prefix in publisher["prefix"]:
                         prefix_value = prefix["value"]
@@ -112,7 +115,7 @@ def process(out_path):
 def store_csv_on_file(f_path, header, json_obj):
     f_exists = exists(f_path)
     with open(f_path, "a", encoding="utf8", newline='') as f:
-        dw = DictWriter(f, header)
+        dw = DictWriter(f=f, fieldnames=header, delimiter=',', quotechar='"', quoting=QUOTE_NONNUMERIC)
         if not f_exists:
             dw.writeheader()
         dw.writerow(json_obj)
