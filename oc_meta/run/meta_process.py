@@ -24,8 +24,8 @@ from itertools import cycle
 from oc_meta.lib.file_manager import get_data, normalize_path, pathoo, suppress_stdout, init_cache, sort_files, zipit
 from oc_meta.plugins.multiprocess.resp_agents_creator import RespAgentsCreator
 from oc_meta.plugins.multiprocess.resp_agents_curator import RespAgentsCurator
-from oc_meta.scripts.creator import Creator
-from oc_meta.scripts.curator import Curator
+from oc_meta.core.creator import Creator
+from oc_meta.core.curator import Curator
 from oc_ocdm import Storer
 from oc_ocdm.prov import ProvSet
 from pebble import ProcessPool, ProcessFuture

@@ -17,7 +17,7 @@
 
 from oc_meta.lib.file_manager import pathoo, get_data, write_csv, sort_files
 from oc_meta.lib.master_of_regex import comma_and_spaces, ids_inside_square_brackets, name_and_ids, semicolon_in_people_field
-from oc_meta.scripts.creator import Creator
+from oc_meta.core.creator import Creator
 from typing import Dict, List
 from tqdm import tqdm
 import os

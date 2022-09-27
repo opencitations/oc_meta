@@ -17,7 +17,7 @@
 
 from oc_meta.lib.finder import ResourceFinder
 from oc_meta.lib.master_of_regex import comma_and_spaces, name_and_ids, semicolon_in_people_field
-from oc_meta.scripts.creator import Creator
+from oc_meta.core.creator import Creator
 from oc_ocdm.graph import GraphSet
 from rdflib import URIRef
 import re

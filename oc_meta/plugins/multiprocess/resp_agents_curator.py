@@ -19,7 +19,7 @@ from oc_meta.lib.cleaner import Cleaner
 from oc_meta.lib.finder import *
 from oc_meta.lib.file_manager import *
 from oc_meta.lib.master_of_regex import *
-from oc_meta.scripts.curator import Curator
+from oc_meta.core.curator import Curator
 from typing import List
 import json
 import os
