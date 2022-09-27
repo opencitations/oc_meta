@@ -27,6 +27,7 @@ import yaml
 if __name__ == '__main__': # pragma: no cover
     arg_parser = ArgumentParser('prepare_multiprocess.py', description='Venues, authors and editors are preprocessed not to create duplicates when running Meta in multi-process')
     arg_parser.add_argument('-c', '--config', dest='config', required=True, help='Configuration file path')
+    arg_parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', required=False, help='Show a loading bar, elapsed and estimated time')
     args = arg_parser.parse_args()
     config = args.config
     with open(config, encoding='utf-8') as file:
@@ -34,7 +35,7 @@ if __name__ == '__main__': # pragma: no cover
     csv_dir = normalize_path(settings['input_csv_dir'])
     items_per_file = settings['items_per_file']
     workers_numbers = settings['workers_number']
-    verbose = settings['verbose']
+    verbose = args.verbose
     meta_process = MetaProcess(config)
     TMP_DIR = os.path.join(meta_process.base_output_dir, 'tmp')
     if not all(os.path.exists(os.path.join(TMP_DIR, directory)) for directory in ['venues', 'ids', 'publishers', 'people']):
