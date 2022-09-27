@@ -50,7 +50,6 @@ The configuration file is a YAML file with the following keys (an example can be
 | source                  | ☓         | Data source URL. This setting can be safely left as is                                                                                                                                                                                                         |
 | use\_doi\_api\_service  | ☓         | If True, use the DOI API service to check if DOIs are valid                                                                                                                                                                                                    |
 | workers\_number         | ☓         | Number of cores to devote to the Meta process                                                                                                                                                                                                                  |
-| verbose                 | ☓         | Show a loading bar, elapsed time and estimated time. This setting can be safely left as is                                                                                                                                                                     |
 
 ## Plugins
 

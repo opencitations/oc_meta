@@ -10,6 +10,8 @@
         "file_paths": []
     },
     "blazegraph_full_text_search": false,
+    "fuseki_full_text_search": false,
+    "virtuoso_full_text_search": false,
     "graphdb_connector_name": "",
     "cache_triplestore_url": {
         "endpoint": "",

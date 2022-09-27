@@ -56,12 +56,13 @@ use_doi_api_service: False
 workers_number: 16
 # True if Blazegraph was used as a triplestore, and a textual index was built to speed up queries. For more information, see https://github.com/blazegraph/database/wiki/Rebuild_Text_Index_Procedure
 blazegraph_full_text_search: False
+# True if Fuseki was used as a triplestore, and a textual index was built to speed up queries. For more information, see https://jena.apache.org/documentation/query/text-query.html
+fuseki_full_text_search: False
+# True if Virtuoso was used as a triplestore, and a textual index was built to speed up queries. For more information, see https://docs.openlinksw.com/virtuoso/rdfsparqlrulefulltext/
+virtuoso_full_text_search: False
 # The name of the Lucene connector if GraphDB was used as a triplestore and a textual index was built to speed up queries. For more information, see https://graphdb.ontotext.com/documentation/free/general-full-text-search-with-connectors.html
 graphdb_connector_name: ''
 # Specifies the triplestore URL to use as a cache to make queries on provenance faster
 cache_endpoint: ''
 # If your cache provenance triplestore uses different endpoints for reading and writing (e.g. GraphDB), specify the endpoint for writing in this parameter
 cache_update_endpoint: ''
-# Show a loading bar, elapsed time and estimated time
-verbose: True
-

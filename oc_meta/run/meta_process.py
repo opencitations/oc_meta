@@ -66,13 +66,13 @@ class MetaProcess:
         self.workers_number = int(settings['workers_number'])
         supplier_prefix:str = settings['supplier_prefix']
         self.supplier_prefix = supplier_prefix[:-1] if supplier_prefix.endswith('0') else supplier_prefix
-        self.verbose = settings['verbose']
         # Time-Agnostic_library integration
         self.time_agnostic_library_config = os.path.join(os.path.dirname(config), 'time_agnostic_library_config.json')
         if not os.path.exists(self.time_agnostic_library_config):
             generate_config_file(config_path=self.time_agnostic_library_config, dataset_urls=[self.triplestore_url], dataset_dirs=list(),
                 provenance_urls=settings['provenance_endpoints'], provenance_dirs=list(), 
-                blazegraph_full_text_search=settings['blazegraph_full_text_search'], graphdb_connector_name=settings['graphdb_connector_name'], 
+                blazegraph_full_text_search=settings['blazegraph_full_text_search'], fuseki_full_text_search=settings['fuseki_full_text_search'], 
+                virtuoso_full_text_search=settings['virtuoso_full_text_search'], graphdb_connector_name=settings['graphdb_connector_name'], 
                 cache_endpoint=settings['cache_endpoint'], cache_update_endpoint=settings['cache_update_endpoint'])
 
     def prepare_folders(self) -> Set[str]:
