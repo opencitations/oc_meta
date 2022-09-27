@@ -79,12 +79,11 @@ class Curator:
             self.clean_id(row)
             self.rowcnt += 1
         self.merge_duplicate_entities()
-        # reset row counter
+        self.clean_metadata_without_id()
         self.rowcnt = 0
         for row in self.data:
             self.clean_vvi(row)
             self.rowcnt += 1
-        # reset row counter
         self.rowcnt = 0
         for row in self.data:
             self.clean_ra(row, 'author')
@@ -130,32 +129,33 @@ class Curator:
             metaval = self.new_entity(self.brdict, name)
         row['title'] = self.brdict[metaval]['title']
         row['id'] = metaval
-        if 'wannabe' not in metaval:
-            self.equalizer(row, metaval)
-        # page
-        if row['page']:
-            row['page'] = Cleaner(row['page']).normalize_hyphens()
-        # date
-        if row['pub_date']:
-            date = Cleaner(row['pub_date']).normalize_hyphens()
-            date = Cleaner(date).clean_date()
-            row['pub_date'] = date
-        # type
-        if row['type']:
-            entity_type = ' '.join((row['type'].lower()).split())
-            if entity_type == 'edited book' or entity_type == 'monograph':
-                entity_type = 'book'
-            elif entity_type == 'report series' or entity_type == 'standard series' or entity_type == 'proceedings series':
-                entity_type = 'series'
-            elif entity_type == 'posted content':
-                entity_type = 'web content'
-            if entity_type in {'archival document', 'book', 'book chapter', 'book part', 'book section', 'book series',
-                               'book set', 'data file', 'dataset', 'dissertation', 'journal', 'journal article', 'journal issue',
-                               'journal volume', 'peer review', 'proceedings article', 'proceedings', 'reference book',
-                               'reference entry', 'series', 'report', 'standard', 'web content'}:
-                row['type'] = entity_type
-            else:
-                row['type'] = ''
+    
+    def clean_metadata_without_id(self):
+        for row in self.data:
+            # page
+            if row['page']:
+                row['page'] = Cleaner(row['page']).normalize_hyphens()
+            # date
+            if row['pub_date']:
+                date = Cleaner(row['pub_date']).normalize_hyphens()
+                date = Cleaner(date).clean_date()
+                row['pub_date'] = date
+            # type
+            if row['type']:
+                entity_type = ' '.join((row['type'].lower()).split())
+                if entity_type == 'edited book' or entity_type == 'monograph':
+                    entity_type = 'book'
+                elif entity_type == 'report series' or entity_type == 'standard series' or entity_type == 'proceedings series':
+                    entity_type = 'series'
+                elif entity_type == 'posted content':
+                    entity_type = 'web content'
+                if entity_type in {'archival document', 'book', 'book chapter', 'book part', 'book section', 'book series',
+                                'book set', 'data file', 'dataset', 'dissertation', 'journal', 'journal article', 'journal issue',
+                                'journal volume', 'peer review', 'proceedings article', 'proceedings', 'reference book',
+                                'reference entry', 'series', 'report', 'standard', 'web content'}:
+                    row['type'] = entity_type
+                else:
+                    row['type'] = ''
 
     # VVI
     def clean_vvi(self, row:Dict[str, str]) -> None:
@@ -1093,16 +1093,13 @@ class Curator:
         '''
         self.rowcnt = 0
         for row in self.data:
-            if 'wannabe' in row['id']:
-                for id in self.brdict:
-                    if row['id'] in self.brdict[id]['others'] and 'wannabe' not in id:
-                        row['id'] = id
-                        self.equalizer(row, id)
-                        break
+            id = row['id']
+            if 'wannabe' not in id:
+                self.equalizer(row, id)
                 other_rowcnt = 0
                 for other_row in self.data:
-                    if other_row['id'] == row['id'] and self.rowcnt != other_rowcnt: # if it is another row
-                        for field in ['pub_date', 'page', 'type', 'venue', 'volume', 'issue']:
+                    if (other_row['id'] in self.brdict[id]['others'] or other_row['id'] == id) and self.rowcnt != other_rowcnt:
+                        for field,_ in row.items():
                             if row[field] and row[field] != other_row[field]:
                                 if other_row[field]:
                                     self.log[other_rowcnt][field]['status'] = 'New value proposed'
