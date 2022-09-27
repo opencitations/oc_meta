@@ -3,3 +3,4 @@
 command_line = -m unittest discover -s test -p *_test.py
 omit =
     oc_meta/run/*
+    oc_meta/lib/oc_ocdm/*

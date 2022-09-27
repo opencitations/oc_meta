@@ -6,6 +6,7 @@ import json
 import os
 import shutil
 import sys
+import subprocess
 import unittest
 
 
@@ -126,6 +127,75 @@ class test_ProcessTest(unittest.TestCase):
         delete_output_zip('.', now)
         self.maxDiff = None
         self.assertEqual(output, expected_output)
+
+    def test_run_meta_process_thread_safe(self):
+        reset_server()
+        output_folder = os.path.join(BASE_DIR, 'output_4')
+        meta_process = MetaProcess(config=os.path.join(BASE_DIR, 'meta_config_4.yaml'))
+        original_input_csv_dir = meta_process.input_csv_dir
+        meta_process.input_csv_dir = os.path.join(original_input_csv_dir, 'preprocess')
+        now = datetime.now()
+        meta_process.workers_number = 1
+        run_meta_process(meta_process)
+        proc = subprocess.run([sys.executable, '-m', 'oc_meta.run.meta_process', '-c', os.path.join(BASE_DIR, 'meta_config_4.yaml')], capture_output=True, text=True)
+        output = dict()
+        for dirpath, _, filenames in os.walk(os.path.join(output_folder, 'rdf')):
+            if not dirpath.endswith('prov'):
+                for filename in filenames:
+                    if filename.endswith('.json'):
+                        with open(os.path.join(dirpath, filename), 'r', encoding='utf-8') as f:
+                            rdf = json.load(f)
+                            output.setdefault(dirpath.split(os.sep)[4], list())
+                            rdf_sorted = [{k:sorted([{p:o for p,o in p_o.items() if p not in {'@type', 'http://purl.org/spar/pro/isDocumentContextFor'}} for p_o in v], key=lambda d: d['@id']) for k,v in graph.items() if k == '@graph'} for graph in rdf]
+                            output[dirpath.split(os.sep)[4]].extend(rdf_sorted)
+        shutil.rmtree(output_folder)
+        delete_output_zip('.', now)
+        expected_output = {
+            'ar': [
+                {'@graph': [
+                    {'@id': 'https://w3id.org/oc/meta/ar/0604', '@type': ['http://purl.org/spar/pro/RoleInTime'], 'http://purl.org/spar/pro/isHeldBy': [{'@id': 'https://w3id.org/oc/meta/ra/0604'}], 'http://purl.org/spar/pro/withRole': [{'@id': 'http://purl.org/spar/pro/publisher'}]}, 
+                    {'@id': 'https://w3id.org/oc/meta/ar/0602', '@type': ['http://purl.org/spar/pro/RoleInTime'], 'http://purl.org/spar/pro/isHeldBy': [{'@id': 'https://w3id.org/oc/meta/ra/0602'}], 'http://purl.org/spar/pro/withRole': [{'@id': 'http://purl.org/spar/pro/author'}], 'https://w3id.org/oc/ontology/hasNext': [{'@id': 'https://w3id.org/oc/meta/ar/0603'}]}, 
+                    {'@id': 'https://w3id.org/oc/meta/ar/0603', '@type': ['http://purl.org/spar/pro/RoleInTime'], 'http://purl.org/spar/pro/isHeldBy': [{'@id': 'https://w3id.org/oc/meta/ra/0603'}], 'http://purl.org/spar/pro/withRole': [{'@id': 'http://purl.org/spar/pro/author'}]}, 
+                    {'@id': 'https://w3id.org/oc/meta/ar/0605', '@type': ['http://purl.org/spar/pro/RoleInTime'], 'http://purl.org/spar/pro/isHeldBy': [{'@id': 'https://w3id.org/oc/meta/ra/0605'}], 'http://purl.org/spar/pro/withRole': [{'@id': 'http://purl.org/spar/pro/editor'}]}, 
+                    {'@id': 'https://w3id.org/oc/meta/ar/0601', '@type': ['http://purl.org/spar/pro/RoleInTime'], 'http://purl.org/spar/pro/isHeldBy': [{'@id': 'https://w3id.org/oc/meta/ra/0601'}], 'http://purl.org/spar/pro/withRole': [{'@id': 'http://purl.org/spar/pro/author'}], 'https://w3id.org/oc/ontology/hasNext': [{'@id': 'https://w3id.org/oc/meta/ar/0602'}]}], 
+                '@id': 'https://w3id.org/oc/meta/ar/'}], 
+            'br': [
+                {'@graph': [
+                    {'@id': 'https://w3id.org/oc/meta/br/0601', 
+                        '@type': ['http://purl.org/spar/fabio/Expression', 'http://purl.org/spar/fabio/JournalArticle'], 
+                        'http://prismstandard.org/namespaces/basic/2.0/publicationDate': [{'@type': 'http://www.w3.org/2001/XMLSchema#date', '@value': '2012-03-31'}], 
+                        'http://purl.org/dc/terms/title': [{'@value': 'Nonthermal Sterilization And Shelf-life Extension Of Seafood Products By Intense Pulsed Light Treatment'}], 
+                        'http://purl.org/spar/datacite/hasIdentifier': [{'@id': 'https://w3id.org/oc/meta/id/0601'}], 
+                        'http://purl.org/spar/pro/isDocumentContextFor': [{'@id': 'https://w3id.org/oc/meta/ar/0603'}, {'@id': 'https://w3id.org/oc/meta/ar/0601'}, {'@id': 'https://w3id.org/oc/meta/ar/0604'}, {'@id': 'https://w3id.org/oc/meta/ar/0602'}, {'@id': 'https://w3id.org/oc/meta/ar/0605'}], 
+                        'http://purl.org/vocab/frbr/core#embodiment': [{'@id': 'https://w3id.org/oc/meta/re/0601'}], 
+                        'http://purl.org/vocab/frbr/core#partOf': [{'@id': 'https://w3id.org/oc/meta/br/0604'}]}, 
+                    {'@id': 'https://w3id.org/oc/meta/br/0604', '@type': ['http://purl.org/spar/fabio/JournalIssue', 'http://purl.org/spar/fabio/Expression'], 'http://purl.org/spar/fabio/hasSequenceIdentifier': [{'@value': '1'}], 'http://purl.org/vocab/frbr/core#partOf': [{'@id': 'https://w3id.org/oc/meta/br/0603'}]}, 
+                    {'@id': 'https://w3id.org/oc/meta/br/0602', '@type': ['http://purl.org/spar/fabio/Expression', 'http://purl.org/spar/fabio/Journal'], 'http://purl.org/dc/terms/title': [{'@value': 'The Korean Journal Of Food And Nutrition'}], 'http://purl.org/spar/datacite/hasIdentifier': [{'@id': 'https://w3id.org/oc/meta/id/0602'}]}, 
+                    {'@id': 'https://w3id.org/oc/meta/br/0603', '@type': ['http://purl.org/spar/fabio/Expression', 'http://purl.org/spar/fabio/JournalVolume'], 'http://purl.org/spar/fabio/hasSequenceIdentifier': [{'@value': '25'}], 'http://purl.org/vocab/frbr/core#partOf': [{'@id': 'https://w3id.org/oc/meta/br/0602'}]}], 
+                '@id': 'https://w3id.org/oc/meta/br/'}], 
+            'id': [
+                {'@graph': [
+                    {'@id': 'https://w3id.org/oc/meta/id/0605', '@type': ['http://purl.org/spar/datacite/Identifier'], 'http://purl.org/spar/datacite/usesIdentifierScheme': [{'@id': 'http://purl.org/spar/datacite/orcid'}], 'http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue': [{'@value': '0000-0002-9666-2513'}]}, 
+                    {'@id': 'https://w3id.org/oc/meta/id/0601', '@type': ['http://purl.org/spar/datacite/Identifier'], 'http://purl.org/spar/datacite/usesIdentifierScheme': [{'@id': 'http://purl.org/spar/datacite/doi'}], 'http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue': [{'@value': '10.9799/ksfan.2012.25.1.069'}]}, 
+                    {'@id': 'https://w3id.org/oc/meta/id/0603', '@type': ['http://purl.org/spar/datacite/Identifier'], 'http://purl.org/spar/datacite/usesIdentifierScheme': [{'@id': 'http://purl.org/spar/datacite/orcid'}], 'http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue': [{'@value': '0000-0003-2542-5788'}]}, 
+                    {'@id': 'https://w3id.org/oc/meta/id/0604', '@type': ['http://purl.org/spar/datacite/Identifier'], 'http://purl.org/spar/datacite/usesIdentifierScheme': [{'@id': 'http://purl.org/spar/datacite/crossref'}], 'http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue': [{'@value': '4768'}]}, 
+                    {'@id': 'https://w3id.org/oc/meta/id/0602', '@type': ['http://purl.org/spar/datacite/Identifier'], 'http://purl.org/spar/datacite/usesIdentifierScheme': [{'@id': 'http://purl.org/spar/datacite/issn'}], 'http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue': [{'@value': '1225-4339'}]}], 
+                '@id': 'https://w3id.org/oc/meta/id/'}], 
+            'ra': [
+                {'@graph': [
+                    {'@id': 'https://w3id.org/oc/meta/ra/0605', '@type': ['http://xmlns.com/foaf/0.1/Agent'], 'http://purl.org/spar/datacite/hasIdentifier': [{'@id': 'https://w3id.org/oc/meta/id/0605'}], 'http://xmlns.com/foaf/0.1/familyName': [{'@value': 'Chung'}], 'http://xmlns.com/foaf/0.1/givenName': [{'@value': 'Myong-Soo'}]}, 
+                    {'@id': 'https://w3id.org/oc/meta/ra/0602', '@type': ['http://xmlns.com/foaf/0.1/Agent'], 'http://xmlns.com/foaf/0.1/familyName': [{'@value': 'Mun'}], 'http://xmlns.com/foaf/0.1/givenName': [{'@value': 'Ji-Hye'}]}, 
+                    {'@id': 'https://w3id.org/oc/meta/ra/0604', '@type': ['http://xmlns.com/foaf/0.1/Agent'], 'http://purl.org/spar/datacite/hasIdentifier': [{'@id': 'https://w3id.org/oc/meta/id/0604'}], 'http://xmlns.com/foaf/0.1/name': [{'@value': 'The Korean Society Of Food And Nutrition'}]}, 
+                    {'@id': 'https://w3id.org/oc/meta/ra/0603', '@type': ['http://xmlns.com/foaf/0.1/Agent'], 'http://xmlns.com/foaf/0.1/familyName': [{'@value': 'Chung'}], 'http://xmlns.com/foaf/0.1/givenName': [{'@value': 'Myong-Soo'}]}, 
+                    {'@id': 'https://w3id.org/oc/meta/ra/0601', '@type': ['http://xmlns.com/foaf/0.1/Agent'], 'http://purl.org/spar/datacite/hasIdentifier': [{'@id': 'https://w3id.org/oc/meta/id/0603'}], 'http://xmlns.com/foaf/0.1/familyName': [{'@value': 'Cheigh'}], 'http://xmlns.com/foaf/0.1/givenName': [{'@value': 'Chan-Ick'}]}], 
+                '@id': 'https://w3id.org/oc/meta/ra/'}], 
+            're': [
+                {'@graph': [
+                    {'@id': 'https://w3id.org/oc/meta/re/0601', '@type': ['http://purl.org/spar/fabio/Manifestation'], 'http://prismstandard.org/namespaces/basic/2.0/endingPage': [{'@value': '76'}], 'http://prismstandard.org/namespaces/basic/2.0/startingPage': [{'@value': '69'}]}], 
+                '@id': 'https://w3id.org/oc/meta/re/'}]}
+        expected_output = {folder:[{k:sorted([{p:o for p,o in p_o.items() if p not in {'@type', 'http://purl.org/spar/pro/isDocumentContextFor'}} for p_o in v], key=lambda d: d['@id']) for k,v in graph.items() if k == '@graph'} for graph in data] for folder, data in expected_output.items()}
+        self.assertEqual(output, expected_output)
+        self.assertFalse('Reader: ERROR' in proc.stdout or 'Storer: ERROR' in proc.stdout)
 
 
 if __name__ == '__main__': # pragma: no cover
