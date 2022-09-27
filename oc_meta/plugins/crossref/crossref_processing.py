@@ -32,7 +32,7 @@ warnings.filterwarnings("ignore", category=UserWarning, module='bs4')
 
 class CrossrefProcessing:
     def __init__(self, orcid_index:str=None, doi_csv:str=None, publishers_filepath:str=None):
-        self.doi_set = CSVManager.load_csv_column_as_set(doi_csv, 'doi') if doi_csv else None
+        self.doi_set = CSVManager.load_csv_column_as_set(doi_csv, 'id') if doi_csv else None
         self.publishers_mapping = self.load_publishers_mapping(publishers_filepath) if publishers_filepath else None
         orcid_index = orcid_index if orcid_index else None
         self.orcid_index = CSVManager(orcid_index)
@@ -41,10 +41,11 @@ class CrossrefProcessing:
         row = dict()
         if not 'DOI' in item:
             return row
+        doi_manager = DOIManager(use_api_service=False)
         if isinstance(item['DOI'], list):
-            doi = DOIManager().normalise(str(item['DOI'][0]))
+            doi = doi_manager.normalise(str(item['DOI'][0]), include_prefix=False)
         else:
-            doi = DOIManager().normalise(str(item['DOI']))
+            doi = doi_manager.normalise(str(item['DOI']), include_prefix=False)
         if (doi and self.doi_set and doi in self.doi_set) or (doi and not self.doi_set):
             # create empty row
             keys = ['id', 'title', 'author', 'pub_date', 'venue', 'volume', 'issue', 'page', 'type',
@@ -283,7 +284,9 @@ class CrossrefProcessing:
                     orcid = str(agent['ORCID'][0])
                 else:
                     orcid = str(agent['ORCID'])
-                orcid = ORCIDManager().normalise(orcid) if ORCIDManager().is_valid(orcid) else None
+                orcid_manager = ORCIDManager(use_api_service=False)
+                orcid = orcid_manager.normalise(orcid, include_prefix=False)
+                orcid = orcid if orcid_manager.check_digit(orcid) else None
             elif dict_orcid and f_name:
                 for ori in dict_orcid:
                     orc_n:List[str] = dict_orcid[ori].split(', ')
@@ -335,15 +338,17 @@ class CrossrefProcessing:
 
     @staticmethod
     def issn_worker(issnid, idlist):
-        if ISSNManager().is_valid(issnid):
-            issnid = ISSNManager().normalise(issnid, include_prefix=True)
-            idlist.append(issnid)
+        issn_manager = ISSNManager()
+        issnid = issn_manager.normalise(issnid, include_prefix=False)
+        if issn_manager.check_digit(issnid):
+            idlist.append('issn:' + issnid)
 
     @staticmethod
     def isbn_worker(isbnid, idlist):
-        if ISBNManager().is_valid(isbnid):
-            isbnid = ISBNManager().normalise(isbnid, include_prefix=True)
-            idlist.append(isbnid)
+        isbn_manager = ISBNManager()
+        isbnid = isbn_manager.normalise(isbnid, include_prefix=False)
+        if isbn_manager.check_digit(isbnid):
+            idlist.append('isbn:' + isbnid)
 
     @staticmethod
     def load_publishers_mapping(publishers_filepath:str) -> dict:

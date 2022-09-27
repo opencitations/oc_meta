@@ -18,6 +18,7 @@ def get_ids_from_citations(citations_dir:str, output_dir:str, threshold:int=1000
     :type verbose: bool
     :returns: None
     '''
+    threshold = 10000 if threshold is None else int(threshold)
     if not any(file.endswith('.csv') or file.endswith('.zip') for  _, _, files in os.walk(citations_dir) for file in files):
         raise RuntimeError('I did not find CSV or ZIP files in the given directory')
     ids_found = set()
