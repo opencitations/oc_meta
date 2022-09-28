@@ -156,7 +156,7 @@ class test_Curator(unittest.TestCase):
         row = {'id': 'doi:10.1001/archderm.104.1.106', 'title': 'Multiple Blasto', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}
         curator.log[0] = {'id': {}}
         curator.clean_id(row)
-        expected_output = {'id': '3757', 'title': 'Multiple Keloids', 'author': 'Curth, W. [meta:ra/6033]', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': 'American Medical Association (ama) [meta:ra/3309 crossref:10]', 'editor': ''}
+        expected_output = {'id': '3757', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}
         self.assertEqual(row, expected_output)
     
     def test_merge_duplicate_entities(self):
@@ -185,14 +185,14 @@ class test_Curator(unittest.TestCase):
         curator.merge_duplicate_entities()
         expected_output = (
             [
-                {'id': '3757', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}, 
+                {'id': '3757', 'title': 'Multiple Keloids', 'author': 'Curth, W. [meta:ra/6033]', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': 'American Medical Association (ama) [meta:ra/3309 crossref:10]', 'editor': ''}, 
                 {'id': '3757', 'title': 'Multiple Keloids', 'author': 'Curth, W. [meta:ra/6033]', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': 'American Medical Association (ama) [meta:ra/3309 crossref:10]', 'editor': ''},
                 {'id': '3757', 'title': 'Multiple Keloids', 'author': 'Curth, W. [meta:ra/6033]', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': 'American Medical Association (ama) [meta:ra/3309 crossref:10]', 'editor': ''}
             ],
             {
-                0: {'id': {}, 'author': {}, 'venue': {}, 'editor': {}, 'publisher': {}, 'page': {}, 'volume': {}, 'issue': {}, 'pub_date': {}, 'type': {}}, 
-                1: {'id': {'status': 'Entity already exists'}, 'author': {}, 'venue': {}, 'editor': {}, 'publisher': {}, 'page': {}, 'volume': {}, 'issue': {}, 'pub_date': {}, 'type': {}}, 
-                2: {'id': {'status': 'Entity already exists'}, 'author': {}, 'venue': {}, 'editor': {}, 'publisher': {}, 'page': {}, 'volume': {}, 'issue': {}, 'pub_date': {}, 'type': {}}
+                0: {'id': {'status': 'Entity already exists'}, 'author': {}, 'venue': {}, 'editor': {}, 'publisher': {}, 'page': {}, 'volume': {}, 'issue': {}, 'pub_date': {}, 'type': {}}, 
+                1: {'id': {'status': 'Entity already exists'}, 'author': {}, 'venue': {}, 'editor': {}, 'publisher': {}, 'page': {}, 'volume': {}, 'issue': {}, 'pub_date': {'status': 'New value proposed'}, 'type': {}}, 
+                2: {'id': {'status': 'Entity already exists'}, 'author': {}, 'venue': {'status': 'New value proposed'}, 'editor': {}, 'publisher': {}, 'page': {'status': 'New value proposed'}, 'volume': {'status': 'New value proposed'}, 'issue': {'status': 'New value proposed'}, 'pub_date': {'status': 'New value proposed'}, 'type': {'status': 'New value proposed'}}
             }
         )
         self.assertEqual((curator.data, curator.log), expected_output)
