@@ -38,25 +38,23 @@ if __name__ == '__main__': # pragma: no cover
     verbose = args.verbose
     meta_process = MetaProcess(config)
     TMP_DIR = os.path.join(meta_process.base_output_dir, 'tmp')
-    if not all(os.path.exists(os.path.join(TMP_DIR, directory)) for directory in ['venues', 'ids', 'publishers', 'people']):
+    if not os.path.isdir(meta_process.input_csv_dir + '_old'):
         split_csvs_in_chunks(csv_dir=csv_dir, output_dir=TMP_DIR, chunk_size=1000, verbose=verbose)
         os.rename(csv_dir, csv_dir + '_old')
         os.mkdir(csv_dir)
         for file in os.listdir(TMP_DIR):
             shutil.move(os.path.join(TMP_DIR, file), csv_dir)
+    if not all(os.path.exists(os.path.join(TMP_DIR, directory)) for directory in ['venues', 'ids', 'publishers', 'authors', 'editors']):
         prepare_relevant_items(csv_dir=csv_dir, output_dir=TMP_DIR, items_per_file=items_per_file, verbose=verbose)
     venues_dir = os.path.join(TMP_DIR, 'venues')
     if os.path.isdir(venues_dir):
         meta_process.input_csv_dir = venues_dir
         run_meta_process(meta_process=meta_process)
-    publishers_dir = os.path.join(TMP_DIR, 'publishers')
-    if os.path.isdir(publishers_dir):
-        meta_process.input_csv_dir = publishers_dir
-        run_meta_process(meta_process=meta_process, resp_agents_only=True)
-    people_dir = os.path.join(TMP_DIR, 'people')
-    if os.path.isdir(people_dir):
-        meta_process.input_csv_dir = people_dir
-        run_meta_process(meta_process=meta_process, resp_agents_only=True)
+    for resp_agent in ['authors', 'editors', 'publishers']:
+        resp_agent_dir = os.path.join(TMP_DIR, resp_agent)
+        if os.path.isdir(resp_agent_dir):
+            meta_process.input_csv_dir = resp_agent_dir
+            run_meta_process(meta_process=meta_process, resp_agents_only=True)
     meta_process.workers_number = 1
     ids_dir = os.path.join(TMP_DIR, 'ids')
     if os.path.isdir(ids_dir):
