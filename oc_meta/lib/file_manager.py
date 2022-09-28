@@ -25,7 +25,7 @@ def get_data(filepath:str) -> List[Dict[str, str]]:
     return data
 
 def pathoo(path):
-    if not os.path.exists(os.path.dirname(path)):
+    if not os.path.isdir(os.path.dirname(path)):
         os.makedirs(os.path.dirname(path))
 
 def write_csv(path:str, datalist:List[dict], fieldnames:list=None) -> None:

@@ -77,7 +77,8 @@ def prepare_relevant_items(csv_dir:str, output_dir:str, items_per_file:int, verb
     fieldnames = ['id', 'title', 'author', 'pub_date', 'venue', 'volume', 'issue', 'page', 'type', 'publisher', 'editor']
     __save_relevant_venues(venues_merged, items_per_file, output_dir, fieldnames)
     __save_ids(ids_merged, items_per_file, output_dir, fieldnames)
-    __save_responsible_agents(resp_agents_merged, items_per_file, output_dir, fieldnames)
+    for field in ['author', 'editor', 'publisher']:
+        __save_responsible_agents(resp_agents_merged, items_per_file, output_dir, fieldnames, field)
 
 def _get_duplicated_ids(data:List[dict], ids_found:set, items_by_id:Dict[str, dict]) -> None:
     cur_file_ids = set()
@@ -303,17 +304,17 @@ def __save_relevant_venues(items_by_id:dict, items_per_file:int, output_dir:str,
     output_path = os.path.join(output_dir, f"{counter}.csv")
     write_csv(output_path, rows, fieldnames)
 
-def __save_responsible_agents(items_by_id:dict, items_per_file:int, output_dir:str, fieldnames:list):
+def __save_responsible_agents(items_by_id:dict, items_per_file:int, output_dir:str, fieldnames:list, field:str):
     rows = list()
     chunks = int(items_per_file)
     saved_chunks = 0
-    output_length = len(items_by_id)
-    for item_id, data in items_by_id.items():
+    items_to_be_processed = {k:v for k,v in items_by_id.items() if v['type'] == field}
+    output_length = len(items_to_be_processed)
+    for item_id, data in items_to_be_processed.items():
         name, ids = __get_name_and_ids(item_id, data)
-        field = data['type']
-        output_dir = os.path.join(output_dir, data['type'])
+        output_path = os.path.join(output_dir, field + 's')
         rows.append({field: f'{name} [{ids}]'})
-        rows, saved_chunks = __store_data(rows, output_length, chunks, saved_chunks, output_dir, fieldnames)
+        rows, saved_chunks = __store_data(rows, output_length, chunks, saved_chunks, output_path, fieldnames)
 
 def __save_ids(items_by_id:dict, items_per_file:int, output_dir:str, fieldnames:list):
     output_dir = os.path.join(output_dir, 'ids')
@@ -491,14 +492,3 @@ def __dump_if_chunk_size(chunk:dict, existing_files:set, pid:psutil.Process) -> 
             existing_files.add(filepath)
         return dict()
     return chunk
-
-def __find_all_ids_by_key(items_by_id:dict, key:str):
-    visited_items = set()
-    items_to_visit = {item for item in items_by_id[key]['others']}
-    while items_to_visit:
-        for item in set(items_to_visit):
-            if item not in visited_items:
-                visited_items.add(item)
-                items_to_visit.update({item for item in items_by_id[item]['others'] if item not in visited_items})
-            items_to_visit.remove(item)
-    return visited_items

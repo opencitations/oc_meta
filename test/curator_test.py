@@ -906,7 +906,6 @@ class testcase_01(unittest.TestCase):
         partial_data.append(data[0])
         partial_data.append(data[5])
         data_curated, testcase = prepare_to_test(partial_data, name)
-        # pprint(data_curated)
         for pos, element in enumerate(data_curated):
             self.assertEqual(element, testcase[pos])
 
