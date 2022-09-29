@@ -1,6 +1,6 @@
 from csv import DictReader
 from oc_meta.lib.file_manager import get_data
-from oc_meta.plugins.multiprocess.prepare_multiprocess import prepare_relevant_items, _do_collective_merge, _get_relevant_venues, _get_resp_agents, _get_duplicated_ids, split_csvs_in_chunks, _enrich_duplicated_ids_found
+from oc_meta.plugins.multiprocess.prepare_multiprocess import prepare_relevant_items, _do_collective_merge, _get_relevant_venues, _get_resp_agents, _get_duplicated_ids, split_csvs_in_chunks, _enrich_duplicated_ids_found, _find_all_names
 from pprint import pprint
 import os
 import shutil
@@ -124,6 +124,20 @@ class TestPrepareMultiprocess(unittest.TestCase):
             'orcid:0000-0002-8420-0696': {'others': {'viaf:1'}, 'name': 'Massari, Arcangelo', 'type': 'author'}, 
             'orcid:0000-0003-0530-4305': {'others': set(), 'name': 'Peroni, Silvio', 'type': 'author'}}
         self.assertEqual(output, expected_output)
+    
+    def test___find_all_names(self):
+        items_by_id = {
+            'orcid:0000-0002-8420-0696': {'others': {'viaf:1', 'viaf:2'}, 'name': 'Arcangelo Massari', 'type': 'author'}, 
+            'viaf:1': {'others': {'orcid:0000-0002-8420-0696', 'viaf:2'}, 'name': 'Massari, Arcangelo', 'type': 'author'}, 
+            'viaf:2': {'others': {'viaf:1', 'orcid:0000-0002-8420-0696'}, 'name': 'Massari, A.', 'type': 'author'},
+            'orcid:0000-0002-8420-0695': {'others': set(), 'name': 'Silvio Peroni', 'type': 'author'}}
+        longest_name_1 = _find_all_names(items_by_id, ids_list = ['orcid:0000-0002-8420-0696', 'viaf:1', 'viaf:2'], cur_name='Arcangelo Massari')
+        longest_name_2 = _find_all_names(items_by_id, ids_list = ['orcid:0000-0002-8420-0696', 'viaf:1', 'viaf:2'], cur_name='Massari, A.')
+        longest_name_3 = _find_all_names(items_by_id, ids_list = ['orcid:0000-0002-8420-0696', 'viaf:1', 'viaf:2'], cur_name='Massari, Arcangelo')
+        longest_name_4 = _find_all_names(items_by_id, ids_list = ['orcid:0000-0002-8420-0696', 'viaf:1', 'viaf:2'], cur_name='Massari, A')
+        longest_name_5 = _find_all_names(items_by_id, ids_list = ['orcid:0000-0002-8420-0696', 'viaf:1', 'viaf:2'], cur_name='Massari,')
+        longest_name_6 = _find_all_names(items_by_id, ids_list = ['orcorcid:0000-0002-8420-0695'], cur_name='Silvio Peroni')
+        self.assertEqual((longest_name_1, longest_name_2, longest_name_3, longest_name_4, longest_name_5, longest_name_6), ('Massari, Arcangelo', 'Massari, Arcangelo', 'Massari, Arcangelo', 'Massari, Arcangelo', 'Massari, Arcangelo', 'Silvio Peroni'))
 
     def test_split_csvs_in_chunk(self):
         CHUNK_SIZE = 4

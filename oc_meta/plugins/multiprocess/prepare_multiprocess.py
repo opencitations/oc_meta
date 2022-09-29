@@ -189,29 +189,30 @@ def _get_resp_agents(data:List[dict], ids_found:set, items_by_id:Dict[str, Dict[
                         ids_found.update(set(ids_list))
 
 def _find_all_names(items_by_id:Dict[str, Dict[str, set]], ids_list:list, cur_name:str) -> str:
-    all_names = {cur_name}
+    if ',' in cur_name:
+        split_name = re.split(comma_and_spaces, cur_name)
+        given_name = split_name[1].strip()
+        if given_name and not (given_name.endswith('.') or len(given_name) == 1):
+            return cur_name
     for id in ids_list:
         if id in items_by_id:
-            all_names.add(items_by_id[id]['name'])
-    all_names_parsed = set()
-    for name in all_names:
-        if ',' in name:
-            split_name = re.split(comma_and_spaces, name)
-            first_name = split_name[1].strip()
-            surname = split_name[0].strip()
-            all_names_parsed.add((surname, first_name))
-        else:
-            all_names_parsed.add((name,))
-    richest_first_name = ''
-    richest_surname = ''
-    for name in all_names_parsed:
-        if name[0] > richest_surname:
-            richest_surname = name[0]
-        if len(name) == 2:
-            if name[1] > richest_first_name:
-                richest_first_name = name[1]
-    richest_name = f'{richest_surname}, {richest_first_name}'.strip() if ',' in cur_name else richest_surname.strip()
-    return richest_name
+            other_name = items_by_id[id]['name']
+            if ',' in other_name:
+                split_other_name = re.split(comma_and_spaces, other_name)
+                family_other_name = split_other_name[0].strip()
+                given_other_name = split_other_name[1].strip()
+                if given_other_name and not (given_other_name.endswith('.') or len(given_other_name) == 1):
+                    return family_other_name + ', ' + given_other_name
+    for id in ids_list:
+        if id in items_by_id:
+            other_name = items_by_id[id]['name']
+            if ',' in other_name:
+                split_other_name = re.split(comma_and_spaces, other_name)
+                family_other_name = split_other_name[0].strip()
+                given_other_name = split_other_name[1].strip()
+                if given_other_name:
+                    return family_other_name + ', ' + given_other_name
+    return cur_name
 
 def _do_collective_merge(items_by_id:dict, duplicated_items:Dict[str, dict]) -> dict:
     merged_by_key:Dict[str, Dict[str, set]] = dict()
