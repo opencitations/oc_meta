@@ -157,7 +157,8 @@ def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False) -> N
     elif max_workers == 1:
         workers = [None]
     else:
-        multiples_of_ten = {i for i in range(1, max_workers+1) if int(i) % 10 == 0}
+        tens = int(str(max_workers)[:-1]) if max_workers >= 10 else 0
+        multiples_of_ten = {i for i in range(1, max_workers + tens + 1) if int(i) % 10 == 0}
         workers = [i for i in range(1, max_workers+len(multiples_of_ten)+1) if i not in multiples_of_ten]
     is_unix = platform in {'linux', 'linux2', 'darwin'}
     generate_gentle_buttons(meta_process.base_output_dir, meta_process.config, is_unix)
