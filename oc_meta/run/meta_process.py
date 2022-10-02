@@ -61,6 +61,7 @@ class MetaProcess:
         self.items_per_file = settings['items_per_file']
         self.default_dir = settings['default_dir']
         self.rdf_output_in_chunks = settings['rdf_output_in_chunks']
+        self.zip_output_rdf = settings['zip_output_rdf']
         self.source = settings['source']
         self.valid_dois_cache = dict() if bool(settings['use_doi_api_service']) == True else None
         self.workers_number = int(settings['workers_number'])
@@ -119,8 +120,8 @@ class MetaProcess:
             prov = ProvSet(creator, self.base_iri, creator_info_dir, wanted_label=False)
             prov.generate_provenance()
             # Storer
-            res_storer = Storer(creator, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, default_dir=self.default_dir, output_format='json-ld')
-            prov_storer = Storer(prov, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, output_format='json-ld')
+            res_storer = Storer(creator, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, default_dir=self.default_dir, output_format='json-ld', zip_output=self.zip_output_rdf)
+            prov_storer = Storer(prov, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, output_format='json-ld', zip_output=self.zip_output_rdf)
             # with suppress_stdout():
             self.store_data_and_prov(res_storer, prov_storer, filename)
             return {'message': 'success'}, cache_path, errors_path, filename
@@ -141,7 +142,7 @@ class MetaProcess:
             res_storer.store_all(base_dir=self.output_rdf_dir, base_iri=self.base_iri, context_path=self.context_path)
             prov_storer.store_all(self.output_rdf_dir, self.base_iri, self.context_path)
             res_storer.upload_all(triplestore_url=self.triplestore_url, base_dir=self.output_rdf_dir, batch_size=100)
-    
+
     def save_data(self):
         output_dirname = f"meta_output_{datetime.now().strftime('%Y-%m-%dT%H_%M_%S_%f')}.zip"
         dirs_to_zip = [self.base_output_dir, self.output_rdf_dir] if self.distinct_output_dirs else [self.base_output_dir]

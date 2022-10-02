@@ -25,7 +25,7 @@ class JsonArchiveManager():
     def __init__(self):
         pass
     
-    def compress_json_files_in_dir(self, src_dir:str, dst_dir:str) -> None:
+    def compress_json_files_in_dir(self, src_dir:str, dst_dir:str, replace_files:bool=False) -> None:
         '''
         This method zips json files individually in all directories starting from a specified root directory. 
         In other words, this function does not zip the entire folder but individual files 
@@ -35,6 +35,8 @@ class JsonArchiveManager():
         :type src_dir: str
         :params dst_dir: the destination directory
         :type dst_dir: str
+        :params replace_files: True if you want to replace the original unzipped files with their zipped versions. The dafult value is False
+        :type replace_files: bool
         :returns: None
         '''
         for dirpath, _, filenames in os.walk(src_dir):
@@ -48,6 +50,8 @@ class JsonArchiveManager():
                     os.makedirs(dst_path)
                 with ZipFile(os.path.join(dst_path, filename) + '.zip', 'w') as zipf:
                     zipf.write(src_path, arcname=filename)
+                if replace_files:
+                    os.remove(src_path)
     
     def read_zipped_json(self, filepath:str) -> dict:
         '''

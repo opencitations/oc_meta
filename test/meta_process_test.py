@@ -2,6 +2,7 @@ from datetime import datetime
 from oc_meta.lib.file_manager import get_data
 from oc_meta.run.meta_process import MetaProcess, run_meta_process
 from test.curator_test import reset_server
+from zipfile import ZipFile
 import json
 import os
 import shutil
@@ -142,12 +143,13 @@ class test_ProcessTest(unittest.TestCase):
         for dirpath, _, filenames in os.walk(os.path.join(output_folder, 'rdf')):
             if not dirpath.endswith('prov'):
                 for filename in filenames:
-                    if filename.endswith('.json'):
-                        with open(os.path.join(dirpath, filename), 'r', encoding='utf-8') as f:
-                            rdf = json.load(f)
-                            output.setdefault(dirpath.split(os.sep)[4], list())
-                            rdf_sorted = [{k:sorted([{p:o for p,o in p_o.items() if p not in {'@type', 'http://purl.org/spar/pro/isDocumentContextFor'}} for p_o in v], key=lambda d: d['@id']) for k,v in graph.items() if k == '@graph'} for graph in rdf]
-                            output[dirpath.split(os.sep)[4]].extend(rdf_sorted)
+                    if filename.endswith('.zip'):
+                        with ZipFile(os.path.join(dirpath, filename)) as archive:
+                            with archive.open(filename.replace('.zip', '.json')) as f:
+                                rdf = json.load(f)
+                                output.setdefault(dirpath.split(os.sep)[4], list())
+                                rdf_sorted = [{k:sorted([{p:o for p,o in p_o.items() if p not in {'@type', 'http://purl.org/spar/pro/isDocumentContextFor'}} for p_o in v], key=lambda d: d['@id']) for k,v in graph.items() if k == '@graph'} for graph in rdf]
+                                output[dirpath.split(os.sep)[4]].extend(rdf_sorted)
         shutil.rmtree(output_folder)
         delete_output_zip('.', now)
         expected_output = {

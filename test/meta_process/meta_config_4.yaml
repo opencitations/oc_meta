@@ -48,6 +48,8 @@ supplier_prefix: '060'
 # If True, save all the graphset and provset in one file, and save all the graphset on the triplestore. 
 # If False, the graphs are saved according to the usual OpenCitations strategy (the "complex" hierarchy of folders and subfolders for each type of entity)
 rdf_output_in_chunks: False
+# If True, the folder specified in output_rdf_dir must contain zipped JSON files, and the output will be zipped 
+zip_output_rdf: True
 # Data source URL. This setting can be safely left as is
 source: https://api.crossref.org/
 # If True, use the DOI API service to check if DOIs are valid
