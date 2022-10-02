@@ -298,7 +298,7 @@ requests = ">=2.28.1,<3.0.0"
 
 [[package]]
 name = "oc-ocdm"
-version = "7.1.0"
+version = "7.1.1"
 description = "Object mapping library for manipulating RDF graphs that are compliant with the OpenCitations datamodel."
 category = "main"
 optional = false
@@ -307,6 +307,7 @@ python-versions = ">=3.7.4,<4.0.0"
 [package.dependencies]
 filelock = ">=3.6.0,<4.0.0"
 PyShEx = ">=0.8.0,<0.9.0"
+pytz = ">=2022.4,<2023.0"
 rdflib = ">=6.0.0,<7.0.0"
 SPARQLWrapper = ">=1.8.5,<2.0.0"
 tzlocal = ">=4.2,<5.0"
@@ -398,6 +399,14 @@ python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,>=2.7"
 
 [package.dependencies]
 six = ">=1.5"
+
+[[package]]
+name = "pytz"
+version = "2022.4"
+description = "World timezone definitions, modern and historical"
+category = "main"
+optional = false
+python-versions = "*"
 
 [[package]]
 name = "pytz-deprecation-shim"
@@ -723,7 +732,7 @@ testing = ["func-timeout", "jaraco.itertools", "pytest (>=6)", "pytest-black (>=
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7.4"
-content-hash = "460ad0a0b3cb7c692ecb699e2dffc82498a6e20c119c79a4994442ee71007cf3"
+content-hash = "07935ebf1f3f73427fb60cff2cc4198b6a6d46878a5131dbcd9beb6dc99172a1"
 
 [metadata.files]
 antlr4-python3-runtime = [
@@ -1013,8 +1022,8 @@ oc-idmanager = [
     {file = "oc_idmanager-0.1.1.tar.gz", hash = "sha256:aed36557e49ca5686a200e750601ca6ab6bd458ab20e46727dc0f57044b5444f"},
 ]
 oc-ocdm = [
-    {file = "oc_ocdm-7.1.0-py3-none-any.whl", hash = "sha256:b7e45a10b2cbde2cc99fcb74f3dbdc3f7589b06377931368aed90f71bfa9b896"},
-    {file = "oc_ocdm-7.1.0.tar.gz", hash = "sha256:8920539c700f28df0d71d9efcb857cb5d79683a8d421785b47a6a9c6db77268b"},
+    {file = "oc_ocdm-7.1.1-py3-none-any.whl", hash = "sha256:947fc48d3f6e1505bf07269d2e7cc313d0f6347e2616411d9d085d253227673f"},
+    {file = "oc_ocdm-7.1.1.tar.gz", hash = "sha256:760bd24d80d980883058871c23d89da86e05760e2be131f2684b5e54aca81a02"},
 ]
 pebble = [
     {file = "Pebble-4.6.3-py2.py3-none-any.whl", hash = "sha256:46e02767b239a29b8150466514fabb5c6632bea8c9b7456dfdb715f4636fc8a3"},
@@ -1073,6 +1082,10 @@ PyShExC = [
 python-dateutil = [
     {file = "python-dateutil-2.8.2.tar.gz", hash = "sha256:0123cacc1627ae19ddf3c27a5de5bd67ee4586fbdd6440d9748f8abb483d3e86"},
     {file = "python_dateutil-2.8.2-py2.py3-none-any.whl", hash = "sha256:961d03dc3453ebbc59dbdea9e4e11c5651520a876d0f4db161e8674aae935da9"},
+]
+pytz = [
+    {file = "pytz-2022.4-py2.py3-none-any.whl", hash = "sha256:2c0784747071402c6e99f0bafdb7da0fa22645f06554c7ae06bf6358897e9c91"},
+    {file = "pytz-2022.4.tar.gz", hash = "sha256:48ce799d83b6f8aab2020e369b627446696619e79645419610b9facd909b3174"},
 ]
 pytz-deprecation-shim = [
     {file = "pytz_deprecation_shim-0.1.0.post0-py2.py3-none-any.whl", hash = "sha256:8314c9692a636c8eb3bda879b9f119e350e93223ae83e70e80c31675a0fdc1a6"},
