@@ -4,7 +4,7 @@ from oc_ocdm.graph import GraphEntity
 from oc_ocdm.prov.prov_entity import ProvEntity
 from oc_ocdm.support import get_count
 from rdflib import Graph, Literal, URIRef
-from SPARQLWrapper import SPARQLWrapper, JSON, GET, RDFXML
+from SPARQLWrapper import SPARQLWrapper, JSON, GET, XML
 from time_agnostic_library.agnostic_entity import AgnosticEntity
 
 
@@ -713,7 +713,7 @@ class ResourceFinder:
                     <{res}> ?p ?o.
                 }}
             """
-            self.ts.setReturnFormat(RDFXML)
+            self.ts.setReturnFormat(XML)
             graph_subj = self.__query(query_subj)
             untyped_graph_subj = Graph()
             for triple in graph_subj.triples((None, None, None)):

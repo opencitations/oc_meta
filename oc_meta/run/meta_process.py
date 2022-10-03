@@ -29,7 +29,7 @@ from oc_meta.core.curator import Curator
 from oc_ocdm import Storer
 from oc_ocdm.prov import ProvSet
 from pebble import ProcessPool, ProcessFuture
-from sys import platform
+from sys import executable, platform
 from time_agnostic_library.support import generate_config_file
 from typing import List, Set, Tuple
 import csv
@@ -214,9 +214,9 @@ def generate_gentle_buttons(dir:str, config:str, is_unix:bool):
         os.remove(os.path.join(dir, '.stop'))
     ext = 'sh' if is_unix else 'bat'
     with open (f'gently_run.{ext}', 'w') as rsh:
-        rsh.write(f'python -m oc_meta.lib.stopper -t "{dir}" --remove\npython -m oc_meta.run.meta_process -c {config}')
+        rsh.write(f'{executable} -m oc_meta.lib.stopper -t "{dir}" --remove\n{executable} -m oc_meta.run.meta_process -c {config}')
     with open (f'gently_stop.{ext}', 'w') as rsh:
-        rsh.write(f'python -m oc_meta.lib.stopper -t "{dir}" --add')
+        rsh.write(f'{executable} -m oc_meta.lib.stopper -t "{dir}" --add')
 
 
 if __name__ == '__main__': # pragma: no cover
