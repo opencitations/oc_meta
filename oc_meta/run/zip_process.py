@@ -16,7 +16,7 @@
 
 
 from argparse import ArgumentParser
-from oc_meta.lib.file_manager import zip_json_files_in_dir, unzip_files_in_dir
+from oc_meta.lib.file_manager import zip_files_in_dir, unzip_files_in_dir
 
 
 if __name__ == '__main__':
@@ -27,6 +27,6 @@ if __name__ == '__main__':
     arg_parser.add_argument('-r', '--replace', dest='replace_files', action='store_true', default=False, required=False, help='Specify this argument if you want to replace the original unzipped files with their zipped versions')
     args = arg_parser.parse_args()
     if args.operation == 'zip':
-        zip_json_files_in_dir(src_dir=args.src_dir, dst_dir=args.dst_dir, replace_files=args.replace_files)
+        zip_files_in_dir(src_dir=args.src_dir, dst_dir=args.dst_dir, replace_files=args.replace_files)
     elif args.operation == 'unzip':
         unzip_files_in_dir(src_dir=args.src_dir, dst_dir=args.dst_dir, replace_files=args.replace_files)

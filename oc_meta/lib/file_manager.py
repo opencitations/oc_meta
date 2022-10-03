@@ -100,9 +100,9 @@ def zipit(dir_list:list, zip_name:str) -> None:
         zipdir(dir, zipf)
     zipf.close()
 
-def zip_json_files_in_dir(src_dir:str, dst_dir:str, replace_files:bool=False) -> None:
+def zip_files_in_dir(src_dir:str, dst_dir:str, replace_files:bool=False) -> None:
     '''
-    This method zips json files individually in all directories starting from a specified root directory. 
+    This method zips files individually in all directories starting from a specified root directory. 
     In other words, this function does not zip the entire folder but individual files 
     while maintaining the folder hierarchy in the specified output directory.
 
@@ -123,7 +123,9 @@ def zip_json_files_in_dir(src_dir:str, dst_dir:str, replace_files:bool=False) ->
                     .replace(f'{src_dir}{os.sep}', ''))
             if not os.path.exists(dst_path):
                 os.makedirs(dst_path)
-            with ZipFile(file=os.path.join(dst_path, filename) + '.zip', mode='w', compression=ZIP_DEFLATED, allowZip64=True) as zipf:
+            _, ext = os.path.splitext(filename)
+            zip_path = os.path.join(dst_path, filename).replace(ext, '.zip')
+            with ZipFile(file=zip_path, mode='w', compression=ZIP_DEFLATED, allowZip64=True) as zipf:
                 zipf.write(src_path, arcname=filename)
             if replace_files:
                 os.remove(src_path)
