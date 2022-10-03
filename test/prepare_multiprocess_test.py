@@ -1,5 +1,5 @@
 from csv import DictReader
-from oc_meta.lib.file_manager import get_data
+from oc_meta.lib.file_manager import get_csv_data
 from oc_meta.plugins.multiprocess.prepare_multiprocess import prepare_relevant_items, _do_collective_merge, _get_relevant_venues, _get_resp_agents, _get_duplicated_ids, split_csvs_in_chunks, _enrich_duplicated_ids_found, _find_all_names
 from pprint import pprint
 import os
@@ -144,7 +144,7 @@ class TestPrepareMultiprocess(unittest.TestCase):
         split_csvs_in_chunks(csv_dir=CSV_DIR, output_dir=TMP_DIR, chunk_size=CHUNK_SIZE, verbose=False)
         output = dict()
         for file in os.listdir(TMP_DIR):
-            output[file] = get_data(os.path.join(TMP_DIR, file))
+            output[file] = get_csv_data(os.path.join(TMP_DIR, file))
         expected_outputs = [{
             '0.csv': [
                 {'id': 'issn:1524-4539 issn:0009-7322', 'title': 'Circulation', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': 'journal', 'publisher': '', 'editor': ''}, 

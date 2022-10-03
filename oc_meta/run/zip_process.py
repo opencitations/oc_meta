@@ -16,14 +16,17 @@
 
 
 from argparse import ArgumentParser
-from oc_meta.lib.archive_manager import JsonArchiveManager
+from oc_meta.lib.file_manager import zip_json_files_in_dir, unzip_files_in_dir
 
 
 if __name__ == '__main__':
-    arg_parser = ArgumentParser('zip_process.py', description='Zip JSON files individually in all directories starting from a specified root directory')
+    arg_parser = ArgumentParser('zip_process.py', description='Zip or unzip JSON files individually in all directories starting from a specified root directory')
+    arg_parser.add_argument('-o', '--operation', dest='operation', required=True, choices=['zip', 'unzip'], help='Specify "zip" to zip the files, "unzip" otherwise')
     arg_parser.add_argument('-s', '--source', dest='src_dir', required=True, help='The source directory')
     arg_parser.add_argument('-d', '--destination', dest='dst_dir', required=True, help='The destination directory')
     arg_parser.add_argument('-r', '--replace', dest='replace_files', action='store_true', default=False, required=False, help='Specify this argument if you want to replace the original unzipped files with their zipped versions')
     args = arg_parser.parse_args()
-    json_archive_manager = JsonArchiveManager()
-    json_archive_manager.compress_json_files_in_dir(src_dir=args.src_dir, dst_dir=args.dst_dir, replace_files=args.replace_files)
+    if args.operation == 'zip':
+        zip_json_files_in_dir(src_dir=args.src_dir, dst_dir=args.dst_dir, replace_files=args.replace_files)
+    elif args.operation == 'unzip':
+        unzip_files_in_dir(src_dir=args.src_dir, dst_dir=args.dst_dir, replace_files=args.replace_files)

@@ -15,8 +15,8 @@
 # SOFTWARE.
 
 
-from oc_meta.lib.file_manager import pathoo, get_data, write_csv, sort_files
-from oc_meta.lib.master_of_regex import comma_and_spaces, ids_inside_square_brackets, name_and_ids, semicolon_in_people_field
+from oc_meta.lib.file_manager import pathoo, get_csv_data, write_csv, sort_files
+from oc_meta.lib.master_of_regex import comma_and_spaces, name_and_ids, semicolon_in_people_field
 from oc_meta.core.creator import Creator
 from typing import Dict, List
 from tqdm import tqdm
@@ -57,7 +57,7 @@ def prepare_relevant_items(csv_dir:str, output_dir:str, items_per_file:int, verb
     duplicated_resp_agents = dict()
     # Look for all venues, responsible agents, and publishers
     for file in files:
-        data = get_data(file)
+        data = get_csv_data(file)
         _get_duplicated_ids(data=data, ids_found=ids_found, items_by_id=duplicated_ids)
         _get_relevant_venues(data=data, ids_found=venues_found, items_by_id=venues_by_id, duplicated_items=duplicated_venues)
         _get_resp_agents(data=data, ids_found=resp_agents_found, items_by_id=resp_agents_by_id, duplicated_items=duplicated_resp_agents)
@@ -67,7 +67,7 @@ def prepare_relevant_items(csv_dir:str, output_dir:str, items_per_file:int, verb
         print('[INFO:prepare_multiprocess] Enriching the duplicated bibliographic resources found')
         pbar = tqdm(total=len(files))
     for file in files:
-        data = get_data(file)
+        data = get_csv_data(file)
         _enrich_duplicated_ids_found(data, duplicated_ids)
         pbar.update() if verbose else None
     pbar.close() if verbose else None
@@ -378,7 +378,7 @@ def __index_all_venues(files:list, verbose:bool) -> dict:
         pbar = tqdm(total=len(files))
     venues_occurrences = dict()
     for file in files:
-        data = get_data(file)
+        data = get_csv_data(file)
         for row in data:
             venues = list()
             if row['type'] in VENUES:
@@ -406,7 +406,7 @@ def __split_csvs_by_venues(files:list, venues_occurrences:dict, output_dir:str, 
     no_venues_outdata = list()
     counter = 0
     for file in files:
-        data = get_data(file)
+        data = get_csv_data(file)
         for row in data:
             venues = list()
             if row['type'] in VENUES:
@@ -443,7 +443,7 @@ def __split_csvs_by_venues(files:list, venues_occurrences:dict, output_dir:str, 
         chunk_no_venues[no_venues_filepath] = no_venues_outdata
     for chunk in [chunk_venues, chunk_no_venues]:
         for filepath, dump in chunk.items():
-            all_data = get_data(filepath) if os.path.exists(filepath) else list()
+            all_data = get_csv_data(filepath) if os.path.exists(filepath) else list()
             all_data.extend(dump)
             write_csv(filepath, all_data)
         del chunk
@@ -458,7 +458,7 @@ def __split_in_chunks(output_dir:str, chunk_size:int, verbose:bool):
     counter = 0
     for file in files:
         filepath = os.path.join(output_dir, file)
-        data = get_data(filepath)
+        data = get_csv_data(filepath)
         len_data = len(data)
         if len_data > chunk_size:
             while len_data > chunk_size:
@@ -487,7 +487,7 @@ def __dump_if_chunk_size(chunk:dict, existing_files:set, pid:psutil.Process) -> 
     memory_used = pid.memory_info().rss / (1024.0 ** 3)
     if memory_used > 10:
         for filepath, dump in chunk.items():
-            all_data = get_data(filepath) if os.path.exists(filepath) else list()
+            all_data = get_csv_data(filepath) if os.path.exists(filepath) else list()
             all_data.extend(dump)
             write_csv(filepath, all_data)
             existing_files.add(filepath)

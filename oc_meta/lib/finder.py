@@ -8,7 +8,6 @@ from SPARQLWrapper import SPARQLWrapper, JSON, GET, RDFXML
 from time_agnostic_library.agnostic_entity import AgnosticEntity
 
 
-
 class ResourceFinder:
 
     def __init__(self, ts_url, base_iri:str):

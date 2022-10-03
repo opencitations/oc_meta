@@ -22,7 +22,7 @@ Pebble = "^4.6.3"
 ramose = "^1.0.6"
 oc-idmanager = "0.1.1"
 time-agnostic-library = "4.3.2"
-oc-ocdm = "^7.1.1"
+oc-ocdm = "7.1.2"
 
 [tool.poetry.dev-dependencies]
 wget = "^3.2"

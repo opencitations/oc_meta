@@ -13,9 +13,7 @@
 # OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 
-from math import ceil
-from pprint import pprint
-from oc_meta.lib.file_manager import get_data, write_csv
+from oc_meta.lib.file_manager import get_csv_data, write_csv
 from oc_meta.plugins.crossref.crossref_processing import CrossrefProcessing
 from pebble import ThreadPool, ProcessFuture
 from psutil import Process
@@ -27,7 +25,6 @@ import json
 import os
 import requests
 import requests_cache
-import sys
 
 
 CITING_DOI = '10.1007/978-3-540-88851-2'
@@ -84,13 +81,13 @@ def get_citations_and_metadata(crossref_processing:CrossrefProcessing, doi:str) 
         citation['cited_publication_date'] = next((el['pub_date'] for el in metadata_csv if f"doi:{citation['cited_id']}" in el['id'].split()), '')
     return citations_csv, metadata_csv
 
-def get_data_by_requirements(
+def get_csv_data_by_requirements(
         crossref_processing:CrossrefProcessing,
         file_to_be_processed:str, 
         citations_number_range:Tuple[int, int]=(5,10),
         citing_entity_type:str='journal article',
         required_types = {'journal article'}) -> Tuple[List[dict], List[dict]]:
-    data = get_data(file_to_be_processed)
+    data = get_csv_data(file_to_be_processed)
     for row in data:
         if row['type'] == citing_entity_type or not citing_entity_type:
             ids = row['id'].split()
@@ -130,7 +127,7 @@ if __name__ == '__main__': # pragma: no cover
     with ThreadPool(max_workers=max_workers, initializer=initializer) as executor:
         for file_to_be_processed in files_to_be_processed:
             future:ProcessFuture = executor.schedule(
-                function=get_data_by_requirements, 
+                function=get_csv_data_by_requirements, 
                 args=(crossref_processing, os.path.join(CROSSREF_DUMP_DIR, file_to_be_processed), (9,None), 'journal article', {'journal article', 'other'})) 
             future.add_done_callback(dump_citations_and_metadata_csvs)    
 

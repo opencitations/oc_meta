@@ -1,5 +1,5 @@
 from datetime import datetime
-from oc_meta.lib.file_manager import get_data
+from oc_meta.lib.file_manager import get_csv_data
 from oc_meta.run.meta_process import MetaProcess, run_meta_process
 from test.curator_test import reset_server
 from zipfile import ZipFile
@@ -23,9 +23,9 @@ def delete_output_zip(base_dir:str, start_time:datetime) -> None:
                 os.remove(os.path.join(base_dir, file))
 
 class test_ProcessTest(unittest.TestCase):
-    def test_get_data(self):
+    def test_get_csv_data(self):
         filepath = os.path.join(BASE_DIR, 'long_field.csv')
-        data = get_data(filepath)
+        data = get_csv_data(filepath)
         field_size = sys.getsizeof(data[0]['author'])
         self.assertEqual(field_size, 137622)
 
@@ -38,7 +38,7 @@ class test_ProcessTest(unittest.TestCase):
         output = list()
         for dirpath, _, filenames in os.walk(os.path.join(output_folder, 'csv')):
             for file in filenames:
-                output.extend(get_data(os.path.join(dirpath, file)))
+                output.extend(get_csv_data(os.path.join(dirpath, file)))
         expected_output = [
             {'id': 'doi:10.17117/na.2015.08.1067 meta:br/0601', 'title': '', 'author': '', 'pub_date': '', 'venue': 'Scientometrics [issn:0138-9130 issn:1588-2861 meta:br/0603]', 'volume': '26', 'issue': '', 'page': '', 'type': 'journal article', 'publisher': 'Consulting Company Ucom [crossref:6623 meta:ra/0601]', 'editor': 'Naimi, Elmehdi [orcid:0000-0002-4126-8519 meta:ra/0602]'}, 
             {'id': 'issn:1524-4539 issn:0009-7322 meta:br/0602', 'title': 'Circulation', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': 'journal', 'publisher': '', 'editor': ''}, 
@@ -61,7 +61,7 @@ class test_ProcessTest(unittest.TestCase):
         output = list()
         for dirpath, _, filenames in os.walk(os.path.join(output_folder, 'csv')):
             for file in filenames:
-                output.extend(get_data(os.path.join(dirpath, file)))
+                output.extend(get_csv_data(os.path.join(dirpath, file)))
         shutil.rmtree(output_folder)
         delete_output_zip('.', now)
         expected_output = [

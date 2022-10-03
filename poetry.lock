@@ -298,7 +298,7 @@ requests = ">=2.28.1,<3.0.0"
 
 [[package]]
 name = "oc-ocdm"
-version = "7.1.1"
+version = "7.1.2"
 description = "Object mapping library for manipulating RDF graphs that are compliant with the OpenCitations datamodel."
 category = "main"
 optional = false
@@ -732,7 +732,7 @@ testing = ["func-timeout", "jaraco.itertools", "pytest (>=6)", "pytest-black (>=
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7.4"
-content-hash = "07935ebf1f3f73427fb60cff2cc4198b6a6d46878a5131dbcd9beb6dc99172a1"
+content-hash = "0e2b32e3a67f9f65784ad3b1a311839cae7042c420eb481cf0e7f5eaccc841aa"
 
 [metadata.files]
 antlr4-python3-runtime = [
@@ -1022,8 +1022,8 @@ oc-idmanager = [
     {file = "oc_idmanager-0.1.1.tar.gz", hash = "sha256:aed36557e49ca5686a200e750601ca6ab6bd458ab20e46727dc0f57044b5444f"},
 ]
 oc-ocdm = [
-    {file = "oc_ocdm-7.1.1-py3-none-any.whl", hash = "sha256:947fc48d3f6e1505bf07269d2e7cc313d0f6347e2616411d9d085d253227673f"},
-    {file = "oc_ocdm-7.1.1.tar.gz", hash = "sha256:760bd24d80d980883058871c23d89da86e05760e2be131f2684b5e54aca81a02"},
+    {file = "oc_ocdm-7.1.2-py3-none-any.whl", hash = "sha256:3af6515fb590bf65dee1dda855ed644b84595f381ed3b1c2db175c2b75c5d94a"},
+    {file = "oc_ocdm-7.1.2.tar.gz", hash = "sha256:99ec260d6028119f1bc8d0c53bab81cb0faa51cfb79781682a049409a759f986"},
 ]
 pebble = [
     {file = "Pebble-4.6.3-py2.py3-none-any.whl", hash = "sha256:46e02767b239a29b8150466514fabb5c6632bea8c9b7456dfdb715f4636fc8a3"},

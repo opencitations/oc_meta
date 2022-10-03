@@ -21,7 +21,7 @@
 from argparse import ArgumentParser
 from datetime import datetime
 from itertools import cycle
-from oc_meta.lib.file_manager import get_data, normalize_path, pathoo, suppress_stdout, init_cache, sort_files, zipit
+from oc_meta.lib.file_manager import get_csv_data, normalize_path, pathoo, suppress_stdout, init_cache, sort_files, zipit
 from oc_meta.plugins.multiprocess.resp_agents_creator import RespAgentsCreator
 from oc_meta.plugins.multiprocess.resp_agents_curator import RespAgentsCurator
 from oc_meta.core.creator import Creator
@@ -95,7 +95,7 @@ class MetaProcess:
             return {'message': 'skip'}, cache_path, errors_path, filename
         try:
             filepath = os.path.join(self.input_csv_dir, filename)
-            data = get_data(filepath)
+            data = get_csv_data(filepath)
             supplier_prefix = f'{self.supplier_prefix}0' if worker_number is None else f'{self.supplier_prefix}{str(worker_number)}0'
             # Curator
             self.info_dir = os.path.join(self.info_dir, supplier_prefix) if worker_number else self.info_dir
