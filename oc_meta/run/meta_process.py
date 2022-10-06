@@ -176,8 +176,8 @@ def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False) -> N
                     function=meta_process.curate_and_create, 
                     args=(file_to_be_processed, meta_process.cache_path, meta_process.errors_path, worker_number, resp_agents_only)) 
                 future.add_done_callback(task_done) 
-        delete_lock_files(base_dir=meta_process.base_output_dir)
         if is_unix and not os.path.exists(os.path.join(meta_process.base_output_dir, '.stop')):
+            delete_lock_files(base_dir=meta_process.base_output_dir)
             meta_process.save_data()
     if os.path.exists(meta_process.cache_path) and not os.path.exists(os.path.join(meta_process.base_output_dir, '.stop')):
         os.rename(meta_process.cache_path, meta_process.cache_path.replace('.txt', f'_{datetime.now().strftime("%Y-%m-%dT%H_%M_%S_%f")}.txt'))
