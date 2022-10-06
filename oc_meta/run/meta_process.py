@@ -151,6 +151,7 @@ class MetaProcess:
 def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False) -> None:
     delete_lock_files(base_dir=meta_process.base_output_dir)
     files_to_be_processed = meta_process.prepare_folders()
+    is_unix = platform in {'linux', 'linux2', 'darwin'}
     max_workers = meta_process.workers_number
     if max_workers == 0:
         workers = list(range(1, os.cpu_count()))
@@ -160,7 +161,8 @@ def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False) -> N
         tens = int(str(max_workers)[:-1]) if max_workers >= 10 else 0
         multiples_of_ten = {i for i in range(1, max_workers + tens + 1) if int(i) % 10 == 0}
         workers = [i for i in range(1, max_workers+len(multiples_of_ten)+1) if i not in multiples_of_ten]
-    is_unix = platform in {'linux', 'linux2', 'darwin'}
+        if is_unix:
+            os.sched_setaffinity(0, set(range(0, max_workers)))
     generate_gentle_buttons(meta_process.base_output_dir, meta_process.config, is_unix)
     zip_every_n_files = round(max_workers * 300, -3) if max_workers > 3 else 500
     files_chunks = chunks(list(files_to_be_processed), zip_every_n_files) if is_unix else [files_to_be_processed]
