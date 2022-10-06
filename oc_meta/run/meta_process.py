@@ -177,12 +177,10 @@ def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False) -> N
                     args=(file_to_be_processed, meta_process.cache_path, meta_process.errors_path, worker_number, resp_agents_only)) 
                 future.add_done_callback(task_done) 
         if is_unix and not os.path.exists(os.path.join(meta_process.base_output_dir, '.stop')):
-            delete_lock_files(base_dir=meta_process.base_output_dir)
             meta_process.save_data()
     if os.path.exists(meta_process.cache_path) and not os.path.exists(os.path.join(meta_process.base_output_dir, '.stop')):
         os.rename(meta_process.cache_path, meta_process.cache_path.replace('.txt', f'_{datetime.now().strftime("%Y-%m-%dT%H_%M_%S_%f")}.txt'))
-    if not is_unix:
-        delete_lock_files(base_dir=meta_process.base_output_dir)
+    delete_lock_files(base_dir=meta_process.base_output_dir)
 
 def task_done(task_output:ProcessFuture) -> None:
     message, cache_path, errors_path, filename = task_output.result()
