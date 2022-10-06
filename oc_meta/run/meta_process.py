@@ -28,6 +28,7 @@ from oc_meta.core.creator import Creator
 from oc_meta.core.curator import Curator
 from oc_ocdm import Storer
 from oc_ocdm.prov import ProvSet
+from oc_ocdm.support.reporter import Reporter
 from pebble import ProcessPool, ProcessFuture
 from sys import executable, platform
 from time_agnostic_library.support import generate_config_file
@@ -120,8 +121,10 @@ class MetaProcess:
             prov = ProvSet(creator, self.base_iri, creator_info_dir, wanted_label=False)
             prov.generate_provenance()
             # Storer
-            res_storer = Storer(creator, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, default_dir=self.default_dir, output_format='json-ld', zip_output=self.zip_output_rdf)
-            prov_storer = Storer(prov, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, output_format='json-ld', zip_output=self.zip_output_rdf)
+            repok  = Reporter(print_sentences = False)
+            reperr = Reporter(print_sentences = True, prefix='[Storer: ERROR] ')
+            res_storer = Storer(abstract_set=creator, repok=repok, reperr=reperr, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, default_dir=self.default_dir, output_format='json-ld', zip_output=self.zip_output_rdf)
+            prov_storer = Storer(abstract_set=prov, repok=repok, reperr=reperr, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, output_format='json-ld', zip_output=self.zip_output_rdf)
             # with suppress_stdout():
             self.store_data_and_prov(res_storer, prov_storer, filename)
             return {'message': 'success'}, cache_path, errors_path, filename
