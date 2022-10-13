@@ -34,6 +34,7 @@ class ResourceFinder:
         :returns List[Tuple[str, str, list]]: -- it returns a list of three elements tuples. The first element is the MetaID of a resource associated with the input ID. The second element is a title of that resourse, if present. The third element is a list of MetaID-ID tuples related to identifiers associated with that resource. 
         '''
         schema = GraphEntity.DATACITE + schema
+        value = value.replace('\\', '\\\\')
         query = f'''
             SELECT DISTINCT ?res (GROUP_CONCAT(DISTINCT ?title; separator=' ;and; ') AS ?title_)
                 (GROUP_CONCAT(DISTINCT ?otherId; separator=' ;and; ') AS ?otherId_)
@@ -128,6 +129,7 @@ class ResourceFinder:
         :returns str: -- it returns the MetaID associated with the input ID.
         '''
         schema = GraphEntity.DATACITE + schema
+        value = value.replace('\\', '\\\\')
         query = f'''
             SELECT DISTINCT ?res 
             WHERE {{
@@ -261,6 +263,7 @@ class ResourceFinder:
         :returns List[Tuple[str, str, list]]: -- it returns a list of three elements tuples. The first element is the MetaID of a responsible agent associated with the input ID. The second element is the name of that responsible agent, if present. The third element is a list of MetaID-ID tuples related to identifiers associated with that responsible agent. 
         '''
         schema = GraphEntity.DATACITE + schema
+        value = value.replace('\\', '\\\\')
         query = f'''
             SELECT DISTINCT ?res
                 (GROUP_CONCAT(DISTINCT ?name; separator=' ;and; ') AS ?name_)
