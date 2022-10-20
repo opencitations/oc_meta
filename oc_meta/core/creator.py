@@ -218,7 +218,7 @@ class Creator(object):
                     self.venue_graph.has_title(venue_title)
             for identifier in venue_ids_list:
                 self.id_creator(self.venue_graph, identifier, ra=False)
-            if self.type in {'journal article', 'journal volume', 'journal issue', ''}: # The type field may legitimately be empty, provided that an identifier has been specified (e.g, https://api.crossref.org/works/10.23973/ras.68.44)
+            if self.type in {'journal article', 'journal volume', 'journal issue'}:
                 if vol:
                     vol_meta = self.vi_index[self.venue_meta]['volume'][vol]['id']
                     vol_meta = 'br/' + vol_meta

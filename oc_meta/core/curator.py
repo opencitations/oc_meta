@@ -1160,18 +1160,20 @@ class Curator:
         :type row: Dict[str, str]
         :returns: bool -- This method returns True if the row is valid, False if it is invalid.
         '''
+        br_type = ' '.join((row['type'].lower()).split())
+        br_volume = row['volume']
+        br_issue = row['issue']
         if row['id']:
+            if (br_volume or br_issue) and not br_type:
+                return False
             return True
         if all(not row[value] for value in row):
             return False
-        br_type = ' '.join((row['type'].lower()).split())
         br_title = row['title']
         br_author = row['author']
         br_editor = row['editor']
         br_pub_date = row['pub_date']
         br_venue = row['venue']
-        br_volume = row['volume']
-        br_issue = row['issue']
         if not br_type or br_type in {'book', 'data file', 'dataset', 'dissertation', 'edited book', 'journal article', 'monograph', 
                         'other', 'peer review', 'posted content', 'web content', 'proceedings article', 'report', 'reference book'}:
             is_a_valid_row = True if br_title and br_pub_date and (br_author or br_editor) else False
