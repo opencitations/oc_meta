@@ -426,15 +426,15 @@ class test_Curator(unittest.TestCase):
             {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''},
             {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '1', 'issue': '', 'page': '', 'type': 'journal volume', 'publisher': '', 'editor': ''},
             {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '1', 'page': '', 'type': 'journal issue', 'publisher': '', 'editor': ''},
-            {'id': 'id:1234', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''},
+            {'id': 'doi:10.1001/2013.jamasurg.270', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''},
             {'id': '', 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China', 'author': 'Deckert, Ron J. [orcid:0000-0003-2100-6412]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''},
-            {'id': '', 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China', 'author': 'Deckert, Ron J. [orcid:0000-0003-2100-6412]', 'pub_date': '03-01-2020', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': 'book'}
+            {'id': '', 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China', 'author': 'Deckert, Ron J. [orcid:0000-0003-2100-6412]', 'pub_date': '03-01-2020', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': 'book'},
+            {'id': 'doi:10.1001/2013.jamasurg.270', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '5', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}
         ]
         output = []
-        curator = prepareCurator(list())
         for row in rows:
-            output.append(curator.is_a_valid_row(row))
-        expected_output = [False, False, False, True, False, True]
+            output.append(is_a_valid_row(row))
+        expected_output = [False, False, False, True, False, True, False]
         self.assertEqual(output, expected_output)
     
     def test_get_preexisting_entities(self):

@@ -37,7 +37,7 @@ class Curator:
         self.base_iri = base_iri
         self.prov_config = prov_config
         self.separator = separator
-        self.data = [{field:value.strip() for field,value in row.items()} for row in data if self.is_a_valid_row(row)]
+        self.data = [{field:value.strip() for field,value in row.items()} for row in data if is_a_valid_row(row)]
         self.prefix = prefix
         # Counter local paths
         self.br_info_path = info_dir + 'br.txt'
@@ -1152,40 +1152,40 @@ class Curator:
             output = '; '.join(full_resp_agents)
         return output
     
-    def is_a_valid_row(self, row:Dict[str, str]) -> bool:
-        '''
-        This method discards invalid rows in the input CSV file.
+def is_a_valid_row(row:Dict[str, str]) -> bool:
+    '''
+    This method discards invalid rows in the input CSV file.
 
-        :params row: a dictionary representing a CSV row
-        :type row: Dict[str, str]
-        :returns: bool -- This method returns True if the row is valid, False if it is invalid.
-        '''
-        br_type = ' '.join((row['type'].lower()).split())
-        br_volume = row['volume']
-        br_issue = row['issue']
-        if row['id']:
-            if (br_volume or br_issue) and not br_type:
-                return False
-            return True
-        if all(not row[value] for value in row):
+    :params row: a dictionary representing a CSV row
+    :type row: Dict[str, str]
+    :returns: bool -- This method returns True if the row is valid, False if it is invalid.
+    '''
+    br_type = ' '.join((row['type'].lower()).split())
+    br_title = row['title']
+    br_volume = row['volume']
+    br_issue = row['issue']
+    br_venue = row['venue']
+    if row['id']:
+        if (br_volume or br_issue) and (not br_type or not br_venue):
             return False
-        br_title = row['title']
-        br_author = row['author']
-        br_editor = row['editor']
-        br_pub_date = row['pub_date']
-        br_venue = row['venue']
-        if not br_type or br_type in {'book', 'data file', 'dataset', 'dissertation', 'edited book', 'journal article', 'monograph', 
-                        'other', 'peer review', 'posted content', 'web content', 'proceedings article', 'report', 'reference book'}:
-            is_a_valid_row = True if br_title and br_pub_date and (br_author or br_editor) else False
-        elif br_type in {'book chapter', 'book part', 'book section', 'book track', 'component', 'reference entry'}:
-            is_a_valid_row = True if br_title and br_venue else False
-        elif br_type in {'book series', 'book set', 'journal', 'proceedings', 'proceedings series', 'report series', 'standard', 'standard series'}:
-            is_a_valid_row = True if br_title else False
-        elif br_type == 'journal volume':
-            is_a_valid_row = True if br_venue and (br_volume or br_title) else False
-        elif br_type == 'journal issue':
-            is_a_valid_row = True if br_venue and (br_issue or br_title) else False
-        return is_a_valid_row
+        return True
+    if all(not row[value] for value in row):
+        return False
+    br_author = row['author']
+    br_editor = row['editor']
+    br_pub_date = row['pub_date']
+    if not br_type or br_type in {'book', 'data file', 'dataset', 'dissertation', 'edited book', 'journal article', 'monograph',
+                    'other', 'peer review', 'posted content', 'web content', 'proceedings article', 'report', 'reference book'}:
+        is_a_valid_row = True if br_title and br_pub_date and (br_author or br_editor) else False
+    elif br_type in {'book chapter', 'book part', 'book section', 'book track', 'component', 'reference entry'}:
+        is_a_valid_row = True if br_title and br_venue else False
+    elif br_type in {'book series', 'book set', 'journal', 'proceedings', 'proceedings series', 'report series', 'standard', 'standard series'}:
+        is_a_valid_row = True if br_title else False
+    elif br_type == 'journal volume':
+        is_a_valid_row = True if br_venue and (br_volume or br_title) else False
+    elif br_type == 'journal issue':
+        is_a_valid_row = True if br_venue and (br_issue or br_title) else False
+    return is_a_valid_row
 
 def get_edited_br_metaid(row:dict, metaid:str, venue_metaid:str) -> Tuple[str, bool]:
     if row['author'] and row['venue'] and row['type'] in CONTAINER_EDITOR_TYPES:
