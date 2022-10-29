@@ -1,9 +1,14 @@
 import unittest, os, csv, shutil
 from oc_meta.plugins.crossref.crossref_processing import CrossrefProcessing
 from oc_meta.lib.csvmanager import CSVManager
+from oc_meta.lib.file_manager import get_csv_data
 from oc_meta.lib.jsonmanager import *
 from oc_meta.run.crossref_process import preprocess
 from pprint import pprint
+from shutil import rmtree
+from sys import executable
+from subprocess import Popen
+
 
 BASE = os.path.join('test', 'crossref_processing')
 IOD = os.path.join(BASE, 'iod')
@@ -32,6 +37,15 @@ class TestCrossrefProcessing(unittest.TestCase):
             {'id': 'doi:10.9799/ksfan.2012.25.1.105', 'title': 'A Study on Dietary Habit and Eating Snack Behaviors of Middle School Students with Different Obesity Indexes in Chungnam Area', 'author': 'Kim, Myung-Hee; Seo, Jin-Seon; Choi, Mi-Kyeong [orcid:0000-0002-6227-4053]; Kim, Eun-Young', 'pub_date': '2012-3-31', 'venue': 'The Korean Journal of Food And Nutrition [issn:1225-4339]', 'volume': '25', 'issue': '1', 'page': '105-115', 'type': 'journal article', 'publisher': 'The Korean Society of Food and Nutrition [crossref:4768]', 'editor': ''}, 
             {'id': 'doi:10.9799/ksfan.2012.25.1.123', 'title': 'The Protective Effects of Chrysanthemum cornarium L. var. spatiosum Extract on HIT-T15 Pancreatic β-Cells against Alloxan-induced Oxidative Stress', 'author': 'Kim, In-Hye; Cho, Kang-Jin; Ko, Jeong-Sook; Kim, Jae-Hyun; Om, Ae-Son', 'pub_date': '2012-3-31', 'venue': 'The Korean Journal of Food And Nutrition [issn:1225-4339]', 'volume': '25', 'issue': '1', 'page': '123-131', 'type': 'journal article', 'publisher': 'The Korean Society of Food and Nutrition [crossref:4768]', 'editor': ''}
         ]
+        self.assertEqual(output, expected_output)
+
+    def test_get_ref_dois_not_in_crossref(self):
+        output_path = os.path.join(BASE, 'not_crossref_ref')
+        p = Popen([executable, '-m', 'oc_meta.plugins.crossref.get_not_crossref_ref', '-c', GZIP_INPUT, '-o', output_path, '-w', WANTED_DOIS_FOLDER])
+        p.wait()
+        output = {doi['id'] for doi in get_csv_data(os.path.join(output_path, 'dois_not_in_crossref', '1-3.csv'))}
+        expected_output = {'10.1001/jama.299.12.1471', '10.1177/003335490812300219', '10.2105/ajph.2006.101626'}
+        rmtree(output_path)
         self.assertEqual(output, expected_output)
 
     def test_orcid_finder(self):

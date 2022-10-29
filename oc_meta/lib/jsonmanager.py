@@ -19,12 +19,12 @@ from json import load, loads
 from oc_meta.lib.file_manager import init_cache
 from os import walk, sep
 from os.path import isdir, basename
-from typing import Union
+from typing import Tuple
 import gzip
 import tarfile
 
 
-def get_all_files(is_dir_or_targz_file:str, cache_filepath:str=None):
+def get_all_files(is_dir_or_targz_file:str, cache_filepath:str|None=None) -> Tuple[list, tarfile.TarFile|None]:
     result = []
     targz_fd = None
     cache = init_cache(cache_filepath)
@@ -42,19 +42,19 @@ def get_all_files(is_dir_or_targz_file:str, cache_filepath:str=None):
         print("It is not possible to process the input path.")
     return result, targz_fd
 
-def load_json(file:Union[str, tarfile.TarInfo], targz_fd:tarfile.TarFile):
+def load_json(file:str|tarfile.TarInfo, targz_fd:tarfile.TarFile) -> dict|None:
     result = None
     if targz_fd is None:
-        if file.endswith(".json"):
-            with open(file, encoding="utf8") as f:
+        if file.endswith(".json"):  # type: ignore
+            with open(file, encoding="utf8") as f: # type: ignore
                 result = load(f)
-        elif file.endswith(".json.gz"):
-            with gzip.open(file, 'r') as gzip_file:
+        elif file.endswith(".json.gz"): # type: ignore
+            with gzip.open(file, 'r') as gzip_file: # type: ignore
                 data = gzip_file.read()
                 result = loads(data.decode('utf-8'))
     else:
         cur_tar_file = targz_fd.extractfile(file)
-        json_str = cur_tar_file.read()
+        json_str = cur_tar_file.read() # type: ignore
         # In Python 3.5 it seems that, for some reason, the extractfile method returns an 
         # object 'bytes' that cannot be managed by the function 'load' in the json package.
         # Thus, to avoid issues, in case an object having type 'bytes' is return, it is

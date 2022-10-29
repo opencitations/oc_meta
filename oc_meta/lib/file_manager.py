@@ -15,6 +15,7 @@
 # SOFTWARE.
 
 
+from _collections_abc import dict_keys
 from contextlib import contextmanager
 from oc_meta.lib.cleaner import Cleaner
 from pathlib import Path
@@ -47,7 +48,7 @@ def pathoo(path):
     if not os.path.isdir(os.path.dirname(path)):
         os.makedirs(os.path.dirname(path))
 
-def write_csv(path:str, datalist:List[dict], fieldnames:list=None) -> None:
+def write_csv(path:str, datalist:List[dict], fieldnames:list|dict_keys|None=None) -> None:
     if datalist:
         fieldnames = datalist[0].keys() if fieldnames is None else fieldnames
         pathoo(path)
@@ -60,7 +61,7 @@ def normalize_path(path:str) -> str:
     normal_path = path.replace('\\', '/').replace('/', os.sep)
     return normal_path
 
-def init_cache(cache_filepath:str) -> Set[str]:
+def init_cache(cache_filepath:str|None) -> Set[str]:
     completed = set()
     if cache_filepath:
         if not os.path.exists(cache_filepath):
@@ -80,7 +81,7 @@ def suppress_stdout():
         finally:
             sys.stdout = old_stdout
 
-def sort_files(files_to_be_processed:list) -> None:
+def sort_files(files_to_be_processed:list) -> list:
     if all(filename.replace('.csv', '').isdigit() for filename in files_to_be_processed):
         files_to_be_processed = sorted(files_to_be_processed, key=lambda filename: int(filename.replace('.csv', '')))
     elif all(filename.split('_')[-1].replace('.csv', '').isdigit() for filename in files_to_be_processed):
@@ -159,7 +160,7 @@ def unzip_files_in_dir(src_dir:str, dst_dir:str, replace_files:bool=False) -> No
                 if replace_files:
                     os.remove(src_path)
 
-def read_zipped_json(filepath:str) -> dict:
+def read_zipped_json(filepath:str) -> dict|None:
     '''
     This method reads a zipped json file.
 
