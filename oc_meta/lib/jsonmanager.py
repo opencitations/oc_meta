@@ -15,6 +15,7 @@
 # SOFTWARE.
 
 
+from __future__ import annotations
 from json import load, loads
 from oc_meta.lib.file_manager import init_cache
 from os import walk, sep

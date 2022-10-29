@@ -14,7 +14,7 @@
 # ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 # SOFTWARE.
 
-
+from __future__ import annotations
 from _collections_abc import dict_keys
 from contextlib import contextmanager
 from oc_meta.lib.cleaner import Cleaner
