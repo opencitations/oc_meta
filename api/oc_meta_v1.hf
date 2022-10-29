@@ -6,7 +6,7 @@
 #version Version 1.0.0 (2020-06-10)
 #contacts [contact@opencitations.net](mailto:contact@opencitations.net)
 #license This document is licensed with a [Creative Commons Attribution 4.0 International License](https://creativecommons.org/licenses/by/4.0/legalcode), while the REST API itself has been created using [RAMOSE](https://github.com/opencitations/ramose), the *Restful API Manager Over SPARQL Endpoints* created by [Silvio Peroni](https://orcid.org/0000-0003-0530-4305), which is licensed with an [ISC license](https://opensource.org/licenses/ISC).
-#endpoint http://127.0.0.1:3003/blazegraph/sparql
+#endpoint http://127.0.0.1:9999/blazegraph/sparql
 #method post
 #addon oc_meta_addon
 
