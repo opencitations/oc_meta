@@ -55,17 +55,13 @@ def generate_id_search(ids:str) -> Tuple[str]:
         scheme = scheme_literal_value[0]
         literal_value = scheme_literal_value[1]
         if scheme == 'meta':
-            id_searches.append(f'''
-                {{OPTIONAL {{?res a ?type__. FILTER (?type__ != fabio:Expression)}}
-                BIND(<https://w3id.org/oc/meta/{literal_value}> AS ?res)}}
-            ''')
+            id_searches.append(f'''{{BIND(<https://w3id.org/oc/meta/{literal_value}> AS ?res)}}''')
         elif scheme in {'doi', 'issn', 'isbn', 'pmid', 'pmcid', 'url', 'wikidata', 'wikipedia'}:
             id_searches.append(f'''
-                {{OPTIONAL {{?res a ?type__. FILTER (?type__ != fabio:Expression)}}
-                ?identifier datacite:usesIdentifierScheme datacite:{scheme};
-                    literal:hasLiteralValue "{literal_value}".}}
-            ''')
+                {{?identifier datacite:usesIdentifierScheme datacite:{scheme};
+                                literal:hasLiteralValue "{literal_value}".}}''')
     ids_search += 'UNION'.join(id_searches)
+    ids_search += 'OPTIONAL {?res a ?type__. FILTER (?type__ != fabio:Expression)}'
     return ids_search, 
 
 def create_metadata_output(results):

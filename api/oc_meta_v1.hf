@@ -1,24 +1,28 @@
 #url /api/v1
 #type api
-#base https://oc-meta.arcangelomassari.it
+#base http://127.0.0.1:8080
 #title REST API for OC Meta
 #description This is the REST API for OC Meta, the OpenCitations Index containing bibliographic metadata associated with the documents involved in the citations stored in the OpenCitations infrastructure. All the present operations return either a JSON document (default) or a CSV document according to the mimetype specified in the `Accept` header of the request. If you would like to suggest an additional operation to be included in this API, please use the [issue tracker](https://github.com/opencitations/api/issues) of the OpenCitations APIs available on GitHub.
 #version Version 1.0.0 (2020-06-10)
 #contacts [contact@opencitations.net](mailto:contact@opencitations.net)
 #license This document is licensed with a [Creative Commons Attribution 4.0 International License](https://creativecommons.org/licenses/by/4.0/legalcode), while the REST API itself has been created using [RAMOSE](https://github.com/opencitations/ramose), the *Restful API Manager Over SPARQL Endpoints* created by [Silvio Peroni](https://orcid.org/0000-0003-0530-4305), which is licensed with an [ISC license](https://opensource.org/licenses/ISC).
-#endpoint http://127.0.0.1:9999/blazegraph/sparql
+#endpoint http://127.0.0.1:3003/blazegraph/sparql
 #method post
 #addon oc_meta_addon
 
 #url /metadata/{ids}
 #type operation
-#ids str((doi|issn|isbn|meta|pmid|pmcid|url|wikidata|wikipedia):[^__]+(__(doi|issn|isbn|meta|pmid|pmcid|url|wikidata|wikipedia):[^__]+)*)
+#ids str((doi|issn|isbn|meta):[^__]+(__(doi|issn|isbn|meta):[^__]+)*)
 #preprocess generate_id_search(ids)
 #postprocess create_metadata_output()
 #method get
 #description This operation retrieves the bibliographic metadata for each of the bibliographic entities identified by one or more input IDs
 
-It is possible to specify one or more IDs as input of this operation. In this case, the IDs should be separated with a double underscore ("\_\_") – e.g. "10.1108/jd-12-2013-0166\_\_10.1016/j.websem.2012.08.001". The fields returned by this operation are:
+Each ID is built as follows: ID abbreviation + ":" = ID value. For example, For example "doi:10.3233/ds-170012" indicates a DOI identifier with value "10.3233/ds-170012"
+
+The ID abbreviations currently supported in this operation are "doi", "issn", "isbn", and "meta"
+
+It is possible to specify one or more IDs as input of this operation. In this case, the IDs should be separated with a double underscore ("\_\_") – e.g. "doi:10.1108/jd-12-2013-0166\_\_doi:10.1016/j.websem.2012.08.001". The fields returned by this operation are:
 
 * *id*: the IDs of the bibliographic entity
 * *title*: the title of the bibliographic entity
@@ -29,7 +33,7 @@ It is possible to specify one or more IDs as input of this operation. In this ca
 * *issue*: the number of the issue in which the bibliographic entity has been published
 * *page*: the starting and ending pages of the bibliographic entity in the context of the venue where it has been published
 * *type*: the type of the bibliographic entity
-#call /metadata/doi/10.1007/978-1-4020-9632-7
+#call /metadata/doi:10.1007/978-1-4020-9632-7
 #field_type str(id) str(title) str(author) datetime(date) str(issue) str(volume) str(venue) str(page) str(type) str(publisher) str(editor)
 #output_json [
     {
