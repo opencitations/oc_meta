@@ -1,5 +1,4 @@
 from datetime import datetime
-import re
 from oc_meta.run.meta_process import MetaProcess, run_meta_process
 from ramose import APIManager
 from test.curator_test import reset_server

@@ -30,7 +30,7 @@ class test_JsonArchiveManager(unittest.TestCase):
         for dirpath, _, filenames in os.walk(OUTPUT_DIR_1):
             for filename in filenames:
                 if os.path.splitext(filename)[1] == ".json":
-                    with open(os.path.join(dirpath, filename)) as f:
+                    with open(os.path.join(dirpath, filename), encoding='utf-8') as f:
                         json_data = json.load(f)
                     original_zip = read_zipped_json(os.path.join(dirpath, filename.replace('.json', '.zip')))
                     self.assertEqual(json_data, original_zip)

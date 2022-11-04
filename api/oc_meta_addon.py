@@ -94,11 +94,11 @@ class TextSearch():
         schema = self.text = schema_and_literal_value[0]
         literal_value = schema_and_literal_value[1]
         return f'''
-            {self.__gen_text_search('tsId', literal_value, True, ts_index)}
+            {self.__gen_text_search(f'tsId{ts_index}', literal_value, True, ts_index)}
             ?res a fabio:Expression; datacite:hasIdentifier ?tsIdentifier{ts_index}.
             OPTIONAL {{?res a ?type__. FILTER (?type__ != fabio:Expression)}}
             ?tsIdentifier{ts_index} datacite:usesIdentifierScheme datacite:{schema};
-                          literal:hasLiteralValue ?tsId.
+                          literal:hasLiteralValue ?tsId{ts_index}.
         '''
     
     def get_text_search_on_title(self, ts_index:bool) -> str:
