@@ -52,8 +52,9 @@ def generate_id_search(ids:str) -> Tuple[str]:
     id_searches = list()
     for identifier in ids.split('__'):
         scheme_literal_value = identifier.split(':')
-        scheme = scheme_literal_value[0]
+        scheme = scheme_literal_value[0].lower()
         literal_value = scheme_literal_value[1]
+        literal_value = literal_value.lower() if scheme == 'doi' else literal_value
         if scheme == 'meta':
             id_searches.append(f'''{{BIND(<https://w3id.org/oc/meta/{literal_value}> AS ?res)}}''')
         elif scheme in {'doi', 'issn', 'isbn', 'pmid', 'pmcid', 'url', 'wikidata', 'wikipedia'}:
@@ -91,8 +92,9 @@ class TextSearch():
 
     def get_text_search_on_id(self, ts_index:bool) -> str:
         schema_and_literal_value = self.text.split(':')
-        schema = self.text = schema_and_literal_value[0]
+        schema = self.text = schema_and_literal_value[0].lower()
         literal_value = schema_and_literal_value[1]
+        literal_value = literal_value.lower() if schema == 'doi' else literal_value
         return f'''
             {self.__gen_text_search(f'tsId{ts_index}', literal_value, True, ts_index)}
             ?res a fabio:Expression; datacite:hasIdentifier ?tsIdentifier{ts_index}.
@@ -114,11 +116,11 @@ class TextSearch():
         if ',' in self.text:
             name_parts = [part.strip() for part in self.text.split(',')]
             if name_parts:
-                family_name = name_parts[0]
+                family_name = ' '.join([s.title() for s in name_parts[0].split()])
                 if len(name_parts) == 2:
                     given_name = name_parts[1]
                     given_name = '. '.join(given_name.split('.'))
-                    given_name = ' '.join([f"{name_part.rstrip('.')}.+?" if len(name_part.rstrip('.')) == 1 else name_part for name_part in given_name.split()])
+                    given_name = ' '.join([f"{name_part.rstrip('.').title()}.+?" if len(name_part.rstrip('.')) == 1 else name_part.title() for name_part in given_name.split()])
                     given_name = given_name.replace('*', '.*?')
         else:
             name = self.text
@@ -140,7 +142,7 @@ class TextSearch():
                 base_query += f'?ts{role}Ra{ts_index} foaf:familyName ?ts{role}Fn{ts_index}.'
                 if given_name:
                     base_query += f'?ts{role}Ra{ts_index} foaf:givenName ?ts{role}Gn{ts_index}.'
-                    text_search += f"FILTER REGEX (?ts{role}Gn{ts_index}, '^{given_name}$', 'i')"
+                    text_search += f"FILTER REGEX (?ts{role}Gn{ts_index}, '^{given_name}$')"
             elif given_name:
                 base_query += f'?ts{role}Ra{ts_index} foaf:givenName ?ts{role}Gn{ts_index}.'
                 text_search += f"{self.__gen_text_search(f'ts{role}Gn{ts_index}', given_name, True, ts_index)}"
@@ -160,7 +162,7 @@ class TextSearch():
     def get_text_search_on_vi(self, vi:str, ts_index:bool) -> str:
         v_or_i = vi.title()
         return f'''
-            {self.__gen_text_search(f'ts{v_or_i}Number{ts_index}', self.text, True, ts_index)}
+            {self.__gen_text_search(f'ts{v_or_i}Number{ts_index}', self.text, False, ts_index)}
             ?res frbr:partOf+ ?ts{v_or_i}{ts_index};
                 a fabio:Expression.
             ?ts{v_or_i}{ts_index} a fabio:Journal{v_or_i};

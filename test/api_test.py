@@ -9,7 +9,7 @@ import shutil
 import unittest
 
 
-CONFIG = 'api/oc_meta_v1.hf'
+CONFIG = 'api/meta_v1.hf'
 api_manager = APIManager([CONFIG])
 api_base = 'http://127.0.0.1:8080/api/v1'
 
