@@ -62,7 +62,7 @@ PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
 SELECT DISTINCT
 ?id
 (GROUP_CONCAT(DISTINCT ?title_) AS ?title)
-(GROUP_CONCAT(DISTINCT ?author_; separator='; ') AS ?author)
+(GROUP_CONCAT(DISTINCT ?author_) AS ?author)
 (GROUP_CONCAT(DISTINCT ?date_) AS ?date)
 (GROUP_CONCAT(DISTINCT ?page_) AS ?page)
 (GROUP_CONCAT(DISTINCT ?issue_) AS ?issue)
@@ -70,7 +70,7 @@ SELECT DISTINCT
 (GROUP_CONCAT(DISTINCT ?venue_) AS ?venue)
 (GROUP_CONCAT(DISTINCT ?type_) AS ?type)
 (GROUP_CONCAT(DISTINCT ?publisher_; separator=' ') AS ?publisher)
-(GROUP_CONCAT(DISTINCT ?editor_; separator='; ') AS ?editor)
+(GROUP_CONCAT(DISTINCT ?editor_) AS ?editor)
 WITH {
   SELECT DISTINCT ?res ?type__
   WHERE {
@@ -78,7 +78,7 @@ WITH {
   } LIMIT 1000
 } AS %results
 WHERE {
-  {SELECT DISTINCT ?res ?authorName ?editorName       
+  {SELECT DISTINCT ?res       
   (GROUP_CONCAT(DISTINCT ?title__) AS ?title_)
   (GROUP_CONCAT(DISTINCT ?venueName_) AS ?venueName)
   (GROUP_CONCAT(DISTINCT ?publisherName_) AS ?publisherName)
@@ -87,9 +87,11 @@ WHERE {
   (GROUP_CONCAT(DISTINCT ?issue__) AS ?issue_)
   (GROUP_CONCAT(DISTINCT ?volume__) AS ?volume_)
   (GROUP_CONCAT(DISTINCT ?type__) AS ?type_)
+  (GROUP_CONCAT(DISTINCT ?authorName_; SEPARATOR='; ') AS ?authorName)
+  (GROUP_CONCAT(DISTINCT ?editorName_; SEPARATOR='; ') AS ?editorName)
   (GROUP_CONCAT(DISTINCT ?id; SEPARATOR=' ') AS ?ids)
-  (GROUP_CONCAT(DISTINCT ?author_id; SEPARATOR=' ') AS ?author_ids)
-  (GROUP_CONCAT(DISTINCT ?editor_id; SEPARATOR=' ') AS ?editor_ids)
+  (GROUP_CONCAT(DISTINCT ?author__; SEPARATOR='; ') AS ?author_)
+  (GROUP_CONCAT(DISTINCT ?editor__; SEPARATOR='; ') AS ?editor_)
   (GROUP_CONCAT(DISTINCT ?venue_ids_; SEPARATOR=' ') AS ?venue_ids)
   (GROUP_CONCAT(DISTINCT ?publisher_ids_; SEPARATOR=' ') AS ?publisher_ids)
   WHERE {
@@ -140,6 +142,11 @@ WHERE {
           CONCAT(STR(?familyName), ","),
           ?name)
         AS ?authorName)
+      BIND(
+        COALESCE(
+          CONCAT(STR(?authorName), " [", ?author_id, "]"),
+          CONCAT(STR(?authorName)))
+        AS ?author__)
     }
     OPTIONAL {
       ?res pro:isDocumentContextFor ?arEditor.
@@ -159,6 +166,11 @@ WHERE {
           CONCAT(STR(?editorFamilyName), ","),
           ?editor_name)
         AS ?editorName)
+      BIND(
+        COALESCE(
+          CONCAT(STR(?editorName), " [", ?editor_id, "]"),
+          CONCAT(STR(?editorName)))
+        AS ?editor__)
     }
     OPTIONAL {?res dcterm:title ?title__.}
     OPTIONAL {?res prism:publicationDate ?date__.}
@@ -177,14 +189,10 @@ WHERE {
       ?resVolume a fabio:JournalVolume;
                 fabio:hasSequenceIdentifier ?volume__.
     }
-  } GROUP BY ?res ?authorName ?editorName}
+  } GROUP BY ?res}
   BIND(CONCAT(?ids, IF(STR(?ids) != "", " ", ""), "meta:br/", STRAFTER(STR(?res), "/br/")) AS ?id)
-  BIND(IF(STR(?author_ids) != "", CONCAT(" [", ?author_ids, "]"), "") AS ?authorIdentifiers)
-  BIND(IF(STR(?editor_ids) != "", CONCAT(" [", ?editor_ids, "]"), "") AS ?editorIdentifiers)
   BIND(IF(STR(?venue_ids) != "", CONCAT(" [", ?venue_ids, "]"), "") AS ?venueIdentifiers)
   BIND(IF(STR(?publisher_ids) != "", CONCAT(" [", ?publisher_ids, "]"), "") AS ?publisherIdentifiers)
-  BIND(CONCAT(STR(?authorName), ?authorIdentifiers) AS ?author_)
-  BIND(CONCAT(STR(?editorName), ?editorIdentifiers) AS ?editor_)
   BIND(CONCAT(STR(?venueName), ?venueIdentifiers) AS ?venue_)
   BIND(CONCAT(STR(?publisherName), ?publisherIdentifiers) AS ?publisher_)
 }
@@ -273,7 +281,7 @@ WITH {
   } LIMIT 1000
 } AS %results
 WHERE {
-  {SELECT DISTINCT ?res ?authorName ?editorName       
+  {SELECT DISTINCT ?res       
   (GROUP_CONCAT(DISTINCT ?title__) AS ?title_)
   (GROUP_CONCAT(DISTINCT ?venueName_) AS ?venueName)
   (GROUP_CONCAT(DISTINCT ?publisherName_) AS ?publisherName)
@@ -282,9 +290,9 @@ WHERE {
   (GROUP_CONCAT(DISTINCT ?issue__) AS ?issue_)
   (GROUP_CONCAT(DISTINCT ?volume__) AS ?volume_)
   (GROUP_CONCAT(DISTINCT ?type__) AS ?type_)
+  (GROUP_CONCAT(DISTINCT ?author__; SEPARATOR='; ') AS ?author_)
+  (GROUP_CONCAT(DISTINCT ?editor__; SEPARATOR='; ') AS ?editor_)
   (GROUP_CONCAT(DISTINCT ?id; SEPARATOR=' ') AS ?ids)
-  (GROUP_CONCAT(DISTINCT ?author_id; SEPARATOR=' ') AS ?author_ids)
-  (GROUP_CONCAT(DISTINCT ?editor_id; SEPARATOR=' ') AS ?editor_ids)
   (GROUP_CONCAT(DISTINCT ?venue_ids_; SEPARATOR=' ') AS ?venue_ids)
   (GROUP_CONCAT(DISTINCT ?publisher_ids_; SEPARATOR=' ') AS ?publisher_ids)
   WHERE {
@@ -335,6 +343,11 @@ WHERE {
           CONCAT(STR(?familyName), ","),
           ?name)
         AS ?authorName)
+      BIND(
+        COALESCE(
+          CONCAT(STR(?authorName), " [", ?author_id, "]"),
+          CONCAT(STR(?authorName)))
+        AS ?author__)
     }
     OPTIONAL {
       ?res pro:isDocumentContextFor ?arEditor.
@@ -354,6 +367,11 @@ WHERE {
           CONCAT(STR(?editorFamilyName), ","),
           ?editor_name)
         AS ?editorName)
+      BIND(
+        COALESCE(
+          CONCAT(STR(?editorName), " [", ?editor_id, "]"),
+          CONCAT(STR(?editorName)))
+        AS ?editor__)
     }
     OPTIONAL {?res dcterm:title ?title__.}
     OPTIONAL {?res prism:publicationDate ?date__.}
@@ -372,14 +390,10 @@ WHERE {
       ?resVolume a fabio:JournalVolume;
                 fabio:hasSequenceIdentifier ?volume__.
     }
-  } GROUP BY ?res ?authorName ?editorName}
+  } GROUP BY ?res}
   BIND(CONCAT(?ids, IF(STR(?ids) != "", " ", ""), "meta:br/", STRAFTER(STR(?res), "/br/")) AS ?id)
-  BIND(IF(STR(?author_ids) != "", CONCAT(" [", ?author_ids, "]"), "") AS ?authorIdentifiers)
-  BIND(IF(STR(?editor_ids) != "", CONCAT(" [", ?editor_ids, "]"), "") AS ?editorIdentifiers)
   BIND(IF(STR(?venue_ids) != "", CONCAT(" [", ?venue_ids, "]"), "") AS ?venueIdentifiers)
   BIND(IF(STR(?publisher_ids) != "", CONCAT(" [", ?publisher_ids, "]"), "") AS ?publisherIdentifiers)
-  BIND(CONCAT(STR(?authorName), ?authorIdentifiers) AS ?author_)
-  BIND(CONCAT(STR(?editorName), ?editorIdentifiers) AS ?editor_)
   BIND(CONCAT(STR(?venueName), ?venueIdentifiers) AS ?venue_)
   BIND(CONCAT(STR(?publisherName), ?publisherIdentifiers) AS ?publisher_)
 }
@@ -432,7 +446,7 @@ PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
 SELECT DISTINCT
 ?id
 (GROUP_CONCAT(DISTINCT ?title_) AS ?title)
-(GROUP_CONCAT(DISTINCT ?author_; separator='; ') AS ?author)
+(GROUP_CONCAT(DISTINCT ?author_) AS ?author)
 (GROUP_CONCAT(DISTINCT ?date_) AS ?date)
 (GROUP_CONCAT(DISTINCT ?page_) AS ?page)
 (GROUP_CONCAT(DISTINCT ?issue_) AS ?issue)
@@ -440,7 +454,7 @@ SELECT DISTINCT
 (GROUP_CONCAT(DISTINCT ?venue_) AS ?venue)
 (GROUP_CONCAT(DISTINCT ?type_) AS ?type)
 (GROUP_CONCAT(DISTINCT ?publisher_; separator=' ') AS ?publisher)
-(GROUP_CONCAT(DISTINCT ?editor_; separator='; ') AS ?editor)
+(GROUP_CONCAT(DISTINCT ?editor_) AS ?editor)
 WITH {
   SELECT DISTINCT ?res ?type__
   WHERE {
@@ -455,7 +469,7 @@ WITH {
   } LIMIT 1000
 } AS %results
 WHERE {
-  {SELECT DISTINCT ?res ?authorName ?editorName       
+  {SELECT DISTINCT ?res       
   (GROUP_CONCAT(DISTINCT ?title__) AS ?title_)
   (GROUP_CONCAT(DISTINCT ?venueName_) AS ?venueName)
   (GROUP_CONCAT(DISTINCT ?publisherName_) AS ?publisherName)
@@ -464,9 +478,9 @@ WHERE {
   (GROUP_CONCAT(DISTINCT ?issue__) AS ?issue_)
   (GROUP_CONCAT(DISTINCT ?volume__) AS ?volume_)
   (GROUP_CONCAT(DISTINCT ?type__) AS ?type_)
+  (GROUP_CONCAT(DISTINCT ?author__; SEPARATOR='; ') AS ?author_)
+  (GROUP_CONCAT(DISTINCT ?editor__; SEPARATOR='; ') AS ?editor_)
   (GROUP_CONCAT(DISTINCT ?id; SEPARATOR=' ') AS ?ids)
-  (GROUP_CONCAT(DISTINCT ?author_id; SEPARATOR=' ') AS ?author_ids)
-  (GROUP_CONCAT(DISTINCT ?editor_id; SEPARATOR=' ') AS ?editor_ids)
   (GROUP_CONCAT(DISTINCT ?venue_ids_; SEPARATOR=' ') AS ?venue_ids)
   (GROUP_CONCAT(DISTINCT ?publisher_ids_; SEPARATOR=' ') AS ?publisher_ids)
   WHERE {
@@ -517,6 +531,11 @@ WHERE {
           CONCAT(STR(?familyName), ","),
           ?name)
         AS ?authorName)
+      BIND(
+        COALESCE(
+          CONCAT(STR(?authorName), " [", ?author_id, "]"),
+          CONCAT(STR(?authorName)))
+        AS ?editor__)
     }
     OPTIONAL {
       ?res pro:isDocumentContextFor ?arEditor.
@@ -536,6 +555,11 @@ WHERE {
           CONCAT(STR(?editorFamilyName), ","),
           ?editor_name)
         AS ?editorName)
+      BIND(
+        COALESCE(
+          CONCAT(STR(?editorName), " [", ?editor_id, "]"),
+          CONCAT(STR(?editorName)))
+        AS ?editor__)
     }
     OPTIONAL {?res dcterm:title ?title__.}
     OPTIONAL {?res prism:publicationDate ?date__.}
@@ -554,14 +578,10 @@ WHERE {
       ?resVolume a fabio:JournalVolume;
                 fabio:hasSequenceIdentifier ?volume__.
     }
-  } GROUP BY ?res ?authorName ?editorName}
+  } GROUP BY ?res}
   BIND(CONCAT(?ids, IF(STR(?ids) != "", " ", ""), "meta:br/", STRAFTER(STR(?res), "/br/")) AS ?id)
-  BIND(IF(STR(?author_ids) != "", CONCAT(" [", ?author_ids, "]"), "") AS ?authorIdentifiers)
-  BIND(IF(STR(?editor_ids) != "", CONCAT(" [", ?editor_ids, "]"), "") AS ?editorIdentifiers)
   BIND(IF(STR(?venue_ids) != "", CONCAT(" [", ?venue_ids, "]"), "") AS ?venueIdentifiers)
   BIND(IF(STR(?publisher_ids) != "", CONCAT(" [", ?publisher_ids, "]"), "") AS ?publisherIdentifiers)
-  BIND(CONCAT(STR(?authorName), ?authorIdentifiers) AS ?author_)
-  BIND(CONCAT(STR(?editorName), ?editorIdentifiers) AS ?editor_)
   BIND(CONCAT(STR(?venueName), ?venueIdentifiers) AS ?venue_)
   BIND(CONCAT(STR(?publisherName), ?publisherIdentifiers) AS ?publisher_)
 }
@@ -650,7 +670,7 @@ PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
 SELECT DISTINCT
 ?id
 (GROUP_CONCAT(DISTINCT ?title_) AS ?title)
-(GROUP_CONCAT(DISTINCT ?author_; separator='; ') AS ?author)
+(GROUP_CONCAT(DISTINCT ?author_) AS ?author)
 (GROUP_CONCAT(DISTINCT ?date_) AS ?date)
 (GROUP_CONCAT(DISTINCT ?page_) AS ?page)
 (GROUP_CONCAT(DISTINCT ?issue_) AS ?issue)
@@ -658,7 +678,7 @@ SELECT DISTINCT
 (GROUP_CONCAT(DISTINCT ?venue_) AS ?venue)
 (GROUP_CONCAT(DISTINCT ?type_) AS ?type)
 (GROUP_CONCAT(DISTINCT ?publisher_; separator=' ') AS ?publisher)
-(GROUP_CONCAT(DISTINCT ?editor_; separator='; ') AS ?editor)
+(GROUP_CONCAT(DISTINCT ?editor_) AS ?editor)
 WITH {
   SELECT DISTINCT ?res ?type__
   WHERE {
@@ -666,7 +686,7 @@ WITH {
   } LIMIT 1000
 } AS %results
 WHERE {
-  {SELECT DISTINCT ?res ?authorName ?editorName       
+  {SELECT DISTINCT ?res       
   (GROUP_CONCAT(DISTINCT ?title__) AS ?title_)
   (GROUP_CONCAT(DISTINCT ?venueName_) AS ?venueName)
   (GROUP_CONCAT(DISTINCT ?publisherName_) AS ?publisherName)
@@ -675,6 +695,8 @@ WHERE {
   (GROUP_CONCAT(DISTINCT ?issue__) AS ?issue_)
   (GROUP_CONCAT(DISTINCT ?volume__) AS ?volume_)
   (GROUP_CONCAT(DISTINCT ?type__) AS ?type_)
+  (GROUP_CONCAT(DISTINCT ?author__; SEPARATOR='; ') AS ?author_)
+  (GROUP_CONCAT(DISTINCT ?editor__; SEPARATOR='; ') AS ?editor_)
   (GROUP_CONCAT(DISTINCT ?id; SEPARATOR=' ') AS ?ids)
   (GROUP_CONCAT(DISTINCT ?author_id; SEPARATOR=' ') AS ?author_ids)
   (GROUP_CONCAT(DISTINCT ?editor_id; SEPARATOR=' ') AS ?editor_ids)
@@ -728,6 +750,11 @@ WHERE {
           CONCAT(STR(?familyName), ","),
           ?name)
         AS ?authorName)
+      BIND(
+        COALESCE(
+          CONCAT(STR(?authorName), " [", ?author_id, "]"),
+          CONCAT(STR(?authorName)))
+        AS ?author__)
     }
     OPTIONAL {
       ?res pro:isDocumentContextFor ?arEditor.
@@ -747,6 +774,11 @@ WHERE {
           CONCAT(STR(?editorFamilyName), ","),
           ?editor_name)
         AS ?editorName)
+      BIND(
+        COALESCE(
+          CONCAT(STR(?editorName), " [", ?editor_id, "]"),
+          CONCAT(STR(?editorName)))
+        AS ?editor__)
     }
     OPTIONAL {?res dcterm:title ?title__.}
     OPTIONAL {?res prism:publicationDate ?date__.}
@@ -765,14 +797,10 @@ WHERE {
       ?resVolume a fabio:JournalVolume;
                 fabio:hasSequenceIdentifier ?volume__.
     }
-  } GROUP BY ?res ?authorName ?editorName}
+  } GROUP BY ?res}
   BIND(CONCAT(?ids, IF(STR(?ids) != "", " ", ""), "meta:br/", STRAFTER(STR(?res), "/br/")) AS ?id)
-  BIND(IF(STR(?author_ids) != "", CONCAT(" [", ?author_ids, "]"), "") AS ?authorIdentifiers)
-  BIND(IF(STR(?editor_ids) != "", CONCAT(" [", ?editor_ids, "]"), "") AS ?editorIdentifiers)
   BIND(IF(STR(?venue_ids) != "", CONCAT(" [", ?venue_ids, "]"), "") AS ?venueIdentifiers)
   BIND(IF(STR(?publisher_ids) != "", CONCAT(" [", ?publisher_ids, "]"), "") AS ?publisherIdentifiers)
-  BIND(CONCAT(STR(?authorName), ?authorIdentifiers) AS ?author_)
-  BIND(CONCAT(STR(?editorName), ?editorIdentifiers) AS ?editor_)
   BIND(CONCAT(STR(?venueName), ?venueIdentifiers) AS ?venue_)
   BIND(CONCAT(STR(?publisherName), ?publisherIdentifiers) AS ?publisher_)
 }

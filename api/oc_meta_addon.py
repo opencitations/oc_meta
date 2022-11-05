@@ -128,7 +128,7 @@ class TextSearch():
             ?res pro:isDocumentContextFor ?ts{role}{ts_index};
                 a fabio:Expression.
             ?ts{role}{ts_index} pro:withRole pro:{role.lower()};
-                    pro:isHeldBy ?ts{role}Ra{ts_index}.
+                pro:isHeldBy ?ts{role}Ra{ts_index}.
         '''
         if name:
             text_search += f"{self.__gen_text_search(f'ts{role}Name{ts_index}', name, False, ts_index)}"
@@ -144,7 +144,7 @@ class TextSearch():
             elif given_name:
                 base_query += f'?ts{role}Ra{ts_index} foaf:givenName ?ts{role}Gn{ts_index}.'
                 text_search += f"{self.__gen_text_search(f'ts{role}Gn{ts_index}', given_name, True, ts_index)}"
-        return base_query + text_search
+        return text_search + base_query
 
     def get_text_search_on_publisher(self, ts_index:bool) -> str:
         return f'''
@@ -160,28 +160,28 @@ class TextSearch():
     def get_text_search_on_vi(self, vi:str, ts_index:bool) -> str:
         v_or_i = vi.title()
         return f'''
+            {self.__gen_text_search(f'ts{v_or_i}Number{ts_index}', self.text, True, ts_index)}
             ?res frbr:partOf+ ?ts{v_or_i}{ts_index};
                 a fabio:Expression.
             ?ts{v_or_i}{ts_index} a fabio:Journal{v_or_i};
                     fabio:hasSequenceIdentifier ?ts{v_or_i}Number{ts_index}.
-            {self.__gen_text_search(f'ts{v_or_i}Number{ts_index}', self.text, True, ts_index)}
         '''
     
     def get_text_search_on_venue(self, ts_index:bool) -> str:
         return f'''
+            {self.__gen_text_search(f'tsVenueTitle{ts_index}', self.text, False, ts_index)}
             ?res frbr:partOf+ ?tsVenue{ts_index}.
             ?res a fabio:Expression.
             FILTER ((!BOUND(?type__) || ?type__ != fabio:JournalVolume) && (!BOUND(?type__) ||?type__ != fabio:JournalIssue))
             ?tsVenue{ts_index} dcterm:title ?tsVenueTitle{ts_index}.
-            {self.__gen_text_search(f'tsVenueTitle{ts_index}', self.text, False, ts_index)}
         '''
 
-    def __gen_text_search(self, variable:str, text:str, match_all_terms:bool, ts_index:int) -> str:
+    def __gen_text_search(self, variable:str, text:str, perfect_match:bool, ts_index:int) -> str:
         if str(ts_index).startswith('0'):
-            min_relevance = f"bds:minRelevance '0.4'." if not match_all_terms else "bds:matchExact 'true'."
-            text_search = f"?{variable} bds:search '{text}'. hint:Prior hint:runFirst 'true'. ?{variable} bds:matchAllTerms 'true'; {min_relevance}"
+            min_relevance = f"bds:minRelevance '0.6'." if not perfect_match else f"bds:matchRegex '^{text}$'."
+            text_search = f"?{variable} bds:search '{text}'; {min_relevance}"
         else:
-            pattern = f'^{text}$' if match_all_terms else text
+            pattern = f'^{text}$' if perfect_match else text
             text_search = f"FILTER REGEX (?{variable}, '{pattern}', 'i')"
         return text_search
 
