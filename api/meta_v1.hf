@@ -72,7 +72,7 @@ SELECT DISTINCT
 (GROUP_CONCAT(DISTINCT ?publisher_; separator=' ') AS ?publisher)
 (GROUP_CONCAT(DISTINCT ?editor_) AS ?editor)
 WITH {
-  SELECT DISTINCT ?res ?type__
+  SELECT DISTINCT ?res
   WHERE {
     [[ids]]
   } LIMIT 1000
@@ -96,6 +96,7 @@ WHERE {
   (GROUP_CONCAT(DISTINCT ?publisher_ids_; SEPARATOR=' ') AS ?publisher_ids)
   WHERE {
     INCLUDE %results
+    OPTIONAL {?res a ?type__. FILTER (?type__ != fabio:Expression)}
     OPTIONAL {
       ?res datacite:hasIdentifier ?identifier.
       ?identifier datacite:usesIdentifierScheme ?scheme;
@@ -268,16 +269,15 @@ SELECT DISTINCT
 (GROUP_CONCAT(DISTINCT ?publisher_; separator=' ') AS ?publisher)
 (GROUP_CONCAT(DISTINCT ?editor_; separator='; ') AS ?editor)
 WITH {
-  SELECT DISTINCT ?res ?type__
+  SELECT DISTINCT ?res
   WHERE {
+    ?knownPersonIdentifier literal:hasLiteralValue "[[orcid]]";
+                           datacite:usesIdentifierScheme datacite:orcid.
+    ?knownPerson datacite:hasIdentifier ?knownPersonIdentifier.
+    ?knownAuthor pro:isHeldBy ?knownPerson;
+                 pro:withRole pro:author.
     ?res pro:isDocumentContextFor ?knownAuthor;
         a fabio:Expression.
-    OPTIONAL {?res a ?type__. FILTER (?type__ != fabio:Expression)}
-    ?knownAuthor pro:withRole pro:author;
-                 pro:isHeldBy ?knownPerson.
-    ?knownPerson datacite:hasIdentifier ?knownPersonIdentifier.
-    ?knownPersonIdentifier datacite:usesIdentifierScheme datacite:orcid;
-                           literal:hasLiteralValue "[[orcid]]".
   } LIMIT 1000
 } AS %results
 WHERE {
@@ -297,6 +297,7 @@ WHERE {
   (GROUP_CONCAT(DISTINCT ?publisher_ids_; SEPARATOR=' ') AS ?publisher_ids)
   WHERE {
     INCLUDE %results
+    OPTIONAL {?res a ?type__. FILTER (?type__ != fabio:Expression)}
     OPTIONAL {
       ?res datacite:hasIdentifier ?identifier.
       ?identifier datacite:usesIdentifierScheme ?scheme;
@@ -456,16 +457,15 @@ SELECT DISTINCT
 (GROUP_CONCAT(DISTINCT ?publisher_; separator=' ') AS ?publisher)
 (GROUP_CONCAT(DISTINCT ?editor_) AS ?editor)
 WITH {
-  SELECT DISTINCT ?res ?type__
+  SELECT DISTINCT ?res
   WHERE {
-    ?res pro:isDocumentContextFor ?knownEditor;
-        a fabio:Expression.
-    OPTIONAL {?res a ?type__. FILTER (?type__ != fabio:Expression)}
-    ?knownEditor pro:withRole pro:editor;
-                 pro:isHeldBy ?knownPerson.
+    ?knownPersonIdentifier literal:hasLiteralValue "[[orcid]]";
+                           datacite:usesIdentifierScheme datacite:orcid.
     ?knownPerson datacite:hasIdentifier ?knownPersonIdentifier.
-    ?knownPersonIdentifier datacite:usesIdentifierScheme datacite:orcid;
-                           literal:hasLiteralValue "[[orcid]]".
+    ?knownEditor pro:isHeldBy ?knownPerson;
+                 pro:withRole pro:editor.
+    ?res pro:isDocumentContextFor ?knownEditor;
+         a fabio:Expression.    
   } LIMIT 1000
 } AS %results
 WHERE {
@@ -485,6 +485,7 @@ WHERE {
   (GROUP_CONCAT(DISTINCT ?publisher_ids_; SEPARATOR=' ') AS ?publisher_ids)
   WHERE {
     INCLUDE %results
+    OPTIONAL {?res a ?type__. FILTER (?type__ != fabio:Expression)}
     OPTIONAL {
       ?res datacite:hasIdentifier ?identifier.
       ?identifier datacite:usesIdentifierScheme ?scheme;
@@ -680,7 +681,7 @@ SELECT DISTINCT
 (GROUP_CONCAT(DISTINCT ?publisher_; separator=' ') AS ?publisher)
 (GROUP_CONCAT(DISTINCT ?editor_) AS ?editor)
 WITH {
-  SELECT DISTINCT ?res ?type__
+  SELECT DISTINCT ?res
   WHERE {
     [[text_search]]
   } LIMIT 1000
@@ -704,6 +705,7 @@ WHERE {
   (GROUP_CONCAT(DISTINCT ?publisher_ids_; SEPARATOR=' ') AS ?publisher_ids)
   WHERE {
     INCLUDE %results
+    OPTIONAL {?res a ?type__. FILTER (?type__ != fabio:Expression)}
     OPTIONAL {
       ?res datacite:hasIdentifier ?identifier.
       ?identifier datacite:usesIdentifierScheme ?scheme;
