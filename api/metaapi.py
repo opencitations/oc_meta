@@ -144,7 +144,7 @@ class TextSearch():
                 base_query = f'''
                     ?ts{role}Ra{ts_index} foaf:familyName ?ts{role}Fn{ts_index};
                                           foaf:givenName ?ts{role}Gn{ts_index}.
-                    FILTER REGEX (?ts{role}Gn{ts_index}, '^{given_name}$')''' + base_query
+                    FILTER REGEX (?ts{role}Gn{ts_index}, '{given_name}')''' + base_query
             elif family_name and not given_name:
                 base_query = f'?ts{role}Ra{ts_index} foaf:familyName ?ts{role}Fn{ts_index}.' + base_query
             elif not family_name and given_name:
@@ -183,7 +183,7 @@ class TextSearch():
 
     def __gen_text_search(self, variable:str, text:str, perfect_match:bool, ts_index:int) -> str:
         if str(ts_index).startswith('0'):
-            min_relevance = f"bds:minRelevance '0.6'." if not perfect_match else f"bds:matchRegex '^{text}$'."
+            min_relevance = f"bds:minRelevance '0.6'; bds:matchAllTerms 'true'." if not perfect_match else f"bds:matchRegex '^{text}$'."
             text_search = f"?{variable} bds:search '{text}'; {min_relevance}"
         else:
             pattern = f'^{text}$' if perfect_match else text
