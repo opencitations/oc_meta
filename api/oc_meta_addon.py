@@ -96,7 +96,6 @@ class TextSearch():
         return f'''
             {self.__gen_text_search(f'tsId{ts_index}', literal_value, True, ts_index)}
             ?res a fabio:Expression; datacite:hasIdentifier ?tsIdentifier{ts_index}.
-            OPTIONAL {{?res a ?type__. FILTER (?type__ != fabio:Expression)}}
             ?tsIdentifier{ts_index} datacite:usesIdentifierScheme datacite:{schema};
                           literal:hasLiteralValue ?tsId{ts_index}.
         '''
@@ -106,7 +105,6 @@ class TextSearch():
             {self.__gen_text_search(f'tsTitle{ts_index}', self.text, False, ts_index)}
             ?res dcterm:title ?tsTitle{ts_index};
                 a fabio:Expression.
-            OPTIONAL {{?res a ?type__. FILTER (?type__ != fabio:Expression)}}
         '''
     
     def get_text_search_on_person(self, role:str, ts_index:bool) -> str:
@@ -129,7 +127,6 @@ class TextSearch():
         base_query = f'''
             ?res pro:isDocumentContextFor ?ts{role}{ts_index};
                 a fabio:Expression.
-            OPTIONAL {{?res a ?type__. FILTER (?type__ != fabio:Expression)}}
             ?ts{role}{ts_index} pro:withRole pro:{role.lower()};
                     pro:isHeldBy ?ts{role}Ra{ts_index}.
         '''
@@ -153,7 +150,7 @@ class TextSearch():
         return f'''
             ?res pro:isDocumentContextFor ?tsPublisher{ts_index};
                  a fabio:Expression.
-            OPTIONAL {{?res a ?type__. FILTER (?type__ != fabio:Expression)}}
+            
             ?tsPublisher{ts_index} pro:withRole pro:publisher;
                     pro:isHeldBy ?tsPublisherRa{ts_index}.
             ?tsPublisherRa{ts_index} foaf:name ?tsPublisherName{ts_index}.
@@ -165,7 +162,6 @@ class TextSearch():
         return f'''
             ?res frbr:partOf+ ?ts{v_or_i}{ts_index};
                 a fabio:Expression.
-            OPTIONAL {{?res a ?type__. FILTER (?type__ != fabio:Expression)}}
             ?ts{v_or_i}{ts_index} a fabio:Journal{v_or_i};
                     fabio:hasSequenceIdentifier ?ts{v_or_i}Number{ts_index}.
             {self.__gen_text_search(f'ts{v_or_i}Number{ts_index}', self.text, True, ts_index)}
@@ -175,7 +171,6 @@ class TextSearch():
         return f'''
             ?res frbr:partOf+ ?tsVenue{ts_index}.
             ?res a fabio:Expression.
-            OPTIONAL {{?res a ?type__. FILTER (?type__ != fabio:Expression)}}
             FILTER ((!BOUND(?type__) || ?type__ != fabio:JournalVolume) && (!BOUND(?type__) ||?type__ != fabio:JournalIssue))
             ?tsVenue{ts_index} dcterm:title ?tsVenueTitle{ts_index}.
             {self.__gen_text_search(f'tsVenueTitle{ts_index}', self.text, False, ts_index)}
@@ -183,9 +178,8 @@ class TextSearch():
 
     def __gen_text_search(self, variable:str, text:str, match_all_terms:bool, ts_index:int) -> str:
         if str(ts_index).startswith('0'):
-            text = f'"{text}"' if match_all_terms else f'{text}'
-            min_relevance = f"?{variable} bds:minRelevance '0.4'." if not match_all_terms else ''
-            text_search = f"?{variable} bds:search '{text}'. hint:Prior hint:runFirst true. ?{variable} bds:matchAllTerms 'true'. {min_relevance}"
+            min_relevance = f"bds:minRelevance '0.4'." if not match_all_terms else "bds:matchExact 'true'."
+            text_search = f"?{variable} bds:search '{text}'. hint:Prior hint:runFirst 'true'. ?{variable} bds:matchAllTerms 'true'; {min_relevance}"
         else:
             pattern = f'^{text}$' if match_all_terms else text
             text_search = f"FILTER REGEX (?{variable}, '{pattern}', 'i')"
@@ -217,7 +211,7 @@ def generate_text_search(text_search:str) -> str:
         query = '{' + '} UNION {'.join(text_searches) + '}'
     elif len(text_searches) == 1:
         query = text_searches[0]
-    return query,
+    return query + 'OPTIONAL {?res a ?type__. FILTER (?type__ != fabio:Expression)}',
 
 def reorder_requests(text_search:str) -> list:
     preferred_order = ['id', 'editor', 'author', 'title', 'venue', 'publisher', 'volume', 'issue']
