@@ -150,13 +150,13 @@ class TextSearch():
 
     def get_text_search_on_publisher(self, ts_index:bool) -> str:
         return f'''
+            {self.__gen_text_search(f'tsPublisherName{ts_index}', self.text, False, ts_index)}
             ?res pro:isDocumentContextFor ?tsPublisher{ts_index};
                  a fabio:Expression.
             
             ?tsPublisher{ts_index} pro:withRole pro:publisher;
                     pro:isHeldBy ?tsPublisherRa{ts_index}.
             ?tsPublisherRa{ts_index} foaf:name ?tsPublisherName{ts_index}.
-            {self.__gen_text_search(f'tsPublisherName{ts_index}', self.text, False, ts_index)}
         '''
         
     def get_text_search_on_vi(self, vi:str, ts_index:bool) -> str:
