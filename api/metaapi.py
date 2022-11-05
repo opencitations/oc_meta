@@ -45,10 +45,6 @@ URI_TYPE_DICT = {
 
 
 def generate_id_search(ids:str) -> Tuple[str]:
-    base_search = f'''
-        ?res a fabio:Expression;
-            datacite:hasIdentifier ?identifier.
-    '''
     id_searches = list()
     for identifier in ids.split('__'):
         scheme_literal_value = identifier.split(':')
@@ -56,12 +52,14 @@ def generate_id_search(ids:str) -> Tuple[str]:
         literal_value = scheme_literal_value[1]
         literal_value = literal_value.lower() if scheme == 'doi' else literal_value
         if scheme == 'meta':
-            id_searches.append(f'''{{BIND(<https://w3id.org/oc/meta/{literal_value}> AS ?res)}}''')
+            id_searches.append(f'''{{?res a fabio:Expression. BIND(<https://w3id.org/oc/meta/{literal_value}> AS ?res)}}''')
         elif scheme in {'doi', 'issn', 'isbn', 'pmid', 'pmcid', 'url', 'wikidata', 'wikipedia'}:
             id_searches.append(f'''
                 {{?identifier literal:hasLiteralValue "{literal_value}";
-                              datacite:usesIdentifierScheme datacite:{scheme}.}}''')
-    ids_search = 'UNION'.join(id_searches) + base_search
+                              datacite:usesIdentifierScheme datacite:{scheme}.
+                ?res datacite:hasIdentifier ?identifier;
+                     a fabio:Expression.}}''')
+    ids_search = 'UNION'.join(id_searches)
     return ids_search, 
 
 def create_metadata_output(results):
