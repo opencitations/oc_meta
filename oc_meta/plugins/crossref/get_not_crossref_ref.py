@@ -113,18 +113,27 @@ def store_dois_not_in_crossref(ref_not_in_crossref:set, output_dir:str) -> None:
         write_csv(path, datalist)
         counter += len(chunk)
 
+def extract_metadata(output_dir:str):
+    dois_not_in_crossref_dir = os.path.join(output_dir, 'dois_not_in_crossref')
+    for filename in os.listdir(dois_not_in_crossref_dir):
+        dois = CSVManager.load_csv_column_as_set(os.path.join(dois_not_in_crossref_dir, filename), 'id')
+        for doi in dois:
+            doi_manager = DOIManager(data=dict(), use_api_service=True)
+            is_valid, metadata = doi_manager.exists(doi_full = doi, get_extra_info=True, allow_extra_api='unknown')
+
 
 if __name__ == '__main__': # pragma: no cover
     arg_parser = ArgumentParser('meta_process.py', description='This script runs the OCMeta data processing workflow')
-    arg_parser.add_argument('-c', '--crossref_json_dir', dest='crossref_json_dir', required=True, help='Crossref json files directory')
+    # arg_parser.add_argument('-c', '--crossref_json_dir', dest='crossref_json_dir', required=True, help='Crossref json files directory')
     arg_parser.add_argument('-o', '--output', dest='output_dir', required=True, help='Directory of the output CSV files to store Crossref and citations DOIS and lower memory requirements')
-    arg_parser.add_argument('-m', '--max_workers', dest='max_workers', required=False, default=cpu_count(), type=int, help='Max workers')
-    arg_parser.add_argument('-w', '--wanted', dest='wanted_dois_filepath', required=False, default=None, help='A CSV filepath containing what DOI to process, not mandatory')
+    # arg_parser.add_argument('-m', '--max_workers', dest='max_workers', required=False, default=cpu_count(), type=int, help='Max workers')
+    # arg_parser.add_argument('-w', '--wanted', dest='wanted_dois_filepath', required=False, default=None, help='A CSV filepath containing what DOI to process, not mandatory')
     args = arg_parser.parse_args()
-    extract_dois_from_dump(args.crossref_json_dir, args.output_dir, args.max_workers)
-    crossref_dois = generate_set_of_crossref_dois(os.path.join(args.output_dir, 'crossref'))
-    ref_not_in_crossref = get_ref_dois_not_in_crossref(crossref_dois, os.path.join(args.output_dir, 'reference'))
-    wanted_dois = CSVManager.load_csv_column_as_set(args.wanted_dois_filepath, 'id') if args.wanted_dois_filepath else None
-    if wanted_dois:
-        ref_not_in_crossref = ref_not_in_crossref.intersection(wanted_dois)
-    store_dois_not_in_crossref(ref_not_in_crossref, args.output_dir)
+    # extract_dois_from_dump(args.crossref_json_dir, args.output_dir, args.max_workers)
+    # crossref_dois = generate_set_of_crossref_dois(os.path.join(args.output_dir, 'crossref'))
+    # ref_not_in_crossref = get_ref_dois_not_in_crossref(crossref_dois, os.path.join(args.output_dir, 'reference'))
+    # wanted_dois = CSVManager.load_csv_column_as_set(args.wanted_dois_filepath, 'id') if args.wanted_dois_filepath else None
+    # if wanted_dois:
+    #     ref_not_in_crossref = ref_not_in_crossref.intersection(wanted_dois)
+    # store_dois_not_in_crossref(ref_not_in_crossref, args.output_dir)
+    extract_metadata(args.output_dir)

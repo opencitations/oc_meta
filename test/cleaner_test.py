@@ -95,7 +95,6 @@ class test_Cleaner(unittest.TestCase):
         for id in identifiers:
             output_data.append(Cleaner(id).normalize_id(valid_dois_cache=csv_manager))
         expected_data = [None]
-        print(output_data)
         self.assertEqual(output_data, expected_data)
     
     def test_clean_volume_and_issue(self):
