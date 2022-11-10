@@ -45,23 +45,21 @@ URI_TYPE_DICT = {
 
 
 def generate_id_search(ids:str) -> Tuple[str]:
-    ids_search = f'''
-        ?res a fabio:Expression;
-            datacite:hasIdentifier ?identifier.
-    '''
     id_searches = list()
     for identifier in ids.split('__'):
         scheme_literal_value = identifier.split(':')
-        scheme = scheme_literal_value[0]
+        scheme = scheme_literal_value[0].lower()
         literal_value = scheme_literal_value[1]
+        literal_value = literal_value.lower() if scheme == 'doi' else literal_value
         if scheme == 'meta':
-            id_searches.append(f'''{{BIND(<https://w3id.org/oc/meta/{literal_value}> AS ?res)}}''')
+            id_searches.append(f'''{{?res a fabio:Expression. BIND(<https://w3id.org/oc/meta/{literal_value}> AS ?res)}}''')
         elif scheme in {'doi', 'issn', 'isbn', 'pmid', 'pmcid', 'url', 'wikidata', 'wikipedia'}:
             id_searches.append(f'''
-                {{?identifier datacite:usesIdentifierScheme datacite:{scheme};
-                                literal:hasLiteralValue "{literal_value}".}}''')
-    ids_search += 'UNION'.join(id_searches)
-    ids_search += 'OPTIONAL {?res a ?type__. FILTER (?type__ != fabio:Expression)}'
+                {{?identifier literal:hasLiteralValue "{literal_value}";
+                              datacite:usesIdentifierScheme datacite:{scheme}.
+                ?res datacite:hasIdentifier ?identifier;
+                     a fabio:Expression.}}''')
+    ids_search = 'UNION'.join(id_searches)
     return ids_search, 
 
 def create_metadata_output(results):
@@ -91,14 +89,15 @@ class TextSearch():
 
     def get_text_search_on_id(self, ts_index:bool) -> str:
         schema_and_literal_value = self.text.split(':')
-        schema = self.text = schema_and_literal_value[0]
+        schema = self.text = schema_and_literal_value[0].lower()
         literal_value = schema_and_literal_value[1]
+        literal_value = literal_value.lower() if schema == 'doi' else literal_value
         return f'''
-            {self.__gen_text_search('tsId', literal_value, True, ts_index)}
-            ?res a fabio:Expression; datacite:hasIdentifier ?tsIdentifier{ts_index}.
-            OPTIONAL {{?res a ?type__. FILTER (?type__ != fabio:Expression)}}
-            ?tsIdentifier{ts_index} datacite:usesIdentifierScheme datacite:{schema};
-                          literal:hasLiteralValue ?tsId.
+            {self.__gen_text_search(f'tsId{ts_index}', literal_value, True, ts_index)}
+            ?tsIdentifier{ts_index} literal:hasLiteralValue ?tsId{ts_index};
+                                    datacite:usesIdentifierScheme datacite:{schema}.
+            ?res datacite:hasIdentifier ?tsIdentifier{ts_index};
+                a fabio:Expression.
         '''
     
     def get_text_search_on_title(self, ts_index:bool) -> str:
@@ -106,7 +105,6 @@ class TextSearch():
             {self.__gen_text_search(f'tsTitle{ts_index}', self.text, False, ts_index)}
             ?res dcterm:title ?tsTitle{ts_index};
                 a fabio:Expression.
-            OPTIONAL {{?res a ?type__. FILTER (?type__ != fabio:Expression)}}
         '''
     
     def get_text_search_on_person(self, role:str, ts_index:bool) -> str:
@@ -116,78 +114,77 @@ class TextSearch():
         if ',' in self.text:
             name_parts = [part.strip() for part in self.text.split(',')]
             if name_parts:
-                family_name = name_parts[0]
+                family_name = ' '.join([s.title() for s in name_parts[0].split()])
                 if len(name_parts) == 2:
                     given_name = name_parts[1]
                     given_name = '. '.join(given_name.split('.'))
-                    given_name = ' '.join([f"{name_part.rstrip('.')}.+?" if len(name_part.rstrip('.')) == 1 else name_part for name_part in given_name.split()])
+                    given_name = ' '.join([f"{name_part.rstrip('.').title()}.+?" if len(name_part.rstrip('.')) == 1 else name_part.title() for name_part in given_name.split()])
                     given_name = given_name.replace('*', '.*?')
         else:
             name = self.text
         role = role.title()
         text_search = ''
         base_query = f'''
+            ?ts{role}{ts_index} pro:isHeldBy ?ts{role}Ra{ts_index};
+                                pro:withRole pro:{role.lower()}.
             ?res pro:isDocumentContextFor ?ts{role}{ts_index};
                 a fabio:Expression.
-            OPTIONAL {{?res a ?type__. FILTER (?type__ != fabio:Expression)}}
-            ?ts{role}{ts_index} pro:withRole pro:{role.lower()};
-                    pro:isHeldBy ?ts{role}Ra{ts_index}.
         '''
         if name:
             text_search += f"{self.__gen_text_search(f'ts{role}Name{ts_index}', name, False, ts_index)}"
-            base_query += f'?ts{role}Ra{ts_index} ?namePredicate ?ts{role}Name{ts_index}.'
-            base_query += 'VALUES (?namePredicate) {(foaf:name) (foaf:familyName)}'
+            base_query = f'''
+                ?ts{role}Ra{ts_index} ?namePredicate ?ts{role}Name{ts_index}.
+                VALUES (?namePredicate) {{(foaf:name) (foaf:familyName)}}''' + base_query
         else:
             if family_name:
                 text_search += f"{self.__gen_text_search(f'ts{role}Fn{ts_index}', family_name, True, ts_index)}"
-                base_query += f'?ts{role}Ra{ts_index} foaf:familyName ?ts{role}Fn{ts_index}.'
-                if given_name:
-                    base_query += f'?ts{role}Ra{ts_index} foaf:givenName ?ts{role}Gn{ts_index}.'
-                    text_search += f"FILTER REGEX (?ts{role}Gn{ts_index}, '^{given_name}$', 'i')"
-            elif given_name:
-                base_query += f'?ts{role}Ra{ts_index} foaf:givenName ?ts{role}Gn{ts_index}.'
+            if family_name and given_name:
+                base_query = f'''
+                    ?ts{role}Ra{ts_index} foaf:familyName ?ts{role}Fn{ts_index};
+                                          foaf:givenName ?ts{role}Gn{ts_index}.
+                    FILTER REGEX (?ts{role}Gn{ts_index}, '{given_name}')''' + base_query
+            elif family_name and not given_name:
+                base_query = f'?ts{role}Ra{ts_index} foaf:familyName ?ts{role}Fn{ts_index}.' + base_query
+            elif not family_name and given_name:
+                base_query = f'?ts{role}Ra{ts_index} foaf:givenName ?ts{role}Gn{ts_index}.' + base_query
                 text_search += f"{self.__gen_text_search(f'ts{role}Gn{ts_index}', given_name, True, ts_index)}"
-        return base_query + text_search
+        return text_search + base_query
 
     def get_text_search_on_publisher(self, ts_index:bool) -> str:
         return f'''
-            ?res pro:isDocumentContextFor ?tsPublisher{ts_index};
-                 a fabio:Expression.
-            OPTIONAL {{?res a ?type__. FILTER (?type__ != fabio:Expression)}}
-            ?tsPublisher{ts_index} pro:withRole pro:publisher;
-                    pro:isHeldBy ?tsPublisherRa{ts_index}.
-            ?tsPublisherRa{ts_index} foaf:name ?tsPublisherName{ts_index}.
             {self.__gen_text_search(f'tsPublisherName{ts_index}', self.text, False, ts_index)}
+            ?tsPublisherRa{ts_index} foaf:name ?tsPublisherName{ts_index}.
+            ?tsPublisher{ts_index} pro:isHeldBy ?tsPublisherRa{ts_index};
+                                   pro:withRole pro:publisher.
+            ?res pro:isDocumentContextFor ?tsPublisher{ts_index};
+                a fabio:Expression.            
         '''
         
     def get_text_search_on_vi(self, vi:str, ts_index:bool) -> str:
         v_or_i = vi.title()
         return f'''
+            {self.__gen_text_search(f'ts{v_or_i}Number{ts_index}', self.text, False, ts_index)}
+            ?ts{v_or_i}{ts_index} fabio:hasSequenceIdentifier ?ts{v_or_i}Number{ts_index};
+                                  a fabio:Journal{v_or_i}.
             ?res frbr:partOf+ ?ts{v_or_i}{ts_index};
                 a fabio:Expression.
-            OPTIONAL {{?res a ?type__. FILTER (?type__ != fabio:Expression)}}
-            ?ts{v_or_i}{ts_index} a fabio:Journal{v_or_i};
-                    fabio:hasSequenceIdentifier ?ts{v_or_i}Number{ts_index}.
-            {self.__gen_text_search(f'ts{v_or_i}Number{ts_index}', self.text, True, ts_index)}
         '''
     
     def get_text_search_on_venue(self, ts_index:bool) -> str:
         return f'''
-            ?res frbr:partOf+ ?tsVenue{ts_index}.
-            ?res a fabio:Expression.
-            OPTIONAL {{?res a ?type__. FILTER (?type__ != fabio:Expression)}}
-            FILTER ((!BOUND(?type__) || ?type__ != fabio:JournalVolume) && (!BOUND(?type__) ||?type__ != fabio:JournalIssue))
-            ?tsVenue{ts_index} dcterm:title ?tsVenueTitle{ts_index}.
             {self.__gen_text_search(f'tsVenueTitle{ts_index}', self.text, False, ts_index)}
+            ?tsVenue{ts_index} dcterm:title ?tsVenueTitle{ts_index}.
+            ?res frbr:partOf+ ?tsVenue{ts_index}.
+            FILTER NOT EXISTS {{?res a fabio:JournalVolume}}
+            FILTER NOT EXISTS {{?res a fabio:JournalIssue}}
         '''
 
-    def __gen_text_search(self, variable:str, text:str, match_all_terms:bool, ts_index:int) -> str:
+    def __gen_text_search(self, variable:str, text:str, perfect_match:bool, ts_index:int) -> str:
         if str(ts_index).startswith('0'):
-            text = f'"{text}"' if match_all_terms else f'{text}'
-            min_relevance = f"?{variable} bds:minRelevance '0.4'." if not match_all_terms else ''
-            text_search = f"?{variable} bds:search '{text}'. hint:Prior hint:runFirst true. ?{variable} bds:matchAllTerms 'true'. {min_relevance}"
+            min_relevance = f"bds:minRelevance '0.6'; bds:matchAllTerms 'true'." if not perfect_match else f"bds:matchRegex '^{text}$'."
+            text_search = f"?{variable} bds:search '{text}'; {min_relevance}"
         else:
-            pattern = f'^{text}$' if match_all_terms else text
+            pattern = f'^{text}$' if perfect_match else text
             text_search = f"FILTER REGEX (?{variable}, '{pattern}', 'i')"
         return text_search
 
