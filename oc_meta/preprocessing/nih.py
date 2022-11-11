@@ -8,7 +8,6 @@ from tqdm import tqdm
 import sys
 
 
-
 class NIHPreProcessing(Preprocessing):
     """This class aims at pre-processing iCite Database Snapshots (NIH Open
     Citation Collection + ICite Metadata), available at:
