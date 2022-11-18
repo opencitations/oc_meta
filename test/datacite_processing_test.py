@@ -16,7 +16,7 @@
 
 from oc_idmanager import DOIManager
 from oc_meta.lib.file_manager import call_api
-from oc_meta.plugins.datacite.datacite_processing import DataCiteProcessing
+from oc_meta.plugins.datacite.datacite_processing import DataciteProcessing
 import unittest
 
 
@@ -29,7 +29,7 @@ class DataCiteProcessingTest(unittest.TestCase):
     def test_csv_creator(self):
         url = f'{DATACITE_API}10.6084/m9.figshare.1468349'
         item = call_api(url, HEADERS)
-        datacite_processing = DataCiteProcessing()
+        datacite_processing = DataciteProcessing()
         output = datacite_processing.csv_creator(item['data'])
         expected_output = {
             'id': 'doi:10.6084/m9.figshare.1468349',

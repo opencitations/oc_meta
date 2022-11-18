@@ -81,7 +81,7 @@ class MedraProcessing:
         authors, editors = self.get_contributors(xml_soup)
         return {
             'title': self.get_title(xml_soup),
-            'author': authors,
+            'author': '; '.join(authors),
             'issue': issue,
             'volume': volume,
             'venue': venue,
@@ -89,7 +89,7 @@ class MedraProcessing:
             'pages': self.get_pages(content_item),
             'type': 'journal article',
             'publisher': publisher_name,
-            'editor': editors
+            'editor': '; '.join(editors)
         }
 
     def get_title(self, context:BeautifulSoup) -> str:

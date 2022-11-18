@@ -53,13 +53,15 @@ def pathoo(path):
     if not os.path.isdir(os.path.dirname(path)):
         os.makedirs(os.path.dirname(path))
 
-def write_csv(path:str, datalist:List[dict], fieldnames:list|dict_keys|None=None) -> None:
+def write_csv(path:str, datalist:List[dict], fieldnames:list|dict_keys|None=None, method:str='w') -> None:
     if datalist:
         fieldnames = datalist[0].keys() if fieldnames is None else fieldnames
         pathoo(path)
-        with open(path, 'w', newline='', encoding='utf-8') as output_file:
+        file_exists = os.path.isfile(path)
+        with open(path, method, newline='', encoding='utf-8') as output_file:
             dict_writer = csv.DictWriter(f=output_file, fieldnames=fieldnames, delimiter=',', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
-            dict_writer.writeheader()
+            if method == 'w' or (method == 'a' and not file_exists):
+                dict_writer.writeheader()
             dict_writer.writerows(datalist)
 
 def normalize_path(path:str) -> str:

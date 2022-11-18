@@ -20,7 +20,7 @@ from functools import partial
 from multiprocessing import cpu_count
 from oc_idmanager import DOIManager
 from oc_meta.lib.csvmanager import CSVManager
-from oc_meta.lib.file_manager import write_csv
+from oc_meta.lib.file_manager import get_csv_data, pathoo, write_csv
 from oc_meta.lib.jsonmanager import get_all_files, load_json
 from oc_meta.run.meta_process import chunks
 from pebble import ProcessPool, ProcessFuture
@@ -115,12 +115,26 @@ def store_dois_not_in_crossref(ref_not_in_crossref:set, output_dir:str) -> None:
 
 def extract_metadata(output_dir:str):
     dois_not_in_crossref_dir = os.path.join(output_dir, 'dois_not_in_crossref')
+    base_output_dir = os.path.join(dois_not_in_crossref_dir, 'metadata_extracted')
+    processed_dois = {
+        row['id'] for dirpath, _, filenames in os.walk(base_output_dir) 
+            for filename in filenames 
+                for row in get_csv_data(os.path.join(dirpath, filename))}
     for filename in os.listdir(dois_not_in_crossref_dir):
-        dois = CSVManager.load_csv_column_as_set(os.path.join(dois_not_in_crossref_dir, filename), 'id')
+        dois = CSVManager.load_csv_column_as_set(os.path.join(dois_not_in_crossref_dir, filename), 'id').difference(processed_dois)
         for doi in dois:
             doi_manager = DOIManager(data=dict(), use_api_service=True)
-            is_valid, metadata = doi_manager.exists(doi_full = doi, get_extra_info=True, allow_extra_api='unknown')
-            print(metadata, '\n')
+            _, metadata = doi_manager.exists(doi_full = doi, get_extra_info=True, allow_extra_api='unknown')
+            registration_agency = metadata['ra']
+            del metadata['valid']; del metadata['ra']
+            locals()[f'{registration_agency}_counter'] = 0
+            ra_output_dir = os.path.join(base_output_dir, registration_agency)
+            pathoo(ra_output_dir)
+            if os.path.exists(os.path.join(ra_output_dir, f"{locals()[f'{registration_agency}_counter']}.csv")):
+                if len(get_csv_data(output_path)) == 10000:
+                    locals()[f'{registration_agency}_counter'] += 1
+            output_path = os.path.join(ra_output_dir, f"{locals()[f'{registration_agency}_counter']}.csv")
+            write_csv(output_path, [metadata], method='a')
 
 if __name__ == '__main__': # pragma: no cover
     arg_parser = ArgumentParser('meta_process.py', description='This script runs the OCMeta data processing workflow')

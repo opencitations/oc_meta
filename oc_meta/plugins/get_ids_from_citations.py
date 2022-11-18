@@ -91,4 +91,3 @@ def get_files_count(citations_dir:str) -> int:
                 with ZipFile(os.path.join(citations_dir, file), 'r') as archive:
                     file_count += len(archive.namelist())
     return file_count
-

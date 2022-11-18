@@ -16,8 +16,7 @@ from oc_meta.lib.master_of_regex import *
 warnings.filterwarnings("ignore", category=UserWarning, module='bs4')
 
 
-class DataCiteProcessing:
-
+class DataciteProcessing:
     def __init__(self, orcid_index: str = None, doi_csv: str = None, publishers_filepath: str = None, inp_dir: str = None, out_dir: str = None, interval: int = 1000, filter:list = []):
         self.doi_set = CSVManager.load_csv_column_as_set(doi_csv, 'doi') if doi_csv else None
         self.publishers_mapping = self.load_publishers_mapping(publishers_filepath) if publishers_filepath else None

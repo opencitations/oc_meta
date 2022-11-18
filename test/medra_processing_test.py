@@ -32,9 +32,9 @@ class MedraProcessingTest(unittest.TestCase):
         medra_processing = MedraProcessing()
         output = medra_processing.csv_creator(item)
         expected_output = {'title': 'Packaging research artefacts with RO-Crate', 
-            'author': ['Soiland-Reyes, Stian [orcid:0000-0001-9842-9718]', 'Sefton, Peter [orcid:0000-0002-3545-944X]', 'Crosas, Mercè [orcid:0000-0003-1304-1939]', 'Castro, Leyla Jael [orcid:0000-0003-3986-0510]', 'Coppens, Frederik [orcid:0000-0001-6565-5145]', 'Fernández, José M. [orcid:0000-0002-4806-5140]', 'Garijo, Daniel [orcid:0000-0003-0454-7145]', 'Grüning, Björn [orcid:0000-0002-3079-6586]', 'La Rosa, Marco [orcid:0000-0001-5383-6993]', 'Leo, Simone [orcid:0000-0001-8271-5429]', 'Ó Carragáin, Eoghan [orcid:0000-0001-8131-2150]', 'Portier, Marc [orcid:0000-0002-9648-6484]', 'Trisovic, Ana [orcid:0000-0003-1991-0533]', 'RO-Crate Community', 'Groth, Paul [orcid:0000-0003-0183-6910]', 'Goble, Carole [orcid:0000-0003-1219-2137]'], 
+            'author': '; '.join(['Soiland-Reyes, Stian [orcid:0000-0001-9842-9718]', 'Sefton, Peter [orcid:0000-0002-3545-944X]', 'Crosas, Mercè [orcid:0000-0003-1304-1939]', 'Castro, Leyla Jael [orcid:0000-0003-3986-0510]', 'Coppens, Frederik [orcid:0000-0001-6565-5145]', 'Fernández, José M. [orcid:0000-0002-4806-5140]', 'Garijo, Daniel [orcid:0000-0003-0454-7145]', 'Grüning, Björn [orcid:0000-0002-3079-6586]', 'La Rosa, Marco [orcid:0000-0001-5383-6993]', 'Leo, Simone [orcid:0000-0001-8271-5429]', 'Ó Carragáin, Eoghan [orcid:0000-0001-8131-2150]', 'Portier, Marc [orcid:0000-0002-9648-6484]', 'Trisovic, Ana [orcid:0000-0003-1991-0533]', 'RO-Crate Community', 'Groth, Paul [orcid:0000-0003-0183-6910]', 'Goble, Carole [orcid:0000-0003-1219-2137]']), 
             'issue': '2', 'volume': '5', 'venue': 'Data Science [issn:2451-8492 issn:2451-8484]', 'pub_date': '2022-07-20', 'pages': '97-138', 'type': 'journal article', 
-            'publisher': 'IOS Press', 'editor': ['Peroni, Silvio [orcid:0000-0003-0530-4305]']}
+            'publisher': 'IOS Press', 'editor': 'Peroni, Silvio [orcid:0000-0003-0530-4305]'}
         self.assertEqual(output, expected_output)
 
     def test_extract_from_medra_book(self):
