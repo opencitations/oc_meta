@@ -14,11 +14,16 @@
 # ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 # SOFTWARE.
 
+
 from __future__ import annotations
 from _collections_abc import dict_keys
+from bs4 import BeautifulSoup
 from contextlib import contextmanager
 from oc_meta.lib.cleaner import Cleaner
 from pathlib import Path
+from requests import get, ReadTimeout
+from requests.exceptions import ConnectionError
+from time import sleep
 from typing import List, Dict, Set
 from zipfile import ZipFile, ZIP_DEFLATED
 import csv
@@ -174,3 +179,22 @@ def read_zipped_json(filepath:str) -> dict|None:
                 json_data = f.read()
                 json_dict = json.loads(json_data.decode("utf-8"))
                 return json_dict
+
+def call_api(url:str, headers:str, r_format:str="json") -> dict|None:
+    tentative = 3
+    while tentative:
+        tentative -= 1
+        try:
+            r = get(url, headers=headers, timeout=30)
+            if r.status_code == 200:
+                r.encoding = "utf-8"
+                return json.loads(r.text) if r_format == "json" else BeautifulSoup(r.text, 'xml')
+            elif r.status_code == 404:
+                return None
+        except ReadTimeout:
+            # Do nothing, just try again
+            pass
+        except ConnectionError:
+            # Sleep 5 seconds, then try again
+            sleep(5)
+    return None

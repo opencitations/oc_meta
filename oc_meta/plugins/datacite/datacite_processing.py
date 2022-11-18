@@ -11,7 +11,7 @@ from oc_idmanager.isbn import ISBNManager
 from oc_idmanager.doi import DOIManager
 from oc_meta.lib.cleaner import Cleaner
 from oc_meta.lib.master_of_regex import *
-from oc_meta.preprocessing.datacite import DatacitePreProcessing
+
 
 warnings.filterwarnings("ignore", category=UserWarning, module='bs4')
 

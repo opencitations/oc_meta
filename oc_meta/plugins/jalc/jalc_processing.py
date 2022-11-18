@@ -60,7 +60,7 @@ class JalcProcessing:
     
     @classmethod
     def get_ja(cls, field:list) -> list:
-        if 'lang' in field:
+        if all('lang' in item for item in field):
             ja = [item for item in field if item['lang'] == 'ja']
             if not ja:
                 en = [item for item in field if item['lang'] == 'en']

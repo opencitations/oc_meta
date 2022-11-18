@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "oc_meta"
-version = "1.1.2"
+version = "1.2.0"
 description = "OpenCitations Meta contains bibliographic metadata associated with the documents involved in the citations stored in the OpenCitations infrastructure. The OpenCitations Meta Software performs two main actions: a data curation of the provided CSV files and the generation of new RDF files compliant with the OpenCitations Data Model."
 authors = ["Arcangelo Massari <arcangelomas@gmail.com>", "Fabio Mariani", "Simone Persiani <iosonopersia@gmail.com>"]
 license = "ISC License"
@@ -20,9 +20,9 @@ filelock = "^3.6.0"
 psutil = "^5.9.0"
 Pebble = "^4.6.3"
 ramose = "^1.0.6"
-oc-idmanager = "^0.1.1"
 time-agnostic-library = "4.3.2"
 oc-ocdm = "7.1.2"
+oc-idmanager = "0.2.1"
 
 [tool.poetry.dev-dependencies]
 wget = "^3.2"
