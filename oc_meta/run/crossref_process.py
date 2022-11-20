@@ -15,16 +15,18 @@
 # SOFTWARE.
 
 
+import csv
+import os
+import sys
 from argparse import ArgumentParser
+from tarfile import TarInfo
+
+import yaml
+from tqdm import tqdm
+
 from oc_meta.lib.file_manager import normalize_path
 from oc_meta.lib.jsonmanager import *
 from oc_meta.plugins.crossref.crossref_processing import *
-from tarfile import TarInfo
-from tqdm import tqdm
-import csv
-import yaml
-import os
-import sys
 
 
 def preprocess(crossref_json_dir:str, publishers_filepath:str, orcid_doi_filepath:str, csv_dir:str, wanted_doi_filepath:str=None, cache:str=None, verbose:bool=False) -> None:

@@ -489,13 +489,10 @@ class DataciteProcessing:
         dict_orcid = None
         if not all('orcid' in agent for agent in agents_list):
             dict_orcid = self.orcid_finder(doi)
-        try:
-            agents_list = [
-                {k: Cleaner(v).remove_unwanted_characters() if k in {'family', 'given', 'name'} else v for k, v in
-                agent_dict.items()} for agent_dict in agents_list]
-        except TypeError:
-            print(doi, agents_list)
-            raise(TypeError)
+        agents_list = [
+            {k: Cleaner(v).remove_unwanted_characters() if k in {'family', 'given', 'name'} and v is not None 
+            else v for k, v in
+            agent_dict.items()} for agent_dict in agents_list]
         for agent in agents_list:
             cur_role = agent['role']
             f_name = None

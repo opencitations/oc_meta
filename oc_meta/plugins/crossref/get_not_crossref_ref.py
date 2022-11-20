@@ -27,8 +27,9 @@ from pebble import ProcessFuture, ProcessPool
 from tqdm import tqdm
 
 from oc_meta.lib.csvmanager import CSVManager
-from oc_meta.lib.file_manager import get_csv_data, pathoo, write_csv
+from oc_meta.lib.file_manager import call_api, get_csv_data, pathoo, write_csv
 from oc_meta.lib.jsonmanager import get_all_files, load_json
+from oc_meta.plugins.metadata_manager import MetadataManager
 from oc_meta.run.meta_process import chunks
 
 
@@ -115,20 +116,24 @@ def store_dois_not_in_crossref(ref_not_in_crossref:set, output_dir:str) -> None:
         write_csv(path, datalist)
         counter += len(chunk)
 
-def extract_metadata(output_dir:str):
+def extract_metadata(output_dir:str, orcid_doi_filepath:str):
     dois_not_in_crossref_dir = os.path.join(output_dir, 'dois_not_in_crossref')
     base_output_dir = os.path.join(dois_not_in_crossref_dir, 'metadata_extracted')
     processed_dois = {
         row['id'] for dirpath, _, filenames in os.walk(base_output_dir) 
             for filename in filenames 
                 for row in get_csv_data(os.path.join(dirpath, filename))}
+    print(len(processed_dois))
     for filename in os.listdir(dois_not_in_crossref_dir):
         dois = CSVManager.load_csv_column_as_set(os.path.join(dois_not_in_crossref_dir, filename), 'id').difference(processed_dois)
         for doi in dois:
-            doi_manager = DOIManager(data=dict(), use_api_service=True)
-            _, metadata = doi_manager.exists(doi_full = doi, get_extra_info=True, allow_extra_api='unknown')
+            doi_manager = DOIManager()
+            api_response = call_api(url=f'{doi_manager._api_unknown}{doi}', headers=doi_manager._headers)
+            metadata_manager = MetadataManager(metadata_provider = "unknown", api_response = api_response, orcid_doi_filepath = orcid_doi_filepath)
+            metadata: dict = metadata_manager.extract_metadata()
+            metadata['id'] = doi
             registration_agency = metadata['ra']
-            del metadata['valid']; del metadata['ra']
+            metadata.pop('valid', None); metadata.pop('ra', None)
             locals()[f'{registration_agency}_counter'] = 0
             ra_output_dir = os.path.join(base_output_dir, registration_agency)
             pathoo(ra_output_dir)
@@ -143,6 +148,7 @@ if __name__ == '__main__': # pragma: no cover
     arg_parser = ArgumentParser('meta_process.py', description='This script runs the OCMeta data processing workflow')
     arg_parser.add_argument('-c', '--crossref_json_dir', dest='crossref_json_dir', required=True, help='Crossref json files directory')
     arg_parser.add_argument('-o', '--output', dest='output_dir', required=True, help='Directory of the output CSV files to store Crossref and citations DOIS and lower memory requirements')
+    arg_parser.add_argument('-or', '--orcid', dest='orcid_doi_filepath', required=False, help='DOI-ORCID index filepath, to enrich data')
     arg_parser.add_argument('-m', '--max_workers', dest='max_workers', required=False, default=cpu_count(), type=int, help='Max workers')
     arg_parser.add_argument('-w', '--wanted', dest='wanted_dois_filepath', required=False, default=None, help='A CSV filepath containing what DOI to process, not mandatory')
     args = arg_parser.parse_args()
@@ -154,4 +160,4 @@ if __name__ == '__main__': # pragma: no cover
         if wanted_dois:
             ref_not_in_crossref = ref_not_in_crossref.intersection(wanted_dois)
         store_dois_not_in_crossref(ref_not_in_crossref, args.output_dir)
-    extract_metadata(args.output_dir)
+    extract_metadata(args.output_dir, args.orcid_doi_filepath)

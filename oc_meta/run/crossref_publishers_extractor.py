@@ -1,7 +1,6 @@
-from oc_meta.plugins.crossref.extract_crossref_publishers import process
 from argparse import ArgumentParser
 
-
+from oc_meta.plugins.crossref.extract_crossref_publishers import process
 
 if __name__ == "__main__":
     arg_parser = ArgumentParser("Extract publisher information from Crossref")

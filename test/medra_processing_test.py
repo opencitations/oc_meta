@@ -14,11 +14,12 @@
 # SOFTWARE.
 
 
-from oc_idmanager import DOIManager
-from oc_meta.lib.file_manager import call_api
-from oc_meta.plugins.medra.medra_processing import MedraProcessing
 import unittest
 
+from oc_idmanager import DOIManager
+
+from oc_meta.lib.file_manager import call_api
+from oc_meta.plugins.medra.medra_processing import MedraProcessing
 
 doi_manager = DOIManager()
 MEDRA_API = doi_manager._api_medra

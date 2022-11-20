@@ -16,10 +16,13 @@
 
 
 from __future__ import annotations
+
+import unicodedata
+
 from oc_idmanager.issn import ISSNManager
 from oc_idmanager.orcid import ORCIDManager
+
 from oc_meta.lib.csvmanager import CSVManager
-import unicodedata
 
 
 class JalcProcessing:
@@ -93,6 +96,8 @@ class JalcProcessing:
             venue_name = ''
         if 'journal_id_list' in data:
             journal_ids = [journal_id['journal_id'] for journal_id in data['journal_id_list'] if journal_id['type'] in {'print', 'online'}]
+        else:
+            journal_ids = []
         venue_ids = list()
         if journal_ids:
             for journal_id in journal_ids:

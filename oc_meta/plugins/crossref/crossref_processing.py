@@ -16,17 +16,18 @@
 # SOFTWARE.
 
 
-from typing import Dict, List, Tuple
-from csv import DictReader
-from bs4 import BeautifulSoup
-from oc_idmanager import DOIManager, ISBNManager, ISSNManager, ORCIDManager
-from oc_meta.lib.csvmanager import CSVManager
-from oc_meta.lib.cleaner import Cleaner
-from oc_meta.lib.master_of_regex import *
 import html
 import re
 import warnings
+from csv import DictReader
+from typing import Dict, List, Tuple
 
+from bs4 import BeautifulSoup
+from oc_idmanager import DOIManager, ISBNManager, ISSNManager, ORCIDManager
+
+from oc_meta.lib.cleaner import Cleaner
+from oc_meta.lib.csvmanager import CSVManager
+from oc_meta.lib.master_of_regex import *
 
 warnings.filterwarnings("ignore", category=UserWarning, module='bs4')
 

@@ -23,9 +23,10 @@ from oc_idmanager.orcid import ORCIDManager
 
 
 class MetadataManager():
-    def __init__(self, metadata_provider:str, api_response:dict):
+    def __init__(self, metadata_provider:str, api_response:dict, orcid_doi_filepath:str):
         self.metadata_provider = metadata_provider
         self.api_response = api_response
+        self.orcid_doi_filepath = orcid_doi_filepath
         self._issnm = ISSNManager()
         self._isbnm = ISBNManager()
         self._om = ORCIDManager()
@@ -42,20 +43,35 @@ class MetadataManager():
         elif self.metadata_provider in self._have_api:
             module = importlib.import_module(f'oc_meta.plugins.{self.metadata_provider}.{self.metadata_provider}_processing')
             class_ = getattr(module, f'{self.metadata_provider.title()}Processing')
-            metadata_processor = class_()
+            metadata_processor = class_(orcid_index=self.orcid_doi_filepath)
             api_response = self.api_response['data'] if self.metadata_provider == 'datacite' else self.api_response
             metadata.update(getattr(metadata_processor, 'csv_creator')(api_response))                
         return metadata
 
     def extract_from_unknown(self) -> None:
-        from oc_idmanager.support import call_api, extract_info
+        metadata = dict()
+        api_response: dict = self.api_response[0]
+        if api_response.get('status') == 'Error':
+            metadata['ra'] = 'unknown'
+            return metadata
+        elif api_response.get('status') == 'DOI does not exist':
+            metadata['ra'] = 'invalid'
+            return metadata
         registration_agency = self.api_response[0]['RA'].lower()
-        metadata = {'ra': registration_agency}
+        metadata['ra'] = registration_agency
         doi = self.api_response[0]['DOI']
         api_registration_agency = getattr(self.doi_manager, f'_api_{registration_agency}')
         if api_registration_agency:
+            from oc_meta.lib.file_manager import call_api
             url = api_registration_agency + quote(doi)
             r_format = 'xml' if registration_agency == 'medra' else 'json'
             extra_api_result = call_api(url=url, headers=self.doi_manager._headers, r_format=r_format)
-            metadata.update(extract_info(extra_api_result, registration_agency))
+            self.metadata_provider = registration_agency
+            self.api_response = extra_api_result
+            try:
+                metadata.update(self.extract_metadata())
+            except Exception as e:
+                print(doi, registration_agency)
+                print(e)
+                raise(Exception)
         return metadata

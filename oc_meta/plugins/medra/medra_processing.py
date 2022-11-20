@@ -15,12 +15,14 @@
 # SOFTWARE.
 
 
-from bs4 import BeautifulSoup
 from datetime import datetime
+from typing import List, Tuple
+
+from bs4 import BeautifulSoup
 from oc_idmanager.issn import ISSNManager
 from oc_idmanager.orcid import ORCIDManager
+
 from oc_meta.lib.csvmanager import CSVManager
-from typing import List, Tuple
 
 
 class MedraProcessing:
@@ -58,10 +60,6 @@ class MedraProcessing:
         serial_publication = xml_soup.find('SerialPublication')
         serial_work = serial_publication.find('SerialWork')
         publisher_name = self.get_publisher(serial_work)
-        serial_work_titles:List[BeautifulSoup] = serial_work.findAll('Title')
-        for serial_work_title in serial_work_titles:
-            if serial_work_title.find('TitleType').get_text() == '01':
-                venue_name = serial_work_title.find('TitleText').get_text()
         serial_versions:List[BeautifulSoup] = serial_publication.findAll('SerialVersion')
         venue_ids = list()
         for serial_version in serial_versions:
@@ -71,7 +69,6 @@ class MedraProcessing:
                     issnid = self._issnm.normalise(serial_version.find('IDValue').get_text(), include_prefix=False)
                     if self._issnm.check_digit(issnid):
                         venue_ids.append('issn:' + issnid)
-        venue = f"{venue_name} [{' '.join(venue_ids)}]" if venue_ids else venue_name
         journal_issue = xml_soup.find('JournalIssue')
         volume = journal_issue.find('JournalVolumeNumber')
         volume = volume.get_text() if volume else ''
@@ -84,7 +81,7 @@ class MedraProcessing:
             'author': '; '.join(authors),
             'issue': issue,
             'volume': volume,
-            'venue': venue,
+            'venue': self.get_venue(xml_soup),
             'pub_date': self.get_pub_date(content_item),
             'pages': self.get_pages(content_item),
             'type': 'journal article',
@@ -164,7 +161,33 @@ class MedraProcessing:
         return pages
     
     def get_publisher(self, context:BeautifulSoup) -> str:
-        return context.find('Publisher').find('PublisherName').get_text()
+        publisher_name = context.find('Publisher').find('PublisherName')
+        if publisher_name:
+            return publisher_name.get_text()
+        return ''
+    
+    def get_venue(self, context:BeautifulSoup) -> str:
+        serial_publication = context.find('SerialPublication')
+        serial_work = serial_publication.find('SerialWork')
+        serial_work_titles:List[BeautifulSoup] = serial_work.findAll('Title')
+        venue_name = None
+        for serial_work_title in serial_work_titles:
+            if serial_work_title.find('TitleType').get_text() == '01':
+                venue_name = serial_work_title.find('TitleText').get_text()
+            elif serial_work_title.find('TitleType').get_text() == '05':
+                venue_name = serial_work_title.find('TitleText').get_text()
+        serial_versions:List[BeautifulSoup] = serial_publication.findAll('SerialVersion')
+        venue_ids = list()
+        for serial_version in serial_versions:
+            product_id_type = serial_version.find('ProductIDType')
+            if serial_version.find('ProductForm').get_text() in {'JD', 'JB'} and product_id_type:
+                if product_id_type.get_text() == '07':
+                    issnid = self._issnm.normalise(serial_version.find('IDValue').get_text(), include_prefix=False)
+                    if self._issnm.check_digit(issnid):
+                        venue_ids.append('issn:' + issnid)
+        venue_ids = f"[{' '.join(venue_ids)}]"
+        venue_name_and_ids = [venue_name, venue_ids]                
+        return ' '.join(venue_name_and_ids)
     
     @classmethod
     def get_br_type(cls, xml_soup:BeautifulSoup) -> str:
