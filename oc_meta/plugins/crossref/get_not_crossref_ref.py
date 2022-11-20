@@ -131,7 +131,8 @@ def extract_metadata(output_dir:str, orcid_doi_filepath:str):
             api_response = call_api(url=f'{doi_manager._api_unknown}{doi}', headers=doi_manager._headers)
             metadata_manager = MetadataManager(metadata_provider = "unknown", api_response = api_response, orcid_doi_filepath = orcid_doi_filepath)
             metadata: dict = metadata_manager.extract_metadata()
-            metadata['id'] = doi
+            if not metadata.get('id'):
+                metadata['id'] = doi
             registration_agency = metadata['ra']
             metadata.pop('valid', None); metadata.pop('ra', None)
             locals()[f'{registration_agency}_counter'] = 0

@@ -1,14 +1,17 @@
-import unittest, os, csv, shutil
-from oc_meta.plugins.crossref.crossref_processing import CrossrefProcessing
+import csv
+import os
+import shutil
+import unittest
+from pprint import pprint
+from shutil import rmtree
+from subprocess import Popen
+from sys import executable
+
 from oc_meta.lib.csvmanager import CSVManager
 from oc_meta.lib.file_manager import get_csv_data
 from oc_meta.lib.jsonmanager import *
+from oc_meta.plugins.crossref.crossref_processing import CrossrefProcessing
 from oc_meta.run.crossref_process import preprocess
-from pprint import pprint
-from shutil import rmtree
-from sys import executable
-from subprocess import Popen
-
 
 BASE = os.path.join('test', 'crossref_processing')
 IOD = os.path.join(BASE, 'iod')
@@ -342,7 +345,7 @@ class TestCrossrefProcessing(unittest.TestCase):
             'page': '469-476'
         }
         crossref_processor = CrossrefProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
-        pages = crossref_processor.get_pages(item)
+        pages = crossref_processor.get_crossref_pages(item)
         self.assertEqual(pages, '469-476')
 
     def test_get_pages_right_letter(self):
@@ -350,7 +353,7 @@ class TestCrossrefProcessing(unittest.TestCase):
             'page': 'G22'
         }
         crossref_processor = CrossrefProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
-        pages = crossref_processor.get_pages(item)
+        pages = crossref_processor.get_crossref_pages(item)
         self.assertEqual(pages, 'G22')
 
     def test_get_pages_wrong_letter(self):
@@ -358,7 +361,7 @@ class TestCrossrefProcessing(unittest.TestCase):
             'page': '583b-584'
         }
         crossref_processor = CrossrefProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
-        pages = crossref_processor.get_pages(item)
+        pages = crossref_processor.get_crossref_pages(item)
         self.assertEqual(pages, '583-584')
 
     def test_get_pages_roman_letters(self):
@@ -366,7 +369,7 @@ class TestCrossrefProcessing(unittest.TestCase):
             'page': 'iv-l'
         }
         crossref_processor = CrossrefProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
-        pages = crossref_processor.get_pages(item)
+        pages = crossref_processor.get_crossref_pages(item)
         self.assertEqual(pages, 'iv-l')
 
     def test_get_pages_non_roman_letters(self):
@@ -374,7 +377,7 @@ class TestCrossrefProcessing(unittest.TestCase):
             'page': 'kj-hh'
         }
         crossref_processor = CrossrefProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
-        pages = crossref_processor.get_pages(item)
+        pages = crossref_processor.get_crossref_pages(item)
         self.assertEqual(pages, '')
     
     def test_report_series_venue_id(self):

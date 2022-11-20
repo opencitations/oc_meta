@@ -19,8 +19,7 @@ from datetime import datetime
 from typing import List, Tuple
 
 from bs4 import BeautifulSoup
-from oc_idmanager.issn import ISSNManager
-from oc_idmanager.orcid import ORCIDManager
+from oc_idmanager import DOIManager, ISSNManager, ORCIDManager
 
 from oc_meta.lib.csvmanager import CSVManager
 
@@ -44,8 +43,9 @@ class MedraProcessing:
     def extract_from_book(self, xml_soup:BeautifulSoup) -> dict:
         authors, editors = self.get_contributors(xml_soup)
         return {
+            'id': self.get_id(xml_soup),
             'title': self.get_title(xml_soup),
-            'author': authors,
+            'author': '; '.join(authors),
             'issue': '',
             'volume': '',
             'venue': '',
@@ -53,22 +53,13 @@ class MedraProcessing:
             'pages': '',
             'type': 'book',
             'publisher': self.get_publisher(xml_soup),
-            'editor': editors
+            'editor': '; '.join(editors)
         }
 
     def extract_from_journal_article(self, xml_soup:BeautifulSoup) -> dict:
         serial_publication = xml_soup.find('SerialPublication')
         serial_work = serial_publication.find('SerialWork')
         publisher_name = self.get_publisher(serial_work)
-        serial_versions:List[BeautifulSoup] = serial_publication.findAll('SerialVersion')
-        venue_ids = list()
-        for serial_version in serial_versions:
-            product_id_type = serial_version.find('ProductIDType')
-            if serial_version.find('ProductForm').get_text() in {'JD', 'JB'} and product_id_type:
-                if product_id_type.get_text() == '07':
-                    issnid = self._issnm.normalise(serial_version.find('IDValue').get_text(), include_prefix=False)
-                    if self._issnm.check_digit(issnid):
-                        venue_ids.append('issn:' + issnid)
         journal_issue = xml_soup.find('JournalIssue')
         volume = journal_issue.find('JournalVolumeNumber')
         volume = volume.get_text() if volume else ''
@@ -76,12 +67,22 @@ class MedraProcessing:
         issue = issue.get_text() if issue else ''
         content_item = xml_soup.find('ContentItem')
         authors, editors = self.get_contributors(xml_soup)
+        venue_name, venue_ids = self.get_venue(xml_soup)
+        if venue_name and venue_ids:
+            venue = f"{venue_name} [{' '.join(venue_ids)}]"
+        elif venue_name and not venue_ids:
+            venue = venue_name
+        elif venue_ids and not venue_name:
+            venue = f"[{' '.join(venue_ids)}]"
+        elif not venue_ids and not venue_name:
+            venue = ''
         return {
+            'id': self.get_id(xml_soup),
             'title': self.get_title(xml_soup),
             'author': '; '.join(authors),
             'issue': issue,
             'volume': volume,
-            'venue': self.get_venue(xml_soup),
+            'venue': venue,
             'pub_date': self.get_pub_date(content_item),
             'pages': self.get_pages(content_item),
             'type': 'journal article',
@@ -89,12 +90,36 @@ class MedraProcessing:
             'editor': '; '.join(editors)
         }
 
+    def extract_from_series(self, xml_soup:BeautifulSoup) -> dict:
+        venue_name, venue_ids = self.get_venue(xml_soup)
+        ids = [self.get_id(xml_soup)]
+        ids.extend(venue_ids)
+        return {
+            'id': ' '.join(ids),
+            'title': venue_name,
+            'author': '',
+            'issue': '',
+            'volume': '',
+            'venue': '',
+            'pub_date': self.get_pub_date(xml_soup),
+            'pages': '',
+            'type': 'series',
+            'publisher': self.get_publisher(xml_soup.find('SerialPublication').find('SerialWork')),
+            'editor': ''
+        }
+    
+    def get_id(self, context:BeautifulSoup) -> str:
+        doi_manager = DOIManager(use_api_service=False)
+        return doi_manager.normalise(context.find('DOI').get_text(), include_prefix=True)
+
     def get_title(self, context:BeautifulSoup) -> str:
         if context.find('DOISerialArticleWork') or context.find('DOISerialArticleVersion'):
             content_item = context.find('ContentItem')
             return content_item.find('Title').find('TitleText').get_text()
         elif context.find('DOIMonographicProduct') or context.find('DOIMonographicWork'):
             return context.find('Title').find('TitleText').get_text()
+        elif context.find('DOISerialTitleWork'):
+            return context.find('SerialPublication').find('SerialWork').find('TitleText').get_text()
     
     def get_contributors(self, context:BeautifulSoup) -> Tuple[list, list]:
         contributors:List[BeautifulSoup] = context.findAll('Contributor')
@@ -112,6 +137,8 @@ class MedraProcessing:
                 author = person_name_inverted.get_text()
             elif names_before_key and key_names:
                 author = f'{key_names.get_text()}, {names_before_key.get_text()}'
+            elif key_names and not names_before_key:
+                author = f'{key_names.get_text()},'
             elif corporate_name:
                 author = corporate_name.get_text()
             elif person_name:
@@ -132,6 +159,8 @@ class MedraProcessing:
     
     def get_pub_date(self, context:BeautifulSoup) -> str:
         raw_date = context.find('PublicationDate')
+        if not raw_date:
+            raw_date = context.find('Date')
         if not raw_date:
             return ''
         raw_date = raw_date.get_text()
@@ -161,9 +190,11 @@ class MedraProcessing:
         return pages
     
     def get_publisher(self, context:BeautifulSoup) -> str:
-        publisher_name = context.find('Publisher').find('PublisherName')
-        if publisher_name:
-            return publisher_name.get_text()
+        publisher = context.find('Publisher')
+        if publisher:
+            publisher_name = publisher.find('PublisherName')
+            if publisher:
+                return publisher_name.get_text()
         return ''
     
     def get_venue(self, context:BeautifulSoup) -> str:
@@ -185,9 +216,7 @@ class MedraProcessing:
                     issnid = self._issnm.normalise(serial_version.find('IDValue').get_text(), include_prefix=False)
                     if self._issnm.check_digit(issnid):
                         venue_ids.append('issn:' + issnid)
-        venue_ids = f"[{' '.join(venue_ids)}]"
-        venue_name_and_ids = [venue_name, venue_ids]                
-        return ' '.join(venue_name_and_ids)
+        return venue_name, venue_ids
     
     @classmethod
     def get_br_type(cls, xml_soup:BeautifulSoup) -> str:
@@ -199,4 +228,6 @@ class MedraProcessing:
             br_type = 'journal article'
         elif xml_soup.find('DOISerialIssueWork'):
             br_type = 'journal issue'
+        elif xml_soup.find('DOISerialTitleWork'):
+            br_type = 'series'
         return br_type

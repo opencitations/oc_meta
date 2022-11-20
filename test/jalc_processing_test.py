@@ -14,11 +14,12 @@
 # SOFTWARE.
 
 
-from oc_idmanager import DOIManager
-from oc_meta.lib.file_manager import call_api
-from oc_meta.plugins.jalc.jalc_processing import JalcProcessing
 import unittest
 
+from oc_idmanager import DOIManager
+
+from oc_meta.lib.file_manager import call_api
+from oc_meta.plugins.jalc.jalc_processing import JalcProcessing
 
 doi_manager = DOIManager()
 JALC_API = doi_manager._api_jalc

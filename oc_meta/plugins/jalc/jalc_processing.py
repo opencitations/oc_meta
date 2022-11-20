@@ -65,10 +65,13 @@ class JalcProcessing:
     def get_ja(cls, field:list) -> list:
         if all('lang' in item for item in field):
             ja = [item for item in field if item['lang'] == 'ja']
-            if not ja:
-                en = [item for item in field if item['lang'] == 'en']
+            ja = list(filter(lambda x: x['type'] != 'before' if 'type' in x else x, ja))
+            if ja:
+                return ja
+            en = [item for item in field if item['lang'] == 'en']
+            en = list(filter(lambda x: x['type'] != 'before' if 'type' in x else x, en))
+            if en:
                 return en
-            return ja
         return field
         
     def get_authors(self, data:dict) -> list:
@@ -90,10 +93,15 @@ class JalcProcessing:
         return [author[1] for author in sorted(authors, key=lambda x: x[0])]
     
     def get_venue(self, data:dict) -> str:
+        venue_name = ''
         if 'journal_title_name_list' in data:
-            venue_name = [item for item in self.get_ja(data['journal_title_name_list']) if item['type'] == 'full'][0]['journal_title_name']
-        else:
-            venue_name = ''
+            candidate_venues = self.get_ja(data['journal_title_name_list'])
+            if candidate_venues:
+                full_venue = [item for item in candidate_venues if 'type' in item if item['type'] == 'full']
+                if full_venue:
+                    venue_name = full_venue[0]['journal_title_name']
+                elif candidate_venues:
+                    venue_name = candidate_venues[0]['journal_title_name']
         if 'journal_id_list' in data:
             journal_ids = [journal_id['journal_id'] for journal_id in data['journal_id_list'] if journal_id['type'] in {'print', 'online'}]
         else:

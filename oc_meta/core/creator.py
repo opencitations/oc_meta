@@ -18,16 +18,20 @@
 # SOFTWARE.
 
 
-from oc_meta.lib.finder import ResourceFinder
-from oc_meta.lib.master_of_regex import comma_and_spaces, name_and_ids, one_or_more_spaces, semicolon_in_people_field
-from oc_meta.core.curator import get_edited_br_metaid
+import re
+from typing import List
+
 from oc_ocdm.graph import GraphSet
 from oc_ocdm.graph.entities.bibliographic import BibliographicResource
 from oc_ocdm.graph.entities.bibliographic_entity import BibliographicEntity
 from oc_ocdm.support import create_date
 from rdflib import URIRef
-from typing import List
-import re
+
+from oc_meta.core.curator import get_edited_br_metaid
+from oc_meta.lib.finder import ResourceFinder
+from oc_meta.lib.master_of_regex import (comma_and_spaces, name_and_ids,
+                                         one_or_more_spaces,
+                                         semicolon_in_people_field)
 
 
 class Creator(object):

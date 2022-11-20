@@ -19,25 +19,19 @@
 import html
 import re
 import warnings
-from csv import DictReader
-from typing import Dict, List, Tuple
 
 from bs4 import BeautifulSoup
-from oc_idmanager import DOIManager, ISBNManager, ISSNManager, ORCIDManager
+from oc_idmanager import DOIManager, ISBNManager, ISSNManager
 
-from oc_meta.lib.cleaner import Cleaner
-from oc_meta.lib.csvmanager import CSVManager
 from oc_meta.lib.master_of_regex import *
+from oc_meta.plugins.ra_processor import RaProcessor
 
 warnings.filterwarnings("ignore", category=UserWarning, module='bs4')
 
-class CrossrefProcessing:
+class CrossrefProcessing(RaProcessor):
     def __init__(self, orcid_index:str=None, doi_csv:str=None, publishers_filepath:str=None):
-        self.doi_set = CSVManager.load_csv_column_as_set(doi_csv, 'id') if doi_csv else None
-        self.publishers_mapping = self.load_publishers_mapping(publishers_filepath) if publishers_filepath else None
-        orcid_index = orcid_index if orcid_index else None
-        self.orcid_index = CSVManager(orcid_index)
-    
+        super(CrossrefProcessing, self).__init__(orcid_index, doi_csv, publishers_filepath)
+
     def csv_creator(self, item:dict) -> dict:
         row = dict()
         if not 'DOI' in item:
@@ -120,26 +114,15 @@ class CrossrefProcessing:
             if 'issue' in item:
                 row['issue'] = item['issue']
             if 'page' in item:
-                row['page'] = self.get_pages(item)
+                row['page'] = self.get_crossref_pages(item)
 
             row['publisher'] = self.get_publisher_name(doi, item)                        
 
             if 'editor' in item:
                 row['editor'] = '; '.join(editors_string_list)
         return row
-    
-    def orcid_finder(self, doi:str) -> dict:
-        found = dict()
-        doi = doi.lower()
-        people:List[str] = self.orcid_index.get_value(doi)
-        if people:
-            for person in people:
-                orcid = re.search(orcid_pattern, person).group(0)
-                name:str = person[:person.find(orcid)-1]
-                found[orcid] = name.strip().lower()
-        return found
-    
-    def get_pages(self, item:dict) -> str:
+        
+    def get_crossref_pages(self, item:dict) -> str:
         '''
         This function returns the pages interval. 
 
@@ -147,25 +130,8 @@ class CrossrefProcessing:
         :type item: dict
         :returns: str -- The output is a string in the format 'START-END', for example, '583-584'. If there are no pages, the output is an empty string.
         '''
-        roman_letters = {'I', 'V', 'X', 'L', 'C', 'D', 'M'}
         pages_list = re.split(pages_separator, item['page'])
-        clean_pages_list = list()
-        for page in pages_list:
-            # e.g. 583-584
-            if all(c.isdigit() for c in page):
-                clean_pages_list.append(page)
-            # e.g. G27. It is a born digital document. PeerJ uses this approach, where G27 identifies the whole document, since it has no pages.
-            elif len(pages_list) == 1:
-                clean_pages_list.append(page)
-            # e.g. iv-vii. This syntax is used in the prefaces.
-            elif all(c.upper() in roman_letters for c in page):
-                clean_pages_list.append(page)
-            # 583b-584. It is an error. The b must be removed.
-            elif any(c.isdigit() for c in page):
-                page_without_letters = ''.join([c for c in page if c.isdigit()])
-                clean_pages_list.append(page_without_letters)
-        pages = '-'.join(clean_pages_list)
-        return pages
+        return self.get_pages(pages_list)
     
     def get_publisher_name(self, doi:str, item:dict) -> str:
         '''
@@ -254,89 +220,7 @@ class CrossrefProcessing:
                 else:
                     name_and_id = ventit
         return name_and_id
-    
-    def get_agents_strings_list(self, doi:str, agents_list:List[dict]) -> Tuple[list, list]:
-        authors_strings_list = list()
-        editors_string_list = list()
-        dict_orcid = None
-        if not all('ORCID' in agent for agent in agents_list):
-            dict_orcid = self.orcid_finder(doi)
-        agents_list = [{k:Cleaner(v).remove_unwanted_characters() if k in {'family', 'given', 'name'} else v for k,v in agent_dict.items()} for agent_dict in agents_list]
-        for agent in agents_list:
-            cur_role = agent['role']
-            f_name = None
-            g_name = None
-            agent_string = None
-            if 'family' in agent:
-                f_name = agent['family']
-                if 'given' in agent:
-                    g_name = agent['given']
-                    agent_string = f_name + ', ' + g_name
-                else:
-                    agent_string = f_name + ', '
-            elif 'name' in agent:
-                agent_string = agent['name']
-                f_name = agent_string.split()[-1] if ' ' in agent_string else None
-            elif 'given' in agent and 'family' not in agent:
-                agent_string = ', ' + agent['given']
-            orcid = None
-            if 'ORCID' in agent:
-                if isinstance(agent['ORCID'], list):
-                    orcid = str(agent['ORCID'][0])
-                else:
-                    orcid = str(agent['ORCID'])
-                orcid_manager = ORCIDManager(use_api_service=False)
-                orcid = orcid_manager.normalise(orcid, include_prefix=False)
-                orcid = orcid if orcid_manager.check_digit(orcid) else None
-            elif dict_orcid and f_name:
-                for ori in dict_orcid:
-                    orc_n:List[str] = dict_orcid[ori].split(', ')
-                    orc_f = orc_n[0].lower()
-                    orc_g = orc_n[1] if len(orc_n) == 2 else None
-                    if f_name.lower() in orc_f.lower() or orc_f.lower() in f_name.lower():
-                        if g_name and orc_g:
-                            # If there are several authors with the same surname
-                            if len([person for person in agents_list if 'family' in person if person['family'] if person['family'].lower() in orc_f.lower() or orc_f.lower() in person['family'].lower()]) > 1:
-                                # If there are several authors with the same surname and the same given names' initials
-                                if len([person for person in agents_list if 'given' in person if person['given'] if person['given'][0].lower() == orc_g[0].lower()]) > 1:
-                                    homonyms_list = [person for person in agents_list if 'given' in person if person['given'] if person['given'].lower() == orc_g.lower()]
-                                    # If there are homonyms
-                                    if len(homonyms_list) > 1:
-                                        # If such homonyms have different roles from the current role
-                                        if [person for person in homonyms_list if person['role'] != cur_role]:
-                                            if orc_g.lower() == g_name.lower():
-                                                orcid = ori
-                                    else:
-                                        if orc_g.lower() == g_name.lower():
-                                            orcid = ori
-                                elif orc_g[0].lower() == g_name[0].lower():
-                                    orcid = ori
-                            # If there is a person whose given name is equal to the family name of the current person (a common situation for cjk names)
-                            elif any([person for person in agents_list if 'given' in person if person['given'] if person['given'].lower() == f_name.lower()]):
-                                if orc_g.lower() == g_name.lower():
-                                    orcid = ori
-                            else:
-                                orcid = ori
-                        else:
-                            orcid = ori
-            if agent_string and orcid:
-                agent_string += ' [' + 'orcid:' + str(orcid) + ']'
-            if agent_string:
-                if agent['role'] == 'author':
-                    authors_strings_list.append(agent_string)
-                elif agent['role'] == 'editor':
-                    editors_string_list.append(agent_string)
-        return authors_strings_list, editors_string_list
-    
-    @staticmethod
-    def id_worker(field, idlist:list, func) -> None:
-        if isinstance(field, list):
-            for i in field:
-                func(str(i), idlist)
-        else:
-            id = str(field)
-            func(id, idlist)
-
+        
     @staticmethod
     def issn_worker(issnid, idlist):
         issn_manager = ISSNManager()
@@ -350,15 +234,3 @@ class CrossrefProcessing:
         isbnid = isbn_manager.normalise(isbnid, include_prefix=False)
         if isbn_manager.check_digit(isbnid):
             idlist.append('isbn:' + isbnid)
-
-    @staticmethod
-    def load_publishers_mapping(publishers_filepath:str) -> dict:
-        publishers_mapping: Dict[str, Dict[str, set]] = dict()
-        with open(publishers_filepath, 'r', encoding='utf-8') as f:
-            data = DictReader(f)
-            for row in data:
-                id = row['id']
-                publishers_mapping.setdefault(id, dict())
-                publishers_mapping[id]['name'] = row['name']
-                publishers_mapping[id].setdefault('prefixes', set()).add(row['prefix'])
-        return publishers_mapping

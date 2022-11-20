@@ -446,7 +446,7 @@ class TestCrossrefProcessing(unittest.TestCase):
                           "lastPage": "1013", "firstPage": "994", "identifier": "08866236", "identifierType": "ISSN"}
         }
         datacite_processor = DataciteProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
-        pages = datacite_processor.get_pages(item)
+        pages = datacite_processor.get_datacite_pages(item)
         self.assertEqual(pages, '994-1013')
 
     def test_get_pages_right_letter(self):
@@ -454,7 +454,7 @@ class TestCrossrefProcessing(unittest.TestCase):
             "container": {"type": "Journal", "issue": "4", "title": "Ecosphere", "volume": "10", "firstPage": "e02701", "identifier": "2150-8925", "identifierType": "ISSN"}
         }
         datacite_processor = DataciteProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
-        pages = datacite_processor.get_pages(item)
+        pages = datacite_processor.get_datacite_pages(item)
         self.assertEqual(pages, 'e02701')
 
     def test_get_pages_wrong_letter(self):
@@ -471,7 +471,7 @@ class TestCrossrefProcessing(unittest.TestCase):
             ]
         }
         datacite_processor = DataciteProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
-        pages = datacite_processor.get_pages(item)
+        pages = datacite_processor.get_datacite_pages(item)
         self.assertEqual(pages, '583-584')
 
     def test_get_pages_roman_letters(self):
@@ -488,7 +488,7 @@ class TestCrossrefProcessing(unittest.TestCase):
             ]
         }
         datacite_processor = DataciteProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
-        pages = datacite_processor.get_pages(item)
+        pages = datacite_processor.get_datacite_pages(item)
         self.assertEqual(pages, 'iv-l')
 
     def test_get_pages_non_roman_letters(self):
@@ -505,7 +505,7 @@ class TestCrossrefProcessing(unittest.TestCase):
             ]
         }
         datacite_processor = DataciteProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
-        pages = datacite_processor.get_pages(item)
+        pages = datacite_processor.get_datacite_pages(item)
         self.assertEqual(pages, '')
 
     def test_venue_id_cont_and_rel_id(self):

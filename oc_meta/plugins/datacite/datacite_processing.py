@@ -1,28 +1,21 @@
 import html
 import re
 import warnings
-from csv import DictReader
-from typing import Dict, List, Tuple
 
 from bs4 import BeautifulSoup
 from oc_idmanager.doi import DOIManager
 from oc_idmanager.isbn import ISBNManager
 from oc_idmanager.issn import ISSNManager
-from oc_idmanager.orcid import ORCIDManager
 
-from oc_meta.lib.cleaner import Cleaner
-from oc_meta.lib.csvmanager import CSVManager
 from oc_meta.lib.master_of_regex import *
+from oc_meta.plugins.ra_processor import RaProcessor
 
 warnings.filterwarnings("ignore", category=UserWarning, module='bs4')
 
 
-class DataciteProcessing:
+class DataciteProcessing(RaProcessor):
     def __init__(self, orcid_index: str = None, doi_csv: str = None, publishers_filepath: str = None, inp_dir: str = None, out_dir: str = None, interval: int = 1000, filter:list = []):
-        self.doi_set = CSVManager.load_csv_column_as_set(doi_csv, 'doi') if doi_csv else None
-        self.publishers_mapping = self.load_publishers_mapping(publishers_filepath) if publishers_filepath else None
-        orcid_index = orcid_index if orcid_index else None
-        self.orcid_index = CSVManager(orcid_index)
+        super(DataciteProcessing, self).__init__(orcid_index, doi_csv, publishers_filepath)
         #self.preprocessor = DatacitePreProcessing(inp_dir, out_dir, interval, filter)
         self.RIS_types_map = {'abst': 'abstract',
   'news': 'newspaper article',
@@ -282,7 +275,7 @@ class DataciteProcessing:
             row['issue'] = issue
 
             # row['page']
-            row['page'] = self.get_pages(attributes)
+            row['page'] = self.get_datacite_pages(attributes)
 
             # row['publisher']
             row['publisher'] = self.get_publisher_name(doi, attributes)
@@ -296,21 +289,7 @@ class DataciteProcessing:
 
             return row
 
-
-
-
-    def orcid_finder(self, doi: str) -> dict:
-        found = dict()
-        doi = doi.lower()
-        people: List[str] = self.orcid_index.get_value(doi)
-        if people:
-            for person in people:
-                orcid = re.search(orcid_pattern, person).group(0)
-                name: str = person[:person.find(orcid) - 1]
-                found[orcid] = name.strip().lower()
-        return found
-
-    def get_pages(self, item: dict) -> str:
+    def get_datacite_pages(self, item: dict) -> str:
         '''
         This function returns the pages interval.
 
@@ -318,10 +297,8 @@ class DataciteProcessing:
         :type item: dict
         :returns: str -- The output is a string in the format 'START-END', for example, '583-584'. If there are no pages, the output is an empty string.
         '''
-        roman_letters = {'I', 'V', 'X', 'L', 'C', 'D', 'M'}
         container_pages_list = list()
         related_pages_list = list()
-        clean_pages_list = list()
         container = item.get("container")
         if container:
             if container.get("identifierType") == "ISSN" or container.get(
@@ -343,26 +320,7 @@ class DataciteProcessing:
                                 related_pages_list.append(related.get("lastPage"))
 
         page_list = related_pages_list if len(related_pages_list)> len(container_pages_list) else container_pages_list
-        for page in page_list:
-            # e.g. 583-584
-            if all(c.isdigit() for c in page):
-                clean_pages_list.append(page)
-            # e.g. G27. It is a born digital document. PeerJ uses this approach, where G27 identifies the whole document, since it has no pages.
-            elif len(page_list) == 1:
-                clean_pages_list.append(page)
-            # e.g. iv-vii. This syntax is used in the prefaces.
-            elif all(c.upper() in roman_letters for c in page):
-                clean_pages_list.append(page)
-            # 583b-584. It is an error. The b must be removed.
-            elif any(c.isdigit() for c in page):
-                page_without_letters = ''.join([c for c in page if c.isdigit()])
-                clean_pages_list.append(page_without_letters)
-
-        if clean_pages_list:
-            return '-'.join(clean_pages_list)
-        else:
-            return ""
-
+        return self.get_pages(page_list)
 
     def get_publisher_name(self, doi: str, item: dict) -> str:
         '''
@@ -482,96 +440,6 @@ class DataciteProcessing:
 
         return name_and_id
 
-
-    def get_agents_strings_list(self, doi: str, agents_list: List[dict]) -> Tuple[list, list]:
-        authors_strings_list = list()
-        editors_string_list = list()
-        dict_orcid = None
-        if not all('orcid' in agent for agent in agents_list):
-            dict_orcid = self.orcid_finder(doi)
-        agents_list = [
-            {k: Cleaner(v).remove_unwanted_characters() if k in {'family', 'given', 'name'} and v is not None 
-            else v for k, v in
-            agent_dict.items()} for agent_dict in agents_list]
-        for agent in agents_list:
-            cur_role = agent['role']
-            f_name = None
-            g_name = None
-            agent_string = None
-            if agent.get('family') and agent.get('given'):
-                f_name = agent['family']
-                g_name = agent['given']
-                agent_string = f_name + ', ' + g_name
-            elif agent.get('name'):
-                agent_string = agent['name']
-                f_name = agent_string.split(",")[0].strip() if "," in agent_string else None
-                g_name = agent_string.split(",")[-1].strip() if "," in agent_string else None
-                if f_name and g_name:
-                    agent_string = f_name + ', ' + g_name
-            if agent_string is None:
-                if agent.get('family') and not agent.get('given'):
-                    if g_name:
-                        agent_string = agent['family'] + ', ' + g_name
-                    else:
-                        agent_string = agent['family'] + ', '
-                elif agent.get('given') and not agent.get('family'):
-                    if f_name:
-                        agent_string = f_name + ', ' + agent['given']
-                    else:
-                        agent_string = ', ' + agent['given']
-            orcid = None
-
-            if 'orcid' in agent:
-                if isinstance(agent['orcid'], list):
-                    orcid = str(agent['orcid'][0])
-                else:
-                    orcid = str(agent['orcid'])
-                orcid = ORCIDManager().normalise(orcid) if ORCIDManager().is_valid(orcid) else None
-            elif dict_orcid and f_name:
-                for ori in dict_orcid:
-                    orc_n: List[str] = dict_orcid[ori].split(', ')
-                    orc_f = orc_n[0].lower()
-                    orc_g = orc_n[1] if len(orc_n) == 2 else None
-                    if f_name.lower() in orc_f.lower() or orc_f.lower() in f_name.lower():
-                        if g_name and orc_g:
-                            # If there are several authors with the same surname
-                            if len([person for person in agents_list if 'family' in person if person['family'] if
-                                    person['family'].lower() in orc_f.lower() or orc_f.lower() in person[
-                                        'family'].lower()]) > 1:
-                                # If there are several authors with the same surname and the same given names' initials
-                                if len([person for person in agents_list if 'given' in person if person['given'] if
-                                        person['given'][0].lower() == orc_g[0].lower()]) > 1:
-                                    homonyms_list = [person for person in agents_list if 'given' in person if
-                                                     person['given'] if person['given'].lower() == orc_g.lower()]
-                                    # If there are homonyms
-                                    if len(homonyms_list) > 1:
-                                        # If such homonyms have different roles from the current role
-                                        if [person for person in homonyms_list if person['role'] != cur_role]:
-                                            if orc_g.lower() == g_name.lower():
-                                                orcid = ori
-                                    else:
-                                        if orc_g.lower() == g_name.lower():
-                                            orcid = ori
-                                elif orc_g[0].lower() == g_name[0].lower():
-                                    orcid = ori
-                            # If there is a person whose given name is equal to the family name of the current person (a common situation for cjk names)
-                            elif any([person for person in agents_list if 'given' in person if person['given'] if
-                                      person['given'].lower() == f_name.lower()]):
-                                if orc_g.lower() == g_name.lower():
-                                    orcid = ori
-                            else:
-                                orcid = ori
-                        else:
-                            orcid = ori
-            if agent_string and orcid:
-                agent_string += ' [' + 'orcid:' + str(orcid) + ']'
-            if agent_string:
-                if agent['role'] == 'author':
-                    authors_strings_list.append(agent_string)
-                elif agent['role'] == 'editor':
-                    editors_string_list.append(agent_string)
-        return authors_strings_list, editors_string_list
-
     def add_authors_to_agent_list(self, item: dict, ag_list: list) -> list:
         '''
         This function returns the the agents list updated with the authors dictionaries, in the correct format.
@@ -637,15 +505,6 @@ class DataciteProcessing:
         return agent_list
 
     @staticmethod
-    def id_worker(field, idlist: list, func) -> None:
-        if isinstance(field, list):
-            for i in field:
-                func(str(i), idlist)
-        else:
-            id = str(field)
-            func(id, idlist)
-
-    @staticmethod
     def issn_worker(issnid, idlist):
         if ISSNManager().is_valid(issnid):
             issnid = ISSNManager().normalise(issnid, include_prefix=True)
@@ -656,15 +515,3 @@ class DataciteProcessing:
         if ISBNManager().is_valid(isbnid):
             isbnid = ISBNManager().normalise(isbnid, include_prefix=True)
             idlist.append(isbnid)
-
-    @staticmethod
-    def load_publishers_mapping(publishers_filepath: str) -> dict:
-        publishers_mapping: Dict[str, Dict[str, set]] = dict()
-        with open(publishers_filepath, 'r', encoding='utf-8') as f:
-            data = DictReader(f)
-            for row in data:
-                id = row['id']
-                publishers_mapping.setdefault(id, dict())
-                publishers_mapping[id]['name'] = row['name']
-                publishers_mapping[id].setdefault('prefixes', set()).add(row['prefix'])
-        return publishers_mapping
