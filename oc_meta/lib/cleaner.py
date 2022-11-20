@@ -18,14 +18,18 @@
 # SOFTWARE.
 
 
-from dateutil.parser import parse
-from datetime import datetime
-from oc_meta.lib.master_of_regex import *
-from oc_idmanager import DOIManager, ISBNManager, ISSNManager, ORCIDManager
-from oc_meta.lib.master_of_regex import volumes_valid_patterns, issues_valid_patterns, invalid_vi_patterns
-from typing import Union, Tuple
 import html
 import re
+from datetime import datetime
+from typing import Tuple, Union
+
+from dateutil.parser import parse
+from oc_idmanager import DOIManager, ISBNManager, ISSNManager, ORCIDManager
+
+from oc_meta.lib.master_of_regex import *
+from oc_meta.lib.master_of_regex import (invalid_vi_patterns,
+                                         issues_valid_patterns,
+                                         volumes_valid_patterns)
 
 
 class Cleaner:

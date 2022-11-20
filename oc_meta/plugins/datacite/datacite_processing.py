@@ -1,17 +1,18 @@
 import html
 import re
 import warnings
-from typing import Dict, List, Tuple
 from csv import DictReader
-from bs4 import BeautifulSoup
-from oc_idmanager.orcid import ORCIDManager
-from oc_meta.lib.csvmanager import CSVManager
-from oc_idmanager.issn import ISSNManager
-from oc_idmanager.isbn import ISBNManager
-from oc_idmanager.doi import DOIManager
-from oc_meta.lib.cleaner import Cleaner
-from oc_meta.lib.master_of_regex import *
+from typing import Dict, List, Tuple
 
+from bs4 import BeautifulSoup
+from oc_idmanager.doi import DOIManager
+from oc_idmanager.isbn import ISBNManager
+from oc_idmanager.issn import ISSNManager
+from oc_idmanager.orcid import ORCIDManager
+
+from oc_meta.lib.cleaner import Cleaner
+from oc_meta.lib.csvmanager import CSVManager
+from oc_meta.lib.master_of_regex import *
 
 warnings.filterwarnings("ignore", category=UserWarning, module='bs4')
 
@@ -488,9 +489,13 @@ class DataciteProcessing:
         dict_orcid = None
         if not all('orcid' in agent for agent in agents_list):
             dict_orcid = self.orcid_finder(doi)
-        agents_list = [
-            {k: Cleaner(v).remove_unwanted_characters() if k in {'family', 'given', 'name'} else v for k, v in
-             agent_dict.items()} for agent_dict in agents_list]
+        try:
+            agents_list = [
+                {k: Cleaner(v).remove_unwanted_characters() if k in {'family', 'given', 'name'} else v for k, v in
+                agent_dict.items()} for agent_dict in agents_list]
+        except TypeError:
+            print(doi, agents_list)
+            raise(TypeError)
         for agent in agents_list:
             cur_role = agent['role']
             f_name = None

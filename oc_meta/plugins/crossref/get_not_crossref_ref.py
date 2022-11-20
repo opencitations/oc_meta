@@ -15,19 +15,21 @@
 # SOFTWARE.
 
 
+import os
 from argparse import ArgumentParser
 from functools import partial
 from multiprocessing import cpu_count
+from sys import platform
+from typing import List, Tuple
+
 from oc_idmanager import DOIManager
+from pebble import ProcessFuture, ProcessPool
+from tqdm import tqdm
+
 from oc_meta.lib.csvmanager import CSVManager
 from oc_meta.lib.file_manager import get_csv_data, pathoo, write_csv
 from oc_meta.lib.jsonmanager import get_all_files, load_json
 from oc_meta.run.meta_process import chunks
-from pebble import ProcessPool, ProcessFuture
-from sys import platform
-from typing import List, Tuple
-from tqdm import tqdm
-import os
 
 
 def extract_dois_from_dump(crossref_json_dir:str, output_dir:str, max_workers:int) -> None:
@@ -130,7 +132,8 @@ def extract_metadata(output_dir:str):
             locals()[f'{registration_agency}_counter'] = 0
             ra_output_dir = os.path.join(base_output_dir, registration_agency)
             pathoo(ra_output_dir)
-            if os.path.exists(os.path.join(ra_output_dir, f"{locals()[f'{registration_agency}_counter']}.csv")):
+            output_path = os.path.join(ra_output_dir, f"{locals()[f'{registration_agency}_counter']}.csv")
+            if os.path.exists(output_path):
                 if len(get_csv_data(output_path)) == 10000:
                     locals()[f'{registration_agency}_counter'] += 1
             output_path = os.path.join(ra_output_dir, f"{locals()[f'{registration_agency}_counter']}.csv")
