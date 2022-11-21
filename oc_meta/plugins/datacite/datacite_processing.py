@@ -176,8 +176,8 @@ class DataciteProcessing(RaProcessor):
 
 
             # row['id']
-            idset = set()
-            idset.add(str('doi:' + doi))
+            ids_list = list()
+            ids_list.append(str('doi:' + doi))
 
             if attributes.get('identifiers'):
                 for other_id in attributes.get('identifiers'):
@@ -189,17 +189,17 @@ class DataciteProcessing(RaProcessor):
                         if o_id_type == 'ISBN':
                             if row['type'] in {'book', 'dissertation', 'edited book', 'monograph', 'reference book', 'report',
                                                'standard'}:
-                                self.id_worker(o_id, idset, self.isbn_worker)
+                                self.id_worker(o_id, ids_list, self.isbn_worker)
 
                         elif o_id_type == 'ISSN':
                             if row['type'] in {'book series', 'book set', 'journal', 'proceedings series', 'series',
                                                'standard series', 'report series'}:
-                                self.id_worker(o_id, idset, self.issn_worker)
+                                self.id_worker(o_id, ids_list, self.issn_worker)
 
 
 
 
-            row['id'] = ' '.join(idset)
+            row['id'] = ' '.join(ids_list)
 
             # row['title']
             pub_title = ""
@@ -285,7 +285,7 @@ class DataciteProcessing(RaProcessor):
                 if editors:
                     row['editor'] = '; '.join(editors_string_list)
 
-            return row
+            return self.normalise_unicode(row)
 
     def get_datacite_pages(self, item: dict) -> str:
         '''
@@ -374,7 +374,7 @@ class DataciteProcessing(RaProcessor):
          '''
 
         cont_title = ""
-        venidset = set()
+        venids_list = list()
 
         # container
         container = item.get("container")
@@ -396,20 +396,20 @@ class DataciteProcessing(RaProcessor):
             # IDS
             if container.get("identifierType") == "ISBN":
                 if row['type'] in {'book chapter', 'book part', 'book section', 'book track', 'reference entry'}:
-                    self.id_worker(container.get("identifier"), venidset, self.isbn_worker)
+                    self.id_worker(container.get("identifier"), venids_list, self.isbn_worker)
 
             if container.get("identifierType") == "ISSN":
                 if row['type'] in {'book', 'data file', 'dataset', 'edited book', 'journal article', 'journal volume',
                                    'journal issue', 'monograph', 'proceedings', 'peer review', 'reference book',
                                    'reference entry', 'report'}:
-                    self.id_worker(container.get("identifier"), venidset, self.issn_worker)
+                    self.id_worker(container.get("identifier"), venids_list, self.issn_worker)
                 elif row['type'] == 'report series':
                     if container.get("title"):
                         if container.get("title"):
-                            self.id_worker(container.get("identifier"), venidset, self.issn_worker)
+                            self.id_worker(container.get("identifier"), venids_list, self.issn_worker)
 
 
-        if not venidset:
+        if not venids_list:
             relatedIdentifiers = item.get("relatedIdentifiers")
             if relatedIdentifiers:
                 for related in relatedIdentifiers:
@@ -418,21 +418,21 @@ class DataciteProcessing(RaProcessor):
                             if related.get("relatedIdentifierType") == "ISBN":
                                 if row['type'] in {'book chapter', 'book part', 'book section', 'book track',
                                                    'reference entry'}:
-                                    self.id_worker(related.get("relatedIdentifier"), venidset, self.isbn_worker)
+                                    self.id_worker(related.get("relatedIdentifier"), venids_list, self.isbn_worker)
                             if related.get("relatedIdentifierType") == "ISSN":
                                 if row['type'] in {'book', 'data file', 'dataset', 'edited book', 'journal article',
                                                    'journal volume',
                                                    'journal issue', 'monograph', 'proceedings', 'peer review',
                                                    'reference book',
                                                    'reference entry', 'report'}:
-                                    self.id_worker(related.get("relatedIdentifier"), venidset, self.issn_worker)
+                                    self.id_worker(related.get("relatedIdentifier"), venids_list, self.issn_worker)
                                 elif row['type'] == 'report series':
                                     if related.get("title"):
                                         if related.get("title"):
-                                            self.id_worker(related.get("relatedIdentifier"), venidset, self.issn_worker)
+                                            self.id_worker(related.get("relatedIdentifier"), venids_list, self.issn_worker)
 
-        if venidset:
-            name_and_id = cont_title + ' [' + ' '.join(venidset) + ']' if cont_title else '[' + ' '.join(venidset) + ']'
+        if venids_list:
+            name_and_id = cont_title + ' [' + ' '.join(venids_list) + ']' if cont_title else '[' + ' '.join(venids_list) + ']'
         else:
             name_and_id = cont_title
 

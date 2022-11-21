@@ -53,24 +53,24 @@ class CrossrefProcessing(RaProcessor):
                     row['type'] = item['type'].replace('-', ' ')
 
             # row['id']
-            idset = set()
-            idset.add(str('doi:' + doi))
+            ids_list = list()
+            ids_list.append(str('doi:' + doi))
 
             if 'ISBN' in item:
                 if row['type'] in {'book', 'dissertation', 'edited book', 'monograph', 'reference book', 'report', 'standard'}:
-                    self.id_worker(item['ISBN'], idset, self.isbn_worker)
+                    self.id_worker(item['ISBN'], ids_list, self.isbn_worker)
 
             if 'ISSN' in item:
                 if row['type'] in {'book series', 'book set', 'journal', 'proceedings series', 'series', 'standard series'}:
-                    self.id_worker(item['ISSN'], idset, self.issn_worker)
+                    self.id_worker(item['ISSN'], ids_list, self.issn_worker)
                 elif row['type'] == 'report series':
                     br_id = True
                     if 'container-title' in item:
                         if item['container-title']:
                             br_id = False
                     if br_id:
-                        self.id_worker(item['ISSN'], idset, self.issn_worker)
-            row['id'] = ' '.join(idset)
+                        self.id_worker(item['ISSN'], ids_list, self.issn_worker)
+            row['id'] = ' '.join(ids_list)
 
             # row['title']
             if 'title' in item:
@@ -120,7 +120,7 @@ class CrossrefProcessing(RaProcessor):
 
             if 'editor' in item:
                 row['editor'] = '; '.join(editors_string_list)
-        return row
+        return self.normalise_unicode(row)
         
     def get_crossref_pages(self, item:dict) -> str:
         '''
@@ -203,20 +203,20 @@ class CrossrefProcessing(RaProcessor):
                     close_bracket = ventit.find(match) + len(match)
                     ventit = ventit[:open_bracket] + '(' + ventit[open_bracket + 1:]
                     ventit = ventit[:close_bracket] + ')' + ventit[close_bracket + 1:]
-                venidset = set()
+                venids_list = list()
                 if 'ISBN' in item:
                     if row['type'] in {'book chapter', 'book part', 'book section', 'book track', 'reference entry'}:
-                        self.id_worker(item['ISBN'], venidset, self.isbn_worker)
+                        self.id_worker(item['ISBN'], venids_list, self.isbn_worker)
 
                 if 'ISSN' in item:
                     if row['type'] in {'book', 'data file', 'dataset', 'edited book', 'journal article', 'journal volume', 'journal issue', 'monograph', 'proceedings', 'peer review', 'reference book', 'reference entry', 'report'}:
-                        self.id_worker(item['ISSN'], venidset, self.issn_worker)
+                        self.id_worker(item['ISSN'], venids_list, self.issn_worker)
                     elif row['type'] == 'report series':
                         if 'container-title' in item:
                             if item['container-title']:
-                                self.id_worker(item['ISSN'], venidset, self.issn_worker)
-                if venidset:
-                    name_and_id = ventit + ' [' + ' '.join(venidset) + ']'
+                                self.id_worker(item['ISSN'], venids_list, self.issn_worker)
+                if venids_list:
+                    name_and_id = ventit + ' [' + ' '.join(venids_list) + ']'
                 else:
                     name_and_id = ventit
         return name_and_id

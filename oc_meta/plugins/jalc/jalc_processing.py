@@ -17,14 +17,13 @@
 
 from __future__ import annotations
 
-import unicodedata
-
 from oc_idmanager import DOIManager, ISSNManager, ORCIDManager
 
 from oc_meta.lib.csvmanager import CSVManager
+from oc_meta.plugins.ra_processor import RaProcessor
 
 
-class JalcProcessing:
+class JalcProcessing(RaProcessor):
     def __init__(self, orcid_index:str=None, doi_csv:str=None):
         self.doi_set = CSVManager.load_csv_column_as_set(doi_csv, 'id') if doi_csv else None
         orcid_index = orcid_index if orcid_index else None
@@ -49,19 +48,20 @@ class JalcProcessing:
             pages += first_page
             if last_page:
                 pages += f'-{last_page}'
-        return {
+        metadata = {
             'id': doi,
-            'title': unicodedata.normalize('NFKC', title),
-            'author': unicodedata.normalize('NFKC', '; '.join(self.get_authors(data))),
-            'issue': unicodedata.normalize('NFKC', issue),
-            'volume': unicodedata.normalize('NFKC', volume),
-            'venue': unicodedata.normalize('NFKC', self.get_venue(data)),
-            'pub_date': unicodedata.normalize('NFKC', self.get_pub_date(data)),
-            'pages': unicodedata.normalize('NFKC', pages),
-            'type': unicodedata.normalize('NFKC', self.get_type(data)),
-            'publisher': unicodedata.normalize('NFKC', publisher),
-            'editor': unicodedata.normalize('NFKC', '')
+            'title': title,
+            'author': '; '.join(self.get_authors(data)),
+            'issue': issue,
+            'volume': volume,
+            'venue': self.get_venue(data),
+            'pub_date': self.get_pub_date(data),
+            'pages': pages,
+            'type': self.get_type(data),
+            'publisher': publisher,
+            'editor': ''
         }
+        return self.normalise_unicode(metadata)
         
     @classmethod
     def get_ja(cls, field:list) -> list:
@@ -108,13 +108,10 @@ class JalcProcessing:
             journal_ids = {journal_id['journal_id'] for journal_id in data['journal_id_list'] 
                 if journal_id['type'] == 'ISSN'}
         else:
-            journal_ids = set()
-        venue_ids = set()
-        if journal_ids:
-            for journal_id in journal_ids:
-                issnid = self._issnm.normalise(journal_id, include_prefix=False)
-                if self._issnm.check_digit(issnid):
-                    venue_ids.add('issn:' + issnid)
+            journal_ids = list()
+        venue_ids = list()
+        for journal_id in journal_ids:
+            self.issn_worker(journal_id, venue_ids)
         return f"{venue_name} [{' '.join(venue_ids)}]" if venue_ids else venue_name
 
     @classmethod

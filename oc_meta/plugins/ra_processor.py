@@ -15,6 +15,7 @@
 # SOFTWARE.
 
 import re
+import unicodedata
 from csv import DictReader
 from typing import Dict, List, Tuple
 
@@ -166,10 +167,14 @@ class RaProcessor(object):
         if clean_pages_list:
             return '-'.join(clean_pages_list)
         return ''
+    
+    @staticmethod
+    def normalise_unicode(metadata: dict) -> dict:
+        return {k:unicodedata.normalize('NFKC', v) for k, v in metadata.items()}
 
     @staticmethod
-    def id_worker(field, ids:set, func) -> None:
-        if isinstance(field, set):
+    def id_worker(field, ids:list, func) -> None:
+        if isinstance(field, list):
             for i in field:
                 func(str(i), ids)
         else:
@@ -189,15 +194,15 @@ class RaProcessor(object):
         return publishers_mapping
     
     @staticmethod
-    def issn_worker(issnid:str, ids:set):
+    def issn_worker(issnid:str, ids:list):
         issn_manager = ISSNManager()
         issnid = issn_manager.normalise(issnid, include_prefix=False)
-        if issn_manager.check_digit(issnid):
-            ids.add('issn:' + issnid)
+        if issn_manager.check_digit(issnid) and f'issn:{issnid}' not in ids:
+            ids.append('issn:' + issnid)
 
     @staticmethod
-    def isbn_worker(isbnid, ids:set):
+    def isbn_worker(isbnid, ids:list):
         isbn_manager = ISBNManager()
         isbnid = isbn_manager.normalise(isbnid, include_prefix=False)
-        if isbn_manager.check_digit(isbnid):
-            ids.add('isbn:' + isbnid)
+        if isbn_manager.check_digit(isbnid) and f'isbn:{isbnid}' not in ids:
+            ids.append('isbn:' + isbnid)

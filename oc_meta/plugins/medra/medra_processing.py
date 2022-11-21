@@ -14,12 +14,13 @@
 # ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 # SOFTWARE.
 
+import unicodedata
 
 from datetime import datetime
 from typing import List, Tuple
 
 from bs4 import BeautifulSoup
-from oc_idmanager import DOIManager, ISSNManager, ORCIDManager
+from oc_idmanager import DOIManager, ORCIDManager
 
 from oc_meta.lib.csvmanager import CSVManager
 from oc_meta.plugins.ra_processor import RaProcessor
@@ -30,7 +31,6 @@ class MedraProcessing(RaProcessor):
         self.doi_set = CSVManager.load_csv_column_as_set(doi_csv, 'id') if doi_csv else None
         orcid_index = orcid_index if orcid_index else None
         self.orcid_index = CSVManager(orcid_index)
-        self._issnm = ISSNManager()
         self._om = ORCIDManager()
     
     def csv_creator(self, xml_soup:BeautifulSoup) -> dict:
@@ -39,13 +39,17 @@ class MedraProcessing(RaProcessor):
         except UnboundLocalError:
             print(xml_soup)
             raise(UnboundLocalError)
-        return getattr(self, f"extract_from_{br_type.replace(' ', '_')}")(xml_soup)
+        metadata: dict = getattr(self, f"extract_from_{br_type.replace(' ', '_')}")(xml_soup)
+        return self.normalise_unicode(metadata)
     
     def extract_from_book(self, xml_soup:BeautifulSoup) -> dict:
+        ids = [self.get_id(xml_soup)]
+        ids.extend(self.get_isbn(xml_soup))
+        title = xml_soup.find('Title').find('TitleText').get_text()
         authors, editors = self.get_contributors(xml_soup)
         return {
-            'id': self.get_id(xml_soup),
-            'title': self.get_title(xml_soup),
+            'id': ' '.join(ids),
+            'title': title,
             'author': '; '.join(authors),
             'issue': '',
             'volume': '',
@@ -53,6 +57,28 @@ class MedraProcessing(RaProcessor):
             'pub_date': self.get_pub_date(xml_soup),
             'pages': '',
             'type': 'book',
+            'publisher': self.get_publisher(xml_soup),
+            'editor': '; '.join(editors)
+        }
+
+    def extract_from_book_chapter(self, xml_soup:BeautifulSoup) -> dict:
+        venue_ids = self.get_isbn(xml_soup)
+        monographic_work = xml_soup.find('MonographicWork')
+        content_item = xml_soup.find('ContentItem')
+        title_chapter = content_item.find('Title').find('TitleText').get_text()
+        title_book = monographic_work.find('Title').find('TitleText').get_text()
+        authors, editors = self.get_contributors(content_item)
+        venue_name = title_book if title_book != title_chapter else ''
+        return {
+            'id': self.get_id(xml_soup),
+            'title': title_chapter,
+            'author': '; '.join(authors),
+            'issue': '',
+            'volume': '',
+            'venue': self.build_venue_string(venue_name, venue_ids),
+            'pub_date': self.get_pub_date(xml_soup),
+            'pages': '',
+            'type': 'book chapter',
             'publisher': self.get_publisher(xml_soup),
             'editor': '; '.join(editors)
         }
@@ -67,8 +93,24 @@ class MedraProcessing(RaProcessor):
         issue = journal_issue.find('JournalIssueNumber')
         issue = issue.get_text() if issue else ''
         content_item = xml_soup.find('ContentItem')
+        title = content_item.find('Title').find('TitleText').get_text()
         authors, editors = self.get_contributors(xml_soup)
         venue_name, venue_ids = self.get_venue(xml_soup)
+        return {
+            'id': self.get_id(xml_soup),
+            'title': title,
+            'author': '; '.join(authors),
+            'issue': issue,
+            'volume': volume,
+            'venue': self.build_venue_string(venue_name, venue_ids),
+            'pub_date': self.get_pub_date(content_item),
+            'pages': self.get_pages(content_item),
+            'type': 'journal article',
+            'publisher': publisher_name,
+            'editor': '; '.join(editors)
+        }
+    
+    def build_venue_string(self, venue_name, venue_ids):
         if venue_name and venue_ids:
             venue = f"{venue_name} [{' '.join(venue_ids)}]"
         elif venue_name and not venue_ids:
@@ -77,19 +119,7 @@ class MedraProcessing(RaProcessor):
             venue = f"[{' '.join(venue_ids)}]"
         elif not venue_ids and not venue_name:
             venue = ''
-        return {
-            'id': self.get_id(xml_soup),
-            'title': self.get_title(xml_soup),
-            'author': '; '.join(authors),
-            'issue': issue,
-            'volume': volume,
-            'venue': venue,
-            'pub_date': self.get_pub_date(content_item),
-            'pages': self.get_pages(content_item),
-            'type': 'journal article',
-            'publisher': publisher_name,
-            'editor': '; '.join(editors)
-        }
+        return venue
 
     def extract_from_series(self, xml_soup:BeautifulSoup) -> dict:
         venue_name, venue_ids = self.get_venue(xml_soup)
@@ -112,15 +142,15 @@ class MedraProcessing(RaProcessor):
     def get_id(self, context:BeautifulSoup) -> str:
         doi_manager = DOIManager(use_api_service=False)
         return doi_manager.normalise(context.find('DOI').get_text(), include_prefix=True)
-
-    def get_title(self, context:BeautifulSoup) -> str:
-        if context.find('DOISerialArticleWork') or context.find('DOISerialArticleVersion'):
-            content_item = context.find('ContentItem')
-            return content_item.find('Title').find('TitleText').get_text()
-        elif context.find('DOIMonographicProduct') or context.find('DOIMonographicWork'):
-            return context.find('Title').find('TitleText').get_text()
-        elif context.find('DOISerialTitleWork'):
-            return context.find('SerialPublication').find('SerialWork').find('TitleText').get_text()
+    
+    def get_isbn(self, context:BeautifulSoup) -> str:
+        product_identifiers: List[BeautifulSoup] = context.findAll('ProductIdentifier')
+        isbn_list = list()
+        if product_identifiers:
+            for product_identifier in product_identifiers:
+                if product_identifier.find('ProductIDType').get_text() in {'02', '15'}:
+                    self.isbn_worker(product_identifier.find('IDValue').get_text(), isbn_list)
+        return isbn_list
     
     def get_contributors(self, context:BeautifulSoup) -> Tuple[list, list]:
         contributors:List[BeautifulSoup] = context.findAll('Contributor')
@@ -209,7 +239,7 @@ class MedraProcessing(RaProcessor):
             elif serial_work_title.find('TitleType').get_text() == '05':
                 venue_name = serial_work_title.find('TitleText').get_text()
         serial_versions:List[BeautifulSoup] = serial_publication.findAll('SerialVersion')
-        venue_ids = set()
+        venue_ids = list()
         for serial_version in serial_versions:
             product_id_type = serial_version.find('ProductIDType')
             if serial_version.find('ProductForm').get_text() in {'JD', 'JB'} and product_id_type:
@@ -223,7 +253,7 @@ class MedraProcessing(RaProcessor):
     def get_br_type(cls, xml_soup:BeautifulSoup) -> str:
         if xml_soup.find('DOIMonographicProduct') or xml_soup.find('DOIMonographicWork'):
             br_type = 'book'
-        elif xml_soup.find('DOIMonographChapterWork'):
+        elif xml_soup.find('DOIMonographChapterWork') or xml_soup.find('DOIMonographChapterVersion'):
             br_type = 'book chapter'
         elif xml_soup.find('DOISerialArticleWork') or xml_soup.find('DOISerialArticleVersion'):
             br_type = 'journal article'
