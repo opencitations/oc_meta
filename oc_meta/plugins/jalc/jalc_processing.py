@@ -19,8 +19,7 @@ from __future__ import annotations
 
 import unicodedata
 
-from oc_idmanager.issn import ISSNManager
-from oc_idmanager.orcid import ORCIDManager
+from oc_idmanager import DOIManager, ISSNManager, ORCIDManager
 
 from oc_meta.lib.csvmanager import CSVManager
 
@@ -34,7 +33,9 @@ class JalcProcessing:
         self._om = ORCIDManager()
 
     def csv_creator(self, item:dict) -> dict:
+        doi_manager = DOIManager(data=dict(), use_api_service=False)
         data = item['data']
+        doi = doi_manager.normalise(data['doi'], include_prefix=True)
         publisher = self.get_ja(data['publisher_list'])[0]['publisher_name'] if 'publisher_list' in data else ''
         title = self.get_ja(data['title_list'])[0]['title'] if 'title_list' in data else ''
         issue = data['issue'] if 'issue' in data else ''
@@ -49,6 +50,7 @@ class JalcProcessing:
             if last_page:
                 pages += f'-{last_page}'
         return {
+            'id': doi,
             'title': unicodedata.normalize('NFKC', title),
             'author': unicodedata.normalize('NFKC', '; '.join(self.get_authors(data))),
             'issue': unicodedata.normalize('NFKC', issue),
@@ -60,7 +62,7 @@ class JalcProcessing:
             'publisher': unicodedata.normalize('NFKC', publisher),
             'editor': unicodedata.normalize('NFKC', '')
         }
-    
+        
     @classmethod
     def get_ja(cls, field:list) -> list:
         if all('lang' in item for item in field):
@@ -103,15 +105,16 @@ class JalcProcessing:
                 elif candidate_venues:
                     venue_name = candidate_venues[0]['journal_title_name']
         if 'journal_id_list' in data:
-            journal_ids = [journal_id['journal_id'] for journal_id in data['journal_id_list'] if journal_id['type'] in {'print', 'online'}]
+            journal_ids = {journal_id['journal_id'] for journal_id in data['journal_id_list'] 
+                if journal_id['type'] == 'ISSN'}
         else:
-            journal_ids = []
-        venue_ids = list()
+            journal_ids = set()
+        venue_ids = set()
         if journal_ids:
             for journal_id in journal_ids:
                 issnid = self._issnm.normalise(journal_id, include_prefix=False)
                 if self._issnm.check_digit(issnid):
-                    venue_ids.append('issn:' + issnid)
+                    venue_ids.add('issn:' + issnid)
         return f"{venue_name} [{' '.join(venue_ids)}]" if venue_ids else venue_name
 
     @classmethod

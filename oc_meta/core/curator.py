@@ -440,26 +440,23 @@ class Curator:
         pattern = 'br/' if br else 'ra/'
         metaid = ''
         id_list = list(filter(None, id_list))
+        clean_list = list()
+        for elem in id_list:
+            if elem in clean_list:
+                continue
+            elem = Cleaner(elem).normalize_hyphens()
+            identifier = elem.split(':', 1)
+            schema = identifier[0].lower()
+            value = identifier[1]
+            if schema == 'meta':
+                metaid = value.replace(pattern, '')
+            else:
+                normalized_id = Cleaner(elem).normalize_id(valid_dois_cache=valid_dois_cache)
+                clean_list.append(normalized_id)
         how_many_meta = [i for i in id_list if i.lower().startswith('meta')]
         if len(how_many_meta) > 1:
-            for pos, elem in enumerate(list(id_list)):
-                if 'meta' in elem.lower():
-                    id_list[pos] = ''
-        else:
-            for pos, elem in enumerate(list(id_list)):
-                elem = Cleaner(elem).normalize_hyphens()
-                identifier = elem.split(':', 1)
-                schema = identifier[0].lower()
-                value = identifier[1]
-                if schema == 'meta':
-                    if 'meta:' + pattern in elem.lower():
-                        metaid = value.replace(pattern, '')
-                    id_list[pos] = ''
-                else:
-                    normalized_id = Cleaner(elem).normalize_id(valid_dois_cache=valid_dois_cache)
-                    id_list[pos] = normalized_id
-        id_list = list(filter(None, id_list))
-        return id_list, metaid
+            clean_list = [i for i in clean_list if not i.lower().startswith('meta')]
+        return clean_list, metaid
 
     def conflict(self, idslist:List[str], name:str, id_dict:dict, col_name:str) -> str:
         if col_name == 'id' or col_name == 'venue':

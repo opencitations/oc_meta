@@ -22,9 +22,10 @@ from bs4 import BeautifulSoup
 from oc_idmanager import DOIManager, ISSNManager, ORCIDManager
 
 from oc_meta.lib.csvmanager import CSVManager
+from oc_meta.plugins.ra_processor import RaProcessor
 
 
-class MedraProcessing:
+class MedraProcessing(RaProcessor):
     def __init__(self, orcid_index:str=None, doi_csv:str=None):
         self.doi_set = CSVManager.load_csv_column_as_set(doi_csv, 'id') if doi_csv else None
         orcid_index = orcid_index if orcid_index else None
@@ -208,14 +209,14 @@ class MedraProcessing:
             elif serial_work_title.find('TitleType').get_text() == '05':
                 venue_name = serial_work_title.find('TitleText').get_text()
         serial_versions:List[BeautifulSoup] = serial_publication.findAll('SerialVersion')
-        venue_ids = list()
+        venue_ids = set()
         for serial_version in serial_versions:
             product_id_type = serial_version.find('ProductIDType')
             if serial_version.find('ProductForm').get_text() in {'JD', 'JB'} and product_id_type:
                 if product_id_type.get_text() == '07':
-                    issnid = self._issnm.normalise(serial_version.find('IDValue').get_text(), include_prefix=False)
-                    if self._issnm.check_digit(issnid):
-                        venue_ids.append('issn:' + issnid)
+                    id_value = serial_version.find('IDValue').get_text()
+                    id_value = id_value + 'X' if len(id_value) == 7 else id_value
+                    self.issn_worker(id_value, venue_ids)
         return venue_name, venue_ids
     
     @classmethod

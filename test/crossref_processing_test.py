@@ -217,26 +217,26 @@ class TestCrossrefProcessing(unittest.TestCase):
     def test_id_worker(self):
         field_issn = 'ISSN 1050-124X'
         field_isbn = ['978-1-56619-909-4']
-        issn_list = list()
-        isbn_list = list()
-        CrossrefProcessing.id_worker(field_issn, issn_list, CrossrefProcessing.issn_worker)
-        CrossrefProcessing.id_worker(field_isbn, isbn_list, CrossrefProcessing.isbn_worker)
-        expected_issn_list = ['issn:1050-124X']
-        expected_isbn_list = ['isbn:9781566199094']
-        self.assertEqual((issn_list, isbn_list), (expected_issn_list, expected_isbn_list))
+        issn_set = set()
+        isbn_set = set()
+        CrossrefProcessing.id_worker(field_issn, issn_set, CrossrefProcessing.issn_worker)
+        CrossrefProcessing.id_worker(field_isbn, isbn_set, CrossrefProcessing.isbn_worker)
+        expected_issn_list = {'issn:1050-124X'}
+        expected_isbn_list = {'isbn:9781566199094'}
+        self.assertEqual((issn_set, isbn_set), (expected_issn_list, expected_isbn_list))
 
     def test_issn_worker(self):
         input = 'ISSN 1050-124X'
-        output = list()
+        output = set()
         CrossrefProcessing.issn_worker(input, output)
-        expected_output = ['issn:1050-124X']
+        expected_output = {'issn:1050-124X'}
         self.assertEqual(output, expected_output)
 
     def test_isbn_worker(self):
         input = '978-1-56619-909-4'
-        output = list()
+        output = set()
         CrossrefProcessing.isbn_worker(input, output)
-        expected_output = ['isbn:9781566199094']
+        expected_output = {'isbn:9781566199094'}
         self.assertEqual(output, expected_output)
     
     def test_preprocess(self):

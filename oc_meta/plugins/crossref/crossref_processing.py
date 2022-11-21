@@ -21,7 +21,7 @@ import re
 import warnings
 
 from bs4 import BeautifulSoup
-from oc_idmanager import DOIManager, ISBNManager, ISSNManager
+from oc_idmanager import DOIManager
 
 from oc_meta.lib.master_of_regex import *
 from oc_meta.plugins.ra_processor import RaProcessor
@@ -53,24 +53,24 @@ class CrossrefProcessing(RaProcessor):
                     row['type'] = item['type'].replace('-', ' ')
 
             # row['id']
-            idlist = list()
-            idlist.append(str('doi:' + doi))
+            idset = set()
+            idset.add(str('doi:' + doi))
 
             if 'ISBN' in item:
                 if row['type'] in {'book', 'dissertation', 'edited book', 'monograph', 'reference book', 'report', 'standard'}:
-                    self.id_worker(item['ISBN'], idlist, self.isbn_worker)
+                    self.id_worker(item['ISBN'], idset, self.isbn_worker)
 
             if 'ISSN' in item:
                 if row['type'] in {'book series', 'book set', 'journal', 'proceedings series', 'series', 'standard series'}:
-                    self.id_worker(item['ISSN'], idlist, self.issn_worker)
+                    self.id_worker(item['ISSN'], idset, self.issn_worker)
                 elif row['type'] == 'report series':
                     br_id = True
                     if 'container-title' in item:
                         if item['container-title']:
                             br_id = False
                     if br_id:
-                        self.id_worker(item['ISSN'], idlist, self.issn_worker)
-            row['id'] = ' '.join(idlist)
+                        self.id_worker(item['ISSN'], idset, self.issn_worker)
+            row['id'] = ' '.join(idset)
 
             # row['title']
             if 'title' in item:
@@ -203,34 +203,20 @@ class CrossrefProcessing(RaProcessor):
                     close_bracket = ventit.find(match) + len(match)
                     ventit = ventit[:open_bracket] + '(' + ventit[open_bracket + 1:]
                     ventit = ventit[:close_bracket] + ')' + ventit[close_bracket + 1:]
-                venidlist = list()
+                venidset = set()
                 if 'ISBN' in item:
                     if row['type'] in {'book chapter', 'book part', 'book section', 'book track', 'reference entry'}:
-                        self.id_worker(item['ISBN'], venidlist, self.isbn_worker)
+                        self.id_worker(item['ISBN'], venidset, self.isbn_worker)
 
                 if 'ISSN' in item:
                     if row['type'] in {'book', 'data file', 'dataset', 'edited book', 'journal article', 'journal volume', 'journal issue', 'monograph', 'proceedings', 'peer review', 'reference book', 'reference entry', 'report'}:
-                        self.id_worker(item['ISSN'], venidlist, self.issn_worker)
+                        self.id_worker(item['ISSN'], venidset, self.issn_worker)
                     elif row['type'] == 'report series':
                         if 'container-title' in item:
                             if item['container-title']:
-                                self.id_worker(item['ISSN'], venidlist, self.issn_worker)
-                if venidlist:
-                    name_and_id = ventit + ' [' + ' '.join(venidlist) + ']'
+                                self.id_worker(item['ISSN'], venidset, self.issn_worker)
+                if venidset:
+                    name_and_id = ventit + ' [' + ' '.join(venidset) + ']'
                 else:
                     name_and_id = ventit
         return name_and_id
-        
-    @staticmethod
-    def issn_worker(issnid, idlist):
-        issn_manager = ISSNManager()
-        issnid = issn_manager.normalise(issnid, include_prefix=False)
-        if issn_manager.check_digit(issnid):
-            idlist.append('issn:' + issnid)
-
-    @staticmethod
-    def isbn_worker(isbnid, idlist):
-        isbn_manager = ISBNManager()
-        isbnid = isbn_manager.normalise(isbnid, include_prefix=False)
-        if isbn_manager.check_digit(isbnid):
-            idlist.append('isbn:' + isbnid)

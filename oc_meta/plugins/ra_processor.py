@@ -18,7 +18,7 @@ import re
 from csv import DictReader
 from typing import Dict, List, Tuple
 
-from oc_idmanager import ORCIDManager
+from oc_idmanager import ISBNManager, ISSNManager, ORCIDManager
 
 from oc_meta.lib.cleaner import Cleaner
 from oc_meta.lib.csvmanager import CSVManager
@@ -80,7 +80,9 @@ class RaProcessor(object):
                 else:
                     orcid = str(agent['ORCID'])
             if orcid:
-                orcid = ORCIDManager().normalise(orcid) if ORCIDManager().is_valid(orcid) else None
+                orcid_manager = ORCIDManager(data=dict(), use_api_service=False)
+                orcid = orcid_manager.normalise(orcid, include_prefix=False)
+                orcid = orcid if orcid_manager.check_digit(orcid) else None
             elif dict_orcid and f_name:
                 for ori in dict_orcid:
                     orc_n: List[str] = dict_orcid[ori].split(', ')
@@ -166,13 +168,13 @@ class RaProcessor(object):
         return ''
 
     @staticmethod
-    def id_worker(field, idlist:list, func) -> None:
-        if isinstance(field, list):
+    def id_worker(field, ids:set, func) -> None:
+        if isinstance(field, set):
             for i in field:
-                func(str(i), idlist)
+                func(str(i), ids)
         else:
             id = str(field)
-            func(id, idlist)
+            func(id, ids)
 
     @staticmethod
     def load_publishers_mapping(publishers_filepath: str) -> dict:
@@ -185,3 +187,17 @@ class RaProcessor(object):
                 publishers_mapping[id]['name'] = row['name']
                 publishers_mapping[id].setdefault('prefixes', set()).add(row['prefix'])
         return publishers_mapping
+    
+    @staticmethod
+    def issn_worker(issnid:str, ids:set):
+        issn_manager = ISSNManager()
+        issnid = issn_manager.normalise(issnid, include_prefix=False)
+        if issn_manager.check_digit(issnid):
+            ids.add('issn:' + issnid)
+
+    @staticmethod
+    def isbn_worker(isbnid, ids:set):
+        isbn_manager = ISBNManager()
+        isbnid = isbn_manager.normalise(isbnid, include_prefix=False)
+        if isbn_manager.check_digit(isbnid):
+            ids.add('isbn:' + isbnid)
