@@ -507,10 +507,22 @@ class Curator:
             ras_list = list()
             for _, ra_id in sequence:
                 ra_name = self.rameta[ra_id]['title']
-                ra_ids = ' '.join(self.rameta[ra_id]['ids'])
-                ra = ra_name + ' [' + ra_ids + ']'
+                ra_ids = self.rameta[ra_id]['ids']
+                ra = self.build_name_ids_string(ra_name, ra_ids)
                 ras_list.append(ra)
             row[col_name] = '; '.join(ras_list)
+
+    @staticmethod
+    def build_name_ids_string(name, ids):
+        if name and ids:
+            ra_string = f"{name} [{' '.join(ids)}]"
+        elif name and not ids:
+            ra_string = name
+        elif ids and not name:
+            ra_string = f"[{' '.join(ids)}]"
+        elif not ids and not name:
+            ra_string = ''
+        return ra_string
 
     @staticmethod
     def __local_match(list_to_match, dict_to_match:dict):
@@ -680,7 +692,7 @@ class Curator:
                             venue_metaid = i
                 else:
                     venue_metaid = venue
-                row['venue'] = self.brmeta[venue_metaid]['title'] + ' [' + ' '.join(self.brmeta[venue_metaid]['ids']) + ']'
+                row['venue'] = self.build_name_ids_string(self.brmeta[venue_metaid]['title'], self.brmeta[venue_metaid]['ids'])
             br_key_for_editor = get_edited_br_metaid(row, metaid, venue_metaid)
             self.ra_update(row, metaid, 'author')
             self.ra_update(row, metaid, 'publisher')

@@ -52,6 +52,28 @@ class test_ProcessTest(unittest.TestCase):
         delete_output_zip('.', now)
         self.assertEqual(output, expected_output)
 
+    def test_run_meta_process_ids_only(self):
+        reset_server()
+        output_folder = os.path.join(BASE_DIR, 'output_5')
+        meta_process = MetaProcess(config=os.path.join(BASE_DIR, 'meta_config_5.yaml'))
+        now = datetime.now()
+        run_meta_process(meta_process)
+        output = list()
+        for dirpath, _, filenames in os.walk(os.path.join(output_folder, 'csv')):
+            for file in filenames:
+                output.extend(get_csv_data(os.path.join(dirpath, file)))
+        expected_output = [{
+            'id': 'doi:10.17117/na.2015.08.1067 meta:br/0601', 'title': 'Some Aspects Of The Evolution Of Chernozems Under The Influence Of Natural And Anthropogenic Factors', 
+            'author': '[orcid:0000-0002-4126-8519 meta:ra/0601]; [orcid:0000-0003-0530-4305 meta:ra/0602]', 'pub_date': '2015-08-22', 
+            'venue': '[issn:1225-4339 meta:br/0602]', 'volume': '26', 'issue': '', 'page': '50', 'type': 'journal article', 
+            'publisher': '[crossref:6623 meta:ra/0603]', 'editor': '[orcid:0000-0002-4126-8519 meta:ra/0601]; [orcid:0000-0002-8420-0696 meta:ra/0604]'}]
+        output = sorted(sorted(d.items()) for d in output)
+        expected_output = sorted(sorted(d.items()) for d in expected_output)
+        self.maxDiff = None
+        shutil.rmtree(output_folder)
+        delete_output_zip('.', now)
+        self.assertEqual(output, expected_output)
+
     def test_run_meta_process_two_workers(self):
         reset_server()
         output_folder = os.path.join(BASE_DIR, 'output_2')
