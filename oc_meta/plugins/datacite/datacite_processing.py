@@ -7,6 +7,7 @@ from oc_idmanager.doi import DOIManager
 
 from oc_meta.lib.master_of_regex import *
 from oc_meta.plugins.ra_processor import RaProcessor
+from oc_meta.preprocessing.datacite import DatacitePreProcessing
 
 warnings.filterwarnings("ignore", category=UserWarning, module='bs4')
 
@@ -14,7 +15,7 @@ warnings.filterwarnings("ignore", category=UserWarning, module='bs4')
 class DataciteProcessing(RaProcessor):
     def __init__(self, orcid_index: str = None, doi_csv: str = None, publishers_filepath: str = None, inp_dir: str = None, out_dir: str = None, interval: int = 1000, filter:list = []):
         super(DataciteProcessing, self).__init__(orcid_index, doi_csv, publishers_filepath)
-        #self.preprocessor = DatacitePreProcessing(inp_dir, out_dir, interval, filter)
+        # self.preprocessor = DatacitePreProcessing(inp_dir, out_dir, interval, filter)
         self.RIS_types_map = {'abst': 'abstract',
   'news': 'newspaper article',
   'slide': 'presentation',
@@ -284,8 +285,11 @@ class DataciteProcessing(RaProcessor):
                            contributor.get("contributorType") == "Editor"]
                 if editors:
                     row['editor'] = '; '.join(editors_string_list)
-
-            return self.normalise_unicode(row)
+            try:
+                return self.normalise_unicode(row)
+            except TypeError:
+                print(row)
+                raise(TypeError)
 
     def get_datacite_pages(self, item: dict) -> str:
         '''

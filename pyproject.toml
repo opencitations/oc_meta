@@ -6,7 +6,7 @@ authors = ["Arcangelo Massari <arcangelomas@gmail.com>", "Fabio Mariani", "Simon
 license = "ISC License"
 
 [tool.poetry.dependencies]
-python = "^3.7.4"
+python = "^3.8"
 argparse = "^1.4.0"
 lxml = "4.9.1"
 beautifulsoup4 = "^4.11.1"
@@ -23,6 +23,8 @@ ramose = "^1.0.6"
 time-agnostic-library = "4.3.2"
 oc-ocdm = "7.1.2"
 oc-idmanager = "0.2.4"
+zstandard = "^0.19.0"
+pandas = "^1.5.1"
 
 [tool.poetry.dev-dependencies]
 wget = "^3.2"
