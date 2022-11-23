@@ -33,6 +33,8 @@ import sys
 
 
 def get_csv_data(filepath:str) -> List[Dict[str, str]]:
+    if not os.path.splitext(filepath)[1].endswith('.csv'):
+        return list()
     field_size_changed = False
     cur_field_size = 128
     data = list()
