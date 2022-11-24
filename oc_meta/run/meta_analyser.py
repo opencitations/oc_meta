@@ -25,7 +25,7 @@ if __name__ == '__main__': # pragma: no cover
     arg_parser.add_argument('-c', '--csv_dir', dest='csv_dir', required=True, help='The directory containing the OC Meta output CSVs')
     arg_parser.add_argument('-w', '--what', dest='what', required=True, choices=['authors', 'editors', 'publishers', 'venues', 'types', 'years'], help='What to count')
     arg_parser.add_argument('-b', '--by', dest='by_what', required=False, default=None, choices=['publication', 'venue'], help="This parameter is only useful for the 'top' operation. It allows entities specified in 'what' to be ordered by other entities ('by what'). For example, sorting journals by number of publications")
-    arg_parser.add_argument('-n', '--number', dest='number', required=False, default=None, choices=['publication', 'venue'], help="This parameter is only useful for the 'top' operation. Once the entities are sorted, only the first N are returned. If N is not specified, all entities are returned")
+    arg_parser.add_argument('-n', '--number', dest='number', required=False, default=None, type=int, help="This parameter is only useful for the 'top' operation. Once the entities are sorted, only the first N are returned. If N is not specified, all entities are returned")
     args = arg_parser.parse_args()
     analyser = OCMetaCounter(args.csv_dir)
     if args.what and not args.by_what:
