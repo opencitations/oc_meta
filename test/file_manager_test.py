@@ -36,18 +36,18 @@ class test_JsonArchiveManager(unittest.TestCase):
                     self.assertEqual(json_data, original_zip)
         rmtree(OUTPUT_DIR_1)
     
-    def test_rm_tmp_csv_files(self):
-        csv_dir = os.path.join(BASE, 'csv')
-        os.mkdir(csv_dir)
-        files = ['0_2022-09-29T02-35-31', '0_2022-09-29T08-03-27', '2_2022-09-29T08-03-27', '4_2022-09-29T08-03-27', '4_2022-09-29T02-35-31']
-        for file in files:
-            fp = open(os.path.join(csv_dir, f'{file}.csv'), 'w')
-            fp.close()
-        rm_tmp_csv_files(csv_dir)
-        output = os.listdir(csv_dir)
-        expected_output = ['0_2022-09-29T08-03-27.csv', '2_2022-09-29T08-03-27.csv', '4_2022-09-29T08-03-27.csv']
-        rmtree(csv_dir)
-        self.assertEqual(output, expected_output)
+    # def test_rm_tmp_csv_files(self):
+    #     csv_dir = os.path.join(BASE, 'csv')
+    #     os.mkdir(csv_dir)
+    #     files = ['0_2022-09-29T02-35-31', '0_2022-09-29T08-03-27', '2_2022-09-29T08-03-27', '4_2022-09-29T08-03-27', '4_2022-09-29T02-35-31']
+    #     for file in files:
+    #         fp = open(os.path.join(csv_dir, f'{file}.csv'), 'w')
+    #         fp.close()
+    #     rm_tmp_csv_files(csv_dir)
+    #     output = os.listdir(csv_dir)
+    #     expected_output = ['0_2022-09-29T08-03-27.csv', '2_2022-09-29T08-03-27.csv', '4_2022-09-29T08-03-27.csv']
+    #     rmtree(csv_dir)
+    #     self.assertEqual(output, expected_output)
         
 
 if __name__ == '__main__': # pragma: no cover
