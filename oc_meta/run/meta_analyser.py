@@ -19,7 +19,6 @@ from argparse import ArgumentParser
 
 from oc_meta.plugins.analyser import OCMetaCounter
 
-
 if __name__ == '__main__': # pragma: no cover
     arg_parser = ArgumentParser('meta_analyser.py', description='This script allows performing various analyses on the OC Meta output CSVs')
     arg_parser.add_argument('-c', '--csv_dir', dest='csv_dir', required=True, help='The directory containing the OC Meta output CSVs')
@@ -33,9 +32,9 @@ if __name__ == '__main__': # pragma: no cover
     elif args.what and args.by_what:
         result = analyser.get_top(what=args.what, by_what=args.by_what, number=args.number)
     if isinstance(result, int):
-        with open('analysis.txt', 'w', encoding='utf-8') as f:
+        with open(f'{args.what}_count.txt', 'w', encoding='utf-8') as f:
             f.write(str(result))
     elif isinstance(result, list):
         result = [(meta, {k: list(v) if isinstance(v, set) else v for k, v in data.items()}) for meta, data in result]
-        with open('analysis.json', 'w', encoding='utf-8') as outfile:
+        with open(f'count_{args.what}_by_{args.by_what}.json', 'w', encoding='utf-8') as outfile:
             json.dump(result, outfile)

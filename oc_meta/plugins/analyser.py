@@ -14,14 +14,14 @@
 # SOFTWARE.
 
 from __future__ import annotations
-from typing import Dict, List
 
 import os
 import re
 from datetime import datetime
-from dateutil.parser import parse
 from functools import cmp_to_key
+from typing import Dict, List
 
+from dateutil.parser import parse
 from tqdm import tqdm
 
 from oc_meta.lib.file_manager import get_csv_data, write_csv
