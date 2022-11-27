@@ -92,6 +92,8 @@ class JalcProcessing(RaProcessor):
                         full_name += f', {first_name}'
                 if full_name:
                     authors.append((sequence, full_name))
+                if 'researcher_id_list' in creator:
+                    print(data)
         return [author[1] for author in sorted(authors, key=lambda x: x[0])]
     
     def get_venue(self, data:dict) -> str:

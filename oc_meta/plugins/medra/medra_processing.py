@@ -14,8 +14,6 @@
 # ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 # SOFTWARE.
 
-import unicodedata
-
 from datetime import datetime
 from typing import List, Tuple
 

@@ -19,7 +19,6 @@ import unittest
 from oc_meta.lib.file_manager import get_csv_data
 from oc_meta.plugins.analyser import OCMetaAnalyser, OCMetaCounter
 
-
 BASE = os.path.join('test', 'analyser')
 OUTPUT = os.path.join(BASE, 'output')
 
@@ -45,67 +44,73 @@ class test_Analyser(unittest.TestCase):
     def test_count_authors(self):
         ocmeta_counter = OCMetaCounter(csv_dump_path=OUTPUT)
         count = ocmeta_counter.count(what='authors')
-        self.assertEqual(count, 40)
+        self.assertEqual(count, '40')
 
     def test_count_editor(self):
         ocmeta_counter = OCMetaCounter(csv_dump_path=OUTPUT)
         count = ocmeta_counter.count(what='editors')
-        self.assertEqual(count, 0)
+        self.assertEqual(count, '0')
+
+    def test_count_publisher(self):
+        ocmeta_counter = OCMetaCounter(csv_dump_path=OUTPUT)
+        count = ocmeta_counter.count(what='publishers')
+        self.assertEqual(count, '4')
 
     def test_get_top_publishers_by_venue(self):
         ocmeta_counter = OCMetaCounter(csv_dump_path=OUTPUT)
         top = ocmeta_counter.get_top(what='publishers', by_what='venue')
         expected_top = [
-            ('meta:ra/0610', {'name': 'Institute of Electrical and Electronics Engineers (IEEE)', 'venue': {'meta:br/06012', 'meta:br/06016', 'meta:br/0608'}, 'total': 3}), 
-            ('meta:ra/0602', {'name': 'Springer Science and Business Media LLC', 'venue': {'meta:br/0602', 'meta:br/06020', 'meta:br/06043'}, 'total': 3}), 
-            ('meta:ra/0605', {'name': 'Elsevier BV', 'venue': {'meta:br/0604'}, 'total': 1}), 
-            ('meta:ra/06026', {'name': 'IOP Publishing', 'venue': {'meta:br/06022'}, 'total': 1})]
+            ('meta:ra/0610', {'name': 'Institute of Electrical and Electronics Engineers (IEEE)', 'total': 3}), 
+            ('meta:ra/0602', {'name': 'Springer Science and Business Media LLC', 'total': 3}), 
+            ('meta:ra/0605', {'name': 'Elsevier BV', 'total': 1}), 
+            ('meta:ra/06026', {'name': 'IOP Publishing', 'total': 1})]
         self.assertEqual(top, expected_top)
 
     def test_get_top_publishers_by_publication(self):
         ocmeta_counter = OCMetaCounter(csv_dump_path=OUTPUT)
         top = ocmeta_counter.get_top(what='publishers', by_what='publication')
         expected_top = [
-            ('meta:ra/0610', {'name': 'Institute of Electrical and Electronics Engineers (IEEE)', 'publication': {'meta:br/06044', 'meta:br/06046', 'meta:br/0607', 'meta:br/06015', 'meta:br/06025', 'meta:br/06011'}, 'total': 6}), 
-            ('meta:ra/0605', {'name': 'Elsevier BV', 'publication': {'meta:br/06047', 'meta:br/0603', 'meta:br/06029', 'meta:br/06045', 'meta:br/06038'}, 'total': 5}), 
-            ('meta:ra/0602', {'name': 'Springer Science and Business Media LLC', 'publication': {'meta:br/06019', 'meta:br/06042', 'meta:br/0601', 'meta:br/06037'}, 'total': 4}), 
-            ('meta:ra/06026', {'name': 'IOP Publishing', 'publication': {'meta:br/06033', 'meta:br/06021'}, 'total': 2})]
+            ('meta:ra/0610', {'name': 'Institute of Electrical and Electronics Engineers (IEEE)', 'total': 6}), 
+            ('meta:ra/0605', {'name': 'Elsevier BV', 'total': 5}), 
+            ('meta:ra/0602', {'name': 'Springer Science and Business Media LLC', 'total': 4}), 
+            ('meta:ra/06026', {'name': 'IOP Publishing', 'total': 2})]
         self.assertEqual(top, expected_top)
 
     def test_get_top_venues_by_publication(self):
         ocmeta_counter = OCMetaCounter(csv_dump_path=OUTPUT)
         top = ocmeta_counter.get_top(what='venues', by_what='publication')
         expected_top = [
-            ('meta:br/0604', {'name': 'Journal of Computational Physics', 'publication': {'meta:br/06047', 'meta:br/06038', 'meta:br/06045', 'meta:br/06029', 'meta:br/0603'}, 'total': 5}), 
-            ('meta:br/06016', {'name': 'IEEE Transactions on Power Delivery', 'publication': {'meta:br/06046', 'meta:br/06015', 'meta:br/06044'}, 'total': 3}), 
-            ('meta:br/06012', {'name': 'IEEE Transactions on Plasma Science', 'publication': {'meta:br/06025', 'meta:br/06011'}, 'total': 2}), 
-            ('meta:br/06022', {'name': 'Journal of Physics D: Applied Physics', 'publication': {'meta:br/06021', 'meta:br/06033'}, 'total': 2}),
-            ('meta:br/0602', {'name': 'Insulation of High-Voltage Equipment', 'publication': {'meta:br/0601'}, 'total': 1}), 
-            ('meta:br/0608', {'name': 'IEEE Transactions on Magnetics', 'publication': {'meta:br/0607'}, 'total': 1}), 
-            ('meta:br/06020', {'name': 'Physics and Applications of Pseudosparks', 'publication': {'meta:br/06019'}, 'total': 1}), 
-            ('meta:br/06043', {'name': 'Journal of Electrical Engineering & Technology', 'publication': {'meta:br/06042'}, 'total': 1})]
+            ('meta:br/0604', {'name': 'Journal of Computational Physics', 'total': 5}), 
+            ('meta:br/06016', {'name': 'IEEE Transactions on Power Delivery', 'total': 3}), 
+            ('meta:br/06012', {'name': 'IEEE Transactions on Plasma Science', 'total': 2}), 
+            ('meta:br/06022', {'name': 'Journal of Physics D: Applied Physics', 'total': 2}),
+            ('meta:br/0602', {'name': 'Insulation of High-Voltage Equipment', 'total': 1}), 
+            ('meta:br/0608', {'name': 'IEEE Transactions on Magnetics', 'total': 1}), 
+            ('meta:br/06020', {'name': 'Physics and Applications of Pseudosparks', 'total': 1}), 
+            ('meta:br/06043', {'name': 'Journal of Electrical Engineering & Technology', 'total': 1})]
         self.assertEqual(top, expected_top)
 
     def test_get_top_years_by_publication(self):
         ocmeta_counter = OCMetaCounter(csv_dump_path=OUTPUT)
         top = ocmeta_counter.get_top(what='years', by_what='publication')
         expected_top = [
-            ('2012', {'publication': {'meta:br/06015', 'meta:br/06046', 'meta:br/06044'}, 'total': 3}), 
-            ('1982', {'publication': {'meta:br/06038', 'meta:br/06047', 'meta:br/06045'}, 'total': 3}), 
-            ('2000', {'publication': {'meta:br/0607', 'meta:br/0601'}, 'total': 2}), 
-            ('1973', {'publication': {'meta:br/0603'}, 'total': 1}),
-            ('2003', {'publication': {'meta:br/06011'}, 'total': 1}), 
-            ('1990', {'publication': {'meta:br/06019'}, 'total': 1}), 
-            ('1980', {'publication': {'meta:br/06021'}, 'total': 1}), 
-            ('1991', {'publication': {'meta:br/06025'}, 'total': 1}), 
-            ('1979', {'publication': {'meta:br/06029'}, 'total': 1})]
+            ('2012', {'total': 3}), 
+            ('1982', {'total': 3}), 
+            ('2000', {'total': 2}), 
+            ('1973', {'total': 1}),
+            ('2003', {'total': 1}), 
+            ('1990', {'total': 1}), 
+            ('1980', {'total': 1}), 
+            ('1991', {'total': 1}), 
+            ('1979', {'total': 1}),
+            ('2006', {'total': 1})]
         self.assertEqual(top, expected_top)
 
     def test_get_top_types_by_publication(self):
         ocmeta_counter = OCMetaCounter(csv_dump_path=OUTPUT)
         top = ocmeta_counter.get_top(what='types', by_what='publication')
         expected_top = [
-            ('journal article', {'publication': {'meta:br/06011', 'meta:br/06033', 'meta:br/06045', 'meta:br/06042', 'meta:br/0607', 'meta:br/06044', 'meta:br/06047', 'meta:br/06029', 'meta:br/06021', 'meta:br/06046', 'meta:br/06025', 'meta:br/06015', 'meta:br/0603', 'meta:br/06038'}, 'total': 14}), 
-            ('book chapter', {'publication': {'meta:br/0601', 'meta:br/06019'}, 'total': 2}), 
-            ('book', {'publication': {'meta:br/06037'}, 'total': 1})]
+            ('journal article', {'total': 14}), 
+            ('book chapter', {'total': 2}), 
+            ('book', {'total': 1})]
         self.assertEqual(top, expected_top)

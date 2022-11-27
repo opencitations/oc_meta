@@ -16,21 +16,24 @@
 
 
 from __future__ import annotations
-from _collections_abc import dict_keys
-from bs4 import BeautifulSoup
-from contextlib import contextmanager
-from datetime import datetime
-from oc_meta.lib.cleaner import Cleaner
-from pathlib import Path
-from requests import get, ReadTimeout
-from requests.exceptions import ConnectionError
-from time import sleep
-from typing import List, Dict, Set
-from zipfile import ZipFile, ZIP_DEFLATED
+
 import csv
 import json
 import os
 import sys
+from contextlib import contextmanager
+from datetime import datetime
+from pathlib import Path
+from time import sleep
+from typing import Dict, List, Set
+from zipfile import ZIP_DEFLATED, ZipFile
+
+from _collections_abc import dict_keys
+from bs4 import BeautifulSoup
+from requests import ReadTimeout, get
+from requests.exceptions import ConnectionError
+
+from oc_meta.lib.cleaner import Cleaner
 
 
 def get_csv_data(filepath:str) -> List[Dict[str, str]]:

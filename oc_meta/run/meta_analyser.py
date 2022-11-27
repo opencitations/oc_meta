@@ -31,10 +31,9 @@ if __name__ == '__main__': # pragma: no cover
         result = analyser.count(what=args.what)
     elif args.what and args.by_what:
         result = analyser.get_top(what=args.what, by_what=args.by_what, number=args.number)
-    if isinstance(result, int):
+    if isinstance(result, str):
         with open(f'{args.what}_count.txt', 'w', encoding='utf-8') as f:
-            f.write(str(result))
+            f.write(result)
     elif isinstance(result, list):
-        result = [(meta, {k: list(v) if isinstance(v, set) else v for k, v in data.items()}) for meta, data in result]
         with open(f'count_{args.what}_by_{args.by_what}.json', 'w', encoding='utf-8') as outfile:
             json.dump(result, outfile)

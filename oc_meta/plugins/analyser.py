@@ -88,6 +88,8 @@ class OCMetaAnalyser:
                     global_output = 0
                 elif isinstance(local_output, dict):
                     global_output = dict()
+                elif isinstance(local_output, set):
+                    global_output = set()
             if isinstance(local_output, int):
                 global_output += local_output
             elif isinstance(local_output, dict):
@@ -100,10 +102,17 @@ class OCMetaAnalyser:
                             else:
                                 global_output[k][i_k] = local_output[k][i_k]
                     else:
-                        global_output[k] = local_output[k]                    
+                        global_output[k] = local_output[k]
+            elif isinstance(local_output, set):
+                global_output.update(local_output)      
             pbar.update()
         pbar.close()
-        return global_output
+        if isinstance(global_output, int):
+            return str(global_output)
+        elif isinstance(global_output, dict):
+            return global_output
+        elif isinstance(global_output, set):
+            return str(len(global_output))
     
 
 class OCMetaCounter(OCMetaAnalyser):
@@ -114,10 +123,11 @@ class OCMetaCounter(OCMetaAnalyser):
         counter_func = getattr(self, f'count_{what}_by_{by_what}')
         all_data = self.explore_csv_dump(counter_func)
         all_data_sorted: list = sorted(all_data, key=lambda k: len(all_data[k][by_what]), reverse=True)
-        top_n = all_data_sorted[:number-1] if number is not None else all_data_sorted
+        top_n = all_data_sorted[:number] if number is not None else all_data_sorted
         all_top_n = [(k, v) for k, v in all_data.items() if k in top_n]
         for tuple_k_v in all_top_n:
             tuple_k_v[1]['total'] = len(tuple_k_v[1][by_what])
+        all_top_n = [(meta, {k: v for k, v in data.items() if not isinstance(v, set)}) for meta, data in all_top_n]
         return sorted(all_top_n, key=lambda x: top_n.index(x[0]))
     
     def count(self, what: str) -> int:
@@ -135,6 +145,17 @@ class OCMetaCounter(OCMetaAnalyser):
         for row in csv_data:
             count += len(list(filter(None, row['editor'].split('; '))))
         return count
+
+    def count_publishers(self, csv_data: List[dict]) -> int:
+        publishers = set()
+        for row in csv_data:
+            if row['publisher']:
+                pub_name_and_ids = re.search(name_and_ids, row['publisher'])
+                if pub_name_and_ids:
+                    pub_ids = pub_name_and_ids.group(2)
+                    metaid = [identifier for identifier in pub_ids.split() if identifier.split(':')[0] == 'meta'][0]
+                    publishers.add(metaid)
+        return publishers
 
     def count_bibliographic_resources(self, csv_data: List[dict]) -> int:
         pass
