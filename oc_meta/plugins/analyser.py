@@ -157,6 +157,17 @@ class OCMetaCounter(OCMetaAnalyser):
                     publishers.add(metaid)
         return publishers
 
+    def count_venues(self, csv_data: List[dict]) -> int:
+        venues = set()
+        for row in csv_data:
+            if row['venue']:
+                ven_name_and_ids = re.search(name_and_ids, row['venue'])
+                if ven_name_and_ids:
+                    ven_ids = ven_name_and_ids.group(2)
+                    metaid = [identifier for identifier in ven_ids.split() if identifier.split(':')[0] == 'meta'][0]
+                    venues.add(metaid)
+        return venues
+
     def count_bibliographic_resources(self, csv_data: List[dict]) -> int:
         pass
     

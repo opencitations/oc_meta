@@ -56,6 +56,11 @@ class test_Analyser(unittest.TestCase):
         count = ocmeta_counter.count(what='publishers')
         self.assertEqual(count, '4')
 
+    def test_count_venues(self):
+        ocmeta_counter = OCMetaCounter(csv_dump_path=OUTPUT)
+        count = ocmeta_counter.count(what='venues')
+        self.assertEqual(count, '8')
+
     def test_get_top_publishers_by_venue(self):
         ocmeta_counter = OCMetaCounter(csv_dump_path=OUTPUT)
         top = ocmeta_counter.get_top(what='publishers', by_what='venue')
