@@ -327,7 +327,7 @@ class test_API(unittest.TestCase):
 
     def test_text_search_foaf_name(self):
         operation_url = 'search'
-        request = 'author=F42'
+        request = 'author=F42 Committee'
         call = "%s/%s/%s" % (api_base, operation_url, request)
         op = api_manager.get_op(call)
         status, result, format = op.exec()

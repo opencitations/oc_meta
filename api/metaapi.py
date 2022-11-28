@@ -16,6 +16,8 @@
 
 __author__ = 'Arcangelo Massari'
 
+from difflib import get_close_matches
+from publishers import PUBLISHERS
 from typing import List, Tuple
 import re
 
@@ -83,6 +85,40 @@ def __postprocess_type(type_uri:str) -> str:
         type_string = ''
     return type_string
 
+def clean_name(name: str) -> str:
+    if ',' in name:
+        split_name = re.split('\s*,\s*', name)
+        first_name = split_name[1].split()
+        for i, w in enumerate(first_name):
+            first_name[i] = clean_title(w)
+        new_first_name = ' '.join(first_name)
+        surname = split_name[0].split()
+        for i, w in enumerate(surname):
+            surname[i] = clean_title(w)
+        new_surname = ' '.join(surname)
+        if new_surname and new_first_name:
+            new_name = new_surname + ', ' + new_first_name
+        elif not new_surname and new_first_name:
+            new_name = ', ' + new_first_name
+        else:
+            new_name = ''
+    else:
+        split_name = name.split()
+        for i, w in enumerate(split_name):
+            split_name[i] = clean_title(w)
+        new_name = ' '.join(split_name)
+    return new_name
+
+def clean_title(title: str) -> str:
+    if title.isupper():
+        title = title.lower()
+    words = title.split()
+    for i, w in enumerate(words):
+        if not any(x.isupper() for x in w):
+            words[i] = w.title()
+    new_title = ' '.join(words)
+    return new_title
+
 class TextSearch():
     def __init__(self, text:str):
         self.text = text
@@ -111,17 +147,18 @@ class TextSearch():
         family_name = None
         given_name = None
         name = None
-        if ',' in self.text:
-            name_parts = [part.strip() for part in self.text.split(',')]
+        clean_test = clean_name(self.text)
+        if ',' in clean_test:
+            name_parts = [part.strip() for part in clean_test.split(',')]
             if name_parts:
-                family_name = ' '.join([s.title() for s in name_parts[0].split()])
+                family_name = name_parts[0]
                 if len(name_parts) == 2:
                     given_name = name_parts[1]
                     given_name = '. '.join(given_name.split('.'))
-                    given_name = ' '.join([f"{name_part.rstrip('.').title()}.+?" if len(name_part.rstrip('.')) == 1 else name_part.title() for name_part in given_name.split()])
+                    given_name = ' '.join([f"{name_part.rstrip('.')}.+?" if len(name_part.rstrip('.')) == 1 else name_part for name_part in given_name.split()])
                     given_name = given_name.replace('*', '.*?')
         else:
-            name = self.text
+            name = clean_test
         role = role.title()
         text_search = ''
         base_query = f'''
@@ -131,34 +168,42 @@ class TextSearch():
                 a fabio:Expression.
         '''
         if name:
-            text_search += f"{self.__gen_text_search(f'ts{role}Name{ts_index}', name, False, ts_index)}"
             base_query = f'''
-                ?ts{role}Ra{ts_index} ?namePredicate ?ts{role}Name{ts_index}.
+                ?ts{role}Ra{ts_index} ?namePredicate '{name}'.
                 VALUES (?namePredicate) {{(foaf:name) (foaf:familyName)}}''' + base_query
         else:
-            if family_name:
-                text_search += f"{self.__gen_text_search(f'ts{role}Fn{ts_index}', family_name, True, ts_index)}"
             if family_name and given_name:
                 base_query = f'''
-                    ?ts{role}Ra{ts_index} foaf:familyName ?ts{role}Fn{ts_index};
+                    ?ts{role}Ra{ts_index} foaf:familyName '{family_name}';
                                           foaf:givenName ?ts{role}Gn{ts_index}.
-                    FILTER REGEX (?ts{role}Gn{ts_index}, '{given_name}')''' + base_query
+                    FILTER(REGEX(?ts{role}Gn{ts_index}, '{given_name}'))''' + base_query
             elif family_name and not given_name:
-                base_query = f'?ts{role}Ra{ts_index} foaf:familyName ?ts{role}Fn{ts_index}.' + base_query
+                base_query = f"?ts{role}Ra{ts_index} foaf:familyName '{family_name}'." + base_query
             elif not family_name and given_name:
-                base_query = f'?ts{role}Ra{ts_index} foaf:givenName ?ts{role}Gn{ts_index}.' + base_query
-                text_search += f"{self.__gen_text_search(f'ts{role}Gn{ts_index}', given_name, True, ts_index)}"
+                base_query = f"?ts{role}Ra{ts_index} foaf:givenName '{given_name}'." + base_query
         return text_search + base_query
 
     def get_text_search_on_publisher(self, ts_index:bool) -> str:
-        return f'''
-            {self.__gen_text_search(f'tsPublisherName{ts_index}', self.text, False, ts_index)}
-            ?tsPublisherRa{ts_index} foaf:name ?tsPublisherName{ts_index}.
-            ?tsPublisher{ts_index} pro:isHeldBy ?tsPublisherRa{ts_index};
-                                   pro:withRole pro:publisher.
-            ?res pro:isDocumentContextFor ?tsPublisher{ts_index};
-                a fabio:Expression.            
-        '''
+        close_match = get_close_matches(self.text.lower(), PUBLISHERS, n=1)
+        if close_match:
+            publisher = clean_name(close_match[0])
+            text_search_on_publisher = f'''
+                ?tsPublisherRa{ts_index} foaf:name '{publisher}'.
+                ?tsPublisher{ts_index} pro:isHeldBy ?tsPublisherRa{ts_index};
+                                    pro:withRole pro:publisher.
+                ?res pro:isDocumentContextFor ?tsPublisher{ts_index};
+                    a fabio:Expression.            
+            '''
+        else:
+            text_search_on_publisher = f'''
+                {self.__gen_text_search(f'tsPublisherName{ts_index}', self.text, False, ts_index)}
+                ?tsPublisherRa{ts_index} foaf:name ?tsPublisherName{ts_index}.
+                ?tsPublisher{ts_index} pro:isHeldBy ?tsPublisherRa{ts_index};
+                                    pro:withRole pro:publisher.
+                ?res pro:isDocumentContextFor ?tsPublisher{ts_index};
+                    a fabio:Expression.            
+            '''
+        return text_search_on_publisher
         
     def get_text_search_on_vi(self, vi:str, ts_index:bool) -> str:
         v_or_i = vi.title()
