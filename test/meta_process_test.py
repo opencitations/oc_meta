@@ -1,15 +1,15 @@
-from datetime import datetime
-from oc_meta.lib.file_manager import get_csv_data
-from oc_meta.run.meta_process import MetaProcess, run_meta_process
-from test.curator_test import reset_server
-from zipfile import ZipFile
 import json
 import os
 import shutil
-import sys
 import subprocess
+import sys
 import unittest
+from datetime import datetime
+from test.curator_test import reset_server
+from zipfile import ZipFile
 
+from oc_meta.lib.file_manager import get_csv_data
+from oc_meta.run.meta_process import MetaProcess, run_meta_process
 
 BASE_DIR = os.path.join('test', 'meta_process')
 

@@ -18,24 +18,28 @@
 # SOFTWARE.
 
 
+import csv
+import os
 from argparse import ArgumentParser
 from datetime import datetime
 from itertools import cycle
-from oc_meta.lib.file_manager import get_csv_data, normalize_path, pathoo, suppress_stdout, init_cache, sort_files, zipit
-from oc_meta.plugins.multiprocess.resp_agents_creator import RespAgentsCreator
-from oc_meta.plugins.multiprocess.resp_agents_curator import RespAgentsCurator
-from oc_meta.core.creator import Creator
-from oc_meta.core.curator import Curator
+from sys import executable, platform
+from typing import List, Set, Tuple
+
+import yaml
 from oc_ocdm import Storer
 from oc_ocdm.prov import ProvSet
 from oc_ocdm.support.reporter import Reporter
-from pebble import ProcessPool, ProcessFuture
-from sys import executable, platform
+from pebble import ProcessFuture, ProcessPool
 from time_agnostic_library.support import generate_config_file
-from typing import List, Set, Tuple
-import csv
-import os
-import yaml
+
+from oc_meta.core.creator import Creator
+from oc_meta.core.curator import Curator
+from oc_meta.lib.file_manager import (get_csv_data, init_cache, normalize_path,
+                                      pathoo, sort_files, suppress_stdout,
+                                      zipit)
+from oc_meta.plugins.multiprocess.resp_agents_creator import RespAgentsCreator
+from oc_meta.plugins.multiprocess.resp_agents_curator import RespAgentsCurator
 
 
 class MetaProcess:

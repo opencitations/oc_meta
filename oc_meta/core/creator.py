@@ -215,7 +215,7 @@ class Creator(object):
                         venue_type = self.get_venue_type(self.type, venue_ids_list)
                     except UnboundLocalError:
                         error_message = f"[INFO:Creator] I found the venue {venue} for the resource of type {self.type}, but I don't know how to handle it"
-                        raise UnboundLocalError(msg=error_message)
+                        raise UnboundLocalError(error_message)
                     if venue_type:
                         venue_type = venue_type.replace(' ', '_')
                         getattr(self.venue_graph, f'create_{venue_type}')()

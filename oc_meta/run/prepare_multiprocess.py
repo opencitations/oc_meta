@@ -15,14 +15,16 @@
 # SOFTWARE
 
 
-from argparse import ArgumentParser
-from oc_meta.lib.file_manager import normalize_path
-from oc_meta.run.meta_process import MetaProcess, run_meta_process
-from oc_meta.plugins.multiprocess.prepare_multiprocess import prepare_relevant_items, split_csvs_in_chunks
 import os
 import shutil
+from argparse import ArgumentParser
+
 import yaml
 
+from oc_meta.lib.file_manager import normalize_path
+from oc_meta.plugins.multiprocess.prepare_multiprocess import (
+    prepare_relevant_items, split_csvs_in_chunks)
+from oc_meta.run.meta_process import MetaProcess, run_meta_process
 
 if __name__ == '__main__': # pragma: no cover
     arg_parser = ArgumentParser('prepare_multiprocess.py', description='Venues, authors and editors are preprocessed not to create duplicates when running Meta in multi-process')

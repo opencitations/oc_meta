@@ -14,11 +14,11 @@
 # ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 # SOFTWARE.
 
-from typing import Dict
 from csv import DictReader, writer
 from io import StringIO
+from os import mkdir, sep, walk
 from os.path import exists, isdir, join
-from os import walk, sep, mkdir
+from typing import Dict
 
 
 class CSVManager(object):

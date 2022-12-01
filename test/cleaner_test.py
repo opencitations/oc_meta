@@ -1,6 +1,8 @@
-from oc_meta.lib.cleaner import Cleaner
-from pprint import pprint
 import unittest
+from pprint import pprint
+
+from oc_meta.lib.cleaner import Cleaner
+
 
 class test_Cleaner(unittest.TestCase):
     def test_clen_hyphen(self):

@@ -16,11 +16,13 @@
 # SOFTWARE.
 
 
+import os
+
 from bs4 import BeautifulSoup
-from oc_meta.lib.csvmanager import CSVManager
 from oc_idmanager import DOIManager
 from tqdm import tqdm
-import os
+
+from oc_meta.lib.csvmanager import CSVManager
 
 
 class Index_orcid_doi:
@@ -87,5 +89,3 @@ class Index_orcid_doi:
         if not valid_doi:
             # Save file names where nothing was found, to skip them during the next run
             self.csvstorage.add_value('None', f'[{orcid}]')
-
-
