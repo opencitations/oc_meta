@@ -32,7 +32,7 @@ class MetaMappingExtractorTest(unittest.TestCase):
         expected_output = [
             {'id': 'meta:br/0601', 'value': 'doi:10.1007/978-3-662-07918-8_3'},
             {'id': 'meta:br/0602', 'value': 'isbn:9783662079188'}, 
-            {'id': 'meta:br/0602', 'value': 'isbn:9783642058530'}
+            {'id': 'meta:br/0602', 'value': 'isbn:9783642058530'},
             {'id': 'meta:br/0603', 'value': 'doi:10.1016/0021-9991(73)90147-2'},
             {'id': 'meta:br/0604', 'value': 'issn:0021-9991'},
             {'id': 'meta:br/0607', 'value': 'doi:10.1109/20.877674'},
