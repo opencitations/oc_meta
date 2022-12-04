@@ -32,6 +32,7 @@ requests-cache = "^0.9.4"
 ramose = "^1.0.6"
 coverage = "^6.4.4"
 coverage-badge = "^1.1.0"
+autopep8 = "^2.0.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

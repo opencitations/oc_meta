@@ -15,15 +15,19 @@
 # SOFTWARE.
 
 
-from oc_meta.lib.file_manager import pathoo, get_csv_data, write_csv, sort_files
-from oc_meta.lib.master_of_regex import comma_and_spaces, name_and_ids, semicolon_in_people_field
-from oc_meta.core.creator import Creator
-from typing import Dict, List
-from tqdm import tqdm
 import os
-import psutil
 import re
+from typing import Dict, List
 
+import psutil
+from tqdm import tqdm
+
+from oc_meta.constants import CONTAINER_EDITOR_TYPES
+from oc_meta.core.creator import Creator
+from oc_meta.lib.file_manager import (get_csv_data, pathoo, sort_files,
+                                      write_csv)
+from oc_meta.lib.master_of_regex import (comma_and_spaces, name_and_ids,
+                                         semicolon_in_people_field)
 
 FORBIDDEN_IDS = {'issn:0000-0000'}
 VENUES = {'archival-document', 'book', 'book-part', 'book-section', 'book-series', 'book-set', 'edited-book', 'journal', 'journal-volume', 'journal-issue', 'monograph', 'proceedings-series', 'proceedings', 'reference-book', 'report-series', 'standard-series'}
@@ -55,10 +59,11 @@ def prepare_relevant_items(csv_dir:str, output_dir:str, items_per_file:int, verb
     resp_agents_found = set()
     resp_agents_by_id = dict()
     duplicated_resp_agents = dict()
+    editors_found = set()
     # Look for all venues, responsible agents, and publishers
     for file in files:
         data = get_csv_data(file)
-        _get_duplicated_ids(data=data, ids_found=ids_found, items_by_id=duplicated_ids)
+        _get_duplicated_ids(data=data, ids_found=ids_found, editors_found=editors_found, items_by_id=duplicated_ids)
         _get_relevant_venues(data=data, ids_found=venues_found, items_by_id=venues_by_id, duplicated_items=duplicated_venues)
         _get_resp_agents(data=data, ids_found=resp_agents_found, items_by_id=resp_agents_by_id, duplicated_items=duplicated_resp_agents)
         pbar.update() if verbose else None
@@ -80,21 +85,29 @@ def prepare_relevant_items(csv_dir:str, output_dir:str, items_per_file:int, verb
     for field in ['author', 'editor', 'publisher']:
         __save_responsible_agents(resp_agents_merged, items_per_file, output_dir, fieldnames, field)
 
-def _get_duplicated_ids(data:List[dict], ids_found:set, items_by_id:Dict[str, dict]) -> None:
+def _get_duplicated_ids(data: List[dict], ids_found: set, editors_found: set, items_by_id: Dict[str, dict]) -> None:
     cur_file_ids = set()
+    cur_file_venue_ids = set()
     for row in data:
         ids_list = row['id'].split()
-        if any(id in ids_found and (id not in cur_file_ids or id in items_by_id) for id in ids_list):
+        venue_name_and_ids = re.search(name_and_ids, row['venue'])
+        venue_ids = venue_name_and_ids.group(2).split() if venue_name_and_ids else []
+        if any(id in ids_found and (id not in cur_file_ids or id in items_by_id) for id in ids_list) or \
+            ((row['editor'] and row['author'] and row['venue'] and row['type'] in CONTAINER_EDITOR_TYPES) and \
+            any(id in editors_found and (id not in cur_file_venue_ids) for id in venue_ids)):
             for id in ids_list:
                 items_by_id.setdefault(id, {'others': set()})
-                items_by_id[id]['others'].update({other for other in ids_list if other != id})
+                items_by_id[id]['others'].update(
+                    {other for other in ids_list if other != id})
                 for field in ['title', 'author', 'pub_date', 'venue', 'volume', 'issue', 'page', 'type', 'publisher', 'editor']:
                     if field in items_by_id[id]:
                         if len(row[field]) < len(items_by_id[id][field]):
                             continue
                     items_by_id[id][field] = row[field]
-        cur_file_ids.update(set(ids_list))   
-        ids_found.update(set(ids_list))
+        cur_file_ids.update(ids_list)
+        cur_file_venue_ids.update(venue_ids)
+        editors_found.update(venue_ids)
+        ids_found.update(ids_list)
 
 def _enrich_duplicated_ids_found(data:List[dict], items_by_id:Dict[str, dict]) -> None:
     for row in data:

@@ -1,10 +1,11 @@
+from typing import Dict, List, Tuple
+
 from dateutil import parser
-from typing import List, Dict, Tuple
 from oc_ocdm.graph import GraphEntity
 from oc_ocdm.prov.prov_entity import ProvEntity
 from oc_ocdm.support import get_count
 from rdflib import Graph, Literal, URIRef
-from SPARQLWrapper import SPARQLWrapper, JSON, GET, XML
+from SPARQLWrapper import GET, JSON, XML, SPARQLWrapper
 from time_agnostic_library.agnostic_entity import AgnosticEntity
 
 

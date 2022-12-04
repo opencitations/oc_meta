@@ -191,7 +191,8 @@ class RespAgentsCurator(Curator):
                 metaid = value.replace(pattern, '')
             else:
                 normalized_id = Cleaner(elem).normalize_id(valid_dois_cache=dict())
-                clean_list.append(normalized_id)
+                if normalized_id:
+                    clean_list.append(normalized_id)
         how_many_meta = [i for i in id_list if i.lower().startswith('meta')]
         if len(how_many_meta) > 1:
             clean_list = [i for i in clean_list if not i.lower().startswith('meta')]

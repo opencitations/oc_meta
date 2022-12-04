@@ -18,16 +18,18 @@
 # SOFTWARE.
 
 
-from filelock import FileLock
-from oc_meta.constants import CONTAINER_EDITOR_TYPES
-from oc_meta.lib.cleaner import Cleaner
-from oc_meta.lib.finder import *
-from oc_meta.lib.file_manager import *
-from oc_meta.lib.master_of_regex import *
-from typing import List, Tuple, Dict
 import json
 import os
 import re
+from typing import Dict, List, Tuple
+
+from filelock import FileLock
+
+from oc_meta.constants import CONTAINER_EDITOR_TYPES
+from oc_meta.lib.cleaner import Cleaner
+from oc_meta.lib.file_manager import *
+from oc_meta.lib.finder import *
+from oc_meta.lib.master_of_regex import *
 
 
 class Curator:
@@ -452,7 +454,8 @@ class Curator:
                 metaid = value.replace(pattern, '')
             else:
                 normalized_id = Cleaner(elem).normalize_id(valid_dois_cache=valid_dois_cache)
-                clean_list.append(normalized_id)
+                if normalized_id:
+                    clean_list.append(normalized_id)
         how_many_meta = [i for i in id_list if i.lower().startswith('meta')]
         if len(how_many_meta) > 1:
             clean_list = [i for i in clean_list if not i.lower().startswith('meta')]
