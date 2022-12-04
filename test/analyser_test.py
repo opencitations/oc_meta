@@ -63,13 +63,14 @@ class test_Analyser(unittest.TestCase):
 
     def test_get_top_publishers_by_venue(self):
         ocmeta_counter = OCMetaCounter(csv_dump_path=OUTPUT)
-        top = ocmeta_counter.get_top(what='publishers', by_what='venue')
+        top: list = ocmeta_counter.get_top(what='publishers', by_what='venue')
         expected_top = [
             ('meta:ra/0610', {'name': 'Institute of Electrical and Electronics Engineers (IEEE)', 'total': 3}), 
             ('meta:ra/0602', {'name': 'Springer Science and Business Media LLC', 'total': 3}), 
             ('meta:ra/0605', {'name': 'Elsevier BV', 'total': 1}), 
             ('meta:ra/06026', {'name': 'IOP Publishing', 'total': 1})]
-        self.assertEqual(top, expected_top)
+        top.sort(key=lambda x: str(x[1]['total']) + x[0], reverse=True)
+        self.assertEqual(top.sort(key=lambda x: str(x[1]['total']) + x[0], reverse=True), expected_top.sort(key=lambda x: str(x[1]['total']) + x[0], reverse=True))
 
     def test_get_top_publishers_by_publication(self):
         ocmeta_counter = OCMetaCounter(csv_dump_path=OUTPUT)
@@ -93,7 +94,7 @@ class test_Analyser(unittest.TestCase):
             ('meta:br/0608', {'name': 'IEEE Transactions on Magnetics', 'total': 1}), 
             ('meta:br/06020', {'name': 'Physics and Applications of Pseudosparks', 'total': 1}), 
             ('meta:br/06043', {'name': 'Journal of Electrical Engineering & Technology', 'total': 1})]
-        self.assertEqual(top, expected_top)
+        self.assertEqual(top.sort(key=lambda x: str(x[1]['total']) + x[0], reverse=True), expected_top.sort(key=lambda x: str(x[1]['total']) + x[0], reverse=True))
 
     def test_get_top_years_by_publication(self):
         ocmeta_counter = OCMetaCounter(csv_dump_path=OUTPUT)
@@ -109,7 +110,7 @@ class test_Analyser(unittest.TestCase):
             ('1991', {'total': 1}), 
             ('1979', {'total': 1}),
             ('2006', {'total': 1})]
-        self.assertEqual(top, expected_top)
+        self.assertEqual(top.sort(key=lambda x: str(x[1]['total']) + x[0], reverse=True), expected_top.sort(key=lambda x: str(x[1]['total']) + x[0], reverse=True))
 
     def test_get_top_types_by_publication(self):
         ocmeta_counter = OCMetaCounter(csv_dump_path=OUTPUT)
