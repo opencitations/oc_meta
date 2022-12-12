@@ -25,7 +25,7 @@ BASE = os.path.join('test', 'meta_mapping_extractor')
 class MetaMappingExtractorTest(unittest.TestCase):
     def test_extract_metaid_mapping(self):
         output_dirpath = os.path.join(BASE, 'output')
-        output_filepath = os.path.join(output_dirpath, '1.csv')
+        output_filepath = os.path.join(output_dirpath, '1-32.csv')
         extract_metaid_mapping(BASE, output_dirpath)
         output = get_csv_data(output_filepath)
         os.remove(output_filepath)

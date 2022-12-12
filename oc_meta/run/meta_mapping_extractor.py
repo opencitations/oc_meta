@@ -29,21 +29,17 @@ from oc_meta.lib.file_manager import get_csv_data
 from oc_meta.lib.master_of_regex import name_and_ids
 
 
-def map_metaid(ids: list, mapping: CSVManager):
+def map_metaid(ids: list, mapping: dict):
     ids = set(ids)
     metaid = [identifier for identifier in ids if identifier.split(':')[0] == 'meta'][0]
+    mapping.setdefault(metaid, set())
     ids.remove(metaid)
     for other_id in ids:
-        mapping.add_value(metaid, other_id)
+        mapping[metaid].add(other_id)
 
 def extract_metaid_mapping(input_dir:str, output_dir:str) -> None:
-    mapping = CSVManager(output_path=output_dir)
-    file_counter = 0
-    threshold = 10000
+    mapping = dict()
     for filename in os.listdir(input_dir):
-        if file_counter % threshold == 0:
-            file_counter += 1
-            mapping.dump_data(f'{file_counter}.csv')
         filepath = os.path.join(input_dir, filename)
         data = get_csv_data(filepath)
         for row in data:
@@ -61,8 +57,17 @@ def extract_metaid_mapping(input_dir:str, output_dir:str) -> None:
                     individual_name_and_ids = re.search(name_and_ids, individual)
                     if individual_name_and_ids:
                         map_metaid(individual_name_and_ids.group(2).split(), mapping)
-    if mapping.data:
-        mapping.dump_data(f'{file_counter}.csv')
+    data_to_dump = CSVManager(output_path=output_dir)
+    counter = 0
+    threshold = 10000
+    for metaid, ids in mapping.items():
+        for identifier in ids:
+            if counter > 0 and counter % threshold == 0:
+                data_to_dump.dump_data(f'{counter - threshold + 1}-{counter}.csv')
+            data_to_dump.add_value(metaid, identifier)
+            counter += 1
+    if data_to_dump.data:
+        data_to_dump.dump_data(f'{counter - (counter % threshold) + 1}-{counter}.csv')
 
 
 if __name__ == '__main__':
