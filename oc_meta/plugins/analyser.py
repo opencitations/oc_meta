@@ -119,7 +119,7 @@ class OCMetaCounter(OCMetaAnalyser):
     def __init__(self, csv_dump_path: str):
         super(OCMetaCounter, self).__init__(csv_dump_path)
     
-    def get_top(self, what: str, by_what: str, number: int|None = 10) -> dict:
+    def get_top(self, what: str, by_what: str, number: int|None = None) -> dict:
         counter_func = getattr(self, f'count_{what}_by_{by_what}')
         all_data = self.explore_csv_dump(counter_func)
         all_data_sorted: list = sorted(all_data, key=lambda k: len(all_data[k][by_what]), reverse=True)
@@ -146,7 +146,7 @@ class OCMetaCounter(OCMetaAnalyser):
             count += len(list(filter(None, row['editor'].split('; '))))
         return count
 
-    def count_publishers(self, csv_data: List[dict]) -> int:
+    def count_publishers(self, csv_data: List[dict]) -> set:
         publishers = set()
         for row in csv_data:
             if row['publisher']:
@@ -157,19 +157,19 @@ class OCMetaCounter(OCMetaAnalyser):
                     publishers.add(metaid)
         return publishers
 
-    def count_venues(self, csv_data: List[dict]) -> int:
+    def count_venues(self, csv_data: List[dict]) -> set:
         venues = set()
         for row in csv_data:
             if row['venue']:
                 ven_name_and_ids = re.search(name_and_ids, row['venue'])
-                if ven_name_and_ids:
-                    ven_ids = ven_name_and_ids.group(2)
-                    metaid = [identifier for identifier in ven_ids.split() if identifier.split(':')[0] == 'meta'][0]
-                    venues.add(metaid)
+                venue_name = ven_name_and_ids.group(1).lower()
+                venue_ids = set(ven_name_and_ids.group(2).split())
+                venue_metaid = [identifier for identifier in venue_ids if identifier.split(':')[0] == 'meta'][0]
+                if not venue_ids.difference({venue_metaid}):
+                    venues.add(venue_name)
+                else:
+                    venues.add(venue_metaid)
         return venues
-
-    def count_bibliographic_resources(self, csv_data: List[dict]) -> int:
-        pass
     
     def count_publishers_by_venue(self, csv_data: List[dict]) -> Dict[str, Dict[str, set|str]]:
         publishers_by_venue = dict()
@@ -179,9 +179,14 @@ class OCMetaCounter(OCMetaAnalyser):
             if publisher_name_and_ids and venue_name_and_ids:
                 publisher_name = publisher_name_and_ids.group(1)
                 publisher_metaid = [identifier for identifier in publisher_name_and_ids.group(2).split() if identifier.split(':')[0] == 'meta'][0]
-                venue_metaid = [identifier for identifier in venue_name_and_ids.group(2).split() if identifier.split(':')[0] == 'meta'][0]
+                venue_name: str = venue_name_and_ids.group(1).lower()
+                venue_ids = set(venue_name_and_ids.group(2).split())
+                venue_metaid = [identifier for identifier in venue_ids if identifier.split(':')[0] == 'meta'][0]
                 publishers_by_venue.setdefault(publisher_metaid, {'name': publisher_name, 'venue': set()})
-                publishers_by_venue[publisher_metaid]['venue'].add(venue_metaid)
+                if not venue_ids.difference({venue_metaid}):
+                    publishers_by_venue[publisher_metaid]['venue'].add(venue_name)
+                else:
+                    publishers_by_venue[publisher_metaid]['venue'].add(venue_metaid)                
         return publishers_by_venue
 
     def count_publishers_by_publication(self, csv_data: List[dict]) -> Dict[str, Dict[str, set|str]]:
@@ -227,4 +232,54 @@ class OCMetaCounter(OCMetaAnalyser):
                 row_metaid = [identifier for identifier in row['id'].split() if identifier.split(':')[0] == 'meta'][0]
                 types_by_publication.setdefault(br_type, {'publication': set()})
                 types_by_publication[br_type]['publication'].add(row_metaid)
+                venue_name_and_ids = re.search(name_and_ids, row['venue'])
+                if venue_name_and_ids:
+                    venue_name = venue_name_and_ids.group(1)
+                    venue_ids = set(venue_name_and_ids.group(2).split())
+                    venue_type = self.get_venue_type(br_type, venue_ids)
+                    venue_metaid = [identifier for identifier in venue_ids if identifier.split(':')[0] == 'meta'][0]
+                    if venue_type:
+                        if not venue_ids.difference({venue_metaid}):
+                            venue_key = venue_name
+                        else:
+                            venue_key = venue_metaid
+                        types_by_publication.setdefault(venue_type, {'publication': set()})
+                        types_by_publication[venue_type]['publication'].add(venue_key)
         return types_by_publication
+
+    @classmethod
+    def get_venue_type(cls, br_type:str, venue_ids:list) -> str:
+        schemas = {venue_id.split(':')[0] for venue_id in venue_ids}
+        if br_type in {'journal article', 'journal volume', 'journal issue'}:
+            venue_type = 'journal'
+        elif br_type in {'book chapter', 'book part', 'book section', 'book track'}:
+            venue_type = 'book'
+        elif br_type in {'book', 'edited book', 'monograph', 'reference book'}:
+            venue_type = 'book series'
+        elif br_type == 'proceedings article':
+            venue_type = 'proceedings'
+        elif br_type in {'proceedings', 'report', 'standard', 'series'}:
+            venue_type = 'series'
+        elif br_type == 'reference entry':
+            venue_type = 'reference book'
+        elif br_type == 'report series':
+            venue_type = 'report series'
+        elif not br_type or br_type in {'dataset', 'data file'}:
+            venue_type = ''
+        # Check the type based on the identifier scheme
+        if any(identifier for identifier in venue_ids if not identifier.startswith('meta:')):
+            if venue_type in {'journal', 'book series', 'series', 'report series'}:
+                if 'isbn' in schemas or 'issn' not in schemas:
+                    # It is undecidable
+                    venue_type = ''
+            elif venue_type in {'book', 'proceedings'}:
+                if 'issn' in schemas or 'isbn' not in schemas:
+                    venue_type = ''
+            elif venue_type == 'reference book':
+                if 'isbn' in schemas and 'issn' not in schemas:
+                    venue_type = 'reference book'
+                elif 'issn' in schemas and 'isbn' not in schemas:
+                    venue_type = 'journal'
+                elif 'issn' in schemas and 'isbn' in schemas:
+                    venue_type = ''
+        return venue_type

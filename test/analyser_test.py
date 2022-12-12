@@ -119,4 +119,9 @@ class test_Analyser(unittest.TestCase):
             ('journal article', {'total': 14}), 
             ('book chapter', {'total': 2}), 
             ('book', {'total': 1})]
+        expected_top = [
+            ('journal article', {'total': 14}), 
+            ('journal', {'total': 6}), 
+            ('book', {'total': 3}), 
+            ('book chapter', {'total': 2})]
         self.assertEqual(top, expected_top)

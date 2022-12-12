@@ -258,7 +258,7 @@ class Creator(object):
             self.issue_graph.is_part_of(self.venue_graph)
 
     @classmethod
-    def get_venue_type(cls, br_type:str, venue_ids:str) -> str:
+    def get_venue_type(cls, br_type:str, venue_ids:list) -> str:
         schemas = {venue_id.split(':')[0] for venue_id in venue_ids}
         if br_type in {'journal article', 'journal volume', 'journal issue'}:
             venue_type = 'journal'
