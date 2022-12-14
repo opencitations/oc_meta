@@ -24,6 +24,8 @@ import os
 import re
 from argparse import ArgumentParser
 
+from tqdm import tqdm
+
 from oc_meta.lib.csvmanager import CSVManager
 from oc_meta.lib.file_manager import get_csv_data
 from oc_meta.lib.master_of_regex import name_and_ids
@@ -39,24 +41,29 @@ def map_metaid(ids: list, mapping: dict):
 
 def extract_metaid_mapping(input_dir:str, output_dir:str) -> None:
     mapping = dict()
-    for filename in os.listdir(input_dir):
+    filenames = os.listdir(input_dir)
+    pbar = tqdm(total=len(filenames))
+    for filename in filenames:
         filepath = os.path.join(input_dir, filename)
         data = get_csv_data(filepath)
         for row in data:
-            map_metaid(row['id'].split(), mapping)
-            venue_name_and_ids = re.search(name_and_ids, row['venue'])
-            if venue_name_and_ids:
-                map_metaid(venue_name_and_ids.group(2).split(), mapping)
-            publisher_name_and_ids = re.search(name_and_ids, row['publisher'])
-            if publisher_name_and_ids:
-                map_metaid(publisher_name_and_ids.group(2).split(), mapping)
-            authors = row['author'].split('; ')
-            editors = row['editor'].split('; ')
-            for ra in [authors, editors]:
-                for individual in ra:
-                    individual_name_and_ids = re.search(name_and_ids, individual)
-                    if individual_name_and_ids:
-                        map_metaid(individual_name_and_ids.group(2).split(), mapping)
+            if row['id']:
+                map_metaid(row['id'].split(), mapping)
+                venue_name_and_ids = re.search(name_and_ids, row['venue'])
+                if venue_name_and_ids:
+                    map_metaid(venue_name_and_ids.group(2).split(), mapping)
+                publisher_name_and_ids = re.search(name_and_ids, row['publisher'])
+                if publisher_name_and_ids:
+                    map_metaid(publisher_name_and_ids.group(2).split(), mapping)
+                authors = row['author'].split('; ')
+                editors = row['editor'].split('; ')
+                for ra in [authors, editors]:
+                    for individual in ra:
+                        individual_name_and_ids = re.search(name_and_ids, individual)
+                        if individual_name_and_ids:
+                            map_metaid(individual_name_and_ids.group(2).split(), mapping)
+        pbar.update()
+    pbar.close()
     data_to_dump = CSVManager(output_path=output_dir)
     counter = 0
     threshold = 10000
