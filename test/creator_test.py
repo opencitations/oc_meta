@@ -1,13 +1,14 @@
-from oc_meta.lib.file_manager import get_csv_data
-from oc_meta.plugins.multiprocess.resp_agents_creator import RespAgentsCreator
-from oc_meta.core.creator import *
-from test.curator_test import reset_server
-from rdflib import XSD, compare, Graph
-from rdflib.term import _toPythonMapping
 import json
 import os
 import unittest
+from test.curator_test import reset_server
 
+from rdflib import XSD, Graph, compare
+from rdflib.term import _toPythonMapping
+
+from oc_meta.core.creator import *
+from oc_meta.lib.file_manager import get_csv_data
+from oc_meta.plugins.multiprocess.resp_agents_creator import RespAgentsCreator
 
 SERVER = 'http://127.0.0.1:9999/blazegraph/sparql'
 

@@ -20,7 +20,8 @@ class test_Cleaner(unittest.TestCase):
             'OPENCITATIONS, AN INFRASTRUCTURE ORGANIZATION FOR OPEN SCHOLARSHIP',
             'opencitations, an infrastructure organization for open scholarship',
             'OpenCitations,             an infrastructure organization for open scholarship',
-            ' ""agile""    "Knowledge"   graph   testing ù ò       à  with   TESTaLOD (!incredible!) έτος  汉字'
+            ' ""agile""    "Knowledge"   graph   testing ù ò       à  with   TESTaLOD (!incredible!) έτος  汉字',
+            'Elsevier BV'
         ]
         outputs = list()
         for input in inputs:
@@ -30,7 +31,8 @@ class test_Cleaner(unittest.TestCase):
             'Opencitations, An Infrastructure Organization For Open Scholarship',
             'Opencitations, An Infrastructure Organization For Open Scholarship',
             'OpenCitations, An Infrastructure Organization For Open Scholarship',
-            '""Agile"" "Knowledge" Graph Testing Ù Ò À With TESTaLOD (!Incredible!) Έτος 汉字'
+            '""Agile"" "Knowledge" Graph Testing Ù Ò À With TESTaLOD (!Incredible!) Έτος 汉字',
+            'Elsevier BV'
         ]
         self.assertEqual(outputs, expected_output)
     

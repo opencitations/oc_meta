@@ -13,7 +13,7 @@
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
 <https://w3id.org/oc/meta/br/0601> a ns9:Expression,
-        ns9:JournalArticle ;
+        ns9:ReportDocument ;
     ns4:publicationDate "1995"^^xsd:gYear ;
     ns3:title "Title1" ;
     ns1:hasIdentifier <https://w3id.org/oc/meta/id/0601>,
@@ -23,7 +23,7 @@
         <https://w3id.org/oc/meta/ar/0602>,
         <https://w3id.org/oc/meta/ar/0603> ;
     ns5:embodiment <https://w3id.org/oc/meta/re/0601> ;
-    ns5:partOf <https://w3id.org/oc/meta/br/0604> .
+    ns5:partOf <https://w3id.org/oc/meta/br/0603> .
 
 <https://w3id.org/oc/meta/br/0602> a ns9:Expression,
         ns9:JournalArticle ;
@@ -34,7 +34,7 @@
     ns2:isDocumentContextFor <https://w3id.org/oc/meta/ar/0604>,
         <https://w3id.org/oc/meta/ar/0605> ;
     ns5:embodiment <https://w3id.org/oc/meta/re/0602> ;
-    ns5:partOf <https://w3id.org/oc/meta/br/0605> .
+    ns5:partOf <https://w3id.org/oc/meta/br/0604> .
 
 <https://w3id.org/oc/meta/ar/0601> a ns2:RoleInTime ;
     ns2:isHeldBy <https://w3id.org/oc/meta/ra/0601> ;
@@ -54,11 +54,6 @@
     ns2:withRole ns2:publisher .
 
 <https://w3id.org/oc/meta/br/0604> a ns9:Expression,
-        ns9:JournalIssue ;
-    ns9:hasSequenceIdentifier "5-6" ;
-    ns5:partOf <https://w3id.org/oc/meta/br/0603> .
-
-<https://w3id.org/oc/meta/br/0605> a ns9:Expression,
         ns9:JournalIssue ;
     ns9:hasSequenceIdentifier "7-8" ;
     ns5:partOf <https://w3id.org/oc/meta/br/0603> .

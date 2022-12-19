@@ -14,8 +14,8 @@
 # SOFTWARE.
 
 
-import unittest
 import re
+import unittest
 
 from oc_idmanager import DOIManager
 

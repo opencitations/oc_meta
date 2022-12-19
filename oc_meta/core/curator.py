@@ -198,13 +198,16 @@ class Curator:
         :type row: Dict[str, str]
         :returns: None -- This method modifies the input CSV row without returning it.
         '''
+        br_type = row['type']
+        volume = row['volume']
+        issue = row['issue']
+        if br_type not in {'journal article', 'journal volume', 'journal issue'} and (volume or issue):
+            row['volume'] = ''
+            row['issue'] = ''
         Cleaner.clean_volume_and_issue(row=row)
         vol_meta = None
         br_id = row['id']
         venue = row['venue']
-        volume = row['volume']
-        issue = row['issue']
-        br_type = row['type']
         # Venue
         if venue:
             # The data must be invalidated, because the resource is journal but a volume or an issue have also been specified
