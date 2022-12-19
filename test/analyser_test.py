@@ -76,10 +76,10 @@ class test_Analyser(unittest.TestCase):
         ocmeta_counter = OCMetaCounter(csv_dump_path=OUTPUT)
         top = ocmeta_counter.get_top(what='publishers', by_what='publication')
         expected_top = [
-            ('meta:ra/0610', {'name': 'Institute of Electrical and Electronics Engineers (IEEE)', 'total': 6}), 
-            ('meta:ra/0605', {'name': 'Elsevier BV', 'total': 5}), 
-            ('meta:ra/0602', {'name': 'Springer Science and Business Media LLC', 'total': 4}), 
-            ('meta:ra/06026', {'name': 'IOP Publishing', 'total': 2})]
+            ('institute of electrical and electronics engineers (ieee)', {'name': 'Institute of Electrical and Electronics Engineers (IEEE)', 'total': 6}), 
+            ('elsevier bv', {'name': 'Elsevier BV', 'total': 5}), 
+            ('springer science and business media llc', {'name': 'Springer Science and Business Media LLC', 'total': 4}), 
+            ('iop publishing', {'name': 'IOP Publishing', 'total': 2})]
         self.assertEqual(top, expected_top)
 
     def test_get_top_venues_by_publication(self):

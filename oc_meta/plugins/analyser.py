@@ -153,10 +153,7 @@ class OCMetaCounter(OCMetaAnalyser):
                 pub_name_and_ids = re.search(name_and_ids, row['publisher'])
                 if pub_name_and_ids:
                     pub_name = pub_name_and_ids.group(1).lower()
-                    pub_ids = set(pub_name_and_ids.group(2).split())
-                    metaid = [identifier for identifier in pub_ids if identifier.split(':')[0] == 'meta'][0]
-                    pub_key = pub_name if not pub_ids.difference({metaid}) else metaid
-                    publishers.add(pub_key)
+                    publishers.add(pub_name)
         return publishers
 
     def count_venues(self, csv_data: List[dict]) -> set:
@@ -179,16 +176,13 @@ class OCMetaCounter(OCMetaAnalyser):
             publisher_name_and_ids = re.search(name_and_ids, row['publisher'])
             venue_name_and_ids = re.search(name_and_ids, row['venue'])
             if publisher_name_and_ids and venue_name_and_ids:
-                publisher_name = publisher_name_and_ids.group(1)
-                publisher_ids = set(publisher_name_and_ids.group(2).split())
-                publisher_metaid = [identifier for identifier in publisher_ids if identifier.split(':')[0] == 'meta'][0]
+                publisher_name = publisher_name_and_ids.group(1).lower()
                 venue_name: str = venue_name_and_ids.group(1).lower()
                 venue_ids = set(venue_name_and_ids.group(2).split())
                 venue_metaid = [identifier for identifier in venue_ids if identifier.split(':')[0] == 'meta'][0]
-                publisher_key = publisher_name.lower() if not publisher_ids.difference({publisher_metaid}) else publisher_metaid
-                publishers_by_venue.setdefault(publisher_key, {'name': publisher_name, 'venue': set()})
+                publishers_by_venue.setdefault(publisher_name, {'name': publisher_name, 'venue': set()})
                 venue_key = venue_name if not venue_ids.difference({venue_metaid}) else venue_metaid
-                publishers_by_venue[publisher_key]['venue'].add(venue_key)
+                publishers_by_venue[publisher_name]['venue'].add(venue_key)
                 return publishers_by_venue
 
     def count_publishers_by_publication(self, csv_data: List[dict]) -> Dict[str, Dict[str, set|str]]:
@@ -197,12 +191,9 @@ class OCMetaCounter(OCMetaAnalyser):
             publishers_name_and_ids = re.search(name_and_ids, row['publisher'])
             if publishers_name_and_ids:
                 publishers_name = publishers_name_and_ids.group(1)
-                publisher_ids = set(publishers_name_and_ids.group(2).split())
-                publisher_metaid = [identifier for identifier in publisher_ids if identifier.split(':')[0] == 'meta'][0]
                 row_metaid = [identifier for identifier in row['id'].split() if identifier.split(':')[0] == 'meta'][0]
-                publishers_key = publishers_name.lower() if not publisher_ids.difference({publisher_metaid}) else publisher_metaid
-                publishers_by_publication.setdefault(publishers_key, {'name': publishers_name, 'publication': set()})
-                publishers_by_publication[publishers_key]['publication'].add(row_metaid)
+                publishers_by_publication.setdefault(publishers_name.lower(), {'name': publishers_name, 'publication': set()})
+                publishers_by_publication[publishers_name.lower()]['publication'].add(row_metaid)
         return publishers_by_publication
 
     def count_venues_by_publication(self, csv_data: List[dict]) -> Dict[str, Dict[str, set|str]]:
