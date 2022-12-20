@@ -220,3 +220,63 @@ class OCMetaCounter(OCMetaAnalyser):
                 years_by_publication.setdefault(year, {'publication': set()})
                 years_by_publication[year]['publication'].add(row_metaid)
         return years_by_publication
+
+    def count_types_by_publication(self, csv_data: List[dict]) -> Dict[str, Dict[str, set|str]]:
+        types_by_publication = dict()
+        for row in csv_data:
+            br_type = row['type']
+            if br_type:
+                row_metaid = [identifier for identifier in row['id'].split() if identifier.split(':')[0] == 'meta'][0]
+                types_by_publication.setdefault(br_type, {'publication': set()})
+                types_by_publication[br_type]['publication'].add(row_metaid)
+                venue_name_and_ids = re.search(name_and_ids, row['venue'])
+                if venue_name_and_ids:
+                    venue_name = venue_name_and_ids.group(1)
+                    venue_ids = set(venue_name_and_ids.group(2).split())
+                    venue_type = self.get_venue_type(br_type, venue_ids)
+                    venue_metaid = [identifier for identifier in venue_ids if identifier.split(':')[0] == 'meta'][0]
+                    if venue_type:
+                        if not venue_ids.difference({venue_metaid}):
+                            venue_key = venue_name
+                        else:
+                            venue_key = venue_metaid
+                        types_by_publication.setdefault(venue_type, {'publication': set()})
+                        types_by_publication[venue_type]['publication'].add(venue_key)
+        return types_by_publication
+
+    @classmethod
+    def get_venue_type(cls, br_type:str, venue_ids:list) -> str:
+        schemas = {venue_id.split(':')[0] for venue_id in venue_ids}
+        if br_type in {'journal article', 'journal volume', 'journal issue'}:
+            venue_type = 'journal'
+        elif br_type in {'book chapter', 'book part', 'book section', 'book track'}:
+            venue_type = 'book'
+        elif br_type in {'book', 'edited book', 'monograph', 'reference book'}:
+            venue_type = 'book series'
+        elif br_type == 'proceedings article':
+            venue_type = 'proceedings'
+        elif br_type in {'proceedings', 'report', 'standard', 'series'}:
+            venue_type = 'series'
+        elif br_type == 'reference entry':
+            venue_type = 'reference book'
+        elif br_type == 'report series':
+            venue_type = 'report series'
+        elif not br_type or br_type in {'dataset', 'data file'}:
+            venue_type = ''
+        # Check the type based on the identifier scheme
+        if any(identifier for identifier in venue_ids if not identifier.startswith('meta:')):
+            if venue_type in {'journal', 'book series', 'series', 'report series'}:
+                if 'isbn' in schemas or 'issn' not in schemas:
+                    # It is undecidable
+                    venue_type = ''
+            elif venue_type in {'book', 'proceedings'}:
+                if 'issn' in schemas or 'isbn' not in schemas:
+                    venue_type = ''
+            elif venue_type == 'reference book':
+                if 'isbn' in schemas and 'issn' not in schemas:
+                    venue_type = 'reference book'
+                elif 'issn' in schemas and 'isbn' not in schemas:
+                    venue_type = 'journal'
+                elif 'issn' in schemas and 'isbn' in schemas:
+                    venue_type = ''
+        return venue_type

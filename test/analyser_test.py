@@ -111,3 +111,17 @@ class test_Analyser(unittest.TestCase):
             ('1979', {'total': 1}),
             ('2006', {'total': 1})]
         self.assertEqual(top.sort(key=lambda x: str(x[1]['total']) + x[0], reverse=True), expected_top.sort(key=lambda x: str(x[1]['total']) + x[0], reverse=True))
+    
+    def test_get_top_types_by_publication(self):
+        ocmeta_counter = OCMetaCounter(csv_dump_path=OUTPUT)
+        top = ocmeta_counter.get_top(what='types', by_what='publication')
+        expected_top = [
+            ('journal article', {'total': 14}), 
+            ('book chapter', {'total': 2}), 
+            ('book', {'total': 1})]
+        expected_top = [
+            ('journal article', {'total': 14}), 
+            ('journal', {'total': 6}), 
+            ('book', {'total': 3}), 
+            ('book chapter', {'total': 2})]
+        self.assertEqual(top, expected_top)
