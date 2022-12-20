@@ -418,10 +418,6 @@
     ns3:usesIdentifierScheme ns3:viaf ;
     ns7:hasLiteralValue "222" .
 
-<https://w3id.org/oc/meta/id/0603> a ns3:Identifier ;
-    ns3:usesIdentifierScheme ns3:datacite ;
-    ns7:hasLiteralValue "321" .
-
 <https://w3id.org/oc/meta/ra/0601> a ns5:Agent ;
     ns3:hasIdentifier <https://w3id.org/oc/meta/id/0601> ;
     ns5:familyName "Surname1" ;
@@ -429,6 +425,4 @@
 
 <https://w3id.org/oc/meta/ra/0602> a ns5:Agent ;
     ns3:hasIdentifier <https://w3id.org/oc/meta/id/0602> ;
-    ns3:hasIdentifier <https://w3id.org/oc/meta/id/0603> ;
     ns5:name "pubX" .
-
