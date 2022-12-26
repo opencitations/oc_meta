@@ -57,18 +57,22 @@ FIELDNAMES = ['id', 'title', 'author', 'issue', 'volume', 'venue', 'page', 'pub_
 def generate_csv(rdf_dir: str, dir_split_number: str, items_per_file: str, output_dir: str, threshold: int) -> None:
     pathoo(output_dir)
     process_archives(rdf_dir, output_dir, process_br, threshold)
+    print('[csv_generator: INFO] Solving the OpenCitations Meta Identifiers recursively')
+    pbar = tqdm(total=len(os.listdir(output_dir)))
     for filename in os.listdir(output_dir):
         csv_data = get_csv_data(os.path.join(output_dir, filename))
         for row in csv_data:
             for identifier in [identifier for identifier in row['id'].split() if not identifier.startswith('meta')]:
                 id_path = find_file(rdf_dir, dir_split_number, items_per_file, identifier)
-                id_info = process_archive(id_path, process_id, identifier)
-                row['id'] = row['id'].replace(identifier, id_info)
+                if id_path:
+                    id_info = process_archive(id_path, process_id, identifier)
+                    row['id'] = row['id'].replace(identifier, id_info)
             agents_by_role = {'author': dict(), 'editor': dict(), 'publisher': dict()}
             for agent in row['author'].split():
                 agent_path = find_file(rdf_dir, dir_split_number, items_per_file, agent)
-                agent_info = process_archive(agent_path, process_agent, agent)
-                agents_by_role[agent_info['role']][agent] = agent_info
+                if agent_path:
+                    agent_info = process_archive(agent_path, process_agent, agent)
+                    agents_by_role[agent_info['role']][agent] = agent_info
             for agent_role, agents in agents_by_role.items():
                 last = ''
                 new_role_list = list()
@@ -79,28 +83,39 @@ def generate_csv(rdf_dir: str, dir_split_number: str, items_per_file: str, outpu
                             last = agent
                             del agents[agent]
                             break
-                row[agent_role] = '; '.join(reversed(new_role_list))
+                if new_role_list:
+                    row[agent_role] = '; '.join(reversed(new_role_list))
             for role in ['author', 'editor', 'publisher']:
                 for ra in row[role].split('; '):
                     if ra:
                         ra_path = find_file(rdf_dir, dir_split_number, items_per_file, ra)
-                        output_ra = process_archive(ra_path, process_responsible_agent, ra, rdf_dir, dir_split_number, items_per_file)
-                        row[role] = row[role].replace(ra, output_ra)
+                        if ra_path:
+                            output_ra = process_archive(ra_path, process_responsible_agent, ra, rdf_dir, dir_split_number, items_per_file)
+                            row[role] = row[role].replace(ra, output_ra)
             for venue in row['venue'].split():
                 venue_path = find_file(rdf_dir, dir_split_number, items_per_file, venue)
-                to_be_found = venue
-                while to_be_found:
-                    venue_info, to_be_found = process_archive(venue_path, process_venue, to_be_found, rdf_dir, dir_split_number, items_per_file)
-                    for k, v in venue_info.items():
-                        if v:
-                            row[k] = v
+                if venue_path:
+                    to_be_found = venue
+                    while to_be_found:
+                        venue_info, to_be_found = process_archive(venue_path, process_venue, to_be_found, rdf_dir, dir_split_number, items_per_file)
+                        for k, v in venue_info.items():
+                            if v:
+                                row[k] = v
+                        if to_be_found:
+                            venue_path = find_file(rdf_dir, dir_split_number, items_per_file, to_be_found)
             if row['page']:
                 page_uri = row['page']
                 page_path = find_file(rdf_dir, dir_split_number, items_per_file, page_uri)
-                row['page'] = process_archive(page_path, process_page, page_uri)
+                if page_path:
+                    row['page'] = process_archive(page_path, process_page, page_uri)
         write_csv(os.path.join(output_dir, filename), csv_data, FIELDNAMES)
+        pbar.update()
+    pbar.close()
 
 def process_archives(rdf_dir: str, output_dir: str, doing_what: callable, threshold: int):
+    br_files = [os.path.join(fold, file) for fold, _, files in os.walk(os.path.join(rdf_dir, 'br')) for file in files if file.endswith('.zip') and os.path.basename(fold) != 'prov']
+    print('[csv_generator: INFO] Looking for bibliographic resources recursively')
+    pbar = tqdm(total=len(br_files))
     counter = 0
     global_output = list()
     for dirpath, _, filenames in os.walk(os.path.join(rdf_dir, 'br')):
@@ -112,7 +127,9 @@ def process_archives(rdf_dir: str, output_dir: str, doing_what: callable, thresh
                     write_csv(os.path.join(output_dir, f'{counter}.csv'), global_output, FIELDNAMES)
                     counter += 1
                     global_output = list()
+                pbar.update()
     write_csv(os.path.join(output_dir, f'{counter}.csv'), global_output, FIELDNAMES)
+    pbar.close()
 
 def process_archive(filepath: str, doing_what: callable, *args) -> list:
     with ZipFile(file=filepath, mode="r") as archive:
@@ -127,7 +144,8 @@ def process_br(br_data: list) -> list:
         graph_data = graph['@graph']
         for br in graph_data:
             row = dict()
-            br_type = URI_TYPE_DICT[[x for x in br['@type'] if x != 'http://purl.org/spar/fabio/Expression'][0]]
+            br_types = [x for x in br['@type'] if x != 'http://purl.org/spar/fabio/Expression']
+            br_type = URI_TYPE_DICT[br_types[0]] if len(br_types) == 1 else ''
             if br_type in {'journal volume', 'journal issue'}:
                 continue
             br_omid = f"meta:{br['@id'].split('/meta/')[1]}"
@@ -231,24 +249,25 @@ def process_page(page_data: list, page_uri: str) -> str:
                 ending_page = venue['http://prismstandard.org/namespaces/basic/2.0/endingPage'][0]['@value']
                 return f'{starting_page}-{ending_page}'
 
-def find_file(rdf_dir: str, dir_split_number: str, items_per_file: str, uri: str) -> str:
+def find_file(rdf_dir: str, dir_split_number: str, items_per_file: str, uri: str) -> str|None:
     entity_regex: str = r'^(.+)/([a-z][a-z])/(0[1-9]+0)?([1-9][0-9]*)$'
     entity_match = re.match(entity_regex, uri)
-    cur_number = int(entity_match.group(4))
-    cur_file_split: int = 0
-    while True:
-        if cur_number > cur_file_split:
-            cur_file_split += items_per_file
-        else:
-            break
-    cur_split: int = 0
-    while True:
-        if cur_number > cur_split:
-            cur_split += dir_split_number
-        else:
-            break
-    short_name = entity_match.group(2)
-    sub_folder = entity_match.group(3)
-    cur_dir_path = os.path.join(rdf_dir, short_name, sub_folder, str(cur_split))
-    cur_file_path = os.path.join(cur_dir_path, str(cur_file_split)) + '.zip'
-    return cur_file_path
+    if entity_match:
+        cur_number = int(entity_match.group(4))
+        cur_file_split: int = 0
+        while True:
+            if cur_number > cur_file_split:
+                cur_file_split += items_per_file
+            else:
+                break
+        cur_split: int = 0
+        while True:
+            if cur_number > cur_split:
+                cur_split += dir_split_number
+            else:
+                break
+        short_name = entity_match.group(2)
+        sub_folder = entity_match.group(3)
+        cur_dir_path = os.path.join(rdf_dir, short_name, sub_folder, str(cur_split))
+        cur_file_path = os.path.join(cur_dir_path, str(cur_file_split)) + '.zip'
+        return cur_file_path

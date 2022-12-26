@@ -23,9 +23,9 @@ if __name__ == '__main__': # pragma: no cover
     arg_parser = ArgumentParser('csv_generator.py', description='This script generates output CSVs from the OpenCitations Meta RDF dump')
     arg_parser.add_argument('-r', '--rdf', dest='rdf_dir', required=True,
                             help='RDF files root directory')
-    arg_parser.add_argument('-d', '--dir_split_number', dest='dir_split_number', required=True,
+    arg_parser.add_argument('-d', '--dir_split_number', dest='dir_split_number', required=True, type=int,
                             help="Number of RDF files per folder. dir_split_number's value must be multiple of items_per_file's value")
-    arg_parser.add_argument('-i', '--items_per_file', dest='items_per_file', required=True,
+    arg_parser.add_argument('-i', '--items_per_file', dest='items_per_file', required=True, type=int,
                             help="Number of RDF items per file")
     arg_parser.add_argument('-o', '--output_dir', dest='output_dir', required=True,
                             help='The output directory where the CSV files will be stores')
