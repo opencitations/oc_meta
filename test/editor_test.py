@@ -36,18 +36,18 @@ class TestEditor(unittest.TestCase):
         rmtree(OUTPUT)
         meta_process = MetaProcess(config=META_CONFIG)
         run_meta_process(meta_process)
-        for dir in ['csv', 'indexes']:
-            rmtree(os.path.join(OUTPUT, dir))
-        for file in os.listdir(OUTPUT):
-            if file.startswith('cache_'):
-                os.remove(os.path.join(OUTPUT, file))
+        rmtree(OUTPUT)
         cls.editor = MetaEditor(META_CONFIG)
 
-    def test_edit_entities(self):
-        self.editor.edit_entity(URIRef('https://w3id.org/oc/meta/ar/0601'), 'has_next', URIRef('https://w3id.org/oc/meta/ar/0604'))
-        self.editor.edit_entity(URIRef('https://w3id.org/oc/meta/ar/0604'), 'has_next', URIRef('https://w3id.org/oc/meta/ar/0603'))
-        self.editor.edit_entity(URIRef('https://w3id.org/oc/meta/ar/0603'), 'has_next', URIRef('https://w3id.org/oc/meta/ar/0602'))
-        self.editor.edit_entity(URIRef('https://w3id.org/oc/meta/ar/0602'), 'has_next', URIRef('https://w3id.org/oc/meta/ar/0605'))
+    @classmethod
+    def tearDownClass(cls):
+        rmtree(OUTPUT)
+
+    def test_update_property(self):
+        self.editor.update_property(URIRef('https://w3id.org/oc/meta/ar/0601'), 'has_next', URIRef('https://w3id.org/oc/meta/ar/0604'))
+        self.editor.update_property(URIRef('https://w3id.org/oc/meta/ar/0604'), 'has_next', URIRef('https://w3id.org/oc/meta/ar/0603'))
+        self.editor.update_property(URIRef('https://w3id.org/oc/meta/ar/0603'), 'has_next', URIRef('https://w3id.org/oc/meta/ar/0602'))
+        self.editor.update_property(URIRef('https://w3id.org/oc/meta/ar/0602'), 'has_next', URIRef('https://w3id.org/oc/meta/ar/0605'))
         with open(os.path.join(OUTPUT, 'rdf', 'ar', '060', '10000', '1000.json'), 'r', encoding='utf8') as f:
             ar_data = json.load(f)
             for graph in ar_data:
@@ -74,6 +74,23 @@ class TestEditor(unittest.TestCase):
                         self.assertEqual(ar['https://w3id.org/oc/ontology/hasUpdateQuery'][0]['@value'], 'DELETE DATA { GRAPH <https://w3id.org/oc/meta/ar/> { <https://w3id.org/oc/meta/ar/0604> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/0605> . } }; INSERT DATA { GRAPH <https://w3id.org/oc/meta/ar/> { <https://w3id.org/oc/meta/ar/0604> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/0603> . } }')
                     if ar['@id'] == 'https://w3id.org/oc/meta/ar/0602/prov/se/2':
                         self.assertEqual(ar['https://w3id.org/oc/ontology/hasUpdateQuery'][0]['@value'], 'DELETE DATA { GRAPH <https://w3id.org/oc/meta/ar/> { <https://w3id.org/oc/meta/ar/0602> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/0603> . } }; INSERT DATA { GRAPH <https://w3id.org/oc/meta/ar/> { <https://w3id.org/oc/meta/ar/0602> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/0605> . } }')
+
+    def test_delete_property(self):
+        self.editor.delete_property(URIRef('https://w3id.org/oc/meta/br/0601'), 'has_title')
+        with open(os.path.join(OUTPUT, 'rdf', 'br', '060', '10000', '1000.json'), 'r', encoding='utf8') as f:
+            br_data = json.load(f)
+            for graph in br_data:
+                graph_data = graph['@graph']
+                for br in graph_data:
+                    if br['@id'] == 'https://w3id.org/oc/meta/br/0601':
+                        self.assertFalse('http://purl.org/dc/terms/title' in br)
+        with open(os.path.join(OUTPUT, 'rdf', 'br', '060', '10000', '1000', 'prov', 'se.json'), 'r', encoding='utf8') as f:
+            br_prov = json.load(f)
+            for graph in br_prov:
+                graph_prov = graph['@graph']
+                for br in graph_prov:
+                    if br['@id'] == 'https://w3id.org/oc/meta/br/0601/prov/se/2':
+                        self.assertEqual(br['https://w3id.org/oc/ontology/hasUpdateQuery'][0]['@value'], 'DELETE DATA { GRAPH <https://w3id.org/oc/meta/br/> { <https://w3id.org/oc/meta/br/0601> <http://purl.org/dc/terms/title> "A Review Of Hemolytic Uremic Syndrome In Patients Treated With Gemcitabine Therapy"^^<http://www.w3.org/2001/XMLSchema#string> . } }')
 
 if __name__ == '__main__': # pragma: no cover
     unittest.main()

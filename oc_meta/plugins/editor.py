@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import os
 
+import validators
 import yaml
 from oc_ocdm import Storer
 from oc_ocdm.graph import GraphSet
@@ -42,11 +43,21 @@ class MetaEditor:
         self.reader = Reader()
         self.g_set = GraphSet(self.base_iri, supplier_prefix=self.supplier_prefix)
     
-    def edit_entity(self, res, property: str, new_value: str|URIRef) -> None:
+    def update_property(self, res: URIRef, property: str, new_value: str|URIRef) -> None:
         self.reader.import_entity_from_triplestore(self.g_set, self.endpoint, res, self.resp_agent, enable_validation=False)
-        if isinstance(new_value, URIRef):
+        if validators.url(new_value):
+            new_value = URIRef(new_value)
             self.reader.import_entity_from_triplestore(self.g_set, self.endpoint, new_value, self.resp_agent, enable_validation=False)
         getattr(self.g_set.get_entity(res), property)(self.g_set.get_entity(new_value))
+        self.save()
+    
+    def delete_property(self, res: str, property: str) -> None:
+        self.reader.import_entity_from_triplestore(self.g_set, self.endpoint, res, self.resp_agent, enable_validation=False)
+        remove_method = property.replace('has', 'remove')
+        getattr(self.g_set.get_entity(res), remove_method)()
+        self.save()
+    
+    def save(self):
         provset = ProvSet(self.g_set, self.base_iri, self.info_dir, wanted_label=False)
         provset.generate_provenance()
         graph_storer = Storer(self.g_set, dir_split=self.dir_split, n_file_item=self.n_file_item, zip_output=self.zip_output_rdf)

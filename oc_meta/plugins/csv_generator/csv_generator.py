@@ -62,7 +62,6 @@ def generate_csv(rdf_dir: str, dir_split_number: str, items_per_file: str, outpu
         csv_data = get_csv_data(os.path.join(output_dir, filename))
         inner_pbar = tqdm(total=len(csv_data))
         for row in csv_data[3464:]:
-            print(row)
             for identifier in [identifier for identifier in row['id'].split() if not identifier.startswith('meta')]:
                 id_path = find_file(rdf_dir, dir_split_number, items_per_file, identifier)
                 if id_path:
