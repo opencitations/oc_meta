@@ -31,3 +31,5 @@ if __name__ == '__main__':
     meta_editor = MetaEditor(args.config)
     if args.operation == 'edit':
         meta_editor.update_property(args.res, args.property, args.value)
+    if args.operation == 'delete':
+        meta_editor.delete_property(args.res, args.property)

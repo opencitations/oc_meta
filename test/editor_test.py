@@ -33,10 +33,8 @@ class TestEditor(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         reset_server()
-        rmtree(OUTPUT)
         meta_process = MetaProcess(config=META_CONFIG)
         run_meta_process(meta_process)
-        rmtree(OUTPUT)
         cls.editor = MetaEditor(META_CONFIG)
 
     @classmethod
@@ -87,7 +85,7 @@ class TestEditor(unittest.TestCase):
         with open(os.path.join(OUTPUT, 'rdf', 'br', '060', '10000', '1000', 'prov', 'se.json'), 'r', encoding='utf8') as f:
             br_prov = json.load(f)
             for graph in br_prov:
-                graph_prov = graph['@graph']
+                graph_prov = graph['@graph'] 
                 for br in graph_prov:
                     if br['@id'] == 'https://w3id.org/oc/meta/br/0601/prov/se/2':
                         self.assertEqual(br['https://w3id.org/oc/ontology/hasUpdateQuery'][0]['@value'], 'DELETE DATA { GRAPH <https://w3id.org/oc/meta/br/> { <https://w3id.org/oc/meta/br/0601> <http://purl.org/dc/terms/title> "A Review Of Hemolytic Uremic Syndrome In Patients Treated With Gemcitabine Therapy"^^<http://www.w3.org/2001/XMLSchema#string> . } }')
