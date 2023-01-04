@@ -14,6 +14,7 @@
 # ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 # SOFTWARE.
 
+from __future__ import annotations
 
 import json
 import os
@@ -21,8 +22,6 @@ import re
 from typing import Tuple
 from zipfile import ZipFile
 
-from oc_ocdm.reader import Reader
-from oc_ocdm.storer import Storer
 from tqdm import tqdm
 
 from oc_meta.lib.file_manager import get_csv_data, pathoo, write_csv
@@ -55,13 +54,15 @@ URI_TYPE_DICT = {
 FIELDNAMES = ['id', 'title', 'author', 'issue', 'volume', 'venue', 'page', 'pub_date', 'type', 'publisher', 'editor']
 
 def generate_csv(rdf_dir: str, dir_split_number: str, items_per_file: str, output_dir: str, threshold: int) -> None:
-    pathoo(output_dir)
-    process_archives(rdf_dir, output_dir, process_br, threshold)
-    print('[csv_generator: INFO] Solving the OpenCitations Meta Identifiers recursively')
+    # pathoo(output_dir)
+    # process_archives(rdf_dir, output_dir, process_br, threshold)
+    # print('[csv_generator: INFO] Solving the OpenCitations Meta Identifiers recursively')
     pbar = tqdm(total=len(os.listdir(output_dir)))
-    for filename in os.listdir(output_dir):
+    for filename in os.listdir(output_dir)[2:]:
         csv_data = get_csv_data(os.path.join(output_dir, filename))
-        for row in csv_data:
+        inner_pbar = tqdm(total=len(csv_data))
+        for row in csv_data[3464:]:
+            print(row)
             for identifier in [identifier for identifier in row['id'].split() if not identifier.startswith('meta')]:
                 id_path = find_file(rdf_dir, dir_split_number, items_per_file, identifier)
                 if id_path:
@@ -108,6 +109,8 @@ def generate_csv(rdf_dir: str, dir_split_number: str, items_per_file: str, outpu
                 page_path = find_file(rdf_dir, dir_split_number, items_per_file, page_uri)
                 if page_path:
                     row['page'] = process_archive(page_path, process_page, page_uri)
+            inner_pbar.update()
+        inner_pbar.close()
         write_csv(os.path.join(output_dir, filename), csv_data, FIELDNAMES)
         pbar.update()
     pbar.close()

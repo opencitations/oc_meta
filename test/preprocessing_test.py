@@ -1,13 +1,15 @@
 import json
-import unittest
-from oc_meta.preprocessing.nih import NIHPreProcessing
-from oc_meta.preprocessing.datacite import DatacitePreProcessing
-from os.path import exists
-import os.path
-from os import sep, makedirs, walk
-import pandas as pd
-import shutil
 import math
+import os.path
+import shutil
+import unittest
+from os import makedirs, sep, walk
+from os.path import exists
+
+import pandas as pd
+
+from oc_meta.preprocessing.datacite import DatacitePreProcessing
+from oc_meta.preprocessing.nih import NIHPreProcessing
 
 
 class PreprocessingTest(unittest.TestCase):
