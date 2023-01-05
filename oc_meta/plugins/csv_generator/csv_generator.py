@@ -54,24 +54,26 @@ URI_TYPE_DICT = {
 FIELDNAMES = ['id', 'title', 'author', 'issue', 'volume', 'venue', 'page', 'pub_date', 'type', 'publisher', 'editor']
 
 def generate_csv(rdf_dir: str, dir_split_number: str, items_per_file: str, output_dir: str, threshold: int) -> None:
-    # pathoo(output_dir)
-    # process_archives(rdf_dir, output_dir, process_br, threshold)
-    # print('[csv_generator: INFO] Solving the OpenCitations Meta Identifiers recursively')
+    memory = dict()
+    if not os.path.exists(output_dir):
+        pathoo(output_dir)
+        process_archives(rdf_dir, output_dir, process_br, threshold)
+    print('[csv_generator: INFO] Solving the OpenCitations Meta Identifiers recursively')
     pbar = tqdm(total=len(os.listdir(output_dir)))
-    for filename in os.listdir(output_dir)[2:]:
+    for filename in os.listdir(output_dir)[14:]:
         csv_data = get_csv_data(os.path.join(output_dir, filename))
         inner_pbar = tqdm(total=len(csv_data))
-        for row in csv_data[3464:]:
+        for row in csv_data:
             for identifier in [identifier for identifier in row['id'].split() if not identifier.startswith('meta')]:
                 id_path = find_file(rdf_dir, dir_split_number, items_per_file, identifier)
                 if id_path:
-                    id_info = process_archive(id_path, process_id, identifier)
+                    id_info = process_archive(id_path, process_id, memory, identifier)
                     row['id'] = row['id'].replace(identifier, id_info)
             agents_by_role = {'author': dict(), 'editor': dict(), 'publisher': dict()}
-            for agent in row['author'].split():
+            for agent in row['author'].split('; '):
                 agent_path = find_file(rdf_dir, dir_split_number, items_per_file, agent)
                 if agent_path:
-                    agent_info = process_archive(agent_path, process_agent, agent)
+                    agent_info = process_archive(agent_path, process_agent, memory, agent)
                     agents_by_role[agent_info['role']][agent] = agent_info
             for agent_role, agents in agents_by_role.items():
                 last = ''
@@ -90,14 +92,14 @@ def generate_csv(rdf_dir: str, dir_split_number: str, items_per_file: str, outpu
                     if ra:
                         ra_path = find_file(rdf_dir, dir_split_number, items_per_file, ra)
                         if ra_path:
-                            output_ra = process_archive(ra_path, process_responsible_agent, ra, rdf_dir, dir_split_number, items_per_file)
+                            output_ra = process_archive(ra_path, process_responsible_agent, memory, ra, rdf_dir, dir_split_number, items_per_file, memory)
                             row[role] = row[role].replace(ra, output_ra)
             for venue in row['venue'].split():
                 venue_path = find_file(rdf_dir, dir_split_number, items_per_file, venue)
                 if venue_path:
                     to_be_found = venue
                     while to_be_found:
-                        venue_info, to_be_found = process_archive(venue_path, process_venue, to_be_found, rdf_dir, dir_split_number, items_per_file)
+                        venue_info, to_be_found = process_archive(venue_path, process_venue, memory, to_be_found, rdf_dir, dir_split_number, items_per_file, memory)
                         for k, v in venue_info.items():
                             if v:
                                 row[k] = v
@@ -107,7 +109,7 @@ def generate_csv(rdf_dir: str, dir_split_number: str, items_per_file: str, outpu
                 page_uri = row['page']
                 page_path = find_file(rdf_dir, dir_split_number, items_per_file, page_uri)
                 if page_path:
-                    row['page'] = process_archive(page_path, process_page, page_uri)
+                    row['page'] = process_archive(page_path, process_page, memory, page_uri)
             inner_pbar.update()
         inner_pbar.close()
         write_csv(os.path.join(output_dir, filename), csv_data, FIELDNAMES)
@@ -133,12 +135,16 @@ def process_archives(rdf_dir: str, output_dir: str, doing_what: callable, thresh
     write_csv(os.path.join(output_dir, f'{counter}.csv'), global_output, FIELDNAMES)
     pbar.close()
 
-def process_archive(filepath: str, doing_what: callable, *args) -> list:
-    with ZipFile(file=filepath, mode="r") as archive:
-        for zf_name in archive.namelist():
-            with archive.open(zf_name) as f:
-                br_data = json.load(f)
-                return doing_what(br_data, *args)
+def process_archive(filepath: str, doing_what: callable, memory: dict = dict(), *args) -> list:
+    if filepath in memory:
+        data = memory[filepath]
+    else:
+        with ZipFile(file=filepath, mode="r") as archive:
+            for zf_name in archive.namelist():
+                with archive.open(zf_name) as f:
+                    data = json.load(f)
+                    memory[filepath] = data
+    return doing_what(data, *args)
 
 def process_br(br_data: list) -> list:
     csv_br_data = list()
@@ -164,7 +170,7 @@ def process_br(br_data: list) -> list:
             if 'http://purl.org/spar/pro/isDocumentContextFor' in br:
                 for ar_data in br['http://purl.org/spar/pro/isDocumentContextFor']:
                     br_ars.append(ar_data['@id'])
-            row['author'] = ' '.join(br_ars)
+            row['author'] = '; '.join(br_ars)
             row['page'] = br['http://purl.org/vocab/frbr/core#embodiment'][0]['@id'] if 'http://purl.org/vocab/frbr/core#embodiment' in br else ''
             if 'http://purl.org/vocab/frbr/core#partOf' in br:
                 row['venue'] = br['http://purl.org/vocab/frbr/core#partOf'][0]['@id']
@@ -193,7 +199,7 @@ def process_agent(agent_data: list, agent_uri: str) -> dict:
                     agent_dict['next'] = agent['https://w3id.org/oc/ontology/hasNext'][0]['@id']
     return agent_dict
 
-def process_responsible_agent(ra_data: list, ra_uri: str, rdf_dir: str, dir_split_number: str, items_per_file: str) -> str:
+def process_responsible_agent(ra_data: list, ra_uri: str, rdf_dir: str, dir_split_number: str, items_per_file: str, memory: dict) -> str:
     for graph in ra_data:
         graph_data = graph['@graph']
         for ra in graph_data:
@@ -216,10 +222,10 @@ def process_responsible_agent(ra_data: list, ra_uri: str, rdf_dir: str, dir_spli
                     for ra_identifier in ra['http://purl.org/spar/datacite/hasIdentifier']:
                         id_uri = ra_identifier['@id']
                         id_path = find_file(rdf_dir, dir_split_number, items_per_file, id_uri)
-                        ra_ids.append(process_archive(id_path, process_id, id_uri))
+                        ra_ids.append(process_archive(id_path, process_id, memory, id_uri))
                 return f"{full_name} [{' '.join(ra_ids)}]"
 
-def process_venue(venue_data: list, venue_uri: str, rdf_dir: str, dir_split_number: str, items_per_file: str) -> Tuple[dict, list]:
+def process_venue(venue_data: list, venue_uri: str, rdf_dir: str, dir_split_number: str, items_per_file: str, memory: dict) -> Tuple[dict, list]:
     venue_dict = {'volume': '', 'issue': '', 'venue': ''}
     to_be_found = None
     for graph in venue_data:
@@ -232,11 +238,11 @@ def process_venue(venue_data: list, venue_uri: str, rdf_dir: str, dir_split_numb
                     venue_dict['volume'] = venue['http://purl.org/spar/fabio/hasSequenceIdentifier'][0]['@value']
                 else:
                     venue_title = venue['http://purl.org/dc/terms/title'][0]['@value']
-                    venue_ids = venue['http://purl.org/spar/datacite/hasIdentifier']
+                    venue_ids = venue['http://purl.org/spar/datacite/hasIdentifier'] if 'http://purl.org/spar/datacite/hasIdentifier' in venue else []
                     explicit_ids = list()
                     for venue_id in venue_ids:
                         id_path = find_file(rdf_dir, dir_split_number, items_per_file, venue_id['@id'])
-                        explicit_ids.append(process_archive(id_path, process_id, venue_id['@id']))
+                        explicit_ids.append(process_archive(id_path, process_id, memory, venue_id['@id']))
                     venue_dict['venue'] = f"{venue_title} [{' '.join(explicit_ids)}]"
                 if 'http://purl.org/vocab/frbr/core#partOf' in venue:
                     to_be_found = venue['http://purl.org/vocab/frbr/core#partOf'][0]['@id']

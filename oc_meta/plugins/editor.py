@@ -28,7 +28,7 @@ from rdflib import URIRef
 
 
 class MetaEditor:
-    def __init__(self, meta_config: str):
+    def __init__(self, meta_config: str, resp_agent: str):
         with open(meta_config, encoding='utf-8') as file:
             settings = yaml.full_load(file)
         self.endpoint = settings['triplestore_url']
@@ -36,7 +36,7 @@ class MetaEditor:
         self.info_dir = os.path.join(settings['output_rdf_dir'], 'info_dir', 'creator') + os.sep
         self.base_iri = settings['base_iri']
         self.supplier_prefix = settings['supplier_prefix']
-        self.resp_agent = settings['resp_agent']
+        self.resp_agent = resp_agent
         self.dir_split = settings['dir_split_number']
         self.n_file_item = settings['items_per_file']
         self.zip_output_rdf = settings['zip_output_rdf']

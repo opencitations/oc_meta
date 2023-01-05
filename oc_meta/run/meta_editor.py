@@ -27,9 +27,10 @@ if __name__ == '__main__':
     arg_parser.add_argument('-s', '--subject', dest='res', required=True, type=URIRef, help='The subject entity')
     arg_parser.add_argument('-p', '--property', dest='property', required=True, help='The property')
     arg_parser.add_argument('-o', '--object', dest='value', required=False, help='The value')
+    arg_parser.add_argument('-r', '--resp', dest='resp_agent', required=True, help='Your ORCID')
     args = arg_parser.parse_args()
-    meta_editor = MetaEditor(args.config)
-    if args.operation == 'edit':
+    meta_editor = MetaEditor(args.config, args.resp_agent)
+    if args.operation == 'update':
         meta_editor.update_property(args.res, args.property, args.value)
     if args.operation == 'delete':
         meta_editor.delete_property(args.res, args.property)
