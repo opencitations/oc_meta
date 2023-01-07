@@ -85,14 +85,13 @@ class test_ar_order(unittest.TestCase):
             {'ar': {'type': 'uri', 'value': 'https://w3id.org/oc/meta/ar/06022'}, 'next': {'type': 'uri', 'value': 'https://w3id.org/oc/meta/ar/06023'}}, 
             {'ar': {'type': 'uri', 'value': 'https://w3id.org/oc/meta/ar/06023'}, 'next': {'type': 'uri', 'value': 'https://w3id.org/oc/meta/ar/06024'}}, 
             {'ar': {'type': 'uri', 'value': 'https://w3id.org/oc/meta/ar/06024'}, 'next': {'type': 'uri', 'value': 'https://w3id.org/oc/meta/ar/06025'}}, 
-            {'ar': {'type': 'uri', 'value': 'https://w3id.org/oc/meta/ar/06025'}, 'next': {'type': 'uri', 'value': 'https://w3id.org/oc/meta/ar/06026'}}, 
-            {'ar': {'type': 'uri', 'value': 'https://w3id.org/oc/meta/ar/06026'}, 'next': {'type': 'uri', 'value': 'https://w3id.org/oc/meta/ar/06027'}}]}}
+            {'ar': {'type': 'uri', 'value': 'https://w3id.org/oc/meta/ar/06025'}, 'next': {'type': 'uri', 'value': 'https://w3id.org/oc/meta/ar/06026'}}]}}
         expected_output = {
             'https://w3id.org/oc/meta/ar/06021': 'https://w3id.org/oc/meta/ar/06022', 
             'https://w3id.org/oc/meta/ar/06022': 'https://w3id.org/oc/meta/ar/06023',
             'https://w3id.org/oc/meta/ar/06023': 'https://w3id.org/oc/meta/ar/06024',
             'https://w3id.org/oc/meta/ar/06024': 'https://w3id.org/oc/meta/ar/06025',
             'https://w3id.org/oc/meta/ar/06025': 'https://w3id.org/oc/meta/ar/06026',
-            'https://w3id.org/oc/meta/ar/06026': 'https://w3id.org/oc/meta/ar/06027', 
+            'https://w3id.org/oc/meta/ar/06026': '', 
             'https://w3id.org/oc/meta/ar/06027': ''}
         self.assertEqual((output, result), (expected_output, expected_result))

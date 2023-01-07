@@ -666,7 +666,6 @@
 <https://w3id.org/oc/meta/ar/06025> <http://purl.org/spar/pro/isHeldBy> <https://w3id.org/oc/meta/ra/06018> .
 <https://w3id.org/oc/meta/ar/06025> <http://purl.org/spar/pro/withRole> <http://purl.org/spar/pro/author> .
 <https://w3id.org/oc/meta/ar/06025> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/pro/RoleInTime> .
-<https://w3id.org/oc/meta/ar/06025> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/06026> .
 <https://w3id.org/oc/meta/ar/060260> <http://purl.org/spar/pro/isHeldBy> <https://w3id.org/oc/meta/ra/060206> .
 <https://w3id.org/oc/meta/ar/060260> <http://purl.org/spar/pro/withRole> <http://purl.org/spar/pro/author> .
 <https://w3id.org/oc/meta/ar/060260> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/pro/RoleInTime> .
