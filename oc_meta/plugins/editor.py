@@ -49,13 +49,11 @@ class MetaEditor:
             new_value = URIRef(new_value)
             self.reader.import_entity_from_triplestore(self.g_set, self.endpoint, new_value, self.resp_agent, enable_validation=False)
         getattr(self.g_set.get_entity(res), property)(self.g_set.get_entity(new_value))
-        self.save()
     
     def delete_property(self, res: str, property: str) -> None:
         self.reader.import_entity_from_triplestore(self.g_set, self.endpoint, res, self.resp_agent, enable_validation=False)
         remove_method = property.replace('has', 'remove')
         getattr(self.g_set.get_entity(res), remove_method)()
-        self.save()
     
     def save(self):
         provset = ProvSet(self.g_set, self.base_iri, self.info_dir, wanted_label=False)

@@ -57,7 +57,7 @@ def generate_csv(rdf_dir: str, dir_split_number: str, items_per_file: str, outpu
     memory = dict()
     if not os.path.exists(output_dir):
         pathoo(output_dir)
-        process_archives(rdf_dir, output_dir, process_br, threshold)
+        process_archives(rdf_dir, 'br', output_dir, process_br, threshold)
     print('[csv_generator: INFO] Solving the OpenCitations Meta Identifiers recursively')
     pbar = tqdm(total=len(os.listdir(output_dir)))
     for filename in os.listdir(output_dir)[14:]:
@@ -116,23 +116,24 @@ def generate_csv(rdf_dir: str, dir_split_number: str, items_per_file: str, outpu
         pbar.update()
     pbar.close()
 
-def process_archives(rdf_dir: str, output_dir: str, doing_what: callable, threshold: int):
-    br_files = [os.path.join(fold, file) for fold, _, files in os.walk(os.path.join(rdf_dir, 'br')) for file in files if file.endswith('.zip') and os.path.basename(fold) != 'prov']
+def process_archives(rdf_dir: str, entity_abbr:str, output_dir: str|None, doing_what: callable, threshold: int=3000):
+    br_files = [os.path.join(fold, file) for fold, _, files in os.walk(os.path.join(rdf_dir, entity_abbr)) for file in files if file.endswith('.zip') and os.path.basename(fold) != 'prov']
     print('[csv_generator: INFO] Looking for bibliographic resources recursively')
     pbar = tqdm(total=len(br_files))
     counter = 0
     global_output = list()
-    for dirpath, _, filenames in os.walk(os.path.join(rdf_dir, 'br')):
+    for dirpath, _, filenames in os.walk(os.path.join(rdf_dir, entity_abbr)):
         for filename in filenames:
             if filename.endswith('.zip') and os.path.basename(dirpath) != 'prov':
                 local_output = process_archive(os.path.join(dirpath, filename), doing_what)
                 global_output.extend(local_output)
-                if len(global_output) > threshold:
+                if len(global_output) > threshold and output_dir:
                     write_csv(os.path.join(output_dir, f'{counter}.csv'), global_output, FIELDNAMES)
                     counter += 1
                     global_output = list()
                 pbar.update()
-    write_csv(os.path.join(output_dir, f'{counter}.csv'), global_output, FIELDNAMES)
+    if output_dir:
+        write_csv(os.path.join(output_dir, f'{counter}.csv'), global_output, FIELDNAMES)
     pbar.close()
 
 def process_archive(filepath: str, doing_what: callable, memory: dict = dict(), *args) -> list:
