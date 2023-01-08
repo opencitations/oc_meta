@@ -29,7 +29,7 @@ from oc_meta.plugins.csv_generator.csv_generator import (find_file,
 from oc_meta.plugins.editor import MetaEditor
 
 
-def find_broken_roles(meta_config: str, resp_agent: str):
+def find_broken_roles(filepath: str, meta_config: str, resp_agent: str):
     meta_editor = MetaEditor(meta_config, resp_agent)
     with open(meta_config, encoding='utf-8') as file:
         settings = yaml.full_load(file)
@@ -37,16 +37,8 @@ def find_broken_roles(meta_config: str, resp_agent: str):
     dir_split_number = settings['dir_split_number']
     items_per_file = settings['items_per_file']
     memory = dict()
-    br_files = [os.path.join(fold, file) for fold, _, files in os.walk(os.path.join(rdf_dir, 'br')) for file in files if file.endswith('.zip') and os.path.basename(fold) != 'prov']
-    print('[csv_generator: INFO] Looking for bibliographic resources recursively')
-    pbar = tqdm(total=len(br_files))
-    for dirpath, _, filenames in os.walk(os.path.join(rdf_dir, 'br')):
-        for filename in filenames:
-            if filename.endswith('.zip') and os.path.basename(dirpath) != 'prov':
-                roles_in_br = process_archive(os.path.join(dirpath, filename), extract_roles_from_br)
-                fix_roles(roles_in_br, rdf_dir, dir_split_number, items_per_file, memory, meta_editor)
-                pbar.update()
-    pbar.close()
+    roles_in_br = process_archive(filepath, extract_roles_from_br)
+    fix_roles(roles_in_br, rdf_dir, dir_split_number, items_per_file, memory, meta_editor)
 
 def extract_roles_from_br(br_data: list) -> list:
     all_ar = list()
@@ -63,28 +55,36 @@ def extract_roles_from_br(br_data: list) -> list:
 
 def fix_roles(roles_in_br: List[list], rdf_dir: str, dir_split_number: str, items_per_file: str, memory: dict, meta_editor: MetaEditor):
     for roles_list in roles_in_br:
-        last_roles = {'author': {'all': [], 'last': []}, 'editor': {'all': [], 'last': []}, 'publisher': {'all': [], 'last': []}}
+        last_roles = {'author': {'all': dict(), 'last': []}, 'editor': {'all': dict(), 'last': []}, 'publisher': {'all': dict(), 'last': []}}
         self_next = {'author': False, 'editor': False, 'publisher': False}
         for role in roles_list:
             ar_path = find_file(rdf_dir, dir_split_number, items_per_file, role)
-            agent_role, has_next = process_archive(ar_path, get_next, memory, role)
-            agent_role = agent_role.split('http://purl.org/spar/pro/')[1]
-            if not has_next:
-                last_roles[agent_role]['last'].append(role)
-            if has_next == role:
-                self_next[agent_role] = True
-            last_roles[agent_role]['all'].append(role)
+            role_next_tuple = process_archive(ar_path, get_next, memory, role)
+            if role_next_tuple:
+                agent_role = role_next_tuple[0]
+                has_next = role_next_tuple[1]
+                agent_role = agent_role.split('http://purl.org/spar/pro/')[1]
+                if not has_next:
+                    last_roles[agent_role]['last'].append(role)
+                if has_next == role:
+                    self_next[agent_role] = True
+                last_roles[agent_role]['all'][role] = has_next
         for role_type, role_data in last_roles.items():
-            all_list = role_data['all']
+            all_list = list(role_data['all'].keys())
             last_list = role_data['last']
             if (all_list and len(last_list) != 1) or self_next[role_type]:
                 sorted_roles_list = sorted(all_list)
-                for role in sorted_roles_list:
-                    meta_editor.delete_property(URIRef(role), 'has_next')
                 for i, role in enumerate(sorted_roles_list):
-                    if i > 0:
-                        meta_editor.update_property(URIRef(sorted_roles_list[i-1]), 'has_next', URIRef(role))
-                meta_editor.save()
+                    if i < len(sorted_roles_list) - 1:
+                        if last_roles[role_type]['all'][role] != sorted_roles_list[i+1]:
+                            meta_editor.delete_property(URIRef(role), 'has_next')
+                    elif i == len(sorted_roles_list) - 1:
+                        if last_roles[role_type]['all'][role]:
+                            meta_editor.delete_property(URIRef(role), 'has_next')
+                for i, role in enumerate(sorted_roles_list):
+                    if i < len(sorted_roles_list) - 1:
+                        if last_roles[role_type]['all'][role] != sorted_roles_list[i+1]:
+                            meta_editor.update_property(URIRef(role), 'has_next', URIRef(sorted_roles_list[i+1]))
 
 def get_next(ar_data: list, ar_uri: str) -> Tuple[str, str]:
     for graph in ar_data:

@@ -12,3 +12,14 @@
 <https://w3id.org/oc/meta/br/0605> <http://purl.org/vocab/frbr/core#partOf> <https://w3id.org/oc/meta/br/066015746> .
 <https://w3id.org/oc/meta/br/0605> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression> .
 <https://w3id.org/oc/meta/br/0605> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/JournalArticle> .
+<https://w3id.org/oc/meta/br/0636066666> <http://prismstandard.org/namespaces/basic/2.0/publicationDate> "2012-02"^^<http://www.w3.org/2001/XMLSchema#gYearMonth> .
+<https://w3id.org/oc/meta/br/0636066666> <http://purl.org/dc/terms/title> "Ironing Out Tau'S Role In Parkinsonism" .
+<https://w3id.org/oc/meta/br/0636066666> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0636064270> .
+<https://w3id.org/oc/meta/br/0636066666> <http://purl.org/spar/pro/isDocumentContextFor> <https://w3id.org/oc/meta/ar/06360300897> .
+<https://w3id.org/oc/meta/br/0636066666> <http://purl.org/spar/pro/isDocumentContextFor> <https://w3id.org/oc/meta/ar/06360300898> .
+<https://w3id.org/oc/meta/br/0636066666> <http://purl.org/spar/pro/isDocumentContextFor> <https://w3id.org/oc/meta/ar/06360300899> .
+<https://w3id.org/oc/meta/br/0636066666> <http://purl.org/spar/pro/isDocumentContextFor> <https://w3id.org/oc/meta/ar/06360300900> .
+<https://w3id.org/oc/meta/br/0636066666> <http://purl.org/vocab/frbr/core#embodiment> <https://w3id.org/oc/meta/re/0636059994> .
+<https://w3id.org/oc/meta/br/0636066666> <http://purl.org/vocab/frbr/core#partOf> <https://w3id.org/oc/meta/br/0636067351> .
+<https://w3id.org/oc/meta/br/0636066666> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression> .
+<https://w3id.org/oc/meta/br/0636066666> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/JournalArticle> .

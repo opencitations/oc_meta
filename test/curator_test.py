@@ -47,7 +47,7 @@ def reset_server(server:str=SERVER) -> None:
     ts.setMethod(POST)
     ts.query()
 
-def add_data_ts(server:str=SERVER, data_path:str=REAL_DATA_RDF):
+def add_data_ts(server:str=SERVER, data_path:str=os.path.abspath(os.path.join('test', 'testcases', 'ts', 'real_data.nt')).replace('\\', '/')):
     reset_server(server)
     ts = SPARQLWrapper(server)
     ts.method = 'POST'
@@ -68,7 +68,7 @@ def prepare_to_test(data, name):
     
     reset_server(SERVER)
     if float(name) > 12:
-        add_data_ts(SERVER, MANUAL_DATA_RDF)
+        add_data_ts(SERVER, os.path.abspath(os.path.join('test', 'testcases', 'ts', 'testcase_ts-13.ttl')).replace('\\', '/'))
 
     testcase_csv = get_path('test/testcases/testcase_data/testcase_' + name + '_data.csv')
     testcase_id_br = get_path('test/testcases/testcase_data/indices/' + name + '/index_id_br_' + name + '.csv')
@@ -507,7 +507,7 @@ class test_RespAgentsCurator(unittest.TestCase):
 
     def test_curator_ra_on_ts(self):
         # A responsible agent is already on the triplestore
-        add_data_ts(server=SERVER, data_path=REAL_DATA_RDF)
+        add_data_ts(server=SERVER, data_path=os.path.abspath(os.path.join('test', 'testcases', 'ts', 'real_data.nt')).replace('\\', '/'))
         self.maxDiff = None
         data = [
             {'id': '', 'title': '', 'author': 'Deckert, Ron J. [orcid:0000-0003-2100-6412]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''},
@@ -574,7 +574,7 @@ class test_id_worker(unittest.TestCase):
     def test_id_worker_2_id_ts(self):
         # 2 Retrieve EntityA data in triplestore to update EntityA inside CSV
         curator = prepareCurator(list())
-        add_data_ts(SERVER, REAL_DATA_RDF)
+        add_data_ts(SERVER, os.path.abspath(os.path.join('test', 'testcases', 'ts', 'real_data.nt')).replace('\\', '/'))
         name = 'American Medical Association (AMA)' # *(ama) on the ts. The name on the ts must prevail
         idslist = ['crossref:10']
         wannabe_id = curator.id_worker('editor', name, idslist, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
@@ -585,7 +585,7 @@ class test_id_worker(unittest.TestCase):
     def test_id_worker_2_metaid_ts(self):
         # 2 Retrieve EntityA data in triplestore to update EntityA inside CSV
         curator = prepareCurator(list())
-        add_data_ts(SERVER, REAL_DATA_RDF)
+        add_data_ts(SERVER, os.path.abspath(os.path.join('test', 'testcases', 'ts', 'real_data.nt')).replace('\\', '/'))
         name = 'American Medical Association (AMA)' # *(ama) on the ts. The name on the ts must prevail
         # MetaID only
         idslist = ['meta:ra/3309']
@@ -597,7 +597,7 @@ class test_id_worker(unittest.TestCase):
     def test_id_worker_2_id_metaid_ts(self):
         # 2 Retrieve EntityA data in triplestore to update EntityA inside CSV
         curator = prepareCurator(list())
-        add_data_ts(SERVER, REAL_DATA_RDF)
+        add_data_ts(SERVER, os.path.abspath(os.path.join('test', 'testcases', 'ts', 'real_data.nt')).replace('\\', '/'))
         name = 'American Medical Association (AMA)' # *(ama) on the ts. The name on the ts must prevail
         # ID and MetaID
         idslist = ['crossref:10', 'meta:id/4274']
@@ -609,7 +609,7 @@ class test_id_worker(unittest.TestCase):
     def test_id_worker_3(self):
         # 2 Retrieve EntityA data in triplestore to update EntityA inside CSV. MetaID on ts has precedence
         curator = prepareCurator(list())
-        add_data_ts(SERVER, REAL_DATA_RDF)
+        add_data_ts(SERVER, os.path.abspath(os.path.join('test', 'testcases', 'ts', 'real_data.nt')).replace('\\', '/'))
         name = 'American Medical Association (AMA)' # *(ama) on the ts. The name on the ts must prevail
         # ID and MetaID, but it's meta:id/4274 on ts
         idslist = ['crossref:10', 'meta:id/4275']
@@ -890,7 +890,7 @@ class test_id_worker(unittest.TestCase):
     def test_metaid_in_prov(self):
         # MetaID not found in data, but found in the provenance metadata.
         reset_server()
-        add_data_ts(server=SERVER, data_path=REAL_DATA_RDF_WITH_PROV)
+        add_data_ts(server=SERVER, data_path=os.path.abspath(os.path.join('test', 'testcases', 'ts', 'real_data_with_prov.nq')).replace('\\', '/'))
         name = ''
         idslist = ['meta:ra/4321']
         curator = prepareCurator(list())

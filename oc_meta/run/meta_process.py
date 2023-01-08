@@ -24,7 +24,7 @@ from argparse import ArgumentParser
 from datetime import datetime
 from itertools import cycle
 from sys import executable, platform
-from typing import List, Set, Tuple
+from typing import List, Tuple
 
 import yaml
 from oc_ocdm import Storer
@@ -36,8 +36,7 @@ from time_agnostic_library.support import generate_config_file
 from oc_meta.core.creator import Creator
 from oc_meta.core.curator import Curator
 from oc_meta.lib.file_manager import (get_csv_data, init_cache, normalize_path,
-                                      pathoo, sort_files, suppress_stdout,
-                                      zipit)
+                                      pathoo, sort_files, zipit)
 from oc_meta.plugins.multiprocess.resp_agents_creator import RespAgentsCreator
 from oc_meta.plugins.multiprocess.resp_agents_curator import RespAgentsCurator
 

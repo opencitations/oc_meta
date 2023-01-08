@@ -46,7 +46,6 @@ class TestEditor(unittest.TestCase):
         self.editor.update_property(URIRef('https://w3id.org/oc/meta/ar/0604'), 'has_next', URIRef('https://w3id.org/oc/meta/ar/0603'))
         self.editor.update_property(URIRef('https://w3id.org/oc/meta/ar/0603'), 'has_next', URIRef('https://w3id.org/oc/meta/ar/0602'))
         self.editor.update_property(URIRef('https://w3id.org/oc/meta/ar/0602'), 'has_next', URIRef('https://w3id.org/oc/meta/ar/0605'))
-        self.editor.save()
         with open(os.path.join(OUTPUT, 'rdf', 'ar', '060', '10000', '1000.json'), 'r', encoding='utf8') as f:
             ar_data = json.load(f)
             for graph in ar_data:
@@ -76,7 +75,6 @@ class TestEditor(unittest.TestCase):
 
     def test_delete_property(self):
         self.editor.delete_property(URIRef('https://w3id.org/oc/meta/br/0601'), 'has_title')
-        self.editor.save()
         with open(os.path.join(OUTPUT, 'rdf', 'br', '060', '10000', '1000.json'), 'r', encoding='utf8') as f:
             br_data = json.load(f)
             for graph in br_data:

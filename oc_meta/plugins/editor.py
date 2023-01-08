@@ -17,10 +17,12 @@
 from __future__ import annotations
 
 import os
+import re
 
 import validators
 import yaml
 from oc_ocdm import Storer
+from oc_ocdm.counter_handler import FilesystemCounterHandler
 from oc_ocdm.graph import GraphSet
 from oc_ocdm.prov import ProvSet
 from oc_ocdm.reader import Reader
@@ -33,7 +35,7 @@ class MetaEditor:
             settings = yaml.full_load(file)
         self.endpoint = settings['triplestore_url']
         self.base_dir = os.path.join(settings['output_rdf_dir'], 'rdf') + os.sep
-        self.info_dir = os.path.join(settings['output_rdf_dir'], 'info_dir', 'creator') + os.sep
+        self.info_dir = os.path.join(settings['output_rdf_dir'], 'info_dir')
         self.base_iri = settings['base_iri']
         self.supplier_prefix = settings['supplier_prefix']
         self.resp_agent = resp_agent
@@ -41,26 +43,37 @@ class MetaEditor:
         self.n_file_item = settings['items_per_file']
         self.zip_output_rdf = settings['zip_output_rdf']
         self.reader = Reader()
-        self.g_set = GraphSet(self.base_iri, supplier_prefix=self.supplier_prefix)
     
     def update_property(self, res: URIRef, property: str, new_value: str|URIRef) -> None:
-        self.reader.import_entity_from_triplestore(self.g_set, self.endpoint, res, self.resp_agent, enable_validation=False)
+        info_dir = self.__get_info_dir(res)
+        g_set = GraphSet(self.base_iri, info_dir, supplier_prefix=self.supplier_prefix)
+        self.reader.import_entity_from_triplestore(g_set, self.endpoint, res, self.resp_agent, enable_validation=False)
         if validators.url(new_value):
             new_value = URIRef(new_value)
-            self.reader.import_entity_from_triplestore(self.g_set, self.endpoint, new_value, self.resp_agent, enable_validation=False)
-        getattr(self.g_set.get_entity(res), property)(self.g_set.get_entity(new_value))
+            self.reader.import_entity_from_triplestore(g_set, self.endpoint, new_value, self.resp_agent, enable_validation=False)
+        getattr(g_set.get_entity(res), property)(g_set.get_entity(new_value))
+        self.save(g_set, info_dir)
     
     def delete_property(self, res: str, property: str) -> None:
-        self.reader.import_entity_from_triplestore(self.g_set, self.endpoint, res, self.resp_agent, enable_validation=False)
+        info_dir = self.__get_info_dir(res)
+        g_set = GraphSet(self.base_iri, info_dir, supplier_prefix=self.supplier_prefix)
+        self.reader.import_entity_from_triplestore(g_set, self.endpoint, res, self.resp_agent, enable_validation=False)
         remove_method = property.replace('has', 'remove')
-        getattr(self.g_set.get_entity(res), remove_method)()
+        getattr(g_set.get_entity(res), remove_method)()
+        self.save(g_set, info_dir)
     
-    def save(self):
-        provset = ProvSet(self.g_set, self.base_iri, self.info_dir, wanted_label=False)
+    def save(self, g_set: GraphSet, info_dir: str):
+        provset = ProvSet(g_set, self.base_iri, info_dir, wanted_label=False)
         provset.generate_provenance()
-        graph_storer = Storer(self.g_set, dir_split=self.dir_split, n_file_item=self.n_file_item, zip_output=self.zip_output_rdf)
+        graph_storer = Storer(g_set, dir_split=self.dir_split, n_file_item=self.n_file_item, zip_output=self.zip_output_rdf)
         prov_storer = Storer(provset, dir_split=self.dir_split, n_file_item=self.n_file_item, zip_output=self.zip_output_rdf)
         graph_storer.store_all(self.base_dir, self.base_iri)
         prov_storer.store_all(self.base_dir, self.base_iri)
         graph_storer.upload_all(self.endpoint)
-        self.g_set.commit_changes()
+        g_set.commit_changes()
+    
+    def __get_info_dir(self, uri: str):
+        entity_regex: str = r'^(.+)/([a-z][a-z])/(0[1-9]+0)?([1-9][0-9]*)$'
+        entity_match = re.match(entity_regex, uri)
+        supplier_prefix = entity_match.group(3)
+        return os.path.join(self.info_dir, supplier_prefix, 'creator') + os.sep if supplier_prefix != '060' else os.path.join(self.info_dir, 'creator') + os.sep
