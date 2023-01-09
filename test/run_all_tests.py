@@ -1,7 +1,9 @@
-from subprocess import Popen
 import os
 import time
+from subprocess import Popen
+
 import wget
+
 
 def launch_blazegraph(port:int):
     '''

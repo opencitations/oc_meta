@@ -55,6 +55,7 @@ class test_ar_order(unittest.TestCase):
     def test_fix_broken_roles_two_last(self):
         call([executable, '-m', 'oc_meta.run.fixer', '-c', os.path.join(BASE, 'meta_config.yaml'), '-r', 'https://orcid.org/0000-0002-8420-0696', '-m', '2'])
         output = dict()
+        provenance_output = dict()
         for filepath in [os.path.join(BASE, 'rdf', 'ar', '060', '10000', '1000.zip'), os.path.join(BASE, 'rdf', 'ar', '06360', '310000', '301000.zip')]:
             with ZipFile(file=filepath, mode="r") as archive:
                 for zf_name in archive.namelist():
@@ -68,15 +69,16 @@ class test_ar_order(unittest.TestCase):
                                         output[agent['@id']] = agent['https://w3id.org/oc/ontology/hasNext'][0]['@id']
                                     else:
                                         output[agent['@id']] = ''
-        with ZipFile(file=os.path.join(BASE, 'rdf', 'ar', '060', '10000', '1000', 'prov', 'se.zip'), mode="r") as archive:
-            for zf_name in archive.namelist():
-                with archive.open(zf_name) as f:
-                    data = json.load(f)
-                    for graph in data:
-                        graph_data = graph['@graph']
-                        for agent in graph_data:
-                            if agent['@id'] == ['https://w3id.org/oc/meta/ar/06026/prov/se/2']:
-                                agent['https://w3id.org/oc/ontology/hasUpdateQuery'][0]['@value'] = 'INSERT DATA { GRAPH <https://w3id.org/oc/meta/ar/> { <https://w3id.org/oc/meta/ar/06026> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/06027> . } }'
+        for filepath in [os.path.join(BASE, 'rdf', 'ar', '060', '10000', '1000', 'prov', 'se.zip'), os.path.join(BASE, 'rdf', 'ar', '06360', '310000', '301000', 'prov', 'se.zip')]:
+            with ZipFile(file=filepath, mode="r") as archive:
+                for zf_name in archive.namelist():
+                    with archive.open(zf_name) as f:
+                        data = json.load(f)
+                        for graph in data:
+                            graph_data = graph['@graph']
+                            for agent in graph_data:
+                                if agent['@id'] in ['https://w3id.org/oc/meta/ar/06025/prov/se/2', 'https://w3id.org/oc/meta/ar/06360300898/prov/se/2', 'https://w3id.org/oc/meta/ar/06360300898/prov/se/3']:
+                                    provenance_output[agent['@id']] = agent['https://w3id.org/oc/ontology/hasUpdateQuery'][0]['@value']
         query = '''
         PREFIX oco: <https://w3id.org/oc/ontology/>
         SELECT ?ar ?next WHERE {
@@ -95,6 +97,10 @@ class test_ar_order(unittest.TestCase):
             {'ar': {'type': 'uri', 'value': 'https://w3id.org/oc/meta/ar/06025'}, 'next': {'type': 'uri', 'value': 'https://w3id.org/oc/meta/ar/06026'}},
             {'ar': {'type': 'uri', 'value': 'https://w3id.org/oc/meta/ar/06360300897'}, 'next': {'type': 'uri', 'value': 'https://w3id.org/oc/meta/ar/06360300898'}}, 
             {'ar': {'type': 'uri', 'value': 'https://w3id.org/oc/meta/ar/06360300898'}, 'next': {'type': 'uri', 'value': 'https://w3id.org/oc/meta/ar/06360300899'}}]}}
+        expected_provenance_output = {
+            'https://w3id.org/oc/meta/ar/06025/prov/se/2': 'INSERT DATA { GRAPH <https://w3id.org/oc/meta/ar/> { <https://w3id.org/oc/meta/ar/06025> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/06026> . } }',
+            'https://w3id.org/oc/meta/ar/06360300898/prov/se/3': 'INSERT DATA { GRAPH <https://w3id.org/oc/meta/ar/> { <https://w3id.org/oc/meta/ar/06360300898> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/06360300899> . } }', 
+            'https://w3id.org/oc/meta/ar/06360300898/prov/se/2': 'DELETE DATA { GRAPH <https://w3id.org/oc/meta/ar/> { <https://w3id.org/oc/meta/ar/06360300898> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/06360300898> . } }'}
         expected_output = {
             'https://w3id.org/oc/meta/ar/06021': 'https://w3id.org/oc/meta/ar/06022', 
             'https://w3id.org/oc/meta/ar/06022': 'https://w3id.org/oc/meta/ar/06023',
@@ -107,4 +113,4 @@ class test_ar_order(unittest.TestCase):
             'https://w3id.org/oc/meta/ar/06360300898': 'https://w3id.org/oc/meta/ar/06360300899',
             'https://w3id.org/oc/meta/ar/06360300899': '',
             'https://w3id.org/oc/meta/ar/06360300900': ''}
-        self.assertEqual((output, result), (expected_output, expected_result))
+        self.assertEqual((output, provenance_output, result), (expected_output, expected_provenance_output, expected_result))

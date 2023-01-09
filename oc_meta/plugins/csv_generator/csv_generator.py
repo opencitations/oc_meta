@@ -60,7 +60,7 @@ def generate_csv(rdf_dir: str, dir_split_number: str, items_per_file: str, outpu
         process_archives(rdf_dir, 'br', output_dir, process_br, threshold)
     print('[csv_generator: INFO] Solving the OpenCitations Meta Identifiers recursively')
     pbar = tqdm(total=len(os.listdir(output_dir)))
-    for filename in os.listdir(output_dir)[14:]:
+    for filename in os.listdir(output_dir):
         csv_data = get_csv_data(os.path.join(output_dir, filename))
         inner_pbar = tqdm(total=len(csv_data))
         for row in csv_data:
@@ -75,6 +75,8 @@ def generate_csv(rdf_dir: str, dir_split_number: str, items_per_file: str, outpu
                 if agent_path:
                     agent_info = process_archive(agent_path, process_agent, memory, agent)
                     agents_by_role[agent_info['role']][agent] = agent_info
+            if not agents_by_role['author']:
+                row['author'] = ''
             for agent_role, agents in agents_by_role.items():
                 last = ''
                 new_role_list = list()
@@ -125,7 +127,7 @@ def process_archives(rdf_dir: str, entity_abbr:str, output_dir: str|None, doing_
     for dirpath, _, filenames in os.walk(os.path.join(rdf_dir, entity_abbr)):
         for filename in filenames:
             if filename.endswith('.zip') and os.path.basename(dirpath) != 'prov':
-                local_output = process_archive(os.path.join(dirpath, filename), doing_what)
+                local_output = process_archive(os.path.join(dirpath, filename), doing_what, None)
                 global_output.extend(local_output)
                 if len(global_output) > threshold and output_dir:
                     write_csv(os.path.join(output_dir, f'{counter}.csv'), global_output, FIELDNAMES)
@@ -136,16 +138,17 @@ def process_archives(rdf_dir: str, entity_abbr:str, output_dir: str|None, doing_
         write_csv(os.path.join(output_dir, f'{counter}.csv'), global_output, FIELDNAMES)
     pbar.close()
 
-def process_archive(filepath: str, doing_what: callable, memory: dict = dict(), *args) -> list:
-    if filepath in memory:
-        data = memory[filepath]
-    else:
-        with ZipFile(file=filepath, mode="r") as archive:
-            for zf_name in archive.namelist():
-                with archive.open(zf_name) as f:
-                    data = json.load(f)
+def process_archive(filepath: str, doing_what: callable, memory: dict|None = None, *args) -> list:
+    if memory is not None:
+        if filepath in memory:
+            return doing_what(memory[filepath], *args)
+    with ZipFile(file=filepath, mode="r") as archive:
+        for zf_name in archive.namelist():
+            with archive.open(zf_name) as f:
+                data = json.load(f)
+                if memory is not None:
                     memory[filepath] = data
-    return doing_what(data, *args)
+                return doing_what(data, *args)
 
 def process_br(br_data: list) -> list:
     csv_br_data = list()
@@ -224,7 +227,10 @@ def process_responsible_agent(ra_data: list, ra_uri: str, rdf_dir: str, dir_spli
                         id_uri = ra_identifier['@id']
                         id_path = find_file(rdf_dir, dir_split_number, items_per_file, id_uri)
                         ra_ids.append(process_archive(id_path, process_id, memory, id_uri))
-                return f"{full_name} [{' '.join(ra_ids)}]"
+                if full_name:
+                    return f"{full_name} [{' '.join(ra_ids)}]"
+                else:
+                    return f"[{' '.join(ra_ids)}]"
 
 def process_venue(venue_data: list, venue_uri: str, rdf_dir: str, dir_split_number: str, items_per_file: str, memory: dict) -> Tuple[dict, list]:
     venue_dict = {'volume': '', 'issue': '', 'venue': ''}
@@ -240,7 +246,7 @@ def process_venue(venue_data: list, venue_uri: str, rdf_dir: str, dir_split_numb
                 else:
                     venue_title = venue['http://purl.org/dc/terms/title'][0]['@value']
                     venue_ids = venue['http://purl.org/spar/datacite/hasIdentifier'] if 'http://purl.org/spar/datacite/hasIdentifier' in venue else []
-                    explicit_ids = list()
+                    explicit_ids = [f"meta:{venue_uri.split('/meta/')[1]}"]
                     for venue_id in venue_ids:
                         id_path = find_file(rdf_dir, dir_split_number, items_per_file, venue_id['@id'])
                         explicit_ids.append(process_archive(id_path, process_id, memory, venue_id['@id']))
