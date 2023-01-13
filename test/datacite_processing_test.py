@@ -455,7 +455,7 @@ class TestCrossrefProcessing(unittest.TestCase):
         }
         datacite_processor = DataciteProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
         pages = datacite_processor.get_datacite_pages(item)
-        self.assertEqual(pages, 'e02701')
+        self.assertEqual(pages, 'e02701-e02701')
 
     def test_get_pages_wrong_letter(self):
         item = {
