@@ -165,6 +165,8 @@ class RaProcessor(object):
                 page_without_letters = ''.join([c for c in page if c.isdigit()])
                 clean_pages_list.append(page_without_letters)
         if clean_pages_list:
+            if len(clean_pages_list) == 1:
+                clean_pages_list.append(clean_pages_list[0])
             return '-'.join(clean_pages_list)
         return ''
     

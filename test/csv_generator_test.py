@@ -23,12 +23,12 @@ from oc_meta.lib.file_manager import get_csv_data
 from oc_meta.plugins.csv_generator.csv_generator import generate_csv
 
 BASE = os.path.join('test', 'csv_generator')
-RDF = os.path.join(BASE, 'rdf')
+CONFIG = os.path.join(BASE, 'meta_config.yaml')
 OUTPUT = os.path.join(BASE, 'csv')
 
 class TestCSVGenerator(unittest.TestCase):
     def test_generate_csv(self):
-        generate_csv(RDF, 10000, 1000, OUTPUT, 3000)
+        generate_csv(CONFIG, OUTPUT, 3000)
         csv_data = get_csv_data(os.path.join(OUTPUT, '0.csv'))
         rmtree(os.path.join(OUTPUT))
         expected_csv_data = [

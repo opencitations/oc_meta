@@ -51,7 +51,9 @@ class MetaEditor:
         if validators.url(new_value):
             new_value = URIRef(new_value)
             self.reader.import_entity_from_triplestore(g_set, self.endpoint, new_value, self.resp_agent, enable_validation=False)
-        getattr(g_set.get_entity(res), property)(g_set.get_entity(new_value))
+            getattr(g_set.get_entity(res), property)(g_set.get_entity(new_value))
+        else:
+            getattr(g_set.get_entity(res), property)(new_value)
         self.save(g_set, info_dir)
     
     def delete_property(self, res: str, property: str) -> None:
@@ -60,6 +62,12 @@ class MetaEditor:
         self.reader.import_entity_from_triplestore(g_set, self.endpoint, res, self.resp_agent, enable_validation=False)
         remove_method = property.replace('has', 'remove')
         getattr(g_set.get_entity(res), remove_method)()
+        self.save(g_set, info_dir)
+    
+    def sync_rdf_with_triplestore(self, res: str) -> None:
+        info_dir = self.__get_info_dir(res)
+        g_set = GraphSet(self.base_iri, info_dir, supplier_prefix=self.supplier_prefix)
+        self.reader.import_entity_from_triplestore(g_set, self.endpoint, res, self.resp_agent, enable_validation=False)
         self.save(g_set, info_dir)
     
     def save(self, g_set: GraphSet, info_dir: str):

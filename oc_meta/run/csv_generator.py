@@ -21,15 +21,10 @@ from oc_meta.plugins.csv_generator.csv_generator import generate_csv
 
 if __name__ == '__main__': # pragma: no cover
     arg_parser = ArgumentParser('csv_generator.py', description='This script generates output CSVs from the OpenCitations Meta RDF dump')
-    arg_parser.add_argument('-r', '--rdf', dest='rdf_dir', required=True,
-                            help='RDF files root directory')
-    arg_parser.add_argument('-d', '--dir_split_number', dest='dir_split_number', required=True, type=int,
-                            help="Number of RDF files per folder. dir_split_number's value must be multiple of items_per_file's value")
-    arg_parser.add_argument('-i', '--items_per_file', dest='items_per_file', required=True, type=int,
-                            help="Number of RDF items per file")
+    arg_parser.add_argument('-c', '--c', dest='config', required=True, help='OpenCitations Meta configuration file location')
     arg_parser.add_argument('-o', '--output_dir', dest='output_dir', required=True,
                             help='The output directory where the CSV files will be stores')
     arg_parser.add_argument('-t', '--threshold', dest='threshold', required=True, default=5000, type=int,
                             help='How many lines the CSV output must contain')
     args = arg_parser.parse_args()
-    generate_csv(args.rdf_dir, args.dir_split_number, args.items_per_file, args.output_dir, args.threshold)
+    generate_csv(args.config, args.output_dir, args.threshold)

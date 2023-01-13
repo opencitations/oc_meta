@@ -22,9 +22,12 @@ import re
 from typing import Tuple
 from zipfile import ZipFile
 
+import yaml
+from rdflib import URIRef
 from tqdm import tqdm
 
 from oc_meta.lib.file_manager import get_csv_data, pathoo, write_csv
+from oc_meta.plugins.editor import MetaEditor
 
 URI_TYPE_DICT = {
     'http://purl.org/spar/fabio/ArchivalDocument': 'archival document', 
@@ -53,7 +56,13 @@ URI_TYPE_DICT = {
 
 FIELDNAMES = ['id', 'title', 'author', 'issue', 'volume', 'venue', 'page', 'pub_date', 'type', 'publisher', 'editor']
 
-def generate_csv(rdf_dir: str, dir_split_number: str, items_per_file: str, output_dir: str, threshold: int) -> None:
+def generate_csv(meta_config: str, output_dir: str, threshold: int) -> None:
+    with open(meta_config, encoding='utf-8') as file:
+        settings = yaml.full_load(file)
+    rdf_dir = os.path.join(settings['output_rdf_dir'], 'rdf') + os.sep
+    dir_split_number = settings['dir_split_number']
+    items_per_file = settings['items_per_file']
+    resp_agent = settings['resp_agent']
     memory = dict()
     if not os.path.exists(output_dir):
         pathoo(output_dir)
@@ -70,12 +79,14 @@ def generate_csv(rdf_dir: str, dir_split_number: str, items_per_file: str, outpu
                     id_info = process_archive(id_path, process_id, memory, identifier)
                     row['id'] = row['id'].replace(identifier, id_info)
             agents_by_role = {'author': dict(), 'editor': dict(), 'publisher': dict()}
+            is_cache = True
             for agent in row['author'].split('; '):
                 agent_path = find_file(rdf_dir, dir_split_number, items_per_file, agent)
                 if agent_path:
-                    agent_info = process_archive(agent_path, process_agent, memory, agent)
+                    agent_info = process_archive(agent_path, process_agent, memory, agent, meta_config, resp_agent, agent_path, memory)
                     agents_by_role[agent_info['role']][agent] = agent_info
-            if not agents_by_role['author']:
+                    is_cache = False
+            if not agents_by_role['author'] and not is_cache:
                 row['author'] = ''
             for agent_role, agents in agents_by_role.items():
                 last = ''
@@ -94,7 +105,7 @@ def generate_csv(rdf_dir: str, dir_split_number: str, items_per_file: str, outpu
                     if ra:
                         ra_path = find_file(rdf_dir, dir_split_number, items_per_file, ra)
                         if ra_path:
-                            output_ra = process_archive(ra_path, process_responsible_agent, memory, ra, rdf_dir, dir_split_number, items_per_file, memory)
+                            output_ra = process_archive(ra_path, process_responsible_agent, memory, ra, rdf_dir, dir_split_number, items_per_file, memory, ra_path, meta_config, resp_agent)
                             row[role] = row[role].replace(ra, output_ra)
             for venue in row['venue'].split():
                 venue_path = find_file(rdf_dir, dir_split_number, items_per_file, venue)
@@ -111,7 +122,7 @@ def generate_csv(rdf_dir: str, dir_split_number: str, items_per_file: str, outpu
                 page_uri = row['page']
                 page_path = find_file(rdf_dir, dir_split_number, items_per_file, page_uri)
                 if page_path:
-                    row['page'] = process_archive(page_path, process_page, memory, page_uri)
+                    row['page'] = process_archive(page_path, process_page, memory, page_uri, meta_config, resp_agent)
             inner_pbar.update()
         inner_pbar.close()
         write_csv(os.path.join(output_dir, filename), csv_data, FIELDNAMES)
@@ -190,7 +201,7 @@ def process_id(id_data: list, id_uri: str) -> str:
                 literal_value = id_data['http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue'][0]['@value']
                 return f'{id_schema}:{literal_value}'
 
-def process_agent(agent_data: list, agent_uri: str) -> dict:
+def process_agent(agent_data: list, agent_uri: str, meta_config: str, resp_agent: str, agent_path: str, memory: dict) -> dict:
     agent_dict = dict()
     for graph in agent_data:
         graph_data = graph['@graph']
@@ -201,9 +212,32 @@ def process_agent(agent_data: list, agent_uri: str) -> dict:
                 agent_dict['next'] = ''
                 if 'https://w3id.org/oc/ontology/hasNext' in agent:
                     agent_dict['next'] = agent['https://w3id.org/oc/ontology/hasNext'][0]['@id']
-    return agent_dict
-
-def process_responsible_agent(ra_data: list, ra_uri: str, rdf_dir: str, dir_split_number: str, items_per_file: str, memory: dict) -> str:
+    if agent_dict:
+        return agent_dict
+    else:
+        del memory[agent_path]
+        meta_editor = MetaEditor(meta_config, resp_agent)
+        meta_editor.sync_rdf_with_triplestore(agent_uri)
+        # return process_archive(agent_path, memory, agent_uri, meta_config, resp_agent, agent_path, memory)
+        with ZipFile(file=agent_path, mode="r") as archive:
+            for zf_name in archive.namelist():
+                with archive.open(zf_name) as f:
+                    data = json.load(f)
+                    if memory is not None:
+                        memory[agent_path] = data
+                    for graph in agent_data:
+                        graph_data = graph['@graph']
+                        for agent in graph_data:
+                            if agent['@id'] == agent_uri:
+                                agent_dict['ra'] = agent['http://purl.org/spar/pro/isHeldBy'][0]['@id']
+                                agent_dict['role'] = agent['http://purl.org/spar/pro/withRole'][0]['@id'].split('/pro/')[1]
+                                agent_dict['next'] = ''
+                                if 'https://w3id.org/oc/ontology/hasNext' in agent:
+                                    agent_dict['next'] = agent['https://w3id.org/oc/ontology/hasNext'][0]['@id']
+                            return agent_dict
+                    
+def process_responsible_agent(ra_data: list, ra_uri: str, rdf_dir: str, dir_split_number: str, items_per_file: str, memory: dict, ra_path: str, meta_config: str, resp_agent: str) -> str:
+    ra_value = None
     for graph in ra_data:
         graph_data = graph['@graph']
         for ra in graph_data:
@@ -228,9 +262,16 @@ def process_responsible_agent(ra_data: list, ra_uri: str, rdf_dir: str, dir_spli
                         id_path = find_file(rdf_dir, dir_split_number, items_per_file, id_uri)
                         ra_ids.append(process_archive(id_path, process_id, memory, id_uri))
                 if full_name:
-                    return f"{full_name} [{' '.join(ra_ids)}]"
+                    ra_value = f"{full_name} [{' '.join(ra_ids)}]"
                 else:
-                    return f"[{' '.join(ra_ids)}]"
+                    ra_value = f"[{' '.join(ra_ids)}]"
+    if ra_value:
+        return ra_value
+    else:
+        del memory[ra_path]
+        meta_editor = MetaEditor(meta_config, resp_agent)
+        meta_editor.sync_rdf_with_triplestore(ra_uri)
+        return process_archive(ra_path, process_responsible_agent, memory, ra_uri, rdf_dir, dir_split_number, items_per_file, memory, ra_path, meta_config, resp_agent)
 
 def process_venue(venue_data: list, venue_uri: str, rdf_dir: str, dir_split_number: str, items_per_file: str, memory: dict) -> Tuple[dict, list]:
     venue_dict = {'volume': '', 'issue': '', 'venue': ''}
@@ -255,17 +296,29 @@ def process_venue(venue_data: list, venue_uri: str, rdf_dir: str, dir_split_numb
                     to_be_found = venue['http://purl.org/vocab/frbr/core#partOf'][0]['@id']
     return venue_dict, to_be_found
 
-def process_page(page_data: list, page_uri: str) -> str:
+def process_page(page_data: list, page_uri: str, meta_config: str, resp_agent: str) -> str:
     for graph in page_data:
         graph_data = graph['@graph']
         for venue in graph_data:
             if venue['@id'] == page_uri:
-                starting_page = venue['http://prismstandard.org/namespaces/basic/2.0/startingPage'][0]['@value']
-                ending_page = venue['http://prismstandard.org/namespaces/basic/2.0/endingPage'][0]['@value']
+                starting_page = None
+                ending_page = None
+                if 'http://prismstandard.org/namespaces/basic/2.0/startingPage' in venue:
+                    starting_page = venue['http://prismstandard.org/namespaces/basic/2.0/startingPage'][0]['@value']
+                if 'http://prismstandard.org/namespaces/basic/2.0/endingPage' in venue:
+                    ending_page = venue['http://prismstandard.org/namespaces/basic/2.0/endingPage'][0]['@value']
+                if not all([starting_page, ending_page]):
+                    meta_editor = MetaEditor(meta_config, resp_agent)
+                    if not starting_page:
+                        meta_editor.update_property(URIRef(page_uri), 'has_starting_page', ending_page)
+                        starting_page = ending_page
+                    elif not ending_page:
+                        meta_editor.update_property(URIRef(page_uri), 'has_ending_page', starting_page)
+                        ending_page = starting_page
                 return f'{starting_page}-{ending_page}'
 
 def find_file(rdf_dir: str, dir_split_number: str, items_per_file: str, uri: str) -> str|None:
-    entity_regex: str = r'^(.+)/([a-z][a-z])/(0[1-9]+0)?([1-9][0-9]*)$'
+    entity_regex: str = r'^(https:\/\/w3id\.org\/oc\/meta)\/([a-z][a-z])\/(0[1-9]+0)?([1-9][0-9]*)$'
     entity_match = re.match(entity_regex, uri)
     if entity_match:
         cur_number = int(entity_match.group(4))
