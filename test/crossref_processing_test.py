@@ -354,7 +354,7 @@ class TestCrossrefProcessing(unittest.TestCase):
         }
         crossref_processor = CrossrefProcessing(orcid_index=None, doi_csv=None, publishers_filepath=PUBLISHERS_MAPPING)
         pages = crossref_processor.get_crossref_pages(item)
-        self.assertEqual(pages, 'G22')
+        self.assertEqual(pages, 'G22-G22')
 
     def test_get_pages_wrong_letter(self):
         item = {
