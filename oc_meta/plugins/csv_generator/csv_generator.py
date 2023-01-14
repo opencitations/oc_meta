@@ -79,7 +79,7 @@ def generate_csv(meta_config: str, output_dir: str, threshold: int) -> None:
                     id_info = process_archive(id_path, process_id, memory, identifier, meta_config, resp_agent, id_path, memory)
                     row['id'] = row['id'].replace(identifier, id_info)
             agents_by_role = {'author': dict(), 'editor': dict(), 'publisher': dict()}
-            last_roles = {'author': {'all': [], 'last': []}, 'editor': {'all': [], 'last': []}, 'publisher': {'all': [], 'last': []}}
+            last_roles = {'author': {'all': dict(), 'last': []}, 'editor': {'all': dict(), 'last': []}, 'publisher': {'all': dict(), 'last': []}}
             self_next = {'author': False, 'editor': False, 'publisher': False}
             is_cache = True
             for agent in row['author'].split('; '):
@@ -91,13 +91,13 @@ def generate_csv(meta_config: str, output_dir: str, threshold: int) -> None:
                         last_roles[agent_role]['last'].append(agent)
                     if agent_info['next'] == agent:
                         self_next[agent_role] = True
-                    last_roles[agent_role]['all'].append(agent)
+                    last_roles[agent_role]['all'][agent] = agent_info['next']
                     agents_by_role[agent_role][agent] = agent_info
                     is_cache = False
             if not agents_by_role['author'] and not is_cache:
                 row['author'] = ''
             if not is_cache:
-                fix_roles(last_roles, self_next, meta_config, resp_agent)
+                agents_by_role = fix_roles(last_roles, self_next, meta_config, resp_agent, agents_by_role)
             for agent_role, agents in agents_by_role.items():
                 last = ''
                 new_role_list = list()
@@ -346,10 +346,11 @@ def find_file(rdf_dir: str, dir_split_number: str, items_per_file: str, uri: str
         cur_file_path = os.path.join(cur_dir_path, str(cur_file_split)) + '.zip'
         return cur_file_path
 
-def fix_roles(last_roles: dict, self_next: dict, meta_config: str, resp_agent: str) -> None:
+def fix_roles(last_roles: dict, self_next: dict, meta_config: str, resp_agent: str, agents_by_role: dict) -> dict:
+    new_agents_by_role = agents_by_role
     meta_editor = MetaEditor(meta_config, resp_agent)
     for role_type, role_data in last_roles.items():
-        all_list = role_data['all']
+        all_list = list(role_data['all'].keys())
         last_list = role_data['last']
         if (all_list and len(last_list) != 1) or self_next[role_type]:
             sorted_roles_list = sorted(all_list)
@@ -364,3 +365,8 @@ def fix_roles(last_roles: dict, self_next: dict, meta_config: str, resp_agent: s
                 if i < len(sorted_roles_list) - 1:
                     if last_roles[role_type]['all'][role] != sorted_roles_list[i+1]:
                         meta_editor.update_property(URIRef(role), 'has_next', URIRef(sorted_roles_list[i+1]))
+            for agent_role, _ in agents_by_role.items():
+                if agent_role == role_type:
+                    new_agents = {sorted_role: {'next': sorted_roles_list[i+1]} if i < len(sorted_roles_list) - 1 else {'next': ''} for i, sorted_role in enumerate(sorted_roles_list)}
+                    agents_by_role[agent_role] = new_agents
+    return new_agents_by_role
