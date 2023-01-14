@@ -56,18 +56,7 @@ URI_TYPE_DICT = {
 
 FIELDNAMES = ['id', 'title', 'author', 'issue', 'volume', 'venue', 'page', 'pub_date', 'type', 'publisher', 'editor']
 
-def generate_csv(meta_config: str, output_dir: str, threshold: int) -> None:
-    with open(meta_config, encoding='utf-8') as file:
-        settings = yaml.full_load(file)
-    rdf_dir = os.path.join(settings['output_rdf_dir'], 'rdf') + os.sep
-    dir_split_number = settings['dir_split_number']
-    items_per_file = settings['items_per_file']
-    resp_agent = settings['resp_agent']
-    if not os.path.exists(output_dir):
-        pathoo(output_dir)
-        process_archives(rdf_dir, 'br', output_dir, process_br, threshold)
-    print('[csv_generator: INFO] Solving the OpenCitations Meta Identifiers recursively')
-    pbar = tqdm(total=len(os.listdir(output_dir)))
+def generate_csv(meta_config: str, rdf_dir, dir_split_number, items_per_file, resp_agent, output_dir: str) -> None:
     for filename in os.listdir(output_dir):
         memory = dict()
         csv_data = get_csv_data(os.path.join(output_dir, filename))
@@ -136,8 +125,6 @@ def generate_csv(meta_config: str, output_dir: str, threshold: int) -> None:
             inner_pbar.update()
         inner_pbar.close()
         write_csv(os.path.join(output_dir, filename), csv_data, FIELDNAMES)
-        pbar.update()
-    pbar.close()
 
 def process_archives(rdf_dir: str, entity_abbr:str, output_dir: str|None, doing_what: callable, threshold: int=3000):
     br_files = [os.path.join(fold, file) for fold, _, files in os.walk(os.path.join(rdf_dir, entity_abbr)) for file in files if file.endswith('.zip') and os.path.basename(fold) != 'prov']

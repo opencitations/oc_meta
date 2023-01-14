@@ -18,6 +18,8 @@
 import os
 import unittest
 from shutil import rmtree
+from subprocess import call
+from sys import executable
 
 from oc_meta.lib.file_manager import get_csv_data
 from oc_meta.plugins.csv_generator.csv_generator import generate_csv
@@ -28,7 +30,7 @@ OUTPUT = os.path.join(BASE, 'csv')
 
 class TestCSVGenerator(unittest.TestCase):
     def test_generate_csv(self):
-        generate_csv(CONFIG, OUTPUT, 3000)
+        call([executable, '-m', 'oc_meta.run.csv_generator', '-c', CONFIG, '-o', OUTPUT, '-t', '3000', '-m', '2'])
         csv_data = get_csv_data(os.path.join(OUTPUT, '0.csv'))
         rmtree(os.path.join(OUTPUT))
         expected_csv_data = [

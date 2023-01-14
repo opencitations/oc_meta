@@ -15,9 +15,21 @@
 # SOFTWARE.
 
 
+import os
 from argparse import ArgumentParser
 
-from oc_meta.plugins.csv_generator.csv_generator import generate_csv
+import yaml
+from pebble import ProcessFuture, ProcessPool
+from tqdm import tqdm
+
+from oc_meta.lib.file_manager import pathoo
+from oc_meta.plugins.csv_generator.csv_generator import (generate_csv,
+                                                         process_archives,
+                                                         process_br)
+
+
+def task_done(task_output:ProcessFuture) -> None:
+    PBAR.update()
 
 if __name__ == '__main__': # pragma: no cover
     arg_parser = ArgumentParser('csv_generator.py', description='This script generates output CSVs from the OpenCitations Meta RDF dump')
@@ -26,5 +38,24 @@ if __name__ == '__main__': # pragma: no cover
                             help='The output directory where the CSV files will be stores')
     arg_parser.add_argument('-t', '--threshold', dest='threshold', required=True, default=5000, type=int,
                             help='How many lines the CSV output must contain')
+    arg_parser.add_argument('-m', '--max_workers', dest='max_workers', required=False, default=1, type=int, help='Workers number')
     args = arg_parser.parse_args()
-    generate_csv(args.config, args.output_dir, args.threshold)
+    with open(args.config, encoding='utf-8') as file:
+        settings = yaml.full_load(file)
+    output_dir = args.output_dir
+    rdf_dir = os.path.join(settings['output_rdf_dir'], 'rdf') + os.sep
+    dir_split_number = settings['dir_split_number']
+    items_per_file = settings['items_per_file']
+    resp_agent = settings['resp_agent']
+    if not os.path.exists(output_dir):
+        pathoo(output_dir)
+        process_archives(rdf_dir, 'br', output_dir, process_br, args.threshold)
+    print('[csv_generator: INFO] Solving the OpenCitations Meta Identifiers recursively')
+    PBAR = tqdm(total=len(os.listdir(output_dir)))
+    with ProcessPool(max_workers=args.max_workers, max_tasks=1) as executor:
+        for filename in os.listdir(output_dir):
+            future:ProcessFuture = executor.schedule(
+                function=generate_csv, 
+                args=(args.config, rdf_dir, dir_split_number, items_per_file, resp_agent, args.output_dir)) 
+            future.add_done_callback(task_done)
+    PBAR.close()
