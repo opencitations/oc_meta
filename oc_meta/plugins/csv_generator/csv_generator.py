@@ -63,31 +63,41 @@ def generate_csv(meta_config: str, output_dir: str, threshold: int) -> None:
     dir_split_number = settings['dir_split_number']
     items_per_file = settings['items_per_file']
     resp_agent = settings['resp_agent']
-    memory = dict()
     if not os.path.exists(output_dir):
         pathoo(output_dir)
         process_archives(rdf_dir, 'br', output_dir, process_br, threshold)
     print('[csv_generator: INFO] Solving the OpenCitations Meta Identifiers recursively')
     pbar = tqdm(total=len(os.listdir(output_dir)))
     for filename in os.listdir(output_dir):
+        memory = dict()
         csv_data = get_csv_data(os.path.join(output_dir, filename))
         inner_pbar = tqdm(total=len(csv_data))
         for row in csv_data:
             for identifier in [identifier for identifier in row['id'].split() if not identifier.startswith('meta')]:
                 id_path = find_file(rdf_dir, dir_split_number, items_per_file, identifier)
                 if id_path:
-                    id_info = process_archive(id_path, process_id, memory, identifier)
+                    id_info = process_archive(id_path, process_id, memory, identifier, meta_config, resp_agent, id_path, memory)
                     row['id'] = row['id'].replace(identifier, id_info)
             agents_by_role = {'author': dict(), 'editor': dict(), 'publisher': dict()}
+            last_roles = {'author': {'all': [], 'last': []}, 'editor': {'all': [], 'last': []}, 'publisher': {'all': [], 'last': []}}
+            self_next = {'author': False, 'editor': False, 'publisher': False}
             is_cache = True
             for agent in row['author'].split('; '):
                 agent_path = find_file(rdf_dir, dir_split_number, items_per_file, agent)
                 if agent_path:
                     agent_info = process_archive(agent_path, process_agent, memory, agent, meta_config, resp_agent, agent_path, memory)
-                    agents_by_role[agent_info['role']][agent] = agent_info
+                    agent_role = agent_info['role']
+                    if not agent_info['next']:
+                        last_roles[agent_role]['last'].append(agent)
+                    if agent_info['next'] == agent:
+                        self_next[agent_role] = True
+                    last_roles[agent_role]['all'].append(agent)
+                    agents_by_role[agent_role][agent] = agent_info
                     is_cache = False
             if not agents_by_role['author'] and not is_cache:
                 row['author'] = ''
+            if not is_cache:
+                fix_roles(last_roles, self_next, meta_config, resp_agent)
             for agent_role, agents in agents_by_role.items():
                 last = ''
                 new_role_list = list()
@@ -112,7 +122,7 @@ def generate_csv(meta_config: str, output_dir: str, threshold: int) -> None:
                 if venue_path:
                     to_be_found = venue
                     while to_be_found:
-                        venue_info, to_be_found = process_archive(venue_path, process_venue, memory, to_be_found, rdf_dir, dir_split_number, items_per_file, memory)
+                        venue_info, to_be_found = process_archive(venue_path, process_venue, memory, to_be_found, rdf_dir, dir_split_number, items_per_file, meta_config, resp_agent, memory)
                         for k, v in venue_info.items():
                             if v:
                                 row[k] = v
@@ -192,14 +202,23 @@ def process_br(br_data: list) -> list:
             csv_br_data.append(row)
     return csv_br_data
 
-def process_id(id_data: list, id_uri: str) -> str:
+def process_id(id_data: list, id_uri: str, meta_config: str, resp_agent: str, id_path: str, memory: dict) -> str:
+    output_identifier = None
     for graph in id_data:
         graph_data = graph['@graph']
         for id_data in graph_data:
             if id_data['@id'] == id_uri:
                 id_schema = id_data['http://purl.org/spar/datacite/usesIdentifierScheme'][0]['@id'].split('/datacite/')[1]
                 literal_value = id_data['http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue'][0]['@value']
-                return f'{id_schema}:{literal_value}'
+                output_identifier = f'{id_schema}:{literal_value}'
+    if output_identifier:
+        return output_identifier
+    else:
+        del memory[id_path]
+        meta_editor = MetaEditor(meta_config, resp_agent)
+        meta_editor.sync_rdf_with_triplestore(id_uri)
+        return process_archive(id_path, process_id, memory, id_uri, meta_config, resp_agent, id_path, memory)
+
 
 def process_agent(agent_data: list, agent_uri: str, meta_config: str, resp_agent: str, agent_path: str, memory: dict) -> dict:
     agent_dict = dict()
@@ -218,23 +237,7 @@ def process_agent(agent_data: list, agent_uri: str, meta_config: str, resp_agent
         del memory[agent_path]
         meta_editor = MetaEditor(meta_config, resp_agent)
         meta_editor.sync_rdf_with_triplestore(agent_uri)
-        # return process_archive(agent_path, memory, agent_uri, meta_config, resp_agent, agent_path, memory)
-        with ZipFile(file=agent_path, mode="r") as archive:
-            for zf_name in archive.namelist():
-                with archive.open(zf_name) as f:
-                    data = json.load(f)
-                    if memory is not None:
-                        memory[agent_path] = data
-                    for graph in agent_data:
-                        graph_data = graph['@graph']
-                        for agent in graph_data:
-                            if agent['@id'] == agent_uri:
-                                agent_dict['ra'] = agent['http://purl.org/spar/pro/isHeldBy'][0]['@id']
-                                agent_dict['role'] = agent['http://purl.org/spar/pro/withRole'][0]['@id'].split('/pro/')[1]
-                                agent_dict['next'] = ''
-                                if 'https://w3id.org/oc/ontology/hasNext' in agent:
-                                    agent_dict['next'] = agent['https://w3id.org/oc/ontology/hasNext'][0]['@id']
-                            return agent_dict
+        return process_archive(agent_path, process_agent, memory, agent_uri, meta_config, resp_agent, agent_path, memory)
                     
 def process_responsible_agent(ra_data: list, ra_uri: str, rdf_dir: str, dir_split_number: str, items_per_file: str, memory: dict, ra_path: str, meta_config: str, resp_agent: str) -> str:
     ra_value = None
@@ -260,7 +263,7 @@ def process_responsible_agent(ra_data: list, ra_uri: str, rdf_dir: str, dir_spli
                     for ra_identifier in ra['http://purl.org/spar/datacite/hasIdentifier']:
                         id_uri = ra_identifier['@id']
                         id_path = find_file(rdf_dir, dir_split_number, items_per_file, id_uri)
-                        ra_ids.append(process_archive(id_path, process_id, memory, id_uri))
+                        ra_ids.append(process_archive(id_path, process_id, memory, id_uri, meta_config, resp_agent, id_path, memory))
                 if full_name:
                     ra_value = f"{full_name} [{' '.join(ra_ids)}]"
                 else:
@@ -273,7 +276,7 @@ def process_responsible_agent(ra_data: list, ra_uri: str, rdf_dir: str, dir_spli
         meta_editor.sync_rdf_with_triplestore(ra_uri)
         return process_archive(ra_path, process_responsible_agent, memory, ra_uri, rdf_dir, dir_split_number, items_per_file, memory, ra_path, meta_config, resp_agent)
 
-def process_venue(venue_data: list, venue_uri: str, rdf_dir: str, dir_split_number: str, items_per_file: str, memory: dict) -> Tuple[dict, list]:
+def process_venue(venue_data: list, venue_uri: str, rdf_dir: str, dir_split_number: str, items_per_file: str, meta_config: str, resp_agent: str, memory: dict) -> Tuple[dict, list]:
     venue_dict = {'volume': '', 'issue': '', 'venue': ''}
     to_be_found = None
     for graph in venue_data:
@@ -290,7 +293,7 @@ def process_venue(venue_data: list, venue_uri: str, rdf_dir: str, dir_split_numb
                     explicit_ids = [f"meta:{venue_uri.split('/meta/')[1]}"]
                     for venue_id in venue_ids:
                         id_path = find_file(rdf_dir, dir_split_number, items_per_file, venue_id['@id'])
-                        explicit_ids.append(process_archive(id_path, process_id, memory, venue_id['@id']))
+                        explicit_ids.append(process_archive(id_path, process_id, memory, venue_id['@id'], meta_config, resp_agent, id_path, memory))
                     venue_dict['venue'] = f"{venue_title} [{' '.join(explicit_ids)}]"
                 if 'http://purl.org/vocab/frbr/core#partOf' in venue:
                     to_be_found = venue['http://purl.org/vocab/frbr/core#partOf'][0]['@id']
@@ -309,12 +312,15 @@ def process_page(page_data: list, page_uri: str, meta_config: str, resp_agent: s
                     ending_page = venue['http://prismstandard.org/namespaces/basic/2.0/endingPage'][0]['@value']
                 if not all([starting_page, ending_page]):
                     meta_editor = MetaEditor(meta_config, resp_agent)
-                    if not starting_page:
+                    if not starting_page and ending_page:
                         meta_editor.update_property(URIRef(page_uri), 'has_starting_page', ending_page)
                         starting_page = ending_page
-                    elif not ending_page:
+                    elif not ending_page and starting_page:
                         meta_editor.update_property(URIRef(page_uri), 'has_ending_page', starting_page)
                         ending_page = starting_page
+                    else:
+                        # TODO: delete entity
+                        return ''
                 return f'{starting_page}-{ending_page}'
 
 def find_file(rdf_dir: str, dir_split_number: str, items_per_file: str, uri: str) -> str|None:
@@ -339,3 +345,22 @@ def find_file(rdf_dir: str, dir_split_number: str, items_per_file: str, uri: str
         cur_dir_path = os.path.join(rdf_dir, short_name, sub_folder, str(cur_split))
         cur_file_path = os.path.join(cur_dir_path, str(cur_file_split)) + '.zip'
         return cur_file_path
+
+def fix_roles(last_roles: dict, self_next: dict, meta_config: str, resp_agent: str) -> None:
+    meta_editor = MetaEditor(meta_config, resp_agent)
+    for role_type, role_data in last_roles.items():
+        all_list = role_data['all']
+        last_list = role_data['last']
+        if (all_list and len(last_list) != 1) or self_next[role_type]:
+            sorted_roles_list = sorted(all_list)
+            for i, role in enumerate(sorted_roles_list):
+                if i < len(sorted_roles_list) - 1:
+                    if last_roles[role_type]['all'][role] != sorted_roles_list[i+1]:
+                        meta_editor.delete_property(URIRef(role), 'has_next')
+                elif i == len(sorted_roles_list) - 1:
+                    if last_roles[role_type]['all'][role]:
+                        meta_editor.delete_property(URIRef(role), 'has_next')
+            for i, role in enumerate(sorted_roles_list):
+                if i < len(sorted_roles_list) - 1:
+                    if last_roles[role_type]['all'][role] != sorted_roles_list[i+1]:
+                        meta_editor.update_property(URIRef(role), 'has_next', URIRef(sorted_roles_list[i+1]))

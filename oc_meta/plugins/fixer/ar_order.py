@@ -30,7 +30,6 @@ from oc_meta.plugins.editor import MetaEditor
 
 
 def find_broken_roles(filepath: str, meta_config: str, resp_agent: str):
-    meta_editor = MetaEditor(meta_config, resp_agent)
     with open(meta_config, encoding='utf-8') as file:
         settings = yaml.full_load(file)
     rdf_dir = os.path.join(settings['output_rdf_dir'], 'rdf') + os.sep
@@ -38,7 +37,7 @@ def find_broken_roles(filepath: str, meta_config: str, resp_agent: str):
     items_per_file = settings['items_per_file']
     memory = dict()
     roles_in_br = process_archive(filepath, extract_roles_from_br)
-    fix_roles(roles_in_br, rdf_dir, dir_split_number, items_per_file, memory, meta_editor)
+    check_roles(roles_in_br, rdf_dir, dir_split_number, items_per_file, memory, meta_config, resp_agent)
 
 def extract_roles_from_br(br_data: list) -> list:
     all_ar = list()
@@ -53,7 +52,7 @@ def extract_roles_from_br(br_data: list) -> list:
                 all_ar.append(br_ars)
     return all_ar
 
-def fix_roles(roles_in_br: List[list], rdf_dir: str, dir_split_number: str, items_per_file: str, memory: dict, meta_editor: MetaEditor):
+def check_roles(roles_in_br: List[list], rdf_dir: str, dir_split_number: str, items_per_file: str, memory: dict, meta_config: str, resp_agent: str) -> None:
     for roles_list in roles_in_br:
         last_roles = {'author': {'all': dict(), 'last': []}, 'editor': {'all': dict(), 'last': []}, 'publisher': {'all': dict(), 'last': []}}
         self_next = {'author': False, 'editor': False, 'publisher': False}
@@ -69,22 +68,26 @@ def fix_roles(roles_in_br: List[list], rdf_dir: str, dir_split_number: str, item
                 if has_next == role:
                     self_next[agent_role] = True
                 last_roles[agent_role]['all'][role] = has_next
-        for role_type, role_data in last_roles.items():
-            all_list = list(role_data['all'].keys())
-            last_list = role_data['last']
-            if (all_list and len(last_list) != 1) or self_next[role_type]:
-                sorted_roles_list = sorted(all_list)
-                for i, role in enumerate(sorted_roles_list):
-                    if i < len(sorted_roles_list) - 1:
-                        if last_roles[role_type]['all'][role] != sorted_roles_list[i+1]:
-                            meta_editor.delete_property(URIRef(role), 'has_next')
-                    elif i == len(sorted_roles_list) - 1:
-                        if last_roles[role_type]['all'][role]:
-                            meta_editor.delete_property(URIRef(role), 'has_next')
-                for i, role in enumerate(sorted_roles_list):
-                    if i < len(sorted_roles_list) - 1:
-                        if last_roles[role_type]['all'][role] != sorted_roles_list[i+1]:
-                            meta_editor.update_property(URIRef(role), 'has_next', URIRef(sorted_roles_list[i+1]))
+        fix_roles(last_roles, self_next, meta_config, resp_agent)
+
+def fix_roles(last_roles: dict, self_next: dict, meta_config: str, resp_agent: str) -> None:
+    meta_editor = MetaEditor(meta_config, resp_agent)
+    for role_type, role_data in last_roles.items():
+        all_list = list(role_data['all'].keys())
+        last_list = role_data['last']
+        if (all_list and len(last_list) != 1) or self_next[role_type]:
+            sorted_roles_list = sorted(all_list)
+            for i, role in enumerate(sorted_roles_list):
+                if i < len(sorted_roles_list) - 1:
+                    if last_roles[role_type]['all'][role] != sorted_roles_list[i+1]:
+                        meta_editor.delete_property(URIRef(role), 'has_next')
+                elif i == len(sorted_roles_list) - 1:
+                    if last_roles[role_type]['all'][role]:
+                        meta_editor.delete_property(URIRef(role), 'has_next')
+            for i, role in enumerate(sorted_roles_list):
+                if i < len(sorted_roles_list) - 1:
+                    if last_roles[role_type]['all'][role] != sorted_roles_list[i+1]:
+                        meta_editor.update_property(URIRef(role), 'has_next', URIRef(sorted_roles_list[i+1]))
 
 def get_next(ar_data: list, ar_uri: str) -> Tuple[str, str]:
     for graph in ar_data:
