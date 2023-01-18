@@ -22,11 +22,11 @@ import re
 import validators
 import yaml
 from oc_ocdm import Storer
-from oc_ocdm.counter_handler import FilesystemCounterHandler
 from oc_ocdm.graph import GraphSet
 from oc_ocdm.prov import ProvSet
 from oc_ocdm.reader import Reader
 from rdflib import URIRef
+from SPARQLWrapper import JSON, SPARQLWrapper
 
 
 class MetaEditor:
@@ -62,6 +62,24 @@ class MetaEditor:
         self.reader.import_entity_from_triplestore(g_set, self.endpoint, res, self.resp_agent, enable_validation=False)
         remove_method = property.replace('has', 'remove')
         getattr(g_set.get_entity(res), remove_method)()
+        self.save(g_set, info_dir)
+
+    def merge(self, res: URIRef, other: URIRef) -> None:
+        info_dir = self.__get_info_dir(res)
+        g_set = GraphSet(self.base_iri, info_dir, supplier_prefix=self.supplier_prefix)
+        self.reader.import_entity_from_triplestore(g_set, self.endpoint, res, self.resp_agent, enable_validation=False)
+        self.reader.import_entity_from_triplestore(g_set, self.endpoint, other, self.resp_agent, enable_validation=False)
+        sparql = SPARQLWrapper(endpoint=self.endpoint)
+        query_other_as_obj = f'SELECT DISTINCT ?s WHERE {{?s ?p <{other}>.}}'          
+        sparql.setQuery(query_other_as_obj)
+        sparql.setReturnFormat(JSON)
+        data_obj = sparql.queryAndConvert()
+        for data in data_obj["results"]["bindings"]:
+            res_other_as_obj = URIRef(data["s"]["value"])
+            self.reader.import_entity_from_triplestore(g_set, self.endpoint, res_other_as_obj, self.resp_agent, enable_validation=False)
+        res_as_entity = g_set.get_entity(res)
+        other_as_entity = g_set.get_entity(other)
+        res_as_entity.merge(other_as_entity)
         self.save(g_set, info_dir)
     
     def sync_rdf_with_triplestore(self, res: str) -> None:

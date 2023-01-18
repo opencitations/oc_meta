@@ -51,11 +51,12 @@ if __name__ == '__main__': # pragma: no cover
         pathoo(output_dir)
         process_archives(rdf_dir, 'br', output_dir, process_br, args.threshold)
     print('[csv_generator: INFO] Solving the OpenCitations Meta Identifiers recursively')
-    PBAR = tqdm(total=len(os.listdir(output_dir)))
+    filenames = os.listdir(output_dir)
+    PBAR = tqdm(total=len(filenames))
     with ProcessPool(max_workers=args.max_workers, max_tasks=1) as executor:
-        for filename in os.listdir(output_dir):
+        for filename in filenames:
             future:ProcessFuture = executor.schedule(
-                function=generate_csv, 
-                args=(args.config, rdf_dir, dir_split_number, items_per_file, resp_agent, args.output_dir)) 
+                function=generate_csv,
+                args=(filename, args.config, rdf_dir, dir_split_number, items_per_file, resp_agent, args.output_dir))
             future.add_done_callback(task_done)
     PBAR.close()

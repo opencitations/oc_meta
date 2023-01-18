@@ -2,13 +2,10 @@ import os
 import shutil
 import unittest
 from csv import DictReader
-from pprint import pprint
 
-from oc_meta.lib.file_manager import get_csv_data
 from oc_meta.plugins.multiprocess.prepare_multiprocess import (
-    _do_collective_merge, _enrich_duplicated_ids_found, _find_all_names,
-    _get_duplicated_ids, _get_relevant_venues, _get_resp_agents,
-    prepare_relevant_items, split_csvs_in_chunks)
+    _do_collective_merge, _find_all_names, _get_duplicated_ids,
+    _get_relevant_venues, _get_resp_agents, prepare_relevant_items)
 
 BASE = os.path.join('test', 'prepare_multiprocess')
 TMP_DIR = os.path.join(BASE, 'tmp')

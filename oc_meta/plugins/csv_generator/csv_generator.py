@@ -22,11 +22,10 @@ import re
 from typing import Tuple
 from zipfile import ZipFile
 
-import yaml
 from rdflib import URIRef
 from tqdm import tqdm
 
-from oc_meta.lib.file_manager import get_csv_data, pathoo, write_csv
+from oc_meta.lib.file_manager import get_csv_data, write_csv
 from oc_meta.plugins.editor import MetaEditor
 
 URI_TYPE_DICT = {
@@ -56,75 +55,71 @@ URI_TYPE_DICT = {
 
 FIELDNAMES = ['id', 'title', 'author', 'issue', 'volume', 'venue', 'page', 'pub_date', 'type', 'publisher', 'editor']
 
-def generate_csv(meta_config: str, rdf_dir, dir_split_number, items_per_file, resp_agent, output_dir: str) -> None:
-    for filename in os.listdir(output_dir):
-        memory = dict()
-        csv_data = get_csv_data(os.path.join(output_dir, filename))
-        inner_pbar = tqdm(total=len(csv_data))
-        for row in csv_data:
-            for identifier in [identifier for identifier in row['id'].split() if not identifier.startswith('meta')]:
-                id_path = find_file(rdf_dir, dir_split_number, items_per_file, identifier)
-                if id_path:
-                    id_info = process_archive(id_path, process_id, memory, identifier, meta_config, resp_agent, id_path, memory)
-                    row['id'] = row['id'].replace(identifier, id_info)
-            agents_by_role = {'author': dict(), 'editor': dict(), 'publisher': dict()}
-            last_roles = {'author': {'all': dict(), 'last': []}, 'editor': {'all': dict(), 'last': []}, 'publisher': {'all': dict(), 'last': []}}
-            self_next = {'author': False, 'editor': False, 'publisher': False}
-            is_cache = True
-            for agent in row['author'].split('; '):
-                agent_path = find_file(rdf_dir, dir_split_number, items_per_file, agent)
-                if agent_path:
-                    agent_info = process_archive(agent_path, process_agent, memory, agent, meta_config, resp_agent, agent_path, memory)
-                    agent_role = agent_info['role']
-                    if not agent_info['next']:
-                        last_roles[agent_role]['last'].append(agent)
-                    if agent_info['next'] == agent:
-                        self_next[agent_role] = True
-                    last_roles[agent_role]['all'][agent] = agent_info['next']
-                    agents_by_role[agent_role][agent] = agent_info
-                    is_cache = False
-            if not agents_by_role['author'] and not is_cache:
-                row['author'] = ''
-            if not is_cache:
-                agents_by_role = fix_roles(last_roles, self_next, meta_config, resp_agent, agents_by_role)
-            for agent_role, agents in agents_by_role.items():
-                last = ''
-                new_role_list = list()
-                while agents:
-                    for agent, agent_data in agents.items():
-                        if agent_data['next'] == last:
-                            new_role_list.append(agent_data['ra'])
-                            last = agent
-                            del agents[agent]
-                            break
-                if new_role_list:
-                    row[agent_role] = '; '.join(reversed(new_role_list))
-            for role in ['author', 'editor', 'publisher']:
-                for ra in row[role].split('; '):
-                    if ra:
-                        ra_path = find_file(rdf_dir, dir_split_number, items_per_file, ra)
-                        if ra_path:
-                            output_ra = process_archive(ra_path, process_responsible_agent, memory, ra, rdf_dir, dir_split_number, items_per_file, memory, ra_path, meta_config, resp_agent)
-                            row[role] = row[role].replace(ra, output_ra)
-            for venue in row['venue'].split():
-                venue_path = find_file(rdf_dir, dir_split_number, items_per_file, venue)
-                if venue_path:
-                    to_be_found = venue
-                    while to_be_found:
-                        venue_info, to_be_found = process_archive(venue_path, process_venue, memory, to_be_found, rdf_dir, dir_split_number, items_per_file, meta_config, resp_agent, memory)
-                        for k, v in venue_info.items():
-                            if v:
-                                row[k] = v
-                        if to_be_found:
-                            venue_path = find_file(rdf_dir, dir_split_number, items_per_file, to_be_found)
-            if row['page']:
-                page_uri = row['page']
-                page_path = find_file(rdf_dir, dir_split_number, items_per_file, page_uri)
-                if page_path:
-                    row['page'] = process_archive(page_path, process_page, memory, page_uri, meta_config, resp_agent)
-            inner_pbar.update()
-        inner_pbar.close()
-        write_csv(os.path.join(output_dir, filename), csv_data, FIELDNAMES)
+def generate_csv(filename, meta_config: str, rdf_dir, dir_split_number, items_per_file, resp_agent, output_dir: str) -> None:
+    memory = dict()
+    csv_data = get_csv_data(os.path.join(output_dir, filename))
+    for row in csv_data:
+        for identifier in [identifier for identifier in row['id'].split() if not identifier.startswith('meta')]:
+            id_path = find_file(rdf_dir, dir_split_number, items_per_file, identifier)
+            if id_path:
+                id_info = process_archive(id_path, process_id, memory, identifier, meta_config, resp_agent, id_path, memory)
+                row['id'] = row['id'].replace(identifier, id_info)
+        agents_by_role = {'author': dict(), 'editor': dict(), 'publisher': dict()}
+        last_roles = {'author': {'all': dict(), 'last': []}, 'editor': {'all': dict(), 'last': []}, 'publisher': {'all': dict(), 'last': []}}
+        self_next = {'author': False, 'editor': False, 'publisher': False}
+        is_cache = True
+        for agent in row['author'].split('; '):
+            agent_path = find_file(rdf_dir, dir_split_number, items_per_file, agent)
+            if agent_path:
+                agent_info = process_archive(agent_path, process_agent, memory, agent, meta_config, resp_agent, agent_path, memory)
+                agent_role = agent_info['role']
+                if not agent_info['next']:
+                    last_roles[agent_role]['last'].append(agent)
+                if agent_info['next'] == agent:
+                    self_next[agent_role] = True
+                last_roles[agent_role]['all'][agent] = agent_info['next']
+                agents_by_role[agent_role][agent] = agent_info
+                is_cache = False
+        if not agents_by_role['author'] and not is_cache:
+            row['author'] = ''
+        if not is_cache:
+            agents_by_role = fix_roles(last_roles, self_next, meta_config, resp_agent, agents_by_role)
+        for agent_role, agents in agents_by_role.items():
+            last = ''
+            new_role_list = list()
+            while agents:
+                for agent, agent_data in agents.items():
+                    if agent_data['next'] == last:
+                        new_role_list.append(agent_data['ra'])
+                        last = agent
+                        del agents[agent]
+                        break
+            if new_role_list:
+                row[agent_role] = '; '.join(reversed(new_role_list))
+        for role in ['author', 'editor', 'publisher']:
+            for ra in row[role].split('; '):
+                if ra:
+                    ra_path = find_file(rdf_dir, dir_split_number, items_per_file, ra)
+                    if ra_path:
+                        output_ra = process_archive(ra_path, process_responsible_agent, memory, ra, rdf_dir, dir_split_number, items_per_file, memory, ra_path, meta_config, resp_agent)
+                        row[role] = row[role].replace(ra, output_ra)
+        for venue in row['venue'].split():
+            venue_path = find_file(rdf_dir, dir_split_number, items_per_file, venue)
+            if venue_path:
+                to_be_found = venue
+                while to_be_found:
+                    venue_info, to_be_found = process_archive(venue_path, process_venue, memory, to_be_found, rdf_dir, dir_split_number, items_per_file, meta_config, resp_agent, memory)
+                    for k, v in venue_info.items():
+                        if v:
+                            row[k] = v
+                    if to_be_found:
+                        venue_path = find_file(rdf_dir, dir_split_number, items_per_file, to_be_found)
+        if row['page']:
+            page_uri = row['page']
+            page_path = find_file(rdf_dir, dir_split_number, items_per_file, page_uri)
+            if page_path:
+                row['page'] = process_archive(page_path, process_page, memory, page_uri, meta_config, resp_agent)
+    write_csv(os.path.join(output_dir, filename), csv_data, FIELDNAMES)
 
 def process_archives(rdf_dir: str, entity_abbr:str, output_dir: str|None, doing_what: callable, threshold: int=3000):
     br_files = [os.path.join(fold, file) for fold, _, files in os.walk(os.path.join(rdf_dir, entity_abbr)) for file in files if file.endswith('.zip') and os.path.basename(fold) != 'prov']
@@ -262,6 +257,15 @@ def process_responsible_agent(ra_data: list, ra_uri: str, rdf_dir: str, dir_spli
         meta_editor = MetaEditor(meta_config, resp_agent)
         meta_editor.sync_rdf_with_triplestore(ra_uri)
         return process_archive(ra_path, process_responsible_agent, memory, ra_uri, rdf_dir, dir_split_number, items_per_file, memory, ra_path, meta_config, resp_agent)
+
+def delete_repeated_ids(ids_list: list) -> list:
+    new_list = []
+    for identifier in ids_list:
+        if identifier in new_list:
+            pass
+        else:
+            new_list.append(identifier)
+    return new_list
 
 def process_venue(venue_data: list, venue_uri: str, rdf_dir: str, dir_split_number: str, items_per_file: str, meta_config: str, resp_agent: str, memory: dict) -> Tuple[dict, list]:
     venue_dict = {'volume': '', 'issue': '', 'venue': ''}

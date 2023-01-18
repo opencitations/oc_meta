@@ -30,22 +30,20 @@ OUTPUT = os.path.join(BASE, 'output')
 META_CONFIG = os.path.join(BASE, 'meta_config.yaml')
 
 class TestEditor(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
+    def setUp(self):
         reset_server()
         meta_process = MetaProcess(config=META_CONFIG)
         run_meta_process(meta_process)
-        cls.editor = MetaEditor(META_CONFIG, 'https://orcid.org/0000-0002-8420-0696')
 
-    @classmethod
-    def tearDownClass(cls):
+    def tearDown(self):
         rmtree(OUTPUT)
 
     def test_update_property(self):
-        self.editor.update_property(URIRef('https://w3id.org/oc/meta/ar/0601'), 'has_next', URIRef('https://w3id.org/oc/meta/ar/0604'))
-        self.editor.update_property(URIRef('https://w3id.org/oc/meta/ar/0604'), 'has_next', URIRef('https://w3id.org/oc/meta/ar/0603'))
-        self.editor.update_property(URIRef('https://w3id.org/oc/meta/ar/0603'), 'has_next', URIRef('https://w3id.org/oc/meta/ar/0602'))
-        self.editor.update_property(URIRef('https://w3id.org/oc/meta/ar/0602'), 'has_next', URIRef('https://w3id.org/oc/meta/ar/0605'))
+        editor = MetaEditor(META_CONFIG, 'https://orcid.org/0000-0002-8420-0696')
+        editor.update_property(URIRef('https://w3id.org/oc/meta/ar/0601'), 'has_next', URIRef('https://w3id.org/oc/meta/ar/0604'))
+        editor.update_property(URIRef('https://w3id.org/oc/meta/ar/0604'), 'has_next', URIRef('https://w3id.org/oc/meta/ar/0603'))
+        editor.update_property(URIRef('https://w3id.org/oc/meta/ar/0603'), 'has_next', URIRef('https://w3id.org/oc/meta/ar/0602'))
+        editor.update_property(URIRef('https://w3id.org/oc/meta/ar/0602'), 'has_next', URIRef('https://w3id.org/oc/meta/ar/0605'))
         with open(os.path.join(OUTPUT, 'rdf', 'ar', '060', '10000', '1000.json'), 'r', encoding='utf8') as f:
             ar_data = json.load(f)
             for graph in ar_data:
@@ -74,7 +72,8 @@ class TestEditor(unittest.TestCase):
                         self.assertEqual(ar['https://w3id.org/oc/ontology/hasUpdateQuery'][0]['@value'], 'DELETE DATA { GRAPH <https://w3id.org/oc/meta/ar/> { <https://w3id.org/oc/meta/ar/0602> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/0603> . } }; INSERT DATA { GRAPH <https://w3id.org/oc/meta/ar/> { <https://w3id.org/oc/meta/ar/0602> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/0605> . } }')
 
     def test_delete_property(self):
-        self.editor.delete_property(URIRef('https://w3id.org/oc/meta/br/0601'), 'has_title')
+        editor = MetaEditor(META_CONFIG, 'https://orcid.org/0000-0002-8420-0696')
+        editor.delete_property(URIRef('https://w3id.org/oc/meta/br/0601'), 'has_title')
         with open(os.path.join(OUTPUT, 'rdf', 'br', '060', '10000', '1000.json'), 'r', encoding='utf8') as f:
             br_data = json.load(f)
             for graph in br_data:
@@ -89,6 +88,38 @@ class TestEditor(unittest.TestCase):
                 for br in graph_prov:
                     if br['@id'] == 'https://w3id.org/oc/meta/br/0601/prov/se/2':
                         self.assertEqual(br['https://w3id.org/oc/ontology/hasUpdateQuery'][0]['@value'], 'DELETE DATA { GRAPH <https://w3id.org/oc/meta/br/> { <https://w3id.org/oc/meta/br/0601> <http://purl.org/dc/terms/title> "A Review Of Hemolytic Uremic Syndrome In Patients Treated With Gemcitabine Therapy"^^<http://www.w3.org/2001/XMLSchema#string> . } }')
+
+    def test_merge(self):
+        editor = MetaEditor(META_CONFIG, 'https://orcid.org/0000-0002-8420-0696')
+        editor.merge(URIRef('https://w3id.org/oc/meta/id/0602'), URIRef('https://w3id.org/oc/meta/id/0603'))
+        with open(os.path.join(OUTPUT, 'rdf', 'id', '060', '10000', '1000.json'), 'r', encoding='utf8') as f:
+            id_data = json.load(f)
+            for graph in id_data:
+                graph_data = graph['@graph']
+                for identifier in graph_data:
+                    if identifier['@id'] == 'https://w3id.org/oc/meta/id/0602':
+                        self.assertEqual(identifier['http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue'][0]['@value'], '1097-0142')
+                    elif identifier['@id'] == 'https://w3id.org/oc/meta/id/0603':
+                        self.fail()
+        with open(os.path.join(OUTPUT, 'rdf', 'id', '060', '10000', '1000', 'prov', 'se.json'), 'r', encoding='utf8') as f:
+            id_prov = json.load(f)
+            for graph in id_prov:
+                graph_prov = graph['@graph'] 
+                for identifier in graph_prov:
+                    if identifier['@id'] in {'https://w3id.org/oc/meta/id/0602/prov/se/1', 'https://w3id.org/oc/meta/id/0603/prov/se/1'}:
+                        self.assertTrue('http://www.w3.org/ns/prov#invalidatedAtTime' in identifier)
+                    elif identifier['@id'] == 'https://w3id.org/oc/meta/id/0603/prov/se/2':
+                        self.assertEqual(identifier['http://purl.org/dc/terms/description'][0]['@value'], "The entity 'https://w3id.org/oc/meta/id/0603' has been deleted.")
+                        self.assertTrue('https://w3id.org/oc/ontology/hasUpdateQuery' in identifier)
+                    elif identifier['@id'] == 'https://w3id.org/oc/meta/id/0602/prov/se/2':
+                        self.assertEqual(identifier['https://w3id.org/oc/ontology/hasUpdateQuery'][0]['@value'], 'DELETE DATA { GRAPH <https://w3id.org/oc/meta/id/> { <https://w3id.org/oc/meta/id/0602> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "0008-543X"^^<http://www.w3.org/2001/XMLSchema#string> . } }; INSERT DATA { GRAPH <https://w3id.org/oc/meta/id/> { <https://w3id.org/oc/meta/id/0602> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "1097-0142" . } }')
+        with open(os.path.join(OUTPUT, 'rdf', 'br', '060', '10000', '1000', 'prov', 'se.json'), 'r', encoding='utf8') as f:
+            br_prov = json.load(f)
+            for graph in br_prov:
+                graph_prov = graph['@graph']
+                for br in graph_prov:
+                    if br['@id'] == 'https://w3id.org/oc/meta/br/0601/prov/se/2':
+                        self.assertEqual(br['https://w3id.org/oc/ontology/hasUpdateQuery'][0]['@value'], 'DELETE DATA { GRAPH <https://w3id.org/oc/meta/br/> { <https://w3id.org/oc/meta/br/0602> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0603> . } }')
 
 if __name__ == '__main__': # pragma: no cover
     unittest.main()
