@@ -37,7 +37,6 @@ class MetaEditor:
         self.base_dir = os.path.join(settings['output_rdf_dir'], 'rdf') + os.sep
         self.info_dir = os.path.join(settings['output_rdf_dir'], 'info_dir')
         self.base_iri = settings['base_iri']
-        self.supplier_prefix = settings['supplier_prefix']
         self.resp_agent = resp_agent
         self.dir_split = settings['dir_split_number']
         self.n_file_item = settings['items_per_file']
@@ -46,7 +45,8 @@ class MetaEditor:
     
     def update_property(self, res: URIRef, property: str, new_value: str|URIRef) -> None:
         info_dir = self.__get_info_dir(res)
-        g_set = GraphSet(self.base_iri, info_dir, supplier_prefix=self.supplier_prefix)
+        supplier_prefix = self.__get_supplier_prefix(res)
+        g_set = GraphSet(self.base_iri, info_dir, supplier_prefix=supplier_prefix)
         self.reader.import_entity_from_triplestore(g_set, self.endpoint, res, self.resp_agent, enable_validation=False)
         if validators.url(new_value):
             new_value = URIRef(new_value)
@@ -58,7 +58,8 @@ class MetaEditor:
     
     def delete_property(self, res: str, property: str) -> None:
         info_dir = self.__get_info_dir(res)
-        g_set = GraphSet(self.base_iri, info_dir, supplier_prefix=self.supplier_prefix)
+        supplier_prefix = self.__get_supplier_prefix(res)
+        g_set = GraphSet(self.base_iri, info_dir, supplier_prefix=supplier_prefix)
         self.reader.import_entity_from_triplestore(g_set, self.endpoint, res, self.resp_agent, enable_validation=False)
         remove_method = property.replace('has', 'remove')
         getattr(g_set.get_entity(res), remove_method)()
@@ -66,17 +67,23 @@ class MetaEditor:
 
     def merge(self, res: URIRef, other: URIRef) -> None:
         info_dir = self.__get_info_dir(res)
-        g_set = GraphSet(self.base_iri, info_dir, supplier_prefix=self.supplier_prefix)
+        supplier_prefix = self.__get_supplier_prefix(res)
+        g_set = GraphSet(self.base_iri, info_dir, supplier_prefix=supplier_prefix)
         self.reader.import_entity_from_triplestore(g_set, self.endpoint, res, self.resp_agent, enable_validation=False)
         self.reader.import_entity_from_triplestore(g_set, self.endpoint, other, self.resp_agent, enable_validation=False)
         sparql = SPARQLWrapper(endpoint=self.endpoint)
-        query_other_as_obj = f'SELECT DISTINCT ?s WHERE {{?s ?p <{other}>.}}'          
+        query_other_as_obj = f'''
+            PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+            SELECT DISTINCT ?entity WHERE {{
+                {{?entity ?p <{other}>}} UNION {{<{res}> ?p ?entity}} UNION {{<{other}> ?p ?entity}} 
+                FILTER (?p != rdf:type)}}'''          
         sparql.setQuery(query_other_as_obj)
         sparql.setReturnFormat(JSON)
         data_obj = sparql.queryAndConvert()
         for data in data_obj["results"]["bindings"]:
-            res_other_as_obj = URIRef(data["s"]["value"])
-            self.reader.import_entity_from_triplestore(g_set, self.endpoint, res_other_as_obj, self.resp_agent, enable_validation=False)
+            if data['entity']['type'] == 'uri':
+                res_other_as_obj = URIRef(data["entity"]["value"])
+                self.reader.import_entity_from_triplestore(g_set, self.endpoint, res_other_as_obj, self.resp_agent, enable_validation=False)
         res_as_entity = g_set.get_entity(res)
         other_as_entity = g_set.get_entity(other)
         res_as_entity.merge(other_as_entity)
@@ -84,7 +91,8 @@ class MetaEditor:
     
     def sync_rdf_with_triplestore(self, res: str) -> None:
         info_dir = self.__get_info_dir(res)
-        g_set = GraphSet(self.base_iri, info_dir, supplier_prefix=self.supplier_prefix)
+        supplier_prefix = self.__get_supplier_prefix(res)
+        g_set = GraphSet(self.base_iri, info_dir, supplier_prefix=supplier_prefix)
         self.reader.import_entity_from_triplestore(g_set, self.endpoint, res, self.resp_agent, enable_validation=False)
         self.save(g_set, info_dir)
     
@@ -99,7 +107,10 @@ class MetaEditor:
         g_set.commit_changes()
     
     def __get_info_dir(self, uri: str):
+        supplier_prefix = self.__get_supplier_prefix(uri)
+        return os.path.join(self.info_dir, supplier_prefix, 'creator') + os.sep if supplier_prefix != '060' else os.path.join(self.info_dir, 'creator') + os.sep
+    
+    def __get_supplier_prefix(self, uri: str) -> str:
         entity_regex: str = r'^(.+)/([a-z][a-z])/(0[1-9]+0)?([1-9][0-9]*)$'
         entity_match = re.match(entity_regex, uri)
-        supplier_prefix = entity_match.group(3)
-        return os.path.join(self.info_dir, supplier_prefix, 'creator') + os.sep if supplier_prefix != '060' else os.path.join(self.info_dir, 'creator') + os.sep
+        return entity_match.group(3)
