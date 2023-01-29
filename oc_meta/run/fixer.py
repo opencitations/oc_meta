@@ -36,12 +36,13 @@ if __name__ == '__main__': # pragma: no cover
     with open(args.config, encoding='utf-8') as file:
         settings = yaml.full_load(file)
     rdf_dir = os.path.join(settings['output_rdf_dir'], 'rdf') + os.sep
+    zip_output_rdf = settings['zip_output_rdf']
     br_files = [os.path.join(fold, file) for fold, _, files in os.walk(os.path.join(rdf_dir, 'br')) for file in files if file.endswith('.zip') and os.path.basename(fold) != 'prov']
     PBAR = tqdm(total=len(br_files))
     with ProcessPool(max_workers=args.max_workers, max_tasks=1) as executor:
         for filepath in br_files:
             future:ProcessFuture = executor.schedule(
                 function=find_broken_roles, 
-                args=(filepath, args.config, args.resp_agent)) 
+                args=(filepath, args.config, args.resp_agent, zip_output_rdf)) 
             future.add_done_callback(task_done)
     PBAR.close()

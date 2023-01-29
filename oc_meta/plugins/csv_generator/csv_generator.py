@@ -55,12 +55,12 @@ URI_TYPE_DICT = {
 
 FIELDNAMES = ['id', 'title', 'author', 'issue', 'volume', 'venue', 'page', 'pub_date', 'type', 'publisher', 'editor']
 
-def generate_csv(filename, meta_config: str, rdf_dir, dir_split_number, items_per_file, resp_agent, output_dir: str) -> None:
+def generate_csv(filename, meta_config: str, rdf_dir, dir_split_number, items_per_file, resp_agent, output_dir: str, zip_output_rdf: bool) -> None:
     memory = dict()
     csv_data = get_csv_data(os.path.join(output_dir, filename))
     for row in csv_data:
         for identifier in [identifier for identifier in row['id'].split() if not identifier.startswith('meta')]:
-            id_path = find_file(rdf_dir, dir_split_number, items_per_file, identifier)
+            id_path = find_file(rdf_dir, dir_split_number, items_per_file, identifier, zip_output_rdf)
             if id_path:
                 id_info = process_archive(id_path, process_id, memory, identifier, meta_config, resp_agent, id_path, memory)
                 row['id'] = row['id'].replace(identifier, id_info)
@@ -69,7 +69,7 @@ def generate_csv(filename, meta_config: str, rdf_dir, dir_split_number, items_pe
         self_next = {'author': False, 'editor': False, 'publisher': False}
         is_cache = True
         for agent in row['author'].split('; '):
-            agent_path = find_file(rdf_dir, dir_split_number, items_per_file, agent)
+            agent_path = find_file(rdf_dir, dir_split_number, items_per_file, agent, zip_output_rdf)
             if agent_path:
                 agent_info = process_archive(agent_path, process_agent, memory, agent, meta_config, resp_agent, agent_path, memory)
                 agent_role = agent_info['role']
@@ -99,24 +99,24 @@ def generate_csv(filename, meta_config: str, rdf_dir, dir_split_number, items_pe
         for role in ['author', 'editor', 'publisher']:
             for ra in row[role].split('; '):
                 if ra:
-                    ra_path = find_file(rdf_dir, dir_split_number, items_per_file, ra)
+                    ra_path = find_file(rdf_dir, dir_split_number, items_per_file, ra, zip_output_rdf)
                     if ra_path:
-                        output_ra = process_archive(ra_path, process_responsible_agent, memory, ra, rdf_dir, dir_split_number, items_per_file, memory, ra_path, meta_config, resp_agent)
+                        output_ra = process_archive(ra_path, process_responsible_agent, memory, ra, rdf_dir, dir_split_number, items_per_file, memory, ra_path, meta_config, resp_agent, zip_output_rdf)
                         row[role] = row[role].replace(ra, output_ra)
         for venue in row['venue'].split():
-            venue_path = find_file(rdf_dir, dir_split_number, items_per_file, venue)
+            venue_path = find_file(rdf_dir, dir_split_number, items_per_file, venue, zip_output_rdf)
             if venue_path:
                 to_be_found = venue
                 while to_be_found:
-                    venue_info, to_be_found = process_archive(venue_path, process_venue, memory, to_be_found, rdf_dir, dir_split_number, items_per_file, meta_config, resp_agent, memory)
+                    venue_info, to_be_found = process_archive(venue_path, process_venue, memory, to_be_found, rdf_dir, dir_split_number, items_per_file, meta_config, resp_agent, memory, zip_output_rdf)
                     for k, v in venue_info.items():
                         if v:
                             row[k] = v
                     if to_be_found:
-                        venue_path = find_file(rdf_dir, dir_split_number, items_per_file, to_be_found)
+                        venue_path = find_file(rdf_dir, dir_split_number, items_per_file, to_be_found, zip_output_rdf)
         if row['page']:
             page_uri = row['page']
-            page_path = find_file(rdf_dir, dir_split_number, items_per_file, page_uri)
+            page_path = find_file(rdf_dir, dir_split_number, items_per_file, page_uri, zip_output_rdf)
             if page_path:
                 row['page'] = process_archive(page_path, process_page, memory, page_uri, meta_config, resp_agent)
     write_csv(os.path.join(output_dir, filename), csv_data, FIELDNAMES)
@@ -129,7 +129,7 @@ def process_archives(rdf_dir: str, entity_abbr:str, output_dir: str|None, doing_
     global_output = list()
     for dirpath, _, filenames in os.walk(os.path.join(rdf_dir, entity_abbr)):
         for filename in filenames:
-            if filename.endswith('.zip') and os.path.basename(dirpath) != 'prov':
+            if (filename.endswith('.zip') or filename.endswith('.json')) and os.path.basename(dirpath) != 'prov':
                 local_output = process_archive(os.path.join(dirpath, filename), doing_what, None)
                 global_output.extend(local_output)
                 if len(global_output) > threshold and output_dir:
@@ -145,13 +145,17 @@ def process_archive(filepath: str, doing_what: callable, memory: dict|None = Non
     if memory is not None:
         if filepath in memory:
             return doing_what(memory[filepath], *args)
-    with ZipFile(file=filepath, mode="r") as archive:
-        for zf_name in archive.namelist():
-            with archive.open(zf_name) as f:
-                data = json.load(f)
-                if memory is not None:
-                    memory[filepath] = data
-                return doing_what(data, *args)
+    if filepath.endswith('.zip'):
+        with ZipFile(file=filepath, mode="r") as archive:
+            for zf_name in archive.namelist():
+                f = archive.open(zf_name)
+    elif filepath.endswith('.json'):
+        f = open(file=filepath, mode="r", encoding="utf8")
+    data = json.load(f)
+    f.close()
+    if memory is not None:
+        memory[filepath] = data
+    return doing_what(data, *args)
 
 def process_br(br_data: list) -> list:
     csv_br_data = list()
@@ -201,7 +205,6 @@ def process_id(id_data: list, id_uri: str, meta_config: str, resp_agent: str, id
         meta_editor.sync_rdf_with_triplestore(id_uri)
         return process_archive(id_path, process_id, memory, id_uri, meta_config, resp_agent, id_path, memory)
 
-
 def process_agent(agent_data: list, agent_uri: str, meta_config: str, resp_agent: str, agent_path: str, memory: dict) -> dict:
     agent_dict = dict()
     for graph in agent_data:
@@ -221,7 +224,7 @@ def process_agent(agent_data: list, agent_uri: str, meta_config: str, resp_agent
         meta_editor.sync_rdf_with_triplestore(agent_uri)
         return process_archive(agent_path, process_agent, memory, agent_uri, meta_config, resp_agent, agent_path, memory)
                     
-def process_responsible_agent(ra_data: list, ra_uri: str, rdf_dir: str, dir_split_number: str, items_per_file: str, memory: dict, ra_path: str, meta_config: str, resp_agent: str) -> str:
+def process_responsible_agent(ra_data: list, ra_uri: str, rdf_dir: str, dir_split_number: str, items_per_file: str, memory: dict, ra_path: str, meta_config: str, resp_agent: str, zip_output_rdf: bool) -> str:
     ra_value = None
     for graph in ra_data:
         graph_data = graph['@graph']
@@ -241,11 +244,13 @@ def process_responsible_agent(ra_data: list, ra_uri: str, rdf_dir: str, dir_spli
                     elif ra_gn:
                         full_name += f', {ra_gn}'
                 ra_ids = [f"meta:{ra_uri.split('/meta/')[1]}"]
+                ra_ids_mapping = dict()
                 if 'http://purl.org/spar/datacite/hasIdentifier' in ra:
                     for ra_identifier in ra['http://purl.org/spar/datacite/hasIdentifier']:
                         id_uri = ra_identifier['@id']
-                        id_path = find_file(rdf_dir, dir_split_number, items_per_file, id_uri)
-                        ra_ids.append(process_archive(id_path, process_id, memory, id_uri, meta_config, resp_agent, id_path, memory))
+                        id_path = find_file(rdf_dir, dir_split_number, items_per_file, id_uri, zip_output_rdf)
+                        ra_ids_mapping[id_uri] = process_archive(id_path, process_id, memory, id_uri, meta_config, resp_agent, id_path, memory)
+                ra_ids.extend(merge_repeated_ids(ra_ids_mapping, meta_config, resp_agent))
                 if full_name:
                     ra_value = f"{full_name} [{' '.join(ra_ids)}]"
                 else:
@@ -256,18 +261,20 @@ def process_responsible_agent(ra_data: list, ra_uri: str, rdf_dir: str, dir_spli
         del memory[ra_path]
         meta_editor = MetaEditor(meta_config, resp_agent)
         meta_editor.sync_rdf_with_triplestore(ra_uri)
-        return process_archive(ra_path, process_responsible_agent, memory, ra_uri, rdf_dir, dir_split_number, items_per_file, memory, ra_path, meta_config, resp_agent)
+        return process_archive(ra_path, process_responsible_agent, memory, ra_uri, rdf_dir, dir_split_number, items_per_file, memory, ra_path, meta_config, resp_agent, zip_output_rdf)
 
-def delete_repeated_ids(ids_list: list) -> list:
+def merge_repeated_ids(ids_mapping: dict, meta_config: str, resp_agent: str) -> list:
+    meta_editor = MetaEditor(meta_config, resp_agent)
     new_list = []
-    for identifier in ids_list:
-        if identifier in new_list:
-            pass
+    for id_uri, id_full in ids_mapping.items():
+        if id_full in new_list:
+            prev_id_uri = next(prev_uri for prev_uri, prev_full in ids_mapping.items() if prev_full == id_full)
+            meta_editor.merge(URIRef(prev_id_uri), URIRef(id_uri))
         else:
-            new_list.append(identifier)
+            new_list.append(id_full)
     return new_list
 
-def process_venue(venue_data: list, venue_uri: str, rdf_dir: str, dir_split_number: str, items_per_file: str, meta_config: str, resp_agent: str, memory: dict) -> Tuple[dict, list]:
+def process_venue(venue_data: list, venue_uri: str, rdf_dir: str, dir_split_number: str, items_per_file: str, meta_config: str, resp_agent: str, memory: dict, zip_output_rdf: bool) -> Tuple[dict, list]:
     venue_dict = {'volume': '', 'issue': '', 'venue': ''}
     to_be_found = None
     for graph in venue_data:
@@ -282,9 +289,11 @@ def process_venue(venue_data: list, venue_uri: str, rdf_dir: str, dir_split_numb
                     venue_title = venue['http://purl.org/dc/terms/title'][0]['@value']
                     venue_ids = venue['http://purl.org/spar/datacite/hasIdentifier'] if 'http://purl.org/spar/datacite/hasIdentifier' in venue else []
                     explicit_ids = [f"meta:{venue_uri.split('/meta/')[1]}"]
+                    explicit_ids_mapping = dict()
                     for venue_id in venue_ids:
-                        id_path = find_file(rdf_dir, dir_split_number, items_per_file, venue_id['@id'])
-                        explicit_ids.append(process_archive(id_path, process_id, memory, venue_id['@id'], meta_config, resp_agent, id_path, memory))
+                        id_path = find_file(rdf_dir, dir_split_number, items_per_file, venue_id['@id'], zip_output_rdf)
+                        explicit_ids_mapping[venue_id['@id']] = process_archive(id_path, process_id, memory, venue_id['@id'], meta_config, resp_agent, id_path, memory)
+                    explicit_ids.extend(merge_repeated_ids(explicit_ids_mapping, meta_config, resp_agent))
                     venue_dict['venue'] = f"{venue_title} [{' '.join(explicit_ids)}]"
                 if 'http://purl.org/vocab/frbr/core#partOf' in venue:
                     to_be_found = venue['http://purl.org/vocab/frbr/core#partOf'][0]['@id']
@@ -314,7 +323,7 @@ def process_page(page_data: list, page_uri: str, meta_config: str, resp_agent: s
                         return ''
                 return f'{starting_page}-{ending_page}'
 
-def find_file(rdf_dir: str, dir_split_number: str, items_per_file: str, uri: str) -> str|None:
+def find_file(rdf_dir: str, dir_split_number: str, items_per_file: str, uri: str, zip_output_rdf: bool) -> str|None:
     entity_regex: str = r'^(https:\/\/w3id\.org\/oc\/meta)\/([a-z][a-z])\/(0[1-9]+0)?([1-9][0-9]*)$'
     entity_match = re.match(entity_regex, uri)
     if entity_match:
@@ -334,7 +343,8 @@ def find_file(rdf_dir: str, dir_split_number: str, items_per_file: str, uri: str
         short_name = entity_match.group(2)
         sub_folder = entity_match.group(3)
         cur_dir_path = os.path.join(rdf_dir, short_name, sub_folder, str(cur_split))
-        cur_file_path = os.path.join(cur_dir_path, str(cur_file_split)) + '.zip'
+        extension = '.zip' if zip_output_rdf else '.json'
+        cur_file_path = os.path.join(cur_dir_path, str(cur_file_split)) + extension
         return cur_file_path
 
 def fix_roles(last_roles: dict, self_next: dict, meta_config: str, resp_agent: str, agents_by_role: dict) -> dict:

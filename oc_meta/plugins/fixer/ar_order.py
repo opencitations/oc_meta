@@ -29,7 +29,7 @@ from oc_meta.plugins.csv_generator.csv_generator import (find_file,
 from oc_meta.plugins.editor import MetaEditor
 
 
-def find_broken_roles(filepath: str, meta_config: str, resp_agent: str):
+def find_broken_roles(filepath: str, meta_config: str, resp_agent: str, zip_output_rdf: bool):
     with open(meta_config, encoding='utf-8') as file:
         settings = yaml.full_load(file)
     rdf_dir = os.path.join(settings['output_rdf_dir'], 'rdf') + os.sep
@@ -37,7 +37,7 @@ def find_broken_roles(filepath: str, meta_config: str, resp_agent: str):
     items_per_file = settings['items_per_file']
     memory = dict()
     roles_in_br = process_archive(filepath, extract_roles_from_br)
-    check_roles(roles_in_br, rdf_dir, dir_split_number, items_per_file, memory, meta_config, resp_agent)
+    check_roles(roles_in_br, rdf_dir, dir_split_number, items_per_file, memory, meta_config, resp_agent, zip_output_rdf)
 
 def extract_roles_from_br(br_data: list) -> list:
     all_ar = list()
@@ -52,12 +52,12 @@ def extract_roles_from_br(br_data: list) -> list:
                 all_ar.append(br_ars)
     return all_ar
 
-def check_roles(roles_in_br: List[list], rdf_dir: str, dir_split_number: str, items_per_file: str, memory: dict, meta_config: str, resp_agent: str) -> None:
+def check_roles(roles_in_br: List[list], rdf_dir: str, dir_split_number: str, items_per_file: str, memory: dict, meta_config: str, resp_agent: str, zip_output_rdf: bool) -> None:
     for roles_list in roles_in_br:
         last_roles = {'author': {'all': dict(), 'last': []}, 'editor': {'all': dict(), 'last': []}, 'publisher': {'all': dict(), 'last': []}}
         self_next = {'author': False, 'editor': False, 'publisher': False}
         for role in roles_list:
-            ar_path = find_file(rdf_dir, dir_split_number, items_per_file, role)
+            ar_path = find_file(rdf_dir, dir_split_number, items_per_file, role, zip_output_rdf)
             role_next_tuple = process_archive(ar_path, get_next, memory, role)
             if role_next_tuple:
                 agent_role = role_next_tuple[0]
