@@ -54,12 +54,13 @@ if __name__ == '__main__': # pragma: no cover
     print('[csv_generator: INFO] Solving the OpenCitations Meta Identifiers recursively')
     filenames = os.listdir(output_dir)
     PBAR = tqdm(total=len(filenames))
-    for filename in filenames:
-        generate_csv(filename, args.config, rdf_dir, dir_split_number, items_per_file, resp_agent, args.output_dir, zip_output_rdf)
-    # with ProcessPool(max_workers=args.max_workers, max_tasks=1) as executor:
-    #     for filename in filenames:
-    #         future:ProcessFuture = executor.schedule(
-    #             function=generate_csv,
-    #             args=(filename, args.config, rdf_dir, dir_split_number, items_per_file, resp_agent, args.output_dir))
-    #         future.add_done_callback(task_done)
+    # for filename in filenames:
+    #     generate_csv(filename, args.config, rdf_dir, dir_split_number, items_per_file, resp_agent, args.output_dir, zip_output_rdf)
+    with ProcessPool(max_workers=args.max_workers, max_tasks=1) as executor:
+        for filename in filenames:
+            future:ProcessFuture = executor.schedule(
+                function=generate_csv,
+                args=(filename, args.config, rdf_dir, dir_split_number, items_per_file, resp_agent, args.output_dir, zip_output_rdf))
+            future.add_done_callback(task_done)
+        # PBAR.update()
     PBAR.close()

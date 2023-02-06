@@ -244,13 +244,11 @@ def process_responsible_agent(ra_data: list, ra_uri: str, rdf_dir: str, dir_spli
                     elif ra_gn:
                         full_name += f', {ra_gn}'
                 ra_ids = [f"meta:{ra_uri.split('/meta/')[1]}"]
-                ra_ids_mapping = dict()
                 if 'http://purl.org/spar/datacite/hasIdentifier' in ra:
                     for ra_identifier in ra['http://purl.org/spar/datacite/hasIdentifier']:
                         id_uri = ra_identifier['@id']
                         id_path = find_file(rdf_dir, dir_split_number, items_per_file, id_uri, zip_output_rdf)
-                        ra_ids_mapping[id_uri] = process_archive(id_path, process_id, memory, id_uri, meta_config, resp_agent, id_path, memory)
-                ra_ids.extend(merge_repeated_ids(ra_ids_mapping, meta_config, resp_agent))
+                        ra_ids.append(process_archive(id_path, process_id, memory, id_uri, meta_config, resp_agent, id_path, memory))
                 if full_name:
                     ra_value = f"{full_name} [{' '.join(ra_ids)}]"
                 else:
@@ -269,7 +267,10 @@ def merge_repeated_ids(ids_mapping: dict, meta_config: str, resp_agent: str) -> 
     for id_uri, id_full in ids_mapping.items():
         if id_full in new_list:
             prev_id_uri = next(prev_uri for prev_uri, prev_full in ids_mapping.items() if prev_full == id_full)
-            meta_editor.merge(URIRef(prev_id_uri), URIRef(id_uri))
+            try:
+                meta_editor.merge(URIRef(prev_id_uri), URIRef(id_uri))
+            except ValueError:
+                pass
         else:
             new_list.append(id_full)
     return new_list
@@ -286,7 +287,7 @@ def process_venue(venue_data: list, venue_uri: str, rdf_dir: str, dir_split_numb
                 elif 'http://purl.org/spar/fabio/JournalVolume' in venue['@type']:
                     venue_dict['volume'] = venue['http://purl.org/spar/fabio/hasSequenceIdentifier'][0]['@value']
                 else:
-                    venue_title = venue['http://purl.org/dc/terms/title'][0]['@value']
+                    venue_title = venue['http://purl.org/dc/terms/title'][0]['@value'] if 'http://purl.org/dc/terms/title' in venue else None
                     venue_ids = venue['http://purl.org/spar/datacite/hasIdentifier'] if 'http://purl.org/spar/datacite/hasIdentifier' in venue else []
                     explicit_ids = [f"meta:{venue_uri.split('/meta/')[1]}"]
                     explicit_ids_mapping = dict()
@@ -294,7 +295,8 @@ def process_venue(venue_data: list, venue_uri: str, rdf_dir: str, dir_split_numb
                         id_path = find_file(rdf_dir, dir_split_number, items_per_file, venue_id['@id'], zip_output_rdf)
                         explicit_ids_mapping[venue_id['@id']] = process_archive(id_path, process_id, memory, venue_id['@id'], meta_config, resp_agent, id_path, memory)
                     explicit_ids.extend(merge_repeated_ids(explicit_ids_mapping, meta_config, resp_agent))
-                    venue_dict['venue'] = f"{venue_title} [{' '.join(explicit_ids)}]"
+                    venue_full = f"{venue_title} [{' '.join(explicit_ids)}]" if venue_title else f"[{' '.join(explicit_ids)}]"
+                    venue_dict['venue'] = venue_full
                 if 'http://purl.org/vocab/frbr/core#partOf' in venue:
                     to_be_found = venue['http://purl.org/vocab/frbr/core#partOf'][0]['@id']
     return venue_dict, to_be_found

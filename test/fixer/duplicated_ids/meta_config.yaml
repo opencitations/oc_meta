@@ -23,9 +23,9 @@ triplestore_url: http://127.0.0.1:9999/blazegraph/sparql
 # A list of triplestore URLs containing provenance metadata
 provenance_endpoints: []
 # Directory where raw CSV files are stored
-input_csv_dir: test/ar_order/input
+input_csv_dir: test/fixer/duplicated_ids/input
 # The path to the base directory to save all output files
-base_output_dir: &base_output_dir test/ar_order
+base_output_dir: &base_output_dir test/fixer/duplicated_ids
 # A URI string representing the provenance agent which is considered responsible for the RDF graph manipulation
 resp_agent: https://w3id.org/oc/meta/prov/pa/1
 

@@ -1,5 +1,5 @@
 #!python
-# Copyright 2022, Arcangelo Massari <arcangelo.massari@unibo.it>
+# Copyright 2022-2023, Arcangelo Massari <arcangelo.massari@unibo.it>
 #
 # Permission to use, copy, modify, and/or distribute this software for any purpose
 # with or without fee is hereby granted, provided that the above copyright notice
@@ -24,7 +24,7 @@ from zipfile import ZipFile
 
 from SPARQLWrapper import JSON, SPARQLWrapper
 
-BASE = os.path.join('test', 'ar_order')
+BASE = os.path.join('test', 'fixer', 'ar_order')
 
 class test_ar_order(unittest.TestCase):
     @classmethod
@@ -53,7 +53,7 @@ class test_ar_order(unittest.TestCase):
         copy(os.path.join(BASE, '060', 'prov_file_ar.txt'), os.path.join(BASE, 'info_dir', 'creator', 'prov_file_ar.txt'))
 
     def test_fix_broken_roles_two_last(self):
-        call([executable, '-m', 'oc_meta.run.fixer', '-c', os.path.join(BASE, 'meta_config.yaml'), '-r', 'https://orcid.org/0000-0002-8420-0696', '-m', '2'])
+        call([executable, '-m', 'oc_meta.run.fixer.roles_order', '-c', os.path.join(BASE, 'meta_config.yaml'), '-r', 'https://orcid.org/0000-0002-8420-0696', '-m', '2'])
         output = dict()
         provenance_output = dict()
         for filepath in [os.path.join(BASE, 'rdf', 'ar', '060', '10000', '1000.zip'), os.path.join(BASE, 'rdf', 'ar', '06360', '310000', '301000.zip')]:
