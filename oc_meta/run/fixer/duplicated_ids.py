@@ -27,9 +27,10 @@ if __name__ == '__main__': # pragma: no cover
     arg_parser.add_argument('-e', '--entity_type', dest='entity_type', required=True, choices=['ra', 'br'], help='An entity type abbreviation')
     arg_parser.add_argument('-c', '--c', dest='config', required=True, help='OpenCitations Meta configuration file location')
     arg_parser.add_argument('-r', '--resp_agent', dest='resp_agent', required=True, help='Your ORCID URL')
+    arg_parser.add_argument('-ca', '--cache', dest='cache', required=True, help='The cache file path')
     args = arg_parser.parse_args()
     with open(args.config, encoding='utf-8') as file:
         settings = yaml.full_load(file)
     rdf_dir = os.path.join(settings['output_rdf_dir'], 'rdf') + os.sep
     zip_output_rdf = settings['zip_output_rdf']
-    find_duplicated_ids_in_entity_type(rdf_dir, args.config, args.entity_type, args.resp_agent, zip_output_rdf)
+    find_duplicated_ids_in_entity_type(rdf_dir, args.config, args.entity_type, args.resp_agent, zip_output_rdf, args.cache)

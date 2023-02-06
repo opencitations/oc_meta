@@ -25,7 +25,7 @@ from oc_meta.plugins.csv_generator.csv_generator import (find_file,
 from oc_meta.plugins.editor import MetaEditor
 
 
-def find_duplicated_ids_in_entity_type(filepath: str, meta_config: str, entity_type_abbr: str, resp_agent: str, zip_output_rdf: bool):
+def find_duplicated_ids_in_entity_type(filepath: str, meta_config: str, entity_type_abbr: str, resp_agent: str, zip_output_rdf: bool, cache: str):
     with open(meta_config, encoding='utf-8') as file:
         settings = yaml.full_load(file)
     rdf_dir = os.path.join(settings['output_rdf_dir'], 'rdf') + os.sep
@@ -33,12 +33,17 @@ def find_duplicated_ids_in_entity_type(filepath: str, meta_config: str, entity_t
     dir_split_number = settings['dir_split_number']
     items_per_file = settings['items_per_file']
     memory = dict()
+    deleted_ids = set()
+    if os.path.isfile(cache):
+        with open(cache, 'r', encoding='utf-8') as f:
+            deleted_ids = set(f.read().splitlines())
     for dirpath, _, filenames in os.walk(rdf_entity_dir):
         for filename in filenames:
             filepath = os.path.join(dirpath, filename)
-            process_archive(filepath, extract_identifiers, memory, rdf_dir, dir_split_number, items_per_file, zip_output_rdf, memory, meta_config, resp_agent)
+            process_archive(filepath, extract_identifiers, memory, rdf_dir, dir_split_number, items_per_file, zip_output_rdf, memory, meta_config, resp_agent, cache, deleted_ids)
 
-def extract_identifiers(data: list, rdf_dir:str, dir_split_number: int, items_per_file: int, zip_output_rdf: bool, memory: dict, meta_config: str, resp_agent: str):
+def extract_identifiers(data: list, rdf_dir:str, dir_split_number: int, items_per_file: int, zip_output_rdf: bool, memory: dict, meta_config: str, resp_agent: str, cache: str, deleted_ids: set):
+    meta_editor = MetaEditor(meta_config, resp_agent)
     for graph in data:
         graph_data = graph['@graph']
         for entity in graph_data:
@@ -47,12 +52,15 @@ def extract_identifiers(data: list, rdf_dir:str, dir_split_number: int, items_pe
                 identifiers = entity['http://purl.org/spar/datacite/hasIdentifier']
                 for identifier in identifiers:
                     id_uri = identifier['@id']
-                    id_path = find_file(rdf_dir, dir_split_number, items_per_file, id_uri, zip_output_rdf)
-                    id_full = process_archive(id_path, process_id, memory, id_uri, meta_config, resp_agent, id_path, memory)
-                    ids_mapping[id_uri] = id_full
-            merge_repeated_ids(ids_mapping, meta_config, resp_agent)
+                    if id_uri in deleted_ids:
+                        meta_editor.delete_property(entity['@id'], 'has_identifier', id_uri)
+                    else:
+                        id_path = find_file(rdf_dir, dir_split_number, items_per_file, id_uri, zip_output_rdf)
+                        id_full = process_archive(id_path, process_id, memory, id_uri, meta_config, resp_agent, id_path, memory)
+                        ids_mapping[id_uri] = id_full
+            merge_repeated_ids(ids_mapping, meta_config, resp_agent, cache)
 
-def merge_repeated_ids(ids_mapping: dict, meta_config: str, resp_agent: str) -> list:
+def merge_repeated_ids(ids_mapping: dict, meta_config: str, resp_agent: str, cache: str) -> list:
     meta_editor = MetaEditor(meta_config, resp_agent)
     new_list = []
     for id_uri, id_full in ids_mapping.items():
@@ -60,6 +68,17 @@ def merge_repeated_ids(ids_mapping: dict, meta_config: str, resp_agent: str) -> 
             prev_id_uri = next(prev_uri for prev_uri, prev_full in ids_mapping.items() if prev_full == id_full)
             ids_to_merge = sorted([prev_id_uri, id_uri])
             meta_editor.merge(URIRef(ids_to_merge[0]), URIRef(ids_to_merge[1]))
+            store_deleted_id(cache, ids_to_merge[1])
         else:
             new_list.append(id_full)
     return new_list
+
+def store_deleted_id(cache: str, deleted_id: str):
+    deleted_ids = set()
+    if os.path.isfile(cache):
+        with open(cache, 'r', encoding='utf-8') as f:
+            deleted_ids = set(f.readlines())
+    deleted_ids.add(deleted_id)
+    with open(cache, 'w', encoding='utf8') as f:
+        for deleted_id in deleted_ids:
+            f.write(f"{deleted_id}\n")

@@ -53,7 +53,7 @@ class test_duplicated_ids(unittest.TestCase):
         graph_storer.store_all(rdf, base_iri)
         prov_storer.store_all(rdf, base_iri)
         graph_storer.upload_all(endpoint)
-        call([executable, '-m', 'oc_meta.run.fixer.duplicated_ids', '-e', 'ra', '-c', os.path.join(BASE, 'meta_config.yaml'), '-r', 'https://orcid.org/0000-0002-8420-0696'])
+        call([executable, '-m', 'oc_meta.run.fixer.duplicated_ids', '-e', 'ra', '-c', os.path.join(BASE, 'meta_config.yaml'), '-r', 'https://orcid.org/0000-0002-8420-0696', '-ca', os.path.join(BASE, 'deleted_ids.txt')])
         for filepath in [
             os.path.join(BASE, 'rdf', 'ra', '060', '10000', '1000.json'),
             os.path.join(BASE, 'rdf', 'ra', '060', '10000', '1000', 'prov', 'se.json')
@@ -72,5 +72,5 @@ class test_duplicated_ids(unittest.TestCase):
         for stuff in os.listdir(BASE):
             if os.path.isdir(os.path.join(BASE, stuff)) and stuff not in {'input'}:
                 rmtree(os.path.join(BASE, stuff))
-            elif os.path.isfile(os.path.join(BASE, stuff)) and stuff != 'meta_config.yaml':
+            elif os.path.isfile(os.path.join(BASE, stuff)) and stuff not in {'meta_config.yaml', 'deleted_ids.txt'}:
                 os.remove(os.path.join(BASE, stuff))
