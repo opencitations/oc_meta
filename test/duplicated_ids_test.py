@@ -13,6 +13,7 @@
 # ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 # SOFTWARE.
 
+import json
 import os
 import unittest
 from shutil import rmtree
@@ -26,9 +27,6 @@ from oc_ocdm.prov import ProvSet
 from oc_ocdm.reader import Reader
 from rdflib import URIRef
 
-from oc_meta.plugins.fixer.merge_duplicated_ids import \
-    find_duplicated_ids_in_entity_type
-
 BASE = os.path.join('test', 'fixer', 'duplicated_ids')
 CONFIG = os.path.join(BASE, 'meta_config.yaml')
 
@@ -37,8 +35,8 @@ class test_duplicated_ids(unittest.TestCase):
         reset_server()
         call([executable, '-m', 'oc_meta.run.meta_process', '-c', CONFIG])
         base_iri = 'https://w3id.org/oc/meta/'
-        info_dir = os.path.join(BASE, 'info_dir', '0620', 'creator')
-        g_set = GraphSet(base_iri, info_dir, supplier_prefix='0620', wanted_label=False)
+        info_dir = os.path.join(BASE, 'info_dir', 'creator')
+        g_set = GraphSet(base_iri, info_dir, supplier_prefix='060', wanted_label=False)
         endpoint = 'http://127.0.0.1:9999/blazegraph/sparql'
         resp_agent = 'https://orcid.org/0000-0002-8420-0696'
         rdf = os.path.join(BASE, 'rdf') + os.sep
@@ -56,6 +54,21 @@ class test_duplicated_ids(unittest.TestCase):
         prov_storer.store_all(rdf, base_iri)
         graph_storer.upload_all(endpoint)
         call([executable, '-m', 'oc_meta.run.fixer.duplicated_ids', '-e', 'ra', '-c', os.path.join(BASE, 'meta_config.yaml'), '-r', 'https://orcid.org/0000-0002-8420-0696'])
+        for filepath in [
+            os.path.join(BASE, 'rdf', 'ra', '060', '10000', '1000.json'),
+            os.path.join(BASE, 'rdf', 'ra', '060', '10000', '1000', 'prov', 'se.json')
+        ]:
+            with open(filepath, 'r', encoding='utf8') as f:
+                data = json.load(f)
+                for graph in data:
+                    graph_data = graph['@graph']
+                    for entity in graph_data:
+                        if entity['@id'] == 'https://w3id.org/oc/meta/ra/0605':
+                            identifiers = {identifier['@id'] for identifier in entity['http://purl.org/spar/datacite/hasIdentifier']}
+                            self.assertTrue(identifiers == {'https://w3id.org/oc/meta/id/0604'})
+                        elif entity['@id'] == 'https://w3id.org/oc/meta/ra/0605/prov/se/3':
+                            update_query = entity['https://w3id.org/oc/ontology/hasUpdateQuery'][0]['@value']
+                            self.assertTrue(update_query, 'DELETE DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/0605> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0603> . } }')
         for stuff in os.listdir(BASE):
             if os.path.isdir(os.path.join(BASE, stuff)) and stuff not in {'input'}:
                 rmtree(os.path.join(BASE, stuff))
