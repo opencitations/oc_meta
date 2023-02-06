@@ -65,10 +65,10 @@ class test_duplicated_ids(unittest.TestCase):
                     for entity in graph_data:
                         if entity['@id'] == 'https://w3id.org/oc/meta/ra/0605':
                             identifiers = {identifier['@id'] for identifier in entity['http://purl.org/spar/datacite/hasIdentifier']}
-                            self.assertTrue(identifiers == {'https://w3id.org/oc/meta/id/0604'})
+                            self.assertTrue(identifiers == {'https://w3id.org/oc/meta/id/0603'})
                         elif entity['@id'] == 'https://w3id.org/oc/meta/ra/0605/prov/se/3':
                             update_query = entity['https://w3id.org/oc/ontology/hasUpdateQuery'][0]['@value']
-                            self.assertTrue(update_query, 'DELETE DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/0605> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0603> . } }')
+                            self.assertTrue(update_query, 'DELETE DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/0605> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0604> . } }')
         for stuff in os.listdir(BASE):
             if os.path.isdir(os.path.join(BASE, stuff)) and stuff not in {'input'}:
                 rmtree(os.path.join(BASE, stuff))

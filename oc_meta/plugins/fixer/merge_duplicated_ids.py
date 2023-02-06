@@ -42,7 +42,6 @@ def extract_identifiers(data: list, rdf_dir:str, dir_split_number: int, items_pe
     for graph in data:
         graph_data = graph['@graph']
         for entity in graph_data:
-            entity_ids = list()
             ids_mapping = dict()
             if 'http://purl.org/spar/datacite/hasIdentifier' in entity:
                 identifiers = entity['http://purl.org/spar/datacite/hasIdentifier']
@@ -51,9 +50,7 @@ def extract_identifiers(data: list, rdf_dir:str, dir_split_number: int, items_pe
                     id_path = find_file(rdf_dir, dir_split_number, items_per_file, id_uri, zip_output_rdf)
                     id_full = process_archive(id_path, process_id, memory, id_uri, meta_config, resp_agent, id_path, memory)
                     ids_mapping[id_uri] = id_full
-                    entity_ids.append(id_full)
-            if len(entity_ids) > len(set(entity_ids)):
-                merge_repeated_ids(ids_mapping, meta_config, resp_agent)
+            merge_repeated_ids(ids_mapping, meta_config, resp_agent)
 
 def merge_repeated_ids(ids_mapping: dict, meta_config: str, resp_agent: str) -> list:
     meta_editor = MetaEditor(meta_config, resp_agent)
@@ -61,7 +58,8 @@ def merge_repeated_ids(ids_mapping: dict, meta_config: str, resp_agent: str) -> 
     for id_uri, id_full in ids_mapping.items():
         if id_full in new_list:
             prev_id_uri = next(prev_uri for prev_uri, prev_full in ids_mapping.items() if prev_full == id_full)
-            meta_editor.merge(URIRef(prev_id_uri), URIRef(id_uri))
+            ids_to_merge = sorted([prev_id_uri, id_uri])
+            meta_editor.merge(URIRef(ids_to_merge[0]), URIRef(ids_to_merge[1]))
         else:
             new_list.append(id_full)
     return new_list
