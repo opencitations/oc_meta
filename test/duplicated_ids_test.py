@@ -33,6 +33,11 @@ CONFIG = os.path.join(BASE, 'meta_config.yaml')
 class test_duplicated_ids(unittest.TestCase):
     def test_find_duplicated_ids_in_entity_type(self):
         reset_server()
+        for stuff in os.listdir(BASE):
+            if os.path.isdir(os.path.join(BASE, stuff)) and stuff not in {'input'}:
+                rmtree(os.path.join(BASE, stuff))
+            elif os.path.isfile(os.path.join(BASE, stuff)) and stuff not in {'meta_config.yaml'}:
+                os.remove(os.path.join(BASE, stuff))
         call([executable, '-m', 'oc_meta.run.meta_process', '-c', CONFIG])
         base_iri = 'https://w3id.org/oc/meta/'
         info_dir = os.path.join(BASE, 'info_dir', 'creator')
@@ -53,7 +58,7 @@ class test_duplicated_ids(unittest.TestCase):
         graph_storer.store_all(rdf, base_iri)
         prov_storer.store_all(rdf, base_iri)
         graph_storer.upload_all(endpoint)
-        call([executable, '-m', 'oc_meta.run.fixer.duplicated_ids', '-e', 'ra', '-c', os.path.join(BASE, 'meta_config.yaml'), '-r', 'https://orcid.org/0000-0002-8420-0696'])
+        call([executable, '-m', 'oc_meta.run.fixer.duplicated_ids', '-e', 'ra', '-c', os.path.join(BASE, 'meta_config.yaml'), '-r', 'https://orcid.org/0000-0002-8420-0696', '-ca', os.path.join(BASE, 'cache.json')])
         for filepath in [
             os.path.join(BASE, 'rdf', 'ra', '060', '10000', '1000.json'),
             os.path.join(BASE, 'rdf', 'ra', '060', '10000', '1000', 'prov', 'se.json')
@@ -72,5 +77,5 @@ class test_duplicated_ids(unittest.TestCase):
         for stuff in os.listdir(BASE):
             if os.path.isdir(os.path.join(BASE, stuff)) and stuff not in {'input'}:
                 rmtree(os.path.join(BASE, stuff))
-            elif os.path.isfile(os.path.join(BASE, stuff)) and stuff not in {'meta_config.yaml', 'deleted_ids.txt'}:
+            elif os.path.isfile(os.path.join(BASE, stuff)) and stuff not in {'meta_config.yaml'}:
                 os.remove(os.path.join(BASE, stuff))

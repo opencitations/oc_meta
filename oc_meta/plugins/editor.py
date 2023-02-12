@@ -71,7 +71,7 @@ class MetaEditor:
         else:
             getattr(g_set.get_entity(URIRef(res)), remove_method)()
         self.save(g_set, info_dir)
-
+    
     def merge(self, res: URIRef, other: URIRef) -> None:
         info_dir = self.__get_info_dir(res)
         supplier_prefix = self.__get_supplier_prefix(res)

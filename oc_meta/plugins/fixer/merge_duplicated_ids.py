@@ -14,15 +14,14 @@
 # ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 # SOFTWARE.
 
-from rdflib import URIRef
+from typing import Tuple
 
 from oc_meta.plugins.csv_generator.csv_generator import (find_file,
                                                          process_archive,
                                                          process_id)
-from oc_meta.plugins.editor import MetaEditor
 
 
-def extract_identifiers(data: list, rdf_dir:str, dir_split_number: int, items_per_file: int, zip_output_rdf: bool, memory: dict, meta_config: str, resp_agent: str) -> list:
+def extract_identifiers(data: list, filepath: str, rdf_dir:str, dir_split_number: int, items_per_file: int, zip_output_rdf: bool, memory: dict, meta_config: str, resp_agent: str) -> Tuple[str, list]:
     to_be_merged = list()
     for graph in data:
         graph_data = graph['@graph']
@@ -40,4 +39,4 @@ def extract_identifiers(data: list, rdf_dir:str, dir_split_number: int, items_pe
                         to_be_merged.append(tuple(sorted([prev_id_uri, id_uri])))
                     entity_full_ids.append(id_full)
                     ids_mapping[id_uri] = id_full
-    return to_be_merged
+    return filepath, to_be_merged

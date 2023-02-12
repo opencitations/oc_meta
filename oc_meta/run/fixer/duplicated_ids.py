@@ -14,8 +14,10 @@
 # SOFTWARE.
 
 
+import json
 import os
 from argparse import ArgumentParser
+from functools import partial
 
 import yaml
 from pebble import ProcessFuture, ProcessPool
@@ -27,18 +29,20 @@ from oc_meta.plugins.fixer.merge_duplicated_ids import (extract_identifiers,
                                                         process_archive)
 
 
-def task_done(task_output:ProcessFuture) -> None:
-    output = task_output.result()
-    if output:
-        print(f'To be merged: {output}')
-        TO_BE_MERGED.extend(output)
-    PBAR.update()
+def task_done(merge_index: dict, task_output:ProcessFuture) -> None:
+    filepath, to_be_merged = task_output.result()
+    merge_index[filepath.replace('\\', '/')] = to_be_merged
+    if len(merge_index) % 1000 == 0:
+        with open(CACHE_PATH, 'w', encoding='utf-8') as f:
+            json.dump(merge_index, f)
+    pbar.update()
 
 if __name__ == '__main__': # pragma: no cover
-    arg_parser = ArgumentParser('diplicated_ids.py', description='Merge duplicated ids for the entity type specified')
+    arg_parser = ArgumentParser('duplicated_ids.py', description='Merge duplicated ids for the entity type specified')
     arg_parser.add_argument('-e', '--entity_type', dest='entity_type', required=True, choices=['ra', 'br'], help='An entity type abbreviation')
     arg_parser.add_argument('-c', '--meta_config', dest='meta_config', required=True, help='OpenCitations Meta configuration file location')
     arg_parser.add_argument('-r', '--resp_agent', dest='resp_agent', required=True, help='Your ORCID URL')
+    arg_parser.add_argument('-ca', '--cache', dest='cache', required=True, help='Cache filepath')
     args = arg_parser.parse_args()
     with open(args.meta_config, encoding='utf-8') as file:
         settings = yaml.full_load(file)
@@ -46,9 +50,16 @@ if __name__ == '__main__': # pragma: no cover
     rdf_entity_dir = os.path.join(rdf_dir, args.entity_type) + os.sep
     zip_output_rdf = settings['zip_output_rdf']
     file_extension = '.zip' if zip_output_rdf else '.json'
-    filepaths = [os.path.join(fold, file) for fold, _, files in os.walk(rdf_entity_dir) for file in files if file.endswith(file_extension) and os.path.basename(fold) != 'prov']
-    PBAR = tqdm(total=len(filepaths))
-    TO_BE_MERGED = list()
+    merge_index = {'already_merged': list()}
+    CACHE_PATH = args.cache
+    if os.path.exists(CACHE_PATH):
+        with open(CACHE_PATH, 'r', encoding='utf-8') as f:
+            merge_index: dict = json.load(f)
+    filepaths = [os.path.join(fold, file) for fold, _, files in os.walk(rdf_entity_dir) for file in files 
+        if file.endswith(file_extension) 
+        and os.path.basename(fold) != 'prov'
+        and os.path.join(fold, file).replace('\\', '/') not in merge_index]
+    pbar = tqdm(total=len(filepaths))
     rdf_dir = os.path.join(settings['output_rdf_dir'], 'rdf') + os.sep
     dir_split_number = settings['dir_split_number']
     items_per_file = settings['items_per_file']
@@ -59,15 +70,18 @@ if __name__ == '__main__': # pragma: no cover
         for filepath in filepaths:
             future:ProcessFuture = executor.schedule(
                 function=process_archive, 
-                args=(filepath, extract_identifiers, memory, rdf_dir, dir_split_number, items_per_file, zip_output_rdf, memory, meta_config, resp_agent)) 
-            future.add_done_callback(task_done)
-    PBAR.close()
+                args=(filepath, extract_identifiers, memory, filepath, rdf_dir, dir_split_number, items_per_file, zip_output_rdf, memory, meta_config, resp_agent)) 
+            future.add_done_callback(partial(task_done, merge_index))
+    pbar.close()
     meta_editor = MetaEditor(meta_config, resp_agent)
-    already_merged = set()
-    pbar = tqdm(len(TO_BE_MERGED))
-    for couple in TO_BE_MERGED:
-        if couple[1] not in already_merged:
-            meta_editor.merge(URIRef(couple[0]), URIRef(couple[1]))
-            already_merged.add(couple[1])
+    pbar = tqdm(len(merge_index))
+    for filepath, couples in merge_index.items():
+        if filepath != 'already_merged':
+            for couple in couples:
+                if couple[0] not in merge_index['already_merged'] and couple[1] not in merge_index['already_merged']:
+                    meta_editor.merge(URIRef(couple[0]), URIRef(couple[1]))
+                    merge_index['already_merged'].append(couple[1])
+                    with open(CACHE_PATH, 'w', encoding='utf-8') as f:
+                        json.dump(merge_index, f)
         pbar.update()
     pbar.close()
