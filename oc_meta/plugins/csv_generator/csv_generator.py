@@ -108,7 +108,7 @@ def generate_csv(filename, meta_config: str, rdf_dir, dir_split_number, items_pe
             if venue_path:
                 to_be_found = venue
                 while to_be_found:
-                    venue_info, to_be_found = process_archive(venue_path, process_venue, memory, to_be_found, rdf_dir, dir_split_number, items_per_file, meta_config, resp_agent, memory, zip_output_rdf)
+                    venue_info, to_be_found = process_archive(venue_path, process_venue, memory, to_be_found, rdf_dir, dir_split_number, items_per_file, venue_path, meta_config, resp_agent, memory, zip_output_rdf)
                     for k, v in venue_info.items():
                         if v:
                             row[k] = v
@@ -261,7 +261,7 @@ def process_responsible_agent(ra_data: list, ra_uri: str, rdf_dir: str, dir_spli
         meta_editor.sync_rdf_with_triplestore(ra_uri)
         return process_archive(ra_path, process_responsible_agent, memory, ra_uri, rdf_dir, dir_split_number, items_per_file, memory, ra_path, meta_config, resp_agent, zip_output_rdf)
 
-def process_venue(venue_data: list, venue_uri: str, rdf_dir: str, dir_split_number: str, items_per_file: str, meta_config: str, resp_agent: str, memory: dict, zip_output_rdf: bool) -> Tuple[dict, list]:
+def process_venue(venue_data: list, venue_uri: str, rdf_dir: str, dir_split_number: str, items_per_file: str, venue_path: str, meta_config: str, resp_agent: str, memory: dict, zip_output_rdf: bool) -> Tuple[dict, list]:
     venue_dict = {'volume': '', 'issue': '', 'venue': ''}
     to_be_found = None
     for graph in venue_data:
@@ -283,7 +283,13 @@ def process_venue(venue_data: list, venue_uri: str, rdf_dir: str, dir_split_numb
                     venue_dict['venue'] = venue_full
                 if 'http://purl.org/vocab/frbr/core#partOf' in venue:
                     to_be_found = venue['http://purl.org/vocab/frbr/core#partOf'][0]['@id']
-    return venue_dict, to_be_found
+    if any(v for _, v in venue_dict.items()):
+        return venue_dict, to_be_found
+    else:
+        del memory[venue_path]
+        meta_editor = MetaEditor(meta_config, resp_agent)
+        meta_editor.sync_rdf_with_triplestore(venue_uri)
+        return process_archive(venue_path, process_venue, memory, venue_uri, rdf_dir, dir_split_number, items_per_file, venue_path, meta_config, resp_agent, memory, zip_output_rdf)
 
 def process_page(page_data: list, page_uri: str, meta_config: str, resp_agent: str) -> str:
     for graph in page_data:
@@ -334,7 +340,6 @@ def find_file(rdf_dir: str, dir_split_number: str, items_per_file: str, uri: str
         return cur_file_path
 
 def fix_roles(last_roles: dict, self_next: dict, meta_config: str, resp_agent: str, agents_by_role: dict) -> dict:
-    new_agents_by_role = agents_by_role
     meta_editor = MetaEditor(meta_config, resp_agent)
     for role_type, role_data in last_roles.items():
         all_list = list(role_data['all'].keys())
@@ -354,6 +359,6 @@ def fix_roles(last_roles: dict, self_next: dict, meta_config: str, resp_agent: s
                         meta_editor.update_property(URIRef(role), 'has_next', URIRef(sorted_roles_list[i+1]))
             for agent_role, _ in agents_by_role.items():
                 if agent_role == role_type:
-                    new_agents = {sorted_role: {'next': sorted_roles_list[i+1]} if i < len(sorted_roles_list) - 1 else {'next': ''} for i, sorted_role in enumerate(sorted_roles_list)}
+                    new_agents = {sorted_role: {'next': sorted_roles_list[i+1], 'ra': agents_by_role[agent_role][sorted_role]['ra'], 'role': agents_by_role[agent_role][sorted_role]['role']} if i < len(sorted_roles_list) - 1 else {'next': '', 'ra': agents_by_role[agent_role][sorted_role]['ra'], 'role': agents_by_role[agent_role][sorted_role]['role']} for i, sorted_role in enumerate(sorted_roles_list)}
                     agents_by_role[agent_role] = new_agents
-    return new_agents_by_role
+    return agents_by_role

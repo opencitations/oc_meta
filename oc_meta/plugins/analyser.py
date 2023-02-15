@@ -78,7 +78,7 @@ class OCMetaAnalyser:
 
     def explore_csv_dump(self, analyser: callable) -> None|int|dict:
         global_output = None
-        filenames = os.listdir(self.csv_dump_path)
+        filenames = sorted(os.listdir(self.csv_dump_path))
         pbar = tqdm(total=len(filenames))
         for i, filename in enumerate(filenames):
             csv_data = get_csv_data(os.path.join(self.csv_dump_path, filename))
