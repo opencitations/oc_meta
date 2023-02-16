@@ -661,14 +661,14 @@ files = [
 
 [[package]]
 name = "oc-idmanager"
-version = "0.2.4"
+version = "0.2.5"
 description = "This library allows validating identifiers with DOI, ISBN, ISSN, ORCID, PMCID, and PMID schemes"
 category = "main"
 optional = false
 python-versions = ">=3.7.4,<4.0.0"
 files = [
-    {file = "oc_idmanager-0.2.4-py3-none-any.whl", hash = "sha256:58b56d52027f512f9e52970930d70c9ab35b15daa5228c647ac3f8f98725fad5"},
-    {file = "oc_idmanager-0.2.4.tar.gz", hash = "sha256:66d7308efbbf67427921e5f8ff04b8f34e27ab37c88942a895950c70725e45c2"},
+    {file = "oc_idmanager-0.2.5-py3-none-any.whl", hash = "sha256:2c488c0fcfef5262be16d980bb1d8dd0a3b926abeef4027292dc2ca905cc5594"},
+    {file = "oc_idmanager-0.2.5.tar.gz", hash = "sha256:ccbaa7da1ff1267c4e40cf97ab5fe88d42ba4b308b45a2932ec43499a7637c3d"},
 ]
 
 [package.dependencies]
@@ -1402,4 +1402,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "26d34452af99974ca27bed0b44e693e63cf5135b2426b2d21da55b244a8f4fe4"
+content-hash = "44f93d311fdbe911d958c663833040864c8838e57af6820c7693f2a5ed618aa6"
