@@ -82,16 +82,21 @@ class MetaEditor:
         query_other_as_obj = f'''
             PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
             PREFIX datacite: <http://purl.org/spar/datacite/>
+            PREFIX pro: <http://purl.org/spar/pro/>
             SELECT DISTINCT ?entity WHERE {{
                 {{?entity ?p <{other}>}} UNION {{<{res}> ?p ?entity}} UNION {{<{other}> ?p ?entity}} 
-                FILTER (?p != rdf:type) FILTER (?p != datacite:usesIdentifierScheme)}}'''          
+                FILTER (?p != rdf:type) FILTER (?p != datacite:usesIdentifierScheme) FILTER (?p != pro:withRole)}}'''          
         sparql.setQuery(query_other_as_obj)
         sparql.setReturnFormat(JSON)
         data_obj = sparql.queryAndConvert()
         for data in data_obj["results"]["bindings"]:
             if data['entity']['type'] == 'uri':
                 res_other_as_obj = URIRef(data["entity"]["value"])
-                self.reader.import_entity_from_triplestore(g_set, self.endpoint, res_other_as_obj, self.resp_agent, enable_validation=False)
+                try:
+                    self.reader.import_entity_from_triplestore(g_set, self.endpoint, res_other_as_obj, self.resp_agent, enable_validation=False)
+                except ValueError:
+                    print(res_other_as_obj)
+                    raise(ValueError)
         res_as_entity = g_set.get_entity(res)
         other_as_entity = g_set.get_entity(other)
         res_as_entity.merge(other_as_entity)

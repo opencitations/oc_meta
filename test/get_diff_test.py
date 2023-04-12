@@ -20,15 +20,14 @@ import unittest
 from oc_meta.lib.file_manager import get_csv_data
 from oc_meta.run.get_diff import get_diff
 
-
 BASE = os.path.join('test', 'get_diff')
 
 
 class GetDiffTest(unittest.TestCase):
     def test_get_diff(self):
         output_file = os.path.join(BASE, 'diff.csv')
-        get_diff(os.path.join(BASE, 'old.csv'), os.path.join(BASE, 'new.csv'), output_file)
+        get_diff(os.path.join(BASE, 'csv'), os.path.join(BASE, 'new.csv'), output_file)
         output = get_csv_data(output_file)
-        expected_output = [{'id': '10.1023/a:1021919228368'}, {'id': '2942070'}]
+        expected_output = [{'id': '10.1093/bioinformatics'}]
         os.remove(output_file)
-        self.assertEqual(output.sort(key=lambda x: x['id']), expected_output.sort(key=lambda x: x['id']))
+        self.assertEqual(output, expected_output)

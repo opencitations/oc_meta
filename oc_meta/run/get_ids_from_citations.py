@@ -1,6 +1,6 @@
 from argparse import ArgumentParser
-from oc_meta.plugins.get_ids_from_citations import get_ids_from_citations
 
+from oc_meta.plugins.get_ids_from_citations import get_ids_from_citations
 
 if __name__ == '__main__': # pragma: no cover
     arg_parser = ArgumentParser('run_preprocess.py', description='This script extracts the identifiers of the citing and cited documents from citation data organized in the CSV format accepted by OpenCitations. ')
