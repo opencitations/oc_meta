@@ -37,6 +37,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip3 install poetry
+        sudo apt install -y python-is-python3
         poetry install
     - name: Run Blazegraph
       run: |
