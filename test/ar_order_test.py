@@ -55,6 +55,7 @@ class test_ar_order(unittest.TestCase):
         copy(os.path.join(BASE, '060', 'prov_file_ar.txt'), os.path.join(BASE, 'info_dir', 'creator', 'prov_file_ar.txt'))
 
     def test_fix_broken_roles_two_last(self):
+        self.maxDiff = None
         call([executable, '-m', 'oc_meta.run.fixer.roles_order', '-c', os.path.join(BASE, 'meta_config.yaml'), '-r', 'https://orcid.org/0000-0002-8420-0696', '-m', '2'])
         output = dict()
         provenance_output = dict()
