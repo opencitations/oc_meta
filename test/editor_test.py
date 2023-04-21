@@ -73,7 +73,7 @@ class TestEditor(unittest.TestCase):
 
     def test_delete_property(self):
         editor = MetaEditor(META_CONFIG, 'https://orcid.org/0000-0002-8420-0696')
-        editor.delete_property(URIRef('https://w3id.org/oc/meta/br/06101'), 'has_title')
+        editor.delete(URIRef('https://w3id.org/oc/meta/br/06101'), 'has_title')
         with open(os.path.join(OUTPUT, 'rdf', 'br', '0610', '10000', '1000.json'), 'r', encoding='utf8') as f:
             br_data = json.load(f)
             for graph in br_data:
@@ -88,6 +88,32 @@ class TestEditor(unittest.TestCase):
                 for br in graph_prov:
                     if br['@id'] == 'https://w3id.org/oc/meta/br/06101/prov/se/2':
                         self.assertEqual(br['https://w3id.org/oc/ontology/hasUpdateQuery'][0]['@value'], 'DELETE DATA { GRAPH <https://w3id.org/oc/meta/br/> { <https://w3id.org/oc/meta/br/06101> <http://purl.org/dc/terms/title> "A Review Of Hemolytic Uremic Syndrome In Patients Treated With Gemcitabine Therapy" . } }')
+
+    def test_delete_entity(self):
+        editor = MetaEditor(META_CONFIG, 'https://orcid.org/0000-0002-8420-0696')
+        editor.delete(URIRef('https://w3id.org/oc/meta/id/06203'))
+        with open(os.path.join(OUTPUT, 'rdf', 'id', '0620', '10000', '1000.json'), 'r', encoding='utf8') as f:
+            id_data = json.load(f)
+            for graph in id_data:
+                graph_data = graph['@graph']
+                for identifier in graph_data:
+                    if identifier['@id'] == 'https://w3id.org/oc/meta/id/06203':
+                        self.fail()
+        with open(os.path.join(OUTPUT, 'rdf', 'id', '0620', '10000', '1000', 'prov', 'se.json'), 'r', encoding='utf8') as f:
+            id_prov = json.load(f)
+            for graph in id_prov:
+                graph_prov = graph['@graph'] 
+                for identifier in graph_prov:
+                    if identifier['@id'] == 'https://w3id.org/oc/meta/id/06203/prov/se/2':
+                        update_query = identifier['https://w3id.org/oc/ontology/hasUpdateQuery'][0]['@value'].replace('DELETE DATA { GRAPH <https://w3id.org/oc/meta/id/> { ', '').replace(' . } }', '').replace('\n', '').split(' .')
+                        self.assertEqual(set(update_query), {'<https://w3id.org/oc/meta/id/06203> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/datacite/Identifier>', '<https://w3id.org/oc/meta/id/06203> <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/crossref>', '<https://w3id.org/oc/meta/id/06203> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "312"'})
+        with open(os.path.join(OUTPUT, 'rdf', 'ra', '0620', '10000', '1000', 'prov', 'se.json'), 'r', encoding='utf8') as f:
+            ra_prov = json.load(f)
+            for graph in ra_prov:
+                graph_prov = graph['@graph'] 
+                for ra in graph_prov:
+                    if ra['@id'] == 'https://w3id.org/oc/meta/ra/06205/prov/se/2':
+                        self.assertEqual(ra['https://w3id.org/oc/ontology/hasUpdateQuery'][0]['@value'], 'DELETE DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06205> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06203> . } }')
 
     def test_merge(self):
         editor = MetaEditor(META_CONFIG, 'https://orcid.org/0000-0002-8420-0696')

@@ -56,20 +56,31 @@ class MetaEditor:
             getattr(g_set.get_entity(res), property)(new_value)
         self.save(g_set, info_dir)
     
-    def delete_property(self, res: str, property: str, object: str = None) -> None:
+    def delete(self, res: str, property: str = None, object: str = None) -> None:
         info_dir = self.__get_info_dir(res)
         supplier_prefix = self.__get_supplier_prefix(res)
         g_set = GraphSet(self.base_iri, info_dir, supplier_prefix=supplier_prefix)
         self.reader.import_entity_from_triplestore(g_set, self.endpoint, res, self.resp_agent, enable_validation=False)
-        remove_method = property.replace('has', 'remove')
-        if object:
-            if validators.url(object):
-                self.reader.import_entity_from_triplestore(g_set, self.endpoint, object, self.resp_agent, enable_validation=False)
-                getattr(g_set.get_entity(URIRef(res)), remove_method)(g_set.get_entity(URIRef(object)))
+        if property:
+            remove_method = property.replace('has', 'remove')
+            if object:
+                if validators.url(object):
+                    self.reader.import_entity_from_triplestore(g_set, self.endpoint, object, self.resp_agent, enable_validation=False)
+                    getattr(g_set.get_entity(URIRef(res)), remove_method)(g_set.get_entity(URIRef(object)))
+                else:
+                    getattr(g_set.get_entity(URIRef(res)), remove_method)(object)
             else:
-                getattr(g_set.get_entity(URIRef(res)), remove_method)(object)
+                getattr(g_set.get_entity(URIRef(res)), remove_method)()
         else:
-            getattr(g_set.get_entity(URIRef(res)), remove_method)()
+            sparql = SPARQLWrapper(endpoint=self.endpoint)
+            query = f'SELECT ?s WHERE {{?s ?p <{res}>.}}'       
+            sparql.setQuery(query)
+            sparql.setReturnFormat(JSON)
+            result = sparql.queryAndConvert()
+            for entity in result['results']['bindings']:
+                self.reader.import_entity_from_triplestore(g_set, self.endpoint, URIRef(entity['s']['value']), self.resp_agent, enable_validation=False)
+            entity_to_purge = g_set.get_entity(URIRef(res))
+            entity_to_purge.mark_as_to_be_deleted()
         self.save(g_set, info_dir)
     
     def merge(self, res: URIRef, other: URIRef) -> None:

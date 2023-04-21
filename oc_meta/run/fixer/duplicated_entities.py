@@ -45,7 +45,7 @@ if __name__ == '__main__': # pragma: no cover
         id_scheme = id_components[0]
         literal_value = id_components[1]
         omids = sorted([f'https://w3id.org/oc/meta/{omid}' for omid in entity['omid'].split('; ')])
-        is_valid = True
+        relevant_omids = []
         for omid in omids:
             query = f'''
                 PREFIX datacite: <http://purl.org/spar/datacite/>
@@ -59,9 +59,9 @@ if __name__ == '__main__': # pragma: no cover
             server.setQuery(query)
             result = server.queryAndConvert()['boolean']
             if not result:
-                print(f'The identifier {identifier} is not associated with the omids {omids}')
-                is_valid = False
-        if is_valid:
+                print(f'The identifier {identifier} is not associated with the omid {omid}')
+                omids.remove(omid)
+        if len(omids) > 1:
             to_be_merged = [(omids[0], other) for other in omids[1:]]
             for merge_couple in to_be_merged:
                 meta_editor.merge(URIRef(merge_couple[0]), URIRef(merge_couple[1]))
