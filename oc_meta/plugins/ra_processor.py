@@ -18,6 +18,7 @@ import re
 import unicodedata
 from csv import DictReader
 from typing import Dict, List, Tuple
+import json
 
 from oc_idmanager import ISBNManager, ISSNManager, ORCIDManager
 
@@ -34,9 +35,15 @@ class RaProcessor(object):
         self.orcid_index = CSVManager(orcid_index)
 
     def get_agents_strings_list(self, doi: str, agents_list: List[dict]) -> Tuple[list, list]:
+        homonyms_dict = self.find_homonyms(agents_list)
+        hom_w_orcid = set()
         authors_strings_list = list()
         editors_string_list = list()
         dict_orcid = None
+        multi_space = re.compile(r"\s+")
+        inits_pattern = r"([A-Z]|[ÄŐŰÀÁÂÄÃÅĄĆČĖĘÈÉÊËÌÍÎÏĮŁŃÒÓÔÖÕØÙÚÛÜŲŪŸÝŻŹÑßÇŒÆČŠŽÑ]){1}(?:\s|$)"
+        extend_pattern = r"[a-zA-Z'\-áéíóúäëïöüÄłŁőŐűŰZàáâäãåąčćęèéêëėįìíîïłńòóôöõøùúûüųūÿýżźñçčšžÀÁÂÄÃÅĄĆČĖĘÈÉÊËÌÍÎÏĮŁŃÒÓÔÖÕØÙÚÛÜŲŪŸÝŻŹÑßÇŒÆČŠŽñÑâê]{2,}(?:\s|$)"
+
         if not all('orcid' in agent or 'ORCID' in agent for agent in agents_list):
             dict_orcid = self.orcid_finder(doi)
         agents_list = [
@@ -47,17 +54,21 @@ class RaProcessor(object):
             cur_role = agent['role']
             f_name = None
             g_name = None
+            name = None
             agent_string = None
             if agent.get('family') and agent.get('given'):
                 f_name = agent['family']
                 g_name = agent['given']
                 agent_string = f_name + ', ' + g_name
             elif agent.get('name'):
-                agent_string = agent['name']
-                f_name = agent_string.split(",")[0].strip() if "," in agent_string else None
-                g_name = agent_string.split(",")[-1].strip() if "," in agent_string else None
+                name = agent['name']
+                f_name = name.split(",")[0].strip() if "," in name else None
+                g_name = name.split(",")[-1].strip() if "," in name else None
+
                 if f_name and g_name:
                     agent_string = f_name + ', ' + g_name
+
+
             if agent_string is None:
                 if agent.get('family') and not agent.get('given'):
                     if g_name:
@@ -69,6 +80,9 @@ class RaProcessor(object):
                         agent_string = f_name + ', ' + agent['given']
                     else:
                         agent_string = ', ' + agent['given']
+                elif agent.get('name'):
+                    agent_string = agent.get('name')
+
             orcid = None
             if 'orcid' in agent:
                 if isinstance(agent['orcid'], list):
@@ -84,6 +98,7 @@ class RaProcessor(object):
                 orcid_manager = ORCIDManager(data=dict(), use_api_service=False)
                 orcid = orcid_manager.normalise(orcid, include_prefix=False)
                 orcid = orcid if orcid_manager.check_digit(orcid) else None
+
             elif dict_orcid and f_name:
                 for ori in dict_orcid:
                     orc_n: List[str] = dict_orcid[ori].split(', ')
@@ -120,13 +135,72 @@ class RaProcessor(object):
                                 orcid = ori
                         else:
                             orcid = ori
-            if agent_string and orcid:
-                agent_string += ' [' + 'orcid:' + str(orcid) + ']'
+
+            # Check homonyms in cases in which it is not possoble to assess which parts of the name
+            # belong to the family name and which ones to the given name
+            elif dict_orcid and name:
+                for ori in dict_orcid:
+                    try_match = True
+                    if name in homonyms_dict.keys():
+                        get_best_affinity = self.compute_affinity(dict_orcid[ori], homonyms_dict.keys())
+                        if name != get_best_affinity:
+                            try_match = False
+                    if try_match:
+                        orc_n: List[str] = dict_orcid[ori].split(', ')
+                        orc_f = orc_n[0].lower()
+                        orc_g = orc_n[1] if len(orc_n) == 2 else None
+
+                        author = name.replace(".", " ")
+                        author = multi_space.sub(" ", author).strip()
+                        re_inits = re.findall(inits_pattern, author)
+                        re_extended = re.findall(extend_pattern, author)
+                        initials = [(x.strip()).lower() for x in re_inits]
+                        extended = [(s.strip()).lower() for s in re_extended]
+                        author_dict = {"initials": initials, "extended": extended}
+
+                        surname_match = True if [x for x in author_dict["extended"] if x in orc_f.split()] else False
+                        name_match_all = True if [x for x in author_dict["extended"] if x in orc_g.split()] else False
+                        name_match_init = True if [x for x in author_dict["initials"] if any(
+                                    element.startswith(x) and element not in author_dict["extended"] for
+                                               element in orc_g.split())] else False
+                        matches = (surname_match and (name_match_all or name_match_init))
+
+                        if matches:
+                            # managing cases in which a name string was already retrieved but the one
+                            # provided by the mapping is better
+                            f_name = orc_f
+                            if not g_name:
+                                g_name = orc_g
+                            elif g_name:
+                                if len(g_name.strip()) < len(orc_g.strip()):
+                                    g_name = orc_g
+                            orcid = ori
+
+                    if agent_string is None:
+                        if f_name and g_name:
+                            agent_string = f_name + ', ' + g_name
+                        elif f_name and not g_name:
+                            agent_string = f_name + ', '
+                        elif g_name and not f_name:
+                            agent_string = ', ' + g_name
+                    elif agent_string == agent.get('name') and f_name and g_name:
+                        agent_string = f_name + ', ' + g_name
+
+
+            if agent_string and orcid: # Schulz, Heide N
+                agent_string = self.uppercase_initials(agent_string)
+                if agent_string not in hom_w_orcid:
+                    hom_w_orcid.add(agent_string)
+                    agent_string += ' [' + 'orcid:' + str(orcid) + ']'
+
             if agent_string:
+                agent_string = self.uppercase_initials(agent_string)
+
                 if agent['role'] == 'author':
                     authors_strings_list.append(agent_string)
                 elif agent['role'] == 'editor':
                     editors_string_list.append(agent_string)
+
         return authors_strings_list, editors_string_list
 
     def orcid_finder(self, doi:str) -> dict:
@@ -169,7 +243,203 @@ class RaProcessor(object):
                 clean_pages_list.append(clean_pages_list[0])
             return '-'.join(clean_pages_list)
         return ''
-    
+
+
+    def find_homonyms(self, lst):
+        homonyms_dict = dict()
+        multi_space = re.compile(r"\s+")
+        extend_pattern = r"[a-zA-Z'\-áéíóúäëïöüÄłŁőŐűŰZàáâäãåąčćęèéêëėįìíîïłńòóôöõøùúûüųūÿýżźñçčšžÀÁÂÄÃÅĄĆČĖĘÈÉÊËÌÍÎÏĮŁŃÒÓÔÖÕØÙÚÛÜŲŪŸÝŻŹÑßÇŒÆČŠŽñÑâê]{2,}(?:\s|$)"
+        for d in lst:
+            if d.get('name'):
+                name = d.get('name')
+                author = name.replace(".", " ")
+                author = multi_space.sub(" ", author).strip()
+                re_extended = re.findall(extend_pattern, author)
+                extended = [(s.strip()).lower() for s in re_extended]
+                d_hom_set = set()
+                for i in extended:
+                    dicts_to_check = [dct for dct in lst if dct.get('name') and dct != d]
+                    homonyms = [dct.get('name') for dct in dicts_to_check if
+                                i in [(s.strip()).lower() for s in re.findall(extend_pattern, dct.get('name'))]]
+                    for n in homonyms:
+                        d_hom_set.add(n)
+                if d_hom_set:
+                    homonyms_dict[d.get('name')] = list(d_hom_set)
+
+        return homonyms_dict
+
+    def compute_affinity(self, s, lst):
+        s = s.replace(r"\s+", " ")
+        s = s.replace(r"\n+", " ")
+        name = s.lower()
+        agent = name.replace(".", " ")
+        agent = agent.replace(",", " ")
+        agent = agent.strip()
+        agent_name_parts = agent.split()
+        extended = [x for x in agent_name_parts if len(x) > 1]
+        initials = [x for x in agent_name_parts if len(x) == 1]
+
+        target_agent_dict = {"initials": initials, "extended": extended}
+
+        report_dicts = {}
+        for ag in lst:
+            name = ag.lower()
+            name = name.replace(r"\s+", " ")
+            name = name.replace(r"\n+", " ")
+            agent = name.replace(".", " ")
+            agent = agent.strip()
+            agent_name_parts = agent.split()
+            ag_extended = [x for x in agent_name_parts if len(x) > 1]
+            ag_initials = [x for x in agent_name_parts if len(x) == 1]
+
+            copy_ext_target = [x for x in extended]
+            copy_init_target = [x for x in initials]
+            copy_ag_ext = [x for x in ag_extended]
+            copy_ag_init = [x for x in ag_initials]
+
+            ext_matched = 0
+            init_matched = 0
+
+            for i in ag_extended:
+                if i in copy_ext_target:
+                    ext_matched += 1
+                    copy_ext_target.remove(i)
+                    copy_ag_ext.remove(i)
+
+            for ii in ag_initials:
+                if ii in copy_init_target:
+                    init_matched += 1
+                    copy_init_target.remove(ii)
+                    copy_ag_init.remove(ii)
+
+            # check the remaining unpaired
+            # check first if the extra initials in the ra name can be paired with the remaining extended names
+            init_compatible = 0
+
+            if copy_ag_init and copy_ext_target:
+                remaining_ag_initials = [x for x in copy_ag_init]
+                remaining_tar_extended = [x for x in copy_ext_target]
+
+                for ri in remaining_ag_initials:
+                    if ri in copy_ag_init:
+                        for re in remaining_tar_extended:
+                            if re in copy_ext_target:
+                                if re.startswith(ri):
+                                    copy_ag_init.remove(ri)
+                                    copy_ext_target.remove(re)
+                                    init_compatible += 1
+                                    break
+
+            # check if the remaining initials of the target name are compatible with the remaining extended names of the ra
+            ext_compatible = 0
+
+            if copy_ag_ext and copy_init_target:
+                remaining_tar_initials = [x for x in copy_init_target]
+                remaining_ag_extended = [x for x in copy_ag_ext]
+
+                for ri in remaining_tar_initials:
+                    if ri in copy_init_target:
+                        for re in remaining_ag_extended:
+                            if re in copy_ag_ext:
+                                if re.startswith(ri):
+                                    copy_ag_ext.remove(re)
+                                    copy_init_target.remove(ri)
+                                    ext_compatible += 1
+                                    break
+            ext_not_compatible = len(copy_ag_ext)
+            init_not_compatible = len(copy_ag_init)
+
+            cur_agent_dict = {
+                "ext_matched": ext_matched,
+                "init_matched": init_matched,
+                "ext_compatible": ext_compatible,
+                "init_compatible": init_compatible,
+                "ext_not_compatible": ext_not_compatible,
+                "init_not_compatible": init_not_compatible,
+            }
+
+            report_dicts[ag] = cur_agent_dict
+        best_match_name = self.get_best_match(target_agent_dict, report_dicts)
+        return best_match_name
+
+    def get_best_match(self, target_agent_dict, report_dicts):
+
+        len_target_init = len(target_agent_dict["initials"])
+        len_target_ext = len(target_agent_dict["extended"])
+        if len_target_init + len_target_ext >= 1:
+
+            # Case 1: There is a perfect match with no exceedings: return it
+            complete_matches = {k: v for k, v in report_dicts.items() if
+                                v["ext_matched"] == len_target_ext and v["init_matched"] == len_target_init and v[
+                                    "init_not_compatible"] == 0 and v["ext_not_compatible"] == 0}
+            if complete_matches:
+                for k in complete_matches.keys():
+                    return k
+            # Case 2: There is a complete match with all the extended names and the initials of the target are compatible
+            match_all_extended_comp_ext = {k: v for k, v in report_dicts.items() if v["ext_matched"] == len_target_ext and (
+                        v["init_matched"] + v["ext_compatible"] == len_target_init) and v["init_not_compatible"] == 0 and v[
+                                               "ext_not_compatible"] == 0}
+            if match_all_extended_comp_ext:
+                if len(match_all_extended_comp_ext) == 1:
+                    for k in match_all_extended_comp_ext.keys():
+                        return k
+                else:
+                    return [k for k, v in match_all_extended_comp_ext.items() if
+                            v["init_matched"] == max([v["init_matched"] for v in match_all_extended_comp_ext.values()])][0]
+
+            # Case 3: Get max extended names match + compatible extended/initials
+            max_comp_exc_ext = max([v["ext_matched"] for v in report_dicts.values()])
+            match_max_extended_comp_init = {k: v for k, v in report_dicts.items() if
+                                            v["ext_matched"] == max_comp_exc_ext and (
+                                                        v["ext_matched"] + v["init_compatible"] == len_target_ext) and (
+                                                        v["init_matched"] + v["ext_compatible"] == len_target_init) and v[
+                                                "init_not_compatible"] == 0 and v["ext_not_compatible"] == 0}
+            if match_max_extended_comp_init:
+                if len(match_max_extended_comp_init) == 1:
+                    for k in match_max_extended_comp_init.keys():
+                        return k
+                else:
+                    return [k for k, v in match_max_extended_comp_init.items() if
+                            v["init_matched"] == max([v["init_matched"] for v in match_max_extended_comp_init.values()])][0]
+
+            # Case 4 (suboptimal cases), get best compatibility
+            scores_dict = dict()
+
+            for k, v in report_dicts.items():
+                score = 0
+
+                p_match_ext = 0
+                if len_target_ext:
+                    p_match_ext = v["ext_matched"] / len_target_ext
+                    if p_match_ext < 1:
+                        if v["init_compatible"]:
+                            p_match_ext = (v["init_compatible"] * 0.2 + v["ext_matched"]) / len_target_ext
+
+                p_match_init = 0
+                if len_target_init:
+                    p_match_init = v["init_matched"] / len_target_init
+                    if p_match_init < 1:
+                        if v["ext_compatible"]:
+                            p_match_init = (v["ext_compatible"] * 0.7 + v["init_matched"]) / len_target_init
+
+                total_len_name_parts_target = len_target_ext + len_target_init
+                if v["ext_not_compatible"]:
+                    p_inc_ext = v["ext_not_compatible"] * 0.7 / total_len_name_parts_target
+                else:
+                    p_inc_ext = 0
+                if v["init_not_compatible"]:
+                    p_inc_init = v["init_not_compatible"] * 0.2 / total_len_name_parts_target
+                else:
+                    p_inc_init = 0
+                score = p_match_ext + p_match_init - p_inc_init - p_inc_ext
+                scores_dict[k] = score
+            result = [k for k, v in scores_dict.items() if v == max(scores_dict.values())]
+            if len(result) == 1:
+                return result[0]
+            else:
+                return ""
+        return ""
+
     @staticmethod
     def normalise_unicode(metadata: dict) -> dict:
         return {k:unicodedata.normalize('NFKC', v) for k, v in metadata.items()}
@@ -184,7 +454,7 @@ class RaProcessor(object):
             func(id, ids)
 
     @staticmethod
-    def load_publishers_mapping(publishers_filepath: str) -> dict:
+    def load_publishers_mapping(publishers_filepath) -> dict:
         publishers_mapping: Dict[str, Dict[str, set]] = dict()
         with open(publishers_filepath, 'r', encoding='utf-8') as f:
             data = DictReader(f)
@@ -194,6 +464,7 @@ class RaProcessor(object):
                 publishers_mapping[id]['name'] = row['name']
                 publishers_mapping[id].setdefault('prefixes', set()).add(row['prefix'])
         return publishers_mapping
+
     
     @staticmethod
     def issn_worker(issnid:str, ids:list):
@@ -208,3 +479,12 @@ class RaProcessor(object):
         isbnid = isbn_manager.normalise(isbnid, include_prefix=False)
         if isbn_manager.check_digit(isbnid) and f'isbn:{isbnid}' not in ids:
             ids.append('isbn:' + isbnid)
+
+    @staticmethod
+    def uppercase_initials(inp_str: str):
+        upper_word_list = []
+        words_list = inp_str.split()
+        for w in words_list:
+            upper_word_list.append(w[0].upper() + w[1:]) if len(w)>1 else upper_word_list.append(w[0].upper())
+        upper_str = " ".join(upper_word_list)
+        return upper_str

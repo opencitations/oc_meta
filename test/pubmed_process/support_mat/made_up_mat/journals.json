@@ -1,0 +1,14 @@
+{
+    "Biochem Med": {
+        "extended": "Made Up Title 1",
+        "issn": [
+            "issn:0001-000X"
+        ]
+    },
+    "Immunochemistry": {
+        "extended": "Made Up Title 2",
+        "issn": [
+            "issn:0000-0000"
+        ]
+    }
+}

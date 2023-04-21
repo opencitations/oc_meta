@@ -7,6 +7,8 @@ from json import load, loads
 import zstandard as zstd
 import pathlib
 import zipfile
+from oc_meta.lib.file_manager import init_cache
+
 
 
 class Preprocessing(metaclass=ABCMeta):
@@ -18,35 +20,36 @@ class Preprocessing(metaclass=ABCMeta):
         for key in params:
             setattr(self, key, params[key])
 
-    def get_all_files(self, i_dir_or_compr, req_type):
+    def get_all_files(self, i_dir_or_compr:str, req_type:str, cache_filepath:str|None=None):
         result = []
         targz_fd = None
+        cache = init_cache(cache_filepath)
 
         if isdir(i_dir_or_compr):
 
             for cur_dir, cur_subdir, cur_files in walk(i_dir_or_compr):
                 for cur_file in cur_files:
-                    if cur_file.endswith(req_type) and not basename(cur_file).startswith("."):
+                    if cur_file.endswith(req_type) and not basename(cur_file).startswith(".") and not cur_file in cache:
                         result.append(os.path.join(cur_dir, cur_file))
         elif i_dir_or_compr.endswith("tar.gz"):
             targz_fd = tarfile.open(i_dir_or_compr, "r:gz", encoding="utf-8")
             for cur_file in targz_fd:
-                if cur_file.name.endswith(req_type) and not basename(cur_file.name).startswith("."):
+                if cur_file.name.endswith(req_type) and not basename(cur_file.name).startswith(".") and not cur_file in cache:
                     result.append(cur_file)
         elif i_dir_or_compr.endswith("zip"):
             with zipfile.ZipFile(i_dir_or_compr, 'r') as zip_ref:
-                dest_dir = i_dir_or_compr + "decompr_zip_dir"
+                dest_dir = i_dir_or_compr.split(".")[0] + "decompr_zip_dir"
                 if not exists(dest_dir):
                     makedirs(dest_dir)
                 zip_ref.extractall(dest_dir)
             for cur_dir, cur_subdir, cur_files in walk(dest_dir):
                 for cur_file in cur_files:
-                    if cur_file.endswith(req_type) and not basename(cur_file).startswith("."):
+                    if cur_file.endswith(req_type) and not basename(cur_file).startswith(".") and not cur_file in cache:
                         result.append(cur_dir + sep + cur_file)
 
         elif i_dir_or_compr.endswith("zst"):
             input_file = pathlib.Path(i_dir_or_compr)
-            dest_dir = i_dir_or_compr + "decompr_zst_dir"
+            dest_dir = i_dir_or_compr.split(".")[0] + "_decompr_zst_dir"
             with open(input_file, 'rb') as compressed:
                 decomp = zstd.ZstdDecompressor()
                 if not exists(dest_dir):
@@ -57,10 +60,10 @@ class Preprocessing(metaclass=ABCMeta):
                         decomp.copy_stream(compressed, destination)
             for cur_dir, cur_subdir, cur_files in walk(dest_dir):
                 for cur_file in cur_files:
-                    if cur_file.endswith(req_type) and not basename(cur_file).startswith("."):
+                    if cur_file.endswith(req_type) and not basename(cur_file).startswith(".") and not cur_file in cache:
                         result.append(cur_dir + sep + cur_file)
         else:
-            print("It is not possible to process the input path.")
+            print("It is not possible to process the input path.", i_dir_or_compr)
         return result, targz_fd
 
     def load_json(self, file, targz_fd, file_idx, len_all_files):
@@ -99,5 +102,5 @@ class Preprocessing(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def splitted_to_file(self, cur_n, target_n, out_dir, data, headers=None):
+    def splitted_to_file(self, cur_n, data, type):
         pass

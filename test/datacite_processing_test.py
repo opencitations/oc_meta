@@ -22,7 +22,7 @@ ZST_INPUT = os.path.join(BASE, 'zst_test', "40228.json.zst")
 PUBLISHERS_MAPPING = os.path.join(BASE, 'publishers.csv')
 
 
-class TestCrossrefProcessing(unittest.TestCase):
+class TestDataciteProcessing(unittest.TestCase):
 
     def test_csv_creator(self):
         datacite_processor = DataciteProcessing(orcid_index=IOD, doi_csv=WANTED_DOIS_FOLDER, publishers_filepath=None)

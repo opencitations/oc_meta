@@ -17,3 +17,6 @@ nohup.out
 examples_cache.sqlite
 examples_cache.sqlite-journal
 /.coverage
+*.DS_Store
+oc_meta/plugins/pubmed/support_files
+test/analyser/output/

@@ -13,7 +13,7 @@ warnings.filterwarnings("ignore", category=UserWarning, module='bs4')
 
 
 class DataciteProcessing(RaProcessor):
-    def __init__(self, orcid_index: str = None, doi_csv: str = None, publishers_filepath: str = None, inp_dir: str = None, out_dir: str = None, interval: int = 1000, filter:list = []):
+    def __init__(self, orcid_index: str = None, doi_csv: str = None, publishers_filepath: str = None):
         super(DataciteProcessing, self).__init__(orcid_index, doi_csv, publishers_filepath)
         # self.preprocessor = DatacitePreProcessing(inp_dir, out_dir, interval, filter)
         self.RIS_types_map = {'abst': 'abstract',
@@ -442,14 +442,14 @@ class DataciteProcessing(RaProcessor):
 
         return name_and_id
 
-    def add_authors_to_agent_list(self, item: dict, ag_list: list) -> list:
+    def add_editors_to_agent_list(self, item: dict, ag_list: list) -> list:
         '''
-        This function returns the the agents list updated with the authors dictionaries, in the correct format.
+        This function returns the the agents list updated with the editors dictionaries, in the correct format.
 
         :params item: the item's dictionary (attributes), ag_list: the
         :type item: dict, ag_list: list
 
-        :returns: listthe agents list updated with the authors dictionaries, in the correct format.
+        :returns: listthe agents list updated with the editors dictionaries, in the correct format.
         '''
         agent_list = ag_list
         if item.get("contributors"):
@@ -475,14 +475,14 @@ class DataciteProcessing(RaProcessor):
                 agent_list.append(agent)
         return agent_list
 
-    def add_editors_to_agent_list(self, item: dict, ag_list: list) -> list:
+    def add_authors_to_agent_list(self, item: dict, ag_list: list) -> list:
         '''
-        This function returns the the agents list updated with the editors dictionaries, in the correct format.
+        This function returns the the agents list updated with the authors dictionaries, in the correct format.
 
         :params item: the item's dictionary (attributes), ag_list: the
         :type item: dict, ag_list: list
 
-        :returns: listthe agents list updated with the editors dictionaries, in the correct format.
+        :returns: listthe agents list updated with the authors dictionaries, in the correct format.
         '''
         agent_list = ag_list
         if item.get("creators"):
