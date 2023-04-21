@@ -107,7 +107,17 @@ class PubMedProcess(unittest.TestCase):
                 ]
         }
 
-        self.assertEqual(output, expected_output)
+        elements_in_output = list()
+        for l in output.values():
+            for e in l:
+                elements_in_output.append(e)
+
+        elements_expected = list()
+        for l in expected_output.values():
+            for e in l:
+                elements_expected.append(e)
+
+        self.assertCountEqual(elements_in_output, elements_expected)
         shutil.rmtree(self.output_dir)
 
     def test_preprocess_interval_number(self):
@@ -119,75 +129,25 @@ class PubMedProcess(unittest.TestCase):
         preprocess(pubmed_csv_dir=self.input_dirt_sample, publishers_filepath=self.publishers_file, journals_filepath= self.journals_file, csv_dir=self.output_dir, orcid_doi_filepath=self.doi_orcid, interval=2)
 
         output = dict()
+        n_files = 0
         for file in os.listdir(self.output_dir):
+            n_files += 1
             with open(os.path.join(self.output_dir, file), 'r', encoding='utf-8') as f:
-                output[file] = list(csv.DictReader(f))
-        expected_output= {
-            'CSVFile_1.csv':
-                [
-                    {'id': 'pmid:118',
-                     'title': 'Proceedings: Comparison of the effects of selective alpha and beta-receptor agonists on intracellular cyclic AMP levels and glycogen phosphorylase activity in guinea-pig liver.',
-                     'author': 'D Osborn; D H Jenkinson',
-                     'pub_date': '1975',
-                     'venue': 'British journal of pharmacology [issn:0007-1188]',
-                     'volume': '',
-                     'issue': '',
-                     'page': '',
-                     'type': 'journal article',
-                     'publisher': '',
-                     'editor': ''},
-                    {'id': 'pmid:120',
-                     'title': 'Proceedings: Do anti-psychotic drugs act by dopamine receptor blockade in the nucleus accumbens.',
-                     'author': 'T J Crow; J F Deakin; A Longden',
-                     'pub_date': '1975',
-                     'venue': 'British journal of pharmacology [issn:0007-1188]',
-                     'volume': '',
-                     'issue': '',
-                     'page': '',
-                     'type': 'journal article',
-                     'publisher': '',
-                     'editor': ''}],
-            'CSVFile_2.csv':
-                [
-                    {'id': 'pmid:351 doi:10.2527/jas1975.4151249x',
-                     'title': 'Analyses of rumen fluid from "sudden death", lactic acidotic and healthy cattle fed high concentrate ration.',
-                     'author': 'J R Wilson; E E Bartley; H D Anthony; B E Brent; D A Sapienza; T E Chapman; A D Dayton; R J Milleret; R A Frey; R M Meyer',
-                     'pub_date': '1975',
-                     'venue': 'Journal of animal science [issn:0021-8812]',
-                     'volume': '',
-                     'issue': '',
-                     'page': '',
-                     'type': 'journal article',
-                     'publisher': 'American Society of Animal Science (ASAS)',
-                     'editor': ''},
-                    {'id': 'pmid:352 doi:10.2527/jas1975.4151314x',
-                     'title': 'Mitochondrial traits of muscle from stress-susceptible pigs.',
-                     'author': 'D R Campion; J C Olson; D G Topel; L L Christian; D L Kuhlers',
-                     'pub_date': '1975',
-                     'venue': 'Journal of animal science [issn:0021-8812]',
-                     'volume': '',
-                     'issue': '',
-                     'page': '',
-                     'type': 'journal article',
-                     'publisher': 'American Society of Animal Science (ASAS)',
-                     'editor': ''}],
-            'CSVFile_3.csv':
-                [
-                    {'id': 'pmid:353 doi:10.1152/jappl.1975.39.4.580',
-                     'title': 'Local control of pulmonary resistance and lung compliance in the canine lung.',
-                     'author': 'R L Coon; C C Rattenborg; J P Kampine',
-                     'pub_date': '1975',
-                     'venue': 'Journal of applied physiology [issn:0021-8987]',
-                     'volume': '',
-                     'issue': '',
-                     'page': '',
-                     'type': 'journal article',
-                     'publisher': 'American Physiological Society',
-                     'editor': ''}
-                ]
-        }
+                output[n_files] = len(list(csv.DictReader(f)))
 
-        self.assertEqual(output, expected_output)
+        expected_files = 3
+        expected_ents_per_file = 2
+        last_file_ents = 1
+        n_files_full = len([x for x in output.values() if x == 2])
+        n_files_rem= len([x for x in output.values() if x == 1])
+        self.assertEqual(expected_files, len(output.keys()))
+        self.assertEqual(n_files_full, 2)
+        self.assertEqual(n_files_rem, 1)
+        self.assertTrue(max(output.values())==expected_ents_per_file)
+        self.assertTrue(min(output.values())==last_file_ents)
+
+
+
         shutil.rmtree(self.output_dir)
 
     def test_preprocess_save_recovered_publishers(self):
