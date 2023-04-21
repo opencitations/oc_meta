@@ -132,7 +132,7 @@ class RaProcessor(object):
     def orcid_finder(self, doi:str) -> dict:
         found = dict()
         doi = doi.lower()
-        people:List[str] = self.orcid_index.get_value(doi)
+        people:  List[str] = self.orcid_index.get_value(doi)
         if people:
             for person in people:
                 orcid = re.search(orcid_pattern, person).group(0)

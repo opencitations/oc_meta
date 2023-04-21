@@ -21,6 +21,7 @@ from oc_meta.lib.file_manager import init_cache
 from os import walk, sep
 from os.path import isdir, basename
 from typing import Tuple
+import ndjson
 import gzip
 import tarfile
 
@@ -33,7 +34,7 @@ def get_all_files(is_dir_or_targz_file:str, cache_filepath:str|None=None) -> Tup
         for cur_dir, _, cur_files in walk(is_dir_or_targz_file):
             for cur_file in cur_files:
                 if (cur_file.endswith(".json") or cur_file.endswith(".json.gz")) and not basename(cur_file).startswith(".") and not cur_file in cache:
-                    result.append(cur_dir + sep + cur_file)                    
+                    result.append(cur_dir + sep + cur_file)
     elif is_dir_or_targz_file.endswith("tar.gz"):
         targz_fd = tarfile.open(is_dir_or_targz_file, "r:gz", encoding="utf-8")
         for cur_file in targz_fd:
@@ -49,6 +50,9 @@ def load_json(file:str|tarfile.TarInfo, targz_fd:tarfile.TarFile) -> dict|None:
         if file.endswith(".json"):  # type: ignore
             with open(file, encoding="utf8") as f: # type: ignore
                 result = load(f)
+        if file.endswith(".ndjson"):
+            with open(file, encoding="utf8") as ndf:
+                result = ndjson.load(ndf)
         elif file.endswith(".json.gz"): # type: ignore
             with gzip.open(file, 'r') as gzip_file: # type: ignore
                 data = gzip_file.read()
@@ -56,7 +60,7 @@ def load_json(file:str|tarfile.TarInfo, targz_fd:tarfile.TarFile) -> dict|None:
     else:
         cur_tar_file = targz_fd.extractfile(file)
         json_str = cur_tar_file.read() # type: ignore
-        # In Python 3.5 it seems that, for some reason, the extractfile method returns an 
+        # In Python 3.5 it seems that, for some reason, the extractfile method returns an
         # object 'bytes' that cannot be managed by the function 'load' in the json package.
         # Thus, to avoid issues, in case an object having type 'bytes' is return, it is
         # transformed as a string before passing it to the function 'loads'. Please note
