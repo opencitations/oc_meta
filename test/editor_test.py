@@ -109,7 +109,7 @@ class TestEditor(unittest.TestCase):
                     for entity in graph_data:
                         if entity['@id'] == 'https://w3id.org/oc/meta/ra/06107':
                             identifiers = {identifier['@id'] for identifier in entity['http://purl.org/spar/datacite/hasIdentifier']}
-                            self.assertEqual(identifiers, {'https://w3id.org/oc/meta/id/06202', 'https://w3id.org/oc/meta/id/06105'})
+                            self.assertEqual(identifiers, {'https://w3id.org/oc/meta/id/06203', 'https://w3id.org/oc/meta/id/06105'})
                         elif entity['@id'] == 'https://w3id.org/oc/meta/ra/06205':
                             self.fail()
                         elif entity['@id'] == 'https://w3id.org/oc/meta/ar/06205':
@@ -118,10 +118,10 @@ class TestEditor(unittest.TestCase):
                             self.assertTrue('http://www.w3.org/ns/prov#invalidatedAtTime' in entity)
                         elif entity['@id'] == 'https://w3id.org/oc/meta/ra/06107/prov/se/2':
                             self.assertEqual(entity['http://purl.org/dc/terms/description'][0]['@value'], "The entity 'https://w3id.org/oc/meta/ra/06107' has been merged with 'https://w3id.org/oc/meta/ra/06205'.")
-                            self.assertEqual(entity['https://w3id.org/oc/ontology/hasUpdateQuery'][0]['@value'], 'INSERT DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06107> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06202> . } }')
+                            self.assertEqual(entity['https://w3id.org/oc/ontology/hasUpdateQuery'][0]['@value'], 'INSERT DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06107> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06203> . } }')
                         elif entity['@id'] == 'https://w3id.org/oc/meta/ra/06205/prov/se/2':
                             update_query = entity['https://w3id.org/oc/ontology/hasUpdateQuery'][0]['@value'].replace('DELETE DATA { GRAPH <https://w3id.org/oc/meta/ra/> { ', '').replace(' . } }', '').replace('\n', '').split(' .')
-                            self.assertEqual(set(update_query), {'<https://w3id.org/oc/meta/ra/06205> <http://xmlns.com/foaf/0.1/name> "Wiley"', '<https://w3id.org/oc/meta/ra/06205> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06202>', '<https://w3id.org/oc/meta/ra/06205> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent>'})
+                            self.assertEqual(set(update_query), {'<https://w3id.org/oc/meta/ra/06205> <http://xmlns.com/foaf/0.1/name> "Wiley"', '<https://w3id.org/oc/meta/ra/06205> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06202>', '<https://w3id.org/oc/meta/ra/06205> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06203>', '<https://w3id.org/oc/meta/ra/06205> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent>'})
                             
 
 if __name__ == '__main__': # pragma: no cover
