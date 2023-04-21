@@ -22,7 +22,7 @@ ZST_INPUT = os.path.join(BASE, 'zst_test', "40228.json.zst")
 PUBLISHERS_MAPPING = os.path.join(BASE, 'publishers.csv')
 
 
-class TestCrossrefProcessing(unittest.TestCase):
+class TestDataciteProcessing(unittest.TestCase):
 
     def test_csv_creator(self):
         datacite_processor = DataciteProcessing(orcid_index=IOD, doi_csv=WANTED_DOIS_FOLDER, publishers_filepath=None)
@@ -286,98 +286,6 @@ class TestCrossrefProcessing(unittest.TestCase):
         DataciteProcessing.isbn_worker(input, output)
         expected_output = ['isbn:9783905673821']
         self.assertEqual(output, expected_output)
-
-    # def test_preprocess(self):
-    #     self.maxDiff = None
-    #     if os.path.exists(OUTPUT):
-    #         shutil.rmtree(OUTPUT)
-    #     preprocess(datacite_json_dir=MULTIPROCESS_OUTPUT, publishers_filepath=None, orcid_doi_filepath=IOD,
-    #                csv_dir=OUTPUT, wanted_doi_filepath=None)
-    #     output = dict()
-    #     for file in os.listdir(OUTPUT):
-    #         with open(os.path.join(OUTPUT, file), 'r', encoding='utf-8') as f:
-    #             output[file] = list(csv.DictReader(f))
-    #     expected_output = {
-    #         '40228.csv': [{'id': 'doi:10.1002/2014jd022411',
-    #                         'title': "Assessing the magnitude of CO flux uncertainty in atmospheric CO records using products from NASA's Carbon Monitoring Flux Pilot Project",
-    #                         'author': 'Ott, Lesley E.; Pawson, Steven; Collatz, George J.; Gregg, Watson W.; Menemenlis, Dimitris [orcid:0000-0001-9940-8409]; Brix, Holger; Rousseaux, Cecile S.; Bowman, Kevin W.; Liu, Junjie; Eldering, Annmarie; Gunson, Michael R.; Kawa, Stephan R.',
-    #                         'pub_date': '2015-01-27',
-    #                         'venue': 'journal of geophysical research: atmospheres [issn:2169-897X]',
-    #                         'volume': '120',
-    #                         'issue': '2',
-    #                         'page': '734-765',
-    #                         'type': 'journal article',
-    #                         'publisher': '',
-    #                         'editor': ''},
-    #                        {'id': 'doi:10.1594/pangaea.231378',
-    #                         'title': 'Phosphate, fluoride and cell abundance of bacteria Thiomargarita namibiensis in porewater of sediment profile M57/3_203 from Walvis Ridge',
-    #                         'author': 'Schulz, Heide N [orcid:0000-0003-1445-0291]; Schulz, Horst D',
-    #                         'pub_date': '2005',
-    #                         'venue': '',
-    #                         'volume': '',
-    #                         'issue': '',
-    #                         'page': '',
-    #                         'type': 'dataset',
-    #                         'publisher': 'PANGAEA - Data Publisher for Earth & Environmental Science',
-    #                         'editor': ''}
-    #                        ],
-    #          '30719.csv': [{'id': 'doi:10.1002/2014gb004975',
-    #                         'title': 'Biological and physical controls on N , O , and CO distributions in contrasting Southern Ocean surface waters',
-    #                         'author': 'Tortell, Philippe D.; Bittig, Henry C.; Körtzinger, Arne; Jones, Elizabeth M.; Hoppema, Mario',
-    #                         'pub_date': '2015-07',
-    #                         'venue': 'global biogeochemical cycles [issn:0886-6236]',
-    #                         'volume': '29',
-    #                         'issue': '7',
-    #                         'page': '994-1013',
-    #                         'type': 'journal article',
-    #                         'publisher': '',
-    #                         'editor': ''}
-    #                        ]
-    #          }
-
-    #     self.assertEqual(output, expected_output)
-
-    # def test_zst_input(self):
-    #     if os.path.exists(OUTPUT):
-    #         shutil.rmtree(OUTPUT)
-    #     preprocess(datacite_json_dir=ZST_INPUT, publishers_filepath=None, orcid_doi_filepath=IOD, csv_dir=OUTPUT,
-    #                wanted_doi_filepath=WANTED_DOIS)
-    #     output = dict()
-    #     for file in os.listdir(OUTPUT):
-    #         with open(os.path.join(OUTPUT, file), 'r', encoding='utf-8') as f:
-    #             output[file] = list(csv.DictReader(f))
-    #     expected_output =  {
-    #         '40228.csv':
-    #             [
-    #                 {
-    #                     'id': 'doi:10.1002/2014jd022411',
-    #                     'title': "Assessing the magnitude of CO flux uncertainty in atmospheric CO records using products from NASA's Carbon Monitoring Flux Pilot Project",
-    #                     'author': 'Ott, Lesley E.; Pawson, Steven; Collatz, George J.; Gregg, Watson W.; Menemenlis, Dimitris [orcid:0000-0001-9940-8409]; Brix, Holger; Rousseaux, Cecile S.; Bowman, Kevin W.; Liu, Junjie; Eldering, Annmarie; Gunson, Michael R.; Kawa, Stephan R.',
-    #                     'pub_date': '2015-01-27',
-    #                     'venue': 'journal of geophysical research: atmospheres [issn:2169-897X]',
-    #                     'volume': '120',
-    #                     'issue': '2',
-    #                     'page': '734-765',
-    #                     'type': 'journal article',
-    #                     'publisher': '',
-    #                     'editor': ''},
-    #                 {
-    #                     'id': 'doi:10.1594/pangaea.231378',
-    #                     'title': 'Phosphate, fluoride and cell abundance of bacteria Thiomargarita namibiensis in porewater of sediment profile M57/3_203 from Walvis Ridge',
-    #                     'author': 'Schulz, Heide N [orcid:0000-0003-1445-0291]; Schulz, Horst D',
-    #                     'pub_date': '2005',
-    #                     'venue': '',
-    #                     'volume': '',
-    #                     'issue': '',
-    #                     'page': '',
-    #                     'type': 'dataset',
-    #                     'publisher': 'PANGAEA - Data Publisher for Earth & Environmental Science',
-    #                     'editor': ''
-    #                 }
-    #             ]
-    #     }
-
-    #     self.assertEqual(output, expected_output)
 
     def test_load_publishers_mapping(self):
         output = DataciteProcessing.load_publishers_mapping(publishers_filepath=PUBLISHERS_MAPPING)
