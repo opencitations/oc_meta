@@ -1,0 +1,71 @@
+{
+    "Biochem Med": {
+        "extended": "Biochemical medicine",
+        "issn": [
+            "0006-2944"
+        ]
+    },
+    "Biochem Biophys Res Commun": {
+        "extended": "Biochemical and biophysical research communications",
+        "issn": [
+            "0006-291X",
+            "1090-2104"
+        ]
+    },
+    "Biochem Pharmacol": {
+        "extended": "Biochemical pharmacology",
+        "issn": [
+            "1873-2968",
+            "0006-2952"
+        ]
+    },
+    "Arzneimittelforschung": {
+        "extended": "Arzneimittel-Forschung",
+        "issn": [
+            "0004-4172"
+        ]
+    },
+    "Br J Anaesth": {
+        "extended": "British journal of anaesthesia",
+        "issn": [
+            "0007-0912"
+        ]
+    },
+    "Br J Clin Pract": {
+        "extended": "The British journal of clinical practice",
+        "issn": [
+            "0007-0947"
+        ]
+    },
+    "Br J Dermatol": {
+        "extended": "The British journal of dermatology",
+        "issn": [
+            "0007-0963"
+        ]
+    },
+    "Br J Haematol": {
+        "extended": "British journal of haematology",
+        "issn": [
+            "0007-1048"
+        ]
+    },
+    "Br J Nutr": {
+        "extended": "The British journal of nutrition",
+        "issn": [
+            "2291-9694",
+            "0007-1145"
+        ]
+    },
+    "Biochemistry": {
+        "extended": "Biochemistry",
+        "issn": [
+            "0006-2960"
+        ]
+    },
+    "Biochim Biophys Acta": {
+        "extended": "Biochimica et biophysica acta",
+        "issn": [
+            "issn:0006-3002"
+        ]
+    }
+}

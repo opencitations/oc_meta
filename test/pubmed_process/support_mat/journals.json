@@ -1,0 +1,58 @@
+{
+    "Br J Pharmacol": {
+        "extended": "British journal of pharmacology",
+        "issn": [
+            "issn:0007-1188"
+        ]
+    },
+    "J Anim Sci": {
+        "extended": "Journal of animal science",
+        "issn": [
+            "issn:0021-8812"
+        ]
+    },
+    "J Appl Physiol": {
+        "extended": "Journal of applied physiology",
+        "issn": [
+            "issn:0021-8987"
+        ]
+    },
+    "Biochem Med": {
+        "extended": "Biochemical medicine",
+        "issn": [
+            "issn:0006-2944"
+        ]
+    },
+    "Biochem Biophys Res Commun": {
+        "extended": "Biochemical and biophysical research communications",
+        "issn": [
+            "issn:1090-2104",
+            "issn:0006-291X"
+        ]
+    },
+    "Biochem Pharmacol": {
+        "extended": "Biochemical pharmacology",
+        "issn": [
+            "issn:0006-2952",
+            "issn:1873-2968"
+        ]
+    },
+    "Arzneimittelforschung": {
+        "extended": "Arzneimittel-Forschung",
+        "issn": [
+            "issn:0004-4172"
+        ]
+    },
+    "Br J Anaesth": {
+        "extended": "British journal of anaesthesia",
+        "issn": [
+            "issn:0007-0912"
+        ]
+    },
+    "Br J Clin Pract": {
+        "extended": "The British journal of clinical practice",
+        "issn": [
+            "issn:0007-0947"
+        ]
+    }
+}
