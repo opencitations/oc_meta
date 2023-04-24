@@ -7,13 +7,13 @@ import yaml
 from tqdm import tqdm
 from oc_meta.lib.file_manager import normalize_path
 from oc_meta.lib.jsonmanager import *
-from oc_meta.plugins.jalc.jalc_processing import *
+from oc_meta.plugins.jalc.jalc_processing import JalcProcessing as JalcP
 import ndjson
 
 
-def preprocess(jalc_json_dir:str, publishers_filepath:str, orcid_doi_filepath:str, csv_dir:str, wanted_doi_filepath:str=None, cache:str=None, verbose:bool=False) -> None:
+def preprocess(jalc_json_dir:str, citing_entities_filepath:str, publishers_filepath:str, orcid_doi_filepath:str, csv_dir:str, wanted_doi_filepath:str=None, cache:str=None, verbose:bool=False) -> None:
     if verbose:
-        if orcid_doi_filepath or wanted_doi_filepath or publishers_filepath:
+        if citing_entities_filepath or orcid_doi_filepath or wanted_doi_filepath or publishers_filepath:
             what = list()
             if publishers_filepath:
                 what.append('publishers mapping')
@@ -21,17 +21,20 @@ def preprocess(jalc_json_dir:str, publishers_filepath:str, orcid_doi_filepath:st
                 what.append('DOI-ORCID index')
             if wanted_doi_filepath:
                 what.append('wanted DOIs CSV')
+            if citing_entities_filepath:
+                what.append('citing entities index')
             log = '[INFO: datacite_process] Processing: ' + '; '.join(what)
             print(log)
 
     print("Processing Phase: started")
-    jalc_csv = JalcProcessing(orcid_index=orcid_doi_filepath, doi_csv=wanted_doi_filepath)
+    jalc_csv = JalcP(orcid_index=orcid_doi_filepath, doi_csv=wanted_doi_filepath)
     if verbose:
         print(f'[INFO: datacite_process] Getting all files from {jalc_json_dir}')
-    all_files = get_jalc_ndjson(jalc_json_dir)
+    all_files, targz_fd = get_jalc_ndjson(jalc_json_dir)
     if verbose:
         pbar = tqdm(total=len(all_files))
     for filename in all_files:
+        print(filename)
         source_data = load_ndjson(filename)
         filename = filename.name if isinstance(filename, TarInfo) else filename
         filename_without_ext = filename.replace('.ndjson', '').replace('.tar', '').replace('.gz', '')
@@ -42,10 +45,19 @@ def preprocess(jalc_json_dir:str, publishers_filepath:str, orcid_doi_filepath:st
             tabular_data = jalc_csv.csv_creator(item)
             if tabular_data:
                 data.append(tabular_data)
-            for citation in source_data['citation_list']:
-                tabular_data_cited = jalc_csv.csv_creator(citation)
-                if tabular_data_cited:
-                    data.append(tabular_data_cited)
+            for citation in item['citation_list']:
+                if citing_entities_filepath:
+                    if citation['doi'] not in citing_entities_filepath:
+                        tabular_data_cited = jalc_csv.csv_creator(citation)
+                        if tabular_data_cited:
+                            data.append(tabular_data_cited)
+                    else:
+                        pass
+                else:
+                    tabular_data_cited = jalc_csv.csv_creator(citation)
+                    if tabular_data_cited:
+                        data.append(tabular_data_cited)
+
         if data:
             with open(filepath, 'w', newline='', encoding='utf-8') as output_file:
                 dict_writer = csv.DictWriter(output_file, data[0].keys(), delimiter=',', quotechar='"', quoting=csv.QUOTE_NONNUMERIC, escapechar='\\')
@@ -61,20 +73,26 @@ def preprocess(jalc_json_dir:str, publishers_filepath:str, orcid_doi_filepath:st
             os.remove(cache)
     pbar.close() if verbose else None
 
+
 def get_jalc_ndjson(jalc_ndjson_dir) -> list:
-    result=[]
+    result= []
+    targz_fd = None
     if os.path.isdir(jalc_ndjson_dir):
         for cur_dir, _, cur_files in os.walk(jalc_ndjson_dir):
           for cur_file in cur_files:
             if cur_file.endswith(".ndjson"):
                 result.append(jalc_ndjson_dir + sep + cur_file)
-    return result
+    else:
+        print("It is not possible to process the input path.")
+    return result, targz_fd
+
+
 def load_ndjson(file):
-  result = None
-  if file.endswith(".ndjson"):  # type: ignore
-    with open(file, encoding="utf8") as f: # type: ignore
-        result = ndjson.load(f)
-  return result
+    result = None
+    if file.endswith(".ndjson"):  # type: ignore
+        with open(file, encoding="utf8") as f: # type: ignore
+            result = ndjson.load(f)
+    return result
 
 
 def pathoo(path:str) -> None:
@@ -91,6 +109,8 @@ if __name__ == '__main__':
                             help='Jalc ndjson files directory')
     arg_parser.add_argument('-out', '--output', dest='csv_dir', required=required,
                             help='Directory where CSV will be stored')
+    arg_parser.add_argument('-cit', '--citing', dest='citing_entities_filepath', required=False,
+                            help='file path produced in the preprocessing phase containing the DOI of all the citing entities')
     arg_parser.add_argument('-p', '--publishers', dest='publishers_filepath', required=False,
                             help='CSV file path containing information about publishers (id, name, prefix)')
     arg_parser.add_argument('-o', '--orcid', dest='orcid_doi_filepath', required=False,
@@ -111,6 +131,8 @@ if __name__ == '__main__':
     jalc_json_dir = normalize_path(jalc_json_dir)
     csv_dir = settings['output'] if settings else args.csv_dir
     csv_dir = normalize_path(csv_dir)
+    citing_entities_filepath = settings['citing_entities_filepath'] if settings else args.citing_entities_filepath
+    citing_entities_filepath = normalize_path(citing_entities_filepath) if citing_entities_filepath else None
     publishers_filepath = settings['publishers_filepath'] if settings else args.publishers_filepath
     publishers_filepath = normalize_path(publishers_filepath) if publishers_filepath else None
     orcid_doi_filepath = settings['orcid_doi_filepath'] if settings else args.orcid_doi_filepath
@@ -121,4 +143,4 @@ if __name__ == '__main__':
     cache = normalize_path(cache) if cache else None
     verbose = settings['verbose'] if settings else args.verbose
     print("Jalc Preprocessing Phase: started")
-    preprocess(jalc_json_dir=jalc_json_dir, publishers_filepath=publishers_filepath, orcid_doi_filepath=orcid_doi_filepath, csv_dir=csv_dir, wanted_doi_filepath=wanted_doi_filepath, cache=cache, verbose=verbose)
+    preprocess(jalc_json_dir=jalc_json_dir, citing_entities_filepath=citing_entities_filepath, publishers_filepath=publishers_filepath, orcid_doi_filepath=orcid_doi_filepath, csv_dir=csv_dir, wanted_doi_filepath=wanted_doi_filepath, cache=cache, verbose=verbose)

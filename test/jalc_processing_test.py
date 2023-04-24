@@ -1,47 +1,132 @@
-#!python
-# Copyright 2022, Arcangelo Massari <arcangelo.massari@unibo.it>, Arianna Moretti <arianna.moretti4@unibo.it>
-#
-# Permission to use, copy, modify, and/or distribute this software for any purpose
-# with or without fee is hereby granted, provided that the above copyright notice
-# and this permission notice appear in all copies.
-#
-# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
-# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
-# FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT,
-# OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
-# DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS
-# ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
-# SOFTWARE.
-
-
-import re
+import os
 import unittest
 
-from oc_idmanager import DOIManager
-
-from oc_meta.lib.file_manager import call_api
-from oc_meta.lib.master_of_regex import name_and_ids
+from oc_meta.lib.csvmanager import CSVManager
 from oc_meta.plugins.jalc.jalc_processing import JalcProcessing
+from oc_meta.run.jalc_process import load_ndjson
 
-doi_manager = DOIManager()
-JALC_API = doi_manager._api_jalc
-HEADERS = doi_manager._headers
+BASE = os.path.join('test', 'jalc_processing')
+IOD = os.path.join(BASE, 'iod')
+WANTED_DOIS = os.path.join(BASE, 'wanted_dois.csv')
+WANTED_DOIS_FOLDER = os.path.join(BASE, 'wanted_dois')
+DATA = os.path.join(BASE, 'filtered_66.ndjson')
+DATA_DIR = BASE
+OUTPUT = os.path.join(BASE, 'meta_input')
+MULTIPROCESS_OUTPUT = os.path.join(BASE, 'multi_process_test')
+PUBLISHERS_MAPPING = os.path.join(BASE, 'publishers.csv')
 
 
-# class JalcProcessingTest(unittest.TestCase):
-#     def test_csv_creator(self):
-#         url = f'{JALC_API}10.15036/arerugi.33.167'
-#         item = call_api(url, HEADERS)
-#         datacite_processing = JalcProcessing()
-#         output = datacite_processing.csv_creator(item)
-#         expected_output = {'id': 'doi:10.15036/arerugi.33.167', 
-#         'title': '気管支喘息におけるアセチルコリン吸入試験の標準法の臨床的検討', 
-#         'author': '牧野, 荘平; 池森, 亨介; 福田, 健; 本島, 新司; 生井, 聖一郎; 戸田, 正夫; 山井, 孝夫; 山田, 吾郎; 湯川, 龍雄', 
-#         'issue': '3', 'volume': '33', 'venue': {'アレルギー', 'issn:1347-7935', 'issn:0021-4884'}, 'pub_date': '1984', 
-#         'pages': '167-175', 'type': 'journal article', 'publisher': '一般社団法人 日本アレルギー学会', 'editor': ''}
-#         venue_name_and_ids = re.search(name_and_ids, output['venue'])
-#         venue_name = venue_name_and_ids.group(1)
-#         venue_ids = venue_name_and_ids.group(2)
-#         output['venue'] = {venue_name}
-#         output['venue'].update(venue_ids.split())
-#         self.assertEqual(output, expected_output)
+class TestJalcProcessing(unittest.TestCase):
+    def test_csv_creator(self):
+        jalc_processor = JalcProcessing()
+        data = load_ndjson(DATA)
+        output = list()
+        for item in data:
+            tabular_data = jalc_processor.csv_creator(item)
+            if tabular_data:
+                output.append(tabular_data)
+            for citation in item['citation_list']:
+                tabular_data_cited = jalc_processor.csv_creator(citation)
+                if tabular_data_cited:
+                    output.append(tabular_data_cited)
+        expected_output=[
+            {'id': 'doi:10.11230/jsts.17.1_11',
+             'title': 'Development of an Airtight Recirculating Zooplankton Culture Device for Closed Ecological Recirculating Aquaculture System (CERAS)',
+             'author': 'OMORI, Katsunori; WATANABE, Shigeki; ENDO, Masato; TAKEUCHI, Toshio; OGUCHI, Mitsuo',
+             'issue': '1',
+             'volume': '17',
+             'venue': 'The Journal of Space Technology and Science [issn:0911-551X issn:2186-4772 jid:jsts]',
+             'pub_date': '2001',
+             'page': '111-117',
+             'type': 'journal article',
+             'publisher': '特定非営利活動法人 日本ロケット協会',
+             'editor': ''},
+            {'id': 'doi:10.11450/seitaikogaku1989.10.1',
+             'title': 'Study on the Development of Closed Ecological Recirculating Aquaculture System(CERAS). I. Development of Fish-rearing Closed Tank.',
+             'author': '',
+             'issue': '1',
+             'volume': '10',
+             'venue': '',
+             'pub_date': '1997',
+             'page': '1-4',
+             'type': '',
+             'publisher': '',
+             'editor': ''},
+            {'id': 'doi:10.11230/jsts.17.2_1',
+             'title': 'Diamond Synthesis with Completely Closed Chamber from Solid or Liquid Carbon Sources, In-Situ Analysis of Gaseous Species and the Possible Reaction Model',
+             'author': 'TAKAGI, Yoshiki',
+             'issue': '2',
+             'volume': '17',
+             'venue': 'The Journal of Space Technology and Science [issn:0911-551X issn:2186-4772 jid:jsts]',
+             'pub_date': '2001',
+             'page': '21-27',
+             'type': 'journal article',
+             'publisher': '特定非営利活動法人 日本ロケット協会',
+             'editor': ''},
+            {'id': 'doi:10.1063/1.1656693',
+             'title': '',
+             'author': '',
+             'issue': '',
+             'volume': '39',
+             'venue': '',
+             'pub_date': '1968',
+             'page': '2915-2915',
+             'type': '',
+             'publisher': '',
+             'editor': ''},
+            {'id': 'doi:10.1016/0022-0248(83)90411-6',
+             'title': '',
+             'author': '',
+             'issue': '',
+             'volume': '62',
+             'venue': 'Journal of Crystal Growth',
+             'pub_date': '1983',
+             'page': '642-642',
+             'type': '',
+             'publisher': '',
+             'editor': ''},
+            {'id': 'doi:10.1016/0038-1098(88)91128-3',
+             'title': 'Raman spectra of diamondlike amorphous carbon films.',
+             'author': '',
+             'issue': '11',
+             'volume': '66',
+             'venue': '',
+             'pub_date': '1988',
+             'page': '1177-1180',
+             'type': '',
+             'publisher': '',
+             'editor': ''}]
+
+        self.assertEqual(output, expected_output)
+
+    def test_orcid_finder(self):
+        datacite_processor = JalcProcessing(IOD)
+        orcid_found = datacite_processor.orcid_finder('doi:10.11185/imt.8.380')
+        expected_output = {'0000-0002-2149-4113': 'dobashi, yoshinori'}
+        self.assertEqual(orcid_found, expected_output)
+
+    def test_get_agents_strings_list_overlapping_surnames(self):
+        # The surname of one author is included in the surname of another.
+        authors_list = [
+            {'role': 'author',
+             'name': '井崎 豊田, 理理子',
+             'family': '井崎 豊田',
+             'given': '理理子'},
+            {'role': 'author',
+             'name': '豊田, 純一朗',
+             'family': '豊田',
+             'given': '純一朗'}
+            ]
+        jalc_processor = JalcProcessing()
+        csv_manager = CSVManager()
+        csv_manager.data = {'10.11224/cleftpalate1976.23.2_83': {'豊田, 純一朗 [0000-0002-8210-7076]'}}
+        jalc_processor.orcid_index = csv_manager
+        authors_strings_list, editors_strings_list = jalc_processor.get_agents_strings_list('10.11224/cleftpalate1976.23.2_83', authors_list)
+        expected_authors_list = ['井崎 豊田, 理理子', '豊田, 純一朗 [orcid:0000-0002-8210-7076]']
+        expected_editors_list = []
+        self.assertEqual((authors_strings_list, editors_strings_list), (expected_authors_list, expected_editors_list))
+        
+#python -m unittest discover -s test -p "jalc_processing_test.py"
+
+
+

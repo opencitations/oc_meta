@@ -26,12 +26,12 @@ class JalcProcessing(RaProcessor):
 
     def csv_creator(self, item:dict) -> dict:
         doi = item["doi"]
-        title = self.get_ja(item['title_list'])[0]['title'] if 'title_list' in item else '' #Future Water Availability in the Asian Monsoon Region: A Case Study in Indonesia (no available in japanese)
+        title = self.get_ja(item['title_list'])[0]['title'] if 'title_list' in item else ''  # Future Water Availability in the Asian Monsoon Region: A Case Study in Indonesia (no available in japanese)
         authors_list = self.get_authors(item)
         authors_string_list, editors_string_list = self.get_agents_strings_list(doi, authors_list)
         issue = item['issue'] if 'issue' in item else ''
         volume = item['volume'] if 'volume' in item else ''
-        first_page = item['first_page'] if 'first_page' in item else ''
+        '''first_page = item['first_page'] if 'first_page' in item else ''
         first_page = f'"{first_page}"' if '-' in first_page else first_page
         last_page = item['last_page'] if 'last_page' in item else ''
         last_page = f'"{last_page}"' if '-' in last_page else last_page
@@ -39,7 +39,7 @@ class JalcProcessing(RaProcessor):
         if first_page:
             pages += first_page
             if last_page:
-                pages += f'-{last_page}' #25-31
+                pages += f'-{last_page}' #25-31'''
         metadata = {
             'id': doi,
             'title': title,
@@ -48,7 +48,7 @@ class JalcProcessing(RaProcessor):
             'volume': volume,
             'venue': self.get_venue(item),
             'pub_date': self.get_pub_date(item),
-            'pages': pages,
+            'page': self.get_jalc_pages(item),
             'type': self.get_type(item),
             'publisher': self.get_publisher_name(item),
             'editor': ''
@@ -56,7 +56,7 @@ class JalcProcessing(RaProcessor):
         return self.normalise_unicode(metadata)
         
     @classmethod
-    def get_ja(cls, field:list) -> list: #[{'publisher_name': '筑波大学農林技術センター', 'lang': 'ja'}]
+    def get_ja(cls, field:list) -> list:  # [{'publisher_name': '筑波大学農林技術センター', 'lang': 'ja'}]
         if all('lang' in item for item in field):
             ja = [item for item in field if item['lang'] == 'ja']
             ja = list(filter(lambda x: x['type'] != 'before' if 'type' in x else x, ja))
@@ -72,8 +72,10 @@ class JalcProcessing(RaProcessor):
         first_page = item['first_page'] if 'first_page' in item else ''
         last_page = item['last_page'] if 'last_page' in item else ''
         page_list = list()
-        page_list.append(first_page)
-        page_list.append(last_page)
+        if first_page:
+            page_list.append(first_page)
+        if last_page:
+            page_list.append(last_page)
         return self.get_pages(page_list)
 
 
@@ -91,7 +93,7 @@ class JalcProcessing(RaProcessor):
         publisher = self.get_ja(item['publisher_list'])[0]['publisher_name'] if 'publisher_list' in item else ''
         data = {
             'publisher': publisher,
-            'prefix': item['prefix']
+            'prefix': item.get('prefix')
         }
         publisher = data['publisher']
         prefix = data['prefix']
@@ -141,11 +143,12 @@ class JalcProcessing(RaProcessor):
                 elif candidate_venues:
                     venue_name = candidate_venues[0]['journal_title_name']
         if 'journal_id_list' in data:
-            journal_ids = {journal_id for journal_id in data['journal_id_list']}
+            journal_ids = [journal_id for journal_id in data['journal_id_list']]
+            journal_ids = sorted(journal_ids)
         else:
             journal_ids = list()
         return f"{venue_name} [{' '.join(journal_ids)}]" if journal_ids else venue_name
-        # 'Journal of Developments in Sustainable Agriculture [jid:jdsa issn:1880-3024 issn:1880-3016]'
+        # 'Journal of Developments in Sustainable Agriculture [issn:1880-3016 issn:1880-3024 jid:jdsa]'
 
     @classmethod
     def get_type(cls, data:dict) -> str:
