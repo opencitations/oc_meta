@@ -89,10 +89,10 @@ def fix_roles(last_roles: dict, self_next: dict, to_be_merged: dict, meta_config
             for i, role in enumerate(sorted_roles_list):
                 if i < len(sorted_roles_list) - 1:
                     if last_roles[role_type]['has_next'][role] != sorted_roles_list[i+1]:
-                        meta_editor.delete_property(URIRef(role), 'has_next')
+                        meta_editor.delete(URIRef(role), 'has_next')
                 elif i == len(sorted_roles_list) - 1:
                     if last_roles[role_type]['has_next'][role]:
-                        meta_editor.delete_property(URIRef(role), 'has_next')
+                        meta_editor.delete(URIRef(role), 'has_next')
             for i, role in enumerate(sorted_roles_list):
                 if i < len(sorted_roles_list) - 1:
                     if last_roles[role_type]['has_next'][role] != sorted_roles_list[i+1]:

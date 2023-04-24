@@ -49,8 +49,11 @@ class test_duplicated_ids(unittest.TestCase):
         reader.import_entity_from_triplestore(g_set, endpoint, URIRef('https://w3id.org/oc/meta/ra/0605'), resp_agent, enable_validation=False)
         ieee = g_set.get_entity(URIRef('https://w3id.org/oc/meta/ra/0605'))
         duplicated_id = g_set.add_id(resp_agent)
+        triplicated_id = g_set.add_id(resp_agent)
         duplicated_id.create_crossref('263')
+        triplicated_id.create_crossref('263')
         ieee.has_identifier(duplicated_id)
+        ieee.has_identifier(triplicated_id)
         provset = ProvSet(g_set, base_iri, info_dir, wanted_label=False)
         provset.generate_provenance()
         graph_storer = Storer(g_set, dir_split=10000, n_file_item=1000, zip_output=False)
@@ -70,7 +73,7 @@ class test_duplicated_ids(unittest.TestCase):
                     for entity in graph_data:
                         if entity['@id'] == 'https://w3id.org/oc/meta/ra/0605':
                             identifiers = {identifier['@id'] for identifier in entity['http://purl.org/spar/datacite/hasIdentifier']}
-                            self.assertTrue(identifiers == {'https://w3id.org/oc/meta/id/0603'})
+                            self.assertTrue(identifiers == {'https://w3id.org/oc/meta/id/0604', 'https://w3id.org/oc/meta/id/0603'})
                         elif entity['@id'] == 'https://w3id.org/oc/meta/ra/0605/prov/se/3':
                             update_query = entity['https://w3id.org/oc/ontology/hasUpdateQuery'][0]['@value']
                             self.assertTrue(update_query, 'DELETE DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/0605> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0604> . } }')

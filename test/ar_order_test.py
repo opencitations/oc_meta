@@ -55,6 +55,7 @@ class test_ar_order(unittest.TestCase):
         copy(os.path.join(BASE, '060', 'prov_file_ar.txt'), os.path.join(BASE, 'info_dir', 'creator', 'prov_file_ar.txt'))
 
     def test_fix_broken_roles_two_last(self):
+        self.maxDiff = None
         call([executable, '-m', 'oc_meta.run.fixer.roles_order', '-c', os.path.join(BASE, 'meta_config.yaml'), '-r', 'https://orcid.org/0000-0002-8420-0696', '-m', '2'])
         output = dict()
         provenance_output = dict()
@@ -95,18 +96,19 @@ class test_ar_order(unittest.TestCase):
         self.server.setQuery(query)
         self.server.setReturnFormat(JSON)
         result = self.server.queryAndConvert()
-        expected_result = {'head': {'vars': ['ar', 'next']}, 'results': {'bindings': [
-            {'ar': {'type': 'uri', 'value': 'https://w3id.org/oc/meta/ar/06021'}, 'next': {'type': 'uri', 'value': 'https://w3id.org/oc/meta/ar/06022'}}, 
-            {'ar': {'type': 'uri', 'value': 'https://w3id.org/oc/meta/ar/06022'}, 'next': {'type': 'uri', 'value': 'https://w3id.org/oc/meta/ar/06023'}}, 
-            {'ar': {'type': 'uri', 'value': 'https://w3id.org/oc/meta/ar/06023'}, 'next': {'type': 'uri', 'value': 'https://w3id.org/oc/meta/ar/06024'}}, 
-            {'ar': {'type': 'uri', 'value': 'https://w3id.org/oc/meta/ar/06024'}, 'next': {'type': 'uri', 'value': 'https://w3id.org/oc/meta/ar/06025'}}, 
-            {'ar': {'type': 'uri', 'value': 'https://w3id.org/oc/meta/ar/06025'}, 'next': {'type': 'uri', 'value': 'https://w3id.org/oc/meta/ar/06026'}},
-            {'ar': {'type': 'uri', 'value': 'https://w3id.org/oc/meta/ar/06026'}}, 
-            {'ar': {'type': 'uri', 'value': 'https://w3id.org/oc/meta/ar/06027'}},
-            {'ar': {'type': 'uri', 'value': 'https://w3id.org/oc/meta/ar/06360300897'}, 'next': {'type': 'uri', 'value': 'https://w3id.org/oc/meta/ar/06360300898'}}, 
-            {'ar': {'type': 'uri', 'value': 'https://w3id.org/oc/meta/ar/06360300898'}, 'next': {'type': 'uri', 'value': 'https://w3id.org/oc/meta/ar/06360300899'}},
-            {'ar': {'type': 'uri', 'value': 'https://w3id.org/oc/meta/ar/06360300899'}},
-            {'ar': {'type': 'uri', 'value': 'https://w3id.org/oc/meta/ar/06360300895'}}]}}
+        result = {res['ar']['value']: res['next']['value'] if 'next' in res else None for res in result['results']['bindings']}
+        expected_result = {
+            'https://w3id.org/oc/meta/ar/06021': 'https://w3id.org/oc/meta/ar/06022', 
+            'https://w3id.org/oc/meta/ar/06022': 'https://w3id.org/oc/meta/ar/06023', 
+            'https://w3id.org/oc/meta/ar/06023': 'https://w3id.org/oc/meta/ar/06024', 
+            'https://w3id.org/oc/meta/ar/06024': 'https://w3id.org/oc/meta/ar/06025', 
+            'https://w3id.org/oc/meta/ar/06025': 'https://w3id.org/oc/meta/ar/06026', 
+            'https://w3id.org/oc/meta/ar/06026': None, 
+            'https://w3id.org/oc/meta/ar/06027': None, 
+            'https://w3id.org/oc/meta/ar/06360300897': 'https://w3id.org/oc/meta/ar/06360300898', 
+            'https://w3id.org/oc/meta/ar/06360300898': 'https://w3id.org/oc/meta/ar/06360300899', 
+            'https://w3id.org/oc/meta/ar/06360300899': None, 
+            'https://w3id.org/oc/meta/ar/06360300895': None}
         expected_provenance_output = {
             'https://w3id.org/oc/meta/ar/06025/prov/se/2': 'INSERT DATA { GRAPH <https://w3id.org/oc/meta/ar/> { <https://w3id.org/oc/meta/ar/06025> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/06026> . } }',
             'https://w3id.org/oc/meta/ar/06360300898/prov/se/3': 'INSERT DATA { GRAPH <https://w3id.org/oc/meta/ar/> { <https://w3id.org/oc/meta/ar/06360300898> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/06360300899> . } }', 

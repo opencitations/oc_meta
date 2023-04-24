@@ -25,6 +25,7 @@ zstandard = "^0.19.0"
 pandas = "^1.5.1"
 sparqlwrapper = "2.0.0"
 oc-ocdm = "7.1.11"
+fakeredis = "^2.10.3"
 
 [tool.poetry.dev-dependencies]
 wget = "^3.2"

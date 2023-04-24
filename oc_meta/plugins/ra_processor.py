@@ -208,3 +208,12 @@ class RaProcessor(object):
         isbnid = isbn_manager.normalise(isbnid, include_prefix=False)
         if isbn_manager.check_digit(isbnid) and f'isbn:{isbnid}' not in ids:
             ids.append('isbn:' + isbnid)
+
+    @staticmethod
+    def uppercase_initials(inp_str: str):
+        upper_word_list = []
+        words_list = inp_str.split()
+        for w in words_list:
+            upper_word_list.append(w[0].upper() + w[1:]) if len(w)>1 else upper_word_list.append(w[0].upper())
+        upper_str = " ".join(upper_word_list)
+        return upper_str

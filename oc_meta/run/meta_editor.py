@@ -34,9 +34,8 @@ if __name__ == '__main__':
     if args.operation == 'update':
         meta_editor.update_property(args.res, args.property, args.value)
     elif args.operation == 'delete':
-        meta_editor.delete_property(args.res, args.property)
+        meta_editor.delete(args.res, args.property)
     elif args.operation == 'sync':
         meta_editor.sync_rdf_with_triplestore(args.res)
     elif args.operation == 'merge':
         meta_editor.merge(URIRef(args.res), URIRef(args.other))
-    

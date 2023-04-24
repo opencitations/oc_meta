@@ -1,3 +1,4 @@
+from time import sleep
 from typing import Dict, List, Tuple
 
 from dateutil import parser
@@ -19,7 +20,18 @@ class ResourceFinder:
 
     def __query(self, query):
         self.ts.setQuery(query)
-        result = self.ts.queryAndConvert()
+        tentative = 3
+        result = None
+        while tentative:
+            tentative -= 1
+            try:
+                result = self.ts.queryAndConvert()
+                if result:
+                    return result
+                else:
+                    sleep(5)
+            except Exception:
+                sleep(5)
         return result
 
     # _______________________________BR_________________________________ #

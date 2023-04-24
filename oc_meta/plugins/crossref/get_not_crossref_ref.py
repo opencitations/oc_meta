@@ -46,8 +46,8 @@ def extract_dois_from_dump(crossref_json_dir:str, output_dir:str, max_workers:in
     doi_manager = DOIManager(data=dict(), use_api_service=False)
     print('[INFO] Extracting DOIs from the Crossref dump')
     pbar = tqdm(total=len(all_files))
-    if platform.startswith('linux') or platform == 'darwin':
-        os.sched_setaffinity(0, set(range(0, max_workers)))
+    #if platform.startswith('linux') or platform == 'darwin':
+        #os.sched_setaffinity(0, set(range(0, max_workers)))
     with ProcessPool(max_workers=max_workers) as executor:
         for filename in all_files:
             future:ProcessFuture = executor.schedule(

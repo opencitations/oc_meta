@@ -26,17 +26,15 @@ def extract_identifiers(data: list, filepath: str, rdf_dir:str, dir_split_number
     for graph in data:
         graph_data = graph['@graph']
         for entity in graph_data:
-            ids_mapping = dict()
-            entity_full_ids = list()
             if 'http://purl.org/spar/datacite/hasIdentifier' in entity:
-                identifiers = entity['http://purl.org/spar/datacite/hasIdentifier']
-                for identifier in identifiers:
-                    id_uri = identifier['@id']
+                prev_id_uris = dict()
+                identifiers = sorted([identifier['@id'] for identifier in entity['http://purl.org/spar/datacite/hasIdentifier']])
+                for id_uri in identifiers:
                     id_path = find_file(rdf_dir, dir_split_number, items_per_file, id_uri, zip_output_rdf)
                     id_full = process_archive(id_path, process_id, memory, id_uri, meta_config, resp_agent, id_path, memory)
-                    if id_full in entity_full_ids:
-                        prev_id_uri = next(prev_uri for prev_uri, prev_full in ids_mapping.items() if prev_full == id_full)
-                        to_be_merged.append(tuple(sorted([prev_id_uri, id_uri])))
-                    entity_full_ids.append(id_full)
-                    ids_mapping[id_uri] = id_full
+                    if id_full in prev_id_uris:
+                        prev_id_uri = prev_id_uris[id_full]
+                        to_be_merged.append(tuple([prev_id_uri, id_uri]))
+                    else:
+                        prev_id_uris[id_full] = id_uri
     return filepath, to_be_merged
