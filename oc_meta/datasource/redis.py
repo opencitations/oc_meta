@@ -13,12 +13,14 @@
 # ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 # SOFTWARE.
 
-import json
-from oc_meta.datasource.datasource import DataSource
-import redis
 import configparser
+import json
 import os
 from os.path import join
+
+import redis
+
+from oc_meta.datasource.datasource import DataSource
 
 # Read the Redis configuration file
 config = configparser.ConfigParser(allow_no_value=True)
@@ -52,8 +54,10 @@ class RedisDataSource(DataSource):
     def get(self, resource_id):
         redis_data = self._r.get(resource_id)
         if redis_data != None:
-            redis_data = json.loads(redis_data)
-        return redis_data
+            if isinstance(redis_data, str):
+                return redis_data
+            else:
+                return json.loads(redis_data)
 
     def mget(self, resources_id):
         return {

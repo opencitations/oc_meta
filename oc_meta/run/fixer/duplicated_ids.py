@@ -66,6 +66,10 @@ if __name__ == '__main__': # pragma: no cover
     meta_config = args.meta_config
     resp_agent = settings['resp_agent']
     memory = dict()
+    for dirpath, _, filenames in os.walk(rdf_dir):
+        for filename in filenames:
+            if filename.endswith('.lock'):
+                os.remove(os.path.join(dirpath, filename))
     with ProcessPool(max_tasks=1) as executor:
         for filepath in filepaths:
             future:ProcessFuture = executor.schedule(

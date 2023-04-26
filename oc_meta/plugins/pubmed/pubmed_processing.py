@@ -1,25 +1,24 @@
 import html
 import json
+import os
+import pathlib
 import re
 import warnings
 from os.path import exists
+from typing import Dict, List, Tuple
 
+import fakeredis
 from bs4 import BeautifulSoup
-from oc_idmanager.pmid import PMIDManager
 from oc_idmanager.doi import DOIManager
 from oc_idmanager.orcid import ORCIDManager
-from oc_meta.lib.master_of_regex import *
-from oc_meta.plugins.ra_processor import RaProcessor
-from oc_meta.plugins.pubmed.get_publishers import ExtractPublisherDOI
-from oc_meta.plugins.pubmed.finder_nih import NIHResourceFinder
-import pathlib
-import os
-import fakeredis
+from oc_idmanager.pmid import PMIDManager
+
 from oc_meta.datasource.redis import RedisDataSource
-from typing import Dict, List, Tuple
 from oc_meta.lib.cleaner import Cleaner
-
-
+from oc_meta.lib.master_of_regex import *
+from oc_meta.plugins.pubmed.finder_nih import NIHResourceFinder
+from oc_meta.plugins.pubmed.get_publishers import ExtractPublisherDOI
+from oc_meta.plugins.ra_processor import RaProcessor
 
 warnings.filterwarnings("ignore", category=UserWarning, module='bs4')
 
@@ -91,8 +90,6 @@ class PubmedProcessing(RaProcessor):
         with open(path, "w", encoding="utf-8") as fd:
             json.dump(pref_pub_dict, fd, ensure_ascii=False, indent=4)
 
-
-
     def csv_creator(self, item: dict) -> dict:
         row = dict()
         doi = ""
@@ -113,13 +110,15 @@ class PubmedProcessing(RaProcessor):
             ids_list = list()
             ids_list.append(str('pmid:' + pmid))
             if attributes.get('doi'):
-                doi = str(DOIManager().normalise(attributes.get('doi'), include_prefix=False))
+                doi = DOIManager().normalise(attributes.get('doi'), include_prefix=False)
                 if doi:
                     doi_w_pref = "doi:"+doi
                     if self.BR_redis.get(doi_w_pref):
                         ids_list.append(doi_w_pref)
                     elif self.doi_m.is_valid(doi):
                         ids_list.append(doi_w_pref)
+                    else:
+                        doi = ''
 
 
             row['id'] = ' '.join(ids_list)
@@ -162,7 +161,11 @@ class PubmedProcessing(RaProcessor):
 
             # row['publisher']
             if doi:
-                row['publisher'] = self.get_publisher_name(doi)
+                try:
+                    row['publisher'] = self.get_publisher_name(doi)
+                except IndexError:
+                    print(doi, type(doi), row, item)
+                    raise(IndexError)
             else:
                 row['publisher'] = ""
 
@@ -331,7 +334,7 @@ class PubmedProcessing(RaProcessor):
         inits_pattern = r"([A-Z]|[ÄŐŰÀÁÂÄÃÅĄĆČĖĘÈÉÊËÌÍÎÏĮŁŃÒÓÔÖÕØÙÚÛÜŲŪŸÝŻŹÑßÇŒÆČŠŽÑ]){1}(?:\s|$)"
         extend_pattern = r"[a-zA-Z'\-áéíóúäëïöüÄłŁőŐűŰZàáâäãåąčćęèéêëėįìíîïłńòóôöõøùúûüųūÿýżźñçčšžÀÁÂÄÃÅĄĆČĖĘÈÉÊËÌÍÎÏĮŁŃÒÓÔÖÕØÙÚÛÜŲŪŸÝŻŹÑßÇŒÆČŠŽñÑâê]{2,}(?:\s|$)"
 
-        if not all('orcid' in agent or 'ORCID' in agent for agent in agents_list):
+        if not all('orcid' in agent or 'ORCID' in agent for agent in agents_list) and doi:
             dict_orcid = self.orcid_finder(doi)
         agents_list = [
             {k: Cleaner(v).remove_unwanted_characters() if k in {'family', 'given', 'name'} and v is not None

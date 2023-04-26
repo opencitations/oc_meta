@@ -15,17 +15,20 @@
 # SOFTWARE.
 
 from __future__ import annotations
+
+import gzip
 import os.path
-import zstandard as zstd
 import pathlib
+import tarfile
 import zipfile
 from json import load, loads
-from oc_meta.lib.file_manager import init_cache
-from os import walk, sep, makedirs
-from os.path import exists, isdir, basename
+from os import makedirs, sep, walk
+from os.path import basename, exists, isdir
 from typing import Tuple
-import gzip
-import tarfile
+
+import zstandard as zstd
+
+from oc_meta.lib.file_manager import init_cache
 
 
 def get_all_files(is_dir_or_targz_file:str, cache_filepath:str|None=None) -> Tuple[list, tarfile.TarFile|None]:
@@ -89,7 +92,7 @@ def get_all_files_by_type(i_dir_or_compr:str, req_type:str, cache_filepath:str|N
                 result.append(cur_file)
     elif i_dir_or_compr.endswith("zip"):
         with zipfile.ZipFile(i_dir_or_compr, 'r') as zip_ref:
-            dest_dir = i_dir_or_compr.split(".")[0] + "decompr_zip_dir"
+            dest_dir = i_dir_or_compr.replace('.zip', '') + "decompr_zip_dir"
             if not exists(dest_dir):
                 makedirs(dest_dir)
             zip_ref.extractall(dest_dir)

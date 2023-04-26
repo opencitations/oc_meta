@@ -1,15 +1,33 @@
-import sys
-import yaml
-from oc_meta.plugins.pubmed.pubmed_processing import *
-import os.path
-from os.path import exists
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+# Copyright (c) 2023 Arianna Moretti <arianna.moretti4@unibo.it>
+#
+# Permission to use, copy, modify, and/or distribute this software for any purpose
+# with or without fee is hereby granted, provided that the above copyright notice
+# and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED 'AS IS' AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+# FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT,
+# OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
+# DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS
+# ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
+# SOFTWARE.
+
 import csv
-import pandas as pd
+import os.path
+import sys
 from argparse import ArgumentParser
 from datetime import datetime
+from os.path import exists
+
+import pandas as pd
+import yaml
 from tqdm import tqdm
+
 from oc_meta.lib.file_manager import normalize_path
 from oc_meta.lib.jsonmanager import get_all_files_by_type
+from oc_meta.plugins.pubmed.pubmed_processing import *
 
 
 def to_meta_file(cur_n, lines, interval, csv_dir):
@@ -79,7 +97,6 @@ def preprocess(pubmed_csv_dir:str, publishers_filepath:str, orcid_doi_filepath:s
 
                 for item in filt_values:
                     tabular_data = pubmed_csv.csv_creator(item)
-
                     if tabular_data:
                         lines.append(tabular_data)
                         count += 1
@@ -127,9 +144,9 @@ if __name__ == '__main__':
                         help='The cache file path. This file will be deleted at the end of the process')
     arg_parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', required=False,
                             help='Show a loading bar, elapsed time and estimated time')
-    arg_parser.add_argument('-int', '--interval', dest='interval',type=bool, required=False, default=1000,
+    arg_parser.add_argument('-int', '--interval', dest='interval',type=int, required=False, default=1000,
                             help='int number of lines for each output csv. If nothing is declared, the default is 1000')
-    arg_parser.add_argument('-t', '--testing', dest='testing',type=bool, required=False, default=True,
+    arg_parser.add_argument('-t', '--testing', dest='testing', action='store_true', required=False,
                             help='testing flag to define what to use for data validation (fakeredis instance or real redis DB)')
     args = arg_parser.parse_args()
     config = args.config
@@ -140,7 +157,6 @@ if __name__ == '__main__':
     pubmed_csv_dir = settings['pubmed_csv_dir'] if settings else args.pubmed_csv_dir
     interval = settings['interval'] if settings else args.interval
     pubmed_csv_dir = normalize_path(pubmed_csv_dir)
-    preprocessed_files_dir = os.path.join(pubmed_csv_dir, "preprocessed_csv")
     csv_dir = settings['output'] if settings else args.csv_dir
     csv_dir = normalize_path(csv_dir)
     publishers_filepath = settings['publishers_filepath'] if settings else args.publishers_filepath
@@ -156,4 +172,4 @@ if __name__ == '__main__':
     verbose = settings['verbose'] if settings else args.verbose
     testing = settings['testing'] if settings else args.testing
     print("Data Preprocessing Phase: started")
-    preprocess(pubmed_csv_dir=preprocessed_files_dir, publishers_filepath=publishers_filepath, journals_filepath=journals_filepath, orcid_doi_filepath=orcid_doi_filepath, csv_dir=csv_dir, wanted_doi_filepath=wanted_doi_filepath, cache=cache, verbose=verbose, interval=interval, testing=testing)
+    preprocess(pubmed_csv_dir=pubmed_csv_dir, publishers_filepath=publishers_filepath, journals_filepath=journals_filepath, orcid_doi_filepath=orcid_doi_filepath, csv_dir=csv_dir, wanted_doi_filepath=wanted_doi_filepath, cache=cache, verbose=verbose, interval=interval, testing=testing)
