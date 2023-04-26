@@ -45,8 +45,7 @@ if __name__ == '__main__': # pragma: no cover
         id_scheme = id_components[0]
         literal_value = id_components[1]
         omids = sorted([f'https://w3id.org/oc/meta/{omid}' for omid in entity['omid'].split('; ')])
-        relevant_omids = []
-        for omid in omids:
+        for omid in list(omids):
             query = f'''
                 PREFIX datacite: <http://purl.org/spar/datacite/>
                 PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>

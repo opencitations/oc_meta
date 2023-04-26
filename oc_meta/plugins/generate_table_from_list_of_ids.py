@@ -14,4 +14,4 @@ def generate_table_from_list_of_ids(filepath:str):
         table.append(fields_dict)
     write_csv('D:/dois_not_in_crossref/1-100000_input.csv', table)
 
-generate_table_from_list_of_ids('D:/dois_not_in_crossref/1-100000.csv')
+generate_table_from_list_of_ids('E:/dois_not_in_crossref.csv')

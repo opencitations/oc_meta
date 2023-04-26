@@ -26,10 +26,7 @@ class ResourceFinder:
             tentative -= 1
             try:
                 result = self.ts.queryAndConvert()
-                if result:
-                    return result
-                else:
-                    sleep(5)
+                return result
             except Exception:
                 sleep(5)
         return result

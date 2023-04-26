@@ -22,6 +22,7 @@ import re
 from typing import Tuple
 from zipfile import ZipFile
 
+from filelock import FileLock
 from rdflib import URIRef
 from tqdm import tqdm
 
@@ -142,19 +143,25 @@ def process_archives(rdf_dir: str, entity_abbr:str, output_dir: str|None, doing_
     pbar.close()
 
 def process_archive(filepath: str, doing_what: callable, memory: dict|None = None, *args) -> list:
+    filelock = FileLock(f'{filepath}.lock')
     if memory is not None:
         if filepath in memory:
             return doing_what(memory[filepath], *args)
-    if filepath.endswith('.zip'):
-        with ZipFile(file=filepath, mode="r") as archive:
-            for zf_name in archive.namelist():
-                f = archive.open(zf_name)
-    elif filepath.endswith('.json'):
-        f = open(file=filepath, mode="r", encoding="utf8")
-    data = json.load(f)
-    f.close()
-    if memory is not None:
-        memory[filepath] = data
+    with filelock:
+        try:
+            if filepath.endswith('.zip'):
+                with ZipFile(file=filepath, mode="r") as archive:
+                    for zf_name in archive.namelist():
+                        f = archive.open(zf_name)
+            elif filepath.endswith('.json'):
+                f = open(file=filepath, mode="r", encoding="utf8")
+            data = json.load(f)
+            f.close()
+        except Exception as e:
+            print('\nThe invalid zip file is', filepath, '\n', e)
+            raise(Exception)
+        if memory is not None:
+            memory[filepath] = data
     return doing_what(data, *args)
 
 def process_br(br_data: list) -> list:

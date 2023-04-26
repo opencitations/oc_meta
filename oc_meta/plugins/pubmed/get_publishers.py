@@ -1,6 +1,8 @@
-import requests
 import re
+
+import requests
 from lxml import etree
+
 
 class ExtractPublisherDOI(object):
     def __init__(self, pref_info_dict):
