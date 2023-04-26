@@ -10,6 +10,7 @@ from oc_meta.lib.file_manager import normalize_path
 from oc_meta.lib.jsonmanager import *
 from oc_meta.plugins.jalc.jalc_processing import JalcProcessing
 import ndjson
+import re
 
 
 def preprocess(jalc_json_dir:str, citing_entities_filepath:str, publishers_filepath:str, orcid_doi_filepath:str, csv_dir:str, wanted_doi_filepath:str=None, cache:str=None, verbose:bool=False) -> None:
@@ -113,6 +114,8 @@ def get_all_files(i_dir_or_compr, req_type):
 
 
 def search_doi(doi, list_csv):
+    if doi.startswith("doi:"):
+        doi = re.sub('^doi:', '', doi)
     found = False
     for file in list_csv:
         with open(file, 'r') as csvfile:
