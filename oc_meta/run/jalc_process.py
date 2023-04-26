@@ -5,9 +5,10 @@ from argparse import ArgumentParser
 from tarfile import TarInfo
 import yaml
 from tqdm import tqdm
+import zipfile
 from oc_meta.lib.file_manager import normalize_path
 from oc_meta.lib.jsonmanager import *
-from oc_meta.plugins.jalc.jalc_processing import JalcProcessing as JalcP
+from oc_meta.plugins.jalc.jalc_processing import JalcProcessing
 import ndjson
 
 
@@ -27,7 +28,9 @@ def preprocess(jalc_json_dir:str, citing_entities_filepath:str, publishers_filep
             print(log)
 
     print("Processing Phase: started")
-    jalc_csv = JalcP(orcid_index=orcid_doi_filepath, doi_csv=wanted_doi_filepath)
+    jalc_csv = JalcProcessing(orcid_index=orcid_doi_filepath, doi_csv=wanted_doi_filepath)
+    if citing_entities_filepath:
+        all_citing_entities = get_all_files(citing_entities_filepath, '.csv')
     if verbose:
         print(f'[INFO: datacite_process] Getting all files from {jalc_json_dir}')
     all_files, targz_fd = get_jalc_ndjson(jalc_json_dir)
@@ -45,19 +48,18 @@ def preprocess(jalc_json_dir:str, citing_entities_filepath:str, publishers_filep
             tabular_data = jalc_csv.csv_creator(item)
             if tabular_data:
                 data.append(tabular_data)
-            for citation in item['citation_list']:
+            for citation_dic in item['citation_list']:
+                citation_id = citation_dic['doi']
                 if citing_entities_filepath:
-                    if citation['doi'] not in citing_entities_filepath:
-                        tabular_data_cited = jalc_csv.csv_creator(citation)
+                    found = search_doi(citation_id, all_citing_entities)
+                    if not found:
+                        tabular_data_cited = jalc_csv.csv_creator(citation_dic)
                         if tabular_data_cited:
                             data.append(tabular_data_cited)
-                    else:
-                        pass
                 else:
-                    tabular_data_cited = jalc_csv.csv_creator(citation)
+                    tabular_data_cited = jalc_csv.csv_creator(citation_dic)
                     if tabular_data_cited:
                         data.append(tabular_data_cited)
-
         if data:
             with open(filepath, 'w', newline='', encoding='utf-8') as output_file:
                 dict_writer = csv.DictWriter(output_file, data[0].keys(), delimiter=',', quotechar='"', quoting=csv.QUOTE_NONNUMERIC, escapechar='\\')
@@ -93,6 +95,33 @@ def load_ndjson(file):
         with open(file, encoding="utf8") as f: # type: ignore
             result = ndjson.load(f)
     return result
+
+
+def get_all_files(i_dir_or_compr, req_type):
+    result = []
+    if i_dir_or_compr.endswith("zip"):
+        with zipfile.ZipFile(i_dir_or_compr, 'r') as zip_ref:
+            dest_dir = i_dir_or_compr.split(".")[0] + "decompr_zip_dir"
+            if not os.path.exists(dest_dir):
+                os.makedirs(dest_dir)
+            zip_ref.extractall(dest_dir)
+        for cur_dir, cur_subdir, cur_files in walk(dest_dir):
+            for cur_file in cur_files:
+                if cur_file.endswith(req_type) and not basename(cur_file).startswith("."):
+                    result.append(cur_dir + sep + cur_file)
+    return result
+
+
+def search_doi(doi, list_csv):
+    found = False
+    for file in list_csv:
+        with open(file, 'r') as csvfile:
+            next(csvfile)
+            datareader = csv.reader(csvfile)
+            for row in datareader:
+                if doi in row:
+                    found = True
+    return found
 
 
 def pathoo(path:str) -> None:

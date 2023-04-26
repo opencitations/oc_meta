@@ -24,6 +24,7 @@ class JalcProcessing(RaProcessor):
     def __init__(self, orcid_index:str=None, doi_csv:str=None, publishers_filepath: str = None):
         super(JalcProcessing, self).__init__(orcid_index, doi_csv, publishers_filepath)
 
+
     def csv_creator(self, item:dict) -> dict:
         doi = item["doi"]
         title = self.get_ja(item['title_list'])[0]['title'] if 'title_list' in item else ''  # Future Water Availability in the Asian Monsoon Region: A Case Study in Indonesia (no available in japanese)
@@ -31,15 +32,7 @@ class JalcProcessing(RaProcessor):
         authors_string_list, editors_string_list = self.get_agents_strings_list(doi, authors_list)
         issue = item['issue'] if 'issue' in item else ''
         volume = item['volume'] if 'volume' in item else ''
-        '''first_page = item['first_page'] if 'first_page' in item else ''
-        first_page = f'"{first_page}"' if '-' in first_page else first_page
-        last_page = item['last_page'] if 'last_page' in item else ''
-        last_page = f'"{last_page}"' if '-' in last_page else last_page
-        pages = ''
-        if first_page:
-            pages += first_page
-            if last_page:
-                pages += f'-{last_page}' #25-31'''
+
         metadata = {
             'id': doi,
             'title': title,
