@@ -43,16 +43,22 @@ class test_ar_order(unittest.TestCase):
         os.remove(os.path.join(BASE, 'rdf', 'ar', '06360', '310000', '301000.zip'))
         os.remove(os.path.join(BASE, 'rdf', 'ar', '060', '10000', '1000', 'prov', 'se.zip'))
         os.remove(os.path.join(BASE, 'rdf', 'br', '06360', '70000', '67000.zip'))
+        os.remove(os.path.join(BASE, 'rdf', 'br', '06360', '70000', '67000', 'prov', 'se.zip'))
+        os.remove(os.path.join(BASE, 'rdf', 'ra', '06360', '200000', '197000.zip'))
         os.remove(os.path.join(BASE, 'rdf', 'ar', '06360', '310000', '301000', 'prov', 'se.zip'))
         os.remove(os.path.join(BASE, 'info_dir', '06360', 'creator', 'prov_file_ar.txt'))
+        os.remove(os.path.join(BASE, 'info_dir', '06360', 'creator', 'prov_file_br.txt'))
         os.remove(os.path.join(BASE, 'info_dir', 'creator', 'prov_file_ar.txt'))
         copy(os.path.join(BASE, '1000.zip'), os.path.join(BASE, 'rdf', 'ar', '060', '10000'))
         copy(os.path.join(BASE, '301000.zip'), os.path.join(BASE, 'rdf', 'ar', '06360', '310000'))
         copy(os.path.join(BASE, '06360', '67000.zip'), os.path.join(BASE, 'rdf', 'br', '06360', '70000', '67000.zip'))
+        copy(os.path.join(BASE, '06360', 'br', 'se.zip'), os.path.join(BASE, 'rdf', 'br', '06360', '70000', '67000', 'prov', 'se.zip'))
         copy(os.path.join(BASE, '060', 'se.zip'), os.path.join(BASE, 'rdf', 'ar', '060', '10000', '1000', 'prov', 'se.zip'))
         copy(os.path.join(BASE, '06360', 'se.zip'), os.path.join(BASE, 'rdf', 'ar', '06360', '310000', '301000', 'prov', 'se.zip'))
         copy(os.path.join(BASE, '06360', 'prov_file_ar.txt'), os.path.join(BASE, 'info_dir', '06360', 'creator', 'prov_file_ar.txt'))
+        copy(os.path.join(BASE, '06360', 'prov_file_br.txt'), os.path.join(BASE, 'info_dir', '06360', 'creator', 'prov_file_br.txt'))
         copy(os.path.join(BASE, '060', 'prov_file_ar.txt'), os.path.join(BASE, 'info_dir', 'creator', 'prov_file_ar.txt'))
+        copy(os.path.join(BASE, '06360', '197000.zip'), os.path.join(BASE, 'rdf', 'ra', '06360', '200000', '197000.zip'))
 
     def test_fix_broken_roles_two_last(self):
         self.maxDiff = None

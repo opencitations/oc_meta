@@ -20,6 +20,10 @@ import unittest
 from shutil import rmtree
 from test.curator_test import reset_server
 
+from oc_ocdm import Storer
+from oc_ocdm.graph import GraphSet
+from oc_ocdm.prov import ProvSet
+from oc_ocdm.reader import Reader
 from rdflib import URIRef
 
 from oc_meta.plugins.editor import MetaEditor
@@ -37,7 +41,7 @@ class TestEditor(unittest.TestCase):
 
     def tearDown(self):
         rmtree(OUTPUT)
-
+    
     def test_update_property(self):
         editor = MetaEditor(META_CONFIG, 'https://orcid.org/0000-0002-8420-0696')
         editor.update_property(URIRef('https://w3id.org/oc/meta/ar/06101'), 'has_next', URIRef('https://w3id.org/oc/meta/ar/06104'))
@@ -91,35 +95,56 @@ class TestEditor(unittest.TestCase):
 
     def test_delete_entity(self):
         editor = MetaEditor(META_CONFIG, 'https://orcid.org/0000-0002-8420-0696')
-        editor.delete(URIRef('https://w3id.org/oc/meta/id/06203'))
+        editor.delete(URIRef('https://w3id.org/oc/meta/id/06202'))
         with open(os.path.join(OUTPUT, 'rdf', 'id', '0620', '10000', '1000.json'), 'r', encoding='utf8') as f:
             id_data = json.load(f)
             for graph in id_data:
                 graph_data = graph['@graph']
                 for identifier in graph_data:
-                    if identifier['@id'] == 'https://w3id.org/oc/meta/id/06203':
+                    if identifier['@id'] == 'https://w3id.org/oc/meta/id/06202':
                         self.fail()
         with open(os.path.join(OUTPUT, 'rdf', 'id', '0620', '10000', '1000', 'prov', 'se.json'), 'r', encoding='utf8') as f:
             id_prov = json.load(f)
             for graph in id_prov:
                 graph_prov = graph['@graph'] 
                 for identifier in graph_prov:
-                    if identifier['@id'] == 'https://w3id.org/oc/meta/id/06203/prov/se/2':
+                    if identifier['@id'] == 'https://w3id.org/oc/meta/id/06202/prov/se/2':
                         update_query = identifier['https://w3id.org/oc/ontology/hasUpdateQuery'][0]['@value'].replace('DELETE DATA { GRAPH <https://w3id.org/oc/meta/id/> { ', '').replace(' . } }', '').replace('\n', '').split(' .')
-                        self.assertEqual(set(update_query), {'<https://w3id.org/oc/meta/id/06203> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/datacite/Identifier>', '<https://w3id.org/oc/meta/id/06203> <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/crossref>', '<https://w3id.org/oc/meta/id/06203> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "312"'})
+                        self.assertEqual(set(update_query), {'<https://w3id.org/oc/meta/id/06202> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/datacite/Identifier>', '<https://w3id.org/oc/meta/id/06202> <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/crossref>', '<https://w3id.org/oc/meta/id/06202> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "312"'})
         with open(os.path.join(OUTPUT, 'rdf', 'ra', '0620', '10000', '1000', 'prov', 'se.json'), 'r', encoding='utf8') as f:
             ra_prov = json.load(f)
             for graph in ra_prov:
                 graph_prov = graph['@graph'] 
                 for ra in graph_prov:
-                    if ra['@id'] == 'https://w3id.org/oc/meta/ra/06205/prov/se/2':
-                        self.assertEqual(ra['https://w3id.org/oc/ontology/hasUpdateQuery'][0]['@value'], 'DELETE DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06205> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06203> . } }')
+                    if ra['@id'] == 'https://w3id.org/oc/meta/ra/06107/prov/se/2':
+                        self.assertEqual(ra['https://w3id.org/oc/ontology/hasUpdateQuery'][0]['@value'], 'DELETE DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06107> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06202> . } }')
 
     def test_merge(self):
+        base_iri = 'https://w3id.org/oc/meta/'
+        info_dir = os.path.join(OUTPUT, 'info_dir', '0620', 'creator')
+        resp_agent = 'https://orcid.org/0000-0002-8420-0696'
+        g_set = GraphSet(base_iri, info_dir, supplier_prefix='0620', wanted_label=False)
+        endpoint = 'http://127.0.0.1:9999/blazegraph/sparql'
+        rdf = os.path.join(OUTPUT, 'rdf') + os.sep
+        reader = Reader()
+        ra = g_set.add_ra(resp_agent=resp_agent, res=URIRef('https://w3id.org/oc/meta/ra/06205'))
+        ra.has_name('Wiley')
+        id_06105 = reader.import_entity_from_triplestore(g_set, endpoint, URIRef('https://w3id.org/oc/meta/id/06105'), resp_agent, enable_validation=False)
+        id_06203 = g_set.add_id(resp_agent=resp_agent)
+        id_06203.create_crossref('313')
+        ra.has_identifier(id_06105)
+        ra.has_identifier(id_06203)
+        provset = ProvSet(g_set, base_iri, info_dir, wanted_label=False)
+        provset.generate_provenance()
+        graph_storer = Storer(g_set, dir_split=10000, n_file_item=1000, zip_output=False)
+        prov_storer = Storer(provset, dir_split=10000, n_file_item=1000, zip_output=False)
+        graph_storer.store_all(rdf, base_iri)
+        prov_storer.store_all(rdf, base_iri)
+        graph_storer.upload_all(endpoint)
         editor = MetaEditor(META_CONFIG, 'https://orcid.org/0000-0002-8420-0696')
         editor.merge(URIRef('https://w3id.org/oc/meta/ra/06107'), URIRef('https://w3id.org/oc/meta/ra/06205'))
         with open(os.path.join(OUTPUT, 'info_dir', '0610', 'creator', 'prov_file_ra.txt'), 'r', encoding='utf8') as f:
-            self.assertEqual(f.readlines(), ['1 \n', '1 \n', '1 \n', '1 \n', '1 \n', '1 \n', '2 \n'])
+            self.assertEqual(f.readlines(), ['1 \n', '1 \n', '1 \n', '1 \n', '1 \n', '1 \n', '3 \n'])
         with open(os.path.join(OUTPUT, 'info_dir', '0620', 'creator', 'prov_file_ra.txt'), 'r', encoding='utf8') as f:
             self.assertEqual(f.readlines(), ['1 \n', '1 \n', '1 \n', '1 \n', '2 \n'])
         for filepath in [
@@ -135,19 +160,19 @@ class TestEditor(unittest.TestCase):
                     for entity in graph_data:
                         if entity['@id'] == 'https://w3id.org/oc/meta/ra/06107':
                             identifiers = {identifier['@id'] for identifier in entity['http://purl.org/spar/datacite/hasIdentifier']}
-                            self.assertEqual(identifiers, {'https://w3id.org/oc/meta/id/06203', 'https://w3id.org/oc/meta/id/06105'})
+                            self.assertEqual(identifiers, {'https://w3id.org/oc/meta/id/06202', 'https://w3id.org/oc/meta/id/06105', 'https://w3id.org/oc/meta/id/06206'})
                         elif entity['@id'] == 'https://w3id.org/oc/meta/ra/06205':
                             self.fail()
                         elif entity['@id'] == 'https://w3id.org/oc/meta/ar/06205':
                             self.assertEqual(entity['http://purl.org/spar/pro/isHeldBy'][0]['@id'], 'https://w3id.org/oc/meta/ra/06107')
                         elif entity['@id'] in {'https://w3id.org/oc/meta/ra/06107/prov/se/1', 'https://w3id.org/oc/meta/ra/06205/prov/se/1'}:
                             self.assertTrue('http://www.w3.org/ns/prov#invalidatedAtTime' in entity)
-                        elif entity['@id'] == 'https://w3id.org/oc/meta/ra/06107/prov/se/2':
+                        elif entity['@id'] == 'https://w3id.org/oc/meta/ra/06107/prov/se/3':
                             self.assertEqual(entity['http://purl.org/dc/terms/description'][0]['@value'], "The entity 'https://w3id.org/oc/meta/ra/06107' has been merged with 'https://w3id.org/oc/meta/ra/06205'.")
-                            self.assertEqual(entity['https://w3id.org/oc/ontology/hasUpdateQuery'][0]['@value'], 'INSERT DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06107> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06203> . } }')
+                            self.assertEqual(entity['https://w3id.org/oc/ontology/hasUpdateQuery'][0]['@value'], 'INSERT DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06107> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06206> . } }')
                         elif entity['@id'] == 'https://w3id.org/oc/meta/ra/06205/prov/se/2':
                             update_query = entity['https://w3id.org/oc/ontology/hasUpdateQuery'][0]['@value'].replace('DELETE DATA { GRAPH <https://w3id.org/oc/meta/ra/> { ', '').replace(' . } }', '').replace('\n', '').split(' .')
-                            self.assertEqual(set(update_query), {'<https://w3id.org/oc/meta/ra/06205> <http://xmlns.com/foaf/0.1/name> "Wiley"', '<https://w3id.org/oc/meta/ra/06205> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06202>', '<https://w3id.org/oc/meta/ra/06205> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06203>', '<https://w3id.org/oc/meta/ra/06205> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent>'})
+                            self.assertEqual(set(update_query), {'<https://w3id.org/oc/meta/ra/06205> <http://xmlns.com/foaf/0.1/name> "Wiley"', '<https://w3id.org/oc/meta/ra/06205> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06206>', '<https://w3id.org/oc/meta/ra/06205> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06105>', '<https://w3id.org/oc/meta/ra/06205> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent>'})
                             
 
 if __name__ == '__main__': # pragma: no cover
