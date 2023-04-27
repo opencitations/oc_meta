@@ -60,7 +60,7 @@ def generate_csv(filename, meta_config: str, rdf_dir, dir_split_number, items_pe
     memory = dict()
     csv_data = get_csv_data(os.path.join(output_dir, filename))
     for row in csv_data:
-        for identifier in [identifier for identifier in row['id'].split() if not identifier.startswith('meta')]:
+        for identifier in [identifier for identifier in row['id'].split() if not identifier.startswith('omid')]:
             id_path = find_file(rdf_dir, dir_split_number, items_per_file, identifier, zip_output_rdf)
             if id_path:
                 id_info = process_archive(id_path, process_id, memory, identifier, meta_config, resp_agent, id_path, memory)
@@ -174,7 +174,7 @@ def process_br(br_data: list) -> list:
             br_type = URI_TYPE_DICT[br_types[0]] if len(br_types) == 1 else ''
             if br_type in {'journal volume', 'journal issue'}:
                 continue
-            br_omid = f"meta:{br['@id'].split('/meta/')[1]}"
+            br_omid = f"omid:{br['@id'].split('/meta/')[1]}"
             br_identifiers = [br_omid]
             if 'http://purl.org/spar/datacite/hasIdentifier' in br:
                 br_ids = br['http://purl.org/spar/datacite/hasIdentifier']
@@ -250,7 +250,7 @@ def process_responsible_agent(ra_data: list, ra_uri: str, rdf_dir: str, dir_spli
                             full_name += f' {ra_gn}'
                     elif ra_gn:
                         full_name += f', {ra_gn}'
-                ra_ids = [f"meta:{ra_uri.split('/meta/')[1]}"]
+                ra_ids = [f"omid:{ra_uri.split('/meta/')[1]}"]
                 if 'http://purl.org/spar/datacite/hasIdentifier' in ra:
                     for ra_identifier in ra['http://purl.org/spar/datacite/hasIdentifier']:
                         id_uri = ra_identifier['@id']
@@ -282,7 +282,7 @@ def process_venue(venue_data: list, venue_uri: str, rdf_dir: str, dir_split_numb
                 else:
                     venue_title = venue['http://purl.org/dc/terms/title'][0]['@value'] if 'http://purl.org/dc/terms/title' in venue else None
                     venue_ids = venue['http://purl.org/spar/datacite/hasIdentifier'] if 'http://purl.org/spar/datacite/hasIdentifier' in venue else []
-                    explicit_ids = [f"meta:{venue_uri.split('/meta/')[1]}"]
+                    explicit_ids = [f"omid:{venue_uri.split('/meta/')[1]}"]
                     for venue_id in venue_ids:
                         id_path = find_file(rdf_dir, dir_split_number, items_per_file, venue_id['@id'], zip_output_rdf)
                         explicit_ids.append(process_archive(id_path, process_id, memory, venue_id['@id'], meta_config, resp_agent, id_path, memory))

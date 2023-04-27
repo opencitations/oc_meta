@@ -356,7 +356,7 @@ class TestPubmedProcessing(unittest.TestCase):
         tabular_data_no_redis_data = pubmed_processor.csv_creator(inp_ent_fake_doi)
         self.assertEqual(tabular_data_no_redis_data['id'], 'pmid:5')
 
-        pubmed_processor.BR_redis.set('doi:10.1016/a_fake_doi', 'meta:000101')
+        pubmed_processor.BR_redis.set('doi:10.1016/a_fake_doi', 'omid:000101')
 
         tabular_data_w_redis_data = pubmed_processor.csv_creator(inp_ent_fake_doi)
         self.assertEqual(tabular_data_w_redis_data['id'], 'pmid:5 doi:10.1016/a_fake_doi')

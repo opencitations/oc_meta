@@ -372,7 +372,7 @@ class Curator:
                 if not ra_id and sequence:
                     for _, ra_metaid in sequence:
                         if self.radict[ra_metaid]['title'] == name:
-                            ra_id = 'meta:ra/' + str(ra_metaid)
+                            ra_id = 'omid:ra/' + str(ra_metaid)
                             new_elem_seq = False
                             break
                 if ra_id:
@@ -392,11 +392,11 @@ class Curator:
                                     if 'wannabe' not in ra_metaid:
                                         ar_ra = ra_metaid
                                         for pos, literal_value in enumerate(ra_id_list):
-                                            if 'meta' in literal_value:
+                                            if 'omid' in literal_value:
                                                 ra_id_list[pos] = ''
                                             break
                                         ra_id_list = list(filter(None, ra_id_list))
-                                        ra_id_list.append('meta:ra/' + ar_ra)
+                                        ra_id_list.append('omid:ra/' + ar_ra)
                         if not ar_ra:
                             # new element
                             for ar_metaid, ra_metaid in sequence:
@@ -405,11 +405,11 @@ class Curator:
                                     if 'wannabe' not in ra_metaid:
                                         ar_ra = ra_metaid
                                         for pos, i in enumerate(ra_id_list):
-                                            if 'meta' in i:
+                                            if 'omid' in i:
                                                 ra_id_list[pos] = ''
                                             break
                                         ra_id_list = list(filter(None, ra_id_list))
-                                        ra_id_list.append('meta:ra/' + ar_ra)
+                                        ra_id_list.append('omid:ra/' + ar_ra)
                     if col_name == 'publisher':
                         metaval = self.id_worker('publisher', name, ra_id_list, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
                     else:
@@ -453,15 +453,15 @@ class Curator:
             identifier = elem.split(':', 1)
             schema = identifier[0].lower()
             value = identifier[1]
-            if schema == 'meta':
+            if schema == 'omid':
                 metaid = value.replace(pattern, '')
             else:
                 normalized_id = Cleaner(elem).normalize_id(valid_dois_cache=valid_dois_cache)
                 if normalized_id:
                     clean_list.append(normalized_id)
-        how_many_meta = [i for i in id_list if i.lower().startswith('meta')]
+        how_many_meta = [i for i in id_list if i.lower().startswith('omid')]
         if len(how_many_meta) > 1:
-            clean_list = [i for i in clean_list if not i.lower().startswith('meta')]
+            clean_list = [i for i in clean_list if not i.lower().startswith('omid')]
         return clean_list, metaid
 
     def conflict(self, idslist:List[str], name:str, id_dict:dict, col_name:str) -> str:
@@ -599,10 +599,10 @@ class Curator:
                 meta = self.prefix + str(count)
                 self.brmeta[meta] = self.brdict[identifier]
                 self.brmeta[meta]['others'].append(other)
-                self.brmeta[meta]['ids'].append('meta:br/' + meta)
+                self.brmeta[meta]['ids'].append('omid:br/' + meta)
             else:
                 self.brmeta[identifier] = self.brdict[identifier]
-                self.brmeta[identifier]['ids'].append('meta:br/' + identifier)
+                self.brmeta[identifier]['ids'].append('omid:br/' + identifier)
         for identifier in self.radict:
             if 'wannabe' in identifier:
                 other = identifier
@@ -610,10 +610,10 @@ class Curator:
                 meta = self.prefix + str(count)
                 self.rameta[meta] = self.radict[identifier]
                 self.rameta[meta]['others'].append(other)
-                self.rameta[meta]['ids'].append('meta:ra/' + meta)
+                self.rameta[meta]['ids'].append('omid:ra/' + meta)
             else:
                 self.rameta[identifier] = self.radict[identifier]
-                self.rameta[identifier]['ids'].append('meta:ra/' + identifier)
+                self.rameta[identifier]['ids'].append('omid:ra/' + identifier)
         for ar_id in self.ardict:
             if 'wannabe' in ar_id:
                 for br_id in self.brmeta:
@@ -1159,7 +1159,7 @@ class Curator:
             for item in resp_agents:
                 for _, resp_agent in item.items():
                     author_name = resp_agent[0]
-                    ids = [f'meta:ra/{resp_agent[2]}']
+                    ids = [f'omid:ra/{resp_agent[2]}']
                     ids.extend([id[1] for id in resp_agent[1]])
                     author_ids = '[' + ' '.join(ids) + ']'
                     full_resp_agent =  author_name + ' ' + author_ids

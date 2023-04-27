@@ -43,7 +43,7 @@ jobs:
       run: |
         wget https://github.com/blazegraph/database/releases/download/BLAZEGRAPH_2_1_6_RC/blazegraph.jar
         java -server -jar blazegraph.jar &
-        python3 -c 'import time; time.sleep(10)'
+        python3 -c 'import time; time.sleep(15)'
         curl -X POST  http://localhost:9999/blazegraph/namespace/kb/textIndex?force-index-create=true
     - name: Check the overage
       run: |

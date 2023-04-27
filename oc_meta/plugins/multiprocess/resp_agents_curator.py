@@ -108,7 +108,7 @@ class RespAgentsCurator(Curator):
                         if not full_name.split(',')[1].strip() and first_name:  # first name found!
                             given_name = full_name.split(',')[0]
                             self.radict[metaval]['title'] = given_name + ', ' + first_name
-                ra_metaids.append(f'{name} [meta:ra/{metaval}]')
+                ra_metaids.append(f'{name} [omid:ra/{metaval}]')
             row[col_name] = '; '.join(ra_metaids)
 
     def meta_maker(self):
@@ -122,10 +122,10 @@ class RespAgentsCurator(Curator):
                 meta = self.prefix + str(count)
                 self.rameta[meta] = self.radict[identifier]
                 self.rameta[meta]['others'].append(other)
-                self.rameta[meta]['ids'].append('meta:ra/' + meta)
+                self.rameta[meta]['ids'].append('omid:ra/' + meta)
             else:
                 self.rameta[identifier] = self.radict[identifier]
-                self.rameta[identifier]['ids'].append('meta:ra/' + identifier)
+                self.rameta[identifier]['ids'].append('omid:ra/' + identifier)
                 self.preexisting_entities.add(f'ra/{identifier}')
 
     def indexer(self, path_index:str, path_csv:str) -> None:
@@ -188,15 +188,15 @@ class RespAgentsCurator(Curator):
             identifier = elem.split(':', 1)
             schema = identifier[0].lower()
             value = identifier[1]
-            if schema == 'meta':
+            if schema == 'omid':
                 metaid = value.replace(pattern, '')
             else:
                 normalized_id = Cleaner(elem).normalize_id(valid_dois_cache=dict())
                 if normalized_id:
                     clean_list.append(normalized_id)
-        how_many_meta = [i for i in id_list if i.lower().startswith('meta')]
+        how_many_meta = [i for i in id_list if i.lower().startswith('omid')]
         if len(how_many_meta) > 1:
-            clean_list = [i for i in clean_list if not i.lower().startswith('meta')]
+            clean_list = [i for i in clean_list if not i.lower().startswith('omid')]
         return clean_list, metaid
 
     def id_worker(self, col_name, name, idslist:List[str], publ_entity:bool):
@@ -358,7 +358,7 @@ class RespAgentsCurator(Curator):
                     else:
                         ra_list = [row[field]]
                     for ra_entity in ra_list:
-                        metaid = re.search(name_and_ids, ra_entity).group(2).replace('meta:ra/', '')
+                        metaid = re.search(name_and_ids, ra_entity).group(2).replace('omid:ra/', '')
                         if 'wannabe' in metaid:
                             for ra_metaid in self.rameta:
                                 if metaid in self.rameta[ra_metaid]['others']:

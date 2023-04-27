@@ -116,7 +116,7 @@ class test_Curator(unittest.TestCase):
         self.assertEqual((entity_dict, id_dict), expected_output)
 
     def test_clean_id_list(self):
-        input = ['doi:10.001/B-1', 'wikidata:B1111111', 'META:br/060101']
+        input = ['doi:10.001/B-1', 'wikidata:B1111111', 'OMID:br/060101']
         output = Curator.clean_id_list(input, br=True)
         expected_output = (['doi:10.001/b-1', 'wikidata:B1111111'], '060101')
         self.assertEqual(output, expected_output)
@@ -137,7 +137,7 @@ class test_Curator(unittest.TestCase):
         output = (curator.log, row)
         expected_output = (
             {0: {'id': {'status': 'Entity already exists'}}}, 
-            {'id': '', 'title': '', 'author': 'Katz, R. [meta:ra/6376]', 'pub_date': '1972-12-01', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '106', 'issue': '6', 'page': '837-838', 'type': 'journal article', 'publisher': 'American Medical Association (ama) [meta:ra/3309 crossref:10]', 'editor': ''}
+            {'id': '', 'title': '', 'author': 'Katz, R. [omid:ra/6376]', 'pub_date': '1972-12-01', 'venue': 'Archives Of Dermatology [omid:br/4416]', 'volume': '106', 'issue': '6', 'page': '837-838', 'type': 'journal article', 'publisher': 'American Medical Association (ama) [omid:ra/3309 crossref:10]', 'editor': ''}
         )
         self.assertEqual(output, expected_output)
     
@@ -145,7 +145,7 @@ class test_Curator(unittest.TestCase):
         # A MetaId was specified, but it is not on ts. Therefore, it is invalid
         add_data_ts()
         curator = prepareCurator(list())
-        row = {'id': 'meta:br/131313', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}
+        row = {'id': 'omid:br/131313', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}
         curator.log[0] = {'id': {}}
         curator.clean_id(row)
         expected_output = {'id': 'wannabe_0', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}
@@ -154,18 +154,18 @@ class test_Curator(unittest.TestCase):
     def test_clean_id(self):
         add_data_ts()
         curator = prepareCurator(list())
-        row = {'id': 'doi:10.1001/archderm.104.1.106', 'title': 'Multiple Blasto', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}
+        row = {'id': 'doi:10.1001/archderm.104.1.106', 'title': 'Multiple Blasto', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [omid:br/4416]', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}
         curator.log[0] = {'id': {}}
         curator.clean_id(row)
-        expected_output = {'id': '3757', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}
+        expected_output = {'id': '3757', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [omid:br/4416]', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}
         self.assertEqual(row, expected_output)
     
     def test_merge_duplicate_entities(self):
         add_data_ts()
         data = [
-            {'id': '3757', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''},
-            {'id': 'wannabe_0', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-02', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''},
-            {'id': 'wannabe_0', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-03', 'venue': 'Archives Of Blast [meta:br/4416]', 'volume': '105', 'issue': '2', 'page': '106-108', 'type': 'journal volume', 'publisher': '', 'editor': ''},
+            {'id': '3757', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [omid:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''},
+            {'id': 'wannabe_0', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-02', 'venue': 'Archives Of Dermatology [omid:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''},
+            {'id': 'wannabe_0', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-03', 'venue': 'Archives Of Blast [omid:br/4416]', 'volume': '105', 'issue': '2', 'page': '106-108', 'type': 'journal volume', 'publisher': '', 'editor': ''},
         ]
         curator = prepareCurator(list())
         curator.data = data
@@ -186,9 +186,9 @@ class test_Curator(unittest.TestCase):
         curator.merge_duplicate_entities()
         expected_output = (
             [
-                {'id': '3757', 'title': 'Multiple Keloids', 'author': 'Curth, W. [meta:ra/6033]', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': 'American Medical Association (ama) [meta:ra/3309 crossref:10]', 'editor': ''}, 
-                {'id': '3757', 'title': 'Multiple Keloids', 'author': 'Curth, W. [meta:ra/6033]', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': 'American Medical Association (ama) [meta:ra/3309 crossref:10]', 'editor': ''},
-                {'id': '3757', 'title': 'Multiple Keloids', 'author': 'Curth, W. [meta:ra/6033]', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': 'American Medical Association (ama) [meta:ra/3309 crossref:10]', 'editor': ''}
+                {'id': '3757', 'title': 'Multiple Keloids', 'author': 'Curth, W. [omid:ra/6033]', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [omid:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': 'American Medical Association (ama) [omid:ra/3309 crossref:10]', 'editor': ''}, 
+                {'id': '3757', 'title': 'Multiple Keloids', 'author': 'Curth, W. [omid:ra/6033]', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [omid:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': 'American Medical Association (ama) [omid:ra/3309 crossref:10]', 'editor': ''},
+                {'id': '3757', 'title': 'Multiple Keloids', 'author': 'Curth, W. [omid:ra/6033]', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [omid:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': 'American Medical Association (ama) [omid:ra/3309 crossref:10]', 'editor': ''}
             ],
             {
                 0: {'id': {'status': 'Entity already exists'}, 'author': {}, 'venue': {}, 'editor': {}, 'publisher': {}, 'page': {}, 'volume': {}, 'issue': {}, 'pub_date': {}, 'type': {}}, 
@@ -201,7 +201,7 @@ class test_Curator(unittest.TestCase):
     def test_clean_vvi_all_data_on_ts(self):
         # All data are already on the triplestore. They need to be retrieved and organized correctly
         add_data_ts()
-        row = {'id': '3757', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}
+        row = {'id': '3757', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [omid:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}
         curator = prepareCurator(list())
         curator.clean_vvi(row)
         expected_output = {
@@ -237,7 +237,7 @@ class test_Curator(unittest.TestCase):
         row = [{'id': '', 'title': 'The volume title', 'author': '', 'pub_date': '', 'venue': 'OECD Economic Outlook', 'volume': '2011', 'issue': '2', 'page': '', 'type': 'journal volume', 'publisher': '', 'editor': ''}]
         curator = prepareCurator(row)
         curator.curator()
-        expected_output = [{'id': 'meta:br/0601', 'title': 'The Volume Title', 'author': '', 'pub_date': '', 'venue': 'OECD Economic Outlook [meta:br/0602]', 'volume': '', 'issue': '', 'page': '', 'type': 'journal volume', 'publisher': '', 'editor': ''}]
+        expected_output = [{'id': 'omid:br/0601', 'title': 'The Volume Title', 'author': '', 'pub_date': '', 'venue': 'OECD Economic Outlook [omid:br/0602]', 'volume': '', 'issue': '', 'page': '', 'type': 'journal volume', 'publisher': '', 'editor': ''}]
         self.assertEqual(curator.data, expected_output)
 
     def test_clean_vvi_invalid_volume(self):
@@ -261,7 +261,7 @@ class test_Curator(unittest.TestCase):
     def test_clean_vvi_new_volume_and_issue(self):
         # There are a new volume and a new issue
         add_data_ts()
-        row = {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': 'Archives Of Surgery [meta:br/4480]', 'volume': '99', 'issue': '1', 'page': '', 'type': 'journal article', 'publisher': '', 'editor': ''}
+        row = {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': 'Archives Of Surgery [omid:br/4480]', 'volume': '99', 'issue': '1', 'page': '', 'type': 'journal article', 'publisher': '', 'editor': ''}
         curator = prepareCurator(list())
         curator.clean_vvi(row)
         expected_output = {
@@ -295,7 +295,7 @@ class test_Curator(unittest.TestCase):
         # One author is in the triplestore, the other is not. 
         # br_metaval is a MetaID
         # There are two ids for one author
-        row = {'id': '3757', 'title': 'Multiple Keloids', 'author': 'Curth, W.; McSorley, J. [orcid:0000-0003-0530-4305 schema:12345]', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}
+        row = {'id': '3757', 'title': 'Multiple Keloids', 'author': 'Curth, W.; McSorley, J. [orcid:0000-0003-0530-4305 schema:12345]', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [omid:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}
         curator = prepareCurator(list())
         curator.brdict = {'3757': {'ids': ['doi:10.1001/archderm.104.1.106'], 'title': 'Multiple Keloids', 'others': []}}
         curator.clean_ra(row, 'author')
@@ -311,7 +311,7 @@ class test_Curator(unittest.TestCase):
         add_data_ts()
         # Authors not on the triplestore. 
         # br_metaval is a wannabe
-        row = {'id': 'wannabe_0', 'title': 'Multiple Keloids', 'author': 'Curth, W. [orcid:0000-0002-8420-0696] ; McSorley, J. [orcid:0000-0003-0530-4305]', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}
+        row = {'id': 'wannabe_0', 'title': 'Multiple Keloids', 'author': 'Curth, W. [orcid:0000-0002-8420-0696] ; McSorley, J. [orcid:0000-0003-0530-4305]', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [omid:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}
         curator = prepareCurator(list())
         curator.brdict = {'wannabe_0': {'ids': ['doi:10.1001/archderm.104.1.106'], 'title': 'Multiple Keloids', 'others': []}}
         curator.wnb_cnt = 1
@@ -327,7 +327,7 @@ class test_Curator(unittest.TestCase):
     def test_clean_ra_with_empty_square_brackets(self):
         add_data_ts()
         # One author's name contains a closed square bracket.
-        row = {'id': '3757', 'title': 'Multiple Keloids', 'author': 'Bernacki, Edward J. [    ]', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [meta:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}
+        row = {'id': '3757', 'title': 'Multiple Keloids', 'author': 'Bernacki, Edward J. [    ]', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [omid:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}
         curator = prepareCurator(list())
         curator.brdict = {'3757': {'ids': ['doi:10.1001/archderm.104.1.106'], 'title': 'Multiple Keloids', 'others': []}}
         curator.clean_ra(row, 'author')
@@ -348,8 +348,8 @@ class test_Curator(unittest.TestCase):
         curator.meta_maker()
         output = (curator.brmeta, curator.rameta, curator.armeta)
         expected_output = (
-            {'3757': {'ids': ['doi:10.1001/archderm.104.1.106', 'pmid:29098884', 'meta:br/3757'], 'title': 'Multiple Keloids', 'others': []}, '4416': {'ids': ['issn:0003-987X', 'meta:br/4416'], 'title': 'Archives Of Dermatology', 'others': []}},
-            {'6033': {'ids': ['meta:ra/6033'], 'others': [], 'title': 'Curth, W.'}, '0601': {'ids': ['orcid:0000-0003-0530-4305', 'schema:12345', 'meta:ra/0601'], 'others': ['wannabe_0'], 'title': 'Mcsorley, J.'}},
+            {'3757': {'ids': ['doi:10.1001/archderm.104.1.106', 'pmid:29098884', 'omid:br/3757'], 'title': 'Multiple Keloids', 'others': []}, '4416': {'ids': ['issn:0003-987X', 'omid:br/4416'], 'title': 'Archives Of Dermatology', 'others': []}},
+            {'6033': {'ids': ['omid:ra/6033'], 'others': [], 'title': 'Curth, W.'}, '0601': {'ids': ['orcid:0000-0003-0530-4305', 'schema:12345', 'omid:ra/0601'], 'others': ['wannabe_0'], 'title': 'Mcsorley, J.'}},
             {'3757': {'author': [('9445', '6033'), ('0601', '0601')], 'editor': [], 'publisher': []}}
         )
         self.assertEqual(output, expected_output)
@@ -358,16 +358,16 @@ class test_Curator(unittest.TestCase):
         curator = prepareCurator(list())
         curator.data = [{'id': 'wannabe_0', 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China', 'author': '', 'pub_date': '2011-11-28', 'venue': 'wannabe_1', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': 'OECD [crossref:1963]', 'editor': ''}]
         curator.brmeta = {
-            '0601': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en', 'meta:br/0601'], 'others': ['wannabe_0'], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}, 
-            '0602': {'ids': ['meta:br/0604'], 'others': ['wannabe_1'], 'title': 'OECD Economic Outlook'}
+            '0601': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en', 'omid:br/0601'], 'others': ['wannabe_0'], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}, 
+            '0602': {'ids': ['omid:br/0604'], 'others': ['wannabe_1'], 'title': 'OECD Economic Outlook'}
         }
         curator.armeta = {'0601': {'author': [], 'editor': [], 'publisher': [('0601', '0601')]}}
-        curator.rameta = {'0601': {'ids': ['crossref:1963', 'meta:ra/0601'], 'others': ['wannabe_2'], 'title': 'Oecd'}}
+        curator.rameta = {'0601': {'ids': ['crossref:1963', 'omid:ra/0601'], 'others': ['wannabe_2'], 'title': 'Oecd'}}
         curator.remeta = dict()
         curator.meta_maker()
         curator.enrich()
         output = curator.data
-        expected_output = [{'id': 'doi:10.1787/eco_outlook-v2011-2-graph138-en meta:br/0601', 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China', 'author': '', 'pub_date': '2011-11-28', 'venue': 'OECD Economic Outlook [meta:br/0604]', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': 'Oecd [crossref:1963 meta:ra/0601]', 'editor': ''}]
+        expected_output = [{'id': 'doi:10.1787/eco_outlook-v2011-2-graph138-en omid:br/0601', 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China', 'author': '', 'pub_date': '2011-11-28', 'venue': 'OECD Economic Outlook [omid:br/0604]', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': 'Oecd [crossref:1963 omid:ra/0601]', 'editor': ''}]
         self.assertEqual(output, expected_output)
     
     def test_indexer(self):
@@ -380,8 +380,8 @@ class test_Curator(unittest.TestCase):
         curator.armeta = {'2585': {'author': [('9445', '0602'), ('0601', '0601')], 'editor': [], 'publisher': []}}
         curator.remeta = dict()
         curator.brmeta = {
-            '0601': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en', 'meta:br/0601'], 'others': ['wannabe_0'], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}, 
-            '0602': {'ids': ['meta:br/0602'], 'others': ['wannabe_1'], 'title': 'OECD Economic Outlook'}
+            '0601': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en', 'omid:br/0601'], 'others': ['wannabe_0'], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}, 
+            '0602': {'ids': ['omid:br/0602'], 'others': ['wannabe_1'], 'title': 'OECD Economic Outlook'}
         }
         curator.vvi = {
             'wannabe_1': {
@@ -440,12 +440,12 @@ class test_Curator(unittest.TestCase):
     
     def test_get_preexisting_entities(self):
         add_data_ts()
-        row = {'id': 'meta:br/2715', 'title': 'Image Of The Year For 2012', 'author': '', 'pub_date': '', 'venue': 'Archives Of Surgery [meta:br/4480]', 'volume': '99', 'issue': '1', 'page': '', 'type': 'journal article', 'publisher': '', 'editor': ''}
+        row = {'id': 'omid:br/2715', 'title': 'Image Of The Year For 2012', 'author': '', 'pub_date': '', 'venue': 'Archives Of Surgery [omid:br/4480]', 'volume': '99', 'issue': '1', 'page': '', 'type': 'journal article', 'publisher': '', 'editor': ''}
         curator = prepareCurator(data=[row])
         curator.curator()
         expected_output = (
             {'ra/3309', 'br/4487', 'br/2715', 'id/2581', 'ar/7240', 'id/4270', 'id/4274', 'br/4481', 'br/4480', 'br/4482', 're/2350'},
-            [{'id': 'doi:10.1001/2013.jamasurg.202 meta:br/2715', 'title': 'Image Of The Year For 2012', 'author': '', 'pub_date': '2012-12-01', 'venue': 'Archives Of Surgery [issn:0004-0010 meta:br/4480]', 'volume': '147', 'issue': '12', 'page': '1140-1140', 'type': 'journal article', 'publisher': 'American Medical Association (ama) [crossref:10 meta:ra/3309]', 'editor': ''}]
+            [{'id': 'doi:10.1001/2013.jamasurg.202 omid:br/2715', 'title': 'Image Of The Year For 2012', 'author': '', 'pub_date': '2012-12-01', 'venue': 'Archives Of Surgery [issn:0004-0010 omid:br/4480]', 'volume': '147', 'issue': '12', 'page': '1140-1140', 'type': 'journal article', 'publisher': 'American Medical Association (ama) [crossref:10 omid:ra/3309]', 'editor': ''}]
         )
         self.assertEqual((curator.preexisting_entities, curator.data), expected_output)
         
@@ -463,18 +463,18 @@ class test_RespAgentsCurator(unittest.TestCase):
         output = (resp_agents_curator.data, resp_agents_curator.radict, resp_agents_curator.idra, resp_agents_curator.rameta)
         expected_output = (
             [
-                {'id': '', 'title': '', 'author': '', 'venue': '', 'editor': '', 'publisher': 'American Medical Association (ama) [crossref:10 crossref:9999 meta:ra/3309]', 'page': '', 'volume': '', 'issue': '', 'pub_date': '', 'type': ''}, 
-                {'id': '', 'title': '', 'author': '', 'venue': '', 'editor': '', 'publisher': 'Elsevier Bv [crossref:78 meta:ra/0601]', 'page': '', 'volume': '', 'issue': '', 'pub_date': '', 'type': ''}, 
-                {'id': '', 'title': '', 'author': '', 'venue': '', 'editor': '', 'publisher': 'Wiley [crossref:311 meta:ra/0602]', 'page': '', 'volume': '', 'issue': '', 'pub_date': '', 'type': ''}],
+                {'id': '', 'title': '', 'author': '', 'venue': '', 'editor': '', 'publisher': 'American Medical Association (ama) [crossref:10 crossref:9999 omid:ra/3309]', 'page': '', 'volume': '', 'issue': '', 'pub_date': '', 'type': ''}, 
+                {'id': '', 'title': '', 'author': '', 'venue': '', 'editor': '', 'publisher': 'Elsevier Bv [crossref:78 omid:ra/0601]', 'page': '', 'volume': '', 'issue': '', 'pub_date': '', 'type': ''}, 
+                {'id': '', 'title': '', 'author': '', 'venue': '', 'editor': '', 'publisher': 'Wiley [crossref:311 omid:ra/0602]', 'page': '', 'volume': '', 'issue': '', 'pub_date': '', 'type': ''}],
             {
-                '3309': {'ids': ['crossref:10', 'crossref:9999', 'meta:ra/3309'], 'others': [], 'title': 'American Medical Association (ama)'}, 
-                'wannabe_0': {'ids': ['crossref:78', 'meta:ra/0601'], 'others': ['wannabe_0'], 'title': 'Elsevier Bv'}, 
-                'wannabe_1': {'ids': ['crossref:311', 'meta:ra/0602'], 'others': ['wannabe_1'], 'title': 'Wiley'}},
+                '3309': {'ids': ['crossref:10', 'crossref:9999', 'omid:ra/3309'], 'others': [], 'title': 'American Medical Association (ama)'}, 
+                'wannabe_0': {'ids': ['crossref:78', 'omid:ra/0601'], 'others': ['wannabe_0'], 'title': 'Elsevier Bv'}, 
+                'wannabe_1': {'ids': ['crossref:311', 'omid:ra/0602'], 'others': ['wannabe_1'], 'title': 'Wiley'}},
             {'crossref:10': '4274', 'crossref:9999': '0601', 'crossref:78': '0602', 'crossref:311': '0603'},
             {
-                '3309': {'ids': ['crossref:10', 'crossref:9999', 'meta:ra/3309'], 'others': [], 'title': 'American Medical Association (ama)'}, 
-                '0601': {'ids': ['crossref:78', 'meta:ra/0601'], 'others': ['wannabe_0'], 'title': 'Elsevier Bv'}, 
-                '0602': {'ids': ['crossref:311', 'meta:ra/0602'], 'others': ['wannabe_1'], 'title': 'Wiley'}}        
+                '3309': {'ids': ['crossref:10', 'crossref:9999', 'omid:ra/3309'], 'others': [], 'title': 'American Medical Association (ama)'}, 
+                '0601': {'ids': ['crossref:78', 'omid:ra/0601'], 'others': ['wannabe_0'], 'title': 'Elsevier Bv'}, 
+                '0602': {'ids': ['crossref:311', 'omid:ra/0602'], 'others': ['wannabe_1'], 'title': 'Wiley'}}        
         )
         self.assertEqual(output, expected_output)
 
@@ -490,18 +490,18 @@ class test_RespAgentsCurator(unittest.TestCase):
         output = (resp_agents_curator.data, resp_agents_curator.radict, resp_agents_curator.idra, resp_agents_curator.rameta)
         expected_output = (
             [
-                {'id': '', 'title': '', 'author': 'Deckert, Ron J. [orcid:0000-0003-2100-6412 meta:ra/0601]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}, 
-                {'id': '', 'title': '', 'author': 'Ruso, Juan M. [orcid:0000-0001-5909-6754 meta:ra/0602]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}, 
-                {'id': '', 'title': '', 'author': 'Sarmiento, Félix [orcid:0000-0002-4487-6894 meta:ra/0603]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}],
+                {'id': '', 'title': '', 'author': 'Deckert, Ron J. [orcid:0000-0003-2100-6412 omid:ra/0601]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}, 
+                {'id': '', 'title': '', 'author': 'Ruso, Juan M. [orcid:0000-0001-5909-6754 omid:ra/0602]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}, 
+                {'id': '', 'title': '', 'author': 'Sarmiento, Félix [orcid:0000-0002-4487-6894 omid:ra/0603]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}],
                 {
-                    'wannabe_0': {'ids': ['orcid:0000-0003-2100-6412', 'meta:ra/0601'], 'others': ['wannabe_0'], 'title': 'Deckert, Ron J.'}, 
-                    'wannabe_1': {'ids': ['orcid:0000-0001-5909-6754', 'meta:ra/0602'], 'others': ['wannabe_1'], 'title': 'Ruso, Juan M.'}, 
-                    'wannabe_2': {'ids': ['orcid:0000-0002-4487-6894', 'meta:ra/0603'], 'others': ['wannabe_2'], 'title': 'Sarmiento, Félix'}},
+                    'wannabe_0': {'ids': ['orcid:0000-0003-2100-6412', 'omid:ra/0601'], 'others': ['wannabe_0'], 'title': 'Deckert, Ron J.'}, 
+                    'wannabe_1': {'ids': ['orcid:0000-0001-5909-6754', 'omid:ra/0602'], 'others': ['wannabe_1'], 'title': 'Ruso, Juan M.'}, 
+                    'wannabe_2': {'ids': ['orcid:0000-0002-4487-6894', 'omid:ra/0603'], 'others': ['wannabe_2'], 'title': 'Sarmiento, Félix'}},
                 {'orcid:0000-0003-2100-6412': '0601', 'orcid:0000-0001-5909-6754': '0602', 'orcid:0000-0002-4487-6894': '0603'},
                 {
-                    '0601': {'ids': ['orcid:0000-0003-2100-6412', 'meta:ra/0601'], 'others': ['wannabe_0'], 'title': 'Deckert, Ron J.'}, 
-                    '0602': {'ids': ['orcid:0000-0001-5909-6754', 'meta:ra/0602'], 'others': ['wannabe_1'], 'title': 'Ruso, Juan M.'}, 
-                    '0603': {'ids': ['orcid:0000-0002-4487-6894', 'meta:ra/0603'], 'others': ['wannabe_2'], 'title': 'Sarmiento, Félix'}}
+                    '0601': {'ids': ['orcid:0000-0003-2100-6412', 'omid:ra/0601'], 'others': ['wannabe_0'], 'title': 'Deckert, Ron J.'}, 
+                    '0602': {'ids': ['orcid:0000-0001-5909-6754', 'omid:ra/0602'], 'others': ['wannabe_1'], 'title': 'Ruso, Juan M.'}, 
+                    '0603': {'ids': ['orcid:0000-0002-4487-6894', 'omid:ra/0603'], 'others': ['wannabe_2'], 'title': 'Sarmiento, Félix'}}
         )
         self.assertEqual(output, expected_output)
 
@@ -519,18 +519,18 @@ class test_RespAgentsCurator(unittest.TestCase):
         output = (resp_agents_curator.data, resp_agents_curator.radict, resp_agents_curator.idra, resp_agents_curator.rameta)
         expected_output = (
             [
-                {'id': '', 'title': '', 'author': 'Deckert, Ron J. [orcid:0000-0003-2100-6412 meta:ra/0601]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}, 
-                {'id': '', 'title': '', 'author': 'Mehrotra, Ateev [orcid:0000-0003-2223-1582 meta:ra/3976]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}, 
-                {'id': '', 'title': '', 'author': 'Sarmiento, Félix [orcid:0000-0002-4487-6894 meta:ra/0602]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}],
+                {'id': '', 'title': '', 'author': 'Deckert, Ron J. [orcid:0000-0003-2100-6412 omid:ra/0601]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}, 
+                {'id': '', 'title': '', 'author': 'Mehrotra, Ateev [orcid:0000-0003-2223-1582 omid:ra/3976]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}, 
+                {'id': '', 'title': '', 'author': 'Sarmiento, Félix [orcid:0000-0002-4487-6894 omid:ra/0602]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}],
                 {
-                    'wannabe_0': {'ids': ['orcid:0000-0003-2100-6412', 'meta:ra/0601'], 'others': ['wannabe_0'], 'title': 'Deckert, Ron J.'}, 
-                    '3976': {'ids': ['orcid:0000-0003-2223-1582', 'meta:ra/3976'], 'others': [], 'title': 'Mehrotra, Ateev'}, 
-                    'wannabe_1': {'ids': ['orcid:0000-0002-4487-6894', 'meta:ra/0602'], 'others': ['wannabe_1'], 'title': 'Sarmiento, Félix'}},
+                    'wannabe_0': {'ids': ['orcid:0000-0003-2100-6412', 'omid:ra/0601'], 'others': ['wannabe_0'], 'title': 'Deckert, Ron J.'}, 
+                    '3976': {'ids': ['orcid:0000-0003-2223-1582', 'omid:ra/3976'], 'others': [], 'title': 'Mehrotra, Ateev'}, 
+                    'wannabe_1': {'ids': ['orcid:0000-0002-4487-6894', 'omid:ra/0602'], 'others': ['wannabe_1'], 'title': 'Sarmiento, Félix'}},
                 {'orcid:0000-0003-2100-6412': '0601', 'orcid:0000-0003-2223-1582': '4351', 'orcid:0000-0002-4487-6894': '0602'},
                 {
-                    '0601': {'ids': ['orcid:0000-0003-2100-6412', 'meta:ra/0601'], 'others': ['wannabe_0'], 'title': 'Deckert, Ron J.'}, 
-                    '3976': {'ids': ['orcid:0000-0003-2223-1582', 'meta:ra/3976'], 'others': [], 'title': 'Mehrotra, Ateev'}, 
-                    '0602': {'ids': ['orcid:0000-0002-4487-6894', 'meta:ra/0602'], 'others': ['wannabe_1'], 'title': 'Sarmiento, Félix'}}
+                    '0601': {'ids': ['orcid:0000-0003-2100-6412', 'omid:ra/0601'], 'others': ['wannabe_0'], 'title': 'Deckert, Ron J.'}, 
+                    '3976': {'ids': ['orcid:0000-0003-2223-1582', 'omid:ra/3976'], 'others': [], 'title': 'Mehrotra, Ateev'}, 
+                    '0602': {'ids': ['orcid:0000-0002-4487-6894', 'omid:ra/0602'], 'others': ['wannabe_1'], 'title': 'Sarmiento, Félix'}}
         )
         self.assertEqual(output, expected_output)
 
@@ -588,7 +588,7 @@ class test_id_worker(unittest.TestCase):
         add_data_ts(SERVER, os.path.abspath(os.path.join('test', 'testcases', 'ts', 'real_data.nt')).replace('\\', '/'))
         name = 'American Medical Association (AMA)' # *(ama) on the ts. The name on the ts must prevail
         # MetaID only
-        idslist = ['meta:ra/3309']
+        idslist = ['omid:ra/3309']
         wannabe_id = curator.id_worker('editor', name, idslist, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
         output = (wannabe_id, curator.brdict, curator.radict, curator.idbr, curator.idra, curator.log)
         expected_output = ('3309', {}, {'3309': {'ids': ['crossref:10'], 'others': [], 'title': 'American Medical Association (ama)'}}, {}, {'crossref:10': '4274'}, {})
@@ -600,7 +600,7 @@ class test_id_worker(unittest.TestCase):
         add_data_ts(SERVER, os.path.abspath(os.path.join('test', 'testcases', 'ts', 'real_data.nt')).replace('\\', '/'))
         name = 'American Medical Association (AMA)' # *(ama) on the ts. The name on the ts must prevail
         # ID and MetaID
-        idslist = ['crossref:10', 'meta:id/4274']
+        idslist = ['crossref:10', 'omid:id/4274']
         wannabe_id = curator.id_worker('editor', name, idslist, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
         output = (wannabe_id, curator.brdict, curator.radict, curator.idbr, curator.idra, curator.log)
         expected_output = ('3309', {}, {'3309': {'ids': ['crossref:10'], 'others': [], 'title': 'American Medical Association (ama)'}}, {}, {'crossref:10': '4274'}, {})
@@ -611,8 +611,8 @@ class test_id_worker(unittest.TestCase):
         curator = prepareCurator(list())
         add_data_ts(SERVER, os.path.abspath(os.path.join('test', 'testcases', 'ts', 'real_data.nt')).replace('\\', '/'))
         name = 'American Medical Association (AMA)' # *(ama) on the ts. The name on the ts must prevail
-        # ID and MetaID, but it's meta:id/4274 on ts
-        idslist = ['crossref:10', 'meta:id/4275']
+        # ID and MetaID, but it's omid:id/4274 on ts
+        idslist = ['crossref:10', 'omid:id/4275']
         wannabe_id = curator.id_worker('editor', name, idslist, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
         output = (wannabe_id, curator.brdict, curator.radict, curator.idbr, curator.idra, curator.log)
         expected_output = ('3309', {}, {'3309': {'ids': ['crossref:10'], 'others': [], 'title': 'American Medical Association (ama)'}}, {}, {'crossref:10': '4274'}, {})
@@ -628,7 +628,7 @@ class test_id_worker(unittest.TestCase):
         curator.curator()
         store_curated_data(curator, SERVER)
         name = 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'
-        idslist = ['meta:br/0601']
+        idslist = ['omid:br/0601']
         curator_empty = prepareCurator(list())
         # put metaval in entity_dict
         meta_id = curator_empty.id_worker('id', name, idslist, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
@@ -699,9 +699,9 @@ class test_id_worker(unittest.TestCase):
         # ID already exist in entity_dict but refer to multiple entities having a MetaID
         reset_server()
         br_dict = {
-            'meta:br/0601': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'], 'others': [], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}, 
-            'meta:br/0602': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph150-en'], 'others': [], 'title': 'Contributions To GDP Growth And Inflation: South Africa'}, 
-            'meta:br/0603': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'], 'others': [], 'title': 'Official Loans To The Governments Of Greece, Ireland And Portugal'}, 
+            'omid:br/0601': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'], 'others': [], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}, 
+            'omid:br/0602': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph150-en'], 'others': [], 'title': 'Contributions To GDP Growth And Inflation: South Africa'}, 
+            'omid:br/0603': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'], 'others': [], 'title': 'Official Loans To The Governments Of Greece, Ireland And Portugal'}, 
         }
         name = 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'
         idslist = ['doi:10.1787/eco_outlook-v2011-2-graph138-en']
@@ -714,15 +714,15 @@ class test_id_worker(unittest.TestCase):
             'wannabe_0', 
             {'doi:10.1787/eco_outlook-v2011-2-graph138-en': '0601'}, 
             {}, 
-            {'meta:br/0601': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'],
+            {'omid:br/0601': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'],
                             'others': [],
                             'title': 'Money Growth, Interest Rates, Inflation And Raw '
                                         'Materials Prices: China'},
-            'meta:br/0602': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph150-en'],
+            'omid:br/0602': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph150-en'],
                             'others': [],
                             'title': 'Contributions To GDP Growth And Inflation: South '
                                         'Africa'},
-            'meta:br/0603': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'],
+            'omid:br/0603': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'],
                             'others': [],
                             'title': 'Official Loans To The Governments Of Greece, '
                                         'Ireland And Portugal'},
@@ -739,9 +739,9 @@ class test_id_worker(unittest.TestCase):
         # ID already exist in entity_dict and refer to one entity
         reset_server()
         br_dict = {
-            'meta:br/0601': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'], 'others': [], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}, 
-            'meta:br/0602': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph150-en'], 'others': [], 'title': 'Contributions To GDP Growth And Inflation: South Africa'}, 
-            'meta:br/0603': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph18-en'], 'others': [], 'title': 'Official Loans To The Governments Of Greece, Ireland And Portugal'}, 
+            'omid:br/0601': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'], 'others': [], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}, 
+            'omid:br/0602': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph150-en'], 'others': [], 'title': 'Contributions To GDP Growth And Inflation: South Africa'}, 
+            'omid:br/0603': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph18-en'], 'others': [], 'title': 'Official Loans To The Governments Of Greece, Ireland And Portugal'}, 
         }
         name = 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: Japan' # The first title must have precedence (China, not Japan)
         idslist = ['doi:10.1787/eco_outlook-v2011-2-graph138-en']
@@ -751,7 +751,7 @@ class test_id_worker(unittest.TestCase):
         meta_id = curator.id_worker('id', name, idslist, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
         output = (meta_id, curator.idbr, curator.idra, curator.log)
         expected_output = (
-            'meta:br/0601', 
+            'omid:br/0601', 
             {'doi:10.1787/eco_outlook-v2011-2-graph138-en': '0601'}, 
             {}, 
             {0: {'id': {}}}
@@ -762,9 +762,9 @@ class test_id_worker(unittest.TestCase):
         # ID already exist in entity_dict and refer to one entity having a MetaID, but there is another ID not in entity_dict that highlights a conflict on ts
         add_data_ts()
         br_dict = {
-            'meta:br/0601': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'], 'others': [], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}, 
-            'meta:br/0602': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph150-en'], 'others': [], 'title': 'Contributions To GDP Growth And Inflation: South Africa'}, 
-            'meta:br/0603': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph18-en'], 'others': [], 'title': 'Official Loans To The Governments Of Greece, Ireland And Portugal'}, 
+            'omid:br/0601': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'], 'others': [], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}, 
+            'omid:br/0602': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph150-en'], 'others': [], 'title': 'Contributions To GDP Growth And Inflation: South Africa'}, 
+            'omid:br/0603': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph18-en'], 'others': [], 'title': 'Official Loans To The Governments Of Greece, Ireland And Portugal'}, 
         }
         name = 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: Japan' # The first title must have precedence (China, not Japan)
         idslist = ['doi:10.1787/eco_outlook-v2011-2-graph138-en', 'doi:10.1001/2013.jamasurg.270']
@@ -780,15 +780,15 @@ class test_id_worker(unittest.TestCase):
                 'doi:10.1001/2013.jamasurg.270': '2585'
             }, 
             {}, 
-            {'meta:br/0601': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'],
+            {'omid:br/0601': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'],
                             'others': [],
                             'title': 'Money Growth, Interest Rates, Inflation And Raw '
                                         'Materials Prices: China'},
-            'meta:br/0602': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph150-en'],
+            'omid:br/0602': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph150-en'],
                             'others': [],
                             'title': 'Contributions To GDP Growth And Inflation: South '
                                         'Africa'},
-            'meta:br/0603': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph18-en'],
+            'omid:br/0603': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph18-en'],
                             'others': [],
                             'title': 'Official Loans To The Governments Of Greece, '
                                         'Ireland And Portugal'},
@@ -892,7 +892,7 @@ class test_id_worker(unittest.TestCase):
         reset_server()
         add_data_ts(server=SERVER, data_path=os.path.abspath(os.path.join('test', 'testcases', 'ts', 'real_data_with_prov.nq')).replace('\\', '/'))
         name = ''
-        idslist = ['meta:ra/4321']
+        idslist = ['omid:ra/4321']
         curator = prepareCurator(list())
         meta_id = curator.id_worker('id', name, idslist, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=False)
         self.assertEqual(meta_id, '38013')

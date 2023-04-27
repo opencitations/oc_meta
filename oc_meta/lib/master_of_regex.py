@@ -7,7 +7,7 @@ semicolon_in_people_field = '\s*;\s*(?=[^\]]*(?:\[|$))'
 It gets string inside '[]' ignoring any space between (ex: [ TARGET  ] --> TARGET).
 An id schema must be present, followed by a colon.
 Before the colon, there must be any character that is not a square bracket 
-to prevent that in strings like 'Boezaart, Andr[eacute] [meta:123]' the id captured is '[eacute] [meta:123]'.
+to prevent that in strings like 'Boezaart, Andr[eacute] [omid:123]' the id captured is '[eacute] [omid:123]'.
 Alternatively, empty square brackets containing one or more spaces also represent a valid match.
 '''
 ids_inside_square_brackets = '\[\s*((?:[^\s]+:[^\s]+)?(?:\s+[^\s]+:[^\s]+)*)\s*\]'

@@ -38,7 +38,7 @@ def extract_ids_from_meta(meta_csv_path: str) -> set:
     for filepath in filepaths:
         data = get_csv_data(os.path.join(meta_csv_path, filepath))
         for row in data:
-            meta_ids_set.update([identifier.replace('doi:', '') for identifier in row['id'].split() if not identifier.startswith('meta:')])
+            meta_ids_set.update([identifier.replace('doi:', '') for identifier in row['id'].split() if not identifier.startswith('omid:')])
         pbar.update()
     pbar.close()
     return meta_ids_set

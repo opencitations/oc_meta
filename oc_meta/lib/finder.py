@@ -529,7 +529,7 @@ class ResourceFinder:
                     'page': ('2011', '391-397'), 
                     'issue': '4', 
                     'volume': '166', 
-                    'venue': 'Archives Of Internal Medicine [meta:br/4387]'
+                    'venue': 'Archives Of Internal Medicine [omid:br/4387]'
                 }
 
             :params metaid: a bibliographic resource's MetaID
@@ -665,7 +665,7 @@ class ResourceFinder:
         elif 'volume' in type_value:
             res_dict['volume'] = str(result[num_]['value'])
         elif type_value:
-            res_dict['venue'] = result[title_]['value'] + ' [meta:' + result[part_]['value'] \
+            res_dict['venue'] = result[title_]['value'] + ' [omid:' + result[part_]['value'] \
                 .replace(f'{self.base_iri}/', '') + ']'
         return res_dict
     
@@ -692,7 +692,7 @@ class ResourceFinder:
                 pub_schema = binding['schema']['value'].replace(f'{str(GraphEntity.DATACITE)}', '')
                 pub_literal = binding['literal_value']['value']
                 pub_id = f'{pub_schema}:{pub_literal}'
-                pub_full_name = f'{pub_name} [meta:ra/{pub_metaid} {pub_id}]'
+                pub_full_name = f'{pub_name} [omid:ra/{pub_metaid} {pub_id}]'
                 publishers.append(pub_full_name)
             publisher = '; '.join(publishers)
         return publisher

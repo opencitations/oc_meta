@@ -150,7 +150,7 @@ class TestResourceFinder(unittest.TestCase):
             'page': ('2011', '391-397'), 
             'issue': '4', 
             'volume': '166', 
-            'venue': 'Archives Of Internal Medicine [meta:br/4387]'
+            'venue': 'Archives Of Internal Medicine [omid:br/4387]'
         }
         self.assertEqual(output, expected_output)
     
@@ -203,7 +203,7 @@ class TestResourceFinder(unittest.TestCase):
         num_ = 'num3_'
         res_dict = {'pub_date': '2006-02-27', 'type': 'journal article', 'page': ('2011', '391-397'), 'issue': '', 'volume': '', 'venue': ''}
         output = self.finder._vvi_find(result, part_, type_, title_, num_, res_dict)
-        expected_output = {'pub_date': '2006-02-27', 'type': 'journal article', 'page': ('2011', '391-397'), 'issue': '', 'volume': '', 'venue': 'Archives Of Internal Medicine [meta:br/4387]'}
+        expected_output = {'pub_date': '2006-02-27', 'type': 'journal article', 'page': ('2011', '391-397'), 'issue': '', 'volume': '', 'venue': 'Archives Of Internal Medicine [omid:br/4387]'}
         self.assertEqual(output, expected_output)
 
 
