@@ -163,9 +163,6 @@ class PubMedProcess(unittest.TestCase):
         self.assertEqual(n_files_rem, 1)
         self.assertTrue(max(output.values())==expected_ents_per_file)
         self.assertTrue(min(output.values())==last_file_ents)
-
-
-
         shutil.rmtree(self.output_dir)
 
     def test_preprocess_save_recovered_publishers(self):
