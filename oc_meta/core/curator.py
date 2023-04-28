@@ -36,6 +36,7 @@ class Curator:
 
     def __init__(self, data:List[dict], ts:str, prov_config:str, info_dir:str, base_iri:str='https://w3id.org/oc/meta', prefix:str='060', separator:str=None, valid_dois_cache:dict=dict()):
         self.finder = ResourceFinder(ts, base_iri)
+        # self.g_set = Graphset()
         self.base_iri = base_iri
         self.prov_config = prov_config
         self.separator = separator
@@ -78,6 +79,7 @@ class Curator:
                 'pub_date': {},
                 'type': {}
             }
+            # self.finder.get_preexisting_graphs_recursively(row['id'])
             self.clean_id(row)
             self.rowcnt += 1
         self.merge_duplicate_entities()
@@ -126,7 +128,8 @@ class Curator:
                 idslist = re.sub(colon_and_spaces, ':', row['id']).split(self.separator)
             else:
                 idslist = re.split(one_or_more_spaces, re.sub(colon_and_spaces, ':', row['id']))
-            metaval = self.id_worker('id', name, idslist, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
+            idslist, metaval = self.clean_id_list(idslist, br=True, valid_dois_cache=self.valid_dois_cache)
+            metaval = self.id_worker('id', name, idslist, metaval, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
         else:
             metaval = self.new_entity(self.brdict, name)
         row['title'] = self.brdict[metaval]['title']
@@ -223,7 +226,8 @@ class Curator:
                     idslist = re.sub(colon_and_spaces, ':', venue_id).split(self.separator)
                 else:
                     idslist = re.split(one_or_more_spaces, re.sub(colon_and_spaces, ':', venue_id))
-                metaval = self.id_worker('venue', name, idslist, ra_ent=False, br_ent=True, vvi_ent=True, publ_entity=False)
+                idslist, metaval = self.clean_id_list(idslist, br=True, valid_dois_cache=self.valid_dois_cache)
+                metaval = self.id_worker('venue', name, idslist, metaval, ra_ent=False, br_ent=True, vvi_ent=True, publ_entity=False)
                 if metaval not in self.vvi:
                     ts_vvi = None
                     if 'wannabe' not in metaval:
@@ -411,9 +415,11 @@ class Curator:
                                         ra_id_list = list(filter(None, ra_id_list))
                                         ra_id_list.append('omid:ra/' + ar_ra)
                     if col_name == 'publisher':
-                        metaval = self.id_worker('publisher', name, ra_id_list, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
+                        ra_id_list, metaval = self.clean_id_list(ra_id_list, br=False, valid_dois_cache=self.valid_dois_cache)
+                        metaval = self.id_worker('publisher', name, ra_id_list, metaval, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
                     else:
-                        metaval = self.id_worker(col_name, name, ra_id_list, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=False)
+                        ra_id_list, metaval = self.clean_id_list(ra_id_list, br=False, valid_dois_cache=self.valid_dois_cache)
+                        metaval = self.id_worker(col_name, name, ra_id_list, metaval, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=False)
                     if col_name != 'publisher' and metaval in self.radict:
                         full_name:str = self.radict[metaval]['title']
                         if ',' in name and ',' in full_name:
@@ -882,15 +888,13 @@ class Curator:
             entity_dict[metaval]['title'] = name
             self.log[self.rowcnt]['title']['status'] = 'New value proposed'
     
-    def id_worker(self, col_name, name, idslist:List[str], ra_ent=False, br_ent=False, vvi_ent=False, publ_entity=False):
+    def id_worker(self, col_name, name, idslist:List[str], metaval: str, ra_ent=False, br_ent=False, vvi_ent=False, publ_entity=False):
         if not ra_ent:
             id_dict = self.idbr
             entity_dict = self.brdict
-            idslist, metaval = self.clean_id_list(idslist, br=True, valid_dois_cache=self.valid_dois_cache)
         else:
             id_dict = self.idra
             entity_dict = self.radict
-            idslist, metaval = self.clean_id_list(idslist, br=False, valid_dois_cache=self.valid_dois_cache)
         # there's meta
         if metaval:
             # MetaID exists among data?

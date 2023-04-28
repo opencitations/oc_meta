@@ -542,7 +542,7 @@ class test_id_worker(unittest.TestCase):
         curator = prepareCurator(list())
         name = 'βέβαιος, α, ον'
         idslist = ['doi:10.1163/2214-8655_lgo_lgo_02_0074_ger']
-        wannabe_id = curator.id_worker('id', name, idslist, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
+        wannabe_id = curator.id_worker('id', name, idslist, '', ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
         output = (wannabe_id, curator.brdict, curator.radict, curator.idbr, curator.idra, curator.log)
         expected_output = (
             'wannabe_0',
@@ -559,7 +559,7 @@ class test_id_worker(unittest.TestCase):
         curator = prepareCurator(list())
         name = 'βέβαιος, α, ον'
         idslist = []
-        wannabe_id = curator.id_worker('id', name, idslist, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
+        wannabe_id = curator.id_worker('id', name, idslist, '', ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
         output = (wannabe_id, curator.brdict, curator.radict, curator.idbr, curator.idra, curator.log)
         expected_output = (
             'wannabe_0',
@@ -577,7 +577,7 @@ class test_id_worker(unittest.TestCase):
         add_data_ts(SERVER, os.path.abspath(os.path.join('test', 'testcases', 'ts', 'real_data.nt')).replace('\\', '/'))
         name = 'American Medical Association (AMA)' # *(ama) on the ts. The name on the ts must prevail
         idslist = ['crossref:10']
-        wannabe_id = curator.id_worker('editor', name, idslist, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
+        wannabe_id = curator.id_worker('editor', name, idslist, '', ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
         output = (wannabe_id, curator.brdict, curator.radict, curator.idbr, curator.idra, curator.log)
         expected_output = ('3309', {}, {'3309': {'ids': ['crossref:10'], 'others': [], 'title': 'American Medical Association (ama)'}}, {}, {'crossref:10': '4274'}, {})
         self.assertEqual(output, expected_output)
@@ -588,8 +588,7 @@ class test_id_worker(unittest.TestCase):
         add_data_ts(SERVER, os.path.abspath(os.path.join('test', 'testcases', 'ts', 'real_data.nt')).replace('\\', '/'))
         name = 'American Medical Association (AMA)' # *(ama) on the ts. The name on the ts must prevail
         # MetaID only
-        idslist = ['omid:ra/3309']
-        wannabe_id = curator.id_worker('editor', name, idslist, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
+        wannabe_id = curator.id_worker('editor', name, [], '3309', ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
         output = (wannabe_id, curator.brdict, curator.radict, curator.idbr, curator.idra, curator.log)
         expected_output = ('3309', {}, {'3309': {'ids': ['crossref:10'], 'others': [], 'title': 'American Medical Association (ama)'}}, {}, {'crossref:10': '4274'}, {})
         self.assertEqual(output, expected_output)
@@ -600,8 +599,7 @@ class test_id_worker(unittest.TestCase):
         add_data_ts(SERVER, os.path.abspath(os.path.join('test', 'testcases', 'ts', 'real_data.nt')).replace('\\', '/'))
         name = 'American Medical Association (AMA)' # *(ama) on the ts. The name on the ts must prevail
         # ID and MetaID
-        idslist = ['crossref:10', 'omid:id/4274']
-        wannabe_id = curator.id_worker('editor', name, idslist, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
+        wannabe_id = curator.id_worker('editor', name, ['crossref:10'], 'id/4274', ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
         output = (wannabe_id, curator.brdict, curator.radict, curator.idbr, curator.idra, curator.log)
         expected_output = ('3309', {}, {'3309': {'ids': ['crossref:10'], 'others': [], 'title': 'American Medical Association (ama)'}}, {}, {'crossref:10': '4274'}, {})
         self.assertEqual(output, expected_output)
@@ -611,9 +609,8 @@ class test_id_worker(unittest.TestCase):
         curator = prepareCurator(list())
         add_data_ts(SERVER, os.path.abspath(os.path.join('test', 'testcases', 'ts', 'real_data.nt')).replace('\\', '/'))
         name = 'American Medical Association (AMA)' # *(ama) on the ts. The name on the ts must prevail
-        # ID and MetaID, but it's omid:id/4274 on ts
-        idslist = ['crossref:10', 'omid:id/4275']
-        wannabe_id = curator.id_worker('editor', name, idslist, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
+        # ID and MetaID, but it's omid:ra/3309 on ts
+        wannabe_id = curator.id_worker('editor', name, ['crossref:10'], '33090', ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
         output = (wannabe_id, curator.brdict, curator.radict, curator.idbr, curator.idra, curator.log)
         expected_output = ('3309', {}, {'3309': {'ids': ['crossref:10'], 'others': [], 'title': 'American Medical Association (ama)'}}, {}, {'crossref:10': '4274'}, {})
         self.assertEqual(output, expected_output)
@@ -628,12 +625,11 @@ class test_id_worker(unittest.TestCase):
         curator.curator()
         store_curated_data(curator, SERVER)
         name = 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'
-        idslist = ['omid:br/0601']
         curator_empty = prepareCurator(list())
         # put metaval in entity_dict
-        meta_id = curator_empty.id_worker('id', name, idslist, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
+        meta_id = curator_empty.id_worker('id', name, [], '0601', ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
         # metaval is in entity_dict
-        meta_id = curator_empty.id_worker('id', name, idslist, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
+        meta_id = curator_empty.id_worker('id', name, [], '0601', ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
         output = (meta_id, curator_empty.brdict, curator_empty.radict, curator_empty.idbr, curator_empty.idra, curator_empty.log)
         expected_output = ('0601', {'0601': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China', 'others': []}}, {}, {'doi:10.1787/eco_outlook-v2011-2-graph138-en': '0601'}, {}, {})
         self.assertEqual(output, expected_output)
@@ -665,7 +661,7 @@ class test_id_worker(unittest.TestCase):
         curator.log[0] = {'id': {}}
         name = 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'
         idslist = ['doi:10.1001/2013.jamasurg.270']
-        meta_id = curator.id_worker('id', name, idslist, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
+        meta_id = curator.id_worker('id', name, idslist, '', ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
         output = (meta_id, curator.idbr, curator.idra, curator.brdict, curator.log)
         expected_output = (
             'wannabe_0', 
@@ -683,7 +679,7 @@ class test_id_worker(unittest.TestCase):
         name = 'Alarcon, Louis H.'
         curator = prepareCurator(list())
         curator.log[0] = {'author': {}}
-        meta_id = curator.id_worker('author', name, idslist, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=False)
+        meta_id = curator.id_worker('author', name, idslist, '', ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=False)
         output = (meta_id, curator.idbr, curator.idra, curator.brdict, curator.radict, curator.log)
         expected_output = (
             'wannabe_0', 
@@ -708,7 +704,7 @@ class test_id_worker(unittest.TestCase):
         curator = prepareCurator(list())
         curator.log[0] = {'id': {}}
         curator.brdict = br_dict
-        meta_id = curator.id_worker('id', name, idslist, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
+        meta_id = curator.id_worker('id', name, idslist, '', ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
         output = (meta_id, curator.idbr, curator.idra, curator.brdict, curator.radict, curator.log)
         expected_output = (
             'wannabe_0', 
@@ -748,7 +744,7 @@ class test_id_worker(unittest.TestCase):
         curator = prepareCurator(list())
         curator.log[0] = {'id': {}}
         curator.brdict = br_dict
-        meta_id = curator.id_worker('id', name, idslist, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
+        meta_id = curator.id_worker('id', name, idslist, '', ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
         output = (meta_id, curator.idbr, curator.idra, curator.log)
         expected_output = (
             'omid:br/0601', 
@@ -771,7 +767,7 @@ class test_id_worker(unittest.TestCase):
         curator = prepareCurator(get_csv_data(REAL_DATA_CSV))
         curator.log[0] = {'id': {}}
         curator.brdict = br_dict
-        meta_id = curator.id_worker('id', name, idslist, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
+        meta_id = curator.id_worker('id', name, idslist, '', ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
         output = (meta_id, curator.idbr, curator.idra, curator.brdict, curator.radict, curator.log)
         expected_output = (
             'wannabe_0', 
@@ -815,7 +811,7 @@ class test_id_worker(unittest.TestCase):
         curator = prepareCurator(get_csv_data(REAL_DATA_CSV))
         curator.log[0] = {'id': {}}
         curator.brdict = br_dict
-        meta_id = curator.id_worker('id', name, idslist, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
+        meta_id = curator.id_worker('id', name, idslist, '', ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
         output = (meta_id, curator.idbr, curator.idra, curator.brdict, curator.radict, curator.log)
         expected_output = (
             'wannabe_0', 
@@ -854,7 +850,7 @@ class test_id_worker(unittest.TestCase):
         curator = prepareCurator(list())
         curator.brdict = br_dict
         curator.wnb_cnt = 2
-        meta_id = curator.id_worker('id', name, idslist, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
+        meta_id = curator.id_worker('id', name, idslist, '', ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
         output = (meta_id, curator.idbr, curator.idra, curator.log)
         expected_output = (
             '3757', 
@@ -877,7 +873,7 @@ class test_id_worker(unittest.TestCase):
         curator = prepareCurator(list())
         curator.brdict = br_dict
         curator.wnb_cnt = 2
-        meta_id = curator.id_worker('id', name, idslist, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
+        meta_id = curator.id_worker('id', name, idslist, '', ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
         output = (meta_id, curator.idbr, curator.idra, curator.log)
         expected_output = (
             'wannabe_0', 
@@ -892,9 +888,8 @@ class test_id_worker(unittest.TestCase):
         reset_server()
         add_data_ts(server=SERVER, data_path=os.path.abspath(os.path.join('test', 'testcases', 'ts', 'real_data_with_prov.nq')).replace('\\', '/'))
         name = ''
-        idslist = ['omid:ra/4321']
         curator = prepareCurator(list())
-        meta_id = curator.id_worker('id', name, idslist, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=False)
+        meta_id = curator.id_worker('id', name, [], '4321', ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=False)
         self.assertEqual(meta_id, '38013')
 
 

@@ -127,7 +127,7 @@ def _get_relevant_venues(data:List[dict], ids_found:dict, items_by_id:Dict[str, 
         venue = row['venue']
         venues = list()
         if row['type'] in VENUES:
-            venues.append((row['title'], row['id'], row['type']))
+            venues.append((row['title'], row['id'], row['type'], row['publisher']))
         if venue:
             full_name_and_ids = re.search(name_and_ids, venue)
             name = full_name_and_ids.group(1) if full_name_and_ids else venue
@@ -138,16 +138,16 @@ def _get_relevant_venues(data:List[dict], ids_found:dict, items_by_id:Dict[str, 
                 except UnboundLocalError:
                     print(f"[INFO:prepare_multiprocess] I found the venue {row['venue']} for the resource of type {row['type']}, but I don't know how to handle it")
                     raise UnboundLocalError
-                venues.append((name, ids, br_type))
+                venues.append((name, ids, br_type, row['publisher']))
         for venue_tuple in venues:
-            name, ids, br_type = venue_tuple
+            name, ids, br_type, publisher = venue_tuple
             ids_list = [identifier for identifier in ids.split() if identifier not in FORBIDDEN_IDS]
             if any(id in ids_found and (id not in cur_file_ids or id in duplicated_items) for id in ids_list):
                 for id in ids_list:
-                    duplicated_items.setdefault(id, {'others': set(), 'name': name, 'type': br_type, 'volume': dict(), 'issue': set()})
+                    duplicated_items.setdefault(id, {'others': set(), 'name': name, 'type': br_type, 'volume': dict(), 'issue': set(), 'publisher': publisher})
                     duplicated_items[id]['others'].update({other for other in ids_list if other != id})
             for id in ids_list:
-                items_by_id.setdefault(id, {'others': set(), 'name': name, 'type': br_type, 'volume': dict(), 'issue': set()})
+                items_by_id.setdefault(id, {'others': set(), 'name': name, 'type': br_type, 'volume': dict(), 'issue': set(), 'publisher': publisher})
                 items_by_id[id]['others'].update({other for other in ids_list if other != id})
                 ids_found.setdefault(id, {'volumes': dict(), 'issues': set()})
                 cur_file_ids.setdefault(id, {'volumes': dict(), 'issues': set()})
@@ -249,6 +249,9 @@ def _do_collective_merge(items_by_id:dict, duplicated_items:Dict[str, dict]) -> 
             if data['type'] == 'author':
                 richest_name = _find_all_names(items_by_id, ids_found, data['name'])
                 data['name'] = richest_name
+            if 'publisher' in data:
+                publisher_with_id = _find_a_publisher_with_id(items_by_id, all_ids=ids_found)
+                data['publisher'] = publisher_with_id if publisher_with_id else data['publisher']
             merged_by_key[id] = {k:v if not k == 'others' else all_other_ids for k,v in data.items()}
             if all_vi:
                 merged_by_key[id]['volume'] = all_vi['volume']
@@ -256,6 +259,15 @@ def _do_collective_merge(items_by_id:dict, duplicated_items:Dict[str, dict]) -> 
     del items_by_id
     del duplicated_items
     return merged_by_key
+
+def _find_a_publisher_with_id(items_by_id:dict, all_ids: list):
+    for id in all_ids:
+        if id in items_by_id:
+            item = items_by_id[id]
+            if 'publisher' in item:
+                pub_name_and_ids = re.search(name_and_ids, item['publisher'])
+                if pub_name_and_ids:
+                    return item['publisher']
 
 def __find_all_ids_by_key(items_by_id:dict, key:str):
     visited_items = set()
