@@ -301,6 +301,7 @@ def __save_relevant_venues(items_by_id:dict, items_per_file:int, output_dir:str,
         row['id'] = ids
         row['title'] = name
         row['type'] = item_type
+        row['publisher'] = data['publisher']
         for volume, volume_issues in data['volume'].items():
             volume_row = dict()
             volume_row['volume'] = volume

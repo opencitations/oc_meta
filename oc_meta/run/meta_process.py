@@ -155,9 +155,9 @@ class MetaProcess:
         zipit(dirs_to_zip, output_dirname)
 
 def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False) -> None:
-    delete_lock_files(base_dir=meta_process.base_output_dir)
-    files_to_be_processed = meta_process.prepare_folders()
     is_unix = platform in {'linux', 'linux2', 'darwin'}
+    # delete_lock_files(base_dir=meta_process.base_output_dir)
+    files_to_be_processed = meta_process.prepare_folders()
     max_workers = meta_process.workers_number
     if max_workers == 0:
         workers = list(range(1, os.cpu_count()))
@@ -182,7 +182,8 @@ def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False) -> N
     if not os.path.exists(os.path.join(meta_process.base_output_dir, '.stop')):
         if os.path.exists(meta_process.cache_path):
             os.rename(meta_process.cache_path, meta_process.cache_path.replace('.txt', f'_{datetime.now().strftime("%Y-%m-%dT%H_%M_%S_%f")}.txt'))
-        delete_lock_files(base_dir=meta_process.base_output_dir)
+        if is_unix:
+            delete_lock_files(base_dir=meta_process.base_output_dir)
 
 def task_done(task_output:ProcessFuture) -> None:
     message, cache_path, errors_path, filename = task_output.result()
