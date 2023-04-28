@@ -22,16 +22,17 @@ class TestPrepareMultiprocess(unittest.TestCase):
                     with open(os.path.join(root, file), 'r', encoding='utf-8') as f:
                         output.extend(list(DictReader(f)))
         expected_output = [
+            {'id': 'doi:10.17117/aaaaaaaaaaaa', 'title': 'Ecdotics [issn:1225-3333]', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': 'journal', 'publisher': 'Consulting Company Ucom [crossref:6623]', 'editor': ''},
+            {'id': 'doi:10.17117/aaaaaaaaaaaa', 'title': 'Ecdotics [issn:1225-3333]', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': 'journal', 'publisher': 'Consulting Company Ucom [crossref:6623]', 'editor': ''},
             {'id': 'doi:10.9799/ksfan.2012.25.1.069', 'title': 'Nonthermal Sterilization and Shelf-life Extension of Seafood Products by Intense Pulsed Light Treatment', 'author': 'Cheigh, Chan-Ick [orcid:0000-0003-2542-5788]; Mun, Ji-Hye; Chung, Myong-Soo', 'pub_date': '2012-3-31', 'venue': 'The Korean Journal of Food And Nutrition [issn:1225-4339]', 'volume': '25', 'issue': '1', 'page': '69-76', 'type': 'journal article', 'publisher': 'The Korean Society of Food and Nutrition [crossref:4768]', 'editor': 'Chung, Myong-Soo [orcid:0000-0002-9666-2513]'}, 
             {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': 'Chung, Myong-Soo [orcid:0000-0002-9666-2513]'}, 
             {'id': '', 'title': '', 'author': 'Cheigh, Chan-Ick [orcid:0000-0003-2542-5788]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}, 
             {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': 'The Korean Society of Food and Nutrition [crossref:4768]', 'editor': ''}, 
             {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': 'Consulting Company Ucom [crossref:6623]', 'editor': ''}, 
             {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': 'American Society for Microbiology [crossref:235]', 'editor': ''}, 
-            {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': 'The Korean Journal of Food And Nutrition [issn:1225-4339]', 'volume': '25', 'issue': '1', 'page': '', 'type': 'journal issue', 'publisher': '', 'editor': ''}, 
-            {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': 'Journal of Bacteriology [issn:1098-5530 issn:0021-9193]', 'volume': '197', 'issue': '6', 'page': '', 'type': 'journal issue', 'publisher': '', 'editor': ''}]
-        shutil.rmtree(TMP_DIR)
-        self.assertEqual(sorted(output, key=lambda x: x['id']+x['title']+x['author']+x['editor']+x['venue']+x['issue']+x['volume']+x['type']), sorted(expected_output, key=lambda x: x['id']+x['title']+x['author']+x['editor']+x['venue']+x['issue']+x['volume']+x['type']))
+            {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': 'The Korean Journal of Food And Nutrition [issn:1225-4339]', 'volume': '25', 'issue': '1', 'page': '', 'type': 'journal issue', 'publisher': 'Consulting Company Ucom [crossref:6623]', 'editor': ''}, 
+            {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': 'Journal of Bacteriology [issn:1098-5530 issn:0021-9193]', 'volume': '197', 'issue': '6', 'page': '', 'type': 'journal issue', 'publisher': 'American Society for Microbiology [crossref:235]', 'editor': ''}]
+        self.assertEqual(sorted(output, key=lambda x: x['id']+x['title']+x['author']+x['editor']+x['venue']+x['issue']+x['volume']+x['type']+x['publisher']), sorted(expected_output, key=lambda x: x['id']+x['title']+x['author']+x['editor']+x['venue']+x['issue']+x['volume']+x['type']+x['publisher']))
         
     def test__get_duplicated_ids(self):
         data = [

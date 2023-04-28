@@ -205,6 +205,12 @@ class TestResourceFinder(unittest.TestCase):
         output = self.finder._vvi_find(result, part_, type_, title_, num_, res_dict)
         expected_output = {'pub_date': '2006-02-27', 'type': 'journal article', 'page': ('2011', '391-397'), 'issue': '', 'volume': '', 'venue': 'Archives Of Internal Medicine [omid:br/4387]'}
         self.assertEqual(output, expected_output)
+    
+    def test_get_everything_about_res(self):
+        res = '29510'
+        idslist = ['doi:10.1001/amaguidesnewsletters.2017.mayjun03']
+        everything_everywhere_allatounce = dict()
+        self.finder.get_everything_about_res(idslist, res, everything_everywhere_allatounce)
 
 
 if __name__ == '__main__': # pragma: no cover

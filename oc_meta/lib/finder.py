@@ -741,3 +741,46 @@ class ResourceFinder:
             untyped_graph_subj = untyped_graph_subj if len(untyped_graph_subj) else None
             preexisting_graphs[res] = untyped_graph_subj
         return untyped_graph_subj
+    
+    def get_everything_about_res(self, idslist: List[str], metaid: str, everything_everywhere_allatounce: dict) -> None:
+        metaid = str(metaid)
+        metaid_uri = f'{self.base_iri}/br/{metaid}'
+        results_from_metaid = False
+        results_from_identifier = False
+        if metaid:
+            query_from_metaid = f'''
+                PREFIX x: <urn:ex:>
+                CONSTRUCT {{ ?s ?p ?o }}
+                WHERE {{ <{metaid_uri}> (x:|!x:)* ?s. ?s ?p ?o. }}
+            '''
+            self.ts.setReturnFormat(XML)
+            result_from_metaid = self.__query(query_from_metaid)
+            for subject in result_from_metaid.subjects(unique=True):
+                results_from_metaid = True
+                everything_everywhere_allatounce[str(subject).replace(self.base_iri + '/', '')] = self._get_subgraph(result_from_metaid, subject)
+        if not results_from_metaid:
+            for identifier in idslist:
+                identifier_components = identifier.split(':')
+                identifier_scheme = identifier_components[0]
+                literal_value = identifier_components[1]
+                query_from_identifier = f'''
+                    PREFIX x: <urn:ex:>
+                    CONSTRUCT {{ ?s ?p ?o }}
+                    WHERE {{ 
+                        ?br <{GraphEntity.iri_has_identifier}> ?id.
+                        ?id <{GraphEntity.iri_uses_identifier_scheme}> <{GraphEntity.DATACITE}{identifier_scheme}>;
+                            <{GraphEntity.iri_has_literal_value}> "{literal_value}".
+                        ?br (x:|!x:)* ?s. ?s ?p ?o. }}
+                '''
+                result_from_identifier = self.__query(query_from_identifier)
+                for subject in result_from_identifier.subjects(unique=True):
+                    results_from_identifier = True
+                    everything_everywhere_allatounce[str(subject).replace(self.base_iri + '/', '')] = self._get_subgraph(result_from_identifier, subject)
+                if results_from_identifier:
+                    break
+
+    def _get_subgraph(self, graph: Graph, res: str) -> str:
+        subgraph = Graph()
+        for triple in graph.triples((res, None, None)):
+            subgraph.add(triple)
+        return subgraph

@@ -296,16 +296,18 @@ def __save_relevant_venues(items_by_id:dict, items_per_file:int, output_dir:str,
     counter = 0
     for item_id, data in items_by_id.items():
         item_type = data['type']
+        item_publisher = data['publisher']
         row = dict()
         name, ids = __get_name_and_ids(item_id, data)
         row['id'] = ids
         row['title'] = name
         row['type'] = item_type
-        row['publisher'] = data['publisher']
+        row['publisher'] = item_publisher
         for volume, volume_issues in data['volume'].items():
             volume_row = dict()
             volume_row['volume'] = volume
             volume_row['venue'] = f'{name} [{ids}]'
+            volume_row['publisher'] = item_publisher
             if volume_issues:
                 volume_row['type'] = 'journal issue'
                 for volume_issue in volume_issues:
@@ -320,6 +322,7 @@ def __save_relevant_venues(items_by_id:dict, items_per_file:int, output_dir:str,
             issue_row['venue'] = f'{name} [{ids}]'
             issue_row['issue'] = venue_issue
             issue_row['type'] = 'journal issue'
+            issue_row['publisher'] = item_publisher
             rows.append(issue_row)
         if not data['volume'] and not data['issue']:
             rows.append(row)
