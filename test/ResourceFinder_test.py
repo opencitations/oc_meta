@@ -2,6 +2,7 @@ import os
 import unittest
 from pprint import pprint
 
+from rdflib import Graph
 from SPARQLWrapper import POST, SPARQLWrapper
 
 from oc_meta.lib.finder import ResourceFinder
@@ -209,7 +210,7 @@ class TestResourceFinder(unittest.TestCase):
     def test_get_everything_about_res(self):
         res = '29510'
         idslist = ['doi:10.1001/amaguidesnewsletters.2017.mayjun03']
-        everything_everywhere_allatounce = dict()
+        everything_everywhere_allatounce = Graph()
         self.finder.get_everything_about_res(idslist, res, everything_everywhere_allatounce)
 
 

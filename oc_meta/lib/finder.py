@@ -12,13 +12,14 @@ from time_agnostic_library.agnostic_entity import AgnosticEntity
 
 class ResourceFinder:
 
-    def __init__(self, ts_url, base_iri:str):
+    def __init__(self, ts_url, base_iri:str, local_g: Graph = Graph()):
         self.ts = SPARQLWrapper(ts_url)
-        self.ts.setReturnFormat(JSON)
         self.ts.setMethod(GET)
         self.base_iri = base_iri[:-1] if base_iri[-1] == '/' else base_iri
+        self.local_g = local_g
 
-    def __query(self, query):
+    def __query(self, query, return_format = JSON):
+        self.ts.setReturnFormat(return_format)
         self.ts.setQuery(query)
         tentative = 3
         result = None
@@ -30,6 +31,15 @@ class ResourceFinder:
             except Exception:
                 sleep(5)
         return result
+    
+    def __query_local(self, query):
+        results = self.local_g.query(query)
+        # print(results.serialize(format='xml'))
+        output = {'results': {'bindings': dict()}}
+        for result in results:
+            print(result)
+            # output['results']['bindings'] = None
+        return output
 
     # _______________________________BR_________________________________ #
 
@@ -726,8 +736,7 @@ class ResourceFinder:
                     <{res}> ?p ?o.
                 }}
             """
-            self.ts.setReturnFormat(XML)
-            graph_subj = self.__query(query_subj)
+            graph_subj = self.__query(query_subj, XML)
             untyped_graph_subj = Graph()
             for triple in graph_subj.triples((None, None, None)):
                 remove_datatype = False
@@ -737,7 +746,6 @@ class ResourceFinder:
                         untyped_literal = Literal(lexical_or_value=str(triple[2]), datatype=None)
                         untyped_triple = (triple[0], triple[1], untyped_literal)
                 untyped_graph_subj.add(untyped_triple) if remove_datatype else untyped_graph_subj.add(triple)
-            self.ts.setReturnFormat(JSON)
             untyped_graph_subj = untyped_graph_subj if len(untyped_graph_subj) else None
             preexisting_graphs[res] = untyped_graph_subj
         return untyped_graph_subj
@@ -753,11 +761,13 @@ class ResourceFinder:
                 CONSTRUCT {{ ?s ?p ?o }}
                 WHERE {{ <{metaid_uri}> (x:|!x:)* ?s. ?s ?p ?o. }}
             '''
-            self.ts.setReturnFormat(XML)
-            result_from_metaid = self.__query(query_from_metaid)
-            for subject in result_from_metaid.subjects(unique=True):
+            result_from_metaid = self.__query(query_from_metaid, XML)
+            if result_from_metaid:
                 results_from_metaid = True
-                everything_everywhere_allatounce[str(subject).replace(self.base_iri + '/', '')] = self._get_subgraph(result_from_metaid, subject)
+                everything_everywhere_allatounce += result_from_metaid
+            # for subject in result_from_metaid.subjects(unique=True):
+            #     results_from_metaid = True
+            #     everything_everywhere_allatounce[str(subject).replace(self.base_iri + '/', '')] = self._get_subgraph(result_from_metaid, subject)
         if not results_from_metaid:
             for identifier in idslist:
                 identifier_components = identifier.split(':')
@@ -772,10 +782,13 @@ class ResourceFinder:
                             <{GraphEntity.iri_has_literal_value}> "{literal_value}".
                         ?br (x:|!x:)* ?s. ?s ?p ?o. }}
                 '''
-                result_from_identifier = self.__query(query_from_identifier)
-                for subject in result_from_identifier.subjects(unique=True):
+                result_from_identifier = self.__query(query_from_identifier, XML)
+                if result_from_identifier:
                     results_from_identifier = True
-                    everything_everywhere_allatounce[str(subject).replace(self.base_iri + '/', '')] = self._get_subgraph(result_from_identifier, subject)
+                    everything_everywhere_allatounce += result_from_identifier
+                # for subject in result_from_identifier.subjects(unique=True):
+                #     results_from_identifier = True
+                #     everything_everywhere_allatounce[str(subject).replace(self.base_iri + '/', '')] = self._get_subgraph(result_from_identifier, subject)
                 if results_from_identifier:
                     break
 

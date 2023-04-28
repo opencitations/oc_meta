@@ -97,10 +97,11 @@ class RespAgentsCurator(Curator):
                     ra_id_list = re.sub(colon_and_spaces, ':', ra_id).split(self.separator)
                 else:
                     ra_id_list = re.split(one_or_more_spaces, re.sub(colon_and_spaces, ':', ra_id))
+                ra_id_list, metaval = self.clean_id_list(ra_id_list)
                 if col_name == 'publisher':
-                    metaval = self.id_worker('publisher', name, ra_id_list, publ_entity=True)
+                    metaval = self.id_worker('publisher', name, ra_id_list, metaval, publ_entity=True)
                 else:
-                    metaval = self.id_worker(col_name, name, ra_id_list, publ_entity=False)
+                    metaval = self.id_worker(col_name, name, ra_id_list, metaval, publ_entity=False)
                 if col_name != 'publisher' and metaval in self.radict:
                     full_name:str = self.radict[metaval]['title']
                     if ',' in name and ',' in full_name:
@@ -199,10 +200,9 @@ class RespAgentsCurator(Curator):
             clean_list = [i for i in clean_list if not i.lower().startswith('omid')]
         return clean_list, metaid
 
-    def id_worker(self, col_name, name, idslist:List[str], publ_entity:bool):
+    def id_worker(self, col_name, name, idslist:List[str], metaval: str, publ_entity:bool):
         id_dict = self.idra
         entity_dict = self.radict
-        idslist, metaval = self.clean_id_list(idslist)
         # there's meta
         if metaval:
             # MetaID exists among data?
@@ -388,4 +388,3 @@ class RespAgentsCurator(Curator):
     def __update_id_count(self, id_dict, identifier):
         count = self._add_number(self.id_info_path)
         id_dict[identifier] = self.prefix + str(count)
-

@@ -35,8 +35,8 @@ from oc_meta.lib.master_of_regex import *
 class Curator:
 
     def __init__(self, data:List[dict], ts:str, prov_config:str, info_dir:str, base_iri:str='https://w3id.org/oc/meta', prefix:str='060', separator:str=None, valid_dois_cache:dict=dict()):
-        self.finder = ResourceFinder(ts, base_iri)
-        self.everything_everywhere_allatounce = dict()
+        self.everything_everywhere_allatounce = Graph()
+        self.finder = ResourceFinder(ts, base_iri, self.everything_everywhere_allatounce)
         self.base_iri = base_iri
         self.prov_config = prov_config
         self.separator = separator
@@ -79,7 +79,6 @@ class Curator:
                 'pub_date': {},
                 'type': {}
             }
-            # self.finder.get_preexisting_graphs_recursively(row['id'])
             self.clean_id(row)
             self.rowcnt += 1
         self.merge_duplicate_entities()
@@ -129,7 +128,7 @@ class Curator:
             else:
                 idslist = re.split(one_or_more_spaces, re.sub(colon_and_spaces, ':', row['id']))
             idslist, metaval = self.clean_id_list(idslist, br=True, valid_dois_cache=self.valid_dois_cache)
-            # self.finder.get_everything_about_res(idslist, metaval, self.everything_everywhere_allatounce)
+            self.finder.get_everything_about_res(idslist, metaval, self.everything_everywhere_allatounce)
             metaval = self.id_worker('id', name, idslist, metaval, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
         else:
             metaval = self.new_entity(self.brdict, name)
