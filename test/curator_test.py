@@ -1,7 +1,6 @@
 import csv
 import shutil
 import unittest
-from pprint import pprint
 
 from oc_ocdm import Storer
 from SPARQLWrapper import POST, SPARQLWrapper
@@ -9,6 +8,7 @@ from SPARQLWrapper import POST, SPARQLWrapper
 from oc_meta.core.creator import Creator
 from oc_meta.core.curator import *
 from oc_meta.lib.file_manager import get_csv_data
+from oc_meta.lib.finder import ResourceFinder
 from oc_meta.plugins.multiprocess.resp_agents_curator import RespAgentsCurator
 
 SERVER = 'http://127.0.0.1:9999/blazegraph/sparql'
@@ -133,6 +133,8 @@ class test_Curator(unittest.TestCase):
         curator = prepareCurator(list())
         row = {'id': '', 'title': '', 'author': '', 'pub_date': '1972-12-01', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}
         curator.log[0] = {'id': {}}
+        finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
+        finder.get_everything_about_res([], '4125', curator.everything_everywhere_allatonce)
         curator.equalizer(row, '4125')
         output = (curator.log, row)
         expected_output = (
@@ -169,6 +171,8 @@ class test_Curator(unittest.TestCase):
         ]
         curator = prepareCurator(list())
         curator.data = data
+        finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
+        finder.get_everything_about_res([], '3757', curator.everything_everywhere_allatonce)
         for i in range(3):
             curator.log[i] = {
                 'id': {},
@@ -298,6 +302,8 @@ class test_Curator(unittest.TestCase):
         row = {'id': '3757', 'title': 'Multiple Keloids', 'author': 'Curth, W.; McSorley, J. [orcid:0000-0003-0530-4305 schema:12345]', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [omid:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}
         curator = prepareCurator(list())
         curator.brdict = {'3757': {'ids': ['doi:10.1001/archderm.104.1.106'], 'title': 'Multiple Keloids', 'others': []}}
+        finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
+        finder.get_everything_about_res([], '3757', curator.everything_everywhere_allatonce)
         curator.clean_ra(row, 'author')
         output = (curator.ardict, curator.radict, curator.idra)
         expected_output = (
@@ -330,6 +336,8 @@ class test_Curator(unittest.TestCase):
         row = {'id': '3757', 'title': 'Multiple Keloids', 'author': 'Bernacki, Edward J. [    ]', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [omid:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}
         curator = prepareCurator(list())
         curator.brdict = {'3757': {'ids': ['doi:10.1001/archderm.104.1.106'], 'title': 'Multiple Keloids', 'others': []}}
+        finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
+        finder.get_everything_about_res([], '3757', curator.everything_everywhere_allatonce)
         curator.clean_ra(row, 'author')
         output = (curator.ardict, curator.radict, curator.idra)
         expected_output = (
@@ -586,6 +594,8 @@ class test_id_worker(unittest.TestCase):
         # 2 Retrieve EntityA data in triplestore to update EntityA inside CSV
         curator = prepareCurator(list())
         add_data_ts(SERVER, os.path.abspath(os.path.join('test', 'testcases', 'ts', 'real_data.nt')).replace('\\', '/'))
+        finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
+        finder.get_everything_about_res([], '3309', curator.everything_everywhere_allatonce)
         name = 'American Medical Association (AMA)' # *(ama) on the ts. The name on the ts must prevail
         # MetaID only
         wannabe_id = curator.id_worker('editor', name, [], '3309', ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
@@ -598,8 +608,10 @@ class test_id_worker(unittest.TestCase):
         curator = prepareCurator(list())
         add_data_ts(SERVER, os.path.abspath(os.path.join('test', 'testcases', 'ts', 'real_data.nt')).replace('\\', '/'))
         name = 'American Medical Association (AMA)' # *(ama) on the ts. The name on the ts must prevail
+        finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
+        finder.get_everything_about_res([], '2438', curator.everything_everywhere_allatonce)
         # ID and MetaID
-        wannabe_id = curator.id_worker('editor', name, ['crossref:10'], 'id/4274', ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
+        wannabe_id = curator.id_worker('publisher', name, ['crossref:10'], '3309', ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
         output = (wannabe_id, curator.brdict, curator.radict, curator.idbr, curator.idra, curator.log)
         expected_output = ('3309', {}, {'3309': {'ids': ['crossref:10'], 'others': [], 'title': 'American Medical Association (ama)'}}, {}, {'crossref:10': '4274'}, {})
         self.assertEqual(output, expected_output)
@@ -609,8 +621,10 @@ class test_id_worker(unittest.TestCase):
         curator = prepareCurator(list())
         add_data_ts(SERVER, os.path.abspath(os.path.join('test', 'testcases', 'ts', 'real_data.nt')).replace('\\', '/'))
         name = 'American Medical Association (AMA)' # *(ama) on the ts. The name on the ts must prevail
+        finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
+        finder.get_everything_about_res([], '2438', curator.everything_everywhere_allatonce)
         # ID and MetaID, but it's omid:ra/3309 on ts
-        wannabe_id = curator.id_worker('editor', name, ['crossref:10'], '33090', ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
+        wannabe_id = curator.id_worker('publisher', name, ['crossref:10'], '33090', ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
         output = (wannabe_id, curator.brdict, curator.radict, curator.idbr, curator.idra, curator.log)
         expected_output = ('3309', {}, {'3309': {'ids': ['crossref:10'], 'others': [], 'title': 'American Medical Association (ama)'}}, {}, {'crossref:10': '4274'}, {})
         self.assertEqual(output, expected_output)

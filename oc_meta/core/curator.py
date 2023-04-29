@@ -35,8 +35,8 @@ from oc_meta.lib.master_of_regex import *
 class Curator:
 
     def __init__(self, data:List[dict], ts:str, prov_config:str, info_dir:str, base_iri:str='https://w3id.org/oc/meta', prefix:str='060', separator:str=None, valid_dois_cache:dict=dict()):
-        self.everything_everywhere_allatounce = Graph()
-        self.finder = ResourceFinder(ts, base_iri, self.everything_everywhere_allatounce)
+        self.everything_everywhere_allatonce = Graph()
+        self.finder = ResourceFinder(ts, base_iri, self.everything_everywhere_allatonce)
         self.base_iri = base_iri
         self.prov_config = prov_config
         self.separator = separator
@@ -128,10 +128,18 @@ class Curator:
             else:
                 idslist = re.split(one_or_more_spaces, re.sub(colon_and_spaces, ':', row['id']))
             idslist, metaval = self.clean_id_list(idslist, br=True, valid_dois_cache=self.valid_dois_cache)
-            self.finder.get_everything_about_res(idslist, metaval, self.everything_everywhere_allatounce)
+            self.finder.get_everything_about_res(idslist, metaval, self.everything_everywhere_allatonce)
             metaval = self.id_worker('id', name, idslist, metaval, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
         else:
             metaval = self.new_entity(self.brdict, name)
+            fields_with_an_id = [(field, re.search(name_and_ids, row[field]).group(2).split()) for field in ['author', 'editor', 'publisher', 'venue', 'volume', 'issue'] if re.search(name_and_ids, row[field])]
+            for field, idslist in fields_with_an_id:
+                if field in ['author', 'editor', 'publisher']:
+                    br = False
+                elif field in ['venue', 'volume', 'issue']:
+                    br = True
+                idslist, field_metaval = self.clean_id_list(idslist, br=br, valid_dois_cache=self.valid_dois_cache)
+                self.finder.get_everything_about_res(idslist, field_metaval, self.everything_everywhere_allatonce, br=br)
         row['title'] = self.brdict[metaval]['title']
         row['id'] = metaval
     
@@ -917,9 +925,9 @@ class Curator:
                     else:
                         entity_dict[metaval]['title'] = found_meta_ts[0]
                     entity_dict[metaval]['others'] = list()
-                    self.merge_entities_in_csv(idslist, metaval, name, entity_dict, id_dict)
                     existing_ids = found_meta_ts[1]
                     self.__update_id_and_entity_dict(existing_ids, id_dict, entity_dict, metaval)
+                    self.merge_entities_in_csv(idslist, metaval, name, entity_dict, id_dict)
                 # Look for MetaId in the provenance
                 else:
                     entity_type = 'br' if br_ent or vvi_ent else 'ra' 
@@ -982,8 +990,8 @@ class Curator:
                                 entity_dict[metaval]['ids'] = list()
                                 entity_dict[metaval]['others'] = list()
                                 entity_dict[metaval]['title'] = sparql_match[0][1] if sparql_match[0][1] else ''
-                                self.merge(entity_dict, metaval, old_metaval, sparql_match[0][1])
                                 self.__update_id_and_entity_dict(existing_ids, id_dict, entity_dict, metaval)
+                                self.merge(entity_dict, metaval, old_metaval, sparql_match[0][1])
             else:
                 sparql_match = self.finder_sparql(idslist, br=br_ent, ra=ra_ent, vvi=vvi_ent, publ=publ_entity)
                 if len(sparql_match) > 1:

@@ -14,7 +14,8 @@ class TestResourceFinder(unittest.TestCase):
         ENDPOINT = 'http://localhost:9999/blazegraph/sparql'
         BASE_IRI = 'https://w3id.org/oc/meta/'
         REAL_DATA_FILE = os.path.abspath(os.path.join('test', 'testcases', 'ts', 'real_data.nt')).replace('\\', '/')
-        cls.finder = ResourceFinder(ENDPOINT, BASE_IRI)
+        local_g = Graph()
+        cls.finder = ResourceFinder(ENDPOINT, BASE_IRI, local_g)
         # Clear ts
         ts = SPARQLWrapper(ENDPOINT)
         ts.setMethod(POST)
@@ -23,6 +24,9 @@ class TestResourceFinder(unittest.TestCase):
         # Upload data
         ts.setQuery(f"LOAD <file:{REAL_DATA_FILE}>")
         ts.query()
+        cls.finder.get_everything_about_res([], '2373', local_g)
+        cls.finder.get_everything_about_res([], '2380', local_g)
+        cls.finder.get_everything_about_res([], '2730', local_g)
 
     def test_retrieve_br_from_id(self):
         value = '10.1001/.391'
