@@ -27,6 +27,7 @@ class TestResourceFinder(unittest.TestCase):
         cls.finder.get_everything_about_res([], '2373', local_g)
         cls.finder.get_everything_about_res([], '2380', local_g)
         cls.finder.get_everything_about_res([], '2730', local_g)
+        cls.finder.get_everything_about_res([], '2374', local_g)
 
     def test_retrieve_br_from_id(self):
         value = '10.1001/.391'
@@ -59,7 +60,8 @@ class TestResourceFinder(unittest.TestCase):
     def test_retrieve_br_from_meta_multiple_ids(self):
         metaid = '2374'
         output = self.finder.retrieve_br_from_meta(metaid)
-        expected_output = ("Neutropenia In Human Immunodeficiency Virus Infection: Data From The Women's Interagency HIV Study", [('2240', 'doi:10.1001/.405'), ('5000', 'doi:10.1001/.406')])
+        output = (output[0], set(output[1]))
+        expected_output = ("Neutropenia In Human Immunodeficiency Virus Infection: Data From The Women's Interagency HIV Study", {('2240', 'doi:10.1001/.405'), ('5000', 'doi:10.1001/.406')})
         self.assertEqual(output, expected_output)
 
     def test_retrieve_metaid_from_id(self):

@@ -1149,20 +1149,20 @@ class Curator:
         known_data['author'] = self.__get_resp_agents(metaval, 'author')
         known_data['editor'] = self.__get_resp_agents(metaval, 'editor')
         known_data['publisher'] = self.finder.retrieve_publisher_from_br_metaid(metaval)
-        for datum in ['venue', 'volume', 'issue', 'pub_date', 'type']:
+        for datum in ['pub_date', 'type', 'volume', 'issue']:
             if known_data[datum]:
+                if row[datum] and row[datum] != known_data[datum]:
+                    self.log[self.rowcnt][datum]['status'] = 'New value proposed'
                 row[datum] = known_data[datum]
-            elif row[datum]:
-                self.log[self.rowcnt][datum]['status'] = 'New value proposed'
-        for role in ['author', 'editor', 'publisher']:
-            if known_data[role] and not row[role]:
-                row[role] = known_data[role]
+        for datum in ['author', 'editor', 'publisher', 'venue']:
+            if known_data[datum] and not row[datum]:
+                row[datum] = known_data[datum]
         if known_data['page']:
+            if row['page'] and row['page'] != known_data['page'][1]:
+                self.log[self.rowcnt]['page']['status'] = 'New value proposed'
             row['page'] = known_data['page'][1]
             self.remeta[metaval] = known_data['page']
-        elif row['page']:
-            self.log[self.rowcnt]['page']['status'] = 'New value proposed'
-
+        
     def __get_resp_agents(self, metaid:str, column:str) -> str:
         resp_agents = self.finder.retrieve_ra_sequence_from_br_meta(metaid, column)
         output = ''

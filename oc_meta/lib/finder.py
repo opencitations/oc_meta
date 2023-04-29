@@ -33,10 +33,6 @@ class ResourceFinder:
                 sleep(5)
         return result
     
-    def __query_local(self, query):
-        results = self.local_g.query(query)
-        return json.loads(results.serialize(format='json', encoding='utf8').decode('utf8').replace("'", '"'))
-
     # _______________________________BR_________________________________ #
 
     def retrieve_br_from_id(self, schema:str, value:str) -> List[Tuple[str, str, list]]:
@@ -97,40 +93,27 @@ class ResourceFinder:
         :returns Tuple[str, List[Tuple[str, str]]]: -- it returns a tuple of two elements. The first element is the resource's title associated with the input MetaID. The second element is a list of MetaID-ID tuples related to identifiers associated with that entity.
         '''
         metaid_uri = f'{self.base_iri}/br/{str(metaid)}'
-        query = f'''
-            SELECT DISTINCT ?res 
-                (GROUP_CONCAT(DISTINCT  ?title;separator=' ;and; ') AS ?title_)
-                (GROUP_CONCAT(DISTINCT  ?id;separator=' ;and; ') AS ?id_)
-                (GROUP_CONCAT(?schema;separator=' ;and; ') AS ?schema_)
-                (GROUP_CONCAT(DISTINCT  ?value;separator=' ;and; ') AS ?value_)
-            WHERE {{
-                ?res a <{GraphEntity.iri_expression}>.
-                OPTIONAL {{?res <{GraphEntity.iri_title}> ?title.}}
-                OPTIONAL {{
-                    ?res <{GraphEntity.iri_has_identifier}> ?id.
-                    ?id <{GraphEntity.iri_uses_identifier_scheme}> ?schema;
-                        <{GraphEntity.iri_has_literal_value}> ?value.}}
-                BIND (<{metaid_uri}> AS ?res)
-            }} GROUP BY ?res
-        '''
-        result = self.__query(query)
-        if result['results']['bindings']:
-            # By definition, there is only one resource associated with a MetaID
-            bindings = result['results']['bindings'][0]
-            title = str(bindings['title_']['value'])
-            metaid_list = str(bindings['id_']['value']).replace(f'{self.base_iri}/id/', '').split(' ;and; ')
-            id_schema_list = str(bindings['schema_']['value']).replace(GraphEntity.DATACITE, '').split(' ;and; ')
-            id_value_list = str(bindings['value_']['value']).split(' ;and; ')
-            schema_value_list = list(zip(id_schema_list, id_value_list))
-            id_list = list()
-            for schema, value in schema_value_list:
-                if schema and value:
-                    identifier = f'{schema}:{value}'
-                    id_list.append(identifier)
-            metaid_id_list = list(zip(metaid_list, id_list))
-            return title, metaid_id_list
-        else:
+        title = None
+        identifiers_found = []
+        identifiers = []
+        id_scheme = None
+        for triple in self.local_g.triples((URIRef(metaid_uri), None, None)):
+            if triple[1] == GraphEntity.iri_title:
+                title = str(triple[2])
+            elif triple[1] == GraphEntity.iri_has_identifier:
+                identifiers_found.append(triple[2])
+        if identifiers_found:
+            for identifier in identifiers_found:
+                for triple in self.local_g.triples((identifier, None, None)):
+                    if triple[1] == GraphEntity.iri_uses_identifier_scheme:
+                        id_scheme = str(triple[2]).replace(GraphEntity.DATACITE, '')
+                    elif triple[1] == GraphEntity.iri_has_literal_value:
+                        literal_value = str(triple[2])
+                full_id = f'{id_scheme}:{literal_value}'
+                identifiers.append((str(identifier).replace(self.base_iri + '/id/', ''), full_id))
+        if not title and not identifiers:
             return None
+        return title, identifiers
 
     # _______________________________ID_________________________________ #
 
@@ -772,15 +755,12 @@ class ResourceFinder:
                 '''
                 result_from_identifier = self.__query(query_from_identifier, XML)
                 if result_from_identifier:
-                    results_from_identifier = True
                     for triple in result_from_identifier.triples((None, None, None)):
                         if isinstance(triple[2], Literal):
                             new_triple = (triple[0], triple[1], Literal(lexical_or_value=str(triple[2])))
                             everything_everywhere_allatounce.add(new_triple)
                         else:
                             everything_everywhere_allatounce.add(triple)
-                if results_from_identifier:
-                    break
 
     def _get_subgraph(self, graph: Graph, res: str) -> str:
         subgraph = Graph()

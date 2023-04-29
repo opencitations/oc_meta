@@ -80,13 +80,23 @@ def prepare_to_test(data, name):
     curator_obj = Curator(data, SERVER, prov_config=PROV_CONFIG, info_dir=get_path(f'{CURATOR_COUNTER_DIR}/'))
     curator_obj.curator()
     testcase_csv = get_csv_data(testcase_csv)
+    for csv in [testcase_csv, curator_obj.data]:
+        for row in csv:
+            row['id'] = sorted(row['id'].split())
     testcase_id_br = get_csv_data(testcase_id_br)
     testcase_id_ra = get_csv_data(testcase_id_ra)
     testcase_ar = get_csv_data(testcase_ar)
     testcase_re = get_csv_data(testcase_re)
+    for csv in [testcase_id_br, testcase_id_ra, testcase_ar, testcase_re, curator_obj.index_id_br, curator_obj.index_id_ra, curator_obj.ar_index, curator_obj.re_index]:
+        try:
+            csv.sort(key=lambda x:x['id'])
+        except KeyError:
+            try:
+                csv.sort(key=lambda x:x['meta'])
+            except KeyError:
+                csv.sort(key=lambda x:x['br'])
     with open(testcase_vi) as json_file:
         testcase_vi = json.load(json_file)
-    
     testcase = [testcase_csv, testcase_id_br, testcase_id_ra, testcase_ar, testcase_re, testcase_vi]
     data_curated = [curator_obj.data, curator_obj.index_id_br, curator_obj.index_id_ra, curator_obj.ar_index,
                     curator_obj.re_index, curator_obj.VolIss]
@@ -207,6 +217,8 @@ class test_Curator(unittest.TestCase):
         add_data_ts()
         row = {'id': '3757', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [omid:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}
         curator = prepareCurator(list())
+        finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
+        finder.get_everything_about_res([], '3757', curator.everything_everywhere_allatonce)
         curator.clean_vvi(row)
         expected_output = {
             '4416': {
@@ -267,6 +279,8 @@ class test_Curator(unittest.TestCase):
         add_data_ts()
         row = {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': 'Archives Of Surgery [omid:br/4480]', 'volume': '99', 'issue': '1', 'page': '', 'type': 'journal article', 'publisher': '', 'editor': ''}
         curator = prepareCurator(list())
+        finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
+        finder.get_everything_about_res([], '4480', curator.everything_everywhere_allatonce)
         curator.clean_vvi(row)
         expected_output = {
             '4480': {
@@ -640,7 +654,9 @@ class test_id_worker(unittest.TestCase):
         store_curated_data(curator, SERVER)
         name = 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'
         curator_empty = prepareCurator(list())
-        # put metaval in entity_dict
+        finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
+        finder.get_everything_about_res([], '0601', curator_empty.everything_everywhere_allatonce)
+        # put metaval in entity_dict        
         meta_id = curator_empty.id_worker('id', name, [], '0601', ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
         # metaval is in entity_dict
         meta_id = curator_empty.id_worker('id', name, [], '0601', ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
@@ -1109,11 +1125,12 @@ class testcase_14(unittest.TestCase):
 class testcase_15(unittest.TestCase):
 
     def test1(self):
-        # venue volume issue  already exists in ts
+        # venue volume issue already exists in ts
         name = '15.1'
         data = get_csv_data(MANUAL_DATA_CSV)
         partial_data = data[64:65]
         data_curated, testcase = prepare_to_test(partial_data, name)
+        print(data_curated, '\n\n', testcase)
         self.assertEqual(data_curated, testcase)
 
     def test2(self):
