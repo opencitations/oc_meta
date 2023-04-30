@@ -733,14 +733,18 @@ class ResourceFinder:
         result = self.__query(query, XML)
         if result:
             for triple in result.triples((None, None, None)):
+                new_triple = triple
                 if isinstance(triple[2], Literal):
-                    new_triple = (triple[0], triple[1], Literal(lexical_or_value=str(triple[2])))
-                    self.local_g.add(new_triple)
-                else:
-                    self.local_g.add(triple)
+                    if triple[2].datatype == URIRef('http://www.w3.org/2001/XMLSchema#string'):
+                        new_triple = (triple[0], triple[1], Literal(lexical_or_value=str(triple[2]), datatype=None))
+                self.local_g.add(new_triple)
 
-    def _get_subgraph(self, graph: Graph, res: str) -> str:
+    def get_subgraph(self, res: str, graphs_dict: dict) -> Graph|None:
+        if res in graphs_dict:
+            return graphs_dict[res]
         subgraph = Graph()
-        for triple in graph.triples((res, None, None)):
+        for triple in self.local_g.triples((res, None, None)):
             subgraph.add(triple)
-        return subgraph
+        if len(subgraph):
+            graphs_dict[res] = subgraph
+            return subgraph

@@ -100,9 +100,12 @@ class test_ProcessTest(unittest.TestCase):
     def test_provenance(self):
         reset_server()
         output_folder = os.path.join(BASE_DIR, 'output_3')	
+        now = datetime.now()
+        if os.path.exists(output_folder):
+            shutil.rmtree(output_folder)
+        delete_output_zip('.', now)
         meta_process = MetaProcess(config=os.path.join(BASE_DIR, 'meta_config_3.yaml'))
         meta_process.input_csv_dir = os.path.join(BASE_DIR, 'input')
-        now = datetime.now()
         run_meta_process(meta_process)
         meta_process.input_csv_dir = os.path.join(BASE_DIR, 'input_2')
         run_meta_process(meta_process)

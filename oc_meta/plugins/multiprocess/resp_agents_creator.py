@@ -18,7 +18,7 @@
 import re
 
 from oc_ocdm.graph import GraphSet
-from rdflib import URIRef
+from rdflib import Graph, URIRef
 
 from oc_meta.core.creator import Creator
 from oc_meta.lib.finder import ResourceFinder
@@ -27,10 +27,10 @@ from oc_meta.lib.master_of_regex import (comma_and_spaces, name_and_ids,
 
 
 class RespAgentsCreator(Creator):
-    def __init__(self, data:list, endpoint:str, base_iri:str, info_dir:str, supplier_prefix:str, resp_agent:str, ra_index:dict, preexisting_entities:set):
+    def __init__(self, data:list, endpoint:str, base_iri:str, info_dir:str, supplier_prefix:str, resp_agent:str, ra_index:dict, preexisting_entities: set, everything_everywhere_allatonce: Graph):
         self.url = base_iri
         self.setgraph = GraphSet(self.url, info_dir, supplier_prefix, wanted_label=False)
-        self.finder = ResourceFinder(ts_url = endpoint, base_iri = base_iri)
+        self.finder = ResourceFinder(ts_url = endpoint, base_iri = base_iri, local_g=everything_everywhere_allatonce)
         self.resp_agent = resp_agent
         self.ra_id_schemas = {'crossref', 'orcid', 'viaf', 'wikidata'}
         self.br_id_schemas = {'doi', 'issn', 'isbn', 'pmid', 'pmcid', 'url', 'wikidata', 'wikipedia'}
@@ -65,7 +65,7 @@ class RespAgentsCreator(Creator):
                         identifier = str(identifier).replace('omid:', '')
                         preexisting_entity = True if identifier in self.preexisting_entities else False
                         url = URIRef(self.url + identifier)
-                        preexisting_graph = self.finder.get_preexisting_graph(url, self.preexisting_graphs) if preexisting_entity else None
+                        preexisting_graph = self.finder.get_subgraph(url, self.preexisting_graphs) if preexisting_entity else None
                         pub_aut = self.setgraph.add_ra(self.resp_agent, source=self.src, res=url, preexisting_graph=preexisting_graph)
                         author_name = aut_and_ids.group(1)
                         if ',' in author_name:
@@ -91,7 +91,7 @@ class RespAgentsCreator(Creator):
                 preexisting_entity = True if identifier in self.preexisting_entities else False
                 url = URIRef(self.url + identifier)
                 publ_name = publ_and_ids.group(1)
-                preexisting_graph = self.finder.get_preexisting_graph(url, self.preexisting_graphs) if preexisting_entity else None
+                preexisting_graph = self.finder.get_subgraph(url, self.preexisting_graphs) if preexisting_entity else None
                 publ = self.setgraph.add_ra(self.resp_agent, source=self.src, res=url, preexisting_graph=preexisting_graph)
                 publ.has_name(publ_name)
         for identifier in publ_id_list:
@@ -108,7 +108,7 @@ class RespAgentsCreator(Creator):
                     identifier = str(identifier).replace('omid:', '')
                     preexisting_entity = True if identifier in self.preexisting_entities else False
                     url = URIRef(self.url + identifier)
-                    preexisting_graph = self.finder.get_preexisting_graph(url, self.preexisting_graphs) if preexisting_entity else None
+                    preexisting_graph = self.finder.get_subgraph(url, self.preexisting_graphs) if preexisting_entity else None
                     pub_ed = self.setgraph.add_ra(self.resp_agent, source=self.src, res=url, preexisting_graph=preexisting_graph)
                     editor_name = ed_and_ids.group(1)
                     if ',' in editor_name:
