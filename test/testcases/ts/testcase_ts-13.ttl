@@ -85,6 +85,14 @@
     ns8:partOf <https://w3id.org/oc/meta/br/060301>;
     ns1:hasIdentifier <https://w3id.org/oc/meta/id/060310>.
 
+<https://w3id.org/oc/meta/br/06011> a ns7:Expression;
+    ns8:partOf <https://w3id.org/oc/meta/br/060301>;
+    ns1:hasIdentifier <https://w3id.org/oc/meta/id/06011>.
+
+<https://w3id.org/oc/meta/id/06011> a ns1:Identifier ;
+    ns1:usesIdentifierScheme ns1:doi ;
+    ns2:hasLiteralValue "10.1123/ijatt.2015-0070" .
+
 <https://w3id.org/oc/meta/br/060301> a ns7:Expression,
     ns7:Journal ;
     ns6:title "Venue1" ;
@@ -92,7 +100,7 @@
 
 <https://w3id.org/oc/meta/id/060300> a ns1:Identifier ;
     ns1:usesIdentifierScheme ns1:doi ;
-    ns2:hasLiteralValue "300" .
+    ns2:hasLiteralValue "10.1123/ijatt.2015-7777" .
 
 <https://w3id.org/oc/meta/id/060310> a ns1:Identifier ;
     ns1:usesIdentifierScheme ns1:doi ;

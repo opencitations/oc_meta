@@ -62,7 +62,7 @@ class test_Creator(unittest.TestCase):
         creator.type = 'journal article'
         preexisting_graph = creator.finder.get_preexisting_graph(URIRef(f'{base_iri}br/0601'), dict())
         creator.br_graph = creator.setgraph.add_br('https://orcid.org/0000-0002-8420-0696', None, URIRef(f'{base_iri}br/0601'), preexisting_graph=preexisting_graph)
-        creator.vvi_action('OECD [meta:br/0602]', '107', '1')
+        creator.vvi_action('OECD [omid:br/0602]', '107', '1')
         output_graph = Graph()
         for g in creator.setgraph.graphs():
             output_graph += g

@@ -48,17 +48,14 @@ if __name__ == '__main__': # pragma: no cover
             shutil.move(os.path.join(TMP_DIR, file), csv_dir)
     if not all(os.path.exists(os.path.join(TMP_DIR, directory)) for directory in ['venues', 'ids', 'publishers', 'authors', 'editors']):
         prepare_relevant_items(csv_dir=csv_dir, output_dir=TMP_DIR, items_per_file=items_per_file, verbose=verbose)
-    venues_dir = os.path.join(TMP_DIR, 'venues')
-    if os.path.isdir(venues_dir):
-        meta_process.input_csv_dir = venues_dir
-        run_meta_process(meta_process=meta_process)
-    for resp_agent in ['authors', 'editors', 'publishers']:
+    for resp_agent in ['authors', 'editors']:
         resp_agent_dir = os.path.join(TMP_DIR, resp_agent)
         if os.path.isdir(resp_agent_dir):
             meta_process.input_csv_dir = resp_agent_dir
             run_meta_process(meta_process=meta_process, resp_agents_only=True)
     meta_process.workers_number = 1
-    ids_dir = os.path.join(TMP_DIR, 'ids')
-    if os.path.isdir(ids_dir):
-        meta_process.input_csv_dir = ids_dir
-        run_meta_process(meta_process=meta_process)
+    for entity_type in ['publishers', 'venues', 'ids']:
+        entity_dir = os.path.join(TMP_DIR, entity_type)
+        if os.path.isdir(entity_dir):
+            meta_process.input_csv_dir = entity_dir
+            run_meta_process(meta_process=meta_process)

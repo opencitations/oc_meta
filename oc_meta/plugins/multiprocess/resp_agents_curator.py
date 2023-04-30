@@ -97,10 +97,11 @@ class RespAgentsCurator(Curator):
                     ra_id_list = re.sub(colon_and_spaces, ':', ra_id).split(self.separator)
                 else:
                     ra_id_list = re.split(one_or_more_spaces, re.sub(colon_and_spaces, ':', ra_id))
+                ra_id_list, metaval = self.clean_id_list(ra_id_list)
                 if col_name == 'publisher':
-                    metaval = self.id_worker('publisher', name, ra_id_list, publ_entity=True)
+                    metaval = self.id_worker('publisher', name, ra_id_list, metaval, publ_entity=True)
                 else:
-                    metaval = self.id_worker(col_name, name, ra_id_list, publ_entity=False)
+                    metaval = self.id_worker(col_name, name, ra_id_list, metaval, publ_entity=False)
                 if col_name != 'publisher' and metaval in self.radict:
                     full_name:str = self.radict[metaval]['title']
                     if ',' in name and ',' in full_name:
@@ -108,7 +109,7 @@ class RespAgentsCurator(Curator):
                         if not full_name.split(',')[1].strip() and first_name:  # first name found!
                             given_name = full_name.split(',')[0]
                             self.radict[metaval]['title'] = given_name + ', ' + first_name
-                ra_metaids.append(f'{name} [meta:ra/{metaval}]')
+                ra_metaids.append(f'{name} [omid:ra/{metaval}]')
             row[col_name] = '; '.join(ra_metaids)
 
     def meta_maker(self):
@@ -122,10 +123,10 @@ class RespAgentsCurator(Curator):
                 meta = self.prefix + str(count)
                 self.rameta[meta] = self.radict[identifier]
                 self.rameta[meta]['others'].append(other)
-                self.rameta[meta]['ids'].append('meta:ra/' + meta)
+                self.rameta[meta]['ids'].append('omid:ra/' + meta)
             else:
                 self.rameta[identifier] = self.radict[identifier]
-                self.rameta[identifier]['ids'].append('meta:ra/' + identifier)
+                self.rameta[identifier]['ids'].append('omid:ra/' + identifier)
                 self.preexisting_entities.add(f'ra/{identifier}')
 
     def indexer(self, path_index:str, path_csv:str) -> None:
@@ -188,21 +189,20 @@ class RespAgentsCurator(Curator):
             identifier = elem.split(':', 1)
             schema = identifier[0].lower()
             value = identifier[1]
-            if schema == 'meta':
+            if schema == 'omid':
                 metaid = value.replace(pattern, '')
             else:
                 normalized_id = Cleaner(elem).normalize_id(valid_dois_cache=dict())
                 if normalized_id:
                     clean_list.append(normalized_id)
-        how_many_meta = [i for i in id_list if i.lower().startswith('meta')]
+        how_many_meta = [i for i in id_list if i.lower().startswith('omid')]
         if len(how_many_meta) > 1:
-            clean_list = [i for i in clean_list if not i.lower().startswith('meta')]
+            clean_list = [i for i in clean_list if not i.lower().startswith('omid')]
         return clean_list, metaid
 
-    def id_worker(self, col_name, name, idslist:List[str], publ_entity:bool):
+    def id_worker(self, col_name, name, idslist:List[str], metaval: str, publ_entity:bool):
         id_dict = self.idra
         entity_dict = self.radict
-        idslist, metaval = self.clean_id_list(idslist)
         # there's meta
         if metaval:
             # MetaID exists among data?
@@ -358,7 +358,7 @@ class RespAgentsCurator(Curator):
                     else:
                         ra_list = [row[field]]
                     for ra_entity in ra_list:
-                        metaid = re.search(name_and_ids, ra_entity).group(2).replace('meta:ra/', '')
+                        metaid = re.search(name_and_ids, ra_entity).group(2).replace('omid:ra/', '')
                         if 'wannabe' in metaid:
                             for ra_metaid in self.rameta:
                                 if metaid in self.rameta[ra_metaid]['others']:
@@ -388,4 +388,3 @@ class RespAgentsCurator(Curator):
     def __update_id_count(self, id_dict, identifier):
         count = self._add_number(self.id_info_path)
         id_dict[identifier] = self.prefix + str(count)
-

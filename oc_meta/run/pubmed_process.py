@@ -33,7 +33,6 @@ from oc_meta.plugins.pubmed.pubmed_processing import *
 def to_meta_file(cur_n, lines, interval, csv_dir):
 
     if int(cur_n) != 0 and int(cur_n) % int(interval) == 0:
-        # to be logged: print("Processed lines:", cur_n, ". Reduced csv nr.", cur_n // self._interval)
         filename = "CSVFile_" + str(cur_n // interval)
         filepath = os.path.join(csv_dir, f'{os.path.basename(filename)}.csv')
         if exists(os.path.join(filepath)):
@@ -53,7 +52,7 @@ def to_meta_file(cur_n, lines, interval, csv_dir):
         return lines
 
 
-def preprocess(pubmed_csv_dir:str, publishers_filepath:str, orcid_doi_filepath:str, csv_dir:str, journals_filepath:str, wanted_doi_filepath:str=None, cache:str=None, verbose:bool=False, interval = 1000, testing=True) -> None:
+def preprocess(pubmed_csv_dir:str, publishers_filepath:str, orcid_doi_filepath:str, csv_dir:str, journals_filepath:str, wanted_doi_filepath:str=None, verbose:bool=False, interval = 1000, testing=True) -> None:
     if not interval:
         interval = 1000
     else:
@@ -64,6 +63,7 @@ def preprocess(pubmed_csv_dir:str, publishers_filepath:str, orcid_doi_filepath:s
 
     if not os.path.exists(csv_dir):
         os.makedirs(csv_dir)
+    
     filter = ["pmid", "doi", "title", "authors", "year", "journal", "references"]
     if verbose:
         if publishers_filepath or orcid_doi_filepath or wanted_doi_filepath:
@@ -77,19 +77,22 @@ def preprocess(pubmed_csv_dir:str, publishers_filepath:str, orcid_doi_filepath:s
             log = '[INFO: pubmed_process] Processing: ' + '; '.join(what)
             print(log)
 
-    print("Processing Phase: started")
     pubmed_csv = PubmedProcessing(orcid_index=orcid_doi_filepath, doi_csv=wanted_doi_filepath, publishers_filepath_pubmed=publishers_filepath, journals_filepath=journals_filepath, testing=testing)
     if verbose:
         print(f'[INFO: pubmed_process] Getting all files from {pubmed_csv_dir}')
 
 
-    all_files, targz_fd = get_all_files_by_type(pubmed_csv_dir, ".csv", cache)
-    count = 0
+    all_files, targz_fd = get_all_files_by_type(pubmed_csv_dir, ".csv")
     lines = []
-
-    for file_idx, file in enumerate(tqdm(all_files), 1):
+    count = len(os.listdir(csv_dir)) * interval
+    skiprows = range(1, count) if count else None
+    for file in all_files:
         chunksize = 100000
-        with pd.read_csv(file,  usecols=filter, chunksize=chunksize) as reader:
+        with open(file, 'r', encoding='utf8') as f:
+            number_of_rows = sum(1 for _ in f) - 1
+        pbar = tqdm(total=number_of_rows)
+        pbar.update(count)
+        with pd.read_csv(file, usecols=filter, chunksize=chunksize, skiprows=skiprows) as reader:
             for chunk in reader:
                 chunk.fillna("", inplace=True)
                 df_dict_list = chunk.to_dict("records")
@@ -100,23 +103,16 @@ def preprocess(pubmed_csv_dir:str, publishers_filepath:str, orcid_doi_filepath:s
                     if tabular_data:
                         lines.append(tabular_data)
                         count += 1
+                        pbar.update()
                         if int(count) != 0 and int(count) % int(interval) == 0:
                             last_processed = lines[-1].get("id")
                             lines = to_meta_file(count, lines, interval, csv_dir)
                             pubmed_csv.save_updated_pref_publishers_map()
-
-                            if cache:
-                                with open(cache, 'a', encoding='utf-8') as aux_file:
-                                    aux_file.write(os.path.basename(last_processed) + '\n')
-
+        pbar.close()
     if len(lines) > 0:
         count = count + (interval - (int(count) % int(interval)))
         to_meta_file(count, lines, interval, csv_dir)
         pubmed_csv.save_updated_pref_publishers_map()
-
-    if cache:
-        if os.path.exists(cache):
-            os.remove(cache)
 
 
 def pathoo(path:str) -> None:
@@ -128,7 +124,7 @@ if __name__ == '__main__':
     arg_parser.add_argument('-c', '--config', dest='config', required=False,
                             help='Configuration file path')
     required = not any(arg in sys.argv for arg in {'--config', '-c'})
-    arg_parser.add_argument('-dc', '--pubmed', dest='pubmed_csv_dir', required=required,
+    arg_parser.add_argument('-pm', '--pubmed', dest='pubmed_csv_dir', required=required,
                             help='pubmed preprocessed csv files directory')
     arg_parser.add_argument('-out', '--output', dest='csv_dir', required=required,
                             help='Directory where CSV will be stored')
@@ -140,8 +136,6 @@ if __name__ == '__main__':
                             help='DOI-ORCID index filepath, to enrich data')
     arg_parser.add_argument('-w', '--wanted', dest='wanted_doi_filepath', required=False,
                             help='A CSV filepath containing what DOI to process, not mandatory')
-    arg_parser.add_argument('-ca', '--cache', dest='cache', required=False,
-                        help='The cache file path. This file will be deleted at the end of the process')
     arg_parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', required=False,
                             help='Show a loading bar, elapsed time and estimated time')
     arg_parser.add_argument('-int', '--interval', dest='interval',type=int, required=False, default=1000,
@@ -167,9 +161,7 @@ if __name__ == '__main__':
     orcid_doi_filepath = normalize_path(orcid_doi_filepath) if orcid_doi_filepath else None
     wanted_doi_filepath = settings['wanted_doi_filepath'] if settings else args.wanted_doi_filepath
     wanted_doi_filepath = normalize_path(wanted_doi_filepath) if wanted_doi_filepath else None
-    cache = settings['cache_filepath'] if settings else args.cache
-    cache = normalize_path(cache) if cache else None
     verbose = settings['verbose'] if settings else args.verbose
     testing = settings['testing'] if settings else args.testing
     print("Data Preprocessing Phase: started")
-    preprocess(pubmed_csv_dir=pubmed_csv_dir, publishers_filepath=publishers_filepath, journals_filepath=journals_filepath, orcid_doi_filepath=orcid_doi_filepath, csv_dir=csv_dir, wanted_doi_filepath=wanted_doi_filepath, cache=cache, verbose=verbose, interval=interval, testing=testing)
+    preprocess(pubmed_csv_dir=pubmed_csv_dir, publishers_filepath=publishers_filepath, journals_filepath=journals_filepath, orcid_doi_filepath=orcid_doi_filepath, csv_dir=csv_dir, wanted_doi_filepath=wanted_doi_filepath, verbose=verbose, interval=interval, testing=testing)

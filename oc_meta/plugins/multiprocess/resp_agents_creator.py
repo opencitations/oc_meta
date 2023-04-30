@@ -61,8 +61,8 @@ class RespAgentsCreator(Creator):
                 aut_id = aut_and_ids.group(2)
                 aut_id_list = aut_id.split()
                 for identifier in aut_id_list:
-                    if 'meta:' in identifier:
-                        identifier = str(identifier).replace('meta:', '')
+                    if 'omid:' in identifier:
+                        identifier = str(identifier).replace('omid:', '')
                         preexisting_entity = True if identifier in self.preexisting_entities else False
                         url = URIRef(self.url + identifier)
                         preexisting_graph = self.finder.get_preexisting_graph(url, self.preexisting_graphs) if preexisting_entity else None
@@ -86,8 +86,8 @@ class RespAgentsCreator(Creator):
         publ_id = publ_and_ids.group(2)
         publ_id_list = publ_id.split()
         for identifier in publ_id_list:
-            if 'meta:' in identifier:
-                identifier = str(identifier).replace('meta:', '')
+            if 'omid:' in identifier:
+                identifier = str(identifier).replace('omid:', '')
                 preexisting_entity = True if identifier in self.preexisting_entities else False
                 url = URIRef(self.url + identifier)
                 publ_name = publ_and_ids.group(1)
@@ -104,8 +104,8 @@ class RespAgentsCreator(Creator):
             ed_id = ed_and_ids.group(2)
             ed_id_list = ed_id.split(' ')
             for identifier in ed_id_list:
-                if 'meta:' in identifier:
-                    identifier = str(identifier).replace('meta:', '')
+                if 'omid:' in identifier:
+                    identifier = str(identifier).replace('omid:', '')
                     preexisting_entity = True if identifier in self.preexisting_entities else False
                     url = URIRef(self.url + identifier)
                     preexisting_graph = self.finder.get_preexisting_graph(url, self.preexisting_graphs) if preexisting_entity else None

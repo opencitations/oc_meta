@@ -128,8 +128,8 @@ class Creator(object):
         idslist = re.split(one_or_more_spaces, ids)
         # publication id
         for identifier in idslist:
-            if 'meta:' in identifier:
-                identifier = identifier.replace('meta:', '')
+            if 'omid:' in identifier:
+                identifier = identifier.replace('omid:', '')
                 preexisting_entity = True if identifier in self.preexisting_entities else False
                 self.row_meta = identifier.replace('br/', '')
                 url = URIRef(self.url + identifier)
@@ -151,8 +151,8 @@ class Creator(object):
                 aut_id = aut_and_ids.group(2)
                 aut_id_list = aut_id.split(' ')
                 for identifier in aut_id_list:
-                    if 'meta:' in identifier:
-                        identifier = str(identifier).replace('meta:', '')
+                    if 'omid:' in identifier:
+                        identifier = str(identifier).replace('omid:', '')
                         preexisting_entity = True if identifier in self.preexisting_entities else False
                         url = URIRef(self.url + identifier)
                         aut_meta = identifier.replace('ra/', '')
@@ -203,8 +203,8 @@ class Creator(object):
             venue_ids = venue_and_ids.group(2)
             venue_ids_list = venue_ids.split()
             for identifier in venue_ids_list:
-                if 'meta:' in identifier:
-                    ven_id = str(identifier).replace('meta:', '')
+                if 'omid:' in identifier:
+                    ven_id = str(identifier).replace('omid:', '')
                     self.venue_meta = ven_id.replace('br/', '')
                     preexisting_entity = True if ven_id in self.preexisting_entities else False
                     url = URIRef(self.url + ven_id)
@@ -277,7 +277,7 @@ class Creator(object):
         elif not br_type or br_type in {'dataset', 'data file'}:
             venue_type = ''
         # Check the type based on the identifier scheme
-        if any(identifier for identifier in venue_ids if not identifier.startswith('meta:')):
+        if any(identifier for identifier in venue_ids if not identifier.startswith('omid:')):
             if venue_type in {'journal', 'book series', 'series', 'report series'}:
                 if 'isbn' in schemas or 'issn' not in schemas:
                     # It is undecidable
@@ -368,8 +368,8 @@ class Creator(object):
             publ_id = publ_and_ids.group(2)
             publ_id_list = publ_id.split()
             for identifier in publ_id_list:
-                if 'meta:' in identifier:
-                    identifier = str(identifier).replace('meta:', '')
+                if 'omid:' in identifier:
+                    identifier = str(identifier).replace('omid:', '')
                     preexisting_entity = True if identifier in self.preexisting_entities else False
                     pub_meta = identifier.replace('ra/', '')
                     url = URIRef(self.url + identifier)
@@ -399,8 +399,8 @@ class Creator(object):
                 ed_id = ed_and_ids.group(2)
                 ed_id_list = ed_id.split(' ')
                 for identifier in ed_id_list:
-                    if 'meta:' in identifier:
-                        identifier = str(identifier).replace('meta:', '')
+                    if 'omid:' in identifier:
+                        identifier = str(identifier).replace('omid:', '')
                         preexisting_entity = True if identifier in self.preexisting_entities else False
                         ed_meta = identifier.replace('ra/', '')
                         url = URIRef(self.url + identifier)

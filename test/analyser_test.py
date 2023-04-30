@@ -32,11 +32,11 @@ class test_Analyser(unittest.TestCase):
         csv_2 = get_csv_data(os.path.join(OUTPUT, '304_2022-09-29T02-39-24.csv'))
         csv_2_old = get_csv_data(os.path.join(BASE, '304_2022-09-29T02-39-24.csv'))
         csv_expected_0 = [
-            {'id': 'meta:br/06015', 'title': 'Spatial Distribution of Ion Current Around HVDC Bundle Conductors', 'pub_date': '2012-01', 'page': '380-390', 'type': 'journal article', 'author': 'Zhou, Xiangxian [meta:ra/06016]; Cui, Xiang [meta:ra/06017]; Lu, Tiebing [meta:ra/06018]; Fang, Chao [meta:ra/06019]; Zhen, Yongzan [meta:ra/06020]', 'editor': '', 'publisher': 'Institute of Electrical and Electronics Engineers (IEEE) [crossref:263 meta:ra/0610]', 'volume': '27', 'venue': 'IEEE Transactions on Power Delivery [issn:0885-8977 issn:1937-4208 meta:br/06016]', 'issue': '1'}, 
-            {'id': 'meta:br/06038', 'title': 'Space-charge effects in high-density plasmas', 'pub_date': '1982-06', 'page': '454-461', 'type': 'journal article', 'author': 'Morrow, R [meta:ra/06037]', 'editor': '', 'publisher': 'Elsevier BV [crossref:78 meta:ra/0605]', 'volume': '46', 'venue': 'Journal of Computational Physics [issn:0021-9991 meta:br/0604]', 'issue': '3'}]
+            {'id': 'omid:br/06015', 'title': 'Spatial Distribution of Ion Current Around HVDC Bundle Conductors', 'pub_date': '2012-01', 'page': '380-390', 'type': 'journal article', 'author': 'Zhou, Xiangxian [omid:ra/06016]; Cui, Xiang [omid:ra/06017]; Lu, Tiebing [omid:ra/06018]; Fang, Chao [omid:ra/06019]; Zhen, Yongzan [omid:ra/06020]', 'editor': '', 'publisher': 'Institute of Electrical and Electronics Engineers (IEEE) [crossref:263 omid:ra/0610]', 'volume': '27', 'venue': 'IEEE Transactions on Power Delivery [issn:0885-8977 issn:1937-4208 omid:br/06016]', 'issue': '1'}, 
+            {'id': 'omid:br/06038', 'title': 'Space-charge effects in high-density plasmas', 'pub_date': '1982-06', 'page': '454-461', 'type': 'journal article', 'author': 'Morrow, R [omid:ra/06037]', 'editor': '', 'publisher': 'Elsevier BV [crossref:78 omid:ra/0605]', 'volume': '46', 'venue': 'Journal of Computational Physics [issn:0021-9991 omid:br/0604]', 'issue': '3'}]
         csv_expected_1 = [
-            {'id': 'meta:br/06044', 'title': 'Spatial Distribution of Ion Current Around HVDC Bundle Conductors', 'pub_date': '2012-01', 'page': '380-390', 'type': 'journal article', 'author': 'Zhou, Xiangxian [meta:ra/06016]; Cui, Xiang [meta:ra/06017]; Lu, Tiebing [meta:ra/06018]; Fang, Chao [meta:ra/06019]; Zhen, Yongzan [meta:ra/06020]', 'editor': '', 'publisher': 'Institute of Electrical and Electronics Engineers (IEEE) [crossref:263 meta:ra/0610]', 'volume': '27', 'venue': 'IEEE Transactions on Power Delivery [issn:0885-8977 issn:1937-4208 meta:br/06016]', 'issue': '1'}, 
-            {'id': 'meta:br/06045', 'title': 'Space-charge effects in high-density plasmas', 'pub_date': '1982-06', 'page': '454-461', 'type': 'journal article', 'author': 'Morrow, R [meta:ra/06037]', 'editor': '', 'publisher': 'Elsevier BV [crossref:78 meta:ra/0605]', 'volume': '46', 'venue': 'Journal of Computational Physics [issn:0021-9991 meta:br/0604]', 'issue': '3'}]
+            {'id': 'omid:br/06044', 'title': 'Spatial Distribution of Ion Current Around HVDC Bundle Conductors', 'pub_date': '2012-01', 'page': '380-390', 'type': 'journal article', 'author': 'Zhou, Xiangxian [omid:ra/06016]; Cui, Xiang [omid:ra/06017]; Lu, Tiebing [omid:ra/06018]; Fang, Chao [omid:ra/06019]; Zhen, Yongzan [omid:ra/06020]', 'editor': '', 'publisher': 'Institute of Electrical and Electronics Engineers (IEEE) [crossref:263 omid:ra/0610]', 'volume': '27', 'venue': 'IEEE Transactions on Power Delivery [issn:0885-8977 issn:1937-4208 omid:br/06016]', 'issue': '1'}, 
+            {'id': 'omid:br/06045', 'title': 'Space-charge effects in high-density plasmas', 'pub_date': '1982-06', 'page': '454-461', 'type': 'journal article', 'author': 'Morrow, R [omid:ra/06037]', 'editor': '', 'publisher': 'Elsevier BV [crossref:78 omid:ra/0605]', 'volume': '46', 'venue': 'Journal of Computational Physics [issn:0021-9991 omid:br/0604]', 'issue': '3'}]
         self.assertEqual(csv_0, csv_expected_0)
         self.assertEqual(csv_1, csv_expected_1)
         self.assertEqual(csv_2, csv_2_old)
@@ -65,10 +65,10 @@ class test_Analyser(unittest.TestCase):
         ocmeta_counter = OCMetaCounter(csv_dump_path=OUTPUT)
         top: list = ocmeta_counter.get_top(what='publishers', by_what='venue')
         expected_top = [
-            ('meta:ra/0610', {'name': 'Institute of Electrical and Electronics Engineers (IEEE)', 'total': 3}), 
-            ('meta:ra/0602', {'name': 'Springer Science and Business Media LLC', 'total': 3}), 
-            ('meta:ra/0605', {'name': 'Elsevier BV', 'total': 1}), 
-            ('meta:ra/06026', {'name': 'IOP Publishing', 'total': 1})]
+            ('omid:ra/0610', {'name': 'Institute of Electrical and Electronics Engineers (IEEE)', 'total': 3}), 
+            ('omid:ra/0602', {'name': 'Springer Science and Business Media LLC', 'total': 3}), 
+            ('omid:ra/0605', {'name': 'Elsevier BV', 'total': 1}), 
+            ('omid:ra/06026', {'name': 'IOP Publishing', 'total': 1})]
         top.sort(key=lambda x: str(x[1]['total']) + x[0], reverse=True)
         self.assertEqual(top.sort(key=lambda x: str(x[1]['total']) + x[0], reverse=True), expected_top.sort(key=lambda x: str(x[1]['total']) + x[0], reverse=True))
 
@@ -86,14 +86,14 @@ class test_Analyser(unittest.TestCase):
         ocmeta_counter = OCMetaCounter(csv_dump_path=OUTPUT)
         top = ocmeta_counter.get_top(what='venues', by_what='publication')
         expected_top = [
-            ('meta:br/0604', {'name': 'Journal of Computational Physics', 'total': 5}), 
-            ('meta:br/06016', {'name': 'IEEE Transactions on Power Delivery', 'total': 3}), 
-            ('meta:br/06012', {'name': 'IEEE Transactions on Plasma Science', 'total': 2}), 
-            ('meta:br/06022', {'name': 'Journal of Physics D: Applied Physics', 'total': 2}),
-            ('meta:br/0602', {'name': 'Insulation of High-Voltage Equipment', 'total': 1}), 
-            ('meta:br/0608', {'name': 'IEEE Transactions on Magnetics', 'total': 1}), 
-            ('meta:br/06020', {'name': 'Physics and Applications of Pseudosparks', 'total': 1}), 
-            ('meta:br/06043', {'name': 'Journal of Electrical Engineering & Technology', 'total': 1})]
+            ('omid:br/0604', {'name': 'Journal of Computational Physics', 'total': 5}), 
+            ('omid:br/06016', {'name': 'IEEE Transactions on Power Delivery', 'total': 3}), 
+            ('omid:br/06012', {'name': 'IEEE Transactions on Plasma Science', 'total': 2}), 
+            ('omid:br/06022', {'name': 'Journal of Physics D: Applied Physics', 'total': 2}),
+            ('omid:br/0602', {'name': 'Insulation of High-Voltage Equipment', 'total': 1}), 
+            ('omid:br/0608', {'name': 'IEEE Transactions on Magnetics', 'total': 1}), 
+            ('omid:br/06020', {'name': 'Physics and Applications of Pseudosparks', 'total': 1}), 
+            ('omid:br/06043', {'name': 'Journal of Electrical Engineering & Technology', 'total': 1})]
         self.assertEqual(top.sort(key=lambda x: str(x[1]['total']) + x[0], reverse=True), expected_top.sort(key=lambda x: str(x[1]['total']) + x[0], reverse=True))
 
     def test_get_top_years_by_publication(self):

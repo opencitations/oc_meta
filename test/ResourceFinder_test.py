@@ -2,6 +2,7 @@ import os
 import unittest
 from pprint import pprint
 
+from rdflib import Graph
 from SPARQLWrapper import POST, SPARQLWrapper
 
 from oc_meta.lib.finder import ResourceFinder
@@ -13,7 +14,8 @@ class TestResourceFinder(unittest.TestCase):
         ENDPOINT = 'http://localhost:9999/blazegraph/sparql'
         BASE_IRI = 'https://w3id.org/oc/meta/'
         REAL_DATA_FILE = os.path.abspath(os.path.join('test', 'testcases', 'ts', 'real_data.nt')).replace('\\', '/')
-        cls.finder = ResourceFinder(ENDPOINT, BASE_IRI)
+        local_g = Graph()
+        cls.finder = ResourceFinder(ENDPOINT, BASE_IRI, local_g)
         # Clear ts
         ts = SPARQLWrapper(ENDPOINT)
         ts.setMethod(POST)
@@ -22,6 +24,10 @@ class TestResourceFinder(unittest.TestCase):
         # Upload data
         ts.setQuery(f"LOAD <file:{REAL_DATA_FILE}>")
         ts.query()
+        cls.finder.get_everything_about_res([('omid:br/2373', [])], local_g)
+        cls.finder.get_everything_about_res([('omid:br/2380', [])], local_g)
+        cls.finder.get_everything_about_res([('omid:br/2730', [])], local_g)
+        cls.finder.get_everything_about_res([('omid:br/2374', [])], local_g)
 
     def test_retrieve_br_from_id(self):
         value = '10.1001/.391'
@@ -54,7 +60,8 @@ class TestResourceFinder(unittest.TestCase):
     def test_retrieve_br_from_meta_multiple_ids(self):
         metaid = '2374'
         output = self.finder.retrieve_br_from_meta(metaid)
-        expected_output = ("Neutropenia In Human Immunodeficiency Virus Infection: Data From The Women's Interagency HIV Study", [('2240', 'doi:10.1001/.405'), ('5000', 'doi:10.1001/.406')])
+        output = (output[0], set(output[1]))
+        expected_output = ("Neutropenia In Human Immunodeficiency Virus Infection: Data From The Women's Interagency HIV Study", {('2240', 'doi:10.1001/.405'), ('5000', 'doi:10.1001/.406')})
         self.assertEqual(output, expected_output)
 
     def test_retrieve_metaid_from_id(self):
@@ -150,7 +157,7 @@ class TestResourceFinder(unittest.TestCase):
             'page': ('2011', '391-397'), 
             'issue': '4', 
             'volume': '166', 
-            'venue': 'Archives Of Internal Medicine [meta:br/4387]'
+            'venue': 'Archives Of Internal Medicine [omid:br/4387]'
         }
         self.assertEqual(output, expected_output)
     
@@ -203,9 +210,9 @@ class TestResourceFinder(unittest.TestCase):
         num_ = 'num3_'
         res_dict = {'pub_date': '2006-02-27', 'type': 'journal article', 'page': ('2011', '391-397'), 'issue': '', 'volume': '', 'venue': ''}
         output = self.finder._vvi_find(result, part_, type_, title_, num_, res_dict)
-        expected_output = {'pub_date': '2006-02-27', 'type': 'journal article', 'page': ('2011', '391-397'), 'issue': '', 'volume': '', 'venue': 'Archives Of Internal Medicine [meta:br/4387]'}
+        expected_output = {'pub_date': '2006-02-27', 'type': 'journal article', 'page': ('2011', '391-397'), 'issue': '', 'volume': '', 'venue': 'Archives Of Internal Medicine [omid:br/4387]'}
         self.assertEqual(output, expected_output)
-
+    
 
 if __name__ == '__main__': # pragma: no cover
     unittest.main()

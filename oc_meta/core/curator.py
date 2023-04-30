@@ -35,7 +35,8 @@ from oc_meta.lib.master_of_regex import *
 class Curator:
 
     def __init__(self, data:List[dict], ts:str, prov_config:str, info_dir:str, base_iri:str='https://w3id.org/oc/meta', prefix:str='060', separator:str=None, valid_dois_cache:dict=dict()):
-        self.finder = ResourceFinder(ts, base_iri)
+        self.everything_everywhere_allatonce = Graph()
+        self.finder = ResourceFinder(ts, base_iri, self.everything_everywhere_allatonce)
         self.base_iri = base_iri
         self.prov_config = prov_config
         self.separator = separator
@@ -121,12 +122,30 @@ class Curator:
             name = Cleaner(row['title']).clean_title()
         else:
             name = ''
+        metaval_ids_list = []
         if row['id']:
             if self.separator:
                 idslist = re.sub(colon_and_spaces, ':', row['id']).split(self.separator)
             else:
                 idslist = re.split(one_or_more_spaces, re.sub(colon_and_spaces, ':', row['id']))
-            metaval = self.id_worker('id', name, idslist, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
+            idslist, metaval = self.clean_id_list(idslist, br=True, valid_dois_cache=self.valid_dois_cache)
+            id_metaval = f'omid:br/{metaval}' if metaval else ''
+            metaval_ids_list.append((id_metaval, idslist))
+        fields_with_an_id = [(field, re.search(name_and_ids, row[field]).group(2).split()) for field in ['author', 'editor', 'publisher', 'venue', 'volume', 'issue'] if re.search(name_and_ids, row[field])]
+        for field, field_ids in fields_with_an_id:
+            if field in ['author', 'editor', 'publisher']:
+                br = False
+            elif field in ['venue', 'volume', 'issue']:
+                br = True
+            field_idslist, field_metaval = self.clean_id_list(field_ids, br=br, valid_dois_cache=self.valid_dois_cache)
+            if field_metaval:
+                field_metaval = f'omid:br/{field_metaval}' if br else f'omid:ra/{field_metaval}'
+            else:
+                field_metaval = ''
+            metaval_ids_list.append((field_metaval, field_idslist))
+        self.finder.get_everything_about_res(metaval_ids_list, self.everything_everywhere_allatonce)
+        if row['id']:
+            metaval = self.id_worker('id', name, idslist, metaval, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
         else:
             metaval = self.new_entity(self.brdict, name)
         row['title'] = self.brdict[metaval]['title']
@@ -223,7 +242,8 @@ class Curator:
                     idslist = re.sub(colon_and_spaces, ':', venue_id).split(self.separator)
                 else:
                     idslist = re.split(one_or_more_spaces, re.sub(colon_and_spaces, ':', venue_id))
-                metaval = self.id_worker('venue', name, idslist, ra_ent=False, br_ent=True, vvi_ent=True, publ_entity=False)
+                idslist, metaval = self.clean_id_list(idslist, br=True, valid_dois_cache=self.valid_dois_cache)
+                metaval = self.id_worker('venue', name, idslist, metaval, ra_ent=False, br_ent=True, vvi_ent=True, publ_entity=False)
                 if metaval not in self.vvi:
                     ts_vvi = None
                     if 'wannabe' not in metaval:
@@ -372,7 +392,7 @@ class Curator:
                 if not ra_id and sequence:
                     for _, ra_metaid in sequence:
                         if self.radict[ra_metaid]['title'] == name:
-                            ra_id = 'meta:ra/' + str(ra_metaid)
+                            ra_id = 'omid:ra/' + str(ra_metaid)
                             new_elem_seq = False
                             break
                 if ra_id:
@@ -392,11 +412,11 @@ class Curator:
                                     if 'wannabe' not in ra_metaid:
                                         ar_ra = ra_metaid
                                         for pos, literal_value in enumerate(ra_id_list):
-                                            if 'meta' in literal_value:
+                                            if 'omid' in literal_value:
                                                 ra_id_list[pos] = ''
                                             break
                                         ra_id_list = list(filter(None, ra_id_list))
-                                        ra_id_list.append('meta:ra/' + ar_ra)
+                                        ra_id_list.append('omid:ra/' + ar_ra)
                         if not ar_ra:
                             # new element
                             for ar_metaid, ra_metaid in sequence:
@@ -405,15 +425,17 @@ class Curator:
                                     if 'wannabe' not in ra_metaid:
                                         ar_ra = ra_metaid
                                         for pos, i in enumerate(ra_id_list):
-                                            if 'meta' in i:
+                                            if 'omid' in i:
                                                 ra_id_list[pos] = ''
                                             break
                                         ra_id_list = list(filter(None, ra_id_list))
-                                        ra_id_list.append('meta:ra/' + ar_ra)
+                                        ra_id_list.append('omid:ra/' + ar_ra)
                     if col_name == 'publisher':
-                        metaval = self.id_worker('publisher', name, ra_id_list, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
+                        ra_id_list, metaval = self.clean_id_list(ra_id_list, br=False, valid_dois_cache=self.valid_dois_cache)
+                        metaval = self.id_worker('publisher', name, ra_id_list, metaval, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
                     else:
-                        metaval = self.id_worker(col_name, name, ra_id_list, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=False)
+                        ra_id_list, metaval = self.clean_id_list(ra_id_list, br=False, valid_dois_cache=self.valid_dois_cache)
+                        metaval = self.id_worker(col_name, name, ra_id_list, metaval, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=False)
                     if col_name != 'publisher' and metaval in self.radict:
                         full_name:str = self.radict[metaval]['title']
                         if ',' in name and ',' in full_name:
@@ -453,15 +475,15 @@ class Curator:
             identifier = elem.split(':', 1)
             schema = identifier[0].lower()
             value = identifier[1]
-            if schema == 'meta':
+            if schema == 'omid':
                 metaid = value.replace(pattern, '')
             else:
                 normalized_id = Cleaner(elem).normalize_id(valid_dois_cache=valid_dois_cache)
                 if normalized_id:
                     clean_list.append(normalized_id)
-        how_many_meta = [i for i in id_list if i.lower().startswith('meta')]
+        how_many_meta = [i for i in id_list if i.lower().startswith('omid')]
         if len(how_many_meta) > 1:
-            clean_list = [i for i in clean_list if not i.lower().startswith('meta')]
+            clean_list = [i for i in clean_list if not i.lower().startswith('omid')]
         return clean_list, metaid
 
     def conflict(self, idslist:List[str], name:str, id_dict:dict, col_name:str) -> str:
@@ -599,10 +621,10 @@ class Curator:
                 meta = self.prefix + str(count)
                 self.brmeta[meta] = self.brdict[identifier]
                 self.brmeta[meta]['others'].append(other)
-                self.brmeta[meta]['ids'].append('meta:br/' + meta)
+                self.brmeta[meta]['ids'].append('omid:br/' + meta)
             else:
                 self.brmeta[identifier] = self.brdict[identifier]
-                self.brmeta[identifier]['ids'].append('meta:br/' + identifier)
+                self.brmeta[identifier]['ids'].append('omid:br/' + identifier)
         for identifier in self.radict:
             if 'wannabe' in identifier:
                 other = identifier
@@ -610,10 +632,10 @@ class Curator:
                 meta = self.prefix + str(count)
                 self.rameta[meta] = self.radict[identifier]
                 self.rameta[meta]['others'].append(other)
-                self.rameta[meta]['ids'].append('meta:ra/' + meta)
+                self.rameta[meta]['ids'].append('omid:ra/' + meta)
             else:
                 self.rameta[identifier] = self.radict[identifier]
-                self.rameta[identifier]['ids'].append('meta:ra/' + identifier)
+                self.rameta[identifier]['ids'].append('omid:ra/' + identifier)
         for ar_id in self.ardict:
             if 'wannabe' in ar_id:
                 for br_id in self.brmeta:
@@ -882,15 +904,13 @@ class Curator:
             entity_dict[metaval]['title'] = name
             self.log[self.rowcnt]['title']['status'] = 'New value proposed'
     
-    def id_worker(self, col_name, name, idslist:List[str], ra_ent=False, br_ent=False, vvi_ent=False, publ_entity=False):
+    def id_worker(self, col_name, name, idslist:List[str], metaval: str, ra_ent=False, br_ent=False, vvi_ent=False, publ_entity=False):
         if not ra_ent:
             id_dict = self.idbr
             entity_dict = self.brdict
-            idslist, metaval = self.clean_id_list(idslist, br=True, valid_dois_cache=self.valid_dois_cache)
         else:
             id_dict = self.idra
             entity_dict = self.radict
-            idslist, metaval = self.clean_id_list(idslist, br=False, valid_dois_cache=self.valid_dois_cache)
         # there's meta
         if metaval:
             # MetaID exists among data?
@@ -913,9 +933,9 @@ class Curator:
                     else:
                         entity_dict[metaval]['title'] = found_meta_ts[0]
                     entity_dict[metaval]['others'] = list()
-                    self.merge_entities_in_csv(idslist, metaval, name, entity_dict, id_dict)
                     existing_ids = found_meta_ts[1]
                     self.__update_id_and_entity_dict(existing_ids, id_dict, entity_dict, metaval)
+                    self.merge_entities_in_csv(idslist, metaval, name, entity_dict, id_dict)
                 # Look for MetaId in the provenance
                 else:
                     entity_type = 'br' if br_ent or vvi_ent else 'ra' 
@@ -978,8 +998,8 @@ class Curator:
                                 entity_dict[metaval]['ids'] = list()
                                 entity_dict[metaval]['others'] = list()
                                 entity_dict[metaval]['title'] = sparql_match[0][1] if sparql_match[0][1] else ''
-                                self.merge(entity_dict, metaval, old_metaval, sparql_match[0][1])
                                 self.__update_id_and_entity_dict(existing_ids, id_dict, entity_dict, metaval)
+                                self.merge(entity_dict, metaval, old_metaval, sparql_match[0][1])
             else:
                 sparql_match = self.finder_sparql(idslist, br=br_ent, ra=ra_ent, vvi=vvi_ent, publ=publ_entity)
                 if len(sparql_match) > 1:
@@ -1137,20 +1157,20 @@ class Curator:
         known_data['author'] = self.__get_resp_agents(metaval, 'author')
         known_data['editor'] = self.__get_resp_agents(metaval, 'editor')
         known_data['publisher'] = self.finder.retrieve_publisher_from_br_metaid(metaval)
-        for datum in ['venue', 'volume', 'issue', 'pub_date', 'type']:
+        for datum in ['pub_date', 'type', 'volume', 'issue']:
             if known_data[datum]:
+                if row[datum] and row[datum] != known_data[datum]:
+                    self.log[self.rowcnt][datum]['status'] = 'New value proposed'
                 row[datum] = known_data[datum]
-            elif row[datum]:
-                self.log[self.rowcnt][datum]['status'] = 'New value proposed'
-        for role in ['author', 'editor', 'publisher']:
-            if known_data[role] and not row[role]:
-                row[role] = known_data[role]
+        for datum in ['author', 'editor', 'publisher', 'venue']:
+            if known_data[datum] and not row[datum]:
+                row[datum] = known_data[datum]
         if known_data['page']:
+            if row['page'] and row['page'] != known_data['page'][1]:
+                self.log[self.rowcnt]['page']['status'] = 'New value proposed'
             row['page'] = known_data['page'][1]
             self.remeta[metaval] = known_data['page']
-        elif row['page']:
-            self.log[self.rowcnt]['page']['status'] = 'New value proposed'
-
+        
     def __get_resp_agents(self, metaid:str, column:str) -> str:
         resp_agents = self.finder.retrieve_ra_sequence_from_br_meta(metaid, column)
         output = ''
@@ -1159,7 +1179,7 @@ class Curator:
             for item in resp_agents:
                 for _, resp_agent in item.items():
                     author_name = resp_agent[0]
-                    ids = [f'meta:ra/{resp_agent[2]}']
+                    ids = [f'omid:ra/{resp_agent[2]}']
                     ids.extend([id[1] for id in resp_agent[1]])
                     author_ids = '[' + ' '.join(ids) + ']'
                     full_resp_agent =  author_name + ' ' + author_ids

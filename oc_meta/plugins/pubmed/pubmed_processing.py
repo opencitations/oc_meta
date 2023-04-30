@@ -448,10 +448,14 @@ class PubmedProcessing(RaProcessor):
                         author_dict = {"initials": initials, "extended": extended}
 
                         surname_match = True if [x for x in author_dict["extended"] if x in orc_f.split()] else False
-                        name_match_all = True if [x for x in author_dict["extended"] if x in orc_g.split()] else False
-                        name_match_init = True if [x for x in author_dict["initials"] if any(
-                                    element.startswith(x) and element not in author_dict["extended"] for
-                                               element in orc_g.split())] else False
+                        if orc_g:
+                            name_match_all = True if [x for x in author_dict["extended"] if x in orc_g.split()] else False
+                            name_match_init = True if [x for x in author_dict["initials"] if any(
+                                        element.startswith(x) and element not in author_dict["extended"] for
+                                                element in orc_g.split())] else False
+                        else:
+                            name_match_all = False
+                            name_match_init = False
                         matches = (surname_match and (name_match_all or name_match_init))
 
                         if matches:
