@@ -122,24 +122,32 @@ class Curator:
             name = Cleaner(row['title']).clean_title()
         else:
             name = ''
+        metaval_ids_list = []
         if row['id']:
             if self.separator:
                 idslist = re.sub(colon_and_spaces, ':', row['id']).split(self.separator)
             else:
                 idslist = re.split(one_or_more_spaces, re.sub(colon_and_spaces, ':', row['id']))
             idslist, metaval = self.clean_id_list(idslist, br=True, valid_dois_cache=self.valid_dois_cache)
-            self.finder.get_everything_about_res(idslist, metaval, self.everything_everywhere_allatonce)
+            id_metaval = f'omid:br/{metaval}' if metaval else ''
+            metaval_ids_list.append((id_metaval, idslist))
+        fields_with_an_id = [(field, re.search(name_and_ids, row[field]).group(2).split()) for field in ['author', 'editor', 'publisher', 'venue', 'volume', 'issue'] if re.search(name_and_ids, row[field])]
+        for field, field_ids in fields_with_an_id:
+            if field in ['author', 'editor', 'publisher']:
+                br = False
+            elif field in ['venue', 'volume', 'issue']:
+                br = True
+            field_idslist, field_metaval = self.clean_id_list(field_ids, br=br, valid_dois_cache=self.valid_dois_cache)
+            if field_metaval:
+                field_metaval = f'omid:br/{field_metaval}' if br else f'omid:ra/{field_metaval}'
+            else:
+                field_metaval = ''
+            metaval_ids_list.append((field_metaval, field_idslist))
+        self.finder.get_everything_about_res(metaval_ids_list, self.everything_everywhere_allatonce)
+        if row['id']:
             metaval = self.id_worker('id', name, idslist, metaval, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
         else:
             metaval = self.new_entity(self.brdict, name)
-            fields_with_an_id = [(field, re.search(name_and_ids, row[field]).group(2).split()) for field in ['author', 'editor', 'publisher', 'venue', 'volume', 'issue'] if re.search(name_and_ids, row[field])]
-            for field, idslist in fields_with_an_id:
-                if field in ['author', 'editor', 'publisher']:
-                    br = False
-                elif field in ['venue', 'volume', 'issue']:
-                    br = True
-                idslist, field_metaval = self.clean_id_list(idslist, br=br, valid_dois_cache=self.valid_dois_cache)
-                self.finder.get_everything_about_res(idslist, field_metaval, self.everything_everywhere_allatonce, br=br)
         row['title'] = self.brdict[metaval]['title']
         row['id'] = metaval
     

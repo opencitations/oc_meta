@@ -24,10 +24,10 @@ class TestResourceFinder(unittest.TestCase):
         # Upload data
         ts.setQuery(f"LOAD <file:{REAL_DATA_FILE}>")
         ts.query()
-        cls.finder.get_everything_about_res([], '2373', local_g)
-        cls.finder.get_everything_about_res([], '2380', local_g)
-        cls.finder.get_everything_about_res([], '2730', local_g)
-        cls.finder.get_everything_about_res([], '2374', local_g)
+        cls.finder.get_everything_about_res([('omid:br/2373', [])], local_g)
+        cls.finder.get_everything_about_res([('omid:br/2380', [])], local_g)
+        cls.finder.get_everything_about_res([('omid:br/2730', [])], local_g)
+        cls.finder.get_everything_about_res([('omid:br/2374', [])], local_g)
 
     def test_retrieve_br_from_id(self):
         value = '10.1001/.391'
@@ -213,12 +213,6 @@ class TestResourceFinder(unittest.TestCase):
         expected_output = {'pub_date': '2006-02-27', 'type': 'journal article', 'page': ('2011', '391-397'), 'issue': '', 'volume': '', 'venue': 'Archives Of Internal Medicine [omid:br/4387]'}
         self.assertEqual(output, expected_output)
     
-    def test_get_everything_about_res(self):
-        res = '29510'
-        idslist = ['doi:10.1001/amaguidesnewsletters.2017.mayjun03']
-        everything_everywhere_allatounce = Graph()
-        self.finder.get_everything_about_res(idslist, res, everything_everywhere_allatounce)
-
 
 if __name__ == '__main__': # pragma: no cover
     unittest.main()

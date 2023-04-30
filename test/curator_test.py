@@ -144,7 +144,7 @@ class test_Curator(unittest.TestCase):
         row = {'id': '', 'title': '', 'author': '', 'pub_date': '1972-12-01', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}
         curator.log[0] = {'id': {}}
         finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
-        finder.get_everything_about_res([], '4125', curator.everything_everywhere_allatonce)
+        finder.get_everything_about_res([('omid:br/4125', [])], curator.everything_everywhere_allatonce)
         curator.equalizer(row, '4125')
         output = (curator.log, row)
         expected_output = (
@@ -182,7 +182,7 @@ class test_Curator(unittest.TestCase):
         curator = prepareCurator(list())
         curator.data = data
         finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
-        finder.get_everything_about_res([], '3757', curator.everything_everywhere_allatonce)
+        finder.get_everything_about_res([('omid:br/3757', [])], curator.everything_everywhere_allatonce)
         for i in range(3):
             curator.log[i] = {
                 'id': {},
@@ -218,7 +218,7 @@ class test_Curator(unittest.TestCase):
         row = {'id': '3757', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [omid:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}
         curator = prepareCurator(list())
         finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
-        finder.get_everything_about_res([], '3757', curator.everything_everywhere_allatonce)
+        finder.get_everything_about_res([('omid:br/3757', [])], curator.everything_everywhere_allatonce)
         curator.clean_vvi(row)
         expected_output = {
             '4416': {
@@ -280,7 +280,7 @@ class test_Curator(unittest.TestCase):
         row = {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': 'Archives Of Surgery [omid:br/4480]', 'volume': '99', 'issue': '1', 'page': '', 'type': 'journal article', 'publisher': '', 'editor': ''}
         curator = prepareCurator(list())
         finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
-        finder.get_everything_about_res([], '4480', curator.everything_everywhere_allatonce)
+        finder.get_everything_about_res([('omid:br/4480', [])], curator.everything_everywhere_allatonce)
         curator.clean_vvi(row)
         expected_output = {
             '4480': {
@@ -317,7 +317,7 @@ class test_Curator(unittest.TestCase):
         curator = prepareCurator(list())
         curator.brdict = {'3757': {'ids': ['doi:10.1001/archderm.104.1.106'], 'title': 'Multiple Keloids', 'others': []}}
         finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
-        finder.get_everything_about_res([], '3757', curator.everything_everywhere_allatonce)
+        finder.get_everything_about_res([('omid:br/3757', [])], curator.everything_everywhere_allatonce)
         curator.clean_ra(row, 'author')
         output = (curator.ardict, curator.radict, curator.idra)
         expected_output = (
@@ -351,7 +351,7 @@ class test_Curator(unittest.TestCase):
         curator = prepareCurator(list())
         curator.brdict = {'3757': {'ids': ['doi:10.1001/archderm.104.1.106'], 'title': 'Multiple Keloids', 'others': []}}
         finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
-        finder.get_everything_about_res([], '3757', curator.everything_everywhere_allatonce)
+        finder.get_everything_about_res([('omid:br/3757', [])], curator.everything_everywhere_allatonce)
         curator.clean_ra(row, 'author')
         output = (curator.ardict, curator.radict, curator.idra)
         expected_output = (
@@ -609,7 +609,7 @@ class test_id_worker(unittest.TestCase):
         curator = prepareCurator(list())
         add_data_ts(SERVER, os.path.abspath(os.path.join('test', 'testcases', 'ts', 'real_data.nt')).replace('\\', '/'))
         finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
-        finder.get_everything_about_res([], '3309', curator.everything_everywhere_allatonce)
+        finder.get_everything_about_res([('omid:br/3309', [])], curator.everything_everywhere_allatonce)
         name = 'American Medical Association (AMA)' # *(ama) on the ts. The name on the ts must prevail
         # MetaID only
         wannabe_id = curator.id_worker('editor', name, [], '3309', ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
@@ -623,7 +623,7 @@ class test_id_worker(unittest.TestCase):
         add_data_ts(SERVER, os.path.abspath(os.path.join('test', 'testcases', 'ts', 'real_data.nt')).replace('\\', '/'))
         name = 'American Medical Association (AMA)' # *(ama) on the ts. The name on the ts must prevail
         finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
-        finder.get_everything_about_res([], '2438', curator.everything_everywhere_allatonce)
+        finder.get_everything_about_res([('omid:br/2438', [])], curator.everything_everywhere_allatonce)
         # ID and MetaID
         wannabe_id = curator.id_worker('publisher', name, ['crossref:10'], '3309', ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
         output = (wannabe_id, curator.brdict, curator.radict, curator.idbr, curator.idra, curator.log)
@@ -636,7 +636,7 @@ class test_id_worker(unittest.TestCase):
         add_data_ts(SERVER, os.path.abspath(os.path.join('test', 'testcases', 'ts', 'real_data.nt')).replace('\\', '/'))
         name = 'American Medical Association (AMA)' # *(ama) on the ts. The name on the ts must prevail
         finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
-        finder.get_everything_about_res([], '2438', curator.everything_everywhere_allatonce)
+        finder.get_everything_about_res([('omid:br/2438', [])], curator.everything_everywhere_allatonce)
         # ID and MetaID, but it's omid:ra/3309 on ts
         wannabe_id = curator.id_worker('publisher', name, ['crossref:10'], '33090', ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
         output = (wannabe_id, curator.brdict, curator.radict, curator.idbr, curator.idra, curator.log)
@@ -655,7 +655,7 @@ class test_id_worker(unittest.TestCase):
         name = 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'
         curator_empty = prepareCurator(list())
         finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
-        finder.get_everything_about_res([], '0601', curator_empty.everything_everywhere_allatonce)
+        finder.get_everything_about_res([('omid:br/0601', [])], curator_empty.everything_everywhere_allatonce)
         # put metaval in entity_dict        
         meta_id = curator_empty.id_worker('id', name, [], '0601', ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
         # metaval is in entity_dict
@@ -691,6 +691,8 @@ class test_id_worker(unittest.TestCase):
         curator.log[0] = {'id': {}}
         name = 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'
         idslist = ['doi:10.1001/2013.jamasurg.270']
+        finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
+        finder.get_everything_about_res([('', idslist)], curator.everything_everywhere_allatonce)
         meta_id = curator.id_worker('id', name, idslist, '', ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
         output = (meta_id, curator.idbr, curator.idra, curator.brdict, curator.log)
         expected_output = (
@@ -797,6 +799,8 @@ class test_id_worker(unittest.TestCase):
         curator = prepareCurator(get_csv_data(REAL_DATA_CSV))
         curator.log[0] = {'id': {}}
         curator.brdict = br_dict
+        finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
+        finder.get_everything_about_res([('', idslist)], curator.everything_everywhere_allatonce)
         meta_id = curator.id_worker('id', name, idslist, '', ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
         output = (meta_id, curator.idbr, curator.idra, curator.brdict, curator.radict, curator.log)
         expected_output = (
@@ -841,6 +845,8 @@ class test_id_worker(unittest.TestCase):
         curator = prepareCurator(get_csv_data(REAL_DATA_CSV))
         curator.log[0] = {'id': {}}
         curator.brdict = br_dict
+        finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
+        finder.get_everything_about_res([('', idslist)], curator.everything_everywhere_allatonce)
         meta_id = curator.id_worker('id', name, idslist, '', ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
         output = (meta_id, curator.idbr, curator.idra, curator.brdict, curator.radict, curator.log)
         expected_output = (
@@ -880,6 +886,8 @@ class test_id_worker(unittest.TestCase):
         curator = prepareCurator(list())
         curator.brdict = br_dict
         curator.wnb_cnt = 2
+        finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
+        finder.get_everything_about_res([('', idslist)], curator.everything_everywhere_allatonce)
         meta_id = curator.id_worker('id', name, idslist, '', ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
         output = (meta_id, curator.idbr, curator.idra, curator.log)
         expected_output = (
@@ -1130,7 +1138,6 @@ class testcase_15(unittest.TestCase):
         data = get_csv_data(MANUAL_DATA_CSV)
         partial_data = data[64:65]
         data_curated, testcase = prepare_to_test(partial_data, name)
-        print(data_curated, '\n\n', testcase)
         self.assertEqual(data_curated, testcase)
 
     def test2(self):
