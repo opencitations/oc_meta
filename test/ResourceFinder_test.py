@@ -30,7 +30,14 @@ class TestResourceFinder(unittest.TestCase):
             ('omid:br/2730', []), 
             ('omid:br/2374', []), 
             ('', ['doi:10.1001/.391']),
-            ('', ['orcid:0000-0001-6994-8412'])])
+            ('', ['orcid:0000-0001-6994-8412']),
+            ('omid:br/4435', []),
+            ('omid:br/4436', []),
+            ('omid:br/4437', []),
+            ('omid:br/4438', []),
+            ('omid:br/0604750', []),
+            ('omid:br/0605379', []),
+            ('omid:br/0606696', [])])
 
     def test_retrieve_br_from_id(self):
         value = '10.1001/.391'
@@ -125,7 +132,7 @@ class TestResourceFinder(unittest.TestCase):
                     }
                 }
             }
-        }        
+        }      
         self.assertEqual(output, expected_output)
 
     def test_retrieve_vvi_issue_in_venue(self):

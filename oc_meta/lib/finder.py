@@ -6,7 +6,7 @@ from dateutil import parser
 from oc_ocdm.graph import GraphEntity
 from oc_ocdm.prov.prov_entity import ProvEntity
 from oc_ocdm.support import get_count
-from rdflib import Graph, Literal, URIRef
+from rdflib import RDF, Graph, Literal, URIRef
 from SPARQLWrapper import GET, JSON, XML, SPARQLWrapper
 from time_agnostic_library.agnostic_entity import AgnosticEntity
 
@@ -32,6 +32,9 @@ class ResourceFinder:
             except Exception:
                 sleep(5)
         return result
+    
+    def __query_local(self, query) -> dict:
+        return json.loads(self.local_g.query(query).serialize(format='json', encoding='utf8').decode('utf8'))
     
     # _______________________________BR_________________________________ #
 
@@ -325,42 +328,37 @@ class ResourceFinder:
         return content
 
     def __retrieve_vvi(self, meta:str, content:Dict[str, dict]) -> dict:
-        query = f'''
-            SELECT DISTINCT ?res
-                (GROUP_CONCAT(DISTINCT ?container; separator=' ;and; ') AS ?container_)
-                (GROUP_CONCAT(DISTINCT ?type; separator=' ;and; ') AS ?type_)
-                (GROUP_CONCAT(DISTINCT ?title) AS ?title_)
-            WHERE {{
-                ?res <{GraphEntity.iri_part_of}>+ <{self.base_iri}/br/{meta}>;
-                    <{GraphEntity.iri_part_of}> ?container;
-                    a ?type;
-                    <{GraphEntity.iri_has_sequence_identifier}> ?title.
-            }} GROUP BY ?res
-        '''
-        result = self.__query(query)
-        if result['results']['bindings']:
-            results = result['results']['bindings']
-            for x in results:
-                res = str(x['res']['value']).replace(f'{self.base_iri}/br/', '')
-                container = str(x['container_']['value'])
-                title = str(x['title_']['value'])
-                types = str(x['type_']['value']).split(' ;and; ')
-                if str(GraphEntity.iri_journal_issue) in types and container == f'{self.base_iri}/br/{meta}':
-                    content['issue'].setdefault(title, dict())
-                    content['issue'][title]['id'] = res
-                elif str(GraphEntity.iri_journal_volume) in types:
-                    content['volume'].setdefault(title, dict())
-                    content['volume'][title]['id'] = res
-                    content['volume'][title]['issue'] = self.__retrieve_issues_by_volume(results, res)
+        venue_iri = URIRef(f'{self.base_iri}/br/{meta}')
+        ress = []
+        for triple in self.local_g.triples((None, GraphEntity.iri_part_of, venue_iri)):
+            res = {'res': None, 'type': None, 'sequence_identifier': None, 'container': None}
+            res['res'] = triple[0].replace(f'{self.base_iri}/br/', '')
+            for res_triple in self.local_g.triples((triple[0], None, None)):
+                if res_triple[1] == RDF.type and res_triple[2] != GraphEntity.iri_expression:
+                    res['type'] = res_triple[2]
+                elif res_triple[1] == GraphEntity.iri_has_sequence_identifier:
+                    res['sequence_identifier'] = str(res_triple[2])
+                elif res_triple[1] == GraphEntity.iri_part_of:
+                    res['container'] = res_triple[2]
+            ress.append(res)
+        for res in ress:
+            if res['res'] is not None:
+                if res['type'] == GraphEntity.iri_journal_issue and res['container'] == venue_iri:
+                    content['issue'].setdefault(res['sequence_identifier'], dict())
+                    content['issue'][res['sequence_identifier']]['id'] = res['res']
+                elif res['type'] == GraphEntity.iri_journal_volume:
+                    content['volume'].setdefault(res['sequence_identifier'], dict())
+                    content['volume'][res['sequence_identifier']]['id'] = res['res']
+                    content['volume'][res['sequence_identifier']]['issue'] = self.__retrieve_issues_by_volume(URIRef(f"{self.base_iri}/br/{res['res']}"))
         return content
 
-    def __retrieve_issues_by_volume(self, data:List[Dict[str, Dict[str, str]]], res:str) -> dict:
+    def __retrieve_issues_by_volume(self, res:URIRef) -> dict:
         content = dict()
-        for item in data:
-            if res in item['container_']['value'] and str(GraphEntity.iri_journal_issue in item['type_']['value']):
-                title = item['title_']['value']
-                content[title] = dict()
-                content[title]['id'] = item['res']['value'].replace(f'{self.base_iri}/br/', '')
+        for triple in self.local_g.triples((None, GraphEntity.iri_part_of, res)):
+            for res_triple in self.local_g.triples((triple[0], None, None)):
+                if res_triple[1] == GraphEntity.iri_has_sequence_identifier:
+                    content.setdefault(str(res_triple[2]), dict())
+                    content[str(res_triple[2])]['id'] = res_triple[0].replace(f'{self.base_iri}/br/', '')
         return content
     
     def retrieve_ra_sequence_from_br_meta(self, metaid:str, col_name:str) -> List[Dict[str, tuple]]:
@@ -699,7 +697,7 @@ class ResourceFinder:
             preexisting_graphs[res] = untyped_graph_subj
         return untyped_graph_subj
     
-    def get_everything_about_res(self, metaval_ids_list: List[Tuple[str, List[str]]]) -> None:
+    def get_everything_about_res(self, metaval_ids_list: List[Tuple[str, List[str]]], vvi: Tuple[str, str, str] = None) -> None:
         if not metaval_ids_list:
             return
         relevant_ids = []
@@ -710,36 +708,20 @@ class ResourceFinder:
                 relevant_ids.extend(x[1])
         omids = [f'{self.base_iri}/{x.replace("omid:", "")}' for x in relevant_ids if x.startswith('omid:')]
         identifiers = [(GraphEntity.DATACITE+x.split(':')[0], x.split(':')[1]) for x in relevant_ids if not x.startswith('omid:')]
-        if omids and identifiers:
-            query = f'''
-                CONSTRUCT {{ ?s ?p ?o }}
-                WHERE {{ 
-                    {{
-                        ?res (<>|!<>)* ?s. 
-                        ?s ?p ?o.
-                        VALUES ?res {{<{'> <'.join(omids)}>}}
-                    }} UNION {{
-                        ?br <{GraphEntity.iri_has_identifier}> ?id.
-                        ?id <{GraphEntity.iri_uses_identifier_scheme}> ?scheme;
-                            <{GraphEntity.iri_has_literal_value}> ?literal.
-                        VALUES (?scheme ?literal) {{({') ('.join(map(lambda x: f'<{x[0]}> "{x[1]}"', identifiers))})}}
-                        ?br (<>|!<>)* ?s. ?s ?p ?o. 
-                    }}
-                }}
-            '''
-        elif omids and not identifiers:
-            query = f'''
-                CONSTRUCT {{ ?s ?p ?o }}
-                WHERE {{ 
+        query = 'CONSTRUCT { ?s ?p ?o } WHERE {'
+        if omids:
+            query += f'''
+                {{
                     ?res (<>|!<>)* ?s. 
                     ?s ?p ?o.
                     VALUES ?res {{<{'> <'.join(omids)}>}}
                 }}
             '''
-        elif identifiers and not omids:
-            query = f'''
-                CONSTRUCT {{ ?s ?p ?o }}
-                WHERE {{ 
+        if omids and identifiers:
+            query += 'UNION'
+        if identifiers:
+            query += f'''
+                {{
                     ?br <{GraphEntity.iri_has_identifier}> ?id.
                     ?id <{GraphEntity.iri_uses_identifier_scheme}> ?scheme;
                         <{GraphEntity.iri_has_literal_value}> ?literal.
@@ -747,6 +729,18 @@ class ResourceFinder:
                     ?br (<>|!<>)* ?s. ?s ?p ?o. 
                 }}
             '''
+        if vvi:
+            upper_vvi = vvi[1] if vvi[1] else vvi[0]
+            vvi_type = GraphEntity.iri_journal_issue if vvi[1] else GraphEntity.iri_journal_volume
+            query += f'''
+                UNION {{
+                    ?vvi <{GraphEntity.iri_part_of}>+ <{self.base_iri}/br/{vvi[2]}>;
+                        a <{vvi_type}>;
+                        <{GraphEntity.iri_has_sequence_identifier}> "{upper_vvi}".
+                    ?vvi (<>|!<>)* ?s. ?s ?p ?o. 
+                }}
+            '''
+        query += '}'
         result = self.__query(query, XML)
         if result:
             for triple in result.triples((None, None, None)):

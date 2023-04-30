@@ -86,7 +86,7 @@
     ns1:hasIdentifier <https://w3id.org/oc/meta/id/060310>.
 
 <https://w3id.org/oc/meta/br/06011> a ns7:Expression;
-    ns8:partOf <https://w3id.org/oc/meta/br/060301>;
+    ns8:partOf <https://w3id.org/oc/meta/br/060300>;
     ns1:hasIdentifier <https://w3id.org/oc/meta/id/06011>.
 
 <https://w3id.org/oc/meta/id/06011> a ns1:Identifier ;
