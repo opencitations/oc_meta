@@ -143,7 +143,7 @@ class Curator:
             else:
                 field_metaval = ''
             metaval_ids_list.append((field_metaval, field_idslist))
-        self.finder.get_everything_about_res(metaval_ids_list, self.everything_everywhere_allatonce)
+        self.finder.get_everything_about_res(metaval_ids_list)
         if row['id']:
             metaval = self.id_worker('id', name, idslist, metaval, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
         else:

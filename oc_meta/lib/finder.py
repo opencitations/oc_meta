@@ -119,23 +119,12 @@ class ResourceFinder:
         :type value: str
         :returns str: -- it returns the MetaID associated with the input ID.
         '''
-        schema = GraphEntity.DATACITE + schema
+        schema = URIRef(GraphEntity.DATACITE + schema)
         value = value.replace('\\', '\\\\')
-        query = f'''
-            SELECT DISTINCT ?res 
-            WHERE {{
-                ?res <{GraphEntity.iri_has_literal_value}> '{value}';
-                    <{GraphEntity.iri_uses_identifier_scheme}> <{schema}>;
-                    a <{GraphEntity.iri_identifier}>.
-            }} 
-            GROUP BY ?res
-        '''
-        result = self.__query(query)
-        if result['results']['bindings']:
-            bindings = result['results']['bindings']
-            return str(bindings[0]['res']['value']).replace(f'{self.base_iri}/id/', '')
-        else:
-            return None
+        for starting_triple in self.local_g.triples((None, GraphEntity.iri_has_literal_value, Literal(value))):
+            for known_id_triple in self.local_g.triples((starting_triple[0], None, None)):
+                if known_id_triple[1] == GraphEntity.iri_uses_identifier_scheme and known_id_triple[2] == schema:
+                    return known_id_triple[0].replace(f'{self.base_iri}/id/', '')
 
     def retrieve_metaid_from_merged_entity(self, metaid_uri:str, prov_config:str) -> str:
         '''
@@ -713,7 +702,7 @@ class ResourceFinder:
             preexisting_graphs[res] = untyped_graph_subj
         return untyped_graph_subj
     
-    def get_everything_about_res(self, metaval_ids_list: List[Tuple[str, List[str]]], everything_everywhere_allatounce: Graph) -> None:
+    def get_everything_about_res(self, metaval_ids_list: List[Tuple[str, List[str]]]) -> None:
         if not metaval_ids_list:
             return
         relevant_ids = []
@@ -766,9 +755,9 @@ class ResourceFinder:
             for triple in result.triples((None, None, None)):
                 if isinstance(triple[2], Literal):
                     new_triple = (triple[0], triple[1], Literal(lexical_or_value=str(triple[2])))
-                    everything_everywhere_allatounce.add(new_triple)
+                    self.local_g.add(new_triple)
                 else:
-                    everything_everywhere_allatounce.add(triple)
+                    self.local_g.add(triple)
 
     def _get_subgraph(self, graph: Graph, res: str) -> str:
         subgraph = Graph()
