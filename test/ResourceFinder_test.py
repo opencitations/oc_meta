@@ -24,11 +24,11 @@ class TestResourceFinder(unittest.TestCase):
         # Upload data
         ts.setQuery(f"LOAD <file:{REAL_DATA_FILE}>")
         ts.query()
-        cls.finder.get_everything_about_res([('omid:br/2373', [])], local_g)
-        cls.finder.get_everything_about_res([('omid:br/2380', [])], local_g)
-        cls.finder.get_everything_about_res([('omid:br/2730', [])], local_g)
-        cls.finder.get_everything_about_res([('omid:br/2374', [])], local_g)
-        cls.finder.get_everything_about_res([('', ['doi:10.1001/.391'])], local_g)
+        cls.finder.get_everything_about_res([('omid:br/2373', [])])
+        cls.finder.get_everything_about_res([('omid:br/2380', [])])
+        cls.finder.get_everything_about_res([('omid:br/2730', [])])
+        cls.finder.get_everything_about_res([('omid:br/2374', [])])
+        cls.finder.get_everything_about_res([('', ['doi:10.1001/.391'])])
 
     def test_retrieve_br_from_id(self):
         value = '10.1001/.391'
