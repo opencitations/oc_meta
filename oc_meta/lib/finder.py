@@ -234,53 +234,50 @@ class ResourceFinder:
         :type publisher: bool
         :returns List[Tuple[str, str, list]]: -- it returns a list of three elements tuples. The first element is the MetaID of a responsible agent associated with the input ID. The second element is the name of that responsible agent, if present. The third element is a list of MetaID-ID tuples related to identifiers associated with that responsible agent. 
         '''
-        schema = GraphEntity.DATACITE + schema
+        schema = URIRef(GraphEntity.DATACITE + schema)
         value = value.replace('\\', '\\\\')
-        query = f'''
-            SELECT DISTINCT ?res
-                (GROUP_CONCAT(DISTINCT ?name; separator=' ;and; ') AS ?name_)
-                (GROUP_CONCAT(DISTINCT ?givenName; separator=' ;and; ') AS ?givenName_)
-                (GROUP_CONCAT(DISTINCT ?familyName; separator=' ;and; ') AS ?familyName_)
-                (GROUP_CONCAT(DISTINCT ?otherId; separator=' ;and; ') AS ?otherId_)
-                (GROUP_CONCAT(?schema; separator=' ;and; ') AS ?schema_)
-                (GROUP_CONCAT(DISTINCT ?value; separator=' ;and; ') AS ?value_)
-            WHERE {{
-                ?knownId <{GraphEntity.iri_has_literal_value}> '{value}';
-                    <{GraphEntity.iri_uses_identifier_scheme}> <{schema}>.
-                ?res a <{GraphEntity.iri_agent}>;
-                    <{GraphEntity.iri_has_identifier}> ?knownId;
-                    <{GraphEntity.iri_has_identifier}> ?otherId.
-                OPTIONAL {{?res <{GraphEntity.iri_given_name}> ?givenName.}}
-                OPTIONAL {{?res <{GraphEntity.iri_family_name}> ?familyName.}}
-                OPTIONAL {{?res <{GraphEntity.iri_name}> ?name.}}
-                ?otherId <{GraphEntity.iri_uses_identifier_scheme}> ?schema;
-                    <{GraphEntity.iri_has_literal_value}> ?value.
-            }} GROUP BY ?res
-        '''
-        results = self.__query(query)
-        if results['results']['bindings']:
-            result_list = list()
-            for result in results['results']['bindings']:
-                res = str(result['res']['value']).replace(f'{self.base_iri}/ra/', '')
-                if str(result['name_']['value']) and publisher:
-                    name = str(result['name_']['value'])
-                elif str(result['familyName_']['value']) and not publisher:
-                    name = str(result['familyName_']['value']) + ', ' + str(result['givenName_']['value'])
-                else:
-                    name = ''
-                meta_id_list = str(result['otherId_']['value']).replace(f'{self.base_iri}/id/', '').split(' ;and; ')
-                id_schema_list = str(result['schema_']['value']).replace(GraphEntity.DATACITE, '').split(' ;and; ')
-                id_value_list = str(result['value_']['value']).split(' ;and; ')
-                schema_value_list = list(zip(id_schema_list, id_value_list))
-                id_list = list()
-                for schema, value in schema_value_list:
-                    identifier = f'{schema}:{value}'
-                    id_list.append(identifier)
-                metaid_id_list = list(zip(meta_id_list, id_list))
-                result_list.append(tuple((res, name, metaid_id_list)))
-            return result_list
-        else:
-            return None
+        result_list = list()
+        identifier_uri = None
+        for starting_triple in self.local_g.triples((None, GraphEntity.iri_has_literal_value, Literal(value))):
+            for known_id_triple in self.local_g.triples((starting_triple[0], None, None)):
+                if known_id_triple[1] == GraphEntity.iri_uses_identifier_scheme and known_id_triple[2] == schema:
+                    identifier_uri = known_id_triple[0]
+                    break
+            if identifier_uri:
+                break
+        if identifier_uri:
+            metaid_id_list = [(identifier_uri.replace(f'{self.base_iri}/id/', ''), f'{schema.replace(GraphEntity.DATACITE, "")}:{value}')]
+            for triple in self.local_g.triples((None, GraphEntity.iri_has_identifier, identifier_uri)):
+                name = ''
+                family_name = ''
+                given_name = ''
+                res = triple[0]
+                for res_triple in self.local_g.triples((res, None, None)):
+                    if res_triple[1] == GraphEntity.iri_name:
+                        name = str(res_triple[2])
+                    elif res_triple[1] == GraphEntity.iri_family_name:
+                        family_name = str(res_triple[2])
+                    elif res_triple[1] == GraphEntity.iri_given_name:
+                        given_name = str(res_triple[2])
+                    elif res_triple[1] == GraphEntity.iri_has_identifier and res_triple[2] != identifier_uri:
+                        for id_triple in self.local_g.triples((res_triple[2], None, None)):
+                            if id_triple[1] == GraphEntity.iri_uses_identifier_scheme:
+                                id_schema = id_triple[2]
+                            elif id_triple[1] == GraphEntity.iri_has_literal_value:
+                                id_literal_value = id_triple[2]
+                        full_id = f'{id_schema.replace(GraphEntity.DATACITE, "")}:{id_literal_value}'
+                        metaid_id_tuple = (res_triple[2].replace(f'{self.base_iri}/id/', ''), full_id)
+                        metaid_id_list.append(metaid_id_tuple)
+                if name and not family_name and not given_name:
+                    full_name = name
+                elif not name and family_name and not given_name:
+                    full_name = f'{family_name},'
+                elif not name and not family_name and given_name:
+                    full_name = f', {given_name}'
+                elif not name and family_name and given_name:
+                    full_name = f'{family_name}, {given_name}'
+                result_list.append((res.replace(f'{self.base_iri}/ra/', ''), full_name, metaid_id_list))
+        return result_list
 
     # _______________________________VVI_________________________________ #
 

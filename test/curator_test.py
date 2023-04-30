@@ -594,6 +594,7 @@ class test_id_worker(unittest.TestCase):
     def test_id_worker_2_id_ts(self):
         # 2 Retrieve EntityA data in triplestore to update EntityA inside CSV
         curator = prepareCurator(list())
+        curator.finder = self.finder
         name = 'American Medical Association (AMA)' # *(ama) on the ts. The name on the ts must prevail
         idslist = ['crossref:10']
         wannabe_id = curator.id_worker('editor', name, idslist, '', ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)

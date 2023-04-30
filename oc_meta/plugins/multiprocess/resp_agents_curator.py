@@ -59,6 +59,14 @@ class RespAgentsCurator(Curator):
                 'pub_date': {},
                 'type': {}
             }
+            metaval_ids_list = []
+            fields_with_an_id = [(field, re.search(name_and_ids, row[field]).group(2).split()) for field in ['author', 'editor', 'publisher'] if re.search(name_and_ids, row[field])]
+            for _, field_ids in fields_with_an_id:
+                field_idslist, field_metaval = self.clean_id_list(field_ids)
+                if field_metaval:
+                    field_metaval = f'omid:ra/{field_metaval}'
+                metaval_ids_list.append((field_metaval, field_idslist))
+            self.finder.get_everything_about_res(metaval_ids_list)
             self.clean_ra(row, 'author')
             self.clean_ra(row, 'publisher')
             self.clean_ra(row, 'editor')
