@@ -440,23 +440,18 @@ class ResourceFinder:
             :type meta_id: str
             :returns: Tuple[str, str] -- the output is a two-elements tuple, where the first element is the MetaID of the resource embodiment, and the second is a pages' interval. 
         '''
-        metaid_uri = f'{self.base_iri}/br/{str(metaid)}'
-        query = f'''
-            SELECT DISTINCT ?re ?sp ?ep
-            WHERE {{
-                <{metaid_uri}> <{GraphEntity.iri_embodiment}> ?re.
-                ?re <{GraphEntity.iri_starting_page}> ?sp;
-                    <{GraphEntity.iri_ending_page}> ?ep.
-            }}
-        '''
-        result = self.__query(query)
-        if result['results']['bindings']:
-            meta = result['results']['bindings'][0]['re']['value'].replace(f'{self.base_iri}/re/', '')
-            pages = result['results']['bindings'][0]['sp']['value'] + '-' +\
-                result['results']['bindings'][0]['ep']['value']
-            return meta, pages
-        else:
-            return None
+        metaid_uri = URIRef(f'{self.base_iri}/br/{str(metaid)}')
+        re_uri = None
+        for triple in self.local_g.triples((metaid_uri, GraphEntity.iri_embodiment, None)):
+            re_uri = triple[2].replace(f'{self.base_iri}/re/', '')
+            for re_triple in self.local_g.triples((triple[2], None, None)):
+                if re_triple[1] == GraphEntity.iri_starting_page:
+                    starting_page = str(re_triple[2])
+                elif re_triple[1] == GraphEntity.iri_ending_page:
+                    ending_page = str(re_triple[2])
+        if re_uri:
+            pages = f'{starting_page}-{ending_page}'
+            return re_uri, pages
 
     def retrieve_br_info_from_meta(self, metaid:str) -> dict:
         '''
