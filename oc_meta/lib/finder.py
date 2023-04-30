@@ -391,51 +391,40 @@ class ResourceFinder:
             role = GraphEntity.iri_editor
         else:
             role = GraphEntity.iri_publisher
-        metaid_uri = f'{self.base_iri}/br/{str(metaid)}'
-        query = f'''
-            SELECT DISTINCT ?role ?next ?ra
-            WHERE {{
-                <{metaid_uri}> <{GraphEntity.iri_is_document_context_for}> ?role.
-                ?role <{GraphEntity.iri_with_role}> <{role}>;
-                    <{GraphEntity.iri_is_held_by}> ?ra
-                OPTIONAL {{?role <{GraphEntity.iri_has_next}> ?next.}}
-            }}
-        '''
-        result = self.__query(query)
-        if result['results']['bindings']:
-            results = result['results']['bindings']
-            dict_ar = dict()
-            for ra_dict in results:
-                role = str(ra_dict['role']['value']).replace(f'{self.base_iri}/ar/', '')
-                if 'next' in ra_dict:
-                    next_role = str(ra_dict['next']['value']).replace(f'{self.base_iri}/ar/', '')
-                else:
+        metaid_uri = URIRef(f'{self.base_iri}/br/{str(metaid)}')
+        dict_ar = dict()
+        for triple in self.local_g.triples((metaid_uri, GraphEntity.iri_is_document_context_for, None)):
+            for ar_triple in self.local_g.triples((triple[2], None, None)):
+                if ar_triple[2] == role:
+                    role_value = str(triple[2]).replace(f'{self.base_iri}/ar/', '')
                     next_role = ''
-                ra = str(ra_dict['ra']['value']).replace(f'{self.base_iri}/ra/', '')
-                dict_ar[role] = dict()
-                dict_ar[role]['next'] = next_role
-                dict_ar[role]['ra'] = ra
-            ar_list = list()
-            last = ''
-            while dict_ar:
-                for ar_metaid in dict_ar:
-                    if dict_ar[ar_metaid]['next'] == last:
-                        if col_name == 'publisher':
-                            ra_info = self.retrieve_ra_from_meta(dict_ar[ar_metaid]['ra'], publisher=True) +\
-                                         (dict_ar[ar_metaid]['ra'],)
-                        else:
-                            ra_info = self.retrieve_ra_from_meta(dict_ar[ar_metaid]['ra'], publisher=False) +\
-                                         (dict_ar[ar_metaid]['ra'],)
-                        ar_dic = dict()
-                        ar_dic[ar_metaid] = ra_info
-                        ar_list.append(ar_dic)
-                        last = ar_metaid
-                        del dict_ar[ar_metaid]
-                        break
-            ar_list.reverse()
-            return ar_list
-        else:
-            return None
+                    for relevant_ar_triple in self.local_g.triples((triple[2], None, None)):                            
+                        if relevant_ar_triple[1] == GraphEntity.iri_has_next:
+                            next_role = str(relevant_ar_triple[2]).replace(f'{self.base_iri}/ar/', '')
+                        elif relevant_ar_triple[1] == GraphEntity.iri_is_held_by:
+                            ra = str(relevant_ar_triple[2]).replace(f'{self.base_iri}/ra/', '')
+                    dict_ar[role_value] = dict()
+                    dict_ar[role_value]['next'] = next_role
+                    dict_ar[role_value]['ra'] = ra
+        ar_list = list()
+        last = ''
+        while dict_ar:
+            for ar_metaid in dict_ar:
+                if dict_ar[ar_metaid]['next'] == last:
+                    if col_name == 'publisher':
+                        ra_info = self.retrieve_ra_from_meta(dict_ar[ar_metaid]['ra'], publisher=True) +\
+                                        (dict_ar[ar_metaid]['ra'],)
+                    else:
+                        ra_info = self.retrieve_ra_from_meta(dict_ar[ar_metaid]['ra'], publisher=False) +\
+                                        (dict_ar[ar_metaid]['ra'],)
+                    ar_dic = dict()
+                    ar_dic[ar_metaid] = ra_info
+                    ar_list.append(ar_dic)
+                    last = ar_metaid
+                    del dict_ar[ar_metaid]
+                    break
+        ar_list.reverse()
+        return ar_list
 
     def retrieve_re_from_br_meta(self, metaid:str) -> Tuple[str, str]:
         '''
