@@ -34,10 +34,7 @@ class ResourceFinder:
             except Exception:
                 sleep(5)
         return result
-    
-    def __query_local(self, query) -> dict:
-        return json.loads(self.local_g.query(query).serialize(format='json', encoding='utf8').decode('utf8'))
-    
+        
     # _______________________________BR_________________________________ #
 
     def retrieve_br_from_id(self, schema:str, value:str) -> List[Tuple[str, str, list]]:
@@ -480,137 +477,100 @@ class ResourceFinder:
             :returns: Tuple[str, str] -- the output is a dictionary including the publication date, type, page, issue, volume, and venue of the specified bibliographic resource.
         '''
         metaid = str(metaid)
-        metaid_uri = f'{self.base_iri}/br/{metaid}' if self.base_iri not in metaid else metaid
-        query = f'''
-            SELECT ?res 
-            (GROUP_CONCAT(DISTINCT ?type; separator=' ;and; ') AS ?type_)
-            (GROUP_CONCAT(DISTINCT ?date; separator=' ;and; ') AS ?date_)
-            (GROUP_CONCAT(DISTINCT ?num; separator=' ;and; ') AS ?num_)
-            (GROUP_CONCAT(DISTINCT ?part1; separator=' ;and; ') AS ?part1_)
-            (GROUP_CONCAT(DISTINCT ?title1; separator=' ;and; ') AS ?title1_)
-            (GROUP_CONCAT(DISTINCT ?num1; separator=' ;and; ') AS ?num1_)
-            (GROUP_CONCAT(DISTINCT ?type1; separator=' ;and; ') AS ?type1_)
-            (GROUP_CONCAT(DISTINCT ?part2; separator=' ;and; ') AS ?part2_)
-            (GROUP_CONCAT(DISTINCT ?title2; separator=' ;and; ') AS ?title2_)
-            (GROUP_CONCAT(DISTINCT ?num2; separator=' ;and; ') AS ?num2_)
-            (GROUP_CONCAT(DISTINCT ?type2; separator=' ;and; ') AS ?type2_)
-            (GROUP_CONCAT(DISTINCT ?part3; separator=' ;and; ') AS ?part3_)
-            (GROUP_CONCAT(DISTINCT ?title3; separator=' ;and; ') AS ?title3_)
-            (GROUP_CONCAT(DISTINCT ?num3; separator=' ;and; ') AS ?num3_)
-            (GROUP_CONCAT(DISTINCT ?type3; separator=' ;and; ') AS ?type3_)
-            WHERE {{
-                ?res a ?type.
-                OPTIONAL {{?res <{GraphEntity.iri_has_publication_date}> ?date.}}
-                OPTIONAL {{?res <{GraphEntity.iri_has_sequence_identifier}> ?num.}}
-                OPTIONAL {{
-                    ?res <{GraphEntity.iri_part_of}> ?part1.
-                    OPTIONAL {{?part1 <{GraphEntity.iri_title}> ?title1.}}
-                    OPTIONAL {{?part1 <{GraphEntity.iri_has_sequence_identifier}> ?num1.}}
-                    ?part1 a ?type1.
-                    OPTIONAL {{
-                        ?part1 <{GraphEntity.iri_part_of}> ?part2.
-                        OPTIONAL {{?part2 <{GraphEntity.iri_title}> ?title2.}}
-                        OPTIONAL {{?part2 <{GraphEntity.iri_has_sequence_identifier}> ?num2.}}
-                        ?part2 a ?type2.
-                        OPTIONAL{{
-                            ?part2 <{GraphEntity.iri_part_of}> ?part3.
-                            OPTIONAL {{?part3 <{GraphEntity.iri_title}> ?title3.}}
-                            OPTIONAL {{?part3 <{GraphEntity.iri_has_sequence_identifier}> ?num3.}}
-                            ?part3 a ?type3.
-                        }}
-                    }}
-                }}
-                BIND (<{metaid_uri}> AS ?res)
-            }} 
-            GROUP BY ?res
-        '''
-        result = self.__query(query)
-        if result['results']['bindings']:
-            bindings = result['results']['bindings'][0]
-            res_dict = {
-                'pub_date': '',
-                'type': '',
-                'page': '',
-                'issue': '',
-                'volume': '',
-                'venue': ''
-            }
-            if 'date_' in bindings:
-                res_dict['pub_date'] = bindings['date_']['value']
-            res_dict['type'] = self._type_it(bindings, 'type_')
-            res_dict['page'] = self.retrieve_re_from_br_meta(metaid)
-            if 'num_' in bindings:
-                if 'issue' in self._type_it(bindings, 'type_'):
-                    res_dict['issue'] = str(bindings['num_']['value'])
-                elif 'volume' in self._type_it(bindings, 'type_'):
-                    res_dict['volume'] = str(bindings['num_']['value'])
-            res_dict = self._vvi_find(bindings, 'part1_', 'type1_', 'title1_', 'num1_', res_dict)
-            res_dict = self._vvi_find(bindings, 'part2_', 'type2_', 'title2_', 'num2_', res_dict)
-            res_dict = self._vvi_find(bindings, 'part3_', 'type3_', 'title3_', 'num3_', res_dict)
-            return res_dict
-        else:
-            return None
+        metaid_uri = URIRef(f'{self.base_iri}/br/{metaid}') if self.base_iri not in metaid else URIRef(metaid)
+        res_dict = {
+            'pub_date': '',
+            'type': '',
+            'page': self.retrieve_re_from_br_meta(metaid),
+            'issue': '',
+            'volume': '',
+            'venue': ''
+        }
+        for triple in self.local_g.triples((metaid_uri, None, None)):
+            if triple[1] == GraphEntity.iri_has_publication_date:
+                res_dict['pub_date'] = str(triple[2])
+            elif triple[1] == RDF.type and triple[2] != GraphEntity.iri_expression:
+                res_dict['type'] = self._type_it(triple[2])
+            elif triple[1] == GraphEntity.iri_has_sequence_identifier:
+                for inner_triple in self.local_g.triples((metaid_uri, None, None)):
+                    if inner_triple[2] == GraphEntity.iri_journal_issue:
+                        res_dict['issue'] = str(triple[2])
+                    elif inner_triple[2] == GraphEntity.iri_journal_volume:
+                        res_dict['volume'] = str(triple[2])
+            elif triple[1] == GraphEntity.iri_part_of:
+                for vvi_triple in self.local_g.triples((triple[2], None, None)):
+                    if vvi_triple[2] == GraphEntity.iri_journal_issue:
+                        for inner_vvi_triple in self.local_g.triples((triple[2], None, None)):
+                            if inner_vvi_triple[1] == GraphEntity.iri_has_sequence_identifier:
+                                res_dict['issue'] = str(inner_vvi_triple[2])
+                    elif vvi_triple[2] == GraphEntity.iri_journal_volume:
+                        for inner_vvi_triple in self.local_g.triples((triple[2], None, None)):
+                            if inner_vvi_triple[1] == GraphEntity.iri_has_sequence_identifier:
+                                res_dict['volume'] = str(inner_vvi_triple[2])
+                    elif vvi_triple[2] == GraphEntity.iri_journal:
+                        for inner_vvi_triple in self.local_g.triples((triple[2], None, None)):
+                            if inner_vvi_triple[1] == GraphEntity.iri_title:
+                                res_dict['venue'] = str(inner_vvi_triple[2])+ ' [omid:' + inner_vvi_triple[0].replace(f'{self.base_iri}/', '') + ']'
+                    elif vvi_triple[1] == GraphEntity.iri_part_of:
+                        for vi_triple in self.local_g.triples((vvi_triple[2], None, None)):
+                            if vi_triple[2] == GraphEntity.iri_journal_volume:
+                                for inner_vvi_triple in self.local_g.triples((vvi_triple[2], None, None)):
+                                    if inner_vvi_triple[1] == GraphEntity.iri_has_sequence_identifier:
+                                        res_dict['volume'] = str(inner_vvi_triple[2])
+                            elif vi_triple[1] == GraphEntity.iri_journal:
+                                for inner_vvi_triple in self.local_g.triples((vvi_triple[2], None, None)):
+                                    if inner_vvi_triple[1] == GraphEntity.iri_title:
+                                        res_dict['venue'] = str(inner_vvi_triple[2])+ ' [omid:' + inner_vvi_triple[0].replace(f'{self.base_iri}/', '') + ']'
+                            elif vi_triple[1] == GraphEntity.iri_part_of:
+                                for venue_triple in self.local_g.triples((vi_triple[2], None, None)):
+                                    if venue_triple[1] == GraphEntity.iri_title:
+                                        res_dict['venue'] = str(venue_triple[2])+ ' [omid:' + venue_triple[0].replace(f'{self.base_iri}/', '') + ']'
+        return res_dict
 
     @staticmethod
-    def _type_it(result:Dict[str, Dict[str, str]], variable:str) -> str:
+    def _type_it(br_type: URIRef) -> str:
         output_type = ''
-        if variable in result:
-            types = result[variable]['value'].split(' ;and; ')
-            for type in types:
-                if type != str(GraphEntity.iri_expression):
-                    output_type = str(type)
-                    if str(output_type) == str(GraphEntity.iri_archival_document):
-                        output_type = 'archival document'
-                    if str(output_type) == str(GraphEntity.iri_book):
-                        output_type = 'book'
-                    if str(output_type) == str(GraphEntity.iri_book_chapter):
-                        output_type = 'book chapter'
-                    if str(output_type) == str(GraphEntity.iri_part):
-                        output_type = 'book part'
-                    if str(output_type) == str(GraphEntity.iri_expression_collection):
-                        output_type = 'book section'
-                    if str(output_type) == str(GraphEntity.iri_book_series):
-                        output_type = 'book series'
-                    if str(output_type) == str(GraphEntity.iri_book_set):
-                        output_type = 'book set'
-                    if str(output_type) == str(GraphEntity.iri_data_file):
-                        output_type = 'data file'
-                    if str(output_type) == str(GraphEntity.iri_thesis):
-                        output_type = 'dissertation'
-                    if str(output_type) == str(GraphEntity.iri_journal):
-                        output_type = 'journal'
-                    if str(output_type) == str(GraphEntity.iri_journal_article):
-                        output_type = 'journal article'
-                    if str(output_type) == str(GraphEntity.iri_journal_issue):
-                        output_type = 'journal issue'
-                    if str(output_type) == str(GraphEntity.iri_journal_volume):
-                        output_type = 'journal volume'
-                    if str(output_type) == str(GraphEntity.iri_proceedings_paper):
-                        output_type = 'proceedings article'
-                    if str(output_type) == str(GraphEntity.iri_academic_proceedings):
-                        output_type = 'proceedings'
-                    if str(output_type) == str(GraphEntity.iri_reference_book):
-                        output_type = 'reference book'
-                    if str(output_type) == str(GraphEntity.iri_reference_entry):
-                        output_type = 'reference entry'
-                    if str(output_type) == str(GraphEntity.iri_series):
-                        output_type = 'series'
-                    if str(output_type) == str(GraphEntity.iri_report_document):
-                        output_type = 'report'
-                    if str(output_type) == str(GraphEntity.iri_specification_document):
-                        output_type = 'standard'
+        if br_type == GraphEntity.iri_archival_document:
+            output_type = 'archival document'
+        if br_type == GraphEntity.iri_book:
+            output_type = 'book'
+        if br_type == GraphEntity.iri_book_chapter:
+            output_type = 'book chapter'
+        if br_type == GraphEntity.iri_part:
+            output_type = 'book part'
+        if br_type == GraphEntity.iri_expression_collection:
+            output_type = 'book section'
+        if br_type == GraphEntity.iri_book_series:
+            output_type = 'book series'
+        if br_type == GraphEntity.iri_book_set:
+            output_type = 'book set'
+        if br_type == GraphEntity.iri_data_file:
+            output_type = 'data file'
+        if br_type == GraphEntity.iri_thesis:
+            output_type = 'dissertation'
+        if br_type == GraphEntity.iri_journal:
+            output_type = 'journal'
+        if br_type == GraphEntity.iri_journal_article:
+            output_type = 'journal article'
+        if br_type == GraphEntity.iri_journal_issue:
+            output_type = 'journal issue'
+        if br_type == GraphEntity.iri_journal_volume:
+            output_type = 'journal volume'
+        if br_type == GraphEntity.iri_proceedings_paper:
+            output_type = 'proceedings article'
+        if br_type == GraphEntity.iri_academic_proceedings:
+            output_type = 'proceedings'
+        if br_type == GraphEntity.iri_reference_book:
+            output_type = 'reference book'
+        if br_type == GraphEntity.iri_reference_entry:
+            output_type = 'reference entry'
+        if br_type == GraphEntity.iri_series:
+            output_type = 'series'
+        if br_type == GraphEntity.iri_report_document:
+            output_type = 'report'
+        if br_type == GraphEntity.iri_specification_document:
+            output_type = 'standard'
         return output_type
-
-    def _vvi_find(self, result:Dict[str, Dict[str, str]], part_:str, type_:str, title_:str, num_:str, res_dict:dict) -> dict:
-        type_value = self._type_it(result, type_)
-        if 'issue' in type_value:
-            res_dict['issue'] = str(result[num_]['value'])
-        elif 'volume' in type_value:
-            res_dict['volume'] = str(result[num_]['value'])
-        elif type_value:
-            res_dict['venue'] = result[title_]['value'] + ' [omid:' + result[part_]['value'] \
-                .replace(f'{self.base_iri}/', '') + ']'
-        return res_dict
     
     def retrieve_publisher_from_br_metaid(self, metaid:str):
         query = f'''
@@ -639,24 +599,7 @@ class ResourceFinder:
                 publishers.append(pub_full_name)
             publisher = '; '.join(publishers)
         return publisher
-    
-    def check_type(self, res:str, forbidden_types:set) -> bool:
-        allowed_type = False
-        query = f'''
-            SELECT
-            (GROUP_CONCAT(DISTINCT ?type; separator=' ;and; ') AS ?type_)
-            WHERE {{
-                <{res}> a ?type.
-            }}
-        '''
-        results = self.__query(query)
-        bindings = results['results']['bindings']
-        for binding in bindings:
-            type_label = self._type_it(binding, 'type_')
-            if type_label and type_label not in forbidden_types:
-                allowed_type = True
-        return allowed_type
-    
+        
     def get_preexisting_graph(self, res:str, preexisting_graphs:dict) -> Graph:
         if res in preexisting_graphs:
             return preexisting_graphs[res]
