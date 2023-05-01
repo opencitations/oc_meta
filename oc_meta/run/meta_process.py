@@ -123,11 +123,11 @@ class MetaProcess:
             creator = creator_obj.creator(source=self.source)
             # Provenance
             prov = ProvSet(creator, self.base_iri, creator_info_dir, wanted_label=False)
-            prov.generate_provenance()
+            modified_entities = prov.generate_provenance()
             # Storer
             repok  = Reporter(print_sentences = False)
             reperr = Reporter(print_sentences = True, prefix='[Storer: ERROR] ')
-            res_storer = Storer(abstract_set=creator, repok=repok, reperr=reperr, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, default_dir=self.default_dir, output_format='json-ld', zip_output=self.zip_output_rdf)
+            res_storer = Storer(abstract_set=creator, repok=repok, reperr=reperr, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, default_dir=self.default_dir, output_format='json-ld', zip_output=self.zip_output_rdf, modified_entities=modified_entities)
             prov_storer = Storer(abstract_set=prov, repok=repok, reperr=reperr, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, output_format='json-ld', zip_output=self.zip_output_rdf)
             # with suppress_stdout():
             self.store_data_and_prov(res_storer, prov_storer, filename)

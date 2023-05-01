@@ -625,11 +625,14 @@ class ResourceFinder:
                     self.ids_in_local_g.add(identifier)
         omids = [f'{self.base_iri}/{x.replace("omid:", "")}' for x in relevant_ids if x.startswith('omid:')]
         identifiers = [(GraphEntity.DATACITE+x.split(':')[0], x.split(':')[1]) for x in relevant_ids if not x.startswith('omid:')]
-        query = 'CONSTRUCT { ?s ?p ?o } WHERE {'
+        query = '''
+            PREFIX eea: <https://jobu_tupaki/>
+            CONSTRUCT { ?s ?p ?o } 
+            WHERE {'''
         if omids:
             query += f'''
                 {{
-                    ?res (<>|!<>)* ?s. 
+                    ?res (<eea:everything_everywhere_allatonce>|!<eea:everything_everywhere_allatonce>)* ?s. 
                     ?s ?p ?o.
                     VALUES ?res {{<{'> <'.join(omids)}>}}
                 }}
@@ -643,7 +646,7 @@ class ResourceFinder:
                     ?id <{GraphEntity.iri_uses_identifier_scheme}> ?scheme;
                         <{GraphEntity.iri_has_literal_value}> ?literal.
                     VALUES (?scheme ?literal) {{({') ('.join(map(lambda x: f'<{x[0]}> "{x[1]}"', identifiers))})}}
-                    ?br (<>|!<>)* ?s. ?s ?p ?o. 
+                    ?br (<eea:everything_everywhere_allatonce>|!<eea:everything_everywhere_allatonce>)* ?s. ?s ?p ?o. 
                 }}
             '''
         if vvi:
@@ -654,7 +657,7 @@ class ResourceFinder:
                     ?vvi <{GraphEntity.iri_part_of}>+ <{self.base_iri}/br/{vvi[2]}>;
                         a <{vvi_type}>;
                         <{GraphEntity.iri_has_sequence_identifier}> "{upper_vvi}".
-                    ?vvi (<>|!<>)* ?s. ?s ?p ?o. 
+                    ?vvi (<eea:everything_everywhere_allatonce>|!<eea:everything_everywhere_allatonce>)* ?s. ?s ?p ?o. 
                 }}
             '''
         query += '}'
