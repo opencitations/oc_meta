@@ -926,7 +926,7 @@ class Curator:
             else:
                 found_meta_ts = None
                 if ra_ent:
-                    found_meta_ts = self.finder.retrieve_ra_from_meta(metaval, publisher=publ_entity)
+                    found_meta_ts = self.finder.retrieve_ra_from_meta(metaval)
                 elif br_ent:
                     found_meta_ts = self.finder.retrieve_br_from_meta(metaval)
                 # meta in triplestore

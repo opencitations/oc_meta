@@ -434,8 +434,9 @@ class Creator(object):
                         graph.has_contributor(pub_ed_role)
                 pub_ed_role.is_held_by(pub_ed)
                 edit_role_list.append(pub_ed_role)
-                if len(edit_role_list) > 1:
-                    edit_role_list[edit_role_list.index(pub_ed_role)-1].has_next(pub_ed_role)
+            for i, edit_role in enumerate(edit_role_list):
+                if i > 0:
+                    edit_role_list[i-1].has_next(edit_role)
     
     def __res_metaid(self, graph:BibliographicResource):
         if graph:

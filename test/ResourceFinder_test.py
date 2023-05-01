@@ -83,19 +83,19 @@ class TestResourceFinder(unittest.TestCase):
 
     def test_retrieve_ra_from_meta(self):
         metaid = '3308'
-        output = self.finder.retrieve_ra_from_meta(metaid, publisher=False)
+        output = self.finder.retrieve_ra_from_meta(metaid)
         expected_output = ('Dezee, K. J.', [])
         self.assertEqual(output, expected_output)
 
     def test_retrieve_ra_from_meta_with_orcid(self):
         metaid = '4940'
-        output = self.finder.retrieve_ra_from_meta(metaid, publisher=False)
+        output = self.finder.retrieve_ra_from_meta(metaid)
         expected_output = ('Alarcon, Louis H.', [('4475', 'orcid:0000-0001-6994-8412')])
         self.assertEqual(output, expected_output)
 
     def test_retrieve_ra_from_meta_if_publisher(self):
         metaid = '3309'
-        output = self.finder.retrieve_ra_from_meta(metaid, publisher=True)
+        output = self.finder.retrieve_ra_from_meta(metaid)
         expected_output = ('American Medical Association (ama)', [('4274', 'crossref:10')])
         self.assertEqual(output, expected_output)
 

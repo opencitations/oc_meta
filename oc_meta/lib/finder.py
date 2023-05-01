@@ -168,7 +168,7 @@ class ResourceFinder:
             return metaval
 
     # _______________________________RA_________________________________ #
-    def retrieve_ra_from_meta(self, metaid:str, publisher:bool=False) -> Tuple[str, List[Tuple[str, str]]]:
+    def retrieve_ra_from_meta(self, metaid:str) -> Tuple[str, List[Tuple[str, str]]]:
         '''
         Given a MetaID, it retrieves the name and id of the responsible agent associated with it, whether it is an author or a publisher.
         The output has the following format:
@@ -199,7 +199,7 @@ class ResourceFinder:
             elif triple[1] == GraphEntity.iri_has_identifier:
                 identifiers_found.append(triple[2])
         if family_name and not given_name:
-            full_name = f'{family_name},'
+            full_name = f'{family_name}, '
         elif family_name and given_name:
             full_name = f'{family_name}, {given_name}'
         elif not family_name and given_name:
@@ -408,21 +408,19 @@ class ResourceFinder:
                     dict_ar[role_value]['ra'] = ra
         ar_list = list()
         last = ''
-        while dict_ar:
-            for ar_metaid in dict_ar:
-                if dict_ar[ar_metaid]['next'] == last:
+        count = 0
+        while count < len(dict_ar):
+            for ar_metaid, ar_data in dict_ar.items():
+                if ar_data['next'] == last:
                     if col_name == 'publisher':
-                        ra_info = self.retrieve_ra_from_meta(dict_ar[ar_metaid]['ra'], publisher=True) +\
-                                        (dict_ar[ar_metaid]['ra'],)
+                        ra_info = self.retrieve_ra_from_meta(ar_data['ra']) + (ar_data['ra'],)
                     else:
-                        ra_info = self.retrieve_ra_from_meta(dict_ar[ar_metaid]['ra'], publisher=False) +\
-                                        (dict_ar[ar_metaid]['ra'],)
+                        ra_info = self.retrieve_ra_from_meta(ar_data['ra']) + (ar_data['ra'],)
                     ar_dic = dict()
                     ar_dic[ar_metaid] = ra_info
                     ar_list.append(ar_dic)
                     last = ar_metaid
-                    del dict_ar[ar_metaid]
-                    break
+                    count += 1
         ar_list.reverse()
         return ar_list
 

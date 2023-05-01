@@ -219,7 +219,7 @@ class RespAgentsCurator(Curator):
                 self.merge_entities_in_csv(idslist, metaval, name, entity_dict, id_dict)
             else:
                 found_meta_ts = None
-                found_meta_ts = self.finder.retrieve_ra_from_meta(metaval, publisher=publ_entity)
+                found_meta_ts = self.finder.retrieve_ra_from_meta(metaval)
                 # meta in triplestore
                 # 2 Retrieve EntityA data in triplestore to update EntityA inside CSV
                 if found_meta_ts:
