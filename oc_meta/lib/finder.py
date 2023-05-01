@@ -622,6 +622,7 @@ class ResourceFinder:
             for identifier in x[1]:
                 if identifier not in self.ids_in_local_g:
                     relevant_ids.append(identifier)
+                    self.ids_in_local_g.add(identifier)
         omids = [f'{self.base_iri}/{x.replace("omid:", "")}' for x in relevant_ids if x.startswith('omid:')]
         identifiers = [(GraphEntity.DATACITE+x.split(':')[0], x.split(':')[1]) for x in relevant_ids if not x.startswith('omid:')]
         query = 'CONSTRUCT { ?s ?p ?o } WHERE {'
