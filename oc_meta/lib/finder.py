@@ -20,6 +20,7 @@ class ResourceFinder:
         self.ts.setMethod(GET)
         self.base_iri = base_iri[:-1] if base_iri[-1] == '/' else base_iri
         self.local_g = local_g
+        self.ids_in_local_g = set()
 
     def __query(self, query, return_format = JSON):
         self.ts.setReturnFormat(return_format)
@@ -615,10 +616,12 @@ class ResourceFinder:
             return
         relevant_ids = []
         for x in metaval_ids_list:
-            if x[0]:
+            if x[0] and x[0] not in self.ids_in_local_g:
                 relevant_ids.append(x[0])
-            else:
-                relevant_ids.extend(x[1])
+                self.ids_in_local_g.add(x[0])
+            for identifier in x[1]:
+                if identifier not in self.ids_in_local_g:
+                    relevant_ids.append(identifier)
         omids = [f'{self.base_iri}/{x.replace("omid:", "")}' for x in relevant_ids if x.startswith('omid:')]
         identifiers = [(GraphEntity.DATACITE+x.split(':')[0], x.split(':')[1]) for x in relevant_ids if not x.startswith('omid:')]
         query = 'CONSTRUCT { ?s ?p ?o } WHERE {'
