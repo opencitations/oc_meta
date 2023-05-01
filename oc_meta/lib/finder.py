@@ -573,59 +573,43 @@ class ResourceFinder:
         return output_type
     
     def retrieve_publisher_from_br_metaid(self, metaid:str):
-        query = f'''
-            SELECT DISTINCT ?ra ?schema ?literal_value ?name
-            WHERE {{
-                <{self.base_iri}/br/{metaid}> ^<{str(GraphEntity.iri_part_of)}>*/<{str(GraphEntity.iri_is_document_context_for)}> ?ar.
-                ?ar <{str(GraphEntity.iri_with_role)}> <{str(GraphEntity.iri_publisher)}>;
-                    <{str(GraphEntity.iri_is_held_by)}> ?ra.
-                ?ra <{str(GraphEntity.iri_has_identifier)}>/<{str(GraphEntity.iri_uses_identifier_scheme)}> ?schema;
-                    <{str(GraphEntity.iri_has_identifier)}>/<{str(GraphEntity.iri_has_literal_value)}> ?literal_value;
-                    <{str(GraphEntity.iri_name)}> ?name.
-            }}
-        '''
-        result = self.__query(query)
-        publisher = ''
-        if result['results']['bindings']:
-            bindings = result['results']['bindings']
-            publishers = list()
-            for binding in bindings:
-                pub_metaid = binding['ra']['value'].replace(f'{self.base_iri}/ra/', '')
-                pub_name = binding['name']['value']
-                pub_schema = binding['schema']['value'].replace(f'{str(GraphEntity.DATACITE)}', '')
-                pub_literal = binding['literal_value']['value']
-                pub_id = f'{pub_schema}:{pub_literal}'
-                pub_full_name = f'{pub_name} [omid:ra/{pub_metaid} {pub_id}]'
-                publishers.append(pub_full_name)
-            publisher = '; '.join(publishers)
-        return publisher
-        
-    def get_preexisting_graph(self, res:str, preexisting_graphs:dict) -> Graph:
-        if res in preexisting_graphs:
-            return preexisting_graphs[res]
-        else:
-            query_subj = f"""
-                CONSTRUCT {{
-                    <{res}> ?p ?o.
-                }}
-                WHERE {{
-                    <{res}> ?p ?o.
-                }}
-            """
-            graph_subj = self.__query(query_subj, XML)
-            untyped_graph_subj = Graph()
-            for triple in graph_subj.triples((None, None, None)):
-                remove_datatype = False
-                if isinstance(triple[2], Literal):
-                    if triple[2].datatype == URIRef('http://www.w3.org/2001/XMLSchema#string'):
-                        remove_datatype = True
-                        untyped_literal = Literal(lexical_or_value=str(triple[2]), datatype=None)
-                        untyped_triple = (triple[0], triple[1], untyped_literal)
-                untyped_graph_subj.add(untyped_triple) if remove_datatype else untyped_graph_subj.add(triple)
-            untyped_graph_subj = untyped_graph_subj if len(untyped_graph_subj) else None
-            preexisting_graphs[res] = untyped_graph_subj
-        return untyped_graph_subj
-    
+        metaid_uri = URIRef(f'{self.base_iri}/br/{metaid}')
+        publishers = set()
+        for triple in self.local_g.triples((metaid_uri, None, None)):
+            if triple[1] == GraphEntity.iri_is_document_context_for:
+                for document_triple in self.local_g.triples((triple[2], None, None)):
+                    if document_triple[2] == GraphEntity.iri_publisher:
+                        publishers.add(triple[2])
+            elif triple[1] == GraphEntity.iri_part_of:
+                for inner_triple in self.local_g.triples((triple[2], None, None)):
+                    if inner_triple[1] == GraphEntity.iri_is_document_context_for:
+                        for document_triple in self.local_g.triples((inner_triple[2], None, None)):
+                            if document_triple[2] == GraphEntity.iri_publisher:
+                                publishers.add(inner_triple[2])
+                    elif inner_triple[1] == GraphEntity.iri_part_of:
+                        for inner_inner_triple in self.local_g.triples((inner_triple[2], None, None)):
+                            if inner_inner_triple[1] == GraphEntity.iri_is_document_context_for:
+                                for document_triple in self.local_g.triples((inner_inner_triple[2], None, None)):
+                                    if document_triple[2] == GraphEntity.iri_publisher:
+                                        publishers.add(inner_inner_triple[2])
+        publishers_output = []
+        for publisher_uri in publishers:
+            for triple in self.local_g.triples((publisher_uri, None, None)):
+                if triple[1] == GraphEntity.iri_is_held_by:
+                    pub_metaid = triple[2].replace(f'{self.base_iri}/ra/', '')
+                    for ra_triple in self.local_g.triples((triple[2], None, None)):
+                        if ra_triple[1] == GraphEntity.iri_name:
+                            pub_name = ra_triple[2]
+                        elif ra_triple[1] == GraphEntity.iri_has_identifier:
+                            for id_triple in self.local_g.triples((ra_triple[2], None, None)):
+                                if id_triple[1] == GraphEntity.iri_uses_identifier_scheme:
+                                    pub_schema = id_triple[2].replace(f'{str(GraphEntity.DATACITE)}', '')
+                                elif id_triple[1] == GraphEntity.iri_has_literal_value:
+                                    pub_literal = id_triple[2]
+            pub_id = f'{pub_schema}:{pub_literal}'
+            publishers_output.append(f'{pub_name} [omid:ra/{pub_metaid} {pub_id}]')
+        return '; '.join(publishers_output)
+            
     def get_everything_about_res(self, metaval_ids_list: List[Tuple[str, List[str]]], vvi: Tuple[str, str, str] = None) -> None:
         if not metaval_ids_list:
             return

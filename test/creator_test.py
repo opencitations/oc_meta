@@ -60,7 +60,7 @@ class test_Creator(unittest.TestCase):
         creator = Creator([], SERVER, base_iri, creator_info_dir, "060", 'https://orcid.org/0000-0002-8420-0696', [], [], [], [], vvi, set(), Graph())
         creator.src = None
         creator.type = 'journal article'
-        preexisting_graph = creator.finder.get_preexisting_graph(URIRef(f'{base_iri}br/0601'), dict())
+        preexisting_graph = creator.finder.get_subgraph(URIRef(f'{base_iri}br/0601'), dict())
         creator.br_graph = creator.setgraph.add_br('https://orcid.org/0000-0002-8420-0696', None, URIRef(f'{base_iri}br/0601'), preexisting_graph=preexisting_graph)
         creator.vvi_action('OECD [omid:br/0602]', '107', '1')
         output_graph = Graph()
