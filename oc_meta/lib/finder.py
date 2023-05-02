@@ -279,6 +279,8 @@ class ResourceFinder:
                     full_name = f', {given_name}'
                 elif not name and family_name and given_name:
                     full_name = f'{family_name}, {given_name}'
+                else:
+                    full_name = ''
                 result_list.append((res.replace(f'{self.base_iri}/ra/', ''), full_name, metaid_id_list))
         return result_list
 
@@ -409,6 +411,7 @@ class ResourceFinder:
         ar_list = list()
         last = ''
         count = 0
+        print(dict_ar)
         while count < len(dict_ar):
             for ar_metaid, ar_data in dict_ar.items():
                 if ar_data['next'] == last:
