@@ -29,7 +29,8 @@ from oc_meta.lib.master_of_regex import *
 
 class RespAgentsCurator(Curator):
     def __init__(self, data:List[dict], ts:str, prov_config:str, info_dir:str, base_iri:str='https://w3id.org/oc/meta', prefix:str='060', separator:str=None):
-        self.finder = ResourceFinder(ts, base_iri)
+        self.everything_everywhere_allatonce = Graph()
+        self.finder = ResourceFinder(ts, base_iri, self.everything_everywhere_allatonce)
         self.prov_config = prov_config
         self.separator = separator
         self.data = [{field:value.strip() for field,value in row.items()} for row in data]
