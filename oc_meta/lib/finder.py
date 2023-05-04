@@ -611,8 +611,9 @@ class ResourceFinder:
                                     pub_schema = id_triple[2].replace(f'{str(GraphEntity.DATACITE)}', '')
                                 elif id_triple[1] == GraphEntity.iri_has_literal_value:
                                     pub_literal = id_triple[2]
-                                    pub_id = f'{pub_schema}:{pub_literal}'
-                                    pub_identifiers.append(pub_id)
+                        if pub_schema is not None and pub_literal is not None:
+                            pub_id = f'{pub_schema}:{pub_literal}'
+                            pub_identifiers.append(pub_id)
             if pub_name is not None:
                 pub_full = f'{pub_name} [{" ".join(pub_identifiers)}]'
             else:
