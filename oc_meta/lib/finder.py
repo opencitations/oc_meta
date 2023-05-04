@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+import urllib.parse
 from time import sleep
 from typing import Dict, List, Tuple
 
@@ -88,10 +88,9 @@ class ResourceFinder:
         :returns Tuple[str, List[Tuple[str, str]]]: -- it returns a tuple of two elements. The first element is the resource's title associated with the input MetaID. The second element is a list of MetaID-ID tuples related to identifiers associated with that entity.
         '''
         metaid_uri = f'{self.base_iri}/br/{str(metaid)}'
-        title = None
+        title = ''
         identifiers_found = []
         identifiers = []
-        id_scheme = None
         for triple in self.local_g.triples((URIRef(metaid_uri), None, None)):
             if triple[1] == GraphEntity.iri_title:
                 title = str(triple[2])
@@ -411,7 +410,6 @@ class ResourceFinder:
         ar_list = list()
         last = ''
         count = 0
-        print(dict_ar)
         while count < len(dict_ar):
             for ar_metaid, ar_data in dict_ar.items():
                 if ar_data['next'] == last:
@@ -596,10 +594,15 @@ class ResourceFinder:
                                         publishers.add(inner_inner_triple[2])
         publishers_output = []
         for publisher_uri in publishers:
+            pub_identifiers = []
+            pub_name = None
             for triple in self.local_g.triples((publisher_uri, None, None)):
                 if triple[1] == GraphEntity.iri_is_held_by:
-                    pub_metaid = triple[2].replace(f'{self.base_iri}/ra/', '')
+                    pub_metaid = triple[2].replace(f'{self.base_iri}/', 'omid:')
+                    pub_identifiers.append(pub_metaid)
                     for ra_triple in self.local_g.triples((triple[2], None, None)):
+                        pub_schema = None
+                        pub_literal = None
                         if ra_triple[1] == GraphEntity.iri_name:
                             pub_name = ra_triple[2]
                         elif ra_triple[1] == GraphEntity.iri_has_identifier:
@@ -608,8 +611,13 @@ class ResourceFinder:
                                     pub_schema = id_triple[2].replace(f'{str(GraphEntity.DATACITE)}', '')
                                 elif id_triple[1] == GraphEntity.iri_has_literal_value:
                                     pub_literal = id_triple[2]
-            pub_id = f'{pub_schema}:{pub_literal}'
-            publishers_output.append(f'{pub_name} [omid:ra/{pub_metaid} {pub_id}]')
+                                    pub_id = f'{pub_schema}:{pub_literal}'
+                                    pub_identifiers.append(pub_id)
+            if pub_name is not None:
+                pub_full = f'{pub_name} [{" ".join(pub_identifiers)}]'
+            else:
+                pub_full = f'[{" ".join(pub_identifiers)}]'
+            publishers_output.append(pub_full)
         return '; '.join(publishers_output)
             
     def get_everything_about_res(self, metaval_ids_list: List[Tuple[str, List[str]]], vvi: Tuple[str, str, str] = None) -> None:
@@ -646,7 +654,7 @@ class ResourceFinder:
                     ?br <{GraphEntity.iri_has_identifier}> ?id.
                     ?id <{GraphEntity.iri_uses_identifier_scheme}> ?scheme;
                         <{GraphEntity.iri_has_literal_value}> ?literal.
-                    VALUES (?scheme ?literal) {{({') ('.join(map(lambda x: f'<{x[0]}> "{x[1]}"', identifiers))})}}
+                    VALUES (?scheme ?literal) {{({') ('.join(map(lambda x: f'<{x[0]}> "{urllib.parse.quote(x[1])}"', identifiers))})}}
                     ?br (<eea:everything_everywhere_allatonce>|!<eea:everything_everywhere_allatonce>)* ?s. ?s ?p ?o. 
                 }}
             '''
@@ -657,7 +665,7 @@ class ResourceFinder:
                 UNION {{
                     ?vvi <{GraphEntity.iri_part_of}>+ <{self.base_iri}/br/{vvi[2]}>;
                         a <{vvi_type}>;
-                        <{GraphEntity.iri_has_sequence_identifier}> "{upper_vvi}".
+                        <{GraphEntity.iri_has_sequence_identifier}> "{urllib.parse.quote(upper_vvi)}".
                     ?vvi (<eea:everything_everywhere_allatonce>|!<eea:everything_everywhere_allatonce>)* ?s. ?s ?p ?o. 
                 }}
             '''

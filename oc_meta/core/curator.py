@@ -1081,12 +1081,13 @@ class Curator:
                         self.brdict[old_meta] = dict()
                         self.brdict[old_meta]['ids'] = list()
                         self.brdict[old_meta]['others'] = list()
-                        self.brdict[old_meta]['title'] = br4dict[0]
-                        for x in br4dict[1]:
-                            identifier = x[1]
-                            self.brdict[old_meta]['ids'].append(identifier)
-                            if identifier not in self.idbr:
-                                self.idbr[identifier] = x[0]
+                        self.brdict[old_meta]['title'] = br4dict[0] if br4dict else None
+                        if br4dict:
+                            for x in br4dict[1]:
+                                identifier = x[1]
+                                self.brdict[old_meta]['ids'].append(identifier)
+                                if identifier not in self.idbr:
+                                    self.idbr[identifier] = x[0]
                     self.merge(self.brdict, old_meta, meta, row['title'])
             else:
                 path[value] = dict()

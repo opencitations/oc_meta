@@ -16,7 +16,7 @@ server.setQuery(query)
 server.setReturnFormat(JSON)
 result = server.queryAndConvert()
 br_ar = dict()
-meta_editor = MetaEditor('E:/new_meta/meta_output/meta_config.yaml', 'https://orcid.org/0000-0002-8420-0696')
+meta_editor = MetaEditor('E:\meta_output_24_04_2023_datacite_fixes\meta_output\meta_config.yaml', 'https://orcid.org/0000-0002-8420-0696')
 for r in result['results']['bindings']:
     br = r['br']['value']
     br_ar.setdefault(br, list())
