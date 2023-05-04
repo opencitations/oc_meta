@@ -216,8 +216,6 @@ class ResourceFinder:
                         literal_value = str(triple[2])
                 full_id = f'{id_scheme}:{literal_value}'
                 identifiers.append((str(identifier).replace(self.base_iri + '/id/', ''), full_id))
-        if not full_name and not identifiers:
-            return None
         return full_name, identifiers
 
     def retrieve_ra_from_id(self, schema:str, value:str, publisher:bool) -> List[Tuple[str, str, list]]:

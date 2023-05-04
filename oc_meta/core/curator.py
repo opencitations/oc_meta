@@ -931,7 +931,7 @@ class Curator:
                     found_meta_ts = self.finder.retrieve_br_from_meta(metaval)
                 # meta in triplestore
                 # 2 Retrieve EntityA data in triplestore to update EntityA inside CSV
-                if found_meta_ts:
+                if found_meta_ts[0] or found_meta_ts[1]:
                     entity_dict[metaval] = dict()
                     entity_dict[metaval]['ids'] = list()
                     if col_name == 'author' or col_name == 'editor':
