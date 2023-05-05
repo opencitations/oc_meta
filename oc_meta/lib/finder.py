@@ -91,7 +91,9 @@ class ResourceFinder:
         title = ''
         identifiers_found = []
         identifiers = []
+        it_exists = False
         for triple in self.local_g.triples((URIRef(metaid_uri), None, None)):
+            it_exists = True
             if triple[1] == GraphEntity.iri_title:
                 title = str(triple[2])
             elif triple[1] == GraphEntity.iri_has_identifier:
@@ -105,9 +107,7 @@ class ResourceFinder:
                         literal_value = str(triple[2])
                 full_id = f'{id_scheme}:{literal_value}'
                 identifiers.append((str(identifier).replace(self.base_iri + '/id/', ''), full_id))
-        if not title and not identifiers:
-            return None
-        return title, identifiers
+        return title, identifiers, it_exists
 
     # _______________________________ID_________________________________ #
 
@@ -188,7 +188,9 @@ class ResourceFinder:
         identifiers_found = []
         identifiers = []
         id_scheme = None
+        it_exists = False
         for triple in self.local_g.triples((URIRef(metaid_uri), None, None)):
+            it_exists = True
             if triple[1] == GraphEntity.iri_family_name:
                 family_name = str(triple[2])
             elif triple[1] == GraphEntity.iri_given_name:
@@ -216,7 +218,7 @@ class ResourceFinder:
                         literal_value = str(triple[2])
                 full_id = f'{id_scheme}:{literal_value}'
                 identifiers.append((str(identifier).replace(self.base_iri + '/id/', ''), full_id))
-        return full_name, identifiers
+        return full_name, identifiers, it_exists
 
     def retrieve_ra_from_id(self, schema:str, value:str, publisher:bool) -> List[Tuple[str, str, list]]:
         '''
@@ -412,9 +414,9 @@ class ResourceFinder:
             for ar_metaid, ar_data in dict_ar.items():
                 if ar_data['next'] == last:
                     if col_name == 'publisher':
-                        ra_info = self.retrieve_ra_from_meta(ar_data['ra']) + (ar_data['ra'],)
+                        ra_info = self.retrieve_ra_from_meta(ar_data['ra'])[0:2] + (ar_data['ra'],)
                     else:
-                        ra_info = self.retrieve_ra_from_meta(ar_data['ra']) + (ar_data['ra'],)
+                        ra_info = self.retrieve_ra_from_meta(ar_data['ra'])[0:2] + (ar_data['ra'],)
                     ar_dic = dict()
                     ar_dic[ar_metaid] = ra_info
                     ar_list.append(ar_dic)

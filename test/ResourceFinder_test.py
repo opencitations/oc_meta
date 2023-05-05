@@ -64,7 +64,7 @@ class TestResourceFinder(unittest.TestCase):
     def test_retrieve_br_from_meta(self):
         metaid = '2373'
         output = self.finder.retrieve_br_from_meta(metaid)
-        expected_output = ('Treatment Of Excessive Anticoagulation With Phytonadione (Vitamin K): A Meta-analysis', [('2239', 'doi:10.1001/.391')])
+        expected_output = ('Treatment Of Excessive Anticoagulation With Phytonadione (Vitamin K): A Meta-analysis', [('2239', 'doi:10.1001/.391')], True)
         self.assertEqual(output, expected_output)
 
     def test_retrieve_br_from_meta_multiple_ids(self):
@@ -84,19 +84,19 @@ class TestResourceFinder(unittest.TestCase):
     def test_retrieve_ra_from_meta(self):
         metaid = '3308'
         output = self.finder.retrieve_ra_from_meta(metaid)
-        expected_output = ('Dezee, K. J.', [])
+        expected_output = ('Dezee, K. J.', [], True)
         self.assertEqual(output, expected_output)
 
     def test_retrieve_ra_from_meta_with_orcid(self):
         metaid = '4940'
         output = self.finder.retrieve_ra_from_meta(metaid)
-        expected_output = ('Alarcon, Louis H.', [('4475', 'orcid:0000-0001-6994-8412')])
+        expected_output = ('Alarcon, Louis H.', [('4475', 'orcid:0000-0001-6994-8412')], True)
         self.assertEqual(output, expected_output)
 
     def test_retrieve_ra_from_meta_if_publisher(self):
         metaid = '3309'
         output = self.finder.retrieve_ra_from_meta(metaid)
-        expected_output = ('American Medical Association (ama)', [('4274', 'crossref:10')])
+        expected_output = ('American Medical Association (ama)', [('4274', 'crossref:10')], True)
         self.assertEqual(output, expected_output)
 
     def test_retrieve_ra_from_id(self):

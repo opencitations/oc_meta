@@ -924,14 +924,13 @@ class Curator:
             if metaval in entity_dict:
                 self.merge_entities_in_csv(idslist, metaval, name, entity_dict, id_dict)
             else:
-                found_meta_ts = None
                 if ra_ent:
                     found_meta_ts = self.finder.retrieve_ra_from_meta(metaval)
                 elif br_ent:
                     found_meta_ts = self.finder.retrieve_br_from_meta(metaval)
                 # meta in triplestore
                 # 2 Retrieve EntityA data in triplestore to update EntityA inside CSV
-                if found_meta_ts[0] or found_meta_ts[1]:
+                if found_meta_ts[2]:
                     entity_dict[metaval] = dict()
                     entity_dict[metaval]['ids'] = list()
                     if col_name == 'author' or col_name == 'editor':
