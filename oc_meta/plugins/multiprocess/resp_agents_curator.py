@@ -29,7 +29,8 @@ from oc_meta.lib.master_of_regex import *
 
 class RespAgentsCurator(Curator):
     def __init__(self, data:List[dict], ts:str, prov_config:str, info_dir:str, base_iri:str='https://w3id.org/oc/meta', prefix:str='060', separator:str=None):
-        self.finder = ResourceFinder(ts, base_iri)
+        self.everything_everywhere_allatonce = Graph()
+        self.finder = ResourceFinder(ts, base_iri, self.everything_everywhere_allatonce)
         self.prov_config = prov_config
         self.separator = separator
         self.data = [{field:value.strip() for field,value in row.items()} for row in data]
@@ -59,6 +60,14 @@ class RespAgentsCurator(Curator):
                 'pub_date': {},
                 'type': {}
             }
+            metaval_ids_list = []
+            fields_with_an_id = [(field, re.search(name_and_ids, row[field]).group(2).split()) for field in ['author', 'editor', 'publisher'] if re.search(name_and_ids, row[field])]
+            for _, field_ids in fields_with_an_id:
+                field_idslist, field_metaval = self.clean_id_list(field_ids)
+                if field_metaval:
+                    field_metaval = f'omid:ra/{field_metaval}'
+                metaval_ids_list.append((field_metaval, field_idslist))
+            self.finder.get_everything_about_res(metaval_ids_list)
             self.clean_ra(row, 'author')
             self.clean_ra(row, 'publisher')
             self.clean_ra(row, 'editor')
@@ -211,7 +220,7 @@ class RespAgentsCurator(Curator):
                 self.merge_entities_in_csv(idslist, metaval, name, entity_dict, id_dict)
             else:
                 found_meta_ts = None
-                found_meta_ts = self.finder.retrieve_ra_from_meta(metaval, publisher=publ_entity)
+                found_meta_ts = self.finder.retrieve_ra_from_meta(metaval)
                 # meta in triplestore
                 # 2 Retrieve EntityA data in triplestore to update EntityA inside CSV
                 if found_meta_ts:

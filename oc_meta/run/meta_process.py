@@ -97,44 +97,45 @@ class MetaProcess:
     def curate_and_create(self, filename:str, cache_path:str, errors_path:str, worker_number:int=None, resp_agents_only:bool=False) -> Tuple[dict, str, str, str]:
         if os.path.exists(os.path.join(self.base_output_dir, '.stop')):
             return {'message': 'skip'}, cache_path, errors_path, filename
-        try:
-            filepath = os.path.join(self.input_csv_dir, filename)
-            data = get_csv_data(filepath)
-            supplier_prefix = f'{self.supplier_prefix}0' if worker_number is None else f'{self.supplier_prefix}{str(worker_number)}0'
-            # Curator
-            self.info_dir = os.path.join(self.info_dir, supplier_prefix) if worker_number else self.info_dir
-            curator_info_dir = os.path.join(self.info_dir, 'curator' + os.sep)
-            if resp_agents_only:
-                curator_obj = RespAgentsCurator(data=data, ts=self.triplestore_url, prov_config=self.time_agnostic_library_config, info_dir=curator_info_dir, base_iri=self.base_iri, prefix=supplier_prefix)
-            else:
-                curator_obj = Curator(data=data, ts=self.triplestore_url, prov_config=self.time_agnostic_library_config, info_dir=curator_info_dir, base_iri=self.base_iri, prefix=supplier_prefix, valid_dois_cache=self.valid_dois_cache)
-            name = f"{filename.replace('.csv', '')}_{datetime.now().strftime('%Y-%m-%dT%H-%M-%S')}"
-            curator_obj.curator(filename=name, path_csv=self.output_csv_dir, path_index=self.indexes_dir)
-            # Creator
-            creator_info_dir = os.path.join(self.info_dir, 'creator' + os.sep)
-            if resp_agents_only:
-                creator_obj = RespAgentsCreator(
-                    data=curator_obj.data, endpoint=self.triplestore_url, base_iri=self.base_iri, info_dir=creator_info_dir, supplier_prefix=supplier_prefix, resp_agent=self.resp_agent, ra_index=curator_obj.index_id_ra, preexisting_entities=curator_obj.preexisting_entities)
-            else:
-                creator_obj = Creator(
-                    data=curator_obj.data, endpoint=self.triplestore_url, base_iri=self.base_iri, info_dir=creator_info_dir, supplier_prefix=supplier_prefix, resp_agent=self.resp_agent, ra_index=curator_obj.index_id_ra,
-                    br_index=curator_obj.index_id_br, re_index_csv=curator_obj.re_index, ar_index_csv=curator_obj.ar_index, vi_index=curator_obj.VolIss, preexisting_entities=curator_obj.preexisting_entities)
-            creator = creator_obj.creator(source=self.source)
-            # Provenance
-            prov = ProvSet(creator, self.base_iri, creator_info_dir, wanted_label=False)
-            prov.generate_provenance()
-            # Storer
-            repok  = Reporter(print_sentences = False)
-            reperr = Reporter(print_sentences = True, prefix='[Storer: ERROR] ')
-            res_storer = Storer(abstract_set=creator, repok=repok, reperr=reperr, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, default_dir=self.default_dir, output_format='json-ld', zip_output=self.zip_output_rdf)
-            prov_storer = Storer(abstract_set=prov, repok=repok, reperr=reperr, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, output_format='json-ld', zip_output=self.zip_output_rdf)
-            # with suppress_stdout():
-            self.store_data_and_prov(res_storer, prov_storer, filename)
-            return {'message': 'success'}, cache_path, errors_path, filename
-        except Exception as e:
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(e).__name__, e.args)
-            return {'message': message}, cache_path, errors_path, filename
+        # try:
+        filepath = os.path.join(self.input_csv_dir, filename)
+        data = get_csv_data(filepath)
+        supplier_prefix = f'{self.supplier_prefix}0' if worker_number is None else f'{self.supplier_prefix}{str(worker_number)}0'
+        # Curator
+        self.info_dir = os.path.join(self.info_dir, supplier_prefix) if worker_number else self.info_dir
+        curator_info_dir = os.path.join(self.info_dir, 'curator' + os.sep)
+        if resp_agents_only:
+            curator_obj = RespAgentsCurator(data=data, ts=self.triplestore_url, prov_config=self.time_agnostic_library_config, info_dir=curator_info_dir, base_iri=self.base_iri, prefix=supplier_prefix)
+        else:
+            curator_obj = Curator(data=data, ts=self.triplestore_url, prov_config=self.time_agnostic_library_config, info_dir=curator_info_dir, base_iri=self.base_iri, prefix=supplier_prefix, valid_dois_cache=self.valid_dois_cache)
+        name = f"{filename.replace('.csv', '')}_{datetime.now().strftime('%Y-%m-%dT%H-%M-%S')}"
+        curator_obj.curator(filename=name, path_csv=self.output_csv_dir, path_index=self.indexes_dir)
+        # Creator
+        creator_info_dir = os.path.join(self.info_dir, 'creator' + os.sep)
+        if resp_agents_only:
+            creator_obj = RespAgentsCreator(
+                data=curator_obj.data, endpoint=self.triplestore_url, base_iri=self.base_iri, info_dir=creator_info_dir, supplier_prefix=supplier_prefix, resp_agent=self.resp_agent, ra_index=curator_obj.index_id_ra, 
+                preexisting_entities=curator_obj.preexisting_entities, everything_everywhere_allatonce=curator_obj.everything_everywhere_allatonce)
+        else:
+            creator_obj = Creator(
+                data=curator_obj.data, endpoint=self.triplestore_url, base_iri=self.base_iri, info_dir=creator_info_dir, supplier_prefix=supplier_prefix, resp_agent=self.resp_agent, ra_index=curator_obj.index_id_ra,
+                br_index=curator_obj.index_id_br, re_index_csv=curator_obj.re_index, ar_index_csv=curator_obj.ar_index, vi_index=curator_obj.VolIss, preexisting_entities=curator_obj.preexisting_entities, everything_everywhere_allatonce=curator_obj.everything_everywhere_allatonce)
+        creator = creator_obj.creator(source=self.source)
+        # Provenance
+        prov = ProvSet(creator, self.base_iri, creator_info_dir, wanted_label=False)
+        modified_entities = prov.generate_provenance()
+        # Storer
+        repok  = Reporter(print_sentences = False)
+        reperr = Reporter(print_sentences = True, prefix='[Storer: ERROR] ')
+        res_storer = Storer(abstract_set=creator, repok=repok, reperr=reperr, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, default_dir=self.default_dir, output_format='json-ld', zip_output=self.zip_output_rdf, modified_entities=modified_entities)
+        prov_storer = Storer(abstract_set=prov, repok=repok, reperr=reperr, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, output_format='json-ld', zip_output=self.zip_output_rdf)
+        # with suppress_stdout():
+        self.store_data_and_prov(res_storer, prov_storer, filename)
+        return {'message': 'success'}, cache_path, errors_path, filename
+        # except Exception as e:
+        #     template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+        #     message = template.format(type(e).__name__, e.args)
+        #     return {'message': message}, cache_path, errors_path, filename
     
     def store_data_and_prov(self, res_storer:Storer, prov_storer:Storer, filename:str) -> None:
         if self.rdf_output_in_chunks:

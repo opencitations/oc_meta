@@ -132,18 +132,24 @@ class Curator:
             id_metaval = f'omid:br/{metaval}' if metaval else ''
             metaval_ids_list.append((id_metaval, idslist))
         fields_with_an_id = [(field, re.search(name_and_ids, row[field]).group(2).split()) for field in ['author', 'editor', 'publisher', 'venue', 'volume', 'issue'] if re.search(name_and_ids, row[field])]
+        venue_metaid = None
         for field, field_ids in fields_with_an_id:
             if field in ['author', 'editor', 'publisher']:
                 br = False
             elif field in ['venue', 'volume', 'issue']:
                 br = True
             field_idslist, field_metaval = self.clean_id_list(field_ids, br=br, valid_dois_cache=self.valid_dois_cache)
+            if field == 'venue':
+                venue_metaid = field_metaval
             if field_metaval:
                 field_metaval = f'omid:br/{field_metaval}' if br else f'omid:ra/{field_metaval}'
             else:
                 field_metaval = ''
             metaval_ids_list.append((field_metaval, field_idslist))
-        self.finder.get_everything_about_res(metaval_ids_list, self.everything_everywhere_allatonce)
+        vvi = None
+        if not row['id'] and venue_metaid and (row['volume'] or row['issue']):
+            vvi = (row['volume'], row['issue'], venue_metaid)            
+        self.finder.get_everything_about_res(metaval_ids_list, vvi)
         if row['id']:
             metaval = self.id_worker('id', name, idslist, metaval, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
         else:
@@ -918,14 +924,13 @@ class Curator:
             if metaval in entity_dict:
                 self.merge_entities_in_csv(idslist, metaval, name, entity_dict, id_dict)
             else:
-                found_meta_ts = None
                 if ra_ent:
-                    found_meta_ts = self.finder.retrieve_ra_from_meta(metaval, publisher=publ_entity)
+                    found_meta_ts = self.finder.retrieve_ra_from_meta(metaval)
                 elif br_ent:
                     found_meta_ts = self.finder.retrieve_br_from_meta(metaval)
                 # meta in triplestore
                 # 2 Retrieve EntityA data in triplestore to update EntityA inside CSV
-                if found_meta_ts:
+                if found_meta_ts[2]:
                     entity_dict[metaval] = dict()
                     entity_dict[metaval]['ids'] = list()
                     if col_name == 'author' or col_name == 'editor':
@@ -1075,12 +1080,13 @@ class Curator:
                         self.brdict[old_meta] = dict()
                         self.brdict[old_meta]['ids'] = list()
                         self.brdict[old_meta]['others'] = list()
-                        self.brdict[old_meta]['title'] = br4dict[0]
-                        for x in br4dict[1]:
-                            identifier = x[1]
-                            self.brdict[old_meta]['ids'].append(identifier)
-                            if identifier not in self.idbr:
-                                self.idbr[identifier] = x[0]
+                        self.brdict[old_meta]['title'] = br4dict[0] if br4dict else None
+                        if br4dict:
+                            for x in br4dict[1]:
+                                identifier = x[1]
+                                self.brdict[old_meta]['ids'].append(identifier)
+                                if identifier not in self.idbr:
+                                    self.idbr[identifier] = x[0]
                     self.merge(self.brdict, old_meta, meta, row['title'])
             else:
                 path[value] = dict()

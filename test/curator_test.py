@@ -58,7 +58,7 @@ def add_data_ts(server:str=SERVER, data_path:str=os.path.abspath(os.path.join('t
 def store_curated_data(curator_obj:Curator, server:str) -> None:
     creator_obj = Creator(curator_obj.data, SERVER, BASE_IRI, None, None, 'https://orcid.org/0000-0002-8420-0696',
                             curator_obj.index_id_ra, curator_obj.index_id_br, curator_obj.re_index,
-                            curator_obj.ar_index, curator_obj.VolIss, preexisting_entities=set())
+                            curator_obj.ar_index, curator_obj.VolIss, preexisting_entities=set(), everything_everywhere_allatonce=Graph())
     creator = creator_obj.creator(source=None)
     res_storer = Storer(creator)
     res_storer.upload_all(server, base_dir=None, batch_size=100)
@@ -112,6 +112,12 @@ def prepareCurator(data:list, server:str=SERVER, resp_agents_only:bool=False) ->
 
 
 class test_Curator(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        add_data_ts()
+        cls.finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
+        cls.finder.get_everything_about_res([('omid:br/4125', []), ('omid:br/3757', []), ('omid:br/4480', [])])
+
     def test_merge_entities_in_csv(self):
         curator = prepareCurator(list())
         with open(f'{CURATOR_COUNTER_DIR}/id.txt', "w") as f:
@@ -139,12 +145,10 @@ class test_Curator(unittest.TestCase):
         self.assertEqual(output, expected_output)
     
     def test_equalizer(self):
-        add_data_ts()
         curator = prepareCurator(list())
         row = {'id': '', 'title': '', 'author': '', 'pub_date': '1972-12-01', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}
         curator.log[0] = {'id': {}}
-        finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
-        finder.get_everything_about_res([('omid:br/4125', [])], curator.everything_everywhere_allatonce)
+        curator.finder = self.finder
         curator.equalizer(row, '4125')
         output = (curator.log, row)
         expected_output = (
@@ -155,7 +159,6 @@ class test_Curator(unittest.TestCase):
     
     def test_clean_id_metaid_not_in_ts(self):
         # A MetaId was specified, but it is not on ts. Therefore, it is invalid
-        add_data_ts()
         curator = prepareCurator(list())
         row = {'id': 'omid:br/131313', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}
         curator.log[0] = {'id': {}}
@@ -164,7 +167,6 @@ class test_Curator(unittest.TestCase):
         self.assertEqual(row, expected_output)
 
     def test_clean_id(self):
-        add_data_ts()
         curator = prepareCurator(list())
         row = {'id': 'doi:10.1001/archderm.104.1.106', 'title': 'Multiple Blasto', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [omid:br/4416]', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}
         curator.log[0] = {'id': {}}
@@ -173,7 +175,6 @@ class test_Curator(unittest.TestCase):
         self.assertEqual(row, expected_output)
     
     def test_merge_duplicate_entities(self):
-        add_data_ts()
         data = [
             {'id': '3757', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [omid:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''},
             {'id': 'wannabe_0', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-02', 'venue': 'Archives Of Dermatology [omid:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''},
@@ -181,8 +182,7 @@ class test_Curator(unittest.TestCase):
         ]
         curator = prepareCurator(list())
         curator.data = data
-        finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
-        finder.get_everything_about_res([('omid:br/3757', [])], curator.everything_everywhere_allatonce)
+        curator.finder = self.finder
         for i in range(3):
             curator.log[i] = {
                 'id': {},
@@ -214,34 +214,20 @@ class test_Curator(unittest.TestCase):
 
     def test_clean_vvi_all_data_on_ts(self):
         # All data are already on the triplestore. They need to be retrieved and organized correctly
-        add_data_ts()
         row = {'id': '3757', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [omid:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}
         curator = prepareCurator(list())
-        finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
-        finder.get_everything_about_res([('omid:br/3757', [])], curator.everything_everywhere_allatonce)
+        curator.finder =self.finder
         curator.clean_vvi(row)
         expected_output = {
             '4416': {
                 'issue': {}, 
                 'volume': {
-                    '107': {'id': '4733', 'issue': {'1': {'id': '4734'}, '2': {'id': '4735'}, '3': {'id': '4736'}, '4': {'id': '4737'}, '5': {'id': '4738'}, '6': {'id': '4739'}}}, 
-                    '108': {'id': '4740', 'issue': {'1': {'id': '4741'}, '2': {'id': '4742'}, '3': {'id': '4743'}, '4': {'id': '4744'}}}, 
-                    '104': {'id': '4712', 'issue': {'1': {'id': '4713'}, '2': {'id': '4714'}, '3': {'id': '4715'}, '4': {'id': '4716'}, '5': {'id': '4717'}, '6': {'id': '4718'}}}, 
-                    '148': {'id': '4417', 'issue': {'12': {'id': '4418'}, '11': {'id': '4419'}}}, 
-                    '100': {'id': '4684', 'issue': {'1': {'id': '4685'}, '2': {'id': '4686'}, '3': {'id': '4687'}, '4': {'id': '4688'}, '5': {'id': '4689'}, '6': {'id': '4690'}}}, 
-                    '101': {'id': '4691', 'issue': {'1': {'id': '4692'}, '2': {'id': '4693'}, '3': {'id': '4694'}, '4': {'id': '4695'}, '5': {'id': '4696'}, '6': {'id': '4697'}}}, 
-                    '102': {'id': '4698', 'issue': {'1': {'id': '4699'}, '2': {'id': '4700'}, '3': {'id': '4701'}, '4': {'id': '4702'}, '5': {'id': '4703'}, '6': {'id': '4704'}}}, 
-                    '103': {'id': '4705', 'issue': {'1': {'id': '4706'}, '2': {'id': '4707'}, '3': {'id': '4708'}, '4': {'id': '4709'}, '5': {'id': '4710'}, '6': {'id': '4711'}}}, 
-                    '105': {'id': '4719', 'issue': {'1': {'id': '4720'}, '2': {'id': '4721'}, '3': {'id': '4722'}, '4': {'id': '4723'}, '5': {'id': '4724'}, '6': {'id': '4725'}}}, 
-                    '106': {'id': '4726', 'issue': {'6': {'id': '4732'}, '1': {'id': '4727'}, '2': {'id': '4728'}, '3': {'id': '4729'}, '4': {'id': '4730'}, '5': {'id': '4731'}}}
-                }
-            }
-        }
+                    '106': {'id': '4726', 'issue': {'6': {'id': '4732'}}}, 
+                    '104': {'id': '4712', 'issue': {'1': {'id': '4713'}}}}}}
         self.assertEqual(curator.vvi, expected_output)
 
     def test_clean_vvi_new_venue(self):
         # It is a new venue
-        add_data_ts()
         row = {'id': 'wannabe_1', 'title': 'Money growth, interest rates, inflation and raw materials prices: China', 'author': '', 'pub_date': '2011-11-28', 'venue': 'OECD Economic Outlook', 'volume': '2011', 'issue': '2', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}
         curator = prepareCurator(list())
         curator.clean_vvi(row)
@@ -258,7 +244,6 @@ class test_Curator(unittest.TestCase):
 
     def test_clean_vvi_invalid_volume(self):
         # The data must be invalidated, because the resource is journal volume but an issue has also been specified
-        add_data_ts()
         row = {'id': 'wannabe_1', 'title': '', 'author': '', 'pub_date': '', 'venue': 'OECD Economic Outlook', 'volume': '2011', 'issue': '2', 'page': '', 'type': 'journal volume', 'publisher': '', 'editor': ''}
         curator = prepareCurator(list())
         curator.clean_vvi(row)
@@ -267,7 +252,6 @@ class test_Curator(unittest.TestCase):
 
     def test_clean_vvi_invalid_venue(self):
         # The data must be invalidated, because the resource is journal but a volume has also been specified
-        add_data_ts()
         row = {'id': 'wannabe_1', 'title': '', 'author': '', 'pub_date': '', 'venue': 'OECD Economic Outlook', 'volume': '2011', 'issue': '', 'page': '', 'type': 'journal', 'publisher': '', 'editor': ''}
         curator = prepareCurator(list())
         curator.clean_vvi(row)
@@ -275,19 +259,16 @@ class test_Curator(unittest.TestCase):
         self.assertEqual(curator.vvi, expected_output)
 
     def test_clean_vvi_new_volume_and_issue(self):
-        # There are a new volume and a new issue
-        add_data_ts()
-        row = {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': 'Archives Of Surgery [omid:br/4480]', 'volume': '99', 'issue': '1', 'page': '', 'type': 'journal article', 'publisher': '', 'editor': ''}
+        # There is a row with vvi and no ids
+        row = {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': 'Archives Of Surgery [omid:br/4480]', 'volume': '147', 'issue': '11', 'page': '', 'type': 'journal article', 'publisher': '', 'editor': ''}
         curator = prepareCurator(list())
-        finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
-        finder.get_everything_about_res([('omid:br/4480', [])], curator.everything_everywhere_allatonce)
+        curator.clean_id(row)
         curator.clean_vvi(row)
         expected_output = {
             '4480': {
                 'issue': {}, 
                 'volume': {
-                    '147': {'id': '4481', 'issue': {'11': {'id': '4482'}, '12': {'id': '4487'}}}, 
-                    '99': {'id': 'wannabe_0', 'issue': {'1': {'id': 'wannabe_1'}}}
+                    '147': {'id': '4481', 'issue': {'11': {'id': '4482'}}},
                 }
             }
         }
@@ -297,7 +278,6 @@ class test_Curator(unittest.TestCase):
         # The surname of one author is included in the surname of another.
         row = {'id': 'wannabe_0', 'title': 'Giant Oyster Mushroom Pleurotus giganteus (Agaricomycetes) Enhances Adipocyte Differentiation and Glucose Uptake via Activation of PPARγ and Glucose Transporters 1 and 4 in 3T3-L1 Cells', 'author': 'Paravamsivam, Puvaneswari; Heng, Chua Kek; Malek, Sri Nurestri Abdul [orcid:0000-0001-6278-8559]; Sabaratnam, Vikineswary; M, Ravishankar Ram; Kuppusamy, Umah Rani', 'pub_date': '2016', 'venue': 'International Journal of Medicinal Mushrooms [issn:1521-9437]', 'volume': '18', 'issue': '9', 'page': '821-831', 'type': 'journal article', 'publisher': 'Begell House [crossref:613]', 'editor': ''}
         curator = prepareCurator(list())
-
         curator.brdict = {'wannabe_0': {'ids': ['doi:10.1615/intjmedmushrooms.v18.i9.60'], 'title': 'Giant Oyster Mushroom Pleurotus giganteus (Agaricomycetes) Enhances Adipocyte Differentiation and Glucose Uptake via Activation of PPARγ and Glucose Transporters 1 and 4 in 3T3-L1 Cells', 'others': []}}
         curator.clean_ra(row, 'author')
         output = (curator.ardict, curator.radict, curator.idra)
@@ -309,15 +289,13 @@ class test_Curator(unittest.TestCase):
         self.assertEqual(output, expected_output)
 
     def test_clean_ra_with_br_metaid(self):
-        add_data_ts()
         # One author is in the triplestore, the other is not. 
         # br_metaval is a MetaID
         # There are two ids for one author
         row = {'id': '3757', 'title': 'Multiple Keloids', 'author': 'Curth, W.; McSorley, J. [orcid:0000-0003-0530-4305 schema:12345]', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [omid:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}
         curator = prepareCurator(list())
         curator.brdict = {'3757': {'ids': ['doi:10.1001/archderm.104.1.106'], 'title': 'Multiple Keloids', 'others': []}}
-        finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
-        finder.get_everything_about_res([('omid:br/3757', [])], curator.everything_everywhere_allatonce)
+        curator.finder = self.finder
         curator.clean_ra(row, 'author')
         output = (curator.ardict, curator.radict, curator.idra)
         expected_output = (
@@ -328,7 +306,6 @@ class test_Curator(unittest.TestCase):
         self.assertEqual(output, expected_output)
 
     def test_clean_ra_with_br_wannabe(self):
-        add_data_ts()
         # Authors not on the triplestore. 
         # br_metaval is a wannabe
         row = {'id': 'wannabe_0', 'title': 'Multiple Keloids', 'author': 'Curth, W. [orcid:0000-0002-8420-0696] ; McSorley, J. [orcid:0000-0003-0530-4305]', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [omid:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}
@@ -345,13 +322,11 @@ class test_Curator(unittest.TestCase):
         self.assertEqual(output, expected_output)
 
     def test_clean_ra_with_empty_square_brackets(self):
-        add_data_ts()
         # One author's name contains a closed square bracket.
         row = {'id': '3757', 'title': 'Multiple Keloids', 'author': 'Bernacki, Edward J. [    ]', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [omid:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}
         curator = prepareCurator(list())
         curator.brdict = {'3757': {'ids': ['doi:10.1001/archderm.104.1.106'], 'title': 'Multiple Keloids', 'others': []}}
-        finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
-        finder.get_everything_about_res([('omid:br/3757', [])], curator.everything_everywhere_allatonce)
+        curator.finder = self.finder
         curator.clean_ra(row, 'author')
         output = (curator.ardict, curator.radict, curator.idra)
         expected_output = (
@@ -461,12 +436,11 @@ class test_Curator(unittest.TestCase):
         self.assertEqual(output, expected_output)
     
     def test_get_preexisting_entities(self):
-        add_data_ts()
         row = {'id': 'omid:br/2715', 'title': 'Image Of The Year For 2012', 'author': '', 'pub_date': '', 'venue': 'Archives Of Surgery [omid:br/4480]', 'volume': '99', 'issue': '1', 'page': '', 'type': 'journal article', 'publisher': '', 'editor': ''}
         curator = prepareCurator(data=[row])
         curator.curator()
         expected_output = (
-            {'ra/3309', 'br/4487', 'br/2715', 'id/2581', 'ar/7240', 'id/4270', 'id/4274', 'br/4481', 'br/4480', 'br/4482', 're/2350'},
+            {'ra/3309', 'br/4487', 'br/2715', 'id/2581', 'ar/7240', 'id/4270', 'id/4274', 'br/4481', 'br/4480', 're/2350'},
             [{'id': 'doi:10.1001/2013.jamasurg.202 omid:br/2715', 'title': 'Image Of The Year For 2012', 'author': '', 'pub_date': '2012-12-01', 'venue': 'Archives Of Surgery [issn:0004-0010 omid:br/4480]', 'volume': '147', 'issue': '12', 'page': '1140-1140', 'type': 'journal article', 'publisher': 'American Medical Association (ama) [crossref:10 omid:ra/3309]', 'editor': ''}]
         )
         self.assertEqual((curator.preexisting_entities, curator.data), expected_output)
@@ -558,9 +532,21 @@ class test_RespAgentsCurator(unittest.TestCase):
 
 
 class test_id_worker(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        add_data_ts(SERVER, os.path.abspath(os.path.join('test', 'testcases', 'ts', 'real_data.nt')).replace('\\', '/'))
+        cls.finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
+        cls.finder.get_everything_about_res([
+            ('omid:br/3309', []), 
+            ('omid:br/2438', []), 
+            ('omid:br/0601', []), 
+            ('', ['doi:10.1001/2013.jamasurg.270']),
+            ('', ['doi:10.1787/eco_outlook-v2011-2-graph138-en']),
+            ('', ['orcid:0000-0001-6994-8412']),
+            ('', ['doi:10.1001/archderm.104.1.106', 'pmid:29098884'])])
+
     def test_id_worker_1(self):
         # 1 EntityA is a new one
-        add_data_ts()
         curator = prepareCurator(list())
         name = 'βέβαιος, α, ον'
         idslist = ['doi:10.1163/2214-8655_lgo_lgo_02_0074_ger']
@@ -596,7 +582,7 @@ class test_id_worker(unittest.TestCase):
     def test_id_worker_2_id_ts(self):
         # 2 Retrieve EntityA data in triplestore to update EntityA inside CSV
         curator = prepareCurator(list())
-        add_data_ts(SERVER, os.path.abspath(os.path.join('test', 'testcases', 'ts', 'real_data.nt')).replace('\\', '/'))
+        curator.finder = self.finder
         name = 'American Medical Association (AMA)' # *(ama) on the ts. The name on the ts must prevail
         idslist = ['crossref:10']
         wannabe_id = curator.id_worker('editor', name, idslist, '', ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
@@ -607,9 +593,7 @@ class test_id_worker(unittest.TestCase):
     def test_id_worker_2_metaid_ts(self):
         # 2 Retrieve EntityA data in triplestore to update EntityA inside CSV
         curator = prepareCurator(list())
-        add_data_ts(SERVER, os.path.abspath(os.path.join('test', 'testcases', 'ts', 'real_data.nt')).replace('\\', '/'))
-        finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
-        finder.get_everything_about_res([('omid:br/3309', [])], curator.everything_everywhere_allatonce)
+        curator.finder = self.finder
         name = 'American Medical Association (AMA)' # *(ama) on the ts. The name on the ts must prevail
         # MetaID only
         wannabe_id = curator.id_worker('editor', name, [], '3309', ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
@@ -620,10 +604,8 @@ class test_id_worker(unittest.TestCase):
     def test_id_worker_2_id_metaid_ts(self):
         # 2 Retrieve EntityA data in triplestore to update EntityA inside CSV
         curator = prepareCurator(list())
-        add_data_ts(SERVER, os.path.abspath(os.path.join('test', 'testcases', 'ts', 'real_data.nt')).replace('\\', '/'))
         name = 'American Medical Association (AMA)' # *(ama) on the ts. The name on the ts must prevail
-        finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
-        finder.get_everything_about_res([('omid:br/2438', [])], curator.everything_everywhere_allatonce)
+        curator.finder = self.finder
         # ID and MetaID
         wannabe_id = curator.id_worker('publisher', name, ['crossref:10'], '3309', ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
         output = (wannabe_id, curator.brdict, curator.radict, curator.idbr, curator.idra, curator.log)
@@ -633,45 +615,22 @@ class test_id_worker(unittest.TestCase):
     def test_id_worker_3(self):
         # 2 Retrieve EntityA data in triplestore to update EntityA inside CSV. MetaID on ts has precedence
         curator = prepareCurator(list())
-        add_data_ts(SERVER, os.path.abspath(os.path.join('test', 'testcases', 'ts', 'real_data.nt')).replace('\\', '/'))
         name = 'American Medical Association (AMA)' # *(ama) on the ts. The name on the ts must prevail
-        finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
-        finder.get_everything_about_res([('omid:br/2438', [])], curator.everything_everywhere_allatonce)
+        curator.finder = self.finder
         # ID and MetaID, but it's omid:ra/3309 on ts
         wannabe_id = curator.id_worker('publisher', name, ['crossref:10'], '33090', ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
         output = (wannabe_id, curator.brdict, curator.radict, curator.idbr, curator.idra, curator.log)
         expected_output = ('3309', {}, {'3309': {'ids': ['crossref:10'], 'others': [], 'title': 'American Medical Association (ama)'}}, {}, {'crossref:10': '4274'}, {})
         self.assertEqual(output, expected_output)
 
-    def test_id_worker_2_meta_in_entity_dict(self):
-        # MetaID exists among data.
-        # MetaID already in entity_dict (no care about conflicts, we have a MetaID specified)
-        # 2 Retrieve EntityA data to update EntityA inside CSV
-        reset_server()
-        data = get_csv_data(REAL_DATA_CSV)
-        curator = prepareCurator(data)
-        curator.curator()
-        store_curated_data(curator, SERVER)
-        name = 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'
-        curator_empty = prepareCurator(list())
-        finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
-        finder.get_everything_about_res([('omid:br/0601', [])], curator_empty.everything_everywhere_allatonce)
-        # put metaval in entity_dict        
-        meta_id = curator_empty.id_worker('id', name, [], '0601', ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
-        # metaval is in entity_dict
-        meta_id = curator_empty.id_worker('id', name, [], '0601', ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
-        output = (meta_id, curator_empty.brdict, curator_empty.radict, curator_empty.idbr, curator_empty.idra, curator_empty.log)
-        expected_output = ('0601', {'0601': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China', 'others': []}}, {}, {'doi:10.1787/eco_outlook-v2011-2-graph138-en': '0601'}, {}, {})
-        self.assertEqual(output, expected_output)
-
     def test_id_worker_conflict(self):
         # there's no meta or there was one but it didn't exist
         # There are other ids that already exist, but refer to multiple entities on ts.
         # Conflict!
-        add_data_ts()
         idslist = ['doi:10.1001/2013.jamasurg.270']
         name = 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'
         curator = prepareCurator(list())
+        curator.finder = self.finder
         curator.log[0] = {'id': {}}
         id_dict = dict()
         metaval = curator.conflict(idslist, name, id_dict, 'id') # Only the conflict function is tested here, not id_worker
@@ -686,13 +645,11 @@ class test_id_worker(unittest.TestCase):
 
     def test_conflict_br(self):
         # No MetaId, an identifier to which two separate br point: there is a conflict, and a new entity must be created
-        add_data_ts()
         curator = prepareCurator(list())
         curator.log[0] = {'id': {}}
         name = 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'
         idslist = ['doi:10.1001/2013.jamasurg.270']
-        finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
-        finder.get_everything_about_res([('', idslist)], curator.everything_everywhere_allatonce)
+        curator.finder = self.finder
         meta_id = curator.id_worker('id', name, idslist, '', ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
         output = (meta_id, curator.idbr, curator.idra, curator.brdict, curator.log)
         expected_output = (
@@ -706,10 +663,10 @@ class test_id_worker(unittest.TestCase):
 
     def test_conflict_ra(self):
         # No MetaId, an identifier to which two separate ra point: there is a conflict, and a new entity must be created
-        add_data_ts()
         idslist = ['orcid:0000-0001-6994-8412']
         name = 'Alarcon, Louis H.'
         curator = prepareCurator(list())
+        curator.finder = self.finder
         curator.log[0] = {'author': {}}
         meta_id = curator.id_worker('author', name, idslist, '', ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=False)
         output = (meta_id, curator.idbr, curator.idra, curator.brdict, curator.radict, curator.log)
@@ -723,6 +680,134 @@ class test_id_worker(unittest.TestCase):
         )
         self.assertEqual(output, expected_output)
     
+    def test_conflict_suspect_id_among_existing(self):
+        # ID already exist in entity_dict and refer to one entity having a MetaID, but there is another ID not in entity_dict that highlights a conflict on ts
+        br_dict = {
+            'omid:br/0601': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'], 'others': [], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}, 
+            'omid:br/0602': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph150-en'], 'others': [], 'title': 'Contributions To GDP Growth And Inflation: South Africa'}, 
+            'omid:br/0603': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph18-en'], 'others': [], 'title': 'Official Loans To The Governments Of Greece, Ireland And Portugal'}, 
+        }
+        name = 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: Japan' # The first title must have precedence (China, not Japan)
+        idslist = ['doi:10.1787/eco_outlook-v2011-2-graph138-en', 'doi:10.1001/2013.jamasurg.270']
+        curator = prepareCurator(get_csv_data(REAL_DATA_CSV))
+        curator.log[0] = {'id': {}}
+        curator.brdict = br_dict
+        curator.finder = self.finder
+        meta_id = curator.id_worker('id', name, idslist, '', ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
+        output = (meta_id, curator.idbr, curator.idra, curator.brdict, curator.radict, curator.log)
+        expected_output = (
+            'wannabe_0', 
+            {
+                'doi:10.1787/eco_outlook-v2011-2-graph138-en': '0601', 
+                'doi:10.1001/2013.jamasurg.270': '2585'
+            }, 
+            {}, 
+            {'omid:br/0601': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'],
+                            'others': [],
+                            'title': 'Money Growth, Interest Rates, Inflation And Raw '
+                                        'Materials Prices: China'},
+            'omid:br/0602': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph150-en'],
+                            'others': [],
+                            'title': 'Contributions To GDP Growth And Inflation: South '
+                                        'Africa'},
+            'omid:br/0603': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph18-en'],
+                            'others': [],
+                            'title': 'Official Loans To The Governments Of Greece, '
+                                        'Ireland And Portugal'},
+            'wannabe_0': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en',
+                                    'doi:10.1001/2013.jamasurg.270'],
+                            'others': [],
+                            'title': 'Money Growth, Interest Rates, Inflation And Raw '
+                                    'Materials Prices: Japan'}},
+            {}, 
+            {0: {'id': {'Conflict entity': 'wannabe_0'}}}
+        )
+        self.assertEqual(output, expected_output)
+
+    def test_conflict_suspect_id_among_wannabe(self):
+        # ID already exist in entity_dict and refer to one temporary, but there is another ID not in entity_dict that highlights a conflict on ts
+        br_dict = {
+            'wannabe_0': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'], 'others': [], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}, 
+            'wannabe_2': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph150-en'], 'others': [], 'title': 'Contributions To GDP Growth And Inflation: South Africa'}, 
+            'wannabe_3': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph18-en'], 'others': [], 'title': 'Official Loans To The Governments Of Greece, Ireland And Portugal'}, 
+        }
+        name = 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: Japan' # The first title must have precedence (China, not Japan)
+        idslist = ['doi:10.1787/eco_outlook-v2011-2-graph138-en', 'doi:10.1001/2013.jamasurg.270']
+        curator = prepareCurator(get_csv_data(REAL_DATA_CSV))
+        curator.log[0] = {'id': {}}
+        curator.brdict = br_dict
+        curator.finder = self.finder
+        meta_id = curator.id_worker('id', name, idslist, '', ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
+        output = (meta_id, curator.idbr, curator.idra, curator.brdict, curator.radict, curator.log)
+        expected_output = (
+            'wannabe_0', 
+            {
+                'doi:10.1787/eco_outlook-v2011-2-graph138-en': '0601', 
+                'doi:10.1001/2013.jamasurg.270': '2585'
+            }, 
+            {}, 
+            {'wannabe_0': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en',
+                                    'doi:10.1001/2013.jamasurg.270'],
+                            'others': [],
+                            'title': 'Money Growth, Interest Rates, Inflation And Raw '
+                                    'Materials Prices: Japan'},
+            'wannabe_2': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph150-en'],
+                            'others': [],
+                            'title': 'Contributions To GDP Growth And Inflation: South '
+                                    'Africa'},
+            'wannabe_3': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph18-en'],
+                            'others': [],
+                            'title': 'Official Loans To The Governments Of Greece, Ireland '
+                                    'And Portugal'}},
+            {}, 
+            {0: {'id': {'Conflict entity': 'wannabe_0'}}}
+        )
+        self.assertEqual(output, expected_output)
+
+    def test_id_worker_4(self):
+        # 4 Merge data from EntityA (CSV) with data from EntityX (CSV), update both with data from EntityA (RDF)
+        br_dict = {
+            'wannabe_0': {'ids': ['doi:10.1001/archderm.104.1.106'], 'others': [], 'title': 'Multiple eloids'}, 
+            'wannabe_1': {'ids': ['doi:10.1001/archderm.104.1.106'], 'others': [], 'title': 'Multiple Blastoids'}, 
+        }
+        name = 'Multiple Palloids'
+        idslist = ['doi:10.1001/archderm.104.1.106', 'pmid:29098884']
+        curator = prepareCurator(list())
+        curator.brdict = br_dict
+        curator.wnb_cnt = 2
+        curator.finder = self.finder
+        meta_id = curator.id_worker('id', name, idslist, '', ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
+        output = (meta_id, curator.idbr, curator.idra, curator.log)
+        expected_output = (
+            '3757', 
+            {'doi:10.1001/archderm.104.1.106': '3624', 'pmid:29098884': '2000000'}, 
+            {}, 
+            {}
+        )
+        self.assertEqual(output, expected_output)
+
+class test_id_worker_with_reset(unittest.TestCase):
+    def test_id_worker_2_meta_in_entity_dict(self):
+        # MetaID exists among data.
+        # MetaID already in entity_dict (no care about conflicts, we have a MetaID specified)
+        # 2 Retrieve EntityA data to update EntityA inside CSV
+        reset_server()
+        data = get_csv_data(REAL_DATA_CSV)
+        curator = prepareCurator(data)
+        curator.curator()
+        store_curated_data(curator, SERVER)
+        name = 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'
+        curator_empty = prepareCurator(list())
+        finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI, local_g=curator_empty.everything_everywhere_allatonce)
+        finder.get_everything_about_res([('', ['doi:10.1787/eco_outlook-v2011-2-graph138-en'])])
+        # put metaval in entity_dict        
+        meta_id = curator_empty.id_worker('id', name, [], '0601', ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
+        # metaval is in entity_dict
+        meta_id = curator_empty.id_worker('id', name, [], '0601', ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
+        output = (meta_id, curator_empty.brdict, curator_empty.radict, curator_empty.idbr, curator_empty.idra, curator_empty.log)
+        expected_output = ('0601', {'0601': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China', 'others': []}}, {}, {'doi:10.1787/eco_outlook-v2011-2-graph138-en': '0601'}, {}, {})
+        self.assertEqual(output, expected_output)
+
     def test_conflict_existing(self):
         # ID already exist in entity_dict but refer to multiple entities having a MetaID
         reset_server()
@@ -763,141 +848,6 @@ class test_id_worker(unittest.TestCase):
         )
         self.assertEqual(output, expected_output)
 
-    def test_no_conflict_existing(self):
-        # ID already exist in entity_dict and refer to one entity
-        reset_server()
-        br_dict = {
-            'omid:br/0601': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'], 'others': [], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}, 
-            'omid:br/0602': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph150-en'], 'others': [], 'title': 'Contributions To GDP Growth And Inflation: South Africa'}, 
-            'omid:br/0603': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph18-en'], 'others': [], 'title': 'Official Loans To The Governments Of Greece, Ireland And Portugal'}, 
-        }
-        name = 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: Japan' # The first title must have precedence (China, not Japan)
-        idslist = ['doi:10.1787/eco_outlook-v2011-2-graph138-en']
-        curator = prepareCurator(list())
-        curator.log[0] = {'id': {}}
-        curator.brdict = br_dict
-        meta_id = curator.id_worker('id', name, idslist, '', ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
-        output = (meta_id, curator.idbr, curator.idra, curator.log)
-        expected_output = (
-            'omid:br/0601', 
-            {'doi:10.1787/eco_outlook-v2011-2-graph138-en': '0601'}, 
-            {}, 
-            {0: {'id': {}}}
-        )
-        self.assertEqual(output, expected_output)
-
-    def test_conflict_suspect_id_among_existing(self):
-        # ID already exist in entity_dict and refer to one entity having a MetaID, but there is another ID not in entity_dict that highlights a conflict on ts
-        add_data_ts()
-        br_dict = {
-            'omid:br/0601': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'], 'others': [], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}, 
-            'omid:br/0602': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph150-en'], 'others': [], 'title': 'Contributions To GDP Growth And Inflation: South Africa'}, 
-            'omid:br/0603': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph18-en'], 'others': [], 'title': 'Official Loans To The Governments Of Greece, Ireland And Portugal'}, 
-        }
-        name = 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: Japan' # The first title must have precedence (China, not Japan)
-        idslist = ['doi:10.1787/eco_outlook-v2011-2-graph138-en', 'doi:10.1001/2013.jamasurg.270']
-        curator = prepareCurator(get_csv_data(REAL_DATA_CSV))
-        curator.log[0] = {'id': {}}
-        curator.brdict = br_dict
-        finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
-        finder.get_everything_about_res([('', idslist)], curator.everything_everywhere_allatonce)
-        meta_id = curator.id_worker('id', name, idslist, '', ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
-        output = (meta_id, curator.idbr, curator.idra, curator.brdict, curator.radict, curator.log)
-        expected_output = (
-            'wannabe_0', 
-            {
-                'doi:10.1787/eco_outlook-v2011-2-graph138-en': '0601', 
-                'doi:10.1001/2013.jamasurg.270': '2585'
-            }, 
-            {}, 
-            {'omid:br/0601': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'],
-                            'others': [],
-                            'title': 'Money Growth, Interest Rates, Inflation And Raw '
-                                        'Materials Prices: China'},
-            'omid:br/0602': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph150-en'],
-                            'others': [],
-                            'title': 'Contributions To GDP Growth And Inflation: South '
-                                        'Africa'},
-            'omid:br/0603': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph18-en'],
-                            'others': [],
-                            'title': 'Official Loans To The Governments Of Greece, '
-                                        'Ireland And Portugal'},
-            'wannabe_0': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en',
-                                    'doi:10.1001/2013.jamasurg.270'],
-                            'others': [],
-                            'title': 'Money Growth, Interest Rates, Inflation And Raw '
-                                    'Materials Prices: Japan'}},
-            {}, 
-            {0: {'id': {'Conflict entity': 'wannabe_0'}}}
-        )
-        self.assertEqual(output, expected_output)
-
-    def test_conflict_suspect_id_among_wannabe(self):
-        # ID already exist in entity_dict and refer to one temporary, but there is another ID not in entity_dict that highlights a conflict on ts
-        add_data_ts()
-        br_dict = {
-            'wannabe_0': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'], 'others': [], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}, 
-            'wannabe_2': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph150-en'], 'others': [], 'title': 'Contributions To GDP Growth And Inflation: South Africa'}, 
-            'wannabe_3': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph18-en'], 'others': [], 'title': 'Official Loans To The Governments Of Greece, Ireland And Portugal'}, 
-        }
-        name = 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: Japan' # The first title must have precedence (China, not Japan)
-        idslist = ['doi:10.1787/eco_outlook-v2011-2-graph138-en', 'doi:10.1001/2013.jamasurg.270']
-        curator = prepareCurator(get_csv_data(REAL_DATA_CSV))
-        curator.log[0] = {'id': {}}
-        curator.brdict = br_dict
-        finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
-        finder.get_everything_about_res([('', idslist)], curator.everything_everywhere_allatonce)
-        meta_id = curator.id_worker('id', name, idslist, '', ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
-        output = (meta_id, curator.idbr, curator.idra, curator.brdict, curator.radict, curator.log)
-        expected_output = (
-            'wannabe_0', 
-            {
-                'doi:10.1787/eco_outlook-v2011-2-graph138-en': '0601', 
-                'doi:10.1001/2013.jamasurg.270': '2585'
-            }, 
-            {}, 
-            {'wannabe_0': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en',
-                                    'doi:10.1001/2013.jamasurg.270'],
-                            'others': [],
-                            'title': 'Money Growth, Interest Rates, Inflation And Raw '
-                                    'Materials Prices: Japan'},
-            'wannabe_2': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph150-en'],
-                            'others': [],
-                            'title': 'Contributions To GDP Growth And Inflation: South '
-                                    'Africa'},
-            'wannabe_3': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph18-en'],
-                            'others': [],
-                            'title': 'Official Loans To The Governments Of Greece, Ireland '
-                                    'And Portugal'}},
-            {}, 
-            {0: {'id': {'Conflict entity': 'wannabe_0'}}}
-        )
-        self.assertEqual(output, expected_output)
-
-    def test_id_worker_4(self):
-        # 4 Merge data from EntityA (CSV) with data from EntityX (CSV), update both with data from EntityA (RDF)
-        add_data_ts()
-        br_dict = {
-            'wannabe_0': {'ids': ['doi:10.1001/archderm.104.1.106'], 'others': [], 'title': 'Multiple eloids'}, 
-            'wannabe_1': {'ids': ['doi:10.1001/archderm.104.1.106'], 'others': [], 'title': 'Multiple Blastoids'}, 
-        }
-        name = 'Multiple Palloids'
-        idslist = ['doi:10.1001/archderm.104.1.106', 'pmid:29098884']
-        curator = prepareCurator(list())
-        curator.brdict = br_dict
-        curator.wnb_cnt = 2
-        finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
-        finder.get_everything_about_res([('', idslist)], curator.everything_everywhere_allatonce)
-        meta_id = curator.id_worker('id', name, idslist, '', ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
-        output = (meta_id, curator.idbr, curator.idra, curator.log)
-        expected_output = (
-            '3757', 
-            {'doi:10.1001/archderm.104.1.106': '3624', 'pmid:29098884': '2000000'}, 
-            {}, 
-            {}
-        )
-        self.assertEqual(output, expected_output)
-
     def test_id_worker_5(self):
         # ID already exist in entity_dict and refer to one or more temporary entities -> collective merge
         reset_server()
@@ -918,6 +868,29 @@ class test_id_worker(unittest.TestCase):
             {'doi:10.1787/eco_outlook-v2011-2-graph138-en': '0601'}, 
             {}, 
             {}
+        )
+        self.assertEqual(output, expected_output)
+
+    def test_no_conflict_existing(self):
+        # ID already exist in entity_dict and refer to one entity
+        reset_server()
+        br_dict = {
+            'omid:br/0601': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'], 'others': [], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}, 
+            'omid:br/0602': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph150-en'], 'others': [], 'title': 'Contributions To GDP Growth And Inflation: South Africa'}, 
+            'omid:br/0603': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph18-en'], 'others': [], 'title': 'Official Loans To The Governments Of Greece, Ireland And Portugal'}, 
+        }
+        name = 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: Japan' # The first title must have precedence (China, not Japan)
+        idslist = ['doi:10.1787/eco_outlook-v2011-2-graph138-en']
+        curator = prepareCurator(list())
+        curator.log[0] = {'id': {}}
+        curator.brdict = br_dict
+        meta_id = curator.id_worker('id', name, idslist, '', ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
+        output = (meta_id, curator.idbr, curator.idra, curator.log)
+        expected_output = (
+            'omid:br/0601', 
+            {'doi:10.1787/eco_outlook-v2011-2-graph138-en': '0601'}, 
+            {}, 
+            {0: {'id': {}}}
         )
         self.assertEqual(output, expected_output)
 

@@ -1,9 +1,9 @@
-from oc_meta.lib.file_manager import get_csv_data
-from oc_meta.plugins.get_ids_from_citations import get_ids_from_citations
 import os
 import shutil
 import unittest
 
+from oc_meta.lib.file_manager import get_csv_data
+from oc_meta.plugins.get_ids_from_citations import get_ids_from_citations
 
 BASE_DIR = os.path.join('test', 'get_ids_from_citations')
 OUTPUT_DIR = os.path.join('test', 'get_ids_from_citations', 'output')

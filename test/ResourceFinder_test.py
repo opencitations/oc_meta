@@ -24,10 +24,20 @@ class TestResourceFinder(unittest.TestCase):
         # Upload data
         ts.setQuery(f"LOAD <file:{REAL_DATA_FILE}>")
         ts.query()
-        cls.finder.get_everything_about_res([('omid:br/2373', [])], local_g)
-        cls.finder.get_everything_about_res([('omid:br/2380', [])], local_g)
-        cls.finder.get_everything_about_res([('omid:br/2730', [])], local_g)
-        cls.finder.get_everything_about_res([('omid:br/2374', [])], local_g)
+        cls.finder.get_everything_about_res([
+            ('omid:br/2373', []), 
+            ('omid:br/2380', []), 
+            ('omid:br/2730', []), 
+            ('omid:br/2374', []), 
+            ('', ['doi:10.1001/.391']),
+            ('', ['orcid:0000-0001-6994-8412']),
+            ('omid:br/4435', []),
+            ('omid:br/4436', []),
+            ('omid:br/4437', []),
+            ('omid:br/4438', []),
+            ('omid:br/0604750', []),
+            ('omid:br/0605379', []),
+            ('omid:br/0606696', [])])
 
     def test_retrieve_br_from_id(self):
         value = '10.1001/.391'
@@ -54,7 +64,7 @@ class TestResourceFinder(unittest.TestCase):
     def test_retrieve_br_from_meta(self):
         metaid = '2373'
         output = self.finder.retrieve_br_from_meta(metaid)
-        expected_output = ('Treatment Of Excessive Anticoagulation With Phytonadione (Vitamin K): A Meta-analysis', [('2239', 'doi:10.1001/.391')])
+        expected_output = ('Treatment Of Excessive Anticoagulation With Phytonadione (Vitamin K): A Meta-analysis', [('2239', 'doi:10.1001/.391')], True)
         self.assertEqual(output, expected_output)
 
     def test_retrieve_br_from_meta_multiple_ids(self):
@@ -73,20 +83,20 @@ class TestResourceFinder(unittest.TestCase):
 
     def test_retrieve_ra_from_meta(self):
         metaid = '3308'
-        output = self.finder.retrieve_ra_from_meta(metaid, publisher=False)
-        expected_output = ('Dezee, K. J.', [])
+        output = self.finder.retrieve_ra_from_meta(metaid)
+        expected_output = ('Dezee, K. J.', [], True)
         self.assertEqual(output, expected_output)
 
     def test_retrieve_ra_from_meta_with_orcid(self):
         metaid = '4940'
-        output = self.finder.retrieve_ra_from_meta(metaid, publisher=False)
-        expected_output = ('Alarcon, Louis H.', [('4475', 'orcid:0000-0001-6994-8412')])
+        output = self.finder.retrieve_ra_from_meta(metaid)
+        expected_output = ('Alarcon, Louis H.', [('4475', 'orcid:0000-0001-6994-8412')], True)
         self.assertEqual(output, expected_output)
 
     def test_retrieve_ra_from_meta_if_publisher(self):
         metaid = '3309'
-        output = self.finder.retrieve_ra_from_meta(metaid, publisher=True)
-        expected_output = ('American Medical Association (ama)', [('4274', 'crossref:10')])
+        output = self.finder.retrieve_ra_from_meta(metaid)
+        expected_output = ('American Medical Association (ama)', [('4274', 'crossref:10')], True)
         self.assertEqual(output, expected_output)
 
     def test_retrieve_ra_from_id(self):
@@ -122,7 +132,7 @@ class TestResourceFinder(unittest.TestCase):
                     }
                 }
             }
-        }        
+        }      
         self.assertEqual(output, expected_output)
 
     def test_retrieve_vvi_issue_in_venue(self):
@@ -159,58 +169,6 @@ class TestResourceFinder(unittest.TestCase):
             'volume': '166', 
             'venue': 'Archives Of Internal Medicine [omid:br/4387]'
         }
-        self.assertEqual(output, expected_output)
-    
-    def test__type_it(self):
-        result = {
-            'res': {'type': 'uri', 'value': 'https://w3id.org/oc/meta/br/2373'}, 
-            'type_': {'type': 'literal', 'value': 'http://purl.org/spar/fabio/Expression ;and; http://purl.org/spar/fabio/JournalArticle'}, 
-            'date_': {'type': 'literal', 'value': '2006-02-27'}, 
-            'num_': {'type': 'literal', 'value': ''}, 
-            'part1_': {'type': 'literal', 'value': 'https://w3id.org/oc/meta/br/4389'}, 
-            'title1_': {'type': 'literal', 'value': ''}, 
-            'num1_': {'type': 'literal', 'value': '4'}, 
-            'type1_': {'type': 'literal', 'value': 'http://purl.org/spar/fabio/Expression ;and; http://purl.org/spar/fabio/JournalIssue'}, 
-            'part2_': {'type': 'literal', 'value': 'https://w3id.org/oc/meta/br/4388'}, 
-            'title2_': {'type': 'literal', 'value': ''}, 
-            'num2_': {'type': 'literal', 'value': '166'}, 
-            'type2_': {'type': 'literal', 'value': 'http://purl.org/spar/fabio/Expression ;and; http://purl.org/spar/fabio/JournalVolume'}, 
-            'part3_': {'type': 'literal', 'value': 'https://w3id.org/oc/meta/br/4387'}, 
-            'title3_': {'type': 'literal', 'value': 'Archives Of Internal Medicine'}, 
-            'num3_': {'type': 'literal', 'value': ''}, 
-            'type3_': {'type': 'literal', 'value': 'http://purl.org/spar/fabio/Expression ;and; http://purl.org/spar/fabio/Journal'}
-        }
-        type_ = 'type_'
-        output = self.finder._type_it(result, type_)
-        expected_output = 'journal article'
-        self.assertEqual(output, expected_output)
-    
-    def test__vvi_find(self):
-        result = {
-            'res': {'type': 'uri', 'value': 'https://w3id.org/oc/meta/br/2373'}, 
-            'type_': {'type': 'literal', 'value': 'http://purl.org/spar/fabio/Expression ;and; http://purl.org/spar/fabio/JournalArticle'}, 
-            'date_': {'type': 'literal', 'value': '2006-02-27'}, 
-            'num_': {'type': 'literal', 'value': ''}, 
-            'part1_': {'type': 'literal', 'value': 'https://w3id.org/oc/meta/br/4389'}, 
-            'title1_': {'type': 'literal', 'value': ''}, 
-            'num1_': {'type': 'literal', 'value': '4'}, 
-            'type1_': {'type': 'literal', 'value': 'http://purl.org/spar/fabio/Expression ;and; http://purl.org/spar/fabio/JournalIssue'}, 
-            'part2_': {'type': 'literal', 'value': 'https://w3id.org/oc/meta/br/4388'}, 
-            'title2_': {'type': 'literal', 'value': ''}, 
-            'num2_': {'type': 'literal', 'value': '166'}, 
-            'type2_': {'type': 'literal', 'value': 'http://purl.org/spar/fabio/Expression ;and; http://purl.org/spar/fabio/JournalVolume'}, 
-            'part3_': {'type': 'literal', 'value': 'https://w3id.org/oc/meta/br/4387'}, 
-            'title3_': {'type': 'literal', 'value': 'Archives Of Internal Medicine'}, 
-            'num3_': {'type': 'literal', 'value': ''}, 
-            'type3_': {'type': 'literal', 'value': 'http://purl.org/spar/fabio/Expression ;and; http://purl.org/spar/fabio/Journal'}
-        }
-        part_ = 'part3_'
-        type_ = 'type3_'
-        title_ = 'title3_'
-        num_ = 'num3_'
-        res_dict = {'pub_date': '2006-02-27', 'type': 'journal article', 'page': ('2011', '391-397'), 'issue': '', 'volume': '', 'venue': ''}
-        output = self.finder._vvi_find(result, part_, type_, title_, num_, res_dict)
-        expected_output = {'pub_date': '2006-02-27', 'type': 'journal article', 'page': ('2011', '391-397'), 'issue': '', 'volume': '', 'venue': 'Archives Of Internal Medicine [omid:br/4387]'}
         self.assertEqual(output, expected_output)
     
 
