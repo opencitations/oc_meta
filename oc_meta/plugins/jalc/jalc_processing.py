@@ -16,40 +16,43 @@
 
 
 from __future__ import annotations
-from oc_meta.lib.csvmanager import CSVManager
+
+import re
+
 from oc_meta.plugins.ra_processor import RaProcessor
 
 
 class JalcProcessing(RaProcessor):
-    def __init__(self, orcid_index:str=None, doi_csv:str=None, publishers_filepath: str = None):
-        super(JalcProcessing, self).__init__(orcid_index, doi_csv, publishers_filepath)
-
+    def __init__(self, citing_entities:str=None, orcid_index:str=None, doi_csv:str=None, publishers_filepath: str = None):
+        super(JalcProcessing, self).__init__(citing_entities, orcid_index, doi_csv, publishers_filepath)
 
     def csv_creator(self, item:dict) -> dict:
         doi = item["doi"]
-        title = self.get_ja(item['title_list'])[0]['title'] if 'title_list' in item else ''  # Future Water Availability in the Asian Monsoon Region: A Case Study in Indonesia (no available in japanese)
-        authors_list = self.get_authors(item)
-        authors_string_list, editors_string_list = self.get_agents_strings_list(doi, authors_list)
-        issue = item['issue'] if 'issue' in item else ''
-        volume = item['volume'] if 'volume' in item else ''
+        doi_without_prefix = re.sub('^doi:', '', doi)
+        if (doi and self.doi_set and doi_without_prefix in self.doi_set) or (doi and not self.doi_set):
+            title = self.get_ja(item['title_list'])[0]['title'] if 'title_list' in item else ''  # Future Water Availability in the Asian Monsoon Region: A Case Study in Indonesia (no available in japanese)
+            authors_list = self.get_authors(item)
+            authors_string_list, editors_string_list = self.get_agents_strings_list(doi_without_prefix, authors_list)
+            issue = item['issue'] if 'issue' in item else ''
+            volume = item['volume'] if 'volume' in item else ''
 
-        metadata = {
-            'id': doi,
-            'title': title,
-            'author': '; '.join(authors_string_list),
-            'issue': issue,
-            'volume': volume,
-            'venue': self.get_venue(item),
-            'pub_date': self.get_pub_date(item),
-            'page': self.get_jalc_pages(item),
-            'type': self.get_type(item),
-            'publisher': self.get_publisher_name(item),
-            'editor': ''
-        }
-        return self.normalise_unicode(metadata)
+            metadata = {
+                'id': doi,
+                'title': title,
+                'author': '; '.join(authors_string_list),
+                'issue': issue,
+                'volume': volume,
+                'venue': self.get_venue(item),
+                'pub_date': self.get_pub_date(item),
+                'page': self.get_jalc_pages(item),
+                'type': self.get_type(item),
+                'publisher': self.get_publisher_name(item),
+                'editor': ''
+            }
+            return self.normalise_unicode(metadata)
         
     @classmethod
-    def get_ja(cls, field:list) -> list:  # [{'publisher_name': '筑波大学農林技術センター', 'lang': 'ja'}]
+    def get_ja(cls, field: list) -> list:  # [{'publisher_name': '筑波大学農林技術センター', 'lang': 'ja'}]
         if all('lang' in item for item in field):
             ja = [item for item in field if item['lang'] == 'ja']
             ja = list(filter(lambda x: x['type'] != 'before' if 'type' in x else x, ja))

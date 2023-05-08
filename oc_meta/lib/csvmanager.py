@@ -16,9 +16,11 @@
 
 from csv import DictReader, writer
 from io import StringIO
+import os
 from os import mkdir, sep, walk
 from os.path import exists, isdir, join
 from typing import Dict
+import zipfile
 
 
 class CSVManager(object):

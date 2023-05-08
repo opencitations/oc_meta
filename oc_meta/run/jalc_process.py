@@ -5,13 +5,11 @@ from argparse import ArgumentParser
 from tarfile import TarInfo
 import yaml
 from tqdm import tqdm
-import zipfile
 from oc_meta.lib.file_manager import normalize_path
 from oc_meta.lib.jsonmanager import *
 from oc_meta.plugins.jalc.jalc_processing import JalcProcessing
 import ndjson
 import re
-
 
 def preprocess(jalc_json_dir:str, citing_entities_filepath:str, publishers_filepath:str, orcid_doi_filepath:str, csv_dir:str, wanted_doi_filepath:str=None, cache:str=None, verbose:bool=False) -> None:
     if verbose:
@@ -29,9 +27,7 @@ def preprocess(jalc_json_dir:str, citing_entities_filepath:str, publishers_filep
             print(log)
 
     print("Processing Phase: started")
-    jalc_csv = JalcProcessing(orcid_index=orcid_doi_filepath, doi_csv=wanted_doi_filepath)
-    if citing_entities_filepath:
-        all_citing_entities = get_all_files(citing_entities_filepath, '.csv')
+    jalc_csv = JalcProcessing(citing_entities= citing_entities_filepath, orcid_index=orcid_doi_filepath, doi_csv=wanted_doi_filepath, publishers_filepath=publishers_filepath)
     if verbose:
         print(f'[INFO: datacite_process] Getting all files from {jalc_json_dir}')
     all_files, targz_fd = get_jalc_ndjson(jalc_json_dir)
@@ -52,8 +48,9 @@ def preprocess(jalc_json_dir:str, citing_entities_filepath:str, publishers_filep
             for citation_dic in item['citation_list']:
                 citation_id = citation_dic['doi']
                 if citing_entities_filepath:
-                    found = search_doi(citation_id, all_citing_entities)
-                    if not found:
+                    if citation_id.startswith("doi:"):
+                        doi = re.sub('^doi:', '', citation_id)
+                    if doi not in jalc_csv.citing_entities_set:
                         tabular_data_cited = jalc_csv.csv_creator(citation_dic)
                         if tabular_data_cited:
                             data.append(tabular_data_cited)
@@ -96,35 +93,6 @@ def load_ndjson(file):
         with open(file, encoding="utf8") as f: # type: ignore
             result = ndjson.load(f)
     return result
-
-
-def get_all_files(i_dir_or_compr, req_type):
-    result = []
-    if i_dir_or_compr.endswith("zip"):
-        with zipfile.ZipFile(i_dir_or_compr, 'r') as zip_ref:
-            dest_dir = i_dir_or_compr.split(".")[0] + "decompr_zip_dir"
-            if not os.path.exists(dest_dir):
-                os.makedirs(dest_dir)
-            zip_ref.extractall(dest_dir)
-        for cur_dir, cur_subdir, cur_files in walk(dest_dir):
-            for cur_file in cur_files:
-                if cur_file.endswith(req_type) and not basename(cur_file).startswith("."):
-                    result.append(cur_dir + sep + cur_file)
-    return result
-
-
-def search_doi(doi, list_csv):
-    if doi.startswith("doi:"):
-        doi = re.sub('^doi:', '', doi)
-    found = False
-    for file in list_csv:
-        with open(file, 'r') as csvfile:
-            next(csvfile)
-            datareader = csv.reader(csvfile)
-            for row in datareader:
-                if doi in row:
-                    found = True
-    return found
 
 
 def pathoo(path:str) -> None:
