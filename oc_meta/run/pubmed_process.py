@@ -52,7 +52,7 @@ def to_meta_file(cur_n, lines, interval, csv_dir):
         return lines
 
 
-def preprocess(pubmed_csv_dir:str, publishers_filepath:str, orcid_doi_filepath:str, csv_dir:str, journals_filepath:str, wanted_doi_filepath:str=None, verbose:bool=False, interval = 1000, testing=True) -> None:
+def preprocess(pubmed_csv_dir:str, publishers_filepath:str, orcid_doi_filepath:str, csv_dir:str, journals_filepath:str, wanted_doi_filepath:str=None, verbose:bool=False, interval = 1000, testing=True, cache: str = None) -> None:
     if not interval:
         interval = 1000
     else:
@@ -84,15 +84,23 @@ def preprocess(pubmed_csv_dir:str, publishers_filepath:str, orcid_doi_filepath:s
 
     all_files, targz_fd = get_all_files_by_type(pubmed_csv_dir, ".csv")
     lines = []
-    count = len(os.listdir(csv_dir)) * interval
-    skiprows = range(1, count) if count else None
+    count = 0
+    skiprows = range(1, count) if count > 0 else None
+    rows_done = 0
+    if cache:
+        if not os.path.exists(cache):
+            with open(cache, 'w', encoding='utf8') as f:
+                f.write('0')
+        with open(cache, 'r', encoding='utf8') as f:
+            count = f.read().splitlines()[0]
+    dtype={'pmid': str, 'doi': str, 'title': str, 'authors': str, 'year': str, 'journal': str, 'references': str}
     for file in all_files:
         chunksize = 100000
         with open(file, 'r', encoding='utf8') as f:
             number_of_rows = sum(1 for _ in f) - 1
         pbar = tqdm(total=number_of_rows)
         pbar.update(count)
-        with pd.read_csv(file, usecols=filter, chunksize=chunksize, skiprows=skiprows) as reader:
+        with pd.read_csv(file, usecols=filter, chunksize=chunksize, skiprows=skiprows, dtype=dtype) as reader:
             for chunk in reader:
                 chunk.fillna("", inplace=True)
                 df_dict_list = chunk.to_dict("records")
@@ -103,11 +111,14 @@ def preprocess(pubmed_csv_dir:str, publishers_filepath:str, orcid_doi_filepath:s
                     if tabular_data:
                         lines.append(tabular_data)
                         count += 1
-                        pbar.update()
                         if int(count) != 0 and int(count) % int(interval) == 0:
-                            last_processed = lines[-1].get("id")
                             lines = to_meta_file(count, lines, interval, csv_dir)
                             pubmed_csv.save_updated_pref_publishers_map()
+                            if cache:
+                                with open(cache, 'w', encoding='utf8') as f:
+                                    f.write(str(count + rows_done))
+                rows_done += len(chunk)
+                pbar.update(len(chunk))
         pbar.close()
     if len(lines) > 0:
         count = count + (interval - (int(count) % int(interval)))
@@ -142,6 +153,8 @@ if __name__ == '__main__':
                             help='int number of lines for each output csv. If nothing is declared, the default is 1000')
     arg_parser.add_argument('-t', '--testing', dest='testing', action='store_true', required=False,
                             help='testing flag to define what to use for data validation (fakeredis instance or real redis DB)')
+    arg_parser.add_argument('-c', '--cache', dest='cache', required=False,
+                            help='cache txt filepath')
     args = arg_parser.parse_args()
     config = args.config
     settings = None
@@ -164,4 +177,4 @@ if __name__ == '__main__':
     verbose = settings['verbose'] if settings else args.verbose
     testing = settings['testing'] if settings else args.testing
     print("Data Preprocessing Phase: started")
-    preprocess(pubmed_csv_dir=pubmed_csv_dir, publishers_filepath=publishers_filepath, journals_filepath=journals_filepath, orcid_doi_filepath=orcid_doi_filepath, csv_dir=csv_dir, wanted_doi_filepath=wanted_doi_filepath, verbose=verbose, interval=interval, testing=testing)
+    preprocess(pubmed_csv_dir=pubmed_csv_dir, publishers_filepath=publishers_filepath, journals_filepath=journals_filepath, orcid_doi_filepath=orcid_doi_filepath, csv_dir=csv_dir, wanted_doi_filepath=wanted_doi_filepath, verbose=verbose, interval=interval, testing=testing, cache=args.cache)

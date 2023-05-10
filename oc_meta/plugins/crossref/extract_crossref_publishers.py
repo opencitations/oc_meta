@@ -15,13 +15,13 @@
 # SOFTWARE.
 
 
-from csv import DictReader, DictWriter, QUOTE_NONNUMERIC
+import html
+from csv import QUOTE_NONNUMERIC, DictReader, DictWriter
 from json import loads
 from os.path import exists
-from requests import get
 from time import sleep
-import html
 
+from requests import get
 
 MAX_TRY = 5
 SLEEPING_TIME = 5
