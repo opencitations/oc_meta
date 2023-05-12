@@ -23,8 +23,8 @@ from oc_meta.plugins.ra_processor import RaProcessor
 
 
 class JalcProcessing(RaProcessor):
-    def __init__(self, citing_entities:str=None, orcid_index:str=None, doi_csv:str=None, publishers_filepath: str = None):
-        super(JalcProcessing, self).__init__(citing_entities, orcid_index, doi_csv, publishers_filepath)
+    def __init__(self, orcid_index:str=None, doi_csv:str=None, publishers_filepath: str = None, citing_entities:str=None):
+        super(JalcProcessing, self).__init__(orcid_index, doi_csv, publishers_filepath, citing_entities)
 
     def csv_creator(self, item:dict) -> dict:
         doi = item["doi"]
