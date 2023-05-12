@@ -55,6 +55,7 @@ class TestCrossrefProcessing(unittest.TestCase):
         crossref_processor = CrossrefProcessing(IOD, WANTED_DOIS)
         orcid_found = crossref_processor.orcid_finder('10.9799/ksfan.2012.25.1.105')
         expected_output = {'0000-0002-6227-4053': 'choi, mi-kyeong'}
+        print(orcid_found)
         self.assertEqual(orcid_found, expected_output)
 
     def test_get_agents_strings_list_overlapping_surnames(self):
