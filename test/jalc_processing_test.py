@@ -1,47 +1,241 @@
-#!python
-# Copyright 2022, Arcangelo Massari <arcangelo.massari@unibo.it>, Arianna Moretti <arianna.moretti4@unibo.it>
-#
-# Permission to use, copy, modify, and/or distribute this software for any purpose
-# with or without fee is hereby granted, provided that the above copyright notice
-# and this permission notice appear in all copies.
-#
-# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
-# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
-# FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT,
-# OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
-# DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS
-# ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
-# SOFTWARE.
-
-
+import csv
+import os
 import re
+import shutil
 import unittest
 
-from oc_idmanager import DOIManager
-
-from oc_meta.lib.file_manager import call_api
-from oc_meta.lib.master_of_regex import name_and_ids
+from oc_meta.lib.csvmanager import CSVManager
 from oc_meta.plugins.jalc.jalc_processing import JalcProcessing
+from oc_meta.run.jalc_process import load_ndjson
 
-doi_manager = DOIManager()
-JALC_API = doi_manager._api_jalc
-HEADERS = doi_manager._headers
+BASE = os.path.join('test', 'jalc_processing')
+IOD = os.path.join(BASE, 'iod')
+WANTED_DOIS = os.path.join(BASE, 'wanted_dois.csv')
+WANTED_DOIS_FOLDER = os.path.join(BASE, 'wanted_dois')
+DATA = os.path.join(BASE, 'filtered_66.ndjson')
+DATA_DIR = BASE
+MULTIPROCESS_OUTPUT = os.path.join(BASE, 'multi_process_test')
+PUBLISHERS_MAPPING = os.path.join(BASE, 'publishers.csv')
 
 
-# class JalcProcessingTest(unittest.TestCase):
-#     def test_csv_creator(self):
-#         url = f'{JALC_API}10.15036/arerugi.33.167'
-#         item = call_api(url, HEADERS)
-#         datacite_processing = JalcProcessing()
-#         output = datacite_processing.csv_creator(item)
-#         expected_output = {'id': 'doi:10.15036/arerugi.33.167', 
-#         'title': '気管支喘息におけるアセチルコリン吸入試験の標準法の臨床的検討', 
-#         'author': '牧野, 荘平; 池森, 亨介; 福田, 健; 本島, 新司; 生井, 聖一郎; 戸田, 正夫; 山井, 孝夫; 山田, 吾郎; 湯川, 龍雄', 
-#         'issue': '3', 'volume': '33', 'venue': {'アレルギー', 'issn:1347-7935', 'issn:0021-4884'}, 'pub_date': '1984', 
-#         'pages': '167-175', 'type': 'journal article', 'publisher': '一般社団法人 日本アレルギー学会', 'editor': ''}
-#         venue_name_and_ids = re.search(name_and_ids, output['venue'])
-#         venue_name = venue_name_and_ids.group(1)
-#         venue_ids = venue_name_and_ids.group(2)
-#         output['venue'] = {venue_name}
-#         output['venue'].update(venue_ids.split())
-#         self.assertEqual(output, expected_output)
+class TestJalcProcessing(unittest.TestCase):
+    def test_csv_creator(self):
+        jalc_processor = JalcProcessing(orcid_index=IOD, doi_csv=WANTED_DOIS_FOLDER)
+        data = load_ndjson(DATA)
+        output = list()
+        for item in data:
+            tabular_data = jalc_processor.csv_creator(item)
+            if tabular_data:
+                output.append(tabular_data)
+            for citation in item['citation_list']:
+                tabular_data_cited = jalc_processor.csv_creator(citation)
+                if tabular_data_cited:
+                    output.append(tabular_data_cited)
+        expected_output=[
+            {'id': 'doi:10.11230/jsts.17.1_11',
+             'title': 'Development of an Airtight Recirculating Zooplankton Culture Device for Closed Ecological Recirculating Aquaculture System (CERAS)',
+             'author': 'OMORI, Katsunori; WATANABE, Shigeki; ENDO, Masato; TAKEUCHI, Toshio; OGUCHI, Mitsuo',
+             'issue': '1',
+             'volume': '17',
+             'venue': 'The Journal of Space Technology and Science [issn:0911-551X issn:2186-4772 jid:jsts]',
+             'pub_date': '2001',
+             'page': '1_11-1_17',
+             'type': 'journal article',
+             'publisher': '特定非営利活動法人 日本ロケット協会',
+             'editor': ''},
+            {'id': 'doi:10.11450/seitaikogaku1989.10.1',
+             'title': 'Study on the Development of Closed Ecological Recirculating Aquaculture System(CERAS). I. Development of Fish-rearing Closed Tank.',
+             'author': '',
+             'issue': '1',
+             'volume': '10',
+             'venue': '',
+             'pub_date': '1997',
+             'page': '1-4',
+             'type': '',
+             'publisher': '',
+             'editor': ''},
+            {'id': 'doi:10.11230/jsts.17.2_1',
+             'title': 'Diamond Synthesis with Completely Closed Chamber from Solid or Liquid Carbon Sources, In-Situ Analysis of Gaseous Species and the Possible Reaction Model',
+             'author': 'TAKAGI, Yoshiki [orcid:0000-0001-9597-7030]',
+             'issue': '2',
+             'volume': '17',
+             'venue': 'The Journal of Space Technology and Science [issn:0911-551X issn:2186-4772 jid:jsts]',
+             'pub_date': '2001',
+             'page': '2_1-2_7',
+             'type': 'journal article',
+             'publisher': '特定非営利活動法人 日本ロケット協会',
+             'editor': ''},
+            {'id': 'doi:10.1016/0022-0248(83)90411-6',
+             'title': '',
+             'author': '',
+             'issue': '',
+             'volume': '62',
+             'venue': 'Journal of Crystal Growth',
+             'pub_date': '1983',
+             'page': '642-642',
+             'type': '',
+             'publisher': '',
+             'editor': ''},
+            {'id': 'doi:10.1016/0038-1098(88)91128-3',
+             'title': 'Raman spectra of diamondlike amorphous carbon films.',
+             'author': '',
+             'issue': '11',
+             'volume': '66',
+             'venue': '',
+             'pub_date': '1988',
+             'page': '1177-1180',
+             'type': '',
+             'publisher': '',
+             'editor': ''}]
+
+        self.assertEqual(output, expected_output)
+
+    def test_orcid_finder(self):
+        datacite_processor = JalcProcessing(orcid_index=IOD)
+        doi = 'doi:10.11185/imt.8.380'
+        doi_without_prefix = re.sub('^doi:', '', doi)
+        orcid_found = datacite_processor.orcid_finder(doi_without_prefix)
+        expected_output = {'0000-0002-2149-4113': 'dobashi, yoshinori'}
+        self.assertEqual(orcid_found, expected_output)
+
+    def test_get_agents_strings_list_overlapping_surnames(self):
+        # The surname of one author is included in the surname of another.
+        authors_list = [
+            {'role': 'author',
+             'name': '井崎 豊田, 理理子',
+             'family': '井崎 豊田',
+             'given': '理理子'},
+            {'role': 'author',
+             'name': '豊田, 純一朗',
+             'family': '豊田',
+             'given': '純一朗'}
+            ]
+        jalc_processor = JalcProcessing()
+        csv_manager = CSVManager()
+        csv_manager.data = {'10.11224/cleftpalate1976.23.2_83': {'豊田, 純一朗 [0000-0002-8210-7076]'}}
+        jalc_processor.orcid_index = csv_manager
+        authors_strings_list, editors_strings_list = jalc_processor.get_agents_strings_list('10.11224/cleftpalate1976.23.2_83', authors_list)
+        expected_authors_list = ['井崎 豊田, 理理子', '豊田, 純一朗 [orcid:0000-0002-8210-7076]']
+        expected_editors_list = []
+        self.assertEqual((authors_strings_list, editors_strings_list), (expected_authors_list, expected_editors_list))
+
+    def test_get_agents_strings_list(self):
+        entity_dict = {"doi": "doi:10.11178/jdsa.8.49", "siteId": "SI/JST.JSTAGE", "content_type": "JA", "ra": "JaLC", "prefix": "10.11178", "site_name": "J-STAGE", "publisher_list": [{"publisher_name": "Agricultural and Forestry Research Center, University of Tsukuba", "lang": "en"}, {"publisher_name": "筑波大学農林技術センター", "lang": "ja"}], "title_list": [{"lang": "en", "title": "Reformulating Agriculture and Forestry Education in the Philippines: Issues and Concerns"}], "publication_date": {"publication_year": "2013"}, "content_language": "en", "updated_date": "2014-12-09", "article_type": "pub", "journal_title_name_list": [{"journal_title_name": "Journal of Developments in Sustainable Agriculture", "type": "full", "lang": "en"}, {"journal_title_name": "J. Dev. Sus. Agr.", "type": "abbreviation", "lang": "en"}], "journal_classification": "01", "journal_txt_lang": "en", "recorded_year": "2006-2014", "volume": "8", "issue": "1", "first_page": "49", "last_page": "62", "date": "2013-03-15", "journal_id_list": ["issn:1880-3016", "issn:1880-3024", "jid:jdsa"], "creator_list": [{"type": "person", "names": [{"lang": "en", "last_name": "O. Cruz", "first_name": "Rex Victor"}]}, {"type": "person", "names": [{"lang": "en", "last_name": "B. Bantayan", "first_name": "Rosario"}]}, {"type": "person", "names": [{"lang": "en", "last_name": "D. Landicho", "first_name": "Leila"}]}, {"type": "person", "names": [{"lang": "en", "last_name": "C. Bantayan", "first_name": "Nathaniel"}]}], "citation_list": [{"doi": "doi:10.11178/jdsa.5.47", "title_list": [{"lang": "en", "title": "Enhancing Food Security in the Context of Climate Change and the Role of Higher Education Institutions in the Philippines"}], "volume": "5", "issue": "1", "first_page": "47", "last_page": "63", "publication_date": {"publication_year": "2010"}, "content_language": "en", "creator_list": [{"type": "person", "names": [{"lang": "en", "last_name": "Espaldon", "first_name": "Maria Victoria O."}]}, {"type": "person", "names": [{"lang": "en", "last_name": "Zamora", "first_name": "Oscar B."}]}, {"type": "person", "names": [{"lang": "en", "last_name": "Perez", "first_name": "Rosa T."}]}]}]}
+
+        jalc_processor = JalcProcessing()
+        authors_list = jalc_processor.get_authors(entity_dict)
+        authors_strings_list, _ = jalc_processor.get_agents_strings_list('10.11178/jdsa.8.49', authors_list)
+        expected_authors_list = ['O. Cruz, Rex Victor', 'B. Bantayan, Rosario', 'D. Landicho, Leila', 'C. Bantayan, Nathaniel']
+
+        self.assertEqual(authors_strings_list, expected_authors_list)
+
+
+    def test_get_agents_strings_list_same_family(self):
+        # Two authors have the same family name and the same given name initials
+        entity_dict = {"doi": "doi:10.11178/jdsa.8.49", "siteId": "SI/JST.JSTAGE", "content_type": "JA", "ra": "JaLC", "prefix": "10.11178", "site_name": "J-STAGE", "publisher_list": [{"publisher_name": "Agricultural and Forestry Research Center, University of Tsukuba", "lang": "en"}, {"publisher_name": "筑波大学農林技術センター", "lang": "ja"}], "title_list": [{"lang": "en", "title": "Reformulating Agriculture and Forestry Education in the Philippines: Issues and Concerns"}], "publication_date": {"publication_year": "2013"}, "content_language": "en", "updated_date": "2014-12-09", "article_type": "pub", "journal_title_name_list": [{"journal_title_name": "Journal of Developments in Sustainable Agriculture", "type": "full", "lang": "en"}, {"journal_title_name": "J. Dev. Sus. Agr.", "type": "abbreviation", "lang": "en"}], "journal_classification": "01", "journal_txt_lang": "en", "recorded_year": "2006-2014", "volume": "8", "issue": "1", "first_page": "49", "last_page": "62", "date": "2013-03-15", "journal_id_list": ["issn:1880-3016", "issn:1880-3024", "jid:jdsa"], "creator_list": [{"type": "person", "names": [{"lang": "ja", "last_name": "豊田", "first_name": "理理子"}]}, {"type": "person", "names": [{"lang": "ja", "last_name": "豊田", "first_name": "理純一朗"}]}], "citation_list": [{"doi": "doi:10.11178/jdsa.5.47", "title_list": [{"lang": "en", "title": "Enhancing Food Security in the Context of Climate Change and the Role of Higher Education Institutions in the Philippines"}], "volume": "5", "issue": "1", "first_page": "47", "last_page": "63", "publication_date": {"publication_year": "2010"}, "content_language": "en", "creator_list": [{"type": "person", "names": [{"lang": "en", "last_name": "Espaldon", "first_name": "Maria Victoria O."}]}, {"type": "person", "names": [{"lang": "en", "last_name": "Zamora", "first_name": "Oscar B."}]}, {"type": "person", "names": [{"lang": "en", "last_name": "Perez", "first_name": "Rosa T."}]}]}]}
+        jalc_processor = JalcProcessing()
+        authors_list = jalc_processor.get_authors(entity_dict)
+        authors_strings_list, _ = jalc_processor.get_agents_strings_list('10.11178/jdsa.8.49', authors_list)
+        expected_authors_list = ['豊田, 理理子', '豊田, 理純一朗']
+        self.assertEqual(authors_strings_list, expected_authors_list)
+
+    def test_get_agents_strings_list_homonyms(self):
+        # Two authors have the same family name and the same given name
+        entity_dict = {"doi": "doi:10.11178/jdsa.8.49", "siteId": "SI/JST.JSTAGE", "content_type": "JA", "ra": "JaLC", "prefix": "10.11178", "site_name": "J-STAGE", "publisher_list": [{"publisher_name": "Agricultural and Forestry Research Center, University of Tsukuba", "lang": "en"}, {"publisher_name": "筑波大学農林技術センター", "lang": "ja"}], "title_list": [{"lang": "en", "title": "Reformulating Agriculture and Forestry Education in the Philippines: Issues and Concerns"}], "publication_date": {"publication_year": "2013"}, "content_language": "en", "updated_date": "2014-12-09", "article_type": "pub", "journal_title_name_list": [{"journal_title_name": "Journal of Developments in Sustainable Agriculture", "type": "full", "lang": "en"}, {"journal_title_name": "J. Dev. Sus. Agr.", "type": "abbreviation", "lang": "en"}], "journal_classification": "01", "journal_txt_lang": "en", "recorded_year": "2006-2014", "volume": "8", "issue": "1", "first_page": "49", "last_page": "62", "date": "2013-03-15", "journal_id_list": ["issn:1880-3016", "issn:1880-3024", "jid:jdsa"], "creator_list": [{"type": "person", "names": [{"lang": "ja", "last_name": "豊田", "first_name": "理理子"}]}, {"type": "person", "names": [{"lang": "ja", "last_name": "豊田", "first_name": "理純一朗"}]}, {"type": "person", "names": [{"lang": "ja", "last_name": "豊田", "first_name": "理純一朗"}]}], "citation_list": [{"doi": "doi:10.11178/jdsa.5.47", "title_list": [{"lang": "en", "title": "Enhancing Food Security in the Context of Climate Change and the Role of Higher Education Institutions in the Philippines"}], "volume": "5", "issue": "1", "first_page": "47", "last_page": "63", "publication_date": {"publication_year": "2010"}, "content_language": "en", "creator_list": [{"type": "person", "names": [{"lang": "en", "last_name": "Espaldon", "first_name": "Maria Victoria O."}]}, {"type": "person", "names": [{"lang": "en", "last_name": "Zamora", "first_name": "Oscar B."}]}, {"type": "person", "names": [{"lang": "en", "last_name": "Perez", "first_name": "Rosa T."}]}]}]}
+
+        jalc_processor = JalcProcessing(None, None)
+        authors_list = jalc_processor.get_authors(entity_dict)
+        authors_strings_list, _ = jalc_processor.get_agents_strings_list('10.11178/jdsa.8.49', authors_list)
+        expected_authors_list = ['豊田, 理理子', '豊田, 理純一朗', '豊田, 理純一朗']
+        self.assertEqual(authors_strings_list, expected_authors_list)
+
+
+    def test_get_agents_strings_list_inverted_names(self):
+        # One author with an ORCID has as a name the surname of another
+        entity_dict = {"doi": "doi:10.11178/jdsa.8.49", "siteId": "SI/JST.JSTAGE", "content_type": "JA", "ra": "JaLC", "prefix": "10.11178", "site_name": "J-STAGE", "publisher_list": [{"publisher_name": "Agricultural and Forestry Research Center, University of Tsukuba", "lang": "en"}, {"publisher_name": "筑波大学農林技術センター", "lang": "ja"}], "title_list": [{"lang": "en", "title": "Reformulating Agriculture and Forestry Education in the Philippines: Issues and Concerns"}], "publication_date": {"publication_year": "2013"}, "content_language": "en", "updated_date": "2014-12-09", "article_type": "pub", "journal_title_name_list": [{"journal_title_name": "Journal of Developments in Sustainable Agriculture", "type": "full", "lang": "en"}, {"journal_title_name": "J. Dev. Sus. Agr.", "type": "abbreviation", "lang": "en"}], "journal_classification": "01", "journal_txt_lang": "en", "recorded_year": "2006-2014", "volume": "8", "issue": "1", "first_page": "49", "last_page": "62", "date": "2013-03-15", "journal_id_list": ["issn:1880-3016", "issn:1880-3024", "jid:jdsa"], "creator_list": [{"type": "person", "names": [{"lang": "ja", "last_name": "豊田", "first_name": "理理子"}]}, {"type": "person", "names": [{"lang": "ja", "last_name": "理純一朗", "first_name": "豊田"}]}, {"type": "person", "names": [{"lang": "ja", "last_name": "豊田", "first_name": "理純一朗"}]}], "citation_list": [{"doi": "doi:10.11178/jdsa.5.47", "title_list": [{"lang": "en", "title": "Enhancing Food Security in the Context of Climate Change and the Role of Higher Education Institutions in the Philippines"}], "volume": "5", "issue": "1", "first_page": "47", "last_page": "63", "publication_date": {"publication_year": "2010"}, "content_language": "en", "creator_list": [{"type": "person", "names": [{"lang": "en", "last_name": "Espaldon", "first_name": "Maria Victoria O."}]}, {"type": "person", "names": [{"lang": "en", "last_name": "Zamora", "first_name": "Oscar B."}]}, {"type": "person", "names": [{"lang": "en", "last_name": "Perez", "first_name": "Rosa T."}]}]}]}
+
+        jalc_processor = JalcProcessing(None, None)
+        authors_list = jalc_processor.get_authors(entity_dict)
+        authors_strings_list, _ = jalc_processor.get_agents_strings_list('10.12753/2066-026x-14-246', authors_list)
+        expected_authors_list = ['豊田, 理理子', '理純一朗, 豊田', '豊田, 理純一朗']
+
+        self.assertEqual(authors_strings_list, expected_authors_list)
+
+    def test_load_publishers_mapping(self):
+        output = JalcProcessing.load_publishers_mapping(publishers_filepath=PUBLISHERS_MAPPING)
+        expected_output = {
+            '1': {'name': '一般社団法人 染色体学会', 'prefixes': {'10.11352'}},
+            '2': {'name': 'The Japan Society for Organ Preservation and Biology', 'prefixes': {'10.11378'}},
+            '3': {'name': '公益財団法人大原記念労働科学研究所', 'prefixes': {'10.11355'}}}
+        self.assertEqual(output, expected_output)
+
+    def test_get_publisher_name(self):
+        # The item's member is in the publishers' mapping
+        item_dict = {"doi": "doi:10.11378/organbio.28.18", "siteId": "SI/JST.JSTAGE", "content_type": "JA", "ra": "JaLC", "prefix": "10.11378", "site_name": "J-STAGE", "publisher_list": [{"publisher_name": "The Japan Society for Organ Preservation and Biology", "lang": "en"}, {"publisher_name": "一般社団法人　日本臓器保存生物医学会", "lang": "ja"}], "title_list": [{"lang": "ja", "title": "アビガン（ファビピラビル）の開発とウイルス学から見た新型コロナウイルス感染流行下の既存感染症の発生状況"}, {"lang": "en", "title": "Development of Avigan (favipiravir) and effect of COVID-19 epidemic on other infectious diseases"}], "publication_date": {"publication_year": "2021"}, "content_language": "ja", "updated_date": "2021-02-09", "article_type": "pub", "journal_title_name_list": [{"journal_title_name": "Organ Biology", "type": "full", "lang": "en"}, {"journal_title_name": "Organ Biology", "type": "abbreviation", "lang": "en"}, {"journal_title_name": "Organ Biology", "type": "full", "lang": "ja"}, {"journal_title_name": "Organ Biology", "type": "abbreviation", "lang": "ja"}], "journal_classification": "01", "journal_txt_lang": "ja", "recorded_year": "2011-2014", "volume": "28", "issue": "1", "first_page": "18", "last_page": "30", "date": "2021-02-10", "journal_id_list": ["issn:1340-5152", "issn:2188-0204", "jid:organbio"], "creator_list": [{"type": "person", "names": [{"lang": "ja", "last_name": "白木", "first_name": "公康"}, {"lang": "en", "last_name": "Shiraki", "first_name": "Kimiyasu"}]}], "citation_list": [{"doi": "doi:10.1016/j.jmii.2017.03.004"}, {"doi": "doi:10.1016/j.pharmthera.2020.107512"}, {"doi": "doi:10.1371/journal.pmed.1001967"}, {"doi": "doi:10.1128/aac.01269-09"}]}
+        jalc_processor = JalcProcessing(publishers_filepath=PUBLISHERS_MAPPING)
+        publisher_name = jalc_processor.get_publisher_name(item_dict)
+        self.assertEqual(publisher_name, 'The Japan Society for Organ Preservation and Biology')
+
+    def test_get_publisher_name_from_prefix(self):
+        # The item has no declared publisher (NOTE that the dictionary key 'publisher_list' has been removed for testing purposes), but the DOI prefix is in the publishers' mapping
+        item_dict = {"doi": "doi:10.11378/organbio.28.18", "siteId": "SI/JST.JSTAGE", "content_type": "JA", "ra": "JaLC", "prefix": "10.11378", "site_name": "J-STAGE", "title_list": [{"lang": "ja", "title": "アビガン（ファビピラビル）の開発とウイルス学から見た新型コロナウイルス感染流行下の既存感染症の発生状況"}, {"lang": "en", "title": "Development of Avigan (favipiravir) and effect of COVID-19 epidemic on other infectious diseases"}], "publication_date": {"publication_year": "2021"}, "content_language": "ja", "updated_date": "2021-02-09", "article_type": "pub", "journal_title_name_list": [{"journal_title_name": "Organ Biology", "type": "full", "lang": "en"}, {"journal_title_name": "Organ Biology", "type": "abbreviation", "lang": "en"}, {"journal_title_name": "Organ Biology", "type": "full", "lang": "ja"}, {"journal_title_name": "Organ Biology", "type": "abbreviation", "lang": "ja"}], "journal_classification": "01", "journal_txt_lang": "ja", "recorded_year": "2011-2014", "volume": "28", "issue": "1", "first_page": "18", "last_page": "30", "date": "2021-02-10", "journal_id_list": ["issn:1340-5152", "issn:2188-0204", "jid:organbio"], "creator_list": [{"type": "person", "names": [{"lang": "ja", "last_name": "白木", "first_name": "公康"}, {"lang": "en", "last_name": "Shiraki", "first_name": "Kimiyasu"}]}], "citation_list": [{"doi": "doi:10.1016/j.jmii.2017.03.004"}, {"doi": "doi:10.1016/j.pharmthera.2020.107512"}, {"doi": "doi:10.1371/journal.pmed.1001967"}, {"doi": "doi:10.1128/aac.01269-09"}]}
+        jalc_processor = JalcProcessing(publishers_filepath=PUBLISHERS_MAPPING)
+        publisher_name = jalc_processor.get_publisher_name(item_dict)
+        self.assertEqual(publisher_name, 'The Japan Society for Organ Preservation and Biology')
+
+    def test_get_venue(self):
+        item_dict = {"doi": "doi:10.11378/organbio.28.18", "siteId": "SI/JST.JSTAGE", "content_type": "JA", "ra": "JaLC", "prefix": "10.11378", "site_name": "J-STAGE", "publisher_list": [{"publisher_name": "The Japan Society for Organ Preservation and Biology", "lang": "en"}, {"publisher_name": "一般社団法人　日本臓器保存生物医学会", "lang": "ja"}], "title_list": [{"lang": "ja", "title": "アビガン（ファビピラビル）の開発とウイルス学から見た新型コロナウイルス感染流行下の既存感染症の発生状況"}, {"lang": "en", "title": "Development of Avigan (favipiravir) and effect of COVID-19 epidemic on other infectious diseases"}], "publication_date": {"publication_year": "2021"}, "content_language": "ja", "updated_date": "2021-02-09", "article_type": "pub", "journal_title_name_list": [{"journal_title_name": "Organ Biology", "type": "full", "lang": "en"}, {"journal_title_name": "Organ Biology", "type": "abbreviation", "lang": "en"}, {"journal_title_name": "Organ Biology", "type": "full", "lang": "ja"}, {"journal_title_name": "Organ Biology", "type": "abbreviation", "lang": "ja"}], "journal_classification": "01", "journal_txt_lang": "ja", "recorded_year": "2011-2014", "volume": "28", "issue": "1", "first_page": "18", "last_page": "30", "date": "2021-02-10", "journal_id_list": ["issn:1340-5152", "issn:2188-0204", "jid:organbio"], "creator_list": [{"type": "person", "names": [{"lang": "ja", "last_name": "白木", "first_name": "公康"}, {"lang": "en", "last_name": "Shiraki", "first_name": "Kimiyasu"}]}], "citation_list": [{"doi": "doi:10.1016/j.jmii.2017.03.004"}, {"doi": "doi:10.1016/j.pharmthera.2020.107512"}, {"doi": "doi:10.1371/journal.pmed.1001967"}, {"doi": "doi:10.1128/aac.01269-09"}]}
+        jalc_processor = JalcProcessing(publishers_filepath=PUBLISHERS_MAPPING)
+        venue_name = jalc_processor.get_venue(item_dict)
+        self.assertEqual(venue_name, 'Organ Biology [issn:1340-5152 issn:2188-0204 jid:organbio]')
+
+    def test_get_venue_without_full(self):
+        item_dict = {"doi": "doi:10.11230/jsts.7.1_1", "siteId": "SI/JST.JSTAGE", "content_type": "JA", "ra": "JaLC", "prefix": "10.11230", "site_name": "J-STAGE", "publisher_list": [{"publisher_name": "Japanese Rocket Society", "lang": "en"}, {"publisher_name": "特定非営利活動法人　日本ロケット協会", "lang": "ja"}], "title_list": [{"lang": "en", "title": "Ozone Measurement by MT-135 Rocket"}], "publication_date": {"publication_year": "1991"}, "content_language": "en", "updated_date": "2014-12-09", "article_type": "pub", "journal_title_name_list": [{"journal_title_name": "JSTS", "type": "abbreviation", "lang": "en"}], "journal_classification": "01", "journal_txt_lang": "en", "recorded_year": "1985-2013", "volume": "7", "issue": "1", "first_page": "1_1", "last_page": "1_8", "date": "2013-08-31", "journal_id_list": ["issn:0911-551X", "issn:2186-4772", "jid:jsts"], "creator_list": [{"type": "person", "names": [{"lang": "en", "last_name": "ONODA", "first_name": "Junjiro"}]}, {"type": "person", "names": [{"lang": "en", "last_name": "OGAWA", "first_name": "Toshihiro"}]}], "citation_list": [{"doi": "doi:10.1063/1.1139209"}]}
+        jalc_processor = JalcProcessing(publishers_filepath=PUBLISHERS_MAPPING)
+        venue_name = jalc_processor.get_venue(item_dict)
+        self.assertEqual(venue_name, 'JSTS [issn:0911-551X issn:2186-4772 jid:jsts]')
+
+    def test_get_pages_with_underscore(self):
+        # first_page: 1_34, last_page: 1_48
+        item_dict = {"doi": "doi:10.11230/jsts.18.1_34", "siteId": "SI/JST.JSTAGE", "content_type": "JA", "ra": "JaLC", "prefix": "10.11230", "site_name": "J-STAGE", "publisher_list": [{"publisher_name": "Japanese Rocket Society", "lang": "en"}, {"publisher_name": "特定非営利活動法人　日本ロケット協会", "lang": "ja"}], "title_list": [{"lang": "en", "title": "Atomic Oxygen Protections in Polymeric Systems: A Review"}], "publication_date": {"publication_year": "2002"}, "content_language": "en", "updated_date": "2014-12-09", "article_type": "pub", "journal_title_name_list": [{"journal_title_name": "The Journal of Space Technology and Science", "type": "full", "lang": "en"}, {"journal_title_name": "JSTS", "type": "abbreviation", "lang": "en"}], "journal_classification": "01", "journal_txt_lang": "en", "recorded_year": "1985-2013", "volume": "18", "issue": "1", "first_page": "1_34", "last_page": "1_48", "date": "2013-08-18", "journal_id_list": ["issn:0911-551X", "issn:2186-4772", "jid:jsts"], "creator_list": [{"type": "person", "names": [{"lang": "en", "last_name": "RIMDUSIT", "first_name": "Sarawut"}]}, {"type": "person", "names": [{"lang": "en", "last_name": "YOKOTA", "first_name": "Rikio"}]}], "citation_list": [{"doi": "doi:10.2494/photopolymer.12.209", "title_list": [{"lang": "en", "title": "Recent Trends and Space Applications of Poylmides."}], "volume": "12", "issue": "2", "first_page": "209", "last_page": "216", "publication_date": {"publication_year": "1999"}, "content_language": "en", "creator_list": [{"type": "person", "names": [{"lang": "en", "last_name": "YOKOTA", "first_name": "RIKIO"}]}]}, {"doi": "doi:10.1007/bf00354389", "title_list": [{"lang": "en", "title": "Effect of low earth orbit atomic oxygen on spacecraft materials."}], "volume": "30", "issue": "2", "first_page": "281", "last_page": "307", "publication_date": {"publication_year": "1995"}, "content_language": "en"}, {"doi": "doi:10.1007/bf00354390", "title_list": [{"lang": "en", "title": "Atomic oxygen resistant coatings for low earth orbit space structures."}], "volume": "30", "issue": "2", "first_page": "308", "last_page": "320", "publication_date": {"publication_year": "1995"}, "content_language": "en"}, {"doi": "doi:10.1088/0954-0083/11/1/013", "title_list": [{"lang": "en", "title": "Protection of polymetric materials from atomic oxygen."}], "volume": "11", "issue": "1", "first_page": "157", "last_page": "165", "publication_date": {"publication_year": "1999"}, "content_language": "en"}, {"doi": "doi:10.1177/0954008303015002003", "volume": "15", "first_page": "181", "publication_date": {"publication_year": "2003"}}, {"doi": "doi:10.1021/ma0201779", "title_list": [{"lang": "en", "title": "Space Environmentally Stable Polyimides and Copolyimides Derived from [2,4-Bis(3-aminophenoxy)phenyl]diphenylphosphine Oxide."}], "volume": "35", "issue": "13", "first_page": "4968", "last_page": "4974", "publication_date": {"publication_year": "2002"}, "content_language": "en"}, {"doi": "doi:10.1021/ma0201779", "title_list": [{"lang": "en", "title": "Space Environmentally Stable Polyimides and Copolyimides Derived from [2,4-Bis(3-aminophenoxy)phenyl]diphenylphosphine Oxide."}], "volume": "35", "issue": "13", "first_page": "4968", "last_page": "4974", "publication_date": {"publication_year": "2002"}, "content_language": "en"}, {"doi": "doi:10.1246/cl.1997.333", "title_list": [{"lang": "en", "title": "In situ Formed Three Layer Film by Isomerization of Fluorinated Polyisoimide in Polyethersulfone as a Matrix Polymer."}], "issue": "4", "first_page": "333", "last_page": "334", "publication_date": {"publication_year": "1997"}, "content_language": "en", "creator_list": [{"type": "person", "names": [{"lang": "en", "last_name": "Mochizuki", "first_name": "Amane"}]}, {"type": "person", "names": [{"lang": "en", "last_name": "Yamada", "first_name": "Kazuo"}]}, {"type": "person", "names": [{"lang": "en", "last_name": "Ueda", "first_name": "Mitsuru"}]}, {"type": "person", "names": [{"lang": "en", "last_name": "Yokota", "first_name": "Rikio"}]}]}, {"doi": "doi:10.1126/science.2563171", "title_list": [{"lang": "en", "title": "Effects of buried ionizable amino acids on the reduction potential of recombinant myoglobin."}], "volume": "243", "issue": "4887", "first_page": "69", "last_page": "72", "publication_date": {"publication_year": "1989"}, "content_language": "en"}, {"doi": "doi:10.1016/0032-3861(95)90668-r", "title_list": [{"lang": "en", "title": "Oxygen plasma-resistant phenylphosphine oxide-containing polyimides and poly(arylene ether heterocycle)s. 1."}], "volume": "36", "issue": "1", "first_page": "5", "last_page": "11", "publication_date": {"publication_year": "1995"}, "content_language": "en"}, {"doi": "doi:10.1016/0032-3861(95)90669-s", "title_list": [{"lang": "en", "title": "Oxgen plasma-resistant phenylphosphine oxide-containing polyimides and poly(arylene ether heterocycle)s. 2."}], "volume": "36", "issue": "1", "first_page": "13", "last_page": "19", "publication_date": {"publication_year": "1995"}, "content_language": "en"}, {"doi": "doi:10.1088/0954-0083/11/1/008", "title_list": [{"lang": "en", "title": "Electrically conductive space-durable polymeric films for spacecraft thermal and charge control."}], "volume": "11", "issue": "1", "first_page": "101", "last_page": "111", "publication_date": {"publication_year": "1999"}, "content_language": "en"}, {"doi": "doi:10.1016/s0032-3861(02)00362-2"}, {"doi": "doi:10.1021/ma0201779", "title_list": [{"lang": "en", "title": "Space Environmentally Stable Polyimides and Copolyimides Derived from [2,4-Bis(3-aminophenoxy)phenyl]diphenylphosphine Oxide."}], "volume": "35", "issue": "13", "first_page": "4968", "last_page": "4974", "publication_date": {"publication_year": "2002"}, "content_language": "en"}, {"doi": "doi:10.1021/ma0201779", "title_list": [{"lang": "en", "title": "Space Environmentally Stable Polyimides and Copolyimides Derived from [2,4-Bis(3-aminophenoxy)phenyl]diphenylphosphine Oxide."}], "volume": "35", "issue": "13", "first_page": "4968", "last_page": "4974", "publication_date": {"publication_year": "2002"}, "content_language": "en"}]}
+        jalc_processor = JalcProcessing()
+        pages = jalc_processor.get_jalc_pages(item_dict)
+        self.assertEqual(pages, '1_34-1_48')
+
+
+    def test_get_pages_wrong_letter(self):
+        #first_page: 1_34b
+        item_dict = {"doi": "doi:10.11230/jsts.18.1_34", "siteId": "SI/JST.JSTAGE", "content_type": "JA", "ra": "JaLC", "prefix": "10.11230", "site_name": "J-STAGE", "publisher_list": [{"publisher_name": "Japanese Rocket Society", "lang": "en"}, {"publisher_name": "特定非営利活動法人　日本ロケット協会", "lang": "ja"}], "title_list": [{"lang": "en", "title": "Atomic Oxygen Protections in Polymeric Systems: A Review"}], "publication_date": {"publication_year": "2002"}, "content_language": "en", "updated_date": "2014-12-09", "article_type": "pub", "journal_title_name_list": [{"journal_title_name": "The Journal of Space Technology and Science", "type": "full", "lang": "en"}, {"journal_title_name": "JSTS", "type": "abbreviation", "lang": "en"}], "journal_classification": "01", "journal_txt_lang": "en", "recorded_year": "1985-2013", "volume": "18", "issue": "1", "first_page": "1_34b", "last_page": "1_48", "date": "2013-08-18", "journal_id_list": ["issn:0911-551X", "issn:2186-4772", "jid:jsts"], "creator_list": [{"type": "person", "names": [{"lang": "en", "last_name": "RIMDUSIT", "first_name": "Sarawut"}]}, {"type": "person", "names": [{"lang": "en", "last_name": "YOKOTA", "first_name": "Rikio"}]}], "citation_list": [{"doi": "doi:10.2494/photopolymer.12.209", "title_list": [{"lang": "en", "title": "Recent Trends and Space Applications of Poylmides."}], "volume": "12", "issue": "2", "first_page": "209", "last_page": "216", "publication_date": {"publication_year": "1999"}, "content_language": "en", "creator_list": [{"type": "person", "names": [{"lang": "en", "last_name": "YOKOTA", "first_name": "RIKIO"}]}]}, {"doi": "doi:10.1007/bf00354389", "title_list": [{"lang": "en", "title": "Effect of low earth orbit atomic oxygen on spacecraft materials."}], "volume": "30", "issue": "2", "first_page": "281", "last_page": "307", "publication_date": {"publication_year": "1995"}, "content_language": "en"}, {"doi": "doi:10.1007/bf00354390", "title_list": [{"lang": "en", "title": "Atomic oxygen resistant coatings for low earth orbit space structures."}], "volume": "30", "issue": "2", "first_page": "308", "last_page": "320", "publication_date": {"publication_year": "1995"}, "content_language": "en"}, {"doi": "doi:10.1088/0954-0083/11/1/013", "title_list": [{"lang": "en", "title": "Protection of polymetric materials from atomic oxygen."}], "volume": "11", "issue": "1", "first_page": "157", "last_page": "165", "publication_date": {"publication_year": "1999"}, "content_language": "en"}, {"doi": "doi:10.1177/0954008303015002003", "volume": "15", "first_page": "181", "publication_date": {"publication_year": "2003"}}, {"doi": "doi:10.1021/ma0201779", "title_list": [{"lang": "en", "title": "Space Environmentally Stable Polyimides and Copolyimides Derived from [2,4-Bis(3-aminophenoxy)phenyl]diphenylphosphine Oxide."}], "volume": "35", "issue": "13", "first_page": "4968", "last_page": "4974", "publication_date": {"publication_year": "2002"}, "content_language": "en"}, {"doi": "doi:10.1021/ma0201779", "title_list": [{"lang": "en", "title": "Space Environmentally Stable Polyimides and Copolyimides Derived from [2,4-Bis(3-aminophenoxy)phenyl]diphenylphosphine Oxide."}], "volume": "35", "issue": "13", "first_page": "4968", "last_page": "4974", "publication_date": {"publication_year": "2002"}, "content_language": "en"}, {"doi": "doi:10.1246/cl.1997.333", "title_list": [{"lang": "en", "title": "In situ Formed Three Layer Film by Isomerization of Fluorinated Polyisoimide in Polyethersulfone as a Matrix Polymer."}], "issue": "4", "first_page": "333", "last_page": "334", "publication_date": {"publication_year": "1997"}, "content_language": "en", "creator_list": [{"type": "person", "names": [{"lang": "en", "last_name": "Mochizuki", "first_name": "Amane"}]}, {"type": "person", "names": [{"lang": "en", "last_name": "Yamada", "first_name": "Kazuo"}]}, {"type": "person", "names": [{"lang": "en", "last_name": "Ueda", "first_name": "Mitsuru"}]}, {"type": "person", "names": [{"lang": "en", "last_name": "Yokota", "first_name": "Rikio"}]}]}, {"doi": "doi:10.1126/science.2563171", "title_list": [{"lang": "en", "title": "Effects of buried ionizable amino acids on the reduction potential of recombinant myoglobin."}], "volume": "243", "issue": "4887", "first_page": "69", "last_page": "72", "publication_date": {"publication_year": "1989"}, "content_language": "en"}, {"doi": "doi:10.1016/0032-3861(95)90668-r", "title_list": [{"lang": "en", "title": "Oxygen plasma-resistant phenylphosphine oxide-containing polyimides and poly(arylene ether heterocycle)s. 1."}], "volume": "36", "issue": "1", "first_page": "5", "last_page": "11", "publication_date": {"publication_year": "1995"}, "content_language": "en"}, {"doi": "doi:10.1016/0032-3861(95)90669-s", "title_list": [{"lang": "en", "title": "Oxgen plasma-resistant phenylphosphine oxide-containing polyimides and poly(arylene ether heterocycle)s. 2."}], "volume": "36", "issue": "1", "first_page": "13", "last_page": "19", "publication_date": {"publication_year": "1995"}, "content_language": "en"}, {"doi": "doi:10.1088/0954-0083/11/1/008", "title_list": [{"lang": "en", "title": "Electrically conductive space-durable polymeric films for spacecraft thermal and charge control."}], "volume": "11", "issue": "1", "first_page": "101", "last_page": "111", "publication_date": {"publication_year": "1999"}, "content_language": "en"}, {"doi": "doi:10.1016/s0032-3861(02)00362-2"}, {"doi": "doi:10.1021/ma0201779", "title_list": [{"lang": "en", "title": "Space Environmentally Stable Polyimides and Copolyimides Derived from [2,4-Bis(3-aminophenoxy)phenyl]diphenylphosphine Oxide."}], "volume": "35", "issue": "13", "first_page": "4968", "last_page": "4974", "publication_date": {"publication_year": "2002"}, "content_language": "en"}, {"doi": "doi:10.1021/ma0201779", "title_list": [{"lang": "en", "title": "Space Environmentally Stable Polyimides and Copolyimides Derived from [2,4-Bis(3-aminophenoxy)phenyl]diphenylphosphine Oxide."}], "volume": "35", "issue": "13", "first_page": "4968", "last_page": "4974", "publication_date": {"publication_year": "2002"}, "content_language": "en"}]}
+        jalc_processor = JalcProcessing()
+        pages = jalc_processor.get_jalc_pages(item_dict)
+        self.assertEqual(pages, '1_34-1_48')
+
+    def test_get_pages_just_one_page(self):
+        item_dict = {"doi": "doi:10.11230/jsts.18.1_34", "siteId": "SI/JST.JSTAGE", "content_type": "JA", "ra": "JaLC", "prefix": "10.11230", "site_name": "J-STAGE", "publisher_list": [{"publisher_name": "Japanese Rocket Society", "lang": "en"}, {"publisher_name": "特定非営利活動法人　日本ロケット協会", "lang": "ja"}], "title_list": [{"lang": "en", "title": "Atomic Oxygen Protections in Polymeric Systems: A Review"}], "publication_date": {"publication_year": "2002"}, "content_language": "en", "updated_date": "2014-12-09", "article_type": "pub", "journal_title_name_list": [{"journal_title_name": "The Journal of Space Technology and Science", "type": "full", "lang": "en"}, {"journal_title_name": "JSTS", "type": "abbreviation", "lang": "en"}], "journal_classification": "01", "journal_txt_lang": "en", "recorded_year": "1985-2013", "volume": "18", "issue": "1", "first_page": "134", "date": "2013-08-18", "journal_id_list": ["issn:0911-551X", "issn:2186-4772", "jid:jsts"], "creator_list": [{"type": "person", "names": [{"lang": "en", "last_name": "RIMDUSIT", "first_name": "Sarawut"}]}, {"type": "person", "names": [{"lang": "en", "last_name": "YOKOTA", "first_name": "Rikio"}]}], "citation_list": [{"doi": "doi:10.2494/photopolymer.12.209", "title_list": [{"lang": "en", "title": "Recent Trends and Space Applications of Poylmides."}], "volume": "12", "issue": "2", "first_page": "209", "last_page": "216", "publication_date": {"publication_year": "1999"}, "content_language": "en", "creator_list": [{"type": "person", "names": [{"lang": "en", "last_name": "YOKOTA", "first_name": "RIKIO"}]}]}, {"doi": "doi:10.1007/bf00354389", "title_list": [{"lang": "en", "title": "Effect of low earth orbit atomic oxygen on spacecraft materials."}], "volume": "30", "issue": "2", "first_page": "281", "last_page": "307", "publication_date": {"publication_year": "1995"}, "content_language": "en"}, {"doi": "doi:10.1007/bf00354390", "title_list": [{"lang": "en", "title": "Atomic oxygen resistant coatings for low earth orbit space structures."}], "volume": "30", "issue": "2", "first_page": "308", "last_page": "320", "publication_date": {"publication_year": "1995"}, "content_language": "en"}, {"doi": "doi:10.1088/0954-0083/11/1/013", "title_list": [{"lang": "en", "title": "Protection of polymetric materials from atomic oxygen."}], "volume": "11", "issue": "1", "first_page": "157", "last_page": "165", "publication_date": {"publication_year": "1999"}, "content_language": "en"}, {"doi": "doi:10.1177/0954008303015002003", "volume": "15", "first_page": "181", "publication_date": {"publication_year": "2003"}}, {"doi": "doi:10.1021/ma0201779", "title_list": [{"lang": "en", "title": "Space Environmentally Stable Polyimides and Copolyimides Derived from [2,4-Bis(3-aminophenoxy)phenyl]diphenylphosphine Oxide."}], "volume": "35", "issue": "13", "first_page": "4968", "last_page": "4974", "publication_date": {"publication_year": "2002"}, "content_language": "en"}, {"doi": "doi:10.1021/ma0201779", "title_list": [{"lang": "en", "title": "Space Environmentally Stable Polyimides and Copolyimides Derived from [2,4-Bis(3-aminophenoxy)phenyl]diphenylphosphine Oxide."}], "volume": "35", "issue": "13", "first_page": "4968", "last_page": "4974", "publication_date": {"publication_year": "2002"}, "content_language": "en"}, {"doi": "doi:10.1246/cl.1997.333", "title_list": [{"lang": "en", "title": "In situ Formed Three Layer Film by Isomerization of Fluorinated Polyisoimide in Polyethersulfone as a Matrix Polymer."}], "issue": "4", "first_page": "333", "last_page": "334", "publication_date": {"publication_year": "1997"}, "content_language": "en", "creator_list": [{"type": "person", "names": [{"lang": "en", "last_name": "Mochizuki", "first_name": "Amane"}]}, {"type": "person", "names": [{"lang": "en", "last_name": "Yamada", "first_name": "Kazuo"}]}, {"type": "person", "names": [{"lang": "en", "last_name": "Ueda", "first_name": "Mitsuru"}]}, {"type": "person", "names": [{"lang": "en", "last_name": "Yokota", "first_name": "Rikio"}]}]}, {"doi": "doi:10.1126/science.2563171", "title_list": [{"lang": "en", "title": "Effects of buried ionizable amino acids on the reduction potential of recombinant myoglobin."}], "volume": "243", "issue": "4887", "first_page": "69", "last_page": "72", "publication_date": {"publication_year": "1989"}, "content_language": "en"}, {"doi": "doi:10.1016/0032-3861(95)90668-r", "title_list": [{"lang": "en", "title": "Oxygen plasma-resistant phenylphosphine oxide-containing polyimides and poly(arylene ether heterocycle)s. 1."}], "volume": "36", "issue": "1", "first_page": "5", "last_page": "11", "publication_date": {"publication_year": "1995"}, "content_language": "en"}, {"doi": "doi:10.1016/0032-3861(95)90669-s", "title_list": [{"lang": "en", "title": "Oxgen plasma-resistant phenylphosphine oxide-containing polyimides and poly(arylene ether heterocycle)s. 2."}], "volume": "36", "issue": "1", "first_page": "13", "last_page": "19", "publication_date": {"publication_year": "1995"}, "content_language": "en"}, {"doi": "doi:10.1088/0954-0083/11/1/008", "title_list": [{"lang": "en", "title": "Electrically conductive space-durable polymeric films for spacecraft thermal and charge control."}], "volume": "11", "issue": "1", "first_page": "101", "last_page": "111", "publication_date": {"publication_year": "1999"}, "content_language": "en"}, {"doi": "doi:10.1016/s0032-3861(02)00362-2"}, {"doi": "doi:10.1021/ma0201779", "title_list": [{"lang": "en", "title": "Space Environmentally Stable Polyimides and Copolyimides Derived from [2,4-Bis(3-aminophenoxy)phenyl]diphenylphosphine Oxide."}], "volume": "35", "issue": "13", "first_page": "4968", "last_page": "4974", "publication_date": {"publication_year": "2002"}, "content_language": "en"}, {"doi": "doi:10.1021/ma0201779", "title_list": [{"lang": "en", "title": "Space Environmentally Stable Polyimides and Copolyimides Derived from [2,4-Bis(3-aminophenoxy)phenyl]diphenylphosphine Oxide."}], "volume": "35", "issue": "13", "first_page": "4968", "last_page": "4974", "publication_date": {"publication_year": "2002"}, "content_language": "en"}]}
+        jalc_processor = JalcProcessing()
+        pages = jalc_processor.get_jalc_pages(item_dict)
+        self.assertEqual(pages, '134-134')
+
+    def test_get_pages_non_roman_letters(self):
+        item_dict = {"doi": "doi:10.11230/jsts.18.1_34", "siteId": "SI/JST.JSTAGE", "content_type": "JA", "ra": "JaLC", "prefix": "10.11230", "site_name": "J-STAGE", "publisher_list": [{"publisher_name": "Japanese Rocket Society", "lang": "en"}, {"publisher_name": "特定非営利活動法人　日本ロケット協会", "lang": "ja"}], "title_list": [{"lang": "en", "title": "Atomic Oxygen Protections in Polymeric Systems: A Review"}], "publication_date": {"publication_year": "2002"}, "content_language": "en", "updated_date": "2014-12-09", "article_type": "pub", "journal_title_name_list": [{"journal_title_name": "The Journal of Space Technology and Science", "type": "full", "lang": "en"}, {"journal_title_name": "JSTS", "type": "abbreviation", "lang": "en"}], "journal_classification": "01", "journal_txt_lang": "en", "recorded_year": "1985-2013", "volume": "18", "issue": "1", "first_page": "kk", "last_page": "jio", "date": "2013-08-18", "journal_id_list": ["issn:0911-551X", "issn:2186-4772", "jid:jsts"], "creator_list": [{"type": "person", "names": [{"lang": "en", "last_name": "RIMDUSIT", "first_name": "Sarawut"}]}, {"type": "person", "names": [{"lang": "en", "last_name": "YOKOTA", "first_name": "Rikio"}]}], "citation_list": [{"doi": "doi:10.2494/photopolymer.12.209", "title_list": [{"lang": "en", "title": "Recent Trends and Space Applications of Poylmides."}], "volume": "12", "issue": "2", "first_page": "209", "last_page": "216", "publication_date": {"publication_year": "1999"}, "content_language": "en", "creator_list": [{"type": "person", "names": [{"lang": "en", "last_name": "YOKOTA", "first_name": "RIKIO"}]}]}, {"doi": "doi:10.1007/bf00354389", "title_list": [{"lang": "en", "title": "Effect of low earth orbit atomic oxygen on spacecraft materials."}], "volume": "30", "issue": "2", "first_page": "281", "last_page": "307", "publication_date": {"publication_year": "1995"}, "content_language": "en"}, {"doi": "doi:10.1007/bf00354390", "title_list": [{"lang": "en", "title": "Atomic oxygen resistant coatings for low earth orbit space structures."}], "volume": "30", "issue": "2", "first_page": "308", "last_page": "320", "publication_date": {"publication_year": "1995"}, "content_language": "en"}, {"doi": "doi:10.1088/0954-0083/11/1/013", "title_list": [{"lang": "en", "title": "Protection of polymetric materials from atomic oxygen."}], "volume": "11", "issue": "1", "first_page": "157", "last_page": "165", "publication_date": {"publication_year": "1999"}, "content_language": "en"}, {"doi": "doi:10.1177/0954008303015002003", "volume": "15", "first_page": "181", "publication_date": {"publication_year": "2003"}}, {"doi": "doi:10.1021/ma0201779", "title_list": [{"lang": "en", "title": "Space Environmentally Stable Polyimides and Copolyimides Derived from [2,4-Bis(3-aminophenoxy)phenyl]diphenylphosphine Oxide."}], "volume": "35", "issue": "13", "first_page": "4968", "last_page": "4974", "publication_date": {"publication_year": "2002"}, "content_language": "en"}, {"doi": "doi:10.1021/ma0201779", "title_list": [{"lang": "en", "title": "Space Environmentally Stable Polyimides and Copolyimides Derived from [2,4-Bis(3-aminophenoxy)phenyl]diphenylphosphine Oxide."}], "volume": "35", "issue": "13", "first_page": "4968", "last_page": "4974", "publication_date": {"publication_year": "2002"}, "content_language": "en"}, {"doi": "doi:10.1246/cl.1997.333", "title_list": [{"lang": "en", "title": "In situ Formed Three Layer Film by Isomerization of Fluorinated Polyisoimide in Polyethersulfone as a Matrix Polymer."}], "issue": "4", "first_page": "333", "last_page": "334", "publication_date": {"publication_year": "1997"}, "content_language": "en", "creator_list": [{"type": "person", "names": [{"lang": "en", "last_name": "Mochizuki", "first_name": "Amane"}]}, {"type": "person", "names": [{"lang": "en", "last_name": "Yamada", "first_name": "Kazuo"}]}, {"type": "person", "names": [{"lang": "en", "last_name": "Ueda", "first_name": "Mitsuru"}]}, {"type": "person", "names": [{"lang": "en", "last_name": "Yokota", "first_name": "Rikio"}]}]}, {"doi": "doi:10.1126/science.2563171", "title_list": [{"lang": "en", "title": "Effects of buried ionizable amino acids on the reduction potential of recombinant myoglobin."}], "volume": "243", "issue": "4887", "first_page": "69", "last_page": "72", "publication_date": {"publication_year": "1989"}, "content_language": "en"}, {"doi": "doi:10.1016/0032-3861(95)90668-r", "title_list": [{"lang": "en", "title": "Oxygen plasma-resistant phenylphosphine oxide-containing polyimides and poly(arylene ether heterocycle)s. 1."}], "volume": "36", "issue": "1", "first_page": "5", "last_page": "11", "publication_date": {"publication_year": "1995"}, "content_language": "en"}, {"doi": "doi:10.1016/0032-3861(95)90669-s", "title_list": [{"lang": "en", "title": "Oxgen plasma-resistant phenylphosphine oxide-containing polyimides and poly(arylene ether heterocycle)s. 2."}], "volume": "36", "issue": "1", "first_page": "13", "last_page": "19", "publication_date": {"publication_year": "1995"}, "content_language": "en"}, {"doi": "doi:10.1088/0954-0083/11/1/008", "title_list": [{"lang": "en", "title": "Electrically conductive space-durable polymeric films for spacecraft thermal and charge control."}], "volume": "11", "issue": "1", "first_page": "101", "last_page": "111", "publication_date": {"publication_year": "1999"}, "content_language": "en"}, {"doi": "doi:10.1016/s0032-3861(02)00362-2"}, {"doi": "doi:10.1021/ma0201779", "title_list": [{"lang": "en", "title": "Space Environmentally Stable Polyimides and Copolyimides Derived from [2,4-Bis(3-aminophenoxy)phenyl]diphenylphosphine Oxide."}], "volume": "35", "issue": "13", "first_page": "4968", "last_page": "4974", "publication_date": {"publication_year": "2002"}, "content_language": "en"}, {"doi": "doi:10.1021/ma0201779", "title_list": [{"lang": "en", "title": "Space Environmentally Stable Polyimides and Copolyimides Derived from [2,4-Bis(3-aminophenoxy)phenyl]diphenylphosphine Oxide."}], "volume": "35", "issue": "13", "first_page": "4968", "last_page": "4974", "publication_date": {"publication_year": "2002"}, "content_language": "en"}]}
+        jalc_processor = JalcProcessing()
+        pages = jalc_processor.get_jalc_pages(item_dict)
+        self.assertEqual(pages, '')
+        
+    def test_get_ja_with_japanese(self):
+        list_input = [{"publisher_name": "Japanese Rocket Society", "lang": "en"}, {"publisher_name": "特定非営利活動法人　日本ロケット協会", "lang": "ja"}]
+        jalc_processor = JalcProcessing()
+        ja = jalc_processor.get_ja(list_input)
+        expected_out = [{"publisher_name": "特定非営利活動法人　日本ロケット協会", "lang": "ja"}]
+        self.assertEqual(ja, expected_out)
+
+    def test_get_ja_without_japanese(self):
+        list_input = [{"lang": "en", "title": "Ozone Measurement by MT-135 Rocket"}]
+        jalc_processor = JalcProcessing()
+        en = jalc_processor.get_ja(list_input)
+        expected_out = [{"lang": "en", "title": "Ozone Measurement by MT-135 Rocket"}]
+        self.assertEqual(en, expected_out)
+
+
+if __name__ == '__main__':
+    unittest.main()

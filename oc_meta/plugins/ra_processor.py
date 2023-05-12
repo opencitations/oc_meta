@@ -20,18 +20,21 @@ from csv import DictReader
 from typing import Dict, List, Tuple
 
 from oc_idmanager import ISBNManager, ISSNManager, ORCIDManager
-
+from zipfile import ZipFile
 from oc_meta.lib.cleaner import Cleaner
 from oc_meta.lib.csvmanager import CSVManager
 from oc_meta.lib.master_of_regex import orcid_pattern
-
+import os
 
 class RaProcessor(object):
-    def __init__(self, orcid_index: str = None, doi_csv: str = None, publishers_filepath: str = None):
+    def __init__(self, orcid_index: str = None, doi_csv: str = None, publishers_filepath: str = None, citing_entities: str = None):
         self.doi_set = CSVManager.load_csv_column_as_set(doi_csv, 'id') if doi_csv else None
         self.publishers_mapping = self.load_publishers_mapping(publishers_filepath) if publishers_filepath else None
         orcid_index = orcid_index if orcid_index else None
         self.orcid_index = CSVManager(orcid_index)
+        if citing_entities:
+            self.unzip_citing_entities(citing_entities)
+            self.citing_entities_set = CSVManager.load_csv_column_as_set(citing_entities, 'id') if citing_entities else None
 
     def get_agents_strings_list(self, doi: str, agents_list: List[dict]) -> Tuple[list, list]:
         authors_strings_list = list()
@@ -41,8 +44,7 @@ class RaProcessor(object):
             dict_orcid = self.orcid_finder(doi)
         agents_list = [
             {k: Cleaner(v).remove_unwanted_characters() if k in {'family', 'given', 'name'} and v is not None 
-            else v for k, v in
-            agent_dict.items()} for agent_dict in agents_list]
+            else v for k, v in agent_dict.items()} for agent_dict in agents_list]
         for agent in agents_list:
             cur_role = agent['role']
             f_name = None
@@ -129,16 +131,24 @@ class RaProcessor(object):
                     editors_string_list.append(agent_string)
         return authors_strings_list, editors_string_list
 
-    def orcid_finder(self, doi:str) -> dict:
+    def orcid_finder(self, doi: str) -> dict:
         found = dict()
         doi = doi.lower()
-        people:List[str] = self.orcid_index.get_value(doi)
+        people:  List[str] = self.orcid_index.get_value(doi)
         if people:
             for person in people:
                 orcid = re.search(orcid_pattern, person).group(0)
-                name:str = person[:person.find(orcid)-1]
+                name: str = person[:person.find(orcid)-1]
                 found[orcid] = name.strip().lower()
         return found
+
+    def unzip_citing_entities(self, citing_entities):
+        for dirpath, _, filenames in os.walk(citing_entities):
+            for filename in filenames:
+                if filename.endswith('.zip'):
+                    with ZipFile(os.path.join(citing_entities, filename), mode='r') as zipf:
+                        zipf.extractall(citing_entities)
+                    os.remove(os.path.join(citing_entities, filename))
 
     def get_pages(self, pages_list:list) -> str:
         '''
@@ -151,8 +161,8 @@ class RaProcessor(object):
         roman_letters = {'I', 'V', 'X', 'L', 'C', 'D', 'M'}
         clean_pages_list = list()
         for page in pages_list:
-            # e.g. 583-584
-            if all(c.isdigit() for c in page):
+            # e.g. 583-584 or 1_583-1_584
+            if all(c.isdigit() or c == "_" for c in page):
                 clean_pages_list.append(page)
             # e.g. G27. It is a born digital document. PeerJ uses this approach, where G27 identifies the whole document, since it has no pages.
             elif len(pages_list) == 1:
@@ -162,7 +172,7 @@ class RaProcessor(object):
                 clean_pages_list.append(page)
             # 583b-584. It is an error. The b must be removed.
             elif any(c.isdigit() for c in page):
-                page_without_letters = ''.join([c for c in page if c.isdigit()])
+                page_without_letters = ''.join([c for c in page if c.isdigit() or c == '_'])
                 clean_pages_list.append(page_without_letters)
         if clean_pages_list:
             if len(clean_pages_list) == 1:
