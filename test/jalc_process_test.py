@@ -4,6 +4,7 @@ import shutil
 import unittest
 
 from oc_meta.run.jalc_process import *
+from oc_meta.lib.file_manager import get_csv_data
 
 BASE = os.path.join('test', 'jalc_process')
 OUTPUT1 = os.path.join(BASE, 'meta_input_without_citing')
@@ -106,13 +107,12 @@ class TestJalcProcess(unittest.TestCase):
             shutil.rmtree(OUTPUT)
         preprocess(jalc_json_dir=INPUT_SUPPORT, publishers_filepath=PUBLISHERS_SUPPORT, citing_entities_filepath=None, csv_dir=OUTPUT, orcid_doi_filepath=IOD_SUPPORT)
         for file in os.listdir(OUTPUT):
-            with open(os.path.join(OUTPUT, file), 'r', encoding='utf-8') as f:
-                ent_list = list(csv.DictReader(f))
-                for e in ent_list:
-                    if "doi:10.11178/jdsa.10.19" in e.get("id"):
-                        self.assertEqual(e.get("publisher"), "筑波大学農林技術センター")
-                    if "doi:10.11178/jdsa.12.52" in e.get("id"):
-                        self.assertEqual(e.get("author"), "Hirao, Akira S. [orcid:0000-0002-1115-8079]")
+            ent_list = get_csv_data(os.path.join(OUTPUT, file))
+            for e in ent_list:
+                if "doi:10.11178/jdsa.10.19" in e.get("id"):
+                    self.assertEqual(e.get("publisher"), "筑波大学農林技術センター")
+                if "doi:10.11178/jdsa.12.52" in e.get("id"):
+                    self.assertEqual(e.get("author"), "Hirao, Akira S. [orcid:0000-0002-1115-8079]")
         for file in os.listdir(OUTPUT):
             os.remove(os.path.join(OUTPUT, file))
 
