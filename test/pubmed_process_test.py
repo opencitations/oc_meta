@@ -295,7 +295,7 @@ class PubMedProcess(unittest.TestCase):
         if os.path.exists(self.output_dir):
             shutil.rmtree(self.output_dir)
         preprocess(pubmed_csv_dir=self.madeup_input, publishers_filepath=self.publishers_file, journals_filepath= self.journals_file, csv_dir=self.output_dir, orcid_doi_filepath=self.madeup_iod, interval=1)
-        #test that the information processed was successfully saved at each <interval> number of rows.
+        # test that the information processed was successfully saved at each <interval> number of rows.
         processed_ents = []
         for file in os.listdir(self.output_dir):
             with open(os.path.join(self.output_dir, file), 'r', encoding='utf-8') as f:
