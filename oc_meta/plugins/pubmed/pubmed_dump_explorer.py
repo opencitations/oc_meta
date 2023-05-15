@@ -16,7 +16,6 @@
 
 
 import warnings
-from argparse import ArgumentParser
 
 import pandas as pd
 from tqdm import tqdm
@@ -55,7 +54,3 @@ except pd.errors.DtypeWarning:
 
 pbar.close()
 print(len(count_of_multiple_pmid_by_doi))
-
-if __name__ == '__main__':
-    arg_parser = ArgumentParser('crossref_process.py', description='This script creates CSV files from Crossref JSON files, enriching them through of a DOI-ORCID index')
-    pass
