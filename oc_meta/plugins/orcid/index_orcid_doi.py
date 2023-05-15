@@ -19,7 +19,7 @@
 import os
 
 from bs4 import BeautifulSoup
-from oc_idmanager import DOIManager
+from oc_ds_converter.oc_idmanager import DOIManager
 from tqdm import tqdm
 
 from oc_meta.lib.csvmanager import CSVManager
