@@ -86,7 +86,7 @@ class test_ar_order(unittest.TestCase):
                         for graph in data:
                             graph_data = graph['@graph']
                             for agent in graph_data:
-                                if agent['@id'] in ['https://w3id.org/oc/meta/ar/06025/prov/se/2', 'https://w3id.org/oc/meta/ar/06360300898/prov/se/2', 'https://w3id.org/oc/meta/ar/06360300898/prov/se/3']:
+                                if agent['@id'] in ['https://w3id.org/oc/meta/ar/06025/prov/se/2', 'https://w3id.org/oc/meta/ar/06360300898/prov/se/2', 'https://w3id.org/oc/meta/ar/06360300898/prov/se/3', 'https://w3id.org/oc/meta/ar/06022/prov/se/2']:
                                     provenance_output[agent['@id']] = agent['https://w3id.org/oc/ontology/hasUpdateQuery'][0]['@value']
                                 elif agent['@id'] == 'https://w3id.org/oc/meta/ar/06360300895/prov/se/2':
                                     provenance_output[agent['@id']] = {v['@id'] for v in agent['http://www.w3.org/ns/prov#wasDerivedFrom']}
@@ -116,6 +116,7 @@ class test_ar_order(unittest.TestCase):
             'https://w3id.org/oc/meta/ar/06360300899': None, 
             'https://w3id.org/oc/meta/ar/06360300895': None}
         expected_provenance_output = {
+            'https://w3id.org/oc/meta/ar/06022/prov/se/2': 'DELETE DATA { GRAPH <https://w3id.org/oc/meta/ar/> { <https://w3id.org/oc/meta/ar/06022> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/06023> . } }',
             'https://w3id.org/oc/meta/ar/06025/prov/se/2': 'INSERT DATA { GRAPH <https://w3id.org/oc/meta/ar/> { <https://w3id.org/oc/meta/ar/06025> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/06026> . } }',
             'https://w3id.org/oc/meta/ar/06360300898/prov/se/3': 'INSERT DATA { GRAPH <https://w3id.org/oc/meta/ar/> { <https://w3id.org/oc/meta/ar/06360300898> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/06360300899> . } }', 
             'https://w3id.org/oc/meta/ar/06360300898/prov/se/2': 'DELETE DATA { GRAPH <https://w3id.org/oc/meta/ar/> { <https://w3id.org/oc/meta/ar/06360300898> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/06360300898> . } }',

@@ -56,7 +56,7 @@ def check_roles(roles_in_br: List[list], rdf_dir: str, dir_split_number: str, it
     order_changed = False
     for roles_list in roles_in_br:
         last_roles = {'author': {'has_next': dict(), 'ra': dict(), 'last': []}, 'editor': {'has_next': dict(), 'ra': dict(), 'last': []}, 'publisher': {'has_next': dict(), 'ra': dict(), 'last': []}}
-        self_next = {'author': False, 'editor': False, 'publisher': False}
+        other_problems = {'author': {'self_next': False, 'multiple_has_next': False}, 'editor': {'self_next': False, 'multiple_has_next': False}, 'publisher': {'self_next': False, 'multiple_has_next': False}}
         to_be_merged = dict()
         for role in roles_list:
             ar_path = find_file(rdf_dir, dir_split_number, items_per_file, role, zip_output_rdf)
@@ -71,15 +71,17 @@ def check_roles(roles_in_br: List[list], rdf_dir: str, dir_split_number: str, it
                     continue
                 else:
                     last_roles[agent_role]['ra'][resp_agent] = role
-                if not has_next:
+                if len(has_next) == 0:
                     last_roles[agent_role]['last'].append(role)
-                if has_next == role:
-                    self_next[agent_role] = True
+                if any(next_role == role for next_role in has_next):
+                    other_problems[agent_role]['self_next'] = True
+                if len(has_next) > 1:
+                    other_problems[agent_role]['multiple_has_next'] = True
                 last_roles[agent_role]['has_next'][role] = has_next
-        order_changed = fix_roles(last_roles, self_next, to_be_merged, meta_config, resp_agent, merge_ra)
+        order_changed = fix_roles(last_roles, other_problems, to_be_merged, meta_config, resp_agent, merge_ra)
     return order_changed
 
-def fix_roles(last_roles: dict, self_next: dict, to_be_merged: dict, meta_config: str, resp_agent: str, merge_ra: bool = False) -> bool:
+def fix_roles(last_roles: dict, other_problems: dict, to_be_merged: dict, meta_config: str, resp_agent: str, merge_ra: bool = False) -> bool:
     order_changed = False
     meta_editor = MetaEditor(meta_config, resp_agent)
     if merge_ra:
@@ -88,22 +90,25 @@ def fix_roles(last_roles: dict, self_next: dict, to_be_merged: dict, meta_config
     for role_type, role_data in last_roles.items():
         all_list = list(role_data['has_next'].keys())
         last_list = role_data['has_next']
-        if (all_list and len(last_list) != 1) or self_next[role_type]:
+        if (all_list and len(last_list) != 1) or other_problems[role_type]['self_next'] or other_problems[role_type]['multiple_has_next']:
             sorted_roles_list = sorted(all_list)
+            order_changed = True
             for i, role in enumerate(sorted_roles_list):
+                has_next_on_ts = last_roles[role_type]['has_next'][role][0] if last_roles[role_type]['has_next'][role] else ''
+                if len(last_roles[role_type]['has_next'][role]) > 1:
+                    meta_editor.delete(URIRef(role), 'has_next')
+                    last_roles[role_type]['has_next'][role] = []
                 if i < len(sorted_roles_list) - 1:
-                    if last_roles[role_type]['has_next'][role] != sorted_roles_list[i+1]:
+                    if has_next_on_ts != sorted_roles_list[i+1]:
                         meta_editor.delete(URIRef(role), 'has_next')
-                        order_changed = True
                 elif i == len(sorted_roles_list) - 1:
-                    if last_roles[role_type]['has_next'][role]:
+                    if has_next_on_ts:
                         meta_editor.delete(URIRef(role), 'has_next')
-                        order_changed = True
             for i, role in enumerate(sorted_roles_list):
+                has_next_on_ts = last_roles[role_type]['has_next'][role][0] if last_roles[role_type]['has_next'][role] else ''
                 if i < len(sorted_roles_list) - 1:
-                    if last_roles[role_type]['has_next'][role] != sorted_roles_list[i+1]:
+                    if has_next_on_ts != sorted_roles_list[i+1]:
                         meta_editor.update_property(URIRef(role), 'has_next', URIRef(sorted_roles_list[i+1]))
-                        order_changed = True
     return order_changed
 
 def get_ar_data(ar_data: list, ar_uri: str) -> Tuple[str, str, str]:
@@ -113,6 +118,9 @@ def get_ar_data(ar_data: list, ar_uri: str) -> Tuple[str, str, str]:
             if agent['@id'] == ar_uri:
                 role = agent['http://purl.org/spar/pro/withRole'][0]['@id']
                 ra = agent['http://purl.org/spar/pro/isHeldBy'][0]['@id']
+                has_nexts = []
                 if 'https://w3id.org/oc/ontology/hasNext' in agent:
-                    return role, agent['https://w3id.org/oc/ontology/hasNext'][0]['@id'], ra
-                return role, '', ra
+                    for has_next in agent['https://w3id.org/oc/ontology/hasNext']:
+                        has_nexts.append(has_next['@id'])
+                    return role, has_nexts, ra
+                return role, [], ra

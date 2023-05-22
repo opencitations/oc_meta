@@ -431,6 +431,7 @@ class ResourceFinder:
         ar_list = list()
         last = ''
         count = 0
+        print('BEFORE', dict_ar)
         if self.meta_settings:
             roles_in_br.append(br_ars)
             order_changed = check_roles(
@@ -459,6 +460,7 @@ class ResourceFinder:
                         dict_ar[role] = dict()
                         dict_ar[role]['next'] = next_role
                         dict_ar[role]['ra'] = ra
+                print('AFTER', dict_ar)
         while count < len(dict_ar):
             for ar_metaid, ar_data in dict_ar.items():
                 if ar_data['next'] == last:
