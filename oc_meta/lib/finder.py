@@ -402,6 +402,15 @@ class ResourceFinder:
         else:
             role = GraphEntity.iri_publisher
         metaid_uri = URIRef(f'{self.base_iri}/br/{str(metaid)}')
+        query = f'''
+            SELECT DISTINCT ?role ?next ?ra
+            WHERE {{
+                <{metaid_uri}> <{GraphEntity.iri_is_document_context_for}> ?role.
+                ?role <{GraphEntity.iri_with_role}> <{role}>;
+                    <{GraphEntity.iri_is_held_by}> ?ra
+                OPTIONAL {{?role <{GraphEntity.iri_has_next}> ?next.}}
+            }}
+        '''
         dict_ar = dict()
         roles_in_br=list()
         br_ars = list()
@@ -424,8 +433,7 @@ class ResourceFinder:
         count = 0
         if self.meta_settings:
             roles_in_br.append(br_ars)
-            print(roles_in_br)
-            check_roles(
+            order_changed = check_roles(
                 roles_in_br=roles_in_br,
                 rdf_dir=os.path.join(self.meta_settings['output_rdf_dir'], 'rdf') + os.sep,
                 dir_split_number=self.meta_settings['dir_split_number'],
@@ -436,6 +444,21 @@ class ResourceFinder:
                 zip_output_rdf=self.meta_settings['zip_output_rdf'],
                 merge_ra = False
             )
+            if order_changed:
+                result = self.__query(query)
+                if result['results']['bindings']:
+                    results = result['results']['bindings']
+                    dict_ar = dict()
+                    for ra_dict in results:
+                        role = str(ra_dict['role']['value']).replace(f'{self.base_iri}/ar/', '')
+                        if 'next' in ra_dict:
+                            next_role = str(ra_dict['next']['value']).replace(f'{self.base_iri}/ar/', '')
+                        else:
+                            next_role = ''
+                        ra = str(ra_dict['ra']['value']).replace(f'{self.base_iri}/ra/', '')
+                        dict_ar[role] = dict()
+                        dict_ar[role]['next'] = next_role
+                        dict_ar[role]['ra'] = ra
         while count < len(dict_ar):
             for ar_metaid, ar_data in dict_ar.items():
                 if ar_data['next'] == last:

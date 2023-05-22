@@ -52,7 +52,8 @@ def extract_roles_from_br(br_data: list) -> list:
                 all_ar.append(br_ars)
     return all_ar
 
-def check_roles(roles_in_br: List[list], rdf_dir: str, dir_split_number: str, items_per_file: str, memory: dict, meta_config: str, resp_agent: str, zip_output_rdf: bool, merge_ra: bool = False) -> None:
+def check_roles(roles_in_br: List[list], rdf_dir: str, dir_split_number: str, items_per_file: str, memory: dict, meta_config: str, resp_agent: str, zip_output_rdf: bool, merge_ra: bool = False) -> bool:
+    order_changed = False
     for roles_list in roles_in_br:
         last_roles = {'author': {'has_next': dict(), 'ra': dict(), 'last': []}, 'editor': {'has_next': dict(), 'ra': dict(), 'last': []}, 'publisher': {'has_next': dict(), 'ra': dict(), 'last': []}}
         self_next = {'author': False, 'editor': False, 'publisher': False}
@@ -75,9 +76,11 @@ def check_roles(roles_in_br: List[list], rdf_dir: str, dir_split_number: str, it
                 if has_next == role:
                     self_next[agent_role] = True
                 last_roles[agent_role]['has_next'][role] = has_next
-        fix_roles(last_roles, self_next, to_be_merged, meta_config, resp_agent, merge_ra)
+        order_changed = fix_roles(last_roles, self_next, to_be_merged, meta_config, resp_agent, merge_ra)
+    return order_changed
 
-def fix_roles(last_roles: dict, self_next: dict, to_be_merged: dict, meta_config: str, resp_agent: str, merge_ra: bool = False) -> None:
+def fix_roles(last_roles: dict, self_next: dict, to_be_merged: dict, meta_config: str, resp_agent: str, merge_ra: bool = False) -> bool:
+    order_changed = False
     meta_editor = MetaEditor(meta_config, resp_agent)
     if merge_ra:
         for res, other in to_be_merged.items():
@@ -91,13 +94,17 @@ def fix_roles(last_roles: dict, self_next: dict, to_be_merged: dict, meta_config
                 if i < len(sorted_roles_list) - 1:
                     if last_roles[role_type]['has_next'][role] != sorted_roles_list[i+1]:
                         meta_editor.delete(URIRef(role), 'has_next')
+                        order_changed = True
                 elif i == len(sorted_roles_list) - 1:
                     if last_roles[role_type]['has_next'][role]:
                         meta_editor.delete(URIRef(role), 'has_next')
+                        order_changed = True
             for i, role in enumerate(sorted_roles_list):
                 if i < len(sorted_roles_list) - 1:
                     if last_roles[role_type]['has_next'][role] != sorted_roles_list[i+1]:
                         meta_editor.update_property(URIRef(role), 'has_next', URIRef(sorted_roles_list[i+1]))
+                        order_changed = True
+    return order_changed
 
 def get_ar_data(ar_data: list, ar_uri: str) -> Tuple[str, str, str]:
     for graph in ar_data:
