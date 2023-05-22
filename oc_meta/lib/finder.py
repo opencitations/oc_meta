@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import os
 import urllib.parse
 from time import sleep
 from typing import Dict, List, Tuple
 
+import yaml
 from dateutil import parser
 from oc_ocdm.graph import GraphEntity
 from oc_ocdm.prov.prov_entity import ProvEntity
@@ -12,15 +14,22 @@ from rdflib import RDF, Graph, Literal, URIRef
 from SPARQLWrapper import GET, JSON, XML, SPARQLWrapper
 from time_agnostic_library.agnostic_entity import AgnosticEntity
 
+from oc_meta.plugins.fixer.ar_order import check_roles
+
 
 class ResourceFinder:
 
-    def __init__(self, ts_url, base_iri:str, local_g: Graph = Graph()):
+    def __init__(self, ts_url, base_iri:str, local_g: Graph = Graph(), meta_config_path: str = None):
         self.ts = SPARQLWrapper(ts_url)
         self.ts.setMethod(GET)
         self.base_iri = base_iri[:-1] if base_iri[-1] == '/' else base_iri
         self.local_g = local_g
         self.ids_in_local_g = set()
+        self.meta_config_path = meta_config_path
+        self.meta_settings = None
+        if meta_config_path is not None:
+            with open(meta_config_path, encoding='utf-8') as file:
+                self.meta_settings = yaml.full_load(file)
 
     def __query(self, query, return_format = JSON):
         self.ts.setReturnFormat(return_format)
@@ -394,9 +403,12 @@ class ResourceFinder:
             role = GraphEntity.iri_publisher
         metaid_uri = URIRef(f'{self.base_iri}/br/{str(metaid)}')
         dict_ar = dict()
+        roles_in_br=list()
+        br_ars = list()
         for triple in self.local_g.triples((metaid_uri, GraphEntity.iri_is_document_context_for, None)):
             for ar_triple in self.local_g.triples((triple[2], None, None)):
                 if ar_triple[2] == role:
+                    br_ars.append(str(triple[2]))
                     role_value = str(triple[2]).replace(f'{self.base_iri}/ar/', '')
                     next_role = ''
                     for relevant_ar_triple in self.local_g.triples((triple[2], None, None)):                            
@@ -410,6 +422,20 @@ class ResourceFinder:
         ar_list = list()
         last = ''
         count = 0
+        if self.meta_settings:
+            roles_in_br.append(br_ars)
+            print(roles_in_br)
+            check_roles(
+                roles_in_br=roles_in_br,
+                rdf_dir=os.path.join(self.meta_settings['output_rdf_dir'], 'rdf') + os.sep,
+                dir_split_number=self.meta_settings['dir_split_number'],
+                items_per_file=self.meta_settings['items_per_file'],
+                memory=dict(),
+                meta_config=self.meta_config_path,
+                resp_agent='https://orcid.org/0000-0002-8420-0696',
+                zip_output_rdf=self.meta_settings['zip_output_rdf'],
+                merge_ra = False
+            )
         while count < len(dict_ar):
             for ar_metaid, ar_data in dict_ar.items():
                 if ar_data['next'] == last:

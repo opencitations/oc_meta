@@ -43,6 +43,6 @@ if __name__ == '__main__': # pragma: no cover
         for filepath in br_files:
             future:ProcessFuture = executor.schedule(
                 function=find_broken_roles, 
-                args=(filepath, args.config, args.resp_agent, zip_output_rdf)) 
+                args=(filepath, args.config, args.resp_agent, zip_output_rdf, True)) 
             future.add_done_callback(task_done)
     PBAR.close()

@@ -29,7 +29,7 @@ from oc_meta.plugins.csv_generator.csv_generator import (find_file,
 from oc_meta.plugins.editor import MetaEditor
 
 
-def find_broken_roles(filepath: str, meta_config: str, resp_agent: str, zip_output_rdf: bool):
+def find_broken_roles(filepath: str, meta_config: str, resp_agent: str, zip_output_rdf: bool, merge_ra: bool = False):
     with open(meta_config, encoding='utf-8') as file:
         settings = yaml.full_load(file)
     rdf_dir = os.path.join(settings['output_rdf_dir'], 'rdf') + os.sep
@@ -37,7 +37,7 @@ def find_broken_roles(filepath: str, meta_config: str, resp_agent: str, zip_outp
     items_per_file = settings['items_per_file']
     memory = dict()
     roles_in_br = process_archive(filepath, extract_roles_from_br)
-    check_roles(roles_in_br, rdf_dir, dir_split_number, items_per_file, memory, meta_config, resp_agent, zip_output_rdf)
+    check_roles(roles_in_br, rdf_dir, dir_split_number, items_per_file, memory, meta_config, resp_agent, zip_output_rdf, merge_ra)
 
 def extract_roles_from_br(br_data: list) -> list:
     all_ar = list()
@@ -52,7 +52,7 @@ def extract_roles_from_br(br_data: list) -> list:
                 all_ar.append(br_ars)
     return all_ar
 
-def check_roles(roles_in_br: List[list], rdf_dir: str, dir_split_number: str, items_per_file: str, memory: dict, meta_config: str, resp_agent: str, zip_output_rdf: bool) -> None:
+def check_roles(roles_in_br: List[list], rdf_dir: str, dir_split_number: str, items_per_file: str, memory: dict, meta_config: str, resp_agent: str, zip_output_rdf: bool, merge_ra: bool = False) -> None:
     for roles_list in roles_in_br:
         last_roles = {'author': {'has_next': dict(), 'ra': dict(), 'last': []}, 'editor': {'has_next': dict(), 'ra': dict(), 'last': []}, 'publisher': {'has_next': dict(), 'ra': dict(), 'last': []}}
         self_next = {'author': False, 'editor': False, 'publisher': False}
@@ -75,12 +75,13 @@ def check_roles(roles_in_br: List[list], rdf_dir: str, dir_split_number: str, it
                 if has_next == role:
                     self_next[agent_role] = True
                 last_roles[agent_role]['has_next'][role] = has_next
-        fix_roles(last_roles, self_next, to_be_merged, meta_config, resp_agent)
+        fix_roles(last_roles, self_next, to_be_merged, meta_config, resp_agent, merge_ra)
 
-def fix_roles(last_roles: dict, self_next: dict, to_be_merged: dict, meta_config: str, resp_agent: str) -> None:
+def fix_roles(last_roles: dict, self_next: dict, to_be_merged: dict, meta_config: str, resp_agent: str, merge_ra: bool = False) -> None:
     meta_editor = MetaEditor(meta_config, resp_agent)
-    for res, other in to_be_merged.items():
-        meta_editor.merge(URIRef(res), URIRef(other))
+    if merge_ra:
+        for res, other in to_be_merged.items():
+            meta_editor.merge(URIRef(res), URIRef(other))
     for role_type, role_data in last_roles.items():
         all_list = list(role_data['has_next'].keys())
         last_list = role_data['has_next']

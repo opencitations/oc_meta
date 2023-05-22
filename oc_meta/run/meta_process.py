@@ -94,20 +94,21 @@ class MetaProcess:
         csv.field_size_limit(128)
         return files_to_be_processed
 
-    def curate_and_create(self, filename:str, cache_path:str, errors_path:str, worker_number:int=None, resp_agents_only:bool=False) -> Tuple[dict, str, str, str]:
+    def curate_and_create(self, filename:str, cache_path:str, errors_path:str, worker_number:int=None, resp_agents_only:bool=False, meta_config_path:str|None=None) -> Tuple[dict, str, str, str]:
         if os.path.exists(os.path.join(self.base_output_dir, '.stop')):
             return {'message': 'skip'}, cache_path, errors_path, filename
         try:
             filepath = os.path.join(self.input_csv_dir, filename)
+            print(filepath)
             data = get_csv_data(filepath)
             supplier_prefix = f'{self.supplier_prefix}0' if worker_number is None else f'{self.supplier_prefix}{str(worker_number)}0'
             # Curator
             self.info_dir = os.path.join(self.info_dir, supplier_prefix) if worker_number else self.info_dir
             curator_info_dir = os.path.join(self.info_dir, 'curator' + os.sep)
             if resp_agents_only:
-                curator_obj = RespAgentsCurator(data=data, ts=self.triplestore_url, prov_config=self.time_agnostic_library_config, info_dir=curator_info_dir, base_iri=self.base_iri, prefix=supplier_prefix)
+                curator_obj = RespAgentsCurator(data=data, ts=self.triplestore_url, prov_config=self.time_agnostic_library_config, info_dir=curator_info_dir, base_iri=self.base_iri, prefix=supplier_prefix, meta_config_path=meta_config_path)
             else:
-                curator_obj = Curator(data=data, ts=self.triplestore_url, prov_config=self.time_agnostic_library_config, info_dir=curator_info_dir, base_iri=self.base_iri, prefix=supplier_prefix, valid_dois_cache=self.valid_dois_cache)
+                curator_obj = Curator(data=data, ts=self.triplestore_url, prov_config=self.time_agnostic_library_config, info_dir=curator_info_dir, base_iri=self.base_iri, prefix=supplier_prefix, valid_dois_cache=self.valid_dois_cache, meta_config_path=meta_config_path)
             name = f"{filename.replace('.csv', '')}_{datetime.now().strftime('%Y-%m-%dT%H-%M-%S')}"
             curator_obj.curator(filename=name, path_csv=self.output_csv_dir, path_index=self.indexes_dir)
             # Creator
@@ -115,11 +116,11 @@ class MetaProcess:
             if resp_agents_only:
                 creator_obj = RespAgentsCreator(
                     data=curator_obj.data, endpoint=self.triplestore_url, base_iri=self.base_iri, info_dir=creator_info_dir, supplier_prefix=supplier_prefix, resp_agent=self.resp_agent, ra_index=curator_obj.index_id_ra,
-                    preexisting_entities=curator_obj.preexisting_entities, everything_everywhere_allatonce=curator_obj.everything_everywhere_allatonce)
+                    preexisting_entities=curator_obj.preexisting_entities, everything_everywhere_allatonce=curator_obj.everything_everywhere_allatonce, meta_config_path=meta_config_path)
             else:
                 creator_obj = Creator(
                     data=curator_obj.data, endpoint=self.triplestore_url, base_iri=self.base_iri, info_dir=creator_info_dir, supplier_prefix=supplier_prefix, resp_agent=self.resp_agent, ra_index=curator_obj.index_id_ra,
-                    br_index=curator_obj.index_id_br, re_index_csv=curator_obj.re_index, ar_index_csv=curator_obj.ar_index, vi_index=curator_obj.VolIss, preexisting_entities=curator_obj.preexisting_entities, everything_everywhere_allatonce=curator_obj.everything_everywhere_allatonce)
+                    br_index=curator_obj.index_id_br, re_index_csv=curator_obj.re_index, ar_index_csv=curator_obj.ar_index, vi_index=curator_obj.VolIss, preexisting_entities=curator_obj.preexisting_entities, everything_everywhere_allatonce=curator_obj.everything_everywhere_allatonce, meta_config_path=meta_config_path)
             creator = creator_obj.creator(source=self.source)
             # Provenance
             prov = ProvSet(creator, self.base_iri, creator_info_dir, wanted_label=False)
@@ -155,7 +156,7 @@ class MetaProcess:
         dirs_to_zip = [self.base_output_dir, self.output_rdf_dir] if self.distinct_output_dirs else [self.base_output_dir]
         zipit(dirs_to_zip, output_dirname)
 
-def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False) -> None:
+def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False, meta_config_path:str|None=None) -> None:
     is_unix = platform in {'linux', 'linux2', 'darwin'}
     # delete_lock_files(base_dir=meta_process.base_output_dir)
     files_to_be_processed = meta_process.prepare_folders()
@@ -176,7 +177,7 @@ def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False) -> N
             for file_to_be_processed, worker_number in zip(files_chunk, cycle(workers)):
                 future:ProcessFuture = executor.schedule(
                     function=meta_process.curate_and_create, 
-                    args=(file_to_be_processed, meta_process.cache_path, meta_process.errors_path, worker_number, resp_agents_only)) 
+                    args=(file_to_be_processed, meta_process.cache_path, meta_process.errors_path, worker_number, resp_agents_only, meta_config_path)) 
                 future.add_done_callback(task_done) 
         if is_unix and not os.path.exists(os.path.join(meta_process.base_output_dir, '.stop')):
             meta_process.save_data()
@@ -231,4 +232,4 @@ if __name__ == '__main__': # pragma: no cover
     arg_parser.add_argument('-c', '--config', dest='config', required=True, help='Configuration file directory')
     args = arg_parser.parse_args()
     meta_process = MetaProcess(config=args.config)
-    run_meta_process(meta_process=meta_process)
+    run_meta_process(meta_process=meta_process, resp_agents_only=False, meta_config_path=args.config)

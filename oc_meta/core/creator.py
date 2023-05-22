@@ -35,11 +35,11 @@ from oc_meta.lib.master_of_regex import (comma_and_spaces, name_and_ids,
 
 
 class Creator(object):
-    def __init__(self, data:list, endpoint:str, base_iri:str, info_dir:str, supplier_prefix:str, resp_agent:str, ra_index:dict, br_index:dict, re_index_csv:dict, ar_index_csv:dict, vi_index:dict, preexisting_entities: set, everything_everywhere_allatonce: Graph):
+    def __init__(self, data:list, endpoint:str, base_iri:str, info_dir:str, supplier_prefix:str, resp_agent:str, ra_index:dict, br_index:dict, re_index_csv:dict, ar_index_csv:dict, vi_index:dict, preexisting_entities: set, everything_everywhere_allatonce: Graph, meta_config_path: str = None):
         self.url = base_iri
         self.setgraph = GraphSet(self.url, info_dir, supplier_prefix, wanted_label=False)
         self.resp_agent = resp_agent
-        self.finder = ResourceFinder(ts_url = endpoint, base_iri = base_iri, local_g=everything_everywhere_allatonce)
+        self.finder = ResourceFinder(ts_url = endpoint, base_iri = base_iri, local_g=everything_everywhere_allatonce, meta_config_path=meta_config_path)
 
         self.ra_id_schemas = {'crossref', 'orcid', 'viaf', 'wikidata', 'ror'}
         self.br_id_schemas = {'doi', 'issn', 'isbn', 'pmid', 'pmcid', 'url', 'wikidata', 'wikipedia'}
@@ -260,6 +260,7 @@ class Creator(object):
     @classmethod
     def get_venue_type(cls, br_type:str, venue_ids:list) -> str:
         schemas = {venue_id.split(':')[0] for venue_id in venue_ids}
+        venue_type = ''
         if br_type in {'journal article', 'journal volume', 'journal issue'}:
             venue_type = 'journal'
         elif br_type in {'book chapter', 'book part', 'book section', 'book track'}:
