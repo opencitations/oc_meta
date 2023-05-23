@@ -250,7 +250,7 @@ class test_ProcessTest(unittest.TestCase):
                 <https://w3id.org/oc/meta/br/0601> pro:isDocumentContextFor ?agent.
             }
         '''
-        endpoint = SPARQLWrapper('http://192.168.10.23:9999/blazegraph/sparql')
+        endpoint = SPARQLWrapper('http://localhost:9999/blazegraph/sparql')
         endpoint.setQuery(query_agents)
         endpoint.setReturnFormat(JSON)
         result = endpoint.queryAndConvert()
@@ -281,7 +281,7 @@ class test_ProcessTest(unittest.TestCase):
                 <https://w3id.org/oc/meta/br/0601> pro:isDocumentContextFor ?agent.
             }
         '''
-        endpoint = SPARQLWrapper('http://192.168.10.23:9999/blazegraph/sparql')
+        endpoint = SPARQLWrapper('http://localhost:9999/blazegraph/sparql')
         endpoint.setQuery(query_agents)
         endpoint.setReturnFormat(JSON)
         result = endpoint.queryAndConvert()
