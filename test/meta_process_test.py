@@ -8,6 +8,8 @@ from datetime import datetime
 from test.curator_test import reset_server
 from zipfile import ZipFile
 
+from SPARQLWrapper import JSON, SPARQLWrapper
+
 from oc_meta.lib.file_manager import get_csv_data
 from oc_meta.run.meta_process import MetaProcess, run_meta_process
 
@@ -231,6 +233,69 @@ class test_ProcessTest(unittest.TestCase):
         expected_output = {folder:[{k:sorted([{p:o for p,o in p_o.items() if p not in {'@type', 'http://purl.org/spar/pro/isDocumentContextFor'}} for p_o in v], key=lambda d: d['@id']) for k,v in graph.items() if k == '@graph'} for graph in data] for folder, data in expected_output.items()}
         self.assertEqual(output, expected_output)
         self.assertFalse('Reader: ERROR' in proc.stdout or 'Storer: ERROR' in proc.stdout)
+    
+    def test_silencer_on(self):
+        reset_server()
+        output_folder = os.path.join(BASE_DIR, 'output_6')
+        now = datetime.now()
+        meta_config_path=os.path.join(BASE_DIR, 'meta_config_6.yaml')
+        meta_process = MetaProcess(config=meta_config_path)
+        run_meta_process(meta_process, meta_config_path=meta_config_path)
+        meta_process.input_csv_dir = os.path.join(BASE_DIR, 'same_as_input_2_with_other_authors')
+        run_meta_process(meta_process, meta_config_path=meta_config_path)
+        query_agents = '''
+            PREFIX pro: <http://purl.org/spar/pro/>
+            SELECT (COUNT (?agent) AS ?agent_count)
+            WHERE {
+                <https://w3id.org/oc/meta/br/0601> pro:isDocumentContextFor ?agent.
+            }
+        '''
+        endpoint = SPARQLWrapper('http://192.168.10.23:9999/blazegraph/sparql')
+        endpoint.setQuery(query_agents)
+        endpoint.setReturnFormat(JSON)
+        result = endpoint.queryAndConvert()
+        expected_result = {
+            'head': {'vars': ['agent_count']}, 
+            'results': {
+                'bindings': [{
+                    'agent_count': {'datatype': 'http://www.w3.org/2001/XMLSchema#integer', 
+                    'type': 'literal', 
+                    'value': '3'}}]}}
+        shutil.rmtree(output_folder)
+        delete_output_zip('.', now)
+        self.assertEqual(result, expected_result)
+
+    def test_silencer_off(self):
+        reset_server()
+        output_folder = os.path.join(BASE_DIR, 'output_7')
+        now = datetime.now()
+        meta_config_path=os.path.join(BASE_DIR, 'meta_config_7.yaml')
+        meta_process = MetaProcess(config=meta_config_path)
+        run_meta_process(meta_process, meta_config_path=meta_config_path)
+        meta_process.input_csv_dir = os.path.join(BASE_DIR, 'same_as_input_2_with_other_authors')
+        run_meta_process(meta_process, meta_config_path=meta_config_path)
+        query_agents = '''
+            PREFIX pro: <http://purl.org/spar/pro/>
+            SELECT (COUNT (?agent) AS ?agent_count)
+            WHERE {
+                <https://w3id.org/oc/meta/br/0601> pro:isDocumentContextFor ?agent.
+            }
+        '''
+        endpoint = SPARQLWrapper('http://192.168.10.23:9999/blazegraph/sparql')
+        endpoint.setQuery(query_agents)
+        endpoint.setReturnFormat(JSON)
+        result = endpoint.queryAndConvert()
+        expected_result = {
+            'head': {'vars': ['agent_count']}, 
+            'results': {
+                'bindings': [{
+                    'agent_count': {'datatype': 'http://www.w3.org/2001/XMLSchema#integer', 
+                    'type': 'literal', 
+                    'value': '5'}}]}}
+        shutil.rmtree(output_folder)
+        delete_output_zip('.', now)
+        self.assertEqual(result, expected_result)
+
 
 
 if __name__ == '__main__': # pragma: no cover
