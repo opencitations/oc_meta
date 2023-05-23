@@ -35,7 +35,7 @@ from oc_meta.lib.master_of_regex import *
 
 class Curator:
 
-    def __init__(self, data:List[dict], ts:str, prov_config:str, info_dir:str, base_iri:str='https://w3id.org/oc/meta', prefix:str='060', separator:str=None, valid_dois_cache:dict=dict(), meta_config_path:str|None = None):
+    def __init__(self, data:List[dict], ts:str, prov_config:str, info_dir:str, base_iri:str='https://w3id.org/oc/meta', prefix:str='060', separator:str=None, valid_dois_cache:dict=dict(), meta_config_path:str|None = None, silencer:list = []):
         self.everything_everywhere_allatonce = Graph()
         self.finder = ResourceFinder(ts, base_iri, self.everything_everywhere_allatonce, meta_config_path=meta_config_path)
         self.base_iri = base_iri
@@ -64,6 +64,7 @@ class Curator:
         self.log = dict()
         self.valid_dois_cache = valid_dois_cache
         self.preexisting_entities = set()
+        self.silencer = silencer
 
     def curator(self, filename:str=None, path_csv:str=None, path_index:str=None):
         for row in self.data:
@@ -380,6 +381,9 @@ class Curator:
                         sequence = []
             else:
                 sequence = self.ardict[br_metaval][col_name]
+            if col_name in self.silencer and sequence:
+                self.ardict[br_metaval][col_name] = sequence
+                return
             new_sequence = list()
             change_order = False
             if col_name in {'author', 'editor'}:

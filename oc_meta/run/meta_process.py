@@ -72,6 +72,7 @@ class MetaProcess:
         self.workers_number = int(settings['workers_number'])
         supplier_prefix:str = settings['supplier_prefix']
         self.supplier_prefix = supplier_prefix[:-1] if supplier_prefix.endswith('0') else supplier_prefix
+        self.silencer = settings['silencer']
         # Time-Agnostic_library integration
         self.time_agnostic_library_config = os.path.join(os.path.dirname(config), 'time_agnostic_library_config.json')
         if not os.path.exists(self.time_agnostic_library_config):
@@ -107,21 +108,57 @@ class MetaProcess:
             self.info_dir = os.path.join(self.info_dir, supplier_prefix) if worker_number else self.info_dir
             curator_info_dir = os.path.join(self.info_dir, 'curator' + os.sep)
             if resp_agents_only:
-                curator_obj = RespAgentsCurator(data=data, ts=self.triplestore_url, prov_config=self.time_agnostic_library_config, info_dir=curator_info_dir, base_iri=self.base_iri, prefix=supplier_prefix, meta_config_path=meta_config_path)
+                curator_obj = RespAgentsCurator(
+                    data=data, 
+                    ts=self.triplestore_url, 
+                    prov_config=self.time_agnostic_library_config, 
+                    info_dir=curator_info_dir, 
+                    base_iri=self.base_iri, 
+                    prefix=supplier_prefix, 
+                    meta_config_path=meta_config_path)
             else:
-                curator_obj = Curator(data=data, ts=self.triplestore_url, prov_config=self.time_agnostic_library_config, info_dir=curator_info_dir, base_iri=self.base_iri, prefix=supplier_prefix, valid_dois_cache=self.valid_dois_cache, meta_config_path=meta_config_path)
+                curator_obj = Curator(
+                    data=data, 
+                    ts=self.triplestore_url, 
+                    prov_config=self.time_agnostic_library_config, 
+                    info_dir=curator_info_dir, 
+                    base_iri=self.base_iri, 
+                    prefix=supplier_prefix, 
+                    valid_dois_cache=self.valid_dois_cache, 
+                    meta_config_path=meta_config_path,
+                    silencer=self.silencer)
             name = f"{filename.replace('.csv', '')}_{datetime.now().strftime('%Y-%m-%dT%H-%M-%S')}"
             curator_obj.curator(filename=name, path_csv=self.output_csv_dir, path_index=self.indexes_dir)
             # Creator
             creator_info_dir = os.path.join(self.info_dir, 'creator' + os.sep)
             if resp_agents_only:
                 creator_obj = RespAgentsCreator(
-                    data=curator_obj.data, endpoint=self.triplestore_url, base_iri=self.base_iri, info_dir=creator_info_dir, supplier_prefix=supplier_prefix, resp_agent=self.resp_agent, ra_index=curator_obj.index_id_ra,
-                    preexisting_entities=curator_obj.preexisting_entities, everything_everywhere_allatonce=curator_obj.everything_everywhere_allatonce, meta_config_path=meta_config_path)
+                    data=curator_obj.data, 
+                    endpoint=self.triplestore_url, 
+                    base_iri=self.base_iri, 
+                    info_dir=creator_info_dir, 
+                    supplier_prefix=supplier_prefix, 
+                    resp_agent=self.resp_agent, 
+                    ra_index=curator_obj.index_id_ra,
+                    preexisting_entities=curator_obj.preexisting_entities, 
+                    everything_everywhere_allatonce=curator_obj.everything_everywhere_allatonce, 
+                    meta_config_path=meta_config_path)
             else:
                 creator_obj = Creator(
-                    data=curator_obj.data, endpoint=self.triplestore_url, base_iri=self.base_iri, info_dir=creator_info_dir, supplier_prefix=supplier_prefix, resp_agent=self.resp_agent, ra_index=curator_obj.index_id_ra,
-                    br_index=curator_obj.index_id_br, re_index_csv=curator_obj.re_index, ar_index_csv=curator_obj.ar_index, vi_index=curator_obj.VolIss, preexisting_entities=curator_obj.preexisting_entities, everything_everywhere_allatonce=curator_obj.everything_everywhere_allatonce, meta_config_path=meta_config_path)
+                    data=curator_obj.data, 
+                    endpoint=self.triplestore_url, 
+                    base_iri=self.base_iri, 
+                    info_dir=creator_info_dir, 
+                    supplier_prefix=supplier_prefix, 
+                    resp_agent=self.resp_agent, 
+                    ra_index=curator_obj.index_id_ra,
+                    br_index=curator_obj.index_id_br, 
+                    re_index_csv=curator_obj.re_index, 
+                    ar_index_csv=curator_obj.ar_index, 
+                    vi_index=curator_obj.VolIss, 
+                    preexisting_entities=curator_obj.preexisting_entities, 
+                    everything_everywhere_allatonce=curator_obj.everything_everywhere_allatonce, 
+                    meta_config_path=meta_config_path)
             creator = creator_obj.creator(source=self.source)
             # Provenance
             prov = ProvSet(creator, self.base_iri, creator_info_dir, wanted_label=False)

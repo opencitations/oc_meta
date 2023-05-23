@@ -53,7 +53,7 @@ def extract_roles_from_br(br_data: list) -> list:
     return all_ar
 
 def check_roles(roles_in_br: List[list], rdf_dir: str, dir_split_number: str, items_per_file: str, memory: dict, meta_config: str, resp_agent: str, zip_output_rdf: bool, merge_ra: bool = False) -> bool:
-    order_changed = False
+    order_changed_list = []
     for roles_list in roles_in_br:
         last_roles = {'author': {'has_next': dict(), 'ra': dict(), 'last': []}, 'editor': {'has_next': dict(), 'ra': dict(), 'last': []}, 'publisher': {'has_next': dict(), 'ra': dict(), 'last': []}}
         other_problems = {'author': {'self_next': False, 'multiple_has_next': False}, 'editor': {'self_next': False, 'multiple_has_next': False}, 'publisher': {'self_next': False, 'multiple_has_next': False}}
@@ -79,7 +79,8 @@ def check_roles(roles_in_br: List[list], rdf_dir: str, dir_split_number: str, it
                     other_problems[agent_role]['multiple_has_next'] = True
                 last_roles[agent_role]['has_next'][role] = has_next
         order_changed = fix_roles(last_roles, other_problems, to_be_merged, meta_config, resp_agent, merge_ra)
-    return order_changed
+        order_changed_list.append(order_changed)
+    return any(is_true for is_true in order_changed_list)
 
 def fix_roles(last_roles: dict, other_problems: dict, to_be_merged: dict, meta_config: str, resp_agent: str, merge_ra: bool = False) -> bool:
     order_changed = False

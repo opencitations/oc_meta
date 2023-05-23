@@ -36,6 +36,8 @@ META_CONFIG = os.path.join(BASE, 'meta_config.yaml')
 class TestEditor(unittest.TestCase):
     def setUp(self):
         reset_server()
+        if os.path.exists(OUTPUT):
+            rmtree(OUTPUT)
         meta_process = MetaProcess(config=META_CONFIG)
         run_meta_process(meta_process)
 
