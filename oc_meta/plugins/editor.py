@@ -113,13 +113,21 @@ class MetaEditor:
         res_as_entity.merge(other_as_entity)
         self.save(g_set, info_dir)
     
-    def sync_rdf_with_triplestore(self, res: str) -> None:
+    def sync_rdf_with_triplestore(self, res: str, source_uri: str = None) -> None:
         info_dir = self.__get_info_dir(res)
         supplier_prefix = self.__get_supplier_prefix(res)
         g_set = GraphSet(self.base_iri, info_dir, supplier_prefix=supplier_prefix)
-        self.reader.import_entity_from_triplestore(g_set, self.endpoint, res, self.resp_agent, enable_validation=False)
-        self.save(g_set, info_dir)
-    
+        try:
+            self.reader.import_entity_from_triplestore(g_set, self.endpoint, res, self.resp_agent, enable_validation=False)
+            self.save(g_set, info_dir)
+        except ValueError:
+            res_filepath = self.find_file(self.base_dir, self.dir_split, self.n_file_item, source_uri, self.zip_output_rdf)
+            imported_graph = self.reader.load(res_filepath)
+            self.reader.import_entities_from_graph(g_set, imported_graph, self.resp_agent)
+            res_entity = g_set.get_entity(URIRef(res))
+            print(res_entity)
+            raise(ValueError)
+        
     def save(self, g_set: GraphSet, info_dir: str):
         provset = ProvSet(g_set, self.base_iri, info_dir, wanted_label=False)
         provset.generate_provenance()
@@ -138,3 +146,27 @@ class MetaEditor:
         entity_regex: str = r'^(.+)/([a-z][a-z])/(0[1-9]+0)?([1-9][0-9]*)$'
         entity_match = re.match(entity_regex, uri)
         return entity_match.group(3)
+
+    def find_file(self, rdf_dir: str, dir_split_number: str, items_per_file: str, uri: str, zip_output_rdf: bool) -> str|None:
+        entity_regex: str = r'^(https:\/\/w3id\.org\/oc\/meta)\/([a-z][a-z])\/(0[1-9]+0)?([1-9][0-9]*)$'
+        entity_match = re.match(entity_regex, uri)
+        if entity_match:
+            cur_number = int(entity_match.group(4))
+            cur_file_split: int = 0
+            while True:
+                if cur_number > cur_file_split:
+                    cur_file_split += items_per_file
+                else:
+                    break
+            cur_split: int = 0
+            while True:
+                if cur_number > cur_split:
+                    cur_split += dir_split_number
+                else:
+                    break
+            short_name = entity_match.group(2)
+            sub_folder = entity_match.group(3)
+            cur_dir_path = os.path.join(rdf_dir, short_name, sub_folder, str(cur_split))
+            extension = '.zip' if zip_output_rdf else '.json'
+            cur_file_path = os.path.join(cur_dir_path, str(cur_file_split)) + extension
+            return cur_file_path

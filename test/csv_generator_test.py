@@ -57,7 +57,7 @@ class TestCSVGenerator(unittest.TestCase):
         graph_storer.store_all(rdf, base_iri)
         prov_storer.store_all(rdf, base_iri)
         graph_storer.upload_all(endpoint)
-        call([executable, '-m', 'oc_meta.run.csv_generator', '-c', CONFIG, '-o', OUTPUT, '-t', '3000', '-m', '2'])
+        call([executable, '-m', 'oc_meta.run.csv_generator', '-c', CONFIG, '-o', OUTPUT, '-t', '3000', '-m', '2', '-w', 'doi', 'issn'])
         output = get_csv_data(os.path.join(OUTPUT, '0.csv'))
         expected_output = [
             {'id': 'omid:br/06102 issn:0018-9464', 'title': 'IEEE Transactions On Magnetics', 'author': '', 'issue': '', 'volume': '', 'venue': '', 'page': '', 'pub_date': '', 'type': 'journal', 'publisher': '', 'editor': ''}, 

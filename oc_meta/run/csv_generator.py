@@ -20,6 +20,7 @@ from argparse import ArgumentParser
 
 import yaml
 from pebble import ProcessFuture, ProcessPool
+from SPARQLWrapper import JSON, SPARQLWrapper
 from tqdm import tqdm
 
 from oc_meta.lib.file_manager import pathoo
@@ -39,10 +40,12 @@ if __name__ == '__main__': # pragma: no cover
     arg_parser.add_argument('-t', '--threshold', dest='threshold', required=True, default=5000, type=int,
                             help='How many lines the CSV output must contain')
     arg_parser.add_argument('-m', '--max_workers', dest='max_workers', required=False, default=1, type=int, help='Workers number')
+    arg_parser.add_argument('-w', '--wanted_schemas', dest='wanted_schemas', required=False, default=None, nargs='+', type=str, help='A list of wanted identifier schemes')
     args = arg_parser.parse_args()
     with open(args.config, encoding='utf-8') as file:
         settings = yaml.full_load(file)
     output_dir = args.output_dir
+    wanted_schemas = args.wanted_schemas
     rdf_dir = os.path.join(settings['output_rdf_dir'], 'rdf') + os.sep
     dir_split_number = settings['dir_split_number']
     items_per_file = settings['items_per_file']
@@ -50,17 +53,18 @@ if __name__ == '__main__': # pragma: no cover
     zip_output_rdf = settings['zip_output_rdf']
     if not os.path.exists(output_dir):
         pathoo(output_dir)
-        process_archives(rdf_dir, 'br', output_dir, process_br, args.threshold)
+        process_archives(rdf_dir, 'br', output_dir, process_br, dir_split_number, items_per_file, zip_output_rdf, args.config, resp_agent, wanted_schemas, args.threshold)
     print('[csv_generator: INFO] Solving the OpenCitations Meta Identifiers recursively')
     filenames = os.listdir(output_dir)
     PBAR = tqdm(total=len(filenames))
-    # for filename in filenames:
-    #     generate_csv(filename, args.config, rdf_dir, dir_split_number, items_per_file, resp_agent, args.output_dir, zip_output_rdf)
-    with ProcessPool(max_workers=args.max_workers, max_tasks=1) as executor:
-        for filename in filenames:
-            future:ProcessFuture = executor.schedule(
-                function=generate_csv,
-                args=(filename, args.config, rdf_dir, dir_split_number, items_per_file, resp_agent, args.output_dir, zip_output_rdf))
-            future.add_done_callback(task_done)
-        # PBAR.update()
+    for filename in filenames:
+        generate_csv(filename, args.config, rdf_dir, dir_split_number, items_per_file, resp_agent, args.output_dir, zip_output_rdf)
+        PBAR.update()
+    # with ProcessPool(max_workers=args.max_workers, max_tasks=1) as executor:
+    #     for filename in filenames:
+    #         future:ProcessFuture = executor.schedule(
+    #             function=generate_csv,
+    #             args=(filename, args.config, rdf_dir, dir_split_number, items_per_file, resp_agent, args.output_dir, zip_output_rdf))
+    #         future.add_done_callback(task_done)
+    #     PBAR.update()
     PBAR.close()

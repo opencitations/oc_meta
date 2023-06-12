@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 from typing import Tuple
@@ -28,6 +29,8 @@ from tqdm import tqdm
 
 from oc_meta.lib.file_manager import get_csv_data, write_csv
 from oc_meta.plugins.editor import MetaEditor
+
+logging.getLogger("filelock").setLevel(logging.INFO)
 
 URI_TYPE_DICT = {
     'http://purl.org/spar/fabio/ArchivalDocument': 'archival document', 
@@ -60,6 +63,7 @@ def generate_csv(filename, meta_config: str, rdf_dir, dir_split_number, items_pe
     memory = dict()
     csv_data = get_csv_data(os.path.join(output_dir, filename))
     for row in csv_data:
+        row_omid = [identifier for identifier in row['id'].split() if identifier.startswith('omid')][0]
         for identifier in [identifier for identifier in row['id'].split() if not identifier.startswith('omid')]:
             id_path = find_file(rdf_dir, dir_split_number, items_per_file, identifier, zip_output_rdf)
             if id_path:
@@ -72,7 +76,7 @@ def generate_csv(filename, meta_config: str, rdf_dir, dir_split_number, items_pe
         for agent in row['author'].split('; '):
             agent_path = find_file(rdf_dir, dir_split_number, items_per_file, agent, zip_output_rdf)
             if agent_path:
-                agent_info = process_archive(agent_path, process_agent, memory, agent, meta_config, resp_agent, agent_path, memory)
+                agent_info = process_archive(agent_path, process_agent, memory, agent, meta_config, resp_agent, agent_path, memory, row_omid)
                 agent_role = agent_info['role']
                 if not agent_info['next']:
                     last_roles[agent_role]['last'].append(agent)
@@ -122,16 +126,17 @@ def generate_csv(filename, meta_config: str, rdf_dir, dir_split_number, items_pe
                 row['page'] = process_archive(page_path, process_page, memory, page_uri, meta_config, resp_agent)
     write_csv(os.path.join(output_dir, filename), csv_data, FIELDNAMES)
 
-def process_archives(rdf_dir: str, entity_abbr:str, output_dir: str|None, doing_what: callable, threshold: int=3000):
+def process_archives(rdf_dir: str, entity_abbr:str, output_dir: str|None, doing_what: callable, dir_split_number: int, items_per_file: int, zip_output_rdf: bool, meta_config: str, resp_agent: str, wanted_schemas: list, memory: dict, threshold: int=3000):
     br_files = [os.path.join(fold, file) for fold, _, files in os.walk(os.path.join(rdf_dir, entity_abbr)) for file in files if file.endswith('.zip') and os.path.basename(fold) != 'prov']
     print('[csv_generator: INFO] Looking for bibliographic resources recursively')
     pbar = tqdm(total=len(br_files))
     counter = 0
     global_output = list()
     for dirpath, _, filenames in os.walk(os.path.join(rdf_dir, entity_abbr)):
+        memory = dict()
         for filename in filenames:
             if (filename.endswith('.zip') or filename.endswith('.json')) and os.path.basename(dirpath) != 'prov':
-                local_output = process_archive(os.path.join(dirpath, filename), doing_what, None)
+                local_output = process_archive(os.path.join(dirpath, filename), doing_what, memory, rdf_dir, dir_split_number, items_per_file, zip_output_rdf, meta_config, resp_agent, wanted_schemas, memory)
                 global_output.extend(local_output)
                 if len(global_output) > threshold and output_dir:
                     write_csv(os.path.join(output_dir, f'{counter}.csv'), global_output, FIELDNAMES)
@@ -159,12 +164,12 @@ def process_archive(filepath: str, doing_what: callable, memory: dict|None = Non
             f.close()
         except Exception as e:
             print('\nThe invalid zip file is', filepath, '\n', e)
-            raise(Exception)
-        if memory is not None:
-            memory[filepath] = data
+            data = dict()
+    if memory is not None:
+        memory[filepath] = data
     return doing_what(data, *args)
 
-def process_br(br_data: list) -> list:
+def process_br(br_data: list, rdf_dir: str, dir_split_number: str, items_per_file: str, zip_output_rdf: bool, meta_config: str, resp_agent: str, wanted_schemas: list, memory: dict) -> list:
     csv_br_data = list()
     for graph in br_data:
         graph_data = graph['@graph']
@@ -176,10 +181,20 @@ def process_br(br_data: list) -> list:
                 continue
             br_omid = f"omid:{br['@id'].split('/meta/')[1]}"
             br_identifiers = [br_omid]
+            br_id_schemas = []
             if 'http://purl.org/spar/datacite/hasIdentifier' in br:
                 br_ids = br['http://purl.org/spar/datacite/hasIdentifier']
                 for br_identifier in br_ids:
+                    if wanted_schemas is not None:
+                        id_uri = br_identifier['@id']
+                        id_path = find_file(rdf_dir, dir_split_number, items_per_file, id_uri, zip_output_rdf)
+                        if id_path:
+                            id_info = process_archive(id_path, process_id, memory, id_uri, meta_config, resp_agent, id_path, memory)
+                            br_id_schemas.append(id_info.split(':')[0])
                     br_identifiers.append(br_identifier['@id'])
+            if wanted_schemas is not None:
+                if not set(wanted_schemas).intersection(br_id_schemas):
+                    continue
             row['id'] = ' '.join(br_identifiers)
             row['title'] = br['http://purl.org/dc/terms/title'][0]['@value'] if 'http://purl.org/dc/terms/title' in br else ''
             row['type'] = br_type
@@ -195,7 +210,7 @@ def process_br(br_data: list) -> list:
             csv_br_data.append(row)
     return csv_br_data
 
-def process_id(id_data: list, id_uri: str, meta_config: str, resp_agent: str, id_path: str, memory: dict) -> str:
+def process_id(id_data: list, id_uri: str, meta_config: str, resp_agent: str, id_path: str, memory: dict|None) -> str:
     output_identifier = None
     for graph in id_data:
         graph_data = graph['@graph']
@@ -207,12 +222,17 @@ def process_id(id_data: list, id_uri: str, meta_config: str, resp_agent: str, id
     if output_identifier:
         return output_identifier
     else:
-        del memory[id_path]
+        if memory is not None:
+            del memory[id_path]
         meta_editor = MetaEditor(meta_config, resp_agent)
-        meta_editor.sync_rdf_with_triplestore(id_uri)
-        return process_archive(id_path, process_id, memory, id_uri, meta_config, resp_agent, id_path, memory)
+        try:
+            meta_editor.sync_rdf_with_triplestore(id_uri)
+            return process_archive(id_path, process_id, memory, id_uri, meta_config, resp_agent, id_path, memory)
+        except ValueError:
+            print(id_uri, 'is an invalid entity')
+            raise(ValueError)
 
-def process_agent(agent_data: list, agent_uri: str, meta_config: str, resp_agent: str, agent_path: str, memory: dict) -> dict:
+def process_agent(agent_data: list, agent_uri: str, meta_config: str, resp_agent: str, agent_path: str, memory: dict, row_omid: str) -> dict:
     agent_dict = dict()
     for graph in agent_data:
         graph_data = graph['@graph']
@@ -228,8 +248,10 @@ def process_agent(agent_data: list, agent_uri: str, meta_config: str, resp_agent
     else:
         del memory[agent_path]
         meta_editor = MetaEditor(meta_config, resp_agent)
-        meta_editor.sync_rdf_with_triplestore(agent_uri)
-        return process_archive(agent_path, process_agent, memory, agent_uri, meta_config, resp_agent, agent_path, memory)
+        br_uri = 'https://w3id.org/oc/meta/' + row_omid.replace('omid:', '')
+        meta_editor.sync_rdf_with_triplestore(agent_uri, br_uri)
+        return process_archive(agent_path, process_agent, memory, agent_uri, meta_config, resp_agent, agent_path, memory, br_uri)
+                
                     
 def process_responsible_agent(ra_data: list, ra_uri: str, rdf_dir: str, dir_split_number: str, items_per_file: str, memory: dict, ra_path: str, meta_config: str, resp_agent: str, zip_output_rdf: bool) -> str:
     ra_value = None
@@ -289,7 +311,12 @@ def process_venue(venue_data: list, venue_uri: str, rdf_dir: str, dir_split_numb
                     venue_full = f"{venue_title} [{' '.join(explicit_ids)}]" if venue_title else f"[{' '.join(explicit_ids)}]"
                     venue_dict['venue'] = venue_full
                 if 'http://purl.org/vocab/frbr/core#partOf' in venue:
-                    to_be_found = venue['http://purl.org/vocab/frbr/core#partOf'][0]['@id']
+                    venue_partOf = venue['http://purl.org/vocab/frbr/core#partOf'][0]['@id']
+                    if venue_uri == venue_partOf:
+                        meta_editor = MetaEditor(meta_config, resp_agent)
+                        meta_editor.delete(res=venue_uri, property='is_part_of', object=venue_partOf)
+                    else:
+                        to_be_found = venue_partOf
     if any(v for _, v in venue_dict.items()):
         return venue_dict, to_be_found
     else:

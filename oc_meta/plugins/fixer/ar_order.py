@@ -54,6 +54,7 @@ def extract_roles_from_br(br_data: list) -> list:
 
 def check_roles(roles_in_br: List[list], rdf_dir: str, dir_split_number: str, items_per_file: str, memory: dict, meta_config: str, resp_agent: str, zip_output_rdf: bool, merge_ra: bool = False) -> bool:
     order_changed_list = []
+    meta_editor = MetaEditor(meta_config, resp_agent)
     for roles_list in roles_in_br:
         last_roles = {'author': {'has_next': dict(), 'ra': dict(), 'last': []}, 'editor': {'has_next': dict(), 'ra': dict(), 'last': []}, 'publisher': {'has_next': dict(), 'ra': dict(), 'last': []}}
         other_problems = {'author': {'self_next': False, 'multiple_has_next': False}, 'editor': {'self_next': False, 'multiple_has_next': False}, 'publisher': {'self_next': False, 'multiple_has_next': False}}
@@ -61,12 +62,15 @@ def check_roles(roles_in_br: List[list], rdf_dir: str, dir_split_number: str, it
         for role in roles_list:
             ar_path = find_file(rdf_dir, dir_split_number, items_per_file, role, zip_output_rdf)
             role_data_tuple = process_archive(ar_path, get_ar_data, memory, role)
+            if not role_data_tuple:
+                meta_editor.sync_rdf_with_triplestore(role)
+                role_data_tuple = process_archive(ar_path, get_ar_data, memory, role)
             if role_data_tuple:
                 agent_role = role_data_tuple[0]
                 has_next = role_data_tuple[1]
                 resp_agent = role_data_tuple[2]
                 agent_role = agent_role.split('http://purl.org/spar/pro/')[1]
-                if resp_agent in last_roles[agent_role]['ra']:
+                if resp_agent in last_roles[agent_role]['ra'] and merge_ra:
                     to_be_merged[last_roles[agent_role]['ra'][resp_agent]] = role
                     continue
                 else:
@@ -90,26 +94,29 @@ def fix_roles(last_roles: dict, other_problems: dict, to_be_merged: dict, meta_c
             meta_editor.merge(URIRef(res), URIRef(other))
     for role_type, role_data in last_roles.items():
         all_list = list(role_data['has_next'].keys())
-        last_list = role_data['has_next']
+        last_list = role_data['last']
         if (all_list and len(last_list) != 1) or other_problems[role_type]['self_next'] or other_problems[role_type]['multiple_has_next']:
             sorted_roles_list = sorted(all_list)
-            order_changed = True
             for i, role in enumerate(sorted_roles_list):
                 has_next_on_ts = last_roles[role_type]['has_next'][role][0] if last_roles[role_type]['has_next'][role] else ''
                 if len(last_roles[role_type]['has_next'][role]) > 1:
                     meta_editor.delete(URIRef(role), 'has_next')
+                    order_changed = True
                     last_roles[role_type]['has_next'][role] = []
                 if i < len(sorted_roles_list) - 1:
                     if has_next_on_ts != sorted_roles_list[i+1]:
                         meta_editor.delete(URIRef(role), 'has_next')
+                        order_changed = True
                 elif i == len(sorted_roles_list) - 1:
                     if has_next_on_ts:
                         meta_editor.delete(URIRef(role), 'has_next')
+                        order_changed = True
             for i, role in enumerate(sorted_roles_list):
                 has_next_on_ts = last_roles[role_type]['has_next'][role][0] if last_roles[role_type]['has_next'][role] else ''
                 if i < len(sorted_roles_list) - 1:
                     if has_next_on_ts != sorted_roles_list[i+1]:
                         meta_editor.update_property(URIRef(role), 'has_next', URIRef(sorted_roles_list[i+1]))
+                        order_changed = True
     return order_changed
 
 def get_ar_data(ar_data: list, ar_uri: str) -> Tuple[str, str, str]:
