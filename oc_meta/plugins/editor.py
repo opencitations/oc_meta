@@ -113,21 +113,32 @@ class MetaEditor:
         res_as_entity.merge(other_as_entity)
         self.save(g_set, info_dir)
     
-    def sync_rdf_with_triplestore(self, res: str, source_uri: str = None) -> None:
+    def sync_rdf_with_triplestore(self, res: str, source_uri: str = None) -> bool:
         info_dir = self.__get_info_dir(res)
         supplier_prefix = self.__get_supplier_prefix(res)
         g_set = GraphSet(self.base_iri, info_dir, supplier_prefix=supplier_prefix)
         try:
             self.reader.import_entity_from_triplestore(g_set, self.endpoint, res, self.resp_agent, enable_validation=False)
             self.save(g_set, info_dir)
+            return True
         except ValueError:
-            res_filepath = self.find_file(self.base_dir, self.dir_split, self.n_file_item, source_uri, self.zip_output_rdf)
-            imported_graph = self.reader.load(res_filepath)
-            self.reader.import_entities_from_graph(g_set, imported_graph, self.resp_agent)
-            res_entity = g_set.get_entity(URIRef(res))
-            print(res_entity)
-            raise(ValueError)
-        
+            try:
+                self.reader.import_entity_from_triplestore(g_set, self.endpoint, source_uri, self.resp_agent, enable_validation=False)
+            except ValueError:
+                res_filepath = self.find_file(self.base_dir, self.dir_split, self.n_file_item, source_uri, self.zip_output_rdf)
+                if not res_filepath:
+                    return False
+                imported_graph = self.reader.load(res_filepath)
+                self.reader.import_entities_from_graph(g_set, imported_graph, self.resp_agent)
+                res_entity = g_set.get_entity(URIRef(source_uri))
+                if res_entity:
+                    for res, entity in g_set.res_to_entity.items():
+                        triples_list = list(entity.g.triples((URIRef(source_uri), None, None)))
+                        for triple in triples_list:
+                            entity.g.remove(triple)
+                    self.save(g_set, info_dir)
+                return False
+            
     def save(self, g_set: GraphSet, info_dir: str):
         provset = ProvSet(g_set, self.base_iri, info_dir, wanted_label=False)
         provset.generate_provenance()
