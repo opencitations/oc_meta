@@ -31,7 +31,7 @@ def extract_identifiers(data: list, filepath: str, rdf_dir:str, dir_split_number
                 identifiers = sorted([identifier['@id'] for identifier in entity['http://purl.org/spar/datacite/hasIdentifier']])
                 for id_uri in identifiers:
                     id_path = find_file(rdf_dir, dir_split_number, items_per_file, id_uri, zip_output_rdf)
-                    id_full = process_archive(id_path, process_id, memory, id_uri, meta_config, resp_agent, id_path, memory)
+                    id_full = process_archive(id_path, process_id, memory, id_uri, meta_config, resp_agent, id_path, memory, entity)
                     if id_full in prev_id_uris:
                         prev_id_uri = prev_id_uris[id_full]
                         to_be_merged.append(tuple([prev_id_uri, id_uri]))
