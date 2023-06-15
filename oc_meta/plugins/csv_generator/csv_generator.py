@@ -82,6 +82,8 @@ def generate_csv(filename, meta_config: str, rdf_dir, dir_split_number, items_pe
                         br_exists = False
                         break
                 row_identifiers.append(id_info)
+            else:
+                row_identifiers.append(identifier)
         if not br_exists:
             continue
         output_row['id'] = ' '.join(row_identifiers)
@@ -135,6 +137,8 @@ def generate_csv(filename, meta_config: str, rdf_dir, dir_split_number, items_pe
                                 break
                         row[role] = row[role].replace(ra, output_ra)
                         output_row[role] = row[role]
+                    else:
+                        output_row[role] = row[role]
         if not br_exists:
             continue
         for venue in row['venue'].split():
@@ -148,11 +152,17 @@ def generate_csv(filename, meta_config: str, rdf_dir, dir_split_number, items_pe
                             output_row[k] = v
                     if to_be_found:
                         venue_path = find_file(rdf_dir, dir_split_number, items_per_file, to_be_found, zip_output_rdf)
+            else:
+                output_row['issue'] = row['issue']
+                output_row['volume'] = row['volume']
+                output_row['venue'] = row['venue']
         if row['page']:
             page_uri = row['page']
             page_path = find_file(rdf_dir, dir_split_number, items_per_file, page_uri, zip_output_rdf)
             if page_path:
                 output_row['page'] = process_archive(page_path, process_page, memory, page_uri, meta_config, resp_agent)
+            else:
+                output_row['page'] = row['page']
         output_data.append(output_row)
     write_csv(os.path.join(output_dir, filename), output_data, FIELDNAMES)
 
