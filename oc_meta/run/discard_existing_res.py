@@ -12,6 +12,7 @@ from oc_meta.lib.file_manager import get_csv_data, write_csv
 
 def discard_existing_res(csv_filepath: str, output_filepath: str, r: FakeStrictRedis|RedisDataSource = FakeStrictRedis()):
     all_identifiers = list()
+    r = r if isinstance(r, FakeStrictRedis) else r._r
     pbar = tqdm(total=len(os.listdir(csv_filepath)))
     if not os.path.exists(output_filepath):
         os.makedirs(output_filepath)
