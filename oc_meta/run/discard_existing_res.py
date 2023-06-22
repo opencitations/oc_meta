@@ -17,6 +17,7 @@ def discard_existing_res(csv_filepath: str, output_filepath: str, r: FakeStrictR
     pbar = tqdm(total=len(os.listdir(csv_filepath)))
     if not os.path.exists(output_filepath):
         os.makedirs(output_filepath)
+    counter = 1
     for filename in os.listdir(csv_filepath):
         data = get_csv_data(os.path.join(csv_filepath, filename))
         for i, row in enumerate(data):
@@ -31,7 +32,6 @@ def discard_existing_res(csv_filepath: str, output_filepath: str, r: FakeStrictR
         for row in data:
             if not all(identifier in preexisting_identifiers for identifier in row['id'].split()):
                 output_data.append(row)
-        counter = 1
         cur_output_filepath = os.path.join(output_filepath, f'{str(counter)}.csv')
         counter += 1
         write_csv(cur_output_filepath, output_data)
