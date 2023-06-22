@@ -27,9 +27,9 @@ def discard_existing_res(csv_filepath: str, output_filepath: str, r: FakeStrictR
             if not all(identifier in preexisting_identifiers for identifier in row['id'].split()):
                 output_data.append(row)
         counter = 1
-        output_filepath = os.path.join(output_filepath, f'{str(counter)}.csv')
+        cur_output_filepath = os.path.join(output_filepath, f'{str(counter)}.csv')
         counter += 1
-        write_csv(output_filepath, output_data)
+        write_csv(cur_output_filepath, output_data)
         pbar.update()
     pbar.close()
 
