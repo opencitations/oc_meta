@@ -18,18 +18,24 @@ def discard_existing_res(csv_filepath: str, output_filepath: str, r: FakeStrictR
     counter = 1
     for filename in os.listdir(csv_filepath):
         data = get_csv_data(os.path.join(csv_filepath, filename))
+        all_identifiers = list()
         preexisting_identifiers = set()
-        for row in data:
-            all_identifiers = row['id'].split()
-            identifiers_in_r = r.mget(all_identifiers)
-            preexisting_identifiers.update({identifier for i, identifier in enumerate(all_identifiers) if identifiers_in_r[i]})
+        for i, row in enumerate(data):
+            all_identifiers.extend(row['id'].split())
+            if i % 50000 == 0:
+                identifiers_in_r = r.mget(all_identifiers)
+                preexisting_identifiers.update({identifier for i, identifier in enumerate(all_identifiers) if identifiers_in_r[i]})
+                all_identifiers = list()
+        identifiers_in_r = r.mget(all_identifiers)
+        preexisting_identifiers.update({identifier for i, identifier in enumerate(all_identifiers) if identifiers_in_r[i]})
         output_data = list()
         for row in data:
             if not all(identifier in preexisting_identifiers for identifier in row['id'].split()):
                 output_data.append(row)
-        cur_output_filepath = os.path.join(output_filepath, f'{str(counter)}.csv')
-        counter += 1
-        write_csv(cur_output_filepath, output_data)
+        if output_data:
+            cur_output_filepath = os.path.join(output_filepath, f'{str(counter)}.csv')
+            write_csv(cur_output_filepath, output_data)
+            counter += 1
         pbar.update()
     pbar.close()
 
