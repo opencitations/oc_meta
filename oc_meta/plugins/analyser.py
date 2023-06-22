@@ -205,8 +205,8 @@ class OCMetaCounter(OCMetaAnalyser):
                 venue_ids = set(venue_name_and_ids.group(2).split())
                 venue_metaid = [identifier for identifier in venue_ids if identifier.split(':')[0] == 'omid'][0]
                 row_metaid = [identifier for identifier in row['id'].split() if identifier.split(':')[0] == 'omid'][0]
-                venues_by_publication.setdefault(venue_metaid, {'name': venue_name, 'publication': set()})
                 venue_key = venue_name.lower() if not venue_ids.difference({venue_metaid}) else venue_metaid
+                venues_by_publication.setdefault(venue_key, {'name': venue_name, 'publication': set()})
                 venues_by_publication[venue_key]['publication'].add(row_metaid)
         return venues_by_publication
 
@@ -261,22 +261,26 @@ class OCMetaCounter(OCMetaAnalyser):
             venue_type = 'reference book'
         elif br_type == 'report series':
             venue_type = 'report series'
-        elif not br_type or br_type in {'dataset', 'data file'}:
+        elif not br_type or br_type in {'dataset', 'data file', 'journal'}:
             venue_type = ''
         # Check the type based on the identifier scheme
         if any(identifier for identifier in venue_ids if not identifier.startswith('omid:')):
-            if venue_type in {'journal', 'book series', 'series', 'report series'}:
-                if 'isbn' in schemas or 'issn' not in schemas:
-                    # It is undecidable
-                    venue_type = ''
-            elif venue_type in {'book', 'proceedings'}:
-                if 'issn' in schemas or 'isbn' not in schemas:
-                    venue_type = ''
-            elif venue_type == 'reference book':
-                if 'isbn' in schemas and 'issn' not in schemas:
-                    venue_type = 'reference book'
-                elif 'issn' in schemas and 'isbn' not in schemas:
-                    venue_type = 'journal'
-                elif 'issn' in schemas and 'isbn' in schemas:
-                    venue_type = ''
+            try:
+                if venue_type in {'journal', 'book series', 'series', 'report series'}:
+                    if 'isbn' in schemas or 'issn' not in schemas:
+                        # It is undecidable
+                        venue_type = ''
+                elif venue_type in {'book', 'proceedings'}:
+                    if 'issn' in schemas or 'isbn' not in schemas:
+                        venue_type = ''
+                elif venue_type == 'reference book':
+                    if 'isbn' in schemas and 'issn' not in schemas:
+                        venue_type = 'reference book'
+                    elif 'issn' in schemas and 'isbn' not in schemas:
+                        venue_type = 'journal'
+                    elif 'issn' in schemas and 'isbn' in schemas:
+                        venue_type = ''
+            except UnboundLocalError:
+                print(br_type, venue_ids)
+                raise(UnboundLocalError)
         return venue_type

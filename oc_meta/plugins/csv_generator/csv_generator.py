@@ -77,10 +77,11 @@ def generate_csv(filename, meta_config: str, rdf_dir, dir_split_number, items_pe
             id_path = find_file(rdf_dir, dir_split_number, items_per_file, identifier, zip_output_rdf)
             if id_path:
                 id_info = process_archive(id_path, process_id, memory, identifier, meta_config, resp_agent, id_path, memory, row_omid)
-                if 'error' in id_info:
-                    if 'br does not exist' in id_info['error']:
-                        br_exists = False
-                        break
+                if isinstance(id_info, dict):
+                    if 'error' in id_info:
+                        if 'br does not exist' in id_info['error']:
+                            br_exists = False
+                            break
                 row_identifiers.append(id_info)
             else:
                 row_identifiers.append(identifier)
@@ -95,10 +96,11 @@ def generate_csv(filename, meta_config: str, rdf_dir, dir_split_number, items_pe
             agent_path = find_file(rdf_dir, dir_split_number, items_per_file, agent, zip_output_rdf)
             if agent_path:
                 agent_info = process_archive(agent_path, process_agent, memory, agent, meta_config, resp_agent, agent_path, memory, row_omid)
-                if 'error' in agent_info:
-                    if 'br does not exist' in agent_info['error']:
-                        br_exists = False
-                        break
+                if isinstance(agent_info, dict):
+                    if 'error' in agent_info:
+                        if 'br does not exist' in agent_info['error']:
+                            br_exists = False
+                            break
                 agent_role = agent_info['role']
                 if not agent_info['next']:
                     last_roles[agent_role]['last'].append(agent)
@@ -131,10 +133,11 @@ def generate_csv(filename, meta_config: str, rdf_dir, dir_split_number, items_pe
                     ra_path = find_file(rdf_dir, dir_split_number, items_per_file, ra, zip_output_rdf)
                     if ra_path:
                         output_ra = process_archive(ra_path, process_responsible_agent, memory, ra, rdf_dir, dir_split_number, items_per_file, memory, ra_path, meta_config, resp_agent, zip_output_rdf, row_omid)
-                        if 'error' in output_ra:
-                            if 'br does not exist' in output_ra['error']:
-                                br_exists = False
-                                break
+                        if isinstance(output_ra, dict):
+                            if 'error' in output_ra:
+                                if 'br does not exist' in output_ra['error']:
+                                    br_exists = False
+                                    break
                         row[role] = row[role].replace(ra, output_ra)
                         output_row[role] = row[role]
                     else:
@@ -321,9 +324,10 @@ def process_responsible_agent(ra_data: list, ra_uri: str, rdf_dir: str, dir_spli
                         id_uri = ra_identifier['@id']
                         id_path = find_file(rdf_dir, dir_split_number, items_per_file, id_uri, zip_output_rdf)
                         id_info = process_archive(id_path, process_id, memory, id_uri, meta_config, resp_agent, id_path, memory, br_uri)
-                        if 'error' in id_info:
-                            if 'br does not exist' in id_info['error']:
-                                return {'error': 'br does not exist'}
+                        if isinstance(id_info, dict):
+                            if 'error' in id_info:
+                                if 'br does not exist' in id_info['error']:
+                                    return {'error': 'br does not exist'}
                         ra_ids.append(id_info)
                 if full_name:
                     ra_value = f"{full_name} [{' '.join(ra_ids)}]"
