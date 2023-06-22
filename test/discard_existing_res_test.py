@@ -32,7 +32,6 @@ class TestDiscardExistingRes(unittest.TestCase):
             {'id': 'doi:10.4103/0974-777x.83533 pmid:21887059', 'title': 'Comparing absolute lymphocyte count to total lymphocyte count, as a CD4 T cell surrogate, to initiate antiretroviral therapy', 'author': 'Srirangaraj Sreenivasan; Venkatesha Dasegowda', 'pub_date': '2011-01-01', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': 'journal article', 'publisher': 'Medknow [crossref:2581]', 'editor': ''},
             {'id': 'pmid:15479473', 'title': 'Current practices in the spatial analysis of cancer: flies in the ointment.', 'author': 'Jacquez Geoffrey M', 'pub_date': '2004-09-28', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': 'journal article', 'publisher': '', 'editor': ''}, 
             {'id': 'pmid:27336866', 'title': 'Surgical innovation : The ethical agenda', 'author': 'Broekman Marike L.; Carrière Michelle E.; Bredenoord Annelien L.', 'pub_date': '2016-06-01', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': 'journal article', 'publisher': '', 'editor': ''}]
-
         self.assertEqual(len(output), 8)
         self.assertEqual(output, expected_output)
         rmtree(os.path.join('test', 'discard_existing_res', 'output'))

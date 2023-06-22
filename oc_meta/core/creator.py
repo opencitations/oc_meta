@@ -43,7 +43,7 @@ class Creator(object):
         self.finder = ResourceFinder(ts_url = endpoint, base_iri = base_iri, local_g=everything_everywhere_allatonce, meta_config_path=meta_config_path)
 
         self.ra_id_schemas = {'crossref', 'orcid', 'viaf', 'wikidata', 'ror'}
-        self.br_id_schemas = {'doi', 'issn', 'isbn', 'jid', 'pmid', 'pmcid', 'url', 'wikidata', 'wikipedia'}
+        self.br_id_schemas = {'arxiv', 'doi', 'issn', 'isbn', 'jid', 'pmid', 'pmcid', 'url', 'wikidata', 'wikipedia'}
         self.schemas = self.ra_id_schemas.union(self.br_id_schemas)
 
         self.ra_index = self.indexer_id(ra_index)
