@@ -11,8 +11,6 @@ from oc_meta.lib.file_manager import get_csv_data, write_csv
 
 
 def discard_existing_res(csv_filepath: str, output_filepath: str, r: FakeStrictRedis|RedisDataSource = FakeStrictRedis()):
-    all_identifiers = list()
-    preexisting_identifiers = set()
     r = r if isinstance(r, FakeStrictRedis) else r._r
     pbar = tqdm(total=len(os.listdir(csv_filepath)))
     if not os.path.exists(output_filepath):
@@ -20,14 +18,11 @@ def discard_existing_res(csv_filepath: str, output_filepath: str, r: FakeStrictR
     counter = 1
     for filename in os.listdir(csv_filepath):
         data = get_csv_data(os.path.join(csv_filepath, filename))
-        for i, row in enumerate(data):
-            all_identifiers.extend(row['id'].split())
-            if i % 50000 == 0:
-                identifiers_in_r = r.mget(all_identifiers)
-                preexisting_identifiers.update({identifier for i, identifier in enumerate(all_identifiers) if identifiers_in_r[i]})
-                all_identifiers = list()
-        identifiers_in_r = r.mget(all_identifiers)
-        preexisting_identifiers.update({identifier for i, identifier in enumerate(all_identifiers) if identifiers_in_r[i]})
+        preexisting_identifiers = set()
+        for row in data:
+            all_identifiers = row['id'].split()
+            identifiers_in_r = r.mget(all_identifiers)
+            preexisting_identifiers.update({identifier for i, identifier in enumerate(all_identifiers) if identifiers_in_r[i]})
         output_data = list()
         for row in data:
             if not all(identifier in preexisting_identifiers for identifier in row['id'].split()):
