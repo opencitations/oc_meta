@@ -178,10 +178,16 @@ class Curator:
                     entity_type = 'series'
                 elif entity_type == 'posted content':
                     entity_type = 'web content'
-                if entity_type in {'archival document', 'book', 'book chapter', 'book part', 'book section', 'book series',
-                                'book set', 'data file', 'dataset', 'dissertation', 'journal', 'journal article', 'journal issue',
-                                'journal volume', 'peer review', 'proceedings article', 'proceedings', 'reference book',
-                                'reference entry', 'series', 'report', 'standard', 'web content'}:
+                if entity_type in {'abstract', 'archival document', 'audio document', 'book', 
+                                'book chapter', 'book part', 'book section', 'book series',
+                                'book set', 'computer program', 'data file', 'data management plan',
+                                'dataset', 'dissertation', 'editorial', 'journal', 'journal article', 
+                                'journal editorial', 'journal issue', 'journal volume', 
+                                'newspaper', 'newspaper article', 'newspaper editorial',
+                                'newspaper issue', 'peer review', 'preprint', 'presentation',
+                                'proceedings', 'proceedings article', 'proceedings series', 
+                                'reference book', 'reference entry', 'retraction notice', 
+                                'series', 'report', 'standard', 'web content'}:
                     row['type'] = entity_type
                 else:
                     row['type'] = ''

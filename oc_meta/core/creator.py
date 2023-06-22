@@ -43,7 +43,7 @@ class Creator(object):
         self.finder = ResourceFinder(ts_url = endpoint, base_iri = base_iri, local_g=everything_everywhere_allatonce, meta_config_path=meta_config_path)
 
         self.ra_id_schemas = {'crossref', 'orcid', 'viaf', 'wikidata', 'ror'}
-        self.br_id_schemas = {'doi', 'issn', 'isbn', 'pmid', 'pmcid', 'url', 'wikidata', 'wikipedia'}
+        self.br_id_schemas = {'doi', 'issn', 'isbn', 'jid', 'pmid', 'pmcid', 'url', 'wikidata', 'wikipedia'}
         self.schemas = self.ra_id_schemas.union(self.br_id_schemas)
 
         self.ra_index = self.indexer_id(ra_index)
@@ -309,8 +309,12 @@ class Creator(object):
             self.br_graph.has_format(form)
 
     def type_action(self, entity_type):
+        if entity_type == 'abstract':
+            self.br_graph.create_abstract()
         if entity_type == 'archival document':
             self.br_graph.create_archival_document()
+        elif entity_type == 'audio document':
+            self.br_graph.create_audio_document()
         elif entity_type == 'book':
             self.br_graph.create_book()
         elif entity_type == 'book chapter':
@@ -323,24 +327,42 @@ class Creator(object):
             self.br_graph.create_book_series()
         elif entity_type == 'book set':
             self.br_graph.create_book_set()
+        elif entity_type == 'computer program':
+            self.br_graph.create_computer_program()
         elif entity_type in {'data file', 'dataset'}:
             self.br_graph.create_dataset()
+        elif entity_type == 'data management plan':
+            self.br_graph.create_data_management_plan()
         elif entity_type == 'dissertation':
             self.br_graph.create_dissertation()
+        elif entity_type == 'editorial':
+            self.br_graph.create_editorial()
         # elif entity_type == 'edited book':
         #     self.br_graph.create_edited_book()
         elif entity_type == 'journal':
             self.br_graph.create_journal()
         elif entity_type == 'journal article':
             self.br_graph.create_journal_article()
+        elif entity_type == 'journal editorial':
+            self.br_graph.create_journal_editorial()
         elif entity_type == 'journal issue':
             self.br_graph.create_issue()
         elif entity_type == 'journal volume':
             self.br_graph.create_volume()
+        elif entity_type == 'newspaper':
+            self.br_graph.create_newspaper()
+        elif entity_type == 'newspaper article':
+            self.br_graph.create_newspaper_article()
+        elif entity_type == 'newspaper issue':
+            self.br_graph.create_newspaper_issue()
         # elif entity_type == 'monograph':
         #     self.br_graph.create_monograph()
         elif entity_type == 'peer review':
             self.br_graph.create_peer_review()
+        elif entity_type == 'preprint':
+            self.br_graph.create_preprint()
+        elif entity_type == 'presentation':
+            self.br_graph.create_presentation()
         elif entity_type == 'proceedings':
             self.br_graph.create_proceedings()
         elif entity_type == 'proceedings article':
@@ -355,6 +377,8 @@ class Creator(object):
             self.br_graph.create_report()
         elif entity_type == 'report series':
             self.br_graph.create_report_series()
+        elif entity_type == 'retraction notice':
+            self.br_graph.create_retraction_notice()
         elif entity_type == 'standard':
             self.br_graph.create_standard()
         elif entity_type == 'series':
