@@ -450,10 +450,10 @@ def __split_csvs_by_venues(files:list, venues_occurrences:dict, output_dir:str, 
                     all_ids:list = venue_ids
                     all_ids.extend(__find_all_ids_by_key(venues_occurrences, key=all_ids[0]))
                     for any_id in all_ids:
-                        filename = any_id.replace(':', '').replace('/', '').replace('\\', '')
+                        filename = any_id.replace(':', '').replace('/', '').replace('\\', '').replace('<', '').replace('>', '').replace(';', '')
                         if os.path.join(output_dir, f'{filename}.csv') in existing_files:
                             output_filepath = os.path.join(output_dir, f'{filename}.csv')
-                filename = all_ids[0].replace(':', '').replace('/', '').replace('\\', '')
+                filename = all_ids[0].replace(':', '').replace('/', '').replace('\\', '').replace('<', '').replace('>', '').replace(';', '')
                 output_filepath = os.path.join(output_dir, f'{filename}.csv') if not output_filepath else output_filepath
                 chunk_venues.setdefault(output_filepath, list()).append(row)
                 chunk_venues = __dump_if_chunk_size(chunk_venues, existing_files, pid)
