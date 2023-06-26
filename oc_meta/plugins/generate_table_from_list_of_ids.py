@@ -12,6 +12,6 @@ def generate_table_from_list_of_ids(filepath:str):
         fields_dict = {field: '' for field in fieldnames}
         fields_dict['id'] = f"doi:{identifier}"
         table.append(fields_dict)
-    write_csv('E:/doci_entities_check/citing_entities_with_no_omid_input.csv', table)
+    write_csv('E:/ivan_missing/1.csv', table)
 
-generate_table_from_list_of_ids('E:/doci_entities_check/citing_entities_with_no_omid.csv')
+generate_table_from_list_of_ids('E:/ivan_missing/coci_entities_with_no_omid_06_2022.csv')

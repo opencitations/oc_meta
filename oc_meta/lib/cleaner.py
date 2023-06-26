@@ -302,7 +302,7 @@ class Cleaner:
         use_api_service = True if valid_dois_cache else False
         validator = 'is_valid' if use_api_service else 'check_digit'
         if schema == 'doi':
-            doi_manager = DOIManager(data=valid_dois_cache, use_api_service=False)
+            doi_manager = DOIManager(data=valid_dois_cache, use_api_service=use_api_service)
             valid_id = doi_manager.normalise(value, include_prefix=True) if getattr(doi_manager, validator)(value) else None
         elif schema == 'isbn':
             isbn_manager = ISBNManager()
@@ -314,7 +314,7 @@ class Cleaner:
                 issn_manager = ISSNManager()
                 valid_id = issn_manager.normalise(value, include_prefix=True) if getattr(issn_manager, validator)(value) else None
         elif schema == 'orcid':
-            orcid_manager = ORCIDManager(use_api_service=False)
+            orcid_manager = ORCIDManager(use_api_service=use_api_service)
             valid_id = orcid_manager.normalise(value, include_prefix=True) if getattr(orcid_manager, validator)(value) else None
         else:
             valid_id = f'{schema}:{value}'
