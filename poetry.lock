@@ -812,19 +812,19 @@ zstandard = ">=0.21.0,<0.22.0"
 
 [[package]]
 name = "oc-ocdm"
-version = "7.3.0"
+version = "7.3.1"
 description = "Object mapping library for manipulating RDF graphs that are compliant with the OpenCitations datamodel."
 category = "main"
 optional = false
 python-versions = ">=3.7.4,<4.0.0"
 files = [
-    {file = "oc_ocdm-7.3.0-py3-none-any.whl", hash = "sha256:e41daaf6301fd3a1f1ef074c74a07b10ff3cd333e6adf7198c0d273da1ed654c"},
-    {file = "oc_ocdm-7.3.0.tar.gz", hash = "sha256:c03b38ce557ca3e4b271d134d0f682e6ba80ec57fc82c7956e3ccfe34d7e142f"},
+    {file = "oc_ocdm-7.3.1-py3-none-any.whl", hash = "sha256:3f60535e8038652e1a0a9d4975f74f7ea22da1a16393e2a2e2e12c77f9d3a25c"},
+    {file = "oc_ocdm-7.3.1.tar.gz", hash = "sha256:f87f777bdf0941cf856866eb28bddfe927ba4c76694750c6e8391fca01684548"},
 ]
 
 [package.dependencies]
 filelock = ">=3.6.0,<4.0.0"
-pyshacl = ">=0.20.0,<0.21.0"
+pyshacl = "0.23.0"
 rdflib = ">=6.0.0,<7.0.0"
 SPARQLWrapper = "2.0.0"
 
@@ -1021,14 +1021,14 @@ diagrams = ["jinja2", "railroad-diagrams"]
 
 [[package]]
 name = "pyshacl"
-version = "0.20.0"
+version = "0.23.0"
 description = "Python SHACL Validator"
 category = "main"
 optional = false
 python-versions = ">=3.7.0,<4.0.0"
 files = [
-    {file = "pyshacl-0.20.0-py3-none-any.whl", hash = "sha256:5de57ed490748f621301f69e47224fa5bd84b0fb5aab40126118dc8e90d4ede6"},
-    {file = "pyshacl-0.20.0.tar.gz", hash = "sha256:47f014c52cc69167b902c89b3940dd400f7f5d2169a62f97f837f3419b4a737d"},
+    {file = "pyshacl-0.23.0-py3-none-any.whl", hash = "sha256:5d77ab194d4333d6c2a3c409d096ac31e68f1ae0e22c3668b2a081e32256c738"},
+    {file = "pyshacl-0.23.0.tar.gz", hash = "sha256:43a80bbf403176f8f37a22fbbe8d95ba5395cf755e378af1db3126e709819d2c"},
 ]
 
 [package.dependencies]
@@ -1036,14 +1036,14 @@ html5lib = ">=1.1,<2"
 owlrl = ">=6.0.2,<7"
 packaging = ">=21.3"
 prettytable = ">=2.2.1,<3.0.0"
-rdflib = ">=6.2.0,<7"
+rdflib = ">=6.3.2,<7"
 
 [package.extras]
 dev-coverage = ["coverage (>6.1,!=6.1.1,<7)", "platformdirs", "pytest-cov (>=2.8.1,<3.0.0)"]
-dev-lint = ["black (==22.8.0)", "flake8 (>=5.0.4,<6.0.0)", "isort (>=5.10.1,<6.0.0)", "platformdirs"]
-dev-type-checking = ["mypy (>=0.800,<0.801)", "platformdirs", "types-setuptools"]
-js = ["pyduktape2 (>=0.4.1,<0.5.0)"]
-jsonld = ["rdflib-jsonld (>=0.4.0,<0.6)"]
+dev-lint = ["black (==23.3.0)", "platformdirs", "ruff (>=0.0.267,<0.0.268)"]
+dev-type-checking = ["mypy (>=0.800,<0.900)", "mypy (>=0.900,<0.1000)", "platformdirs", "types-setuptools"]
+http = ["sanic (>=22.12,<23)", "sanic-cors (==2.2.0)", "sanic-ext (>=23.3,<23.6)"]
+js = ["pyduktape2 (>=0.4.3,<0.5.0)"]
 
 [[package]]
 name = "python-dateutil"
@@ -1559,4 +1559,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "10bb45fd5a6e5f407739befec191e11cb802b3c950da8eabf9052ee7f7333bea"
+content-hash = "e4357c214cc91d6fb8baab45a838daea1ae9886f243c8459ddd87db81daf25cf"
