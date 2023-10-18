@@ -448,7 +448,11 @@ def __split_csvs_by_venues(files:list, venues_occurrences:dict, output_dir:str, 
                 output_filepath = None
                 for venue_ids in venues:
                     all_ids:list = venue_ids
-                    all_ids.extend(__find_all_ids_by_key(venues_occurrences, key=all_ids[0]))
+                    try:
+                        all_ids.extend(__find_all_ids_by_key(venues_occurrences, key=all_ids[0]))
+                    except IndexError:
+                        print(file, row)
+                        raise(IndexError)
                     for any_id in all_ids:
                         filename = any_id.replace(':', '').replace('/', '').replace('\\', '').replace('<', '').replace('>', '').replace(';', '')
                         if os.path.join(output_dir, f'{filename}.csv') in existing_files:

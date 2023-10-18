@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import csv
 import os
+import traceback
 from argparse import ArgumentParser
 from datetime import datetime
 from itertools import cycle
@@ -172,8 +173,9 @@ class MetaProcess:
             self.store_data_and_prov(res_storer, prov_storer, filename)
             return {'message': 'success'}, cache_path, errors_path, filename
         except Exception as e:
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(e).__name__, e.args)
+            tb = traceback.format_exc()
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}\nTraceback:\n{2}"
+            message = template.format(type(e).__name__, e.args, tb)
             return {'message': message}, cache_path, errors_path, filename
     
     def store_data_and_prov(self, res_storer:Storer, prov_storer:Storer, filename:str) -> None:
@@ -217,8 +219,8 @@ def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False, meta
                     function=meta_process.curate_and_create, 
                     args=(file_to_be_processed, meta_process.cache_path, meta_process.errors_path, worker_number, resp_agents_only, meta_config_path)) 
                 future.add_done_callback(task_done) 
-        if is_unix and not os.path.exists(os.path.join(meta_process.base_output_dir, '.stop')):
-            meta_process.save_data()
+        # if is_unix and not os.path.exists(os.path.join(meta_process.base_output_dir, '.stop')):
+        #     meta_process.save_data()
     if not os.path.exists(os.path.join(meta_process.base_output_dir, '.stop')):
         if os.path.exists(meta_process.cache_path):
             os.rename(meta_process.cache_path, meta_process.cache_path.replace('.txt', f'_{datetime.now().strftime("%Y-%m-%dT%H_%M_%S_%f")}.txt'))

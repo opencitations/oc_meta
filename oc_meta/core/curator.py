@@ -757,9 +757,13 @@ class Curator:
 
     @staticmethod
     def _read_number(file_path:str, line_number:int=1) -> int: 
-        with open(file_path) as f:
-            cur_number = int(f.readlines()[line_number - 1])
-        return cur_number
+        try:
+            with open(file_path) as f:
+                cur_number = int(f.readlines()[line_number - 1])
+            return cur_number
+        except Exception as e:
+            print(f"Error occurred while reading file: {file_path}")
+            raise e
 
     @staticmethod
     def _add_number(file_path:str, line_number:int=1) -> int:
