@@ -414,6 +414,7 @@ class ResourceFinder:
         dict_ar = dict()
         roles_in_br=list()
         br_ars = list()
+        roles_with_next = set()  # To track all roles that are "next" for some role.
         for triple in self.local_g.triples((metaid_uri, GraphEntity.iri_is_document_context_for, None)):
             for ar_triple in self.local_g.triples((triple[2], None, None)):
                 if ar_triple[2] == role:
@@ -423,14 +424,11 @@ class ResourceFinder:
                     for relevant_ar_triple in self.local_g.triples((triple[2], None, None)):                            
                         if relevant_ar_triple[1] == GraphEntity.iri_has_next:
                             next_role = str(relevant_ar_triple[2]).replace(f'{self.base_iri}/ar/', '')
+                            roles_with_next.add(next_role)
                         elif relevant_ar_triple[1] == GraphEntity.iri_is_held_by:
                             ra = str(relevant_ar_triple[2]).replace(f'{self.base_iri}/ra/', '')
-                    dict_ar[role_value] = dict()
-                    dict_ar[role_value]['next'] = next_role
-                    dict_ar[role_value]['ra'] = ra
-        ar_list = list()
-        last = ''
-        count = 0
+                    dict_ar[role_value] = {'next': next_role, 'ra': ra}
+                        
         if self.meta_settings:
             roles_in_br.append(br_ars)
             order_changed = check_roles(
@@ -446,33 +444,38 @@ class ResourceFinder:
             )
             if order_changed:
                 result = self.__query(query)
+                dict_ar = {}  # This will store the role to its details and 'next' relation.
                 if result['results']['bindings']:
                     results = result['results']['bindings']
                     dict_ar = dict()
                     for ra_dict in results:
                         role = str(ra_dict['role']['value']).replace(f'{self.base_iri}/ar/', '')
-                        if 'next' in ra_dict:
-                            next_role = str(ra_dict['next']['value']).replace(f'{self.base_iri}/ar/', '')
-                        else:
-                            next_role = ''
+                        next_role = ra_dict.get('next', {}).get('value', '')
+                        if next_role:  # Check and register the 'next' role
+                            next_role = next_role.replace(f'{self.base_iri}/ar/', '')
+                            roles_with_next.add(next_role)  # Add to the set of roles that are "next" for another role.
                         ra = str(ra_dict['ra']['value']).replace(f'{self.base_iri}/ra/', '')
-                        dict_ar[role] = dict()
-                        dict_ar[role]['next'] = next_role
-                        dict_ar[role]['ra'] = ra
-        while count < len(dict_ar):
-            for ar_metaid, ar_data in dict_ar.items():
-                if ar_data['next'] == last:
-                    if col_name == 'publisher':
-                        ra_info = self.retrieve_ra_from_meta(ar_data['ra'])[0:2] + (ar_data['ra'],)
-                    else:
-                        ra_info = self.retrieve_ra_from_meta(ar_data['ra'])[0:2] + (ar_data['ra'],)
-                    ar_dic = dict()
-                    ar_dic[ar_metaid] = ra_info
-                    ar_list.append(ar_dic)
-                    last = ar_metaid
-                    count += 1
-        ar_list.reverse()
-        return ar_list
+                        dict_ar[role] = {'next': next_role, 'ra': ra}
+        # Find the start_role by excluding all roles that are "next" for others from the set of all roles.
+        all_roles = set(dict_ar.keys())
+        start_role_candidates = all_roles - roles_with_next
+        # Handle the edge cases for start role determination
+        if len(all_roles) == 0:
+            return []
+        elif len(start_role_candidates) != 1:
+            # If more than one start candidate exists or none exist in a multi-role situation, raise an error
+            raise ValueError("There should be exactly one starting role but found: {}".format(len(start_role_candidates)))
+        # Follow the "next" chain from the start_role to construct an ordered list.
+        ordered_ar_list = []
+        start_role = start_role_candidates.pop()
+        current_role = start_role
+        while current_role:
+            ra_info = self.retrieve_ra_from_meta(dict_ar[current_role]['ra'])[0:2]
+            ra_tuple = ra_info + (dict_ar[current_role]['ra'],)
+            ordered_ar_list.append({current_role: ra_tuple})
+            current_role = dict_ar[current_role]['next']  # Move to the next role.
+        # Now 'ordered_ar_list' should contain the roles in the correct order, starting from 'start_role'.
+        return ordered_ar_list
 
     def retrieve_re_from_br_meta(self, metaid:str) -> Tuple[str, str]:
         '''

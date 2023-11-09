@@ -19,8 +19,7 @@ import os
 from argparse import ArgumentParser
 
 import yaml
-from pebble import ProcessFuture, ProcessPool
-from SPARQLWrapper import JSON, SPARQLWrapper
+from pebble import ProcessFuture
 from tqdm import tqdm
 
 from oc_meta.lib.file_manager import pathoo

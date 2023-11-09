@@ -329,146 +329,156 @@ class Curator:
         :type col_name: str
         :returns: None -- This method modifies self.ardict, self.radict, and self.idra, and returns None.
         '''
-        if row[col_name]:
+        def get_br_metaval_to_check(row, col_name):
             if col_name == 'editor':
-                br_metaval_to_check = get_edited_br_metaid(row, row['id'], row['venue']) 
+                return get_edited_br_metaid(row, row['id'], row['venue'])
             else:
-                br_metaval_to_check = row['id']
+                return row['id']
+
+        def get_br_metaval(br_metaval_to_check):
             if br_metaval_to_check in self.brdict or br_metaval_to_check in self.vvi:
-                br_metaval = br_metaval_to_check
+                return br_metaval_to_check
+            return [id for id in self.brdict if br_metaval_to_check in self.brdict[id]['others']][0]
+
+        def initialize_ardict_entry(br_metaval):
+            if br_metaval not in self.ardict:
+                self.ardict[br_metaval] = {'author': [], 'editor': [], 'publisher': []}
+
+        def initialize_sequence(br_metaval, col_name):
+            sequence = []
+            if 'wannabe' in br_metaval:
+                sequence = []
             else:
-                br_metaval = [id for id in self.brdict if br_metaval_to_check in self.brdict[id]['others']][0]
-            if br_metaval not in self.ardict or not self.ardict[br_metaval][col_name]:
-                # new sequence
-                if 'wannabe' in br_metaval:
-                    if br_metaval not in self.ardict:
-                        self.ardict[br_metaval] = dict()
-                        self.ardict[br_metaval]['author'] = list()
-                        self.ardict[br_metaval]['editor'] = list()
-                        self.ardict[br_metaval]['publisher'] = list()
+                sequence_found = self.finder.retrieve_ra_sequence_from_br_meta(br_metaval, col_name)
+                if sequence_found:
                     sequence = []
+                    for agent in sequence_found:
+                        for ar_metaid in agent:
+                            ra_metaid = agent[ar_metaid][2]
+                            sequence.append(tuple((ar_metaid, ra_metaid)))
+                            if ra_metaid not in self.radict:
+                                self.radict[ra_metaid] = dict()
+                                self.radict[ra_metaid]['ids'] = list()
+                                self.radict[ra_metaid]['others'] = list()
+                                self.radict[ra_metaid]['title'] = agent[ar_metaid][0]
+                            for identifier in agent[ar_metaid][1]:
+                                # other ids after meta
+                                id_metaid = identifier[0]
+                                literal = identifier[1]
+                                if id_metaid not in self.idra:
+                                    self.idra[literal] = id_metaid
+                                if literal not in self.radict[ra_metaid]['ids']:
+                                    self.radict[ra_metaid]['ids'].append(literal)
+                    self.ardict[br_metaval][col_name].extend(sequence)
                 else:
-                    # sequence can be in TS
-                    sequence_found = self.finder.retrieve_ra_sequence_from_br_meta(br_metaval, col_name)
-                    if sequence_found:
-                        sequence = []
-                        for agent in sequence_found:
-                            for ar_metaid in agent:
-                                ra_metaid = agent[ar_metaid][2]
-                                sequence.append(tuple((ar_metaid, ra_metaid)))
-                                if ra_metaid not in self.radict:
-                                    self.radict[ra_metaid] = dict()
-                                    self.radict[ra_metaid]['ids'] = list()
-                                    self.radict[ra_metaid]['others'] = list()
-                                    self.radict[ra_metaid]['title'] = agent[ar_metaid][0]
-                                for identifier in agent[ar_metaid][1]:
-                                    # other ids after meta
-                                    id_metaid = identifier[0]
-                                    literal = identifier[1]
-                                    if id_metaid not in self.idra:
-                                        self.idra[literal] = id_metaid
-                                    if literal not in self.radict[ra_metaid]['ids']:
-                                        self.radict[ra_metaid]['ids'].append(literal)
-                        if br_metaval not in self.ardict:
-                            self.ardict[br_metaval] = dict()
-                            self.ardict[br_metaval]['author'] = list()
-                            self.ardict[br_metaval]['editor'] = list()
-                            self.ardict[br_metaval]['publisher'] = list()
-                            self.ardict[br_metaval][col_name].extend(sequence)
-                        else:
-                            self.ardict[br_metaval][col_name].extend(sequence)
-                    else:
-                        # totally new sequence
-                        if br_metaval not in self.ardict:
-                            self.ardict[br_metaval] = dict()
-                            self.ardict[br_metaval]['author'] = list()
-                            self.ardict[br_metaval]['editor'] = list()
-                            self.ardict[br_metaval]['publisher'] = list()
-                        sequence = []
-            else:
-                sequence = self.ardict[br_metaval][col_name]
-            if col_name in self.silencer and sequence:
-                self.ardict[br_metaval][col_name] = sequence
-                return
-            new_sequence = list()
-            change_order = False
+                    sequence = []
+            return sequence
+
+        def parse_ra_list(row, col_name):
             if col_name in {'author', 'editor'}:
                 ra_list = re.split(semicolon_in_people_field, row[col_name])
-            elif col_name == 'publisher': 
+            elif col_name == 'publisher':
                 ra_list = [row[col_name]]
             ra_list = Cleaner.clean_ra_list(ra_list)
-            for pos, ra in enumerate(ra_list):
-                new_elem_seq = True
-                ra_id = None
-                ra_id_match = re.search(name_and_ids, ra)
-                if ra_id_match:
-                    name = Cleaner(ra_id_match.group(1)).clean_name()
-                    ra_id = ra_id_match.group(2)
+            return ra_list
+
+        def process_individual_ra(ra, sequence):            
+            new_elem_seq = True
+            ra_id = None
+            ra_id_match = re.search(name_and_ids, ra)
+            if ra_id_match:
+                cleaner = Cleaner(ra_id_match.group(1))
+                name = cleaner.clean_name()
+                ra_id = ra_id_match.group(2)
+            else:
+                cleaner = Cleaner(ra)
+                name = cleaner.clean_name()
+            if not ra_id and sequence:
+                for _, ra_metaid in sequence:
+                    if self.radict[ra_metaid]['title'] == name:
+                        ra_id = 'omid:ra/' + str(ra_metaid)
+                        new_elem_seq = False
+                        break
+            return ra_id, name, new_elem_seq
+
+        if not row[col_name]:
+            return
+    
+        br_metaval_to_check = get_br_metaval_to_check(row, col_name)
+        br_metaval = get_br_metaval(br_metaval_to_check)
+        initialize_ardict_entry(br_metaval)
+
+        sequence = self.ardict[br_metaval].get(col_name, [])
+        if not sequence:
+            sequence = initialize_sequence(br_metaval, col_name)
+
+        if col_name in self.silencer and sequence:
+            return
+
+        ra_list = parse_ra_list(row, col_name)
+
+        new_sequence = list()
+        change_order = False
+
+        for pos, ra in enumerate(ra_list):
+            ra_id, name, new_elem_seq = process_individual_ra(ra, sequence)
+            if ra_id:
+                if self.separator:
+                    ra_id_list = re.sub(colon_and_spaces, ':', ra_id).split(self.separator)
                 else:
-                    name = Cleaner(ra).clean_name()
-                if not ra_id and sequence:
-                    for _, ra_metaid in sequence:
-                        if self.radict[ra_metaid]['title'] == name:
-                            ra_id = 'omid:ra/' + str(ra_metaid)
-                            new_elem_seq = False
-                            break
-                if ra_id:
-                    if self.separator:
-                        ra_id_list = re.sub(colon_and_spaces, ':', ra_id).split(self.separator)
-                    else:
-                        ra_id_list = re.split(one_or_more_spaces, re.sub(colon_and_spaces, ':', ra_id))
-                    if sequence:
-                        ar_ra = None
-                        for ps, el in enumerate(sequence):
-                            ra_metaid = el[1]
-                            for literal in ra_id_list:
-                                if literal in self.radict[ra_metaid]['ids']:
-                                    if ps != pos:
-                                        change_order = True
-                                    new_elem_seq = False
-                                    if 'wannabe' not in ra_metaid:
-                                        ar_ra = ra_metaid
-                                        for pos, literal_value in enumerate(ra_id_list):
-                                            if 'omid' in literal_value:
-                                                ra_id_list[pos] = ''
-                                            break
-                                        ra_id_list = list(filter(None, ra_id_list))
-                                        ra_id_list.append('omid:ra/' + ar_ra)
-                        if not ar_ra:
-                            # new element
-                            for ar_metaid, ra_metaid in sequence:
-                                if self.radict[ra_metaid]['title'] == name:
-                                    new_elem_seq = False
-                                    if 'wannabe' not in ra_metaid:
-                                        ar_ra = ra_metaid
-                                        for pos, i in enumerate(ra_id_list):
-                                            if 'omid' in i:
-                                                ra_id_list[pos] = ''
-                                            break
-                                        ra_id_list = list(filter(None, ra_id_list))
-                                        ra_id_list.append('omid:ra/' + ar_ra)
-                    if col_name == 'publisher':
-                        ra_id_list, metaval = self.clean_id_list(ra_id_list, br=False, valid_dois_cache=self.valid_dois_cache)
-                        metaval = self.id_worker('publisher', name, ra_id_list, metaval, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
-                    else:
-                        ra_id_list, metaval = self.clean_id_list(ra_id_list, br=False, valid_dois_cache=self.valid_dois_cache)
-                        metaval = self.id_worker(col_name, name, ra_id_list, metaval, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=False)
-                    if col_name != 'publisher' and metaval in self.radict:
-                        full_name:str = self.radict[metaval]['title']
-                        if ',' in name and ',' in full_name:
-                            first_name = name.split(',')[1].strip()
-                            if not full_name.split(',')[1].strip() and first_name:  # first name found!
-                                given_name = full_name.split(',')[0]
-                                self.radict[metaval]['title'] = given_name + ', ' + first_name
+                    ra_id_list = re.split(one_or_more_spaces, re.sub(colon_and_spaces, ':', ra_id))
+                if sequence:
+                    ar_ra = None
+                    for ps, el in enumerate(sequence):
+                        ra_metaid = el[1]
+                        for literal in ra_id_list:
+                            if literal in self.radict[ra_metaid]['ids']:
+                                if ps != pos:
+                                    change_order = True
+                                new_elem_seq = False
+                                if 'wannabe' not in ra_metaid:
+                                    ar_ra = ra_metaid
+                                    for pos, literal_value in enumerate(ra_id_list):
+                                        if 'omid' in literal_value:
+                                            ra_id_list[pos] = ''
+                                        break
+                                    ra_id_list = list(filter(None, ra_id_list))
+                                    ra_id_list.append('omid:ra/' + ar_ra)
+                    if not ar_ra:
+                        # new element
+                        for ar_metaid, ra_metaid in sequence:
+                            if self.radict[ra_metaid]['title'] == name:
+                                new_elem_seq = False
+                                if 'wannabe' not in ra_metaid:
+                                    ar_ra = ra_metaid
+                                    for pos, i in enumerate(ra_id_list):
+                                        if 'omid' in i:
+                                            ra_id_list[pos] = ''
+                                        break
+                                    ra_id_list = list(filter(None, ra_id_list))
+                                    ra_id_list.append('omid:ra/' + ar_ra)
+                if col_name == 'publisher':
+                    ra_id_list, metaval = self.clean_id_list(ra_id_list, br=False, valid_dois_cache=self.valid_dois_cache)
+                    metaval = self.id_worker('publisher', name, ra_id_list, metaval, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
                 else:
-                    metaval = self.new_entity(self.radict, name)
-                if new_elem_seq:
-                    role = self.prefix + str(self._add_number(self.ar_info_path))
-                    new_sequence.append(tuple((role, metaval)))
-            if change_order:
-                self.log[self.rowcnt][col_name]['Info'] = 'New RA sequence proposed: refused'
-            sequence.extend(new_sequence)
-            self.ardict[br_metaval][col_name] = sequence
+                    ra_id_list, metaval = self.clean_id_list(ra_id_list, br=False, valid_dois_cache=self.valid_dois_cache)
+                    metaval = self.id_worker(col_name, name, ra_id_list, metaval, ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=False)
+                if col_name != 'publisher' and metaval in self.radict:
+                    full_name:str = self.radict[metaval]['title']
+                    if ',' in name and ',' in full_name:
+                        first_name = name.split(',')[1].strip()
+                        if not full_name.split(',')[1].strip() and first_name:  # first name found!
+                            given_name = full_name.split(',')[0]
+                            self.radict[metaval]['title'] = given_name + ', ' + first_name
+            else:
+                metaval = self.new_entity(self.radict, name)
+            if new_elem_seq:
+                role = self.prefix + str(self._add_number(self.ar_info_path))
+                new_sequence.append(tuple((role, metaval)))
+        if change_order:
+            self.log[self.rowcnt][col_name]['Info'] = 'New RA sequence proposed: refused'
+        sequence.extend(new_sequence)
+        self.ardict[br_metaval][col_name] = sequence
 
     @staticmethod
     def clean_id_list(id_list:List[str], br:bool, valid_dois_cache:dict=dict()) -> Tuple[list, str]:

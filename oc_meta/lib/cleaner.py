@@ -17,9 +17,9 @@
 # ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 # SOFTWARE.
 
-
 import html
 import re
+from collections import OrderedDict
 from datetime import datetime
 from typing import Tuple, Union
 
@@ -267,26 +267,68 @@ class Cleaner:
     @staticmethod
     def clean_ra_list(ra_list:list) -> list:
         '''
-        This method removes responsible agents reported as 'Not Available'.
+        This method removes responsible agents reported as 'Not Available', duplicates with the same name and at least one matching identifier, and common identifiers among different names.
 
         :returns: list -- The cleaned responsible agents' list
         '''
-        new_ra_list = list()
+
+        # Step 1: Collect all identifiers for each unique name
+        agents_ids = OrderedDict()
         for ra in ra_list:
+            if ra.lower().strip() == 'not available':
+                continue
+            match = re.compile(name_and_ids).match(ra)
+            if match:
+                name, ids = match.groups()
+                if name:
+                    agents_ids.setdefault(name, OrderedDict()).update(
+                        OrderedDict.fromkeys(ids.split()))
+                else: # If there are only IDs, treat the whole string as an identifier
+                    agents_ids.setdefault(ra, OrderedDict()).update(
+                        OrderedDict.fromkeys(ids.split()))
+
+        # Step 2: Find identifiers that are shared between different names
+        shared_ids = set()
+        for name, ids in agents_ids.items():
+            for other_name, other_ids in agents_ids.items():
+                if name != other_name:
+                    shared_ids.update(ids.keys() & other_ids.keys())
+
+        # Step 3: Remove shared identifiers from the responsible agents
+        for name, ids in agents_ids.items():
+            agents_ids[name] = OrderedDict((id_key, None) for id_key in ids if id_key not in shared_ids)
+
+        # Step 4: Clean the list from 'Not Available', duplicates, and shared identifiers
+        new_ra_list = []
+        seen_agents = OrderedDict()
+        for ra in ra_list:
+            if ra.lower().strip() == 'not available':
+                continue
             if ',' in ra:
                 split_name = re.split(comma_and_spaces, ra)
-                first_name = split_name[1] if split_name[1].lower() != 'not available' else ''
-                given_name = split_name[0] if split_name[0].lower() != 'not available' else ''
-                if given_name:
-                    if first_name:
-                        new_ra_list.append(ra)
-                    else:
-                        new_ra_list.append(f'{given_name}, ')
-                else:
+                first_name = split_name[1].strip() if split_name[1].strip().lower() != 'not available' else ''
+                last_name = split_name[0].strip() if split_name[0].strip().lower() != 'not available' else ''
+                if not last_name:
                     continue
+                ra_cleaned_name = f'{last_name}, {first_name}' if first_name else f'{last_name}, '
             else:
-                if ra.lower() != 'not available':
-                    new_ra_list.append(ra)
+                ra_cleaned_name = ra
+            match = re.compile(name_and_ids).match(ra)
+            if match:
+                name, ids = match.groups()
+                if name:
+                    cleaned_ids = ' '.join(agents_ids.get(name, []))
+                    cleaned_ids_set = set(cleaned_ids.split())
+                    ra_cleaned = f'{name} [{cleaned_ids}]' if cleaned_ids else name
+                    if name in seen_agents and seen_agents[name] & cleaned_ids_set:
+                        continue  # Skip adding this ra since it's a duplicate with a matching identifier
+                    seen_agents.setdefault(name, set()).update(cleaned_ids_set)
+                else:
+                    cleaned_ids = [identifier for identifier in ids.split() if identifier not in shared_ids]
+                    ra_cleaned = f"[{' '.join(cleaned_ids)}]"
+                new_ra_list.append(ra_cleaned)
+            else:
+                new_ra_list.append(ra_cleaned_name)
         return new_ra_list
         
     

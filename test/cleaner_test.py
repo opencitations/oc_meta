@@ -74,6 +74,24 @@ class test_Cleaner(unittest.TestCase):
         expected_output = ['Peroni, ', 'Peroni, Silvio']
         self.assertEqual(output, expected_output)
 
+    def test_clean_ra_list_duplicates(self):
+        names = ['Peroni, Silvio [orcid:0000-0003-0530-4305 viaf:1]', 'Peroni, Not Available', 'Peroni, Silvio [orcid:0000-0003-0530-4305]', 'Massari, Arcangelo']
+        output = Cleaner.clean_ra_list(names)
+        expected_output = ['Peroni, Silvio [orcid:0000-0003-0530-4305 viaf:1]', 'Peroni, ', 'Massari, Arcangelo']
+        self.assertEqual(output, expected_output)
+
+    def test_clean_ra_list_remove_ids(self):
+        names = ['Peroni, Silvio [orcid:0000-0003-0530-4305 viaf:1]', 'Peroni, Not Available', 'Perone, Silvio [orcid:0000-0003-0530-4305]', 'Massari, Arcangelo']
+        output = Cleaner.clean_ra_list(names)
+        expected_output = ['Peroni, Silvio [viaf:1]', 'Peroni, ', 'Perone, Silvio', 'Massari, Arcangelo']
+        self.assertEqual(output, expected_output)
+
+    def test_clean_ra_list_only_ids(self):
+        names = ['Peroni, Silvio [orcid:0000-0003-0530-4305]', '[orcid:0000-0003-0530-4305 viaf:1]', '[orcid:0000-0003-0530-4306]']
+        output = Cleaner.clean_ra_list(names)
+        expected_output = ['Peroni, Silvio', '[viaf:1]', '[orcid:0000-0003-0530-4306]']
+        self.assertEqual(output, expected_output)
+
     def test_normalize_spaces(self):
         broken_strings = ['100\u0009101', '100\u00A0101', '100\u200B101', '100\u202F101']
         fixed_strings = list()
