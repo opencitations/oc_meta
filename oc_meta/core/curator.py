@@ -35,9 +35,9 @@ from oc_meta.lib.master_of_regex import *
 
 class Curator:
 
-    def __init__(self, data:List[dict], ts:str, prov_config:str, info_dir:str, base_iri:str='https://w3id.org/oc/meta', prefix:str='060', separator:str=None, valid_dois_cache:dict=dict(), meta_config_path:str|None = None, silencer:list = []):
+    def __init__(self, data:List[dict], ts:str, prov_config:str, info_dir:str, base_iri:str='https://w3id.org/oc/meta', prefix:str='060', separator:str=None, valid_dois_cache:dict=dict(), settings:dict|None = None, silencer:list = [], meta_config_path: str = None):
         self.everything_everywhere_allatonce = Graph()
-        self.finder = ResourceFinder(ts, base_iri, self.everything_everywhere_allatonce, meta_config_path=meta_config_path)
+        self.finder = ResourceFinder(ts, base_iri, self.everything_everywhere_allatonce, settings=settings, meta_config_path=meta_config_path)
         self.base_iri = base_iri
         self.prov_config = prov_config
         self.separator = separator
@@ -411,12 +411,10 @@ class Curator:
         sequence = self.ardict[br_metaval].get(col_name, [])
         if not sequence:
             sequence = initialize_sequence(br_metaval, col_name)
-
         if col_name in self.silencer and sequence:
             return
 
         ra_list = parse_ra_list(row, col_name)
-
         new_sequence = list()
         change_order = False
 

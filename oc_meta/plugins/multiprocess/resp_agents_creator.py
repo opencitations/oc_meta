@@ -28,10 +28,10 @@ from oc_meta.lib.master_of_regex import (comma_and_spaces, name_and_ids,
 
 
 class RespAgentsCreator(Creator):
-    def __init__(self, data:list, endpoint:str, base_iri:str, info_dir:str, supplier_prefix:str, resp_agent:str, ra_index:dict, preexisting_entities: set, everything_everywhere_allatonce: Graph, meta_config_path:str|None=None):
+    def __init__(self, data:list, endpoint:str, base_iri:str, info_dir:str, supplier_prefix:str, resp_agent:str, ra_index:dict, preexisting_entities: set, everything_everywhere_allatonce: Graph, settings:dict|None=None, meta_config_path: str = None):
         self.url = base_iri
         self.setgraph = GraphSet(self.url, info_dir, supplier_prefix, wanted_label=False)
-        self.finder = ResourceFinder(ts_url = endpoint, base_iri = base_iri, local_g=everything_everywhere_allatonce, meta_config_path=meta_config_path)
+        self.finder = ResourceFinder(ts_url = endpoint, base_iri = base_iri, local_g=everything_everywhere_allatonce, settings=settings, meta_config_path=meta_config_path)
         self.resp_agent = resp_agent
         self.ra_id_schemas = {'crossref', 'orcid', 'viaf', 'wikidata'}
         self.br_id_schemas = {'doi', 'issn', 'isbn', 'pmid', 'pmcid', 'url', 'wikidata', 'wikipedia'}

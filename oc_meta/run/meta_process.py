@@ -44,10 +44,7 @@ from oc_meta.plugins.multiprocess.resp_agents_curator import RespAgentsCurator
 
 
 class MetaProcess:
-    def __init__(self, config:str):
-        with open(config, encoding='utf-8') as file:
-            settings = yaml.full_load(file)
-        self.config = config
+    def __init__(self, settings:dict, meta_config_path: str):
         # Mandatory settings
         self.triplestore_url = settings['triplestore_url']
         self.input_csv_dir = normalize_path(settings['input_csv_dir'])
@@ -75,7 +72,7 @@ class MetaProcess:
         self.supplier_prefix = supplier_prefix[:-1] if supplier_prefix.endswith('0') else supplier_prefix
         self.silencer = settings['silencer']
         # Time-Agnostic_library integration
-        self.time_agnostic_library_config = os.path.join(os.path.dirname(config), 'time_agnostic_library_config.json')
+        self.time_agnostic_library_config = os.path.join(os.path.dirname(meta_config_path), 'time_agnostic_library_config.json')
         if not os.path.exists(self.time_agnostic_library_config):
             generate_config_file(config_path=self.time_agnostic_library_config, dataset_urls=[self.triplestore_url], dataset_dirs=list(),
                 provenance_urls=settings['provenance_endpoints'], provenance_dirs=list(), 
@@ -97,7 +94,7 @@ class MetaProcess:
         csv.field_size_limit(128)
         return files_to_be_processed
 
-    def curate_and_create(self, filename:str, cache_path:str, errors_path:str, worker_number:int=None, resp_agents_only:bool=False, meta_config_path:str|None=None) -> Tuple[dict, str, str, str]:
+    def curate_and_create(self, filename:str, cache_path:str, errors_path:str, worker_number:int=None, resp_agents_only:bool=False, settings:str|None=None, meta_config_path: str = None) -> Tuple[dict, str, str, str]:
         if os.path.exists(os.path.join(self.base_output_dir, '.stop')):
             return {'message': 'skip'}, cache_path, errors_path, filename
         try:
@@ -116,6 +113,7 @@ class MetaProcess:
                     info_dir=curator_info_dir, 
                     base_iri=self.base_iri, 
                     prefix=supplier_prefix, 
+                    settings=settings,
                     meta_config_path=meta_config_path)
             else:
                 curator_obj = Curator(
@@ -126,8 +124,9 @@ class MetaProcess:
                     base_iri=self.base_iri, 
                     prefix=supplier_prefix, 
                     valid_dois_cache=self.valid_dois_cache, 
-                    meta_config_path=meta_config_path,
-                    silencer=self.silencer)
+                    settings=settings,
+                    silencer=self.silencer,
+                    meta_config_path=meta_config_path)
             name = f"{filename.replace('.csv', '')}_{datetime.now().strftime('%Y-%m-%dT%H-%M-%S')}"
             curator_obj.curator(filename=name, path_csv=self.output_csv_dir, path_index=self.indexes_dir)
             # Creator
@@ -143,6 +142,7 @@ class MetaProcess:
                     ra_index=curator_obj.index_id_ra,
                     preexisting_entities=curator_obj.preexisting_entities, 
                     everything_everywhere_allatonce=curator_obj.everything_everywhere_allatonce, 
+                    settings=settings,
                     meta_config_path=meta_config_path)
             else:
                 creator_obj = Creator(
@@ -159,6 +159,7 @@ class MetaProcess:
                     vi_index=curator_obj.VolIss, 
                     preexisting_entities=curator_obj.preexisting_entities, 
                     everything_everywhere_allatonce=curator_obj.everything_everywhere_allatonce, 
+                    settings=settings,
                     meta_config_path=meta_config_path)
             creator = creator_obj.creator(source=self.source)
             # Provenance
@@ -196,7 +197,8 @@ class MetaProcess:
         dirs_to_zip = [self.base_output_dir, self.output_rdf_dir] if self.distinct_output_dirs else [self.base_output_dir]
         zipit(dirs_to_zip, output_dirname)
 
-def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False, meta_config_path:str|None=None) -> None:
+def run_meta_process(settings: dict, meta_config_path: str, resp_agents_only: bool=False) -> None:
+    meta_process = MetaProcess(settings=settings, meta_config_path=meta_config_path)
     is_unix = platform in {'linux', 'linux2', 'darwin'}
     # delete_lock_files(base_dir=meta_process.base_output_dir)
     files_to_be_processed = meta_process.prepare_folders()
@@ -209,15 +211,15 @@ def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False, meta
         tens = int(str(max_workers)[:-1]) if max_workers >= 10 else 0
         multiples_of_ten = {i for i in range(1, max_workers + tens + 1) if int(i) % 10 == 0}
         workers = [i for i in range(1, max_workers+len(multiples_of_ten)+1) if i not in multiples_of_ten]
-    generate_gentle_buttons(meta_process.base_output_dir, meta_process.config, is_unix)
+    generate_gentle_buttons(meta_process.base_output_dir, meta_config_path, is_unix)
     zip_every_n_files = round(max_workers * 300, -3) if max_workers > 3 else 500
     files_chunks = chunks(list(files_to_be_processed), zip_every_n_files) if is_unix else [files_to_be_processed]
     for files_chunk in files_chunks:
         with ProcessPool(max_workers=max_workers, max_tasks=1) as executor:
             for file_to_be_processed, worker_number in zip(files_chunk, cycle(workers)):
                 future:ProcessFuture = executor.schedule(
-                    function=meta_process.curate_and_create, 
-                    args=(file_to_be_processed, meta_process.cache_path, meta_process.errors_path, worker_number, resp_agents_only, meta_config_path)) 
+                    function=curate_and_create_wrapper, 
+                    args=(file_to_be_processed, worker_number, resp_agents_only, settings, meta_config_path)) 
                 future.add_done_callback(task_done) 
         # if is_unix and not os.path.exists(os.path.join(meta_process.base_output_dir, '.stop')):
         #     meta_process.save_data()
@@ -226,6 +228,10 @@ def run_meta_process(meta_process:MetaProcess, resp_agents_only:bool=False, meta
             os.rename(meta_process.cache_path, meta_process.cache_path.replace('.txt', f'_{datetime.now().strftime("%Y-%m-%dT%H_%M_%S_%f")}.txt'))
         if is_unix:
             delete_lock_files(base_dir=meta_process.base_output_dir)
+
+def curate_and_create_wrapper(file_to_be_processed, worker_number, resp_agents_only, settings, meta_config_path):
+    meta_process = MetaProcess(settings=settings, meta_config_path=meta_config_path)
+    return meta_process.curate_and_create(file_to_be_processed, meta_process.cache_path, meta_process.errors_path, worker_number, resp_agents_only, settings, meta_config_path)
 
 def task_done(task_output:ProcessFuture) -> None:
     message, cache_path, errors_path, filename = task_output.result()
@@ -271,5 +277,6 @@ if __name__ == '__main__': # pragma: no cover
     arg_parser = ArgumentParser('meta_process.py', description='This script runs the OCMeta data processing workflow')
     arg_parser.add_argument('-c', '--config', dest='config', required=True, help='Configuration file directory')
     args = arg_parser.parse_args()
-    meta_process = MetaProcess(config=args.config)
-    run_meta_process(meta_process=meta_process, resp_agents_only=False, meta_config_path=args.config)
+    with open(args.config, encoding='utf-8') as file:
+        settings = yaml.full_load(file)
+    run_meta_process(settings=settings, meta_config_path=args.config, resp_agents_only=False)

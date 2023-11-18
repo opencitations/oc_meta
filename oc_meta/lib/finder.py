@@ -19,17 +19,14 @@ from oc_meta.plugins.fixer.ar_order import check_roles
 
 class ResourceFinder:
 
-    def __init__(self, ts_url, base_iri:str, local_g: Graph = Graph(), meta_config_path: str = None):
+    def __init__(self, ts_url, base_iri:str, local_g: Graph = Graph(), settings: dict = None, meta_config_path: str = None):
         self.ts = SPARQLWrapper(ts_url)
         self.ts.setMethod(GET)
         self.base_iri = base_iri[:-1] if base_iri[-1] == '/' else base_iri
         self.local_g = local_g
         self.ids_in_local_g = set()
         self.meta_config_path = meta_config_path
-        self.meta_settings = None
-        if meta_config_path is not None:
-            with open(meta_config_path, encoding='utf-8') as file:
-                self.meta_settings = yaml.full_load(file)
+        self.meta_settings = settings
 
     def __query(self, query, return_format = JSON):
         self.ts.setReturnFormat(return_format)

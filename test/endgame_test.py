@@ -19,6 +19,8 @@ import unittest
 from sys import platform
 from test.curator_test import reset_server
 
+import yaml
+
 from oc_meta.run.meta_process import MetaProcess, run_meta_process
 
 BASE_DIR = os.path.join('test', 'endgame')
@@ -26,16 +28,17 @@ BASE_DIR = os.path.join('test', 'endgame')
 # class test_Endgame(unittest.TestCase):
 #     def test_endgame(self):
 #         reset_server()
-#         {'csv': {'ra': 9403, 'br': 10472, 're': 0, 'id': 0, 'ar': 0}, 'rdf': {'ra': 133479, 'br': 32669, 're': 21937, 'id': 58722, 'ar': 157990}, 'triplestore': {'ra': 133479, 'br': 32669, 're': 21937, 'ar': 157990, 'id': 58722}}
+#         # {'csv': {'ra': 9403, 'br': 10472, 're': 0, 'id': 0, 'ar': 0}, 'rdf': {'ra': 133479, 'br': 32669, 're': 21937, 'id': 58722, 'ar': 157990}, 'triplestore': {'ra': 133479, 'br': 32669, 're': 21937, 'ar': 157990, 'id': 58722}}
 #         meta_config_path = os.path.join(BASE_DIR, 'endgame.yaml')
-#         python_executable = "python" if platform == "win32" else "python3"
-#         prepare_command = ["poetry", "run", python_executable, "-m", "oc_meta.run.prepare_multiprocess", "-c", meta_config_path]
-#         result = subprocess.run(prepare_command, shell=True, check=True)
-#         if result.returncode == 0:
-#             meta_process = MetaProcess(config=meta_config_path)
-#             run_meta_process(meta_process, meta_config_path=meta_config_path)
-#         else:
-#             raise Exception("prepare_multiprocess failed")
+#         with open(meta_config_path, encoding='utf-8') as file:
+#             settings = yaml.full_load(file)
+#         # python_executable = "python" if platform == "win32" else "python3"
+#         # prepare_command = ["poetry", "run", python_executable, "-m", "oc_meta.run.prepare_multiprocess", "-c", meta_config_path]
+#         # result = subprocess.run(prepare_command, shell=True, check=True)
+#         # if result.returncode == 0:
+#         run_meta_process(settings=settings, meta_config_path=meta_config_path)
+#         # else:
+#         #     raise Exception("prepare_multiprocess failed")
 
 if __name__ == '__main__':
     unittest.main()

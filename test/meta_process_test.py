@@ -8,6 +8,7 @@ from datetime import datetime
 from test.curator_test import reset_server
 from zipfile import ZipFile
 
+import yaml
 from SPARQLWrapper import JSON, SPARQLWrapper
 
 from oc_meta.lib.file_manager import get_csv_data
@@ -35,9 +36,10 @@ class test_ProcessTest(unittest.TestCase):
         reset_server()
         output_folder = os.path.join(BASE_DIR, 'output_1')
         meta_config_path = os.path.join(BASE_DIR, 'meta_config_1.yaml')
-        meta_process = MetaProcess(config=meta_config_path)
+        with open(meta_config_path, encoding='utf-8') as file:
+            settings = yaml.full_load(file)
         now = datetime.now()
-        run_meta_process(meta_process, meta_config_path=meta_config_path)
+        run_meta_process(settings=settings, meta_config_path=meta_config_path)
         output = list()
         for dirpath, _, filenames in os.walk(os.path.join(output_folder, 'csv')):
             for file in filenames:
@@ -59,9 +61,10 @@ class test_ProcessTest(unittest.TestCase):
         reset_server()
         output_folder = os.path.join(BASE_DIR, 'output_5')
         meta_config_path = os.path.join(BASE_DIR, 'meta_config_5.yaml')
-        meta_process = MetaProcess(config=meta_config_path)
         now = datetime.now()
-        run_meta_process(meta_process, meta_config_path=meta_config_path)
+        with open(meta_config_path, encoding='utf-8') as file:
+            settings = yaml.full_load(file)
+        run_meta_process(settings, meta_config_path=meta_config_path)
         output = list()
         for dirpath, _, filenames in os.walk(os.path.join(output_folder, 'csv')):
             for file in filenames:
@@ -82,10 +85,11 @@ class test_ProcessTest(unittest.TestCase):
         reset_server()
         output_folder = os.path.join(BASE_DIR, 'output_2')
         meta_config_path=os.path.join(BASE_DIR, 'meta_config_2.yaml')
-        meta_process = MetaProcess(config=meta_config_path)
-        meta_process.workers_number = 2
+        with open(meta_config_path, encoding='utf-8') as file:
+            settings = yaml.full_load(file)
+        settings['workers_number'] = 2
         now = datetime.now()
-        run_meta_process(meta_process, meta_config_path=meta_config_path)
+        run_meta_process(settings=settings, meta_config_path=meta_config_path)
         output = list()
         for dirpath, _, filenames in os.walk(os.path.join(output_folder, 'csv')):
             for file in filenames:
@@ -110,13 +114,14 @@ class test_ProcessTest(unittest.TestCase):
             shutil.rmtree(output_folder)
         delete_output_zip('.', now)
         meta_config_path=os.path.join(BASE_DIR, 'meta_config_3.yaml')
-        meta_process = MetaProcess(config=meta_config_path)
-        meta_process.input_csv_dir = os.path.join(BASE_DIR, 'input')
-        run_meta_process(meta_process, meta_config_path=meta_config_path)
-        meta_process.input_csv_dir = os.path.join(BASE_DIR, 'input_2')
-        run_meta_process(meta_process, meta_config_path=meta_config_path)
-        meta_process.input_csv_dir = os.path.join(BASE_DIR, 'input')
-        run_meta_process(meta_process, meta_config_path=meta_config_path)
+        with open(meta_config_path, encoding='utf-8') as file:
+            settings = yaml.full_load(file)
+        settings['input_csv_dir'] = os.path.join(BASE_DIR, 'input')
+        run_meta_process(settings=settings, meta_config_path=meta_config_path)
+        settings['input_csv_dir'] = os.path.join(BASE_DIR, 'input_2')
+        run_meta_process(settings=settings, meta_config_path=meta_config_path)
+        settings['input_csv_dir'] = os.path.join(BASE_DIR, 'input')
+        run_meta_process(settings=settings, meta_config_path=meta_config_path)
         output = dict()
         for dirpath, _, filenames in os.walk(os.path.join(output_folder, 'rdf')):
             if dirpath.endswith('prov'):
@@ -167,12 +172,13 @@ class test_ProcessTest(unittest.TestCase):
         reset_server()
         output_folder = os.path.join(BASE_DIR, 'output_4')
         meta_config_path=os.path.join(BASE_DIR, 'meta_config_4.yaml')
-        meta_process = MetaProcess(config=meta_config_path)
-        original_input_csv_dir = meta_process.input_csv_dir
-        meta_process.input_csv_dir = os.path.join(original_input_csv_dir, 'preprocess')
+        with open(meta_config_path, encoding='utf-8') as file:
+            settings = yaml.full_load(file)
+        original_input_csv_dir = settings['input_csv_dir']
+        settings['input_csv_dir'] = os.path.join(original_input_csv_dir, 'preprocess')
         now = datetime.now()
-        meta_process.workers_number = 1
-        run_meta_process(meta_process, meta_config_path=meta_config_path)
+        settings['workers_number'] = 1
+        run_meta_process(settings=settings, meta_config_path=meta_config_path)
         proc = subprocess.run([sys.executable, '-m', 'oc_meta.run.meta_process', '-c', meta_config_path], capture_output=True, text=True)
         output = dict()
         for dirpath, _, filenames in os.walk(os.path.join(output_folder, 'rdf')):
@@ -239,10 +245,11 @@ class test_ProcessTest(unittest.TestCase):
         output_folder = os.path.join(BASE_DIR, 'output_6')
         now = datetime.now()
         meta_config_path=os.path.join(BASE_DIR, 'meta_config_6.yaml')
-        meta_process = MetaProcess(config=meta_config_path)
-        run_meta_process(meta_process, meta_config_path=meta_config_path)
-        meta_process.input_csv_dir = os.path.join(BASE_DIR, 'same_as_input_2_with_other_authors')
-        run_meta_process(meta_process, meta_config_path=meta_config_path)
+        with open(meta_config_path, encoding='utf-8') as file:
+            settings = yaml.full_load(file)
+        run_meta_process(settings=settings, meta_config_path=meta_config_path)
+        settings['input_csv_dir'] = os.path.join(BASE_DIR, 'same_as_input_2_with_other_authors')
+        run_meta_process(settings=settings, meta_config_path=meta_config_path)
         query_agents = '''
             PREFIX pro: <http://purl.org/spar/pro/>
             SELECT (COUNT (?agent) AS ?agent_count)
@@ -270,10 +277,11 @@ class test_ProcessTest(unittest.TestCase):
         output_folder = os.path.join(BASE_DIR, 'output_7')
         now = datetime.now()
         meta_config_path=os.path.join(BASE_DIR, 'meta_config_7.yaml')
-        meta_process = MetaProcess(config=meta_config_path)
-        run_meta_process(meta_process, meta_config_path=meta_config_path)
-        meta_process.input_csv_dir = os.path.join(BASE_DIR, 'same_as_input_2_with_other_authors')
-        run_meta_process(meta_process, meta_config_path=meta_config_path)
+        with open(meta_config_path, encoding='utf-8') as file:
+            settings = yaml.full_load(file)
+        run_meta_process(settings=settings, meta_config_path=meta_config_path)
+        settings['input_csv_dir'] = os.path.join(BASE_DIR, 'same_as_input_2_with_other_authors')
+        run_meta_process(settings=settings, meta_config_path=meta_config_path)
         query_agents = '''
             PREFIX pro: <http://purl.org/spar/pro/>
             SELECT (COUNT (?agent) AS ?agent_count)

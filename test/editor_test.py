@@ -20,6 +20,7 @@ import unittest
 from shutil import rmtree
 from test.curator_test import reset_server
 
+import yaml
 from oc_ocdm import Storer
 from oc_ocdm.graph import GraphSet
 from oc_ocdm.prov import ProvSet
@@ -38,8 +39,9 @@ class TestEditor(unittest.TestCase):
         reset_server()
         if os.path.exists(OUTPUT):
             rmtree(OUTPUT)
-        meta_process = MetaProcess(config=META_CONFIG)
-        run_meta_process(meta_process)
+        with open(META_CONFIG, encoding='utf-8') as file:
+            settings = yaml.full_load(file)
+        run_meta_process(settings=settings, meta_config_path=META_CONFIG)
 
     def tearDown(self):
         rmtree(OUTPUT)
