@@ -27,7 +27,6 @@ oc-ocdm = "7.3.1"
 fakeredis = "^2.10.3"
 ndjson = "^0.3.1"
 oc-ds-converter = "^0.2.0"
-psycopg2 = "^2.9.9"
 ijson = "^3.2.3"
 
 [tool.poetry.dev-dependencies]
