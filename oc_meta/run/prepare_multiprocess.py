@@ -38,7 +38,7 @@ if __name__ == '__main__': # pragma: no cover
     items_per_file = settings['items_per_file']
     workers_numbers = settings['workers_number']
     verbose = args.verbose
-    meta_process = MetaProcess(config)
+    meta_process = MetaProcess(settings=settings, meta_config_path=config)
     TMP_DIR = os.path.join(meta_process.base_output_dir, 'tmp')
     if not os.path.isdir(meta_process.input_csv_dir + '_old'):
         split_csvs_in_chunks(csv_dir=csv_dir, output_dir=TMP_DIR, chunk_size=1000, verbose=verbose)
@@ -51,11 +51,11 @@ if __name__ == '__main__': # pragma: no cover
     for resp_agent in ['authors', 'editors']:
         resp_agent_dir = os.path.join(TMP_DIR, resp_agent)
         if os.path.isdir(resp_agent_dir):
-            meta_process.input_csv_dir = resp_agent_dir
-            run_meta_process(meta_process=meta_process, resp_agents_only=True)
-    meta_process.workers_number = 1
+            settings['input_csv_dir'] = resp_agent_dir
+            run_meta_process(settings=settings, meta_config_path=meta_config_path, resp_agents_only=True)
+    settings['workers_number'] = 1
     for entity_type in ['publishers', 'venues', 'ids']:
         entity_dir = os.path.join(TMP_DIR, entity_type)
         if os.path.isdir(entity_dir):
-            meta_process.input_csv_dir = entity_dir
-            run_meta_process(meta_process=meta_process)
+            settings['input_csv_dir'] = entity_dir
+            run_meta_process(settings=settings, meta_config_path=meta_config_path)
