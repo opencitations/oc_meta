@@ -7,37 +7,22 @@ from SPARQLWrapper import JSON, SPARQLWrapper
 from tqdm import tqdm
 import queue
 
-def query_triplestore(endpoint, offset, limit, max_retries=5):
+def query_triplestore_by_class(endpoint, class_uri, offset, limit, max_retries=5):
     sparql = SPARQLWrapper(endpoint)
     sparql.setQuery(f"""
         SELECT ?g ?s ?p ?o WHERE {{
-            GRAPH ?g {{ ?s ?p ?o }}
+            GRAPH ?g {{?s a <{class_uri}> ;
+               ?p ?o .}}
         }} LIMIT {limit} OFFSET {offset}
     """)
     sparql.setReturnFormat(JSON)
     for attempt in range(max_retries):
         try:
             results = sparql.query().convert()
-            return results
+            return results, bool(results["results"]["bindings"])
         except Exception as e:
             print(f"Errore nella query: {e}, tentativo {attempt + 1} di {max_retries}")
-            time.sleep(2 ** attempt)  # Backoff esponenziale
-
-def count_triples(endpoint):
-    sparql = SPARQLWrapper(endpoint)
-    sparql.setQuery("""
-        SELECT (COUNT(*) as ?count) WHERE {
-            GRAPH ?g { ?s ?p ?o }
-        }
-    """)
-    sparql.setReturnFormat(JSON)
-    results = sparql.query().convert()
-    try:
-        count = int(results["results"]["bindings"][0]["count"]["value"])
-        return count
-    except (IndexError, KeyError, ValueError):
-        print("Errore nel calcolo del numero totale di triple")
-        return 0
+            time.sleep(2 ** attempt)
 
 def convert_to_graph(results):
     g = ConjunctiveGraph()
@@ -57,57 +42,42 @@ def convert_to_graph(results):
         g.add((s, p, o, graph_uri))
     return g
 
-def process_task(endpoint, output_folder, page_size, offset, file_count, progress_queue):
-    results = query_triplestore(endpoint, offset, page_size)
-    if results["results"]["bindings"]:
-        graph = convert_to_graph(results)
-        output_filename = os.path.join(output_folder, f"output_{file_count}.jsonld")
-        with open(output_filename, 'w', encoding='utf-8') as f:
-            jsonld_data = graph.serialize(format='json-ld')
-            f.write(jsonld_data)
-    progress_queue.put(1)
-
-def progress_monitor(total_tasks, progress_queue):
-    with tqdm(total=total_tasks, desc="Downloading and Saving Triples") as pbar:
-        completed_tasks = 0
-        while completed_tasks < total_tasks:
-            completed_tasks += progress_queue.get()
-            pbar.update(1)
-
-def process_worker(endpoint, output_folder, page_size, task_queue, progress_queue):
-    while not task_queue.empty():
-        try:
-            offset, file_count = task_queue.get_nowait()
-            process_task(endpoint, output_folder, page_size, offset, file_count, progress_queue)
-        except queue.Empty:
-            break
-
-def main(endpoint, output_folder, page_size, n_processes):
+def process_task(class_uri, endpoint, output_folder, page_size):
+    output_folder = os.path.join(output_folder, class_uri.split('/')[-1])
     os.makedirs(output_folder, exist_ok=True)
 
-    total_triples = count_triples(endpoint)
-    num_pages = (total_triples + page_size - 1) // page_size
+    file_count = 0
+    offset = 0
+    while True:
+        results, has_data = query_triplestore_by_class(endpoint, class_uri, offset, page_size)
+        if has_data:
+            graph = convert_to_graph(results)
+            output_filename = os.path.join(output_folder, f"{class_uri.split('/')[-1]}_output_{file_count}.jsonld")
+            with open(output_filename, 'w', encoding='utf-8') as f:
+                jsonld_data = graph.serialize(format='json-ld')
+                f.write(jsonld_data)
+        else:
+            break
+        offset += page_size
+        file_count += 1
 
-    manager = multiprocessing.Manager()
-    progress_queue = manager.Queue()
-    task_queue = manager.Queue()
+def main(endpoint, output_folder, page_size):
+    class_uris = [
+        "http://purl.org/spar/fabio/Expression",
+        "http://purl.org/spar/fabio/Manifestation",
+        "http://xmlns.com/foaf/0.1/Agent",
+        "http://purl.org/spar/datacite/Identifier",
+        "http://purl.org/spar/pro/RoleInTime"
+    ]
 
-    for file_count in range(num_pages):
-        offset = file_count * page_size
-        task_queue.put((offset, file_count))
+    pool = multiprocessing.Pool(processes=len(class_uris))
 
-    monitor = multiprocessing.Process(target=progress_monitor, args=(num_pages, progress_queue))
-    monitor.start()
+    for class_uri in class_uris:
+        print(f"Processing class: {class_uri}")
+        pool.apply_async(process_task, (class_uri, endpoint, output_folder, page_size))
 
-    processes = [multiprocessing.Process(target=process_worker, args=(endpoint, output_folder, page_size, task_queue, progress_queue)) for _ in range(n_processes)]
-
-    for proc in processes:
-        proc.start()
-
-    for proc in processes:
-        proc.join()
-
-    monitor.join()  # Assicurati che il monitor del progresso termini correttamente
+    pool.close()
+    pool.join()
 
 
 if __name__ == "__main__":
@@ -115,7 +85,6 @@ if __name__ == "__main__":
     parser.add_argument("--endpoint", required=True, help="SPARQL endpoint URL")
     parser.add_argument("--output", required=True, help="Folder path to save output JSON-LD files")
     parser.add_argument("--pagesize", type=int, default=10000, help="Number of triples per page (default: 1000)")
-    parser.add_argument("--nprocesses", type=int, default=4, help="Number of processes to use (default: 4)")
 
     args = parser.parse_args()
-    main(args.endpoint, args.output, args.pagesize, args.nprocesses)
+    main(args.endpoint, args.output, args.pagesize)

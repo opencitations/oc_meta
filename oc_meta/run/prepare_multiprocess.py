@@ -52,10 +52,10 @@ if __name__ == '__main__': # pragma: no cover
         resp_agent_dir = os.path.join(TMP_DIR, resp_agent)
         if os.path.isdir(resp_agent_dir):
             settings['input_csv_dir'] = resp_agent_dir
-            run_meta_process(settings=settings, meta_config_path=meta_config_path, resp_agents_only=True)
+            run_meta_process(settings=settings, meta_config_path=config, resp_agents_only=True)
     settings['workers_number'] = 1
     for entity_type in ['publishers', 'venues', 'ids']:
         entity_dir = os.path.join(TMP_DIR, entity_type)
         if os.path.isdir(entity_dir):
             settings['input_csv_dir'] = entity_dir
-            run_meta_process(settings=settings, meta_config_path=meta_config_path)
+            run_meta_process(settings=settings, meta_config_path=config)
