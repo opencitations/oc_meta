@@ -488,6 +488,8 @@ class ResourceFinder:
         '''
         metaid_uri = URIRef(f'{self.base_iri}/br/{str(metaid)}')
         re_uri = None
+        starting_page = None
+        ending_page = None
         for triple in self.local_g.triples((metaid_uri, GraphEntity.iri_embodiment, None)):
             re_uri = triple[2].replace(f'{self.base_iri}/re/', '')
             for re_triple in self.local_g.triples((triple[2], None, None)):
@@ -496,7 +498,14 @@ class ResourceFinder:
                 elif re_triple[1] == GraphEntity.iri_ending_page:
                     ending_page = str(re_triple[2])
         if re_uri:
-            pages = f'{starting_page}-{ending_page}'
+            if starting_page and ending_page:
+                pages = f'{starting_page}-{ending_page}'
+            elif starting_page and not ending_page:
+                pages = f'{starting_page}-{starting_page}'
+            elif not starting_page and ending_page:
+                pages = f'{ending_page}-{ending_page}'
+            elif not starting_page and not ending_page:
+                pages = ''
             return re_uri, pages
 
     def retrieve_br_info_from_meta(self, metaid:str) -> dict:

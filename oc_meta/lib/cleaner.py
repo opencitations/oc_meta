@@ -354,7 +354,11 @@ class Cleaner:
                 valid_id = None
             else:
                 issn_manager = ISSNManager()
-                valid_id = issn_manager.normalise(value, include_prefix=True) if getattr(issn_manager, validator)(value) else None
+                try:
+                    valid_id = issn_manager.normalise(value, include_prefix=True) if getattr(issn_manager, validator)(value) else None
+                except ValueError:
+                    print(value)
+                    raise(ValueError)
         elif schema == 'orcid':
             orcid_manager = ORCIDManager(use_api_service=use_api_service)
             valid_id = orcid_manager.normalise(value, include_prefix=True) if getattr(orcid_manager, validator)(value) else None
