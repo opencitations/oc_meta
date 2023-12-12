@@ -36,8 +36,8 @@ class RespAgentsCurator(Curator):
         self.separator = separator
         self.data = [{field:value.strip() for field,value in row.items()} for row in data]
         self.prefix = prefix
-        self.id_info_path = info_dir + 'id.txt'
-        self.ra_info_path = info_dir + 'ra.txt'
+        self.id_info_path = info_dir + 'info_file_id.txt'
+        self.ra_info_path = info_dir + 'info_file_ra.txt'
         self.radict:Dict[str, Dict[str, list]] = {}
         self.idra = {}  # key id; value metaid of id related to ra
         self.conflict_ra = {}

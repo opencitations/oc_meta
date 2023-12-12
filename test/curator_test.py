@@ -30,15 +30,15 @@ def get_path(path:str) -> str:
     return universal_path
 
 def reset():
-    with open(get_path(f'{CURATOR_COUNTER_DIR}/br.txt'), 'w') as br:
+    with open(get_path(f'{CURATOR_COUNTER_DIR}/info_file_br.txt'), 'w') as br:
         br.write('0')
-    with open(get_path(f'{CURATOR_COUNTER_DIR}/id.txt'), 'w') as br:
+    with open(get_path(f'{CURATOR_COUNTER_DIR}/info_file_id.txt'), 'w') as br:
         br.write('0')
-    with open(get_path(f'{CURATOR_COUNTER_DIR}/ra.txt'), 'w') as br:
+    with open(get_path(f'{CURATOR_COUNTER_DIR}/info_file_ra.txt'), 'w') as br:
         br.write('0')
-    with open(get_path(f'{CURATOR_COUNTER_DIR}/ar.txt'), 'w') as br:
+    with open(get_path(f'{CURATOR_COUNTER_DIR}/info_file_ar.txt'), 'w') as br:
         br.write('0')
-    with open(get_path(f'{CURATOR_COUNTER_DIR}/re.txt'), 'w') as br:
+    with open(get_path(f'{CURATOR_COUNTER_DIR}/info_file_re.txt'), 'w') as br:
         br.write('0')
 
 def reset_server(server:str=SERVER) -> None:
@@ -120,7 +120,7 @@ class test_Curator(unittest.TestCase):
 
     def test_merge_entities_in_csv(self):
         curator = prepareCurator(list())
-        with open(f'{CURATOR_COUNTER_DIR}/id.txt', "w") as f:
+        with open(f'{CURATOR_COUNTER_DIR}/info_file_id.txt', "w") as f:
             f.writelines('4\n')
         entity_dict = {'0601': {'ids': [], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China', 'others': []}}
         id_dict = dict()
