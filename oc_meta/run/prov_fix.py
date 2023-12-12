@@ -18,98 +18,51 @@ import argparse
 import json
 import os
 import zipfile
-from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime
-from multiprocessing import Manager, Queue
+from concurrent.futures import ProcessPoolExecutor
+from pebble import ProcessPool
+import rdflib
+from rdflib import Namespace, Literal, URIRef, ConjunctiveGraph
+from rdflib.namespace import RDF, XSD
+import tempfile
 
 from tqdm import tqdm
 
 
-def find_latest_snapshot(graph):
-    max_num = -1
-    for entity in graph["@graph"]:
-        id = entity["@id"]
-        num = int(id.split('/')[-1])
-        if num > max_num:
-            max_num = num
-    return max_num
+DC = Namespace("http://purl.org/dc/terms/")
+PROV = Namespace("http://www.w3.org/ns/prov#")
+RESP_AGENT = URIRef("https://w3id.org/oc/meta/prov/pa/1")
 
-def check_snapshots(graph, max_num):
-    expected_snapshots = set(range(1, max_num + 1))
-    actual_snapshots = set()
-
-    for entity in graph["@graph"]:
-        num = int(entity["@id"].split('/')[-1])
-        actual_snapshots.add(num)
-
-    missing = expected_snapshots - actual_snapshots
-    return missing
-
-def check_predicates(graph, exclude_latest_num):
-    required_predicates = {
-        "http://purl.org/dc/terms/description",
-        "http://www.w3.org/ns/prov#generatedAtTime",
-        "http://www.w3.org/ns/prov#invalidatedAtTime",
-        "http://www.w3.org/ns/prov#hadPrimarySource",
-        "http://www.w3.org/ns/prov#specializationOf",
-        "http://www.w3.org/ns/prov#wasAttributedTo"
-    }
-
-    for entity in graph["@graph"]:
-        num = int(entity["@id"].split('/')[-1])
-        if num != exclude_latest_num:
-            for predicate in required_predicates:
-                if predicate not in entity:
-                    return False
-    return True
-
-
-def process_zip_file(zip_path, queue):
+def process_zip_file(zip_path):
+    g = ConjunctiveGraph()
     with zipfile.ZipFile(zip_path, 'r') as zip_ref:
         for file_name in zip_ref.namelist():
             with zip_ref.open(file_name) as file:
                 json_data = json.load(file)
                 for graph in json_data:
-                    # Aggiunta del controllo per snapshot 1
-                    snapshot_one_has_primary_source = False
                     for entity in graph["@graph"]:
-                        if int(entity["@id"].split('/')[-1]) == 1:
-                            if "http://www.w3.org/ns/prov#hadPrimarySource" in entity:
-                                snapshot_one_has_primary_source = True
-                            break
-                    if not snapshot_one_has_primary_source:
-                        if entity["@id"].split('/')[5] != 'ar':
-                            print(entity["@id"].split('/')[5])
-                        queue.put(1)
-                    # max_num = find_latest_snapshot(graph)
-                    # missing_snapshots = check_snapshots(graph, max_num)
-                    # all_predicates = check_predicates(graph, max_num)
-                    # if not all_predicates or missing_snapshots:
-                    #     queue.put(1)
-                    #     entity_id = graph["@id"].split('/prov/')[0]
-                    #     new_graph = {
-                    #         "@graph": [
-                    #             {
-                    #                 "@id": f"{entity_id}/prov/se/1",
-                    #                 "@type": ["http://www.w3.org/ns/prov#Entity"],
-                    #                 "http://purl.org/dc/terms/description": [{"@value": f"The entity '{entity_id}' has been created."}],
-                    #                 "http://www.w3.org/ns/prov#generatedAtTime": [{"@type": "http://www.w3.org/2001/XMLSchema#dateTime", "@value": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S') + "Z"}],
-                    #                 "http://www.w3.org/ns/prov#specializationOf": [{"@id": entity_id}],
-                    #                 "http://www.w3.org/ns/prov#wasAttributedTo": [{"@id": "https://w3id.org/oc/meta/prov/pa/1"}]
-                    #             }
-                    #         ],
-                    #         "@id": entity_id
-                    #     }
-                        # print(json.dumps(new_graph, indent=4))
-                    # elif not all_predicates and not missing_snapshots:
-                    #     print('ahi')
-                        # print(f"Missing predicates in snapshots in {zip_path}: {graph}", '\n\n')
+                        entity_id = URIRef(entity["@id"])
+                        graph_uri = URIRef(f'{entity_id}/prov/')
+                        se_uri = URIRef(f"{entity_id}/prov/se/1")
+                        g.add((se_uri, RDF.type, PROV.Entity, graph_uri))
+                        g.add((se_uri, DC.description, Literal(f"The entity '{entity_id}' has been created."), graph_uri))
+                        g.add((se_uri, PROV.generatedAtTime, Literal(datetime.utcnow(), datatype=XSD.dateTime), graph_uri))
+                        g.add((se_uri, PROV.specializationOf, entity_id, graph_uri))
+                        g.add((se_uri, PROV.wasAttributedTo, RESP_AGENT, graph_uri))
+    graph_jsonld = g.serialize(format='json-ld')
+    with tempfile.NamedTemporaryFile(delete=False, mode='w', suffix='.json') as temp_file:
+        temp_file.write(graph_jsonld)
+        temp_file_path = temp_file.name
+    output_zip_path = os.path.join(os.path.dirname(zip_path), os.path.splitext(os.path.basename(zip_path))[0], 'prov', 'se.zip')
+    with zipfile.ZipFile(output_zip_path, 'w') as output_zip:
+        output_zip.write(temp_file_path, 'se.json')
+    os.remove(temp_file_path)
 
 def find_zip_files_in_subdir(subdir, process_immediately=False):
     if process_immediately:
         if os.path.exists(subdir):
             for root, dirs, files in os.walk(subdir):
-                if 'prov' in root.split(os.sep):
+                if 'prov' not in root.split(os.sep):
                     for file in files:
                         if file.endswith('.zip'):
                             process_zip_file(os.path.join(root, file))
@@ -117,7 +70,7 @@ def find_zip_files_in_subdir(subdir, process_immediately=False):
         zip_files = []
         if os.path.exists(subdir):
             for root, dirs, files in os.walk(subdir):
-                if 'prov' in root.split(os.sep):
+                if 'prov' not in root.split(os.sep):
                     for file in files:
                         if file.endswith('.zip'):
                             zip_files.append(os.path.join(root, file))
@@ -129,11 +82,10 @@ def find_subdirs(directory):
         subdirs.append(os.path.join(directory, dir))
     return subdirs
 
-def search_zip_files(directory, show_progress, queue):
+def search_zip_files(directory, show_progress):
     main_subdirs = ['ar', 'br', 'ra', 're', 'id']
     subdirs = []
 
-    # Trova tutte le sottocartelle nelle cartelle principali
     for main_subdir in main_subdirs:
         main_subdir_path = os.path.join(directory, main_subdir)
         subdirs.extend(find_subdirs(main_subdir_path))
@@ -144,25 +96,20 @@ def search_zip_files(directory, show_progress, queue):
             futures = [executor.submit(find_zip_files_in_subdir, subdir) for subdir in subdirs]
             for future in futures:
                 zip_files.extend(future.result())
-
-        with ProcessPoolExecutor() as executor:
-            list(tqdm(executor.map(process_zip_file, zip_files, [queue] * len(zip_files)), total=len(zip_files), desc="Processing ZIP files"))
+        with ProcessPool() as pool:
+            results = pool.map(process_zip_file, zip_files, chunksize=1)
+            for _ in tqdm(results.result(), total=len(zip_files), desc="Processing ZIP files"):
+                pass
     else:
         for subdir in subdirs:
             find_zip_files_in_subdir(subdir, process_immediately=True)
 
 def main():
-    with Manager() as manager:
-        queue = manager.Queue()
-        parser = argparse.ArgumentParser(description="Process JSON-LD files within ZIP archives")
-        parser.add_argument("directory", help="Directory to search for ZIP files")
-        parser.add_argument("--progress", help="Show progress bar", action="store_true")
-        args = parser.parse_args()
-        search_zip_files(args.directory, args.progress, queue)
-        corrupted_snapshots_count = 0
-        while not queue.empty():
-            corrupted_snapshots_count += queue.get()
-        print(f"Total number of corrupted snapshots: {corrupted_snapshots_count}")
+    parser = argparse.ArgumentParser(description="Process JSON-LD files within ZIP archives")
+    parser.add_argument("directory", help="Directory to search for ZIP files")
+    parser.add_argument("--progress", help="Show progress bar", action="store_true")
+    args = parser.parse_args()
+    search_zip_files(args.directory, args.progress)
 
 if __name__ == "__main__":
     main()

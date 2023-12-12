@@ -22,7 +22,7 @@ def load_csv_to_redis(file_path, redis_host='localhost', redis_port=6379, db_num
                         omid_decoded = omid.decode()
                         omid_record_key = f'omid:{omid_decoded}'
                         if not r.exists(omid_record_key):
-                            pmid_data[omid_record_key] = 'Pubmed'
+                            pmid_data[omid_record_key] = 'https://doi.org/10.35092/yhjcc.4586573.v43'
                             if len(pmid_data) >= 1000:
                                 r.mset(pmid_data)
                                 pmid_data = {}

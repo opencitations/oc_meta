@@ -1,5 +1,6 @@
 import requests
 import os 
+import certifi
 
 # Sostituire con il tuo token API e l'ID dell'articolo
 API_TOKEN = '861ecbf7449c7581100739bdaf17a7f318beada2563e8f94dc4d2168c825bd05697cdc90533a027b8210741dc9a8959f64aa2055e4a50441fb6e8fe1b1c4f543'
@@ -23,7 +24,7 @@ def upload_file(upload_url, file_path):
     """ Carica un file all'URL specificato. """
     headers = {'Authorization': f'token {API_TOKEN}'}
     with open(file_path, 'rb') as file_data:
-        requests.put(upload_url, headers=headers, data=file_data, verify=False)
+        requests.put(upload_url, headers=headers, data=file_data, verify=certifi.where())
 
 def main():
     for file_path in files_to_upload:

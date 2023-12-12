@@ -19,7 +19,7 @@ import os
 from argparse import ArgumentParser
 
 import yaml
-from pebble import ProcessFuture
+from pebble import ProcessFuture, ProcessPool
 from tqdm import tqdm
 
 from oc_meta.lib.file_manager import pathoo

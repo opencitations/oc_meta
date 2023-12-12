@@ -20,7 +20,7 @@ def load_json_to_redis(file_path, redis_host='localhost', redis_port=6379, db_nu
                 omid_decoded = omid.decode()
                 omid_record_key = f'omid:{omid_decoded}'
                 if not r.exists(omid_record_key):
-                    doi_data[omid_record_key] = 'Datacite'
+                    doi_data[omid_record_key] = 'https://archive.org/details/datacite_dump_20211022'
                     if len(doi_data) >= 1000:
                         r.mset(doi_data)
                         doi_data = {}

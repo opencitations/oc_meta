@@ -16,7 +16,7 @@ def process_file(args):
             doi = str(item['DOI'])
             omid = r_omid.get(f'doi:{doi.lower()}')
             if omid:
-                doi_data[f'omid:{omid.decode()}'] = 'Crossref'
+                doi_data[f'omid:{omid.decode()}'] = 'https://api.crossref.org/snapshots/monthly/2023/09/all.json.tar.gz'
                 if len(doi_data) >= 1000:
                     r.mset(doi_data)
                     doi_data = {}
@@ -33,5 +33,5 @@ def load_json_to_redis(folder_path, redis_host='localhost', redis_port=6379, db_
 
     print("Caricamento completato.")
 
-folder_path = '/home/arcangelo/crossref-data-2022-12'
+folder_path = '/srv/data/arcangelo/crossref-data-2023-09'
 load_json_to_redis(folder_path, workers=64)

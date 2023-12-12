@@ -14,6 +14,8 @@
 # ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 # SOFTWARE
 
+import gzip
+import time
 import argparse
 import json
 import multiprocessing
@@ -22,9 +24,8 @@ import re
 from typing import Match
 from zipfile import ZIP_DEFLATED, ZipFile
 
-import ijson
 from filelock import FileLock
-from rdflib import ConjunctiveGraph, URIRef
+from rdflib import ConjunctiveGraph, URIRef, Graph
 
 # Variable used in several functions
 entity_regex: str = r"^(.+)/([a-z][a-z])/(0[1-9]+0)?((?:[1-9][0-9]*)|(?:\d+-\d+))$"
@@ -201,7 +202,7 @@ def find_paths(res: URIRef, base_dir: str, base_iri: str, default_dir: str, dir_
 
 def store(entity, graph_identifier, stored_g: ConjunctiveGraph) -> ConjunctiveGraph:
     graph_identifier = URIRef(graph_identifier)
-    cg: ConjunctiveGraph = ConjunctiveGraph()
+    cg: Graph = Graph()
     cg.parse(data=json.dumps(entity), format='json-ld')
     stored_g.remove((URIRef(entity), None, None, graph_identifier))
     for triple in cg.triples((None, None, None)):
@@ -212,45 +213,69 @@ def store_in_file(cur_g: ConjunctiveGraph, cur_file_path: str, zip_output: bool)
     dir_path = os.path.dirname(cur_file_path)
     if not os.path.exists(dir_path):
         os.makedirs(dir_path, exist_ok=True)
-    zip_file_path = cur_file_path.replace(os.path.splitext(cur_file_path)[1], ".zip")
-    lock = FileLock(f"{zip_file_path}.lock") if zip_output else FileLock(f"{cur_file_path}.lock")
+
     cur_json_ld = json.loads(cur_g.serialize(format="json-ld"))
-    with lock:
+    file_lock = FileLock(f"{cur_file_path}.lock")
+
+    with file_lock:
         if zip_output:
-            zip_file = ZipFile(zip_file_path, mode="w", compression=ZIP_DEFLATED, allowZip64=True)
-            dumped_json: bytes = json.dumps(cur_json_ld, ensure_ascii=False).encode('utf-8')
-            zip_file.writestr(zinfo_or_arcname=os.path.basename(cur_file_path), data=dumped_json)
-            zip_file.close()
+            with ZipFile(cur_file_path, mode="w", compression=ZIP_DEFLATED, allowZip64=True) as zip_file:
+                json_str = json.dumps(cur_json_ld, ensure_ascii=False)
+                zip_file.writestr(os.path.basename(cur_file_path.replace('.zip', '.json')), json_str)
         else:
             with open(cur_file_path, 'wt', encoding='utf-8') as f:
                 json.dump(cur_json_ld, f, ensure_ascii=False)
+
+
+def zip_files_in_directory(directory: str) -> None:
+    for root, dirs, files in os.walk(directory):
+        for file in files:
+            if file.endswith('.json'):
+                json_file_path = os.path.join(root, file)
+                zip_file_path = json_file_path.replace('.json', '.zip')
+                with ZipFile(zip_file_path, mode="w", compression=ZIP_LZMA, allowZip64=True) as zip_file:
+                    zip_file.write(json_file_path, arcname=os.path.basename(json_file_path))
+                os.remove(json_file_path)
 
 def load_graph(file_path: str, cur_format: str = 'json-ld'):
     loaded_graph = ConjunctiveGraph()
     lock = FileLock(f"{file_path}.lock")
     with lock:
         if file_path.endswith('.zip'):
-            with ZipFile(file=file_path, mode="r") as archive:
+            with ZipFile(file=file_path, mode="r", compression=ZIP_DEFLATED, allowZip64=True) as archive:
                 for zf_name in archive.namelist():
-                    f = archive.open(zf_name)
+                    with archive.open(zf_name) as f:
+                        if cur_format == "json-ld":
+                            json_ld_file = json.load(f)
+                            if isinstance(json_ld_file, dict):
+                                json_ld_file = [json_ld_file]
+                            for json_ld_resource in json_ld_file:
+                                loaded_graph.parse(data=json.dumps(json_ld_resource, ensure_ascii=False), format=cur_format)
+                        else:
+                            loaded_graph.parse(file=f, format=cur_format)
         else:
-            f = open(file_path, 'rt', encoding='utf-8')
-        if cur_format == "json-ld":
-            json_ld_file = json.load(f)
-            if isinstance(json_ld_file, dict):
-                json_ld_file = [json_ld_file]
-            for json_ld_resource in json_ld_file:
-                loaded_graph.parse(data=json.dumps(json_ld_resource, ensure_ascii=False), format=cur_format)
-        else:
-            loaded_graph.parse(file=f, format=cur_format)
-        f.close()
+            with open(file_path, 'rt', encoding='utf-8') as f:
+                if cur_format == "json-ld":
+                    json_ld_file = json.load(f)
+                    if isinstance(json_ld_file, dict):
+                        json_ld_file = [json_ld_file]
+                    for json_ld_resource in json_ld_file:
+                        loaded_graph.parse(data=json.dumps(json_ld_resource, ensure_ascii=False), format=cur_format)
+                else:
+                    loaded_graph.parse(file=f, format=cur_format)
+
     return loaded_graph
 
 def process_entities(entities, graph_identifier, output_root, base_iri, file_limit, item_limit, zip_output):
     modifications_by_file = {}
+    triples = 0
     for entity in entities:
+        cg = Graph()
+        cg.parse(data=json.dumps(entity), format='json-ld')
+        triples += len(cg)
         entity_uri = entity['@id']
         _, cur_file_path = find_paths(URIRef(entity_uri), output_root, base_iri, '_', file_limit, item_limit, True)
+        cur_file_path = cur_file_path.replace('.json', '.zip') if zip_output else cur_file_path
         if cur_file_path not in modifications_by_file:
             modifications_by_file[cur_file_path] = {
                 "graph_identifier": graph_identifier,
@@ -260,12 +285,13 @@ def process_entities(entities, graph_identifier, output_root, base_iri, file_lim
     for file_path, data in modifications_by_file.items():
         stored_g = load_graph(file_path) if os.path.exists(file_path) else ConjunctiveGraph()
         for entity in data["entities"]:
-            store(entity, data["graph_identifier"], stored_g)
+            stored_g = store(entity, data["graph_identifier"], stored_g)
         store_in_file(stored_g, file_path, zip_output)
+    return triples
 
 def process_entity_batch(batch_data):
     entities, graph_identifier, output_root, base_iri, file_limit, item_limit, zip_output = batch_data
-    process_entities(entities, graph_identifier, output_root, base_iri, file_limit, item_limit, zip_output)
+    return process_entities(entities, graph_identifier, output_root, base_iri, file_limit, item_limit, zip_output)
 
 def main():
     parser = argparse.ArgumentParser(description="Process nquads files into JSON-LD.")
@@ -278,22 +304,17 @@ def main():
     args = parser.parse_args()
 
     pool = multiprocessing.Pool()
-    entity_batch_size = 10000
-
+    results = []
     for file in os.listdir(args.input_folder):
-        if file.endswith('.jsonld'):
-            with open(os.path.join(args.input_folder, file), 'rb') as f:
-                entities = ijson.items(f, 'item.@graph.item')
-                batch = []
-                for entity in entities:
-                    batch.append(entity)
-                    if len(batch) >= entity_batch_size:
-                        batch_data = (batch, entity['@id'], args.output_root, args.base_iri, args.file_limit, args.item_limit, args.zip_output)
-                        pool.apply_async(process_entity_batch, (batch_data,))
-                        batch = []
-                if batch:
-                    batch_data = (batch, entity['@id'], args.output_root, args.base_iri, args.file_limit, args.item_limit, args.zip_output)
-                    pool.apply_async(process_entity_batch, (batch_data,))
+        if file.endswith('.jsonld.gz'):
+            with gzip.open(os.path.join(args.input_folder, file), 'rb') as f:
+                data = json.load(f)
+                for graph in data:
+                    entities = graph['@graph']
+                    graph_uri = graph['@id']
+                    batch_data = (entities, graph_uri, args.output_root, args.base_iri, args.file_limit, args.item_limit, args.zip_output)
+                    result = pool.apply_async(process_entity_batch, (batch_data,))
+                    results.append(result)
     pool.close()
     pool.join()
 

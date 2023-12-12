@@ -15,7 +15,7 @@ def process_file(file_path, r, r_omid):
                     omid_decoded = omid.decode()
                     omid_record_key = f'omid:{omid_decoded}'
                     if not r.exists(omid_record_key):
-                        id_data[omid_record_key] = 'https://doi.org/10.5281/zenodo.7845968'
+                        id_data[omid_record_key] = 'https://api.japanlinkcenter.org/'
                         if len(id_data) >= 1000:
                             r.mset(id_data)
                             id_data = {}
@@ -30,5 +30,5 @@ def load_csv_to_redis(folder_path, redis_host='localhost', redis_port=6379, db_n
         process_file(file_path, r, r_omid)
     print("Caricamento completato.")
 
-folder_path = '/srv/data/arcangelo/openaire/openaire_meta_input'
+folder_path = '/home/arcangelo/meta_input_joci'
 load_csv_to_redis(folder_path)

@@ -1,31 +1,51 @@
 import argparse
 import multiprocessing
+from multiprocessing import Process, Queue
+
 import os
 import time
 from rdflib import ConjunctiveGraph, Literal, URIRef
 from SPARQLWrapper import JSON, SPARQLWrapper
 from tqdm import tqdm
 import queue
+from multiprocessing import Manager
+from pebble import ProcessPool
 
-def query_triplestore_by_class(endpoint, class_uri, offset, limit, max_retries=5):
+def count_total_triples(endpoint):
     sparql = SPARQLWrapper(endpoint)
+    sparql.setQuery("""
+        SELECT (COUNT(*) AS ?totalTriples) WHERE {
+            ?s ?p ?o .
+        }
+    """)
+    sparql.setReturnFormat(JSON)
+    try:
+        results = sparql.query().convert()
+        total_triples = int(results["results"]["bindings"][0]["totalTriples"]["value"])
+        return total_triples
+    except Exception as e:
+        print(f"Errore nella query: {e}")
+        return None
+
+def query_triplestore_by_class(endpoint, class_uri, uri_prefix, supplier_prefix, offset, limit):
+    sparql = SPARQLWrapper(endpoint)
+    full_uri_prefix = f"{uri_prefix}/{supplier_prefix}"
     sparql.setQuery(f"""
         SELECT ?g ?s ?p ?o WHERE {{
-            GRAPH ?g {{?s a <{class_uri}> ;
-               ?p ?o .}}
+            GRAPH ?g {{
+                ?s a <{class_uri}>.
+                FILTER (STRSTARTS(STR(?s), "{full_uri_prefix}")).
+                ?s ?p ?o.
+            }}
         }} LIMIT {limit} OFFSET {offset}
     """)
     sparql.setReturnFormat(JSON)
-    for attempt in range(max_retries):
-        try:
-            results = sparql.query().convert()
-            return results, bool(results["results"]["bindings"])
-        except Exception as e:
-            print(f"Errore nella query: {e}, tentativo {attempt + 1} di {max_retries}")
-            time.sleep(2 ** attempt)
+    results = sparql.query().convert()
+    return results, bool(results["results"]["bindings"])
 
 def convert_to_graph(results):
     g = ConjunctiveGraph()
+    triple_count = 0
     for result in results["results"]["bindings"]:
         graph_uri = URIRef(result["g"]["value"])
         s = URIRef(result["s"]["value"])
@@ -40,26 +60,48 @@ def convert_to_graph(results):
             else:
                 o = Literal(o_value)
         g.add((s, p, o, graph_uri))
-    return g
+        triple_count += 1
+    return g, triple_count
 
-def process_task(class_uri, endpoint, output_folder, page_size):
-    output_folder = os.path.join(output_folder, class_uri.split('/')[-1])
-    os.makedirs(output_folder, exist_ok=True)
+def generate_supplier_prefixes():
+    prefixes = []
+    for i in range(1, 10000):
+        if i % 10 != 0:
+            prefix = f"06{i}0"
+            prefixes.append(prefix)
+    return prefixes
 
-    file_count = 0
-    offset = 0
-    while True:
-        results, has_data = query_triplestore_by_class(endpoint, class_uri, offset, page_size)
-        if has_data:
-            graph = convert_to_graph(results)
-            output_filename = os.path.join(output_folder, f"{class_uri.split('/')[-1]}_output_{file_count}.jsonld")
-            with open(output_filename, 'w', encoding='utf-8') as f:
-                jsonld_data = graph.serialize(format='json-ld')
-                f.write(jsonld_data)
+def process_task(class_uri, uri_prefix, supplier_prefixes, endpoint, output_folder, page_size, progress_queue):
+    for supplier_prefix in supplier_prefixes:
+        output_folder_prefix = os.path.join(output_folder, class_uri.split('/')[-1], supplier_prefix)
+        os.makedirs(output_folder_prefix, exist_ok=True)
+        file_count = 0
+        offset = 0
+        while True:
+            results, has_data = query_triplestore_by_class(endpoint, class_uri, uri_prefix, supplier_prefix, offset, page_size)
+            if has_data:
+                graph, triple_count = convert_to_graph(results)
+                output_filename = os.path.join(output_folder_prefix, f"{class_uri.split('/')[-1]}_{supplier_prefix}_output_{file_count}.jsonld")
+                with open(output_filename, 'w', encoding='utf-8') as f:
+                    jsonld_data = graph.serialize(format='json-ld', indent=None)
+                    f.write(jsonld_data)
+                progress_queue.put(triple_count)
+            else:
+                break
+            offset += page_size
+            file_count += 1
+    progress_queue.put(None)
+
+def progress_monitor(total_triples, progress_queue, class_uris):
+    pbar = tqdm(total=total_triples)
+    completed_processes = 0
+    while completed_processes < len(class_uris):
+        update = progress_queue.get()
+        if update is None:
+            completed_processes += 1
         else:
-            break
-        offset += page_size
-        file_count += 1
+            pbar.update(update)
+    pbar.close()
 
 def main(endpoint, output_folder, page_size):
     class_uris = [
@@ -70,14 +112,34 @@ def main(endpoint, output_folder, page_size):
         "http://purl.org/spar/pro/RoleInTime"
     ]
 
-    pool = multiprocessing.Pool(processes=len(class_uris))
+    uri_prefixes = {
+        "http://purl.org/spar/fabio/Expression": "https://w3id.org/oc/meta/br",
+        "http://purl.org/spar/fabio/Manifestation": "https://w3id.org/oc/meta/re",
+        "http://xmlns.com/foaf/0.1/Agent": "https://w3id.org/oc/meta/ra",
+        "http://purl.org/spar/datacite/Identifier": "https://w3id.org/oc/meta/id",
+        "http://purl.org/spar/pro/RoleInTime": "https://w3id.org/oc/meta/ar"
+    }
 
-    for class_uri in class_uris:
-        print(f"Processing class: {class_uri}")
-        pool.apply_async(process_task, (class_uri, endpoint, output_folder, page_size))
+    supplier_prefixes = generate_supplier_prefixes()
 
-    pool.close()
-    pool.join()
+    total_triples = count_total_triples(endpoint)
+    results = []
+
+    total_triples = count_total_triples(endpoint)
+    if total_triples is None:
+        return
+
+    with Manager() as manager:
+        progress_queue = manager.Queue()
+        monitor = Process(target=progress_monitor, args=(total_triples, progress_queue, class_uris))
+        monitor.start()
+
+        with ProcessPool() as pool:
+            for class_uri in class_uris:
+                uri_prefix = uri_prefixes[class_uri]
+                pool.schedule(process_task, args=(class_uri, uri_prefix, supplier_prefixes, endpoint, output_folder, page_size, progress_queue))
+
+        monitor.join()
 
 
 if __name__ == "__main__":

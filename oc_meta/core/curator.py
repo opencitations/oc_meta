@@ -44,11 +44,11 @@ class Curator:
         self.data = [{field:value.strip() for field,value in row.items()} for row in data if is_a_valid_row(row)]
         self.prefix = prefix
         # Counter local paths
-        self.br_info_path = info_dir + 'br.txt'
-        self.id_info_path = info_dir + 'id.txt'
-        self.ra_info_path = info_dir + 'ra.txt'
-        self.ar_info_path = info_dir + 'ar.txt'
-        self.re_info_path = info_dir + 're.txt'
+        self.br_info_path = info_dir + 'info_file_br.txt'
+        self.id_info_path = info_dir + 'info_file_id.txt'
+        self.ra_info_path = info_dir + 'info_file_ra.txt'
+        self.ar_info_path = info_dir + 'info_file_ar.txt'
+        self.re_info_path = info_dir + 'info_file_re.txt'
         self.brdict = {}
         self.radict:Dict[str, Dict[str, list]] = {}
         self.ardict:Dict[str, Dict[str, list]] = {}
