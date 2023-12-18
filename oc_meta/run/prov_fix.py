@@ -19,7 +19,7 @@ import json
 import os
 import zipfile
 from datetime import datetime
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from pebble import ProcessPool
 import rdflib
 from rdflib import Namespace, Literal, URIRef, ConjunctiveGraph
@@ -34,6 +34,12 @@ PROV = Namespace("http://www.w3.org/ns/prov#")
 RESP_AGENT = URIRef("https://w3id.org/oc/meta/prov/pa/1")
 
 def process_zip_file(zip_path):
+    output_dir = os.path.join(os.path.dirname(zip_path), os.path.splitext(os.path.basename(zip_path))[0], 'prov')
+    output_zip_path = os.path.join(output_dir, 'se.zip')
+
+    if os.path.exists(output_zip_path):
+        return
+
     g = ConjunctiveGraph()
     with zipfile.ZipFile(zip_path, 'r') as zip_ref:
         for file_name in zip_ref.namelist():
@@ -50,13 +56,13 @@ def process_zip_file(zip_path):
                         g.add((se_uri, PROV.specializationOf, entity_id, graph_uri))
                         g.add((se_uri, PROV.wasAttributedTo, RESP_AGENT, graph_uri))
     graph_jsonld = g.serialize(format='json-ld')
-    with tempfile.NamedTemporaryFile(delete=False, mode='w', suffix='.json') as temp_file:
-        temp_file.write(graph_jsonld)
-        temp_file_path = temp_file.name
-    output_zip_path = os.path.join(os.path.dirname(zip_path), os.path.splitext(os.path.basename(zip_path))[0], 'prov', 'se.zip')
+    
+    # Create the directory if it doesn't exist
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
     with zipfile.ZipFile(output_zip_path, 'w') as output_zip:
-        output_zip.write(temp_file_path, 'se.json')
-    os.remove(temp_file_path)
+        output_zip.writestr('se.json', graph_jsonld)
 
 def find_zip_files_in_subdir(subdir, process_immediately=False):
     if process_immediately:
@@ -96,9 +102,9 @@ def search_zip_files(directory, show_progress):
             futures = [executor.submit(find_zip_files_in_subdir, subdir) for subdir in subdirs]
             for future in futures:
                 zip_files.extend(future.result())
-        with ProcessPool() as pool:
-            results = pool.map(process_zip_file, zip_files, chunksize=1)
-            for _ in tqdm(results.result(), total=len(zip_files), desc="Processing ZIP files"):
+        with ProcessPoolExecutor() as executor:
+            futures = {executor.submit(process_zip_file, file): file for file in zip_files}
+            for future in tqdm(as_completed(futures), total=len(futures)):
                 pass
     else:
         for subdir in subdirs:
