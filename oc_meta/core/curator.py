@@ -587,7 +587,7 @@ class Curator:
                 if elem in va['ids']:
                     if 'wannabe' in k:
                         if k not in match_elem['wannabe']:
-                            match_elem['wannabe'].append(k) # TODO: valutare uso di un set
+                            match_elem['wannabe'].append(k)
                     else:
                         if k not in match_elem['existing']:
                             match_elem['existing'].append(k)
@@ -1006,54 +1006,57 @@ class Curator:
                 if suspect_ids:
                     sparql_match = self.finder_sparql(suspect_ids, br=br_ent, ra=ra_ent, vvi=vvi_ent, publ=publ_entity)
                     if sparql_match:
-                        if 'wannabe' not in metaval or len(sparql_match) > 1:
-                            # Two entities previously disconnected on the triplestore now become connected
-                            # !
-                            return self.conflict(idslist, name, id_dict, col_name)
-                        else:
-                            existing_ids = sparql_match[0][2]
-                            new_idslist = [x[1] for x in existing_ids]
-                            new_sparql_match = self.finder_sparql(new_idslist, br=br_ent, ra=ra_ent, vvi=vvi_ent, publ=publ_entity)
-                            if len(new_sparql_match) > 1:
-                                # Two entities previously disconnected on the triplestore now become connected
-                                # !
-                                return self.conflict(idslist, name, id_dict, col_name)
-                            else:
-                                # 4 Merge data from EntityA (CSV) with data from EntityX (CSV) (it has already happened in # 5), update both with data from EntityA (RDF)
-                                old_metaval = metaval
-                                metaval = sparql_match[0][0]
-                                entity_dict[metaval] = dict()
-                                entity_dict[metaval]['ids'] = list()
-                                entity_dict[metaval]['others'] = list()
-                                entity_dict[metaval]['title'] = sparql_match[0][1] if sparql_match[0][1] else ''
-                                self.__update_id_and_entity_dict(existing_ids, id_dict, entity_dict, metaval)
-                                self.merge(entity_dict, metaval, old_metaval, sparql_match[0][1])
-            else:
-                sparql_match = self.finder_sparql(idslist, br=br_ent, ra=ra_ent, vvi=vvi_ent, publ=publ_entity)
-                if len(sparql_match) > 1:
-                    # !
-                    return self.conflict(idslist, name, id_dict, col_name)
-                elif len(sparql_match) == 1:
-                    existing_ids = sparql_match[0][2]
-                    new_idslist = [x[1] for x in existing_ids]
-                    new_sparql_match = self.finder_sparql(new_idslist, br=br_ent, ra=ra_ent, vvi=vvi_ent, publ=publ_entity)
-                    if len(new_sparql_match) > 1:
-                        # Two entities previously disconnected on the triplestore now become connected
-                        # !
-                        return self.conflict(idslist, name, id_dict, col_name)
-                    # 2 Retrieve EntityA data in triplestore to update EntityA inside CSV
-                    # 3 CONFLICT beteen MetaIDs. MetaID specified in EntityA inside CSV has precedence.
-                    elif len(new_sparql_match) == 1:
+                        # if 'wannabe' not in metaval or len(sparql_match) > 1:
+                        #     # Two entities previously disconnected on the triplestore now become connected
+                        #     # !
+                        #     return self.conflict(idslist, name, id_dict, col_name)
+                        # else:
+                        existing_ids = sparql_match[0][2]
+                        new_idslist = [x[1] for x in existing_ids]
+                        # new_sparql_match = self.finder_sparql(new_idslist, br=br_ent, ra=ra_ent, vvi=vvi_ent, publ=publ_entity)
+                        # if len(new_sparql_match) > 1:
+                        #     # Two entities previously disconnected on the triplestore now become connected
+                        #     # !
+                        #     return self.conflict(idslist, name, id_dict, col_name)
+                        # else:
+                        # 4 Merge data from EntityA (CSV) with data from EntityX (CSV) (it has already happened in # 5), update both with data from EntityA (RDF)
+                        old_metaval = metaval
                         metaval = sparql_match[0][0]
                         entity_dict[metaval] = dict()
                         entity_dict[metaval]['ids'] = list()
                         entity_dict[metaval]['others'] = list()
-                        if col_name == 'author' or col_name == 'editor':
-                            entity_dict[metaval]['title'] = self.name_check(sparql_match[0][1], name)
-                        else:
-                            entity_dict[metaval]['title'] = sparql_match[0][1]
-                        self.__update_title(entity_dict, metaval, name)
+                        entity_dict[metaval]['title'] = sparql_match[0][1] if sparql_match[0][1] else ''
                         self.__update_id_and_entity_dict(existing_ids, id_dict, entity_dict, metaval)
+                        self.merge(entity_dict, metaval, old_metaval, sparql_match[0][1])
+            else:
+                sparql_match = self.finder_sparql(idslist, br=br_ent, ra=ra_ent, vvi=vvi_ent, publ=publ_entity)
+                # if len(sparql_match) > 1:
+                #     print(sparql_match)
+                #     print('EHIIIII')
+                #     # !
+                #     return self.conflict(idslist, name, id_dict, col_name)
+                # elif len(sparql_match) == 1:
+                if sparql_match:
+                    existing_ids = sparql_match[0][2]
+                    new_idslist = [x[1] for x in existing_ids]
+                    new_sparql_match = self.finder_sparql(new_idslist, br=br_ent, ra=ra_ent, vvi=vvi_ent, publ=publ_entity)
+                    # if len(new_sparql_match) > 1:
+                    #     # Two entities previously disconnected on the triplestore now become connected
+                    #     # !
+                    #     return self.conflict(idslist, name, id_dict, col_name)
+                    # 2 Retrieve EntityA data in triplestore to update EntityA inside CSV
+                    # 3 CONFLICT beteen MetaIDs. MetaID specified in EntityA inside CSV has precedence.
+                    # elif len(new_sparql_match) == 1:
+                    metaval = sparql_match[0][0]
+                    entity_dict[metaval] = dict()
+                    entity_dict[metaval]['ids'] = list()
+                    entity_dict[metaval]['others'] = list()
+                    if col_name == 'author' or col_name == 'editor':
+                        entity_dict[metaval]['title'] = self.name_check(sparql_match[0][1], name)
+                    else:
+                        entity_dict[metaval]['title'] = sparql_match[0][1]
+                    self.__update_title(entity_dict, metaval, name)
+                    self.__update_id_and_entity_dict(existing_ids, id_dict, entity_dict, metaval)
                 else:
                     # 1 EntityA is a new one
                     metaval = self.new_entity(entity_dict, name)

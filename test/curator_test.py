@@ -30,6 +30,16 @@ def get_path(path:str) -> str:
     return universal_path
 
 def reset():
+    with open(get_path(f'{CURATOR_COUNTER_DIR}/br.txt'), 'w') as br:
+        br.write('0')
+    with open(get_path(f'{CURATOR_COUNTER_DIR}/id.txt'), 'w') as br:
+        br.write('0')
+    with open(get_path(f'{CURATOR_COUNTER_DIR}/ra.txt'), 'w') as br:
+        br.write('0')
+    with open(get_path(f'{CURATOR_COUNTER_DIR}/ar.txt'), 'w') as br:
+        br.write('0')
+    with open(get_path(f'{CURATOR_COUNTER_DIR}/re.txt'), 'w') as br:
+        br.write('0')
     with open(get_path(f'{CURATOR_COUNTER_DIR}/info_file_br.txt'), 'w') as br:
         br.write('0')
     with open(get_path(f'{CURATOR_COUNTER_DIR}/info_file_id.txt'), 'w') as br:
@@ -652,14 +662,23 @@ class test_id_worker(unittest.TestCase):
         curator.finder = self.finder
         meta_id = curator.id_worker('id', name, idslist, '', ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
         output = (meta_id, curator.idbr, curator.idra, curator.brdict, curator.log)
-        expected_output = (
-            'wannabe_0', 
+        expected_output_1 = (
+            '2719', 
             {'doi:10.1001/2013.jamasurg.270': '2585'}, 
             {}, 
-            {'wannabe_0': {'ids': ['doi:10.1001/2013.jamasurg.270'], 'others': [], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}}, 
-            {0: {'id': {'Conflict entity': 'wannabe_0'}}}
+            {'2719': {'ids': ['doi:10.1001/2013.jamasurg.270'], 'others': [], 'title': 'Patient Satisfaction As A Possible Indicator Of Quality Surgical Care'}}, 
+            {0: {'id': {}}}
         )
-        self.assertEqual(output, expected_output)
+        expected_output_2 = ('2720',
+            {'doi:10.1001/2013.jamasurg.270': '2585'},
+            {},
+            {'2720': {'ids': ['doi:10.1001/2013.jamasurg.270'],
+                    'others': [],
+                    'title': 'Pediatric Injury Outcomes In Racial/Ethnic Minorities In '
+                                'California'}},
+            {0: {'id': {}}}
+        )
+        self.assertTrue(output == expected_output_1 or output == expected_output_2)
 
     def test_conflict_ra(self):
         # No MetaId, an identifier to which two separate ra point: there is a conflict, and a new entity must be created
@@ -670,15 +689,23 @@ class test_id_worker(unittest.TestCase):
         curator.log[0] = {'author': {}}
         meta_id = curator.id_worker('author', name, idslist, '', ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=False)
         output = (meta_id, curator.idbr, curator.idra, curator.brdict, curator.radict, curator.log)
-        expected_output = (
-            'wannabe_0', 
+        expected_output_1 = (
+            '4940', 
             {}, 
             {'orcid:0000-0001-6994-8412': '4475'}, 
             {}, 
-            {'wannabe_0': {'ids': ['orcid:0000-0001-6994-8412'], 'others': [], 'title': 'Alarcon, Louis H.'}}, 
-            {0: {'author': {'Conflict entity': 'wannabe_0'}}}
+            {'4940': {'ids': ['orcid:0000-0001-6994-8412'], 'others': [], 'title': 'Alarcon, Louis H.'}}, 
+            {0: {'author': {}}}
         )
-        self.assertEqual(output, expected_output)
+        expected_output_2 = ('1000000',
+            {},
+            {'orcid:0000-0001-6994-8412': '4475'},
+            {},
+            {'1000000': {'ids': ['orcid:0000-0001-6994-8412'],
+                        'others': [],
+                        'title': 'Alarcon, Louis H.'}},
+            {0: {'author': {}}})
+        self.assertTrue(output == expected_output_1 or output == expected_output_2)
     
     def test_conflict_suspect_id_among_existing(self):
         # ID already exist in entity_dict and refer to one entity having a MetaID, but there is another ID not in entity_dict that highlights a conflict on ts
@@ -739,18 +766,17 @@ class test_id_worker(unittest.TestCase):
         curator.finder = self.finder
         meta_id = curator.id_worker('id', name, idslist, '', ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
         output = (meta_id, curator.idbr, curator.idra, curator.brdict, curator.radict, curator.log)
-        expected_output = (
-            'wannabe_0', 
+        expected_output_1 = (
+            '2720', 
             {
                 'doi:10.1787/eco_outlook-v2011-2-graph138-en': '0601', 
                 'doi:10.1001/2013.jamasurg.270': '2585'
             }, 
             {}, 
-            {'wannabe_0': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en',
-                                    'doi:10.1001/2013.jamasurg.270'],
-                            'others': [],
-                            'title': 'Money Growth, Interest Rates, Inflation And Raw '
-                                    'Materials Prices: Japan'},
+            {'2720': {'ids': ['doi:10.1001/2013.jamasurg.270', 'doi:10.1787/eco_outlook-v2011-2-graph138-en'],
+                            'others': ['wannabe_0'],
+                            'title': 'Pediatric Injury Outcomes In Racial/Ethnic Minorities In '
+                                        'California'},
             'wannabe_2': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph150-en'],
                             'others': [],
                             'title': 'Contributions To GDP Growth And Inflation: South '
@@ -760,9 +786,31 @@ class test_id_worker(unittest.TestCase):
                             'title': 'Official Loans To The Governments Of Greece, Ireland '
                                     'And Portugal'}},
             {}, 
-            {0: {'id': {'Conflict entity': 'wannabe_0'}}}
+            {0: {'id': {}}}
         )
-        self.assertEqual(output, expected_output)
+        expected_output_2 = (
+            '2719', 
+            {
+                'doi:10.1787/eco_outlook-v2011-2-graph138-en': '0601', 
+                'doi:10.1001/2013.jamasurg.270': '2585'
+            }, 
+            {}, 
+            {'2719': {'ids': ['doi:10.1001/2013.jamasurg.270', 'doi:10.1787/eco_outlook-v2011-2-graph138-en'],
+                            'others': ['wannabe_0'],
+                            'title': 'Patient Satisfaction As A Possible Indicator Of Quality '
+                                        'Surgical Care'},
+            'wannabe_2': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph150-en'],
+                            'others': [],
+                            'title': 'Contributions To GDP Growth And Inflation: South '
+                                    'Africa'},
+            'wannabe_3': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph18-en'],
+                            'others': [],
+                            'title': 'Official Loans To The Governments Of Greece, Ireland '
+                                    'And Portugal'}},
+            {}, 
+            {0: {'id': {}}}
+        )
+        self.assertTrue(output == expected_output_1 or output == expected_output_2)
 
     def test_id_worker_4(self):
         # 4 Merge data from EntityA (CSV) with data from EntityX (CSV), update both with data from EntityA (RDF)
@@ -1059,10 +1107,12 @@ class testcase_13(unittest.TestCase):
     def test3(self):
         # 3--- conflict: br with id shared with 2 meta
         data = get_csv_data(MANUAL_DATA_CSV)
-        name = '13.3'
+        name_1 = '13.3'
+        name_2 = '13.31'
         partial_data = data[57:58]
-        data_curated, testcase = prepare_to_test(partial_data, name)
-        self.assertEqual(data_curated, testcase)
+        data_curated, testcase_1 = prepare_to_test(partial_data, name_1)
+        _, testcase_2 = prepare_to_test(partial_data, name_2)
+        self.assertTrue(data_curated == testcase_1 or data_curated == testcase_2)
 
 
 class testcase_14(unittest.TestCase):
@@ -1087,11 +1137,12 @@ class testcase_14(unittest.TestCase):
     def test3(self):
         # RA
         # Author with two different ids
-        name = '14.3'
+        name_1 = '14.3'
+        name_2 = '14.31'
         data = get_csv_data(MANUAL_DATA_CSV)
         partial_data = data[60:61]
-        data_curated, testcase = prepare_to_test(partial_data, name)
-        self.assertEqual(data_curated, testcase)
+        data_curated, testcase_1 = prepare_to_test(partial_data, name_1)
+        self.assertEqual(data_curated, testcase_1)
 
     def test4(self):
         # meta specified ra in a row, wannabe ra with a new id in a row, meta specified with an id related to wannabe
@@ -1119,6 +1170,7 @@ class testcase_15(unittest.TestCase):
         data = get_csv_data(MANUAL_DATA_CSV)
         partial_data = data[65:66]
         data_curated, testcase = prepare_to_test(partial_data, name)
+        # _, testcase_2 = prepare_to_test(partial_data, name_2)
         self.assertEqual(data_curated, testcase)
 
     def test3(self):

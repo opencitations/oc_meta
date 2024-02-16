@@ -148,9 +148,9 @@ class TestEditor(unittest.TestCase):
         editor = MetaEditor(META_CONFIG, 'https://orcid.org/0000-0002-8420-0696')
         editor.merge(URIRef('https://w3id.org/oc/meta/ra/06107'), URIRef('https://w3id.org/oc/meta/ra/06205'))
         with open(os.path.join(OUTPUT, 'info_dir', '0610', 'creator', 'prov_file_ra.txt'), 'r', encoding='utf8') as f:
-            self.assertEqual(f.readlines(), ['1 \n', '1 \n', '1 \n', '1 \n', '1 \n', '1 \n', '2 \n'])
+            self.assertEqual(f.readlines(), ['1\n', '1\n', '1\n', '1\n', '1\n', '1\n', '2\n'])
         with open(os.path.join(OUTPUT, 'info_dir', '0620', 'creator', 'prov_file_ra.txt'), 'r', encoding='utf8') as f:
-            self.assertEqual(f.readlines(), ['  \n', '  \n', '  \n', '  \n', '2 \n'])
+            self.assertEqual(f.readlines(), [' \n', ' \n', ' \n', ' \n', '2\n'])
         for filepath in [
             os.path.join(OUTPUT, 'rdf', 'ra', '0610', '10000', '1000.json'),
             # os.path.join(OUTPUT, 'rdf', 'ar', '0620', '10000', '1000.json'),
