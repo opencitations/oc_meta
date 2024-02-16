@@ -7,7 +7,7 @@ import pycountry
 from langdetect import detect
 from tqdm import tqdm
 
-cartella = "E:/meta_csv_output"  # Sostituisci con il percorso della tua cartella
+cartella = "/srv/data/arcangelo/meta_output_current/csv_out"
 
 def get_csv_data(filepath: str) -> list:
     if not os.path.splitext(filepath)[1].endswith('.csv'):
@@ -69,7 +69,7 @@ def main():
     conteggio = Counter(lingue)
 
     # Salva i risultati in un file CSV
-    with open('E:/lingue_in_meta.csv', 'w', newline='', encoding='utf-8') as f:
+    with open('/srv/data/arcangelo/meta_output_current/lingue_in_meta.csv', 'w', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
         writer.writerow(['Lingua', 'Conteggio'])
         for lingua, count in conteggio.items():
