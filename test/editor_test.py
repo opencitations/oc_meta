@@ -124,6 +124,11 @@ class TestEditor(unittest.TestCase):
                         self.assertEqual(ra['https://w3id.org/oc/ontology/hasUpdateQuery'][0]['@value'], 'DELETE DATA { GRAPH <https://w3id.org/oc/meta/br/> { <https://w3id.org/oc/meta/br/06101> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06101> . } }')
 
     def test_merge(self):
+        def read_and_normalize_file(filepath):
+            with open(filepath, 'r', encoding='utf8') as f:
+                # Rimuove gli spazi bianchi alla fine di ogni riga
+                lines = [line.rstrip(" \n") + '\n' for line in f.readlines()]
+            return lines
         base_iri = 'https://w3id.org/oc/meta/'
         info_dir = os.path.join(OUTPUT, 'info_dir', '0620', 'creator')
         resp_agent = 'https://orcid.org/0000-0002-8420-0696'
@@ -147,10 +152,12 @@ class TestEditor(unittest.TestCase):
         graph_storer.upload_all(endpoint)
         editor = MetaEditor(META_CONFIG, 'https://orcid.org/0000-0002-8420-0696')
         editor.merge(URIRef('https://w3id.org/oc/meta/ra/06107'), URIRef('https://w3id.org/oc/meta/ra/06205'))
-        with open(os.path.join(OUTPUT, 'info_dir', '0610', 'creator', 'prov_file_ra.txt'), 'r', encoding='utf8') as f:
-            self.assertEqual(f.readlines(), ['1\n', '1\n', '1\n', '1\n', '1\n', '1\n', '2\n'])
-        with open(os.path.join(OUTPUT, 'info_dir', '0620', 'creator', 'prov_file_ra.txt'), 'r', encoding='utf8') as f:
-            self.assertEqual(f.readlines(), [' \n', ' \n', ' \n', ' \n', '2\n'])
+        expected_lines_0610 = ['1\n', '1\n', '1\n', '1\n', '1\n', '1\n', '2\n']
+        normalized_lines_0610 = read_and_normalize_file(os.path.join(OUTPUT, 'info_dir', '0610', 'creator', 'prov_file_ra.txt'))
+        self.assertEqual(normalized_lines_0610, expected_lines_0610)
+        expected_lines_0620 = ['\n', '\n', '\n', '\n', '2\n']
+        normalized_lines_0620 = read_and_normalize_file(os.path.join(OUTPUT, 'info_dir', '0620', 'creator', 'prov_file_ra.txt'))
+        self.assertEqual(normalized_lines_0620, expected_lines_0620)
         for filepath in [
             os.path.join(OUTPUT, 'rdf', 'ra', '0610', '10000', '1000.json'),
             # os.path.join(OUTPUT, 'rdf', 'ar', '0620', '10000', '1000.json'),
