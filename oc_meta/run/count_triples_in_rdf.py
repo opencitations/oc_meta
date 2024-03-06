@@ -11,7 +11,7 @@ import json
 import rdflib
 
 
-def count_triples_in_file(compression_type, file_path, jsonld_filename):
+def count_triples_in_file(compression_type, file_path, jsonld_filename, data_format):
     triple_count = 0
     try:
         if compression_type == 'zip':
@@ -22,23 +22,31 @@ def count_triples_in_file(compression_type, file_path, jsonld_filename):
             with gzip.open(file_path, 'rt') as f:
                 file_content = f.read()
         elif compression_type == 'json':
-            with open(file_path, 'r') as f:
+            with open(file_path, 'r', encoding='utf8') as f:
                 file_content = f.read()
-
         g = rdflib.ConjunctiveGraph()
-        g.parse(data=file_content, format='json-ld')
+        g.parse(data=file_content, format=data_format)
         triple_count += len(g)
     except Exception as e:
         print(f"Error processing file {jsonld_filename} in {file_path}: {e}")
     return triple_count
 
-def process_directory(directory, compression_type):
+def process_directory(directory, compression_type, prov_only, data_only, data_format):
     if compression_type not in ['zip', 'gz', 'json']:
         raise ValueError("Unsupported compression type.")
 
-    files = [os.path.join(root, file)
-             for root, dirs, files in os.walk(directory)
-             for file in files if file.endswith('.' + compression_type)]
+    files = []
+    for root, dirs, files_in_dir in os.walk(directory):
+        for file in files_in_dir:
+            if file.endswith('.' + compression_type):
+                file_path = os.path.join(root, file)
+                path_parts = os.path.normpath(file_path).split(os.sep)                
+                if prov_only and 'prov' in path_parts:
+                    files.append(file_path)
+                elif data_only and 'prov' not in path_parts:
+                    files.append(file_path)
+                elif not prov_only and not data_only:
+                    files.append(file_path)
 
     total_triples = 0
     with ProcessPool() as pool:
@@ -48,10 +56,10 @@ def process_directory(directory, compression_type):
                 with zipfile.ZipFile(file_path, 'r') as z:
                     jsonld_files = [f for f in z.namelist() if f.endswith('.json')]
                     for jsonld_file in jsonld_files:
-                        future = pool.schedule(count_triples_in_file, args=(compression_type, file_path, jsonld_file))
+                        future = pool.schedule(count_triples_in_file, args=(compression_type, file_path, data_format))
                         future_results.append(future)
             elif compression_type in ['gz', 'json']:
-                future = pool.schedule(count_triples_in_file, args=(compression_type, file_path, file_path))
+                future = pool.schedule(count_triples_in_file, args=(compression_type, file_path, file_path, data_format))
                 future_results.append(future)
 
         for future in tqdm(future_results, desc="Processing files", unit="file"):
@@ -69,9 +77,13 @@ def main():
     parser = argparse.ArgumentParser(description="Conta le triple RDF nei file compressi in una directory.")
     parser.add_argument('directory', type=str, help='Directory da esplorare')
     parser.add_argument('compression_type', type=str, choices=['zip', 'gz', 'json'], help='Type of file compression (zip, gz, or json)')
+    parser.add_argument('data_format', type=str, choices=['json-ld', 'nquads'], help='Data format of the files (json-ld or nquads)')
+    parser.add_argument('--prov_only', action='store_true', help='Conta solo nelle sottocartelle di nome prov', default=False)
+    parser.add_argument('--data_only', action='store_true', help='Conta solo nelle sottocartelle di nome diverso da prov', default=False)
+
     args = parser.parse_args()
 
-    total_triples = process_directory(args.directory, args.compression_type)
+    total_triples = process_directory(args.directory, args.compression_type, args.prov_only, args.data_only, args.data_format)
     print(f"Numero totale di triple RDF: {total_triples}")
 
 if __name__ == "__main__":

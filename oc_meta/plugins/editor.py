@@ -62,7 +62,7 @@ class MetaEditor:
         g_set = GraphSet(self.base_iri, info_dir, supplier_prefix=supplier_prefix)
         self.reader.import_entity_from_triplestore(g_set, self.endpoint, res, self.resp_agent, enable_validation=False)
         if property:
-            remove_method = property.replace('has', 'remove')
+            remove_method = property.replace('has', 'remove') if property.startswith('has') else f'remove_{property}'
             if object:
                 if validators.url(object):
                     self.reader.import_entity_from_triplestore(g_set, self.endpoint, object, self.resp_agent, enable_validation=False)

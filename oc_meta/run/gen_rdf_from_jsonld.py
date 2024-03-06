@@ -15,7 +15,6 @@
 # SOFTWARE
 
 import gzip
-import time
 import argparse
 import json
 import multiprocessing
@@ -26,10 +25,13 @@ from zipfile import ZIP_DEFLATED, ZipFile
 
 from filelock import FileLock
 from rdflib import ConjunctiveGraph, URIRef, Graph
+import logging
 
 # Variable used in several functions
 entity_regex: str = r"^(.+)/([a-z][a-z])/(0[1-9]+0)?((?:[1-9][0-9]*)|(?:\d+-\d+))$"
 prov_regex: str = r"^(.+)/([a-z][a-z])/(0[1-9]+0)?((?:[1-9][0-9]*)|(?:\d+-\d+))/prov/([a-z][a-z])/([1-9][0-9]*)$"
+
+logging.basicConfig(level=logging.WARNING, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def _get_match(regex: str, group: int, string: str) -> str:
     match: Match = re.match(regex, string)
@@ -200,12 +202,8 @@ def find_paths(res: URIRef, base_dir: str, base_iri: str, default_dir: str, dir_
 
     return cur_dir_path, cur_file_path
 
-def store(entity, graph_identifier, stored_g: ConjunctiveGraph) -> ConjunctiveGraph:
-    graph_identifier = URIRef(graph_identifier)
-    cg: Graph = Graph()
-    cg.parse(data=json.dumps(entity), format='json-ld')
-    stored_g.remove((URIRef(entity), None, None, graph_identifier))
-    for triple in cg.triples((None, None, None)):
+def store(triples, graph_identifier, stored_g: ConjunctiveGraph) -> ConjunctiveGraph:
+    for triple in triples:
         stored_g.add((triple[0], triple[1], triple[2], graph_identifier))
     return stored_g
 
@@ -266,37 +264,37 @@ def load_graph(file_path: str, cur_format: str = 'json-ld'):
 
     return loaded_graph
 
-def process_entities(entities, graph_identifier, output_root, base_iri, file_limit, item_limit, zip_output):
+def process_graph(context, graph_identifier, output_root, base_iri, file_limit, item_limit, zip_output):
     modifications_by_file = {}
     triples = 0
-    for entity in entities:
-        cg = Graph()
-        cg.parse(data=json.dumps(entity), format='json-ld')
-        triples += len(cg)
-        entity_uri = entity['@id']
-        _, cur_file_path = find_paths(URIRef(entity_uri), output_root, base_iri, '_', file_limit, item_limit, True)
+    for triple in context:
+        triples += len(triple)
+        entity_uri = triple[0]
+        _, cur_file_path = find_paths(entity_uri, output_root, base_iri, '_', file_limit, item_limit, True)
         cur_file_path = cur_file_path.replace('.json', '.zip') if zip_output else cur_file_path
         if cur_file_path not in modifications_by_file:
             modifications_by_file[cur_file_path] = {
                 "graph_identifier": graph_identifier,
-                "entities": []
+                "triples": []
             }
-        modifications_by_file[cur_file_path]["entities"].append(entity)
+        modifications_by_file[cur_file_path]["triples"].append(triple)
+    
+    output_triples_count = 0
     for file_path, data in modifications_by_file.items():
         stored_g = load_graph(file_path) if os.path.exists(file_path) else ConjunctiveGraph()
-        for entity in data["entities"]:
-            stored_g = store(entity, data["graph_identifier"], stored_g)
+        stored_g = store(data["triples"], data["graph_identifier"], stored_g)
         store_in_file(stored_g, file_path, zip_output)
     return triples
 
-def process_entity_batch(batch_data):
-    entities, graph_identifier, output_root, base_iri, file_limit, item_limit, zip_output = batch_data
-    return process_entities(entities, graph_identifier, output_root, base_iri, file_limit, item_limit, zip_output)
+def process_file_content(graph: ConjunctiveGraph, output_root, base_iri, file_limit, item_limit, zip_output):
+    for context in graph.contexts():
+        graph_identifier = context.identifier
+        process_graph(context, graph_identifier, output_root, base_iri, file_limit, item_limit, zip_output)
 
 def main():
-    parser = argparse.ArgumentParser(description="Process nquads files into JSON-LD.")
-    parser.add_argument('input_folder', type=str, help='Input folder containing nquads files')
-    parser.add_argument('output_root', type=str, help='Root folder for output JSON-LD files')
+    parser = argparse.ArgumentParser(description="Process gzipped json-ld files into OC Meta RDF")
+    parser.add_argument('input_folder', type=str, help='Input folder containing gzipped json-ld files')
+    parser.add_argument('output_root', type=str, help='Root folder for output OC Meta RDF files')
     parser.add_argument('--base_iri', type=str, default='https://w3id.org/oc/meta/', help='The base URI of entities on Meta. This setting can be safely left as is')
     parser.add_argument('--file_limit', type=int, default=10000, help='Number of files per folder')
     parser.add_argument('--item_limit', type=int, default=1000, help='Number of items per file')
@@ -308,13 +306,11 @@ def main():
     for file in os.listdir(args.input_folder):
         if file.endswith('.jsonld.gz'):
             with gzip.open(os.path.join(args.input_folder, file), 'rb') as f:
-                data = json.load(f)
-                for graph in data:
-                    entities = graph['@graph']
-                    graph_uri = graph['@id']
-                    batch_data = (entities, graph_uri, args.output_root, args.base_iri, args.file_limit, args.item_limit, args.zip_output)
-                    result = pool.apply_async(process_entity_batch, (batch_data,))
-                    results.append(result)
+                data = f.read().decode('utf-8')
+                graph = ConjunctiveGraph()
+                graph.parse(data=data, format='json-ld')
+                result = pool.apply_async(process_file_content, (graph, args.output_root, args.base_iri, args.file_limit, args.item_limit, args.zip_output,))
+                results.append(result)
     pool.close()
     pool.join()
 

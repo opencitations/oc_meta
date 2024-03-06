@@ -380,7 +380,7 @@ def process_venue(venue_data: list, venue_uri: str, rdf_dir: str, dir_split_numb
                     venue_partOf = venue['http://purl.org/vocab/frbr/core#partOf'][0]['@id']
                     if venue_uri == venue_partOf:
                         meta_editor = MetaEditor(meta_config, resp_agent)
-                        meta_editor.delete(res=venue_uri, property='is_part_of', object=venue_partOf)
+                        meta_editor.delete(res=venue_uri, property='is_part_of')
                     else:
                         to_be_found = venue_partOf
     if any(v for _, v in venue_dict.items()):

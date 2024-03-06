@@ -18,3 +18,4 @@ examples_cache.sqlite
 examples_cache.sqlite-journal
 /.coverage
 temp*/
+zip_tasks.tmp
