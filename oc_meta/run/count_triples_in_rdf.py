@@ -11,11 +11,12 @@ import json
 import rdflib
 
 
-def count_triples_in_file(compression_type, file_path, jsonld_filename, data_format):
+def count_triples_in_file(compression_type, file_path, data_format):
     triple_count = 0
     try:
         if compression_type == 'zip':
             with zipfile.ZipFile(file_path, 'r') as z:
+                jsonld_filename = [f for f in z.namelist()][0]
                 with z.open(jsonld_filename) as f:
                     file_content = f.read().decode('utf-8')
         elif compression_type == 'gz':
@@ -28,7 +29,7 @@ def count_triples_in_file(compression_type, file_path, jsonld_filename, data_for
         g.parse(data=file_content, format=data_format)
         triple_count += len(g)
     except Exception as e:
-        print(f"Error processing file {jsonld_filename} in {file_path}: {e}")
+        print(f"Error processing file in {file_path}: {e}")
     return triple_count
 
 def process_directory(directory, compression_type, prov_only, data_only, data_format):
@@ -53,13 +54,10 @@ def process_directory(directory, compression_type, prov_only, data_only, data_fo
         future_results = []
         for file_path in files:
             if compression_type == 'zip':
-                with zipfile.ZipFile(file_path, 'r') as z:
-                    jsonld_files = [f for f in z.namelist() if f.endswith('.json')]
-                    for jsonld_file in jsonld_files:
-                        future = pool.schedule(count_triples_in_file, args=(compression_type, file_path, data_format))
-                        future_results.append(future)
+                future = pool.schedule(count_triples_in_file, args=(compression_type, file_path, data_format))
+                future_results.append(future)
             elif compression_type in ['gz', 'json']:
-                future = pool.schedule(count_triples_in_file, args=(compression_type, file_path, file_path, data_format))
+                future = pool.schedule(count_triples_in_file, args=(compression_type, file_path, data_format))
                 future_results.append(future)
 
         for future in tqdm(future_results, desc="Processing files", unit="file"):

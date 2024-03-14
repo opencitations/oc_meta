@@ -894,19 +894,20 @@ zstandard = ">=0.21.0,<0.22.0"
 
 [[package]]
 name = "oc-ocdm"
-version = "7.3.1"
+version = "7.3.2"
 description = "Object mapping library for manipulating RDF graphs that are compliant with the OpenCitations datamodel."
 optional = false
-python-versions = ">=3.7.4,<4.0.0"
+python-versions = ">=3.8,<4.0"
 files = [
-    {file = "oc_ocdm-7.3.1-py3-none-any.whl", hash = "sha256:3f60535e8038652e1a0a9d4975f74f7ea22da1a16393e2a2e2e12c77f9d3a25c"},
-    {file = "oc_ocdm-7.3.1.tar.gz", hash = "sha256:f87f777bdf0941cf856866eb28bddfe927ba4c76694750c6e8391fca01684548"},
+    {file = "oc_ocdm-7.3.2-py3-none-any.whl", hash = "sha256:1d9bf68c0f75984e9196b3deab5a9652caea98bb40038e2690852116100955f8"},
+    {file = "oc_ocdm-7.3.2.tar.gz", hash = "sha256:a4e910b01016c15c130eff31895ea87793f910396f76b8ed61825782386d492c"},
 ]
 
 [package.dependencies]
 filelock = ">=3.6.0,<4.0.0"
 pyshacl = "0.23.0"
 rdflib = ">=6.0.0,<7.0.0"
+setuptools = ">=68.2.2,<69.0.0"
 SPARQLWrapper = "2.0.0"
 
 [[package]]
@@ -1324,19 +1325,19 @@ yaml = ["pyyaml (>=5.4)"]
 
 [[package]]
 name = "setuptools"
-version = "67.7.1"
+version = "68.2.2"
 description = "Easily download, build, install, upgrade, and uninstall Python packages"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "setuptools-67.7.1-py3-none-any.whl", hash = "sha256:6f0839fbdb7e3cfef1fc38d7954f5c1c26bf4eebb155a55c9bf8faf997b9fb67"},
-    {file = "setuptools-67.7.1.tar.gz", hash = "sha256:bb16732e8eb928922eabaa022f881ae2b7cdcfaf9993ef1f5e841a96d32b8e0c"},
+    {file = "setuptools-68.2.2-py3-none-any.whl", hash = "sha256:b454a35605876da60632df1a60f736524eb73cc47bbc9f3f1ef1b644de74fd2a"},
+    {file = "setuptools-68.2.2.tar.gz", hash = "sha256:4ac1475276d2f1c48684874089fefcd83bd7162ddaafb81fac866ba0db282a87"},
 ]
 
 [package.extras]
-docs = ["furo", "jaraco.packaging (>=9)", "jaraco.tidelift (>=1.4)", "pygments-github-lexers (==0.0.5)", "rst.linker (>=1.9)", "sphinx (>=3.5)", "sphinx-favicon", "sphinx-hoverxref (<2)", "sphinx-inline-tabs", "sphinx-lint", "sphinx-notfound-page (==0.8.3)", "sphinx-reredirects", "sphinxcontrib-towncrier"]
-testing = ["build[virtualenv]", "filelock (>=3.4.0)", "flake8 (<5)", "flake8-2020", "ini2toml[lite] (>=0.9)", "jaraco.envs (>=2.2)", "jaraco.path (>=3.2.0)", "pip (>=19.1)", "pip-run (>=8.8)", "pytest (>=6)", "pytest-black (>=0.3.7)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=1.3)", "pytest-flake8", "pytest-mypy (>=0.9.1)", "pytest-perf", "pytest-timeout", "pytest-xdist", "tomli-w (>=1.0.0)", "virtualenv (>=13.0.0)", "wheel"]
-testing-integration = ["build[virtualenv]", "filelock (>=3.4.0)", "jaraco.envs (>=2.2)", "jaraco.path (>=3.2.0)", "pytest", "pytest-enabler", "pytest-xdist", "tomli", "virtualenv (>=13.0.0)", "wheel"]
+docs = ["furo", "jaraco.packaging (>=9.3)", "jaraco.tidelift (>=1.4)", "pygments-github-lexers (==0.0.5)", "rst.linker (>=1.9)", "sphinx (>=3.5)", "sphinx-favicon", "sphinx-hoverxref (<2)", "sphinx-inline-tabs", "sphinx-lint", "sphinx-notfound-page (>=1,<2)", "sphinx-reredirects", "sphinxcontrib-towncrier"]
+testing = ["build[virtualenv]", "filelock (>=3.4.0)", "flake8-2020", "ini2toml[lite] (>=0.9)", "jaraco.develop (>=7.21)", "jaraco.envs (>=2.2)", "jaraco.path (>=3.2.0)", "pip (>=19.1)", "pytest (>=6)", "pytest-black (>=0.3.7)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=2.2)", "pytest-mypy (>=0.9.1)", "pytest-perf", "pytest-ruff", "pytest-timeout", "pytest-xdist", "tomli-w (>=1.0.0)", "virtualenv (>=13.0.0)", "wheel"]
+testing-integration = ["build[virtualenv] (>=1.0.3)", "filelock (>=3.4.0)", "jaraco.envs (>=2.2)", "jaraco.path (>=3.2.0)", "packaging (>=23.1)", "pytest", "pytest-enabler", "pytest-xdist", "tomli", "virtualenv (>=13.0.0)", "wheel"]
 
 [[package]]
 name = "six"
@@ -1617,4 +1618,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "fedab8f59731c65f0c16cdf19bab8dc05356c1ec77f89d2ccc70e753975bf719"
+content-hash = "17aceeb858b382fcf88aedc8df8aff3aae4817012e266dc6e7c61e9f1202a00d"
