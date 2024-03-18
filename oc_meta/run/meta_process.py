@@ -163,7 +163,7 @@ class MetaProcess:
                     meta_config_path=meta_config_path)
             creator = creator_obj.creator(source=self.source)
             # Provenance
-            prov = ProvSet(creator, self.base_iri, creator_info_dir, wanted_label=False)
+            prov = ProvSet(creator, self.base_iri, creator_info_dir, wanted_label=False, supplier_prefix=supplier_prefix)
             modified_entities = prov.generate_provenance()
             # Storer
             repok  = Reporter(print_sentences = False)

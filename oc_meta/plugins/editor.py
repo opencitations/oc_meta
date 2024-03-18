@@ -54,7 +54,7 @@ class MetaEditor:
             getattr(g_set.get_entity(res), property)(g_set.get_entity(new_value))
         else:
             getattr(g_set.get_entity(res), property)(new_value)
-        self.save(g_set, info_dir)
+        self.save(g_set, info_dir, supplier_prefix)
     
     def delete(self, res: str, property: str = None, object: str = None) -> None:
         info_dir = self.__get_info_dir(res)
@@ -81,7 +81,7 @@ class MetaEditor:
                 self.reader.import_entity_from_triplestore(g_set, self.endpoint, URIRef(entity['s']['value']), self.resp_agent, enable_validation=False)
             entity_to_purge = g_set.get_entity(URIRef(res))
             entity_to_purge.mark_as_to_be_deleted()
-        self.save(g_set, info_dir)
+        self.save(g_set, info_dir, supplier_prefix)
     
     def merge(self, res: URIRef, other: URIRef) -> None:
         info_dir = self.__get_info_dir(res)
@@ -111,7 +111,7 @@ class MetaEditor:
         res_as_entity = g_set.get_entity(res)
         other_as_entity = g_set.get_entity(other)
         res_as_entity.merge(other_as_entity)
-        self.save(g_set, info_dir)
+        self.save(g_set, info_dir, supplier_prefix)
     
     def sync_rdf_with_triplestore(self, res: str, source_uri: str = None) -> bool:
         info_dir = self.__get_info_dir(res)
@@ -119,7 +119,7 @@ class MetaEditor:
         g_set = GraphSet(self.base_iri, info_dir, supplier_prefix=supplier_prefix)
         try:
             self.reader.import_entity_from_triplestore(g_set, self.endpoint, res, self.resp_agent, enable_validation=False)
-            self.save(g_set, info_dir)
+            self.save(g_set, info_dir, supplier_prefix)
             return True
         except ValueError:
             try:
@@ -136,11 +136,11 @@ class MetaEditor:
                         triples_list = list(entity.g.triples((URIRef(source_uri), None, None)))
                         for triple in triples_list:
                             entity.g.remove(triple)
-                    self.save(g_set, info_dir)
+                    self.save(g_set, info_dir, supplier_prefix)
                 return False
             
-    def save(self, g_set: GraphSet, info_dir: str):
-        provset = ProvSet(g_set, self.base_iri, info_dir, wanted_label=False)
+    def save(self, g_set: GraphSet, info_dir: str, supplier_prefix: str):
+        provset = ProvSet(g_set, self.base_iri, info_dir, wanted_label=False, supplier_prefix=supplier_prefix)
         provset.generate_provenance()
         graph_storer = Storer(g_set, dir_split=self.dir_split, n_file_item=self.n_file_item, zip_output=self.zip_output_rdf)
         prov_storer = Storer(provset, dir_split=self.dir_split, n_file_item=self.n_file_item, zip_output=self.zip_output_rdf)

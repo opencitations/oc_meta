@@ -54,7 +54,7 @@ class test_duplicated_ids(unittest.TestCase):
         triplicated_id.create_crossref('263')
         ieee.has_identifier(duplicated_id)
         ieee.has_identifier(triplicated_id)
-        provset = ProvSet(g_set, base_iri, info_dir, wanted_label=False)
+        provset = ProvSet(g_set, base_iri, info_dir, wanted_label=False, supplier_prefix='060')
         provset.generate_provenance()
         graph_storer = Storer(g_set, dir_split=10000, n_file_item=1000, zip_output=False)
         prov_storer = Storer(provset, dir_split=10000, n_file_item=1000, zip_output=False)

@@ -232,17 +232,29 @@ def merge_logs(log_dir, final_log_file):
     for log_file_name in os.listdir(log_dir):
         os.remove(os.path.join(log_dir, log_file_name))
 
-def process_file(filename, input_folder, output_folder, log_dir, zipped_output, process_id, use_multiprocessing):
+def process_json_content(file_content, output_folder, zipped_output):
     subject_to_path_map = {}
+    graph = ConjunctiveGraph()
+    graph.parse(data=file_content, format='json-ld')
+    for subject in graph.subjects(unique=True):
+        _, cur_file_path = find_paths(subject, output_folder, BASE_IRI, "_", DIR_SPLIT, N_FILE_ITEM, IS_JSON)
+        if zipped_output:
+            cur_file_path = cur_file_path.replace('.json', '.zip')
+        subject_to_path_map.setdefault(cur_file_path, []).append(subject)
+    return graph, subject_to_path_map
+
+def process_file(file_path, output_folder, log_dir, zipped_input, zipped_output, process_id, use_multiprocessing):
+    if zipped_input:
+        with zipfile.ZipFile(file_path, 'r') as zfile:
+            for json_file_name in zfile.namelist():
+                with zfile.open(json_file_name) as file:
+                    file_content = file.read().decode('utf-8')
+                    graph, subject_to_path_map = process_json_content(file_content, output_folder, zipped_output)
+    else:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            file_content = file.read()
+            graph, subject_to_path_map = process_json_content(file_content, output_folder, zipped_output)
     
-    with gzip.open(os.path.join(input_folder, filename), 'rt', encoding='utf-8') as file:
-        graph = ConjunctiveGraph()
-        graph.parse(data=file.read(), format='json-ld')
-        for subject in graph.subjects(unique=True):
-            _, cur_file_path = find_paths(subject, output_folder, BASE_IRI, "_", DIR_SPLIT, N_FILE_ITEM, IS_JSON)
-            if zipped_output:
-                cur_file_path = cur_file_path.replace('.json', '.zip')
-            subject_to_path_map.setdefault(cur_file_path, []).append(subject)
     for cur_file_path, subjects in subject_to_path_map.items():
         if not os.path.exists(cur_file_path):
             error_message = f"File {cur_file_path} not found"
@@ -261,22 +273,21 @@ def process_file(filename, input_folder, output_folder, log_dir, zipped_output, 
             target_graph.parse(data=file_content, format='json-ld')
             update = False
             for subject in subjects:
-                graph_publication_date = None
-                for _, _, graph_date in graph.triples((subject, PUBLICATION_DATE_PREDICATE, None)):
-                    graph_publication_date = graph_date
-                    break
-
-                target_graph_publication_date = None
-                for _, _, target_date in target_graph.triples((subject, PUBLICATION_DATE_PREDICATE, None)):
-                    target_graph_publication_date = target_date
-                    break
-
-                if graph_publication_date is not None and target_graph_publication_date is not None:
-                    if graph_publication_date != target_graph_publication_date:
-                        target_graph.remove((subject, PUBLICATION_DATE_PREDICATE, target_graph_publication_date))
-                        target_graph.add((subject, PUBLICATION_DATE_PREDICATE, graph_publication_date))
-                        update = True
-                        log_error(log_dir, 'publication_date_updated', f"Updated publication date for {subject} in {cur_file_path}", process_id)
+                original_predicates = set(graph.predicates(subject, unique=True))
+                target_predicates = set(target_graph.predicates(subject, unique=True))
+                for predicate in original_predicates:
+                    original_values = set(graph.objects(subject, predicate, unique=True))
+                    target_values = set(target_graph.objects(subject, predicate, unique=True))
+                    if original_values != target_values:
+                        if predicate in target_predicates:
+                            log_error(log_dir, 'different_predicate_value', f"Different values for predicate {predicate} for subject {subject} in {cur_file_path}", process_id)
+                            context = target_graph.get_context(subject)
+                            context.remove((subject, predicate, None))
+                            for value in original_values:
+                                context.add((subject, predicate, value))
+                            update = True
+                        else:
+                            log_error(log_dir, 'missing_predicate', f"Predicate {predicate} missing for subject {subject} in {cur_file_path}", process_id)
             if update:
                 if zipped_output:
                     with zipfile.ZipFile(cur_file_path, 'w') as zfile:
@@ -291,21 +302,37 @@ def init_queue(q):
     global queue
     queue = q
 
-def main(input_folder, output_folder, use_multiprocessing, log_file_path, zipped_output):
-    files = [f for f in os.listdir(input_folder) if f.endswith(".jsonld.gz")]
+def find_json_files(input_folder, exclude_dir='prov', zipped_input=None):
+    """
+    Recursively finds all files in the input folder, excluding those within directories named `exclude_dir`.
+    """
+    file_paths = []
+    for root, dirs, files in os.walk(input_folder):
+        if exclude_dir in root.split(os.sep):
+            continue  # Skip files within directories named `exclude_dir`
+        for file in files:
+            if zipped_input and file.endswith('.zip'):
+                file_paths.append(os.path.join(root, file))
+            elif not zipped_input and file.endswith('.json'):
+                file_paths.append(os.path.join(root, file))
+    return file_paths
+
+def main(input_folder, output_folder, use_multiprocessing, log_file_path, zipped_input, zipped_output):
+    file_paths = find_json_files(input_folder, zipped_input=zipped_input)
     log_dir = log_file_path.rsplit('.', 1)[0] + "_logs"
     os.makedirs(log_dir, exist_ok=True)
     if use_multiprocessing:
         with Manager() as manager:
             queue = manager.Queue()
             with Pool(initializer=init_queue, initargs=(queue,)) as pool:
-                for idx, filename in enumerate(files):
-                    pool.apply_async(process_file, args=(filename, input_folder, output_folder, log_dir, zipped_output, idx, use_multiprocessing))
+                for idx, filename in enumerate(file_paths):
+                    file_path = os.path.join(input_folder, filename)
+                    pool.apply_async(process_file, args=(file_path, output_folder, log_dir, zipped_input, zipped_output, idx, use_multiprocessing))
                 pool.close()
 
-                pbar = tqdm(total=len(files))
+                pbar = tqdm(total=len(file_paths))
                 completed_tasks = 0
-                while completed_tasks < len(files):
+                while completed_tasks < len(file_paths):
                     queue.get()
                     completed_tasks += 1
                     pbar.update(1)
@@ -313,9 +340,10 @@ def main(input_folder, output_folder, use_multiprocessing, log_file_path, zipped
 
                 pool.join()
     else:
-        pbar = tqdm(files, desc="Processing files", total=len(files))
-        for idx, filename in enumerate(files):
-            process_file(filename, input_folder, output_folder, log_dir, zipped_output, idx, use_multiprocessing)
+        pbar = tqdm(file_paths, desc="Processing files", total=len(file_paths))
+        for idx, filename in enumerate(file_paths):
+            file_path = os.path.join(input_folder, filename)
+            process_file(file_path, output_folder, log_dir, zipped_input, zipped_output, idx, use_multiprocessing)
             pbar.update()
         pbar.close()
 
@@ -329,7 +357,8 @@ if __name__ == "__main__":
     parser.add_argument("--multiprocessing", action="store_true", help="Enable multiprocessing to process files")
     parser.add_argument("--log_file", type=str, required=True, help="The JSON file to log errors")
     parser.add_argument("--zipped_output", action="store_true", help="Indicate if the output files are zipped")
+    parser.add_argument("--zipped_input", action="store_true", help="Indicate if the input files are zipped")
 
     args = parser.parse_args()
 
-    main(args.input_folder, args.output_folder, args.multiprocessing, args.log_file, args.zipped_output)
+    main(args.input_folder, args.output_folder, args.multiprocessing, args.log_file, args.zipped_input, args.zipped_output)

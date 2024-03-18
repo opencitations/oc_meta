@@ -894,13 +894,13 @@ zstandard = ">=0.21.0,<0.22.0"
 
 [[package]]
 name = "oc-ocdm"
-version = "7.3.2"
+version = "7.3.4"
 description = "Object mapping library for manipulating RDF graphs that are compliant with the OpenCitations datamodel."
 optional = false
 python-versions = ">=3.8,<4.0"
 files = [
-    {file = "oc_ocdm-7.3.2-py3-none-any.whl", hash = "sha256:1d9bf68c0f75984e9196b3deab5a9652caea98bb40038e2690852116100955f8"},
-    {file = "oc_ocdm-7.3.2.tar.gz", hash = "sha256:a4e910b01016c15c130eff31895ea87793f910396f76b8ed61825782386d492c"},
+    {file = "oc_ocdm-7.3.4-py3-none-any.whl", hash = "sha256:cfee57d6e49deff5474a42c0f5ee599ca9cd9d4655e6eb5b865add7457d6e489"},
+    {file = "oc_ocdm-7.3.4.tar.gz", hash = "sha256:e07915577abf8835f6df8dd449daee366ea6d810999ede48bd266439ce31ad1f"},
 ]
 
 [package.dependencies]
@@ -1618,4 +1618,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "17aceeb858b382fcf88aedc8df8aff3aae4817012e266dc6e7c61e9f1202a00d"
+content-hash = "581e1a9d4b5e71f9514bf342f8ca02cc710a78ea72a127f1f00586034faecbd4"

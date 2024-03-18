@@ -143,7 +143,7 @@ class TestEditor(unittest.TestCase):
         id_06203.create_crossref('313')
         ra.has_identifier(id_06105)
         ra.has_identifier(id_06203)
-        provset = ProvSet(g_set, base_iri, info_dir, wanted_label=False)
+        provset = ProvSet(g_set, base_iri, info_dir, wanted_label=False, supplier_prefix='0620')
         provset.generate_provenance()
         graph_storer = Storer(g_set, dir_split=10000, n_file_item=1000, zip_output=False)
         prov_storer = Storer(provset, dir_split=10000, n_file_item=1000, zip_output=False)

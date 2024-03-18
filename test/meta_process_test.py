@@ -7,7 +7,7 @@ import unittest
 from datetime import datetime
 from test.curator_test import reset_server
 from zipfile import ZipFile
-
+from rdflib import Graph, ConjunctiveGraph, URIRef
 import yaml
 from SPARQLWrapper import JSON, SPARQLWrapper
 
@@ -304,7 +304,52 @@ class test_ProcessTest(unittest.TestCase):
         delete_output_zip('.', now)
         self.assertEqual(result, expected_result)
 
+    def test_omid_in_input_data(self):
+        reset_server()
+        output_folder = os.path.join(BASE_DIR, 'output_8')
+        now = datetime.now()
+        meta_config_path_without_openalex=os.path.join(BASE_DIR, 'meta_config_8.yaml')
+        meta_config_path_with_openalex=os.path.join(BASE_DIR, 'meta_config_9.yaml')
+        with open(meta_config_path_without_openalex, encoding='utf-8') as file:
+            settings_without_openalex = yaml.full_load(file)
+        with open(meta_config_path_with_openalex, encoding='utf-8') as file:
+            settings_with_openalex = yaml.full_load(file)
+        run_meta_process(settings=settings_without_openalex, meta_config_path=meta_config_path_without_openalex)
+        run_meta_process(settings=settings_with_openalex, meta_config_path=meta_config_path_with_openalex)
+        query_all = '''
+            PREFIX fabio: <http://purl.org/spar/fabio/>
+            PREFIX datacite: <http://purl.org/spar/datacite/>
+            CONSTRUCT {?s ?p ?o. ?id ?id_p ?id_o.}
+            WHERE {
+                ?s a fabio:JournalArticle;
+                    ?p ?o.
+                ?s datacite:hasIdentifier ?id.
+                ?id ?id_p ?id_o.
+            }
+        '''
+        endpoint = SPARQLWrapper('http://localhost:9999/blazegraph/sparql')
+        endpoint.setQuery(query_all)
+        result = endpoint.queryAndConvert()
+        expected_result = Graph()
+        expected_result.parse(location=os.path.join(BASE_DIR, 'test_omid_in_input_data.json'), format='json-ld')
+        
+        prov_graph = ConjunctiveGraph()
+        for dirpath, dirnames, filenames in os.walk(os.path.join(output_folder, 'rdf')):
+            if 'br' in dirpath and 'prov' in dirpath:
+                for filename in filenames:
+                    prov_graph.parse(source=os.path.join(dirpath, filename), format='json-ld')
+        
+        expected_prov_graph = ConjunctiveGraph()
+        expected_prov_graph.parse(os.path.join(BASE_DIR, 'test_omid_in_input_data_prov.json'), format='json-ld')
+        prov_graph.remove((None, URIRef('http://www.w3.org/ns/prov#generatedAtTime'), None))
+        expected_prov_graph.remove((None, URIRef('http://www.w3.org/ns/prov#generatedAtTime'), None))
+        prov_graph.remove((None, URIRef('http://www.w3.org/ns/prov#invalidatedAtTime'), None))
+        expected_prov_graph.remove((None, URIRef('http://www.w3.org/ns/prov#invalidatedAtTime'), None))
 
+        shutil.rmtree(output_folder)
+        self.assertTrue(result.isomorphic(expected_result))
+        self.assertTrue(prov_graph.isomorphic(expected_prov_graph))
+        delete_output_zip('.', now)
 
 if __name__ == '__main__': # pragma: no cover
     unittest.main()

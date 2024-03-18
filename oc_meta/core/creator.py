@@ -38,7 +38,7 @@ from oc_meta.lib.master_of_regex import (comma_and_spaces, name_and_ids,
 class Creator(object):
     def __init__(self, data:list, endpoint:str, base_iri:str, info_dir:str, supplier_prefix:str, resp_agent:str, ra_index:dict, br_index:dict, re_index_csv:dict, ar_index_csv:dict, vi_index:dict, preexisting_entities: set, everything_everywhere_allatonce: Graph, settings: dict = None, meta_config_path: str = None):
         self.url = base_iri
-        self.setgraph = GraphSet(self.url, info_dir, supplier_prefix, wanted_label=False)
+        self.setgraph = GraphSet(self.url, info_dir, supplier_prefix=supplier_prefix, wanted_label=False)
         self.resp_agent = resp_agent
         self.finder = ResourceFinder(ts_url = endpoint, base_iri = base_iri, local_g=everything_everywhere_allatonce, settings=settings, meta_config_path=meta_config_path)
 
