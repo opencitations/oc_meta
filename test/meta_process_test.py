@@ -332,7 +332,6 @@ class test_ProcessTest(unittest.TestCase):
         result = endpoint.queryAndConvert()
         expected_result = Graph()
         expected_result.parse(location=os.path.join(BASE_DIR, 'test_omid_in_input_data.json'), format='json-ld')
-        
         prov_graph = ConjunctiveGraph()
         for dirpath, dirnames, filenames in os.walk(os.path.join(output_folder, 'rdf')):
             if 'br' in dirpath and 'prov' in dirpath:
@@ -345,11 +344,8 @@ class test_ProcessTest(unittest.TestCase):
         expected_prov_graph.remove((None, URIRef('http://www.w3.org/ns/prov#generatedAtTime'), None))
         prov_graph.remove((None, URIRef('http://www.w3.org/ns/prov#invalidatedAtTime'), None))
         expected_prov_graph.remove((None, URIRef('http://www.w3.org/ns/prov#invalidatedAtTime'), None))
-
         shutil.rmtree(output_folder)
-        from rdflib.compare import graph_diff
-        print([triple for triple in graph_diff(result, expected_result)[1]])
-        print([triple for triple in graph_diff(result, expected_result)[2]])
+
         self.assertTrue(result.isomorphic(expected_result))
         self.assertTrue(prov_graph.isomorphic(expected_prov_graph))
         delete_output_zip('.', now)

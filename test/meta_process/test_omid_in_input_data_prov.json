@@ -1,676 +1,712 @@
 [
-    {
-        "@graph": [
-            {
-                "@id": "https://w3id.org/oc/meta/br/06107/prov/se/1",
-                "@type": [
-                    "http://www.w3.org/ns/prov#Entity"
-                ],
-                "http://purl.org/dc/terms/description": [
-                    {
-                        "@value": "The entity 'https://w3id.org/oc/meta/br/06107' has been created."
-                    }
-                ],
-                "http://www.w3.org/ns/prov#generatedAtTime": [
-                    {
-                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
-                        "@value": "2024-03-17T23:58:19+00:00"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#hadPrimarySource": [
-                    {
-                        "@id": "https://api.crossref.org/"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#specializationOf": [
-                    {
-                        "@id": "https://w3id.org/oc/meta/br/06107"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#wasAttributedTo": [
-                    {
-                        "@id": "https://orcid.org/0000-0002-8420-0696"
-                    }
-                ]
-            }
+  {
+    "@graph": [
+      {
+        "@id": "https://w3id.org/oc/meta/br/06103/prov/se/1",
+        "@type": [
+          "http://www.w3.org/ns/prov#Entity"
         ],
-        "@id": "https://w3id.org/oc/meta/br/06107/prov/"
-    },
-    {
-        "@graph": [
-            {
-                "@id": "https://w3id.org/oc/meta/br/06104/prov/se/1",
-                "@type": [
-                    "http://www.w3.org/ns/prov#Entity"
-                ],
-                "http://purl.org/dc/terms/description": [
-                    {
-                        "@value": "The entity 'https://w3id.org/oc/meta/br/06104' has been created."
-                    }
-                ],
-                "http://www.w3.org/ns/prov#generatedAtTime": [
-                    {
-                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
-                        "@value": "2024-03-17T23:58:19+00:00"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#hadPrimarySource": [
-                    {
-                        "@id": "https://api.crossref.org/"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#specializationOf": [
-                    {
-                        "@id": "https://w3id.org/oc/meta/br/06104"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#wasAttributedTo": [
-                    {
-                        "@id": "https://orcid.org/0000-0002-8420-0696"
-                    }
-                ]
-            }
+        "http://purl.org/dc/terms/description": [
+          {
+            "@value": "The entity 'https://w3id.org/oc/meta/br/06103' has been created."
+          }
         ],
-        "@id": "https://w3id.org/oc/meta/br/06104/prov/"
-    },
-    {
-        "@graph": [
-            {
-                "@id": "https://w3id.org/oc/meta/br/06205/prov/se/1",
-                "@type": [
-                    "http://www.w3.org/ns/prov#Entity"
-                ],
-                "http://purl.org/dc/terms/description": [
-                    {
-                        "@value": "The entity 'https://w3id.org/oc/meta/br/06205' has been created."
-                    }
-                ],
-                "http://www.w3.org/ns/prov#generatedAtTime": [
-                    {
-                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
-                        "@value": "2024-03-17T23:58:19+00:00"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#hadPrimarySource": [
-                    {
-                        "@id": "https://api.crossref.org/"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#specializationOf": [
-                    {
-                        "@id": "https://w3id.org/oc/meta/br/06205"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#wasAttributedTo": [
-                    {
-                        "@id": "https://orcid.org/0000-0002-8420-0696"
-                    }
-                ]
-            }
+        "http://www.w3.org/ns/prov#generatedAtTime": [
+          {
+            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+            "@value": "2024-03-18T14:00:36+00:00"
+          }
         ],
-        "@id": "https://w3id.org/oc/meta/br/06205/prov/"
-    },
-    {
-        "@graph": [
-            {
-                "@id": "https://w3id.org/oc/meta/br/06101/prov/se/2",
-                "@type": [
-                    "http://www.w3.org/ns/prov#Entity"
-                ],
-                "http://purl.org/dc/terms/description": [
-                    {
-                        "@value": "The entity 'https://w3id.org/oc/meta/br/06101' has been modified."
-                    }
-                ],
-                "http://www.w3.org/ns/prov#generatedAtTime": [
-                    {
-                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
-                        "@value": "2024-03-17T23:58:21+00:00"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#hadPrimarySource": [
-                    {
-                        "@id": "https://openalex.s3.amazonaws.com/browse.html"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#specializationOf": [
-                    {
-                        "@id": "https://w3id.org/oc/meta/br/06101"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#wasAttributedTo": [
-                    {
-                        "@id": "https://orcid.org/0000-0002-8420-0696"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#wasDerivedFrom": [
-                    {
-                        "@id": "https://w3id.org/oc/meta/br/06101/prov/se/1"
-                    }
-                ],
-                "https://w3id.org/oc/ontology/hasUpdateQuery": [
-                    {
-                        "@value": "INSERT DATA { GRAPH <https://w3id.org/oc/meta/br/> { <https://w3id.org/oc/meta/br/06101> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/061010> . } }"
-                    }
-                ]
-            },
-            {
-                "@id": "https://w3id.org/oc/meta/br/06101/prov/se/1",
-                "@type": [
-                    "http://www.w3.org/ns/prov#Entity"
-                ],
-                "http://purl.org/dc/terms/description": [
-                    {
-                        "@value": "The entity 'https://w3id.org/oc/meta/br/06101' has been created."
-                    }
-                ],
-                "http://www.w3.org/ns/prov#generatedAtTime": [
-                    {
-                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
-                        "@value": "2024-03-17T23:58:19+00:00"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#hadPrimarySource": [
-                    {
-                        "@id": "https://api.crossref.org/"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#invalidatedAtTime": [
-                    {
-                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
-                        "@value": "2024-03-17T23:58:21+00:00"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#specializationOf": [
-                    {
-                        "@id": "https://w3id.org/oc/meta/br/06101"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#wasAttributedTo": [
-                    {
-                        "@id": "https://orcid.org/0000-0002-8420-0696"
-                    }
-                ]
-            }
+        "http://www.w3.org/ns/prov#hadPrimarySource": [
+          {
+            "@id": "https://api.crossref.org/"
+          }
         ],
-        "@id": "https://w3id.org/oc/meta/br/06101/prov/"
-    },
-    {
-        "@graph": [
-            {
-                "@id": "https://w3id.org/oc/meta/br/06106/prov/se/1",
-                "@type": [
-                    "http://www.w3.org/ns/prov#Entity"
-                ],
-                "http://purl.org/dc/terms/description": [
-                    {
-                        "@value": "The entity 'https://w3id.org/oc/meta/br/06106' has been created."
-                    }
-                ],
-                "http://www.w3.org/ns/prov#generatedAtTime": [
-                    {
-                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
-                        "@value": "2024-03-17T23:58:19+00:00"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#hadPrimarySource": [
-                    {
-                        "@id": "https://api.crossref.org/"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#specializationOf": [
-                    {
-                        "@id": "https://w3id.org/oc/meta/br/06106"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#wasAttributedTo": [
-                    {
-                        "@id": "https://orcid.org/0000-0002-8420-0696"
-                    }
-                ]
-            }
+        "http://www.w3.org/ns/prov#specializationOf": [
+          {
+            "@id": "https://w3id.org/oc/meta/br/06103"
+          }
         ],
-        "@id": "https://w3id.org/oc/meta/br/06106/prov/"
-    },
-    {
-        "@graph": [
-            {
-                "@id": "https://w3id.org/oc/meta/br/06105/prov/se/1",
-                "@type": [
-                    "http://www.w3.org/ns/prov#Entity"
-                ],
-                "http://purl.org/dc/terms/description": [
-                    {
-                        "@value": "The entity 'https://w3id.org/oc/meta/br/06105' has been created."
-                    }
-                ],
-                "http://www.w3.org/ns/prov#generatedAtTime": [
-                    {
-                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
-                        "@value": "2024-03-17T23:58:19+00:00"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#hadPrimarySource": [
-                    {
-                        "@id": "https://api.crossref.org/"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#specializationOf": [
-                    {
-                        "@id": "https://w3id.org/oc/meta/br/06105"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#wasAttributedTo": [
-                    {
-                        "@id": "https://orcid.org/0000-0002-8420-0696"
-                    }
-                ]
-            }
+        "http://www.w3.org/ns/prov#wasAttributedTo": [
+          {
+            "@id": "https://orcid.org/0000-0002-8420-0696"
+          }
+        ]
+      }
+    ],
+    "@id": "https://w3id.org/oc/meta/br/06103/prov/"
+  },
+  {
+    "@graph": [
+      {
+        "@id": "https://w3id.org/oc/meta/br/06107/prov/se/1",
+        "@type": [
+          "http://www.w3.org/ns/prov#Entity"
         ],
-        "@id": "https://w3id.org/oc/meta/br/06105/prov/"
-    },
-    {
-        "@graph": [
-            {
-                "@id": "https://w3id.org/oc/meta/br/06202/prov/se/1",
-                "@type": [
-                    "http://www.w3.org/ns/prov#Entity"
-                ],
-                "http://purl.org/dc/terms/description": [
-                    {
-                        "@value": "The entity 'https://w3id.org/oc/meta/br/06202' has been created."
-                    }
-                ],
-                "http://www.w3.org/ns/prov#generatedAtTime": [
-                    {
-                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
-                        "@value": "2024-03-17T23:58:19+00:00"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#hadPrimarySource": [
-                    {
-                        "@id": "https://api.crossref.org/"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#invalidatedAtTime": [
-                    {
-                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
-                        "@value": "2024-03-17T23:58:21+00:00"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#specializationOf": [
-                    {
-                        "@id": "https://w3id.org/oc/meta/br/06202"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#wasAttributedTo": [
-                    {
-                        "@id": "https://orcid.org/0000-0002-8420-0696"
-                    }
-                ]
-            },
-            {
-                "@id": "https://w3id.org/oc/meta/br/06202/prov/se/2",
-                "@type": [
-                    "http://www.w3.org/ns/prov#Entity"
-                ],
-                "http://purl.org/dc/terms/description": [
-                    {
-                        "@value": "The entity 'https://w3id.org/oc/meta/br/06202' has been modified."
-                    }
-                ],
-                "http://www.w3.org/ns/prov#generatedAtTime": [
-                    {
-                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
-                        "@value": "2024-03-17T23:58:21+00:00"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#hadPrimarySource": [
-                    {
-                        "@id": "https://openalex.s3.amazonaws.com/browse.html"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#specializationOf": [
-                    {
-                        "@id": "https://w3id.org/oc/meta/br/06202"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#wasAttributedTo": [
-                    {
-                        "@id": "https://orcid.org/0000-0002-8420-0696"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#wasDerivedFrom": [
-                    {
-                        "@id": "https://w3id.org/oc/meta/br/06202/prov/se/1"
-                    }
-                ],
-                "https://w3id.org/oc/ontology/hasUpdateQuery": [
-                    {
-                        "@value": "INSERT DATA { GRAPH <https://w3id.org/oc/meta/br/> { <https://w3id.org/oc/meta/br/06202> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/061011> . } }"
-                    }
-                ]
-            }
+        "http://purl.org/dc/terms/description": [
+          {
+            "@value": "The entity 'https://w3id.org/oc/meta/br/06107' has been created."
+          }
         ],
-        "@id": "https://w3id.org/oc/meta/br/06202/prov/"
-    },
-    {
-        "@graph": [
-            {
-                "@id": "https://w3id.org/oc/meta/br/06207/prov/se/1",
-                "@type": [
-                    "http://www.w3.org/ns/prov#Entity"
-                ],
-                "http://purl.org/dc/terms/description": [
-                    {
-                        "@value": "The entity 'https://w3id.org/oc/meta/br/06207' has been created."
-                    }
-                ],
-                "http://www.w3.org/ns/prov#generatedAtTime": [
-                    {
-                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
-                        "@value": "2024-03-17T23:58:19+00:00"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#hadPrimarySource": [
-                    {
-                        "@id": "https://api.crossref.org/"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#specializationOf": [
-                    {
-                        "@id": "https://w3id.org/oc/meta/br/06207"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#wasAttributedTo": [
-                    {
-                        "@id": "https://orcid.org/0000-0002-8420-0696"
-                    }
-                ]
-            }
+        "http://www.w3.org/ns/prov#generatedAtTime": [
+          {
+            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+            "@value": "2024-03-18T14:00:36+00:00"
+          }
         ],
-        "@id": "https://w3id.org/oc/meta/br/06207/prov/"
-    },
-    {
-        "@graph": [
-            {
-                "@id": "https://w3id.org/oc/meta/br/06201/prov/se/1",
-                "@type": [
-                    "http://www.w3.org/ns/prov#Entity"
-                ],
-                "http://purl.org/dc/terms/description": [
-                    {
-                        "@value": "The entity 'https://w3id.org/oc/meta/br/06201' has been created."
-                    }
-                ],
-                "http://www.w3.org/ns/prov#generatedAtTime": [
-                    {
-                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
-                        "@value": "2024-03-17T23:58:19+00:00"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#hadPrimarySource": [
-                    {
-                        "@id": "https://api.crossref.org/"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#invalidatedAtTime": [
-                    {
-                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
-                        "@value": "2024-03-17T23:58:21+00:00"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#specializationOf": [
-                    {
-                        "@id": "https://w3id.org/oc/meta/br/06201"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#wasAttributedTo": [
-                    {
-                        "@id": "https://orcid.org/0000-0002-8420-0696"
-                    }
-                ]
-            },
-            {
-                "@id": "https://w3id.org/oc/meta/br/06201/prov/se/2",
-                "@type": [
-                    "http://www.w3.org/ns/prov#Entity"
-                ],
-                "http://purl.org/dc/terms/description": [
-                    {
-                        "@value": "The entity 'https://w3id.org/oc/meta/br/06201' has been modified."
-                    }
-                ],
-                "http://www.w3.org/ns/prov#generatedAtTime": [
-                    {
-                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
-                        "@value": "2024-03-17T23:58:21+00:00"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#hadPrimarySource": [
-                    {
-                        "@id": "https://openalex.s3.amazonaws.com/browse.html"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#specializationOf": [
-                    {
-                        "@id": "https://w3id.org/oc/meta/br/06201"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#wasAttributedTo": [
-                    {
-                        "@id": "https://orcid.org/0000-0002-8420-0696"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#wasDerivedFrom": [
-                    {
-                        "@id": "https://w3id.org/oc/meta/br/06201/prov/se/1"
-                    }
-                ],
-                "https://w3id.org/oc/ontology/hasUpdateQuery": [
-                    {
-                        "@value": "INSERT DATA { GRAPH <https://w3id.org/oc/meta/br/> { <https://w3id.org/oc/meta/br/06201> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06208> . } }"
-                    }
-                ]
-            }
+        "http://www.w3.org/ns/prov#hadPrimarySource": [
+          {
+            "@id": "https://api.crossref.org/"
+          }
         ],
-        "@id": "https://w3id.org/oc/meta/br/06201/prov/"
-    },
-    {
-        "@graph": [
-            {
-                "@id": "https://w3id.org/oc/meta/br/06103/prov/se/1",
-                "@type": [
-                    "http://www.w3.org/ns/prov#Entity"
-                ],
-                "http://purl.org/dc/terms/description": [
-                    {
-                        "@value": "The entity 'https://w3id.org/oc/meta/br/06103' has been created."
-                    }
-                ],
-                "http://www.w3.org/ns/prov#generatedAtTime": [
-                    {
-                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
-                        "@value": "2024-03-17T23:58:19+00:00"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#hadPrimarySource": [
-                    {
-                        "@id": "https://api.crossref.org/"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#specializationOf": [
-                    {
-                        "@id": "https://w3id.org/oc/meta/br/06103"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#wasAttributedTo": [
-                    {
-                        "@id": "https://orcid.org/0000-0002-8420-0696"
-                    }
-                ]
-            }
+        "http://www.w3.org/ns/prov#specializationOf": [
+          {
+            "@id": "https://w3id.org/oc/meta/br/06107"
+          }
         ],
-        "@id": "https://w3id.org/oc/meta/br/06103/prov/"
-    },
-    {
-        "@graph": [
-            {
-                "@id": "https://w3id.org/oc/meta/br/06203/prov/se/1",
-                "@type": [
-                    "http://www.w3.org/ns/prov#Entity"
-                ],
-                "http://purl.org/dc/terms/description": [
-                    {
-                        "@value": "The entity 'https://w3id.org/oc/meta/br/06203' has been created."
-                    }
-                ],
-                "http://www.w3.org/ns/prov#generatedAtTime": [
-                    {
-                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
-                        "@value": "2024-03-17T23:58:19+00:00"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#hadPrimarySource": [
-                    {
-                        "@id": "https://api.crossref.org/"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#specializationOf": [
-                    {
-                        "@id": "https://w3id.org/oc/meta/br/06203"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#wasAttributedTo": [
-                    {
-                        "@id": "https://orcid.org/0000-0002-8420-0696"
-                    }
-                ]
-            }
+        "http://www.w3.org/ns/prov#wasAttributedTo": [
+          {
+            "@id": "https://orcid.org/0000-0002-8420-0696"
+          }
+        ]
+      }
+    ],
+    "@id": "https://w3id.org/oc/meta/br/06107/prov/"
+  },
+  {
+    "@graph": [
+      {
+        "@id": "https://w3id.org/oc/meta/br/06101/prov/se/1",
+        "@type": [
+          "http://www.w3.org/ns/prov#Entity"
         ],
-        "@id": "https://w3id.org/oc/meta/br/06203/prov/"
-    },
-    {
-        "@graph": [
-            {
-                "@id": "https://w3id.org/oc/meta/br/06204/prov/se/1",
-                "@type": [
-                    "http://www.w3.org/ns/prov#Entity"
-                ],
-                "http://purl.org/dc/terms/description": [
-                    {
-                        "@value": "The entity 'https://w3id.org/oc/meta/br/06204' has been created."
-                    }
-                ],
-                "http://www.w3.org/ns/prov#generatedAtTime": [
-                    {
-                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
-                        "@value": "2024-03-17T23:58:19+00:00"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#hadPrimarySource": [
-                    {
-                        "@id": "https://api.crossref.org/"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#specializationOf": [
-                    {
-                        "@id": "https://w3id.org/oc/meta/br/06204"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#wasAttributedTo": [
-                    {
-                        "@id": "https://orcid.org/0000-0002-8420-0696"
-                    }
-                ]
-            }
+        "http://purl.org/dc/terms/description": [
+          {
+            "@value": "The entity 'https://w3id.org/oc/meta/br/06101' has been created."
+          }
         ],
-        "@id": "https://w3id.org/oc/meta/br/06204/prov/"
-    },
-    {
-        "@graph": [
-            {
-                "@id": "https://w3id.org/oc/meta/br/06206/prov/se/1",
-                "@type": [
-                    "http://www.w3.org/ns/prov#Entity"
-                ],
-                "http://purl.org/dc/terms/description": [
-                    {
-                        "@value": "The entity 'https://w3id.org/oc/meta/br/06206' has been created."
-                    }
-                ],
-                "http://www.w3.org/ns/prov#generatedAtTime": [
-                    {
-                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
-                        "@value": "2024-03-17T23:58:19+00:00"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#hadPrimarySource": [
-                    {
-                        "@id": "https://api.crossref.org/"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#specializationOf": [
-                    {
-                        "@id": "https://w3id.org/oc/meta/br/06206"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#wasAttributedTo": [
-                    {
-                        "@id": "https://orcid.org/0000-0002-8420-0696"
-                    }
-                ]
-            }
+        "http://www.w3.org/ns/prov#generatedAtTime": [
+          {
+            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+            "@value": "2024-03-18T14:00:36+00:00"
+          }
         ],
-        "@id": "https://w3id.org/oc/meta/br/06206/prov/"
-    },
-    {
-        "@graph": [
-            {
-                "@id": "https://w3id.org/oc/meta/br/06102/prov/se/2",
-                "@type": [
-                    "http://www.w3.org/ns/prov#Entity"
-                ],
-                "http://www.w3.org/ns/prov#invalidatedAtTime": [
-                    {
-                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
-                        "@value": "2024-03-17T23:58:21+00:00"
-                    }
-                ]
-            },
-            {
-                "@id": "https://w3id.org/oc/meta/br/06102/prov/se/1",
-                "@type": [
-                    "http://www.w3.org/ns/prov#Entity"
-                ],
-                "http://purl.org/dc/terms/description": [
-                    {
-                        "@value": "The entity 'https://w3id.org/oc/meta/br/06102' has been created."
-                    }
-                ],
-                "http://www.w3.org/ns/prov#generatedAtTime": [
-                    {
-                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
-                        "@value": "2024-03-17T23:58:19+00:00"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#hadPrimarySource": [
-                    {
-                        "@id": "https://api.crossref.org/"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#specializationOf": [
-                    {
-                        "@id": "https://w3id.org/oc/meta/br/06102"
-                    }
-                ],
-                "http://www.w3.org/ns/prov#wasAttributedTo": [
-                    {
-                        "@id": "https://orcid.org/0000-0002-8420-0696"
-                    }
-                ]
-            }
+        "http://www.w3.org/ns/prov#hadPrimarySource": [
+          {
+            "@id": "https://api.crossref.org/"
+          }
         ],
-        "@id": "https://w3id.org/oc/meta/br/06102/prov/"
-    }
+        "http://www.w3.org/ns/prov#invalidatedAtTime": [
+          {
+            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+            "@value": "2024-03-18T14:00:37+00:00"
+          }
+        ],
+        "http://www.w3.org/ns/prov#specializationOf": [
+          {
+            "@id": "https://w3id.org/oc/meta/br/06101"
+          }
+        ],
+        "http://www.w3.org/ns/prov#wasAttributedTo": [
+          {
+            "@id": "https://orcid.org/0000-0002-8420-0696"
+          }
+        ]
+      },
+      {
+        "@id": "https://w3id.org/oc/meta/br/06101/prov/se/2",
+        "@type": [
+          "http://www.w3.org/ns/prov#Entity"
+        ],
+        "http://purl.org/dc/terms/description": [
+          {
+            "@value": "The entity 'https://w3id.org/oc/meta/br/06101' has been modified."
+          }
+        ],
+        "http://www.w3.org/ns/prov#generatedAtTime": [
+          {
+            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+            "@value": "2024-03-18T14:00:37+00:00"
+          }
+        ],
+        "http://www.w3.org/ns/prov#hadPrimarySource": [
+          {
+            "@id": "https://openalex.s3.amazonaws.com/browse.html"
+          }
+        ],
+        "http://www.w3.org/ns/prov#specializationOf": [
+          {
+            "@id": "https://w3id.org/oc/meta/br/06101"
+          }
+        ],
+        "http://www.w3.org/ns/prov#wasAttributedTo": [
+          {
+            "@id": "https://orcid.org/0000-0002-8420-0696"
+          }
+        ],
+        "http://www.w3.org/ns/prov#wasDerivedFrom": [
+          {
+            "@id": "https://w3id.org/oc/meta/br/06101/prov/se/1"
+          }
+        ],
+        "https://w3id.org/oc/ontology/hasUpdateQuery": [
+          {
+            "@value": "INSERT DATA { GRAPH <https://w3id.org/oc/meta/br/> { <https://w3id.org/oc/meta/br/06101> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/061010> . } }"
+          }
+        ]
+      }
+    ],
+    "@id": "https://w3id.org/oc/meta/br/06101/prov/"
+  },
+  {
+    "@graph": [
+      {
+        "@id": "https://w3id.org/oc/meta/br/06204/prov/se/1",
+        "@type": [
+          "http://www.w3.org/ns/prov#Entity"
+        ],
+        "http://purl.org/dc/terms/description": [
+          {
+            "@value": "The entity 'https://w3id.org/oc/meta/br/06204' has been created."
+          }
+        ],
+        "http://www.w3.org/ns/prov#generatedAtTime": [
+          {
+            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+            "@value": "2024-03-18T14:00:36+00:00"
+          }
+        ],
+        "http://www.w3.org/ns/prov#hadPrimarySource": [
+          {
+            "@id": "https://api.crossref.org/"
+          }
+        ],
+        "http://www.w3.org/ns/prov#specializationOf": [
+          {
+            "@id": "https://w3id.org/oc/meta/br/06204"
+          }
+        ],
+        "http://www.w3.org/ns/prov#wasAttributedTo": [
+          {
+            "@id": "https://orcid.org/0000-0002-8420-0696"
+          }
+        ]
+      }
+    ],
+    "@id": "https://w3id.org/oc/meta/br/06204/prov/"
+  },
+  {
+    "@graph": [
+      {
+        "@id": "https://w3id.org/oc/meta/br/06206/prov/se/1",
+        "@type": [
+          "http://www.w3.org/ns/prov#Entity"
+        ],
+        "http://purl.org/dc/terms/description": [
+          {
+            "@value": "The entity 'https://w3id.org/oc/meta/br/06206' has been created."
+          }
+        ],
+        "http://www.w3.org/ns/prov#generatedAtTime": [
+          {
+            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+            "@value": "2024-03-18T14:00:36+00:00"
+          }
+        ],
+        "http://www.w3.org/ns/prov#hadPrimarySource": [
+          {
+            "@id": "https://api.crossref.org/"
+          }
+        ],
+        "http://www.w3.org/ns/prov#specializationOf": [
+          {
+            "@id": "https://w3id.org/oc/meta/br/06206"
+          }
+        ],
+        "http://www.w3.org/ns/prov#wasAttributedTo": [
+          {
+            "@id": "https://orcid.org/0000-0002-8420-0696"
+          }
+        ]
+      }
+    ],
+    "@id": "https://w3id.org/oc/meta/br/06206/prov/"
+  },
+  {
+    "@graph": [
+      {
+        "@id": "https://w3id.org/oc/meta/br/06106/prov/se/1",
+        "@type": [
+          "http://www.w3.org/ns/prov#Entity"
+        ],
+        "http://purl.org/dc/terms/description": [
+          {
+            "@value": "The entity 'https://w3id.org/oc/meta/br/06106' has been created."
+          }
+        ],
+        "http://www.w3.org/ns/prov#generatedAtTime": [
+          {
+            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+            "@value": "2024-03-18T14:00:36+00:00"
+          }
+        ],
+        "http://www.w3.org/ns/prov#hadPrimarySource": [
+          {
+            "@id": "https://api.crossref.org/"
+          }
+        ],
+        "http://www.w3.org/ns/prov#specializationOf": [
+          {
+            "@id": "https://w3id.org/oc/meta/br/06106"
+          }
+        ],
+        "http://www.w3.org/ns/prov#wasAttributedTo": [
+          {
+            "@id": "https://orcid.org/0000-0002-8420-0696"
+          }
+        ]
+      }
+    ],
+    "@id": "https://w3id.org/oc/meta/br/06106/prov/"
+  },
+  {
+    "@graph": [
+      {
+        "@id": "https://w3id.org/oc/meta/br/06102/prov/se/2",
+        "@type": [
+          "http://www.w3.org/ns/prov#Entity"
+        ],
+        "http://purl.org/dc/terms/description": [
+          {
+            "@value": "The entity 'https://w3id.org/oc/meta/br/06102' has been modified."
+          }
+        ],
+        "http://www.w3.org/ns/prov#generatedAtTime": [
+          {
+            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+            "@value": "2024-03-18T14:00:38+00:00"
+          }
+        ],
+        "http://www.w3.org/ns/prov#hadPrimarySource": [
+          {
+            "@id": "https://openalex.s3.amazonaws.com/browse.html"
+          }
+        ],
+        "http://www.w3.org/ns/prov#specializationOf": [
+          {
+            "@id": "https://w3id.org/oc/meta/br/06102"
+          }
+        ],
+        "http://www.w3.org/ns/prov#wasAttributedTo": [
+          {
+            "@id": "https://orcid.org/0000-0002-8420-0696"
+          }
+        ],
+        "http://www.w3.org/ns/prov#wasDerivedFrom": [
+          {
+            "@id": "https://w3id.org/oc/meta/br/06102/prov/se/1"
+          }
+        ],
+        "https://w3id.org/oc/ontology/hasUpdateQuery": [
+          {
+            "@value": "INSERT DATA { GRAPH <https://w3id.org/oc/meta/br/> { <https://w3id.org/oc/meta/br/06102> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06209> . } }"
+          }
+        ]
+      },
+      {
+        "@id": "https://w3id.org/oc/meta/br/06102/prov/se/1",
+        "@type": [
+          "http://www.w3.org/ns/prov#Entity"
+        ],
+        "http://purl.org/dc/terms/description": [
+          {
+            "@value": "The entity 'https://w3id.org/oc/meta/br/06102' has been created."
+          }
+        ],
+        "http://www.w3.org/ns/prov#generatedAtTime": [
+          {
+            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+            "@value": "2024-03-18T14:00:36+00:00"
+          }
+        ],
+        "http://www.w3.org/ns/prov#hadPrimarySource": [
+          {
+            "@id": "https://api.crossref.org/"
+          }
+        ],
+        "http://www.w3.org/ns/prov#invalidatedAtTime": [
+          {
+            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+            "@value": "2024-03-18T14:00:38+00:00"
+          }
+        ],
+        "http://www.w3.org/ns/prov#specializationOf": [
+          {
+            "@id": "https://w3id.org/oc/meta/br/06102"
+          }
+        ],
+        "http://www.w3.org/ns/prov#wasAttributedTo": [
+          {
+            "@id": "https://orcid.org/0000-0002-8420-0696"
+          }
+        ]
+      }
+    ],
+    "@id": "https://w3id.org/oc/meta/br/06102/prov/"
+  },
+  {
+    "@graph": [
+      {
+        "@id": "https://w3id.org/oc/meta/br/06203/prov/se/1",
+        "@type": [
+          "http://www.w3.org/ns/prov#Entity"
+        ],
+        "http://purl.org/dc/terms/description": [
+          {
+            "@value": "The entity 'https://w3id.org/oc/meta/br/06203' has been created."
+          }
+        ],
+        "http://www.w3.org/ns/prov#generatedAtTime": [
+          {
+            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+            "@value": "2024-03-18T14:00:36+00:00"
+          }
+        ],
+        "http://www.w3.org/ns/prov#hadPrimarySource": [
+          {
+            "@id": "https://api.crossref.org/"
+          }
+        ],
+        "http://www.w3.org/ns/prov#specializationOf": [
+          {
+            "@id": "https://w3id.org/oc/meta/br/06203"
+          }
+        ],
+        "http://www.w3.org/ns/prov#wasAttributedTo": [
+          {
+            "@id": "https://orcid.org/0000-0002-8420-0696"
+          }
+        ]
+      }
+    ],
+    "@id": "https://w3id.org/oc/meta/br/06203/prov/"
+  },
+  {
+    "@graph": [
+      {
+        "@id": "https://w3id.org/oc/meta/br/06201/prov/se/1",
+        "@type": [
+          "http://www.w3.org/ns/prov#Entity"
+        ],
+        "http://purl.org/dc/terms/description": [
+          {
+            "@value": "The entity 'https://w3id.org/oc/meta/br/06201' has been created."
+          }
+        ],
+        "http://www.w3.org/ns/prov#generatedAtTime": [
+          {
+            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+            "@value": "2024-03-18T14:00:36+00:00"
+          }
+        ],
+        "http://www.w3.org/ns/prov#hadPrimarySource": [
+          {
+            "@id": "https://api.crossref.org/"
+          }
+        ],
+        "http://www.w3.org/ns/prov#invalidatedAtTime": [
+          {
+            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+            "@value": "2024-03-18T14:00:38+00:00"
+          }
+        ],
+        "http://www.w3.org/ns/prov#specializationOf": [
+          {
+            "@id": "https://w3id.org/oc/meta/br/06201"
+          }
+        ],
+        "http://www.w3.org/ns/prov#wasAttributedTo": [
+          {
+            "@id": "https://orcid.org/0000-0002-8420-0696"
+          }
+        ]
+      },
+      {
+        "@id": "https://w3id.org/oc/meta/br/06201/prov/se/2",
+        "@type": [
+          "http://www.w3.org/ns/prov#Entity"
+        ],
+        "http://purl.org/dc/terms/description": [
+          {
+            "@value": "The entity 'https://w3id.org/oc/meta/br/06201' has been modified."
+          }
+        ],
+        "http://www.w3.org/ns/prov#generatedAtTime": [
+          {
+            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+            "@value": "2024-03-18T14:00:38+00:00"
+          }
+        ],
+        "http://www.w3.org/ns/prov#hadPrimarySource": [
+          {
+            "@id": "https://openalex.s3.amazonaws.com/browse.html"
+          }
+        ],
+        "http://www.w3.org/ns/prov#specializationOf": [
+          {
+            "@id": "https://w3id.org/oc/meta/br/06201"
+          }
+        ],
+        "http://www.w3.org/ns/prov#wasAttributedTo": [
+          {
+            "@id": "https://orcid.org/0000-0002-8420-0696"
+          }
+        ],
+        "http://www.w3.org/ns/prov#wasDerivedFrom": [
+          {
+            "@id": "https://w3id.org/oc/meta/br/06201/prov/se/1"
+          }
+        ],
+        "https://w3id.org/oc/ontology/hasUpdateQuery": [
+          {
+            "@value": "INSERT DATA { GRAPH <https://w3id.org/oc/meta/br/> { <https://w3id.org/oc/meta/br/06201> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06208> . } }"
+          }
+        ]
+      }
+    ],
+    "@id": "https://w3id.org/oc/meta/br/06201/prov/"
+  },
+  {
+    "@graph": [
+      {
+        "@id": "https://w3id.org/oc/meta/br/06207/prov/se/1",
+        "@type": [
+          "http://www.w3.org/ns/prov#Entity"
+        ],
+        "http://purl.org/dc/terms/description": [
+          {
+            "@value": "The entity 'https://w3id.org/oc/meta/br/06207' has been created."
+          }
+        ],
+        "http://www.w3.org/ns/prov#generatedAtTime": [
+          {
+            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+            "@value": "2024-03-18T14:00:36+00:00"
+          }
+        ],
+        "http://www.w3.org/ns/prov#hadPrimarySource": [
+          {
+            "@id": "https://api.crossref.org/"
+          }
+        ],
+        "http://www.w3.org/ns/prov#specializationOf": [
+          {
+            "@id": "https://w3id.org/oc/meta/br/06207"
+          }
+        ],
+        "http://www.w3.org/ns/prov#wasAttributedTo": [
+          {
+            "@id": "https://orcid.org/0000-0002-8420-0696"
+          }
+        ]
+      }
+    ],
+    "@id": "https://w3id.org/oc/meta/br/06207/prov/"
+  },
+  {
+    "@graph": [
+      {
+        "@id": "https://w3id.org/oc/meta/br/06104/prov/se/1",
+        "@type": [
+          "http://www.w3.org/ns/prov#Entity"
+        ],
+        "http://purl.org/dc/terms/description": [
+          {
+            "@value": "The entity 'https://w3id.org/oc/meta/br/06104' has been created."
+          }
+        ],
+        "http://www.w3.org/ns/prov#generatedAtTime": [
+          {
+            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+            "@value": "2024-03-18T14:00:36+00:00"
+          }
+        ],
+        "http://www.w3.org/ns/prov#hadPrimarySource": [
+          {
+            "@id": "https://api.crossref.org/"
+          }
+        ],
+        "http://www.w3.org/ns/prov#specializationOf": [
+          {
+            "@id": "https://w3id.org/oc/meta/br/06104"
+          }
+        ],
+        "http://www.w3.org/ns/prov#wasAttributedTo": [
+          {
+            "@id": "https://orcid.org/0000-0002-8420-0696"
+          }
+        ]
+      }
+    ],
+    "@id": "https://w3id.org/oc/meta/br/06104/prov/"
+  },
+  {
+    "@graph": [
+      {
+        "@id": "https://w3id.org/oc/meta/br/06202/prov/se/2",
+        "@type": [
+          "http://www.w3.org/ns/prov#Entity"
+        ],
+        "http://purl.org/dc/terms/description": [
+          {
+            "@value": "The entity 'https://w3id.org/oc/meta/br/06202' has been modified."
+          }
+        ],
+        "http://www.w3.org/ns/prov#generatedAtTime": [
+          {
+            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+            "@value": "2024-03-18T14:00:37+00:00"
+          }
+        ],
+        "http://www.w3.org/ns/prov#hadPrimarySource": [
+          {
+            "@id": "https://openalex.s3.amazonaws.com/browse.html"
+          }
+        ],
+        "http://www.w3.org/ns/prov#specializationOf": [
+          {
+            "@id": "https://w3id.org/oc/meta/br/06202"
+          }
+        ],
+        "http://www.w3.org/ns/prov#wasAttributedTo": [
+          {
+            "@id": "https://orcid.org/0000-0002-8420-0696"
+          }
+        ],
+        "http://www.w3.org/ns/prov#wasDerivedFrom": [
+          {
+            "@id": "https://w3id.org/oc/meta/br/06202/prov/se/1"
+          }
+        ],
+        "https://w3id.org/oc/ontology/hasUpdateQuery": [
+          {
+            "@value": "INSERT DATA { GRAPH <https://w3id.org/oc/meta/br/> { <https://w3id.org/oc/meta/br/06202> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/061011> . } }"
+          }
+        ]
+      },
+      {
+        "@id": "https://w3id.org/oc/meta/br/06202/prov/se/1",
+        "@type": [
+          "http://www.w3.org/ns/prov#Entity"
+        ],
+        "http://purl.org/dc/terms/description": [
+          {
+            "@value": "The entity 'https://w3id.org/oc/meta/br/06202' has been created."
+          }
+        ],
+        "http://www.w3.org/ns/prov#generatedAtTime": [
+          {
+            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+            "@value": "2024-03-18T14:00:36+00:00"
+          }
+        ],
+        "http://www.w3.org/ns/prov#hadPrimarySource": [
+          {
+            "@id": "https://api.crossref.org/"
+          }
+        ],
+        "http://www.w3.org/ns/prov#invalidatedAtTime": [
+          {
+            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+            "@value": "2024-03-18T14:00:37+00:00"
+          }
+        ],
+        "http://www.w3.org/ns/prov#specializationOf": [
+          {
+            "@id": "https://w3id.org/oc/meta/br/06202"
+          }
+        ],
+        "http://www.w3.org/ns/prov#wasAttributedTo": [
+          {
+            "@id": "https://orcid.org/0000-0002-8420-0696"
+          }
+        ]
+      }
+    ],
+    "@id": "https://w3id.org/oc/meta/br/06202/prov/"
+  },
+  {
+    "@graph": [
+      {
+        "@id": "https://w3id.org/oc/meta/br/06105/prov/se/1",
+        "@type": [
+          "http://www.w3.org/ns/prov#Entity"
+        ],
+        "http://purl.org/dc/terms/description": [
+          {
+            "@value": "The entity 'https://w3id.org/oc/meta/br/06105' has been created."
+          }
+        ],
+        "http://www.w3.org/ns/prov#generatedAtTime": [
+          {
+            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+            "@value": "2024-03-18T14:00:36+00:00"
+          }
+        ],
+        "http://www.w3.org/ns/prov#hadPrimarySource": [
+          {
+            "@id": "https://api.crossref.org/"
+          }
+        ],
+        "http://www.w3.org/ns/prov#specializationOf": [
+          {
+            "@id": "https://w3id.org/oc/meta/br/06105"
+          }
+        ],
+        "http://www.w3.org/ns/prov#wasAttributedTo": [
+          {
+            "@id": "https://orcid.org/0000-0002-8420-0696"
+          }
+        ]
+      }
+    ],
+    "@id": "https://w3id.org/oc/meta/br/06105/prov/"
+  },
+  {
+    "@graph": [
+      {
+        "@id": "https://w3id.org/oc/meta/br/06205/prov/se/1",
+        "@type": [
+          "http://www.w3.org/ns/prov#Entity"
+        ],
+        "http://purl.org/dc/terms/description": [
+          {
+            "@value": "The entity 'https://w3id.org/oc/meta/br/06205' has been created."
+          }
+        ],
+        "http://www.w3.org/ns/prov#generatedAtTime": [
+          {
+            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+            "@value": "2024-03-18T14:00:36+00:00"
+          }
+        ],
+        "http://www.w3.org/ns/prov#hadPrimarySource": [
+          {
+            "@id": "https://api.crossref.org/"
+          }
+        ],
+        "http://www.w3.org/ns/prov#specializationOf": [
+          {
+            "@id": "https://w3id.org/oc/meta/br/06205"
+          }
+        ],
+        "http://www.w3.org/ns/prov#wasAttributedTo": [
+          {
+            "@id": "https://orcid.org/0000-0002-8420-0696"
+          }
+        ]
+      }
+    ],
+    "@id": "https://w3id.org/oc/meta/br/06205/prov/"
+  }
 ]
