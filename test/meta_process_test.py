@@ -347,6 +347,9 @@ class test_ProcessTest(unittest.TestCase):
         expected_prov_graph.remove((None, URIRef('http://www.w3.org/ns/prov#invalidatedAtTime'), None))
 
         shutil.rmtree(output_folder)
+        from rdflib.compare import graph_diff
+        print([triple for triple in graph_diff(result, expected_result)[1]])
+        print([triple for triple in graph_diff(result, expected_result)[2]])
         self.assertTrue(result.isomorphic(expected_result))
         self.assertTrue(prov_graph.isomorphic(expected_prov_graph))
         delete_output_zip('.', now)

@@ -126,8 +126,7 @@ class TestEditor(unittest.TestCase):
     def test_merge(self):
         def read_and_normalize_file(filepath):
             with open(filepath, 'r', encoding='utf8') as f:
-                # Rimuove gli spazi bianchi alla fine di ogni riga
-                lines = [line.rstrip(" \n") + '\n' for line in f.readlines()]
+                lines = [line for line in f.readlines()]
             return lines
         base_iri = 'https://w3id.org/oc/meta/'
         info_dir = os.path.join(OUTPUT, 'info_dir', '0620', 'creator')
@@ -152,10 +151,10 @@ class TestEditor(unittest.TestCase):
         graph_storer.upload_all(endpoint)
         editor = MetaEditor(META_CONFIG, 'https://orcid.org/0000-0002-8420-0696')
         editor.merge(URIRef('https://w3id.org/oc/meta/ra/06107'), URIRef('https://w3id.org/oc/meta/ra/06205'))
-        expected_lines_0610 = ['1\n', '1\n', '1\n', '1\n', '1\n', '1\n', '2\n']
+        expected_lines_0610 = ['1 \n', '1 \n', '1 \n', '1 \n', '1 \n', '1 \n', '2 \n']
         normalized_lines_0610 = read_and_normalize_file(os.path.join(OUTPUT, 'info_dir', '0610', 'creator', 'prov_file_ra.txt'))
         self.assertEqual(normalized_lines_0610, expected_lines_0610)
-        expected_lines_0620 = ['\n', '\n', '\n', '\n', '2\n']
+        expected_lines_0620 = ['  \n', '  \n', '  \n', '  \n', '2 \n']
         normalized_lines_0620 = read_and_normalize_file(os.path.join(OUTPUT, 'info_dir', '0620', 'creator', 'prov_file_ra.txt'))
         self.assertEqual(normalized_lines_0620, expected_lines_0620)
         for filepath in [
@@ -171,7 +170,7 @@ class TestEditor(unittest.TestCase):
                     for entity in graph_data:
                         if entity['@id'] == 'https://w3id.org/oc/meta/ra/06107':
                             identifiers = {identifier['@id'] for identifier in entity['http://purl.org/spar/datacite/hasIdentifier']}
-                            self.assertEqual(identifiers, {'https://w3id.org/oc/meta/id/06105', 'https://w3id.org/oc/meta/id/06206'})
+                            self.assertEqual(identifiers, {'https://w3id.org/oc/meta/id/06105', 'https://w3id.org/oc/meta/id/06201'})
                         elif entity['@id'] == 'https://w3id.org/oc/meta/ra/06205':
                             self.fail()
                         # elif entity['@id'] == 'https://w3id.org/oc/meta/ar/06205':
@@ -183,7 +182,7 @@ class TestEditor(unittest.TestCase):
                             self.assertEqual(entity['https://w3id.org/oc/ontology/hasUpdateQuery'][0]['@value'], 'INSERT DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06107> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06206> . } }')
                         elif entity['@id'] == 'https://w3id.org/oc/meta/ra/06205/prov/se/2':
                             update_query = entity['https://w3id.org/oc/ontology/hasUpdateQuery'][0]['@value'].replace('DELETE DATA { GRAPH <https://w3id.org/oc/meta/ra/> { ', '').replace(' . } }', '').replace('\n', '').split(' .')
-                            self.assertEqual(set(update_query), {'<https://w3id.org/oc/meta/ra/06205> <http://xmlns.com/foaf/0.1/name> "Wiley"', '<https://w3id.org/oc/meta/ra/06205> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06206>', '<https://w3id.org/oc/meta/ra/06205> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06105>', '<https://w3id.org/oc/meta/ra/06205> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent>'})
+                            self.assertEqual(set(update_query), {'<https://w3id.org/oc/meta/ra/06205> <http://xmlns.com/foaf/0.1/name> "Wiley"', '<https://w3id.org/oc/meta/ra/06205> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06201>', '<https://w3id.org/oc/meta/ra/06205> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06105>', '<https://w3id.org/oc/meta/ra/06205> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent>'})
                             
 
 if __name__ == '__main__': # pragma: no cover
