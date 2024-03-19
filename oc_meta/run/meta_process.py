@@ -41,6 +41,11 @@ from oc_meta.lib.file_manager import (get_csv_data, init_cache, normalize_path,
                                       pathoo, sort_files, zipit)
 from oc_meta.plugins.multiprocess.resp_agents_creator import RespAgentsCreator
 from oc_meta.plugins.multiprocess.resp_agents_curator import RespAgentsCurator
+from tqdm import tqdm
+import zipfile
+import rdflib
+import json
+from collections import defaultdict
 
 
 class MetaProcess:
@@ -171,7 +176,7 @@ class MetaProcess:
             res_storer = Storer(abstract_set=creator, repok=repok, reperr=reperr, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, default_dir=self.default_dir, output_format='json-ld', zip_output=self.zip_output_rdf, modified_entities=modified_entities)
             prov_storer = Storer(abstract_set=prov, repok=repok, reperr=reperr, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, output_format='json-ld', zip_output=self.zip_output_rdf)
             # with suppress_stdout():
-            self.store_data_and_prov(res_storer, prov_storer, filename)
+            self.store_data_and_prov(res_storer, prov_storer, filename, worker_number)
             return {'message': 'success'}, cache_path, errors_path, filename
         except Exception as e:
             tb = traceback.format_exc()
@@ -179,7 +184,7 @@ class MetaProcess:
             message = template.format(type(e).__name__, e.args, tb)
             return {'message': message}, cache_path, errors_path, filename
     
-    def store_data_and_prov(self, res_storer:Storer, prov_storer:Storer, filename:str) -> None:
+    def store_data_and_prov(self, res_storer:Storer, prov_storer:Storer, filename:str, worker_number: int) -> None:
         if self.rdf_output_in_chunks:
             filename_without_csv = filename[:-4]
             f = os.path.join(self.output_rdf_dir, 'data', filename_without_csv + '.json')
@@ -188,8 +193,8 @@ class MetaProcess:
             f_prov = os.path.join(self.output_rdf_dir, 'prov', filename_without_csv + '.json')
             prov_storer.store_graphs_in_file(f_prov, self.context_path)
         else:
-            res_storer.store_all(base_dir=self.output_rdf_dir, base_iri=self.base_iri, context_path=self.context_path)
-            prov_storer.store_all(self.output_rdf_dir, self.base_iri, self.context_path)
+            res_storer.store_all(base_dir=self.output_rdf_dir, base_iri=self.base_iri, context_path=self.context_path, process_id=str(worker_number))
+            prov_storer.store_all(self.output_rdf_dir, self.base_iri, self.context_path, process_id=str(worker_number))
             res_storer.upload_all(triplestore_url=self.triplestore_url, base_dir=self.output_rdf_dir, batch_size=100)
 
     def save_data(self):
@@ -215,19 +220,74 @@ def run_meta_process(settings: dict, meta_config_path: str, resp_agents_only: bo
     zip_every_n_files = round(max_workers * 300, -3) if max_workers > 3 else 500
     files_chunks = chunks(list(files_to_be_processed), zip_every_n_files) if is_unix else [files_to_be_processed]
     for files_chunk in files_chunks:
-        with ProcessPool(max_workers=max_workers, max_tasks=1) as executor:
+        with ProcessPool(max_workers=max_workers, max_tasks=1) as executor, tqdm(total=len(files_to_be_processed), desc="Processing files") as progress_bar:
             for file_to_be_processed, worker_number in zip(files_chunk, cycle(workers)):
                 future:ProcessFuture = executor.schedule(
                     function=curate_and_create_wrapper, 
                     args=(file_to_be_processed, worker_number, resp_agents_only, settings, meta_config_path)) 
-                future.add_done_callback(task_done) 
+                future.add_done_callback(lambda task_output: (task_done(task_output), progress_bar.update(1)))
         # if is_unix and not os.path.exists(os.path.join(meta_process.base_output_dir, '.stop')):
         #     meta_process.save_data()
+    merge_rdf_files(meta_process.output_rdf_dir, meta_process.zip_output_rdf)
     if not os.path.exists(os.path.join(meta_process.base_output_dir, '.stop')):
         if os.path.exists(meta_process.cache_path):
             os.rename(meta_process.cache_path, meta_process.cache_path.replace('.txt', f'_{datetime.now().strftime("%Y-%m-%dT%H_%M_%S_%f")}.txt'))
         if is_unix:
             delete_lock_files(base_dir=meta_process.base_output_dir)
+
+def merge_rdf_files(output_dir, zip_output_rdf):
+    files_to_merge = defaultdict(list)
+
+    # Passo 1: Raccogliere i file da unire
+    for root, dirs, files in os.walk(output_dir):
+        for file in files:
+            if (zip_output_rdf and file.endswith('.zip')) or (not zip_output_rdf and file.endswith('.json')):
+                number_part = file.split('_')[0]
+                # Verifica che il file sia un file di lavorazione (e.g., contiene '_')
+                if '_' in file:
+                    number = number_part.replace('.json', '').replace('.zip', '')
+                    key = os.path.join(root, number)
+                    files_to_merge[key].append(os.path.join(root, file))
+
+    # Passo 2: Unire i file
+    for key, file_paths in files_to_merge.items():
+        merged_graph = rdflib.ConjunctiveGraph()
+
+        # Se il file di base esiste già, caricalo nel grafo per la fusione
+        base_file_path = f"{key}.json" if not zip_output_rdf else f"{key}.zip"
+        if os.path.exists(base_file_path):
+            if zip_output_rdf:
+                with zipfile.ZipFile(base_file_path, 'r') as zipf:
+                    with zipf.open(zipf.namelist()[0], 'r') as json_file:
+                        base_graph_data = json.load(json_file)
+                        merged_graph.parse(data=json.dumps(base_graph_data), format='json-ld')
+            else:
+                with open(base_file_path, 'r', encoding='utf-8') as json_file:
+                    base_graph_data = json.load(json_file)
+                    merged_graph.parse(data=json.dumps(base_graph_data), format='json-ld')
+
+        for file_path in file_paths:
+            if zip_output_rdf:
+                with zipfile.ZipFile(file_path, 'r') as zip_ref:
+                    with zip_ref.open(zip_ref.namelist()[0], 'r') as json_file:
+                        graph_data = json.load(json_file)
+                        merged_graph.parse(data=json.dumps(graph_data), format='json-ld')
+            else:
+                with open(file_path, 'r', encoding='utf-8') as json_file:
+                    graph_data = json.load(json_file)
+                    merged_graph.parse(data=json.dumps(graph_data), format='json-ld')
+
+        # Passo 3: Salvare il grafo unificato
+        if zip_output_rdf:
+            with zipfile.ZipFile(base_file_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                zipf.writestr(f"{os.path.basename(key)}.json", merged_graph.serialize(format='json-ld').encode('utf-8'))
+        else:
+            with open(base_file_path, 'w', encoding='utf-8') as f:
+                f.write(merged_graph.serialize(format='json-ld'))
+
+        # Elimina i file temporanei dei worker
+        for file_path in file_paths:
+            os.remove(file_path)
 
 def curate_and_create_wrapper(file_to_be_processed, worker_number, resp_agents_only, settings, meta_config_path):
     meta_process = MetaProcess(settings=settings, meta_config_path=meta_config_path)

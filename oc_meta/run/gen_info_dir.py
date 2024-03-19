@@ -251,7 +251,7 @@ class FilesystemCounterHandler(CounterHandler):
 
         # Apply updates
         for line_number, new_value in updates.items():
-            lines[line_number-1] = str(new_value).rstrip() + "\n"
+            lines[line_number-1] = str(new_value).rstrip() + " \n"
 
         # Write updated lines back to file
         with open(file_path, 'w') as file:
