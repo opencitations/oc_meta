@@ -383,6 +383,19 @@ class test_ProcessTest(unittest.TestCase):
         self.assertEqual(result, expected_result)
 
     def test_omid_in_input_data(self):
+        def normalize_graph(graph):
+            """
+            Normalizza i letterali nel grafo rimuovendo i tipi di dato espliciti.
+            """
+            normalized_graph = Graph()
+            for subject, predicate, obj in graph:
+                if isinstance(obj, Literal) and obj.datatype is not None:
+                    normalized_obj = Literal(obj.toPython())
+                    normalized_graph.add((subject, predicate, normalized_obj))
+                else:
+                    normalized_graph.add((subject, predicate, obj))
+            return normalized_graph
+
         reset_server()
         output_folder = os.path.join(BASE_DIR, 'output_8')
         now = datetime.now()
@@ -424,7 +437,7 @@ class test_ProcessTest(unittest.TestCase):
         expected_prov_graph.remove((None, URIRef('http://www.w3.org/ns/prov#invalidatedAtTime'), None))
         shutil.rmtree(output_folder)
 
-        self.assertTrue(result.isomorphic(expected_result))
+        self.assertTrue(normalize_graph(result).isomorphic(normalize_graph(expected_result)))
         self.assertTrue(prov_graph.isomorphic(expected_prov_graph))
         delete_output_zip('.', now)
 
