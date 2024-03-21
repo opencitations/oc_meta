@@ -7,13 +7,14 @@ import unittest
 from datetime import datetime
 from test.curator_test import reset_server
 from zipfile import ZipFile
-from rdflib import Graph, ConjunctiveGraph, URIRef, Namespace, Literal
+
 import rdflib
 import yaml
+from rdflib import ConjunctiveGraph, Graph, Literal, Namespace, URIRef
 from SPARQLWrapper import JSON, SPARQLWrapper
 
 from oc_meta.lib.file_manager import get_csv_data
-from oc_meta.run.meta_process import run_meta_process, merge_rdf_files
+from oc_meta.run.meta_process import merge_rdf_files, run_meta_process
 
 BASE_DIR = os.path.join('test', 'meta_process')
 

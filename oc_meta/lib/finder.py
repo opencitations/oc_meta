@@ -679,57 +679,69 @@ class ResourceFinder:
             publishers_output.append(pub_full)
         return '; '.join(publishers_output)
             
-    def get_everything_about_res(self, metaval_ids_list: List[Tuple[str, List[str]]], vvi: Tuple[str, str, str] = None) -> None:
-        if not metaval_ids_list:
+    def get_everything_about_res(self, metavals: set, identifiers: set, vvis: set) -> None:
+        if not metavals and not identifiers and not vvis:
             return
-        relevant_ids = []
-        for x in metaval_ids_list:
-            if x[0] and x[0] not in self.ids_in_local_g:
-                relevant_ids.append(x[0])
-                self.ids_in_local_g.add(x[0])
-            for identifier in x[1]:
-                if identifier not in self.ids_in_local_g:
-                    relevant_ids.append(identifier)
-                    self.ids_in_local_g.add(identifier)
-        omids = [f'{self.base_iri}/{x.replace("omid:", "")}' for x in relevant_ids if x.startswith('omid:')]
-        identifiers = [(GraphEntity.DATACITE+x.split(':')[0], x.split(':')[1]) for x in relevant_ids if not x.startswith('omid:')]
-        query = '''
-            PREFIX eea: <https://jobu_tupaki/>
-            CONSTRUCT { ?s ?p ?o } 
-            WHERE {'''
-        if omids:
-            query += f'''
-                {{
-                    ?res (<eea:everything_everywhere_allatonce>|!<eea:everything_everywhere_allatonce>)* ?s. 
-                    ?s ?p ?o.
-                    VALUES ?res {{<{'> <'.join(omids)}>}}
-                }}
-            '''
-        if omids and identifiers:
-            query += 'UNION'
-        if identifiers:
-            query += f'''
-                {{
-                    ?br <{GraphEntity.iri_has_identifier}> ?id.
-                    ?id <{GraphEntity.iri_uses_identifier_scheme}> ?scheme;
-                        <{GraphEntity.iri_has_literal_value}> ?literal.
-                    VALUES (?scheme ?literal) {{({') ('.join(map(lambda x: f'<{x[0]}> "{urllib.parse.quote(x[1])}"', identifiers))})}}
-                    ?br (<eea:everything_everywhere_allatonce>|!<eea:everything_everywhere_allatonce>)* ?s. ?s ?p ?o. 
-                }}
-            '''
-        if vvi:
-            upper_vvi = vvi[1] if vvi[1] else vvi[0]
-            vvi_type = GraphEntity.iri_journal_issue if vvi[1] else GraphEntity.iri_journal_volume
-            query += f'''
-                UNION {{
-                    ?vvi <{GraphEntity.iri_part_of}>+ <{self.base_iri}/br/{vvi[2]}>;
-                        a <{vvi_type}>;
-                        <{GraphEntity.iri_has_sequence_identifier}> "{urllib.parse.quote(upper_vvi)}".
-                    ?vvi (<eea:everything_everywhere_allatonce>|!<eea:everything_everywhere_allatonce>)* ?s. ?s ?p ?o. 
-                }}
-            '''
-        query += '}'
-        result = self.__query(query, XML)
+
+        def run_query(omids=None, identifiers=None, vvis=None):
+            query_prefix = '''
+                PREFIX eea: <https://jobu_tupaki/>
+                CONSTRUCT { ?s ?p ?o } 
+                WHERE {'''
+
+            query_suffix = '}'
+            query_body_parts = []
+
+            if omids:
+                omids_values = " ".join([f"<{self.base_iri}/{omid.replace('omid:', '')}>" for omid in omids])
+                omids_query_part = f'''
+                        {{
+                            VALUES ?res {{ {omids_values} }}
+                            ?res (!<eea:everything_everywhere_allatonce>)* ?s. 
+                            ?s ?p ?o.
+                        }}
+                    '''
+                query_body_parts.append(omids_query_part)
+
+            if identifiers:
+                identifiers_values = " ".join([f'(<{GraphEntity.DATACITE + id.split(":")[0]}> "{id.split(":")[1]}")' for id in identifiers])
+                identifiers_query_part = f'''
+                        {{
+                            VALUES (?scheme ?literal) {{ {identifiers_values} }}
+                            ?id <{GraphEntity.iri_uses_identifier_scheme}> ?scheme;
+                                <{GraphEntity.iri_has_literal_value}> ?literal;
+                                ^<{GraphEntity.iri_has_identifier}> ?br .
+                            ?br (!<eea:everything_everywhere_allatonce>)* ?s. ?s ?p ?o. 
+                        }}
+                    '''
+                query_body_parts.append(identifiers_query_part)
+
+            if vvis:
+                for volume, issue, venue_metaid in vvis:
+                    upper_vvi = urllib.parse.quote(issue) if issue else urllib.parse.quote(volume)
+                    vvi_type = GraphEntity.iri_journal_issue if issue else GraphEntity.iri_journal_volume
+                    vvi_values = f'<{self.base_iri}/br/{venue_metaid}>'
+                    vvis_query_part = f'''
+                            {{
+                                ?vvi <{GraphEntity.iri_part_of}>+ {vvi_values};
+                                    a <{vvi_type}>;
+                                    <{GraphEntity.iri_has_sequence_identifier}> "{upper_vvi}".
+                                ?vvi (!<eea:everything_everywhere_allatonce>)* ?s. ?s ?p ?o. 
+                            }}
+                        '''
+                    query_body_parts.append(vvis_query_part)
+
+            # Unisce le parti della query con UNION se c'è più di una clausola
+            if len(query_body_parts) > 1:
+                query_body = ' UNION '.join(query_body_parts)
+            else:
+                query_body = query_body_parts[0] if query_body_parts else ''
+
+            full_query = query_prefix + query_body + query_suffix
+            return self.__query(full_query, XML)
+
+        # Esegui la query con i parametri raccolti
+        result = run_query(omids=metavals, identifiers=identifiers, vvis=vvis)
         if result:
             for triple in result.triples((None, None, None)):
                 new_triple = triple

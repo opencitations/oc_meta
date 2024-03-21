@@ -20,20 +20,25 @@
 from __future__ import annotations
 
 import csv
+import json
 import os
 import traceback
+import zipfile
 from argparse import ArgumentParser
+from collections import defaultdict
 from datetime import datetime
 from itertools import cycle
 from sys import executable, platform
 from typing import List, Tuple
 
+import rdflib
 import yaml
 from oc_ocdm import Storer
 from oc_ocdm.prov import ProvSet
 from oc_ocdm.support.reporter import Reporter
 from pebble import ProcessFuture, ProcessPool
 from time_agnostic_library.support import generate_config_file
+from tqdm import tqdm
 
 from oc_meta.core.creator import Creator
 from oc_meta.core.curator import Curator
@@ -41,11 +46,6 @@ from oc_meta.lib.file_manager import (get_csv_data, init_cache, normalize_path,
                                       pathoo, sort_files, zipit)
 from oc_meta.plugins.multiprocess.resp_agents_creator import RespAgentsCreator
 from oc_meta.plugins.multiprocess.resp_agents_curator import RespAgentsCurator
-from tqdm import tqdm
-import zipfile
-import rdflib
-import json
-from collections import defaultdict
 
 
 class MetaProcess:

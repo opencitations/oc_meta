@@ -66,7 +66,59 @@ class Curator:
         self.preexisting_entities = set()
         self.silencer = silencer
 
+    def collect_identifiers(self, valid_dois_cache):
+        all_metavals = set()
+        all_idslist = set()
+        all_vvis = set()
+        for row in self.data:
+            metavals, idslist, vvis = self.extract_identifiers_and_metavals(row, valid_dois_cache=valid_dois_cache)
+            all_metavals.update(metavals)
+            all_idslist.update(idslist)
+            all_vvis.update(vvis)
+        return all_metavals, all_idslist, all_vvis
+
+    def extract_identifiers_and_metavals(self, row, valid_dois_cache) -> Tuple[set, set, set]:
+        metavals = set()
+        all_idslist = set()
+        vvis = set()
+
+        if row['id']:
+            idslist, metaval = self.clean_id_list(self.split_identifiers(row['id']), br=True, valid_dois_cache=valid_dois_cache)
+            id_metaval = f'omid:br/{metaval}' if metaval else ''
+            if id_metaval:
+                metavals.add(id_metaval)
+            if idslist:
+                all_idslist.update(idslist)
+        venue_metaid = None
+        fields_with_an_id = [(field, re.search(name_and_ids, row[field]).group(2).split()) for field in ['author', 'editor', 'publisher', 'venue', 'volume', 'issue'] if re.search(name_and_ids, row[field])]
+        for field, field_ids in fields_with_an_id:
+            br = field in ['venue', 'volume', 'issue']
+            field_idslist, field_metaval = self.clean_id_list(field_ids, br=br, valid_dois_cache=valid_dois_cache)
+            if field == 'venue':
+                venue_metaid = field_metaval
+            if field_metaval:
+                field_metaval = f'omid:br/{field_metaval}' if br else f'omid:ra/{field_metaval}'
+            else:
+                field_metaval = ''
+            if field_metaval:
+                metavals.add(field_metaval)
+            if field_idslist:
+                all_idslist.update(field_idslist)
+        vvi = None
+        if not row['id'] and venue_metaid and (row['volume'] or row['issue']):
+            vvi = (row['volume'], row['issue'], venue_metaid)
+            vvis.add(vvi)      
+        return metavals, all_idslist, vvis
+
+    def split_identifiers(self, field_value):
+        if self.separator:
+            return re.sub(colon_and_spaces, ':', field_value).split(self.separator)
+        else:
+            return re.split(one_or_more_spaces, re.sub(colon_and_spaces, ':', field_value))
+
     def curator(self, filename:str=None, path_csv:str=None, path_index:str=None):
+        identifiers, metavals, vvis = self.collect_identifiers(valid_dois_cache=self.valid_dois_cache)
+        self.finder.get_everything_about_res(identifiers, metavals, vvis)
         for row in self.data:
             self.log[self.rowcnt] = {
                 'id': {},
@@ -134,24 +186,17 @@ class Curator:
             id_metaval = f'omid:br/{metaval}' if metaval else ''
             metaval_ids_list.append((id_metaval, idslist))
         fields_with_an_id = [(field, re.search(name_and_ids, row[field]).group(2).split()) for field in ['author', 'editor', 'publisher', 'venue', 'volume', 'issue'] if re.search(name_and_ids, row[field])]
-        venue_metaid = None
         for field, field_ids in fields_with_an_id:
             if field in ['author', 'editor', 'publisher']:
                 br = False
             elif field in ['venue', 'volume', 'issue']:
                 br = True
             field_idslist, field_metaval = self.clean_id_list(field_ids, br=br, valid_dois_cache=self.valid_dois_cache)
-            if field == 'venue':
-                venue_metaid = field_metaval
             if field_metaval:
                 field_metaval = f'omid:br/{field_metaval}' if br else f'omid:ra/{field_metaval}'
             else:
                 field_metaval = ''
             metaval_ids_list.append((field_metaval, field_idslist))
-        vvi = None
-        if not row['id'] and venue_metaid and (row['volume'] or row['issue']):
-            vvi = (row['volume'], row['issue'], venue_metaid)            
-        self.finder.get_everything_about_res(metaval_ids_list, vvi)
         if row['id']:
             metaval = self.id_worker('id', name, idslist, metaval, ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
         else:
