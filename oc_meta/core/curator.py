@@ -118,7 +118,10 @@ class Curator:
 
     def curator(self, filename:str=None, path_csv:str=None, path_index:str=None):
         identifiers, metavals, vvis = self.collect_identifiers(valid_dois_cache=self.valid_dois_cache)
+        import time
+        start = time.time()
         self.finder.get_everything_about_res(identifiers, metavals, vvis)
+        end = time.time()
         for row in self.data:
             self.log[self.rowcnt] = {
                 'id': {},

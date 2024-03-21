@@ -216,19 +216,23 @@ def run_meta_process(settings: dict, meta_config_path: str, resp_agents_only: bo
         tens = int(str(max_workers)[:-1]) if max_workers >= 10 else 0
         multiples_of_ten = {i for i in range(1, max_workers + tens + 1) if int(i) % 10 == 0}
         workers = [i for i in range(1, max_workers+len(multiples_of_ten)+1) if i not in multiples_of_ten]
+
     generate_gentle_buttons(meta_process.base_output_dir, meta_config_path, is_unix)
-    zip_every_n_files = round(max_workers * 300, -3) if max_workers > 3 else 500
-    files_chunks = chunks(list(files_to_be_processed), zip_every_n_files) if is_unix else [files_to_be_processed]
-    for files_chunk in files_chunks:
-        with ProcessPool(max_workers=max_workers, max_tasks=1) as executor, tqdm(total=len(files_to_be_processed), desc="Processing files") as progress_bar:
-            for file_to_be_processed, worker_number in zip(files_chunk, cycle(workers)):
-                future:ProcessFuture = executor.schedule(
-                    function=curate_and_create_wrapper, 
-                    args=(file_to_be_processed, worker_number, resp_agents_only, settings, meta_config_path)) 
-                future.add_done_callback(lambda task_output: (task_done(task_output), progress_bar.update(1)))
-        # if is_unix and not os.path.exists(os.path.join(meta_process.base_output_dir, '.stop')):
-        #     meta_process.save_data()
+
+    with ProcessPool(max_workers=max_workers, max_tasks=1) as executor, tqdm(total=len(files_to_be_processed), desc="Processing files") as progress_bar:
+        futures = [executor.schedule(curate_and_create_wrapper, args=(file, worker, resp_agents_only, settings, meta_config_path)) 
+                for file, worker in zip(files_to_be_processed, cycle(workers))]
+        for future in futures:
+            try:
+                result = future.result()
+                task_done(result)
+                progress_bar.update(1)
+            except Exception as e:
+                traceback_str = traceback.format_exc()  # Questo cattura il traceback completo
+                print(f"Errore durante l'elaborazione: {e}\nTraceback:\n{traceback_str}")
+
     merge_rdf_files(meta_process.output_rdf_dir, meta_process.zip_output_rdf)
+    
     if not os.path.exists(os.path.join(meta_process.base_output_dir, '.stop')):
         if os.path.exists(meta_process.cache_path):
             os.rename(meta_process.cache_path, meta_process.cache_path.replace('.txt', f'_{datetime.now().strftime("%Y-%m-%dT%H_%M_%S_%f")}.txt'))
@@ -293,8 +297,8 @@ def curate_and_create_wrapper(file_to_be_processed, worker_number, resp_agents_o
     meta_process = MetaProcess(settings=settings, meta_config_path=meta_config_path)
     return meta_process.curate_and_create(file_to_be_processed, meta_process.cache_path, meta_process.errors_path, worker_number, resp_agents_only, settings, meta_config_path)
 
-def task_done(task_output:ProcessFuture) -> None:
-    message, cache_path, errors_path, filename = task_output.result()
+def task_done(task_output: tuple) -> None:
+    message, cache_path, errors_path, filename = task_output
     if message['message'] == 'skip':
         pass
     elif message['message'] == 'success':

@@ -11,7 +11,7 @@ from oc_ocdm.graph import GraphEntity
 from oc_ocdm.prov.prov_entity import ProvEntity
 from oc_ocdm.support import get_count
 from rdflib import RDF, Graph, Literal, URIRef
-from SPARQLWrapper import GET, JSON, XML, SPARQLWrapper
+from SPARQLWrapper import JSON, POST, XML, SPARQLWrapper
 from time_agnostic_library.agnostic_entity import AgnosticEntity
 
 from oc_meta.plugins.fixer.ar_order import check_roles
@@ -21,7 +21,7 @@ class ResourceFinder:
 
     def __init__(self, ts_url, base_iri:str, local_g: Graph = Graph(), settings: dict = None, meta_config_path: str = None):
         self.ts = SPARQLWrapper(ts_url)
-        self.ts.setMethod(GET)
+        self.ts.setMethod(POST)
         self.base_iri = base_iri[:-1] if base_iri[-1] == '/' else base_iri
         self.local_g = local_g
         self.ids_in_local_g = set()
@@ -679,12 +679,21 @@ class ResourceFinder:
             publishers_output.append(pub_full)
         return '; '.join(publishers_output)
             
-    def get_everything_about_res(self, metavals: set, identifiers: set, vvis: set) -> None:
-        if not metavals and not identifiers and not vvis:
-            return
+    def get_everything_about_res(self, metavals: set, identifiers: set, vvis: set, use_text_search=False) -> None:
+        BATCH_SIZE = None
 
-        def run_query(omids=None, identifiers=None, vvis=None):
+        def batch_process(input_set, batch_size):
+            """Generator to split input data into smaller batches if batch_size is not None."""
+            if batch_size is None:
+                yield input_set
+            else:
+                for i in range(0, len(input_set), batch_size):
+                    yield input_set[i:i + batch_size]
+
+        def process_batch(omids_batch=None, identifiers_batch=None, vvis_batch=None):
+            """Function to process each batch. Adapted to handle smaller sets of data."""
             query_prefix = '''
+                PREFIX bds: <http://www.bigdata.com/rdf/search#>
                 PREFIX eea: <https://jobu_tupaki/>
                 CONSTRUCT { ?s ?p ?o } 
                 WHERE {'''
@@ -692,8 +701,8 @@ class ResourceFinder:
             query_suffix = '}'
             query_body_parts = []
 
-            if omids:
-                omids_values = " ".join([f"<{self.base_iri}/{omid.replace('omid:', '')}>" for omid in omids])
+            if omids_batch:
+                omids_values = " ".join([f"<{self.base_iri}/{omid.replace('omid:', '')}>" for omid in omids_batch])
                 omids_query_part = f'''
                         {{
                             VALUES ?res {{ {omids_values} }}
@@ -703,21 +712,41 @@ class ResourceFinder:
                     '''
                 query_body_parts.append(omids_query_part)
 
-            if identifiers:
-                identifiers_values = " ".join([f'(<{GraphEntity.DATACITE + id.split(":")[0]}> "{id.split(":")[1]}")' for id in identifiers])
-                identifiers_query_part = f'''
-                        {{
-                            VALUES (?scheme ?literal) {{ {identifiers_values} }}
-                            ?id <{GraphEntity.iri_uses_identifier_scheme}> ?scheme;
-                                <{GraphEntity.iri_has_literal_value}> ?literal;
-                                ^<{GraphEntity.iri_has_identifier}> ?br .
-                            ?br (!<eea:everything_everywhere_allatonce>)* ?s. ?s ?p ?o. 
-                        }}
-                    '''
-                query_body_parts.append(identifiers_query_part)
+            if identifiers_batch:
+                if use_text_search:
+                    identifiers_query_parts = []
+                    for identifier in identifiers_batch:
+                        scheme, literal = identifier.split(":")[0], identifier.split(":")[1]
+                        escaped_identifier = literal.replace('\\', '\\\\').replace('"', '\\"')
+                        identifier_query_part = f'''
+                                {{
+                                    ?id <{GraphEntity.iri_uses_identifier_scheme}> <{GraphEntity.DATACITE + scheme}>;
+                                        <{GraphEntity.iri_has_literal_value}> ?literal.
+                                    ?literal bds:search "{escaped_identifier}" .
+                                    ?literal bds:matchAllTerms "true" .
+                                    ?id ^<{GraphEntity.iri_has_identifier}> ?br .
+                                    ?br (!<eea:everything_everywhere_allatonce>)* ?s. ?s ?p ?o. 
+                                }}
+                            '''
+                        identifiers_query_parts.append(identifier_query_part)
+                    
+                    identifiers_query_part = ' UNION '.join(identifiers_query_parts)
+                    query_body_parts.append(identifiers_query_part)
+                else:
+                    identifiers_values = " ".join([f"(<{GraphEntity.DATACITE + id.split(':')[0]}> \"{id.split(':')[1]}\")" for id in identifiers_batch])
+                    identifiers_query_part = f'''
+                            {{
+                                VALUES (?scheme ?literal) {{ {identifiers_values} }}
+                                ?id <{GraphEntity.iri_uses_identifier_scheme}> ?scheme;
+                                    <{GraphEntity.iri_has_literal_value}> ?literal.
+                                ?id ^<{GraphEntity.iri_has_identifier}> ?br .
+                                ?br (!<eea:everything_everywhere_allatonce>)* ?s. ?s ?p ?o.
+                            }}
+                        '''
+                    query_body_parts.append(identifiers_query_part)
 
-            if vvis:
-                for volume, issue, venue_metaid in vvis:
+            if vvis_batch:
+                for volume, issue, venue_metaid in vvis_batch:
                     upper_vvi = urllib.parse.quote(issue) if issue else urllib.parse.quote(volume)
                     vvi_type = GraphEntity.iri_journal_issue if issue else GraphEntity.iri_journal_volume
                     vvi_values = f'<{self.base_iri}/br/{venue_metaid}>'
@@ -731,24 +760,34 @@ class ResourceFinder:
                         '''
                     query_body_parts.append(vvis_query_part)
 
-            # Unisce le parti della query con UNION se c'è più di una clausola
             if len(query_body_parts) > 1:
                 query_body = ' UNION '.join(query_body_parts)
             else:
                 query_body = query_body_parts[0] if query_body_parts else ''
 
             full_query = query_prefix + query_body + query_suffix
-            return self.__query(full_query, XML)
+            result = self.__query(full_query, XML)
+            if result:
+                for triple in result.triples((None, None, None)):
+                    new_triple = triple
+                    if isinstance(triple[2], Literal):
+                        if triple[2].datatype == URIRef('http://www.w3.org/2001/XMLSchema#string'):
+                            new_triple = (triple[0], triple[1], Literal(lexical_or_value=str(triple[2]), datatype=None))
+                    self.local_g.add(new_triple)
 
-        # Esegui la query con i parametri raccolti
-        result = run_query(omids=metavals, identifiers=identifiers, vvis=vvis)
-        if result:
-            for triple in result.triples((None, None, None)):
-                new_triple = triple
-                if isinstance(triple[2], Literal):
-                    if triple[2].datatype == URIRef('http://www.w3.org/2001/XMLSchema#string'):
-                        new_triple = (triple[0], triple[1], Literal(lexical_or_value=str(triple[2]), datatype=None))
-                self.local_g.add(new_triple)
+        # Early exit if all input sets are empty
+        if not metavals and not identifiers and not vvis:
+            return
+
+        # Process each input set in batches
+        for omids_batch in batch_process(sorted(metavals), BATCH_SIZE):
+            process_batch(omids_batch=omids_batch)
+
+        for identifiers_batch in batch_process(sorted(identifiers), BATCH_SIZE):
+            process_batch(identifiers_batch=identifiers_batch)
+
+        for vvis_batch in batch_process(sorted(vvis, key=lambda x: (x[0], x[1], x[2])), BATCH_SIZE):
+            process_batch(vvis_batch=vvis_batch)
 
     def get_subgraph(self, res: str, graphs_dict: dict) -> Graph|None:
         if res in graphs_dict:
