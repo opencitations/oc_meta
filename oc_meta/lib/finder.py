@@ -27,6 +27,7 @@ class ResourceFinder:
         self.ids_in_local_g = set()
         self.meta_config_path = meta_config_path
         self.meta_settings = settings
+        self.blazegraph_full_text_search = settings['blazegraph_full_text_search']
 
     def __query(self, query, return_format = JSON):
         self.ts.setReturnFormat(return_format)
@@ -679,9 +680,10 @@ class ResourceFinder:
             publishers_output.append(pub_full)
         return '; '.join(publishers_output)
             
-    def get_everything_about_res(self, metavals: set, identifiers: set, vvis: set, use_text_search=False) -> None:
-        BATCH_SIZE = None
-
+    def get_everything_about_res(self, metavals: set, identifiers: set, vvis: set) -> None:
+        BATCH_SIZE = 20
+        use_text_search = self.blazegraph_full_text_search
+        
         def batch_process(input_set, batch_size):
             """Generator to split input data into smaller batches if batch_size is not None."""
             if batch_size is None:

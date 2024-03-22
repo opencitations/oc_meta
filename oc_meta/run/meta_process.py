@@ -36,7 +36,7 @@ import yaml
 from oc_ocdm import Storer
 from oc_ocdm.prov import ProvSet
 from oc_ocdm.support.reporter import Reporter
-from pebble import ProcessFuture, ProcessPool
+from pebble import ProcessPool
 from time_agnostic_library.support import generate_config_file
 from tqdm import tqdm
 
