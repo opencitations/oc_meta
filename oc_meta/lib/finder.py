@@ -13,7 +13,7 @@ from oc_ocdm.support import get_count
 from rdflib import RDF, Graph, Literal, URIRef
 from SPARQLWrapper import JSON, POST, XML, SPARQLWrapper
 from time_agnostic_library.agnostic_entity import AgnosticEntity
-
+from oc_ocdm.graph.graph_entity import GraphEntity
 from oc_meta.plugins.fixer.ar_order import check_roles
 
 
@@ -680,10 +680,9 @@ class ResourceFinder:
             publishers_output.append(pub_full)
         return '; '.join(publishers_output)
             
-    def get_everything_about_res(self, metavals: set, identifiers: set, vvis: set) -> None:
+    def get_everything_about_res(self, metavals: set, identifiers: set, vvis: set, worker_number: int = None) -> None:
         BATCH_SIZE = 20
         use_text_search = self.blazegraph_full_text_search
-        
         def batch_process(input_set, batch_size):
             """Generator to split input data into smaller batches if batch_size is not None."""
             if batch_size is None:
@@ -692,107 +691,102 @@ class ResourceFinder:
                 for i in range(0, len(input_set), batch_size):
                     yield input_set[i:i + batch_size]
 
-        def process_batch(omids_batch=None, identifiers_batch=None, vvis_batch=None):
-            """Function to process each batch. Adapted to handle smaller sets of data."""
-            query_prefix = '''
-                PREFIX bds: <http://www.bigdata.com/rdf/search#>
-                PREFIX eea: <https://jobu_tupaki/>
-                CONSTRUCT { ?s ?p ?o } 
-                WHERE {'''
+        def process_batch(subjects):
+            """Process each batch of subjects up to the specified depth."""
+            for batch in batch_process(list(subjects), BATCH_SIZE):
+                if not batch:
+                    return
+                
+                query_prefix = f'''
+                    CONSTRUCT {{ ?s ?p ?o }}
+                    WHERE {{
+                        VALUES ?s {{ {' '.join([f"<{s}>" for s in batch])} }}
+                        ?s ?p ?o.
+                    }}'''
+                
+                result = self.__query(query_prefix, return_format=XML)
+                next_subjects = set()
+                if result:
+                    for s, p, o in result:
+                        self.local_g.add((s, p, o))
+                        if isinstance(o, URIRef) and p not in {RDF.type, GraphEntity.iri_with_role, GraphEntity.iri_uses_identifier_scheme}:
+                            next_subjects.add(str(o))
+                process_batch(next_subjects)
 
-            query_suffix = '}'
-            query_body_parts = []
+        def get_initial_subjects_from_metavals(metavals):
+            """Convert metavals to a set of subjects."""
+            return {f"{self.base_iri}/{mid.replace('omid:', '')}" for mid in metavals}
 
-            if omids_batch:
-                omids_values = " ".join([f"<{self.base_iri}/{omid.replace('omid:', '')}>" for omid in omids_batch])
-                omids_query_part = f'''
-                        {{
-                            VALUES ?res {{ {omids_values} }}
-                            ?res (!<eea:everything_everywhere_allatonce>)* ?s. 
-                            ?s ?p ?o.
+        def get_initial_subjects_from_identifiers(identifiers):
+            """Convert identifiers to a set of subjects based on a query."""
+            subjects = set()
+            if use_text_search:
+                for identifier in identifiers:
+                    scheme, literal = identifier.split(":", 1)
+                    escaped_identifier = literal.replace('\\', '\\\\').replace('"', '\\"')
+                    query = f'''
+                        PREFIX bds: <http://www.bigdata.com/rdf/search#>
+                        SELECT DISTINCT ?s WHERE {{
+                            ?literal bds:search "{escaped_identifier}" ;
+                                    bds:matchAllTerms "true" ;
+                                    ^<{GraphEntity.iri_has_literal_value}> ?id.
+                            ?id <{GraphEntity.iri_uses_identifier_scheme}> <{GraphEntity.DATACITE + scheme}>;
+                                ^<{GraphEntity.iri_has_identifier}> ?s .
                         }}
                     '''
-                query_body_parts.append(omids_query_part)
-
-            if identifiers_batch:
-                if use_text_search:
-                    identifiers_query_parts = []
-                    for identifier in identifiers_batch:
-                        scheme, literal = identifier.split(":")[0], identifier.split(":")[1]
-                        escaped_identifier = literal.replace('\\', '\\\\').replace('"', '\\"')
-                        identifier_query_part = f'''
-                                {{
-                                    ?id <{GraphEntity.iri_uses_identifier_scheme}> <{GraphEntity.DATACITE + scheme}>;
-                                        <{GraphEntity.iri_has_literal_value}> ?literal.
-                                    ?literal bds:search "{escaped_identifier}" .
-                                    ?literal bds:matchAllTerms "true" .
-                                    ?id ^<{GraphEntity.iri_has_identifier}> ?br .
-                                    ?br (!<eea:everything_everywhere_allatonce>)* ?s. ?s ?p ?o. 
-                                }}
-                            '''
-                        identifiers_query_parts.append(identifier_query_part)
-                    
-                    identifiers_query_part = ' UNION '.join(identifiers_query_parts)
-                    query_body_parts.append(identifiers_query_part)
-                else:
-                    identifiers_values = []
-                    for id in identifiers_batch:
-                        scheme, literal = id.split(':')[0], id.split(':')[1]
-                        escaped_literal = literal.replace('\\', '\\\\').replace('"', '\\"')
-                        identifiers_values.append(f"(<{GraphEntity.DATACITE + scheme}> \"{escaped_literal}\")")
-                    identifiers_values_str = " ".join(identifiers_values)
-                    identifiers_query_part = f'''
-                            {{
-                                VALUES (?scheme ?literal) {{ {identifiers_values_str} }}
-                                ?id <{GraphEntity.iri_uses_identifier_scheme}> ?scheme;
-                                    <{GraphEntity.iri_has_literal_value}> ?literal.
-                                ?id ^<{GraphEntity.iri_has_identifier}> ?br .
-                                ?br (!<eea:everything_everywhere_allatonce>)* ?s. ?s ?p ?o.
-                            }}
-                        '''
-                    query_body_parts.append(identifiers_query_part)
-
-            if vvis_batch:
-                for volume, issue, venue_metaid in vvis_batch:
-                    upper_vvi = urllib.parse.quote(issue) if issue else urllib.parse.quote(volume)
-                    vvi_type = GraphEntity.iri_journal_issue if issue else GraphEntity.iri_journal_volume
-                    vvi_values = f'<{self.base_iri}/{venue_metaid.replace("omid:", "")}>'
-                    vvis_query_part = f'''
-                            {{
-                                ?vvi <{GraphEntity.iri_part_of}>+ {vvi_values};
-                                    a <{vvi_type}>;
-                                    <{GraphEntity.iri_has_sequence_identifier}> "{upper_vvi}".
-                                ?vvi (!<eea:everything_everywhere_allatonce>)* ?s. ?s ?p ?o. 
-                            }}
-                        '''
-                    query_body_parts.append(vvis_query_part)
-
-            if len(query_body_parts) > 1:
-                query_body = ' UNION '.join(query_body_parts)
+                    result = self.__query(query)
+                    for row in result['results']['bindings']:
+                        subjects.add(str(row['s']['value']))
             else:
-                query_body = query_body_parts[0] if query_body_parts else ''
+                identifiers_values = []
+                for identifier in identifiers:
+                    scheme, literal = identifier.split(':')[0], identifier.split(':')[1]
+                    escaped_literal = literal.replace('\\', '\\\\').replace('"', '\\"')
+                    identifiers_values.append(f"(<{GraphEntity.DATACITE + scheme}> \"{escaped_literal}\")")
+                identifiers_values_str = " ".join(identifiers_values)
+                query = f'''
+                    SELECT DISTINCT ?s WHERE {{
+                        VALUES (?scheme ?literal) {{ {identifiers_values_str} }}
+                        ?id <{GraphEntity.iri_uses_identifier_scheme}> ?scheme;
+                            <{GraphEntity.iri_has_literal_value}> ?literal;
+                            ^<{GraphEntity.iri_has_identifier}> ?s .
+                    }}
+                '''
+                result = self.__query(query)
+                for row in result['results']['bindings']:
+                    subjects.add(str(row['s']['value']))
+            return subjects
 
-            full_query = query_prefix + query_body + query_suffix
-            result = self.__query(full_query, XML)
-            if result:
-                for triple in result.triples((None, None, None)):
-                    new_triple = triple
-                    if isinstance(triple[2], Literal):
-                        if triple[2].datatype == URIRef('http://www.w3.org/2001/XMLSchema#string'):
-                            new_triple = (triple[0], triple[1], Literal(lexical_or_value=str(triple[2]), datatype=None))
-                    self.local_g.add(new_triple)
+        def get_initial_subjects_from_vvis(vvis):
+            """Convert vvis to a set of subjects based on a query."""
+            subjects = set()
+            for volume, issue, venue_metaid in vvis:
+                vvi_type = GraphEntity.iri_journal_issue if issue else GraphEntity.iri_journal_volume
+                query = f'''
+                    SELECT DISTINCT ?s WHERE {{
+                        ?s a <{vvi_type}>;
+                            <{GraphEntity.iri_part_of}>+ <{self.base_iri}/{venue_metaid.replace("omid:", "")}>;
+                            <{GraphEntity.iri_has_sequence_identifier}> "{issue if issue else volume}".
+                    }}
+                '''
+                result = self.__query(query)
+                for row in result['results']['bindings']:
+                    subjects.add(str(row['s']['value']))
+            return subjects
+
+        initial_subjects = set()
 
         if metavals:
-            for omids_batch in batch_process(sorted(metavals), BATCH_SIZE):
-                process_batch(omids_batch=omids_batch)
-
+            initial_subjects.update(get_initial_subjects_from_metavals(metavals))
+        
         if identifiers:
-            for identifiers_batch in batch_process(sorted(identifiers), BATCH_SIZE):
-                process_batch(identifiers_batch=identifiers_batch)
+            initial_subjects.update(get_initial_subjects_from_identifiers(identifiers))
 
         if vvis:
-            for vvis_batch in batch_process(sorted(vvis, key=lambda x: (x[0], x[1], x[2])), BATCH_SIZE):
-                process_batch(vvis_batch=vvis_batch)
+            initial_subjects.update(get_initial_subjects_from_vvis(vvis))
+
+        # Now start the depth-based processing
+        process_batch(initial_subjects)
 
     def get_subgraph(self, res: str, graphs_dict: dict) -> Graph|None:
         if res in graphs_dict:

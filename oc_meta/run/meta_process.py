@@ -133,7 +133,7 @@ class MetaProcess:
                     silencer=self.silencer,
                     meta_config_path=meta_config_path)
             name = f"{filename.replace('.csv', '')}_{datetime.now().strftime('%Y-%m-%dT%H-%M-%S')}"
-            curator_obj.curator(filename=name, path_csv=self.output_csv_dir, path_index=self.indexes_dir)
+            curator_obj.curator(filename=name, path_csv=self.output_csv_dir, path_index=self.indexes_dir, worker_number=int(worker_number) if worker_number else None)
             # Creator
             creator_info_dir = os.path.join(self.info_dir, 'creator' + os.sep)
             if resp_agents_only:
