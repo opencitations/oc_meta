@@ -733,10 +733,15 @@ class ResourceFinder:
                     identifiers_query_part = ' UNION '.join(identifiers_query_parts)
                     query_body_parts.append(identifiers_query_part)
                 else:
-                    identifiers_values = " ".join([f"(<{GraphEntity.DATACITE + id.split(':')[0]}> \"{id.split(':')[1]}\")" for id in identifiers_batch])
+                    identifiers_values = []
+                    for id in identifiers_batch:
+                        scheme, literal = id.split(':')[0], id.split(':')[1]
+                        escaped_literal = literal.replace('\\', '\\\\').replace('"', '\\"')
+                        identifiers_values.append(f"(<{GraphEntity.DATACITE + scheme}> \"{escaped_literal}\")")
+                    identifiers_values_str = " ".join(identifiers_values)
                     identifiers_query_part = f'''
                             {{
-                                VALUES (?scheme ?literal) {{ {identifiers_values} }}
+                                VALUES (?scheme ?literal) {{ {identifiers_values_str} }}
                                 ?id <{GraphEntity.iri_uses_identifier_scheme}> ?scheme;
                                     <{GraphEntity.iri_has_literal_value}> ?literal.
                                 ?id ^<{GraphEntity.iri_has_identifier}> ?br .
@@ -749,7 +754,7 @@ class ResourceFinder:
                 for volume, issue, venue_metaid in vvis_batch:
                     upper_vvi = urllib.parse.quote(issue) if issue else urllib.parse.quote(volume)
                     vvi_type = GraphEntity.iri_journal_issue if issue else GraphEntity.iri_journal_volume
-                    vvi_values = f'<{self.base_iri}/br/{venue_metaid}>'
+                    vvi_values = f'<{self.base_iri}/{venue_metaid.replace("omid:", "")}>'
                     vvis_query_part = f'''
                             {{
                                 ?vvi <{GraphEntity.iri_part_of}>+ {vvi_values};
@@ -775,19 +780,17 @@ class ResourceFinder:
                             new_triple = (triple[0], triple[1], Literal(lexical_or_value=str(triple[2]), datatype=None))
                     self.local_g.add(new_triple)
 
-        # Early exit if all input sets are empty
-        if not metavals and not identifiers and not vvis:
-            return
+        if metavals:
+            for omids_batch in batch_process(sorted(metavals), BATCH_SIZE):
+                process_batch(omids_batch=omids_batch)
 
-        # Process each input set in batches
-        for omids_batch in batch_process(sorted(metavals), BATCH_SIZE):
-            process_batch(omids_batch=omids_batch)
+        if identifiers:
+            for identifiers_batch in batch_process(sorted(identifiers), BATCH_SIZE):
+                process_batch(identifiers_batch=identifiers_batch)
 
-        for identifiers_batch in batch_process(sorted(identifiers), BATCH_SIZE):
-            process_batch(identifiers_batch=identifiers_batch)
-
-        for vvis_batch in batch_process(sorted(vvis, key=lambda x: (x[0], x[1], x[2])), BATCH_SIZE):
-            process_batch(vvis_batch=vvis_batch)
+        if vvis:
+            for vvis_batch in batch_process(sorted(vvis, key=lambda x: (x[0], x[1], x[2])), BATCH_SIZE):
+                process_batch(vvis_batch=vvis_batch)
 
     def get_subgraph(self, res: str, graphs_dict: dict) -> Graph|None:
         if res in graphs_dict:

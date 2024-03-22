@@ -126,7 +126,7 @@ class test_Curator(unittest.TestCase):
     def setUpClass(cls):
         add_data_ts()
         cls.finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
-        cls.finder.get_everything_about_res([('omid:br/4125', []), ('omid:br/3757', []), ('omid:br/4480', [])])
+        cls.finder.get_everything_about_res(metavals={'omid:br/4125', 'omid:br/3757', 'omid:br/4480'}, identifiers=set(), vvis=set())
 
     def test_merge_entities_in_csv(self):
         curator = prepareCurator(list())
@@ -180,6 +180,7 @@ class test_Curator(unittest.TestCase):
         curator = prepareCurator(list())
         row = {'id': 'doi:10.1001/archderm.104.1.106', 'title': 'Multiple Blasto', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [omid:br/4416]', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}
         curator.log[0] = {'id': {}}
+        curator.finder.get_everything_about_res(metavals=set(), identifiers={'doi:10.1001/archderm.104.1.106'}, vvis=set())
         curator.clean_id(row)
         expected_output = {'id': '3757', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [omid:br/4416]', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}
         self.assertEqual(row, expected_output)
@@ -272,6 +273,7 @@ class test_Curator(unittest.TestCase):
         # There is a row with vvi and no ids
         row = {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': 'Archives Of Surgery [omid:br/4480]', 'volume': '147', 'issue': '11', 'page': '', 'type': 'journal article', 'publisher': '', 'editor': ''}
         curator = prepareCurator(list())
+        curator.finder.get_everything_about_res(metavals=set(), identifiers=set(), vvis={('147', '11', 'omid:br/4480')})
         curator.clean_id(row)
         curator.clean_vvi(row)
         expected_output = {
@@ -282,6 +284,7 @@ class test_Curator(unittest.TestCase):
                 }
             }
         }
+        print(curator.vvi)
         self.assertEqual(curator.vvi, expected_output)
 
     def test_clean_ra_overlapping_surnames(self):
@@ -546,14 +549,7 @@ class test_id_worker(unittest.TestCase):
     def setUpClass(cls):
         add_data_ts(SERVER, os.path.abspath(os.path.join('test', 'testcases', 'ts', 'real_data.nt')).replace('\\', '/'))
         cls.finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
-        cls.finder.get_everything_about_res([
-            ('omid:br/3309', []), 
-            ('omid:br/2438', []), 
-            ('omid:br/0601', []), 
-            ('', ['doi:10.1001/2013.jamasurg.270']),
-            ('', ['doi:10.1787/eco_outlook-v2011-2-graph138-en']),
-            ('', ['orcid:0000-0001-6994-8412']),
-            ('', ['doi:10.1001/archderm.104.1.106', 'pmid:29098884'])])
+        cls.finder.get_everything_about_res(metavals={'omid:br/3309', 'omid:br/2438', 'omid:br/0601'}, identifiers={'doi:10.1001/2013.jamasurg.270', 'doi:10.1787/eco_outlook-v2011-2-graph138-en', 'orcid:0000-0001-6994-8412', 'doi:10.1001/archderm.104.1.106', 'pmid:29098884'}, vvis=set())
 
     def test_id_worker_1(self):
         # 1 EntityA is a new one
