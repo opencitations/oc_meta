@@ -112,7 +112,11 @@ class ResourceFinder:
                         id_scheme = str(triple[2]).replace(GraphEntity.DATACITE, '')
                     elif triple[1] == GraphEntity.iri_has_literal_value:
                         literal_value = str(triple[2])
-                full_id = f'{id_scheme}:{literal_value}'
+                try:
+                    full_id = f'{id_scheme}:{literal_value}'
+                except UnboundLocalError:
+                    print(metaid_uri, identifiers_found, [triple for triple in self.local_g.triples((identifier, None, None))])
+                    raise(UnboundLocalError)
                 identifiers.append((str(identifier).replace(self.base_iri + '/id/', ''), full_id))
         return title, identifiers, it_exists
 
@@ -680,8 +684,8 @@ class ResourceFinder:
             publishers_output.append(pub_full)
         return '; '.join(publishers_output)
             
-    def get_everything_about_res(self, metavals: set, identifiers: set, vvis: set, worker_number: int = None) -> None:
-        BATCH_SIZE = 20
+    def get_everything_about_res(self, metavals: set, identifiers: set, vvis: set, worker_number: int = None, max_depth: int = 4) -> None:
+        BATCH_SIZE = 100
         use_text_search = self.blazegraph_full_text_search
         def batch_process(input_set, batch_size):
             """Generator to split input data into smaller batches if batch_size is not None."""
@@ -691,87 +695,104 @@ class ResourceFinder:
                 for i in range(0, len(input_set), batch_size):
                     yield input_set[i:i + batch_size]
 
-        def process_batch(subjects):
+        def process_batch(subjects, cur_depth):
             """Process each batch of subjects up to the specified depth."""
+            if not subjects or (max_depth and cur_depth > max_depth):
+                return
+
+            next_subjects = set()
             for batch in batch_process(list(subjects), BATCH_SIZE):
-                if not batch:
-                    return
-                
                 query_prefix = f'''
-                    CONSTRUCT {{ ?s ?p ?o }}
+                    SELECT ?s ?p ?o
                     WHERE {{
                         VALUES ?s {{ {' '.join([f"<{s}>" for s in batch])} }}
                         ?s ?p ?o.
                     }}'''
                 
-                result = self.__query(query_prefix, return_format=XML)
-                next_subjects = set()
+                result = self.__query(query_prefix)
                 if result:
-                    for s, p, o in result:
+                    for row in result['results']['bindings']:
+                        s = URIRef(row['s']['value'])
+                        p = URIRef(row['p']['value'])
+                        o = row['o']['value']
+                        o_type = row['o']['type']
+                        o_datatype = URIRef(row['o']['datatype']) if 'datatype' in row['o'] else None
+                        o = URIRef(o) if o_type == 'uri' else Literal(lexical_or_value=o, datatype=o_datatype)
                         self.local_g.add((s, p, o))
                         if isinstance(o, URIRef) and p not in {RDF.type, GraphEntity.iri_with_role, GraphEntity.iri_uses_identifier_scheme}:
                             next_subjects.add(str(o))
-                process_batch(next_subjects)
+
+            # Dopo aver processato tutti i batch di questo livello, procedi con il prossimo livello di profondità
+            process_batch(next_subjects, cur_depth + 1)
 
         def get_initial_subjects_from_metavals(metavals):
             """Convert metavals to a set of subjects."""
             return {f"{self.base_iri}/{mid.replace('omid:', '')}" for mid in metavals}
 
         def get_initial_subjects_from_identifiers(identifiers):
-            """Convert identifiers to a set of subjects based on a query."""
+            """Convert identifiers to a set of subjects based on batch queries."""
             subjects = set()
-            if use_text_search:
-                for identifier in identifiers:
-                    scheme, literal = identifier.split(":", 1)
-                    escaped_identifier = literal.replace('\\', '\\\\').replace('"', '\\"')
+            for batch in batch_process(list(identifiers), BATCH_SIZE):
+                if not batch:
+                    continue
+
+                if use_text_search:
+                    # Processing for text search enabled databases
+                    for identifier in batch:
+                        scheme, literal = identifier.split(":", 1)
+                        escaped_identifier = literal.replace('\\', '\\\\').replace('"', '\\"')
+                        query = f'''
+                            PREFIX bds: <http://www.bigdata.com/rdf/search#>
+                            SELECT DISTINCT ?s WHERE {{
+                                ?literal bds:search "{escaped_identifier}" ;
+                                        bds:matchAllTerms "true" ;
+                                        ^<{GraphEntity.iri_has_literal_value}> ?id.
+                                ?id <{GraphEntity.iri_uses_identifier_scheme}> <{GraphEntity.DATACITE + scheme}>;
+                                    ^<{GraphEntity.iri_has_identifier}> ?s .
+                            }}
+                        '''
+                        result = self.__query(query)
+                        for row in result['results']['bindings']:
+                            subjects.add(str(row['s']['value']))
+                else:
+                    identifiers_values = []
+                    for identifier in identifiers:
+                        scheme, literal = identifier.split(':')[0], identifier.split(':')[1]
+                        escaped_literal = literal.replace('\\', '\\\\').replace('"', '\\"')
+                        identifiers_values.append(f"(<{GraphEntity.DATACITE + scheme}> \"{escaped_literal}\")")
+                    identifiers_values_str = " ".join(identifiers_values)
                     query = f'''
-                        PREFIX bds: <http://www.bigdata.com/rdf/search#>
                         SELECT DISTINCT ?s WHERE {{
-                            ?literal bds:search "{escaped_identifier}" ;
-                                    bds:matchAllTerms "true" ;
-                                    ^<{GraphEntity.iri_has_literal_value}> ?id.
-                            ?id <{GraphEntity.iri_uses_identifier_scheme}> <{GraphEntity.DATACITE + scheme}>;
+                            VALUES (?scheme ?literal) {{ {identifiers_values_str} }}
+                            ?id <{GraphEntity.iri_uses_identifier_scheme}> ?scheme;
+                                <{GraphEntity.iri_has_literal_value}> ?literal;
                                 ^<{GraphEntity.iri_has_identifier}> ?s .
                         }}
                     '''
                     result = self.__query(query)
                     for row in result['results']['bindings']:
                         subjects.add(str(row['s']['value']))
-            else:
-                identifiers_values = []
-                for identifier in identifiers:
-                    scheme, literal = identifier.split(':')[0], identifier.split(':')[1]
-                    escaped_literal = literal.replace('\\', '\\\\').replace('"', '\\"')
-                    identifiers_values.append(f"(<{GraphEntity.DATACITE + scheme}> \"{escaped_literal}\")")
-                identifiers_values_str = " ".join(identifiers_values)
-                query = f'''
-                    SELECT DISTINCT ?s WHERE {{
-                        VALUES (?scheme ?literal) {{ {identifiers_values_str} }}
-                        ?id <{GraphEntity.iri_uses_identifier_scheme}> ?scheme;
-                            <{GraphEntity.iri_has_literal_value}> ?literal;
-                            ^<{GraphEntity.iri_has_identifier}> ?s .
-                    }}
-                '''
-                result = self.__query(query)
-                for row in result['results']['bindings']:
-                    subjects.add(str(row['s']['value']))
             return subjects
 
         def get_initial_subjects_from_vvis(vvis):
-            """Convert vvis to a set of subjects based on a query."""
+            """Convert vvis to a set of subjects based on batch queries."""
             subjects = set()
-            for volume, issue, venue_metaid in vvis:
-                vvi_type = GraphEntity.iri_journal_issue if issue else GraphEntity.iri_journal_volume
-                query = f'''
-                    SELECT DISTINCT ?s WHERE {{
-                        ?s a <{vvi_type}>;
-                            <{GraphEntity.iri_part_of}>+ <{self.base_iri}/{venue_metaid.replace("omid:", "")}>;
-                            <{GraphEntity.iri_has_sequence_identifier}> "{issue if issue else volume}".
-                    }}
-                '''
-                result = self.__query(query)
-                for row in result['results']['bindings']:
-                    subjects.add(str(row['s']['value']))
+            for batch in batch_process(list(vvis), BATCH_SIZE):
+                if not batch:
+                    continue
+
+                for volume, issue, venue_metaid in batch:
+                    vvi_type = GraphEntity.iri_journal_issue if issue else GraphEntity.iri_journal_volume
+                    query = f'''
+                        SELECT DISTINCT ?s WHERE {{
+                            ?s a <{vvi_type}>;
+                                <{GraphEntity.iri_part_of}>+ <{self.base_iri}/{venue_metaid.replace("omid:", "")}>;
+                                <{GraphEntity.iri_has_sequence_identifier}> "{issue if issue else volume}".
+                        }}
+                    '''
+                    result = self.__query(query)
+                    for row in result['results']['bindings']:
+                        subjects.add(str(row['s']['value']))
             return subjects
 
         initial_subjects = set()
@@ -786,7 +807,14 @@ class ResourceFinder:
             initial_subjects.update(get_initial_subjects_from_vvis(vvis))
 
         # Now start the depth-based processing
-        process_batch(initial_subjects)
+        import time
+        if worker_number == 4:
+            start = time.time()
+            print(start)
+        process_batch(initial_subjects, 0)
+        if worker_number == 4:
+            end = time.time()
+            print(end-start)
 
     def get_subgraph(self, res: str, graphs_dict: dict) -> Graph|None:
         if res in graphs_dict:

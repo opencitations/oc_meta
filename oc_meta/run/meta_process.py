@@ -39,6 +39,7 @@ from oc_ocdm.support.reporter import Reporter
 from pebble import ProcessPool
 from time_agnostic_library.support import generate_config_file
 from tqdm import tqdm
+from concurrent.futures import as_completed
 
 from oc_meta.core.creator import Creator
 from oc_meta.core.curator import Curator
@@ -222,14 +223,16 @@ def run_meta_process(settings: dict, meta_config_path: str, resp_agents_only: bo
     with ProcessPool(max_workers=max_workers, max_tasks=1) as executor, tqdm(total=len(files_to_be_processed), desc="Processing files") as progress_bar:
         futures = [executor.schedule(curate_and_create_wrapper, args=(file, worker, resp_agents_only, settings, meta_config_path)) 
                 for file, worker in zip(files_to_be_processed, cycle(workers))]
-        for future in futures:
+        for future in as_completed(futures):
             try:
                 result = future.result()
-                task_done(result)
-                progress_bar.update(1)
+                task_done(result)  # Gestisci il risultato del task
             except Exception as e:
-                traceback_str = traceback.format_exc()  # Questo cattura il traceback completo
+                # Gestisci l'eccezione per il task che ha sollevato un'errore
+                traceback_str = traceback.format_exc()
                 print(f"Errore durante l'elaborazione: {e}\nTraceback:\n{traceback_str}")
+            finally:
+                progress_bar.update(1)
 
     merge_rdf_files(meta_process.output_rdf_dir, meta_process.zip_output_rdf)
     
@@ -254,7 +257,7 @@ def merge_rdf_files(output_dir, zip_output_rdf):
                     files_to_merge[key].append(os.path.join(root, file))
 
     # Passo 2: Unire i file
-    for key, file_paths in files_to_merge.items():
+    for key, file_paths in tqdm(files_to_merge.items(), desc="Merging files"):
         merged_graph = rdflib.ConjunctiveGraph()
 
         # Se il file di base esiste già, caricalo nel grafo per la fusione
