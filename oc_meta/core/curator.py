@@ -37,7 +37,7 @@ class Curator:
 
     def __init__(self, data:List[dict], ts:str, prov_config:str, info_dir:str, base_iri:str='https://w3id.org/oc/meta', prefix:str='060', separator:str=None, valid_dois_cache:dict=dict(), settings:dict|None = None, silencer:list = [], meta_config_path: str = None):
         self.everything_everywhere_allatonce = Graph()
-        self.finder = ResourceFinder(ts, base_iri, self.everything_everywhere_allatonce, settings=settings, meta_config_path=meta_config_path)
+        self.finder = ResourceFinder(ts, base_iri, self.everything_everywhere_allatonce, settings=None, meta_config_path=meta_config_path)
         self.base_iri = base_iri
         self.prov_config = prov_config
         self.separator = separator

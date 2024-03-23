@@ -1,17 +1,15 @@
 from __future__ import annotations
 
 import os
-import urllib.parse
 from time import sleep
 from typing import Dict, List, Tuple
 
-import yaml
 from dateutil import parser
 from oc_ocdm.graph import GraphEntity
 from oc_ocdm.prov.prov_entity import ProvEntity
 from oc_ocdm.support import get_count
 from rdflib import RDF, Graph, Literal, URIRef
-from SPARQLWrapper import JSON, POST, XML, SPARQLWrapper
+from SPARQLWrapper import JSON, POST, SPARQLWrapper
 from time_agnostic_library.agnostic_entity import AgnosticEntity
 from oc_ocdm.graph.graph_entity import GraphEntity
 from oc_meta.plugins.fixer.ar_order import check_roles
@@ -86,7 +84,7 @@ class ResourceFinder:
                 result_list.append((res.replace(f'{self.base_iri}/br/', ''), title, metaid_id_list))
         return result_list
         
-    def retrieve_br_from_meta(self, metaid:str) -> Tuple[str, List[Tuple[str, str]]]:
+    def retrieve_br_from_meta(self, metaid: str) -> Tuple[str, List[Tuple[str, str]], bool]:
         '''
         Given a MetaID, it retrieves the title of the bibliographic resource having that MetaID and other identifiers of that entity.
 
@@ -94,31 +92,32 @@ class ResourceFinder:
         :type metaid: str
         :returns Tuple[str, List[Tuple[str, str]]]: -- it returns a tuple of two elements. The first element is the resource's title associated with the input MetaID. The second element is a list of MetaID-ID tuples related to identifiers associated with that entity.
         '''
-        metaid_uri = f'{self.base_iri}/br/{str(metaid)}'
+        metaid_uri = f'{self.base_iri}/br/{metaid}'
         title = ''
-        identifiers_found = []
         identifiers = []
         it_exists = False
+
         for triple in self.local_g.triples((URIRef(metaid_uri), None, None)):
             it_exists = True
             if triple[1] == GraphEntity.iri_title:
                 title = str(triple[2])
             elif triple[1] == GraphEntity.iri_has_identifier:
-                identifiers_found.append(triple[2])
-        if identifiers_found:
-            for identifier in identifiers_found:
-                for triple in self.local_g.triples((identifier, None, None)):
-                    if triple[1] == GraphEntity.iri_uses_identifier_scheme:
-                        id_scheme = str(triple[2]).replace(GraphEntity.DATACITE, '')
-                    elif triple[1] == GraphEntity.iri_has_literal_value:
-                        literal_value = str(triple[2])
-                try:
+                id_scheme = ''
+                literal_value = ''
+                identifier = triple[2]
+                for triple_inner in self.local_g.triples((identifier, None, None)):
+                    if triple_inner[1] == GraphEntity.iri_uses_identifier_scheme:
+                        id_scheme = str(triple_inner[2]).replace(GraphEntity.DATACITE, '')
+                    elif triple_inner[1] == GraphEntity.iri_has_literal_value:
+                        literal_value = str(triple_inner[2])
+                if id_scheme and literal_value:  # Ensure both id_scheme and literal_value are found before appending
                     full_id = f'{id_scheme}:{literal_value}'
-                except UnboundLocalError:
-                    print(metaid_uri, identifiers_found, [triple for triple in self.local_g.triples((identifier, None, None))])
-                    raise(UnboundLocalError)
-                identifiers.append((str(identifier).replace(self.base_iri + '/id/', ''), full_id))
-        return title, identifiers, it_exists
+                    identifiers.append((str(identifier).replace(self.base_iri + '/id/', ''), full_id))
+
+        if not it_exists:
+            return "", [], False
+
+        return title, identifiers, True
 
     # _______________________________ID_________________________________ #
 
@@ -178,7 +177,7 @@ class ResourceFinder:
             return metaval
 
     # _______________________________RA_________________________________ #
-    def retrieve_ra_from_meta(self, metaid:str) -> Tuple[str, List[Tuple[str, str]]]:
+    def retrieve_ra_from_meta(self, metaid: str) -> Tuple[str, List[Tuple[str, str]]]:
         '''
         Given a MetaID, it retrieves the name and id of the responsible agent associated with it, whether it is an author or a publisher.
         The output has the following format:
@@ -188,18 +187,15 @@ class ResourceFinder:
 
         :params metaid: a responsible agent's MetaID
         :type metaid: str
-        :params publisher: True if the MetaID is associated with a publisher, False otherwise.  
-        :type publisher: bool
         :returns str: -- it returns a tuple, where the first element is the responsible agent's name, and the second element is a list containing its identifier's MetaID and literal value
         '''
-        metaid_uri = f'{self.base_iri}/ra/{str(metaid)}'
-        family_name = None
-        given_name = None
-        name = None
-        identifiers_found = []
+        metaid_uri = f'{self.base_iri}/ra/{metaid}'
+        family_name = ''
+        given_name = ''
+        name = ''
         identifiers = []
-        id_scheme = None
         it_exists = False
+
         for triple in self.local_g.triples((URIRef(metaid_uri), None, None)):
             it_exists = True
             if triple[1] == GraphEntity.iri_family_name:
@@ -209,7 +205,18 @@ class ResourceFinder:
             elif triple[1] == GraphEntity.iri_name:
                 name = str(triple[2])
             elif triple[1] == GraphEntity.iri_has_identifier:
-                identifiers_found.append(triple[2])
+                identifier = triple[2]
+                id_scheme = ''
+                literal_value = ''
+                for triple_inner in self.local_g.triples((identifier, None, None)):
+                    if triple_inner[1] == GraphEntity.iri_uses_identifier_scheme:
+                        id_scheme = str(triple_inner[2]).replace(GraphEntity.DATACITE, '')
+                    elif triple_inner[1] == GraphEntity.iri_has_literal_value:
+                        literal_value = str(triple_inner[2])
+                if id_scheme and literal_value:
+                    full_id = f'{id_scheme}:{literal_value}'
+                    identifiers.append((str(identifier).replace(self.base_iri + '/id/', ''), full_id))
+        
         if family_name and not given_name:
             full_name = f'{family_name}, '
         elif family_name and given_name:
@@ -220,15 +227,7 @@ class ResourceFinder:
             full_name = name
         else:
             full_name = ''
-        if identifiers_found:
-            for identifier in identifiers_found:
-                for triple in self.local_g.triples((identifier, None, None)):
-                    if triple[1] == GraphEntity.iri_uses_identifier_scheme:
-                        id_scheme = str(triple[2]).replace(GraphEntity.DATACITE, '')
-                    elif triple[1] == GraphEntity.iri_has_literal_value:
-                        literal_value = str(triple[2])
-                full_id = f'{id_scheme}:{literal_value}'
-                identifiers.append((str(identifier).replace(self.base_iri + '/id/', ''), full_id))
+            
         return full_name, identifiers, it_exists
 
     def retrieve_ra_from_id(self, schema:str, value:str, publisher:bool) -> List[Tuple[str, str, list]]:
@@ -416,7 +415,7 @@ class ResourceFinder:
         dict_ar = dict()
         roles_in_br=list()
         br_ars = list()
-        roles_with_next = set()  # To track all roles that are "next" for some role.
+        roles_with_next = set()
         for triple in self.local_g.triples((metaid_uri, GraphEntity.iri_is_document_context_for, None)):
             for ar_triple in self.local_g.triples((triple[2], None, None)):
                 if ar_triple[2] == role:
@@ -685,7 +684,7 @@ class ResourceFinder:
         return '; '.join(publishers_output)
             
     def get_everything_about_res(self, metavals: set, identifiers: set, vvis: set, worker_number: int = None, max_depth: int = 4) -> None:
-        BATCH_SIZE = 100
+        BATCH_SIZE = None
         use_text_search = self.blazegraph_full_text_search
         def batch_process(input_set, batch_size):
             """Generator to split input data into smaller batches if batch_size is not None."""
