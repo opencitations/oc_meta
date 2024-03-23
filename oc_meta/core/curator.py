@@ -419,11 +419,8 @@ class Curator:
                     sequence = []
             return sequence
 
-        def parse_ra_list(row, col_name):
-            if col_name in {'author', 'editor'}:
-                ra_list = re.split(semicolon_in_people_field, row[col_name])
-            elif col_name == 'publisher':
-                ra_list = [row[col_name]]
+        def parse_ra_list(row):
+            ra_list = re.split(semicolon_in_people_field, row[col_name])
             ra_list = Cleaner.clean_ra_list(ra_list)
             return ra_list
 
@@ -459,7 +456,7 @@ class Curator:
         if col_name in self.silencer and sequence:
             return
 
-        ra_list = parse_ra_list(row, col_name)
+        ra_list = parse_ra_list(row)
         new_sequence = list()
         change_order = False
 

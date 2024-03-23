@@ -390,31 +390,37 @@ class Creator(object):
 
     def publisher_action(self, publisher):
         if publisher:
-            publ_and_ids = re.search(name_and_ids, publisher)
-            publ_id = publ_and_ids.group(2)
-            publ_id_list = publ_id.split()
-            for identifier in publ_id_list:
-                if 'omid:' in identifier:
-                    identifier = str(identifier).replace('omid:', '')
-                    preexisting_entity = True if identifier in self.preexisting_entities else False
-                    pub_meta = identifier.replace('ra/', '')
-                    url = URIRef(self.url + identifier)
-                    publ_name = publ_and_ids.group(1)
-                    preexisting_graph = self.finder.get_subgraph(url, self.preexisting_graphs) if preexisting_entity else None
-                    publ = self.setgraph.add_ra(self.resp_agent, source=self.src, res=url, preexisting_graph=preexisting_graph)
-                    publ.has_name(publ_name)
-            for identifier in publ_id_list:
-                self.id_creator(publ, identifier, ra=True)
-            # publisherRole
-            AR = self.ar_index[self.row_meta]['publisher'][pub_meta]
-            ar_id = 'ar/' + str(AR)
-            preexisting_entity = True if ar_id in self.preexisting_entities else False
-            url_ar = URIRef(self.url + ar_id)
-            preexisting_graph = self.finder.get_subgraph(url_ar, self.preexisting_graphs)
-            publ_role = self.setgraph.add_ar(self.resp_agent, source=self.src, res=url_ar, preexisting_graph=preexisting_graph)
-            publ_role.create_publisher()
-            self.br_graph.has_contributor(publ_role)
-            publ_role.is_held_by(publ)
+            publishers_list = re.split(semicolon_in_people_field, publisher)
+            pub_role_list = list()
+            for pub in publishers_list:
+                publ_and_ids = re.search(name_and_ids, pub)
+                publ_id = publ_and_ids.group(2)
+                publ_id_list = publ_id.split()
+                for identifier in publ_id_list:
+                    if 'omid:' in identifier:
+                        identifier = str(identifier).replace('omid:', '')
+                        preexisting_entity = True if identifier in self.preexisting_entities else False
+                        pub_meta = identifier.replace('ra/', '')
+                        url = URIRef(self.url + identifier)
+                        publ_name = publ_and_ids.group(1)
+                        preexisting_graph = self.finder.get_subgraph(url, self.preexisting_graphs) if preexisting_entity else None
+                        publ = self.setgraph.add_ra(self.resp_agent, source=self.src, res=url, preexisting_graph=preexisting_graph)
+                        publ.has_name(publ_name)
+                for identifier in publ_id_list:
+                    self.id_creator(publ, identifier, ra=True)
+                # publisherRole
+                AR = self.ar_index[self.row_meta]['publisher'][pub_meta]
+                ar_id = 'ar/' + str(AR)
+                preexisting_entity = True if ar_id in self.preexisting_entities else False
+                url_ar = URIRef(self.url + ar_id)
+                preexisting_graph = self.finder.get_subgraph(url_ar, self.preexisting_graphs)
+                publ_role = self.setgraph.add_ar(self.resp_agent, source=self.src, res=url_ar, preexisting_graph=preexisting_graph)
+                publ_role.create_publisher()
+                self.br_graph.has_contributor(publ_role)
+                publ_role.is_held_by(publ)
+                pub_role_list.append(publ_role)
+                if len(pub_role_list) > 1:
+                    pub_role_list[pub_role_list.index(publ_role)-1].has_next(publ_role)
 
     def editor_action(self, editor, row):
         if editor:

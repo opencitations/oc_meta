@@ -442,5 +442,36 @@ class test_ProcessTest(unittest.TestCase):
         self.assertTrue(prov_graph.isomorphic(expected_prov_graph))
         delete_output_zip('.', now)
 
+    def test_publishers_sequence(self):
+        reset_server()
+        output_folder = os.path.join(BASE_DIR, 'output_9')
+        meta_config_path = os.path.join(BASE_DIR, 'meta_config_10.yaml')
+        now = datetime.now()
+        with open(meta_config_path, encoding='utf-8') as file:
+            settings = yaml.full_load(file)
+        run_meta_process(settings=settings, meta_config_path=meta_config_path)
+        query_all = '''
+            PREFIX datacite: <http://purl.org/spar/datacite/>
+            PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
+            CONSTRUCT {?br ?p ?o. ?o ?op ?oo. ?oo ?oop ?ooo. ?ooo ?ooop ?oooo.}
+            WHERE {
+                ?id literal:hasLiteralValue "10.17117/na.2015.08.1067";
+                    datacite:usesIdentifierScheme datacite:doi;
+                    ^datacite:hasIdentifier ?br.
+                ?br ?p ?o.
+                ?o ?op ?oo.
+                ?oo ?oop ?ooo.
+                ?ooo ?ooop ?oooo.
+            }
+        '''
+        endpoint = SPARQLWrapper('http://localhost:9999/blazegraph/sparql')
+        endpoint.setQuery(query_all)
+        result = endpoint.queryAndConvert()
+        expected_result = Graph()
+        expected_result.parse(os.path.join(BASE_DIR, 'test_publishers_sequence.json'), format='json-ld')
+        self.assertTrue(result.isomorphic((expected_result)))
+        shutil.rmtree(output_folder)
+        delete_output_zip('.', now)
+
 if __name__ == '__main__': # pragma: no cover
     unittest.main()
