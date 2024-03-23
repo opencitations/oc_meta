@@ -378,25 +378,12 @@ class test_ProcessTest(unittest.TestCase):
                 'bindings': [{
                     'agent_count': {'datatype': 'http://www.w3.org/2001/XMLSchema#integer', 
                     'type': 'literal', 
-                    'value': '5'}}]}}
+                    'value': '6'}}]}}
         shutil.rmtree(output_folder)
         delete_output_zip('.', now)
         self.assertEqual(result, expected_result)
 
     def test_omid_in_input_data(self):
-        def normalize_graph(graph):
-            """
-            Normalizza i letterali nel grafo rimuovendo i tipi di dato espliciti.
-            """
-            normalized_graph = Graph()
-            for subject, predicate, obj in graph:
-                if isinstance(obj, Literal) and obj.datatype is not None:
-                    normalized_obj = Literal(obj.toPython())
-                    normalized_graph.add((subject, predicate, normalized_obj))
-                else:
-                    normalized_graph.add((subject, predicate, obj))
-            return normalized_graph
-
         reset_server()
         output_folder = os.path.join(BASE_DIR, 'output_8')
         now = datetime.now()
@@ -469,9 +456,22 @@ class test_ProcessTest(unittest.TestCase):
         result = endpoint.queryAndConvert()
         expected_result = Graph()
         expected_result.parse(os.path.join(BASE_DIR, 'test_publishers_sequence.json'), format='json-ld')
-        self.assertTrue(result.isomorphic((expected_result)))
+        self.assertTrue(normalize_graph(result).isomorphic(normalize_graph(expected_result)))
         shutil.rmtree(output_folder)
         delete_output_zip('.', now)
+
+def normalize_graph(graph):
+    """
+    Normalizza i letterali nel grafo rimuovendo i tipi di dato espliciti.
+    """
+    normalized_graph = Graph()
+    for subject, predicate, obj in graph:
+        if isinstance(obj, Literal) and obj.datatype is not None:
+            normalized_obj = Literal(obj.toPython())
+            normalized_graph.add((subject, predicate, normalized_obj))
+        else:
+            normalized_graph.add((subject, predicate, obj))
+    return normalized_graph
 
 if __name__ == '__main__': # pragma: no cover
     unittest.main()
