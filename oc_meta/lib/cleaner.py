@@ -252,7 +252,7 @@ class Cleaner:
         :param string: str -- The string to clean.
         :returns: str -- The cleaned string.
         '''
-        unwanted_characters = {'[', ']', ';'}
+        unwanted_characters = {'[', ']', ';', '?'}
         clean_string = str()
         for i, c in enumerate(self.string):
             if c == '.':
