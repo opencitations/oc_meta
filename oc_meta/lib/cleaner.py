@@ -244,14 +244,15 @@ class Cleaner:
         
     def remove_unwanted_characters(self) -> str:
         '''
-        This method helps remove unwanted characters from authors' names. 
-        Such characters are all characters other than letters, numbers, space, '&', apostroph, or dots that are not preceded by letters. 
+        This method helps remove unwanted characters from a string. 
+        Such characters are all characters other than letters, numbers, space, '&', apostrophe, or dots that are not preceded by letters. 
         Numbers and '&' are significant if the author is an organization and not a person.
         Finally, hyphens are normalized, Unicode encodings decoded, and extra spaces removed.
 
-        :returns: str -- The cleaned name
+        :param string: str -- The string to clean.
+        :returns: str -- The cleaned string.
         '''
-        unwanted_characters = {'[', ']', '{', '}', '(', ')', '?', ';', ','}
+        unwanted_characters = {'[', ']', ';'}
         clean_string = str()
         for i, c in enumerate(self.string):
             if c == '.':
@@ -281,12 +282,13 @@ class Cleaner:
             if match:
                 name, ids = match.groups()
                 if name:
-                    agents_ids.setdefault(name, OrderedDict()).update(
+                    cleaner = Cleaner(name)
+                    cleaned_name = cleaner.remove_unwanted_characters()
+                    agents_ids.setdefault(cleaned_name, OrderedDict()).update(
                         OrderedDict.fromkeys(ids.split()))
                 else: # If there are only IDs, treat the whole string as an identifier
                     agents_ids.setdefault(ra, OrderedDict()).update(
                         OrderedDict.fromkeys(ids.split()))
-
         # Step 2: Find identifiers that are shared between different names
         shared_ids = set()
         for name, ids in agents_ids.items():
@@ -317,12 +319,14 @@ class Cleaner:
             if match:
                 name, ids = match.groups()
                 if name:
-                    cleaned_ids = ' '.join(agents_ids.get(name, []))
+                    cleaner = Cleaner(name)
+                    cleaned_name = cleaner.remove_unwanted_characters()
+                    cleaned_ids = ' '.join(agents_ids.get(cleaned_name, []))
                     cleaned_ids_set = set(cleaned_ids.split())
-                    ra_cleaned = f'{name} [{cleaned_ids}]' if cleaned_ids else name
-                    if name in seen_agents and seen_agents[name] & cleaned_ids_set:
+                    ra_cleaned = f'{cleaned_name} [{cleaned_ids}]' if cleaned_ids else cleaned_name
+                    if cleaned_name in seen_agents and seen_agents[cleaned_name] & cleaned_ids_set:
                         continue  # Skip adding this ra since it's a duplicate with a matching identifier
-                    seen_agents.setdefault(name, set()).update(cleaned_ids_set)
+                    seen_agents.setdefault(cleaned_name, set()).update(cleaned_ids_set)
                 else:
                     cleaned_ids = [identifier for identifier in ids.split() if identifier not in shared_ids]
                     ra_cleaned = f"[{' '.join(cleaned_ids)}]"

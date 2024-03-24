@@ -61,7 +61,8 @@ class TestCSVGenerator(unittest.TestCase):
         output = get_csv_data(os.path.join(OUTPUT, '0.csv'))
         expected_output = [
             {'id': 'omid:br/06102 issn:0018-9464', 'title': 'IEEE Transactions On Magnetics', 'author': '', 'issue': '', 'volume': '', 'venue': '', 'page': '', 'pub_date': '', 'type': 'journal', 'publisher': '', 'editor': ''}, 
-            {'id': 'omid:br/06101 doi:10.1109/20.877674', 'title': 'An Investigation Of FEM-FCT Method For Streamer Corona Simulation', 'author': 'Woong-Gee Min, [omid:ra/06101]; Hyeong-Seok Kim, [omid:ra/06102]; Seok-Hyun Lee, [omid:ra/06103]; Song-Yop Hahn, [omid:ra/06104]', 'issue': '4', 'volume': '36', 'venue': 'IEEE Transactions On Magnetics [omid:br/06102 issn:0018-9464]', 'page': '1280-1284', 'pub_date': '2000-07', 'type': 'journal article', 'publisher': 'Institute Of Electrical And Electronics Engineers (Ieee) [omid:ra/06105 crossref:263 crossref:263]', 'editor': ''}]
+            {'id': 'omid:br/06101 doi:10.1109/20.877674', 'title': 'An Investigation Of FEM-FCT Method For Streamer Corona Simulation', 'author': 'Woong-Gee Min, [omid:ra/06101]; Hyeong-Seok Kim, [omid:ra/06102]; Seok-Hyun Lee, [omid:ra/06103]; Song-Yop Hahn, [omid:ra/06104]', 'issue': '4', 'volume': '36', 'venue': 'IEEE Transactions On Magnetics [omid:br/06102 issn:0018-9464]', 'page': '1280-1284', 'pub_date': '2000-07', 'type': 'journal article', 'publisher': 'Institute Of Electrical And Electronics Engineers (Ieee) [omid:ra/06105 crossref:263 crossref:263]', 'editor': ''}
+        ]
         for stuff in os.listdir(BASE):
             if os.path.isdir(os.path.join(BASE, stuff)) and stuff not in {'input'}:
                 rmtree(os.path.join(BASE, stuff))
