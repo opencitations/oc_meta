@@ -56,7 +56,7 @@ URI_TYPE_DICT = {
     'http://purl.org/spar/fabio/Newspaper': 'newspaper',
     'http://purl.org/spar/fabio/NewspaperArticle': 'newspaper article',
     'http://purl.org/spar/fabio/NewspaperIssue': 'newspaper issue',
-    'http://purl.org/spar/fr/ReviewVersion': 'peer_review', 
+    'http://purl.org/spar/fr/ReviewVersion': 'peer review', 
     'http://purl.org/spar/fabio/AcademicProceedings': 'proceedings',
     'http://purl.org/spar/fabio/Preprint': 'preprint',
     'http://purl.org/spar/fabio/Presentation': 'presentation',
