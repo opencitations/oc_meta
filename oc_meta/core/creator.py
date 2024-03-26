@@ -260,7 +260,7 @@ class Creator(object):
 
     @classmethod
     def get_venue_type(cls, br_type:str, venue_ids:list) -> str:
-        schemas = {venue_id.split(':')[0] for venue_id in venue_ids}
+        schemas = {venue_id.split(':', maxsplit=1)[0] for venue_id in venue_ids}
         venue_type = ''
         if br_type in {'journal article', 'journal volume', 'journal issue'}:
             venue_type = 'journal'

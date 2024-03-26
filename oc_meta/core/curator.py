@@ -568,7 +568,7 @@ class Curator:
         for identifier in idslist:
             entity_dict[metaval]['ids'].append(identifier)
             if identifier not in id_dict:
-                schema_value = identifier.split(':')
+                schema_value = identifier.split(':', maxsplit=1)
                 found_metaid = self.finder.retrieve_metaid_from_id(schema_value[0], schema_value[1])
                 if found_metaid:
                     id_dict[identifier] = found_metaid
@@ -582,7 +582,7 @@ class Curator:
         res = None
         for elem in list_to_find:
             if len(match_elem) < 2:
-                identifier = elem.split(':')
+                identifier = elem.split(':', maxsplit=1)
                 value = identifier[1]
                 schema = identifier[0]
                 if br:

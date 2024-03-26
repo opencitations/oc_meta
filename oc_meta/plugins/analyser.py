@@ -37,7 +37,7 @@ class OCMetaAnalyser:
         for filename in os.listdir(self.csv_dump_path):
             csv_data = get_csv_data(os.path.join(self.csv_dump_path, filename))
             for i, row in enumerate(csv_data):
-                metaid = [identifier for identifier in row['id'].split() if identifier.split(':')[0] == 'omid'][0]
+                metaid = [identifier for identifier in row['id'].split() if identifier.split(':', maxsplit=1)[0] == 'omid'][0]
                 ids_by_csv.setdefault(metaid, dict())
                 ids_by_csv[metaid].setdefault(filename, set())
                 ids_by_csv[metaid][filename].add(i)
@@ -163,7 +163,7 @@ class OCMetaCounter(OCMetaAnalyser):
                 ven_name_and_ids = re.search(name_and_ids, row['venue'])
                 venue_name = ven_name_and_ids.group(1).lower()
                 venue_ids = set(ven_name_and_ids.group(2).split())
-                venue_metaid = [identifier for identifier in venue_ids if identifier.split(':')[0] == 'omid'][0]
+                venue_metaid = [identifier for identifier in venue_ids if identifier.split(':', maxsplit=1)[0] == 'omid'][0]
                 if not venue_ids.difference({venue_metaid}):
                     venues.add(venue_name)
                 else:
@@ -179,7 +179,7 @@ class OCMetaCounter(OCMetaAnalyser):
                 publisher_name = publisher_name_and_ids.group(1).lower()
                 venue_name: str = venue_name_and_ids.group(1).lower()
                 venue_ids = set(venue_name_and_ids.group(2).split())
-                venue_metaid = [identifier for identifier in venue_ids if identifier.split(':')[0] == 'omid'][0]
+                venue_metaid = [identifier for identifier in venue_ids if identifier.split(':', maxsplit=1)[0] == 'omid'][0]
                 publishers_by_venue.setdefault(publisher_name, {'name': publisher_name, 'venue': set()})
                 venue_key = venue_name if not venue_ids.difference({venue_metaid}) else venue_metaid
                 publishers_by_venue[publisher_name]['venue'].add(venue_key)
@@ -191,7 +191,7 @@ class OCMetaCounter(OCMetaAnalyser):
             publishers_name_and_ids = re.search(name_and_ids, row['publisher'])
             if publishers_name_and_ids:
                 publishers_name = publishers_name_and_ids.group(1)
-                row_metaid = [identifier for identifier in row['id'].split() if identifier.split(':')[0] == 'omid'][0]
+                row_metaid = [identifier for identifier in row['id'].split() if identifier.split(':', maxsplit=1)[0] == 'omid'][0]
                 publishers_by_publication.setdefault(publishers_name.lower(), {'name': publishers_name, 'publication': set()})
                 publishers_by_publication[publishers_name.lower()]['publication'].add(row_metaid)
         return publishers_by_publication
@@ -203,8 +203,8 @@ class OCMetaCounter(OCMetaAnalyser):
             if venue_name_and_ids:
                 venue_name = venue_name_and_ids.group(1)
                 venue_ids = set(venue_name_and_ids.group(2).split())
-                venue_metaid = [identifier for identifier in venue_ids if identifier.split(':')[0] == 'omid'][0]
-                row_metaid = [identifier for identifier in row['id'].split() if identifier.split(':')[0] == 'omid'][0]
+                venue_metaid = [identifier for identifier in venue_ids if identifier.split(':', maxsplit=1)[0] == 'omid'][0]
+                row_metaid = [identifier for identifier in row['id'].split() if identifier.split(':', maxsplit=1)[0] == 'omid'][0]
                 venue_key = venue_name.lower() if not venue_ids.difference({venue_metaid}) else venue_metaid
                 venues_by_publication.setdefault(venue_key, {'name': venue_name, 'publication': set()})
                 venues_by_publication[venue_key]['publication'].add(row_metaid)
@@ -216,7 +216,7 @@ class OCMetaCounter(OCMetaAnalyser):
             pub_date = row['pub_date']
             if pub_date:
                 year = datetime.strftime(parse(pub_date), '%Y')
-                row_metaid = [identifier for identifier in row['id'].split() if identifier.split(':')[0] == 'omid'][0]
+                row_metaid = [identifier for identifier in row['id'].split() if identifier.split(':', maxsplit=1)[0] == 'omid'][0]
                 years_by_publication.setdefault(year, {'publication': set()})
                 years_by_publication[year]['publication'].add(row_metaid)
         return years_by_publication
@@ -226,7 +226,7 @@ class OCMetaCounter(OCMetaAnalyser):
         for row in csv_data:
             br_type = row['type']
             if br_type:
-                row_metaid = [identifier for identifier in row['id'].split() if identifier.split(':')[0] == 'omid'][0]
+                row_metaid = [identifier for identifier in row['id'].split() if identifier.split(':', maxsplit=1)[0] == 'omid'][0]
                 types_by_publication.setdefault(br_type, {'publication': set()})
                 types_by_publication[br_type]['publication'].add(row_metaid)
                 venue_name_and_ids = re.search(name_and_ids, row['venue'])
@@ -234,7 +234,7 @@ class OCMetaCounter(OCMetaAnalyser):
                     venue_name = venue_name_and_ids.group(1)
                     venue_ids = set(venue_name_and_ids.group(2).split())
                     venue_type = self.get_venue_type(br_type, venue_ids)
-                    venue_metaid = [identifier for identifier in venue_ids if identifier.split(':')[0] == 'omid'][0]
+                    venue_metaid = [identifier for identifier in venue_ids if identifier.split(':', maxsplit=1)[0] == 'omid'][0]
                     if venue_type:
                         if not venue_ids.difference({venue_metaid}):
                             venue_key = venue_name
@@ -246,7 +246,7 @@ class OCMetaCounter(OCMetaAnalyser):
 
     @classmethod
     def get_venue_type(cls, br_type:str, venue_ids:list) -> str:
-        schemas = {venue_id.split(':')[0] for venue_id in venue_ids}
+        schemas = {venue_id.split(':', maxsplit=1)[0] for venue_id in venue_ids}
         if br_type in {'journal article', 'journal volume', 'journal issue'}:
             venue_type = 'journal'
         elif br_type in {'book chapter', 'book part', 'book section', 'book track'}:

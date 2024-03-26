@@ -33,7 +33,7 @@ from oc_meta.lib.master_of_regex import name_and_ids
 
 def map_metaid(ids: list, mapping: dict):
     ids = set(ids)
-    metaid = [identifier for identifier in ids if identifier.split(':')[0] == 'omid'][0]
+    metaid = [identifier for identifier in ids if identifier.split(':', maxsplit=1)[0] == 'omid'][0]
     mapping.setdefault(metaid, set())
     ids.remove(metaid)
     for other_id in ids:

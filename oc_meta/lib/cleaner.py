@@ -40,7 +40,7 @@ class Cleaner:
         :type string: str
         '''
         self.string = string
-
+    
     def normalize_hyphens(self) -> str:
         '''
         It replaces any hyphen, dash and minus sign with a hyphen-minus character.
@@ -241,7 +241,7 @@ class Cleaner:
                 split_name[i] = Cleaner(w).clean_title()
             new_name = ' '.join(split_name)
         return new_name
-        
+    
     def remove_unwanted_characters(self) -> str:
         '''
         This method helps remove unwanted characters from a string. 
@@ -334,7 +334,6 @@ class Cleaner:
             else:
                 new_ra_list.append(ra_cleaned_name)
         return new_ra_list
-        
     
     def normalize_id(self, valid_dois_cache:dict=dict()) -> Union[str, None]:
         '''

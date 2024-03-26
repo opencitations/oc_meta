@@ -245,7 +245,7 @@ def process_br(br_data: list, rdf_dir: str, dir_split_number: str, items_per_fil
                         id_path = find_file(rdf_dir, dir_split_number, items_per_file, id_uri, zip_output_rdf)
                         if id_path:
                             id_info = process_archive(id_path, process_id, memory, id_uri, meta_config, resp_agent, id_path, memory, None)
-                            br_id_schemas.append(id_info.split(':')[0])
+                            br_id_schemas.append(id_info.split(':', maxsplit=1)[0])
                     br_identifiers.append(br_identifier['@id'])
             if wanted_schemas is not None:
                 if not set(wanted_schemas).intersection(br_id_schemas):

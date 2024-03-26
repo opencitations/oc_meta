@@ -756,7 +756,7 @@ class ResourceFinder:
                 else:
                     identifiers_values = []
                     for identifier in identifiers:
-                        scheme, literal = identifier.split(':')[0], identifier.split(':')[1]
+                        scheme, literal = identifier.split(':', maxsplit=1)[0], identifier.split(':', maxsplit=1)[1]
                         escaped_literal = literal.replace('\\', '\\\\').replace('"', '\\"')
                         identifiers_values.append(f"(<{GraphEntity.DATACITE + scheme}> \"{escaped_literal}\")")
                     identifiers_values_str = " ".join(identifiers_values)
