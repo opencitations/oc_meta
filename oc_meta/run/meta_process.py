@@ -40,6 +40,7 @@ from pebble import ProcessPool
 from time_agnostic_library.support import generate_config_file
 from tqdm import tqdm
 from concurrent.futures import as_completed
+from concurrent.futures import ProcessPoolExecutor
 
 from oc_meta.core.creator import Creator
 from oc_meta.core.curator import Curator
@@ -206,7 +207,7 @@ class MetaProcess:
 def run_meta_process(settings: dict, meta_config_path: str, resp_agents_only: bool=False) -> None:
     meta_process = MetaProcess(settings=settings, meta_config_path=meta_config_path)
     is_unix = platform in {'linux', 'linux2', 'darwin'}
-    # delete_lock_files(base_dir=meta_process.base_output_dir)
+    delete_lock_files(base_dir=meta_process.base_output_dir)
     files_to_be_processed = meta_process.prepare_folders()
     max_workers = meta_process.workers_number
     if max_workers == 0:
@@ -242,6 +243,47 @@ def run_meta_process(settings: dict, meta_config_path: str, resp_agents_only: bo
         if is_unix:
             delete_lock_files(base_dir=meta_process.base_output_dir)
 
+def merge_file_set(identifier, file_paths, zip_output_rdf):
+    try:
+        merged_graph = rdflib.ConjunctiveGraph()
+
+        # Se il file di base esiste già, caricalo nel grafo per la fusione
+        base_file_path = f"{identifier}.json" if not zip_output_rdf else f"{identifier}.zip"
+        if os.path.exists(base_file_path):
+            if zip_output_rdf:
+                with zipfile.ZipFile(base_file_path, 'r') as zipf:
+                    with zipf.open(zipf.namelist()[0], 'r') as json_file:
+                        base_graph_data = json.load(json_file)
+                        merged_graph.parse(data=json.dumps(base_graph_data), format='json-ld')
+            else:
+                with open(base_file_path, 'r', encoding='utf-8') as json_file:
+                    base_graph_data = json.load(json_file)
+                    merged_graph.parse(data=json.dumps(base_graph_data), format='json-ld')
+
+        for file_path in file_paths:
+            if zip_output_rdf:
+                with zipfile.ZipFile(file_path, 'r') as zipf:
+                    with zipf.open(zipf.namelist()[0], 'r') as json_file:
+                        graph_data = json.load(json_file)
+                        merged_graph.parse(data=json.dumps(graph_data), format='json-ld')
+            else:
+                with open(file_path, 'r', encoding='utf-8') as json_file:
+                    graph_data = json.load(json_file)
+                    merged_graph.parse(data=json.dumps(graph_data), format='json-ld')
+
+        if zip_output_rdf:
+            with zipfile.ZipFile(base_file_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                zipf.writestr(f"{os.path.basename(identifier)}.json", merged_graph.serialize(format='json-ld').encode('utf-8'))
+        else:
+            with open(base_file_path, 'w', encoding='utf-8') as f:
+                f.write(merged_graph.serialize(format='json-ld'))
+
+        # Clean up temporary worker files
+        for file_path in file_paths:
+            os.remove(file_path)
+    except Exception as e:
+        print(f"Unexpected error while merging files for {identifier}: {e}")
+
 def merge_rdf_files(output_dir, zip_output_rdf):
     files_to_merge = defaultdict(list)
 
@@ -256,45 +298,16 @@ def merge_rdf_files(output_dir, zip_output_rdf):
                     key = os.path.join(root, number)
                     files_to_merge[key].append(os.path.join(root, file))
 
-    # Passo 2: Unire i file
-    for key, file_paths in tqdm(files_to_merge.items(), desc="Merging files"):
-        merged_graph = rdflib.ConjunctiveGraph()
-
-        # Se il file di base esiste già, caricalo nel grafo per la fusione
-        base_file_path = f"{key}.json" if not zip_output_rdf else f"{key}.zip"
-        if os.path.exists(base_file_path):
-            if zip_output_rdf:
-                with zipfile.ZipFile(base_file_path, 'r') as zipf:
-                    with zipf.open(zipf.namelist()[0], 'r') as json_file:
-                        base_graph_data = json.load(json_file)
-                        merged_graph.parse(data=json.dumps(base_graph_data), format='json-ld')
-            else:
-                with open(base_file_path, 'r', encoding='utf-8') as json_file:
-                    base_graph_data = json.load(json_file)
-                    merged_graph.parse(data=json.dumps(base_graph_data), format='json-ld')
-
-        for file_path in file_paths:
-            if zip_output_rdf:
-                with zipfile.ZipFile(file_path, 'r') as zip_ref:
-                    with zip_ref.open(zip_ref.namelist()[0], 'r') as json_file:
-                        graph_data = json.load(json_file)
-                        merged_graph.parse(data=json.dumps(graph_data), format='json-ld')
-            else:
-                with open(file_path, 'r', encoding='utf-8') as json_file:
-                    graph_data = json.load(json_file)
-                    merged_graph.parse(data=json.dumps(graph_data), format='json-ld')
-
-        # Passo 3: Salvare il grafo unificato
-        if zip_output_rdf:
-            with zipfile.ZipFile(base_file_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                zipf.writestr(f"{os.path.basename(key)}.json", merged_graph.serialize(format='json-ld').encode('utf-8'))
-        else:
-            with open(base_file_path, 'w', encoding='utf-8') as f:
-                f.write(merged_graph.serialize(format='json-ld'))
-
-        # Elimina i file temporanei dei worker
-        for file_path in file_paths:
-            os.remove(file_path)
+    with ProcessPoolExecutor() as executor:
+        futures = {executor.submit(merge_file_set, identifier, file_paths, zip_output_rdf): identifier 
+                   for identifier, file_paths in files_to_merge.items()}
+        
+        for future in tqdm(as_completed(futures), total=len(futures), desc="Merging files"):
+            identifier = futures[future]
+            try:
+                future.result()
+            except Exception as e:
+                print(f"Exception for {identifier}: {e}")
 
 def curate_and_create_wrapper(file_to_be_processed, worker_number, resp_agents_only, settings, meta_config_path):
     meta_process = MetaProcess(settings=settings, meta_config_path=meta_config_path)
