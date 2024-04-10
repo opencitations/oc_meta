@@ -1,6 +1,5 @@
 import argparse
 import os
-import certifi
 import hashlib
 import json
 import requests
@@ -9,27 +8,28 @@ from requests.exceptions import HTTPError
 
 # Endpoint base di Figshare
 BASE_URL = 'https://api.figshare.com/v2/account/articles'
+CHUNK_SIZE = 1048576
 
 def get_file_check_data(file_name):
     with open(file_name, 'rb') as fin:
         md5 = hashlib.md5()
         size = 0
-        data = fin.read(10485760)  # circa 10MB
+        data = fin.read(CHUNK_SIZE)  # circa 10MB
         while data:
             size += len(data)
             md5.update(data)
-            data = fin.read(10485760)
+            data = fin.read(CHUNK_SIZE)
         return md5.hexdigest(), size
 
-def issue_request(method, endpoint, *args, **kwargs):
-    headers = {'Authorization': 'token ' + kwargs['token']}
-    if 'data' in kwargs and kwargs['data'] is not None and not kwargs.get('binary', False):
-        kwargs['data'] = json.dumps(kwargs['data'])
-    response = requests.request(method, BASE_URL + endpoint, headers=headers, **kwargs)
+def issue_request(method, url, token, data=None, binary=False):
+    headers = {'Authorization': 'token ' + token}
+    if data is not None and not binary:
+        data = json.dumps(data)
+    response = requests.request(method, url, headers=headers, data=data)
     try:
         response.raise_for_status()
         try:
-            data = response.json()
+            data = json.loads(response.content)
         except ValueError:
             data = response.content
     except HTTPError as error:
@@ -38,11 +38,11 @@ def issue_request(method, endpoint, *args, **kwargs):
         raise
     return data
 
-def upload_parts(file_info, token):
+def upload_parts(file_info, file_path, token):
     url = file_info['upload_url']
-    result = issue_request('GET', '', url=url, token=token)
+    result = issue_request(method='GET', url=url, token=token)
     print('Uploading parts:')
-    with open(file_info['file_path'], 'rb') as fin:
+    with open(file_path, 'rb') as fin:
         for part in result['parts']:
             upload_part(file_info, fin, part, token)
 
@@ -52,7 +52,7 @@ def upload_part(file_info, stream, part, token):
     url = '{upload_url}/{partNo}'.format(**udata)
     stream.seek(part['startOffset'])
     data = stream.read(part['endOffset'] - part['startOffset'] + 1)
-    issue_request('PUT', '', url=url, data=data, binary=True, token=token)
+    issue_request(method='PUT', url=url, data=data, binary=True, token=token)
     print('  Uploaded part {partNo} from {startOffset} to {endOffset}'.format(**part))
 
 def create_file(article_id, file_name, file_path, token):
@@ -76,7 +76,7 @@ def main(config_path):
         file_name = os.path.basename(file_path)
         print(f"Creazione del file {file_name} in Figshare...")
         file_info = create_file(article_id, file_name, file_path, token)
-        upload_parts(file_info, token)
+        upload_parts(file_info, file_path, token)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Upload files to Figshare.")

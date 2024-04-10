@@ -806,14 +806,7 @@ class ResourceFinder:
             initial_subjects.update(get_initial_subjects_from_vvis(vvis))
 
         # Now start the depth-based processing
-        import time
-        if worker_number == 4:
-            start = time.time()
-            print(start)
         process_batch(initial_subjects, 0)
-        if worker_number == 4:
-            end = time.time()
-            print(end-start)
 
     def get_subgraph(self, res: str, graphs_dict: dict) -> Graph|None:
         if res in graphs_dict:

@@ -14,14 +14,12 @@
 # ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 # SOFTWARE.
 
-import json
 import os
 import unittest
 from shutil import rmtree
 from subprocess import call
 from sys import executable
-from test.curator_test import reset_server
-
+from SPARQLWrapper import SPARQLWrapper, POST
 from oc_ocdm import Storer
 from oc_ocdm.graph import GraphSet
 from oc_ocdm.prov import ProvSet
@@ -33,6 +31,14 @@ from oc_meta.lib.file_manager import get_csv_data
 BASE = os.path.join('test', 'csv_generator')
 CONFIG = os.path.join(BASE, 'meta_config.yaml')
 OUTPUT = os.path.join(BASE, 'csv_generated')
+
+SERVER = 'http://127.0.0.1:9999/blazegraph/sparql'
+
+def reset_server(server:str=SERVER) -> None:
+    ts = SPARQLWrapper(server)
+    ts.setQuery('delete{?x ?y ?z} where{?x ?y ?z}')
+    ts.setMethod(POST)
+    ts.query()
 
 class TestCSVGenerator(unittest.TestCase):
     def test_generate_csv(self):
@@ -59,13 +65,13 @@ class TestCSVGenerator(unittest.TestCase):
         graph_storer.upload_all(endpoint)
         call([executable, '-m', 'oc_meta.run.csv_generator', '-c', CONFIG, '-o', OUTPUT, '-t', '3000', '-m', '2', '-w', 'doi', 'issn'])
         output = get_csv_data(os.path.join(OUTPUT, '0.csv'))
-        expected_output = [
-            {'id': 'omid:br/06102 issn:0018-9464', 'title': 'IEEE Transactions On Magnetics', 'author': '', 'issue': '', 'volume': '', 'venue': '', 'page': '', 'pub_date': '', 'type': 'journal', 'publisher': '', 'editor': ''}, 
-            {'id': 'omid:br/06101 doi:10.1109/20.877674', 'title': 'An Investigation Of FEM-FCT Method For Streamer Corona Simulation', 'author': 'Woong-Gee Min, [omid:ra/06101]; Hyeong-Seok Kim, [omid:ra/06102]; Seok-Hyun Lee, [omid:ra/06103]; Song-Yop Hahn, [omid:ra/06104]', 'issue': '4', 'volume': '36', 'venue': 'IEEE Transactions On Magnetics [omid:br/06102 issn:0018-9464]', 'page': '1280-1284', 'pub_date': '2000-07', 'type': 'journal article', 'publisher': 'Institute Of Electrical And Electronics Engineers (Ieee) [omid:ra/06105 crossref:263 crossref:263]', 'editor': ''}
-        ]
         for stuff in os.listdir(BASE):
             if os.path.isdir(os.path.join(BASE, stuff)) and stuff not in {'input'}:
                 rmtree(os.path.join(BASE, stuff))
             elif os.path.isfile(os.path.join(BASE, stuff)) and stuff != 'meta_config.yaml':
                 os.remove(os.path.join(BASE, stuff))
+        expected_output = [
+            {'id': 'omid:br/06102 issn:0018-9464', 'title': 'IEEE Transactions On Magnetics', 'author': '', 'issue': '', 'volume': '', 'venue': '', 'page': '', 'pub_date': '', 'type': 'journal', 'publisher': '', 'editor': ''}, 
+            {'id': 'omid:br/06101 doi:10.1109/20.877674', 'title': 'An Investigation Of FEM-FCT Method For Streamer Corona Simulation', 'author': 'Woong-Gee Min, [omid:ra/06101]; Hyeong-Seok Kim, [omid:ra/06102]; Seok-Hyun Lee, [omid:ra/06103]; Song-Yop Hahn, [omid:ra/06104]', 'issue': '4', 'volume': '36', 'venue': 'IEEE Transactions On Magnetics [omid:br/06102 issn:0018-9464]', 'page': '1280-1284', 'pub_date': '2000-07', 'type': 'journal article', 'publisher': 'Institute Of Electrical And Electronics Engineers (Ieee) [omid:ra/06105 crossref:263 crossref:263]', 'editor': ''}
+        ]
         self.assertTrue(output == expected_output or output == list(reversed(expected_output)))

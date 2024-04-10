@@ -26,6 +26,8 @@ from zipfile import ZIP_DEFLATED, ZipFile
 from filelock import FileLock
 from rdflib import ConjunctiveGraph, URIRef, Graph
 import logging
+from tqdm import tqdm
+from datetime import datetime
 
 # Variable used in several functions
 entity_regex: str = r"^(.+)/([a-z][a-z])/(0[1-9]+0)?((?:[1-9][0-9]*)|(?:\d+-\d+))$"
@@ -265,6 +267,7 @@ def load_graph(file_path: str, cur_format: str = 'json-ld'):
     return loaded_graph
 
 def process_graph(context, graph_identifier, output_root, base_iri, file_limit, item_limit, zip_output):
+    start_time = datetime.now()
     modifications_by_file = {}
     triples = 0
     for triple in context:
@@ -278,41 +281,52 @@ def process_graph(context, graph_identifier, output_root, base_iri, file_limit, 
                 "triples": []
             }
         modifications_by_file[cur_file_path]["triples"].append(triple)
-    
-    output_triples_count = 0
+
     for file_path, data in modifications_by_file.items():
         stored_g = load_graph(file_path) if os.path.exists(file_path) else ConjunctiveGraph()
         stored_g = store(data["triples"], data["graph_identifier"], stored_g)
         store_in_file(stored_g, file_path, zip_output)
     return triples
 
-def process_file_content(graph: ConjunctiveGraph, output_root, base_iri, file_limit, item_limit, zip_output):
+def process_file_content(args):
+    file_path, output_root, base_iri, file_limit, item_limit, zip_output, rdf_format = args
+
+    with gzip.open(file_path, 'rb') as f:
+        data = f.read().decode('utf-8')
+        graph = ConjunctiveGraph()
+        graph.parse(data=data, format=rdf_format)
+
     for context in graph.contexts():
         graph_identifier = context.identifier
         process_graph(context, graph_identifier, output_root, base_iri, file_limit, item_limit, zip_output)
 
 def main():
-    parser = argparse.ArgumentParser(description="Process gzipped json-ld files into OC Meta RDF")
-    parser.add_argument('input_folder', type=str, help='Input folder containing gzipped json-ld files')
+    parser = argparse.ArgumentParser(description="Process gzipped input files into OC Meta RDF")
+    parser.add_argument('input_folder', type=str, help='Input folder containing gzipped input files')
     parser.add_argument('output_root', type=str, help='Root folder for output OC Meta RDF files')
     parser.add_argument('--base_iri', type=str, default='https://w3id.org/oc/meta/', help='The base URI of entities on Meta. This setting can be safely left as is')
     parser.add_argument('--file_limit', type=int, default=10000, help='Number of files per folder')
     parser.add_argument('--item_limit', type=int, default=1000, help='Number of items per file')
     parser.add_argument('-v', '--zip_output', dest='zip_output', action='store_true', required=False, help='Zip output json files')
+    parser.add_argument('--input_format', type=str, default='jsonld', choices=['jsonld', 'nquads'], help='Format of the gzipped input files (jsonld or nquads)')
     args = parser.parse_args()
 
-    pool = multiprocessing.Pool()
-    results = []
-    for file in os.listdir(args.input_folder):
-        if file.endswith('.jsonld.gz'):
-            with gzip.open(os.path.join(args.input_folder, file), 'rb') as f:
-                data = f.read().decode('utf-8')
-                graph = ConjunctiveGraph()
-                graph.parse(data=data, format='json-ld')
-                result = pool.apply_async(process_file_content, (graph, args.output_root, args.base_iri, args.file_limit, args.item_limit, args.zip_output,))
-                results.append(result)
-    pool.close()
-    pool.join()
+    file_extension = '.nq.gz' if args.input_format == 'nquads' else '.jsonld.gz'
+    rdf_format = 'nquads' if args.input_format == 'nquads' else 'json-ld'
+
+    files_to_process = [file for file in os.listdir(args.input_folder) if file.endswith(file_extension)]
+    tasks = [(os.path.join(args.input_folder, file_path), args.output_root, args.base_iri, args.file_limit, args.item_limit, args.zip_output, rdf_format) for file_path in files_to_process]
+
+    pbar = tqdm(total=len(files_to_process), desc="Completing jobs")
+
+    with multiprocessing.Pool() as pool:
+        for task in tasks:
+            pool.apply_async(process_file_content, args=(task,), callback=lambda _: pbar.update(1))
+        
+        pool.close()
+        pool.join()
+
+    pbar.close()
 
 if __name__ == "__main__":
     main()

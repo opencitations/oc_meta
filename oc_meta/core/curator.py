@@ -144,7 +144,11 @@ class Curator:
         self.rowcnt = 0
         for row in self.data:
             self.clean_ra(row, 'author')
-            self.clean_ra(row, 'publisher')
+            try:
+                self.clean_ra(row, 'publisher')
+            except ValueError:
+                print(row)
+                raise(ValueError)
             self.clean_ra(row, 'editor')
             self.rowcnt += 1
         self.get_preexisting_entities()
@@ -1228,7 +1232,11 @@ class Curator:
         '''
         self.log[self.rowcnt]['id']['status'] = 'Entity already exists'
         known_data = self.finder.retrieve_br_info_from_meta(metaval)
-        known_data['author'] = self.__get_resp_agents(metaval, 'author')
+        try:
+            known_data['author'] = self.__get_resp_agents(metaval, 'author')
+        except ValueError:
+            print(row)
+            raise(ValueError)
         known_data['editor'] = self.__get_resp_agents(metaval, 'editor')
         known_data['publisher'] = self.finder.retrieve_publisher_from_br_metaid(metaval)
         for datum in ['pub_date', 'type', 'volume', 'issue']:

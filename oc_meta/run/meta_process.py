@@ -273,10 +273,10 @@ def merge_file_set(identifier, file_paths, zip_output_rdf):
 
         if zip_output_rdf:
             with zipfile.ZipFile(base_file_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                zipf.writestr(f"{os.path.basename(identifier)}.json", merged_graph.serialize(format='json-ld').encode('utf-8'))
+                zipf.writestr(f"{os.path.basename(identifier)}.json", merged_graph.serialize(format='json-ld', indent=None, ensure_ascii=False).encode('utf-8'))
         else:
             with open(base_file_path, 'w', encoding='utf-8') as f:
-                f.write(merged_graph.serialize(format='json-ld'))
+                f.write(merged_graph.serialize(format='json-ld', indent=None, ensure_ascii=False))
 
         # Clean up temporary worker files
         for file_path in file_paths:

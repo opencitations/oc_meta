@@ -3,6 +3,7 @@ import os
 from SPARQLWrapper import SPARQLWrapper, JSON
 from oc_meta.plugins.editor import MetaEditor
 from rdflib import URIRef
+from tqdm import tqdm
 
 def query_publishers(endpoint_url, output_file):
     if os.path.isfile(output_file):
@@ -36,7 +37,7 @@ def update_publishers_names(endpoint_url, publishers, config_path, resp_agent):
     sparql = SPARQLWrapper(endpoint_url)
     sparql.setReturnFormat(JSON)
 
-    for pub in publishers:
+    for pub in tqdm(publishers, desc="Updating publisher names"):
         sparql.setQuery(f"""
             SELECT ?old_value
             WHERE {{
