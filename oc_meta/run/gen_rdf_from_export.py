@@ -215,59 +215,43 @@ def store_in_file(cur_g: ConjunctiveGraph, cur_file_path: str, zip_output: bool)
         os.makedirs(dir_path, exist_ok=True)
 
     cur_json_ld = json.loads(cur_g.serialize(format="json-ld"))
-    file_lock = FileLock(f"{cur_file_path}.lock")
 
-    with file_lock:
-        if zip_output:
-            with ZipFile(cur_file_path, mode="w", compression=ZIP_DEFLATED, allowZip64=True) as zip_file:
-                json_str = json.dumps(cur_json_ld, ensure_ascii=False)
-                zip_file.writestr(os.path.basename(cur_file_path.replace('.zip', '.json')), json_str)
-        else:
-            with open(cur_file_path, 'wt', encoding='utf-8') as f:
-                json.dump(cur_json_ld, f, ensure_ascii=False)
-
-
-def zip_files_in_directory(directory: str) -> None:
-    for root, dirs, files in os.walk(directory):
-        for file in files:
-            if file.endswith('.json'):
-                json_file_path = os.path.join(root, file)
-                zip_file_path = json_file_path.replace('.json', '.zip')
-                with ZipFile(zip_file_path, mode="w", compression=ZIP_LZMA, allowZip64=True) as zip_file:
-                    zip_file.write(json_file_path, arcname=os.path.basename(json_file_path))
-                os.remove(json_file_path)
+    if zip_output:
+        with ZipFile(cur_file_path, mode="w", compression=ZIP_DEFLATED, allowZip64=True) as zip_file:
+            json_str = json.dumps(cur_json_ld, ensure_ascii=False)
+            zip_file.writestr(os.path.basename(cur_file_path.replace('.zip', '.json')), json_str)
+    else:
+        with open(cur_file_path, 'wt', encoding='utf-8') as f:
+            json.dump(cur_json_ld, f, ensure_ascii=False)
 
 def load_graph(file_path: str, cur_format: str = 'json-ld'):
     loaded_graph = ConjunctiveGraph()
-    lock = FileLock(f"{file_path}.lock")
-    with lock:
-        if file_path.endswith('.zip'):
-            with ZipFile(file=file_path, mode="r", compression=ZIP_DEFLATED, allowZip64=True) as archive:
-                for zf_name in archive.namelist():
-                    with archive.open(zf_name) as f:
-                        if cur_format == "json-ld":
-                            json_ld_file = json.load(f)
-                            if isinstance(json_ld_file, dict):
-                                json_ld_file = [json_ld_file]
-                            for json_ld_resource in json_ld_file:
-                                loaded_graph.parse(data=json.dumps(json_ld_resource, ensure_ascii=False), format=cur_format)
-                        else:
-                            loaded_graph.parse(file=f, format=cur_format)
-        else:
-            with open(file_path, 'rt', encoding='utf-8') as f:
-                if cur_format == "json-ld":
-                    json_ld_file = json.load(f)
-                    if isinstance(json_ld_file, dict):
-                        json_ld_file = [json_ld_file]
-                    for json_ld_resource in json_ld_file:
-                        loaded_graph.parse(data=json.dumps(json_ld_resource, ensure_ascii=False), format=cur_format)
-                else:
-                    loaded_graph.parse(file=f, format=cur_format)
+    if file_path.endswith('.zip'):
+        with ZipFile(file=file_path, mode="r", compression=ZIP_DEFLATED, allowZip64=True) as archive:
+            for zf_name in archive.namelist():
+                with archive.open(zf_name) as f:
+                    if cur_format == "json-ld":
+                        json_ld_file = json.load(f)
+                        if isinstance(json_ld_file, dict):
+                            json_ld_file = [json_ld_file]
+                        for json_ld_resource in json_ld_file:
+                            loaded_graph.parse(data=json.dumps(json_ld_resource, ensure_ascii=False), format=cur_format)
+                    else:
+                        loaded_graph.parse(file=f, format=cur_format)
+    else:
+        with open(file_path, 'rt', encoding='utf-8') as f:
+            if cur_format == "json-ld":
+                json_ld_file = json.load(f)
+                if isinstance(json_ld_file, dict):
+                    json_ld_file = [json_ld_file]
+                for json_ld_resource in json_ld_file:
+                    loaded_graph.parse(data=json.dumps(json_ld_resource, ensure_ascii=False), format=cur_format)
+            else:
+                loaded_graph.parse(file=f, format=cur_format)
 
     return loaded_graph
 
 def process_graph(context, graph_identifier, output_root, base_iri, file_limit, item_limit, zip_output):
-    start_time = datetime.now()
     modifications_by_file = {}
     triples = 0
     for triple in context:
@@ -283,9 +267,11 @@ def process_graph(context, graph_identifier, output_root, base_iri, file_limit, 
         modifications_by_file[cur_file_path]["triples"].append(triple)
 
     for file_path, data in modifications_by_file.items():
-        stored_g = load_graph(file_path) if os.path.exists(file_path) else ConjunctiveGraph()
-        stored_g = store(data["triples"], data["graph_identifier"], stored_g)
-        store_in_file(stored_g, file_path, zip_output)
+        lock = FileLock(f'{file_path}.lock')
+        with lock:
+            stored_g = load_graph(file_path) if os.path.exists(file_path) else ConjunctiveGraph()
+            stored_g = store(data["triples"], data["graph_identifier"], stored_g)
+            store_in_file(stored_g, file_path, zip_output)
     return triples
 
 def process_file_content(args):
