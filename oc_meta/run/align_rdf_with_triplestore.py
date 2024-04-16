@@ -291,10 +291,10 @@ def process_file(file_path, output_folder, log_dir, zipped_input, zipped_output,
             if update:
                 if zipped_output:
                     with zipfile.ZipFile(cur_file_path, 'w') as zfile:
-                        zfile.writestr(json_file_name, target_graph.serialize(format='json-ld').encode('utf-8'))
+                        zfile.writestr(json_file_name, target_graph.serialize(format='json-ld', indent=None, ensure_ascii=False).encode('utf-8'))
                 else:
                     with open(cur_file_path, 'w', encoding='utf-8') as file:
-                        file.write(target_graph.serialize(format='json-ld'))
+                        file.write(target_graph.serialize(format='json-ld', indent=None, ensure_ascii=False))
     if use_multiprocessing:
         queue.put(1)
 

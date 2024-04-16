@@ -83,7 +83,7 @@ def process_task(class_uri, uri_prefix, supplier_prefixes, endpoint, output_fold
                 graph, triple_count = convert_to_graph(results)
                 output_filename = os.path.join(output_folder_prefix, f"{class_uri.split('/')[-1]}_{supplier_prefix}_output_{file_count}.jsonld")
                 with open(output_filename, 'w', encoding='utf-8') as f:
-                    jsonld_data = graph.serialize(format='json-ld', indent=None)
+                    jsonld_data = graph.serialize(format='json-ld', indent=None, ensure_ascii=False)
                     f.write(jsonld_data)
                 progress_queue.put(triple_count)
             else:
