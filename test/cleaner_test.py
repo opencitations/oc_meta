@@ -109,15 +109,6 @@ class test_Cleaner(unittest.TestCase):
             output.append(Cleaner(id).normalize_id(valid_dois_cache=csv_manager))
         expected_output = ['doi:10.1123/ijatt.2015-0070', None, 'orcid:0000-0003-0530-4305', None, 'issn:1479-6708', None, 'isbn:9783319403120', None]
         self.assertEqual(output, expected_output)
-
-    def test_normalize_id_with_cache(self):
-        identifiers = ['doi:10.1123/ijatt']
-        output_data = list()
-        csv_manager = {'10.1123/ijatt.2015-0070': {'v'}}
-        for id in identifiers:
-            output_data.append(Cleaner(id).normalize_id(valid_dois_cache=csv_manager))
-        expected_data = [None]
-        self.assertEqual(output_data, expected_data)
     
     def test_clean_volume_and_issue(self):
         invalid_vi_rows = [

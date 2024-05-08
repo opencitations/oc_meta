@@ -344,27 +344,25 @@ class Cleaner:
         identifier = self.string.split(':', 1)
         schema = identifier[0].lower()
         value = identifier[1]
-        use_api_service = True if valid_dois_cache else False
-        validator = 'is_valid' if use_api_service else 'check_digit'
         if schema == 'doi':
-            doi_manager = DOIManager(data=valid_dois_cache, use_api_service=use_api_service)
-            valid_id = doi_manager.normalise(value, include_prefix=True) if getattr(doi_manager, validator)(value) else None
+            doi_manager = DOIManager(use_api_service=False, storage_manager=None)
+            valid_id = doi_manager.normalise(value, include_prefix=True) if doi_manager.syntax_ok(value) else None
         elif schema == 'isbn':
             isbn_manager = ISBNManager()
-            valid_id = isbn_manager.normalise(value, include_prefix=True) if getattr(isbn_manager, validator)(value) else None
+            valid_id = isbn_manager.normalise(value, include_prefix=True) if isbn_manager.is_valid(value, get_extra_info=False) else None
         elif schema == 'issn':
             if value == '0000-0000':
                 valid_id = None
             else:
                 issn_manager = ISSNManager()
                 try:
-                    valid_id = issn_manager.normalise(value, include_prefix=True) if getattr(issn_manager, validator)(value) else None
+                    valid_id = issn_manager.normalise(value, include_prefix=True) if issn_manager.is_valid(value, get_extra_info=False) else None
                 except ValueError:
                     print(value)
                     raise(ValueError)
         elif schema == 'orcid':
-            orcid_manager = ORCIDManager(use_api_service=use_api_service)
-            valid_id = orcid_manager.normalise(value, include_prefix=True) if getattr(orcid_manager, validator)(value) else None
+            orcid_manager = ORCIDManager(use_api_service=False, storage_manager=None)
+            valid_id = orcid_manager.normalise(value, include_prefix=True) if orcid_manager.is_valid(value, get_extra_info=False) else None
         else:
             valid_id = f'{schema}:{value}'
         return valid_id

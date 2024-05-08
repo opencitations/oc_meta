@@ -57,6 +57,8 @@ def extract_and_process_json(zip_path, source_folder):
                                     elif str(o) == 'https://doi.org/10.5281/zenodo.7845968':
                                         graph.add((subject, URIRef("http://www.w3.org/ns/prov#hadPrimarySource"), URIRef('https://doi.org/10.5281/zenodo.7845968'), current_context))
                                         changes_made = True
+                                    else:
+                                        print(o)
     if changes_made:
         updated_json = graph.serialize(format='json-ld', indent=None, encoding='utf-8', ensure_ascii=False)
         with zipfile.ZipFile(zip_path, 'w', compression=zipfile.ZIP_DEFLATED, allowZip64=True) as z:
