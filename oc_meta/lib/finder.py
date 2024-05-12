@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from time import sleep
 from typing import Dict, List, Tuple
-
+import yaml
 from dateutil import parser
 from oc_ocdm.graph import GraphEntity
 from oc_ocdm.prov.prov_entity import ProvEntity
@@ -149,7 +149,9 @@ class ResourceFinder:
         :returns str: -- It returns the MetaID associated with the target entity after a merge. If there was no merge, it returns None.
         '''
         metaval = None
-        agnostic_meta = AgnosticEntity(res=metaid_uri, related_entities_history=False, config_path=prov_config)
+        with open(prov_config, 'r', encoding='utf8') as f:
+            prov_config_dict = yaml.safe_load(f)
+        agnostic_meta = AgnosticEntity(res=metaid_uri, config=prov_config_dict, related_entities_history=False)
         agnostic_meta_history = agnostic_meta.get_history(include_prov_metadata=True)
         meta_history_data = agnostic_meta_history[0][metaid_uri]
         if meta_history_data:

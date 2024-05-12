@@ -1353,13 +1353,13 @@ files = [
 
 [[package]]
 name = "oc-ds-converter"
-version = "1.0.2"
+version = "1.0.3"
 description = "A library for converting metadata provided by various data sources, e.g. Crossref, DataCite, JaLC, and mEDRA, into the format used by OpenCitations Meta."
 optional = false
 python-versions = "<4.0,>=3.8"
 files = [
-    {file = "oc_ds_converter-1.0.2-py3-none-any.whl", hash = "sha256:646a2fced65f336001c8e5cb6ac7f68fe523bd82041e24007d341ed7e6331f89"},
-    {file = "oc_ds_converter-1.0.2.tar.gz", hash = "sha256:13cb2362334ca30a967f40a56ea0b0451c846cc67aae0d0b54dd266b21a78454"},
+    {file = "oc_ds_converter-1.0.3-py3-none-any.whl", hash = "sha256:9fe22761ec954048ad411ebc0d8398271413ea7f21f1da8b76e61eadfeea3d74"},
+    {file = "oc_ds_converter-1.0.3.tar.gz", hash = "sha256:c38ab7be0a70c03cee1ce1f51d0b6289f65a4ba7bbcd82a27dbbf3e63317369f"},
 ]
 
 [package.dependencies]
@@ -2630,4 +2630,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "d2d35e410b7541d6a27fa55f77e7d4372be30038eb014363da179da5a4f1ba45"
+content-hash = "94f8984d8d86ebc40f20e65a4a6fc4effb32c1a35ae1d1a148e27a79938c8025"
