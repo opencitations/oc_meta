@@ -5,18 +5,24 @@ import subprocess
 import sys
 import unittest
 from datetime import datetime
-from test.curator_test import reset_server
 from zipfile import ZipFile
 
 import rdflib
 import yaml
 from rdflib import ConjunctiveGraph, Graph, Literal, Namespace, URIRef
-from SPARQLWrapper import JSON, SPARQLWrapper
+from SPARQLWrapper import JSON, POST, SPARQLWrapper
 
 from oc_meta.lib.file_manager import get_csv_data
 from oc_meta.run.meta_process import merge_rdf_files, run_meta_process
 
 BASE_DIR = os.path.join('test', 'meta_process')
+SERVER = 'http://127.0.0.1:9999/blazegraph/sparql'
+
+def reset_server(server:str=SERVER) -> None:
+    ts = SPARQLWrapper(server)
+    ts.setQuery('delete{?x ?y ?z} where{?x ?y ?z}')
+    ts.setMethod(POST)
+    ts.query()
 
 def delete_output_zip(base_dir:str, start_time:datetime) -> None:
     for file in os.listdir(base_dir):

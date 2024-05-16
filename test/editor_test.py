@@ -18,7 +18,6 @@ import json
 import os
 import unittest
 from shutil import rmtree
-from test.curator_test import reset_server
 
 import yaml
 from oc_ocdm import Storer
@@ -28,11 +27,19 @@ from oc_ocdm.reader import Reader
 from rdflib import URIRef
 
 from oc_meta.plugins.editor import MetaEditor
-from oc_meta.run.meta_process import MetaProcess, run_meta_process
+from oc_meta.run.meta_process import run_meta_process
+from SPARQLWrapper import POST, SPARQLWrapper
 
 BASE = os.path.join('test', 'editor')
 OUTPUT = os.path.join(BASE, 'output')
 META_CONFIG = os.path.join(BASE, 'meta_config.yaml')
+SERVER = 'http://127.0.0.1:9999/blazegraph/sparql'
+
+def reset_server(server:str=SERVER) -> None:
+    ts = SPARQLWrapper(server)
+    ts.setQuery('delete{?x ?y ?z} where{?x ?y ?z}')
+    ts.setMethod(POST)
+    ts.query()
 
 class TestEditor(unittest.TestCase):
     def setUp(self):

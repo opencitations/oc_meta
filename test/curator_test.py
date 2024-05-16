@@ -284,7 +284,6 @@ class test_Curator(unittest.TestCase):
                 }
             }
         }
-        print(curator.vvi)
         self.assertEqual(curator.vvi, expected_output)
 
     def test_clean_ra_overlapping_surnames(self):

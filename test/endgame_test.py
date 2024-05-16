@@ -14,16 +14,18 @@
 # SOFTWARE.
 
 import os
-import subprocess
 import unittest
-from sys import platform
-from test.curator_test import reset_server
+from SPARQLWrapper import POST, SPARQLWrapper
 
-import yaml
-
-from oc_meta.run.meta_process import MetaProcess, run_meta_process
 
 BASE_DIR = os.path.join('test', 'endgame')
+SERVER = 'http://127.0.0.1:9999/blazegraph/sparql'
+
+def reset_server(server:str=SERVER) -> None:
+    ts = SPARQLWrapper(server)
+    ts.setQuery('delete{?x ?y ?z} where{?x ?y ?z}')
+    ts.setMethod(POST)
+    ts.query()
 
 # class test_Endgame(unittest.TestCase):
 #     def test_endgame(self):

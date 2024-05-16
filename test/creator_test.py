@@ -1,7 +1,6 @@
 import json
 import os
 import unittest
-from test.curator_test import reset_server
 
 from rdflib import XSD, Graph, compare
 from rdflib.term import _toPythonMapping
@@ -9,8 +8,16 @@ from rdflib.term import _toPythonMapping
 from oc_meta.core.creator import *
 from oc_meta.lib.file_manager import get_csv_data
 from oc_meta.plugins.multiprocess.resp_agents_creator import RespAgentsCreator
+from SPARQLWrapper import POST, SPARQLWrapper
 
 SERVER = 'http://127.0.0.1:9999/blazegraph/sparql'
+SERVER = 'http://127.0.0.1:9999/blazegraph/sparql'
+
+def reset_server(server:str=SERVER) -> None:
+    ts = SPARQLWrapper(server)
+    ts.setQuery('delete{?x ?y ?z} where{?x ?y ?z}')
+    ts.setMethod(POST)
+    ts.query()
 
 # The following function has been added for handling gYear and gYearMonth correctly.
 # Source: https://github.com/opencitations/script/blob/master/ocdm/storer.py

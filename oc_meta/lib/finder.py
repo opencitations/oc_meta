@@ -685,7 +685,7 @@ class ResourceFinder:
             publishers_output.append(pub_full)
         return '; '.join(publishers_output)
             
-    def get_everything_about_res(self, metavals: set, identifiers: set, vvis: set, worker_number: int = None, max_depth: int = 4) -> None:
+    def get_everything_about_res(self, metavals: set, identifiers: set, vvis: set, max_depth: int = 4) -> None:
         BATCH_SIZE = None
         use_text_search = self.blazegraph_full_text_search
         def batch_process(input_set, batch_size):

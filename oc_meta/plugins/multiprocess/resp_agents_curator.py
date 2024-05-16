@@ -48,8 +48,8 @@ class RespAgentsCurator(Curator):
         self.preexisting_entities = set()
 
     def curator(self, filename:str=None, path_csv:str=None, path_index:str=None):
-        identifiers, metavals, vvis = self.collect_identifiers(valid_dois_cache=dict())
-        self.finder.get_everything_about_res(identifiers, metavals, vvis)
+        metavals, identifiers, vvis = self.collect_identifiers(valid_dois_cache=dict())
+        self.finder.get_everything_about_res(metavals=metavals, identifiers=identifiers, vvis=vvis)
         for row in self.data:
             self.log[self.rowcnt] = {
                 'id': {},
