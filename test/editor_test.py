@@ -191,6 +191,87 @@ class TestEditor(unittest.TestCase):
                             update_query = entity['https://w3id.org/oc/ontology/hasUpdateQuery'][0]['@value'].replace('DELETE DATA { GRAPH <https://w3id.org/oc/meta/ra/> { ', '').replace(' . } }', '').replace('\n', '').split(' .')
                             self.assertEqual(set(update_query), {'<https://w3id.org/oc/meta/ra/06205> <http://xmlns.com/foaf/0.1/name> "Wiley"', '<https://w3id.org/oc/meta/ra/06205> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06201>', '<https://w3id.org/oc/meta/ra/06205> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06105>', '<https://w3id.org/oc/meta/ra/06205> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent>'})
                             
+    def test_delete_entity_with_inferred_type(self):
+        editor = MetaEditor(META_CONFIG, 'https://orcid.org/0000-0002-8420-0696')
+        endpoint = SPARQLWrapper(SERVER)
+
+        # Remove the type from the entity
+        delete_type_query = """
+        DELETE {
+            GRAPH <https://w3id.org/oc/meta/br/> {
+                <https://w3id.org/oc/meta/br/06105> a <http://purl.org/spar/fabio/Expression> .
+            }
+        }
+        WHERE {
+            GRAPH <https://w3id.org/oc/meta/br/> {
+                <https://w3id.org/oc/meta/br/06105> a <http://purl.org/spar/fabio/Expression> .
+            }
+        }
+        """
+        endpoint.setQuery(delete_type_query)
+        endpoint.setMethod(POST)
+        endpoint.query()
+
+        # Ensure the entity exists before deletion
+        select_query = """
+        SELECT ?s WHERE {
+            GRAPH <https://w3id.org/oc/meta/br/> {
+                ?s <http://prismstandard.org/namespaces/basic/2.0/publicationDate> "2024-04-14"^^<http://www.w3.org/2001/XMLSchema#date> .
+            }
+        }
+        """
+        endpoint.setQuery(select_query)
+        endpoint.setReturnFormat('json')
+        result = endpoint.query().convert()
+        self.assertEqual(len(result['results']['bindings']), 1)
+
+        # Perform deletion
+        editor.delete(URIRef('https://w3id.org/oc/meta/br/06105'))
+
+        # Ensure the entity is deleted
+        result = endpoint.query().convert()
+        self.assertEqual(len(result['results']['bindings']), 0)
+
+        # Verify provenance information
+        prov_path = os.path.join(OUTPUT, 'rdf', 'br', '0610', '10000', '1000', 'prov', 'se.json')
+        with open(prov_path, 'r', encoding='utf8') as f:
+            prov_data = json.load(f)
+            br_06105_prov_se_2 = None
+            br_06105_prov_se_1 = None
+            for graph in prov_data:
+                for entity in graph['@graph']:
+                    if entity['@id'] == 'https://w3id.org/oc/meta/br/06105/prov/se/2':
+                        br_06105_prov_se_2 = entity
+                    if entity['@id'] == 'https://w3id.org/oc/meta/br/06105/prov/se/1':
+                        br_06105_prov_se_1 = entity
+            
+            self.assertIsNotNone(br_06105_prov_se_2)
+            self.assertEqual(br_06105_prov_se_2['http://purl.org/dc/terms/description'][0]['@value'], "The entity 'https://w3id.org/oc/meta/br/06105' has been deleted.")
+            self.assertEqual(br_06105_prov_se_2['@type'][0], "http://www.w3.org/ns/prov#Entity")
+            self.assertEqual(br_06105_prov_se_2['http://www.w3.org/ns/prov#specializationOf'][0]['@id'], "https://w3id.org/oc/meta/br/06105")
+            self.assertEqual(br_06105_prov_se_2['http://www.w3.org/ns/prov#wasAttributedTo'][0]['@id'], "https://orcid.org/0000-0002-8420-0696")
+            self.assertIn("http://www.w3.org/ns/prov#invalidatedAtTime", br_06105_prov_se_2)
+            self.assertIn("http://www.w3.org/ns/prov#generatedAtTime", br_06105_prov_se_2)
+            self.assertEqual(len(br_06105_prov_se_1['http://www.w3.org/ns/prov#generatedAtTime']), 1)
+            self.assertIn("https://w3id.org/oc/ontology/hasUpdateQuery", br_06105_prov_se_2)
+            update_query_value = br_06105_prov_se_2['https://w3id.org/oc/ontology/hasUpdateQuery'][0]['@value']
+            update_query_triples = update_query_value.replace('DELETE DATA { GRAPH <https://w3id.org/oc/meta/br/> { ', '').replace(' } }', '').strip()
+            actual_triples = set(triple.strip() for triple in update_query_triples.split(' .') if triple.strip())
+            expected_triples = {
+                '<https://w3id.org/oc/meta/br/06105> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06106>',
+                '<https://w3id.org/oc/meta/br/06105> <http://prismstandard.org/namespaces/basic/2.0/publicationDate> "2024-04-14"^^<http://www.w3.org/2001/XMLSchema#date>'
+            }
+            self.assertEqual(actual_triples, expected_triples)
+            
+            self.assertIsNotNone(br_06105_prov_se_1)
+            self.assertEqual(br_06105_prov_se_1['http://purl.org/dc/terms/description'][0]['@value'], "The entity 'https://w3id.org/oc/meta/br/06105' has been created.")
+            self.assertEqual(br_06105_prov_se_1['@type'][0], "http://www.w3.org/ns/prov#Entity")
+            self.assertEqual(br_06105_prov_se_1['http://www.w3.org/ns/prov#specializationOf'][0]['@id'], "https://w3id.org/oc/meta/br/06105")
+            self.assertEqual(br_06105_prov_se_1['http://www.w3.org/ns/prov#wasAttributedTo'][0]['@id'], "https://w3id.org/oc/meta/prov/pa/1")
+            self.assertIn("http://www.w3.org/ns/prov#generatedAtTime", br_06105_prov_se_1)
+            self.assertEqual(len(br_06105_prov_se_1['http://www.w3.org/ns/prov#generatedAtTime']), 1)
+            self.assertEqual(len(br_06105_prov_se_2['http://www.w3.org/ns/prov#invalidatedAtTime']), 1)
+            self.assertIn("http://www.w3.org/ns/prov#hadPrimarySource", br_06105_prov_se_1)
 
 if __name__ == '__main__': # pragma: no cover
     unittest.main()

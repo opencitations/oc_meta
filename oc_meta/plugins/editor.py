@@ -26,8 +26,10 @@ from oc_ocdm.graph import GraphSet
 from oc_ocdm.prov import ProvSet
 from oc_ocdm.reader import Reader
 from rdflib import URIRef
+from oc_ocdm.graph.graph_entity import GraphEntity
+from oc_ocdm.support.support import build_graph_from_results
 from SPARQLWrapper import JSON, SPARQLWrapper
-
+from rdflib import RDF, ConjunctiveGraph
 
 class MetaEditor:
     def __init__(self, meta_config: str, resp_agent: str):
@@ -60,7 +62,23 @@ class MetaEditor:
         info_dir = self.__get_info_dir(res)
         supplier_prefix = self.__get_supplier_prefix(res)
         g_set = GraphSet(self.base_iri, info_dir, supplier_prefix=supplier_prefix)
-        self.reader.import_entity_from_triplestore(g_set, self.endpoint, res, self.resp_agent, enable_validation=False)
+        try:
+            self.reader.import_entity_from_triplestore(g_set, self.endpoint, res, self.resp_agent, enable_validation=False)
+        except ValueError as e:
+            print(f"ValueError for entity {res}: {e}")
+            inferred_type = self.infer_type_from_uri(res)
+            if inferred_type:
+                print(f"Inferred type {inferred_type} for entity {res}")
+                sparql: SPARQLWrapper = SPARQLWrapper(self.endpoint)
+                query: str = f"SELECT ?s ?p ?o WHERE {{BIND (<{res}> AS ?s). ?s ?p ?o.}}"
+                sparql.setQuery(query)
+                sparql.setMethod('GET')
+                sparql.setReturnFormat(JSON)
+                result = sparql.queryAndConvert()['results']['bindings']
+                preexisting_graph: ConjunctiveGraph = build_graph_from_results(result)
+                self.add_entity_with_type(g_set, res, inferred_type, preexisting_graph)
+            else:
+                return
         if not g_set.get_entity(URIRef(res)):
             return
         if property:
@@ -183,3 +201,29 @@ class MetaEditor:
             extension = '.zip' if zip_output_rdf else '.json'
             cur_file_path = os.path.join(cur_dir_path, str(cur_file_split)) + extension
             return cur_file_path
+
+    def infer_type_from_uri(self, uri: str) -> str:
+        if os.path.join(self.base_iri, 'br') in uri:
+            return GraphEntity.iri_expression
+        elif os.path.join(self.base_iri, 'ar') in uri:
+            return GraphEntity.iri_role_in_time
+        elif os.path.join(self.base_iri, 'ra') in uri:
+            return GraphEntity.iri_agent
+        elif os.path.join(self.base_iri, 're') in uri:
+            return GraphEntity.iri_manifestation
+        elif os.path.join(self.base_iri, 'id') in uri:
+            return GraphEntity.iri_identifier
+        return None
+
+    def add_entity_with_type(self, g_set: GraphSet, res: str, entity_type: str, preexisting_graph: ConjunctiveGraph):
+        subject = URIRef(res)
+        if entity_type == GraphEntity.iri_expression:
+            g_set.add_br(resp_agent=self.resp_agent, res=subject, preexisting_graph=preexisting_graph)
+        elif entity_type == GraphEntity.iri_role_in_time:
+            g_set.add_ar(resp_agent=self.resp_agent, res=subject, preexisting_graph=preexisting_graph)
+        elif entity_type == GraphEntity.iri_agent:
+            g_set.add_ra(resp_agent=self.resp_agent, res=subject, preexisting_graph=preexisting_graph)
+        elif entity_type == GraphEntity.iri_manifestation:
+            g_set.add_re(resp_agent=self.resp_agent, res=subject, preexisting_graph=preexisting_graph)
+        elif entity_type == GraphEntity.iri_identifier:
+            g_set.add_id(resp_agent=self.resp_agent, res=subject, preexisting_graph=preexisting_graph)
