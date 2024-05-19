@@ -273,5 +273,47 @@ class TestEditor(unittest.TestCase):
             self.assertEqual(len(br_06105_prov_se_2['http://www.w3.org/ns/prov#invalidatedAtTime']), 1)
             self.assertIn("http://www.w3.org/ns/prov#hadPrimarySource", br_06105_prov_se_1)
 
+        # Reinsert the publication date
+        sparql_update_query = f"""
+        INSERT DATA {{
+            GRAPH <https://w3id.org/oc/meta/br/> {{
+                <https://w3id.org/oc/meta/br/06105> <http://prismstandard.org/namespaces/basic/2.0/publicationDate> "2024-04-14"^^<http://www.w3.org/2001/XMLSchema#date> .
+            }}
+        }}
+        """
+        endpoint = SPARQLWrapper(SERVER)
+        endpoint.setQuery(sparql_update_query)
+        endpoint.setMethod(POST)
+        endpoint.query()
+
+        # Perform deletion again
+        editor.delete(URIRef('https://w3id.org/oc/meta/br/06105'))
+
+        # Verify and print the provenance graph for the entity
+        prov_path = os.path.join(OUTPUT, 'rdf', 'br', '0610', '10000', '1000', 'prov', 'se.json')
+        with open(prov_path, 'r', encoding='utf8') as f:
+            prov_data = json.load(f)
+            for graph in prov_data:
+                for entity in graph['@graph']:
+                    if 'https://w3id.org/oc/meta/br/06105' in entity['@id']:
+                        if entity['@id'] == 'https://w3id.org/oc/meta/br/06105/prov/se/3':
+                            self.assertEqual(entity['http://purl.org/dc/terms/description'][0]['@value'], "The entity 'https://w3id.org/oc/meta/br/06105' has been deleted.")
+                            self.assertIn("https://w3id.org/oc/ontology/hasUpdateQuery", entity)
+                            update_query_value = entity['https://w3id.org/oc/ontology/hasUpdateQuery'][0]['@value']
+                            update_query_triples = update_query_value.replace('DELETE DATA { GRAPH <https://w3id.org/oc/meta/br/> { ', '').replace(' } }', '').strip()
+                            actual_triples = set(triple.strip() for triple in update_query_triples.split(' .') if triple.strip())
+                            expected_triples = {
+                                '<https://w3id.org/oc/meta/br/06105> <http://prismstandard.org/namespaces/basic/2.0/publicationDate> "2024-04-14"^^<http://www.w3.org/2001/XMLSchema#date>'
+                            }
+                            self.assertEqual(actual_triples, expected_triples)
+                            self.assertEqual(entity['@type'][0], "http://www.w3.org/ns/prov#Entity")
+                            self.assertEqual(entity['http://www.w3.org/ns/prov#specializationOf'][0]['@id'], "https://w3id.org/oc/meta/br/06105")
+                            self.assertEqual(entity['http://www.w3.org/ns/prov#wasAttributedTo'][0]['@id'], "https://orcid.org/0000-0002-8420-0696")
+                            self.assertIn("http://www.w3.org/ns/prov#invalidatedAtTime", entity)
+                            self.assertIn("http://www.w3.org/ns/prov#generatedAtTime", entity)
+                            self.assertEqual(len(entity['http://www.w3.org/ns/prov#generatedAtTime']), 1)
+                            self.assertEqual(len(entity['http://www.w3.org/ns/prov#invalidatedAtTime']), 1)
+                            self.assertEqual(entity['http://www.w3.org/ns/prov#wasDerivedFrom'][0]['@id'], "https://w3id.org/oc/meta/br/06105/prov/se/2")
+
 if __name__ == '__main__': # pragma: no cover
     unittest.main()

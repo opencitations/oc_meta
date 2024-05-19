@@ -1,0 +1,124 @@
+[
+    {
+        "@graph": [
+            {
+                "@id": "https://w3id.org/oc/meta/br/0670101/prov/se/1",
+                "@type": [
+                    "http://www.w3.org/ns/prov#Entity"
+                ],
+                "http://purl.org/dc/terms/description": [
+                    {
+                        "@value": "The entity 'https://w3id.org/oc/meta/br/0670101' has been created."
+                    }
+                ],
+                "http://www.w3.org/ns/prov#generatedAtTime": [
+                    {
+                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                        "@value": "2023-12-13T14:53:19.558896"
+                    }
+                ],
+                "http://www.w3.org/ns/prov#invalidatedAtTime": [
+                    {
+                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                        "@value": "2024-01-19T12:08:12+00:00"
+                    }
+                ],
+                "http://www.w3.org/ns/prov#specializationOf": [
+                    {
+                        "@id": "https://w3id.org/oc/meta/br/0670101"
+                    }
+                ],
+                "http://www.w3.org/ns/prov#wasAttributedTo": [
+                    {
+                        "@id": "https://w3id.org/oc/meta/prov/pa/1"
+                    }
+                ]
+            },
+            {
+                "@id": "https://w3id.org/oc/meta/br/0670101/prov/se/2",
+                "@type": [
+                    "http://www.w3.org/ns/prov#Entity"
+                ],
+                "http://purl.org/dc/terms/description": [
+                    {
+                        "@value": "The entity 'https://w3id.org/oc/meta/br/0670101' has been deleted."
+                    }
+                ],
+                "http://www.w3.org/ns/prov#generatedAtTime": [
+                    {
+                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                        "@value": "2024-01-19T12:08:12+00:00"
+                    }
+                ],
+                "http://www.w3.org/ns/prov#invalidatedAtTime": [
+                    {
+                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                        "@value": "2024-01-19T12:08:12+00:00"
+                    }
+                ],
+                "http://www.w3.org/ns/prov#specializationOf": [
+                    {
+                        "@id": "https://w3id.org/oc/meta/br/0670101"
+                    }
+                ],
+                "http://www.w3.org/ns/prov#wasAttributedTo": [
+                    {
+                        "@id": "https://w3id.org/oc/meta/prov/pa/1"
+                    }
+                ],
+                "http://www.w3.org/ns/prov#wasDerivedFrom": [
+                    {
+                        "@id": "https://w3id.org/oc/meta/br/0670101/prov/se/1"
+                    }
+                ],
+                "https://w3id.org/oc/ontology/hasUpdateQuery": [
+                    {
+                        "@value": "DELETE DATA { GRAPH <https://w3id.org/oc/meta/br/> { <https://w3id.org/oc/meta/br/0670101> <http://purl.org/spar/pro/isDocumentContextFor> <https://w3id.org/oc/meta/ar/06701420500> .<https://w3id.org/oc/meta/br/0670101> <http://purl.org/dc/terms/title> \"Synthesis Of Silylene And Silyl(silylene)metal Complexes\" .<https://w3id.org/oc/meta/br/0670101> <http://purl.org/vocab/frbr/core#partOf> <https://w3id.org/oc/meta/br/06506903> .<https://w3id.org/oc/meta/br/0670101> <http://purl.org/spar/pro/isDocumentContextFor> <https://w3id.org/oc/meta/ar/06701420499> .<https://w3id.org/oc/meta/br/0670101> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression> .<https://w3id.org/oc/meta/br/0670101> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/JournalArticle> .<https://w3id.org/oc/meta/br/0670101> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0670450996> .<https://w3id.org/oc/meta/br/0670101> <http://prismstandard.org/namespaces/basic/2.0/publicationDate> \"2003-07-29\" . } }"
+                    }
+                ]
+            }
+        ],
+        "@id": "https://w3id.org/oc/meta/br/0670101/prov/"
+    },
+    {
+        "@graph": [
+            {
+                "@id": "https://w3id.org/oc/meta/br/06703/prov/se/1",
+                "@type": [
+                    "http://www.w3.org/ns/prov#Entity"
+                ],
+                "http://purl.org/dc/terms/description": [
+                    {
+                        "@value": "The entity 'https://w3id.org/oc/meta/br/06703' has been created."
+                    }
+                ],
+                "http://www.w3.org/ns/prov#generatedAtTime": [
+                    {
+                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                        "@value": "2023-12-13T14:53:19.160974"
+                    },
+                    {
+                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                        "@value": "2024-03-28T03:16:32+00:00"
+                    }
+                ],
+                "http://www.w3.org/ns/prov#hadPrimarySource": [
+                    {
+                        "@id": "https://openalex.s3.amazonaws.com/browse.html"
+                    }
+                ],
+                "http://www.w3.org/ns/prov#specializationOf": [
+                    {
+                        "@id": "https://w3id.org/oc/meta/br/06703"
+                    }
+                ],
+                "http://www.w3.org/ns/prov#wasAttributedTo": [
+                    {
+                        "@id": "https://w3id.org/oc/meta/prov/pa/1"
+                    }
+                ]
+            }
+        ],
+        "@id": "https://w3id.org/oc/meta/br/06703/prov/"
+    }
+]
