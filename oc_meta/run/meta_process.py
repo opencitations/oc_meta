@@ -20,27 +20,20 @@
 from __future__ import annotations
 
 import csv
-import json
 import os
 import traceback
-import zipfile
 from argparse import ArgumentParser
-from collections import defaultdict
 from datetime import datetime
 from itertools import cycle
 from sys import executable, platform
 from typing import List, Tuple
 
-import rdflib
 import yaml
 from oc_ocdm import Storer
 from oc_ocdm.prov import ProvSet
 from oc_ocdm.support.reporter import Reporter
 from pebble import ProcessPool
 from time_agnostic_library.support import generate_config_file
-from tqdm import tqdm
-from concurrent.futures import as_completed
-from concurrent.futures import ProcessPoolExecutor
 
 from oc_meta.core.creator import Creator
 from oc_meta.core.curator import Curator
@@ -48,7 +41,8 @@ from oc_meta.lib.file_manager import (get_csv_data, init_cache, normalize_path,
                                       pathoo, sort_files, zipit)
 from oc_meta.plugins.multiprocess.resp_agents_creator import RespAgentsCreator
 from oc_meta.plugins.multiprocess.resp_agents_curator import RespAgentsCurator
-
+from concurrent.futures import as_completed
+from tqdm import tqdm
 
 class MetaProcess:
     def __init__(self, settings:dict, meta_config_path: str):
@@ -178,7 +172,7 @@ class MetaProcess:
             res_storer = Storer(abstract_set=creator, repok=repok, reperr=reperr, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, default_dir=self.default_dir, output_format='json-ld', zip_output=self.zip_output_rdf, modified_entities=modified_entities)
             prov_storer = Storer(abstract_set=prov, repok=repok, reperr=reperr, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, output_format='json-ld', zip_output=self.zip_output_rdf)
             # with suppress_stdout():
-            self.store_data_and_prov(res_storer, prov_storer, filename, worker_number)
+            self.store_data_and_prov(res_storer, prov_storer, filename)
             return {'message': 'success'}, cache_path, errors_path, filename
         except Exception as e:
             tb = traceback.format_exc()
@@ -186,7 +180,7 @@ class MetaProcess:
             message = template.format(type(e).__name__, e.args, tb)
             return {'message': message}, cache_path, errors_path, filename
     
-    def store_data_and_prov(self, res_storer:Storer, prov_storer:Storer, filename:str, worker_number: int) -> None:
+    def store_data_and_prov(self, res_storer:Storer, prov_storer:Storer, filename:str) -> None:
         if self.rdf_output_in_chunks:
             filename_without_csv = filename[:-4]
             f = os.path.join(self.output_rdf_dir, 'data', filename_without_csv + '.json')
@@ -195,8 +189,8 @@ class MetaProcess:
             f_prov = os.path.join(self.output_rdf_dir, 'prov', filename_without_csv + '.json')
             prov_storer.store_graphs_in_file(f_prov, self.context_path)
         else:
-            res_storer.store_all(base_dir=self.output_rdf_dir, base_iri=self.base_iri, context_path=self.context_path, process_id=str(worker_number))
-            prov_storer.store_all(self.output_rdf_dir, self.base_iri, self.context_path, process_id=str(worker_number))
+            res_storer.store_all(base_dir=self.output_rdf_dir, base_iri=self.base_iri, context_path=self.context_path, process_id=None)
+            prov_storer.store_all(self.output_rdf_dir, self.base_iri, self.context_path, process_id=None)
             res_storer.upload_all(triplestore_url=self.triplestore_url, base_dir=self.output_rdf_dir, batch_size=100)
 
     def save_data(self):
@@ -218,9 +212,7 @@ def run_meta_process(settings: dict, meta_config_path: str, resp_agents_only: bo
         tens = int(str(max_workers)[:-1]) if max_workers >= 10 else 0
         multiples_of_ten = {i for i in range(1, max_workers + tens + 1) if int(i) % 10 == 0}
         workers = [i for i in range(1, max_workers+len(multiples_of_ten)+1) if i not in multiples_of_ten]
-
     generate_gentle_buttons(meta_process.base_output_dir, meta_config_path, is_unix)
-
     with ProcessPool(max_workers=max_workers, max_tasks=1) as executor, tqdm(total=len(files_to_be_processed), desc="Processing files") as progress_bar:
         futures = [executor.schedule(curate_and_create_wrapper, args=(file, worker, resp_agents_only, settings, meta_config_path)) 
                 for file, worker in zip(files_to_be_processed, cycle(workers))]
@@ -234,80 +226,11 @@ def run_meta_process(settings: dict, meta_config_path: str, resp_agents_only: bo
                 print(f"Errore durante l'elaborazione: {e}\nTraceback:\n{traceback_str}")
             finally:
                 progress_bar.update(1)
-
-    merge_rdf_files(meta_process.output_rdf_dir, meta_process.zip_output_rdf)
-    
     if not os.path.exists(os.path.join(meta_process.base_output_dir, '.stop')):
         if os.path.exists(meta_process.cache_path):
             os.rename(meta_process.cache_path, meta_process.cache_path.replace('.txt', f'_{datetime.now().strftime("%Y-%m-%dT%H_%M_%S_%f")}.txt'))
         if is_unix:
             delete_lock_files(base_dir=meta_process.base_output_dir)
-
-def merge_file_set(identifier, file_paths, zip_output_rdf):
-    try:
-        merged_graph = rdflib.ConjunctiveGraph()
-
-        # Se il file di base esiste già, caricalo nel grafo per la fusione
-        base_file_path = f"{identifier}.json" if not zip_output_rdf else f"{identifier}.zip"
-        if os.path.exists(base_file_path):
-            if zip_output_rdf:
-                with zipfile.ZipFile(base_file_path, 'r') as zipf:
-                    with zipf.open(zipf.namelist()[0], 'r') as json_file:
-                        base_graph_data = json.load(json_file)
-                        merged_graph.parse(data=json.dumps(base_graph_data), format='json-ld')
-            else:
-                with open(base_file_path, 'r', encoding='utf-8') as json_file:
-                    base_graph_data = json.load(json_file)
-                    merged_graph.parse(data=json.dumps(base_graph_data), format='json-ld')
-
-        for file_path in file_paths:
-            if zip_output_rdf:
-                with zipfile.ZipFile(file_path, 'r') as zipf:
-                    with zipf.open(zipf.namelist()[0], 'r') as json_file:
-                        graph_data = json.load(json_file)
-                        merged_graph.parse(data=json.dumps(graph_data), format='json-ld')
-            else:
-                with open(file_path, 'r', encoding='utf-8') as json_file:
-                    graph_data = json.load(json_file)
-                    merged_graph.parse(data=json.dumps(graph_data), format='json-ld')
-
-        if zip_output_rdf:
-            with zipfile.ZipFile(base_file_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                zipf.writestr(f"{os.path.basename(identifier)}.json", merged_graph.serialize(format='json-ld', indent=None, ensure_ascii=False).encode('utf-8'))
-        else:
-            with open(base_file_path, 'w', encoding='utf-8') as f:
-                f.write(merged_graph.serialize(format='json-ld', indent=None, ensure_ascii=False))
-
-        # Clean up temporary worker files
-        for file_path in file_paths:
-            os.remove(file_path)
-    except Exception as e:
-        print(f"Unexpected error while merging files for {identifier}: {e}")
-
-def merge_rdf_files(output_dir, zip_output_rdf):
-    files_to_merge = defaultdict(list)
-
-    # Passo 1: Raccogliere i file da unire
-    for root, dirs, files in os.walk(output_dir):
-        for file in files:
-            if (zip_output_rdf and file.endswith('.zip')) or (not zip_output_rdf and file.endswith('.json')):
-                number_part = file.split('_')[0]
-                # Verifica che il file sia un file di lavorazione (e.g., contiene '_')
-                if '_' in file:
-                    number = number_part.replace('.json', '').replace('.zip', '')
-                    key = os.path.join(root, number)
-                    files_to_merge[key].append(os.path.join(root, file))
-
-    with ProcessPoolExecutor() as executor:
-        futures = {executor.submit(merge_file_set, identifier, file_paths, zip_output_rdf): identifier 
-                   for identifier, file_paths in files_to_merge.items()}
-        
-        for future in tqdm(as_completed(futures), total=len(futures), desc="Merging files"):
-            identifier = futures[future]
-            try:
-                future.result()
-            except Exception as e:
-                print(f"Exception for {identifier}: {e}")
 
 def curate_and_create_wrapper(file_to_be_processed, worker_number, resp_agents_only, settings, meta_config_path):
     meta_process = MetaProcess(settings=settings, meta_config_path=meta_config_path)

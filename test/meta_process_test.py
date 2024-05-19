@@ -13,7 +13,7 @@ from rdflib import ConjunctiveGraph, Graph, Literal, Namespace, URIRef
 from SPARQLWrapper import JSON, POST, SPARQLWrapper
 
 from oc_meta.lib.file_manager import get_csv_data
-from oc_meta.run.meta_process import merge_rdf_files, run_meta_process
+from oc_meta.run.meta_process import run_meta_process
 
 BASE_DIR = os.path.join('test', 'meta_process')
 SERVER = 'http://127.0.0.1:9999/blazegraph/sparql'
@@ -33,84 +33,7 @@ def delete_output_zip(base_dir:str, start_time:datetime) -> None:
             if was_created_after_time:
                 os.remove(os.path.join(base_dir, file))
 
-class test_ProcessTest(unittest.TestCase):
-    def test_merge_rdf_files(self):
-        test_dir = os.path.join(BASE_DIR, "merge_rdf_files_test_dir")
-        prov_dir = os.path.join(test_dir, "prov")
-        if not os.path.exists(test_dir):
-            os.mkdir(test_dir)
-        if not os.path.exists(prov_dir):
-            os.mkdir(prov_dir)
-
-        ns = Namespace("http://example.org/")
-        se_ns = Namespace("http://example.org/se/")
-        
-        g0 = Graph()
-        g0.add((ns["subject0"], ns["predicate"], Literal("object0")))
-        g1 = Graph()
-        g1.add((ns["subject1"], ns["predicate"], Literal("object1")))
-        g2 = Graph()
-        g2.add((ns["subject2"], ns["predicate"], Literal("object2")))
-        
-        se0 = Graph()
-        se0.add((se_ns["subject0"], se_ns["predicate"], Literal("object0")))
-        se1 = Graph()
-        se1.add((se_ns["subject1"], se_ns["predicate"], Literal("object1")))
-        se2 = Graph()
-        se2.add((se_ns["subject2"], se_ns["predicate"], Literal("object2")))
-        
-        # Salvataggio dei grafi in file JSON-LD separati
-        file_path0 = os.path.join(test_dir, "1.json")
-        file_path1 = os.path.join(test_dir, "1_1.json")
-        file_path2 = os.path.join(test_dir, "1_2.json")
-
-        se_file_path0 = os.path.join(prov_dir, "se.json")
-        se_file_path1 = os.path.join(prov_dir, "se_1.json")
-        se_file_path2 = os.path.join(prov_dir, "se_2.json")
-
-        with open(file_path0, 'w') as f:
-            f.write(g0.serialize(format='json-ld'))
-        with open(file_path1, 'w') as f:
-            f.write(g1.serialize(format='json-ld'))
-        with open(file_path2, 'w') as f:
-            f.write(g2.serialize(format='json-ld'))
-
-        with open(se_file_path0, 'w') as f:
-            f.write(se0.serialize(format='json-ld'))
-        with open(se_file_path1, 'w') as f:
-            f.write(se1.serialize(format='json-ld'))
-        with open(se_file_path2, 'w') as f:
-            f.write(se2.serialize(format='json-ld'))
-
-        merge_rdf_files(test_dir, zip_output_rdf=False)
-
-        merged_file_path = os.path.join(test_dir, "1.json")
-        merged_se_file_path = os.path.join(prov_dir, "se.json")
-        self.assertTrue(os.path.exists(merged_file_path))
-        self.assertTrue(os.path.exists(merged_se_file_path))
-
-        with open(merged_file_path, 'r') as f:
-            merged_data = json.load(f)
-            g = Graph().parse(data=json.dumps(merged_data), format='json-ld')
-            triples = {triple for triple in g}
-            triples_expected = {
-                (rdflib.term.URIRef('http://example.org/subject0'), rdflib.term.URIRef('http://example.org/predicate'), rdflib.term.Literal('object0')), 
-                (rdflib.term.URIRef('http://example.org/subject2'), rdflib.term.URIRef('http://example.org/predicate'), rdflib.term.Literal('object2')), 
-                (rdflib.term.URIRef('http://example.org/subject1'), rdflib.term.URIRef('http://example.org/predicate'), rdflib.term.Literal('object1'))}
-            self.assertEqual(triples, triples_expected)
-
-        with open(merged_se_file_path, 'r') as f:
-            merged_data = json.load(f)
-            g = Graph().parse(data=json.dumps(merged_data), format='json-ld')
-            triples = {triple for triple in g}
-            triples_expected = {
-                (rdflib.term.URIRef('http://example.org/se/subject0'), rdflib.term.URIRef('http://example.org/se/predicate'), rdflib.term.Literal('object0')), 
-                (rdflib.term.URIRef('http://example.org/se/subject2'), rdflib.term.URIRef('http://example.org/se/predicate'), rdflib.term.Literal('object2')), 
-                (rdflib.term.URIRef('http://example.org/se/subject1'), rdflib.term.URIRef('http://example.org/se/predicate'), rdflib.term.Literal('object1'))}
-            self.assertEqual(triples, triples_expected)
-        
-        shutil.rmtree(test_dir)
-    
+class test_ProcessTest(unittest.TestCase):    
     def test_get_csv_data(self):
         filepath = os.path.join(BASE_DIR, 'long_field.csv')
         data = get_csv_data(filepath)
