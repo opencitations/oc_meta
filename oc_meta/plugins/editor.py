@@ -32,6 +32,11 @@ from SPARQLWrapper import JSON, SPARQLWrapper
 from rdflib import RDF, ConjunctiveGraph
 
 class MetaEditor:
+    property_to_remove_method = {
+        'http://purl.org/spar/datacite/hasIdentifier': 'remove_identifier',
+        'http://purl.org/spar/pro/isHeldBy': 'remove_is_held_by'
+    }
+
     def __init__(self, meta_config: str, resp_agent: str):
         with open(meta_config, encoding='utf-8') as file:
             settings = yaml.full_load(file)
@@ -82,11 +87,15 @@ class MetaEditor:
         if not g_set.get_entity(URIRef(res)):
             return
         if property:
-            remove_method = property.replace('has', 'remove') if property.startswith('has') else f'remove_{property}'
+            remove_method = self.property_to_remove_method[property] if property in self.property_to_remove_method else property.replace('has', 'remove') if property.startswith('has') else f'remove_{property}'
             if object:
                 if validators.url(object):
                     self.reader.import_entity_from_triplestore(g_set, self.endpoint, object, self.resp_agent, enable_validation=False)
-                    getattr(g_set.get_entity(URIRef(res)), remove_method)(g_set.get_entity(URIRef(object)))
+                    try:
+                        getattr(g_set.get_entity(URIRef(res)), remove_method)(g_set.get_entity(URIRef(object)))
+                    # TypeError: AgentRole.remove_is_held_by() takes 1 positional argument but 2 were given
+                    except TypeError:
+                        getattr(g_set.get_entity(URIRef(res)), remove_method)()
                 else:
                     getattr(g_set.get_entity(URIRef(res)), remove_method)(object)
             else:

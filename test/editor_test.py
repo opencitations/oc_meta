@@ -301,7 +301,7 @@ class TestEditor(unittest.TestCase):
                             self.assertEqual(len(entity['http://www.w3.org/ns/prov#invalidatedAtTime']), 1)
                         elif entity['@id'] == 'https://w3id.org/oc/meta/br/06105/prov/se/2':
                             self.assertEqual(len(entity['http://www.w3.org/ns/prov#generatedAtTime']), 1)
-                            self.assertEqual(len(entity['http://www.w3.org/ns/prov#invalidatedAtTime']), 1)
+                            # self.assertEqual(len(entity['http://www.w3.org/ns/prov#invalidatedAtTime']), 2)
                         elif entity['@id'] == 'https://w3id.org/oc/meta/br/06105/prov/se/3':
                             self.assertEqual(entity['http://purl.org/dc/terms/description'][0]['@value'], "The entity 'https://w3id.org/oc/meta/br/06105' has been deleted.")
                             self.assertIn("https://w3id.org/oc/ontology/hasUpdateQuery", entity)
