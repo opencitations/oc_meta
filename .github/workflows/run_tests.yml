@@ -43,7 +43,7 @@ jobs:
       run: |
         cd virtuoso-opensource/bin
         ./virtuoso-t
-        python3 -c 'import time; time.sleep(15)'
+        python3 -c 'import time; time.sleep(30)'
         cd ../..
     - name: Check the coverage
       run: |
