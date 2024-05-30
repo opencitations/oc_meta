@@ -19,11 +19,11 @@ from SPARQLWrapper import POST, SPARQLWrapper
 
 
 BASE_DIR = os.path.join('test', 'endgame')
-SERVER = 'http://127.0.0.1:9999/blazegraph/sparql'
+SERVER = 'http://127.0.0.1:8805/sparql'
 
 def reset_server(server:str=SERVER) -> None:
     ts = SPARQLWrapper(server)
-    ts.setQuery('delete{?x ?y ?z} where{?x ?y ?z}')
+    ts.setQuery('DELETE WHERE { GRAPH ?g { ?s ?p ?o } }')
     ts.setMethod(POST)
     ts.query()
 

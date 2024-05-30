@@ -6,24 +6,78 @@ from rdflib import Graph
 from SPARQLWrapper import POST, SPARQLWrapper
 
 from oc_meta.lib.finder import ResourceFinder
+from rdflib import URIRef, ConjunctiveGraph, Graph
 
+
+def get_path(path:str) -> str:
+    # absolute_path:str = os.path.abspath(path)
+    universal_path = path.replace('\\', '/')
+    return universal_path
+
+def add_data_ts(server, data_path, batch_size:int=100, default_graph_uri=URIRef("http://default.graph/")):
+    f_path = get_path(data_path)
+    
+    # Determina il formato del file
+    file_extension = os.path.splitext(f_path)[1].lower()
+    if file_extension == '.nt':
+        g = Graph()
+        g.parse(location=f_path, format='nt')
+    elif file_extension == '.nq':
+        g = ConjunctiveGraph()
+        g.parse(location=f_path, format='nquads')
+    elif file_extension == '.ttl':
+        g = Graph()
+        g.parse(location=f_path, format='turtle')
+    else:
+        raise ValueError(f"Unsupported file extension: {file_extension}")
+    
+    triples_list = []
+    if file_extension == '.nt':
+        for subj, pred, obj in g:
+            triples_list.append((subj, pred, obj, default_graph_uri))
+    elif file_extension == '.nq':
+        for subj, pred, obj, ctx in g.quads((None, None, None, None)):
+            triples_list.append((subj, pred, obj, ctx))
+    
+    for i in range(0, len(triples_list), batch_size):
+        batch_triples = triples_list[i:i + batch_size]
+        
+        triples_str = ""
+        for subj, pred, obj, ctx in batch_triples:
+            if ctx:
+                triples_str += f"GRAPH {ctx.n3().replace('[', '').replace(']', '')} {{ {subj.n3()} {pred.n3()} {obj.n3()} }} "
+            else: 
+                triples_str += f"{subj.n3()} {pred.n3()} {obj.n3()} . "
+        
+        query = f"INSERT DATA {{ {triples_str} }}"
+        
+        with open('query.txt', 'w') as f:
+            f.write(query)
+        
+        ts = SPARQLWrapper(server)
+        ts.setQuery(query)
+        ts.setMethod(POST)
+        ts.query()
+
+def reset_server(server) -> None:
+    ts = SPARQLWrapper(server)
+    for graph in {'https://w3id.org/oc/meta/br/', 'https://w3id.org/oc/meta/ra/', 'https://w3id.org/oc/meta/re/', 'https://w3id.org/oc/meta/id/', 'https://w3id.org/oc/meta/ar/'}:
+        ts.setQuery(f'CLEAR GRAPH <{graph}>')
+        ts.setMethod(POST)
+        ts.query()
 
 class TestResourceFinder(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        ENDPOINT = 'http://localhost:9999/blazegraph/sparql'
+        ENDPOINT = 'http://127.0.0.1:8805/sparql'
         BASE_IRI = 'https://w3id.org/oc/meta/'
-        REAL_DATA_FILE = os.path.abspath(os.path.join('test', 'testcases', 'ts', 'real_data.nt')).replace('\\', '/')
+        REAL_DATA_FILE = os.path.join('test', 'testcases', 'ts', 'real_data.nt')
         local_g = Graph()
         cls.finder = ResourceFinder(ENDPOINT, BASE_IRI, local_g)
         # Clear ts
-        ts = SPARQLWrapper(ENDPOINT)
-        ts.setMethod(POST)
-        ts.setQuery('DELETE {?s ?p ?o} WHERE {?s ?p ?o}')
-        ts.query()
+        reset_server(server=ENDPOINT)
         # Upload data
-        ts.setQuery(f"LOAD <file:{REAL_DATA_FILE}>")
-        ts.query()
+        add_data_ts(server=ENDPOINT, data_path=REAL_DATA_FILE)
         cls.finder.get_everything_about_res(metavals={'omid:br/2373', 'omid:br/2380', 'omid:br/2730', 'omid:br/2374', 'omid:br/4435', 'omid:br/4436', 'omid:br/4437', 'omid:br/4438', 'omid:br/0604750', 'omid:br/0605379', 'omid:br/0606696'}, identifiers={'doi:10.1001/.391', 'orcid:0000-0001-6994-8412'}, vvis={})
 
     def test_retrieve_br_from_id(self):

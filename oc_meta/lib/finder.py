@@ -7,13 +7,13 @@ import yaml
 from dateutil import parser
 from oc_ocdm.graph import GraphEntity
 from oc_ocdm.prov.prov_entity import ProvEntity
-from oc_ocdm.support import get_count
+from oc_ocdm.support import get_count, get_resource_number
 from rdflib import RDF, Graph, Literal, URIRef
 from SPARQLWrapper import JSON, POST, SPARQLWrapper
 from time_agnostic_library.agnostic_entity import AgnosticEntity
 from oc_ocdm.graph.graph_entity import GraphEntity
 from oc_meta.plugins.fixer.ar_order import check_roles
-
+from oc_meta.plugins.editor import MetaEditor
 
 class ResourceFinder:
 
@@ -405,17 +405,7 @@ class ResourceFinder:
         else:
             role = GraphEntity.iri_publisher
         metaid_uri = URIRef(f'{self.base_iri}/br/{str(metaid)}')
-        query = f'''
-            SELECT DISTINCT ?role ?next ?ra
-            WHERE {{
-                <{metaid_uri}> <{GraphEntity.iri_is_document_context_for}> ?role.
-                ?role <{GraphEntity.iri_with_role}> <{role}>;
-                    <{GraphEntity.iri_is_held_by}> ?ra
-                OPTIONAL {{?role <{GraphEntity.iri_has_next}> ?next.}}
-            }}
-        '''
         dict_ar = dict()
-        roles_in_br=list()
         br_ars = list()
         roles_with_next = set()
         for triple in self.local_g.triples((metaid_uri, GraphEntity.iri_is_document_context_for, None)):
@@ -432,33 +422,6 @@ class ResourceFinder:
                             ra = str(relevant_ar_triple[2]).replace(f'{self.base_iri}/ra/', '')
                     dict_ar[role_value] = {'next': next_role, 'ra': ra}
                         
-        if self.meta_settings:
-            roles_in_br.append(br_ars)
-            order_changed = check_roles(
-                roles_in_br=roles_in_br,
-                rdf_dir=os.path.join(self.meta_settings['output_rdf_dir'], 'rdf') + os.sep,
-                dir_split_number=self.meta_settings['dir_split_number'],
-                items_per_file=self.meta_settings['items_per_file'],
-                memory=None,
-                meta_config=self.meta_config_path,
-                resp_agent='https://orcid.org/0000-0002-8420-0696',
-                zip_output_rdf=self.meta_settings['zip_output_rdf'],
-                merge_ra = False
-            )
-            if order_changed:
-                result = self.__query(query)
-                dict_ar = {}  # This will store the role to its details and 'next' relation.
-                if result['results']['bindings']:
-                    results = result['results']['bindings']
-                    dict_ar = dict()
-                    for ra_dict in results:
-                        role = str(ra_dict['role']['value']).replace(f'{self.base_iri}/ar/', '')
-                        next_role = ra_dict.get('next', {}).get('value', '')
-                        if next_role:  # Check and register the 'next' role
-                            next_role = next_role.replace(f'{self.base_iri}/ar/', '')
-                            roles_with_next.add(next_role)  # Add to the set of roles that are "next" for another role.
-                        ra = str(ra_dict['ra']['value']).replace(f'{self.base_iri}/ra/', '')
-                        dict_ar[role] = {'next': next_role, 'ra': ra}
         # Find the start_role by excluding all roles that are "next" for others from the set of all roles.
         all_roles = set(dict_ar.keys())
         start_role_candidates = all_roles - roles_with_next
@@ -466,17 +429,35 @@ class ResourceFinder:
         if len(all_roles) == 0:
             return []
         elif len(start_role_candidates) != 1:
-            # If more than one start candidate exists or none exist in a multi-role situation, raise an error
-            raise ValueError("There should be exactly one starting role but found: {}".format(len(start_role_candidates)))
+            # If more than one start candidate exists or none exist in a multi-role situation, resolve automatically
+            chains = []
+            for start_candidate in start_role_candidates:
+                current_role = start_candidate
+                chain = []
+                while current_role:
+                    ra_info = self.retrieve_ra_from_meta(dict_ar[current_role]['ra'])[0:2]
+                    ra_tuple = ra_info + (dict_ar[current_role]['ra'],)
+                    chain.append({current_role: ra_tuple})
+                    current_role = dict_ar[current_role]['next']  # Move to the next role.
+                chains.append(chain)
+            # Sort chains by length, then by the lowest sequential number of the starting role
+            chains.sort(key=lambda chain: (-len(chain), get_resource_number(f'{self.base_iri}/ar/{list(chain[0].keys())[0]}')))
+            ordered_ar_list = chains[0]
+            meta_editor = MetaEditor(meta_config=self.meta_config_path, resp_agent='https://w3id.org/oc/meta/prov/pa/1')
+            for chain in chains[1:]:
+                for ar_dict in chain:
+                    for ar in ar_dict.keys():
+                        meta_editor.delete(res=f"{self.base_iri}/ar/{ar}")
+        else:
         # Follow the "next" chain from the start_role to construct an ordered list.
-        ordered_ar_list = []
-        start_role = start_role_candidates.pop()
-        current_role = start_role
-        while current_role:
-            ra_info = self.retrieve_ra_from_meta(dict_ar[current_role]['ra'])[0:2]
-            ra_tuple = ra_info + (dict_ar[current_role]['ra'],)
-            ordered_ar_list.append({current_role: ra_tuple})
-            current_role = dict_ar[current_role]['next']  # Move to the next role.
+            ordered_ar_list = []
+            start_role = start_role_candidates.pop()
+            current_role = start_role
+            while current_role:
+                ra_info = self.retrieve_ra_from_meta(dict_ar[current_role]['ra'])[0:2]
+                ra_tuple = ra_info + (dict_ar[current_role]['ra'],)
+                ordered_ar_list.append({current_role: ra_tuple})
+                current_role = dict_ar[current_role]['next']  # Move to the next role.
         # Now 'ordered_ar_list' should contain the roles in the correct order, starting from 'start_role'.
         return ordered_ar_list
 
@@ -685,7 +666,7 @@ class ResourceFinder:
             publishers_output.append(pub_full)
         return '; '.join(publishers_output)
             
-    def get_everything_about_res(self, metavals: set, identifiers: set, vvis: set, max_depth: int = 4) -> None:
+    def get_everything_about_res(self, metavals: set, identifiers: set, vvis: set, max_depth: int = 10) -> None:
         BATCH_SIZE = None
         use_text_search = self.blazegraph_full_text_search
         def batch_process(input_set, batch_size):
@@ -743,12 +724,9 @@ class ResourceFinder:
                         scheme, literal = identifier.split(":", 1)
                         escaped_identifier = literal.replace('\\', '\\\\').replace('"', '\\"')
                         query = f'''
-                            PREFIX bds: <http://www.bigdata.com/rdf/search#>
                             SELECT DISTINCT ?s WHERE {{
-                                ?literal bds:search "{escaped_identifier}" ;
-                                        bds:matchAllTerms "true" ;
-                                        ^<{GraphEntity.iri_has_literal_value}> ?id.
-                                ?id <{GraphEntity.iri_uses_identifier_scheme}> <{GraphEntity.DATACITE + scheme}>;
+                                ?id <{GraphEntity.iri_has_literal_value}> "{escaped_identifier}";
+                                    <{GraphEntity.iri_uses_identifier_scheme}> <{GraphEntity.DATACITE + scheme}>;
                                     ^<{GraphEntity.iri_has_identifier}> ?s .
                             }}
                         '''

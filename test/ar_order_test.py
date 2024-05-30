@@ -24,18 +24,18 @@
 # from SPARQLWrapper import JSON, POST, SPARQLWrapper
 
 # BASE = os.path.join('test', 'fixer', 'ar_order')
-# SERVER = 'http://127.0.0.1:9999/blazegraph/sparql'
+# SERVER = 'http://127.0.0.1:8805/sparql'
 
 # def reset_server(server:str=SERVER) -> None:
 #     ts = SPARQLWrapper(server)
-#     ts.setQuery('delete{?x ?y ?z} where{?x ?y ?z}')
+#     ts.setQuery('DELETE WHERE { GRAPH ?g { ?s ?p ?o } }')
 #     ts.setMethod(POST)
 #     ts.query()
 
 # class test_ar_order(unittest.TestCase):
 #     @classmethod
 #     def setUpClass(cls):
-#         endpoint = 'http://127.0.0.1:9999/blazegraph/sparql'
+#         endpoint = 'http://127.0.0.1:8805/sparql'
 #         reset_server(endpoint)
 #         cls.server = SPARQLWrapper(endpoint)
 #         cls.server.method = 'POST'

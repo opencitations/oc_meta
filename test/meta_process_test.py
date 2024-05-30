@@ -4,25 +4,26 @@ import shutil
 import subprocess
 import sys
 import unittest
+import time
 from datetime import datetime
 from zipfile import ZipFile
 
-import rdflib
 import yaml
-from rdflib import ConjunctiveGraph, Graph, Literal, Namespace, URIRef
+from rdflib import ConjunctiveGraph, Graph, Literal, URIRef
 from SPARQLWrapper import JSON, POST, SPARQLWrapper
 
 from oc_meta.lib.file_manager import get_csv_data
 from oc_meta.run.meta_process import run_meta_process
 
 BASE_DIR = os.path.join('test', 'meta_process')
-SERVER = 'http://127.0.0.1:9999/blazegraph/sparql'
+SERVER = 'http://127.0.0.1:8805/sparql'
 
 def reset_server(server:str=SERVER) -> None:
     ts = SPARQLWrapper(server)
-    ts.setQuery('delete{?x ?y ?z} where{?x ?y ?z}')
-    ts.setMethod(POST)
-    ts.query()
+    for graph in {'https://w3id.org/oc/meta/br/', 'https://w3id.org/oc/meta/ra/', 'https://w3id.org/oc/meta/re/', 'https://w3id.org/oc/meta/id/', 'https://w3id.org/oc/meta/ar/', 'http://default.graph/'}:
+        ts.setQuery(f'CLEAR GRAPH <{graph}>')
+        ts.setMethod(POST)
+        ts.query()
 
 def delete_output_zip(base_dir:str, start_time:datetime) -> None:
     for file in os.listdir(base_dir):
@@ -265,17 +266,20 @@ class test_ProcessTest(unittest.TestCase):
                 <https://w3id.org/oc/meta/br/0601> pro:isDocumentContextFor ?agent.
             }
         '''
-        endpoint = SPARQLWrapper('http://localhost:9999/blazegraph/sparql')
+        endpoint = SPARQLWrapper(SERVER)
         endpoint.setQuery(query_agents)
         endpoint.setReturnFormat(JSON)
         result = endpoint.queryAndConvert()
         expected_result = {
-            'head': {'vars': ['agent_count']}, 
+            'head': {'link': [], 'vars': ['agent_count']}, 
             'results': {
+                'distinct': False, 
+                'ordered': True,
                 'bindings': [{
-                    'agent_count': {'datatype': 'http://www.w3.org/2001/XMLSchema#integer', 
-                    'type': 'literal', 
-                    'value': '3'}}]}}
+                    'agent_count': {
+                        'datatype': 'http://www.w3.org/2001/XMLSchema#integer', 
+                        'type': 'typed-literal', 
+                        'value': '3'}}]}}
         shutil.rmtree(output_folder)
         delete_output_zip('.', now)
         self.assertEqual(result, expected_result)
@@ -297,16 +301,18 @@ class test_ProcessTest(unittest.TestCase):
                 <https://w3id.org/oc/meta/br/0601> pro:isDocumentContextFor ?agent.
             }
         '''
-        endpoint = SPARQLWrapper('http://localhost:9999/blazegraph/sparql')
+        endpoint = SPARQLWrapper(SERVER)
         endpoint.setQuery(query_agents)
         endpoint.setReturnFormat(JSON)
         result = endpoint.queryAndConvert()
         expected_result = {
-            'head': {'vars': ['agent_count']}, 
+            'head': {'link': [], 'vars': ['agent_count']}, 
             'results': {
+                'distinct': False, 
+                'ordered': True,
                 'bindings': [{
                     'agent_count': {'datatype': 'http://www.w3.org/2001/XMLSchema#integer', 
-                    'type': 'literal', 
+                    'type': 'typed-literal', 
                     'value': '6'}}]}}
         shutil.rmtree(output_folder)
         delete_output_zip('.', now)
@@ -314,6 +320,20 @@ class test_ProcessTest(unittest.TestCase):
 
     def test_omid_in_input_data(self):
         reset_server()
+        query_all = '''
+            PREFIX fabio: <http://purl.org/spar/fabio/>
+            PREFIX datacite: <http://purl.org/spar/datacite/>
+            CONSTRUCT {?s ?p ?o. ?id ?id_p ?id_o.}
+            WHERE {
+                ?s a fabio:JournalArticle;
+                    ?p ?o.
+                ?s datacite:hasIdentifier ?id.
+                ?id ?id_p ?id_o.
+            }
+        '''
+        endpoint = SPARQLWrapper(SERVER)
+        endpoint.setQuery(query_all)
+        result = endpoint.queryAndConvert()
         output_folder = os.path.join(BASE_DIR, 'output_8')
         now = datetime.now()
         meta_config_path_without_openalex=os.path.join(BASE_DIR, 'meta_config_8.yaml')
@@ -335,7 +355,7 @@ class test_ProcessTest(unittest.TestCase):
                 ?id ?id_p ?id_o.
             }
         '''
-        endpoint = SPARQLWrapper('http://localhost:9999/blazegraph/sparql')
+        endpoint = SPARQLWrapper(SERVER)
         endpoint.setQuery(query_all)
         result = endpoint.queryAndConvert()
         expected_result = Graph()
@@ -353,7 +373,6 @@ class test_ProcessTest(unittest.TestCase):
         prov_graph.remove((None, URIRef('http://www.w3.org/ns/prov#invalidatedAtTime'), None))
         expected_prov_graph.remove((None, URIRef('http://www.w3.org/ns/prov#invalidatedAtTime'), None))
         shutil.rmtree(output_folder)
-
         self.assertTrue(normalize_graph(result).isomorphic(normalize_graph(expected_result)))
         self.assertTrue(prov_graph.isomorphic(expected_prov_graph))
         delete_output_zip('.', now)
@@ -380,7 +399,7 @@ class test_ProcessTest(unittest.TestCase):
                 ?ooo ?ooop ?oooo.
             }
         '''
-        endpoint = SPARQLWrapper('http://localhost:9999/blazegraph/sparql')
+        endpoint = SPARQLWrapper(SERVER)
         endpoint.setQuery(query_all)
         result = endpoint.queryAndConvert()
         expected_result = Graph()

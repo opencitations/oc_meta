@@ -2,12 +2,10 @@ import argparse
 import gzip
 import os
 import zipfile
-import ijson
 from pebble import ProcessPool
 from concurrent.futures import TimeoutError
 from multiprocessing import Manager
 from tqdm import tqdm
-import json
 import rdflib
 
 
@@ -22,7 +20,7 @@ def count_triples_in_file(compression_type, file_path, data_format):
         elif compression_type == 'gz':
             with gzip.open(file_path, 'rt') as f:
                 file_content = f.read()
-        elif compression_type == 'json':
+        elif compression_type in ['json', 'ttl']:
             with open(file_path, 'r', encoding='utf8') as f:
                 file_content = f.read()
         g = rdflib.ConjunctiveGraph()
@@ -33,7 +31,7 @@ def count_triples_in_file(compression_type, file_path, data_format):
     return triple_count
 
 def process_directory(directory, compression_type, prov_only, data_only, data_format):
-    if compression_type not in ['zip', 'gz', 'json']:
+    if compression_type not in ['zip', 'gz', 'json', 'ttl']:
         raise ValueError("Unsupported compression type.")
 
     files = []
@@ -53,12 +51,8 @@ def process_directory(directory, compression_type, prov_only, data_only, data_fo
     with ProcessPool() as pool:
         future_results = []
         for file_path in files:
-            if compression_type == 'zip':
-                future = pool.schedule(count_triples_in_file, args=(compression_type, file_path, data_format))
-                future_results.append(future)
-            elif compression_type in ['gz', 'json']:
-                future = pool.schedule(count_triples_in_file, args=(compression_type, file_path, data_format))
-                future_results.append(future)
+            future = pool.schedule(count_triples_in_file, args=(compression_type, file_path, data_format))
+            future_results.append(future)
 
         for future in tqdm(future_results, desc="Processing files", unit="file"):
             try:
@@ -74,8 +68,8 @@ def process_directory(directory, compression_type, prov_only, data_only, data_fo
 def main():
     parser = argparse.ArgumentParser(description="Conta le triple RDF nei file compressi in una directory.")
     parser.add_argument('directory', type=str, help='Directory da esplorare')
-    parser.add_argument('compression_type', type=str, choices=['zip', 'gz', 'json'], help='Type of file compression (zip, gz, or json)')
-    parser.add_argument('data_format', type=str, choices=['json-ld', 'nquads'], help='Data format of the files (json-ld or nquads)')
+    parser.add_argument('compression_type', type=str, choices=['zip', 'gz', 'json', 'ttl'], help='Type of file compression (zip, gz, json, or nt)')
+    parser.add_argument('data_format', type=str, choices=['json-ld', 'nquads', 'turtle'], help='Data format of the files (json-ld, nquads, or nt)')
     parser.add_argument('--prov_only', action='store_true', help='Conta solo nelle sottocartelle di nome prov', default=False)
     parser.add_argument('--data_only', action='store_true', help='Conta solo nelle sottocartelle di nome diverso da prov', default=False)
 

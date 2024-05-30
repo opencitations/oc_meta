@@ -10,12 +10,12 @@ from oc_meta.lib.file_manager import get_csv_data
 from oc_meta.plugins.multiprocess.resp_agents_creator import RespAgentsCreator
 from SPARQLWrapper import POST, SPARQLWrapper
 
-SERVER = 'http://127.0.0.1:9999/blazegraph/sparql'
-SERVER = 'http://127.0.0.1:9999/blazegraph/sparql'
+SERVER = 'http://127.0.0.1:8805/sparql'
+SERVER = 'http://127.0.0.1:8805/sparql'
 
 def reset_server(server:str=SERVER) -> None:
     ts = SPARQLWrapper(server)
-    ts.setQuery('delete{?x ?y ?z} where{?x ?y ?z}')
+    ts.setQuery('DELETE WHERE { GRAPH ?g { ?s ?p ?o } }')
     ts.setMethod(POST)
     ts.query()
 

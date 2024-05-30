@@ -14,7 +14,7 @@ from oc_meta.lib.file_manager import get_csv_data
 rdf_base_directory = 'test/endgame/output/rdf'
 
 # SPARQL Endpoint URL
-endpoint_url = "http://127.0.0.1:9999/blazegraph/sparql"
+endpoint_url = "http://127.0.0.1:8805/sparql"
 
 # Define the types for each category
 entity_types = {

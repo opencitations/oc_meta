@@ -39,13 +39,13 @@ jobs:
         pip3 install poetry
         sudo apt install -y python-is-python3
         poetry install
-    - name: Run Blazegraph
+    - name: Run Virtuoso
       run: |
-        wget https://github.com/blazegraph/database/releases/download/BLAZEGRAPH_2_1_6_RC/blazegraph.jar
-        java -server -jar blazegraph.jar &
+        cd virtuoso-opensource/bin
+        ./virtuoso-t
         python3 -c 'import time; time.sleep(15)'
-        curl -X POST  http://localhost:9999/blazegraph/namespace/kb/textIndex?force-index-create=true
-    - name: Check the overage
+        cd ../..
+    - name: Check the coverage
       run: |
         poetry run coverage run --rcfile=test/coverage/.coveragerc
     - name: Generate the badge

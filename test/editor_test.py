@@ -33,13 +33,14 @@ from SPARQLWrapper import POST, SPARQLWrapper
 BASE = os.path.join('test', 'editor')
 OUTPUT = os.path.join(BASE, 'output')
 META_CONFIG = os.path.join(BASE, 'meta_config.yaml')
-SERVER = 'http://127.0.0.1:9999/blazegraph/sparql'
+SERVER = 'http://127.0.0.1:8805/sparql'
 
 def reset_server(server:str=SERVER) -> None:
     ts = SPARQLWrapper(server)
-    ts.setQuery('delete{?x ?y ?z} where{?x ?y ?z}')
-    ts.setMethod(POST)
-    ts.query()
+    for graph in {'https://w3id.org/oc/meta/br/', 'https://w3id.org/oc/meta/ra/', 'https://w3id.org/oc/meta/re/', 'https://w3id.org/oc/meta/id/', 'https://w3id.org/oc/meta/ar/'}:
+        ts.setQuery(f'CLEAR GRAPH <{graph}>')
+        ts.setMethod(POST)
+        ts.query()
 
 class TestEditor(unittest.TestCase):
     def setUp(self):
@@ -139,7 +140,7 @@ class TestEditor(unittest.TestCase):
         info_dir = os.path.join(OUTPUT, 'info_dir', '0620', 'creator')
         resp_agent = 'https://orcid.org/0000-0002-8420-0696'
         g_set = GraphSet(base_iri, info_dir, supplier_prefix='0620', wanted_label=False)
-        endpoint = 'http://127.0.0.1:9999/blazegraph/sparql'
+        endpoint = 'http://127.0.0.1:8805/sparql'
         rdf = os.path.join(OUTPUT, 'rdf') + os.sep
         reader = Reader()
         ra = g_set.add_ra(resp_agent=resp_agent, res=URIRef('https://w3id.org/oc/meta/ra/06205'))

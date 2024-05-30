@@ -4,6 +4,7 @@ import unittest
 
 from oc_ocdm import Storer
 from SPARQLWrapper import POST, SPARQLWrapper
+from rdflib import Graph, ConjunctiveGraph
 
 from oc_meta.core.creator import Creator
 from oc_meta.core.curator import *
@@ -11,7 +12,7 @@ from oc_meta.lib.file_manager import get_csv_data
 from oc_meta.lib.finder import ResourceFinder
 from oc_meta.plugins.multiprocess.resp_agents_curator import RespAgentsCurator
 
-SERVER = 'http://127.0.0.1:9999/blazegraph/sparql'
+SERVER = 'http://127.0.0.1:8805/sparql'
 BASE_DIR = os.path.join('test')
 MANUAL_DATA_CSV = f'{BASE_DIR}/manual_data.csv'
 MANUAL_DATA_RDF = f'{BASE_DIR}/testcases/ts/testcase_ts-13.ttl'
@@ -53,17 +54,56 @@ def reset():
 
 def reset_server(server:str=SERVER) -> None:
     ts = SPARQLWrapper(server)
-    ts.setQuery('delete{?x ?y ?z} where{?x ?y ?z}')
-    ts.setMethod(POST)
-    ts.query()
+    for graph in {'https://w3id.org/oc/meta/br/', 'https://w3id.org/oc/meta/ra/', 'https://w3id.org/oc/meta/re/', 'https://w3id.org/oc/meta/id/', 'https://w3id.org/oc/meta/ar/', 'http://default.graph/'}:
+        ts.setQuery(f'CLEAR GRAPH <{graph}>')
+        ts.setMethod(POST)
+        ts.query()
 
-def add_data_ts(server:str=SERVER, data_path:str=os.path.abspath(os.path.join('test', 'testcases', 'ts', 'real_data.nt')).replace('\\', '/')):
+def add_data_ts(server:str=SERVER, data_path:str=os.path.abspath(os.path.join('test', 'testcases', 'ts', 'real_data.nt')).replace('\\', '/'), batch_size:int=100, default_graph_uri=URIRef("http://default.graph/")):
     reset_server(server)
-    ts = SPARQLWrapper(server)
-    ts.method = 'POST'
     f_path = get_path(data_path)
-    ts.setQuery(f'LOAD <file:{f_path}>')
-    ts.query()
+    
+    # Determina il formato del file
+    file_extension = os.path.splitext(f_path)[1].lower()
+    if file_extension == '.nt':
+        g = Graph()
+        g.parse(location=f_path, format='nt')
+    elif file_extension == '.nq':
+        g = ConjunctiveGraph()
+        g.parse(location=f_path, format='nquads')
+    elif file_extension == '.ttl':
+        g = Graph()
+        g.parse(location=f_path, format='turtle')
+    else:
+        raise ValueError(f"Unsupported file extension: {file_extension}")
+    
+    triples_list = []
+    if file_extension in {'.nt', '.ttl'}:
+        for subj, pred, obj in g:
+            triples_list.append((subj, pred, obj, default_graph_uri))
+    elif file_extension == '.nq':
+        for subj, pred, obj, ctx in g.quads((None, None, None, None)):
+            triples_list.append((subj, pred, obj, ctx))
+    
+    for i in range(0, len(triples_list), batch_size):
+        batch_triples = triples_list[i:i + batch_size]
+        
+        triples_str = ""
+        for subj, pred, obj, ctx in batch_triples:
+            if ctx:
+                triples_str += f"GRAPH {ctx.n3().replace('[', '').replace(']', '')} {{ {subj.n3()} {pred.n3()} {obj.n3()} }} "
+            else: 
+                triples_str += f"{subj.n3()} {pred.n3()} {obj.n3()} . "
+        
+        query = f"INSERT DATA {{ {triples_str} }}"
+        
+        with open('query.txt', 'w') as f:
+            f.write(query)
+        
+        ts = SPARQLWrapper(server)
+        ts.setQuery(query)
+        ts.setMethod(POST)
+        ts.query()
 
 def store_curated_data(curator_obj:Curator, server:str) -> None:
     creator_obj = Creator(curator_obj.data, SERVER, BASE_IRI, None, None, 'https://orcid.org/0000-0002-8420-0696',
@@ -1222,7 +1262,7 @@ class testcase_16(unittest.TestCase):
     def test1(self):
         # Date cleaning 2019-02-29
         name = '16.1'
-        # add_data_ts('http://127.0.0.1:9999/blazegraph/sparql')
+        # add_data_ts('http://127.0.0.1:8805/sparql')
         # wrong date (2019/02/29)
         data = get_csv_data(MANUAL_DATA_CSV)
         partial_data = data[75:76]

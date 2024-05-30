@@ -42,7 +42,7 @@
 #         base_iri = 'https://w3id.org/oc/meta/'
 #         info_dir = os.path.join(BASE, 'info_dir', 'creator')
 #         g_set = GraphSet(base_iri, info_dir, supplier_prefix='060', wanted_label=False)
-#         endpoint = 'http://127.0.0.1:9999/blazegraph/sparql'
+#         endpoint = 'http://127.0.0.1:8805/sparql'
 #         resp_agent = 'https://orcid.org/0000-0002-8420-0696'
 #         rdf = os.path.join(BASE, 'rdf') + os.sep
 #         reader = Reader()
