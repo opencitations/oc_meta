@@ -96,10 +96,7 @@ def add_data_ts(server:str=SERVER, data_path:str=os.path.abspath(os.path.join('t
                 triples_str += f"{subj.n3()} {pred.n3()} {obj.n3()} . "
         
         query = f"INSERT DATA {{ {triples_str} }}"
-        
-        with open('query.txt', 'w') as f:
-            f.write(query)
-        
+                
         ts = SPARQLWrapper(server)
         ts.setQuery(query)
         ts.setMethod(POST)

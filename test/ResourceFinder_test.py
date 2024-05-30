@@ -50,10 +50,7 @@ def add_data_ts(server, data_path, batch_size:int=100, default_graph_uri=URIRef(
                 triples_str += f"{subj.n3()} {pred.n3()} {obj.n3()} . "
         
         query = f"INSERT DATA {{ {triples_str} }}"
-        
-        with open('query.txt', 'w') as f:
-            f.write(query)
-        
+                
         ts = SPARQLWrapper(server)
         ts.setQuery(query)
         ts.setMethod(POST)
