@@ -28,7 +28,7 @@ oc-ds-converter = "1.0.3"
 ijson = "^3.2.3"
 internetarchive = "^3.7.0"
 zenodopy = "^0.3.0"
-oc-ocdm = "8.1.1"
+oc-ocdm = "8.1.2"
 
 [tool.poetry.dev-dependencies]
 wget = "^3.2"

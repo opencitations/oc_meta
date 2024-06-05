@@ -144,11 +144,7 @@ class Curator:
         self.rowcnt = 0
         for row in self.data:
             self.clean_ra(row, 'author')
-            try:
-                self.clean_ra(row, 'publisher')
-            except ValueError:
-                print(row)
-                raise(ValueError)
+            self.clean_ra(row, 'publisher')
             self.clean_ra(row, 'editor')
             self.rowcnt += 1
         self.get_preexisting_entities()

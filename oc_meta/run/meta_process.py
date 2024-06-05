@@ -104,7 +104,7 @@ class MetaProcess:
             data = get_csv_data(filepath)
             supplier_prefix = f'{self.supplier_prefix}0' if worker_number is None else f'{self.supplier_prefix}{str(worker_number)}0'
             # Curator
-            self.info_dir = os.path.join(self.info_dir, supplier_prefix) if worker_number else self.info_dir
+            self.info_dir = os.path.join(self.info_dir, supplier_prefix)
             curator_info_dir = os.path.join(self.info_dir, 'curator' + os.sep)
             if resp_agents_only:
                 curator_obj = RespAgentsCurator(
@@ -170,7 +170,7 @@ class MetaProcess:
             repok  = Reporter(print_sentences = False)
             reperr = Reporter(print_sentences = True, prefix='[Storer: ERROR] ')
             res_storer = Storer(abstract_set=creator, repok=repok, reperr=reperr, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, default_dir=self.default_dir, output_format='json-ld', zip_output=self.zip_output_rdf, modified_entities=modified_entities)
-            prov_storer = Storer(abstract_set=prov, repok=repok, reperr=reperr, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, output_format='json-ld', zip_output=self.zip_output_rdf)
+            prov_storer = Storer(abstract_set=prov, repok=repok, reperr=reperr, context_map={}, dir_split=self.dir_split_number, n_file_item=self.items_per_file, output_format='json-ld', zip_output=self.zip_output_rdf, modified_entities=modified_entities)
             # with suppress_stdout():
             self.store_data_and_prov(res_storer, prov_storer, filename)
             return {'message': 'success'}, cache_path, errors_path, filename
@@ -201,7 +201,7 @@ class MetaProcess:
 def run_meta_process(settings: dict, meta_config_path: str, resp_agents_only: bool=False) -> None:
     meta_process = MetaProcess(settings=settings, meta_config_path=meta_config_path)
     is_unix = platform in {'linux', 'linux2', 'darwin'}
-    delete_lock_files(base_dir=meta_process.base_output_dir)
+    # delete_lock_files(base_dir=meta_process.base_output_dir)
     files_to_be_processed = meta_process.prepare_folders()
     max_workers = meta_process.workers_number
     if max_workers == 0:
