@@ -28,7 +28,8 @@ def query_and_delete_triples(uri, meta_config, resp_agent, stop_file, endpoint):
     for result in results['results']['bindings']:
         s = result['s']['value']
         p = result['p']['value']
-        meta_editor.delete(res=s, property=p, object=uri)
+        if p not in {'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://purl.org/spar/datacite/usesIdentifierScheme', 'http://purl.org/spar/pro/withRole'}:
+            meta_editor.delete(res=s, property=p, object=uri)
     
     return "deleted"
 

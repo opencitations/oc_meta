@@ -26,6 +26,7 @@ class ResourceFinder:
         self.meta_config_path = meta_config_path
         self.meta_settings = settings
         self.blazegraph_full_text_search = settings['blazegraph_full_text_search'] if settings and 'blazegraph_full_text_search' in settings else False
+        self.virtuoso_full_text_search = settings['virtuoso_full_text_search'] if settings and 'virtuoso_full_text_search' in settings else False
 
     def __query(self, query, return_format = JSON):
         self.ts.setReturnFormat(return_format)
@@ -667,8 +668,7 @@ class ResourceFinder:
         return '; '.join(publishers_output)
             
     def get_everything_about_res(self, metavals: set, identifiers: set, vvis: set, max_depth: int = 10) -> None:
-        BATCH_SIZE = None
-        use_text_search = self.blazegraph_full_text_search
+        BATCH_SIZE = 10
         def batch_process(input_set, batch_size):
             """Generator to split input data into smaller batches if batch_size is not None."""
             if batch_size is None:
@@ -718,24 +718,49 @@ class ResourceFinder:
                 if not batch:
                     continue
 
-                if use_text_search:
+                if self.blazegraph_full_text_search:
                     # Processing for text search enabled databases
                     for identifier in batch:
                         scheme, literal = identifier.split(":", 1)
                         escaped_identifier = literal.replace('\\', '\\\\').replace('"', '\\"')
                         query = f'''
+                            PREFIX bds: <http://www.bigdata.com/rdf/search#>
                             SELECT DISTINCT ?s WHERE {{
-                                ?id <{GraphEntity.iri_has_literal_value}> "{escaped_identifier}";
-                                    <{GraphEntity.iri_uses_identifier_scheme}> <{GraphEntity.DATACITE + scheme}>;
+                                ?literal bds:search "{escaped_identifier}" ;
+                                        bds:matchAllTerms "true" ;
+                                        ^<{GraphEntity.iri_has_literal_value}> ?id.
+                                ?id <{GraphEntity.iri_uses_identifier_scheme}> <{GraphEntity.DATACITE + scheme}>;
                                     ^<{GraphEntity.iri_has_identifier}> ?s .
                             }}
                         '''
                         result = self.__query(query)
                         for row in result['results']['bindings']:
                             subjects.add(str(row['s']['value']))
+                elif self.virtuoso_full_text_search:
+                    union_blocks = []
+                    for identifier in batch:
+                        scheme, literal = identifier.split(':', maxsplit=1)[0], identifier.split(':', maxsplit=1)[1]
+                        escaped_literal = literal.replace('\\', '\\\\').replace('"', '\\"')
+                        union_blocks.append(f"""
+                            {{  
+                                ?id <{GraphEntity.iri_has_literal_value}> ?literal .
+                                ?literal bif:contains "'{escaped_literal}'" .
+                                ?id <{GraphEntity.iri_uses_identifier_scheme}> <{GraphEntity.DATACITE + scheme}> .
+                                ?s <{GraphEntity.iri_has_identifier}> ?id .                                    
+                            }}
+                        """)
+                    union_query = " UNION ".join(union_blocks)
+                    query = f'''
+                        SELECT DISTINCT ?s WHERE {{
+                            {union_query}
+                        }}
+                    '''
+                    result = self.__query(query)
+                    for row in result['results']['bindings']:
+                        subjects.add(str(row['s']['value']))
                 else:
                     identifiers_values = []
-                    for identifier in identifiers:
+                    for identifier in batch:
                         scheme, literal = identifier.split(':', maxsplit=1)[0], identifier.split(':', maxsplit=1)[1]
                         escaped_literal = literal.replace('\\', '\\\\').replace('"', '\\"')
                         identifiers_values.append(f"(<{GraphEntity.DATACITE + scheme}> \"{escaped_literal}\")")
