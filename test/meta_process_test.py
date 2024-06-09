@@ -4,7 +4,6 @@ import shutil
 import subprocess
 import sys
 import unittest
-import time
 from datetime import datetime
 from zipfile import ZipFile
 

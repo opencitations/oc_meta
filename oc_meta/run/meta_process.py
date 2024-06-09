@@ -42,6 +42,7 @@ from oc_meta.lib.file_manager import (get_csv_data, init_cache, normalize_path,
 from oc_meta.plugins.multiprocess.resp_agents_creator import RespAgentsCreator
 from oc_meta.plugins.multiprocess.resp_agents_curator import RespAgentsCurator
 from concurrent.futures import as_completed
+from oc_meta.run.upload.on_triplestore import *
 from tqdm import tqdm
 
 class MetaProcess:
@@ -185,18 +186,21 @@ class MetaProcess:
             filename_without_csv = filename[:-4]
             f = os.path.join(self.output_rdf_dir, 'data', filename_without_csv + '.json')
             res_storer.store_graphs_in_file(f, self.context_path)
-            res_storer.upload_all(self.triplestore_url, self.output_rdf_dir, batch_size=100)
+            res_storer.upload_all(self.triplestore_url, self.output_rdf_dir, batch_size=10)
             f_prov = os.path.join(self.output_rdf_dir, 'prov', filename_without_csv + '.json')
             prov_storer.store_graphs_in_file(f_prov, self.context_path)
         else:
             res_storer.store_all(base_dir=self.output_rdf_dir, base_iri=self.base_iri, context_path=self.context_path, process_id=None)
             prov_storer.store_all(self.output_rdf_dir, self.base_iri, self.context_path, process_id=None)
-            res_storer.upload_all(triplestore_url=self.triplestore_url, base_dir=self.output_rdf_dir, batch_size=100)
+            res_storer.upload_all(triplestore_url=self.triplestore_url, base_dir=self.output_rdf_dir, batch_size=10, save_queries=True)
 
     def save_data(self):
         output_dirname = f"meta_output_{datetime.now().strftime('%Y-%m-%dT%H_%M_%S_%f')}.zip"
         dirs_to_zip = [self.base_output_dir, self.output_rdf_dir] if self.distinct_output_dirs else [self.base_output_dir]
         zipit(dirs_to_zip, output_dirname)
+
+    def run_sparql_updates(self, endpoint: str, folder: str, batch_size: int = 10):
+        upload_sparql_updates(endpoint, folder, batch_size)
 
 def run_meta_process(settings: dict, meta_config_path: str, resp_agents_only: bool=False) -> None:
     meta_process = MetaProcess(settings=settings, meta_config_path=meta_config_path)
@@ -226,11 +230,14 @@ def run_meta_process(settings: dict, meta_config_path: str, resp_agents_only: bo
                 print(f"Errore durante l'elaborazione: {e}\nTraceback:\n{traceback_str}")
             finally:
                 progress_bar.update(1)
+
     if not os.path.exists(os.path.join(meta_process.base_output_dir, '.stop')):
         if os.path.exists(meta_process.cache_path):
             os.rename(meta_process.cache_path, meta_process.cache_path.replace('.txt', f'_{datetime.now().strftime("%Y-%m-%dT%H_%M_%S_%f")}.txt'))
         if is_unix:
             delete_lock_files(base_dir=meta_process.base_output_dir)
+
+    meta_process.run_sparql_updates(endpoint=settings['triplestore_url'], folder=os.path.join(meta_process.output_rdf_dir, 'to_be_uploaded'))
 
 def curate_and_create_wrapper(file_to_be_processed, worker_number, resp_agents_only, settings, meta_config_path):
     meta_process = MetaProcess(settings=settings, meta_config_path=meta_config_path)
