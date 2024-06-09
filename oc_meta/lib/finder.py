@@ -725,7 +725,7 @@ class ResourceFinder:
                         escaped_identifier = literal.replace('\\', '\\\\').replace('"', '\\"')
                         query = f'''
                             PREFIX bds: <http://www.bigdata.com/rdf/search#>
-                            SELECT DISTINCT ?s WHERE {{
+                            SELECT ?s WHERE {{
                                 ?literal bds:search "{escaped_identifier}" ;
                                         bds:matchAllTerms "true" ;
                                         ^<{GraphEntity.iri_has_literal_value}> ?id.
@@ -751,7 +751,7 @@ class ResourceFinder:
                         """)
                     union_query = " UNION ".join(union_blocks)
                     query = f'''
-                        SELECT DISTINCT ?s WHERE {{
+                        SELECT ?s WHERE {{
                             {union_query}
                         }}
                     '''
@@ -766,7 +766,7 @@ class ResourceFinder:
                         identifiers_values.append(f"(<{GraphEntity.DATACITE + scheme}> \"{escaped_literal}\")")
                     identifiers_values_str = " ".join(identifiers_values)
                     query = f'''
-                        SELECT DISTINCT ?s WHERE {{
+                        SELECT ?s WHERE {{
                             VALUES (?scheme ?literal) {{ {identifiers_values_str} }}
                             ?id <{GraphEntity.iri_uses_identifier_scheme}> ?scheme;
                                 <{GraphEntity.iri_has_literal_value}> ?literal;
@@ -788,7 +788,7 @@ class ResourceFinder:
                 for volume, issue, venue_metaid in batch:
                     vvi_type = GraphEntity.iri_journal_issue if issue else GraphEntity.iri_journal_volume
                     query = f'''
-                        SELECT DISTINCT ?s WHERE {{
+                        SELECT ?s WHERE {{
                             ?s a <{vvi_type}>;
                                 <{GraphEntity.iri_part_of}>+ <{self.base_iri}/{venue_metaid.replace("omid:", "")}>;
                                 <{GraphEntity.iri_has_sequence_identifier}> "{issue if issue else volume}".
