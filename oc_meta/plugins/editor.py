@@ -35,7 +35,8 @@ class MetaEditor:
     property_to_remove_method = {
         'http://purl.org/spar/datacite/hasIdentifier': 'remove_identifier',
         'http://purl.org/spar/pro/isHeldBy': 'remove_is_held_by',
-        'http://purl.org/vocab/frbr/core#embodiment': 'remove_format'
+        'http://purl.org/vocab/frbr/core#embodiment': 'remove_format',
+        'http://purl.org/spar/pro/isDocumentContextFor': 'remove_is_held_by'
     }
 
     def __init__(self, meta_config: str, resp_agent: str):

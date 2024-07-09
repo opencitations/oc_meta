@@ -421,7 +421,11 @@ class ResourceFinder:
                             roles_with_next.add(next_role)
                         elif relevant_ar_triple[1] == GraphEntity.iri_is_held_by:
                             ra = str(relevant_ar_triple[2]).replace(f'{self.base_iri}/ra/', '')
-                    dict_ar[role_value] = {'next': next_role, 'ra': ra}
+                    try:
+                        dict_ar[role_value] = {'next': next_role, 'ra': ra}
+                    except UnboundLocalError:
+                        print(list(self.local_g.triples((triple[2], None, None))))
+                        raise(UnboundLocalError)
                         
         # Find the start_role by excluding all roles that are "next" for others from the set of all roles.
         all_roles = set(dict_ar.keys())
@@ -435,7 +439,9 @@ class ResourceFinder:
             for start_candidate in start_role_candidates:
                 current_role = start_candidate
                 chain = []
-                while current_role:
+                visited_roles = set()
+                while current_role and current_role not in visited_roles:
+                    visited_roles.add(current_role)
                     ra_info = self.retrieve_ra_from_meta(dict_ar[current_role]['ra'])[0:2]
                     ra_tuple = ra_info + (dict_ar[current_role]['ra'],)
                     chain.append({current_role: ra_tuple})
