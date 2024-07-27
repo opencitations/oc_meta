@@ -205,7 +205,7 @@ class TestResourceFinder(unittest.TestCase):
             'page': ('2011', '391-397'), 
             'issue': '4', 
             'volume': '166', 
-            'venue': 'Archives Of Internal Medicine [omid:br/4387]'
+            'venue': 'Archives Of Internal Medicine [omid:br/4387 issn:0003-9926]'
         }
         self.assertEqual(output, expected_output)
     

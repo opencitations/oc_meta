@@ -1,6 +1,7 @@
 import argparse
 import os
 import json
+import time
 from SPARQLWrapper import SPARQLWrapper, POST
 from tqdm import tqdm
 from oc_meta.run.split_insert_and_delete import process_sparql_file
@@ -23,15 +24,27 @@ def save_failed_query_file(filename):
         failed_file.write(f"{filename}\n")
 
 def execute_sparql_update(endpoint, query):
-    try:
-        sparql = SPARQLWrapper(endpoint)
-        sparql.setMethod(POST)
-        sparql.setQuery(query)
-        response = sparql.queryAndConvert()
-        return True
-    except Exception as e:
-        print(f"Error: {e}")
-        return False
+    attempt = 0
+    max_attempts = 3
+    wait_time = 5  # Initial wait time in seconds
+
+    while attempt < max_attempts:
+        try:
+            sparql = SPARQLWrapper(endpoint)
+            sparql.setMethod(POST)
+            sparql.setQuery(query)
+            response = sparql.queryAndConvert()
+            return True
+        except Exception as e:
+            attempt += 1
+            if attempt < max_attempts:
+                print(f"[3] Attempt {attempt} failed. Could not execute SPARQL update due to communication problems: {e}")
+                print(f"Retrying in {wait_time} seconds...")
+                time.sleep(wait_time)
+                wait_time *= 2  # Double the wait time for the next attempt
+            else:
+                print(f"[3] All {max_attempts} attempts failed. Could not execute SPARQL update due to communication problems: {e}")
+                return False
 
 def generate_sparql_queries(quads_to_add, quads_to_remove, batch_size):
     queries = []

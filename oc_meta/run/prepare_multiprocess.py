@@ -40,6 +40,7 @@ if __name__ == '__main__': # pragma: no cover
     verbose = args.verbose
     meta_process = MetaProcess(settings=settings, meta_config_path=config)
     TMP_DIR = os.path.join(meta_process.base_output_dir, 'tmp')
+    csv_dir = csv_dir.rstrip('/')
     if not os.path.isdir(meta_process.input_csv_dir + '_old'):
         split_csvs_in_chunks(csv_dir=csv_dir, output_dir=TMP_DIR, chunk_size=1000, verbose=verbose)
         os.rename(csv_dir, csv_dir + '_old')
@@ -48,13 +49,13 @@ if __name__ == '__main__': # pragma: no cover
             shutil.move(os.path.join(TMP_DIR, file), csv_dir)
     if not all(os.path.exists(os.path.join(TMP_DIR, directory)) for directory in ['venues', 'ids', 'publishers', 'authors', 'editors']):
         prepare_relevant_items(csv_dir=csv_dir, output_dir=TMP_DIR, items_per_file=items_per_file, verbose=verbose)
-    for resp_agent in ['authors', 'editors']:
+    for resp_agent in ['authors', 'editors', 'publishers']:
         resp_agent_dir = os.path.join(TMP_DIR, resp_agent)
         if os.path.isdir(resp_agent_dir):
             settings['input_csv_dir'] = resp_agent_dir
             run_meta_process(settings=settings, meta_config_path=config, resp_agents_only=True)
     settings['workers_number'] = 1
-    for entity_type in ['publishers', 'venues', 'ids']:
+    for entity_type in ['venues', 'ids']:
         entity_dir = os.path.join(TMP_DIR, entity_type)
         if os.path.isdir(entity_dir):
             settings['input_csv_dir'] = entity_dir

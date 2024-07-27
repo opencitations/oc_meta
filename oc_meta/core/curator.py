@@ -41,6 +41,14 @@ class Curator:
         self.base_iri = base_iri
         self.prov_config = prov_config
         self.separator = separator
+        # Preliminary pass to clear volume and issue if id is present but venue is missing
+        for row in data:
+            if row['id'] and (row['volume'] or row['issue']):
+                if not row['venue']:
+                    row['volume'] = ''
+                    row['issue'] = ''
+                if not row['type']:
+                    row['type'] = 'journal article'
         self.data = [{field:value.strip() for field,value in row.items()} for row in data if is_a_valid_row(row)]
         self.prefix = prefix
         # Counter local paths
@@ -116,9 +124,9 @@ class Curator:
         else:
             return re.split(one_or_more_spaces, re.sub(colon_and_spaces, ':', field_value))
 
-    def curator(self, filename:str=None, path_csv:str=None, path_index:str=None):
+    def curator(self, filename: str = None, path_csv: str = None, path_index: str = None):
         metavals, identifiers, vvis = self.collect_identifiers(valid_dois_cache=self.valid_dois_cache)
-        self.finder.get_everything_about_res(metavals=metavals, identifiers=identifiers, vvis=vvis)
+        self.finder.get_everything_about_res(metavals=metavals, identifiers=identifiers, vvis=vvis)        
         for row in self.data:
             self.log[self.rowcnt] = {
                 'id': {},
@@ -151,13 +159,12 @@ class Curator:
         self.meta_maker()
         self.log = self.log_update()
         self.enrich()
-        # remove duplicates
+        # Remove duplicates
         self.data = list({v['id']: v for v in self.data}.values())
         if path_index:
             path_index = os.path.join(path_index, filename)
         self.filename = filename
         self.indexer(path_index, path_csv)
-
     # ID
     def clean_id(self, row:Dict[str,str]) -> None:
         '''
@@ -238,7 +245,7 @@ class Curator:
                     row['type'] = ''
 
     # VVI
-    def clean_vvi(self, row:Dict[str, str]) -> None:
+    def clean_vvi(self, row: Dict[str, str]) -> None:
         '''
         This method performs the deduplication process for venues, volumes and issues.
         The acquired information is stored in the 'vvi' dictionary, that has the following format: ::
@@ -1216,6 +1223,23 @@ class Curator:
                     other_rowcnt += 1
             self.rowcnt += 1
 
+    def extract_name_and_ids(self, venue_str: str) -> Tuple[str, List[str]]:
+        '''
+        Extracts the name and IDs from the venue string.
+
+        :params venue_str: the venue string
+        :type venue_str: str
+        :returns: Tuple[str, List[str]] -- the name and list of IDs extracted from the venue string
+        '''
+        match = re.search(name_and_ids, venue_str)
+        if match:
+            name = match.group(1).strip()
+            ids = match.group(2).strip().split()
+        else:
+            name = venue_str.strip()
+            ids = []
+        return name, ids
+
     def equalizer(self, row:Dict[str, str], metaval:str) -> None:
         '''
         Given a CSV row and its MetaID, this function equates the information present in the CSV with that present on the triplestore.
@@ -1240,9 +1264,32 @@ class Curator:
                 if row[datum] and row[datum] != known_data[datum]:
                     self.log[self.rowcnt][datum]['status'] = 'New value proposed'
                 row[datum] = known_data[datum]
-        for datum in ['author', 'editor', 'publisher', 'venue']:
+        for datum in ['author', 'editor', 'publisher']:
             if known_data[datum] and not row[datum]:
                 row[datum] = known_data[datum]
+        if known_data['venue']:
+            current_venue = row['venue']
+            known_venue = known_data['venue']
+            
+            if current_venue:
+                # Extract the IDs from the current venue
+                current_venue_name, current_venue_ids = self.extract_name_and_ids(current_venue)
+                known_venue_name, known_venue_ids = self.extract_name_and_ids(known_venue)
+                
+                current_venue_ids_set = set(current_venue_ids)
+                known_venue_ids_set = set(known_venue_ids)
+                
+                common_ids = current_venue_ids_set.intersection(known_venue_ids_set)
+                
+                if common_ids:
+                    # Merge the IDs and use the title from the known venue
+                    merged_ids = current_venue_ids_set.union(known_venue_ids_set)
+                    row['venue'] = f"{known_venue_name} [{' '.join(sorted(merged_ids))}]"
+                else:
+                    # Use the known venue information entirely
+                    row['venue'] = known_venue
+            else:
+                row['venue'] = known_venue
         if known_data['page']:
             if row['page'] and row['page'] != known_data['page'][1]:
                 self.log[self.rowcnt]['page']['status'] = 'New value proposed'

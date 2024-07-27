@@ -130,8 +130,10 @@ class RespAgentsCurator(Curator):
                 self.rameta[meta]['ids'].append('omid:ra/' + meta)
             else:
                 self.rameta[identifier] = self.radict[identifier]
-                self.rameta[identifier]['ids'].append('omid:ra/' + identifier)
                 self.preexisting_entities.add(f'ra/{identifier}')
+                self.rameta[identifier]['ids'].append('omid:ra/' + identifier)
+        for _, omid in self.idra.items():
+            self.preexisting_entities.add(f'id/{omid}')
 
     def indexer(self, path_index:str, path_csv:str) -> None:
         '''
