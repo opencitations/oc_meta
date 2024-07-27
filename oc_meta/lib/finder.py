@@ -550,6 +550,18 @@ class ResourceFinder:
         :returns: dict -- the output is a dictionary including the publication date, type, page, issue, volume, and venue of the specified bibliographic resource.
         '''
 
+        venue_iris = [
+            GraphEntity.iri_archival_document,
+            GraphEntity.iri_journal,
+            GraphEntity.iri_book,
+            GraphEntity.iri_book_series,
+            GraphEntity.iri_series,
+            GraphEntity.iri_academic_proceedings,
+            GraphEntity.iri_proceedings_series,
+            GraphEntity.iri_reference_book,
+            GraphEntity.iri_series
+        ]
+
         def extract_identifiers(entity_uri):
             identifiers = [f"omid:{entity_uri.replace(f'{self.base_iri}/', '')}"]
             for id_triple in self.local_g.triples((entity_uri, GraphEntity.iri_has_identifier, None)):
@@ -601,7 +613,7 @@ class ResourceFinder:
                         for inner_vvi_triple in self.local_g.triples((obj, None, None)):
                             if inner_vvi_triple[1] == GraphEntity.iri_has_sequence_identifier:
                                 res_dict['volume'] = str(inner_vvi_triple[2])
-                    else:
+                    elif vvi_obj in venue_iris:
                         for inner_vvi_triple in self.local_g.triples((obj, None, None)):
                             if inner_vvi_triple[1] == GraphEntity.iri_title:
                                 venue_title = str(inner_vvi_triple[2])
@@ -615,11 +627,11 @@ class ResourceFinder:
                                 for inner_vvi_triple in self.local_g.triples((vvi_obj, None, None)):
                                     if inner_vvi_triple[1] == GraphEntity.iri_has_sequence_identifier:
                                         res_dict['volume'] = str(inner_vvi_triple[2])
-                            else:
-                                for inner_vvi_triple in self.local_g.triples((vi_obj, None, None)):
+                            elif vi_obj in venue_iris:
+                                for inner_vvi_triple in self.local_g.triples((vvi_obj, None, None)):
                                     if inner_vvi_triple[1] == GraphEntity.iri_title:
                                         venue_title = str(inner_vvi_triple[2])
-                                        venue_ids = extract_identifiers(vi_obj)
+                                        venue_ids = extract_identifiers(vvi_obj)
                                         res_dict['venue'] = f"{venue_title} [{' '.join(venue_ids)}]"
 
                             if vi_triple[1] == GraphEntity.iri_part_of:
