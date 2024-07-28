@@ -559,7 +559,9 @@ class ResourceFinder:
             GraphEntity.iri_academic_proceedings,
             GraphEntity.iri_proceedings_series,
             GraphEntity.iri_reference_book,
-            GraphEntity.iri_series
+            GraphEntity.iri_series,
+
+            GraphEntity.iri_expression
         ]
 
         def extract_identifiers(entity_uri):
@@ -640,7 +642,6 @@ class ResourceFinder:
                                         venue_title = str(venue_triple[2])
                                         venue_ids = extract_identifiers(vi_obj)
                                         res_dict['venue'] = f"{venue_title} [{' '.join(venue_ids)}]"
-
         return res_dict
 
     @staticmethod
@@ -813,8 +814,7 @@ class ResourceFinder:
                         escaped_literal = literal.replace('\\', '\\\\').replace('"', '\\"')
                         union_blocks.append(f"""
                             {{  
-                                ?id <{GraphEntity.iri_has_literal_value}> ?literal .
-                                ?literal bif:contains "'{escaped_literal}'" .
+                                ?id <{GraphEntity.iri_has_literal_value}> "{escaped_literal}" .
                                 ?id <{GraphEntity.iri_uses_identifier_scheme}> <{GraphEntity.DATACITE + scheme}> .
                                 ?s <{GraphEntity.iri_has_identifier}> ?id .                                    
                             }}
