@@ -82,6 +82,9 @@ def split_queries(file_path, batch_size):
     return generate_sparql_queries(quads_to_add, quads_to_remove, batch_size)
 
 def upload_sparql_updates(endpoint, folder, batch_size):
+    if not os.path.exists(folder):
+        return
+        
     processed_files = load_cache()
     failed_files = []
 

@@ -53,16 +53,31 @@ def main():
     parser = argparse.ArgumentParser(description='Run a SPARQL query and save results to CSV.')
     parser.add_argument('endpoint', type=str, help='SPARQL endpoint URL')
     parser.add_argument('csv_path', type=str, help='Path to the CSV file to save results')
+    parser.add_argument('entity_type', type=str, choices=['id', 'br', 'ra'], help='Type of entity: "id" or "br"')
     args = parser.parse_args()
 
-    sparql_query = """
-        PREFIX datacite: <http://purl.org/spar/datacite/>
-        PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
-        SELECT ?entity1 ?entity2 {
-            ?id ^datacite:hasIdentifier ?entity1, ?entity2.
-            FILTER(?entity1 != ?entity2 )
-        }    
-    """
+    if args.entity_type == 'id':
+        sparql_query = """
+            PREFIX datacite: <http://purl.org/spar/datacite/>
+            PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
+            SELECT ?entity1 ?entity2 {
+                ?id ^datacite:hasIdentifier ?entity1, ?entity2.
+                FILTER(?entity1 != ?entity2 )
+            }    
+        """
+    elif args.entity_type == 'ra':
+        sparql_query = """
+            PREFIX datacite: <http://purl.org/spar/datacite/>
+            PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
+            PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+            SELECT ?entity1 ?entity2 {
+                ?entity1 datacite:hasIdentifier ?id;
+                        a foaf:Agent.
+                ?entity2 datacite:hasIdentifier ?id;
+                        a foaf:Agent.
+                FILTER(?entity1 != ?entity2 )
+            }    
+        """
 
     results = execute_sparql_query(args.endpoint, sparql_query)
     final_entities = find_surviving_entities(results)

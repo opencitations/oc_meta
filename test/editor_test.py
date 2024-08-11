@@ -159,10 +159,10 @@ class TestEditor(unittest.TestCase):
         graph_storer.upload_all(endpoint)
         editor = MetaEditor(META_CONFIG, 'https://orcid.org/0000-0002-8420-0696')
         editor.merge(URIRef('https://w3id.org/oc/meta/ra/06107'), URIRef('https://w3id.org/oc/meta/ra/06205'))
-        expected_lines_0610 = ['1 \n', '1 \n', '1 \n', '1 \n', '1 \n', '1 \n', '2 \n']
+        expected_lines_0610 = ['1\n', '1\n', '1\n', '1\n', '1\n', '1\n', '2\n']
         normalized_lines_0610 = read_and_normalize_file(os.path.join(OUTPUT, 'info_dir', '0610', 'creator', 'prov_file_ra.txt'))
         self.assertEqual(normalized_lines_0610, expected_lines_0610)
-        expected_lines_0620 = ['  \n', '  \n', '  \n', '  \n', '2 \n']
+        expected_lines_0620 = ['\n', '\n', '\n', '\n', '2\n']
         normalized_lines_0620 = read_and_normalize_file(os.path.join(OUTPUT, 'info_dir', '0620', 'creator', 'prov_file_ra.txt'))
         self.assertEqual(normalized_lines_0620, expected_lines_0620)
         for filepath in [
