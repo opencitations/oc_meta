@@ -402,27 +402,25 @@ class ResourceFinder:
             role = GraphEntity.iri_editor
         else:
             role = GraphEntity.iri_publisher
+        
         metaid_uri = URIRef(f'{self.base_iri}/br/{str(metaid)}')
         dict_ar = dict()
-        br_ars = list()
-        roles_with_next = set()
+        changes_made = False
+        
         for triple in self.local_g.triples((metaid_uri, GraphEntity.iri_is_document_context_for, None)):
             for ar_triple in self.local_g.triples((triple[2], None, None)):
                 if ar_triple[2] == role:
-                    br_ars.append(str(triple[2]))
                     role_value = str(triple[2]).replace(f'{self.base_iri}/ar/', '')
                     next_role = ''
                     for relevant_ar_triple in self.local_g.triples((triple[2], None, None)):                            
                         if relevant_ar_triple[1] == GraphEntity.iri_has_next:
                             next_role = str(relevant_ar_triple[2]).replace(f'{self.base_iri}/ar/', '')
-                            roles_with_next.add(next_role)
                         elif relevant_ar_triple[1] == GraphEntity.iri_is_held_by:
                             ra = str(relevant_ar_triple[2]).replace(f'{self.base_iri}/ra/', '')
-                    try:
-                        dict_ar[role_value] = {'next': next_role, 'ra': ra}
-                    except UnboundLocalError:
-                        print(list(self.local_g.triples((triple[2], None, None))))
-                        raise UnboundLocalError
+                    dict_ar[role_value] = {'next': next_role, 'ra': ra}
+        
+        initial_dict_ar = dict_ar.copy()
+
         # Detect and handle duplicated RA
         ra_to_ars = {}
         for ar, details in dict_ar.items():
@@ -430,29 +428,44 @@ class ResourceFinder:
             if ra not in ra_to_ars:
                 ra_to_ars[ra] = []
             ra_to_ars[ra].append(ar)
+
         # Identify and delete duplicate ARs
         ar_to_delete_list = []
         for ra, ars in ra_to_ars.items():
             if len(ars) > 1:
                 # Keep the first AR and delete the rest
                 for ar_to_delete in ars[1:]:
-                    meta_editor = MetaEditor(meta_config=self.meta_config_path, resp_agent='https://w3id.org/oc/meta/prov/pa/1')
+                    meta_editor = MetaEditor(meta_config=self.meta_config_path, resp_agent='https://w3id.org/oc/meta/prov/pa/1', save_queries=True)
                     meta_editor.delete(res=f"{self.base_iri}/ar/{ar_to_delete}")
                     ar_to_delete_list.append(ar_to_delete)
+                    changes_made = True
         
         for ar in ar_to_delete_list:
             del dict_ar[ar]
+
         # Check for ARs that have themselves as 'next' and remove the 'next' relationship
         for ar, details in dict_ar.items():
             if details['next'] == ar:
-                meta_editor = MetaEditor(meta_config=self.meta_config_path, resp_agent='https://w3id.org/oc/meta/prov/pa/1')
-                meta_editor.delete(res=f"{self.base_iri}/ar/{ar}", property=GraphEntity.iri_has_next)
+                meta_editor = MetaEditor(meta_config=self.meta_config_path, resp_agent='https://w3id.org/oc/meta/prov/pa/1', save_queries=True)
+                meta_editor.delete(res=f"{self.base_iri}/ar/{ar}", property=str(GraphEntity.iri_has_next))
                 dict_ar[ar]['next'] = ''
-                roles_with_next.discard(ar)
+                changes_made = True
+
+        # Remove invalid 'next' references
+        for role, details in list(dict_ar.items()):
+            if details['next'] and details['next'] not in dict_ar:
+                dict_ar[role]['next'] = ''
+                changes_made = True
+
         # Find the start_role by excluding all roles that are "next" for others from the set of all roles.
         all_roles = set(dict_ar.keys())
+        roles_with_next = set(details['next'] for details in dict_ar.values() if details['next'])
         start_role_candidates = all_roles - roles_with_next
-        # Handle the edge cases for start role determination
+        # Handle the edge cases for start role determination   
+
+        MAX_ITERATIONS = 1000  # Numero massimo di iterazioni permesse
+        SAFETY_TIMER = 3600  # Timer di sicurezza di 1 ora (in secondi)
+
         if len(all_roles) == 0:
             return []
         elif len(start_role_candidates) != 1:
@@ -462,31 +475,82 @@ class ResourceFinder:
                 current_role = start_candidate
                 chain = []
                 visited_roles = set()
-                while current_role and current_role not in visited_roles:
+                iteration_count = 0
+                while current_role and current_role not in visited_roles and iteration_count < MAX_ITERATIONS:
                     visited_roles.add(current_role)
                     ra_info = self.retrieve_ra_from_meta(dict_ar[current_role]['ra'])[0:2]
                     ra_tuple = ra_info + (dict_ar[current_role]['ra'],)
                     chain.append({current_role: ra_tuple})
-                    current_role = dict_ar[current_role]['next']  # Move to the next role.
+                    current_role = dict_ar[current_role]['next']
+                    iteration_count += 1
+
+                if iteration_count == MAX_ITERATIONS:
+                    print(f"Possible infinite loop detected for BR: {metaid}")
+                    print("Starting safety timer. Please stop the process if needed.")
+                    sleep(SAFETY_TIMER)
+                    return []  # Ritorna una lista vuota dopo il timer
+
                 chains.append(chain)
-            # Sort chains by length, then by the lowest sequential number of the starting role
+            # Sort chains by length, then by the lowest sequential number of the starting role            
             chains.sort(key=lambda chain: (-len(chain), get_resource_number(f'{self.base_iri}/ar/{list(chain[0].keys())[0]}')))
-            ordered_ar_list = chains[0]
+            try:
+                ordered_ar_list = chains[0]
+            except Exception as e:
+                print(f"\nProcessing BR: {metaid} for column: {col_name}")
+                print(f"Initial dict_ar: {dict_ar}")
+                print(f"All roles: {all_roles}")
+                print(f"Start role candidates: {start_role_candidates}")
+                print(f"Roles with next: {roles_with_next}")
+                print(f"Error occurred while sorting or selecting chains: {str(e)}")
+                print(f"Chains at time of error: {chains}")
+                raise
             for chain in chains[1:]:
                 for ar_dict in chain:
                     for ar in ar_dict.keys():
+                        meta_editor = MetaEditor(meta_config=self.meta_config_path, resp_agent='https://w3id.org/oc/meta/prov/pa/1', save_queries=True)
                         meta_editor.delete(res=f"{self.base_iri}/ar/{ar}")
+                        changes_made = True
         else:
+            start_role = start_role_candidates.pop()
             # Follow the "next" chain from the start_role to construct an ordered list.
             ordered_ar_list = []
-            start_role = start_role_candidates.pop()
             current_role = start_role
             while current_role:
                 ra_info = self.retrieve_ra_from_meta(dict_ar[current_role]['ra'])[0:2]
                 ra_tuple = ra_info + (dict_ar[current_role]['ra'],)
                 ordered_ar_list.append({current_role: ra_tuple})
-                current_role = dict_ar[current_role]['next']  # Move to the next role.
-        # Now 'ordered_ar_list' should contain the roles in the correct order, starting from 'start_role'.
+                current_role = dict_ar[current_role]['next']
+
+        final_chain = [list(ar_dict.keys())[0] for ar_dict in ordered_ar_list]
+
+        # Fill gaps in the AR chain
+        for i in range(len(final_chain) - 1):
+            current_ar = final_chain[i]
+            next_ar = final_chain[i + 1]
+            if dict_ar[current_ar]['next'] != next_ar:
+                meta_editor = MetaEditor(meta_config=self.meta_config_path, resp_agent='https://w3id.org/oc/meta/prov/pa/1', save_queries=True)
+                meta_editor.update_property(
+                    res=f"{self.base_iri}/ar/{current_ar}",
+                    property=str(GraphEntity.iri_has_next),
+                    new_value=URIRef(f"{self.base_iri}/ar/{next_ar}")
+                )
+                dict_ar[current_ar]['next'] = next_ar
+                changes_made = True
+
+        # Ensure the last AR doesn't have a 'next' relationship
+        last_ar = final_chain[-1]
+        if dict_ar[last_ar]['next']:
+            meta_editor = MetaEditor(meta_config=self.meta_config_path, resp_agent='https://w3id.org/oc/meta/prov/pa/1', save_queries=True)
+            meta_editor.delete(res=f"{self.base_iri}/ar/{last_ar}", property=GraphEntity.iri_has_next)
+            dict_ar[last_ar]['next'] = ''
+            changes_made = True
+
+        if changes_made:
+            print(f"\nChanges made to AR chain for BR: {metaid}")
+            print(f"Initial AR chain: {initial_dict_ar}")
+            print(f"Final AR chain: {dict_ar}")
+            print(f"Final ordered AR list: {ordered_ar_list}\n")
+        
         return ordered_ar_list
 
     def retrieve_re_from_br_meta(self, metaid:str) -> Tuple[str, str]:
@@ -879,7 +943,7 @@ class ResourceFinder:
 
         if vvis:
             initial_subjects.update(get_initial_subjects_from_vvis(vvis))
-
+    
         # Now start the depth-based processing
         process_batch(initial_subjects, 0)
 

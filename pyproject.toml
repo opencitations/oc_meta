@@ -29,6 +29,7 @@ ijson = "^3.2.3"
 internetarchive = "^3.7.0"
 zenodopy = "^0.3.0"
 oc-ocdm = "8.2.1"
+retrying = "^1.3.4"
 
 [tool.poetry.dev-dependencies]
 wget = "^3.2"

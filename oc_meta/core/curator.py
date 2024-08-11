@@ -1061,7 +1061,7 @@ class Curator:
                         #     return self.conflict(idslist, name, id_dict, col_name)
                         # else:
                         existing_ids = sparql_match[0][2]
-                        new_idslist = [x[1] for x in existing_ids]
+                        # new_idslist = [x[1] for x in existing_ids]
                         # new_sparql_match = self.finder_sparql(new_idslist, br=br_ent, ra=ra_ent, vvi=vvi_ent, publ=publ_entity)
                         # if len(new_sparql_match) > 1:
                         #     # Two entities previously disconnected on the triplestore now become connected
@@ -1087,8 +1087,8 @@ class Curator:
                 # elif len(sparql_match) == 1:
                 if sparql_match:
                     existing_ids = sparql_match[0][2]
-                    new_idslist = [x[1] for x in existing_ids]
-                    new_sparql_match = self.finder_sparql(new_idslist, br=br_ent, ra=ra_ent, vvi=vvi_ent, publ=publ_entity)
+                    # new_idslist = [x[1] for x in existing_ids]
+                    # new_sparql_match = self.finder_sparql(new_idslist, br=br_ent, ra=ra_ent, vvi=vvi_ent, publ=publ_entity)
                     # if len(new_sparql_match) > 1:
                     #     # Two entities previously disconnected on the triplestore now become connected
                     #     # !

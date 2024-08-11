@@ -40,7 +40,7 @@ class MetaEditor:
         'https://w3id.org/oc/ontology/hasNext': 'remove_next'
     }
 
-    def __init__(self, meta_config: str, resp_agent: str):
+    def __init__(self, meta_config: str, resp_agent: str, save_queries: bool = False):
         with open(meta_config, encoding='utf-8') as file:
             settings = yaml.full_load(file)
         self.endpoint = settings['triplestore_url']
@@ -52,6 +52,8 @@ class MetaEditor:
         self.n_file_item = settings['items_per_file']
         self.zip_output_rdf = settings['zip_output_rdf']
         self.reader = Reader()
+        self.save_queries = save_queries
+        self.update_queries = []
     
     def update_property(self, res: URIRef, property: str, new_value: str|URIRef) -> None:
         info_dir = self.__get_info_dir(res)
@@ -142,7 +144,14 @@ class MetaEditor:
                     raise(ValueError)
         res_as_entity = g_set.get_entity(res)
         other_as_entity = g_set.get_entity(other)
-        res_as_entity.merge(other_as_entity)
+        is_both_expression = all(
+            GraphEntity.iri_expression in entity.g.objects(entity.res, RDF.type)
+            for entity in [res_as_entity, other_as_entity]
+        )
+        if is_both_expression:
+            res_as_entity.merge(other_as_entity, prefer_self=True)
+        else:
+            res_as_entity.merge(other_as_entity)
         self.save(g_set, info_dir, supplier_prefix)
     
     def sync_rdf_with_triplestore(self, res: str, source_uri: str = None) -> bool:
@@ -178,7 +187,7 @@ class MetaEditor:
         prov_storer = Storer(provset, dir_split=self.dir_split, n_file_item=self.n_file_item, zip_output=self.zip_output_rdf)
         graph_storer.store_all(self.base_dir, self.base_iri)
         prov_storer.store_all(self.base_dir, self.base_iri)
-        graph_storer.upload_all(self.endpoint)
+        graph_storer.upload_all(self.endpoint, base_dir=self.base_dir, save_queries=self.save_queries)
         g_set.commit_changes()
     
     def __get_info_dir(self, uri: str):
