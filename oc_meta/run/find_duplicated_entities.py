@@ -61,7 +61,10 @@ def main():
             PREFIX datacite: <http://purl.org/spar/datacite/>
             PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
             SELECT ?entity1 ?entity2 {
-                ?id ^datacite:hasIdentifier ?entity1, ?entity2.
+                ?entity1 datacite:usesIdentifierScheme ?scheme;
+                    literal:hasLiteralValue ?literal.
+                ?entity2 datacite:usesIdentifierScheme ?scheme;
+                    literal:hasLiteralValue ?literal.
                 FILTER(?entity1 != ?entity2 )
             }    
         """

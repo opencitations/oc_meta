@@ -16,26 +16,28 @@
 
 import gzip
 import argparse
-import json
 import multiprocessing
 import os
 import re
+import rdflib
 from typing import Match
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from filelock import FileLock
-from rdflib import ConjunctiveGraph, URIRef, Graph
+from rdflib import ConjunctiveGraph, URIRef
 import logging
 from tqdm import tqdm
-from datetime import datetime
+from functools import lru_cache
+import orjson
 
 # Variable used in several functions
 entity_regex: str = r"^(.+)/([a-z][a-z])/(0[1-9]+0)?((?:[1-9][0-9]*)|(?:\d+-\d+))$"
 prov_regex: str = r"^(.+)/([a-z][a-z])/(0[1-9]+0)?((?:[1-9][0-9]*)|(?:\d+-\d+))/prov/([a-z][a-z])/([1-9][0-9]*)$"
 
-logging.basicConfig(level=logging.WARNING, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
 
-def _get_match(regex: str, group: int, string: str) -> str:
+@lru_cache(maxsize=1024)
+def _get_match_cached(regex: str, group: int, string: str) -> str:
     match: Match = re.match(regex, string)
     if match is not None:
         return match.group(group)
@@ -45,21 +47,21 @@ def _get_match(regex: str, group: int, string: str) -> str:
 def get_base_iri(res: URIRef) -> str:
     string_iri: str = str(res)
     if "/prov/" in string_iri:
-        return _get_match(prov_regex, 1, string_iri)
+        return _get_match_cached(prov_regex, 1, string_iri)
     else:
-        return _get_match(entity_regex, 1, string_iri)
+        return _get_match_cached(entity_regex, 1, string_iri)
 
 def get_short_name(res: URIRef) -> str:
     string_iri: str = str(res)
     if "/prov/" in string_iri:
-        return _get_match(prov_regex, 5, string_iri)
+        return _get_match_cached(prov_regex, 5, string_iri)
     else:
-        return _get_match(entity_regex, 2, string_iri)
+        return _get_match_cached(entity_regex, 2, string_iri)
 
 def get_prov_subject_short_name(prov_res: URIRef) -> str:
     string_iri: str = str(prov_res)
     if "/prov/" in string_iri:
-        return _get_match(prov_regex, 2, string_iri)
+        return _get_match_cached(prov_regex, 2, string_iri)
     else:
         return ""  # non-provenance entities do not have a prov_subject!
 
@@ -68,35 +70,35 @@ def get_prefix(res: URIRef) -> str:
     if "/prov/" in string_iri:
         return ""  # provenance entities cannot have a supplier prefix
     else:
-        return _get_match(entity_regex, 3, string_iri)
+        return _get_match_cached(entity_regex, 3, string_iri)
 
 def get_prov_subject_prefix(prov_res: URIRef) -> str:
     string_iri: str = str(prov_res)
     if "/prov/" in string_iri:
-        return _get_match(prov_regex, 3, string_iri)
+        return _get_match_cached(prov_regex, 3, string_iri)
     else:
         return ""  # non-provenance entities do not have a prov_subject!
 
 def get_count(res: URIRef) -> str:
     string_iri: str = str(res)
     if "/prov/" in string_iri:
-        return _get_match(prov_regex, 6, string_iri)
+        return _get_match_cached(prov_regex, 6, string_iri)
     else:
-        return _get_match(entity_regex, 4, string_iri)
+        return _get_match_cached(entity_regex, 4, string_iri)
 
 def get_prov_subject_count(prov_res: URIRef) -> str:
     string_iri: str = str(prov_res)
     if "/prov/" in string_iri:
-        return _get_match(prov_regex, 4, string_iri)
+        return _get_match_cached(prov_regex, 4, string_iri)
     else:
         return ""  # non-provenance entities do not have a prov_subject!
 
 def get_resource_number(res: URIRef) -> int:
     string_iri: str = str(res)
     if "/prov/" in string_iri:
-        return int(_get_match(prov_regex, 4, string_iri))
+        return int(_get_match_cached(prov_regex, 4, string_iri))
     else:
-        return int(_get_match(entity_regex, 4, string_iri))
+        return int(_get_match_cached(entity_regex, 4, string_iri))
 
 def find_local_line_id(res: URIRef, n_file_item: int = 1) -> int:
     cur_number: int = get_resource_number(res)
@@ -214,15 +216,15 @@ def store_in_file(cur_g: ConjunctiveGraph, cur_file_path: str, zip_output: bool)
     if not os.path.exists(dir_path):
         os.makedirs(dir_path, exist_ok=True)
 
-    cur_json_ld = json.loads(cur_g.serialize(format="json-ld"))
+    cur_json_ld = orjson.loads(cur_g.serialize(format="json-ld"))
 
     if zip_output:
         with ZipFile(cur_file_path, mode="w", compression=ZIP_DEFLATED, allowZip64=True) as zip_file:
-            json_str = json.dumps(cur_json_ld, ensure_ascii=False)
+            json_str = orjson.dumps(cur_json_ld).decode('utf-8')
             zip_file.writestr(os.path.basename(cur_file_path.replace('.zip', '.json')), json_str)
     else:
-        with open(cur_file_path, 'wt', encoding='utf-8') as f:
-            json.dump(cur_json_ld, f, ensure_ascii=False)
+        with open(cur_file_path, 'wb') as f:
+            f.write(orjson.dumps(cur_json_ld))
 
 def load_graph(file_path: str, cur_format: str = 'json-ld'):
     loaded_graph = ConjunctiveGraph()
@@ -231,21 +233,21 @@ def load_graph(file_path: str, cur_format: str = 'json-ld'):
             for zf_name in archive.namelist():
                 with archive.open(zf_name) as f:
                     if cur_format == "json-ld":
-                        json_ld_file = json.load(f)
+                        json_ld_file = orjson.loads(f.read())
                         if isinstance(json_ld_file, dict):
                             json_ld_file = [json_ld_file]
                         for json_ld_resource in json_ld_file:
-                            loaded_graph.parse(data=json.dumps(json_ld_resource, ensure_ascii=False), format=cur_format)
+                            loaded_graph.parse(data=orjson.dumps(json_ld_resource).decode('utf-8'), format=cur_format)
                     else:
                         loaded_graph.parse(file=f, format=cur_format)
     else:
-        with open(file_path, 'rt', encoding='utf-8') as f:
+        with open(file_path, 'rb', encoding='utf-8') as f:
             if cur_format == "json-ld":
-                json_ld_file = json.load(f)
+                json_ld_file = orjson.loads(f.read())
                 if isinstance(json_ld_file, dict):
                     json_ld_file = [json_ld_file]
                 for json_ld_resource in json_ld_file:
-                    loaded_graph.parse(data=json.dumps(json_ld_resource, ensure_ascii=False), format=cur_format)
+                    loaded_graph.parse(data=orjson.dumps(json_ld_resource).decode('utf-8'), format=cur_format)
             else:
                 loaded_graph.parse(file=f, format=cur_format)
 
@@ -280,7 +282,11 @@ def process_file_content(args):
     with gzip.open(file_path, 'rb') as f:
         data = f.read().decode('utf-8')
         graph = ConjunctiveGraph()
-        graph.parse(data=data, format=rdf_format)
+        try:
+            graph.parse(data=data, format=rdf_format)
+        except rdflib.exceptions.ParserError as e:
+            logging.error(f"Failed to parse {file_path}: {e}")
+            return
 
     for context in graph.contexts():
         graph_identifier = context.identifier
@@ -293,7 +299,7 @@ def main():
     parser.add_argument('--base_iri', type=str, default='https://w3id.org/oc/meta/', help='The base URI of entities on Meta. This setting can be safely left as is')
     parser.add_argument('--file_limit', type=int, default=10000, help='Number of files per folder')
     parser.add_argument('--item_limit', type=int, default=1000, help='Number of items per file')
-    parser.add_argument('-v', '--zip_output', dest='zip_output', action='store_true', required=False, help='Zip output json files')
+    parser.add_argument('-v', '--zip_output', default=True, dest='zip_output', action='store_true', required=False, help='Zip output json files')
     parser.add_argument('--input_format', type=str, default='jsonld', choices=['jsonld', 'nquads'], help='Format of the gzipped input files (jsonld or nquads)')
     args = parser.parse_args()
 
@@ -306,11 +312,11 @@ def main():
     pbar = tqdm(total=len(files_to_process), desc="Completing jobs")
 
     with multiprocessing.Pool() as pool:
-        for task in tasks:
-            pool.apply_async(process_file_content, args=(task,), callback=lambda _: pbar.update(1))
-        
-        pool.close()
-        pool.join()
+        for _ in pool.imap_unordered(process_file_content, tasks, chunksize=10):
+            pbar.update(1)
+
+    pool.close()
+    pool.join()
 
     pbar.close()
 
