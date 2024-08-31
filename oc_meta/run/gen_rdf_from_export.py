@@ -317,24 +317,27 @@ def merge_files_in_directory(directory, zip_output):
     """Function to merge files in a specific directory"""
     files = [f for f in os.listdir(directory) if f.endswith('.zip' if zip_output else '.json')]
     
-    # Raggruppa i file per il loro nome base (numero senza l'ID unico)
+    # Group files by their base name (number without the unique ID)
     file_groups = {}
     for file in files:
-        match = re.match(r'^(\d+)_', file)
+        match = re.match(r'^(\d+)(?:_[^.]+)?\.', file)
         if match:
             base_name = match.group(1)
             if base_name not in file_groups:
                 file_groups[base_name] = []
             file_groups[base_name].append(file)
-    
+        
     for base_file_name, files_to_merge in file_groups.items():
         merged_graph = ConjunctiveGraph()
 
         for file_path in files_to_merge:
             cur_full_path = os.path.join(directory, file_path)
             loaded_graph = load_graph(cur_full_path)
-            merged_graph += loaded_graph
-
+            for context in loaded_graph.contexts():
+                graph_identifier = context.identifier
+                for triple in context:
+                    merged_graph.add(triple + (graph_identifier,))
+        
         final_file_path = os.path.join(directory, f"{base_file_name}" + ('.zip' if zip_output else '.json'))
         store_in_file(merged_graph, final_file_path, zip_output)
 
