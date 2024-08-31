@@ -279,8 +279,12 @@ def process_graph(context, graph_identifier, output_root, base_iri, file_limit, 
         if cur_file_path is None:
             logging.warning(f"Skipping triple due to invalid URI: {entity_uri}")
             continue
-        cur_file_path = cur_file_path.replace('.json', '.zip') if zip_output else cur_file_path
-        cur_file_path = cur_file_path.replace('.zip', f'_{unique_id}.zip') if zip_output else cur_file_path.replace('.json', f'_{unique_id}.json')
+        
+        # Estrai il nome base del file (numero) e aggiungi l'ID unico
+        base_name = os.path.splitext(os.path.basename(cur_file_path))[0]
+        new_file_name = f"{base_name}_{unique_id}"
+        
+        cur_file_path = os.path.join(os.path.dirname(cur_file_path), new_file_name + ('.zip' if zip_output else '.json'))
 
         if cur_file_path not in modifications_by_file:
             modifications_by_file[cur_file_path] = {
@@ -312,11 +316,18 @@ def merge_files(output_root, base_file_name, file_extension, zip_output):
 def merge_files_in_directory(directory, zip_output):
     """Function to merge files in a specific directory"""
     files = [f for f in os.listdir(directory) if f.endswith('.zip' if zip_output else '.json')]
-    base_file_names = set(f.split('_')[0] for f in files)
     
-    for base_file_name in base_file_names:
-        files_to_merge = [f for f in files if f.startswith(base_file_name)]
-        
+    # Raggruppa i file per il loro nome base (numero senza l'ID unico)
+    file_groups = {}
+    for file in files:
+        match = re.match(r'^(\d+)_', file)
+        if match:
+            base_name = match.group(1)
+            if base_name not in file_groups:
+                file_groups[base_name] = []
+            file_groups[base_name].append(file)
+    
+    for base_file_name, files_to_merge in file_groups.items():
         merged_graph = ConjunctiveGraph()
 
         for file_path in files_to_merge:
@@ -324,7 +335,6 @@ def merge_files_in_directory(directory, zip_output):
             loaded_graph = load_graph(cur_full_path)
             merged_graph += loaded_graph
 
-        # Use the base_file_name without adding a new unique identifier
         final_file_path = os.path.join(directory, f"{base_file_name}" + ('.zip' if zip_output else '.json'))
         store_in_file(merged_graph, final_file_path, zip_output)
 
