@@ -313,8 +313,12 @@ def merge_files(output_root, base_file_name, file_extension, zip_output):
     final_file_path = os.path.join(output_root, base_file_name + file_extension)
     store_in_file(merged_graph, final_file_path, zip_output)
 
-def merge_files_in_directory(directory, zip_output):
+def merge_files_in_directory(directory, zip_output, stop_file):
     """Function to merge files in a specific directory"""
+    if check_stop_file(stop_file):
+        print("Stop file detected. Stopping merge process.")
+        return
+
     files = [f for f in os.listdir(directory) if f.endswith('.zip' if zip_output else '.json')]
     
     # Group files by their base name (number without the unique ID)
@@ -326,8 +330,16 @@ def merge_files_in_directory(directory, zip_output):
             if base_name not in file_groups:
                 file_groups[base_name] = []
             file_groups[base_name].append(file)
-        
+    
     for base_file_name, files_to_merge in file_groups.items():
+        if check_stop_file(stop_file):
+            print("Stop file detected. Stopping merge process.")
+            return
+
+        # Only proceed with merging if there's at least one file with an underscore
+        if not any('_' in file for file in files_to_merge):
+            continue
+
         merged_graph = ConjunctiveGraph()
 
         for file_path in files_to_merge:
@@ -350,11 +362,15 @@ def generate_unique_id():
     return f"{int(time.time())}-{uuid.uuid4()}"
 
 def merge_files_wrapper(args):
-    directory, zip_output = args
-    merge_files_in_directory(directory, zip_output)
+    directory, zip_output, stop_file = args
+    merge_files_in_directory(directory, zip_output, stop_file)
 
-def merge_all_files_parallel(output_root, zip_output):
+def merge_all_files_parallel(output_root, zip_output, stop_file):
     """Function to merge files in parallel"""
+    if check_stop_file(stop_file):
+        print("Stop file detected. Stopping merge process.")
+        return
+
     directories_to_process = []
     for root, dirs, files in os.walk(output_root):
         if any(f.endswith('.zip' if zip_output else '.json') for f in files):
@@ -362,7 +378,7 @@ def merge_all_files_parallel(output_root, zip_output):
 
     with multiprocessing.Pool() as pool:
         list(tqdm(pool.imap(merge_files_wrapper, 
-                            [(dir, zip_output) for dir in directories_to_process]), 
+                            [(dir, zip_output, stop_file) for dir in directories_to_process]), 
                   total=len(directories_to_process), 
                   desc="Merging files in directories"))
 
@@ -381,12 +397,37 @@ def process_file_content(file_path, output_root, base_iri, file_limit, item_limi
         process_graph(context, graph_identifier, output_root, base_iri, file_limit, item_limit, zip_output)
 
 def process_file_wrapper(args):
-    file_path, output_root, base_iri, file_limit, item_limit, zip_output, rdf_format = args
-    process_file_content(file_path, output_root, base_iri, file_limit, item_limit, zip_output, rdf_format)
+    file_path, output_root, base_iri, file_limit, item_limit, zip_output, rdf_format, cache_file, stop_file = args
+    if check_stop_file(stop_file):
+        return
+    if not is_file_processed(file_path, cache_file):
+        process_file_content(file_path, output_root, base_iri, file_limit, item_limit, zip_output, rdf_format)
+        mark_file_as_processed(file_path, cache_file)
 
-def process_chunk(chunk, output_root, base_iri, file_limit, item_limit, zip_output, rdf_format):
+def process_chunk(chunk, output_root, base_iri, file_limit, item_limit, zip_output, rdf_format, cache_file, stop_file):
     with multiprocessing.Pool() as pool:
-        list(tqdm(pool.imap(process_file_wrapper, [(file_path, output_root, base_iri, file_limit, item_limit, zip_output, rdf_format) for file_path in chunk]), total=len(chunk), desc="Processing files"))
+        list(tqdm(pool.imap(process_file_wrapper, 
+                            [(file_path, output_root, base_iri, file_limit, item_limit, zip_output, rdf_format, cache_file, stop_file) 
+                             for file_path in chunk]), 
+                  total=len(chunk), 
+                  desc="Processing files"))
+
+def create_cache_file(cache_file):
+    if not os.path.exists(cache_file):
+        with open(cache_file, 'w', encoding='utf8') as f:
+            pass  # Create an empty file
+
+def is_file_processed(file_path, cache_file):
+    with open(cache_file, 'r', encoding='utf8') as f:
+        processed_files = f.read().splitlines()
+    return file_path in processed_files
+
+def mark_file_as_processed(file_path, cache_file):
+    with open(cache_file, 'a', encoding='utf8') as f:
+        f.write(f"{file_path}\n")
+
+def check_stop_file(stop_file):
+    return os.path.exists(stop_file)
 
 def main():
     parser = argparse.ArgumentParser(description="Process gzipped input files into OC Meta RDF")
@@ -398,7 +439,11 @@ def main():
     parser.add_argument('-v', '--zip_output', default=True, dest='zip_output', action='store_true', help='Zip output json files')
     parser.add_argument('--input_format', type=str, default='jsonld', choices=['jsonld', 'nquads'], help='Format of the input files')
     parser.add_argument('--chunk_size', type=int, default=1000, help='Number of files to process before merging')
+    parser.add_argument('--cache_file', type=str, default='processed_files.cache', help='File to store processed file names')
+    parser.add_argument('--stop_file', type=str, default='./.stop', help='File to signal process termination')
     args = parser.parse_args()
+
+    create_cache_file(args.cache_file)
 
     file_extension = '.nq.gz' if args.input_format == 'nquads' else '.jsonld.gz'
     rdf_format = 'nquads' if args.input_format == 'nquads' else 'json-ld'
@@ -407,8 +452,11 @@ def main():
     chunks = [files_to_process[i:i + args.chunk_size] for i in range(0, len(files_to_process), args.chunk_size)]
     
     for i, chunk in enumerate(tqdm(chunks, desc="Processing chunks")):
+        if check_stop_file(args.stop_file):
+            print("Stop file detected. Gracefully terminating the process.")
+            break
         print(f"\nProcessing chunk {i+1}/{len(chunks)}")
-        process_chunk(chunk, args.output_root, args.base_iri, args.file_limit, args.item_limit, args.zip_output, rdf_format)
+        process_chunk(chunk, args.output_root, args.base_iri, args.file_limit, args.item_limit, args.zip_output, rdf_format, args.cache_file, args.stop_file)
         print(f"Merging files for chunk {i+1}")
         merge_all_files_parallel(args.output_root, args.zip_output)
 
