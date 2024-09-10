@@ -10,7 +10,8 @@ def parse_arguments():
     parser.add_argument("destination", help="Destination directory path")
     return parser.parse_args()
 
-def prepare_directory_structure(source_root, dest_root, path):
+def prepare_directory_structure(args):
+    source_root, dest_root, path = args
     dest_path = path.replace(source_root, dest_root, 1)
     if not os.path.exists(dest_path):
         os.makedirs(dest_path, exist_ok=True)
@@ -22,23 +23,31 @@ def copy_file(args):
     shutil.copy2(source_file, dest_file)
     return dest_file
 
-def find_files_to_copy(source, dest):
+def find_items(source, dest):
+    dirs_to_create = []
+    files_to_copy = []
     for root, dirs, files in os.walk(source):
         if 'prov' in root.split(os.path.sep):
+            dirs_to_create.append((source, dest, root))
             for file in files:
                 source_file = os.path.join(root, file)
-                prepare_directory_structure(source, dest, root)
-                yield source_file, dest, source
+                files_to_copy.append((source_file, dest, source))
+    return dirs_to_create, files_to_copy
 
 def main():
     args = parse_arguments()
     source = args.source
     destination = args.destination
     
-    files_to_copy = list(find_files_to_copy(source, destination))
+    dirs_to_create, files_to_copy = find_items(source, destination)
 
     with Pool() as pool:
-        for _ in tqdm(pool.imap_unordered(copy_file, files_to_copy), total=len(files_to_copy), desc="Copying files"):
+        print("Creazione delle cartelle...")
+        for _ in tqdm(pool.imap_unordered(prepare_directory_structure, dirs_to_create), total=len(dirs_to_create), desc="Creazione cartelle"):
+            pass
+
+        print("\nCopia dei file...")
+        for _ in tqdm(pool.imap_unordered(copy_file, files_to_copy), total=len(files_to_copy), desc="Copia file"):
             pass
 
 if __name__ == "__main__":

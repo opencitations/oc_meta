@@ -413,18 +413,26 @@ def process_chunk(chunk, output_root, base_iri, file_limit, item_limit, zip_outp
                   desc="Processing files"))
 
 def create_cache_file(cache_file):
-    if not os.path.exists(cache_file):
-        with open(cache_file, 'w', encoding='utf8') as f:
-            pass  # Create an empty file
+    if cache_file:
+        if not os.path.exists(cache_file):
+            with open(cache_file, 'w', encoding='utf8') as f:
+                pass  # Create an empty file
+    else:
+        logging.info("No cache file specified. Skipping cache creation.")
 
 def is_file_processed(file_path, cache_file):
+    if not cache_file:
+        return False
     with open(cache_file, 'r', encoding='utf8') as f:
         processed_files = f.read().splitlines()
     return file_path in processed_files
 
 def mark_file_as_processed(file_path, cache_file):
-    with open(cache_file, 'a', encoding='utf8') as f:
-        f.write(f"{file_path}\n")
+    if cache_file:
+        with open(cache_file, 'a', encoding='utf8') as f:
+            f.write(f"{file_path}\n")
+    else:
+        logging.debug(f"No cache file specified. Skipping marking {file_path} as processed.")
 
 def check_stop_file(stop_file):
     return os.path.exists(stop_file)
@@ -439,7 +447,7 @@ def main():
     parser.add_argument('-v', '--zip_output', default=True, dest='zip_output', action='store_true', help='Zip output json files')
     parser.add_argument('--input_format', type=str, default='jsonld', choices=['jsonld', 'nquads'], help='Format of the input files')
     parser.add_argument('--chunk_size', type=int, default=1000, help='Number of files to process before merging')
-    parser.add_argument('--cache_file', type=str, default='processed_files.cache', help='File to store processed file names')
+    parser.add_argument('--cache_file', type=str, default=None, help='File to store processed file names (optional)')
     parser.add_argument('--stop_file', type=str, default='./.stop', help='File to signal process termination')
     args = parser.parse_args()
 
@@ -450,7 +458,6 @@ def main():
 
     files_to_process = [os.path.join(args.input_folder, file) for file in os.listdir(args.input_folder) if file.endswith(file_extension)]
     chunks = [files_to_process[i:i + args.chunk_size] for i in range(0, len(files_to_process), args.chunk_size)]
-    
     for i, chunk in enumerate(tqdm(chunks, desc="Processing chunks")):
         if check_stop_file(args.stop_file):
             print("Stop file detected. Gracefully terminating the process.")
@@ -458,7 +465,7 @@ def main():
         print(f"\nProcessing chunk {i+1}/{len(chunks)}")
         process_chunk(chunk, args.output_root, args.base_iri, args.file_limit, args.item_limit, args.zip_output, rdf_format, args.cache_file, args.stop_file)
         print(f"Merging files for chunk {i+1}")
-        merge_all_files_parallel(args.output_root, args.zip_output)
+        merge_all_files_parallel(args.output_root, args.zip_output, args.stop_file)
 
     print("Processing complete")
 
