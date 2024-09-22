@@ -2,81 +2,84 @@ import argparse
 import csv
 import os
 import zipfile
-from collections import defaultdict
+from functools import partial
+from multiprocessing import Pool, cpu_count
 
 from oc_meta.plugins.editor import MetaEditor
-from rdflib import PROV, RDF, ConjunctiveGraph, URIRef
-from rdflib.namespace import DCTERMS
+from rdflib import RDF, ConjunctiveGraph, Literal, URIRef
 from tqdm import tqdm
 
+DATACITE = "http://purl.org/spar/datacite/"
+LITERAL_REIFICATION = "http://www.essepuntato.it/2010/06/literalreification/"
 
 def read_csv(csv_file):
     with open(csv_file, 'r') as f:
         reader = csv.DictReader(f)
         return list(reader)
 
-def check_entity_exists(file_path, entity_uri):
+def check_entity(file_path, entity_uri, is_surviving):
     with zipfile.ZipFile(file_path, 'r') as zip_ref:
         for filename in zip_ref.namelist():
             with zip_ref.open(filename) as file:
                 g = ConjunctiveGraph()
                 g.parse(file, format='json-ld')
-                if (URIRef(entity_uri), None, None) in g:
-                    return True
-    return False
+                entity = URIRef(entity_uri)
+                
+                if (entity, None, None) not in g:
+                    if is_surviving:
+                        tqdm.write(f"Error in {file_path}: Surviving entity {entity_uri} does not exist")
+                    return
+                
+                if not is_surviving:
+                    tqdm.write(f"Error in {file_path}: Merged entity {entity_uri} still exists")
+                    return
+                
+                types = list(g.objects(entity, RDF.type))
+                if not types:
+                    tqdm.write(f"Error in {file_path}: Entity {entity_uri} has no type")
+                
+                if URIRef(DATACITE + "Identifier") in types:
+                    identifier_scheme = list(g.objects(entity, URIRef(DATACITE + "usesIdentifierScheme")))
+                    literal_value = list(g.objects(entity, URIRef(LITERAL_REIFICATION + "hasLiteralValue")))
+                    
+                    if len(identifier_scheme) != 1:
+                        tqdm.write(f"Error in {file_path}: Entity {entity_uri} should have exactly one usesIdentifierScheme, found {len(identifier_scheme)}")
+                    elif not isinstance(identifier_scheme[0], URIRef):
+                        tqdm.write(f"Error in {file_path}: Entity {entity_uri}'s usesIdentifierScheme should be a URIRef, found {type(identifier_scheme[0])}")
+                    
+                    if len(literal_value) != 1:
+                        tqdm.write(f"Error in {file_path}: Entity {entity_uri} should have exactly one hasLiteralValue, found {len(literal_value)}")
+                    elif not isinstance(literal_value[0], Literal):
+                        tqdm.write(f"Error in {file_path}: Entity {entity_uri}'s hasLiteralValue should be a Literal, found {type(literal_value[0])}")
 
-def check_provenance(prov_file_path, entity_uri, is_merged_entity):
-    errors = []
-    with zipfile.ZipFile(prov_file_path, 'r') as zip_ref:
-        g = ConjunctiveGraph()
-        for filename in zip_ref.namelist():
-            with zip_ref.open(filename) as file:
-                g.parse(file, format='json-ld')
-    
-    entity_graph_uri = URIRef(entity_uri + '/prov/')
-    entity_graph = g.get_context(entity_graph_uri)
-    
-    if not entity_graph:
-        errors.append(f"Error in {prov_file_path}: Named graph not found for {entity_uri}")
-        return errors
+def process_csv(args, csv_file):
+    csv_path, rdf_dir, meta_editor = args
+    csv_path = os.path.join(csv_path, csv_file)
+    data = read_csv(csv_path)
+    tasks = []
 
-    entities = list(entity_graph.subjects(RDF.type, PROV.Entity))
-    if not entities:
-        errors.append(f"Error in {prov_file_path}: No entities found in the named graph for {entity_uri}")
+    for row in data:
+        if 'Done' not in row or row['Done'] != 'True':
+            continue
 
-    required_properties = [
-        PROV.generatedAtTime,
-        PROV.specializationOf,
-        DCTERMS.description,
-        PROV.wasAttributedTo
-    ]
+        surviving_entity = row['surviving_entity']
+        merged_entities = row['merged_entities'].split('; ')
+        all_entities = [surviving_entity] + merged_entities
 
-    for entity in entities:
-        if (entity, RDF.type, PROV.Entity) not in entity_graph:
-            errors.append(f"Error in {prov_file_path}: Entity {entity} is not of type prov:Entity in the named graph")
+        for entity in all_entities:
+            file_path = meta_editor.find_file(rdf_dir, meta_editor.dir_split, meta_editor.n_file_item, entity, True)
+            tasks.append((entity, entity == surviving_entity, file_path, rdf_dir, meta_editor))
 
-        for prop in required_properties:
-            if not list(entity_graph.objects(entity, prop)):
-                errors.append(f"Error in {prov_file_path}: Entity {entity} is missing required property {prop} in the named graph")
+    return tasks
 
-    if (None, PROV.specializationOf, URIRef(entity_uri)) not in entity_graph:
-        errors.append(f"Error in {prov_file_path}: No entity found with prov:specializationOf {entity_uri} in the named graph")
+def process_entity(args):
+    entity, is_surviving, file_path, rdf_dir, meta_editor = args
 
-    if is_merged_entity:
-        # Check for prov:invalidatedAtTime on the last snapshot
-        snapshots = defaultdict(list)
-        for s, p, o in entity_graph:
-            if '/prov/se/' in str(s):
-                snapshot_num = int(str(s).split('/prov/se/')[-1])
-                snapshots[snapshot_num].append((s, p, o))
-        
-        if snapshots:
-            last_snapshot_num = max(snapshots.keys())
-            last_snapshot = snapshots[last_snapshot_num]
-            if not any(p == PROV.invalidatedAtTime for _, p, _ in last_snapshot):
-                errors.append(f"Error in {prov_file_path}: Last snapshot {entity_uri}/prov/se/{last_snapshot_num} is missing prov:invalidatedAtTime")
+    if file_path is None:
+        tqdm.write(f"Error: Could not find file for entity {entity}")
+        return
 
-    return errors
+    check_entity(file_path, entity, is_surviving)
 
 def main():
     parser = argparse.ArgumentParser(description="Check merge process success")
@@ -89,39 +92,17 @@ def main():
 
     csv_files = [f for f in os.listdir(args.csv_folder) if f.endswith('.csv')]
     
-    for csv_file in tqdm(csv_files, desc="Processing CSV files"):
-        csv_path = os.path.join(args.csv_folder, csv_file)
-        data = read_csv(csv_path)
+    # Processamento dei file CSV in parallelo
+    with Pool(processes=cpu_count()) as pool:
+        process_csv_partial = partial(process_csv, (args.csv_folder, args.rdf_dir, meta_editor))
+        all_tasks = list(tqdm(pool.imap(process_csv_partial, csv_files), total=len(csv_files), desc="Processing CSV files"))
+    
+    # Appiattire la lista di liste in una singola lista
+    all_tasks = [task for sublist in all_tasks for task in sublist]
 
-        for row in data:
-            if 'Done' not in row or row['Done'] != 'True':
-                continue
-
-            surviving_entity = row['surviving_entity']
-            merged_entities = row['merged_entities'].split('; ')
-            all_entities = [surviving_entity] + merged_entities
-
-            for entity in all_entities:
-                file_path = meta_editor.find_file(args.rdf_dir, meta_editor.dir_split, meta_editor.n_file_item, entity, True)
-                
-                if file_path is None:
-                    tqdm.write(f"Error in {csv_path}: Could not find file for entity {entity}")
-                    continue
-
-                exists = check_entity_exists(file_path, entity)
-                if entity == surviving_entity and not exists:
-                    tqdm.write(f"Error in {file_path}: Surviving entity {entity} does not exist")
-                elif entity != surviving_entity and exists:
-                    tqdm.write(f"Error in {file_path}: Merged entity {entity} still exists")
-
-                # file_path_without_extension = os.path.splitext(file_path)[0]
-                # prov_file_path = os.path.join(file_path_without_extension, 'prov', 'se.zip')
-                # if not os.path.exists(prov_file_path):
-                #     tqdm.write(f"Error: Provenance file not found for {entity} (expected at {prov_file_path})")
-                # else:
-                #     prov_errors = check_provenance(prov_file_path, entity, entity != surviving_entity)
-                #     for error in prov_errors:
-                #         tqdm.write(error)
+    # Processamento delle entità in parallelo
+    with Pool(processes=cpu_count()) as pool:
+        list(tqdm(pool.imap(process_entity, all_tasks), total=len(all_tasks), desc="Processing entities"))
 
 if __name__ == "__main__":
     main()
