@@ -1,9 +1,10 @@
-import pandas as pd
-import os
 import argparse
-from SPARQLWrapper import SPARQLWrapper, JSON
-from tqdm import tqdm
+import os
+
+import pandas as pd
 from retrying import retry
+from SPARQLWrapper import JSON, SPARQLWrapper
+from tqdm import tqdm
 
 
 class UnionFind:
@@ -11,11 +12,16 @@ class UnionFind:
         self.parent = {}
 
     def find(self, item):
-        if item not in self.parent:
-            self.parent[item] = item
-        if self.parent[item] != item:
-            self.parent[item] = self.find(self.parent[item])
-        return self.parent[item]
+        path = [item]
+        while item in self.parent and self.parent[item] != item:
+            item = self.parent[item]
+            path.append(item)
+            if len(path) > 1000:  # Limite arbitrario per evitare loop infiniti
+                print(f"Warning: Long path detected: {' -> '.join(path)}")
+                break
+        for p in path:
+            self.parent[p] = item
+        return item
 
     def union(self, item1, item2):
         root1 = self.find(item1)
@@ -23,30 +29,43 @@ class UnionFind:
         if root1 != root2:
             self.parent[root2] = root1
 
-
 def load_csv(file_path):
     return pd.read_csv(file_path)
 
 @retry(stop_max_attempt_number=3, wait_exponential_multiplier=1000, wait_exponential_max=10000)
-def query_sparql(endpoint, uri):
+def query_sparql(endpoint, uri, query_type):
     sparql = SPARQLWrapper(endpoint)
-    query = f"""
-    SELECT ?subject WHERE {{
-        ?subject ?predicate <{uri}> .
-    }}
-    """
+    
+    if query_type == 'subjects':
+        query = f"""
+        SELECT ?subject WHERE {{
+            ?subject ?predicate <{uri}> .
+        }}
+        """
+    elif query_type == 'objects':
+        query = f"""
+        SELECT ?object WHERE {{
+            <{uri}> ?predicate ?object .
+            ?object ?p ?o .
+        }}
+        """
+    
     sparql.setQuery(query)
     sparql.setReturnFormat(JSON)
     results = sparql.query().convert()
     
-    subjects = [result['subject']['value'] for result in results['results']['bindings']]
-    return subjects
+    if query_type == 'subjects':
+        return [result['subject']['value'] for result in results['results']['bindings']]
+    elif query_type == 'objects':
+        return [result['object']['value'] for result in results['results']['bindings']]
 
 def get_all_related_entities(endpoint, uris):
     related_entities = set(uris)
     for uri in uris:
-        subjects = query_sparql(endpoint, uri)
+        subjects = query_sparql(endpoint, uri, 'subjects')
+        objects = query_sparql(endpoint, uri, 'objects')
         related_entities.update(subjects)
+        related_entities.update(objects)
     return related_entities
 
 def group_entities(df, endpoint):

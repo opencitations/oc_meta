@@ -88,6 +88,19 @@ def check_entity_sparql(sparql_endpoint, entity_uri, is_surviving):
             tqdm.write(f"Error in SPARQL: Surviving entity {entity_uri} does not exist")
         return
 
+    if not is_surviving:
+        referenced_query = f"""
+        ASK {{
+            ?s ?p <{entity_uri}> .
+        }}
+        """
+        sparql.setQuery(referenced_query)
+        sparql.setReturnFormat(JSON)
+        referenced_results = sparql_query_with_retry(sparql)
+
+        if referenced_results['boolean']:
+            tqdm.write(f"Error in SPARQL: Merged entity {entity_uri} is still referenced by other entities")
+
     # Query to get entity types
     types_query = f"""
     SELECT ?type WHERE {{
