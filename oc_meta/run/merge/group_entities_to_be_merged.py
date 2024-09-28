@@ -1,4 +1,5 @@
 import argparse
+import csv
 import os
 
 import pandas as pd
@@ -105,7 +106,24 @@ def save_grouped_entities(grouped_data, output_dir):
         output_file = os.path.join(output_dir, f"{key.split('/')[-1]}.csv")
         if len(df) > 1:
             print(f"File with multiple rows: {output_file}")
-        df.to_csv(output_file, index=False)
+        
+        try:
+            df.to_csv(output_file, index=False)
+        except AttributeError as e:
+            print(f"Error saving file {output_file}: {str(e)}")
+            print(f"DataFrame info:")
+            print(df.info())
+            print(f"DataFrame head:")
+            print(df.head())
+            
+            # Try an alternative method to save the CSV
+            try:
+                df.to_csv(output_file, index=False, encoding='utf-8', quoting=csv.QUOTE_NONNUMERIC)
+                print(f"Successfully saved using alternative method: {output_file}")
+            except Exception as alt_e:
+                print(f"Alternative method also failed: {str(alt_e)}")
+        except Exception as e:
+            print(f"Unexpected error saving file {output_file}: {str(e)}")
 
 def main():
     parser = argparse.ArgumentParser(description='Process CSV and group entities based on SPARQL queries.')
@@ -116,8 +134,13 @@ def main():
     args = parser.parse_args()
     
     df = load_csv(args.csv_file_path)
+    print(f"Loaded CSV file with {len(df)} rows")
+    
     grouped_entities = group_entities(df, args.sparql_endpoint)
+    print(f"Grouped entities into {len(grouped_entities)} groups")
+    
     save_grouped_entities(grouped_entities, args.output_dir)
+    print("Finished saving grouped entities")
 
 if __name__ == "__main__":
     main()
