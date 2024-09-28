@@ -19,20 +19,28 @@ import unittest
 from shutil import rmtree
 from subprocess import call
 from sys import executable
-from SPARQLWrapper import SPARQLWrapper, POST
+
+import redis
+from oc_meta.lib.file_manager import get_csv_data
+from rdflib import URIRef
+from SPARQLWrapper import POST, SPARQLWrapper
+
 from oc_ocdm import Storer
+from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
 from oc_ocdm.graph import GraphSet
 from oc_ocdm.prov import ProvSet
 from oc_ocdm.reader import Reader
-from rdflib import URIRef
-
-from oc_meta.lib.file_manager import get_csv_data
 
 BASE = os.path.join('test', 'csv_generator')
 CONFIG = os.path.join(BASE, 'meta_config.yaml')
 OUTPUT = os.path.join(BASE, 'csv_generated')
 
 SERVER = 'http://127.0.0.1:8805/sparql'
+
+# Redis configuration
+REDIS_HOST = 'localhost'
+REDIS_PORT = 6379
+REDIS_DB = 5
 
 def reset_server(server:str=SERVER) -> None:
     ts = SPARQLWrapper(server)
@@ -41,13 +49,30 @@ def reset_server(server:str=SERVER) -> None:
         ts.setMethod(POST)
         ts.query()
 
+def reset_redis_counters():
+    redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
+    redis_client.flushdb()
+
+def get_counter_handler():
+    return RedisCounterHandler(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
+
 class TestCSVGenerator(unittest.TestCase):
-    def test_generate_csv(self):
+    @classmethod
+    def setUpClass(cls):
+        cls.counter_handler = get_counter_handler()
+
+    def setUp(self):
         reset_server()
+        reset_redis_counters()
+
+    def tearDown(self):
+        reset_redis_counters()
+
+    def test_generate_csv(self):
         call([executable, '-m', 'oc_meta.run.meta_process', '-c', CONFIG])
+        
         base_iri = 'https://w3id.org/oc/meta/'
-        info_dir = os.path.join(BASE, 'info_dir', '0620', 'creator')
-        g_set = GraphSet(base_iri, info_dir, supplier_prefix='0620', wanted_label=False)
+        g_set = GraphSet(base_iri, supplier_prefix='0620', wanted_label=False, custom_counter_handler=self.counter_handler)
         endpoint = 'http://127.0.0.1:8805/sparql'
         resp_agent = 'https://orcid.org/0000-0002-8420-0696'
         rdf = os.path.join(BASE, 'rdf') + os.sep
@@ -57,7 +82,7 @@ class TestCSVGenerator(unittest.TestCase):
         duplicated_id = g_set.add_id(resp_agent)
         duplicated_id.create_crossref('263')
         ieee.has_identifier(duplicated_id)
-        provset = ProvSet(g_set, base_iri, info_dir, wanted_label=False, supplier_prefix='0620')
+        provset = ProvSet(g_set, base_iri, wanted_label=False, supplier_prefix='0620', custom_counter_handler=self.counter_handler)
         provset.generate_provenance()
         graph_storer = Storer(g_set, dir_split=10000, n_file_item=1000, zip_output=False)
         prov_storer = Storer(provset, dir_split=10000, n_file_item=1000, zip_output=False)
@@ -76,3 +101,8 @@ class TestCSVGenerator(unittest.TestCase):
             {'id': 'omid:br/06101 doi:10.1109/20.877674', 'title': 'An Investigation Of FEM-FCT Method For Streamer Corona Simulation', 'author': 'Woong-Gee Min, [omid:ra/06101]; Hyeong-Seok Kim, [omid:ra/06102]; Seok-Hyun Lee, [omid:ra/06103]; Song-Yop Hahn, [omid:ra/06104]', 'issue': '4', 'volume': '36', 'venue': 'IEEE Transactions On Magnetics [omid:br/06102 issn:0018-9464]', 'page': '1280-1284', 'pub_date': '2000-07', 'type': 'journal article', 'publisher': 'Institute Of Electrical And Electronics Engineers (Ieee) [omid:ra/06105 crossref:263 crossref:263]', 'editor': ''}
         ]
         self.assertTrue(output == expected_output or output == list(reversed(expected_output)))
+
+        # Verify Redis counters
+        self.assertEqual(self.counter_handler.read_counter('br', supplier_prefix='0610'), 4)
+        self.assertEqual(self.counter_handler.read_counter('ra', supplier_prefix='0610'), 5)
+        self.assertEqual(self.counter_handler.read_counter('id', supplier_prefix='0610'), 3)

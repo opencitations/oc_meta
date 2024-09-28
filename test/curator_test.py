@@ -5,6 +5,8 @@ import unittest
 from oc_ocdm import Storer
 from SPARQLWrapper import POST, SPARQLWrapper
 from rdflib import Graph, ConjunctiveGraph
+import redis
+from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
 
 from oc_meta.core.creator import Creator
 from oc_meta.core.curator import *
@@ -24,33 +26,25 @@ CURATOR_COUNTER_DIR = f'{BASE_DIR}/curator_counter'
 OUTPUT_DIR = f'{BASE_DIR}/output'
 PROV_CONFIG = f'{BASE_DIR}/prov_config.json'
 
+# Redis configuration
+REDIS_HOST = 'localhost'
+REDIS_PORT = 6379
+REDIS_DB = 5
 
 def get_path(path:str) -> str:
     # absolute_path:str = os.path.abspath(path)
     universal_path = path.replace('\\', '/')
     return universal_path
 
+def reset_redis_counters():
+    redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
+    redis_client.flushdb()
+
+def get_counter_handler():
+    return RedisCounterHandler(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
+
 def reset():
-    with open(get_path(f'{CURATOR_COUNTER_DIR}/br.txt'), 'w') as br:
-        br.write('0')
-    with open(get_path(f'{CURATOR_COUNTER_DIR}/id.txt'), 'w') as br:
-        br.write('0')
-    with open(get_path(f'{CURATOR_COUNTER_DIR}/ra.txt'), 'w') as br:
-        br.write('0')
-    with open(get_path(f'{CURATOR_COUNTER_DIR}/ar.txt'), 'w') as br:
-        br.write('0')
-    with open(get_path(f'{CURATOR_COUNTER_DIR}/re.txt'), 'w') as br:
-        br.write('0')
-    with open(get_path(f'{CURATOR_COUNTER_DIR}/info_file_br.txt'), 'w') as br:
-        br.write('0')
-    with open(get_path(f'{CURATOR_COUNTER_DIR}/info_file_id.txt'), 'w') as br:
-        br.write('0')
-    with open(get_path(f'{CURATOR_COUNTER_DIR}/info_file_ra.txt'), 'w') as br:
-        br.write('0')
-    with open(get_path(f'{CURATOR_COUNTER_DIR}/info_file_ar.txt'), 'w') as br:
-        br.write('0')
-    with open(get_path(f'{CURATOR_COUNTER_DIR}/info_file_re.txt'), 'w') as br:
-        br.write('0')
+    reset_redis_counters()
 
 def reset_server(server:str=SERVER) -> None:
     ts = SPARQLWrapper(server)
@@ -111,7 +105,7 @@ def store_curated_data(curator_obj:Curator, server:str) -> None:
     res_storer.upload_all(server, base_dir=None, batch_size=100)
 
 def prepare_to_test(data, name):
-    reset()
+    reset_redis_counters()
     
     reset_server(SERVER)
     if float(name) > 12:
@@ -124,7 +118,8 @@ def prepare_to_test(data, name):
     testcase_re = get_path('test/testcases/testcase_data/indices/' + name + '/index_re_' + name + '.csv')
     testcase_vi = get_path('test/testcases/testcase_data/indices/' + name + '/index_vi_' + name + '.json')
 
-    curator_obj = Curator(data, SERVER, prov_config=PROV_CONFIG, info_dir=get_path(f'{CURATOR_COUNTER_DIR}/'))
+    counter_handler = get_counter_handler()
+    curator_obj = Curator(data, SERVER, prov_config=PROV_CONFIG, counter_handler=counter_handler)
     curator_obj.curator()
     testcase_csv = get_csv_data(testcase_csv)
     for csv in [testcase_csv, curator_obj.data]:
@@ -150,11 +145,12 @@ def prepare_to_test(data, name):
     return data_curated, testcase
 
 def prepareCurator(data:list, server:str=SERVER, resp_agents_only:bool=False) -> Curator:
-    reset()
+    reset_redis_counters()
+    counter_handler = get_counter_handler()
     if resp_agents_only:
-        curator = RespAgentsCurator(data, server, prov_config=PROV_CONFIG, info_dir=get_path(f'{CURATOR_COUNTER_DIR}/'))
+        curator = RespAgentsCurator(data, server, prov_config=PROV_CONFIG, counter_handler=counter_handler)
     else:
-        curator = Curator(data, server, prov_config=PROV_CONFIG, info_dir=get_path(f'{CURATOR_COUNTER_DIR}/'))
+        curator = Curator(data, server, prov_config=PROV_CONFIG, counter_handler=counter_handler)
     return curator
 
 
@@ -165,10 +161,15 @@ class test_Curator(unittest.TestCase):
         cls.finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
         cls.finder.get_everything_about_res(metavals={'omid:br/4125', 'omid:br/3757', 'omid:br/4480'}, identifiers=set(), vvis=set())
 
+    def setUp(self):
+        reset_redis_counters()
+
+    def tearDown(self):
+        reset_redis_counters()
+
     def test_merge_entities_in_csv(self):
         curator = prepareCurator(list())
-        with open(f'{CURATOR_COUNTER_DIR}/info_file_id.txt', "w") as f:
-            f.writelines('4\n')
+        curator.counter_handler.set_counter(4, 'id', supplier_prefix='060')
         entity_dict = {'0601': {'ids': [], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China', 'others': []}}
         id_dict = dict()
         curator.merge_entities_in_csv(['doi:10.1787/eco_outlook-v2011-2-graph138-en'], '0601', 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China', entity_dict, id_dict)
@@ -183,14 +184,7 @@ class test_Curator(unittest.TestCase):
         output = Curator.clean_id_list(input, br=True)
         expected_output = (['doi:10.001/b-1', 'wikidata:B1111111'], '060101')
         self.assertEqual(output, expected_output)
-    
-    def test__add_number(self):
-        reset()
-        input = f'{CURATOR_COUNTER_DIR}/br.txt'
-        output = Curator._add_number(input)
-        expected_output = 1
-        self.assertEqual(output, expected_output)
-    
+        
     def test_equalizer(self):
         curator = prepareCurator(list())
         row = {'id': '', 'title': '', 'author': '', 'pub_date': '1972-12-01', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}

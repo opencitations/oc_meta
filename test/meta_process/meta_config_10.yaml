@@ -70,3 +70,8 @@ cache_endpoint: ''
 cache_update_endpoint: ''
 # Fields in the silencer list are only updated if there is no information on that field in OpenCitations Meta. For example, if 'author' is specified, any new authors are not added to the list if authors are already present.
 silencer: []
+
+# Redis settings
+redis_host: localhost
+redis_port: 6379
+redis_db: 5

@@ -22,23 +22,24 @@ from __future__ import annotations
 import re
 from typing import List
 
-from oc_ocdm.graph import GraphSet
-from oc_ocdm.graph.entities.bibliographic import BibliographicResource
-from oc_ocdm.graph.entities.bibliographic_entity import BibliographicEntity
-from oc_ocdm.support import create_date
-from rdflib import Graph, URIRef
-
 from oc_meta.core.curator import get_edited_br_metaid
 from oc_meta.lib.finder import ResourceFinder
 from oc_meta.lib.master_of_regex import (comma_and_spaces, name_and_ids,
                                          one_or_more_spaces,
                                          semicolon_in_people_field)
+from rdflib import Graph, URIRef
+
+from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
+from oc_ocdm.graph import GraphSet
+from oc_ocdm.graph.entities.bibliographic import BibliographicResource
+from oc_ocdm.graph.entities.bibliographic_entity import BibliographicEntity
+from oc_ocdm.support import create_date
 
 
 class Creator(object):
-    def __init__(self, data:list, endpoint:str, base_iri:str, info_dir:str, supplier_prefix:str, resp_agent:str, ra_index:dict, br_index:dict, re_index_csv:dict, ar_index_csv:dict, vi_index:dict, preexisting_entities: set, everything_everywhere_allatonce: Graph, settings: dict = None, meta_config_path: str = None):
+    def __init__(self, data:list, endpoint:str, base_iri:str, counter_handler:RedisCounterHandler, supplier_prefix:str, resp_agent:str, ra_index:dict, br_index:dict, re_index_csv:dict, ar_index_csv:dict, vi_index:dict, preexisting_entities: set, everything_everywhere_allatonce: Graph, settings: dict = None, meta_config_path: str = None):
         self.url = base_iri
-        self.setgraph = GraphSet(self.url, info_dir, supplier_prefix=supplier_prefix, wanted_label=False)
+        self.setgraph = GraphSet(self.url, supplier_prefix=supplier_prefix, wanted_label=False, custom_counter_handler=counter_handler)
         self.resp_agent = resp_agent
         self.finder = ResourceFinder(ts_url = endpoint, base_iri = base_iri, local_g=everything_everywhere_allatonce, settings=settings, meta_config_path=meta_config_path)
 
@@ -54,6 +55,7 @@ class Creator(object):
         self.preexisting_entities = preexisting_entities
         self.preexisting_graphs = dict()
         self.data = data
+        self.counter_handler = counter_handler
 
     def creator(self, source=None):
         self.src = source

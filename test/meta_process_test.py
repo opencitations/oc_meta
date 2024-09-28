@@ -7,15 +7,24 @@ import unittest
 from datetime import datetime
 from zipfile import ZipFile
 
+import redis
 import yaml
+from oc_meta.lib.file_manager import get_csv_data
+from oc_meta.run.meta_process import run_meta_process
 from rdflib import ConjunctiveGraph, Graph, Literal, URIRef
 from SPARQLWrapper import JSON, POST, SPARQLWrapper
 
-from oc_meta.lib.file_manager import get_csv_data
-from oc_meta.run.meta_process import run_meta_process
+from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
 
 BASE_DIR = os.path.join('test', 'meta_process')
 SERVER = 'http://127.0.0.1:8805/sparql'
+
+def reset_redis_counters():
+    redis_host = 'localhost'
+    redis_port = 6379
+    redis_db = 5
+    redis_client = redis.Redis(host=redis_host, port=redis_port, db=redis_db)
+    redis_client.flushdb()
 
 def reset_server(server:str=SERVER) -> None:
     ts = SPARQLWrapper(server)
@@ -33,7 +42,18 @@ def delete_output_zip(base_dir:str, start_time:datetime) -> None:
             if was_created_after_time:
                 os.remove(os.path.join(base_dir, file))
 
-class test_ProcessTest(unittest.TestCase):    
+class test_ProcessTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.counter_handler = RedisCounterHandler(host='localhost', port=6379, db=0)
+
+    def setUp(self):
+        reset_server()
+        reset_redis_counters()
+
+    def tearDown(self):
+        reset_redis_counters()
+
     def test_get_csv_data(self):
         filepath = os.path.join(BASE_DIR, 'long_field.csv')
         data = get_csv_data(filepath)
@@ -41,7 +61,6 @@ class test_ProcessTest(unittest.TestCase):
         self.assertEqual(field_size, 137622)
 
     def test_run_meta_process(self):
-        reset_server()
         output_folder = os.path.join(BASE_DIR, 'output_1')
         meta_config_path = os.path.join(BASE_DIR, 'meta_config_1.yaml')
         with open(meta_config_path, encoding='utf-8') as file:
@@ -66,7 +85,6 @@ class test_ProcessTest(unittest.TestCase):
         self.assertEqual(output, expected_output)
 
     def test_run_meta_process_ids_only(self):
-        reset_server()
         output_folder = os.path.join(BASE_DIR, 'output_5')
         meta_config_path = os.path.join(BASE_DIR, 'meta_config_5.yaml')
         now = datetime.now()
@@ -90,7 +108,6 @@ class test_ProcessTest(unittest.TestCase):
         self.assertEqual(output, expected_output)
 
     def test_run_meta_process_two_workers(self):
-        reset_server()
         output_folder = os.path.join(BASE_DIR, 'output_2')
         meta_config_path=os.path.join(BASE_DIR, 'meta_config_2.yaml')
         with open(meta_config_path, encoding='utf-8') as file:
@@ -115,7 +132,6 @@ class test_ProcessTest(unittest.TestCase):
         self.assertEqual(output, expected_output)
 
     def test_provenance(self):
-        reset_server()
         output_folder = os.path.join(BASE_DIR, 'output_3')	
         now = datetime.now()
         if os.path.exists(output_folder):
@@ -177,7 +193,6 @@ class test_ProcessTest(unittest.TestCase):
         self.assertEqual(output, expected_output)
 
     def test_run_meta_process_thread_safe(self):
-        reset_server()
         output_folder = os.path.join(BASE_DIR, 'output_4')
         meta_config_path=os.path.join(BASE_DIR, 'meta_config_4.yaml')
         with open(meta_config_path, encoding='utf-8') as file:
@@ -249,7 +264,6 @@ class test_ProcessTest(unittest.TestCase):
         self.assertFalse('Reader: ERROR' in proc.stdout or 'Storer: ERROR' in proc.stdout)
     
     def test_silencer_on(self):
-        reset_server()
         output_folder = os.path.join(BASE_DIR, 'output_6')
         now = datetime.now()
         meta_config_path=os.path.join(BASE_DIR, 'meta_config_6.yaml')
@@ -284,7 +298,6 @@ class test_ProcessTest(unittest.TestCase):
         self.assertEqual(result, expected_result)
 
     def test_silencer_off(self):
-        reset_server()
         output_folder = os.path.join(BASE_DIR, 'output_7')
         now = datetime.now()
         meta_config_path=os.path.join(BASE_DIR, 'meta_config_7.yaml')
@@ -318,7 +331,6 @@ class test_ProcessTest(unittest.TestCase):
         self.assertEqual(result, expected_result)
 
     def test_omid_in_input_data(self):
-        reset_server()
         query_all = '''
             PREFIX fabio: <http://purl.org/spar/fabio/>
             PREFIX datacite: <http://purl.org/spar/datacite/>
@@ -377,7 +389,6 @@ class test_ProcessTest(unittest.TestCase):
         delete_output_zip('.', now)
 
     def test_publishers_sequence(self):
-        reset_server()
         output_folder = os.path.join(BASE_DIR, 'output_9')
         meta_config_path = os.path.join(BASE_DIR, 'meta_config_10.yaml')
         now = datetime.now()

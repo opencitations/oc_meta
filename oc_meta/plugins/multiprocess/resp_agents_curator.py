@@ -21,23 +21,25 @@ import os
 import re
 from typing import List
 
+import redis
 from oc_meta.core.curator import Curator
 from oc_meta.lib.cleaner import Cleaner
 from oc_meta.lib.file_manager import *
 from oc_meta.lib.finder import *
 from oc_meta.lib.master_of_regex import *
 
+from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
+
 
 class RespAgentsCurator(Curator):
-    def __init__(self, data:List[dict], ts:str, prov_config:str, info_dir:str, base_iri:str='https://w3id.org/oc/meta', prefix:str='060', separator:str=None, settings:dict|None=None, meta_config_path: str = None):
+    def __init__(self, data:List[dict], ts:str, prov_config:str, counter_handler:RedisCounterHandler, base_iri:str='https://w3id.org/oc/meta', prefix:str='060', separator:str=None, settings:dict|None=None, meta_config_path: str = None):
         self.everything_everywhere_allatonce = Graph()
         self.finder = ResourceFinder(ts, base_iri, self.everything_everywhere_allatonce, settings=settings, meta_config_path=meta_config_path)
         self.prov_config = prov_config
         self.separator = separator
         self.data = [{field:value.strip() for field,value in row.items()} for row in data]
         self.prefix = prefix
-        self.id_info_path = info_dir + 'info_file_id.txt'
-        self.ra_info_path = info_dir + 'info_file_ra.txt'
+        self.counter_handler = counter_handler
         self.radict:Dict[str, Dict[str, list]] = {}
         self.idra = {}  # key id; value metaid of id related to ra
         self.conflict_ra = {}
@@ -123,7 +125,7 @@ class RespAgentsCurator(Curator):
         for identifier in self.radict:
             if 'wannabe' in identifier:
                 other = identifier
-                count = self._add_number(self.ra_info_path)
+                count = self.counter_handler.increment_counter('ra')
                 meta = self.prefix + str(count)
                 self.rameta[meta] = self.radict[identifier]
                 self.rameta[meta]['others'].append(other)
@@ -132,9 +134,10 @@ class RespAgentsCurator(Curator):
                 self.rameta[identifier] = self.radict[identifier]
                 self.preexisting_entities.add(f'ra/{identifier}')
                 self.rameta[identifier]['ids'].append('omid:ra/' + identifier)
+        
         for _, omid in self.idra.items():
             self.preexisting_entities.add(f'id/{omid}')
-
+        
     def indexer(self, path_index:str, path_csv:str) -> None:
         '''
         This method is used to transform idra in such a way as to be saved as a csv file.
@@ -392,5 +395,5 @@ class RespAgentsCurator(Curator):
         return match_elem
 
     def __update_id_count(self, id_dict, identifier):
-        count = self._add_number(self.id_info_path)
+        count = self.counter_handler.increment_counter('id')
         id_dict[identifier] = self.prefix + str(count)

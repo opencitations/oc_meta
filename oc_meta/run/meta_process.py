@@ -23,27 +23,30 @@ import csv
 import os
 import traceback
 from argparse import ArgumentParser
+from concurrent.futures import as_completed
 from datetime import datetime
 from itertools import cycle
 from sys import executable, platform
 from typing import List, Tuple
 
+import redis
 import yaml
-from oc_ocdm import Storer
-from oc_ocdm.prov import ProvSet
-from oc_ocdm.support.reporter import Reporter
-from pebble import ProcessPool
-from time_agnostic_library.support import generate_config_file
-
 from oc_meta.core.creator import Creator
 from oc_meta.core.curator import Curator
 from oc_meta.lib.file_manager import (get_csv_data, init_cache, normalize_path,
                                       pathoo, sort_files, zipit)
 from oc_meta.plugins.multiprocess.resp_agents_creator import RespAgentsCreator
 from oc_meta.plugins.multiprocess.resp_agents_curator import RespAgentsCurator
-from concurrent.futures import as_completed
 from oc_meta.run.upload.on_triplestore import *
+from pebble import ProcessPool
+from time_agnostic_library.support import generate_config_file
 from tqdm import tqdm
+
+from oc_ocdm import Storer
+from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
+from oc_ocdm.prov import ProvSet
+from oc_ocdm.support.reporter import Reporter
+
 
 class MetaProcess:
     def __init__(self, settings:dict, meta_config_path: str):
@@ -82,6 +85,14 @@ class MetaProcess:
                 virtuoso_full_text_search=settings['virtuoso_full_text_search'], graphdb_connector_name=settings['graphdb_connector_name'], 
                 cache_endpoint=settings['cache_endpoint'], cache_update_endpoint=settings['cache_update_endpoint'])
 
+        # Redis settings
+        self.redis_host = settings.get('redis_host', 'localhost')
+        self.redis_port = settings.get('redis_port', 6379)
+        self.redis_db = settings.get('redis_db', 5)
+        self.redis_client = redis.Redis(host=self.redis_host, port=self.redis_port, db=self.redis_db)
+
+        self.counter_handler = RedisCounterHandler(host=self.redis_host, port=self.redis_port, db=self.redis_db)
+
     def prepare_folders(self) -> List[str]:
         completed = init_cache(self.cache_path)
         files_in_input_csv_dir = {filename for filename in os.listdir(self.input_csv_dir) if filename.endswith('.csv')}
@@ -112,7 +123,7 @@ class MetaProcess:
                     data=data, 
                     ts=self.triplestore_url, 
                     prov_config=self.time_agnostic_library_config, 
-                    info_dir=curator_info_dir, 
+                    counter_handler=self.counter_handler,
                     base_iri=self.base_iri, 
                     prefix=supplier_prefix, 
                     settings=settings,
@@ -122,23 +133,23 @@ class MetaProcess:
                     data=data, 
                     ts=self.triplestore_url, 
                     prov_config=self.time_agnostic_library_config, 
-                    info_dir=curator_info_dir, 
+                    counter_handler=self.counter_handler,
                     base_iri=self.base_iri, 
                     prefix=supplier_prefix, 
                     valid_dois_cache=self.valid_dois_cache, 
                     settings=settings,
                     silencer=self.silencer,
-                    meta_config_path=meta_config_path)
+                    meta_config_path=meta_config_path
+                )
             name = f"{filename.replace('.csv', '')}_{datetime.now().strftime('%Y-%m-%dT%H-%M-%S')}"
             curator_obj.curator(filename=name, path_csv=self.output_csv_dir, path_index=self.indexes_dir)
             # Creator
-            creator_info_dir = os.path.join(self.info_dir, 'creator' + os.sep)
             if resp_agents_only:
                 creator_obj = RespAgentsCreator(
                     data=curator_obj.data, 
                     endpoint=self.triplestore_url, 
-                    base_iri=self.base_iri, 
-                    info_dir=creator_info_dir, 
+                    base_iri=self.base_iri,
+                    counter_handler=self.counter_handler,
                     supplier_prefix=supplier_prefix, 
                     resp_agent=self.resp_agent, 
                     ra_index=curator_obj.index_id_ra,
@@ -151,7 +162,7 @@ class MetaProcess:
                     data=curator_obj.data, 
                     endpoint=self.triplestore_url, 
                     base_iri=self.base_iri, 
-                    info_dir=creator_info_dir, 
+                    counter_handler=self.counter_handler,
                     supplier_prefix=supplier_prefix, 
                     resp_agent=self.resp_agent, 
                     ra_index=curator_obj.index_id_ra,
@@ -162,10 +173,11 @@ class MetaProcess:
                     preexisting_entities=curator_obj.preexisting_entities, 
                     everything_everywhere_allatonce=curator_obj.everything_everywhere_allatonce, 
                     settings=settings,
-                    meta_config_path=meta_config_path)
+                    meta_config_path=meta_config_path
+                )
             creator = creator_obj.creator(source=self.source)
             # Provenance
-            prov = ProvSet(creator, self.base_iri, creator_info_dir, wanted_label=False, supplier_prefix=supplier_prefix)
+            prov = ProvSet(creator, self.base_iri, wanted_label=False, supplier_prefix=supplier_prefix, custom_counter_handler=self.counter_handler)
             modified_entities = prov.generate_provenance()
             # Storer
             repok  = Reporter(print_sentences = False)

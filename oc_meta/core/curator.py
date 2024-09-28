@@ -24,18 +24,18 @@ import os
 import re
 from typing import Dict, List, Tuple
 
-from filelock import FileLock
-
 from oc_meta.constants import CONTAINER_EDITOR_TYPES
 from oc_meta.lib.cleaner import Cleaner
 from oc_meta.lib.file_manager import *
 from oc_meta.lib.finder import *
 from oc_meta.lib.master_of_regex import *
 
+from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
+
 
 class Curator:
 
-    def __init__(self, data:List[dict], ts:str, prov_config:str, info_dir:str, base_iri:str='https://w3id.org/oc/meta', prefix:str='060', separator:str=None, valid_dois_cache:dict=dict(), settings:dict|None = None, silencer:list = [], meta_config_path: str = None):
+    def __init__(self, data:List[dict], ts:str, prov_config:str, counter_handler:RedisCounterHandler, base_iri:str='https://w3id.org/oc/meta', prefix:str='060', separator:str=None, valid_dois_cache:dict=dict(), settings:dict|None = None, silencer:list = [], meta_config_path: str = None):
         self.everything_everywhere_allatonce = Graph()
         self.finder = ResourceFinder(ts, base_iri, self.everything_everywhere_allatonce, settings=settings, meta_config_path=meta_config_path)
         self.base_iri = base_iri
@@ -51,12 +51,8 @@ class Curator:
                     row['type'] = 'journal article'
         self.data = [{field:value.strip() for field,value in row.items()} for row in data if is_a_valid_row(row)]
         self.prefix = prefix
-        # Counter local paths
-        self.br_info_path = info_dir + 'info_file_br.txt'
-        self.id_info_path = info_dir + 'info_file_id.txt'
-        self.ra_info_path = info_dir + 'info_file_ra.txt'
-        self.ar_info_path = info_dir + 'info_file_ar.txt'
-        self.re_info_path = info_dir + 'info_file_re.txt'
+        # Redis counter handler
+        self.counter_handler = counter_handler
         self.brdict = {}
         self.radict:Dict[str, Dict[str, list]] = {}
         self.ardict:Dict[str, Dict[str, list]] = {}
@@ -520,7 +516,7 @@ class Curator:
             else:
                 metaval = self.new_entity(self.radict, name)
             if new_elem_seq:
-                role = self.prefix + str(self._add_number(self.ar_info_path))
+                role = self.prefix + str(self._add_number('ar'))
                 new_sequence.append(tuple((role, metaval)))
         if change_order:
             self.log[self.rowcnt][col_name]['Info'] = 'New RA sequence proposed: refused'
@@ -691,7 +687,7 @@ class Curator:
         for identifier in self.brdict:
             if 'wannabe' in identifier:
                 other = identifier
-                count = self._add_number(self.br_info_path)
+                count = self._add_number('br')
                 meta = self.prefix + str(count)
                 self.brmeta[meta] = self.brdict[identifier]
                 self.brmeta[meta]['others'].append(other)
@@ -702,7 +698,7 @@ class Curator:
         for identifier in self.radict:
             if 'wannabe' in identifier:
                 other = identifier
-                count = self._add_number(self.ra_info_path)
+                count = self._add_number('ra')
                 meta = self.prefix + str(count)
                 self.rameta[meta] = self.radict[identifier]
                 self.rameta[meta]['others'].append(other)
@@ -777,7 +773,7 @@ class Curator:
                     self.remeta[metaid] = re_meta
                     row['page'] = re_meta[1]
                 else:
-                    count = self.prefix + str(self._add_number(self.re_info_path))
+                    count = self.prefix + str(self._add_number('re'))
                     page = row['page']
                     self.remeta[metaid] = (count, page)
                     row['page'] = page
@@ -812,38 +808,11 @@ class Curator:
                         ts_name = names[0] + ', ' + gname
         return ts_name
 
-    @staticmethod
-    def _read_number(file_path:str, line_number:int=1) -> int: 
-        try:
-            with open(file_path) as f:
-                cur_number = int(f.readlines()[line_number - 1])
-            return cur_number
-        except Exception as e:
-            print(f"Error occurred while reading file: {file_path}")
-            raise e
+    def _read_number(self, entity_type:str) -> int:
+        return self.counter_handler.read_counter(entity_type, supplier_prefix=self.prefix)
 
-    @staticmethod
-    def _add_number(file_path:str, line_number:int=1) -> int:
-        if not os.path.exists(os.path.dirname(file_path)):
-            os.makedirs(os.path.dirname(file_path))
-        lock = FileLock(f'{file_path}.lock')
-        with lock:
-            cur_number = Curator._read_number(file_path, line_number) + 1 if os.path.exists(file_path) else 1
-            if os.path.exists(file_path):
-                with open(file_path) as f:
-                    all_lines = f.readlines()
-            else:
-                all_lines = []
-            line_len = len(all_lines)
-            zero_line_number = line_number - 1
-            for i in range(line_number):
-                if i >= line_len:
-                    all_lines += ['\n']
-                if i == zero_line_number:
-                    all_lines[i] = str(cur_number) + '\n'
-            with open(file_path, 'w') as f:
-                f.writelines(all_lines)
-        return cur_number
+    def _add_number(self, entity_type:str) -> int:
+        return self.counter_handler.increment_counter(entity_type, supplier_prefix=self.prefix)
     
     def __update_id_and_entity_dict(self, existing_ids:list, id_dict:dict, entity_dict:Dict[str, Dict[str, list]], metaval:str) -> None:
         for identifier in existing_ids:
@@ -946,7 +915,7 @@ class Curator:
             self.VolIss[VolIss_venue_meta] = self.vvi[vvi_venue_meta]
     
     def __update_id_count(self, id_dict, identifier):
-        count = self._add_number(self.id_info_path)
+        count = self._add_number('id')
         id_dict[identifier] = self.prefix + str(count)
 
     @staticmethod

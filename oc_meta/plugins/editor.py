@@ -21,15 +21,17 @@ import re
 
 import validators
 import yaml
+from rdflib import RDF, ConjunctiveGraph, URIRef
+from SPARQLWrapper import JSON, SPARQLWrapper
+
 from oc_ocdm import Storer
+from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
 from oc_ocdm.graph import GraphSet
+from oc_ocdm.graph.graph_entity import GraphEntity
 from oc_ocdm.prov import ProvSet
 from oc_ocdm.reader import Reader
-from rdflib import URIRef
-from oc_ocdm.graph.graph_entity import GraphEntity
 from oc_ocdm.support.support import build_graph_from_results
-from SPARQLWrapper import JSON, SPARQLWrapper
-from rdflib import RDF, ConjunctiveGraph
+
 
 class MetaEditor:
     property_to_remove_method = {
@@ -45,7 +47,6 @@ class MetaEditor:
             settings = yaml.full_load(file)
         self.endpoint = settings['triplestore_url']
         self.base_dir = os.path.join(settings['output_rdf_dir'], 'rdf') + os.sep
-        self.info_dir = os.path.join(settings['output_rdf_dir'], 'info_dir')
         self.base_iri = settings['base_iri']
         self.resp_agent = resp_agent
         self.dir_split = settings['dir_split_number']
@@ -54,11 +55,16 @@ class MetaEditor:
         self.reader = Reader()
         self.save_queries = save_queries
         self.update_queries = []
+        
+        # Redis configuration
+        self.redis_host = settings.get('redis_host', 'localhost')
+        self.redis_port = settings.get('redis_port', 6379)
+        self.redis_db = settings.get('redis_db', 5)
+        self.counter_handler = RedisCounterHandler(host=self.redis_host, port=self.redis_port, db=self.redis_db)
     
     def update_property(self, res: URIRef, property: str, new_value: str|URIRef) -> None:
-        info_dir = self.__get_info_dir(res)
         supplier_prefix = self.__get_supplier_prefix(res)
-        g_set = GraphSet(self.base_iri, info_dir, supplier_prefix=supplier_prefix)
+        g_set = GraphSet(self.base_iri, supplier_prefix=supplier_prefix, custom_counter_handler=self.counter_handler)
         self.reader.import_entity_from_triplestore(g_set, self.endpoint, res, self.resp_agent, enable_validation=False)
         if validators.url(new_value):
             new_value = URIRef(new_value)
@@ -66,12 +72,11 @@ class MetaEditor:
             getattr(g_set.get_entity(res), property)(g_set.get_entity(new_value))
         else:
             getattr(g_set.get_entity(res), property)(new_value)
-        self.save(g_set, info_dir, supplier_prefix)
+        self.save(g_set, supplier_prefix)
     
     def delete(self, res: str, property: str = None, object: str = None) -> None:
-        info_dir = self.__get_info_dir(res)
         supplier_prefix = self.__get_supplier_prefix(res)
-        g_set = GraphSet(self.base_iri, info_dir, supplier_prefix=supplier_prefix)
+        g_set = GraphSet(self.base_iri, supplier_prefix=supplier_prefix, custom_counter_handler=self.counter_handler)
         try:
             self.reader.import_entity_from_triplestore(g_set, self.endpoint, res, self.resp_agent, enable_validation=False)
         except ValueError as e:
@@ -115,12 +120,11 @@ class MetaEditor:
                 self.reader.import_entity_from_triplestore(g_set, self.endpoint, URIRef(entity['s']['value']), self.resp_agent, enable_validation=False)
             entity_to_purge = g_set.get_entity(URIRef(res))
             entity_to_purge.mark_as_to_be_deleted()
-        self.save(g_set, info_dir, supplier_prefix)
+        self.save(g_set, supplier_prefix)
     
     def merge(self, res: URIRef, other: URIRef) -> None:
-        info_dir = self.__get_info_dir(res)
         supplier_prefix = self.__get_supplier_prefix(res)
-        g_set = GraphSet(self.base_iri, info_dir, supplier_prefix=supplier_prefix)
+        g_set = GraphSet(self.base_iri, supplier_prefix=supplier_prefix, custom_counter_handler=self.counter_handler)
         self.reader.import_entity_from_triplestore(g_set, self.endpoint, res, self.resp_agent, enable_validation=False)
         self.reader.import_entity_from_triplestore(g_set, self.endpoint, other, self.resp_agent, enable_validation=False)
         sparql = SPARQLWrapper(endpoint=self.endpoint)
@@ -152,15 +156,14 @@ class MetaEditor:
             res_as_entity.merge(other_as_entity, prefer_self=True)
         else:
             res_as_entity.merge(other_as_entity)
-        self.save(g_set, info_dir, supplier_prefix)
+        self.save(g_set, supplier_prefix)
     
     def sync_rdf_with_triplestore(self, res: str, source_uri: str = None) -> bool:
-        info_dir = self.__get_info_dir(res)
         supplier_prefix = self.__get_supplier_prefix(res)
-        g_set = GraphSet(self.base_iri, info_dir, supplier_prefix=supplier_prefix)
+        g_set = GraphSet(self.base_iri, supplier_prefix=supplier_prefix, custom_counter_handler=self.counter_handler)
         try:
             self.reader.import_entity_from_triplestore(g_set, self.endpoint, res, self.resp_agent, enable_validation=False)
-            self.save(g_set, info_dir, supplier_prefix)
+            self.save(g_set, supplier_prefix)
             return True
         except ValueError:
             try:
@@ -177,11 +180,11 @@ class MetaEditor:
                         triples_list = list(entity.g.triples((URIRef(source_uri), None, None)))
                         for triple in triples_list:
                             entity.g.remove(triple)
-                    self.save(g_set, info_dir, supplier_prefix)
+                    self.save(g_set, supplier_prefix)
                 return False
             
-    def save(self, g_set: GraphSet, info_dir: str, supplier_prefix: str):
-        provset = ProvSet(g_set, self.base_iri, info_dir, wanted_label=False, supplier_prefix=supplier_prefix)
+    def save(self, g_set: GraphSet, supplier_prefix: str):
+        provset = ProvSet(g_set, self.base_iri, wanted_label=False, supplier_prefix=supplier_prefix, custom_counter_handler=self.counter_handler)
         provset.generate_provenance()
         graph_storer = Storer(g_set, dir_split=self.dir_split, n_file_item=self.n_file_item, zip_output=self.zip_output_rdf)
         prov_storer = Storer(provset, dir_split=self.dir_split, n_file_item=self.n_file_item, zip_output=self.zip_output_rdf)
@@ -189,11 +192,7 @@ class MetaEditor:
         prov_storer.store_all(self.base_dir, self.base_iri)
         graph_storer.upload_all(self.endpoint, base_dir=self.base_dir, save_queries=self.save_queries)
         g_set.commit_changes()
-    
-    def __get_info_dir(self, uri: str):
-        supplier_prefix = self.__get_supplier_prefix(uri)
-        return os.path.join(self.info_dir, supplier_prefix, 'creator') + os.sep if supplier_prefix != '060' else os.path.join(self.info_dir, 'creator') + os.sep
-    
+        
     def __get_supplier_prefix(self, uri: str) -> str:
         entity_regex: str = r'^(.+)/([a-z][a-z])/(0[1-9]+0)?([1-9][0-9]*)$'
         entity_match = re.match(entity_regex, uri)

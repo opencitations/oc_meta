@@ -19,21 +19,28 @@ import os
 import unittest
 from shutil import rmtree
 
+import redis
 import yaml
+from oc_meta.plugins.editor import MetaEditor
+from oc_meta.run.meta_process import run_meta_process
+from rdflib import URIRef
+from SPARQLWrapper import POST, SPARQLWrapper
+
 from oc_ocdm import Storer
+from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
 from oc_ocdm.graph import GraphSet
 from oc_ocdm.prov import ProvSet
 from oc_ocdm.reader import Reader
-from rdflib import URIRef
-
-from oc_meta.plugins.editor import MetaEditor
-from oc_meta.run.meta_process import run_meta_process
-from SPARQLWrapper import POST, SPARQLWrapper
 
 BASE = os.path.join('test', 'editor')
 OUTPUT = os.path.join(BASE, 'output')
 META_CONFIG = os.path.join(BASE, 'meta_config.yaml')
 SERVER = 'http://127.0.0.1:8805/sparql'
+
+# Redis configuration
+REDIS_HOST = 'localhost'
+REDIS_PORT = 6379
+REDIS_DB = 5
 
 def reset_server(server:str=SERVER) -> None:
     ts = SPARQLWrapper(server)
@@ -42,17 +49,34 @@ def reset_server(server:str=SERVER) -> None:
         ts.setMethod(POST)
         ts.query()
 
+def reset_redis_counters():
+    redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
+    redis_client.flushdb()
+
+def get_counter_handler():
+    return RedisCounterHandler(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
+
 class TestEditor(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.counter_handler = get_counter_handler()
+
     def setUp(self):
         reset_server()
+        reset_redis_counters()
         if os.path.exists(OUTPUT):
             rmtree(OUTPUT)
         with open(META_CONFIG, encoding='utf-8') as file:
             settings = yaml.full_load(file)
+        # Update settings to use Redis
+        settings['redis_host'] = REDIS_HOST
+        settings['redis_port'] = REDIS_PORT
+        settings['redis_db'] = REDIS_DB
         run_meta_process(settings=settings, meta_config_path=META_CONFIG)
 
     def tearDown(self):
         rmtree(OUTPUT)
+        reset_redis_counters()
     
     def test_update_property(self):
         editor = MetaEditor(META_CONFIG, 'https://orcid.org/0000-0002-8420-0696')
@@ -132,39 +156,56 @@ class TestEditor(unittest.TestCase):
                         self.assertEqual(ra['https://w3id.org/oc/ontology/hasUpdateQuery'][0]['@value'], 'DELETE DATA { GRAPH <https://w3id.org/oc/meta/br/> { <https://w3id.org/oc/meta/br/06101> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06101> . } }')
 
     def test_merge(self):
-        def read_and_normalize_file(filepath):
-            with open(filepath, 'r', encoding='utf8') as f:
-                lines = [line for line in f.readlines()]
-            return lines
         base_iri = 'https://w3id.org/oc/meta/'
-        info_dir = os.path.join(OUTPUT, 'info_dir', '0620', 'creator')
         resp_agent = 'https://orcid.org/0000-0002-8420-0696'
-        g_set = GraphSet(base_iri, info_dir, supplier_prefix='0620', wanted_label=False)
+        g_set = GraphSet(base_iri, supplier_prefix='0620', wanted_label=False, custom_counter_handler=self.counter_handler)
         endpoint = 'http://127.0.0.1:8805/sparql'
-        rdf = os.path.join(OUTPUT, 'rdf') + os.sep
-        reader = Reader()
+        
+        # Create entities  testing
         ra = g_set.add_ra(resp_agent=resp_agent, res=URIRef('https://w3id.org/oc/meta/ra/06205'))
         ra.has_name('Wiley')
+        
+        reader = Reader()
         id_06105 = reader.import_entity_from_triplestore(g_set, endpoint, URIRef('https://w3id.org/oc/meta/id/06105'), resp_agent, enable_validation=False)
         id_06203 = g_set.add_id(resp_agent=resp_agent)
         id_06203.create_crossref('313')
+        
         ra.has_identifier(id_06105)
         ra.has_identifier(id_06203)
-        provset = ProvSet(g_set, base_iri, info_dir, wanted_label=False, supplier_prefix='0620')
+        
+        # Generate provenance
+        provset = ProvSet(g_set, base_iri, wanted_label=False, supplier_prefix='0620', custom_counter_handler=self.counter_handler)
         provset.generate_provenance()
+        
+        # Store and upload data
+        rdf_dir = os.path.join(OUTPUT, 'rdf') + os.sep
         graph_storer = Storer(g_set, dir_split=10000, n_file_item=1000, zip_output=False)
         prov_storer = Storer(provset, dir_split=10000, n_file_item=1000, zip_output=False)
-        graph_storer.store_all(rdf, base_iri)
-        prov_storer.store_all(rdf, base_iri)
+        
+        graph_storer.store_all(rdf_dir, base_iri)
+        prov_storer.store_all(rdf_dir, base_iri)
         graph_storer.upload_all(endpoint)
+        
+        # Perform merge
         editor = MetaEditor(META_CONFIG, 'https://orcid.org/0000-0002-8420-0696')
         editor.merge(URIRef('https://w3id.org/oc/meta/ra/06107'), URIRef('https://w3id.org/oc/meta/ra/06205'))
-        expected_lines_0610 = ['1\n', '1\n', '1\n', '1\n', '1\n', '1\n', '2\n']
-        normalized_lines_0610 = read_and_normalize_file(os.path.join(OUTPUT, 'info_dir', '0610', 'creator', 'prov_file_ra.txt'))
-        self.assertEqual(normalized_lines_0610, expected_lines_0610)
-        expected_lines_0620 = ['\n', '\n', '\n', '\n', '2\n']
-        normalized_lines_0620 = read_and_normalize_file(os.path.join(OUTPUT, 'info_dir', '0620', 'creator', 'prov_file_ra.txt'))
-        self.assertEqual(normalized_lines_0620, expected_lines_0620)
+        
+        # Check Redis counters
+        self.assertEqual(self.counter_handler.read_counter('ra', prov_short_name='se', identifier=1, supplier_prefix='0610'), 1)
+        self.assertEqual(self.counter_handler.read_counter('ra', prov_short_name='se', identifier=2, supplier_prefix='0610'), 1)
+        self.assertEqual(self.counter_handler.read_counter('ra', prov_short_name='se', identifier=3, supplier_prefix='0610'), 1)
+        self.assertEqual(self.counter_handler.read_counter('ra', prov_short_name='se', identifier=4, supplier_prefix='0610'), 1)
+        self.assertEqual(self.counter_handler.read_counter('ra', prov_short_name='se', identifier=5, supplier_prefix='0610'), 1)
+        self.assertEqual(self.counter_handler.read_counter('ra', prov_short_name='se', identifier=6, supplier_prefix='0610'), 1)
+        self.assertEqual(self.counter_handler.read_counter('ra', prov_short_name='se', identifier=7, supplier_prefix='0610'), 2)
+
+        self.assertEqual(self.counter_handler.read_counter('ra', prov_short_name='se', identifier=1, supplier_prefix='0620'), 0)
+        self.assertEqual(self.counter_handler.read_counter('ra', prov_short_name='se', identifier=2, supplier_prefix='0620'), 0)
+        self.assertEqual(self.counter_handler.read_counter('ra', prov_short_name='se', identifier=3, supplier_prefix='0620'), 0)
+        self.assertEqual(self.counter_handler.read_counter('ra', prov_short_name='se', identifier=4, supplier_prefix='0620'), 0)
+        self.assertEqual(self.counter_handler.read_counter('ra', prov_short_name='se', identifier=5, supplier_prefix='0620'), 2)
+
+        # Verify merged data
         for filepath in [
             os.path.join(OUTPUT, 'rdf', 'ra', '0610', '10000', '1000.json'),
             # os.path.join(OUTPUT, 'rdf', 'ar', '0620', '10000', '1000.json'),
@@ -191,7 +232,7 @@ class TestEditor(unittest.TestCase):
                         elif entity['@id'] == 'https://w3id.org/oc/meta/ra/06205/prov/se/2':
                             update_query = entity['https://w3id.org/oc/ontology/hasUpdateQuery'][0]['@value'].replace('DELETE DATA { GRAPH <https://w3id.org/oc/meta/ra/> { ', '').replace(' . } }', '').replace('\n', '').split(' .')
                             self.assertEqual(set(update_query), {'<https://w3id.org/oc/meta/ra/06205> <http://xmlns.com/foaf/0.1/name> "Wiley"', '<https://w3id.org/oc/meta/ra/06205> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06201>', '<https://w3id.org/oc/meta/ra/06205> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06105>', '<https://w3id.org/oc/meta/ra/06205> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent>'})
-                            
+
     def test_delete_entity_with_inferred_type(self):
         editor = MetaEditor(META_CONFIG, 'https://orcid.org/0000-0002-8420-0696')
         endpoint = SPARQLWrapper(SERVER)
