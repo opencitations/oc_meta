@@ -17,16 +17,15 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import zipfile
-import json
-import re
-from tqdm import tqdm
-import os
-from pebble import ProcessPool
-from oc_ocdm.counter_handler.filesystem_counter_handler import FilesystemCounterHandler
-from oc_ocdm.support import get_prefix, get_resource_number, get_short_name
 from concurrent.futures import TimeoutError, as_completed
+
+from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
+from oc_ocdm.support import get_prefix, get_resource_number, get_short_name
+from pebble import ProcessPool
+from tqdm import tqdm
 
 
 def find_max_numbered_folder(path):
@@ -84,18 +83,18 @@ def process_zip_file(zip_file_path):
                             batch_updates[supplier_prefix][batch_key][resource_number], counter_value)
     return batch_updates
 
-def explore_directories(root_path, output_root):
+def explore_directories(root_path, redis_host, redis_port, redis_db):
     """
     Esplora le directory e associa a ciascun supplier prefix il numero maggiore.
     """
     main_folders = ["ar", "br", "ra", "re", "id"]
+    counter_handler = RedisCounterHandler(host=redis_host, port=redis_port, db=redis_db)
 
     for main_folder in main_folders:
         main_folder_path = os.path.join(root_path, main_folder)
         if os.path.isdir(main_folder_path):
             for supplier_prefix in os.listdir(main_folder_path):
                 supplier_path = os.path.join(main_folder_path, supplier_prefix)
-                prov_counter_handler = FilesystemCounterHandler(info_dir=os.path.join(output_root, supplier_prefix, 'creator'), supplier_prefix=supplier_prefix)
                 max_folder = find_max_numbered_folder(supplier_path)
                 max_zip_file = find_max_numbered_zip_file(os.path.join(supplier_path, str(max_folder)))
                 zip_file_path = os.path.join(supplier_path, str(max_folder), max_zip_file)
@@ -110,10 +109,7 @@ def explore_directories(root_path, output_root):
                                 resource_number = get_resource_number(entity_uri)
                                 max_entity = max(max_entity, resource_number)
 
-                counter_handler_curator = FilesystemCounterHandler(info_dir=os.path.join(output_root, supplier_prefix, 'curator'))
-                counter_handler_creator = FilesystemCounterHandler(info_dir=os.path.join(output_root, supplier_prefix, 'creator'))
-                counter_handler_curator.set_counter(max_entity, main_folder)
-                counter_handler_creator.set_counter(max_entity, main_folder)
+                counter_handler.set_counter(max_entity, main_folder, supplier_prefix=supplier_prefix)
     
     zip_files = [os.path.join(dp, f) for dp, dn, filenames in os.walk(root_path) 
                  for f in filenames if f.endswith('.zip') and 'prov' in dp]
@@ -156,16 +152,19 @@ def explore_directories(root_path, output_root):
             pbar.update(1)
 
     for supplier_prefix, value in final_batch_updates.items():
-        prov_counter_handler = FilesystemCounterHandler(info_dir=os.path.join(output_root, supplier_prefix, 'creator'))
-        prov_counter_handler.set_counters_batch(value, supplier_prefix)
+        for (short_name, prov_short_name), counters in value.items():
+            for identifier, counter_value in counters.items():
+                counter_handler.set_counter(counter_value, short_name, prov_short_name, identifier, supplier_prefix)
 
 def main():
     parser = argparse.ArgumentParser(description="Esplora le directory e trova i numeri massimi.")
     parser.add_argument("directory", type=str, help="Il percorso della directory da esplorare")
-    parser.add_argument("output_directory", type=str, help="Il percorso della directory di output per salvare i file info_dir.txt")
+    parser.add_argument("--redis-host", type=str, default="localhost", help="L'host del server Redis")
+    parser.add_argument("--redis-port", type=int, default=6379, help="La porta del server Redis")
+    parser.add_argument("--redis-db", type=int, default=0, help="Il numero del database Redis da utilizzare")
     args = parser.parse_args()
 
-    explore_directories(args.directory, args.output_directory)
+    explore_directories(args.directory, args.redis_host, args.redis_port, args.redis_db)
 
 if __name__ == "__main__":
     main()
