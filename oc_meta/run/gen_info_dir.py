@@ -114,9 +114,6 @@ def explore_directories(root_path, redis_host, redis_port, redis_db):
     zip_files = [os.path.join(dp, f) for dp, dn, filenames in os.walk(root_path) 
                  for f in filenames if f.endswith('.zip') and 'prov' in dp]
     
-    pbar = tqdm(total=len(zip_files))
-    results = []
-
     timeout = 30
 
     with ProcessPool() as pool:
@@ -124,21 +121,21 @@ def explore_directories(root_path, redis_host, redis_port, redis_db):
                           for zip_file in zip_files}
 
         results = []
-        with tqdm(total=len(zip_files)) as pbar:
+        with tqdm(total=len(zip_files), desc="Processing provenance zip files") as pbar:
             for future in as_completed(future_results):
                 zip_file = future_results[future]
                 try:
                     result = future.result()
                     results.append(result)
                 except TimeoutError:
-                    print(f"Processo eseguito oltre il timeout di {timeout} secondi per il file: {zip_file}")
+                    print(f"Process exceeded timeout of {timeout} seconds for file: {zip_file}")
                 except Exception as e:
-                    print(f"Errore nell'elaborazione del file {zip_file}: {e}")
+                    print(f"Error processing file {zip_file}: {e}")
                 finally:
                     pbar.update(1)
 
     final_batch_updates = {}
-    with tqdm(total=len(results), desc="Fusione dei risultati") as pbar:
+    with tqdm(total=len(results), desc="Merging results") as pbar:
         for batch in results:
             for supplier_prefix, value in batch.items():
                 if supplier_prefix not in final_batch_updates:
@@ -146,15 +143,14 @@ def explore_directories(root_path, redis_host, redis_port, redis_db):
                 else:
                     for batch_key, inner_value in value.items():
                         if batch_key in final_batch_updates[supplier_prefix]:
-                            final_batch_updates[supplier_prefix][batch_key].update(inner_value)
+                            for identifier, counter_value in inner_value.items():
+                                current_value = final_batch_updates[supplier_prefix][batch_key][identifier]
+                                final_batch_updates[supplier_prefix][batch_key][identifier] = max(current_value, counter_value)
                         else:
                             final_batch_updates[supplier_prefix][batch_key] = inner_value
             pbar.update(1)
 
-    for supplier_prefix, value in final_batch_updates.items():
-        for (short_name, prov_short_name), counters in value.items():
-            for identifier, counter_value in counters.items():
-                counter_handler.set_counter(counter_value, short_name, prov_short_name, identifier, supplier_prefix)
+    counter_handler.batch_update_counters(final_batch_updates)
 
 def main():
     parser = argparse.ArgumentParser(description="Esplora le directory e trova i numeri massimi.")

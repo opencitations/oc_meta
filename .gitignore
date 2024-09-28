@@ -3,7 +3,6 @@ env/
 dist/
 .vscode/
 *.pyc
-creator_counter/
 meta_input/
 blazegraph*
 *.log
