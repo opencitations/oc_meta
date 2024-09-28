@@ -144,7 +144,7 @@ def explore_directories(root_path, redis_host, redis_port, redis_db):
                     for batch_key, inner_value in value.items():
                         if batch_key in final_batch_updates[supplier_prefix]:
                             for identifier, counter_value in inner_value.items():
-                                current_value = final_batch_updates[supplier_prefix][batch_key][identifier]
+                                current_value = final_batch_updates[supplier_prefix][batch_key].get(identifier, 0)
                                 final_batch_updates[supplier_prefix][batch_key][identifier] = max(current_value, counter_value)
                         else:
                             final_batch_updates[supplier_prefix][batch_key] = inner_value
