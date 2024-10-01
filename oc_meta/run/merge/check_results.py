@@ -139,10 +139,12 @@ def check_entity_sparql(sparql_endpoint, entity_uri, is_surviving):
             tqdm.write(f"Error in SPARQL: Entity {entity_uri} should have exactly one hasLiteralValue, found {len(values)}")
 
 def process_csv(args, csv_file):
-    csv_path, rdf_dir, meta_editor, sparql_endpoint = args
+    csv_path, rdf_dir, meta_config_path, sparql_endpoint = args
     csv_path = os.path.join(csv_path, csv_file)
     data = read_csv(csv_path)
     tasks = []
+
+    meta_editor = MetaEditor(meta_config_path, "")
 
     for row in data:
         if 'Done' not in row or row['Done'] != 'True':
@@ -154,12 +156,12 @@ def process_csv(args, csv_file):
 
         for entity in all_entities:
             file_path = meta_editor.find_file(rdf_dir, meta_editor.dir_split, meta_editor.n_file_item, entity, True)
-            tasks.append((entity, entity == surviving_entity, file_path, rdf_dir, meta_editor, sparql_endpoint))
+            tasks.append((entity, entity == surviving_entity, file_path, rdf_dir, meta_config_path, sparql_endpoint))
 
     return tasks
 
 def process_entity(args):
-    entity, is_surviving, file_path, rdf_dir, meta_editor, sparql_endpoint = args
+    entity, is_surviving, file_path, rdf_dir, meta_config_path, sparql_endpoint = args
 
     if file_path is None:
         tqdm.write(f"Error: Could not find file for entity {entity}")
@@ -175,8 +177,6 @@ def main():
     parser.add_argument('--meta_config', type=str, required=True, help="Path to meta configuration file")
     args = parser.parse_args()
 
-    meta_editor = MetaEditor(args.meta_config, "")
-
     with open(args.meta_config, 'r') as config_file:
         config = yaml.safe_load(config_file)
 
@@ -186,7 +186,7 @@ def main():
     
     # Process CSV files in parallel
     with Pool(processes=cpu_count()) as pool:
-        process_csv_partial = partial(process_csv, (args.csv_folder, args.rdf_dir, meta_editor, sparql_endpoint))
+        process_csv_partial = partial(process_csv, (args.csv_folder, args.rdf_dir, args.meta_config, sparql_endpoint))
         all_tasks = list(tqdm(pool.imap(process_csv_partial, csv_files), total=len(csv_files), desc="Processing CSV files"))
     
     # Flatten the list of lists into a single list

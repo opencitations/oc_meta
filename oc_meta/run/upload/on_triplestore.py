@@ -1,13 +1,15 @@
 import argparse
-import os
 import json
+import os
 import time
-from SPARQLWrapper import SPARQLWrapper, POST
-from tqdm import tqdm
+
 from oc_meta.run.split_insert_and_delete import process_sparql_file
+from SPARQLWrapper import POST, SPARQLWrapper
+from tqdm import tqdm
 
 CACHE_FILE = 'ts_upload_cache.json'
 FAILED_QUERIES_FILE = 'failed_queries.txt'
+DEFAULT_STOP_FILE = '.stop_upload'
 
 def load_cache():
     if os.path.exists(CACHE_FILE):
@@ -81,7 +83,12 @@ def split_queries(file_path, batch_size):
     quads_to_add, quads_to_remove = process_sparql_file(file_path)
     return generate_sparql_queries(quads_to_add, quads_to_remove, batch_size)
 
-def upload_sparql_updates(endpoint, folder, batch_size):
+def remove_stop_file(stop_file):
+    if os.path.exists(stop_file):
+        os.remove(stop_file)
+        print(f"Existing stop file {stop_file} has been removed.")
+
+def upload_sparql_updates(endpoint, folder, batch_size, stop_file):
     if not os.path.exists(folder):
         return
         
@@ -91,6 +98,10 @@ def upload_sparql_updates(endpoint, folder, batch_size):
     all_files = [f for f in os.listdir(folder) if f.endswith('.sparql')]
     files_to_process = [f for f in all_files if f not in processed_files]
     for file in tqdm(files_to_process, desc="Processing files"):
+        if os.path.exists(stop_file):
+            print(f"\nStop file {stop_file} detected. Interrupting the process...")
+            break
+
         file_path = os.path.join(folder, file)
         queries = split_queries(file_path, batch_size)
         for query in queries:
@@ -112,12 +123,13 @@ def main():
     parser.add_argument('endpoint', type=str, help='Endpoint URL of the triple store')
     parser.add_argument('folder', type=str, help='Path to the folder containing SPARQL update query files')
     parser.add_argument('--batch_size', type=int, default=10, help='Number of quadruples to include in a batch (default: 10)')
+    parser.add_argument('--stop_file', type=str, default=DEFAULT_STOP_FILE, help=f'Path to the stop file (default: {DEFAULT_STOP_FILE})')
 
     args = parser.parse_args()
 
-    batch_size = args.batch_size
+    remove_stop_file(args.stop_file)
 
-    upload_sparql_updates(args.endpoint, args.folder, batch_size)
+    upload_sparql_updates(args.endpoint, args.folder, args.batch_size, args.stop_file)
 
 if __name__ == "__main__":
     main()
