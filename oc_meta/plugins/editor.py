@@ -122,9 +122,7 @@ class MetaEditor:
             entity_to_purge.mark_as_to_be_deleted()
         self.save(g_set, supplier_prefix)
     
-    def merge(self, res: URIRef, other: URIRef) -> None:
-        supplier_prefix = self.__get_supplier_prefix(res)
-        g_set = GraphSet(self.base_iri, supplier_prefix=supplier_prefix, custom_counter_handler=self.counter_handler)
+    def merge(self, g_set: GraphSet, res: URIRef, other: URIRef) -> None:
         self.reader.import_entity_from_triplestore(g_set, self.endpoint, res, self.resp_agent, enable_validation=False)
         self.reader.import_entity_from_triplestore(g_set, self.endpoint, other, self.resp_agent, enable_validation=False)
         sparql = SPARQLWrapper(endpoint=self.endpoint)
@@ -156,7 +154,6 @@ class MetaEditor:
             res_as_entity.merge(other_as_entity, prefer_self=True)
         else:
             res_as_entity.merge(other_as_entity)
-        self.save(g_set, supplier_prefix)
     
     def sync_rdf_with_triplestore(self, res: str, source_uri: str = None) -> bool:
         supplier_prefix = self.__get_supplier_prefix(res)
@@ -183,7 +180,7 @@ class MetaEditor:
                     self.save(g_set, supplier_prefix)
                 return False
             
-    def save(self, g_set: GraphSet, supplier_prefix: str):
+    def save(self, g_set: GraphSet, supplier_prefix: str = ""):
         provset = ProvSet(g_set, self.base_iri, wanted_label=False, supplier_prefix=supplier_prefix, custom_counter_handler=self.counter_handler)
         provset.generate_provenance()
         graph_storer = Storer(g_set, dir_split=self.dir_split, n_file_item=self.n_file_item, zip_output=self.zip_output_rdf)

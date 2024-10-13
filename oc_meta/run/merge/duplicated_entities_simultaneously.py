@@ -1,10 +1,13 @@
 import argparse
+import concurrent.futures
 import csv
+import os
+from typing import List
+
 from oc_meta.plugins.editor import MetaEditor
+from oc_ocdm.graph import GraphSet
 from rdflib import URIRef
 from tqdm import tqdm
-import os
-import concurrent.futures
 
 
 def get_entity_type(entity_url):
@@ -16,8 +19,7 @@ def get_entity_type(entity_url):
             return None
     return None
 
-
-def read_csv(csv_file):
+def read_csv(csv_file) -> List[dict]:
     data = []
     with open(csv_file, mode='r', newline='', encoding='utf-8') as file:
         csv_reader = csv.DictReader(file)
@@ -27,7 +29,6 @@ def read_csv(csv_file):
             data.append(row)
     return data
 
-
 def write_csv(csv_file, data):
     fieldnames = data[0].keys()
     with open(csv_file, mode='w', newline='', encoding='utf-8') as file:
@@ -36,11 +37,12 @@ def write_csv(csv_file, data):
         for row in data:
             writer.writerow(row)
 
-
 def process_file(csv_file, meta_config, resp_agent, entity_types, stop_file_path):
     data = read_csv(csv_file)
     meta_editor = MetaEditor(meta_config, resp_agent, save_queries=True)
-    count = 0
+
+    # Creiamo un unico GraphSet per tutte le operazioni
+    g_set = GraphSet(meta_editor.base_iri, custom_counter_handler=meta_editor.counter_handler)
 
     for row in data:
         if os.path.exists(stop_file_path):
@@ -54,21 +56,17 @@ def process_file(csv_file, meta_config, resp_agent, entity_types, stop_file_path
             for merged_entity in merged_entities:
                 merged_entity = merged_entity.strip()
                 try:
-                    meta_editor.merge(surviving_entity, URIRef(merged_entity))
+                    meta_editor.merge(g_set, surviving_entity, URIRef(merged_entity))
                 except ValueError:
                     continue
 
             row['Done'] = 'True'
-            count += 1
 
-            if count >= 10:
-                write_csv(csv_file, data)
-                count = 0
+    # Salviamo le modifiche una sola volta alla fine
+    meta_editor.save(g_set)
 
-    if count > 0:
-        write_csv(csv_file, data)
+    write_csv(csv_file, data)
     return csv_file
-
 
 def main():
     parser = argparse.ArgumentParser(description="Merge entities from CSV files in a folder.")

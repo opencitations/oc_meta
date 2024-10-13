@@ -83,12 +83,12 @@ def split_queries(file_path, batch_size):
     quads_to_add, quads_to_remove = process_sparql_file(file_path)
     return generate_sparql_queries(quads_to_add, quads_to_remove, batch_size)
 
-def remove_stop_file(stop_file):
+def remove_stop_file(stop_file=DEFAULT_STOP_FILE):
     if os.path.exists(stop_file):
         os.remove(stop_file)
         print(f"Existing stop file {stop_file} has been removed.")
 
-def upload_sparql_updates(endpoint, folder, batch_size, stop_file):
+def upload_sparql_updates(endpoint, folder, batch_size, stop_file=DEFAULT_STOP_FILE):
     if not os.path.exists(folder):
         return
         
