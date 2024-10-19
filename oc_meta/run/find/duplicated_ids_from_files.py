@@ -1,10 +1,12 @@
 import argparse
+import csv
+import logging
 import os
 import zipfile
-import json
-import csv
+from typing import Dict
+
+from rdflib import ConjunctiveGraph, URIRef
 from tqdm import tqdm
-import logging
 
 logging.basicConfig(filename='error_log_find_duplicated_ids_from_files.txt', level=logging.ERROR, 
                     format='%(asctime)s - %(levelname)s - %(message)s')
@@ -24,11 +26,10 @@ def read_and_analyze_zip_files(folder_path, csv_path):
             with zipfile.ZipFile(zip_path, 'r') as zip_ref:
                 for zip_file in zip_ref.namelist():
                     try:
-                        with zip_ref.open(zip_file) as json_file:
-                            data = json.load(json_file)
-                            analyze_json(data, entity_info, zip_path, zip_file)
-                    except json.JSONDecodeError:
-                        logging.error(f"Errore nel parsing JSON del file {zip_file} in {zip_path}")
+                        with zip_ref.open(zip_file) as rdf_file:
+                            g = ConjunctiveGraph()
+                            g.parse(data=rdf_file.read(), format="json-ld")
+                            analyze_graph(g, entity_info)
                     except Exception as e:
                         logging.error(f"Errore nell'elaborazione del file {zip_file} in {zip_path}: {str(e)}")
         except zipfile.BadZipFile:
@@ -46,24 +47,20 @@ def get_zip_files(id_folder_path):
                 zip_files.append(os.path.join(root, file))
     return zip_files
 
-def analyze_json(data, entity_info, zip_path, zip_file):
-    for graph in data:
-        for entity in graph.get("@graph", []):
-            try:
-                entity_id = entity["@id"]
-                identifier_scheme = entity["http://purl.org/spar/datacite/usesIdentifierScheme"][0]["@id"]
-                literal_value = entity["http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue"][0]["@value"]
+def analyze_graph(g: ConjunctiveGraph, entity_info: Dict[tuple, list]):
+    datacite_uses_identifier_scheme = URIRef("http://purl.org/spar/datacite/usesIdentifierScheme")
+    literal_reification_has_literal_value = URIRef("http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue")
 
-                key = (identifier_scheme, literal_value)
-                if key not in entity_info:
-                    entity_info[key] = []
-                entity_info[key].append(entity_id)
-            except KeyError as e:
-                logging.error(f"Chiave mancante nell'entità {entity.get('@id', 'ID sconosciuto')} "
-                              f"nel file {zip_file} all'interno di {zip_path}: {str(e)}")
-            except Exception as e:
-                logging.error(f"Errore nell'analisi dell'entità {entity.get('@id', 'ID sconosciuto')} "
-                              f"nel file {zip_file} all'interno di {zip_path}: {str(e)}")
+    for s, p, o in g:
+        entity_id = str(s)
+        identifier_scheme = g.value(s, datacite_uses_identifier_scheme)
+        literal_value = g.value(s, literal_reification_has_literal_value)
+
+        if identifier_scheme and literal_value:
+            key = (str(identifier_scheme), str(literal_value))
+            if key not in entity_info:
+                entity_info[key] = []
+            entity_info[key].append(entity_id)
 
 def save_duplicates_to_csv(entity_info, csv_path):
     try:
@@ -80,7 +77,7 @@ def save_duplicates_to_csv(entity_info, csv_path):
         logging.error(f"Errore nel salvataggio del file CSV {csv_path}: {str(e)}")
 
 def main():
-    parser = argparse.ArgumentParser(description="Legge i file JSON all'interno dei file ZIP in una sottocartella 'id'.")
+    parser = argparse.ArgumentParser(description="Legge i file RDF all'interno dei file ZIP in una sottocartella 'id'.")
     parser.add_argument("folder_path", type=str, help="Percorso della cartella contenente la sottocartella 'id'")
     parser.add_argument("csv_path", type=str, help="Percorso del file CSV per salvare i duplicati")
     args = parser.parse_args()

@@ -114,10 +114,8 @@ def explore_directories(root_path, redis_host, redis_port, redis_db):
     zip_files = [os.path.join(dp, f) for dp, dn, filenames in os.walk(root_path) 
                  for f in filenames if f.endswith('.zip') and 'prov' in dp]
     
-    timeout = 30
-
     with ProcessPool() as pool:
-        future_results = {pool.schedule(process_zip_file, args=[zip_file], timeout=timeout): zip_file 
+        future_results = {pool.schedule(process_zip_file, args=[zip_file]): zip_file 
                           for zip_file in zip_files}
 
         results = []
@@ -127,8 +125,6 @@ def explore_directories(root_path, redis_host, redis_port, redis_db):
                 try:
                     result = future.result()
                     results.append(result)
-                except TimeoutError:
-                    print(f"Process exceeded timeout of {timeout} seconds for file: {zip_file}")
                 except Exception as e:
                     print(f"Error processing file {zip_file}: {e}")
                 finally:

@@ -43,6 +43,7 @@ def process_file(csv_file, meta_config, resp_agent, entity_types, stop_file_path
 
     # Creiamo un unico GraphSet per tutte le operazioni
     g_set = GraphSet(meta_editor.base_iri, custom_counter_handler=meta_editor.counter_handler)
+    modified = False
 
     for row in data:
         if os.path.exists(stop_file_path):
@@ -61,12 +62,18 @@ def process_file(csv_file, meta_config, resp_agent, entity_types, stop_file_path
                     continue
 
             row['Done'] = 'True'
+            modified = True
 
     # Salviamo le modifiche una sola volta alla fine
-    meta_editor.save(g_set)
+    if modified:
+        meta_editor.save(g_set)
 
-    write_csv(csv_file, data)
+        write_csv(csv_file, data)
     return csv_file
+
+def count_csv_rows(csv_file):
+    with open(csv_file, 'r', encoding='utf-8') as f:
+        return sum(1 for _ in f) - 1  # Subtract 1 to exclude the header row
 
 def main():
     parser = argparse.ArgumentParser(description="Merge entities from CSV files in a folder.")
@@ -82,6 +89,10 @@ def main():
         os.remove(args.stop_file)
 
     csv_files = [os.path.join(args.csv_folder, file) for file in os.listdir(args.csv_folder) if file.endswith('.csv')]
+
+    # Filtrare i file CSV in base al numero di righe e al numero di workers
+    if args.workers > 4:
+        csv_files = [file for file in csv_files if count_csv_rows(file) <= 10000]
 
     with concurrent.futures.ProcessPoolExecutor(max_workers=args.workers) as executor:
         futures = {executor.submit(process_file, csv_file, args.meta_config, args.resp_agent, args.entity_types, args.stop_file): csv_file for csv_file in csv_files}
