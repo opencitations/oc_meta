@@ -3,21 +3,46 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 import unittest
 from datetime import datetime
+from functools import wraps
 from zipfile import ZipFile
 
 import redis
 import yaml
 from oc_meta.lib.file_manager import get_csv_data
 from oc_meta.run.meta_process import run_meta_process
-from rdflib import ConjunctiveGraph, Graph, Literal, URIRef
-from SPARQLWrapper import JSON, POST, SPARQLWrapper
-
 from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
+from rdflib import ConjunctiveGraph, Graph, Literal, URIRef
+from SPARQLWrapper import JSON, POST, XML, SPARQLExceptions, SPARQLWrapper
 
 BASE_DIR = os.path.join('test', 'meta_process')
 SERVER = 'http://127.0.0.1:8805/sparql'
+
+def retry_sparql_query(max_retries=3, delay=1):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            retries = 0
+            while retries < max_retries:
+                try:
+                    return func(*args, **kwargs)
+                except SPARQLExceptions.EndPointInternalError as e:
+                    retries += 1
+                    if retries == max_retries:
+                        raise
+                    time.sleep(delay)
+            return func(*args, **kwargs)
+        return wrapper
+    return decorator
+
+@retry_sparql_query()
+def execute_sparql_query(endpoint, query, return_format=JSON):
+    sparql = SPARQLWrapper(endpoint)
+    sparql.setQuery(query)
+    sparql.setReturnFormat(return_format)
+    return sparql.queryAndConvert()
 
 def reset_redis_counters():
     redis_host = 'localhost'
@@ -279,10 +304,7 @@ class test_ProcessTest(unittest.TestCase):
                 <https://w3id.org/oc/meta/br/0601> pro:isDocumentContextFor ?agent.
             }
         '''
-        endpoint = SPARQLWrapper(SERVER)
-        endpoint.setQuery(query_agents)
-        endpoint.setReturnFormat(JSON)
-        result = endpoint.queryAndConvert()
+        result = execute_sparql_query(SERVER, query_agents)
         expected_result = {
             'head': {'link': [], 'vars': ['agent_count']}, 
             'results': {
@@ -313,10 +335,7 @@ class test_ProcessTest(unittest.TestCase):
                 <https://w3id.org/oc/meta/br/0601> pro:isDocumentContextFor ?agent.
             }
         '''
-        endpoint = SPARQLWrapper(SERVER)
-        endpoint.setQuery(query_agents)
-        endpoint.setReturnFormat(JSON)
-        result = endpoint.queryAndConvert()
+        result = execute_sparql_query(SERVER, query_agents)
         expected_result = {
             'head': {'link': [], 'vars': ['agent_count']}, 
             'results': {
@@ -342,9 +361,7 @@ class test_ProcessTest(unittest.TestCase):
                 ?id ?id_p ?id_o.
             }
         '''
-        endpoint = SPARQLWrapper(SERVER)
-        endpoint.setQuery(query_all)
-        result = endpoint.queryAndConvert()
+        result = execute_sparql_query(SERVER, query_all, return_format=XML)
         output_folder = os.path.join(BASE_DIR, 'output_8')
         now = datetime.now()
         meta_config_path_without_openalex=os.path.join(BASE_DIR, 'meta_config_8.yaml')
@@ -366,9 +383,7 @@ class test_ProcessTest(unittest.TestCase):
                 ?id ?id_p ?id_o.
             }
         '''
-        endpoint = SPARQLWrapper(SERVER)
-        endpoint.setQuery(query_all)
-        result = endpoint.queryAndConvert()
+        result = execute_sparql_query(SERVER, query_all, return_format=XML)
         expected_result = Graph()
         expected_result.parse(location=os.path.join(BASE_DIR, 'test_omid_in_input_data.json'), format='json-ld')
         prov_graph = ConjunctiveGraph()
@@ -409,9 +424,7 @@ class test_ProcessTest(unittest.TestCase):
                 ?ooo ?ooop ?oooo.
             }
         '''
-        endpoint = SPARQLWrapper(SERVER)
-        endpoint.setQuery(query_all)
-        result = endpoint.queryAndConvert()
+        result = execute_sparql_query(SERVER, query_all, return_format=XML)
         expected_result = Graph()
         expected_result.parse(os.path.join(BASE_DIR, 'test_publishers_sequence.json'), format='json-ld')
         shutil.rmtree(output_folder)
