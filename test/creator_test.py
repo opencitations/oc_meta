@@ -91,15 +91,15 @@ class test_Creator(unittest.TestCase):
             output_graph += g
         expected_data = '''
             <https://w3id.org/oc/meta/br/0602> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression>.
-            <https://w3id.org/oc/meta/br/0602> <http://purl.org/dc/terms/title> "OECD".
+            <https://w3id.org/oc/meta/br/0602> <http://purl.org/dc/terms/title> "OECD"^^<http://www.w3.org/2001/XMLSchema#string>.
             <https://w3id.org/oc/meta/br/0602> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Journal>.
-            <https://w3id.org/oc/meta/br/4733> <http://purl.org/spar/fabio/hasSequenceIdentifier> "107".
+            <https://w3id.org/oc/meta/br/4733> <http://purl.org/spar/fabio/hasSequenceIdentifier> "107"^^<http://www.w3.org/2001/XMLSchema#string>.
             <https://w3id.org/oc/meta/br/4733> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression>.
             <https://w3id.org/oc/meta/br/4733> <http://purl.org/vocab/frbr/core#partOf> <https://w3id.org/oc/meta/br/0602>.
             <https://w3id.org/oc/meta/br/4733> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/JournalVolume>.
             <https://w3id.org/oc/meta/br/4734> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/JournalIssue>.
             <https://w3id.org/oc/meta/br/4734> <http://purl.org/vocab/frbr/core#partOf> <https://w3id.org/oc/meta/br/4733>.
-            <https://w3id.org/oc/meta/br/4734> <http://purl.org/spar/fabio/hasSequenceIdentifier> "1".
+            <https://w3id.org/oc/meta/br/4734> <http://purl.org/spar/fabio/hasSequenceIdentifier> "1"^^<http://www.w3.org/2001/XMLSchema#string>.
             <https://w3id.org/oc/meta/br/4734> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression>.
             <https://w3id.org/oc/meta/br/0601> <http://purl.org/vocab/frbr/core#partOf> <https://w3id.org/oc/meta/br/4734>.
             <https://w3id.org/oc/meta/br/0601> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression>.
@@ -127,37 +127,36 @@ class test_RespAgentsCreator(unittest.TestCase):
             output_graph += g
         expected_data = '''
             <https://w3id.org/oc/meta/ra/0601> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0601> .
-            <https://w3id.org/oc/meta/ra/0601> <http://xmlns.com/foaf/0.1/givenName> "Ron J." .
-            <https://w3id.org/oc/meta/ra/0601> <http://xmlns.com/foaf/0.1/familyName> "Deckert" .
+            <https://w3id.org/oc/meta/ra/0601> <http://xmlns.com/foaf/0.1/givenName> "Ron J."^^<http://www.w3.org/2001/XMLSchema#string> .
+            <https://w3id.org/oc/meta/ra/0601> <http://xmlns.com/foaf/0.1/familyName> "Deckert"^^<http://www.w3.org/2001/XMLSchema#string> .
             <https://w3id.org/oc/meta/ra/0601> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> .
-            <https://w3id.org/oc/meta/id/0601> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "0000-0003-2100-6412" .
+            <https://w3id.org/oc/meta/id/0601> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "0000-0003-2100-6412"^^<http://www.w3.org/2001/XMLSchema#string> .
             <https://w3id.org/oc/meta/id/0601> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/datacite/Identifier> .
             <https://w3id.org/oc/meta/id/0601> <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/orcid> .
-            <https://w3id.org/oc/meta/ra/0602> <http://xmlns.com/foaf/0.1/givenName> "Juan M." .
-            <https://w3id.org/oc/meta/ra/0602> <http://xmlns.com/foaf/0.1/familyName> "Ruso" .
+            <https://w3id.org/oc/meta/ra/0602> <http://xmlns.com/foaf/0.1/givenName> "Juan M."^^<http://www.w3.org/2001/XMLSchema#string> .
+            <https://w3id.org/oc/meta/ra/0602> <http://xmlns.com/foaf/0.1/familyName> "Ruso"^^<http://www.w3.org/2001/XMLSchema#string> .
             <https://w3id.org/oc/meta/ra/0602> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> .
             <https://w3id.org/oc/meta/ra/0602> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0602> .
-            <https://w3id.org/oc/meta/id/0602> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "0000-0001-5909-6754" .
+            <https://w3id.org/oc/meta/id/0602> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "0000-0001-5909-6754"^^<http://www.w3.org/2001/XMLSchema#string> .
             <https://w3id.org/oc/meta/id/0602> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/datacite/Identifier> .
             <https://w3id.org/oc/meta/id/0602> <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/orcid> .
-            <https://w3id.org/oc/meta/ra/0603> <http://xmlns.com/foaf/0.1/familyName> "Sarmiento" .
+            <https://w3id.org/oc/meta/ra/0603> <http://xmlns.com/foaf/0.1/familyName> "Sarmiento"^^<http://www.w3.org/2001/XMLSchema#string> .
             <https://w3id.org/oc/meta/ra/0603> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0603> .
-            <https://w3id.org/oc/meta/ra/0603> <http://xmlns.com/foaf/0.1/givenName> "Félix" .
+            <https://w3id.org/oc/meta/ra/0603> <http://xmlns.com/foaf/0.1/givenName> "Félix"^^<http://www.w3.org/2001/XMLSchema#string> .
             <https://w3id.org/oc/meta/ra/0603> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> .
             <https://w3id.org/oc/meta/id/0603> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/datacite/Identifier> .
-            <https://w3id.org/oc/meta/id/0603> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "0000-0002-4487-6894" .
+            <https://w3id.org/oc/meta/id/0603> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "0000-0002-4487-6894"^^<http://www.w3.org/2001/XMLSchema#string> .
             <https://w3id.org/oc/meta/id/0603> <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/orcid> .
-            <https://w3id.org/oc/meta/ra/0604> <http://xmlns.com/foaf/0.1/name> "Pub1" .
+            <https://w3id.org/oc/meta/ra/0604> <http://xmlns.com/foaf/0.1/name> "Pub1"^^<http://www.w3.org/2001/XMLSchema#string> .
             <https://w3id.org/oc/meta/ra/0604> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0604> .
             <https://w3id.org/oc/meta/ra/0604> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> .
             <https://w3id.org/oc/meta/id/0604> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/datacite/Identifier> .
-            <https://w3id.org/oc/meta/id/0604> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "1111" .
+            <https://w3id.org/oc/meta/id/0604> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "1111"^^<http://www.w3.org/2001/XMLSchema#string> .
             <https://w3id.org/oc/meta/id/0604> <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/crossref> .
         '''
         expected_graph = Graph()
         expected_graph = expected_graph.parse(data=expected_data, format="nt")
         self.assertEqual(compare.isomorphic(output_graph, expected_graph), True)
-
 
 class testcase_01(unittest.TestCase):
     def test(self):

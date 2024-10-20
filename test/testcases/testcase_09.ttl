@@ -13,7 +13,7 @@
 <https://w3id.org/oc/meta/br/0601> a <http://purl.org/spar/fabio/AcademicProceedings>,
         <http://purl.org/spar/fabio/Expression> ;
     ns6:publicationDate "1995"^^xsd:gYear ;
-    ns2:title "Title1" ;
+    ns2:title "Title1"^^xsd:string ;
     ns3:hasIdentifier <https://w3id.org/oc/meta/id/0601> ;
     ns4:isDocumentContextFor <https://w3id.org/oc/meta/ar/0601>,
         <https://w3id.org/oc/meta/ar/0602>,
@@ -22,7 +22,7 @@
 <https://w3id.org/oc/meta/br/0602> a <http://purl.org/spar/fabio/Expression>,
         <http://purl.org/spar/fabio/ProceedingsPaper> ;
     ns6:publicationDate "1995"^^xsd:gYear ;
-    ns2:title "Title2" ;
+    ns2:title "Title2"^^xsd:string ;
     ns3:hasIdentifier <https://w3id.org/oc/meta/id/0602> ;
     ns4:isDocumentContextFor <https://w3id.org/oc/meta/ar/0604>,
         <https://w3id.org/oc/meta/ar/0605> ;
@@ -51,48 +51,46 @@
 <https://w3id.org/oc/meta/ar/0606> a ns4:RoleInTime ;
     ns4:isHeldBy <https://w3id.org/oc/meta/ra/0603> ;
     ns4:withRole ns4:editor .
-
 <https://w3id.org/oc/meta/br/0603> a <http://purl.org/spar/fabio/AcademicProceedings>,
         <http://purl.org/spar/fabio/Expression> ;
-    ns2:title "Venue2" ;
+    ns2:title "Venue2"^^xsd:string ;
     ns3:hasIdentifier <https://w3id.org/oc/meta/id/0603> ;
     ns4:isDocumentContextFor <https://w3id.org/oc/meta/ar/0606> .
 
 <https://w3id.org/oc/meta/id/0601> a ns3:Identifier ;
     ns3:usesIdentifierScheme ns3:doi ;
-    ns5:hasLiteralValue "10.001/b-1" .
+    ns5:hasLiteralValue "10.001/b-1"^^xsd:string .
 
 <https://w3id.org/oc/meta/id/0602> a ns3:Identifier ;
     ns3:usesIdentifierScheme ns3:doi ;
-    ns5:hasLiteralValue "10.002/b-2" .
+    ns5:hasLiteralValue "10.002/b-2"^^xsd:string .
 
 <https://w3id.org/oc/meta/id/0603> a ns3:Identifier ;
     ns3:usesIdentifierScheme ns3:isbn ;
-    ns5:hasLiteralValue "9783319444529" .
+    ns5:hasLiteralValue "9783319444529"^^xsd:string .
 
 <https://w3id.org/oc/meta/id/0604> a ns3:Identifier ;
     ns3:usesIdentifierScheme ns3:orcid ;
-    ns5:hasLiteralValue "0000-0003-0530-4305" .
+    ns5:hasLiteralValue "0000-0003-0530-4305"^^xsd:string .
 
 <https://w3id.org/oc/meta/id/0605> a ns3:Identifier ;
     ns3:usesIdentifierScheme ns3:crossref ;
-    ns5:hasLiteralValue "1111" .
+    ns5:hasLiteralValue "1111"^^xsd:string .
 
 <https://w3id.org/oc/meta/id/0606> a ns3:Identifier ;
     ns3:usesIdentifierScheme ns3:viaf ;
-    ns5:hasLiteralValue "11111111" .
+    ns5:hasLiteralValue "11111111"^^xsd:string .
 
 <https://w3id.org/oc/meta/ra/0601> a ns1:Agent ;
     ns3:hasIdentifier <https://w3id.org/oc/meta/id/0604> ;
-    ns1:familyName "Surname1" ;
-    ns1:givenName "Name1" .
+    ns1:familyName "Surname1"^^xsd:string ;
+    ns1:givenName "Name1"^^xsd:string .
 
 <https://w3id.org/oc/meta/ra/0602> a ns1:Agent ;
     ns3:hasIdentifier <https://w3id.org/oc/meta/id/0605> ;
-    ns1:name "Pub1" .
+    ns1:name "Pub1"^^xsd:string .
 
 <https://w3id.org/oc/meta/ra/0603> a ns1:Agent ;
     ns3:hasIdentifier <https://w3id.org/oc/meta/id/0606> ;
-    ns1:familyName "Editsurname1" ;
-    ns1:givenName "Editname1" .
-
+    ns1:familyName "Editsurname1"^^xsd:string ;
+    ns1:givenName "Editname1"^^xsd:string .

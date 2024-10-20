@@ -12,7 +12,7 @@
 <https://w3id.org/oc/meta/br/0601> a ns3:Expression,
         ns3:JournalArticle ;
     ns1:publicationDate "1995"^^xsd:gYear ;
-    ns5:title "Title6" ;
+    ns5:title "Title6"^^xsd:string ;
     ns2:isDocumentContextFor <https://w3id.org/oc/meta/ar/0601>,
         <https://w3id.org/oc/meta/ar/0602> ;
     ns4:embodiment <https://w3id.org/oc/meta/re/0601> ;
@@ -28,21 +28,20 @@
 
 <https://w3id.org/oc/meta/br/0602> a ns3:Expression,
         ns3:Journal ;
-    ns5:title "venueX" .
+    ns5:title "venueX"^^xsd:string .
 
 <https://w3id.org/oc/meta/br/0603> a ns3:Expression,
         ns3:JournalIssue ;
-    ns3:hasSequenceIdentifier "7-8" ;
+    ns3:hasSequenceIdentifier "7-8"^^xsd:string ;
     ns4:partOf <https://w3id.org/oc/meta/br/0602> .
 
 <https://w3id.org/oc/meta/ra/0601> a ns6:Agent ;
-    ns6:familyName "SurnameX" ;
-    ns6:givenName "NameX" .
+    ns6:familyName "SurnameX"^^xsd:string ;
+    ns6:givenName "NameX"^^xsd:string .
 
 <https://w3id.org/oc/meta/ra/0602> a ns6:Agent ;
-    ns6:name "pubX" .
+    ns6:name "pubX"^^xsd:string .
 
 <https://w3id.org/oc/meta/re/0601> a ns3:Manifestation ;
-    ns1:endingPage "302" ;
-    ns1:startingPage "279" .
-
+    ns1:endingPage "302"^^xsd:string ;
+    ns1:startingPage "279"^^xsd:string .

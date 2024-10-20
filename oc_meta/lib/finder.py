@@ -1,19 +1,19 @@
 from __future__ import annotations
 
-import os
 from time import sleep
 from typing import Dict, List, Tuple
+
 import yaml
 from dateutil import parser
+from oc_meta.plugins.editor import MetaEditor
 from oc_ocdm.graph import GraphEntity
+from oc_ocdm.graph.graph_entity import GraphEntity
 from oc_ocdm.prov.prov_entity import ProvEntity
 from oc_ocdm.support import get_count, get_resource_number
-from rdflib import RDF, Graph, Literal, URIRef
+from rdflib import RDF, XSD, Graph, Literal, URIRef
 from SPARQLWrapper import JSON, POST, SPARQLWrapper
 from time_agnostic_library.agnostic_entity import AgnosticEntity
-from oc_ocdm.graph.graph_entity import GraphEntity
-from oc_meta.plugins.fixer.ar_order import check_roles
-from oc_meta.plugins.editor import MetaEditor
+
 
 class ResourceFinder:
 
@@ -44,7 +44,7 @@ class ResourceFinder:
         
     # _______________________________BR_________________________________ #
 
-    def retrieve_br_from_id(self, schema:str, value:str) -> List[Tuple[str, str, list]]:
+    def retrieve_br_from_id(self, schema: str, value: str) -> List[Tuple[str, str, list]]:
         '''
         Given an identifier, it retrieves bibliographic resources associated with that identifier, related titles and other identifiers MetaIDs and literal values.
 
@@ -52,19 +52,21 @@ class ResourceFinder:
         :type schema: str
         :params value: an identifier literal value
         :type value: str
-        :returns List[Tuple[str, str, list]]: -- it returns a list of three elements tuples. The first element is the MetaID of a resource associated with the input ID. The second element is a title of that resourse, if present. The third element is a list of MetaID-ID tuples related to identifiers associated with that resource. 
+        :returns List[Tuple[str, str, list]]: -- it returns a list of three elements tuples. The first element is the MetaID of a resource associated with the input ID. The second element is a title of that resource, if present. The third element is a list of MetaID-ID tuples related to identifiers associated with that resource. 
         '''
         schema_uri = URIRef(GraphEntity.DATACITE + schema)
         value = value.replace('\\', '\\\\')
-        result_list = list()
+        result_list = []
         identifier_uri = None
-        for starting_triple in self.local_g.triples((None, GraphEntity.iri_has_literal_value, Literal(value))):
-            for known_id_triple in self.local_g.triples((starting_triple[0], None, None)):
-                if known_id_triple[1] == GraphEntity.iri_uses_identifier_scheme and known_id_triple[2] == schema_uri:
-                    identifier_uri = known_id_triple[0]
+
+        # Search for both string-typed and untyped literals
+        for literal_value in [Literal(value, datatype=XSD.string), Literal(value)]:
+            for starting_triple in self.local_g.triples((None, GraphEntity.iri_has_literal_value, literal_value)):
+                for known_id_triple in self.local_g.triples((starting_triple[0], None, None)):
+                    if known_id_triple[1] == GraphEntity.iri_uses_identifier_scheme and known_id_triple[2] == schema_uri:
+                        identifier_uri = known_id_triple[0]
+                if identifier_uri:
                     break
-            if identifier_uri:
-                break
         if identifier_uri:
             metaid_id_list = [(identifier_uri.replace(f'{self.base_iri}/id/', ''), f'{schema}:{value}')]
             for triple in self.local_g.triples((None, GraphEntity.iri_has_identifier, identifier_uri)):
@@ -83,6 +85,7 @@ class ResourceFinder:
                         metaid_id_tuple = (res_triple[2].replace(f'{self.base_iri}/id/', ''), full_id)
                         metaid_id_list.append(metaid_id_tuple)
                 result_list.append((res.replace(f'{self.base_iri}/br/', ''), title, metaid_id_list))
+
         return result_list
         
     def retrieve_br_from_meta(self, metaid: str) -> Tuple[str, List[Tuple[str, str]], bool]:
@@ -122,7 +125,7 @@ class ResourceFinder:
 
     # _______________________________ID_________________________________ #
 
-    def retrieve_metaid_from_id(self, schema:str, value:str) -> str:
+    def retrieve_metaid_from_id(self, schema: str, value: str) -> str:
         '''
         Given the schema and value of an ID, it returns the MetaID associated with that identifier.
 
@@ -132,12 +135,18 @@ class ResourceFinder:
         :type value: str
         :returns str: -- it returns the MetaID associated with the input ID.
         '''
-        schema = URIRef(GraphEntity.DATACITE + schema)
+        schema_uri = URIRef(GraphEntity.DATACITE + schema)
         value = value.replace('\\', '\\\\')
-        for starting_triple in self.local_g.triples((None, GraphEntity.iri_has_literal_value, Literal(value))):
-            for known_id_triple in self.local_g.triples((starting_triple[0], None, None)):
-                if known_id_triple[1] == GraphEntity.iri_uses_identifier_scheme and known_id_triple[2] == schema:
-                    return known_id_triple[0].replace(f'{self.base_iri}/id/', '')
+        
+        # Create both untyped and string-typed literals        
+        for literal in [Literal(value, datatype=XSD.string), Literal(value)]:
+            for starting_triple in self.local_g.triples((None, GraphEntity.iri_has_literal_value, literal)):
+                for known_id_triple in self.local_g.triples((starting_triple[0], None, None)):
+                    if known_id_triple[1] == GraphEntity.iri_uses_identifier_scheme and known_id_triple[2] == schema_uri:
+                        return known_id_triple[0].replace(f'{self.base_iri}/id/', '')
+        
+        # If no match is found, return None or an appropriate value
+        return None
 
     def retrieve_metaid_from_merged_entity(self, metaid_uri:str, prov_config:str) -> str:
         '''
@@ -220,20 +229,11 @@ class ResourceFinder:
                     full_id = f'{id_scheme}:{literal_value}'
                     identifiers.append((str(identifier).replace(self.base_iri + '/id/', ''), full_id))
         
-        if family_name and not given_name:
-            full_name = f'{family_name}, '
-        elif family_name and given_name:
-            full_name = f'{family_name}, {given_name}'
-        elif not family_name and given_name:
-            full_name = f', {given_name}'
-        elif name:
-            full_name = name
-        else:
-            full_name = ''
+        full_name = self._construct_full_name(name, family_name, given_name)
             
         return full_name, identifiers, it_exists
 
-    def retrieve_ra_from_id(self, schema:str, value:str, publisher:bool) -> List[Tuple[str, str, list]]:
+    def retrieve_ra_from_id(self, schema: str, value: str, publisher: bool) -> List[Tuple[str, str, list]]:
         '''
         Given an identifier, it retrieves responsible agents associated with that identifier, related names and other identifiers MetaIDs and literal values.
         The output has the following format: ::
@@ -249,19 +249,22 @@ class ResourceFinder:
         :type publisher: bool
         :returns List[Tuple[str, str, list]]: -- it returns a list of three elements tuples. The first element is the MetaID of a responsible agent associated with the input ID. The second element is the name of that responsible agent, if present. The third element is a list of MetaID-ID tuples related to identifiers associated with that responsible agent. 
         '''
-        schema = URIRef(GraphEntity.DATACITE + schema)
+        schema_uri = URIRef(GraphEntity.DATACITE + schema)
         value = value.replace('\\', '\\\\')
-        result_list = list()
+        result_list = []
         identifier_uri = None
-        for starting_triple in self.local_g.triples((None, GraphEntity.iri_has_literal_value, Literal(value))):
-            for known_id_triple in self.local_g.triples((starting_triple[0], None, None)):
-                if known_id_triple[1] == GraphEntity.iri_uses_identifier_scheme and known_id_triple[2] == schema:
-                    identifier_uri = known_id_triple[0]
+
+        # Search for both string-typed and untyped literals
+        for literal_value in [Literal(value, datatype=XSD.string), Literal(value)]:
+            for starting_triple in self.local_g.triples((None, GraphEntity.iri_has_literal_value, literal_value)):
+                for known_id_triple in self.local_g.triples((starting_triple[0], None, None)):
+                    if known_id_triple[1] == GraphEntity.iri_uses_identifier_scheme and known_id_triple[2] == schema_uri:
+                        identifier_uri = known_id_triple[0]
+                        break
+                if identifier_uri:
                     break
-            if identifier_uri:
-                break
         if identifier_uri:
-            metaid_id_list = [(identifier_uri.replace(f'{self.base_iri}/id/', ''), f'{schema.replace(GraphEntity.DATACITE, "")}:{value}')]
+            metaid_id_list = [(identifier_uri.replace(f'{self.base_iri}/id/', ''), f'{schema}:{value}')]
             for triple in self.local_g.triples((None, GraphEntity.iri_has_identifier, identifier_uri)):
                 name = ''
                 family_name = ''
@@ -283,18 +286,23 @@ class ResourceFinder:
                         full_id = f'{id_schema.replace(GraphEntity.DATACITE, "")}:{id_literal_value}'
                         metaid_id_tuple = (res_triple[2].replace(f'{self.base_iri}/id/', ''), full_id)
                         metaid_id_list.append(metaid_id_tuple)
-                if name and not family_name and not given_name:
-                    full_name = name
-                elif not name and family_name and not given_name:
-                    full_name = f'{family_name},'
-                elif not name and not family_name and given_name:
-                    full_name = f', {given_name}'
-                elif not name and family_name and given_name:
-                    full_name = f'{family_name}, {given_name}'
-                else:
-                    full_name = ''
+                
+                full_name = self._construct_full_name(name, family_name, given_name)
                 result_list.append((res.replace(f'{self.base_iri}/ra/', ''), full_name, metaid_id_list))
+
         return result_list
+
+    def _construct_full_name(self, name: str, family_name: str, given_name: str) -> str:
+        if name and not family_name and not given_name:
+            return name
+        elif not name and family_name and not given_name:
+            return f'{family_name},'
+        elif not name and not family_name and given_name:
+            return f', {given_name}'
+        elif not name and family_name and given_name:
+            return f'{family_name}, {given_name}'
+        else:
+            return ''
 
     # _______________________________VVI_________________________________ #
 
@@ -833,7 +841,7 @@ class ResourceFinder:
                         p = URIRef(row['p']['value'])
                         o = row['o']['value']
                         o_type = row['o']['type']
-                        o_datatype = URIRef(row['o']['datatype']) if 'datatype' in row['o'] else None
+                        o_datatype = URIRef(row['o']['datatype']) if 'datatype' in row['o'] else XSD.string
                         o = URIRef(o) if o_type == 'uri' else Literal(lexical_or_value=o, datatype=o_datatype)
                         self.local_g.add((s, p, o))
                         if isinstance(o, URIRef) and p not in {RDF.type, GraphEntity.iri_with_role, GraphEntity.iri_uses_identifier_scheme}:
@@ -878,7 +886,13 @@ class ResourceFinder:
                         escaped_literal = literal.replace('\\', '\\\\').replace('"', '\\"')
                         union_blocks.append(f"""
                             {{  
-                                ?id <{GraphEntity.iri_has_literal_value}> "{escaped_literal}" .
+                                {{
+                                    ?id <{GraphEntity.iri_has_literal_value}> "{escaped_literal}" .
+                                }}
+                                UNION
+                                {{
+                                    ?id <{GraphEntity.iri_has_literal_value}> "{escaped_literal}"^^<{XSD.string}> .
+                                }}
                                 ?id <{GraphEntity.iri_uses_identifier_scheme}> <{GraphEntity.DATACITE + scheme}> .
                                 ?s <{GraphEntity.iri_has_identifier}> ?id .                                    
                             }}
@@ -900,11 +914,12 @@ class ResourceFinder:
                         identifiers_values.append(f"(<{GraphEntity.DATACITE + scheme}> \"{escaped_literal}\")")
                     identifiers_values_str = " ".join(identifiers_values)
                     query = f'''
-                        SELECT ?s WHERE {{
+                        SELECT DISTINCT ?s WHERE {{
                             VALUES (?scheme ?literal) {{ {identifiers_values_str} }}
-                            ?id <{GraphEntity.iri_uses_identifier_scheme}> ?scheme;
-                                <{GraphEntity.iri_has_literal_value}> ?literal;
-                                ^<{GraphEntity.iri_has_identifier}> ?s .
+                            ?id <{GraphEntity.iri_uses_identifier_scheme}> ?scheme .
+                            ?id <{GraphEntity.iri_has_literal_value}> ?literalValue  .
+                            FILTER(str(?literalValue) = str(?literal))
+                            ?s <{GraphEntity.iri_has_identifier}> ?id .
                         }}
                     '''
                     result = self.__query(query)

@@ -3,76 +3,75 @@ import csv
 import logging
 import os
 import zipfile
-from typing import Dict
+from typing import Dict, Set
+from collections import defaultdict
 
 from rdflib import ConjunctiveGraph, URIRef
 from tqdm import tqdm
+import multiprocessing as mp
 
 logging.basicConfig(filename='error_log_find_duplicated_ids_from_files.txt', level=logging.ERROR, 
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
-def read_and_analyze_zip_files(folder_path, csv_path):
+def process_zip_file(zip_path: str) -> Dict[tuple, Set[str]]:
+    entity_info = defaultdict(set)
+    datacite_uses_identifier_scheme = URIRef("http://purl.org/spar/datacite/usesIdentifierScheme")
+    literal_reification_has_literal_value = URIRef("http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue")
+
+    try:
+        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            for zip_file in zip_ref.namelist():
+                try:
+                    with zip_ref.open(zip_file) as rdf_file:
+                        g = ConjunctiveGraph()
+                        g.parse(data=rdf_file.read(), format="json-ld")
+                        
+                        for s, p, o in g.triples((None, datacite_uses_identifier_scheme, None)):
+                            entity_id = str(s)
+                            identifier_scheme = str(o)
+                            literal_value = g.value(s, literal_reification_has_literal_value)
+                            if literal_value:
+                                key = (identifier_scheme, str(literal_value))
+                                entity_info[key].add(entity_id)
+                except Exception as e:
+                    logging.error(f"Errore nell'elaborazione del file {zip_file} in {zip_path}: {str(e)}")
+    except zipfile.BadZipFile:
+        logging.error(f"File ZIP corrotto o non valido: {zip_path}")
+    except Exception as e:
+        logging.error(f"Errore nell'apertura del file ZIP {zip_path}: {str(e)}")
+
+    return entity_info
+
+def read_and_analyze_zip_files(folder_path: str, csv_path: str):
     id_folder_path = os.path.join(folder_path, 'id')
-    entity_info = {}
 
     if not os.path.exists(id_folder_path):
         logging.error(f"La sottocartella 'id' non esiste nel percorso: {folder_path}")
         return
 
-    zip_files = get_zip_files(id_folder_path)
+    zip_files = [os.path.join(root, file) for root, _, files in os.walk(id_folder_path) 
+                 for file in files if file.endswith('.zip') and file != 'se.zip']
 
-    for zip_path in tqdm(zip_files, desc="Analizzando i file ZIP"):
-        try:
-            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                for zip_file in zip_ref.namelist():
-                    try:
-                        with zip_ref.open(zip_file) as rdf_file:
-                            g = ConjunctiveGraph()
-                            g.parse(data=rdf_file.read(), format="json-ld")
-                            analyze_graph(g, entity_info)
-                    except Exception as e:
-                        logging.error(f"Errore nell'elaborazione del file {zip_file} in {zip_path}: {str(e)}")
-        except zipfile.BadZipFile:
-            logging.error(f"File ZIP corrotto o non valido: {zip_path}")
-        except Exception as e:
-            logging.error(f"Errore nell'apertura del file ZIP {zip_path}: {str(e)}")
+    with mp.Pool(processes=mp.cpu_count()) as pool:
+        results = list(tqdm(pool.imap(process_zip_file, zip_files), total=len(zip_files), desc="Analizzando i file ZIP"))
+
+    entity_info = defaultdict(set)
+    for result in results:
+        for key, value in result.items():
+            entity_info[key].update(value)
 
     save_duplicates_to_csv(entity_info, csv_path)
 
-def get_zip_files(id_folder_path):
-    zip_files = []
-    for root, dirs, files in os.walk(id_folder_path):
-        for file in files:
-            if file.endswith('.zip') and file != 'se.zip':
-                zip_files.append(os.path.join(root, file))
-    return zip_files
-
-def analyze_graph(g: ConjunctiveGraph, entity_info: Dict[tuple, list]):
-    datacite_uses_identifier_scheme = URIRef("http://purl.org/spar/datacite/usesIdentifierScheme")
-    literal_reification_has_literal_value = URIRef("http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue")
-
-    for s, p, o in g:
-        entity_id = str(s)
-        identifier_scheme = g.value(s, datacite_uses_identifier_scheme)
-        literal_value = g.value(s, literal_reification_has_literal_value)
-
-        if identifier_scheme and literal_value:
-            key = (str(identifier_scheme), str(literal_value))
-            if key not in entity_info:
-                entity_info[key] = []
-            entity_info[key].append(entity_id)
-
-def save_duplicates_to_csv(entity_info, csv_path):
+def save_duplicates_to_csv(entity_info: Dict[tuple, Set[str]], csv_path: str):
     try:
         with open(csv_path, mode='w', newline='', encoding='utf-8') as csv_file:
             csv_writer = csv.writer(csv_file)
             csv_writer.writerow(['surviving_entity', 'merged_entities'])
 
-            for key, ids in entity_info.items():
+            for ids in entity_info.values():
                 if len(ids) > 1:
-                    surviving_entity = ids[0]
-                    merged_entities = '; '.join(ids[1:])
-                    csv_writer.writerow([surviving_entity, merged_entities])
+                    ids_list = list(ids)
+                    csv_writer.writerow([ids_list[0], '; '.join(ids_list[1:])])
     except Exception as e:
         logging.error(f"Errore nel salvataggio del file CSV {csv_path}: {str(e)}")
 

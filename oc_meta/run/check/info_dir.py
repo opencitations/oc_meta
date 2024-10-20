@@ -1,13 +1,15 @@
 import argparse
-import json
 import os
 import zipfile
 from multiprocessing import Pool, cpu_count
 
+from oc_meta.run.gen_info_dir import (get_prefix, get_resource_number,
+                                      get_short_name)
+from rdflib import ConjunctiveGraph, URIRef
+from rdflib.namespace import PROV, RDF
 from redis import Redis
 from tqdm import tqdm
 
-from oc_meta.run.gen_info_dir import get_prefix, get_resource_number, get_short_name
 
 def process_zip_file(args):
     zip_file, redis_host, redis_port, redis_db = args
@@ -17,29 +19,30 @@ def process_zip_file(args):
     with zipfile.ZipFile(zip_file, 'r') as zip_ref:
         for file_name in zip_ref.namelist():
             with zip_ref.open(file_name) as entity_file:
-                json_data = json.load(entity_file)
-                for graph in json_data:
-                    for entity in graph['@graph']:
-                        prov_entity_uri = entity['@id']
-                        entity_uri = prov_entity_uri.split('/prov/se/')[0]
-                        supplier_prefix = get_prefix(entity_uri)
-                        short_name = get_short_name(entity_uri)
-                        resource_number = get_resource_number(entity_uri)
-                        
-                        expected_key = f"{short_name}:{supplier_prefix}:{resource_number}:se"
-                        
-                        if not redis_client.exists(expected_key):
-                            print(f"\nEntità mancante trovata:")
-                            print(f"URI: {entity_uri}")
-                            print(f"Prov URI: {prov_entity_uri}")
-                            print(f"Chiave Redis attesa: {expected_key}")
-                            print("---")
+                g = ConjunctiveGraph()
+                g.parse(data=entity_file.read(), format='json-ld')
+                
+                for s, p, o in g.triples((None, RDF.type, PROV.Entity)):
+                    prov_entity_uri = str(s)
+                    entity_uri = prov_entity_uri.split('/prov/se/')[0]
+                    supplier_prefix = get_prefix(entity_uri)
+                    short_name = get_short_name(entity_uri)
+                    resource_number = get_resource_number(entity_uri)
+                    
+                    expected_key = f"{short_name}:{supplier_prefix}:{resource_number}:se"
+                    
+                    if not redis_client.exists(expected_key):
+                        print(f"\nEntità mancante trovata:")
+                        print(f"URI: {entity_uri}")
+                        print(f"Prov URI: {prov_entity_uri}")
+                        print(f"Chiave Redis attesa: {expected_key}")
+                        print("---")
 
-                            missing_entities.append({
-                                "URI": entity_uri,
-                                "Prov URI": prov_entity_uri,
-                                "Chiave Redis attesa": expected_key
-                            })
+                        missing_entities.append({
+                            "URI": entity_uri,
+                            "Prov URI": prov_entity_uri,
+                            "Chiave Redis attesa": expected_key
+                        })
 
     return missing_entities
 

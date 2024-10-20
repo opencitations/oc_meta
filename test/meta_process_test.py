@@ -174,7 +174,7 @@ class test_ProcessTest(unittest.TestCase):
                             '<https://w3id.org/oc/meta/br/0601> <http://purl.org/spar/pro/isDocumentContextFor> <https://w3id.org/oc/meta/ar/0602>',
                             '<https://w3id.org/oc/meta/br/0601> <http://purl.org/spar/pro/isDocumentContextFor> <https://w3id.org/oc/meta/ar/0603>',
                             '<https://w3id.org/oc/meta/br/0601> <http://prismstandard.org/namespaces/basic/2.0/publicationDate> "2015-08-22"^^<http://www.w3.org/2001/XMLSchema#date>', 
-                            '<https://w3id.org/oc/meta/br/0601> <http://purl.org/dc/terms/title> "Some Aspects Of The Evolution Of Chernozems Under The Influence Of Natural And Anthropogenic Factors"'}}]}, 
+                            '<https://w3id.org/oc/meta/br/0601> <http://purl.org/dc/terms/title> "Some Aspects Of The Evolution Of Chernozems Under The Influence Of Natural And Anthropogenic Factors"^^<http://www.w3.org/2001/XMLSchema#string>'}}]}, 
                 {'@graph': [{'@id': 'https://w3id.org/oc/meta/br/0602/prov/se/1', 'http://www.w3.org/ns/prov#specializationOf': [{'@id': 'https://w3id.org/oc/meta/br/0602'}]}]}, 
                 {'@graph': [{'@id': 'https://w3id.org/oc/meta/br/0603/prov/se/1', 'http://www.w3.org/ns/prov#specializationOf': [{'@id': 'https://w3id.org/oc/meta/br/0603'}]}]}], 
             'id': [
@@ -400,7 +400,7 @@ class test_ProcessTest(unittest.TestCase):
             PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
             CONSTRUCT {?br ?p ?o. ?o ?op ?oo. ?oo ?oop ?ooo. ?ooo ?ooop ?oooo.}
             WHERE {
-                ?id literal:hasLiteralValue "10.17117/na.2015.08.1067";
+                ?id literal:hasLiteralValue "10.17117/na.2015.08.1067"^^<http://www.w3.org/2001/XMLSchema#string>;
                     datacite:usesIdentifierScheme datacite:doi;
                     ^datacite:hasIdentifier ?br.
                 ?br ?p ?o.
@@ -414,8 +414,8 @@ class test_ProcessTest(unittest.TestCase):
         result = endpoint.queryAndConvert()
         expected_result = Graph()
         expected_result.parse(os.path.join(BASE_DIR, 'test_publishers_sequence.json'), format='json-ld')
-        self.assertTrue(normalize_graph(result).isomorphic(normalize_graph(expected_result)))
         shutil.rmtree(output_folder)
+        self.assertTrue(normalize_graph(result).isomorphic(normalize_graph(expected_result)))
         delete_output_zip('.', now)
 
 def normalize_graph(graph):
