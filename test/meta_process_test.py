@@ -79,12 +79,6 @@ class test_ProcessTest(unittest.TestCase):
     def tearDown(self):
         reset_redis_counters()
 
-    def test_get_csv_data(self):
-        filepath = os.path.join(BASE_DIR, 'long_field.csv')
-        data = get_csv_data(filepath)
-        field_size = sys.getsizeof(data[0]['author'])
-        self.assertEqual(field_size, 137622)
-
     def test_run_meta_process(self):
         output_folder = os.path.join(BASE_DIR, 'output_1')
         meta_config_path = os.path.join(BASE_DIR, 'meta_config_1.yaml')

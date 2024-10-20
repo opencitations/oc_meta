@@ -45,7 +45,8 @@ def get_ids_from_citations(citations_dir:str, output_dir:str, threshold:int=1000
         for file in files:
             cur_file = file_counter + len_ids_found
             if file.endswith('.csv'):
-                data = csv.DictReader(open(os.path.join(fold, file), 'r', encoding='utf8'))
+                with open(os.path.join(fold, file), 'r', encoding='utf8') as file_obj:
+                    data = list(csv.DictReader(file_obj))
                 process_data(data, ids_found, output_csv)
                 if file_counter % threshold == 0:
                     write_csv(path=os.path.join(output_dir, f'{cur_file-threshold+1}-{cur_file}.csv'), datalist=output_csv)
