@@ -841,7 +841,7 @@ class ResourceFinder:
                         p = URIRef(row['p']['value'])
                         o = row['o']['value']
                         o_type = row['o']['type']
-                        o_datatype = URIRef(row['o']['datatype']) if 'datatype' in row['o'] else XSD.string
+                        o_datatype = URIRef(row['o']['datatype']) if 'datatype' in row['o'] else None
                         o = URIRef(o) if o_type == 'uri' else Literal(lexical_or_value=o, datatype=o_datatype)
                         self.local_g.add((s, p, o))
                         if isinstance(o, URIRef) and p not in {RDF.type, GraphEntity.iri_with_role, GraphEntity.iri_uses_identifier_scheme}:
