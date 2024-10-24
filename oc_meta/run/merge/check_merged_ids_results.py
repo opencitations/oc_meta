@@ -2,6 +2,7 @@ import argparse
 import csv
 import os
 import random
+import re
 import time
 import zipfile
 from functools import partial
@@ -9,13 +10,13 @@ from multiprocessing import Pool, cpu_count
 
 import yaml
 from oc_meta.plugins.editor import MetaEditor
-from rdflib import RDF, ConjunctiveGraph, Literal, URIRef
+from rdflib import RDF, ConjunctiveGraph, Literal, Namespace, URIRef
 from SPARQLWrapper import JSON, SPARQLWrapper
 from tqdm import tqdm
 
-
 DATACITE = "http://purl.org/spar/datacite/"
 LITERAL_REIFICATION = "http://www.essepuntato.it/2010/06/literalreification/"
+PROV = Namespace("http://www.w3.org/ns/prov#")
 
 def read_csv(csv_file):
     with open(csv_file, 'r') as f:
@@ -31,6 +32,82 @@ def sparql_query_with_retry(sparql, max_retries=3, initial_delay=1, backoff_fact
                 raise
             delay = initial_delay * (backoff_factor ** attempt)
             time.sleep(delay + random.uniform(0, 1))
+
+def check_provenance(prov_file_path, entity_uri, is_surviving):
+    def extract_snapshot_number(snapshot_uri):
+        match = re.search(r'/prov/se/(\d+)$', str(snapshot_uri))
+        if match:
+            return int(match.group(1))
+        return 0  # Return 0 if no match found, this will put invalid URIs at the start
+
+    def is_merge_snapshot(g: ConjunctiveGraph, snapshot):
+        description = g.value(snapshot, URIRef("http://purl.org/dc/terms/description"))
+        if description:
+            # Check if the description indicates a merge operation
+            return "has been merged with" in str(description)
+        return False
+
+    try:
+        with zipfile.ZipFile(prov_file_path, 'r') as zip_ref:
+            g = ConjunctiveGraph()
+            for filename in zip_ref.namelist():
+                with zip_ref.open(filename) as file:
+                    g.parse(file, format='json-ld')
+            
+            entity = URIRef(entity_uri)
+            snapshots = list(g.subjects(PROV.specializationOf, entity))
+            
+            if len(snapshots) <= 1:
+                tqdm.write(f"Error in provenance file {prov_file_path}: Less than two snapshots found for entity {entity_uri}")
+                return
+            
+            # Sort snapshots by their URI number
+            snapshots.sort(key=extract_snapshot_number)
+            
+            for i, snapshot in enumerate(snapshots):
+                snapshot_number = extract_snapshot_number(snapshot)
+                if snapshot_number != i + 1:
+                    tqdm.write(f"Error in provenance file {prov_file_path}: Snapshot {snapshot} has unexpected number {snapshot_number}, expected {i + 1}")
+                
+                gen_time = g.value(snapshot, PROV.generatedAtTime)
+                if gen_time is None:
+                    tqdm.write(f"Error in provenance file {prov_file_path}: Snapshot {snapshot} has no generation time")
+                
+                if i < len(snapshots) - 1 or not is_surviving:
+                    invalidation_time = g.value(snapshot, PROV.invalidatedAtTime)
+                    if invalidation_time is None:
+                        tqdm.write(f"Error in provenance file {prov_file_path}: Non-last snapshot {snapshot} has no invalidation time")
+                elif is_surviving and g.value(snapshot, PROV.invalidatedAtTime) is not None:
+                    tqdm.write(f"Error in provenance file {prov_file_path}: Last snapshot of surviving entity {snapshot} should not have invalidation time")
+                
+                # Check prov:wasDerivedFrom
+                derived_from = list(g.objects(snapshot, PROV.wasDerivedFrom))
+                if i == 0:  # First snapshot
+                    if derived_from:
+                        tqdm.write(f"Error in provenance file {prov_file_path}: First snapshot {snapshot} should not have prov:wasDerivedFrom relation")
+                else:  # All other snapshots
+                    # Check if this is a merge snapshot
+                    is_merge = is_merge_snapshot(g, snapshot)
+                    
+                    if is_merge:
+                        if len(derived_from) < 2:
+                            tqdm.write(f"Error in provenance file {prov_file_path}: Merge snapshot {snapshot} should be derived from more than one snapshot")
+                    else:
+                        if len(derived_from) != 1:
+                            tqdm.write(f"Error in provenance file {prov_file_path}: Non-merge snapshot {snapshot} should have exactly one prov:wasDerivedFrom relation, but has {len(derived_from)}")
+                        elif derived_from[0] != snapshots[i-1]:
+                            tqdm.write(f"Error in provenance file {prov_file_path}: Snapshot {snapshot} is not derived from the previous snapshot")
+            
+            if not is_surviving:
+                # Check if the last snapshot is invalidated for merged entities
+                last_snapshot = snapshots[-1]
+                if (None, PROV.invalidated, last_snapshot) not in g:
+                    tqdm.write(f"Error in provenance file {prov_file_path}: Last snapshot {last_snapshot} of merged entity {entity_uri} is not invalidated")
+    
+    except FileNotFoundError:
+        tqdm.write(f"Error: Provenance file not found for entity {entity_uri}")
+    except zipfile.BadZipFile:
+        tqdm.write(f"Error: Invalid zip file for provenance of entity {entity_uri}")
 
 def check_entity_file(file_path, entity_uri, is_surviving):
     with zipfile.ZipFile(file_path, 'r') as zip_ref:
@@ -66,6 +143,10 @@ def check_entity_file(file_path, entity_uri, is_surviving):
                         tqdm.write(f"Error in file {file_path}: Entity {entity_uri} should have exactly one hasLiteralValue, found {len(literal_value)}")
                     elif not isinstance(literal_value[0], Literal):
                         tqdm.write(f"Error in file {file_path}: Entity {entity_uri}'s hasLiteralValue should be a Literal, found {type(literal_value[0])}")
+    
+    # Check provenance
+    prov_file_path = file_path.replace('.zip', '') + '/prov/se.zip'
+    check_provenance(prov_file_path, entity_uri, is_surviving)
 
 def check_entity_sparql(sparql_endpoint, entity_uri, is_surviving):
     sparql = SPARQLWrapper(sparql_endpoint)

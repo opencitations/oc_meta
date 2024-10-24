@@ -30,8 +30,10 @@ class UnionFind:
         if root1 != root2:
             self.parent[root2] = root1
 
+
 def load_csv(file_path):
     return pd.read_csv(file_path)
+
 
 @retry(stop_max_attempt_number=3, wait_exponential_multiplier=1000, wait_exponential_max=10000)
 def query_sparql(endpoint, uri, query_type):
@@ -60,6 +62,7 @@ def query_sparql(endpoint, uri, query_type):
     elif query_type == 'objects':
         return [result['object']['value'] for result in results['results']['bindings']]
 
+
 def get_all_related_entities(endpoint, uris):
     related_entities = set(uris)
     for uri in uris:
@@ -68,6 +71,7 @@ def get_all_related_entities(endpoint, uris):
         related_entities.update(subjects)
         related_entities.update(objects)
     return related_entities
+
 
 def group_entities(df, endpoint):
     uf = UnionFind()
@@ -93,10 +97,67 @@ def group_entities(df, endpoint):
         
         grouped_data[group_id].append(row)
 
+    # Converti le liste di righe in DataFrame
     for group_id in grouped_data:
         grouped_data[group_id] = pd.DataFrame(grouped_data[group_id])
 
     return grouped_data
+
+
+def optimize_groups(grouped_data, target_size=2):
+    """
+    Ottimizza i gruppi combinando quelli singoli mantenendo separate le entità interconnesse.
+    
+    Args:
+        grouped_data (dict): Dizionario di DataFrame raggruppati
+        target_size (int): Dimensione minima target per ogni gruppo
+    
+    Returns:
+        dict: Dizionario ottimizzato dei DataFrame raggruppati
+    """
+    # Separa i gruppi in singoli e multipli
+    single_groups = {k: v for k, v in grouped_data.items() if len(v) == 1}
+    multi_groups = {k: v for k, v in grouped_data.items() if len(v) > 1}
+    
+    # Se non ci sono gruppi singoli, restituisci i gruppi originali
+    if not single_groups:
+        return grouped_data
+    
+    # Crea nuovi gruppi combinando quelli singoli
+    combined_groups = {}
+    single_items = list(single_groups.items())
+    
+    # Combina i gruppi singoli in gruppi della dimensione target
+    current_group = []
+    current_key = None
+    
+    for key, df in single_items:
+        if len(current_group) == 0:
+            current_key = key
+            
+        current_group.append(df)
+        
+        if len(current_group) >= target_size:
+            combined_groups[current_key] = pd.concat(current_group, ignore_index=True)
+            current_group = []
+    
+    # Gestisci eventuali gruppi rimanenti
+    if current_group:
+        if len(current_group) == 1 and multi_groups:
+            # Se è rimasto un gruppo singolo e ci sono gruppi multipli,
+            # aggiungiamo il gruppo singolo al gruppo multiplo più piccolo
+            smallest_multi = min(multi_groups.items(), key=lambda x: len(x[1]))
+            multi_groups[smallest_multi[0]] = pd.concat(
+                [smallest_multi[1]] + current_group, 
+                ignore_index=True
+            )
+        else:
+            # Altrimenti lo manteniamo come gruppo separato
+            combined_groups[current_key] = pd.concat(current_group, ignore_index=True)
+    
+    # Unisci i gruppi multipli originali con i nuovi gruppi combinati
+    return {**multi_groups, **combined_groups}
+
 
 def save_grouped_entities(grouped_data, output_dir):
     if not os.path.exists(output_dir):
@@ -104,19 +165,12 @@ def save_grouped_entities(grouped_data, output_dir):
         
     for key, df in grouped_data.items():
         output_file = os.path.join(output_dir, f"{key.split('/')[-1]}.csv")
-        if len(df) > 1:
-            print(f"File with multiple rows: {output_file}")
+        print(f"Saving group with {len(df)} rows to {output_file}")
         
         try:
             df.to_csv(output_file, index=False)
         except AttributeError as e:
             print(f"Error saving file {output_file}: {str(e)}")
-            print(f"DataFrame info:")
-            print(df.info())
-            print(f"DataFrame head:")
-            print(df.head())
-            
-            # Try an alternative method to save the CSV
             try:
                 df.to_csv(output_file, index=False, encoding='utf-8', quoting=csv.QUOTE_NONNUMERIC)
                 print(f"Successfully saved using alternative method: {output_file}")
@@ -125,11 +179,14 @@ def save_grouped_entities(grouped_data, output_dir):
         except Exception as e:
             print(f"Unexpected error saving file {output_file}: {str(e)}")
 
+
 def main():
     parser = argparse.ArgumentParser(description='Process CSV and group entities based on SPARQL queries.')
     parser.add_argument('csv_file_path', type=str, help='Path to the input CSV file')
     parser.add_argument('output_dir', type=str, help='Directory to save the output files')
     parser.add_argument('sparql_endpoint', type=str, help='SPARQL endpoint URL')
+    parser.add_argument('--min_group_size', type=int, default=2, 
+                      help='Minimum target size for groups (default: 2)')
 
     args = parser.parse_args()
     
@@ -137,10 +194,14 @@ def main():
     print(f"Loaded CSV file with {len(df)} rows")
     
     grouped_entities = group_entities(df, args.sparql_endpoint)
-    print(f"Grouped entities into {len(grouped_entities)} groups")
+    print(f"Initially grouped entities into {len(grouped_entities)} groups")
     
-    save_grouped_entities(grouped_entities, args.output_dir)
+    optimized_groups = optimize_groups(grouped_entities, args.min_group_size)
+    print(f"Optimized into {len(optimized_groups)} groups")
+    
+    save_grouped_entities(optimized_groups, args.output_dir)
     print("Finished saving grouped entities")
+
 
 if __name__ == "__main__":
     main()
