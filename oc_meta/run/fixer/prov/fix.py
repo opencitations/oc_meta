@@ -2,9 +2,9 @@ import argparse
 import os
 import re
 import zipfile
+from collections import defaultdict
 from datetime import UTC, datetime
 from multiprocessing import Pool, cpu_count
-from pathlib import Path
 
 from rdflib import ConjunctiveGraph, Literal, URIRef
 from rdflib.namespace import XSD
@@ -23,14 +23,12 @@ def get_entity_from_prov_graph(graph_uri):
 
 def fix_provenance_file(args):
     """Process a single provenance file."""
-    prov_file_path, output_dir = args
+    prov_file_path = args
     
     try:
-        # Create output directory structure
-        output_path = Path(output_dir) / Path(prov_file_path).relative_to(Path(prov_file_path).parent.parent)
-        output_path.parent.mkdir(parents=True, exist_ok=True)
+        # Dictionary to store modifications for each entity
+        entity_modifications = {}
         
-        modified = False
         with zipfile.ZipFile(prov_file_path, 'r') as zip_ref:
             g = ConjunctiveGraph()
             
@@ -39,6 +37,7 @@ def fix_provenance_file(args):
                 with zip_ref.open(filename) as file:
                     g.parse(file, format='json-ld')
             
+            modified = False
             # Process each context (provenance graph) in the ConjunctiveGraph
             for context in g.contexts():
                 context_uri = str(context.identifier)
@@ -47,6 +46,7 @@ def fix_provenance_file(args):
                 
                 # Get the entity URI from the provenance graph URI
                 entity_uri = URIRef(get_entity_from_prov_graph(context_uri))
+                entity_modifications[str(entity_uri)] = defaultdict(list)
                 
                 # Get all snapshots for this entity
                 snapshots = []
@@ -59,11 +59,13 @@ def fix_provenance_file(args):
                 
                 # Sort snapshots by number
                 snapshots.sort(key=extract_snapshot_number)
+                mods = entity_modifications[str(entity_uri)]
                 
                 # Fix specializationOf
                 for snapshot in snapshots:
                     if (snapshot, PROV.specializationOf, entity_uri) not in context:
                         context.add((snapshot, PROV.specializationOf, entity_uri))
+                        mods["Added specializationOf"].append(str(snapshot))
                         modified = True
                 
                 # Fix wasDerivedFrom chain
@@ -71,6 +73,7 @@ def fix_provenance_file(args):
                     derived_from = list(context.objects(snapshot, PROV.wasDerivedFrom))
                     if not derived_from:
                         context.add((snapshot, PROV.wasDerivedFrom, snapshots[i-1]))
+                        mods["Added wasDerivedFrom"].append(f"{str(snapshot)} → {str(snapshots[i-1])}")
                         modified = True
                 
                 # Fix generation and invalidation times
@@ -86,15 +89,17 @@ def fix_provenance_file(args):
                                 # Remove existing generation times if any
                                 for gt in gen_times:
                                     context.remove((snapshot, PROV.generatedAtTime, gt))
+                                    mods["Removed generatedAtTime"].append(f"{str(snapshot)}: {str(gt)}")
                                 # Add new generation time
                                 context.add((snapshot, PROV.generatedAtTime, prev_invalidation[0]))
+                                mods["Added generatedAtTime"].append(f"{str(snapshot)}: {str(prev_invalidation[0])}")
                                 modified = True
                         else:
                             # For first snapshot, if no valid generation time exists
                             if not gen_times:
-                                # Use a default timestamp
                                 default_time = Literal(datetime(year=2022, month=12, day=20, hour=0, minute=0, second=0, tzinfo=UTC).isoformat(), datatype=XSD.dateTime)
                                 context.add((snapshot, PROV.generatedAtTime, default_time))
+                                mods["Added generatedAtTime"].append(f"{str(snapshot)}: {str(default_time)}")
                                 modified = True
                     
                     # Check invalidation time
@@ -106,18 +111,22 @@ def fix_provenance_file(args):
                             # Remove existing invalidation times if any
                             for it in invalid_times:
                                 context.remove((snapshot, PROV.invalidatedAtTime, it))
+                                mods["Removed invalidatedAtTime"].append(f"{str(snapshot)}: {str(it)}")
                             # Add new invalidation time
                             context.add((snapshot, PROV.invalidatedAtTime, next_gen_time[0]))
+                            mods["Added invalidatedAtTime"].append(f"{str(snapshot)}: {str(next_gen_time[0])}")
                             modified = True
             
             if modified:
-                # Save the modified graph
-                with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED, allowZip64=True) as zip_out:
-                    # Save as JSON-LD
-                    jsonld_data = g.serialize(format='json-ld')
+                # Save the modified graph back to the same file
+                with zipfile.ZipFile(prov_file_path, 'w', zipfile.ZIP_DEFLATED, allowZip64=True) as zip_out:
+                    # Save as JSON-LD with UTF-8 encoding and ensure_ascii=False
+                    jsonld_data = g.serialize(format='json-ld', encoding='utf-8', ensure_ascii=False)
                     zip_out.writestr('provenance.json', jsonld_data)
                 
-                return str(prov_file_path)
+                return str(prov_file_path), entity_modifications
+        
+        return None
     
     except Exception as e:
         tqdm.write(f"Error processing {prov_file_path}: {str(e)}")
@@ -126,13 +135,9 @@ def fix_provenance_file(args):
 def main():
     parser = argparse.ArgumentParser(description="Fix provenance files in parallel")
     parser.add_argument('input_dir', type=str, help="Directory containing provenance files")
-    parser.add_argument('output_dir', type=str, help="Directory for fixed provenance files")
     parser.add_argument('--processes', type=int, default=cpu_count(),
                        help="Number of parallel processes (default: number of CPU cores)")
     args = parser.parse_args()
-    
-    # Create output directory
-    os.makedirs(args.output_dir, exist_ok=True)
     
     # Collect all provenance files
     prov_files = []
@@ -143,18 +148,30 @@ def main():
     
     # Process files in parallel with progress bar
     with Pool(processes=args.processes) as pool:
-        tasks = [(f, args.output_dir) for f in prov_files]
-        
         # Process files with progress bar
-        fixed_files = list(tqdm(
-            pool.imap_unordered(fix_provenance_file, tasks),
-            total=len(tasks),
+        results = list(tqdm(
+            pool.imap_unordered(fix_provenance_file, prov_files),
+            total=len(prov_files),
             desc="Fixing provenance files"
         ))
         
-        # Report results
-        fixed_files = [f for f in fixed_files if f is not None]
-        print(f"\nFixed {len(fixed_files)} files")
+        # Generate detailed per-file report
+        print("\nProvenance Fix Report")
+        print("=" * 80)
+        
+        for result in results:
+            if result:
+                file_path, entity_mods = result
+                print(f"\nFile: {file_path}")
+                print("-" * 80)
+                
+                for entity_uri, modifications in entity_mods.items():
+                    print(f"\nEntity: {entity_uri}")
+                    for mod_type, mod_list in modifications.items():
+                        if mod_list:  # Only print modification types that have entries
+                            print(f"\n  {mod_type}:")
+                            for mod in mod_list:
+                                print(f"    - {mod}")
 
 if __name__ == "__main__":
     main()
