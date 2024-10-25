@@ -56,13 +56,13 @@ jobs:
       run: |
         cd virtuoso-opensource/bin
         ./virtuoso-t &
+        cd ../..
         python3 scripts/wait_for_virtuoso.py
         if [ $? -ne 0 ]; then
           echo "Errore: Virtuoso non si è avviato correttamente"
           exit 1
         fi
-        cd ../..
-    
+        
     - name: Check the coverage
       run: |
         poetry run coverage run --rcfile=test/coverage/.coveragerc

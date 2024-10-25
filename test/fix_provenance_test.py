@@ -130,8 +130,6 @@ class TestProvenanceFixing(unittest.TestCase):
             with zf.open('se.json') as f:
                 fixed_data = json.loads(f.read())
         
-        print(json.dumps(fixed_data, indent=4))
-
         graph_data = fixed_data[0]['@graph']
         snapshot_ids = {item['@id'] for item in graph_data}
         expected_ids = {
