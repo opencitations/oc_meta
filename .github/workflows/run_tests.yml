@@ -40,34 +40,45 @@ jobs:
           --health-retries 5
     steps:
     - uses: actions/checkout@v3.0.2
+    
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
+    
     - name: Install dependencies
       run: |
         pip3 install poetry
         sudo apt install -y python-is-python3
         poetry install
-    - name: Run Virtuoso
+    
+    - name: Start Virtuoso
       run: |
         cd virtuoso-opensource/bin
-        ./virtuoso-t
-        python3 -c 'import time; time.sleep(30)'
+        ./virtuoso-t &
+        python3 scripts/wait_for_virtuoso.py
+        if [ $? -ne 0 ]; then
+          echo "Errore: Virtuoso non si è avviato correttamente"
+          exit 1
+        fi
         cd ../..
+    
     - name: Check the coverage
       run: |
         poetry run coverage run --rcfile=test/coverage/.coveragerc
+    
     - name: Generate the badge
       run: |
         mv .coverage test/coverage/
         cd test/coverage/
         rm coverage.svg
         poetry run coverage-badge -o coverage.svg
+    
     - uses: actions/upload-artifact@v3.1.0
       with:
           name: coverage-artifact
           path: test/coverage/
+
   PublishBadge:
     runs-on: ubuntu-latest
     needs: CheckCoverage
