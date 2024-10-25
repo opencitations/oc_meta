@@ -1,66 +1,104 @@
 #!/usr/bin/env python3
+import logging
 import socket
-import time
 import sys
-import subprocess
-from typing import Tuple
+import time
+import urllib.error
+import urllib.request
+from dataclasses import dataclass
+from typing import Optional, Tuple
 
-def check_virtuoso_port(host: str = 'localhost', port: int = 1105, timeout: int = 1) -> bool:
+
+@dataclass
+class VirtuosoConfig:
+    host: str = 'localhost'
+    port: int = 8805
+    timeout: int = 5
+
+def setup_logging() -> logging.Logger:
+    """Configura il logging per lo script"""
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+    return logging.getLogger(__name__)
+
+def check_virtuoso_sparql(config: VirtuosoConfig) -> Tuple[bool, Optional[str]]:
     """
-    Verifica se Virtuoso è in ascolto sulla porta specificata
+    Verifica se Virtuoso risponde a una semplice query SPARQL
     """
+    query = "SELECT * { ?s ?p ?o } LIMIT 1"
+    encoded_query = urllib.parse.quote(query)
+    url = f"http://{config.host}:{config.port}/sparql?query={encoded_query}"
+
     try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-            sock.settimeout(timeout)
-            result = sock.connect_ex((host, port))
-            return result == 0
-    except socket.error:
-        return False
+        request = urllib.request.Request(
+            url,
+            headers={
+                'Accept': 'application/sparql-results+json',
+                'User-Agent': 'VirtuosoHealthCheck/1.0'
+            }
+        )
+        
+        with urllib.request.urlopen(request, timeout=config.timeout) as response:
+            return response.status == 200, None
+            
+    except urllib.error.URLError as e:
+        return False, f"Errore SPARQL endpoint: {str(e)}"
+    except Exception as e:
+        return False, f"Errore inatteso: {str(e)}"
 
-def check_virtuoso_isql(max_attempts: int = 5) -> bool:
-    """
-    Verifica se Virtuoso risponde ai comandi ISQL
-    """
-    for _ in range(max_attempts):
-        try:
-            result = subprocess.run(
-                ['isql', '-S', '1105', '-U', 'dba', '-P', 'dba', '-Q', 'status();'],
-                capture_output=True,
-                text=True,
-                timeout=5
-            )
-            if result.returncode == 0 and 'Server is ready' in result.stdout:
-                return True
-        except (subprocess.SubprocessError, subprocess.TimeoutExpired):
-            pass
-        time.sleep(2)
-    return False
-
-def wait_for_virtuoso(max_wait: int = 180) -> Tuple[bool, int]:
+def wait_for_virtuoso(config: VirtuosoConfig, max_wait: int = 180) -> Tuple[bool, int, Optional[str]]:
     """
     Attende che Virtuoso sia completamente avviato e pronto
     
     Args:
+        config: Configurazione di Virtuoso
         max_wait: Tempo massimo di attesa in secondi
     
     Returns:
-        Tuple[bool, int]: (successo, tempo_impiegato)
+        Tuple[bool, int, Optional[str]]: (successo, tempo_impiegato, messaggio_errore)
     """
-    print("Attendo l'avvio di Virtuoso...")
+    logger = logging.getLogger(__name__)
+    logger.info("Attendo l'avvio di Virtuoso...")
     start_time = time.time()
     
-    while time.time() - start_time < max_wait:
-        if check_virtuoso_port():
-            print("Porta Virtuoso rilevata, verifico lo stato del servizio...")
-            if check_virtuoso_isql():
-                elapsed = int(time.time() - start_time)
-                print(f"Virtuoso è pronto! (tempo impiegato: {elapsed}s)")
-                return True, elapsed
-        time.sleep(2)
+    while time.time() - start_time < max_wait:        
+        sparql_ok, sparql_error = check_virtuoso_sparql(config)
         
-    print(f"Timeout dopo {max_wait}s - Virtuoso non è pronto")
-    return False, max_wait
+        if sparql_ok:
+            elapsed = int(time.time() - start_time)
+            logger.info(f"Virtuoso è pronto! (tempo impiegato: {elapsed}s)")
+            return True, elapsed, None
+        elif sparql_error:
+            logger.warning(f"SPARQL check fallito: {sparql_error}")
+        
+        time.sleep(2)
+    
+    timeout_msg = f"Timeout dopo {max_wait}s - Virtuoso non è pronto"
+    logger.error(timeout_msg)
+    return False, max_wait, timeout_msg
+
+def main():
+    logger = setup_logging()
+    
+    # Configura le impostazioni di connessione
+    config = VirtuosoConfig(
+        host="localhost",
+        port=8805,
+        timeout=5
+    )
+    
+    try:
+        success, elapsed, error = wait_for_virtuoso(config)
+        if not success and error:
+            logger.error(f"Impossibile connettersi a Virtuoso: {error}")
+            sys.exit(1)
+        sys.exit(0)
+    except Exception as e:
+        logger.error(f"Errore inatteso: {str(e)}")
+        sys.exit(1)
 
 if __name__ == '__main__':
-    success, _ = wait_for_virtuoso()
-    sys.exit(0 if success else 1)
+    main()
