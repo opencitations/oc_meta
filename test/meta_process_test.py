@@ -51,9 +51,25 @@ def reset_redis_counters():
     redis_client = redis.Redis(host=redis_host, port=redis_port, db=redis_db)
     redis_client.flushdb()
 
-def reset_server(server:str=SERVER) -> None:
+@retry_sparql_query()
+def reset_server(server:str='http://127.0.0.1:8805/sparql') -> None:
+    """
+    Reset the SPARQL server with retry mechanism.
+    
+    Args:
+        server (str): SPARQL endpoint URL
+    """
     ts = SPARQLWrapper(server)
-    for graph in {'https://w3id.org/oc/meta/br/', 'https://w3id.org/oc/meta/ra/', 'https://w3id.org/oc/meta/re/', 'https://w3id.org/oc/meta/id/', 'https://w3id.org/oc/meta/ar/', 'http://default.graph/'}:
+    graphs = {
+        'https://w3id.org/oc/meta/br/',
+        'https://w3id.org/oc/meta/ra/', 
+        'https://w3id.org/oc/meta/re/',
+        'https://w3id.org/oc/meta/id/',
+        'https://w3id.org/oc/meta/ar/',
+        'http://default.graph/'
+    }
+    
+    for graph in graphs:
         ts.setQuery(f'CLEAR GRAPH <{graph}>')
         ts.setMethod(POST)
         ts.query()
