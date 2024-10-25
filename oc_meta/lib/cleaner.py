@@ -138,7 +138,7 @@ class Cleaner:
             string = string.replace(c, '\u0020')
         return string
 
-    def clean_title(self) -> str:
+    def clean_title(self, normalize_titles:bool=True) -> str:
         '''
         Concerning titles of bibliographic resources ('venue' and 'title' columns), 
         every word in the title is capitalized except for those that have capitals within them 
@@ -148,13 +148,16 @@ class Cleaner:
         :returns: str -- The cleaned title
         '''
         title = self.string
-        if title.isupper():
-            title = title.lower()
-        words = title.split()
-        for i, w in enumerate(words):
-            if not any(x.isupper() for x in w):
-                words[i] = w.title()
-        new_title = ' '.join(words)
+        if normalize_titles:
+            if title.isupper():
+                title = title.lower()
+            words = title.split()
+            for i, w in enumerate(words):
+                if not any(x.isupper() for x in w):
+                    words[i] = w.title()
+            new_title = ' '.join(words)
+        else:
+            new_title = title
         return new_title
 
     def __date_parse_hack(self, date:str) -> datetime:

@@ -36,6 +36,7 @@ from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
 class Curator:
 
     def __init__(self, data:List[dict], ts:str, prov_config:str, counter_handler:RedisCounterHandler, base_iri:str='https://w3id.org/oc/meta', prefix:str='060', separator:str=None, valid_dois_cache:dict=dict(), settings:dict|None = None, silencer:list = [], meta_config_path: str = None):
+        self.settings = settings or {}
         self.everything_everywhere_allatonce = Graph()
         self.finder = ResourceFinder(ts, base_iri, self.everything_everywhere_allatonce, settings=settings, meta_config_path=meta_config_path)
         self.base_iri = base_iri
@@ -176,7 +177,7 @@ class Curator:
         :returns: None -- This method modifies the input CSV row without returning it.
         '''
         if row['title']:
-            name = Cleaner(row['title']).clean_title()
+            name = Cleaner(row['title']).clean_title(self.settings.get('normalize_titles'))
         else:
             name = ''
         metaval_ids_list = []
@@ -298,7 +299,7 @@ class Curator:
                 row['issue'] = ''
             venue_id = re.search(name_and_ids, venue)
             if venue_id:
-                name = Cleaner(venue_id.group(1)).clean_title()
+                name = Cleaner(venue_id.group(1)).clean_title(self.settings.get('normalize_titles'))
                 venue_id = venue_id.group(2)
                 if self.separator:
                     idslist = re.sub(colon_and_spaces, ':', venue_id).split(self.separator)
@@ -317,7 +318,7 @@ class Curator:
                     elif ts_vvi:
                         self.vvi[metaval] = ts_vvi
             else:
-                name = Cleaner(venue).clean_title()
+                name = Cleaner(venue).clean_title(self.settings.get('normalize_titles'))
                 metaval = self.new_entity(self.brdict, name)
                 self.vvi[metaval] = dict()
                 self.vvi[metaval]['volume'] = dict()

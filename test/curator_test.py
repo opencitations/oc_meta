@@ -119,7 +119,8 @@ def prepare_to_test(data, name):
     testcase_vi = get_path('test/testcases/testcase_data/indices/' + name + '/index_vi_' + name + '.json')
 
     counter_handler = get_counter_handler()
-    curator_obj = Curator(data, SERVER, prov_config=PROV_CONFIG, counter_handler=counter_handler)
+    settings = {'normalize_titles': True}
+    curator_obj = Curator(data, SERVER, prov_config=PROV_CONFIG, counter_handler=counter_handler, settings=settings)
     curator_obj.curator()
     testcase_csv = get_csv_data(testcase_csv)
     for csv in [testcase_csv, curator_obj.data]:
@@ -145,12 +146,13 @@ def prepare_to_test(data, name):
     return data_curated, testcase
 
 def prepareCurator(data:list, server:str=SERVER, resp_agents_only:bool=False) -> Curator:
+    settings = {'normalize_titles': True}
     reset_redis_counters()
     counter_handler = get_counter_handler()
     if resp_agents_only:
         curator = RespAgentsCurator(data, server, prov_config=PROV_CONFIG, counter_handler=counter_handler)
     else:
-        curator = Curator(data, server, prov_config=PROV_CONFIG, counter_handler=counter_handler)
+        curator = Curator(data, server, prov_config=PROV_CONFIG, counter_handler=counter_handler, settings=settings)
     return curator
 
 
@@ -281,6 +283,7 @@ class test_Curator(unittest.TestCase):
         row = [{'id': '', 'title': 'The volume title', 'author': '', 'pub_date': '', 'venue': 'OECD Economic Outlook', 'volume': '2011', 'issue': '2', 'page': '', 'type': 'journal volume', 'publisher': '', 'editor': ''}]
         curator = prepareCurator(row)
         curator.curator()
+        print(curator.data)
         expected_output = [{'id': 'omid:br/0601', 'title': 'The Volume Title', 'author': '', 'pub_date': '', 'venue': 'OECD Economic Outlook [omid:br/0602]', 'volume': '', 'issue': '', 'page': '', 'type': 'journal volume', 'publisher': '', 'editor': ''}]
         self.assertEqual(curator.data, expected_output)
 

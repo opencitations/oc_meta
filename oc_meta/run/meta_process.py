@@ -64,6 +64,7 @@ class MetaProcess:
         self.errors_path = os.path.join(self.base_output_dir, 'errors.txt')
         # Optional settings
         self.base_iri = settings['base_iri']
+        self.normalize_titles = settings.get('normalize_titles', True)
         self.context_path = settings['context_path']
         self.dir_split_number = settings['dir_split_number']
         self.items_per_file = settings['items_per_file']

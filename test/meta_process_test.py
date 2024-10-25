@@ -20,7 +20,7 @@ from SPARQLWrapper import JSON, POST, XML, SPARQLExceptions, SPARQLWrapper
 BASE_DIR = os.path.join('test', 'meta_process')
 SERVER = 'http://127.0.0.1:8805/sparql'
 
-def retry_sparql_query(max_retries=3, delay=1):
+def retry_sparql_query(max_retries=3, delay=5):
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
