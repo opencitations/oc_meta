@@ -3,12 +3,13 @@ import os
 import re
 import zipfile
 from collections import defaultdict
-from datetime import datetime, timezone
-from multiprocessing import Pool, cpu_count
-from zoneinfo import ZoneInfo
-from typing import Dict, List, Optional, Set, Tuple
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from multiprocessing import cpu_count
+from typing import Dict, List, Optional, Set, Tuple
+from zoneinfo import ZoneInfo
 
+from pebble import ProcessPool
 from rdflib import ConjunctiveGraph, Literal, Namespace, URIRef
 from rdflib.namespace import XSD
 from tqdm import tqdm
@@ -265,6 +266,14 @@ class ProvenanceProcessor:
         
         return modified
 
+def process_chunk(file_chunk):
+    results = []
+    for file in file_chunk:
+        result = ProvenanceProcessor.process_file(file)
+        if result:
+            results.append(result)
+    return results
+
 def main():
     parser = argparse.ArgumentParser(description="Fix provenance files in parallel")
     parser.add_argument('input_dir', type=str, help="Directory containing provenance files")
@@ -278,24 +287,45 @@ def main():
         for file in files
         if file.endswith('se.zip')
     ]
-    
-    with Pool(processes=args.processes) as pool:
-        results = list(tqdm(
-            pool.imap_unordered(ProvenanceProcessor.process_file, prov_files),
-            total=len(prov_files),
-            desc="Fixing provenance files"
-        ))
-    
-    # Generate report
+
+    # Create chunks of files to reduce concurrent I/O
+    chunk_size = 100  # Adjust based on your system
+    file_chunks = [prov_files[i:i + chunk_size] 
+                  for i in range(0, len(prov_files), chunk_size)]
+
+    all_results = []
+    with ProcessPool(max_workers=args.processes) as pool:
+        future = pool.map(process_chunk, file_chunks)
+        iterator = future.result()
+
+        # Setup progress bar
+        with tqdm(total=len(file_chunks), desc="Fixing provenance files") as pbar:
+            try:
+                while True:
+                    try:
+                        result = next(iterator)
+                        all_results.extend(result)
+                        pbar.update(1)
+                    except StopIteration:
+                        break
+                    except TimeoutError as error:
+                        print(f"\nChunk processing timed out: {error}")
+                    except Exception as error:
+                        print(f"\nError processing chunk: {error}")
+            except KeyboardInterrupt:
+                print("\nProcessing interrupted by user")
+                future.cancel()
+                raise
+
     print("\nProvenance Fix Report")
     print("=" * 80)
     
-    modified_files = sum(1 for result in results if result is not None)
+    modified_files = sum(1 for result in all_results if result is not None)
     
     if modified_files == 0:
         print("\nNo modifications were necessary in any file.")
     else:
-        for result in results:
+        for result in all_results:
             if result:
                 file_path, entity_mods = result
                 if any(mod_list for mods in entity_mods.values() for mod_list in mods.values()):
