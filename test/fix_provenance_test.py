@@ -107,10 +107,10 @@ class TestProvenanceFixing(unittest.TestCase):
         snapshots = self.processor._collect_snapshot_info(g)
         
         self.assertEqual(len(snapshots), 2)
-        self.assertEqual(snapshots[0].number, 1)
-        self.assertEqual(snapshots[1].number, 2)
-        self.assertEqual(len(snapshots[0].generation_times), 1)
-        self.assertEqual(str(snapshots[0].generation_times[0]), str(gen_time))
+        self.assertEqual(snapshots[0]['number'], 1)
+        self.assertEqual(snapshots[1]['number'], 2)
+        self.assertEqual(len(snapshots[0]['generation_times']), 1)
+        self.assertEqual(str(snapshots[0]['generation_times'][0]), str(gen_time))
 
     def test_multiple_timestamps(self):
         """Test handling of multiple timestamps for a snapshot."""
