@@ -36,22 +36,22 @@ class TqdmToLogger:
         pass
 
 def get_process_specific_logger(log_dir: str, logger_name: str) -> logging.Logger:
-    """Create a process-specific rotating logger."""
+    """Create a process-specific logger with timestamped filename."""
     os.makedirs(log_dir, exist_ok=True)
 
     process_name = current_process().name
-    log_filename = f"{logger_name}_{process_name}.log"
-    logger = logging.getLogger(f"{logger_name}_{process_name}")
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    log_filename = f"{logger_name}_{process_name}_{timestamp}.log"
+    logger = logging.getLogger(f"{logger_name}_{process_name}_{timestamp}")
     
     if not logger.handlers:  # Avoid adding handlers multiple times
         logger.setLevel(logging.INFO)
         
-        # Create a rotating file handler
-        handler = logging.handlers.RotatingFileHandler(
+        # Create a regular file handler with timestamp in filename
+        handler = logging.FileHandler(
             filename=os.path.join(log_dir, log_filename),
-            maxBytes=10*1024*1024,  # 10MB per file
-            backupCount=5,  # Keep 5 backup files
-            encoding='utf-8'
+            encoding='utf-8',
+            mode='a'  # append mode, though it's a new file anyway
         )
         
         formatter = logging.Formatter('%(asctime)s - %(message)s')
@@ -226,42 +226,62 @@ class ProvenanceProcessor:
         
         return modified
 
+    def _get_earliest_timestamp(self, timestamps: List[Literal]) -> Literal:
+        """Return the earliest timestamp from a list of timestamps."""
+        earliest = min(
+            self._convert_to_utc(ts) 
+            for ts in timestamps
+        )
+        return Literal(earliest.isoformat(), datatype=XSD.dateTime)
+
     def _handle_generation_time(self, context: ConjunctiveGraph, 
-                              snapshots: List[dict], index: int) -> bool:
+                            snapshots: List[dict], index: int) -> bool:
         """Handle generation time for a snapshot."""
         modified = False
         snapshot = snapshots[index]
 
-        if len(snapshot['generation_times']) != 1:
+        if len(snapshot['generation_times']) > 1:
+            # Se ci sono multipli timestamp, mantieni solo il più vecchio
+            earliest_time = self._get_earliest_timestamp(snapshot['generation_times'])
+            
+            # Rimuovi tutti i timestamp esistenti
+            self._remove_multiple_timestamps(
+                context, snapshot['uri'], PROV.generatedAtTime, snapshot['generation_times']
+            )
+            
+            # Aggiungi il timestamp più vecchio
+            context.add((snapshot['uri'], PROV.generatedAtTime, earliest_time))
+            self._log_modification(
+                str(snapshot['uri']),
+                "Kept earliest generatedAtTime",
+                f"{str(earliest_time)}"
+            )
+            modified = True
+        elif len(snapshot['generation_times']) == 0:
             new_time = None
             
-            if snapshot['generation_times']:
-                self._remove_multiple_timestamps(
-                    context, snapshot['uri'], PROV.generatedAtTime, snapshot['generation_times'])
-                modified = True
+            if index > 0:
+                prev_snapshot = snapshots[index-1]
+                if prev_snapshot['invalidation_times']:
+                    new_time = prev_snapshot['invalidation_times'][0]
+                elif (prev_snapshot['generation_times'] and
+                    snapshot['invalidation_times'] and 
+                    len(snapshot['invalidation_times']) == 1):
+                    prev_time = self._convert_to_utc(prev_snapshot['generation_times'][0])
+                    curr_time = self._convert_to_utc(snapshot['invalidation_times'][0])
+                    middle_time = prev_time + (curr_time - prev_time) / 2
+                    new_time = Literal(middle_time.isoformat(), datatype=XSD.dateTime)
+            else:
+                new_time = self._default_time
             
-                if index > 0:
-                    prev_snapshot = snapshots[index-1]
-                    if prev_snapshot['invalidation_times']:
-                        new_time = prev_snapshot['invalidation_times'][0]
-                    elif (prev_snapshot['generation_times'] and
-                          snapshot['invalidation_times'] and 
-                          len(snapshot['invalidation_times']) == 1):
-                        prev_time = self._convert_to_utc(prev_snapshot['generation_times'][0])
-                        curr_time = self._convert_to_utc(snapshot['invalidation_times'][0])
-                        middle_time = prev_time + (curr_time - prev_time) / 2
-                        new_time = Literal(middle_time.isoformat(), datatype=XSD.dateTime)
-                else:
-                    new_time = self._default_time
-                
-                if new_time:
-                    context.add((snapshot['uri'], PROV.generatedAtTime, new_time))
-                    self._log_modification(
-                        str(snapshot['uri']),
-                        "Added generatedAtTime",
-                        f"{str(new_time)}"
-                    )
-                    modified = True
+            if new_time:
+                context.add((snapshot['uri'], PROV.generatedAtTime, new_time))
+                self._log_modification(
+                    str(snapshot['uri']),
+                    "Added generatedAtTime",
+                    f"{str(new_time)}"
+                )
+                modified = True
         
         return modified
 
@@ -272,24 +292,32 @@ class ProvenanceProcessor:
         snapshot = snapshots[index]
         next_snapshot = snapshots[index + 1]
 
-        if len(snapshot['invalidation_times']) != 1:
-            if snapshot['invalidation_times']:
-                self._remove_multiple_timestamps(
-                    context, snapshot['uri'], PROV.invalidatedAtTime, 
-                    snapshot['invalidation_times']
-                )
-                modified = True
-
+        if len(snapshot['invalidation_times']) > 1:
+            # Se ci sono multipli timestamp, mantieni solo il più vecchio
+            earliest_time = self._get_earliest_timestamp(snapshot['invalidation_times'])
+            
+            # Rimuovi tutti i timestamp esistenti
+            self._remove_multiple_timestamps(
+                context, snapshot['uri'], PROV.invalidatedAtTime, 
+                snapshot['invalidation_times']
+            )
+            
+            # Aggiungi il timestamp più vecchio
+            context.add((snapshot['uri'], PROV.invalidatedAtTime, earliest_time))
+            self._log_modification(
+                str(snapshot['uri']),
+                "Kept earliest invalidatedAtTime",
+                f"{str(earliest_time)}"
+            )
+            modified = True
+        elif len(snapshot['invalidation_times']) == 0:
             new_time = None
             if next_snapshot['generation_times']:
                 if len(next_snapshot['generation_times']) == 1:
                     new_time = next_snapshot['generation_times'][0]
                 else:
-                    earliest_time = min(
-                        self._convert_to_utc(ts) 
-                        for ts in next_snapshot['generation_times']
-                    )
-                    new_time = Literal(earliest_time.isoformat(), datatype=XSD.dateTime)
+                    earliest_time = self._get_earliest_timestamp(next_snapshot['generation_times'])
+                    new_time = earliest_time
 
             if new_time:
                 context.add((snapshot['uri'], PROV.invalidatedAtTime, new_time))
