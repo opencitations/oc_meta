@@ -11,7 +11,7 @@ from rdflib.namespace import XSD
 
 class TestProvenanceFixing(unittest.TestCase):
     def setUp(self):
-        self.processor = ProvenanceProcessor()
+        self.processor = ProvenanceProcessor(log_dir='test/fix_provenance_logs')
 
         self.temp_dir = "test_temp_dir"
         if not os.path.exists(self.temp_dir):
@@ -180,7 +180,7 @@ class TestProvenanceFixing(unittest.TestCase):
             zf.writestr('se.json', json.dumps(test_data))
             
         # Processa il file
-        result = self.processor.process_file(test_file)
+        result = self.processor.process_file(test_file, 'test/fix_provenance_logs')
         self.assertIsNotNone(result)
         
         # Verifica il contenuto del file risultante

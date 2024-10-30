@@ -3,8 +3,9 @@ import os
 import re
 import zipfile
 import logging
+import logging.handlers
 from datetime import datetime, timezone
-from multiprocessing import cpu_count
+from multiprocessing import cpu_count, current_process
 from typing import Optional, List, Tuple
 from zoneinfo import ZoneInfo
 
@@ -15,32 +16,62 @@ from tqdm import tqdm
 
 PROV = Namespace("http://www.w3.org/ns/prov#")
 
-def setup_logging(log_dir: str) -> None:
-    """Setup logging configuration for both processing and modifications logs."""
+class TqdmToLogger:
+    """
+    Output stream for tqdm which will output to logger.
+    """
+    def __init__(self, logger, level=logging.INFO):
+        self.logger = logger
+        self.level = level
+        self.last_msg = ''
+
+    def write(self, buf):
+        # Don't print empty lines
+        msg = buf.strip()
+        if msg and msg != self.last_msg:
+            self.logger.log(self.level, msg)
+            self.last_msg = msg
+    
+    def flush(self):
+        pass
+
+def get_process_specific_logger(log_dir: str, logger_name: str) -> logging.Logger:
+    """Create a process-specific rotating logger."""
     os.makedirs(log_dir, exist_ok=True)
+
+    process_name = current_process().name
+    log_filename = f"{logger_name}_{process_name}.log"
+    logger = logging.getLogger(f"{logger_name}_{process_name}")
     
-    # Setup processing logger
-    process_logger = logging.getLogger('processing')
-    process_logger.setLevel(logging.INFO)
-    process_handler = logging.FileHandler(os.path.join(log_dir, 'processing.log'))
-    process_handler.setFormatter(logging.Formatter('%(asctime)s - %(message)s'))
-    process_logger.addHandler(process_handler)
+    if not logger.handlers:  # Avoid adding handlers multiple times
+        logger.setLevel(logging.INFO)
+        
+        # Create a rotating file handler
+        handler = logging.handlers.RotatingFileHandler(
+            filename=os.path.join(log_dir, log_filename),
+            maxBytes=10*1024*1024,  # 10MB per file
+            backupCount=5,  # Keep 5 backup files
+            encoding='utf-8'
+        )
+        
+        formatter = logging.Formatter('%(asctime)s - %(message)s')
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+        
+        # Prevent propagation to avoid duplicate logs
+        logger.propagate = False
     
-    # Setup modifications logger
-    mod_logger = logging.getLogger('modifications')
-    mod_logger.setLevel(logging.INFO)
-    mod_handler = logging.FileHandler(os.path.join(log_dir, 'modifications.log'))
-    mod_handler.setFormatter(logging.Formatter('%(asctime)s - %(message)s'))
-    mod_logger.addHandler(mod_handler)
+    return logger
 
 class ProvenanceProcessor:
-    def __init__(self):
+    def __init__(self, log_dir: str):
         self._snapshot_number_pattern = re.compile(r'/prov/se/(\d+)$')
         self._default_time = Literal(
             datetime(2022, 12, 20, tzinfo=timezone.utc).isoformat(),
             datatype=XSD.dateTime
         )
-        self.logger = logging.getLogger('modifications')
+        self.log_dir = log_dir
+        self.logger = get_process_specific_logger(log_dir, 'modifications')
         
     def _log_modification(self, entity_uri: str, mod_type: str, message: str) -> None:
         """Log a modification in real-time."""
@@ -107,12 +138,12 @@ class ProvenanceProcessor:
             )
 
     @staticmethod
-    def process_file(prov_file_path: str) -> Optional[bool]:
+    def process_file(prov_file_path: str, log_dir: str) -> Optional[bool]:
         """Process a single provenance file with optimized operations."""
-        process_logger = logging.getLogger('processing')
-        processor = ProvenanceProcessor()
+        process_logger = get_process_specific_logger(log_dir, 'processing')
+        processor = ProvenanceProcessor(log_dir)
         
-        try:            
+        try:
             with zipfile.ZipFile(prov_file_path, 'r') as zip_ref:
                 g = ConjunctiveGraph()
                 for filename in zip_ref.namelist():
@@ -271,10 +302,11 @@ class ProvenanceProcessor:
         
         return modified
 
-def process_chunk(file_chunk):
+def process_chunk(args):
+    file_chunk, log_dir = args
     results = []
     for file in file_chunk:
-        result = ProvenanceProcessor.process_file(file)
+        result = ProvenanceProcessor.process_file(file, log_dir)
         if result:
             results.append(file)
     return results
@@ -288,10 +320,10 @@ def main():
                        help="Directory for log files (default: logs)")
     args = parser.parse_args()
     
-    setup_logging(args.log_dir)
-    process_logger = logging.getLogger('processing')
+    os.makedirs(args.log_dir, exist_ok=True)
+    main_logger = get_process_specific_logger(args.log_dir, 'main')
     
-    process_logger.info("Starting provenance fix process")
+    main_logger.info("Starting provenance fix process")
     
     prov_files = [
         os.path.join(root, file)
@@ -303,13 +335,25 @@ def main():
     chunk_size = 100
     file_chunks = [prov_files[i:i + chunk_size] 
                   for i in range(0, len(prov_files), chunk_size)]
+    
+    # Prepare chunks with log_dir
+    chunk_args = [(chunk, args.log_dir) for chunk in file_chunks]
 
     modified_files = []
+
+    process_logger = get_process_specific_logger(args.log_dir, 'processing')
+    tqdm_output = TqdmToLogger(process_logger)
+
     with ProcessPool(max_workers=args.processes, max_tasks=1) as pool:
-        future = pool.map(process_chunk, file_chunks)
+        future = pool.map(process_chunk, chunk_args)
         iterator = future.result()
 
-        with tqdm(total=len(file_chunks), desc="Fixing provenance files") as pbar:
+        with tqdm(
+            total=len(file_chunks), 
+            desc="Fixing provenance files", 
+            file=tqdm_output,
+            mininterval=5.0,
+            maxinterval=10.0) as pbar:
             try:
                 while True:
                     try:
@@ -319,15 +363,15 @@ def main():
                     except StopIteration:
                         break
                     except TimeoutError as error:
-                        process_logger.error(f"Chunk processing timed out: {error}")
+                        main_logger.error(f"Chunk processing timed out: {error}")
                     except Exception as error:
-                        process_logger.error(f"Error processing chunk: {error}")
+                        main_logger.error(f"Error processing chunk: {error}")
             except KeyboardInterrupt:
-                process_logger.warning("Processing interrupted by user")
+                main_logger.warning("Processing interrupted by user")
                 future.cancel()
                 raise
 
-    process_logger.info(f"Process completed. Total files modified: {len(modified_files)}")
+    main_logger.info(f"Process completed. Total files modified: {len(modified_files)}")
     print(f"\nProcessing complete. Check logs in {args.log_dir} directory.")
     print(f"Total files modified: {len(modified_files)}")
 
