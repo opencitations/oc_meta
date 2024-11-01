@@ -136,7 +136,7 @@ class ProvenanceProcessor:
         return sorted_snapshots
 
     def _fill_missing_snapshots(self, context: ConjunctiveGraph, 
-                              snapshots: List[dict], base_uri: str) -> List[dict]:
+                            snapshots: List[dict], base_uri: str) -> List[dict]:
         """Fill in missing snapshots in the sequence."""
         if not snapshots:
             return snapshots
@@ -145,47 +145,64 @@ class ProvenanceProcessor:
         max_num = max(s['number'] for s in snapshots)
         min_num = min(s['number'] for s in snapshots)
         existing_numbers = {s['number'] for s in snapshots}
+        existing_snapshots = {s['number']: s for s in snapshots}
         
         for i in range(min_num, max_num + 1):
             if i in existing_numbers:
-                filled_snapshots.append(next(s for s in snapshots if s['number'] == i))
+                filled_snapshots.append(existing_snapshots[i])
             else:
                 # Create missing snapshot
                 missing_uri = URIRef(f"{base_uri}/se/{i}")
+                
+                # Trova il primo snapshot precedente disponibile
+                prev_num = i - 1
+                while prev_num >= min_num and prev_num not in existing_numbers:
+                    prev_num -= 1
+                prev_snapshot = existing_snapshots.get(prev_num)
+                
+                # Trova il primo snapshot successivo disponibile
+                next_num = i + 1
+                while next_num <= max_num and next_num not in existing_numbers:
+                    next_num += 1
+                next_snapshot = existing_snapshots.get(next_num)
+                
                 missing_snapshot = self._create_missing_snapshot(
                     context, missing_uri, i, 
-                    next(s for s in snapshots if s['number'] == i-1),
-                    next(s for s in snapshots if s['number'] == i+1)
+                    prev_snapshot, next_snapshot
                 )
                 filled_snapshots.append(missing_snapshot)
-                
+                    
         return sorted(filled_snapshots, key=lambda x: x['number'])
 
     def _create_missing_snapshot(self, context: ConjunctiveGraph, 
-                               missing_uri: URIRef, number: int,
-                               prev_snapshot: dict, next_snapshot: dict) -> dict:
+                            missing_uri: URIRef, number: int,
+                            prev_snapshot: Optional[dict], 
+                            next_snapshot: Optional[dict]) -> dict:
         """Create a missing snapshot with basic information."""
-        entity_uri = URIRef(self._get_entity_from_prov_graph(str(missing_uri.split('se')[0])))
-
+        entity_uri = URIRef(self._get_entity_from_prov_graph(str(missing_uri).split('se')[0]))
+        
         # Add basic triples for the missing snapshot
         context.add((missing_uri, RDF.type, PROV.Entity))
         context.add((missing_uri, PROV.specializationOf, entity_uri))
-        context.add((missing_uri, PROV.wasDerivedFrom, prev_snapshot['uri']))
+        
+        # Add wasDerivedFrom if we have a previous snapshot
+        if prev_snapshot:
+            context.add((missing_uri, PROV.wasDerivedFrom, prev_snapshot['uri']))
         
         generation_time = None
         invalidation_time = None
         
         # Try to infer timestamps
-        if prev_snapshot['invalidation_times']:
+        if prev_snapshot and prev_snapshot['invalidation_times']:
             generation_time = prev_snapshot['invalidation_times'][0]
-        elif prev_snapshot['generation_times'] and next_snapshot['generation_times']:
+        elif prev_snapshot and prev_snapshot['generation_times'] and next_snapshot and next_snapshot['generation_times']:
             # Calculate a time between prev generation and next generation
             prev_time = self._convert_to_utc(prev_snapshot['generation_times'][0])
             next_time = self._convert_to_utc(next_snapshot['generation_times'][0])
             middle_time = prev_time + (next_time - prev_time) / 2
             generation_time = Literal(middle_time.isoformat(), datatype=XSD.dateTime)
-            
-        if next_snapshot['generation_times']:
+        
+        if next_snapshot and next_snapshot['generation_times']:
             invalidation_time = next_snapshot['generation_times'][0]
             
         # Add timestamps if we could infer them

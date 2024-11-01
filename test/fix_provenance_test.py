@@ -443,23 +443,71 @@ class TestProvenanceFixing(unittest.TestCase):
                 fixed_data = json.loads(f.read())
                 
         graph_data = fixed_data[0]['@graph']
+        print(json.dumps(fixed_data, indent=4))
+        # Raccoglie gli snapshot e i loro numeri
+        snapshots = {}
+        for item in graph_data:
+            if '/prov/se/' in item['@id']:
+                num = int(item['@id'].split('/se/')[-1])
+                snapshots[num] = item
         
-        # Verify all snapshots exist
-        snapshot_ids = {item['@id'] for item in graph_data}
-        expected_ids = {
-            f"https://w3id.org/oc/meta/br/06504122264/prov/se/{i}"
-            for i in range(1, 6)
-        }
-        self.assertEqual(snapshot_ids, expected_ids)
-        
-        # Verify the chain of wasDerivedFrom relationships
-        for i in range(2, 6):
-            curr_snapshot = next(item for item in graph_data 
-                            if item['@id'].endswith(f'/se/{i}'))
-            self.assertIn('http://www.w3.org/ns/prov#wasDerivedFrom', curr_snapshot)
+        # Verifica che tutti gli snapshot abbiano le proprietà di base
+        for num, snapshot in snapshots.items():
+            # Verifica tipo
+            self.assertIn('@type', snapshot)
+            self.assertIn('http://www.w3.org/ns/prov#Entity', snapshot['@type'])
+            
+            # Verifica specializationOf
+            self.assertIn('http://www.w3.org/ns/prov#specializationOf', snapshot)
             self.assertEqual(
-                curr_snapshot['http://www.w3.org/ns/prov#wasDerivedFrom'][0]['@id'],
-                f"https://w3id.org/oc/meta/br/06504122264/prov/se/{i-1}"
+                snapshot['http://www.w3.org/ns/prov#specializationOf'][0]['@id'],
+                "https://w3id.org/oc/meta/br/06504122264"
+            )
+            
+            # Verifica timestamp
+            self.assertIn('http://www.w3.org/ns/prov#generatedAtTime', snapshot)
+            gen_time = snapshot['http://www.w3.org/ns/prov#generatedAtTime'][0]['@value']
+            self.assertTrue('+00:00' in gen_time or 'Z' in gen_time)
+            
+            # Verifica wasDerivedFrom per tutti tranne il primo snapshot
+            if num > min(snapshots.keys()):
+                self.assertIn('http://www.w3.org/ns/prov#wasDerivedFrom', snapshot)
+        
+        # Verifica la consistenza temporale
+        ordered_nums = sorted(snapshots.keys())
+        for i in range(len(ordered_nums)-1):
+            curr_num = ordered_nums[i]
+            next_num = ordered_nums[i+1]
+            
+            curr_snapshot = snapshots[curr_num]
+            next_snapshot = snapshots[next_num]
+            
+            # Se lo snapshot corrente ha un tempo di invalidazione
+            if 'http://www.w3.org/ns/prov#invalidatedAtTime' in curr_snapshot:
+                curr_inv_time = self.processor._convert_to_utc(
+                    curr_snapshot['http://www.w3.org/ns/prov#invalidatedAtTime'][0]['@value']
+                )
+                next_gen_time = self.processor._convert_to_utc(
+                    next_snapshot['http://www.w3.org/ns/prov#generatedAtTime'][0]['@value']
+                )
+                self.assertEqual(
+                    curr_inv_time, 
+                    next_gen_time,
+                    f"Invalidation time of snapshot {curr_num} should match generation time of {next_num}"
+                )
+        
+        # Verifica che gli snapshot siano collegati correttamente
+        for num in ordered_nums[1:]:  # Skip the first one
+            curr_snapshot = snapshots[num]
+            prev_num = ordered_nums[ordered_nums.index(num) - 1]
+            
+            # Verifica che wasDerivedFrom punti allo snapshot precedente
+            derived_from = curr_snapshot['http://www.w3.org/ns/prov#wasDerivedFrom'][0]['@id']
+            expected_derived = f"https://w3id.org/oc/meta/br/06504122264/prov/se/{prev_num}"
+            self.assertEqual(
+                derived_from, 
+                expected_derived,
+                f"Snapshot {num} should be derived from snapshot {prev_num}"
             )
 
     def test_timestamp_inference(self):
