@@ -136,7 +136,7 @@ class ProvenanceProcessor:
         return sorted_snapshots
 
     def _fill_missing_snapshots(self, context: ConjunctiveGraph, 
-                            snapshots: List[dict], base_uri: str) -> List[dict]:
+                                snapshots: List[dict], base_uri: str) -> List[dict]:
         """Fill in missing snapshots in the sequence."""
         if not snapshots:
             return snapshots
@@ -154,13 +154,13 @@ class ProvenanceProcessor:
                 # Create missing snapshot
                 missing_uri = URIRef(f"{base_uri}/se/{i}")
                 
-                # Trova il primo snapshot precedente disponibile
+                # Find the first previous available snapshot
                 prev_num = i - 1
                 while prev_num >= min_num and prev_num not in existing_numbers:
                     prev_num -= 1
                 prev_snapshot = existing_snapshots.get(prev_num)
                 
-                # Trova il primo snapshot successivo disponibile
+                # Find the first next available snapshot
                 next_num = i + 1
                 while next_num <= max_num and next_num not in existing_numbers:
                     next_num += 1
@@ -170,6 +170,10 @@ class ProvenanceProcessor:
                     context, missing_uri, i, 
                     prev_snapshot, next_snapshot
                 )
+                
+                # Add the missing snapshot to existing_snapshots and existing_numbers
+                existing_snapshots[i] = missing_snapshot
+                existing_numbers.add(i)
                 filled_snapshots.append(missing_snapshot)
                     
         return sorted(filled_snapshots, key=lambda x: x['number'])
