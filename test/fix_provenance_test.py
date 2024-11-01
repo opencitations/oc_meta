@@ -290,5 +290,238 @@ class TestProvenanceFixing(unittest.TestCase):
                 if was_changed:
                     self.assertTrue('+00:00' in str(new_literal) or 'Z' in str(new_literal))
 
+    def test_missing_snapshots(self):
+        """Test handling of missing snapshots in the sequence."""
+        # Test data with snapshot 2 missing from sequence 1,3,4
+        test_data = {
+            "@graph": [
+                {
+                    "@id": "https://w3id.org/oc/meta/br/06504122264/prov/se/1",
+                    "@type": ["http://www.w3.org/ns/prov#Entity"],
+                    "http://www.w3.org/ns/prov#generatedAtTime": [{
+                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                        "@value": "2023-12-13T15:05:18+00:00"
+                    }],
+                    "http://www.w3.org/ns/prov#invalidatedAtTime": [{
+                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                        "@value": "2023-12-22T18:06:49+00:00"
+                    }],
+                    "http://www.w3.org/ns/prov#specializationOf": [{
+                        "@id": "https://w3id.org/oc/meta/br/06504122264"
+                    }]
+                },
+                {
+                    "@id": "https://w3id.org/oc/meta/br/06504122264/prov/se/3",
+                    "@type": ["http://www.w3.org/ns/prov#Entity"],
+                    "http://www.w3.org/ns/prov#generatedAtTime": [{
+                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                        "@value": "2023-12-31T22:08:21+00:00"
+                    }],
+                    "http://www.w3.org/ns/prov#specializationOf": [{
+                        "@id": "https://w3id.org/oc/meta/br/06504122264"
+                    }]
+                },
+                {
+                    "@id": "https://w3id.org/oc/meta/br/06504122264/prov/se/4",
+                    "@type": ["http://www.w3.org/ns/prov#Entity"],
+                    "http://www.w3.org/ns/prov#generatedAtTime": [{
+                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                        "@value": "2024-01-15T10:30:00+00:00"
+                    }],
+                    "http://www.w3.org/ns/prov#specializationOf": [{
+                        "@id": "https://w3id.org/oc/meta/br/06504122264"
+                    }]
+                }
+            ],
+            "@id": "https://w3id.org/oc/meta/br/06504122264/prov/"
+        }
+        
+        test_file = os.path.join(self.temp_dir, "missing_snapshot.zip")
+        with zipfile.ZipFile(test_file, 'w') as zf:
+            zf.writestr('se.json', json.dumps(test_data))
+            
+        # Process the file
+        result = self.processor.process_file(test_file, 'test/fix_provenance_logs')
+        self.assertTrue(result)
+        
+        # Verify the resulting file
+        with zipfile.ZipFile(test_file, 'r') as zf:
+            with zf.open('se.json') as f:
+                fixed_data = json.loads(f.read())
+        print(json.dumps(fixed_data, indent=4))
+        graph_data = fixed_data[0]['@graph']
+        
+        # Check if the missing snapshot 2 was created
+        snapshot_ids = {item['@id'] for item in graph_data}
+        self.assertIn(
+            "https://w3id.org/oc/meta/br/06504122264/prov/se/2",
+            snapshot_ids,
+            "Missing snapshot 2 should have been created"
+        )
+        
+        # Find the created snapshot
+        snapshot_2 = next(item for item in graph_data 
+                        if item['@id'].endswith('/prov/se/2'))
+        
+        # Verify basic properties of the created snapshot
+        self.assertIn('@type', snapshot_2)
+        self.assertIn('http://www.w3.org/ns/prov#Entity', snapshot_2['@type'])
+        
+        # Verify specializationOf relationship
+        self.assertIn('http://www.w3.org/ns/prov#specializationOf', snapshot_2)
+        self.assertEqual(
+            snapshot_2['http://www.w3.org/ns/prov#specializationOf'][0]['@id'],
+            "https://w3id.org/oc/meta/br/06504122264"
+        )
+        
+        # Verify wasDerivedFrom relationship
+        self.assertIn('http://www.w3.org/ns/prov#wasDerivedFrom', snapshot_2)
+        self.assertEqual(
+            snapshot_2['http://www.w3.org/ns/prov#wasDerivedFrom'][0]['@id'],
+            "https://w3id.org/oc/meta/br/06504122264/prov/se/1"
+        )
+        
+        # Verify timestamps
+        self.assertIn('http://www.w3.org/ns/prov#generatedAtTime', snapshot_2)
+        self.assertIn('http://www.w3.org/ns/prov#invalidatedAtTime', snapshot_2)
+
+    def test_multiple_missing_snapshots(self):
+        """Test handling of multiple consecutive missing snapshots."""
+        # Test data with snapshots 2 and 3 missing from sequence 1,4,5
+        test_data = {
+            "@graph": [
+                {
+                    "@id": "https://w3id.org/oc/meta/br/06504122264/prov/se/1",
+                    "@type": ["http://www.w3.org/ns/prov#Entity"],
+                    "http://www.w3.org/ns/prov#generatedAtTime": [{
+                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                        "@value": "2023-12-13T15:05:18+00:00"
+                    }],
+                    "http://www.w3.org/ns/prov#invalidatedAtTime": [{
+                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                        "@value": "2023-12-22T18:06:49+00:00"
+                    }],
+                    "http://www.w3.org/ns/prov#specializationOf": [{
+                        "@id": "https://w3id.org/oc/meta/br/06504122264"
+                    }]
+                },
+                {
+                    "@id": "https://w3id.org/oc/meta/br/06504122264/prov/se/4",
+                    "@type": ["http://www.w3.org/ns/prov#Entity"],
+                    "http://www.w3.org/ns/prov#generatedAtTime": [{
+                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                        "@value": "2024-01-15T10:30:00+00:00"
+                    }],
+                    "http://www.w3.org/ns/prov#specializationOf": [{
+                        "@id": "https://w3id.org/oc/meta/br/06504122264"
+                    }]
+                },
+                {
+                    "@id": "https://w3id.org/oc/meta/br/06504122264/prov/se/5",
+                    "@type": ["http://www.w3.org/ns/prov#Entity"],
+                    "http://www.w3.org/ns/prov#generatedAtTime": [{
+                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                        "@value": "2024-01-20T14:45:00+00:00"
+                    }],
+                    "http://www.w3.org/ns/prov#specializationOf": [{
+                        "@id": "https://w3id.org/oc/meta/br/06504122264"
+                    }]
+                }
+            ],
+            "@id": "https://w3id.org/oc/meta/br/06504122264/prov/"
+        }
+        
+        test_file = os.path.join(self.temp_dir, "multiple_missing_snapshots.zip")
+        with zipfile.ZipFile(test_file, 'w') as zf:
+            zf.writestr('se.json', json.dumps(test_data))
+            
+        result = self.processor.process_file(test_file, 'test/fix_provenance_logs')
+        self.assertTrue(result)
+        
+        with zipfile.ZipFile(test_file, 'r') as zf:
+            with zf.open('se.json') as f:
+                fixed_data = json.loads(f.read())
+                
+        graph_data = fixed_data[0]['@graph']
+        
+        # Verify all snapshots exist
+        snapshot_ids = {item['@id'] for item in graph_data}
+        expected_ids = {
+            f"https://w3id.org/oc/meta/br/06504122264/prov/se/{i}"
+            for i in range(1, 6)
+        }
+        self.assertEqual(snapshot_ids, expected_ids)
+        
+        # Verify the chain of wasDerivedFrom relationships
+        for i in range(2, 6):
+            curr_snapshot = next(item for item in graph_data 
+                            if item['@id'].endswith(f'/se/{i}'))
+            self.assertIn('http://www.w3.org/ns/prov#wasDerivedFrom', curr_snapshot)
+            self.assertEqual(
+                curr_snapshot['http://www.w3.org/ns/prov#wasDerivedFrom'][0]['@id'],
+                f"https://w3id.org/oc/meta/br/06504122264/prov/se/{i-1}"
+            )
+
+    def test_timestamp_inference(self):
+        """Test timestamp inference for missing snapshots."""
+        # Create test data where we can verify timestamp inference logic
+        test_data = {
+            "@graph": [
+                {
+                    "@id": "https://w3id.org/oc/meta/br/06504122264/prov/se/1",
+                    "@type": ["http://www.w3.org/ns/prov#Entity"],
+                    "http://www.w3.org/ns/prov#generatedAtTime": [{
+                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                        "@value": "2023-12-13T12:00:00+00:00"
+                    }],
+                    "http://www.w3.org/ns/prov#invalidatedAtTime": [{
+                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                        "@value": "2023-12-13T14:00:00+00:00"
+                    }],
+                    "http://www.w3.org/ns/prov#specializationOf": [{
+                        "@id": "https://w3id.org/oc/meta/br/06504122264"
+                    }]
+                },
+                {
+                    "@id": "https://w3id.org/oc/meta/br/06504122264/prov/se/3",
+                    "@type": ["http://www.w3.org/ns/prov#Entity"],
+                    "http://www.w3.org/ns/prov#generatedAtTime": [{
+                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                        "@value": "2023-12-13T18:00:00+00:00"
+                    }],
+                    "http://www.w3.org/ns/prov#specializationOf": [{
+                        "@id": "https://w3id.org/oc/meta/br/06504122264"
+                    }]
+                }
+            ],
+            "@id": "https://w3id.org/oc/meta/br/06504122264/prov/"
+        }
+        
+        test_file = os.path.join(self.temp_dir, "timestamp_inference.zip")
+        with zipfile.ZipFile(test_file, 'w') as zf:
+            zf.writestr('se.json', json.dumps(test_data))
+            
+        result = self.processor.process_file(test_file, 'test/fix_provenance_logs')
+        self.assertTrue(result)
+        
+        with zipfile.ZipFile(test_file, 'r') as zf:
+            with zf.open('se.json') as f:
+                fixed_data = json.loads(f.read())
+                
+        graph_data = fixed_data[0]['@graph']
+        
+        # Find the created snapshot 2
+        snapshot_2 = next(item for item in graph_data 
+                        if item['@id'].endswith('/prov/se/2'))
+        
+        # Verify timestamps were inferred correctly
+        self.assertIn('http://www.w3.org/ns/prov#generatedAtTime', snapshot_2)
+        gen_time = snapshot_2['http://www.w3.org/ns/prov#generatedAtTime'][0]['@value']
+        self.assertEqual(gen_time, "2023-12-13T14:00:00+00:00")
+        
+        self.assertIn('http://www.w3.org/ns/prov#invalidatedAtTime', snapshot_2)
+        inv_time = snapshot_2['http://www.w3.org/ns/prov#invalidatedAtTime'][0]['@value']
+        self.assertEqual(inv_time, "2023-12-13T18:00:00+00:00")
+
 if __name__ == '__main__':
     unittest.main()

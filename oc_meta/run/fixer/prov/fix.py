@@ -1,17 +1,17 @@
 import argparse
+import logging
+import logging.handlers
 import os
 import re
 import zipfile
-import logging
-import logging.handlers
 from datetime import datetime, timezone
 from multiprocessing import cpu_count, current_process
-from typing import Optional, List, Tuple
+from typing import List, Optional, Tuple
 from zoneinfo import ZoneInfo
 
 from pebble import ProcessPool
 from rdflib import ConjunctiveGraph, Literal, Namespace, URIRef
-from rdflib.namespace import XSD
+from rdflib.namespace import RDF, XSD
 from tqdm import tqdm
 
 PROV = Namespace("http://www.w3.org/ns/prov#")
@@ -110,9 +110,13 @@ class ProvenanceProcessor:
         """Collect all snapshot information in a single pass."""
         snapshots = []
         seen_uris = set()
+        base_uri = None
         
         for s, p, o in context.triples((None, None, None)):
             if '/prov/se/' in str(s) and str(s) not in seen_uris:
+                if base_uri is None:
+                    base_uri = str(s).rsplit('/se/', 1)[0]
+                
                 snapshot = {
                     'uri': s,
                     'number': self._extract_snapshot_number(s),
@@ -122,7 +126,97 @@ class ProvenanceProcessor:
                 snapshots.append(snapshot)
                 seen_uris.add(str(s))
         
-        return sorted(snapshots, key=lambda x: x['number'])
+        sorted_snapshots = sorted(snapshots, key=lambda x: x['number'])
+        
+        if len(sorted_snapshots) >= 2:
+            # Identify and fill missing snapshots
+            filled_snapshots = self._fill_missing_snapshots(context, sorted_snapshots, base_uri)
+            return filled_snapshots
+            
+        return sorted_snapshots
+
+    def _fill_missing_snapshots(self, context: ConjunctiveGraph, 
+                              snapshots: List[dict], base_uri: str) -> List[dict]:
+        """Fill in missing snapshots in the sequence."""
+        if not snapshots:
+            return snapshots
+            
+        filled_snapshots = []
+        max_num = max(s['number'] for s in snapshots)
+        min_num = min(s['number'] for s in snapshots)
+        existing_numbers = {s['number'] for s in snapshots}
+        
+        for i in range(min_num, max_num + 1):
+            if i in existing_numbers:
+                filled_snapshots.append(next(s for s in snapshots if s['number'] == i))
+            else:
+                # Create missing snapshot
+                missing_uri = URIRef(f"{base_uri}/se/{i}")
+                missing_snapshot = self._create_missing_snapshot(
+                    context, missing_uri, i, 
+                    next(s for s in snapshots if s['number'] == i-1),
+                    next(s for s in snapshots if s['number'] == i+1)
+                )
+                filled_snapshots.append(missing_snapshot)
+                
+        return sorted(filled_snapshots, key=lambda x: x['number'])
+
+    def _create_missing_snapshot(self, context: ConjunctiveGraph, 
+                               missing_uri: URIRef, number: int,
+                               prev_snapshot: dict, next_snapshot: dict) -> dict:
+        """Create a missing snapshot with basic information."""
+        entity_uri = URIRef(self._get_entity_from_prov_graph(str(missing_uri.split('se')[0])))
+
+        # Add basic triples for the missing snapshot
+        context.add((missing_uri, RDF.type, PROV.Entity))
+        context.add((missing_uri, PROV.specializationOf, entity_uri))
+        context.add((missing_uri, PROV.wasDerivedFrom, prev_snapshot['uri']))
+        
+        generation_time = None
+        invalidation_time = None
+        
+        # Try to infer timestamps
+        if prev_snapshot['invalidation_times']:
+            generation_time = prev_snapshot['invalidation_times'][0]
+        elif prev_snapshot['generation_times'] and next_snapshot['generation_times']:
+            # Calculate a time between prev generation and next generation
+            prev_time = self._convert_to_utc(prev_snapshot['generation_times'][0])
+            next_time = self._convert_to_utc(next_snapshot['generation_times'][0])
+            middle_time = prev_time + (next_time - prev_time) / 2
+            generation_time = Literal(middle_time.isoformat(), datatype=XSD.dateTime)
+            
+        if next_snapshot['generation_times']:
+            invalidation_time = next_snapshot['generation_times'][0]
+            
+        # Add timestamps if we could infer them
+        if generation_time:
+            context.add((missing_uri, PROV.generatedAtTime, generation_time))
+            self._log_modification(
+                str(missing_uri),
+                "Added generatedAtTime for missing snapshot",
+                str(generation_time)
+            )
+            
+        if invalidation_time:
+            context.add((missing_uri, PROV.invalidatedAtTime, invalidation_time))
+            self._log_modification(
+                str(missing_uri),
+                "Added invalidatedAtTime for missing snapshot",
+                str(invalidation_time)
+            )
+            
+        self._log_modification(
+            str(missing_uri),
+            "Created missing snapshot",
+            f"number {number}"
+        )
+        
+        return {
+            'uri': missing_uri,
+            'number': number,
+            'generation_times': [generation_time] if generation_time else [],
+            'invalidation_times': [invalidation_time] if invalidation_time else []
+        }
 
     def _remove_multiple_timestamps(self, context: ConjunctiveGraph, 
                                   snapshot_uri: URIRef, 
