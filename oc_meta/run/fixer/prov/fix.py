@@ -192,20 +192,55 @@ class ProvenanceProcessor:
         generation_time = None
         invalidation_time = None
         
-        # Try to infer timestamps
-        if prev_snapshot and prev_snapshot['invalidation_times']:
-            generation_time = prev_snapshot['invalidation_times'][0]
-        elif prev_snapshot and prev_snapshot['generation_times'] and next_snapshot and next_snapshot['generation_times']:
-            # Calculate a time between prev generation and next generation
-            prev_time = self._convert_to_utc(prev_snapshot['generation_times'][0])
-            next_time = self._convert_to_utc(next_snapshot['generation_times'][0])
-            middle_time = prev_time + (next_time - prev_time) / 2
-            generation_time = Literal(middle_time.isoformat(), datatype=XSD.dateTime)
-        
-        if next_snapshot and next_snapshot['generation_times']:
-            invalidation_time = next_snapshot['generation_times'][0]
+        # First check if it is the first snapshot and lacks generation time
+        if not prev_snapshot and number == 1:
+            generation_time = self._default_time
+        else:
+            # If we have previous snapshot, generation time is its invalidation time
+            if prev_snapshot and prev_snapshot['invalidation_times']:
+                if number == prev_snapshot['number'] + 1:
+                    generation_time = prev_snapshot['invalidation_times'][0]
             
-        # Add timestamps if we could infer them
+            # If we have next snapshot, invalidation time is its generation time
+            if next_snapshot and next_snapshot['generation_times']:
+                if number == next_snapshot['number'] - 1:
+                    invalidation_time = next_snapshot['generation_times'][0]
+                    
+            # If both times are missing, or one of them, we need to compute intermediate times
+            if not generation_time or not invalidation_time:
+                start_time = None
+                end_time = None
+                
+                # Find temporal reference points
+                if prev_snapshot:
+                    if prev_snapshot['invalidation_times']:
+                        start_time = self._convert_to_utc(prev_snapshot['invalidation_times'][0])
+                    elif prev_snapshot['generation_times']:
+                        start_time = self._convert_to_utc(prev_snapshot['generation_times'][0])
+                        
+                if next_snapshot:
+                    if next_snapshot['generation_times']:
+                        end_time = self._convert_to_utc(next_snapshot['generation_times'][0])
+                    elif next_snapshot['invalidation_times']:
+                        end_time = self._convert_to_utc(next_snapshot['invalidation_times'][0])
+                
+                if start_time and end_time:
+                    # Calculate how many intervals are between existing snapshots
+                    total_missing = next_snapshot['number'] - prev_snapshot['number'] - 1
+                    position = number - prev_snapshot['number']
+                    
+                    # Uniformly distribute missing times
+                    interval = (end_time - start_time) / (total_missing + 1)
+                    intermediate_time = start_time + (interval * position)
+                    
+                    # Use computed times only if we lack the real ones
+                    if not generation_time:
+                        generation_time = Literal(intermediate_time.isoformat(), datatype=XSD.dateTime)
+                    if not invalidation_time:
+                        next_time = intermediate_time + interval
+                        invalidation_time = Literal(next_time.isoformat(), datatype=XSD.dateTime)
+                        
+        # Add timestamps
         if generation_time:
             context.add((missing_uri, PROV.generatedAtTime, generation_time))
             self._log_modification(
