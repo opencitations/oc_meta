@@ -571,5 +571,247 @@ class TestProvenanceFixing(unittest.TestCase):
         inv_time = snapshot_2['http://www.w3.org/ns/prov#invalidatedAtTime'][0]['@value']
         self.assertEqual(inv_time, "2023-12-13T18:00:00+00:00")
 
+    def test_multiple_descriptions_merge(self):
+        """Test handling of multiple descriptions when merge descriptions are present."""
+        
+        test_data = {
+            "@graph": [
+                {
+                    "@id": "https://w3id.org/oc/meta/br/06504122264/prov/se/1",
+                    "@type": ["http://www.w3.org/ns/prov#Entity"],
+                    "http://purl.org/dc/terms/description": [{
+                        "@value": "The entity 'https://w3id.org/oc/meta/br/06504122264' has been created."
+                    }],
+                    "http://www.w3.org/ns/prov#generatedAtTime": [{
+                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                        "@value": "2023-12-13T15:05:18+00:00"
+                    }]
+                },
+                {
+                    "@id": "https://w3id.org/oc/meta/br/06504122264/prov/se/2",
+                    "@type": ["http://www.w3.org/ns/prov#Entity"],
+                    "http://purl.org/dc/terms/description": [
+                        {
+                            "@value": "The entity 'https://w3id.org/oc/meta/br/06504122264' has been merged with 'https://w3id.org/oc/meta/br/06504122265'."
+                        },
+                        {
+                            "@value": "The entity 'https://w3id.org/oc/meta/br/06504122264' has been merged with 'https://w3id.org/oc/meta/br/06504122266'."
+                        },
+                        {
+                            "@value": "The entity 'https://w3id.org/oc/meta/br/06504122264' has been modified."
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#generatedAtTime": [{
+                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                        "@value": "2023-12-31T22:08:21+00:00"
+                    }]
+                }
+            ],
+            "@id": "https://w3id.org/oc/meta/br/06504122264/prov/"
+        }
+    
+        test_file = os.path.join(self.temp_dir, "multiple_descriptions_merge.zip")
+        with zipfile.ZipFile(test_file, 'w') as zf:
+            zf.writestr('se.json', json.dumps(test_data))
+            
+        result = self.processor.process_file(test_file, 'test/fix_provenance_logs')
+        self.assertTrue(result)
+        
+        with zipfile.ZipFile(test_file, 'r') as zf:
+            with zf.open('se.json') as f:
+                fixed_data = json.loads(f.read())
+                
+        # Find the snapshot in the fixed data
+        snapshot = next(item for item in fixed_data[0]['@graph'] 
+                    if item['@id'].endswith('/prov/se/2'))
+        
+        descriptions = snapshot.get('http://purl.org/dc/terms/description', [])
+        
+        # Verify that both merge descriptions were kept
+        merge_descriptions = [desc for desc in descriptions 
+                            if "has been merged with" in desc['@value']]
+        self.assertEqual(len(merge_descriptions), 2, 
+                        "Both merge descriptions should be preserved")
+        
+        # Verify that non-merge description was removed
+        non_merge_descriptions = [desc for desc in descriptions 
+                                if "has been modified" in desc['@value']]
+        self.assertEqual(len(non_merge_descriptions), 0, 
+                        "Non-merge description should be removed")
+
+    def test_multiple_descriptions_first_snapshot(self):
+        """Test handling of multiple descriptions in the first snapshot."""
+        test_data = {
+            "@graph": [
+                {
+                    "@id": "https://w3id.org/oc/meta/br/06504122264/prov/se/1",
+                    "@type": ["http://www.w3.org/ns/prov#Entity"],
+                    "http://purl.org/dc/terms/description": [
+                        {
+                            "@value": "The entity 'https://w3id.org/oc/meta/br/06504122264' has been created."
+                        },
+                        {
+                            "@value": "The entity 'https://w3id.org/oc/meta/br/06504122264' has been modified."
+                        },
+                        {
+                            "@value": "The entity 'https://w3id.org/oc/meta/br/06504122264' has been merged with 'https://w3id.org/oc/meta/br/06504122265'."
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#generatedAtTime": [{
+                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                        "@value": "2023-12-13T15:05:18+00:00"
+                    }]
+                }
+            ],
+            "@id": "https://w3id.org/oc/meta/br/06504122264/prov/"
+        }
+        
+        test_file = os.path.join(self.temp_dir, "first_snapshot_descriptions.zip")
+        with zipfile.ZipFile(test_file, 'w') as zf:
+            zf.writestr('se.json', json.dumps(test_data))
+            
+        result = self.processor.process_file(test_file, 'test/fix_provenance_logs')
+        self.assertTrue(result)
+        
+        with zipfile.ZipFile(test_file, 'r') as zf:
+            with zf.open('se.json') as f:
+                fixed_data = json.loads(f.read())
+                
+        snapshot = next(item for item in fixed_data[0]['@graph'] 
+                    if item['@id'].endswith('/prov/se/1'))
+        
+        descriptions = snapshot.get('http://purl.org/dc/terms/description', [])
+        
+        # Verify that only creation description was kept
+        self.assertEqual(len(descriptions), 1, 
+                        "First snapshot should have exactly one description")
+        self.assertTrue("has been created" in descriptions[0]['@value'], 
+                    "First snapshot should keep only creation description")
+
+    def test_multiple_descriptions_last_snapshot(self):
+        """Test handling of multiple descriptions in the last snapshot."""
+        test_data = {
+            "@graph": [
+                {
+                    "@id": "https://w3id.org/oc/meta/br/06504122264/prov/se/1",
+                    "@type": ["http://www.w3.org/ns/prov#Entity"],
+                    "http://purl.org/dc/terms/description": [{
+                        "@value": "The entity 'https://w3id.org/oc/meta/br/06504122264' has been created."
+                    }],
+                    "http://www.w3.org/ns/prov#generatedAtTime": [{
+                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                        "@value": "2023-12-13T15:05:18+00:00"
+                    }]
+                },
+                {
+                    "@id": "https://w3id.org/oc/meta/br/06504122264/prov/se/2",
+                    "@type": ["http://www.w3.org/ns/prov#Entity"],
+                    "http://purl.org/dc/terms/description": [
+                        {
+                            "@value": "The entity 'https://w3id.org/oc/meta/br/06504122264' has been modified."
+                        },
+                        {
+                            "@value": "The entity 'https://w3id.org/oc/meta/br/06504122264' has been deleted."
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#generatedAtTime": [{
+                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                        "@value": "2023-12-31T22:08:21+00:00"
+                    }]
+                }
+            ],
+            "@id": "https://w3id.org/oc/meta/br/06504122264/prov/"
+        }
+        
+        test_file = os.path.join(self.temp_dir, "last_snapshot_descriptions.zip")
+        with zipfile.ZipFile(test_file, 'w') as zf:
+            zf.writestr('se.json', json.dumps(test_data))
+            
+        result = self.processor.process_file(test_file, 'test/fix_provenance_logs')
+        self.assertTrue(result)
+        
+        with zipfile.ZipFile(test_file, 'r') as zf:
+            with zf.open('se.json') as f:
+                fixed_data = json.loads(f.read())
+                
+        last_snapshot = next(item for item in fixed_data[0]['@graph'] 
+                            if item['@id'].endswith('/prov/se/2'))
+        
+        descriptions = last_snapshot.get('http://purl.org/dc/terms/description', [])
+        
+        # Verify that only deletion description was kept
+        self.assertEqual(len(descriptions), 1, 
+                        "Last snapshot should have exactly one description")
+        self.assertTrue("has been deleted" in descriptions[0]['@value'], 
+                    "Last snapshot should keep deletion description")
+
+    def test_multiple_descriptions_middle_snapshot(self):
+        """Test handling of multiple descriptions in a middle snapshot."""
+        test_data = {
+            "@graph": [
+                {
+                    "@id": "https://w3id.org/oc/meta/br/06504122264/prov/se/1",
+                    "@type": ["http://www.w3.org/ns/prov#Entity"],
+                    "http://purl.org/dc/terms/description": [{
+                        "@value": "The entity 'https://w3id.org/oc/meta/br/06504122264' has been created."
+                    }],
+                    "http://www.w3.org/ns/prov#generatedAtTime": [{
+                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                        "@value": "2023-12-13T15:05:18+00:00"
+                    }]
+                },
+                {
+                    "@id": "https://w3id.org/oc/meta/br/06504122264/prov/se/2",
+                    "@type": ["http://www.w3.org/ns/prov#Entity"],
+                    "http://purl.org/dc/terms/description": [
+                        {
+                            "@value": "The entity 'https://w3id.org/oc/meta/br/06504122264' has been modified."
+                        },
+                        {
+                            "@value": "The entity 'https://w3id.org/oc/meta/br/06504122264' has been created."
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#generatedAtTime": [{
+                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                        "@value": "2023-12-31T22:08:21+00:00"
+                    }]
+                },
+                {
+                    "@id": "https://w3id.org/oc/meta/br/06504122264/prov/se/3",
+                    "@type": ["http://www.w3.org/ns/prov#Entity"],
+                    "http://purl.org/dc/terms/description": [{
+                        "@value": "The entity 'https://w3id.org/oc/meta/br/06504122264' has been deleted."
+                    }],
+                    "http://www.w3.org/ns/prov#generatedAtTime": [{
+                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                        "@value": "2024-01-01T10:00:00+00:00"
+                    }]
+                }
+            ],
+            "@id": "https://w3id.org/oc/meta/br/06504122264/prov/"
+        }
+        
+        test_file = os.path.join(self.temp_dir, "middle_snapshot_descriptions.zip")
+        with zipfile.ZipFile(test_file, 'w') as zf:
+            zf.writestr('se.json', json.dumps(test_data))
+            
+        result = self.processor.process_file(test_file, 'test/fix_provenance_logs')
+        self.assertTrue(result)
+        
+        with zipfile.ZipFile(test_file, 'r') as zf:
+            with zf.open('se.json') as f:
+                fixed_data = json.loads(f.read())
+                
+        middle_snapshot = next(item for item in fixed_data[0]['@graph'] 
+                            if item['@id'].endswith('/prov/se/2'))
+        
+        descriptions = middle_snapshot.get('http://purl.org/dc/terms/description', [])
+        
+        # Verify that only modification description was kept
+        self.assertEqual(len(descriptions), 1, 
+                        "Middle snapshot should have exactly one description")
+        self.assertTrue("has been modified" in descriptions[0]['@value'], 
+                    "Middle snapshot should keep modification description")
+
 if __name__ == '__main__':
     unittest.main()

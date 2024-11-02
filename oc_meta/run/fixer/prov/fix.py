@@ -312,7 +312,7 @@ class ProvenanceProcessor:
                     
                     if snapshots:
                         modified |= processor._process_snapshots(context, entity_uri, snapshots)
-                
+
                 if modified:
                     with zipfile.ZipFile(prov_file_path, 'w', zipfile.ZIP_DEFLATED, allowZip64=True) as zip_out:
                         jsonld_data = g.serialize(format='json-ld', encoding='utf-8', 
@@ -328,10 +328,16 @@ class ProvenanceProcessor:
             return None
 
     def _process_snapshots(self, context: ConjunctiveGraph, entity_uri: URIRef, 
-                          snapshots: List[dict]) -> bool:
+                        snapshots: List[dict]) -> bool:
         """Process all snapshots in batch operations."""
         modified = False
-        
+
+        # Handle multiple descriptions for each snapshot
+        for i, snapshot in enumerate(snapshots):
+            is_first = (i == 0)
+            is_last = (i == len(snapshots) - 1)
+            modified |= self._handle_multiple_descriptions(context, snapshot['uri'], is_first, is_last)
+
         # Process specializationOf relationships
         for snapshot in snapshots:
             if not any(context.objects(snapshot['uri'], PROV.specializationOf)):
@@ -342,21 +348,45 @@ class ProvenanceProcessor:
                     str(snapshot['uri'])
                 )
                 modified = True
-        
+
         # Process wasDerivedFrom relationships
         for i in range(1, len(snapshots)):
             curr_snapshot = snapshots[i]
             prev_snapshot = snapshots[i-1]
             
-            if not any(context.objects(curr_snapshot['uri'], PROV.wasDerivedFrom)):
-                context.add((curr_snapshot['uri'], PROV.wasDerivedFrom, prev_snapshot['uri']))
-                self._log_modification(
-                    str(entity_uri),
-                    "Added wasDerivedFrom",
-                    f"{str(curr_snapshot['uri'])} → {str(prev_snapshot['uri'])}"
-                )
-                modified = True
-        
+            # Check if current snapshot is a merge snapshot
+            curr_desc = list(context.objects(curr_snapshot['uri'], 
+                                        URIRef("http://purl.org/dc/terms/description")))
+            is_merge = any("has been merged with" in str(desc) for desc in curr_desc)
+            
+            derived_from = list(context.objects(curr_snapshot['uri'], PROV.wasDerivedFrom))
+
+            if is_merge:
+                # For merge snapshots, ensure there's at least the wasDerivedFrom link to the previous snapshot
+                if not derived_from or prev_snapshot['uri'] not in derived_from:
+                    context.add((curr_snapshot['uri'], PROV.wasDerivedFrom, prev_snapshot['uri']))
+                    self._log_modification(
+                        str(entity_uri),
+                        "Added merge wasDerivedFrom",
+                        f"{str(curr_snapshot['uri'])} → {str(prev_snapshot['uri'])}"
+                    )
+                    modified = True
+            else:
+                # For non-merge snapshots, ensure exactly one wasDerivedFrom link to previous snapshot
+                if len(derived_from) != 1 or derived_from[0] != prev_snapshot['uri']:
+                    # Remove any existing wasDerivedFrom relations
+                    for df in derived_from:
+                        context.remove((curr_snapshot['uri'], PROV.wasDerivedFrom, df))
+                    
+                    # Add the correct wasDerivedFrom relation
+                    context.add((curr_snapshot['uri'], PROV.wasDerivedFrom, prev_snapshot['uri']))
+                    self._log_modification(
+                        str(entity_uri),
+                        "Fixed wasDerivedFrom",
+                        f"{str(curr_snapshot['uri'])} → {str(prev_snapshot['uri'])}"
+                    )
+                    modified = True
+
         # Process timestamps
         modified |= self._process_timestamps(context, snapshots)
         
@@ -477,6 +507,75 @@ class ProvenanceProcessor:
                     f"{str(new_time)}"
                 )
                 modified = True
+        
+        return modified
+
+    def _handle_multiple_descriptions(self, context: ConjunctiveGraph, snapshot_uri: URIRef, 
+                                is_first_snapshot: bool, is_last_snapshot: bool) -> bool:
+        """Handle cases where a snapshot has multiple descriptions.
+        
+        Args:
+            context (ConjunctiveGraph): The RDF graph context
+            snapshot_uri (URIRef): The URI of the snapshot to process
+            is_first_snapshot (bool): Whether this is the first snapshot in the sequence
+            is_last_snapshot (bool): Whether this is the last snapshot in the sequence
+            
+        Returns:
+            bool: True if modifications were made, False otherwise
+        """
+        modified = False
+        descriptions = list(context.objects(snapshot_uri, URIRef("http://purl.org/dc/terms/description")))
+        
+        if len(descriptions) <= 1:
+            return modified
+            
+        # Check for merge descriptions
+        merge_descriptions = [desc for desc in descriptions if "has been merged with" in str(desc)]
+
+        if merge_descriptions and not is_first_snapshot:
+            # For merge snapshots (not being the first one), keep all merge descriptions
+            # and remove any non-merge descriptions
+            for desc in descriptions:
+                if "has been merged with" not in str(desc):
+                    context.remove((snapshot_uri, URIRef("http://purl.org/dc/terms/description"), desc))
+                    self._log_modification(
+                        str(snapshot_uri),
+                        "Removed non-merge description from merge snapshot",
+                        str(desc)
+                    )
+                    modified = True
+        else:
+            # For non-merge cases, apply lifecycle-based priority
+            selected_desc = None
+            
+            if is_first_snapshot:
+                # First snapshot must be creation
+                creation_descs = [desc for desc in descriptions if "has been created" in str(desc)]
+                if creation_descs:
+                    selected_desc = creation_descs[0]
+            elif is_last_snapshot:
+                # Last snapshot could be deletion
+                deletion_descs = [desc for desc in descriptions if "has been deleted" in str(desc)]
+                if deletion_descs:
+                    selected_desc = deletion_descs[0]
+            
+            # If no specific lifecycle description was selected, default to modification
+            if not selected_desc:
+                modification_descs = [desc for desc in descriptions if "has been modified" in str(desc)]
+                if modification_descs:
+                    selected_desc = modification_descs[0]
+            
+            if selected_desc:
+                # Remove all descriptions except the selected one
+                for desc in descriptions:
+                    if desc != selected_desc:
+                        context.remove((snapshot_uri, URIRef("http://purl.org/dc/terms/description"), desc))
+                        self._log_modification(
+                            str(snapshot_uri),
+                            "Removed duplicate description based on lifecycle position",
+                            str(desc)
+                        )
+                        modified = True
         
         return modified
 
