@@ -58,8 +58,7 @@ def reset_server(server:str='http://127.0.0.1:8805/sparql') -> None:
         'https://w3id.org/oc/meta/ra/', 
         'https://w3id.org/oc/meta/re/',
         'https://w3id.org/oc/meta/id/',
-        'https://w3id.org/oc/meta/ar/',
-        'http://default.graph/'
+        'https://w3id.org/oc/meta/ar/'
     }
     
     for graph in graphs:
