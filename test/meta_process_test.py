@@ -6,7 +6,7 @@ import sys
 import time
 import unittest
 from datetime import datetime
-from functools import wraps
+from urllib.error import URLError
 from zipfile import ZipFile
 
 import redis
@@ -20,29 +20,23 @@ from SPARQLWrapper import JSON, POST, XML, SPARQLExceptions, SPARQLWrapper
 BASE_DIR = os.path.join('test', 'meta_process')
 SERVER = 'http://127.0.0.1:8805/sparql'
 
-def retry_sparql_query(max_retries=3, delay=5):
-    def decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            retries = 0
-            while retries < max_retries:
-                try:
-                    return func(*args, **kwargs)
-                except SPARQLExceptions.EndPointInternalError as e:
-                    retries += 1
-                    if retries == max_retries:
-                        raise
-                    time.sleep(delay)
-            return func(*args, **kwargs)
-        return wrapper
-    return decorator
-
-@retry_sparql_query()
-def execute_sparql_query(endpoint, query, return_format=JSON):
+def execute_sparql_query(endpoint, query, return_format=JSON, max_retries=3, delay=2):
     sparql = SPARQLWrapper(endpoint)
     sparql.setQuery(query)
     sparql.setReturnFormat(return_format)
-    return sparql.queryAndConvert()
+    
+    retry_count = max_retries
+    last_error = None
+    
+    while retry_count > 0:
+        try:
+            return sparql.queryAndConvert()
+        except (URLError, SPARQLExceptions.EndPointInternalError, SPARQLExceptions.QueryBadFormed) as e:
+            last_error = e
+            retry_count -= 1
+            if retry_count == 0:
+                raise last_error
+            time.sleep(delay)
 
 def reset_redis_counters():
     redis_host = 'localhost'
@@ -51,7 +45,6 @@ def reset_redis_counters():
     redis_client = redis.Redis(host=redis_host, port=redis_port, db=redis_db)
     redis_client.flushdb()
 
-@retry_sparql_query()
 def reset_server(server:str='http://127.0.0.1:8805/sparql') -> None:
     """
     Reset the SPARQL server with retry mechanism.
@@ -70,9 +63,18 @@ def reset_server(server:str='http://127.0.0.1:8805/sparql') -> None:
     }
     
     for graph in graphs:
-        ts.setQuery(f'CLEAR GRAPH <{graph}>')
-        ts.setMethod(POST)
-        ts.query()
+        retry_count = 3
+        while retry_count > 0:
+            try:
+                ts.setQuery(f'CLEAR GRAPH <{graph}>')
+                ts.setMethod(POST)
+                ts.query()
+                break
+            except URLError:
+                retry_count -= 1
+                if retry_count == 0:
+                    raise
+                time.sleep(2)
 
 def delete_output_zip(base_dir:str, start_time:datetime) -> None:
     for file in os.listdir(base_dir):

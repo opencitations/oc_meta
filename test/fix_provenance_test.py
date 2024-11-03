@@ -812,6 +812,194 @@ class TestProvenanceFixing(unittest.TestCase):
                         "Middle snapshot should have exactly one description")
         self.assertTrue("has been modified" in descriptions[0]['@value'], 
                     "Middle snapshot should keep modification description")
+        
+    def test_real_case_multiple_timestamps_and_incomplete_snapshot(self):
+        """Test the real case scenario of entity 0623074134 with multiple timestamps
+        and an incomplete snapshot."""
+        test_data = {
+            "@graph": [
+                {
+                    "@id": "https://w3id.org/oc/meta/id/0623074134/prov/se/4",
+                    "@type": ["http://www.w3.org/ns/prov#Entity"],
+                    "http://purl.org/dc/terms/description": [{
+                        "@value": "The entity 'https://w3id.org/oc/meta/id/0623074134' has been merged with 'https://w3id.org/oc/meta/id/063301371593'."
+                    }],
+                    "http://www.w3.org/ns/prov#generatedAtTime": [{
+                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                        "@value": "2024-10-23T20:52:32+00:00"
+                    }],
+                    "http://www.w3.org/ns/prov#specializationOf": [{
+                        "@id": "https://w3id.org/oc/meta/id/0623074134"
+                    }],
+                    "http://www.w3.org/ns/prov#wasAttributedTo": [{
+                        "@id": "http://orcid.org/0000-0002-8420-0696"
+                    }],
+                    "http://www.w3.org/ns/prov#wasDerivedFrom": [
+                        {
+                            "@id": "https://w3id.org/oc/meta/id/0623074134/prov/se/3"
+                        },
+                        {
+                            "@id": "https://w3id.org/oc/meta/id/063301371593/prov/se/1"
+                        }
+                    ]
+                },
+                {
+                    "@id": "https://w3id.org/oc/meta/id/0623074134/prov/se/3",
+                    "@type": ["http://www.w3.org/ns/prov#Entity"],
+                    "http://purl.org/dc/terms/description": [{
+                        "@value": "The entity 'https://w3id.org/oc/meta/id/0623074134' has been modified."
+                    }],
+                    "http://www.w3.org/ns/prov#generatedAtTime": [{
+                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                        "@value": "2024-06-06T18:55:36+00:00"
+                    }],
+                    "http://www.w3.org/ns/prov#invalidatedAtTime": [{
+                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                        "@value": "2024-10-23T20:52:32+00:00"
+                    }],
+                    "http://www.w3.org/ns/prov#specializationOf": [{
+                        "@id": "https://w3id.org/oc/meta/id/0623074134"
+                    }],
+                    "http://www.w3.org/ns/prov#wasDerivedFrom": [{
+                        "@id": "https://w3id.org/oc/meta/id/0623074134/prov/se/2"
+                    }]
+                },
+                {
+                    "@id": "https://w3id.org/oc/meta/id/0623074134/prov/se/1",
+                    "@type": ["http://www.w3.org/ns/prov#Entity"],
+                    "http://purl.org/dc/terms/description": [{
+                        "@value": "The entity 'https://w3id.org/oc/meta/id/0623074134' has been created."
+                    }],
+                    "http://www.w3.org/ns/prov#generatedAtTime": [
+                        {
+                            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                            "@value": "2024-03-27T18:03:23+00:00"
+                        },
+                        {
+                            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                            "@value": "2023-12-13T16:14:48.836637"
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#specializationOf": [{
+                        "@id": "https://w3id.org/oc/meta/id/0623074134"
+                    }]
+                },
+                {
+                    "@id": "https://w3id.org/oc/meta/id/0623074134/prov/se/2",
+                    "@type": ["http://www.w3.org/ns/prov#Entity"],
+                    "http://www.w3.org/ns/prov#invalidatedAtTime": [{
+                        "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                        "@value": "2024-06-06T18:55:36+00:00"
+                    }]
+                }
+            ],
+            "@id": "https://w3id.org/oc/meta/id/0623074134/prov/"
+        }
+        
+        test_file = os.path.join(self.temp_dir, "real_case_test.zip")
+        with zipfile.ZipFile(test_file, 'w') as zf:
+            zf.writestr('se.json', json.dumps(test_data))
+            
+        result = self.processor.process_file(test_file, 'test/fix_provenance_logs')
+        self.assertTrue(result)
+        
+        # Verify the fixed data
+        with zipfile.ZipFile(test_file, 'r') as zf:
+            with zf.open('se.json') as f:
+                fixed_data = json.loads(f.read())
+                
+        graph_data = fixed_data[0]['@graph']
+
+        # Test specific issues from the case study:
+        
+        # 1. Check that snapshot 1 has only one generatedAtTime (should keep the earliest)
+        snapshot_1 = next(item for item in graph_data 
+                        if item['@id'].endswith('/prov/se/1'))
+        gen_times_1 = snapshot_1.get('http://www.w3.org/ns/prov#generatedAtTime', [])
+        self.assertEqual(len(gen_times_1), 1, 
+                        "Snapshot 1 should have exactly one generatedAtTime")
+        self.assertEqual(
+            gen_times_1[0]['@value'],
+            "2023-12-13T15:14:48.836637+00:00",
+            "Should keep the earliest timestamp"
+        )
+        
+        # 2. Check that snapshot 2 is complete with all required properties
+        snapshot_2 = next(item for item in graph_data 
+                        if item['@id'].endswith('/prov/se/2'))
+        self.assertIn('@type', snapshot_2)
+        self.assertIn('http://www.w3.org/ns/prov#specializationOf', snapshot_2)
+        self.assertIn('http://www.w3.org/ns/prov#wasDerivedFrom', snapshot_2)
+        self.assertEqual(
+            snapshot_2['http://www.w3.org/ns/prov#wasDerivedFrom'][0]['@id'],
+            "https://w3id.org/oc/meta/id/0623074134/prov/se/1"
+        )
+        
+        # 3. Check that all snapshots form a proper chain
+        for i in range(2, 5):  # Check snapshots 2 through 4
+            current = next(item for item in graph_data 
+                        if item['@id'].endswith(f'/prov/se/{i}'))
+            self.assertIn('http://www.w3.org/ns/prov#wasDerivedFrom', current)
+            derived_from = current['http://www.w3.org/ns/prov#wasDerivedFrom'][0]['@id']
+            self.assertTrue(
+                derived_from.endswith(f'/prov/se/{i-1}'),
+                f"Snapshot {i} should be derived from snapshot {i-1}"
+            )
+        
+        # 4. Check bi-directional timestamp consistency
+        snapshots = {}
+        for i in range(1, 5):  # Get all snapshots
+            snapshots[i] = next(item for item in graph_data 
+                            if item['@id'].endswith(f'/prov/se/{i}'))
+        
+        # 4.1 Check forward: invalidatedAtTime matches next snapshot's generatedAtTime
+        for i in range(1, 4):  # Check snapshots 1 through 3
+            current = snapshots[i]
+            next_snapshot = snapshots[i + 1]
+            
+            self.assertIn('http://www.w3.org/ns/prov#invalidatedAtTime', current,
+                        f"Snapshot {i} should have invalidatedAtTime")
+            self.assertIn('http://www.w3.org/ns/prov#generatedAtTime', next_snapshot,
+                        f"Snapshot {i+1} should have generatedAtTime")
+            
+            inv_time = current['http://www.w3.org/ns/prov#invalidatedAtTime'][0]['@value']
+            gen_time = next_snapshot['http://www.w3.org/ns/prov#generatedAtTime'][0]['@value']
+            
+            self.assertEqual(
+                inv_time, 
+                gen_time,
+                f"Invalidation time of snapshot {i} should match generation time of snapshot {i+1}"
+            )
+        
+        # 4.2 Check backward: generatedAtTime matches previous snapshot's invalidatedAtTime
+        for i in range(2, 5):  # Check snapshots 2 through 4
+            current = snapshots[i]
+            prev_snapshot = snapshots[i - 1]
+            
+            self.assertIn('http://www.w3.org/ns/prov#generatedAtTime', current,
+                        f"Snapshot {i} should have generatedAtTime")
+            self.assertIn('http://www.w3.org/ns/prov#invalidatedAtTime', prev_snapshot,
+                        f"Snapshot {i-1} should have invalidatedAtTime")
+            
+            gen_time = current['http://www.w3.org/ns/prov#generatedAtTime'][0]['@value']
+            inv_time = prev_snapshot['http://www.w3.org/ns/prov#invalidatedAtTime'][0]['@value']
+            
+            self.assertEqual(
+                gen_time,
+                inv_time,
+                f"Generation time of snapshot {i} should match invalidation time of snapshot {i-1}"
+            )
+            
+            # 5. Check that merge-related wasDerivedFrom is preserved in snapshot 4
+            snapshot_4 = next(item for item in graph_data 
+                            if item['@id'].endswith('/prov/se/4'))
+            derived_from_ids = [ref['@id'] for ref in 
+                            snapshot_4['http://www.w3.org/ns/prov#wasDerivedFrom']]
+            self.assertIn(
+                "https://w3id.org/oc/meta/id/063301371593/prov/se/1",
+                derived_from_ids,
+                "Merge-related wasDerivedFrom should be preserved"
+            )
 
 if __name__ == '__main__':
     unittest.main()

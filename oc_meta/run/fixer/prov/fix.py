@@ -485,10 +485,16 @@ class ProvenanceProcessor:
 
     def _handle_invalidation_time(self, context: ConjunctiveGraph, 
                                 snapshots: List[dict], index: int) -> bool:
-        """Handle invalidation time for a snapshot."""
+        """Handle invalidation time for a snapshot.
+        
+        When both current snapshot's invalidation time and next snapshot's generation time
+        are missing, calculates an intermediate time based on available timestamps and 
+        ensures synchronization between snapshots.
+        """
         modified = False
         snapshot = snapshots[index]
         next_snapshot = snapshots[index + 1]
+
         if len(snapshot['invalidation_times']) > 1:
             # Se ci sono multipli timestamp, mantieni solo il più vecchio
             earliest_time = self._get_earliest_timestamp(snapshot['invalidation_times'])
@@ -508,14 +514,34 @@ class ProvenanceProcessor:
             )
             modified = True
         elif len(snapshot['invalidation_times']) == 0:
-            print(snapshot, next_snapshot)
             new_time = None
+            
             if next_snapshot['generation_times']:
+                # Se lo snapshot successivo ha un tempo di generazione, usalo
                 if len(next_snapshot['generation_times']) == 1:
                     new_time = next_snapshot['generation_times'][0]
                 else:
                     earliest_time = self._get_earliest_timestamp(next_snapshot['generation_times'])
                     new_time = earliest_time
+            else:
+                # Caso in cui mancano entrambi i tempi
+                # Cerchiamo di calcolare un tempo intermedio basandoci sui tempi disponibili
+                if snapshot['generation_times'] and next_snapshot['invalidation_times']:
+                    curr_gen_time = self._convert_to_utc(snapshot['generation_times'][0])
+                    next_inv_time = self._convert_to_utc(next_snapshot['invalidation_times'][0])
+                    
+                    # Calcola un tempo intermedio
+                    intermediate_time = curr_gen_time + (next_inv_time - curr_gen_time) / 2
+                    new_time = Literal(intermediate_time.isoformat(), datatype=XSD.dateTime)
+                    
+                    # Importante: aggiungi lo stesso tempo come generatedAtTime allo snapshot successivo
+                    context.add((next_snapshot['uri'], PROV.generatedAtTime, new_time))
+                    self._log_modification(
+                        str(next_snapshot['uri']),
+                        "Added synchronized generatedAtTime",
+                        f"{str(new_time)}"
+                    )
+                    modified = True
 
             if new_time:
                 context.add((snapshot['uri'], PROV.invalidatedAtTime, new_time))
