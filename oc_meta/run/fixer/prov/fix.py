@@ -35,33 +35,53 @@ class TqdmToLogger:
     def flush(self):
         pass
 
-def get_process_specific_logger(log_dir: str, logger_name: str) -> logging.Logger:
-    """Create a process-specific logger with timestamped filename."""
-    os.makedirs(log_dir, exist_ok=True)
+class LazyLogger:
+    """Logger that only creates file when first log message is written."""
+    def __init__(self, log_dir: str, logger_name: str):
+        self.log_dir = log_dir
+        self.logger_name = logger_name
+        self.logger = None
+        self.process_name = current_process().name
+        self.timestamp = None
+        self._has_logged = False
 
-    process_name = current_process().name
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    log_filename = f"{logger_name}_{process_name}_{timestamp}.log"
-    logger = logging.getLogger(f"{logger_name}_{process_name}_{timestamp}")
-    
-    if not logger.handlers:  # Avoid adding handlers multiple times
-        logger.setLevel(logging.INFO)
-        
-        # Create a regular file handler with timestamp in filename
-        handler = logging.FileHandler(
-            filename=os.path.join(log_dir, log_filename),
-            encoding='utf-8',
-            mode='a'  # append mode, though it's a new file anyway
-        )
-        
-        formatter = logging.Formatter('%(asctime)s - %(message)s')
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
-        
-        # Prevent propagation to avoid duplicate logs
-        logger.propagate = False
-    
-    return logger
+    def _initialize_logger(self):
+        if not self.logger:
+            os.makedirs(self.log_dir, exist_ok=True)
+            self.timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            log_filename = f"{self.logger_name}_{self.process_name}_{self.timestamp}.log"
+            
+            self.logger = logging.getLogger(f"{self.logger_name}_{self.process_name}_{self.timestamp}")
+            self.logger.setLevel(logging.INFO)
+            
+            handler = logging.FileHandler(
+                filename=os.path.join(self.log_dir, log_filename),
+                encoding='utf-8',
+                mode='a'
+            )
+            
+            formatter = logging.Formatter('%(asctime)s - %(message)s')
+            handler.setFormatter(formatter)
+            self.logger.addHandler(handler)
+            self.logger.propagate = False
+
+    def log(self, level: int, message: str):
+        if not self._has_logged:
+            self._initialize_logger()
+            self._has_logged = True
+        self.logger.log(level, message)
+
+    def info(self, message: str):
+        self.log(logging.INFO, message)
+
+    def error(self, message: str):
+        self.log(logging.ERROR, message)
+
+    def warning(self, message: str):
+        self.log(logging.WARNING, message)
+
+    def has_logged(self) -> bool:
+        return self._has_logged
 
 class ProvenanceProcessor:
     def __init__(self, log_dir: str):
@@ -71,10 +91,9 @@ class ProvenanceProcessor:
             datatype=XSD.dateTime
         )
         self.log_dir = log_dir
-        self.logger = get_process_specific_logger(log_dir, 'modifications')
-        
+        self.logger = LazyLogger(log_dir, 'modifications')
+
     def _log_modification(self, entity_uri: str, mod_type: str, message: str) -> None:
-        """Log a modification in real-time."""
         self.logger.info(f"Entity: {entity_uri} - {mod_type} - {message}")
 
     def _extract_snapshot_number(self, snapshot_uri: str) -> int:
@@ -289,8 +308,7 @@ class ProvenanceProcessor:
 
     @staticmethod
     def process_file(prov_file_path: str, log_dir: str) -> Optional[bool]:
-        """Process a single provenance file with optimized operations."""
-        process_logger = get_process_specific_logger(log_dir, 'processing')
+        process_logger = LazyLogger(log_dir, 'processing')
         processor = ProvenanceProcessor(log_dir)
         
         try:
@@ -471,7 +489,6 @@ class ProvenanceProcessor:
         modified = False
         snapshot = snapshots[index]
         next_snapshot = snapshots[index + 1]
-
         if len(snapshot['invalidation_times']) > 1:
             # Se ci sono multipli timestamp, mantieni solo il più vecchio
             earliest_time = self._get_earliest_timestamp(snapshot['invalidation_times'])
@@ -491,6 +508,7 @@ class ProvenanceProcessor:
             )
             modified = True
         elif len(snapshot['invalidation_times']) == 0:
+            print(snapshot, next_snapshot)
             new_time = None
             if next_snapshot['generation_times']:
                 if len(next_snapshot['generation_times']) == 1:
@@ -582,10 +600,15 @@ class ProvenanceProcessor:
 def process_chunk(args):
     file_chunk, log_dir = args
     results = []
+    chunk_logger = LazyLogger(log_dir, 'chunk')
+    
     for file in file_chunk:
         result = ProvenanceProcessor.process_file(file, log_dir)
         if result:
             results.append(file)
+            if result is True:  # Only log if modifications were made
+                chunk_logger.info(f"Modified file: {file}")
+    
     return results
 
 def main():
@@ -598,7 +621,7 @@ def main():
     args = parser.parse_args()
     
     os.makedirs(args.log_dir, exist_ok=True)
-    main_logger = get_process_specific_logger(args.log_dir, 'main')
+    main_logger = LazyLogger(args.log_dir, 'main')
     
     main_logger.info("Starting provenance fix process")
     
@@ -613,12 +636,10 @@ def main():
     file_chunks = [prov_files[i:i + chunk_size] 
                   for i in range(0, len(prov_files), chunk_size)]
     
-    # Prepare chunks with log_dir
     chunk_args = [(chunk, args.log_dir) for chunk in file_chunks]
 
     modified_files = []
-
-    process_logger = get_process_specific_logger(args.log_dir, 'processing')
+    process_logger = LazyLogger(args.log_dir, 'processing')
     tqdm_output = TqdmToLogger(process_logger)
 
     with ProcessPool(max_workers=args.processes, max_tasks=1) as pool:
@@ -648,9 +669,12 @@ def main():
                 future.cancel()
                 raise
 
-    main_logger.info(f"Process completed. Total files modified: {len(modified_files)}")
-    print(f"\nProcessing complete. Check logs in {args.log_dir} directory.")
-    print(f"Total files modified: {len(modified_files)}")
+    if modified_files:
+        main_logger.info(f"Process completed. Total files modified: {len(modified_files)}")
+        print(f"\nProcessing complete. Check logs in {args.log_dir} directory.")
+        print(f"Total files modified: {len(modified_files)}")
+    else:
+        print("\nProcessing complete. No files were modified.")
 
 if __name__ == "__main__":
     main()
