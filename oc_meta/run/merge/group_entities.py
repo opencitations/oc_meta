@@ -185,8 +185,8 @@ def main():
     parser.add_argument('csv_file_path', type=str, help='Path to the input CSV file')
     parser.add_argument('output_dir', type=str, help='Directory to save the output files')
     parser.add_argument('sparql_endpoint', type=str, help='SPARQL endpoint URL')
-    parser.add_argument('--min_group_size', type=int, default=2, 
-                      help='Minimum target size for groups (default: 2)')
+    parser.add_argument('--min_group_size', type=int, default=10, 
+                      help='Minimum target size for groups (default: 10)')
 
     args = parser.parse_args()
     

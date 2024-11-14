@@ -21,16 +21,15 @@ from shutil import rmtree
 
 import redis
 import yaml
-from oc_meta.plugins.editor import MetaEditor
+from oc_meta.plugins.editor import EntityCache, MetaEditor
 from oc_meta.run.meta_process import run_meta_process
-from rdflib import URIRef
-from SPARQLWrapper import POST, SPARQLWrapper
-
 from oc_ocdm import Storer
 from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
 from oc_ocdm.graph import GraphSet
 from oc_ocdm.prov import ProvSet
 from oc_ocdm.reader import Reader
+from rdflib import URIRef
+from SPARQLWrapper import POST, SPARQLWrapper
 
 BASE = os.path.join('test', 'editor')
 OUTPUT = os.path.join(BASE, 'output')
@@ -364,6 +363,71 @@ class TestEditor(unittest.TestCase):
                             self.assertEqual(len(entity['http://www.w3.org/ns/prov#generatedAtTime']), 1)
                             self.assertEqual(len(entity['http://www.w3.org/ns/prov#invalidatedAtTime']), 1)
                             self.assertEqual(entity['http://www.w3.org/ns/prov#wasDerivedFrom'][0]['@id'], "https://w3id.org/oc/meta/br/06105/prov/se/2")
+
+    def test_merge_caches_entities(self):
+        """Verifica che le entità vengano correttamente cachate durante merge successivi"""
+        base_iri = 'https://w3id.org/oc/meta/'
+        resp_agent = 'https://orcid.org/0000-0002-8420-0696'
+        g_set = GraphSet(base_iri, supplier_prefix='0620', wanted_label=False, custom_counter_handler=self.counter_handler)
+        endpoint = 'http://127.0.0.1:8805/sparql'
+        
+        # Prepara le entità di test
+        ra = g_set.add_ra(resp_agent=resp_agent, res=URIRef('https://w3id.org/oc/meta/ra/06205'))
+        ra.has_name('Wiley')
+        
+        reader = Reader()
+        id_06105 = reader.import_entity_from_triplestore(g_set, endpoint, URIRef('https://w3id.org/oc/meta/id/06105'), resp_agent, enable_validation=False)
+        id_06203 = g_set.add_id(resp_agent=resp_agent)
+        id_06203.create_crossref('313')
+        
+        ra.has_identifier(id_06105)
+        ra.has_identifier(id_06203)
+        
+        # Genera provenance
+        provset = ProvSet(g_set, base_iri, wanted_label=False, supplier_prefix='0620', custom_counter_handler=self.counter_handler)
+        provset.generate_provenance()
+        
+        # Salva e carica i dati
+        rdf_dir = os.path.join(OUTPUT, 'rdf') + os.sep
+        graph_storer = Storer(g_set, dir_split=10000, n_file_item=1000, zip_output=False)
+        prov_storer = Storer(provset, dir_split=10000, n_file_item=1000, zip_output=False)
+        
+        graph_storer.store_all(rdf_dir, base_iri)
+        prov_storer.store_all(rdf_dir, base_iri)
+        graph_storer.upload_all(endpoint)
+        g_set.commit_changes()
+        
+        # Esegui il test della cache
+        editor = MetaEditor(META_CONFIG, 'https://orcid.org/0000-0002-8420-0696')
+        
+        # Prima fusione
+        editor.merge(g_set, 
+                    URIRef('https://w3id.org/oc/meta/ra/06107'),
+                    URIRef('https://w3id.org/oc/meta/ra/06205'))
+        
+        # Verifica che le entità principali siano in cache
+        self.assertTrue(editor.entity_cache.is_cached(URIRef('https://w3id.org/oc/meta/ra/06107')))
+        self.assertTrue(editor.entity_cache.is_cached(URIRef('https://w3id.org/oc/meta/ra/06205')))
+        
+        # Verifica che le entità correlate siano in cache
+        self.assertTrue(editor.entity_cache.is_cached(URIRef('https://w3id.org/oc/meta/id/06201')))
+        self.assertTrue(editor.entity_cache.is_cached(URIRef('https://w3id.org/oc/meta/id/06105')))
+
+
+class TestEntityCache(unittest.TestCase):
+    def setUp(self):
+        self.cache = EntityCache()
+        self.entity = URIRef('https://w3id.org/oc/meta/ra/06107')
+    
+    def test_add_and_is_cached(self):
+        self.assertFalse(self.cache.is_cached(self.entity))
+        self.cache.add(self.entity)
+        self.assertTrue(self.cache.is_cached(self.entity))
+    
+    def test_clear(self):
+        self.cache.add(self.entity)
+        self.cache.clear()
+        self.assertFalse(self.cache.is_cached(self.entity))
 
 if __name__ == '__main__': # pragma: no cover
     unittest.main()
