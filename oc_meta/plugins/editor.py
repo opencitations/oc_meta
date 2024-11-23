@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import os
 import re
+from time import sleep, time
 from typing import Set
 
 import validators
@@ -30,6 +31,7 @@ from oc_ocdm.prov import ProvSet
 from oc_ocdm.reader import Reader
 from oc_ocdm.support.support import build_graph_from_results
 from rdflib import RDF, ConjunctiveGraph, URIRef
+from requests.exceptions import RequestException
 from SPARQLWrapper import JSON, SPARQLWrapper
 
 
@@ -80,6 +82,28 @@ class MetaEditor:
         self.counter_handler = RedisCounterHandler(host=self.redis_host, port=self.redis_port, db=self.redis_db)
 
         self.entity_cache = EntityCache()
+
+    def make_sparql_query_with_retry(self, sparql: SPARQLWrapper, query, max_retries=5, backoff_factor=0.3):
+        sparql.setQuery(query)
+        sparql.setReturnFormat(JSON)
+
+        start_time = time()
+        for attempt in range(max_retries):
+            try:
+                return sparql.queryAndConvert()
+            except Exception as e:
+                duration = time() - start_time
+                if attempt < max_retries - 1:
+                    sleep_time = backoff_factor * (2 ** attempt)
+                    print(
+                        query, 
+                        duration, 
+                        f'retry_{attempt + 1}'
+                    )
+                    sleep(sleep_time)
+                else:
+                    print(f"SPARQL query failed after {max_retries} attempts: {e}")
+                    raise
 
     def update_property(self, res: URIRef, property: str, new_value: str|URIRef) -> None:
         supplier_prefix = self.__get_supplier_prefix(res)
@@ -142,43 +166,68 @@ class MetaEditor:
         self.save(g_set, supplier_prefix)
     
     def merge(self, g_set: GraphSet, res: URIRef, other: URIRef) -> None:
-        if not self.entity_cache.is_cached(res):
-            self.reader.import_entity_from_triplestore(g_set, self.endpoint, res, self.resp_agent, enable_validation=False)
-            self.entity_cache.add(res)
+        """
+        Merge two entities and their related entities using batch import with caching.
         
-        if not self.entity_cache.is_cached(other):
-            self.reader.import_entity_from_triplestore(g_set, self.endpoint, other, self.resp_agent, enable_validation=False)
-            self.entity_cache.add(other)
-
-        # Query for related entities
+        Args:
+            g_set: The GraphSet containing the entities
+            res: The main entity that will absorb the other
+            other: The entity to be merged into the main one
+        """
+        # First get all related entities with a single SPARQL query
         sparql = SPARQLWrapper(endpoint=self.endpoint)
-        query_other_as_obj = f'''
+        query = f'''
             PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
             PREFIX datacite: <http://purl.org/spar/datacite/>
             PREFIX pro: <http://purl.org/spar/pro/>
             SELECT DISTINCT ?entity WHERE {{
-                {{?entity ?p <{other}>}} UNION {{<{res}> ?p ?entity}} UNION {{<{other}> ?p ?entity}} 
+                {{?entity ?p <{other}>}} UNION 
+                {{<{res}> ?p ?entity}} UNION 
+                {{<{other}> ?p ?entity}} 
                 FILTER (?p != rdf:type) 
                 FILTER (?p != datacite:usesIdentifierScheme) 
                 FILTER (?p != pro:withRole)
             }}'''          
         
-        sparql.setQuery(query_other_as_obj)
-        sparql.setReturnFormat(JSON)
-        data_obj = sparql.queryAndConvert()
+        data = self.make_sparql_query_with_retry(sparql, query)
         
-        for data in data_obj["results"]["bindings"]:
-            if data['entity']['type'] == 'uri':
-                related_entity = URIRef(data["entity"]["value"])
+        # Collect entities that need to be imported (not in cache)
+        entities_to_import = set()
+        
+        # Check main entities against cache
+        if not self.entity_cache.is_cached(res):
+            entities_to_import.add(res)
+        if not self.entity_cache.is_cached(other):
+            entities_to_import.add(other)
+        
+        # Check related entities against cache
+        for result in data["results"]["bindings"]:
+            if result['entity']['type'] == 'uri':
+                related_entity = URIRef(result["entity"]["value"])
                 if not self.entity_cache.is_cached(related_entity):
-                    try:
-                        self.reader.import_entity_from_triplestore(g_set, self.endpoint, related_entity, 
-                                                                 self.resp_agent, enable_validation=False)
-                        self.entity_cache.add(related_entity)
-                    except ValueError:
-                        print(f"Warning: Could not import related entity: {related_entity}")
-                        continue
-
+                    entities_to_import.add(related_entity)
+        
+        # Import only non-cached entities if there are any
+        if entities_to_import:
+            try:
+                imported_entities = self.reader.import_entities_from_triplestore(
+                    g_set=g_set,
+                    ts_url=self.endpoint,
+                    entities=list(entities_to_import),
+                    resp_agent=self.resp_agent,
+                    enable_validation=False,
+                    batch_size=10
+                )
+                
+                # Add newly imported entities to cache
+                for entity in entities_to_import:
+                    self.entity_cache.add(entity)
+                    
+            except ValueError as e:
+                print(f"Error importing entities: {e}")
+                return
+            
+        # Perform the merge
         res_as_entity = g_set.get_entity(res)
         other_as_entity = g_set.get_entity(other)
         
@@ -191,7 +240,7 @@ class MetaEditor:
             res_as_entity.merge(other_as_entity, prefer_self=True)
         else:
             res_as_entity.merge(other_as_entity)
-    
+
     def sync_rdf_with_triplestore(self, res: str, source_uri: str = None) -> bool:
         supplier_prefix = self.__get_supplier_prefix(res)
         g_set = GraphSet(self.base_iri, supplier_prefix=supplier_prefix, custom_counter_handler=self.counter_handler)
