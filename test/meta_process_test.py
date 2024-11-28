@@ -69,7 +69,7 @@ def reset_server(server:str='http://127.0.0.1:8805/sparql') -> None:
                 ts.setMethod(POST)
                 ts.query()
                 break
-            except URLError:
+            except Exception:
                 retry_count -= 1
                 if retry_count == 0:
                     raise
