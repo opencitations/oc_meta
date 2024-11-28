@@ -7,11 +7,12 @@ from shutil import rmtree
 
 import redis
 from oc_meta.run.merge.duplicated_entities_simultaneously import EntityMerger
+from oc_meta.run.meta_editor import MetaEditor
 from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
 from oc_ocdm.graph import GraphSet
 from oc_ocdm.prov.prov_set import ProvSet
 from oc_ocdm.storer import Storer
-from rdflib import XSD, Graph, Literal, URIRef
+from rdflib import URIRef
 from SPARQLWrapper import POST, SPARQLWrapper
 
 BASE = os.path.join('test', 'merger')
@@ -1045,6 +1046,111 @@ class TestEntityMerger(unittest.TestCase):
                                     
                         self.assertTrue(re_found, "Resource embodiment should still exist after merge")
 
+    def test_fetch_related_entities_batch(self):
+        """Test batch fetching of related entities"""
+        meta_editor = MetaEditor(META_CONFIG, 
+                            "https://orcid.org/0000-0002-8420-0696", 
+                            save_queries=False)
+
+        g_set = GraphSet("https://w3id.org/oc/meta/", supplier_prefix="060", 
+                        custom_counter_handler=self.counter_handler)
+        
+        # Utilizziamo un insieme più piccolo di numeri validi per il test
+        valid_numbers = [11, 12, 13, 14, 15]
+        entities = {}
+        
+        # Creiamo gli autori e li memorizziamo in un dizionario per facile accesso
+        for i in valid_numbers:
+            ra = g_set.add_ra(
+                resp_agent="https://orcid.org/0000-0002-8420-0696",
+                res=URIRef(f"https://w3id.org/oc/meta/ra/060{i}")
+            )
+            ra.has_name(f"Author {i}")
+            entities[i] = ra
+        
+        # Creiamo le entità correlate per ogni autore
+        for i in valid_numbers:
+            # Creiamo l'identificatore
+            identifier = g_set.add_id(
+                resp_agent="https://orcid.org/0000-0002-8420-0696",
+                res=URIRef(f"https://w3id.org/oc/meta/id/060{i}")
+            )
+            identifier.create_orcid(f"0000-0001-{i:04d}-1111")
+            entities[i].has_identifier(identifier)
+            
+            # Creiamo il ruolo
+            role = g_set.add_ar(
+                resp_agent="https://orcid.org/0000-0002-8420-0696",
+                res=URIRef(f"https://w3id.org/oc/meta/ar/060{i}")
+            )
+            role.create_author()
+            role.is_held_by(entities[i])
+            
+            # Creiamo la pubblicazione
+            pub = g_set.add_br(
+                resp_agent="https://orcid.org/0000-0002-8420-0696",
+                res=URIRef(f"https://w3id.org/oc/meta/br/060{i}")
+            )
+            pub.has_title(f"Publication {i}")
+            pub.has_contributor(role)
+        
+        prov = ProvSet(g_set, "https://w3id.org/oc/meta/", wanted_label=False,
+                    custom_counter_handler=self.counter_handler)
+        prov.generate_provenance()
+        
+        rdf_output = os.path.join(OUTPUT, 'rdf') + os.sep
+        
+        res_storer = Storer(abstract_set=g_set, dir_split=10000, n_file_item=1000,
+                            output_format='json-ld', zip_output=False)
+        prov_storer = Storer(abstract_set=prov, dir_split=10000, n_file_item=1000,
+                            output_format='json-ld', zip_output=False)
+        
+        res_storer.store_all(base_dir=rdf_output, base_iri="https://w3id.org/oc/meta/")
+        prov_storer.store_all(base_dir=rdf_output, base_iri="https://w3id.org/oc/meta/")
+        res_storer.upload_all(triplestore_url=SERVER, base_dir=rdf_output,
+                            batch_size=10, save_queries=False)
+        
+        batch_sizes = [1, 5, 11, 25]
+        for batch_size in batch_sizes:
+            with self.subTest(batch_size=batch_size):
+                # Test con una singola entità
+                merged_entities = [f"https://w3id.org/oc/meta/ra/060{valid_numbers[0]}"]
+                surviving_entities = [f"https://w3id.org/oc/meta/ra/060{valid_numbers[1]}"]
+                
+                related = self.merger.fetch_related_entities_batch(
+                    meta_editor=meta_editor,
+                    merged_entities=merged_entities,
+                    surviving_entities=surviving_entities,
+                    batch_size=batch_size
+                )
+                
+                expected_related = {
+                    URIRef(f"https://w3id.org/oc/meta/id/060{valid_numbers[0]}"),  # ID della merged
+                    URIRef(f"https://w3id.org/oc/meta/ar/060{valid_numbers[0]}"),  # AR della merged
+                    URIRef(f"https://w3id.org/oc/meta/id/060{valid_numbers[1]}")   # AR della surviving
+                }
+
+                self.assertEqual(related, expected_related)
+                
+                # Test con multiple entità
+                merged_entities = [f"https://w3id.org/oc/meta/ra/060{i}" 
+                                for i in valid_numbers[:3]]
+                surviving_entities = [f"https://w3id.org/oc/meta/ra/060{valid_numbers[3]}"]
+                
+                related = self.merger.fetch_related_entities_batch(
+                    meta_editor=meta_editor,
+                    merged_entities=merged_entities,
+                    surviving_entities=surviving_entities,
+                    batch_size=batch_size
+                )
+                
+                expected_related = set()
+                for i in valid_numbers[:3]:  # Entità merged
+                    expected_related.add(URIRef(f"https://w3id.org/oc/meta/id/060{i}"))
+                    expected_related.add(URIRef(f"https://w3id.org/oc/meta/ar/060{i}"))
+                expected_related.add(URIRef(f"https://w3id.org/oc/meta/id/060{valid_numbers[3]}"))
+                
+                self.assertEqual(related, expected_related)
 
 if __name__ == '__main__':
     unittest.main()

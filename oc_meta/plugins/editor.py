@@ -82,6 +82,7 @@ class MetaEditor:
         self.counter_handler = RedisCounterHandler(host=self.redis_host, port=self.redis_port, db=self.redis_db)
 
         self.entity_cache = EntityCache()
+        self.relationship_cache = {}
 
     def make_sparql_query_with_retry(self, sparql: SPARQLWrapper, query, max_retries=5, backoff_factor=0.3):
         sparql.setQuery(query)
@@ -164,7 +165,7 @@ class MetaEditor:
             entity_to_purge = g_set.get_entity(URIRef(res))
             entity_to_purge.mark_as_to_be_deleted()
         self.save(g_set, supplier_prefix)
-    
+
     def merge(self, g_set: GraphSet, res: URIRef, other: URIRef) -> None:
         """
         Merge two entities and their related entities using batch import with caching.
@@ -175,42 +176,65 @@ class MetaEditor:
             other: The entity to be merged into the main one
         """
         # First get all related entities with a single SPARQL query
-        sparql = SPARQLWrapper(endpoint=self.endpoint)
-        query = f'''
-            PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-            PREFIX datacite: <http://purl.org/spar/datacite/>
-            PREFIX pro: <http://purl.org/spar/pro/>
-            SELECT DISTINCT ?entity WHERE {{
-                {{?entity ?p <{other}>}} UNION 
-                {{<{res}> ?p ?entity}} UNION 
-                {{<{other}> ?p ?entity}} 
-                FILTER (?p != rdf:type) 
-                FILTER (?p != datacite:usesIdentifierScheme) 
-                FILTER (?p != pro:withRole)
-            }}'''          
+        related_entities = set()
         
-        data = self.make_sparql_query_with_retry(sparql, query)
+        if other in self.relationship_cache:
+            related_entities.update(self.relationship_cache[other])
+        else:
+            sparql = SPARQLWrapper(endpoint=self.endpoint)
+            query = f'''
+                PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+                PREFIX datacite: <http://purl.org/spar/datacite/>
+                PREFIX pro: <http://purl.org/spar/pro/>
+                SELECT DISTINCT ?entity WHERE {{
+                    {{?entity ?p <{other}>}} UNION 
+                    {{<{other}> ?p ?entity}}
+                    FILTER (?p != rdf:type) 
+                    FILTER (?p != datacite:usesIdentifierScheme) 
+                    FILTER (?p != pro:withRole)
+                }}'''
+            
+            data = self.make_sparql_query_with_retry(sparql, query)
+            other_related = {URIRef(result["entity"]["value"]) 
+                            for result in data["results"]["bindings"] 
+                            if result['entity']['type'] == 'uri'}
+            
+            self.relationship_cache[other] = other_related
+            related_entities.update(other_related)
         
-        # Collect entities that need to be imported (not in cache)
-        entities_to_import = set()
-        
-        # Check main entities against cache
-        if not self.entity_cache.is_cached(res):
-            entities_to_import.add(res)
-        if not self.entity_cache.is_cached(other):
-            entities_to_import.add(other)
-        
-        # Check related entities against cache
-        for result in data["results"]["bindings"]:
-            if result['entity']['type'] == 'uri':
-                related_entity = URIRef(result["entity"]["value"])
-                if not self.entity_cache.is_cached(related_entity):
-                    entities_to_import.add(related_entity)
-        
+        if res in self.relationship_cache:
+            related_entities.update(self.relationship_cache[res])
+        else:
+            # Query only for objects of the surviving entity if not in cache
+            sparql = SPARQLWrapper(endpoint=self.endpoint)
+            query = f'''
+                PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+                PREFIX datacite: <http://purl.org/spar/datacite/>
+                PREFIX pro: <http://purl.org/spar/pro/>
+                SELECT DISTINCT ?entity WHERE {{
+                    <{res}> ?p ?entity
+                    FILTER (?p != rdf:type) 
+                    FILTER (?p != datacite:usesIdentifierScheme) 
+                    FILTER (?p != pro:withRole)
+                }}'''
+            
+            data = self.make_sparql_query_with_retry(sparql, query)
+            res_related = {URIRef(result["entity"]["value"]) 
+                        for result in data["results"]["bindings"] 
+                        if result['entity']['type'] == 'uri'}
+            
+            self.relationship_cache[res] = res_related
+            related_entities.update(res_related)
+                
+        entities_to_import = set([res, other])
+        entities_to_import.update(related_entities)
+        entities_to_import = {e for e in entities_to_import 
+                            if not self.entity_cache.is_cached(e)}
+                
         # Import only non-cached entities if there are any
         if entities_to_import:
             try:
-                imported_entities = self.reader.import_entities_from_triplestore(
+                self.reader.import_entities_from_triplestore(
                     g_set=g_set,
                     ts_url=self.endpoint,
                     entities=list(entities_to_import),

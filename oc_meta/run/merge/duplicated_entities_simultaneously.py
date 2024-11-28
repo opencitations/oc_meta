@@ -57,9 +57,9 @@ class EntityMerger:
             return sum(1 for _ in f) - 1  # Subtract 1 to exclude the header row
 
     def fetch_related_entities_batch(self, meta_editor: MetaEditor, merged_entities: List[str], 
-                                   surviving_entities: List[str], batch_size: int = 10) -> Set[URIRef]:
+                                surviving_entities: List[str], batch_size: int = 10) -> Set[URIRef]:
         """
-        Fetch all related entities in batches to avoid overwhelming the SPARQL endpoint.
+        Fetch all related entities in batches and populate the relationship cache.
         
         Args:
             meta_editor: MetaEditor instance
@@ -75,8 +75,6 @@ class EntityMerger:
         # Process merged entities in batches
         for i in range(0, len(merged_entities), batch_size):
             batch_merged = merged_entities[i:i + batch_size]
-            
-            # Create UNION clauses for current batch
             merged_clauses = []
             for entity in batch_merged:
                 merged_clauses.extend([
@@ -106,15 +104,22 @@ class EntityMerger:
                 results = meta_editor.make_sparql_query_with_retry(sparql, query)
                 for result in results["results"]["bindings"]:
                     if result['entity']['type'] == 'uri':
-                        all_related_entities.add(URIRef(result['entity']['value']))
+                        related_uri = URIRef(result['entity']['value'])
+                        all_related_entities.add(related_uri)
+                        
+                        # Update relationship cache for each merged entity in the batch
+                        for entity in batch_merged:
+                            entity_uri = URIRef(entity)
+                            if entity_uri not in meta_editor.relationship_cache:
+                                meta_editor.relationship_cache[entity_uri] = set()
+                            meta_editor.relationship_cache[entity_uri].add(related_uri)
+                        
             except Exception as e:
                 print(f"Error fetching related entities for merged batch {i}-{i+batch_size}: {e}")
         
         # Process surviving entities in batches
         for i in range(0, len(surviving_entities), batch_size):
             batch_surviving = surviving_entities[i:i + batch_size]
-            
-            # Create UNION clauses for current batch
             surviving_clauses = []
             for entity in batch_surviving:
                 surviving_clauses.append(
@@ -123,7 +128,7 @@ class EntityMerger:
                 
             if not surviving_clauses:
                 continue
-                
+            
             query = f"""
                 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
                 PREFIX datacite: <http://purl.org/spar/datacite/>
@@ -143,12 +148,20 @@ class EntityMerger:
                 results = meta_editor.make_sparql_query_with_retry(sparql, query)
                 for result in results["results"]["bindings"]:
                     if result['entity']['type'] == 'uri':
-                        all_related_entities.add(URIRef(result['entity']['value']))
+                        related_uri = URIRef(result['entity']['value'])
+                        all_related_entities.add(related_uri)
+                        
+                        # Update relationship cache for each surviving entity in the batch
+                        for entity in batch_surviving:
+                            entity_uri = URIRef(entity)
+                            if entity_uri not in meta_editor.relationship_cache:
+                                meta_editor.relationship_cache[entity_uri] = set()
+                            meta_editor.relationship_cache[entity_uri].add(related_uri)
+                        
             except Exception as e:
                 print(f"Error fetching related entities for surviving batch {i}-{i+batch_size}: {e}")
                 
         return all_related_entities
-
     def process_file(self, csv_file: str) -> str:
         """Process a single CSV file with cross-row batch processing"""
         data = self.read_csv(csv_file)
@@ -179,7 +192,7 @@ class EntityMerger:
         if not rows_to_process:
             return csv_file
 
-        # Fetch all related entities in batches
+        # Fetch all related entities and populate relationship cache
         all_related_entities = self.fetch_related_entities_batch(
             meta_editor,
             batch_merged_entities,
@@ -205,7 +218,7 @@ class EntityMerger:
                     entities=list(entities_to_import),
                     resp_agent=meta_editor.resp_agent,
                     enable_validation=False,
-                    batch_size=self.batch_size  # Usa lo stesso batch_size
+                    batch_size=self.batch_size
                 )
                 
                 # Update cache with newly imported entities
@@ -216,7 +229,7 @@ class EntityMerger:
                 print(f"Error importing entities: {e}")
                 modified = True
 
-        # Perform all merges now that entities are imported
+        # Perform all merges using cached relationship data
         for surviving_entity, merged_entities in rows_to_process:
             surviving_uri = URIRef(surviving_entity)
             for merged_entity in merged_entities:
