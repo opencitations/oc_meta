@@ -261,9 +261,9 @@ class EntityMerger:
                     if file.endswith('.csv')]
 
         # Filter CSV files based on number of rows and workers
-        # if self.workers > 4:
-        #     csv_files = [file for file in csv_files 
-        #                 if self.count_csv_rows(file) <= 10000]
+        if self.workers > 4:
+            csv_files = [file for file in csv_files 
+                        if self.count_csv_rows(file) <= 10000]
 
         with concurrent.futures.ProcessPoolExecutor(max_workers=self.workers) as executor:
             futures = {

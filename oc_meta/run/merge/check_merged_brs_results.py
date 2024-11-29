@@ -9,14 +9,20 @@ from functools import partial
 from multiprocessing import Pool, cpu_count
 
 import yaml
-from oc_meta.plugins.editor import MetaEditor
+from filelock import FileLock
 from rdflib import RDF, ConjunctiveGraph, Literal, Namespace, URIRef
 from SPARQLWrapper import JSON, SPARQLWrapper
 from tqdm import tqdm
 
+from oc_meta.plugins.editor import MetaEditor
+
 DATACITE = "http://purl.org/spar/datacite/"
 FABIO = "http://purl.org/spar/fabio/"
 PROV = Namespace("http://www.w3.org/ns/prov#")
+PRO = Namespace("http://purl.org/spar/pro/")
+DCTERMS = Namespace("http://purl.org/dc/terms/")
+FRBR = Namespace("http://purl.org/vocab/frbr/core#")
+PRISM = Namespace("http://prismstandard.org/namespaces/basic/2.1/")
 
 def read_csv(csv_file):
     with open(csv_file, 'r') as f:
@@ -33,34 +39,75 @@ def sparql_query_with_retry(sparql, max_retries=3, initial_delay=1, backoff_fact
             delay = initial_delay * (backoff_factor ** attempt)
             time.sleep(delay + random.uniform(0, 1))
 
+def check_br_constraints(g: ConjunctiveGraph, entity):
+    issues = []
+    
+    # Check types
+    types = list(g.objects(entity, RDF.type, unique=True))
+    if not types:
+        issues.append(f"Entity {entity} has no type")
+    elif len(types) > 2:
+        issues.append(f"Entity {entity} has more than two types")
+    elif URIRef(FABIO + "Expression") not in types:
+        issues.append(f"Entity {entity} is not a fabio:Expression")
+    
+    # Check if entity is a journal issue or volume
+    is_journal_issue = URIRef(FABIO + "JournalIssue") in types
+    is_journal_volume = URIRef(FABIO + "JournalVolume") in types
+
+    # Check identifiers
+    identifiers = list(g.objects(entity, URIRef(DATACITE + "hasIdentifier"), unique=True))
+    if not identifiers:
+        issues.append(f"Entity {entity} has no datacite:hasIdentifier")
+    
+    # Check title (zero or one)
+    titles = list(g.objects(entity, DCTERMS.title, unique=True))
+    if len(titles) > 1:
+        issues.append(f"Entity {entity} has multiple titles")
+    
+    # Check part of (zero or one)
+    part_of = list(g.objects(entity, FRBR.partOf, unique=True))
+    if len(part_of) > 1:
+        issues.append(f"Entity {entity} has multiple partOf relations")
+    
+    # Check publication date (zero or one)
+    pub_dates = list(g.objects(entity, PRISM.hasPublicationDate, unique=True))
+    if len(pub_dates) > 1:
+        issues.append(f"Entity {entity} has multiple publication dates")
+    
+    # Check sequence identifier (zero or one)
+    seq_ids = list(g.objects(entity, URIRef(FABIO + "hasSequenceIdentifier"), unique=True))
+    if len(seq_ids) > 1:
+        issues.append(f"Entity {entity} has multiple sequence identifiers")
+    elif seq_ids and not (is_journal_issue or is_journal_volume):
+        issues.append(f"Entity {entity} has sequence identifier but is not a journal issue or volume")
+        
+    return issues
+
 def check_entity_file(file_path: str, entity_uri, is_surviving):
-    with zipfile.ZipFile(file_path, 'r') as zip_ref:
-        for filename in zip_ref.namelist():
-            with zip_ref.open(filename) as file:
-                g = ConjunctiveGraph()
-                g.parse(file, format='json-ld')
-                entity = URIRef(entity_uri)
-                
-                if (entity, None, None) not in g:
-                    if is_surviving:
-                        tqdm.write(f"Error in file {file_path}: Surviving entity {entity_uri} does not exist")
-                    return
-                
-                if not is_surviving:
-                    tqdm.write(f"Error in file {file_path}: Merged entity {entity_uri} still exists")
-                    return
-                
-                types = list(g.objects(entity, RDF.type))
-                if not types:
-                    tqdm.write(f"Error in file {file_path}: Entity {entity_uri} has no type")
-                elif len(types) > 2:
-                    tqdm.write(f"Error in file {file_path}: Entity {entity_uri} has more than two types")
-                elif URIRef(FABIO + "Expression") not in types:
-                    tqdm.write(f"Error in file {file_path}: Entity {entity_uri} is not a fabio:Expression")
-                
-                identifiers = list(g.objects(entity, URIRef(DATACITE + "hasIdentifier")))
-                if not identifiers:
-                    tqdm.write(f"Error in file {file_path}: Entity {entity_uri} has no datacite:hasIdentifier")
+    lock_path = f"{file_path}.lock"
+    lock = FileLock(lock_path)
+
+    with lock:
+        with zipfile.ZipFile(file_path, 'r') as zip_ref:
+            for filename in zip_ref.namelist():
+                with zip_ref.open(filename) as file:
+                    g = ConjunctiveGraph()
+                    g.parse(file, format='json-ld')
+                    entity = URIRef(entity_uri)
+                    
+                    if (entity, None, None) not in g:
+                        if is_surviving:
+                            tqdm.write(f"Error in file {file_path}: Surviving entity {entity_uri} does not exist")
+                        return
+                    
+                    if not is_surviving:
+                        tqdm.write(f"Error in file {file_path}: Merged entity {entity_uri} still exists")
+                        return
+                    
+                    br_issues = check_br_constraints(g, entity)
+                    for issue in br_issues:
+                        tqdm.write(f"Error in file {file_path}: {issue}")
     
     # Check provenance
     prov_file_path = file_path.replace('.zip', '') + '/prov/se.zip'
