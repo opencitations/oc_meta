@@ -208,7 +208,7 @@ class EntityMerger:
         # Remove already cached entities
         entities_to_import = {e for e in entities_to_import 
                             if not meta_editor.entity_cache.is_cached(e)}
-
+        print("entities_to_import out", len(entities_to_import))
         # Batch import all non-cached entities
         if entities_to_import:
             try:

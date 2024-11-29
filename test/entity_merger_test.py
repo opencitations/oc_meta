@@ -2,18 +2,22 @@ import csv
 import json
 import os
 import re
+import statistics
+import time
 import unittest
 from shutil import rmtree
+from typing import Dict, List
 
 import redis
-from oc_meta.run.merge.duplicated_entities_simultaneously import EntityMerger
-from oc_meta.run.meta_editor import MetaEditor
 from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
 from oc_ocdm.graph import GraphSet
 from oc_ocdm.prov.prov_set import ProvSet
 from oc_ocdm.storer import Storer
 from rdflib import URIRef
 from SPARQLWrapper import POST, SPARQLWrapper
+
+from oc_meta.run.merge.entities import EntityMerger
+from oc_meta.run.meta_editor import MetaEditor
 
 BASE = os.path.join('test', 'merger')
 OUTPUT = os.path.join(BASE, 'output/')
@@ -1151,6 +1155,173 @@ class TestEntityMerger(unittest.TestCase):
                 expected_related.add(URIRef(f"https://w3id.org/oc/meta/id/060{valid_numbers[3]}"))
                 
                 self.assertEqual(related, expected_related)
+    
+    def setup_performance_test_data(self, entity_count: int) -> None:
+        """Create test data for performance testing with specified number of entities"""
+        g_set = GraphSet("https://w3id.org/oc/meta/", supplier_prefix="060",
+                        custom_counter_handler=self.counter_handler)
+        
+        # Create authors with related entities
+        for i in range(entity_count):
+            # Create author
+            author = g_set.add_ra(
+                resp_agent="https://orcid.org/0000-0002-8420-0696",
+                res=URIRef(f"https://w3id.org/oc/meta/ra/060{i+1}")
+            )
+            author.has_name(f"Author {i+1}")
+            
+            # Create identifier
+            identifier = g_set.add_id(
+                resp_agent="https://orcid.org/0000-0002-8420-0696",
+                res=URIRef(f"https://w3id.org/oc/meta/id/060{i+1}")
+            )
+            identifier.create_orcid(f"0000-0001-{i+1:04d}-1111")
+            author.has_identifier(identifier)
+            
+            # Create publication and role
+            pub = g_set.add_br(
+                resp_agent="https://orcid.org/0000-0002-8420-0696",
+                res=URIRef(f"https://w3id.org/oc/meta/br/060{i+1}")
+            )
+            pub.has_title(f"Publication {i+1}")
+            
+            role = g_set.add_ar(
+                resp_agent="https://orcid.org/0000-0002-8420-0696",
+                res=URIRef(f"https://w3id.org/oc/meta/ar/060{i+1}")
+            )
+            role.create_author()
+            role.is_held_by(author)
+            pub.has_contributor(role)
+
+        # Store and upload data
+        prov = ProvSet(g_set, "https://w3id.org/oc/meta/", wanted_label=False,
+                    custom_counter_handler=self.counter_handler)
+        prov.generate_provenance()
+        
+        rdf_output = os.path.join(OUTPUT, 'rdf') + os.sep
+        
+        res_storer = Storer(abstract_set=g_set, dir_split=10000, n_file_item=1000,
+                            output_format='json-ld', zip_output=False)
+        prov_storer = Storer(abstract_set=prov, dir_split=10000, n_file_item=1000,
+                            output_format='json-ld', zip_output=False)
+        
+        res_storer.store_all(base_dir=rdf_output, base_iri="https://w3id.org/oc/meta/")
+        prov_storer.store_all(base_dir=rdf_output, base_iri="https://w3id.org/oc/meta/")
+        res_storer.upload_all(triplestore_url=SERVER, base_dir=rdf_output,
+                            batch_size=10, save_queries=False)
+
+    def measure_merge_performance(self, total_entities: int, batch_sizes: List[int], 
+                                runs: int = 3) -> Dict[int, List[float]]:
+        """
+        Measure merge performance across different batch sizes.
+        
+        Args:
+            total_entities: Number of entities to merge
+            batch_sizes: List of batch sizes to test
+            runs: Number of times to run each test for averaging
+            
+        Returns:
+            Dict mapping batch sizes to list of execution times
+        """
+        results = {batch_size: [] for batch_size in batch_sizes}
+        
+        for _ in range(runs):
+            for batch_size in batch_sizes:
+                # Reset environment
+                if os.path.exists(OUTPUT):
+                    rmtree(OUTPUT)
+                reset_triplestore()
+                reset_redis_counters()
+                
+                # Setup fresh test data
+                self.setup_performance_test_data(total_entities)
+                
+                # Create merge data
+                merge_data = []
+                surviving_entity = f"https://w3id.org/oc/meta/ra/0601"  # First entity is surviving
+                merged_entities = [f"https://w3id.org/oc/meta/ra/060{i}" 
+                                for i in range(2, total_entities + 1)]
+                
+                merge_data.append({
+                    'surviving_entity': surviving_entity,
+                    'merged_entities': '; '.join(merged_entities),
+                    'Done': 'False'
+                })
+                
+                if not os.path.exists(os.path.join(BASE, 'csv')):
+                    os.makedirs(os.path.join(BASE, 'csv'))
+
+                test_file = os.path.join(BASE, 'csv', f'perf_test_{batch_size}.csv')
+                self.write_csv(f'perf_test_{batch_size}.csv', merge_data)
+                
+                # Create merger with current batch size
+                merger = EntityMerger(
+                    meta_config=META_CONFIG,
+                    resp_agent='https://orcid.org/0000-0002-8420-0696',
+                    entity_types=['ra', 'br', 'id'],
+                    stop_file_path='stop.out',
+                    workers=4
+                )
+                
+                # Measure execution time
+                start_time = time.time()
+                merger.process_file(test_file)
+                execution_time = time.time() - start_time
+                
+                results[batch_size].append(execution_time)
+                
+        return results
+
+    def test_merge_performance_analysis(self):
+        """Test performance characteristics of entity merging with different batch sizes"""
+        # Test parameters
+        total_entities = 1000  # Total number of entities to merge
+        batch_sizes = [1, 5, 10, 20, 50]  # Different batch sizes to test
+        runs = 3  # Number of runs for averaging
+        
+        # Run performance measurements
+        results = self.measure_merge_performance(total_entities, batch_sizes, runs)
+        
+        # Calculate statistics
+        stats = {}
+        for batch_size, times in results.items():
+            avg_time = statistics.mean(times)
+            std_dev = statistics.stdev(times) if len(times) > 1 else 0
+            stats[batch_size] = {
+                'avg_time': avg_time,
+                'std_dev': std_dev,
+                'raw_times': times
+            }
+        
+        # Verify performance characteristics
+        # 1. Batch processing should be faster than single processing
+        self.assertGreater(
+            stats[1]['avg_time'],
+            stats[5]['avg_time'],
+            "Batch processing (size 5) should be faster than single processing"
+        )
+        
+        # 2. Find optimal batch size
+        optimal_batch_size = min(stats.keys(), key=lambda x: stats[x]['avg_time'])
+        self.assertLessEqual(
+            optimal_batch_size,
+            20,
+            f"Optimal batch size ({optimal_batch_size}) should not be too large"
+        )
+
+        # Print performance summary
+        print("\nPerformance Test Results:")
+        print("-" * 50)
+        print(f"Total Entities: {total_entities}")
+        print(f"Runs per batch size: {runs}")
+        print("\nExecution Times (seconds):")
+        for size in sorted(batch_sizes):
+            print(f"\nBatch Size: {size}")
+            print(f"  Average: {stats[size]['avg_time']:.3f}s")
+            print(f"  Std Dev: {stats[size]['std_dev']:.3f}s")
+            print(f"  Raw times: {', '.join(f'{t:.3f}' for t in stats[size]['raw_times'])}")
+        print(f"\nOptimal Batch Size: {optimal_batch_size}")
+        
 
 if __name__ == '__main__':
     unittest.main()
