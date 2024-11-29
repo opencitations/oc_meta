@@ -177,7 +177,6 @@ class MetaEditor:
         """
         # First get all related entities with a single SPARQL query
         related_entities = set()
-        
         if other in self.relationship_cache:
             related_entities.update(self.relationship_cache[other])
         else:
@@ -201,7 +200,6 @@ class MetaEditor:
             
             self.relationship_cache[other] = other_related
             related_entities.update(other_related)
-        
         if res in self.relationship_cache:
             related_entities.update(self.relationship_cache[res])
         else:
@@ -230,7 +228,6 @@ class MetaEditor:
         entities_to_import.update(related_entities)
         entities_to_import = {e for e in entities_to_import 
                             if not self.entity_cache.is_cached(e)}
-                
         # Import only non-cached entities if there are any
         if entities_to_import:
             try:

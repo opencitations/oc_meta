@@ -162,6 +162,7 @@ class EntityMerger:
                 print(f"Error fetching related entities for surviving batch {i}-{i+batch_size}: {e}")
                 
         return all_related_entities
+    
     def process_file(self, csv_file: str) -> str:
         """Process a single CSV file with cross-row batch processing"""
         data = self.read_csv(csv_file)
