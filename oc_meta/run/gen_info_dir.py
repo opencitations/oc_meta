@@ -153,7 +153,7 @@ def main():
     parser.add_argument("directory", type=str, help="Il percorso della directory da esplorare")
     parser.add_argument("--redis-host", type=str, default="localhost", help="L'host del server Redis")
     parser.add_argument("--redis-port", type=int, default=6379, help="La porta del server Redis")
-    parser.add_argument("--redis-db", type=int, default=0, help="Il numero del database Redis da utilizzare")
+    parser.add_argument("--redis-db", type=int, default=6, help="Il numero del database Redis da utilizzare")
     args = parser.parse_args()
 
     explore_directories(args.directory, args.redis_host, args.redis_port, args.redis_db)

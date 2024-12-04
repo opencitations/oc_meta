@@ -33,6 +33,7 @@ orjson = "^3.10.7"
 rdflib-ocdm = "0.3.11"
 numpy = "^2.1.1"
 pandas = "^2.2.3"
+psycopg2 = "^2.9.10"
 
 [tool.poetry.dev-dependencies]
 wget = "^3.2"

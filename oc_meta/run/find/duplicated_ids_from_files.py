@@ -1,14 +1,14 @@
 import argparse
 import csv
 import logging
+import multiprocessing as mp
 import os
 import zipfile
-from typing import Dict, Set
 from collections import defaultdict
+from typing import Dict, Set
 
 from rdflib import ConjunctiveGraph, URIRef
 from tqdm import tqdm
-import multiprocessing as mp
 
 logging.basicConfig(filename='error_log_find_duplicated_ids_from_files.txt', level=logging.ERROR, 
                     format='%(asctime)s - %(levelname)s - %(message)s')
@@ -30,8 +30,8 @@ def process_zip_file(zip_path: str) -> Dict[tuple, Set[str]]:
                             entity_id = str(s)
                             identifier_scheme = str(o)
                             literal_value = g.value(s, literal_reification_has_literal_value)
-                            if literal_value:
-                                key = (identifier_scheme, str(literal_value))
+                            if identifier_scheme and literal_value:
+                                key = (str(identifier_scheme), str(literal_value))
                                 entity_info[key].add(entity_id)
                 except Exception as e:
                     logging.error(f"Errore nell'elaborazione del file {zip_file} in {zip_path}: {str(e)}")

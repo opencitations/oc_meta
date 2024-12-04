@@ -104,7 +104,7 @@ def group_entities(df, endpoint):
     return grouped_data
 
 
-def optimize_groups(grouped_data, target_size=2):
+def optimize_groups(grouped_data, target_size=50):
     """
     Ottimizza i gruppi combinando quelli singoli mantenendo separate le entità interconnesse.
     
@@ -185,7 +185,7 @@ def main():
     parser.add_argument('csv_file_path', type=str, help='Path to the input CSV file')
     parser.add_argument('output_dir', type=str, help='Directory to save the output files')
     parser.add_argument('sparql_endpoint', type=str, help='SPARQL endpoint URL')
-    parser.add_argument('--min_group_size', type=int, default=10, 
+    parser.add_argument('--min_group_size', type=int, default=50, 
                       help='Minimum target size for groups (default: 10)')
 
     args = parser.parse_args()
