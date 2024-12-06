@@ -118,7 +118,7 @@ def check_provenance(prov_file_path, entity_uri, is_surviving):
         match = re.search(r'/prov/se/(\d+)$', str(snapshot_uri))
         if match:
             return int(match.group(1))
-        return 0  # Return 0 if no match found, this will put invalid URIs at the start
+        return 0
 
     try:
         with zipfile.ZipFile(prov_file_path, 'r') as zip_ref:
@@ -134,7 +134,6 @@ def check_provenance(prov_file_path, entity_uri, is_surviving):
                 tqdm.write(f"Error in provenance file {prov_file_path}: Less than two snapshots found for entity {entity_uri}")
                 return
             
-            # Sort snapshots by their URI number
             snapshots.sort(key=extract_snapshot_number)
             
             for i, snapshot in enumerate(snapshots):
@@ -153,17 +152,21 @@ def check_provenance(prov_file_path, entity_uri, is_surviving):
                 elif is_surviving and g.value(snapshot, PROV.invalidatedAtTime) is not None:
                     tqdm.write(f"Error in provenance file {prov_file_path}: Last snapshot of surviving entity {snapshot} should not have invalidation time")
                 
-                # Check prov:wasDerivedFrom
+                # Check if this is a merge snapshot by examining its description
+                description = g.value(snapshot, DCTERMS.description)
+                is_merge_snapshot = description and "has been merged with" in str(description)
+                
+                # Check prov:wasDerivedFrom based on snapshot type
                 derived_from = list(g.objects(snapshot, PROV.wasDerivedFrom))
                 if i == 0:  # First snapshot
                     if derived_from:
                         tqdm.write(f"Error in provenance file {prov_file_path}: First snapshot {snapshot} should not have prov:wasDerivedFrom relation")
-                elif i == len(snapshots) - 1 and is_surviving:  # Last snapshot of surviving entity (merge snapshot)
+                elif is_merge_snapshot:
                     if len(derived_from) < 2:
-                        tqdm.write(f"Error in provenance file {prov_file_path}: Merge snapshot {snapshot} should be derived from more than one snapshot")
-                else:  # All other snapshots
+                        tqdm.write(f"Error in provenance file {prov_file_path}: Merge snapshot {snapshot} should be derived from at least two snapshots")
+                else:  # Regular modification snapshot
                     if len(derived_from) != 1:
-                        tqdm.write(f"Error in provenance file {prov_file_path}: Snapshot {snapshot} should have exactly one prov:wasDerivedFrom relation, but has {len(derived_from)}")
+                        tqdm.write(f"Error in provenance file {prov_file_path}: Regular modification snapshot {snapshot} should have exactly one prov:wasDerivedFrom relation")
                     elif derived_from[0] != snapshots[i-1]:
                         tqdm.write(f"Error in provenance file {prov_file_path}: Snapshot {snapshot} is not derived from the previous snapshot")
             
@@ -177,7 +180,7 @@ def check_provenance(prov_file_path, entity_uri, is_surviving):
         tqdm.write(f"Error: Provenance file not found for entity {entity_uri}")
     except zipfile.BadZipFile:
         tqdm.write(f"Error: Invalid zip file for provenance of entity {entity_uri}")
-
+        
 def check_entity_sparql(sparql_endpoint, entity_uri, is_surviving):
     sparql = SPARQLWrapper(sparql_endpoint)
     has_issues = False
