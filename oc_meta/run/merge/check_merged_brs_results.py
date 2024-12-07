@@ -287,16 +287,16 @@ def process_entity(args):
     else:
         check_entity_file(file_path, entity, is_surviving)
 
-    # has_issues = check_entity_sparql(sparql_endpoint, entity, is_surviving)
+    has_issues = check_entity_sparql(sparql_endpoint, entity, is_surviving)
 
-    # if has_issues and not is_surviving:
-    #     triples = get_entity_triples(sparql_endpoint, entity)
-    #     combined_query = generate_update_query(entity, surviving_entity, triples)
+    if has_issues and not is_surviving:
+        triples = get_entity_triples(sparql_endpoint, entity)
+        combined_query = generate_update_query(entity, surviving_entity, triples)
         
-    #     # Save combined DELETE DATA and INSERT DATA query
-    #     query_file_path = os.path.join(query_output_dir, f"update_{entity.split('/')[-1]}.sparql")
-    #     with open(query_file_path, 'w') as f:
-    #         f.write(combined_query)
+        # Save combined DELETE DATA and INSERT DATA query
+        query_file_path = os.path.join(query_output_dir, f"update_{entity.split('/')[-1]}.sparql")
+        with open(query_file_path, 'w') as f:
+            f.write(combined_query)
 
 def get_entity_triples(sparql_endpoint, entity_uri):
     sparql = SPARQLWrapper(sparql_endpoint)
