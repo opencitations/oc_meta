@@ -1155,7 +1155,150 @@ class TestEntityMerger(unittest.TestCase):
                 expected_related.add(URIRef(f"https://w3id.org/oc/meta/id/060{valid_numbers[3]}"))
                 
                 self.assertEqual(related, expected_related)
-    
+
+    def test_merge_bibliographic_resources_with_multiple_identifiers(self):
+        """Test merging two bibliographic resources with different identifiers"""
+        g_set = GraphSet("https://w3id.org/oc/meta/", supplier_prefix="065",
+                        custom_counter_handler=self.counter_handler)
+        
+        # Create first publication (surviving entity)
+        pub1 = g_set.add_br(resp_agent="https://orcid.org/0000-0002-8420-0696",
+                        res=URIRef("https://w3id.org/oc/meta/br/06501844005"))
+        pub1.has_title("Higgsing The Stringy Higher Spin Symmetry")
+        pub1.has_pub_date("2015-10")
+        
+        # Add first identifier (DOI)
+        doi_id1 = g_set.add_id(resp_agent="https://orcid.org/0000-0002-8420-0696",
+                            res=URIRef("https://w3id.org/oc/meta/id/0680503588"))
+        doi_id1.create_doi("10.1007/jhep10(2015)101")
+        pub1.has_identifier(doi_id1)
+        
+        # Add part of relationship
+        journal = g_set.add_br(resp_agent="https://orcid.org/0000-0002-8420-0696",
+                            res=URIRef("https://w3id.org/oc/meta/br/06501844297"))
+        pub1.is_part_of(journal)
+        
+        # Add contributors for first publication
+        for i in range(4):
+            role = g_set.add_ar(resp_agent="https://orcid.org/0000-0002-8420-0696",
+                            res=URIRef(f"https://w3id.org/oc/meta/ar/0650842286{7+i}"))
+            role.create_author()
+            pub1.has_contributor(role)
+        
+        # Create second publication (to be merged)
+        pub2 = g_set.add_br(resp_agent="https://orcid.org/0000-0002-8420-0696",
+                        res=URIRef("https://w3id.org/oc/meta/br/06804303923"))
+        pub2.has_title("Higgsing The Stringy Higher Spin Symmetry")
+        pub2.has_pub_date("2015-10-01")
+        
+        # Add second identifier (additional DOI)
+        doi_id2 = g_set.add_id(resp_agent="https://orcid.org/0000-0002-8420-0696",
+                            res=URIRef("https://w3id.org/oc/meta/id/0680503589"))
+        doi_id2.create_doi("10.3929/ethz-b-000105964")
+        pub2.has_identifier(doi_id2)
+        
+        # Add contributors for second publication
+        for i in range(4):
+            role = g_set.add_ar(resp_agent="https://orcid.org/0000-0002-8420-0696",
+                            res=URIRef(f"https://w3id.org/oc/meta/ar/0680174860{1+i}"))
+            role.create_author()
+            pub2.has_contributor(role)
+        
+        # Store and upload test data
+        prov = ProvSet(g_set, "https://w3id.org/oc/meta/", wanted_label=False,
+                    custom_counter_handler=self.counter_handler)
+        prov.generate_provenance()
+        
+        rdf_output = os.path.join(OUTPUT, 'rdf') + os.sep
+        
+        res_storer = Storer(abstract_set=g_set, dir_split=10000, n_file_item=1000,
+                            output_format='json-ld', zip_output=False)
+        prov_storer = Storer(abstract_set=prov, dir_split=10000, n_file_item=1000,
+                            output_format='json-ld', zip_output=False)
+        
+        res_storer.store_all(base_dir=rdf_output, base_iri="https://w3id.org/oc/meta/")
+        prov_storer.store_all(base_dir=rdf_output, base_iri="https://w3id.org/oc/meta/")
+        res_storer.upload_all(triplestore_url=SERVER, base_dir=rdf_output,
+                            batch_size=10, save_queries=False)
+        
+        # # Create merge data
+        merge_data = [{
+            'surviving_entity': 'https://w3id.org/oc/meta/br/06501844005',
+            'merged_entities': 'https://w3id.org/oc/meta/br/06804303923',
+            'Done': 'False'
+        }]
+        test_file = os.path.join(BASE, 'csv', 'br_dois_merge.csv')
+        self.write_csv('br_dois_merge.csv', merge_data)
+        
+        # # Process the merge
+        self.merger.process_folder(os.path.join(BASE, 'csv'))
+        
+        # # Verify the results
+        rdf_path = os.path.join(OUTPUT, 'rdf')
+        br_file = os.path.join(rdf_path, 'br', '0650', '1850000', '1845000.json')
+        
+        with open(br_file) as f:
+            data = json.load(f)
+            surviving_entity_found = False
+            
+            for graph in data:
+                for entity in graph.get('@graph', []):
+                    if entity['@id'] == 'https://w3id.org/oc/meta/br/06501844005':
+                        surviving_entity_found = True
+                        
+                        # Check identifiers - should have both DOIs
+                        identifiers = {id_obj['@id'] for id_obj in entity['http://purl.org/spar/datacite/hasIdentifier']}
+                        self.assertEqual(len(identifiers), 2)
+                        expected_ids = {
+                            'https://w3id.org/oc/meta/id/0680503588',
+                            'https://w3id.org/oc/meta/id/0680503589'
+                        }
+                        self.assertEqual(identifiers, expected_ids)
+                        
+                        # Check other metadata preserved
+                        self.assertEqual(
+                            entity['http://purl.org/dc/terms/title'][0]['@value'],
+                            'Higgsing The Stringy Higher Spin Symmetry'
+                        )
+                        self.assertEqual(
+                            entity['http://prismstandard.org/namespaces/basic/2.0/publicationDate'][0]['@value'],
+                            '2015-10-01'  # Should keep original date format
+                        )
+                        
+                        # Check part of relationship preserved
+                        self.assertEqual(
+                            entity['http://purl.org/vocab/frbr/core#partOf'][0]['@id'],
+                            'https://w3id.org/oc/meta/br/06501844297'
+                        )
+                    
+                    # Verify merged entity doesn't exist
+                    self.assertNotEqual(entity['@id'], 'https://w3id.org/oc/meta/br/06804303923')
+            
+            self.assertTrue(surviving_entity_found, "Surviving entity not found in output")
+        
+        # # Verify provenance
+        prov_file = os.path.join(rdf_path, 'br', '0650', '1850000', '1845000', 'prov', 'se.json')
+        with open(prov_file) as f:
+            data = json.load(f)
+            merge_snapshot_found = False
+            
+            for graph in data:
+                if graph['@id'] == 'https://w3id.org/oc/meta/br/06501844005/prov/':
+                    for entity in graph.get('@graph', []):
+                        if 'merge' in entity.get('http://purl.org/dc/terms/description', [{}])[0].get('@value', '').lower():
+                            merge_snapshot_found = True
+                            
+                            # Check merge query content
+                            merge_query = entity['https://w3id.org/oc/ontology/hasUpdateQuery'][0]['@value']
+                            expected_triples = {
+                                'insert': [
+                                    '<https://w3id.org/oc/meta/br/06501844005> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0680503589>'
+                                ]
+                            }
+                            self.check_sparql_query_content(merge_query, expected_triples)
+            
+            self.assertTrue(merge_snapshot_found, "No merge snapshot found in provenance")
+
     # def setup_performance_test_data_with_distributions(self, total_entities: int, 
     #                                                 distribution_type: str) -> List[dict]:
     #     """
