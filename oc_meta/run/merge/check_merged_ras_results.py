@@ -8,16 +8,17 @@ import zipfile
 from functools import partial
 from multiprocessing import Pool, cpu_count
 
+import filelock
 import yaml
+from oc_meta.plugins.editor import MetaEditor
 from rdflib import RDF, ConjunctiveGraph, Literal, Namespace, URIRef
 from SPARQLWrapper import JSON, SPARQLWrapper
 from tqdm import tqdm
 
-from oc_meta.plugins.editor import MetaEditor
-
 DATACITE = "http://purl.org/spar/datacite/"
 FOAF = Namespace("http://xmlns.com/foaf/0.1/")
 PROV = Namespace("http://www.w3.org/ns/prov#")
+DCTERMS = Namespace("http://purl.org/dc/terms/")
 
 def read_csv(csv_file):
     with open(csv_file, 'r') as f:
@@ -217,6 +218,24 @@ def check_entity_provenance(entity_uri, is_surviving, prov_graph: ConjunctiveGra
         elif is_surviving and prov_graph.value(snapshot, PROV.invalidatedAtTime) is not None:
             tqdm.write(f"Error in provenance file {prov_file_path}: Last snapshot of surviving entity {snapshot} should not have invalidation time")
 
+        description = prov_graph.value(snapshot, DCTERMS.description)
+        is_merge_snapshot = description and "has been merged with" in str(description)
+        
+        derived_from = list(prov_graph.objects(snapshot, PROV.wasDerivedFrom, unique=True))
+        if i == 0:  # First snapshot
+            if derived_from:
+                tqdm.write(f"Error in provenance file {prov_file_path}: First snapshot {snapshot} should not have prov:wasDerivedFrom relation")
+        elif is_merge_snapshot:
+            if len(derived_from) < 2:
+                tqdm.write(f"Error in provenance file {prov_file_path}: Merge snapshot {snapshot} should be derived from at least two snapshots")
+        else:  # Regular modification snapshot
+            if len(derived_from) != 1:
+                tqdm.write(f"Error in provenance file {prov_file_path}: Regular modification snapshot {snapshot} should have exactly one prov:wasDerivedFrom relation")
+            else:
+                previous_snapshot = snapshots[i-1]
+                if derived_from[0] != previous_snapshot:
+                    tqdm.write(f"Error in provenance file {prov_file_path}: Snapshot {snapshot} is not derived from the previous snapshot")
+
 def process_file_group(args):
     file_path, entities, sparql_endpoint, query_output_dir = args
 
@@ -232,63 +251,79 @@ def process_file_group(args):
                     f.write(combined_query)
         return
 
+    # Create lock files
+    data_lock_file = f"{file_path}.lock"
+    prov_lock_file = f"{file_path.replace('.zip', '')}/prov/se.zip.lock"
+    
+    data_lock = filelock.FileLock(data_lock_file)
+    prov_lock = filelock.FileLock(prov_lock_file)
+
     try:
-        with zipfile.ZipFile(file_path, 'r') as zip_ref:
-            g = ConjunctiveGraph()
-            for filename in zip_ref.namelist():
-                with zip_ref.open(filename) as file:
-                    g.parse(file, format='json-ld')
-    except FileNotFoundError:
-        for entity, is_surviving, surviving_entity in entities:
-            tqdm.write(f"Error: File not found for entity {entity}")
-            has_issues = check_entity_sparql(sparql_endpoint, entity, is_surviving)
-            if has_issues and not is_surviving:
-                triples = get_entity_triples(sparql_endpoint, entity)
-                combined_query = generate_update_query(entity, surviving_entity, triples)
-                query_file_path = os.path.join(query_output_dir, f"update_{entity.split('/')[-1]}.sparql")
-                with open(query_file_path, 'w') as f:
-                    f.write(combined_query)
-        return
+        with data_lock.acquire(timeout=60):  # Wait up to 60 seconds for the lock
+            try:
+                with zipfile.ZipFile(file_path, 'r') as zip_ref:
+                    g = ConjunctiveGraph()
+                    for filename in zip_ref.namelist():
+                        with zip_ref.open(filename) as file:
+                            g.parse(file, format='json-ld')
+            except FileNotFoundError:
+                for entity, is_surviving, surviving_entity in entities:
+                    tqdm.write(f"Error: File not found for entity {entity}")
+                    has_issues = check_entity_sparql(sparql_endpoint, entity, is_surviving)
+                    if has_issues and not is_surviving:
+                        triples = get_entity_triples(sparql_endpoint, entity)
+                        combined_query = generate_update_query(entity, surviving_entity, triples)
+                        query_file_path = os.path.join(query_output_dir, f"update_{entity.split('/')[-1]}.sparql")
+                        with open(query_file_path, 'w') as f:
+                            f.write(combined_query)
+                return
 
-    prov_file_path = file_path.replace('.zip', '') + '/prov/se.zip'
-    prov_graph = None
-    try:
-        with zipfile.ZipFile(prov_file_path, 'r') as zip_ref:
-            prov_graph = ConjunctiveGraph()
-            for filename in zip_ref.namelist():
-                with zip_ref.open(filename) as file:
-                    prov_graph.parse(file, format='json-ld')
-    except FileNotFoundError:
-        prov_graph = None
-    except zipfile.BadZipFile:
-        prov_graph = "badzip"
+            prov_file_path = file_path.replace('.zip', '') + '/prov/se.zip'
+            try:
+                with prov_lock.acquire(timeout=60):  # Wait up to 60 seconds for the lock
+                    try:
+                        with zipfile.ZipFile(prov_file_path, 'r') as zip_ref:
+                            prov_graph = ConjunctiveGraph()
+                            for filename in zip_ref.namelist():
+                                with zip_ref.open(filename) as file:
+                                    prov_graph.parse(file, format='json-ld')
+                    except FileNotFoundError:
+                        prov_graph = None
+                    except zipfile.BadZipFile:
+                        prov_graph = "badzip"
 
-    for entity, is_surviving, surviving_entity in entities:
-        if (URIRef(entity), None, None) not in g:
-            if is_surviving:
-                tqdm.write(f"Error in file {file_path}: Surviving entity {entity} does not exist")
-        else:
-            if not is_surviving:
-                tqdm.write(f"Error in file {file_path}: Merged entity {entity} still exists")
-            else:
-                agent_issues = check_agent_constraints(g, URIRef(entity))
-                for issue in agent_issues:
-                    tqdm.write(f"Error in file {file_path}: {issue}")
+                    for entity, is_surviving, surviving_entity in entities:
+                        if (URIRef(entity), None, None) not in g:
+                            if is_surviving:
+                                tqdm.write(f"Error in file {file_path}: Surviving entity {entity} does not exist")
+                        else:
+                            if not is_surviving:
+                                tqdm.write(f"Error in file {file_path}: Merged entity {entity} still exists")
+                            else:
+                                agent_issues = check_agent_constraints(g, URIRef(entity))
+                                for issue in agent_issues:
+                                    tqdm.write(f"Error in file {file_path}: {issue}")
 
-        if prov_graph == None:
-            tqdm.write(f"Error: Provenance file not found for entity {entity}")
-        elif prov_graph == "badzip":
-            tqdm.write(f"Error: Invalid zip file for provenance of entity {entity}")
-        else:
-            check_entity_provenance(URIRef(entity), is_surviving, prov_graph, prov_file_path)
+                        if prov_graph == None:
+                            tqdm.write(f"Error: Provenance file not found for entity {entity}")
+                        elif prov_graph == "badzip":
+                            tqdm.write(f"Error: Invalid zip file for provenance of entity {entity}")
+                        else:
+                            check_entity_provenance(URIRef(entity), is_surviving, prov_graph, prov_file_path)
 
-        has_issues = check_entity_sparql(sparql_endpoint, entity, is_surviving)
-        if has_issues and not is_surviving:
-            triples = get_entity_triples(sparql_endpoint, entity)
-            combined_query = generate_update_query(entity, surviving_entity, triples)
-            query_file_path = os.path.join(query_output_dir, f"update_{entity.split('/')[-1]}.sparql")
-            with open(query_file_path, 'w') as f:
-                f.write(combined_query)
+                        # has_issues = check_entity_sparql(sparql_endpoint, entity, is_surviving)
+                        # if has_issues and not is_surviving:
+                        #     triples = get_entity_triples(sparql_endpoint, entity)
+                        #     combined_query = generate_update_query(entity, surviving_entity, triples)
+                        #     query_file_path = os.path.join(query_output_dir, f"update_{entity.split('/')[-1]}.sparql")
+                        #     with open(query_file_path, 'w') as f:
+                        #         f.write(combined_query)
+
+            except filelock.Timeout:
+                tqdm.write(f"Could not acquire lock for provenance file {prov_file_path} within timeout period")
+
+    except filelock.Timeout:
+        tqdm.write(f"Could not acquire lock for data file {file_path} within timeout period")
 
 def generate_update_query(merged_entity, surviving_entity, triples):
     delete_query = "DELETE DATA {\n"

@@ -166,7 +166,10 @@ class ProvenanceProcessor:
         existing_numbers = {s['number'] for s in snapshots}
         existing_snapshots = {s['number']: s for s in snapshots}
         
-        for i in range(min_num, max_num + 1):
+        start_num = 1
+        
+        # Itera da 1 fino al massimo numero di snapshot
+        for i in range(start_num, max_num + 1):
             if i in existing_numbers:
                 filled_snapshots.append(existing_snapshots[i])
             else:
@@ -175,7 +178,7 @@ class ProvenanceProcessor:
                 
                 # Find the first previous available snapshot
                 prev_num = i - 1
-                while prev_num >= min_num and prev_num not in existing_numbers:
+                while prev_num >= start_num and prev_num not in existing_numbers:
                     prev_num -= 1
                 prev_snapshot = existing_snapshots.get(prev_num)
                 
@@ -211,6 +214,20 @@ class ProvenanceProcessor:
         # Add wasDerivedFrom if we have a previous snapshot
         if prev_snapshot:
             context.add((missing_uri, PROV.wasDerivedFrom, prev_snapshot['uri']))
+        
+        # Se è lo snapshot 1, aggiungi la descrizione di creazione
+        if number == 1:
+            description = Literal(f"The entity '{str(entity_uri)}' has been created.")
+            context.add((
+                missing_uri, 
+                URIRef("http://purl.org/dc/terms/description"), 
+                description
+            ))
+            self._log_modification(
+                str(missing_uri),
+                "Added creation description for first snapshot",
+                str(description)
+            )
         
         generation_time = None
         invalidation_time = None

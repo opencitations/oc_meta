@@ -1001,5 +1001,623 @@ class TestProvenanceFixing(unittest.TestCase):
                 "Merge-related wasDerivedFrom should be preserved"
             )
 
+    def test_original_unresolved_issues_scenario(self):
+        # Dati di test presi dal messaggio iniziale nella conversazione
+        original_data = {
+            "@graph": [
+                {
+                    "@id": "https://w3id.org/oc/meta/ra/06440227509/prov/se/5",
+                    "@type": ["http://www.w3.org/ns/prov#Entity"],
+                    "http://purl.org/dc/terms/description": [
+                        {
+                            "@value": "The entity 'https://w3id.org/oc/meta/ra/06440227509' has been deleted."
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#generatedAtTime": [
+                        {
+                            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                            "@value": "2024-12-08T01:23:24+00:00"
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#invalidatedAtTime": [
+                        {
+                            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                            "@value": "2024-12-08T01:23:24+00:00"
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#specializationOf": [
+                        {
+                            "@id": "https://w3id.org/oc/meta/ra/06440227509"
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#wasAttributedTo": [
+                        {
+                            "@id": "https://orcid.org/0000-0002-8420-0696"
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#wasDerivedFrom": [
+                        {
+                            "@id": "https://w3id.org/oc/meta/ra/06440227509/prov/se/4"
+                        }
+                    ],
+                    "https://w3id.org/oc/ontology/hasUpdateQuery": [
+                        {
+                            "@value": "DELETE DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06440227509> <http://xmlns.com/foaf/0.1/givenName> \"R.\" .<https://w3id.org/oc/meta/ra/06440227509> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/063501394354> .<https://w3id.org/oc/meta/ra/06440227509> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> .<https://w3id.org/oc/meta/ra/06440227509> <http://xmlns.com/foaf/0.1/familyName> \"Stępniewski\" . } }"
+                        }
+                    ]
+                },
+                {
+                    "@id": "https://w3id.org/oc/meta/ra/06440227509/prov/se/1",
+                    "@type": ["http://www.w3.org/ns/prov#Entity"],
+                    "http://purl.org/dc/terms/description": [
+                        {
+                            "@value": "The entity 'https://w3id.org/oc/meta/ra/06440227509' has been created."
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#generatedAtTime": [
+                        {
+                            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                            "@value": "2023-12-13T15:53:04.544275"
+                        },
+                        {
+                            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                            "@value": "2024-03-27T20:20:19+00:00"
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#hadPrimarySource": [
+                        {
+                            "@id": "https://openalex.s3.amazonaws.com/browse.html"
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#specializationOf": [
+                        {
+                            "@id": "https://w3id.org/oc/meta/ra/06440227509"
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#wasAttributedTo": [
+                        {
+                            "@id": "https://w3id.org/oc/meta/prov/pa/1"
+                        }
+                    ]
+                },
+                {
+                    "@id": "https://w3id.org/oc/meta/ra/06440227509/prov/se/4",
+                    "@type": ["http://www.w3.org/ns/prov#Entity"],
+                    "http://purl.org/dc/terms/description": [
+                        {
+                            "@value": "The entity 'https://w3id.org/oc/meta/ra/06440227509' has been modified."
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#generatedAtTime": [
+                        {
+                            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                            "@value": "2024-12-04T21:15:55+00:00"
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#invalidatedAtTime": [
+                        {
+                            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                            "@value": "2024-12-08T01:23:24+00:00"
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#specializationOf": [
+                        {
+                            "@id": "https://w3id.org/oc/meta/ra/06440227509"
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#wasAttributedTo": [
+                        {
+                            "@id": "https://orcid.org/0000-0002-8420-0696"
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#wasDerivedFrom": [
+                        {
+                            "@id": "https://w3id.org/oc/meta/ra/06440227509/prov/se/3"
+                        }
+                    ],
+                    "https://w3id.org/oc/ontology/hasUpdateQuery": [
+                        {
+                            "@value": "DELETE DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06440227509> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06904873317> . } }; INSERT DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06440227509> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/063501394354> . } }"
+                        }
+                    ]
+                },
+                {
+                    "@id": "https://w3id.org/oc/meta/ra/06440227509/prov/se/2",
+                    "@type": ["http://www.w3.org/ns/prov#Entity"],
+                    "http://www.w3.org/ns/prov#invalidatedAtTime": [
+                        {
+                            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                            "@value": "2023-12-24T23:21:33+00:00"
+                        }
+                    ]
+                },
+                {
+                    "@id": "https://w3id.org/oc/meta/ra/06440227509/prov/se/3",
+                    "@type": ["http://www.w3.org/ns/prov#Entity"],
+                    "http://purl.org/dc/terms/description": [
+                        {
+                            "@value": "The entity 'https://w3id.org/oc/meta/ra/06440227509' has been modified."
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#generatedAtTime": [
+                        {
+                            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                            "@value": "2023-12-24T23:21:33+00:00"
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#invalidatedAtTime": [
+                        {
+                            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                            "@value": "2024-12-04T21:15:55+00:00"
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#specializationOf": [
+                        {
+                            "@id": "https://w3id.org/oc/meta/ra/06440227509"
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#wasAttributedTo": [
+                        {
+                            "@id": "https://w3id.org/oc/meta/prov/pa/1"
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#wasDerivedFrom": [
+                        {
+                            "@id": "https://w3id.org/oc/meta/ra/06440227509/prov/se/2"
+                        }
+                    ],
+                    "https://w3id.org/oc/ontology/hasUpdateQuery": [
+                        {
+                            "@value": "DELETE DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06440227509> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0644082006> . } }; INSERT DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06440227509> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06904873317> . } }"
+                        }
+                    ]
+                }
+            ],
+            "@id": "https://w3id.org/oc/meta/ra/06440227509/prov/"
+        }
+
+        test_file = os.path.join(self.temp_dir, "original_unresolved_issues.zip")
+        with zipfile.ZipFile(test_file, 'w') as zf:
+            zf.writestr('se.json', json.dumps(original_data))
+
+        # Processa il file con lo script
+        result = self.processor.process_file(test_file, 'test/fix_provenance_logs')
+        self.assertIsNotNone(result, "Process should complete without errors")
+
+        # Legge i dati modificati
+        with zipfile.ZipFile(test_file, 'r') as zf:
+            with zf.open('se.json') as f:
+                fixed_data = json.loads(f.read())
+
+        graph_data = fixed_data[0]['@graph']
+
+        # Verifica se alcuni problemi noti sono stati risolti:
+        # 1. Snapshot se/1 ha multipli 'generatedAtTime', dovrebbe averne solo uno
+        snapshot_1 = next((x for x in graph_data if x['@id'].endswith('/prov/se/1')), None)
+        self.assertIsNotNone(snapshot_1, "Snapshot se/1 should exist")
+        gen_times_1 = snapshot_1.get('http://www.w3.org/ns/prov#generatedAtTime', [])
+        # Qui ci aspettiamo che lo script abbia risolto il problema tenendo il timestamp più vecchio.
+        # Se notiamo che non è successo, il test fallirà, evidenziando che il problema non è stato risolto.
+        self.assertEqual(
+            len(gen_times_1), 1,
+            "Snapshot se/1 should have only one generatedAtTime after processing"
+        )
+
+        # 2. Verifica coerenza descrizioni su se/3 e se/4: dovrebbero mantenere un'unica descrizione coerente
+        snapshot_3 = next((x for x in graph_data if x['@id'].endswith('/prov/se/3')), None)
+        self.assertIsNotNone(snapshot_3, "Snapshot se/3 should exist")
+        desc_3 = snapshot_3.get('http://purl.org/dc/terms/description', [])
+        self.assertEqual(len(desc_3), 1, "Snapshot se/3 should have exactly one description")
+
+        snapshot_4 = next((x for x in graph_data if x['@id'].endswith('/prov/se/4')), None)
+        self.assertIsNotNone(snapshot_4, "Snapshot se/4 should exist")
+        desc_4 = snapshot_4.get('http://purl.org/dc/terms/description', [])
+        self.assertEqual(len(desc_4), 1, "Snapshot se/4 should have exactly one description")
+
+        # 3. Verifica la catena wasDerivedFrom: ogni snapshot (tranne il primo) dovrebbe avere un wasDerivedFrom che punta allo snapshot precedente
+        #   La sequenza dovrebbe essere: se/1 (creato), se/2, se/3, se/4, se/5 (cancellato)
+        #   Ci aspettiamo:
+        #   se/2 -> se/1
+        #   se/3 -> se/2
+        #   se/4 -> se/3
+        #   se/5 -> se/4
+        # Se il problema non è stato risolto, tali collegamenti potrebbero non essere corretti.
+        def get_derived_from(snap_id):
+            snap = next((x for x in graph_data if x['@id'].endswith(snap_id)), None)
+            if snap and 'http://www.w3.org/ns/prov#wasDerivedFrom' in snap:
+                return snap['http://www.w3.org/ns/prov#wasDerivedFrom'][0]['@id'].split('/se/')[-1]
+            return None
+
+        self.assertEqual(get_derived_from('/prov/se/2'), '1', "se/2 should derive from se/1")
+        self.assertEqual(get_derived_from('/prov/se/3'), '2', "se/3 should derive from se/2")
+        self.assertEqual(get_derived_from('/prov/se/4'), '3', "se/4 should derive from se/3")
+        self.assertEqual(get_derived_from('/prov/se/5'), '4', "se/5 should derive from se/4")
+
+        # Infine, se alcuni di questi test falliscono, significa che lo script non ha risolto i problemi come previsto,
+        # mostrando quindi il comportamento effettivo sullo scenario fornito.
+
+    def test_complex_merge_chain_scenario(self):
+        """Test handling of a complex chain of merges with oscillating property values."""
+        test_data = {
+            "@graph": [
+                {
+                    "@id": "https://w3id.org/oc/meta/ra/06490509042/prov/se/9",
+                    "@type": ["http://www.w3.org/ns/prov#Entity"],
+                    "http://purl.org/dc/terms/description": [
+                        {
+                            "@value": "The entity 'https://w3id.org/oc/meta/ra/06490509042' has been modified."
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#generatedAtTime": [
+                        {
+                            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                            "@value": "2024-12-04T18:44:08+00:00"
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#invalidatedAtTime": [
+                        {
+                            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                            "@value": "2024-12-16T03:14:25+00:00"
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#specializationOf": [
+                        {"@id": "https://w3id.org/oc/meta/ra/06490509042"}
+                    ],
+                    "http://www.w3.org/ns/prov#wasAttributedTo": [
+                        {"@id": "https://orcid.org/0000-0002-8420-0696"}
+                    ],
+                    "http://www.w3.org/ns/prov#wasDerivedFrom": [
+                        {"@id": "https://w3id.org/oc/meta/ra/06490509042/prov/se/8"}
+                    ],
+                    "https://w3id.org/oc/ontology/hasUpdateQuery": [
+                        {
+                            "@value": "DELETE DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06490509042> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06320156505> . } }; INSERT DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06490509042> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/063201438132> . } }"
+                        }
+                    ]
+                },
+                {
+                    "@id": "https://w3id.org/oc/meta/ra/06490509042/prov/se/5", 
+                    "@type": ["http://www.w3.org/ns/prov#Entity"],
+                    "http://purl.org/dc/terms/description": [
+                        {
+                            "@value": "The entity 'https://w3id.org/oc/meta/ra/06490509042' has been merged with 'https://w3id.org/oc/meta/ra/06530192638'."
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#generatedAtTime": [
+                        {
+                            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                            "@value": "2024-02-21T06:29:52+00:00"
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#invalidatedAtTime": [
+                        {
+                            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                            "@value": "2024-02-21T06:30:27+00:00"
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#specializationOf": [
+                        {"@id": "https://w3id.org/oc/meta/ra/06490509042"}
+                    ],
+                    "http://www.w3.org/ns/prov#wasAttributedTo": [
+                        {"@id": "https://w3id.org/oc/meta/prov/pa/1"}
+                    ],
+                    "http://www.w3.org/ns/prov#wasDerivedFrom": [
+                        {"@id": "https://w3id.org/oc/meta/ra/06490509042/prov/se/4"},
+                        {"@id": "https://w3id.org/oc/meta/ra/06530192638/prov/se/2"}
+                    ],
+                    "https://w3id.org/oc/ontology/hasUpdateQuery": [
+                        {
+                            "@value": "DELETE DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06490509042> <http://xmlns.com/foaf/0.1/givenName> \"Aurora E\" . } }; INSERT DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06490509042> <http://xmlns.com/foaf/0.1/givenName> \"Aurora E.\" . } }"
+                        }
+                    ]
+                },
+                {
+                    "@id": "https://w3id.org/oc/meta/ra/06490509042/prov/se/4",
+                    "@type": ["http://www.w3.org/ns/prov#Entity"],
+                    "http://purl.org/dc/terms/description": [
+                        {
+                            "@value": "The entity 'https://w3id.org/oc/meta/ra/06490509042' has been merged with 'https://w3id.org/oc/meta/ra/065047414'."
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#generatedAtTime": [
+                        {
+                            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                            "@value": "2024-02-21T06:24:47+00:00"
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#invalidatedAtTime": [
+                        {
+                            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                            "@value": "2024-02-21T06:29:52+00:00"
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#specializationOf": [
+                        {"@id": "https://w3id.org/oc/meta/ra/06490509042"}
+                    ],
+                    "http://www.w3.org/ns/prov#wasAttributedTo": [
+                        {"@id": "https://w3id.org/oc/meta/prov/pa/1"}
+                    ],
+                    "http://www.w3.org/ns/prov#wasDerivedFrom": [
+                        {"@id": "https://w3id.org/oc/meta/ra/06490509042/prov/se/3"},
+                        {"@id": "https://w3id.org/oc/meta/ra/065047414/prov/se/2"}
+                    ],
+                    "https://w3id.org/oc/ontology/hasUpdateQuery": [
+                        {
+                            "@value": "DELETE DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06490509042> <http://xmlns.com/foaf/0.1/givenName> \"Aurora Elizabeth\" . } }; INSERT DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06490509042> <http://xmlns.com/foaf/0.1/givenName> \"Aurora E\" . } }"
+                        }
+                    ]
+                },
+                {
+                    "@id": "https://w3id.org/oc/meta/ra/06490509042/prov/se/7",
+                    "@type": ["http://www.w3.org/ns/prov#Entity"],
+                    "http://purl.org/dc/terms/description": [
+                        {
+                            "@value": "The entity 'https://w3id.org/oc/meta/ra/06490509042' has been merged with 'https://w3id.org/oc/meta/ra/0612010691345'."
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#generatedAtTime": [
+                        {
+                            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                            "@value": "2024-02-21T06:31:00+00:00"
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#invalidatedAtTime": [
+                        {
+                            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                            "@value": "2024-02-21T06:31:43+00:00"
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#specializationOf": [
+                        {"@id": "https://w3id.org/oc/meta/ra/06490509042"}
+                    ],
+                    "http://www.w3.org/ns/prov#wasAttributedTo": [
+                        {"@id": "https://w3id.org/oc/meta/prov/pa/1"}
+                    ],
+                    "http://www.w3.org/ns/prov#wasDerivedFrom": [
+                        {"@id": "https://w3id.org/oc/meta/ra/0612010691345/prov/se/1"},
+                        {"@id": "https://w3id.org/oc/meta/ra/06490509042/prov/se/6"}
+                    ],
+                    "https://w3id.org/oc/ontology/hasUpdateQuery": [
+                        {
+                            "@value": "DELETE DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06490509042> <http://xmlns.com/foaf/0.1/givenName> \"Aurora\" . } }; INSERT DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06490509042> <http://xmlns.com/foaf/0.1/givenName> \"Aurora E.\" . } }"
+                        }
+                    ]
+                },
+                {
+                    "@id": "https://w3id.org/oc/meta/ra/06490509042/prov/se/10",
+                    "@type": ["http://www.w3.org/ns/prov#Entity"],
+                    "http://purl.org/dc/terms/description": [
+                        {
+                            "@value": "The entity 'https://w3id.org/oc/meta/ra/06490509042' has been deleted."
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#generatedAtTime": [
+                        {
+                            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                            "@value": "2024-12-16T03:14:25+00:00"
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#invalidatedAtTime": [
+                        {
+                            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                            "@value": "2024-12-16T03:14:25+00:00"
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#specializationOf": [
+                        {"@id": "https://w3id.org/oc/meta/ra/06490509042"}
+                    ],
+                    "http://www.w3.org/ns/prov#wasAttributedTo": [
+                        {"@id": "https://orcid.org/0000-0002-8420-0696"}
+                    ],
+                    "http://www.w3.org/ns/prov#wasDerivedFrom": [
+                        {"@id": "https://w3id.org/oc/meta/ra/06490509042/prov/se/9"}
+                    ],
+                    "https://w3id.org/oc/ontology/hasUpdateQuery": [
+                        {
+                            "@value": "DELETE DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06490509042> <http://xmlns.com/foaf/0.1/givenName> \"Aurora E.\" .<https://w3id.org/oc/meta/ra/06490509042> <http://xmlns.com/foaf/0.1/familyName> \"Serralde-Zúñiga\" .<https://w3id.org/oc/meta/ra/06490509042> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> .<https://w3id.org/oc/meta/ra/06490509042> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/063201438132> . } }"
+                        }
+                    ]
+                },
+                {
+                    "@id": "https://w3id.org/oc/meta/ra/06490509042/prov/se/3",
+                    "@type": ["http://www.w3.org/ns/prov#Entity"],
+                    "http://purl.org/dc/terms/description": [
+                        {
+                            "@value": "The entity 'https://w3id.org/oc/meta/ra/06490509042' has been modified."
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#generatedAtTime": [
+                        {
+                            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                            "@value": "2024-02-21T06:24:19+00:00"
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#invalidatedAtTime": [
+                        {
+                            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                            "@value": "2024-02-21T06:24:47+00:00"
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#specializationOf": [
+                        {"@id": "https://w3id.org/oc/meta/ra/06490509042"}
+                    ],
+                    "http://www.w3.org/ns/prov#wasAttributedTo": [
+                        {"@id": "https://w3id.org/oc/meta/prov/pa/1"}
+                    ],
+                    "http://www.w3.org/ns/prov#wasDerivedFrom": [
+                        {"@id": "https://w3id.org/oc/meta/ra/06490509042/prov/se/2"}
+                    ],
+                    "https://w3id.org/oc/ontology/hasUpdateQuery": [
+                        {
+                            "@value": "DELETE DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06490509042> <http://xmlns.com/foaf/0.1/givenName> \"Aurora E.\" . } }; INSERT DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06490509042> <http://xmlns.com/foaf/0.1/givenName> \"Aurora Elizabeth\" . } }"
+                        }
+                    ]
+                },
+                {
+                    "@id": "https://w3id.org/oc/meta/ra/06490509042/prov/se/8",
+                    "@type": ["http://www.w3.org/ns/prov#Entity"],
+                    "http://www.w3.org/ns/prov#generatedAtTime": [
+                        {
+                            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                            "@value": "2024-02-21T06:31:43+00:00"
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#invalidatedAtTime": [
+                        {
+                            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                            "@value": "2024-12-04T18:44:08+00:00"
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#specializationOf": [
+                        {"@id": "https://w3id.org/oc/meta/ra/06490509042"}
+                    ],
+                    "http://www.w3.org/ns/prov#wasAttributedTo": [
+                        {"@id": "https://w3id.org/oc/meta/prov/pa/1"}
+                    ],
+                    "http://www.w3.org/ns/prov#wasDerivedFrom": [
+                        {"@id": "https://w3id.org/oc/meta/ra/06320390920/prov/se/1"},
+                        {"@id": "https://w3id.org/oc/meta/ra/06490509042/prov/se/7"}
+                    ]
+                },
+                {
+                    "@id": "https://w3id.org/oc/meta/ra/06490509042/prov/se/6",
+                    "@type": ["http://www.w3.org/ns/prov#Entity"],
+                    "http://purl.org/dc/terms/description": [
+                        {
+                            "@value": "The entity 'https://w3id.org/oc/meta/ra/06490509042' has been merged with 'https://w3id.org/oc/meta/ra/06520239458'."
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#generatedAtTime": [
+                        {
+                            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                            "@value": "2024-02-21T06:30:27+00:00"
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#invalidatedAtTime": [
+                        {
+                            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                            "@value": "2024-02-21T06:31:00+00:00"
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#specializationOf": [
+                        {"@id": "https://w3id.org/oc/meta/ra/06490509042"}
+                    ],
+                    "http://www.w3.org/ns/prov#wasAttributedTo": [
+                        {"@id": "https://w3id.org/oc/meta/prov/pa/1"}
+                    ],
+                    "http://www.w3.org/ns/prov#wasDerivedFrom": [
+                        {"@id": "https://w3id.org/oc/meta/ra/06520239458/prov/se/1"},
+                        {"@id": "https://w3id.org/oc/meta/ra/06490509042/prov/se/5"}
+                    ],
+                    "https://w3id.org/oc/ontology/hasUpdateQuery": [
+                        {
+                            "@value": "DELETE DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06490509042> <http://xmlns.com/foaf/0.1/givenName> \"Aurora E.\" . } }; INSERT DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06490509042> <http://xmlns.com/foaf/0.1/givenName> \"Aurora\" . } }"
+                        }
+                    ]
+                },
+                {
+                    "@id": "https://w3id.org/oc/meta/ra/06490509042/prov/se/2",
+                    "@type": ["http://www.w3.org/ns/prov#Entity"],
+                    "http://www.w3.org/ns/prov#generatedAtTime": [
+                        {
+                            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                            "@value": "2022-12-20T00:00:00+00:00"
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#invalidatedAtTime": [
+                        {
+                            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                            "@value": "2024-02-21T06:24:19+00:00"
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#specializationOf": [
+                        {"@id": "https://w3id.org/oc/meta/ra/06490509042"}
+                    ]
+                }
+            ],
+            "@id": "https://w3id.org/oc/meta/ra/06490509042/prov/"
+        }
+
+        test_file = os.path.join(self.temp_dir, "complex_merge_chain.zip")
+        with zipfile.ZipFile(test_file, 'w') as zf:
+            zf.writestr('se.json', json.dumps(test_data))
+
+        # Process the file
+        result = self.processor.process_file(test_file, 'test/fix_provenance_logs')
+        self.assertTrue(result)
+        # Verify the processed data
+        with zipfile.ZipFile(test_file, 'r') as zf:
+            with zf.open('se.json') as f:
+                fixed_data = json.loads(f.read())
+        
+        graph_data = fixed_data[0]['@graph']
+
+        # Ordina gli snapshot per numero di snapshot
+        def get_snapshot_number(snap):
+            if '/prov/se/' in snap['@id']:
+                return int(snap['@id'].split('/se/')[-1])
+            return 0
+            
+        sorted_snapshots = sorted(graph_data, key=get_snapshot_number)
+
+        # 1. Verifica la catena temporale
+        def get_timestamp(snapshot, pred):
+            return next((
+                item['@value'] 
+                for item in snapshot.get(pred, [])
+                if '@value' in item
+            ), None)
+
+        for i in range(len(sorted_snapshots)-1):
+            curr = sorted_snapshots[i]
+            next_snap = sorted_snapshots[i+1]
+            
+            curr_inv = get_timestamp(curr, "http://www.w3.org/ns/prov#invalidatedAtTime")
+            next_gen = get_timestamp(next_snap, "http://www.w3.org/ns/prov#generatedAtTime")
+            
+            if curr_inv and next_gen:
+                self.assertEqual(curr_inv, next_gen, 
+                    f"Timestamp mismatch between snapshots {curr['@id']} and {next_snap['@id']}")
+
+        # 2. Verifica la coerenza dei merge
+        merge_snapshots = [
+            s for s in graph_data 
+            if any("has been merged with" in str(d.get('@value', '')) 
+                for d in s.get('http://purl.org/dc/terms/description', []))
+        ]
+
+        for merge in merge_snapshots:
+            derived_from = [
+                d['@id'] for d in merge.get('http://www.w3.org/ns/prov#wasDerivedFrom', [])
+            ]
+            self.assertGreaterEqual(len(derived_from), 2, 
+                f"Merge snapshot {merge['@id']} should have at least 2 wasDerivedFrom relations")
+
+        # Verify snapshot sequence completeness
+        snapshot_numbers = set()
+        for item in graph_data:
+            if '/prov/se/' in item['@id']:
+                num = int(item['@id'].split('/se/')[-1])
+                snapshot_numbers.add(num)
+        
+        # Check that sequence starts at 1
+        self.assertIn(1, snapshot_numbers, 
+            "Snapshot sequence should start with number 1")
+        
+        # Check sequence continuity
+        expected_numbers = set(range(1, max(snapshot_numbers) + 1))
+        self.assertEqual(snapshot_numbers, expected_numbers,
+            f"Snapshot sequence should be continuous from 1 to {max(snapshot_numbers)}")
+        
+        # Verify that snapshot 1 has creation description
+        snapshot_1 = next((s for s in graph_data if s['@id'].endswith('/prov/se/1')), None)
+        self.assertIsNotNone(snapshot_1, "Snapshot 1 should exist")
+        descriptions = snapshot_1.get('http://purl.org/dc/terms/description', [])
+        self.assertTrue(any(
+            "has been created" in d.get('@value', '') 
+            for d in descriptions
+        ), "First snapshot should have creation description")
+
+
 if __name__ == '__main__':
     unittest.main()

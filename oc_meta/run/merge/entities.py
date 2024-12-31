@@ -54,7 +54,7 @@ class EntityMerger:
     @staticmethod
     def count_csv_rows(csv_file: str) -> int:
         with open(csv_file, 'r', encoding='utf-8') as f:
-            return sum(1 for _ in f) - 1  # Subtract 1 to exclude the header row
+            return sum(1 for _ in f) - 1
 
     def fetch_related_entities_batch(self, meta_editor: MetaEditor, merged_entities: List[str], 
                                 surviving_entities: List[str], batch_size: int = 10) -> Set[URIRef]:
@@ -72,14 +72,13 @@ class EntityMerger:
         """
         all_related_entities = set()
         
-        # Process merged entities in batches
         for i in range(0, len(merged_entities), batch_size):
             batch_merged = merged_entities[i:i + batch_size]
             merged_clauses = []
             for entity in batch_merged:
                 merged_clauses.extend([
-                    f"{{?entity ?p <{entity}>}}", # Get subjects
-                    f"{{<{entity}> ?p ?entity}}"  # Get objects
+                    f"{{?entity ?p <{entity}>}}", 
+                    f"{{<{entity}> ?p ?entity}}"  
                 ])
                 
             if not merged_clauses:
@@ -107,7 +106,6 @@ class EntityMerger:
                         related_uri = URIRef(result['entity']['value'])
                         all_related_entities.add(related_uri)
                         
-                        # Update relationship cache for each merged entity in the batch
                         for entity in batch_merged:
                             entity_uri = URIRef(entity)
                             if entity_uri not in meta_editor.relationship_cache:
@@ -117,13 +115,12 @@ class EntityMerger:
             except Exception as e:
                 print(f"Error fetching related entities for merged batch {i}-{i+batch_size}: {e}")
         
-        # Process surviving entities in batches
         for i in range(0, len(surviving_entities), batch_size):
             batch_surviving = surviving_entities[i:i + batch_size]
             surviving_clauses = []
             for entity in batch_surviving:
                 surviving_clauses.append(
-                    f"{{<{entity}> ?p ?entity}}"  # Get only objects for surviving entities
+                    f"{{<{entity}> ?p ?entity}}"
                 )
                 
             if not surviving_clauses:
@@ -151,7 +148,6 @@ class EntityMerger:
                         related_uri = URIRef(result['entity']['value'])
                         all_related_entities.add(related_uri)
                         
-                        # Update relationship cache for each surviving entity in the batch
                         for entity in batch_surviving:
                             entity_uri = URIRef(entity)
                             if entity_uri not in meta_editor.relationship_cache:
@@ -163,22 +159,26 @@ class EntityMerger:
                 
         return all_related_entities
     
+    def should_stop_processing(self) -> bool:
+        return os.path.exists(self.stop_file_path)
+    
     def process_file(self, csv_file: str) -> str:
         """Process a single CSV file with cross-row batch processing"""
         data = self.read_csv(csv_file)
         meta_editor = MetaEditor(self.meta_config, self.resp_agent, save_queries=True)
         modified = False
+        
+        if self.should_stop_processing():
+            return csv_file
 
-        # Create a GraphSet for the current file
         g_set = GraphSet(meta_editor.base_iri, custom_counter_handler=meta_editor.counter_handler)
 
-        # Collect all entities that need processing
         batch_merged_entities = []
         batch_surviving_entities = []
         rows_to_process = []
 
         for row in data:
-            if row.get('Done') == 'True' or os.path.exists(self.stop_file_path):
+            if row.get('Done') == 'True':
                 continue
 
             entity_type = self.get_entity_type(row['surviving_entity'])
@@ -193,7 +193,6 @@ class EntityMerger:
         if not rows_to_process:
             return csv_file
 
-        # Fetch all related entities and populate relationship cache
         all_related_entities = self.fetch_related_entities_batch(
             meta_editor,
             batch_merged_entities,
@@ -201,15 +200,13 @@ class EntityMerger:
             self.batch_size
         )
 
-        # Add primary entities to the import set
         entities_to_import = all_related_entities.copy()
         entities_to_import.update(URIRef(e) for e in batch_surviving_entities)
         entities_to_import.update(URIRef(e) for e in batch_merged_entities)
 
-        # Remove already cached entities
         entities_to_import = {e for e in entities_to_import 
                             if not meta_editor.entity_cache.is_cached(e)}
-        # Batch import all non-cached entities
+
         if entities_to_import:
             try:
                 meta_editor.reader.import_entities_from_triplestore(
@@ -221,7 +218,6 @@ class EntityMerger:
                     batch_size=self.batch_size
                 )
                 
-                # Update cache with newly imported entities
                 for entity in entities_to_import:
                     meta_editor.entity_cache.add(entity)
                     
@@ -229,7 +225,6 @@ class EntityMerger:
                 print(f"Error importing entities: {e}")
                 modified = True
 
-        # Perform all merges using cached relationship data
         for surviving_entity, merged_entities in rows_to_process:
             surviving_uri = URIRef(surviving_entity)
             for merged_entity in merged_entities:
@@ -239,7 +234,6 @@ class EntityMerger:
                 except ValueError:
                     continue
 
-        # Update CSV and save changes if needed
         if modified:
             for row in data:
                 if row.get('Done') != 'True' and self.get_entity_type(row['surviving_entity']) in self.entity_types:
@@ -251,7 +245,6 @@ class EntityMerger:
         return csv_file
 
     def process_folder(self, csv_folder: str):
-        """Process all CSV files in a folder using parallel processing"""
         if os.path.exists(self.stop_file_path):
             os.remove(self.stop_file_path)
 
@@ -259,16 +252,16 @@ class EntityMerger:
                     for file in os.listdir(csv_folder) 
                     if file.endswith('.csv')]
 
-        # Filter CSV files based on number of rows and workers
         if self.workers > 4:
             csv_files = [file for file in csv_files 
                         if self.count_csv_rows(file) <= 10000]
 
         with concurrent.futures.ProcessPoolExecutor(max_workers=self.workers) as executor:
-            futures = {
-                executor.submit(self.process_file, csv_file): csv_file 
-                for csv_file in csv_files
-            }
+            futures = {}
+            for csv_file in csv_files:
+                if self.should_stop_processing():
+                    break
+                futures[executor.submit(self.process_file, csv_file)] = csv_file
 
             for future in tqdm(concurrent.futures.as_completed(futures), 
                              total=len(futures), 
