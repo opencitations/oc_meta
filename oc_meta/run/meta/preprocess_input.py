@@ -19,9 +19,7 @@ from __future__ import annotations
 import argparse
 import csv
 import os
-from typing import Dict, List
-from dataclasses import dataclass
-from collections import defaultdict
+from typing import Dict, List, Set, Tuple
 
 import redis
 from tqdm import tqdm
@@ -30,7 +28,16 @@ ROWS_PER_FILE = 3000
 REDIS_HOST = 'localhost'
 REDIS_PORT = 6379
 
-def create_redis_connection(db: int = 10) -> redis.Redis:
+class ProcessingStats(object):
+    """Class to track processing statistics"""
+    def __init__(self):
+        self.total_rows = 0
+        self.duplicate_rows = 0
+        self.existing_ids_rows = 0
+        self.processed_rows = 0
+
+def create_redis_connection(db=10):
+    # type: (int) -> redis.Redis
     """Create and return a Redis connection."""
     return redis.Redis(
         host=REDIS_HOST,
@@ -39,7 +46,8 @@ def create_redis_connection(db: int = 10) -> redis.Redis:
         decode_responses=True
     )
 
-def check_ids_existence(ids: str, redis_client: redis.Redis) -> bool:
+def check_ids_existence(ids, redis_client):
+    # type: (str, redis.Redis) -> bool
     """
     Check if all IDs in the input string exist in Redis.
     Returns True if all IDs exist, False otherwise.
@@ -56,10 +64,11 @@ def check_ids_existence(ids: str, redis_client: redis.Redis) -> bool:
     
     return True
 
-def get_csv_files(directory: str) -> List[str]:
+def get_csv_files(directory):
+    # type: (str) -> List[str]
     """Get all CSV files in the specified directory (first level only)."""
     if not os.path.isdir(directory):
-        raise ValueError(f"The specified path '{directory}' is not a directory")
+        raise ValueError("The specified path '{}' is not a directory".format(directory))
     
     return [
         os.path.join(directory, f) 
@@ -67,15 +76,8 @@ def get_csv_files(directory: str) -> List[str]:
         if f.endswith('.csv') and os.path.isfile(os.path.join(directory, f))
     ]
 
-@dataclass
-class ProcessingStats:
-    total_rows: int = 0
-    duplicate_rows: int = 0
-    existing_ids_rows: int = 0
-    processed_rows: int = 0
-
-def process_csv_file(input_file: str, output_dir: str, current_file_num: int, redis_db: int = 10, 
-                    seen_rows: set = None, pending_rows: List[Dict] = None) -> tuple[int, ProcessingStats, List[Dict]]:
+def process_csv_file(input_file, output_dir, current_file_num, redis_db=10, seen_rows=None, pending_rows=None):
+    # type: (str, str, int, int, Set, List[Dict]) -> Tuple[int, ProcessingStats, List[Dict]]
     """
     Process a single CSV file and write non-duplicate rows with non-existing IDs to output files.
     
@@ -120,7 +122,7 @@ def process_csv_file(input_file: str, output_dir: str, current_file_num: int, re
             
             # Write file when we reach ROWS_PER_FILE
             if len(rows_to_write) >= ROWS_PER_FILE:
-                output_file = os.path.join(output_dir, f"{file_num}.csv")
+                output_file = os.path.join(output_dir, "{}.csv".format(file_num))
                 with open(output_file, 'w', encoding='utf-8', newline='') as out_f:
                     writer = csv.DictWriter(out_f, fieldnames=fieldnames)
                     writer.writeheader()
@@ -130,7 +132,8 @@ def process_csv_file(input_file: str, output_dir: str, current_file_num: int, re
 
     return file_num, stats, rows_to_write
 
-def print_processing_report(all_stats: List[ProcessingStats], input_files: List[str]):
+def print_processing_report(all_stats, input_files):
+    # type: (List[ProcessingStats], List[str]) -> None
     """Print a detailed report of the processing statistics."""
     total_stats = ProcessingStats()
     for stats in all_stats:
@@ -141,11 +144,11 @@ def print_processing_report(all_stats: List[ProcessingStats], input_files: List[
 
     print("\nProcessing Report:")
     print("=" * 50)
-    print(f"Total input files processed: {len(input_files)}")
-    print(f"Total input rows: {total_stats.total_rows}")
-    print(f"Rows discarded (duplicates): {total_stats.duplicate_rows}")
-    print(f"Rows discarded (existing IDs): {total_stats.existing_ids_rows}")
-    print(f"Rows written to output: {total_stats.processed_rows}")
+    print("Total input files processed: {}".format(len(input_files)))
+    print("Total input rows: {}".format(total_stats.total_rows))
+    print("Rows discarded (duplicates): {}".format(total_stats.duplicate_rows))
+    print("Rows discarded (existing IDs): {}".format(total_stats.existing_ids_rows))
+    print("Rows written to output: {}".format(total_stats.processed_rows))
     
     if total_stats.total_rows > 0:
         duplicate_percent = (total_stats.duplicate_rows / total_stats.total_rows) * 100
@@ -153,9 +156,9 @@ def print_processing_report(all_stats: List[ProcessingStats], input_files: List[
         processed_percent = (total_stats.processed_rows / total_stats.total_rows) * 100
         
         print("\nPercentages:")
-        print(f"Duplicate rows: {duplicate_percent:.1f}%")
-        print(f"Existing IDs: {existing_percent:.1f}%")
-        print(f"Processed rows: {processed_percent:.1f}%")
+        print("Duplicate rows: {:.1f}%".format(duplicate_percent))
+        print("Existing IDs: {:.1f}%".format(existing_percent))
+        print("Processed rows: {:.1f}%".format(processed_percent))
 
 def main():
     parser = argparse.ArgumentParser(
@@ -183,10 +186,10 @@ def main():
     try:
         csv_files = get_csv_files(args.input_dir)
         if not csv_files:
-            print(f"No CSV files found in directory: {args.input_dir}")
+            print("No CSV files found in directory: {}".format(args.input_dir))
             return 1
 
-        print(f"Found {len(csv_files)} CSV files to process")
+        print("Found {} CSV files to process".format(len(csv_files)))
         
         current_file_num = 0
         all_stats = []
@@ -206,7 +209,7 @@ def main():
         
         # Write any remaining rows after processing all files
         if pending_rows:
-            output_file = os.path.join(args.output_dir, f"{current_file_num}.csv")
+            output_file = os.path.join(args.output_dir, "{}.csv".format(current_file_num))
             with open(output_file, 'w', encoding='utf-8', newline='') as out_f:
                 writer = csv.DictWriter(out_f, fieldnames=pending_rows[0].keys())
                 writer.writeheader()
@@ -215,7 +218,7 @@ def main():
         print_processing_report(all_stats, csv_files)
             
     except Exception as e:
-        print(f"Error: {str(e)}")
+        print("Error: {}".format(str(e)))
         return 1
 
     return 0
