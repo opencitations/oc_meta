@@ -19,7 +19,7 @@ from __future__ import annotations
 import argparse
 import csv
 import os
-from typing import Dict, List, Set, Tuple
+from typing import List
 
 import redis
 from tqdm import tqdm
@@ -77,7 +77,6 @@ def get_csv_files(directory):
     ]
 
 def process_csv_file(input_file, output_dir, current_file_num, redis_db=10, seen_rows=None, pending_rows=None):
-    # type: (str, str, int, int, Set, List[Dict]) -> Tuple[int, ProcessingStats, List[Dict]]
     """
     Process a single CSV file and write non-duplicate rows with non-existing IDs to output files.
     
@@ -98,37 +97,48 @@ def process_csv_file(input_file, output_dir, current_file_num, redis_db=10, seen
     redis_client = create_redis_connection(redis_db)
     stats = ProcessingStats()
 
-    with open(input_file, 'r', encoding='utf-8') as f:
-        reader = csv.DictReader(f)
-        fieldnames = reader.fieldnames
-        
-        for row in reader:
-            stats.total_rows += 1
-            row_hash = frozenset(row.items())
+    while True:
+        try:
+            with open(input_file, 'r', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                fieldnames = reader.fieldnames
+                
+                for row in reader:
+                    stats.total_rows += 1
+                    row_hash = frozenset(row.items())
 
-            if row_hash in seen_rows:
-                stats.duplicate_rows += 1
-                continue
-                
-            seen_rows.add(row_hash)
+                    if row_hash in seen_rows:
+                        stats.duplicate_rows += 1
+                        continue
+                        
+                    seen_rows.add(row_hash)
+                    
+                    # Skip row if all IDs exist in Redis
+                    if check_ids_existence(row['id'], redis_client):
+                        stats.existing_ids_rows += 1
+                        continue
+                        
+                    stats.processed_rows += 1
+                    rows_to_write.append(row)
+                    
+                    # Write file when we reach ROWS_PER_FILE
+                    if len(rows_to_write) >= ROWS_PER_FILE:
+                        output_file = os.path.join(output_dir, "{}.csv".format(file_num))
+                        with open(output_file, 'w', encoding='utf-8', newline='') as out_f:
+                            writer = csv.DictWriter(out_f, fieldnames=fieldnames)
+                            writer.writeheader()
+                            writer.writerows(rows_to_write)
+                        file_num += 1
+                        rows_to_write = []
+            break  # Se arriviamo qui, la lettura è andata a buon fine
             
-            # Skip row if all IDs exist in Redis
-            if check_ids_existence(row['id'], redis_client):
-                stats.existing_ids_rows += 1
-                continue
-                
-            stats.processed_rows += 1
-            rows_to_write.append(row)
-            
-            # Write file when we reach ROWS_PER_FILE
-            if len(rows_to_write) >= ROWS_PER_FILE:
-                output_file = os.path.join(output_dir, "{}.csv".format(file_num))
-                with open(output_file, 'w', encoding='utf-8', newline='') as out_f:
-                    writer = csv.DictWriter(out_f, fieldnames=fieldnames)
-                    writer.writeheader()
-                    writer.writerows(rows_to_write)
-                file_num += 1
-                rows_to_write = []
+        except csv.Error as e:
+            if "field larger than field limit" in str(e):
+                # Aumenta il limite solo se necessario
+                csv.field_size_limit(int(csv.field_size_limit() * 2))
+                # Il ciclo while riproverà con il nuovo limite
+            else:
+                raise e
 
     return file_num, stats, rows_to_write
 
