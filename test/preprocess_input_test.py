@@ -20,7 +20,7 @@ import csv
 import tempfile
 import shutil
 import redis
-from oc_meta.run.meta.preprocess_input import process_csv_file, create_redis_connection
+from oc_meta.run.meta.preprocess_input import process_csv_file
 
 class TestPreprocessInput(unittest.TestCase):
     def setUp(self):
@@ -55,12 +55,15 @@ class TestPreprocessInput(unittest.TestCase):
         with open(real_data_path, 'w', encoding='utf-8') as f:
             f.write(real_metadata)
 
-        next_file_num = process_csv_file(real_data_path, self.output_dir, 0, redis_db=5)
+        next_file_num, stats, pending_rows = process_csv_file(real_data_path, self.output_dir, 0, redis_db=5)
         
         # Since all DOIs exist in Redis, no file should be created
         output_files = os.listdir(self.output_dir)
         self.assertEqual(len(output_files), 0)
         self.assertEqual(next_file_num, 0)
+        self.assertEqual(stats.processed_rows, 0)
+        self.assertEqual(stats.existing_ids_rows, 3)  # All 3 rows exist in Redis
+        self.assertEqual(len(pending_rows), 0)  # No pending rows
 
     def test_process_mixed_metadata(self):
         """Test processing metadata with both existing and non-existing DOIs in Redis"""
@@ -75,13 +78,27 @@ class TestPreprocessInput(unittest.TestCase):
         with open(mixed_data_path, 'w', encoding='utf-8') as f:
             f.write(mixed_metadata)
 
-        next_file_num = process_csv_file(mixed_data_path, self.output_dir, 0, redis_db=5)
+        next_file_num, stats, pending_rows = process_csv_file(mixed_data_path, self.output_dir, 0, redis_db=5)
+        
+        # Write pending rows if any
+        if pending_rows:
+            output_file = os.path.join(self.output_dir, f"{next_file_num}.csv")
+            with open(output_file, 'w', encoding='utf-8', newline='') as out_f:
+                writer = csv.DictWriter(out_f, fieldnames=pending_rows[0].keys())
+                writer.writeheader()
+                writer.writerows(pending_rows)
         
         # Should create one file with rows having empty IDs or non-existing DOIs
-        self.assertEqual(next_file_num, 1)
+        self.assertEqual(next_file_num, 0)  # File number shouldn't increment until ROWS_PER_FILE
         output_files = os.listdir(self.output_dir)
         self.assertEqual(len(output_files), 1)
         
+        # Verify stats
+        self.assertEqual(stats.total_rows, 3)
+        self.assertEqual(stats.existing_ids_rows, 1)  # One existing DOI
+        self.assertEqual(stats.processed_rows, 2)  # Two rows should be processed
+        self.assertEqual(len(pending_rows), 2)  # Two rows pending
+
         output_file = os.path.join(self.output_dir, '0.csv')
         with open(output_file, 'r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
@@ -104,9 +121,22 @@ class TestPreprocessInput(unittest.TestCase):
         with open(test_data_path, 'w', encoding='utf-8') as f:
             f.write(test_data)
 
-        next_file_num = process_csv_file(test_data_path, self.output_dir, 0, redis_db=5)
+        next_file_num, stats, pending_rows = process_csv_file(test_data_path, self.output_dir, 0, redis_db=5)
         
-        self.assertEqual(next_file_num, 1)
+        # Write pending rows if any
+        if pending_rows:
+            output_file = os.path.join(self.output_dir, f"{next_file_num}.csv")
+            with open(output_file, 'w', encoding='utf-8', newline='') as out_f:
+                writer = csv.DictWriter(out_f, fieldnames=pending_rows[0].keys())
+                writer.writeheader()
+                writer.writerows(pending_rows)
+
+        self.assertEqual(next_file_num, 0)  # File number shouldn't increment until ROWS_PER_FILE
+        self.assertEqual(stats.total_rows, 5)
+        self.assertEqual(stats.duplicate_rows, 3)  # Three duplicate rows
+        self.assertEqual(stats.processed_rows, 2)  # Two unique rows processed
+        self.assertEqual(len(pending_rows), 2)  # Two rows pending
+
         output_files = os.listdir(self.output_dir)
         self.assertEqual(len(output_files), 1)
         
@@ -120,6 +150,68 @@ class TestPreprocessInput(unittest.TestCase):
             self.assertEqual(len(unique_ids), 2)
             self.assertIn('doi:10.INVALID/123', unique_ids)
             self.assertIn('doi:10.INVALID/456', unique_ids)
+
+    def test_cross_file_deduplication(self):
+        """Test that duplicate rows are filtered across different files"""
+        # Create first file with some data
+        file1_path = os.path.join(self.test_dir, 'data1.csv')
+        file1_data = '''id,title,author,pub_date,venue,volume,issue,page,type,publisher,editor
+"doi:10.INVALID/123","Test Title","Test Author","2024","Test Venue","1","1","1-10","journal article","Test Publisher",
+"doi:10.INVALID/456","Different Title","Other Author","2024","Test Venue","1","1","11-20","journal article","Test Publisher",'''
+
+        # Create second file with some duplicates from first file
+        file2_path = os.path.join(self.test_dir, 'data2.csv')
+        file2_data = '''id,title,author,pub_date,venue,volume,issue,page,type,publisher,editor
+"doi:10.INVALID/123","Test Title","Test Author","2024","Test Venue","1","1","1-10","journal article","Test Publisher",
+"doi:10.INVALID/789","New Title","New Author","2024","Test Venue","1","1","21-30","journal article","Test Publisher",'''
+
+        with open(file1_path, 'w', encoding='utf-8') as f:
+            f.write(file1_data)
+        with open(file2_path, 'w', encoding='utf-8') as f:
+            f.write(file2_data)
+
+        # Process both files using the same seen_rows set and pending_rows list
+        seen_rows = set()
+        pending_rows = []
+        next_file_num, stats1, pending_rows = process_csv_file(
+            file1_path, self.output_dir, 0, redis_db=5, seen_rows=seen_rows, pending_rows=pending_rows
+        )
+        next_file_num, stats2, pending_rows = process_csv_file(
+            file2_path, self.output_dir, next_file_num, redis_db=5, seen_rows=seen_rows, pending_rows=pending_rows
+        )
+
+        # Write final pending rows
+        if pending_rows:
+            output_file = os.path.join(self.output_dir, f"{next_file_num}.csv")
+            with open(output_file, 'w', encoding='utf-8', newline='') as out_f:
+                writer = csv.DictWriter(out_f, fieldnames=pending_rows[0].keys())
+                writer.writeheader()
+                writer.writerows(pending_rows)
+
+        # Verify statistics
+        self.assertEqual(stats1.total_rows, 2)
+        self.assertEqual(stats1.duplicate_rows, 0)
+        self.assertEqual(stats1.processed_rows, 2)
+
+        self.assertEqual(stats2.total_rows, 2)
+        self.assertEqual(stats2.duplicate_rows, 1)  # One row should be detected as duplicate
+        self.assertEqual(stats2.processed_rows, 1)  # Only one new row should be processed
+
+        # Check output files
+        output_files = sorted(os.listdir(self.output_dir))
+        self.assertEqual(len(output_files), 1)  # Should create only one file
+        
+        # Verify final output contains only unique rows
+        output_file = os.path.join(self.output_dir, '0.csv')
+        with open(output_file, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            rows = list(reader)
+            self.assertEqual(len(rows), 3)  # Should have 3 unique rows total
+            unique_ids = set(row['id'] for row in rows)
+            self.assertEqual(len(unique_ids), 3)
+            self.assertIn('doi:10.INVALID/123', unique_ids)
+            self.assertIn('doi:10.INVALID/456', unique_ids)
+            self.assertIn('doi:10.INVALID/789', unique_ids)
 
 if __name__ == '__main__':
     unittest.main() 

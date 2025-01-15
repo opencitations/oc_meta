@@ -20,6 +20,8 @@ import argparse
 import csv
 import os
 from typing import Dict, List
+from dataclasses import dataclass
+from collections import defaultdict
 
 import redis
 from tqdm import tqdm
@@ -65,38 +67,55 @@ def get_csv_files(directory: str) -> List[str]:
         if f.endswith('.csv') and os.path.isfile(os.path.join(directory, f))
     ]
 
-def process_csv_file(input_file: str, output_dir: str, current_file_num: int, redis_db: int = 10) -> int:
+@dataclass
+class ProcessingStats:
+    total_rows: int = 0
+    duplicate_rows: int = 0
+    existing_ids_rows: int = 0
+    processed_rows: int = 0
+
+def process_csv_file(input_file: str, output_dir: str, current_file_num: int, redis_db: int = 10, 
+                    seen_rows: set = None, pending_rows: List[Dict] = None) -> tuple[int, ProcessingStats, List[Dict]]:
     """
     Process a single CSV file and write non-duplicate rows with non-existing IDs to output files.
-    Returns the next file number to use.
     
     Args:
         input_file: Path to the input CSV file
         output_dir: Directory where output files will be written
         current_file_num: Number to use for the next output file
         redis_db: Redis database number to use (default: 10)
+        seen_rows: Set of previously seen rows (for cross-file deduplication)
+        pending_rows: List of rows waiting to be written (for cross-file batching)
+    
+    Returns:
+        Tuple of (next file number, processing statistics, pending rows)
     """
-    rows_to_write: List[Dict] = []
+    rows_to_write = pending_rows if pending_rows is not None else []
     file_num = current_file_num
-    seen_rows = set()
+    seen_rows = seen_rows if seen_rows is not None else set()
     redis_client = create_redis_connection(redis_db)
+    stats = ProcessingStats()
 
     with open(input_file, 'r', encoding='utf-8') as f:
         reader = csv.DictReader(f)
         fieldnames = reader.fieldnames
         
         for row in reader:
+            stats.total_rows += 1
             row_hash = frozenset(row.items())
 
             if row_hash in seen_rows:
+                stats.duplicate_rows += 1
                 continue
                 
             seen_rows.add(row_hash)
             
             # Skip row if all IDs exist in Redis
             if check_ids_existence(row['id'], redis_client):
+                stats.existing_ids_rows += 1
                 continue
                 
+            stats.processed_rows += 1
             rows_to_write.append(row)
             
             # Write file when we reach ROWS_PER_FILE
@@ -109,16 +128,34 @@ def process_csv_file(input_file: str, output_dir: str, current_file_num: int, re
                 file_num += 1
                 rows_to_write = []
 
-    # Write any remaining rows
-    if rows_to_write:
-        output_file = os.path.join(output_dir, f"{file_num}.csv")
-        with open(output_file, 'w', encoding='utf-8', newline='') as out_f:
-            writer = csv.DictWriter(out_f, fieldnames=fieldnames)
-            writer.writeheader()
-            writer.writerows(rows_to_write)
-        file_num += 1
+    return file_num, stats, rows_to_write
 
-    return file_num
+def print_processing_report(all_stats: List[ProcessingStats], input_files: List[str]):
+    """Print a detailed report of the processing statistics."""
+    total_stats = ProcessingStats()
+    for stats in all_stats:
+        total_stats.total_rows += stats.total_rows
+        total_stats.duplicate_rows += stats.duplicate_rows
+        total_stats.existing_ids_rows += stats.existing_ids_rows
+        total_stats.processed_rows += stats.processed_rows
+
+    print("\nProcessing Report:")
+    print("=" * 50)
+    print(f"Total input files processed: {len(input_files)}")
+    print(f"Total input rows: {total_stats.total_rows}")
+    print(f"Rows discarded (duplicates): {total_stats.duplicate_rows}")
+    print(f"Rows discarded (existing IDs): {total_stats.existing_ids_rows}")
+    print(f"Rows written to output: {total_stats.processed_rows}")
+    
+    if total_stats.total_rows > 0:
+        duplicate_percent = (total_stats.duplicate_rows / total_stats.total_rows) * 100
+        existing_percent = (total_stats.existing_ids_rows / total_stats.total_rows) * 100
+        processed_percent = (total_stats.processed_rows / total_stats.total_rows) * 100
+        
+        print("\nPercentages:")
+        print(f"Duplicate rows: {duplicate_percent:.1f}%")
+        print(f"Existing IDs: {existing_percent:.1f}%")
+        print(f"Processed rows: {processed_percent:.1f}%")
 
 def main():
     parser = argparse.ArgumentParser(
@@ -152,13 +189,30 @@ def main():
         print(f"Found {len(csv_files)} CSV files to process")
         
         current_file_num = 0
+        all_stats = []
+        seen_rows = set()  # Set to track duplicates across all files
+        pending_rows = []  # List to track rows waiting to be written
+        
         for csv_file in tqdm(csv_files, desc="Processing CSV files"):
-            current_file_num = process_csv_file(
+            current_file_num, stats, pending_rows = process_csv_file(
                 csv_file, 
                 args.output_dir, 
                 current_file_num,
-                args.redis_db
+                args.redis_db,
+                seen_rows,
+                pending_rows
             )
+            all_stats.append(stats)
+        
+        # Write any remaining rows after processing all files
+        if pending_rows:
+            output_file = os.path.join(args.output_dir, f"{current_file_num}.csv")
+            with open(output_file, 'w', encoding='utf-8', newline='') as out_f:
+                writer = csv.DictWriter(out_f, fieldnames=pending_rows[0].keys())
+                writer.writeheader()
+                writer.writerows(pending_rows)
+            
+        print_processing_report(all_stats, csv_files)
             
     except Exception as e:
         print(f"Error: {str(e)}")
