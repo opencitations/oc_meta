@@ -145,11 +145,11 @@ class MetaEditor:
             if object:
                 if validators.url(object):
                     self.reader.import_entity_from_triplestore(g_set, self.endpoint, object, self.resp_agent, enable_validation=False)
-                    try:
-                        getattr(g_set.get_entity(URIRef(res)), remove_method)(g_set.get_entity(URIRef(object)))
+                    # try:
+                    getattr(g_set.get_entity(URIRef(res)), remove_method)(g_set.get_entity(URIRef(object)))
                     # TypeError: AgentRole.remove_is_held_by() takes 1 positional argument but 2 were given
-                    except TypeError:
-                        getattr(g_set.get_entity(URIRef(res)), remove_method)()
+                    # except TypeError:
+                    #     getattr(g_set.get_entity(URIRef(res)), remove_method)()
                 else:
                     getattr(g_set.get_entity(URIRef(res)), remove_method)(object)
             else:
