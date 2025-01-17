@@ -125,7 +125,7 @@ class RespAgentsCurator(Curator):
         for identifier in self.radict:
             if 'wannabe' in identifier:
                 other = identifier
-                count = self.counter_handler.increment_counter('ra')
+                count = self.counter_handler.increment_counter('ra', supplier_prefix=self.prefix)
                 meta = self.prefix + str(count)
                 self.rameta[meta] = self.radict[identifier]
                 self.rameta[meta]['others'].append(other)
@@ -395,5 +395,5 @@ class RespAgentsCurator(Curator):
         return match_elem
 
     def __update_id_count(self, id_dict, identifier):
-        count = self.counter_handler.increment_counter('id')
+        count = self.counter_handler.increment_counter('id', supplier_prefix=self.prefix)
         id_dict[identifier] = self.prefix + str(count)
