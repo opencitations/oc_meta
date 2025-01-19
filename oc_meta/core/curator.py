@@ -733,6 +733,8 @@ class Curator:
                             for br_meta in self.brmeta:
                                 if issue_id in self.brmeta[br_meta]['others']:
                                     self.vvi[venue_meta]['issue'][issue]['id'] = str(br_meta)
+                                    break
+                
                 venue_volume = self.vvi[venue_meta]['volume']
                 if venue_volume:
                     for volume in venue_volume:
@@ -741,6 +743,7 @@ class Curator:
                             for br_meta in self.brmeta:
                                 if volume_id in self.brmeta[br_meta]['others']:
                                     self.vvi[venue_meta]['volume'][volume]['id'] = str(br_meta)
+                                    break
                         if venue_volume[volume]['issue']:
                             volume_issue = venue_volume[volume]['issue']
                             for issue in volume_issue:
@@ -749,6 +752,7 @@ class Curator:
                                     for br_meta in self.brmeta:
                                         if volume_issue_id in self.brmeta[br_meta]['others']:
                                             self.vvi[venue_meta]['volume'][volume]['issue'][issue]['id'] = str(br_meta)
+                                            break
                 if 'wannabe' in venue_meta:
                     for br_meta in self.brmeta:
                         if venue_meta in self.brmeta[br_meta]['others']:

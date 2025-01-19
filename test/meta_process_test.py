@@ -8,6 +8,7 @@ import unittest
 from datetime import datetime
 from urllib.error import URLError
 from zipfile import ZipFile
+import csv
 
 import redis
 import yaml
@@ -58,7 +59,8 @@ def reset_server(server:str='http://127.0.0.1:8805/sparql') -> None:
         'https://w3id.org/oc/meta/ra/', 
         'https://w3id.org/oc/meta/re/',
         'https://w3id.org/oc/meta/id/',
-        'https://w3id.org/oc/meta/ar/'
+        'https://w3id.org/oc/meta/ar/',
+        'http://default.graph/'
     }
     
     for graph in graphs:
@@ -441,6 +443,148 @@ class test_ProcessTest(unittest.TestCase):
         shutil.rmtree(output_folder)
         self.assertTrue(normalize_graph(result).isomorphic(normalize_graph(expected_result)))
         delete_output_zip('.', now)
+
+    def test_duplicate_omids_with_datatype(self):
+        """Test to verify that identifiers are not duplicated due to datatype differences"""
+        # Reset everything
+        reset_server(SERVER)
+        reset_redis_counters()
+        
+        output_folder = os.path.join(BASE_DIR, 'output_duplicate_test')
+        meta_config_path = os.path.join(BASE_DIR, 'meta_config_duplicate.yaml')
+        
+        # Setup: create test data
+        os.makedirs(os.path.join(BASE_DIR, 'input_duplicate'), exist_ok=True)
+        with open(os.path.join(BASE_DIR, 'input_duplicate', 'test.csv'), 'w', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerow(["id", "title", "author", "pub_date", "venue", "volume", "issue", "page", "type", "publisher", "editor"])
+            writer.writerow([
+                "issn:2543-3288 issn:2078-7685",  # Exact problematic row from production
+                "Journal of Diabetology",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "journal",
+                "Medknow [crossref:2581]",
+                ""
+            ])
+                
+        # Setup: Insert pre-existing identifier in triplestore
+        sparql = SPARQLWrapper(SERVER)
+        sparql.setMethod(POST)
+        sparql.setQuery("""
+        INSERT DATA {
+            GRAPH <https://w3id.org/oc/meta/br/> {
+                <https://w3id.org/oc/meta/br/0601> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0601> ;
+                    <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Journal> .
+            }
+            GRAPH <https://w3id.org/oc/meta/id/> {
+                <https://w3id.org/oc/meta/id/0601> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "2078-7685" ;
+                                               <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/issn> .
+            }
+        }
+        """)
+        sparql.query()
+        
+        # Update Redis counters to match the inserted data
+        redis_handler = RedisCounterHandler(db=5)  # Use test db
+        redis_handler.set_counter(1, "br", supplier_prefix="060")  # BR counter
+        redis_handler.set_counter(1, "id", supplier_prefix="060")  # ID counter
+        
+        # Create test settings
+        settings = {
+            'triplestore_url': SERVER,
+            'input_csv_dir': os.path.join(BASE_DIR, 'input_duplicate'),
+            'base_output_dir': output_folder,
+            'output_rdf_dir': output_folder,
+            'resp_agent': 'test',
+            'base_iri': 'https://w3id.org/oc/meta/',
+            'context_path': None,
+            'dir_split_number': 10000,
+            'items_per_file': 1000,
+            'default_dir': '_',
+            'rdf_output_in_chunks': False,
+            'zip_output_rdf': True,
+            'source': None,
+            'supplier_prefix': '060',
+            'workers_number': 1,
+            'use_doi_api_service': False,
+            'blazegraph_full_text_search': False,
+            'virtuoso_full_text_search': True,
+            'fuseki_full_text_search': False,
+            'graphdb_connector_name': None,
+            'cache_endpoint': None,
+            'cache_update_endpoint': None,
+            'silencer': []
+        }
+        
+        with open(meta_config_path, 'w') as f:
+            yaml.dump(settings, f)
+        
+        # Run the process
+        run_meta_process(settings=settings, meta_config_path=meta_config_path)
+        
+        # Check for errors
+        errors_file = os.path.join(output_folder, 'errors.txt')
+        if os.path.exists(errors_file):
+            with open(errors_file, 'r') as f:
+                errors = f.read()
+                print(f"Errors found:\n{errors}")
+        
+        # Query to check for duplicates
+        query = """
+        SELECT DISTINCT ?id ?value
+        WHERE {
+            GRAPH <https://w3id.org/oc/meta/id/> {
+                ?id <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> ?value ;
+                    <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/issn> .
+                FILTER(?value IN ("2078-7685"^^<http://www.w3.org/2001/XMLSchema#string>, "2078-7685",
+                                "2543-3288"^^<http://www.w3.org/2001/XMLSchema#string>, "2543-3288"))
+            }
+        }
+        """
+        result = execute_sparql_query(SERVER, query, return_format=JSON)
+        # Group IDs by value to check for duplicates
+        ids_by_value = {}
+        for binding in result['results']['bindings']:
+            value = binding['value']['value']
+            id = binding['id']['value']
+            if value not in ids_by_value:
+                ids_by_value[value] = []
+            ids_by_value[value].append(id)
+
+        # Print SPARQL query from the output folder
+        sparql_file = None
+        for root, dirs, files in os.walk(os.path.join(output_folder, 'rdf', 'to_be_uploaded')):
+            for file in files:
+                if file.endswith('.sparql'):
+                    sparql_file = os.path.join(root, file)
+                    break
+        
+        if sparql_file:
+            with open(sparql_file, 'r') as f:
+                print("\nSPARQL query to be executed:")
+                print(f.read())
+        else:
+            print("\nNo SPARQL query file found in the output directory")
+
+        # Cleanup
+        shutil.rmtree(output_folder, ignore_errors=True)
+        shutil.rmtree(os.path.join(BASE_DIR, 'input_duplicate'), ignore_errors=True)
+        if os.path.exists(meta_config_path):
+            os.remove(meta_config_path)
+
+        # Check that we have both ISSNs and no duplicates
+        for issn_value, ids in ids_by_value.items():
+            self.assertEqual(len(ids), 1, 
+                f"Found multiple IDs for ISSN {issn_value}: {ids}")
+        
+        self.assertEqual(len(ids_by_value), 2, 
+            f"Expected 2 ISSNs, found {len(ids_by_value)}: {list(ids_by_value.keys())}")
+
 
 def normalize_graph(graph):
     """
