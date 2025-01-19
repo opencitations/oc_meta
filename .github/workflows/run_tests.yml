@@ -90,7 +90,7 @@ jobs:
         if: github.ref == 'refs/heads/master' && matrix.python-version == '3.10'
         uses: RubbaBoy/BYOB@v1.3.0
         with:
-          name: opencitations-index_coverage
+          name: opencitations-oc_meta_coverage
           label: "Coverage"
           status: ${{ env.COVERAGE }}
           color: green

@@ -21,7 +21,7 @@ from SPARQLWrapper import JSON, POST, XML, SPARQLExceptions, SPARQLWrapper
 BASE_DIR = os.path.join('test', 'meta_process')
 SERVER = 'http://127.0.0.1:8805/sparql'
 
-def execute_sparql_query(endpoint, query, return_format=JSON, max_retries=3, delay=2):
+def execute_sparql_query(endpoint, query, return_format=JSON, max_retries=3, delay=5):
     """
     Execute a SPARQL query with retry logic and better error handling.
     
@@ -42,23 +42,21 @@ def execute_sparql_query(endpoint, query, return_format=JSON, max_retries=3, del
     sparql.setQuery(query)
     sparql.setReturnFormat(return_format)
     
-    retry_count = max_retries
+    retry_count = 0
     last_error = None
     
-    while retry_count > 0:
+    while retry_count < max_retries:
         try:
-            # Add timeout to avoid hanging
-            sparql.setTimeout(10)
+            sparql.setTimeout(30)  # Increase timeout
             return sparql.queryAndConvert()
-        except (URLError, SPARQLExceptions.EndPointInternalError, 
-                SPARQLExceptions.QueryBadFormed, ConnectionRefusedError) as e:
+        except Exception as e:
             last_error = e
-            retry_count -= 1
-            if retry_count == 0:
+            retry_count += 1
+            if retry_count == max_retries:
                 raise URLError(f"Failed to connect to SPARQL endpoint after {max_retries} attempts: {str(last_error)}")
-            print(f"Connection attempt failed, retrying in {delay} seconds...")
-            time.sleep(delay)
-            
+            print(f"Connection attempt {retry_count} failed, retrying in {delay} seconds...")
+            time.sleep(delay)  # Increased delay between retries
+
 def reset_redis_counters():
     redis_host = 'localhost'
     redis_port = 6379
