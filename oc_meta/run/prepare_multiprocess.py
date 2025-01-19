@@ -47,7 +47,7 @@ if __name__ == '__main__': # pragma: no cover
         os.mkdir(csv_dir)
         for file in os.listdir(TMP_DIR):
             shutil.move(os.path.join(TMP_DIR, file), csv_dir)
-    if not all(os.path.exists(os.path.join(TMP_DIR, directory)) for directory in ['venues', 'ids', 'publishers', 'authors', 'editors']):
+    if not any(os.path.exists(os.path.join(TMP_DIR, directory)) for directory in ['venues', 'ids', 'publishers', 'authors', 'editors']):
         prepare_relevant_items(csv_dir=csv_dir, output_dir=TMP_DIR, items_per_file=items_per_file, verbose=verbose)
     for resp_agent in ['authors', 'editors', 'publishers']:
         resp_agent_dir = os.path.join(TMP_DIR, resp_agent)
