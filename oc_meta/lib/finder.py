@@ -29,19 +29,27 @@ class ResourceFinder:
         self.virtuoso_full_text_search = settings['virtuoso_full_text_search'] if settings and 'virtuoso_full_text_search' in settings else False
 
     def __query(self, query, return_format = JSON):
+        """Execute a SPARQL query with retries and exponential backoff"""
         self.ts.setReturnFormat(return_format)
         self.ts.setQuery(query)
-        tentative = 3
-        result = None
-        while tentative:
-            tentative -= 1
+        
+        max_retries = 5  # Aumentiamo il numero di tentativi
+        base_wait = 5    # Tempo base di attesa in secondi
+        
+        for attempt in range(max_retries):
             try:
                 result = self.ts.queryAndConvert()
                 return result
-            except Exception:
-                sleep(5)
-        return result
-        
+            except Exception as e:
+                wait_time = base_wait * (2 ** attempt)  # Exponential backoff
+                if attempt < max_retries - 1:  # Se non è l'ultimo tentativo
+                    sleep(wait_time)
+                else:
+                    # Ultimo tentativo fallito, logghiamo l'errore e solleviamo un'eccezione custom
+                    error_msg = f"Failed to execute SPARQL query after {max_retries} attempts: {str(e)}\nQuery: {query}"
+                    print(error_msg)  # Log dell'errore
+                    raise Exception(error_msg)
+
     # _______________________________BR_________________________________ #
 
     def retrieve_br_from_id(self, schema: str, value: str) -> List[Tuple[str, str, list]]:
