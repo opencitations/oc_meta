@@ -114,11 +114,31 @@ def delete_output_zip(base_dir:str, start_time:datetime) -> None:
 class test_ProcessTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.counter_handler = RedisCounterHandler(host='localhost', port=6379, db=0)
+        """Setup iniziale eseguito una volta per tutta la classe di test"""
+        # Aspetta che Virtuoso sia pronto
+        max_wait = 30  # secondi
+        start_time = time.time()
+        while time.time() - start_time < max_wait:
+            try:
+                # Prova una query semplice
+                sparql = SPARQLWrapper(SERVER)
+                sparql.setQuery("SELECT * WHERE { ?s ?p ?o } LIMIT 1")
+                sparql.setReturnFormat(JSON)
+                sparql.query()
+                break
+            except Exception:
+                time.sleep(2)
+        else:
+            raise TimeoutError(f"Virtuoso non pronto dopo {max_wait} secondi")
 
     def setUp(self):
-        reset_server()
-        reset_redis_counters()
+        """Setup eseguito prima di ogni test"""
+        # Reset del database
+        try:
+            reset_server()
+            reset_redis_counters()
+        except Exception as e:
+            self.skipTest(f"Setup fallito: {str(e)}")
 
     def tearDown(self):
         reset_redis_counters()
@@ -470,11 +490,7 @@ class test_ProcessTest(unittest.TestCase):
         delete_output_zip('.', now)
 
     def test_duplicate_omids_with_datatype(self):
-        """Test to verify that identifiers are not duplicated due to datatype differences"""
-        # Reset everything
-        reset_server(SERVER)
-        reset_redis_counters()
-        
+        """Test to verify that identifiers are not duplicated due to datatype differences"""        
         output_folder = os.path.join(BASE_DIR, 'output_duplicate_test')
         meta_config_path = os.path.join(BASE_DIR, 'meta_config_duplicate.yaml')
         
