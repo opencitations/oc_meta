@@ -1,5 +1,7 @@
+import csv
 import json
 import os
+import random
 import shutil
 import subprocess
 import sys
@@ -8,7 +10,6 @@ import unittest
 from datetime import datetime
 from urllib.error import URLError
 from zipfile import ZipFile
-import csv
 
 import redis
 import yaml
@@ -66,39 +67,47 @@ def reset_redis_counters():
 
 def reset_server(server:str='http://127.0.0.1:8805/sparql') -> None:
     """
-    Reset the SPARQL server with improved retry mechanism and error handling.
+    Reset the SPARQL server using Virtuoso's RDF_GLOBAL_RESET() via isql.
     
     Args:
-        server (str): SPARQL endpoint URL
+        server (str): SPARQL endpoint URL (kept for compatibility)
     """
-    ts = SPARQLWrapper(server)
-    graphs = {
-        'https://w3id.org/oc/meta/br/',
-        'https://w3id.org/oc/meta/ra/', 
-        'https://w3id.org/oc/meta/re/',
-        'https://w3id.org/oc/meta/id/',
-        'https://w3id.org/oc/meta/ar/',
-        'http://default.graph/'
-    }
+    max_retries = 5
+    base_delay = 2
+    current_dir = os.getcwd()
     
-    max_retries = 3
-    delay = 2
-    
-    for graph in graphs:
-        retry_count = max_retries
-        while retry_count > 0:
-            try:
-                ts.setQuery(f'CLEAR GRAPH <{graph}>')
-                ts.setMethod(POST)
-                ts.setTimeout(10)  # Add timeout
-                ts.query()
+    for attempt in range(max_retries):
+        try:
+            # Add small random delay to avoid race conditions
+            time.sleep(base_delay + random.uniform(0, 1))
+            
+            # Change to virtuoso directory
+            os.chdir('virtuoso-opensource/bin')
+            
+            result = subprocess.run(
+                ['./isql', '1105', 'dba', 'dba'],
+                input=b'RDF_GLOBAL_RESET();',
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=10
+            )
+            
+            # Restore original directory
+            os.chdir(current_dir)
+            
+            if result.returncode == 0:
                 break
-            except Exception as e:
-                retry_count -= 1
-                if retry_count == 0:
-                    raise URLError(f"Failed to reset graph {graph} after {max_retries} attempts: {str(e)}")
-                print(f"Failed to reset graph {graph}, retrying in {delay} seconds...")
-                time.sleep(delay)
+                
+            raise Exception(f"isql command failed: {result.stderr.decode()}")
+            
+        except Exception as e:
+            # Ensure we restore the directory even if an error occurs
+            os.chdir(current_dir)
+            
+            if attempt == max_retries - 1:
+                raise URLError(f"Failed to reset RDF store after {max_retries} attempts: {str(e)}")
+            print(f"Reset attempt {attempt + 1} failed: {str(e)}")
+            continue
 
 def delete_output_zip(base_dir:str, start_time:datetime) -> None:
     for file in os.listdir(base_dir):
@@ -598,21 +607,6 @@ class test_ProcessTest(unittest.TestCase):
             if value not in ids_by_value:
                 ids_by_value[value] = []
             ids_by_value[value].append(id)
-
-        # Print SPARQL query from the output folder
-        # sparql_file = None
-        # for root, dirs, files in os.walk(os.path.join(output_folder, 'rdf', 'to_be_uploaded')):
-        #     for file in files:
-        #         if file.endswith('.sparql'):
-        #             sparql_file = os.path.join(root, file)
-        #             break
-        
-        # if sparql_file:
-        #     with open(sparql_file, 'r') as f:
-        #         print("\nSPARQL query to be executed:")
-        #         print(f.read())
-        # else:
-        #     print("\nNo SPARQL query file found in the output directory")
 
         # Cleanup
         shutil.rmtree(output_folder, ignore_errors=True)
