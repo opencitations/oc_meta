@@ -511,7 +511,7 @@ class test_ProcessTest(unittest.TestCase):
                 ""
             ])
                 
-        # Setup: Insert pre-existing identifier in triplestore
+        # Setup: Insert pre-existing identifiers and BRs in triplestore
         sparql = SPARQLWrapper(SERVER)
         sparql.setMethod(POST)
         sparql.setQuery("""
@@ -519,9 +519,13 @@ class test_ProcessTest(unittest.TestCase):
             GRAPH <https://w3id.org/oc/meta/br/> {
                 <https://w3id.org/oc/meta/br/0601> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0601> ;
                     <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Journal> .
+                <https://w3id.org/oc/meta/br/0602> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0602> ;
+                    <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Journal> .
             }
             GRAPH <https://w3id.org/oc/meta/id/> {
                 <https://w3id.org/oc/meta/id/0601> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "2078-7685" ;
+                                               <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/issn> .
+                <https://w3id.org/oc/meta/id/0602> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "2543-3288" ;
                                                <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/issn> .
             }
         }
@@ -530,8 +534,8 @@ class test_ProcessTest(unittest.TestCase):
         
         # Update Redis counters to match the inserted data
         redis_handler = RedisCounterHandler(db=5)  # Use test db
-        redis_handler.set_counter(1, "br", supplier_prefix="060")  # BR counter
-        redis_handler.set_counter(1, "id", supplier_prefix="060")  # ID counter
+        redis_handler.set_counter(2, "br", supplier_prefix="060")  # BR counter for two BRs
+        redis_handler.set_counter(2, "id", supplier_prefix="060")  # ID counter for two IDs
         
         # Create test settings
         settings = {
@@ -596,19 +600,19 @@ class test_ProcessTest(unittest.TestCase):
             ids_by_value[value].append(id)
 
         # Print SPARQL query from the output folder
-        sparql_file = None
-        for root, dirs, files in os.walk(os.path.join(output_folder, 'rdf', 'to_be_uploaded')):
-            for file in files:
-                if file.endswith('.sparql'):
-                    sparql_file = os.path.join(root, file)
-                    break
+        # sparql_file = None
+        # for root, dirs, files in os.walk(os.path.join(output_folder, 'rdf', 'to_be_uploaded')):
+        #     for file in files:
+        #         if file.endswith('.sparql'):
+        #             sparql_file = os.path.join(root, file)
+        #             break
         
-        if sparql_file:
-            with open(sparql_file, 'r') as f:
-                print("\nSPARQL query to be executed:")
-                print(f.read())
-        else:
-            print("\nNo SPARQL query file found in the output directory")
+        # if sparql_file:
+        #     with open(sparql_file, 'r') as f:
+        #         print("\nSPARQL query to be executed:")
+        #         print(f.read())
+        # else:
+        #     print("\nNo SPARQL query file found in the output directory")
 
         # Cleanup
         shutil.rmtree(output_folder, ignore_errors=True)

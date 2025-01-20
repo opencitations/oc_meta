@@ -1034,7 +1034,11 @@ class Curator:
                         #     # !
                         #     return self.conflict(idslist, name, id_dict, col_name)
                         # else:
-                        existing_ids = sparql_match[0][2]
+                        # Collect all existing IDs from all matches
+                        existing_ids = []
+                        for match in sparql_match:
+                            existing_ids.extend(match[2])
+                        
                         # new_idslist = [x[1] for x in existing_ids]
                         # new_sparql_match = self.finder_sparql(new_idslist, br=br_ent, ra=ra_ent, vvi=vvi_ent, publ=publ_entity)
                         # if len(new_sparql_match) > 1:
@@ -1054,13 +1058,15 @@ class Curator:
             else:
                 sparql_match = self.finder_sparql(idslist, br=br_ent, ra=ra_ent, vvi=vvi_ent, publ=publ_entity)
                 # if len(sparql_match) > 1:
-                #     print(sparql_match)
-                #     print('EHIIIII')
                 #     # !
                 #     return self.conflict(idslist, name, id_dict, col_name)
                 # elif len(sparql_match) == 1:
                 if sparql_match:
-                    existing_ids = sparql_match[0][2]
+                    # Collect all existing IDs from all matches
+                    existing_ids = []
+                    for match in sparql_match:
+                        existing_ids.extend(match[2])
+                    
                     # new_idslist = [x[1] for x in existing_ids]
                     # new_sparql_match = self.finder_sparql(new_idslist, br=br_ent, ra=ra_ent, vvi=vvi_ent, publ=publ_entity)
                     # if len(new_sparql_match) > 1:

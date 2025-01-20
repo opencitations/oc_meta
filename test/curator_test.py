@@ -1167,7 +1167,6 @@ class testcase_14(unittest.TestCase):
         # RA
         # Author with two different ids
         name_1 = '14.3'
-        name_2 = '14.31'
         data = get_csv_data(MANUAL_DATA_CSV)
         partial_data = data[60:61]
         data_curated, testcase_1 = prepare_to_test(partial_data, name_1)

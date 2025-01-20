@@ -118,7 +118,6 @@ class MetaProcess:
             supplier_prefix = f'{self.supplier_prefix}0' if worker_number is None else f'{self.supplier_prefix}{str(worker_number)}0'
             # Curator
             self.info_dir = os.path.join(self.info_dir, supplier_prefix)
-            curator_info_dir = os.path.join(self.info_dir, 'curator' + os.sep)
             if resp_agents_only:
                 curator_obj = RespAgentsCurator(
                     data=data, 
