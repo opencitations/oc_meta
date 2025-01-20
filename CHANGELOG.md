@@ -1,3 +1,10 @@
+## [2.0.1](https://github.com/opencitations/oc_meta/compare/v2.0.0...v2.0.1) (2025-01-20)
+
+
+### Bug Fixes
+
+* collect IDs from all matches in finder_sparql results ([29fc86c](https://github.com/opencitations/oc_meta/commit/29fc86c66c4ac6e2290a95b1f6c82c14c65594e1))
+
 # 1.0.0 (2025-01-20)
 
 
