@@ -1,3 +1,10 @@
+## [2.0.2](https://github.com/opencitations/oc_meta/compare/v2.0.1...v2.0.2) (2025-01-22)
+
+
+### Bug Fixes
+
+* prevent duplicate IDs when processing existing identifiers ([88d5b57](https://github.com/opencitations/oc_meta/commit/88d5b57c71cc9b0f074d6b0f4e57cf16ab130634))
+
 ## [2.0.1](https://github.com/opencitations/oc_meta/compare/v2.0.0...v2.0.1) (2025-01-20)
 
 
