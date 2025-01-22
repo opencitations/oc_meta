@@ -1,11 +1,8 @@
-from __future__ import annotations
-
 from time import sleep
 from typing import Dict, List, Tuple
 
 import yaml
 from dateutil import parser
-from oc_meta.constants import ROOT_CONTAINER_TYPES
 from oc_meta.plugins.editor import MetaEditor
 from oc_ocdm.graph import GraphEntity
 from oc_ocdm.graph.graph_entity import GraphEntity
@@ -33,7 +30,6 @@ class ResourceFinder:
         """Execute a SPARQL query with retries and exponential backoff"""
         self.ts.setReturnFormat(return_format)
         self.ts.setQuery(query)
-        
         max_retries = 5  # Aumentiamo il numero di tentativi
         base_wait = 5    # Tempo base di attesa in secondi
         
@@ -345,58 +341,65 @@ class ResourceFinder:
                 }
             }    
 
-        The first level 'issue' field includes the issues contained directly in the venue, 
-        while the 'volume' field includes the volumes in the venue and the related issues.
-
         :params meta_id: a MetaID
         :type meta_id: str
-        :returns: Dict[str, Dict[str, str]] -- the string with normalized hyphens
+        :returns: Dict[str, Dict[str, str]] -- the venue structure with volumes and issues
         '''
-        content = dict()
-        content['issue'] = dict()
-        content['volume'] = dict()
-        content = self.__retrieve_vvi(meta_id, content)
+        content = {
+            'issue': {},
+            'volume': {}
+        }
+
+        # Query per trovare tutti i volumi e issue collegati alla venue
+        query = f"""
+        SELECT DISTINCT ?entity ?type ?seq ?container
+        WHERE {{
+            ?entity a ?type ;
+                   <{GraphEntity.iri_has_sequence_identifier}> ?seq .
+            OPTIONAL {{ ?entity <{GraphEntity.iri_part_of}> ?container }}
+            ?entity <{GraphEntity.iri_part_of}>* <{self.base_iri}/br/{meta_id}> .
+            FILTER(?type IN (<{GraphEntity.iri_journal_volume}>, <{GraphEntity.iri_journal_issue}>))
+        }}
+        """
         
+        results = self.__query(query)
+        
+        # Prima processiamo tutti i volumi
+        volumes = {}  # Dizionario temporaneo per mappare gli ID dei volumi ai loro sequence numbers
+        for result in results['results']['bindings']:
+            entity_type = result['type']['value']
+            if entity_type == str(GraphEntity.iri_journal_volume):
+                entity_id = result['entity']['value'].replace(f'{self.base_iri}/br/', '')
+                seq = result['seq']['value']
+                volumes[entity_id] = seq
+                content['volume'][seq] = {
+                    'id': entity_id,
+                    'issue': {}
+                }
+        
+        # Poi processiamo tutte le issue
+        for result in results['results']['bindings']:
+            entity_type = result['type']['value']
+            if entity_type == str(GraphEntity.iri_journal_issue):
+                entity_id = result['entity']['value'].replace(f'{self.base_iri}/br/', '')
+                seq = result['seq']['value']
+                container = result.get('container', {}).get('value', '')
+                
+                if container:
+                    container_id = container.replace(f'{self.base_iri}/br/', '')
+                    # Se il container è un volume che conosciamo
+                    if container_id in volumes:
+                        volume_seq = volumes[container_id]
+                        content['volume'][volume_seq]['issue'][seq] = {'id': entity_id}
+                    else:
+                        # Se il container non è un volume conosciuto, mettiamo l'issue direttamente sotto la venue
+                        content['issue'][seq] = {'id': entity_id}
+                else:
+                    # Se non ha container, va direttamente sotto la venue
+                    content['issue'][seq] = {'id': entity_id}
+
         return content
 
-    def __retrieve_vvi(self, meta:str, content:Dict[str, dict]) -> dict:
-        venue_iri = URIRef(f'{self.base_iri}/br/{meta}')
-        ress = []
-
-        for triple in self.local_g.triples((None, GraphEntity.iri_part_of, venue_iri)):
-            res = {'res': None, 'type': None, 'sequence_identifier': None, 'container': None}
-            res['res'] = triple[0].replace(f'{self.base_iri}/br/', '')
-            for res_triple in self.local_g.triples((triple[0], None, None)):
-                if res_triple[1] == RDF.type and res_triple[2] != GraphEntity.iri_expression:
-                    res['type'] = res_triple[2]
-                elif res_triple[1] == GraphEntity.iri_has_sequence_identifier:
-                    res['sequence_identifier'] = str(res_triple[2])
-                elif res_triple[1] == GraphEntity.iri_part_of:
-                    res['container'] = res_triple[2]
-            ress.append(res)
-        
-        for res in ress:
-            if res['res'] is not None:
-                if res['type'] == GraphEntity.iri_journal_issue and res['container'] == venue_iri:
-                    content['issue'].setdefault(res['sequence_identifier'], dict())
-                    content['issue'][res['sequence_identifier']]['id'] = res['res']
-                elif res['type'] == GraphEntity.iri_journal_volume:
-                    content['volume'].setdefault(res['sequence_identifier'], dict())
-                    content['volume'][res['sequence_identifier']]['id'] = res['res']
-                    content['volume'][res['sequence_identifier']]['issue'] = self.__retrieve_issues_by_volume(URIRef(f"{self.base_iri}/br/{res['res']}"))
-        
-        return content
-
-    def __retrieve_issues_by_volume(self, res:URIRef) -> dict:
-        content = dict()
-        for triple in self.local_g.triples((None, GraphEntity.iri_part_of, res)):
-            for res_triple in self.local_g.triples((triple[0], None, None)):
-                if res_triple[1] == GraphEntity.iri_has_sequence_identifier:
-                    content.setdefault(str(res_triple[2]), dict())
-                    content[str(res_triple[2])]['id'] = res_triple[0].replace(f'{self.base_iri}/br/', '')
-        
-        return content
-    
     def retrieve_ra_sequence_from_br_meta(self, metaid: str, col_name: str) -> List[Dict[str, tuple]]:
         '''
         Given a bibliographic resource's MetaID and a field name, it returns its agent roles and responsible agents in the correct order according to the specified field.
@@ -841,18 +844,14 @@ class ResourceFinder:
 
             next_subjects = set()
             for batch in batch_process(list(subjects), BATCH_SIZE):
-                # Query to get direct triples and object types
                 query_prefix = f'''
                     SELECT ?s ?p ?o
                     WHERE {{
                         VALUES ?s {{ {' '.join([f"<{s}>" for s in batch])} }}
-                        ?s ?p ?o .
+                        ?s ?p ?o.
                     }}'''
                 
-                # Process direct triples and collect objects that could be containers
-                potential_containers = set()
                 result = self.__query(query_prefix)
-
                 if result:
                     for row in result['results']['bindings']:
                         s = URIRef(row['s']['value'])
@@ -862,36 +861,10 @@ class ResourceFinder:
                         o_datatype = URIRef(row['o']['datatype']) if 'datatype' in row['o'] else None
                         o = URIRef(o) if o_type == 'uri' else Literal(lexical_or_value=o, datatype=o_datatype)
                         self.local_g.add((s, p, o))
-                        if p == RDF.type and o not in ROOT_CONTAINER_TYPES:
-                            potential_containers.add(str(s))
-
-                        # Add non-special objects to next_subjects as before
                         if isinstance(o, URIRef) and p not in {RDF.type, GraphEntity.iri_with_role, GraphEntity.iri_uses_identifier_scheme}:
                             next_subjects.add(str(o))
 
-                # Only run inverse query for potential containers
-                if potential_containers:
-                    inverse_query = f'''
-                        SELECT ?s ?p ?o
-                        WHERE {{
-                            VALUES ?container {{ {' '.join([f"<{s}>" for s in potential_containers])} }}
-                            ?s <{GraphEntity.iri_part_of}> ?container .
-                            ?s ?p ?o .
-                        }}'''
-                    
-                    result = self.__query(inverse_query)
-                    if result:
-                        for row in result['results']['bindings']:
-                            s = URIRef(row['s']['value'])
-                            p = URIRef(row['p']['value'])
-                            o = row['o']['value']
-                            o_type = row['o']['type']
-                            o_datatype = URIRef(row['o']['datatype']) if 'datatype' in row['o'] else None
-                            o = URIRef(o) if o_type == 'uri' else Literal(lexical_or_value=o, datatype=o_datatype)
-                            self.local_g.add((s, p, o))
-                            next_subjects.add(str(s))
-
-            # Process next level
+            # Dopo aver processato tutti i batch di questo livello, procedi con il prossimo livello di profondità
             process_batch(next_subjects, cur_depth + 1)
 
         def get_initial_subjects_from_metavals(metavals):

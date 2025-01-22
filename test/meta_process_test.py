@@ -666,12 +666,14 @@ class test_ProcessTest(unittest.TestCase):
                 <https://w3id.org/oc/meta/br/0601> 
                     <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0601>, <https://w3id.org/oc/meta/id/0602> ;
                     <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Journal> ;
+                    <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression> ;
                     <http://purl.org/dc/terms/title> "BMJ" .
 
                 # Second venue
                 <https://w3id.org/oc/meta/br/0602> 
                     <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0603> ;
                     <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Journal> ;
+                    <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression> ;
                     <http://purl.org/dc/terms/title> "British Medical Journal" .
             }
             GRAPH <https://w3id.org/oc/meta/id/> {
@@ -960,7 +962,7 @@ class test_ProcessTest(unittest.TestCase):
         # Both articles should reference the same volume and issue
         first_volume = bindings[0]['volume']['value']
         first_issue = bindings[0]['issue']['value']
-        print(json.dumps(bindings, indent=4))
+
         for binding in bindings[1:]:
             self.assertEqual(binding['volume']['value'], first_volume, 
                 "Articles reference different volumes")
@@ -982,17 +984,20 @@ class test_ProcessTest(unittest.TestCase):
                 <https://w3id.org/oc/meta/br/0601> 
                     <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0601> ;
                     <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Journal> ;
+                    <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression> ;
                     <http://purl.org/dc/terms/title> "Test Journal" .
                 
                 # Volume 1
                 <https://w3id.org/oc/meta/br/0602>
                     <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/JournalVolume> ;
+                    <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression> ;
                     <http://purl.org/vocab/frbr/core#partOf> <https://w3id.org/oc/meta/br/0601> ;
                     <http://purl.org/spar/fabio/hasSequenceIdentifier> "1" .
                 
                 # Issue 1
                 <https://w3id.org/oc/meta/br/0603>
                     <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/JournalIssue> ;
+                    <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression> ;
                     <http://purl.org/vocab/frbr/core#partOf> <https://w3id.org/oc/meta/br/0602> ;
                     <http://purl.org/spar/fabio/hasSequenceIdentifier> "1" .
             }

@@ -332,18 +332,12 @@ class Curator:
                 if volume in self.vvi[metaval]['volume']:
                     vol_meta = self.vvi[metaval]['volume'][volume]['id']
                 else:
-                    # Check if volume exists in triplestore before creating new one
-                    ts_vvi = self.finder.retrieve_venue_from_meta(metaval)
-                    if volume in ts_vvi['volume']:
-                        vol_meta = ts_vvi['volume'][volume]['id']
-                        # Update local structure with triplestore data
-                        self.vvi[metaval]['volume'][volume] = ts_vvi['volume'][volume]
-                    else:
-                        vol_meta = self.new_entity(self.brdict, '')
-                        self.vvi[metaval]['volume'][volume] = dict()
-                        self.vvi[metaval]['volume'][volume]['id'] = vol_meta
-                        self.vvi[metaval]['volume'][volume]['issue'] = dict()
+                    vol_meta = self.new_entity(self.brdict, '')
+                    self.vvi[metaval]['volume'][volume] = dict()
+                    self.vvi[metaval]['volume'][volume]['id'] = vol_meta
+                    self.vvi[metaval]['volume'][volume]['issue'] = dict()
             elif volume and br_type == 'journal volume':
+                # The data must be invalidated, because the resource is a journal volume but an issue has also been specified
                 if issue:
                     row['volume'] = ''
                     row['issue'] = ''
