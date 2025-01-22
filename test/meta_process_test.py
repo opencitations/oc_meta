@@ -853,6 +853,271 @@ class test_ProcessTest(unittest.TestCase):
         self.assertEqual(len(result['results']['bindings']), 1,
             f"Expected 1 result, got {len(result['results']['bindings'])}")
 
+    def test_volume_issue_deduplication(self):
+        """Test to verify that volumes and issues are properly deduplicated"""
+        output_folder = os.path.join(BASE_DIR, 'output_vvi_test')
+        meta_config_path = os.path.join(BASE_DIR, 'meta_config_vvi.yaml')
+        
+        # Setup: create test data
+        os.makedirs(os.path.join(BASE_DIR, 'input_vvi'), exist_ok=True)
+        with open(os.path.join(BASE_DIR, 'input_vvi', 'test.csv'), 'w', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerow(["id", "title", "author", "pub_date", "venue", "volume", "issue", "page", "type", "publisher", "editor"])
+            # First article in volume 1, issue 1
+            writer.writerow([
+                "doi:10.1234/test.1",
+                "First Article",
+                "",
+                "2023",
+                "Test Journal [issn:1756-1833]",
+                "1",
+                "1",
+                "1-10",
+                "journal article",
+                "",
+                ""
+            ])
+            # Second article in same volume and issue
+            writer.writerow([
+                "doi:10.1234/test.2",
+                "Second Article",
+                "",
+                "2023",
+                "Test Journal [issn:1756-1833]",
+                "1", 
+                "1",
+                "11-20",
+                "journal article",
+                "",
+                ""
+            ])
+        
+        # Create test settings
+        settings = {
+            'triplestore_url': SERVER,
+            'input_csv_dir': os.path.join(BASE_DIR, 'input_vvi'),
+            'base_output_dir': output_folder,
+            'output_rdf_dir': output_folder,
+            'resp_agent': 'test',
+            'base_iri': 'https://w3id.org/oc/meta/',
+            'context_path': None,
+            'dir_split_number': 10000,
+            'items_per_file': 1000,
+            'default_dir': '_',
+            'rdf_output_in_chunks': False,
+            'zip_output_rdf': True,
+            'source': None,
+            'supplier_prefix': '060',
+            'workers_number': 1,
+            'use_doi_api_service': False,
+            'blazegraph_full_text_search': False,
+            'virtuoso_full_text_search': True,
+            'fuseki_full_text_search': False,
+            'graphdb_connector_name': None,
+            'cache_endpoint': None,
+            'cache_update_endpoint': None,
+            'silencer': []
+        }
+        
+        with open(meta_config_path, 'w') as f:
+            yaml.dump(settings, f)
+                
+        # Run the process
+        run_meta_process(settings=settings, meta_config_path=meta_config_path)
+        
+        # Query to check volume and issue structure
+        query = """
+        PREFIX fabio: <http://purl.org/spar/fabio/>
+        PREFIX frbr: <http://purl.org/vocab/frbr/core#>
+        PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
+        
+        SELECT ?article ?volume ?issue ?seq_id
+        WHERE {
+            ?article a fabio:JournalArticle ;
+                    frbr:partOf ?issue .
+            ?issue a fabio:JournalIssue ;
+                   fabio:hasSequenceIdentifier ?seq_id ;
+                   frbr:partOf ?volume .
+            ?volume a fabio:JournalVolume .
+        }
+        ORDER BY ?article
+        """
+        
+        result = execute_sparql_query(SERVER, query)
+        
+        # Cleanup
+        shutil.rmtree(output_folder, ignore_errors=True)
+        shutil.rmtree(os.path.join(BASE_DIR, 'input_vvi'), ignore_errors=True)
+        if os.path.exists(meta_config_path):
+            os.remove(meta_config_path)
+        
+        # Verify results
+        bindings = result['results']['bindings']
+        
+        # Should have 2 articles
+        self.assertEqual(len(bindings), 2, "Expected 2 articles")
+        
+        # Both articles should reference the same volume and issue
+        first_volume = bindings[0]['volume']['value']
+        first_issue = bindings[0]['issue']['value']
+        print(json.dumps(bindings, indent=4))
+        for binding in bindings[1:]:
+            self.assertEqual(binding['volume']['value'], first_volume, 
+                "Articles reference different volumes")
+            self.assertEqual(binding['issue']['value'], first_issue,
+                "Articles reference different issues")
+
+    def test_volume_issue_deduplication_with_triplestore(self):
+        """Test that volumes and issues are properly deduplicated when they already exist in the triplestore"""
+        output_folder = os.path.join(BASE_DIR, 'output_vvi_triplestore_test')
+        meta_config_path = os.path.join(BASE_DIR, 'meta_config_vvi_triplestore.yaml')
+        
+        # Setup: Insert pre-existing venue with volume and issue
+        sparql = SPARQLWrapper(SERVER)
+        sparql.setMethod(POST)
+        sparql.setQuery("""
+        INSERT DATA {
+            GRAPH <https://w3id.org/oc/meta/br/> {
+                # Venue
+                <https://w3id.org/oc/meta/br/0601> 
+                    <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0601> ;
+                    <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Journal> ;
+                    <http://purl.org/dc/terms/title> "Test Journal" .
+                
+                # Volume 1
+                <https://w3id.org/oc/meta/br/0602>
+                    <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/JournalVolume> ;
+                    <http://purl.org/vocab/frbr/core#partOf> <https://w3id.org/oc/meta/br/0601> ;
+                    <http://purl.org/spar/fabio/hasSequenceIdentifier> "1" .
+                
+                # Issue 1
+                <https://w3id.org/oc/meta/br/0603>
+                    <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/JournalIssue> ;
+                    <http://purl.org/vocab/frbr/core#partOf> <https://w3id.org/oc/meta/br/0602> ;
+                    <http://purl.org/spar/fabio/hasSequenceIdentifier> "1" .
+            }
+            GRAPH <https://w3id.org/oc/meta/id/> {
+                <https://w3id.org/oc/meta/id/0601>
+                    <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "1756-1833" ;
+                    <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/issn> .
+            }
+        }
+        """)
+        sparql.query()
+        
+        # Update Redis counters for pre-existing entities
+        redis_handler = RedisCounterHandler(db=5)
+        redis_handler.set_counter(3, "br", supplier_prefix="060")  # 3 entities: venue, volume, issue
+        redis_handler.set_counter(1, "id", supplier_prefix="060")  # 1 identifier for venue
+        
+        # Create test data - article that should use existing volume and issue
+        os.makedirs(os.path.join(BASE_DIR, 'input_vvi_triplestore'), exist_ok=True)
+        with open(os.path.join(BASE_DIR, 'input_vvi_triplestore', 'test.csv'), 'w', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerow(["id", "title", "author", "pub_date", "venue", "volume", "issue", "page", "type", "publisher", "editor"])
+            writer.writerow([
+                "doi:10.1234/test.1",
+                "Test Article",
+                "",
+                "2023",
+                "Test Journal [issn:1756-1833]",
+                "1",  # Should match existing volume
+                "1",  # Should match existing issue
+                "1-10",
+                "journal article",
+                "",
+                ""
+            ])
+        
+        # Create test settings
+        settings = {
+            'triplestore_url': SERVER,
+            'input_csv_dir': os.path.join(BASE_DIR, 'input_vvi_triplestore'),
+            'base_output_dir': output_folder,
+            'output_rdf_dir': output_folder,
+            'resp_agent': 'test',
+            'base_iri': 'https://w3id.org/oc/meta/',
+            'context_path': None,
+            'dir_split_number': 10000,
+            'items_per_file': 1000,
+            'default_dir': '_',
+            'rdf_output_in_chunks': False,
+            'zip_output_rdf': True,
+            'source': None,
+            'supplier_prefix': '060',
+            'workers_number': 1,
+            'use_doi_api_service': False,
+            'blazegraph_full_text_search': False,
+            'virtuoso_full_text_search': True,
+            'fuseki_full_text_search': False,
+            'graphdb_connector_name': None,
+            'cache_endpoint': None,
+            'cache_update_endpoint': None,
+            'silencer': []
+        }
+        
+        with open(meta_config_path, 'w') as f:
+            yaml.dump(settings, f)
+        
+        # Run the process
+        run_meta_process(settings=settings, meta_config_path=meta_config_path)
+        
+        # Query to get all entities and their relationships
+        query = """
+        PREFIX fabio: <http://purl.org/spar/fabio/>
+        PREFIX frbr: <http://purl.org/vocab/frbr/core#>
+        PREFIX datacite: <http://purl.org/spar/datacite/>
+        
+        SELECT DISTINCT ?article ?venue ?volume ?issue ?issn
+        WHERE {
+            ?article a fabio:JournalArticle ;
+                    frbr:partOf ?issue .
+            ?issue a fabio:JournalIssue ;
+                   frbr:partOf ?volume .
+            ?volume a fabio:JournalVolume ;
+                    frbr:partOf ?venue .
+            ?venue datacite:hasIdentifier ?id .
+            ?id datacite:usesIdentifierScheme datacite:issn ;
+                <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> ?issn .
+        }
+        """
+        
+        result = execute_sparql_query(SERVER, query)
+        
+        # Cleanup
+        shutil.rmtree(output_folder, ignore_errors=True)
+        shutil.rmtree(os.path.join(BASE_DIR, 'input_vvi_triplestore'), ignore_errors=True)
+        if os.path.exists(meta_config_path):
+            os.remove(meta_config_path)
+        
+        # Verify results
+        bindings = result['results']['bindings']
+        
+        self.assertEqual(len(bindings), 1, "Expected exactly one article")
+        
+        # Get the URIs from the result
+        article_uri = bindings[0]['article']['value']
+        venue_uri = bindings[0]['venue']['value']
+        volume_uri = bindings[0]['volume']['value']
+        issue_uri = bindings[0]['issue']['value']
+        issn = bindings[0]['issn']['value']
+                
+        # Check if venue was deduplicated (should use existing venue)
+        self.assertEqual(venue_uri, "https://w3id.org/oc/meta/br/0601", 
+            "Venue was not deduplicated correctly")
+        
+        # Check if volume was deduplicated
+        self.assertEqual(volume_uri, "https://w3id.org/oc/meta/br/0602", 
+            "Volume was not deduplicated correctly")
+        
+        # Check if issue was deduplicated
+        self.assertEqual(issue_uri, "https://w3id.org/oc/meta/br/0603", 
+            "Issue was not deduplicated correctly")
+        
+        # Check ISSN
+        self.assertEqual(issn, "1756-1833", 
+            "ISSN does not match")
+
 def normalize_graph(graph):
     """
     Normalizza i letterali nel grafo rimuovendo i tipi di dato espliciti.

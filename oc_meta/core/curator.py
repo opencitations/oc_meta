@@ -290,6 +290,7 @@ class Curator:
         issue = row['issue']
         br_id = row['id']
         venue = row['venue']
+                
         # Venue
         if venue:
             # The data must be invalidated, because the resource is journal but a volume or an issue have also been specified
@@ -306,6 +307,7 @@ class Curator:
                 else:
                     idslist = re.split(one_or_more_spaces, re.sub(colon_and_spaces, ':', venue_id))
                 idslist, metaval = self.clean_id_list(idslist, br=True, valid_dois_cache=self.valid_dois_cache)
+                
                 metaval = self.id_worker('venue', name, idslist, metaval, ra_ent=False, br_ent=True, vvi_ent=True, publ_entity=False)
                 if metaval not in self.vvi:
                     ts_vvi = None
@@ -324,34 +326,40 @@ class Curator:
                 self.vvi[metaval]['volume'] = dict()
                 self.vvi[metaval]['issue'] = dict()
             row['venue'] = metaval
+                        
             # Volume
             if volume and (br_type == 'journal issue' or br_type == 'journal article'):
                 if volume in self.vvi[metaval]['volume']:
                     vol_meta = self.vvi[metaval]['volume'][volume]['id']
                 else:
-                    vol_meta = self.new_entity(self.brdict, '')
-                    self.vvi[metaval]['volume'][volume] = dict()
-                    self.vvi[metaval]['volume'][volume]['id'] = vol_meta
-                    self.vvi[metaval]['volume'][volume]['issue'] = dict()
+                    # Check if volume exists in triplestore before creating new one
+                    ts_vvi = self.finder.retrieve_venue_from_meta(metaval)
+                    if volume in ts_vvi['volume']:
+                        vol_meta = ts_vvi['volume'][volume]['id']
+                        # Update local structure with triplestore data
+                        self.vvi[metaval]['volume'][volume] = ts_vvi['volume'][volume]
+                    else:
+                        vol_meta = self.new_entity(self.brdict, '')
+                        self.vvi[metaval]['volume'][volume] = dict()
+                        self.vvi[metaval]['volume'][volume]['id'] = vol_meta
+                        self.vvi[metaval]['volume'][volume]['issue'] = dict()
             elif volume and br_type == 'journal volume':
-                # The data must be invalidated, because the resource is a journal volume but an issue has also been specified
                 if issue:
                     row['volume'] = ''
                     row['issue'] = ''
                 else:
                     vol_meta = br_id
                     self.volume_issue(vol_meta, self.vvi[metaval]['volume'], volume, row)
+            
             # Issue
             if issue and br_type == 'journal article':
                 row['issue'] = issue
                 if vol_meta:
-                    # issue inside volume
                     if issue not in self.vvi[metaval]['volume'][volume]['issue']:
                         issue_meta = self.new_entity(self.brdict, '')
                         self.vvi[metaval]['volume'][volume]['issue'][issue] = dict()
                         self.vvi[metaval]['volume'][volume]['issue'][issue]['id'] = issue_meta
                 else:
-                    # issue inside venue (without volume)
                     if issue not in self.vvi[metaval]['issue']:
                         issue_meta = self.new_entity(self.brdict, '')
                         self.vvi[metaval]['issue'][issue] = dict()
@@ -362,6 +370,7 @@ class Curator:
                     self.volume_issue(issue_meta, self.vvi[metaval]['volume'][volume]['issue'], issue, row)
                 else:
                     self.volume_issue(issue_meta, self.vvi[metaval]['issue'], issue, row)
+            
         else:
             row['venue'] = ''
             row['volume'] = ''

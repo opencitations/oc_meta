@@ -263,11 +263,224 @@ class test_Curator(unittest.TestCase):
         curator.finder =self.finder
         curator.clean_vvi(row)
         expected_output = {
-            '4416': {
-                'issue': {}, 
-                'volume': {
-                    '106': {'id': '4726', 'issue': {'6': {'id': '4732'}}}, 
-                    '104': {'id': '4712', 'issue': {'1': {'id': '4713'}}}}}}
+            "4416": {
+                "issue": {},
+                "volume": {
+                    "106": {
+                        "id": "4726",
+                        "issue": {
+                            "6": {
+                                "id": "4732"
+                            },
+                            "5": {
+                                "id": "4731"
+                            },
+                            "2": {
+                                "id": "4728"
+                            },
+                            "4": {
+                                "id": "4730"
+                            },
+                            "3": {
+                                "id": "4729"
+                            },
+                            "1": {
+                                "id": "4727"
+                            }
+                        }
+                    },
+                    "104": {
+                        "id": "4712",
+                        "issue": {
+                            "1": {
+                                "id": "4713"
+                            },
+                            "6": {
+                                "id": "4718"
+                            },
+                            "3": {
+                                "id": "4715"
+                            },
+                            "5": {
+                                "id": "4717"
+                            },
+                            "4": {
+                                "id": "4716"
+                            },
+                            "2": {
+                                "id": "4714"
+                            }
+                        }
+                    },
+                    "101": {
+                        "id": "4691",
+                        "issue": {
+                            "2": {
+                                "id": "4693"
+                            },
+                            "5": {
+                                "id": "4696"
+                            },
+                            "3": {
+                                "id": "4694"
+                            },
+                            "6": {
+                                "id": "4697"
+                            },
+                            "1": {
+                                "id": "4692"
+                            },
+                            "4": {
+                                "id": "4695"
+                            }
+                        }
+                    },
+                    "103": {
+                        "id": "4705",
+                        "issue": {
+                            "2": {
+                                "id": "4707"
+                            },
+                            "5": {
+                                "id": "4710"
+                            },
+                            "4": {
+                                "id": "4709"
+                            },
+                            "1": {
+                                "id": "4706"
+                            },
+                            "3": {
+                                "id": "4708"
+                            },
+                            "6": {
+                                "id": "4711"
+                            }
+                        }
+                    },
+                    "107": {
+                        "id": "4733",
+                        "issue": {
+                            "4": {
+                                "id": "4737"
+                            },
+                            "3": {
+                                "id": "4736"
+                            },
+                            "2": {
+                                "id": "4735"
+                            },
+                            "1": {
+                                "id": "4734"
+                            },
+                            "5": {
+                                "id": "4738"
+                            },
+                            "6": {
+                                "id": "4739"
+                            }
+                        }
+                    },
+                    "148": {
+                        "id": "4417",
+                        "issue": {
+                            "12": {
+                                "id": "4418"
+                            },
+                            "11": {
+                                "id": "4419"
+                            }
+                        }
+                    },
+                    "102": {
+                        "id": "4698",
+                        "issue": {
+                            "3": {
+                                "id": "4701"
+                            },
+                            "6": {
+                                "id": "4704"
+                            },
+                            "2": {
+                                "id": "4700"
+                            },
+                            "5": {
+                                "id": "4703"
+                            },
+                            "4": {
+                                "id": "4702"
+                            },
+                            "1": {
+                                "id": "4699"
+                            }
+                        }
+                    },
+                    "105": {
+                        "id": "4719",
+                        "issue": {
+                            "6": {
+                                "id": "4725"
+                            },
+                            "3": {
+                                "id": "4722"
+                            },
+                            "2": {
+                                "id": "4721"
+                            },
+                            "1": {
+                                "id": "4720"
+                            },
+                            "4": {
+                                "id": "4723"
+                            },
+                            "5": {
+                                "id": "4724"
+                            }
+                        }
+                    },
+                    "100": {
+                        "id": "4684",
+                        "issue": {
+                            "3": {
+                                "id": "4687"
+                            },
+                            "6": {
+                                "id": "4690"
+                            },
+                            "2": {
+                                "id": "4686"
+                            },
+                            "4": {
+                                "id": "4688"
+                            },
+                            "5": {
+                                "id": "4689"
+                            },
+                            "1": {
+                                "id": "4685"
+                            }
+                        }
+                    },
+                    "108": {
+                        "id": "4740",
+                        "issue": {
+                            "3": {
+                                "id": "4743"
+                            },
+                            "1": {
+                                "id": "4741"
+                            },
+                            "2": {
+                                "id": "4742"
+                            },
+                            "4": {
+                                "id": "4744"
+                            }
+                        }
+                    }
+                }
+            }
+        }
         self.assertEqual(curator.vvi, expected_output)
 
     def test_clean_vvi_new_venue(self):
@@ -311,10 +524,20 @@ class test_Curator(unittest.TestCase):
         curator.clean_id(row)
         curator.clean_vvi(row)
         expected_output = {
-            '4480': {
-                'issue': {}, 
-                'volume': {
-                    '147': {'id': '4481', 'issue': {'11': {'id': '4482'}}},
+            "4480": {
+                "issue": {},
+                "volume": {
+                    "147": {
+                        "id": "4481",
+                        "issue": {
+                            "11": {
+                                "id": "4482"
+                            },
+                            "12": {
+                                "id": "4487"
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -486,12 +709,11 @@ class test_Curator(unittest.TestCase):
         curator = prepareCurator(data=[row])
         curator.curator()
         expected_output = (
-            {'ra/3309', 'br/4487', 'br/2715', 'id/2581', 'ar/7240', 'id/4270', 'id/4274', 'br/4481', 'br/4480', 're/2350'},
+            {'id/4270', 'br/4482', 'ra/3309', 'ar/7240', 'br/4481', 'br/2715', 'br/4480', 'id/4274', 'id/2581', 'br/4487', 're/2350'},
             [{'id': 'doi:10.1001/2013.jamasurg.202 omid:br/2715', 'title': 'Image Of The Year For 2012', 'author': '', 'pub_date': '2012-12-01', 'venue': 'Archives Of Surgery [issn:0004-0010 omid:br/4480]', 'volume': '147', 'issue': '12', 'page': '1140-1140', 'type': 'journal article', 'publisher': 'American Medical Association (ama) [crossref:10 omid:ra/3309]', 'editor': ''}]
         )
         self.assertEqual((curator.preexisting_entities, curator.data), expected_output)
         
-
 
 class test_RespAgentsCurator(unittest.TestCase):
     def test_curator_publishers(self):
