@@ -1,3 +1,10 @@
+## [2.0.3](https://github.com/opencitations/oc_meta/compare/v2.0.2...v2.0.3) (2025-01-22)
+
+
+### Bug Fixes
+
+* improve container discovery in graph traversal ([45f285c](https://github.com/opencitations/oc_meta/commit/45f285cb8f7e7d1f4ade9396bc054acde795388f))
+
 ## [2.0.2](https://github.com/opencitations/oc_meta/compare/v2.0.1...v2.0.2) (2025-01-22)
 
 
