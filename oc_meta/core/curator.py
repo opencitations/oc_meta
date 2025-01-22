@@ -920,8 +920,16 @@ class Curator:
             self.VolIss[VolIss_venue_meta] = self.vvi[vvi_venue_meta]
     
     def __update_id_count(self, id_dict, identifier):
-        count = self._add_number('id')
-        id_dict[identifier] = self.prefix + str(count)
+        
+        # Prima di creare un nuovo ID, verifichiamo se esiste già nel triplestore
+        schema, value = identifier.split(':', maxsplit=1)
+        existing_metaid = self.finder.retrieve_metaid_from_id(schema, value)
+        
+        if existing_metaid:
+            id_dict[identifier] = existing_metaid
+        else:
+            count = self._add_number('id')
+            id_dict[identifier] = self.prefix + str(count)
 
     @staticmethod
     def merge(dict_to_match:Dict[str, Dict[str, list]], metaval:str, old_meta:str, temporary_name:str) -> None:

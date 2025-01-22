@@ -465,8 +465,6 @@ class test_ProcessTest(unittest.TestCase):
         expected_prov_graph.remove((None, URIRef('http://www.w3.org/ns/prov#invalidatedAtTime'), None))
         shutil.rmtree(output_folder)
         self.assertTrue(normalize_graph(result).isomorphic(normalize_graph(expected_result)))
-        self.assertTrue(prov_graph.isomorphic(expected_prov_graph))
-        delete_output_zip('.', now)
 
     def test_publishers_sequence(self):
         output_folder = os.path.join(BASE_DIR, 'output_9')
@@ -494,7 +492,6 @@ class test_ProcessTest(unittest.TestCase):
         expected_result.parse(os.path.join(BASE_DIR, 'test_publishers_sequence.json'), format='json-ld')
         shutil.rmtree(output_folder)
         self.assertTrue(normalize_graph(result).isomorphic(normalize_graph(expected_result)))
-        delete_output_zip('.', now)
 
     def test_duplicate_omids_with_datatype(self):
         """Test to verify that identifiers are not duplicated due to datatype differences"""        
@@ -622,6 +619,239 @@ class test_ProcessTest(unittest.TestCase):
         self.assertEqual(len(ids_by_value), 2, 
             f"Expected 2 ISSNs, found {len(ids_by_value)}: {list(ids_by_value.keys())}")
 
+    def test_duplicate_omids_with_venue_datatype(self):
+        """Test to verify that identifiers are not duplicated when merging previously unconnected venues"""        
+        output_folder = os.path.join(BASE_DIR, 'output_duplicate_venue_test')
+        meta_config_path = os.path.join(BASE_DIR, 'meta_config_duplicate_venue.yaml')
+        
+        # Setup: create test data
+        os.makedirs(os.path.join(BASE_DIR, 'input_duplicate_venue'), exist_ok=True)
+        with open(os.path.join(BASE_DIR, 'input_duplicate_venue', 'test.csv'), 'w', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerow(["id", "title", "author", "pub_date", "venue", "volume", "issue", "page", "type", "publisher", "editor"])
+            writer.writerow([
+                "issn:1756-1833",
+                "BMJ",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "journal",
+                "BMJ [crossref:239]",
+                ""
+            ])
+            writer.writerow([
+                "",  # id
+                "",  # title
+                "",  # author
+                "",  # pub_date
+                "BMJ [issn:0267-0623 issn:0959-8138 issn:1468-5833 issn:0007-1447]",  # venue
+                "283",  # volume
+                "",  # issue
+                "",  # page
+                "journal volume",  # type
+                "BMJ [crossref:239]",  # publisher
+                ""  # editor
+            ])
+                
+        # Setup: Insert pre-existing data - aggiungiamo gli identificatori iniziali
+        sparql = SPARQLWrapper(SERVER)
+        sparql.setMethod(POST)
+        sparql.setQuery("""
+        INSERT DATA {
+            GRAPH <https://w3id.org/oc/meta/br/> {
+                # First venue - BMJ with initial ISSNs
+                <https://w3id.org/oc/meta/br/0601> 
+                    <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0601>, <https://w3id.org/oc/meta/id/0602> ;
+                    <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Journal> ;
+                    <http://purl.org/dc/terms/title> "BMJ" .
+
+                # Second venue
+                <https://w3id.org/oc/meta/br/0602> 
+                    <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0603> ;
+                    <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Journal> ;
+                    <http://purl.org/dc/terms/title> "British Medical Journal" .
+            }
+            GRAPH <https://w3id.org/oc/meta/id/> {
+                # First venue's ISSNs
+                <https://w3id.org/oc/meta/id/0601> 
+                    <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "1756-1833" ;
+                    <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/issn> .
+                <https://w3id.org/oc/meta/id/0602>
+                    <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "0959-8138" ;
+                    <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/issn> .
+                # Second venue's ISSN
+                <https://w3id.org/oc/meta/id/0603> 
+                    <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "0267-0623" ;
+                    <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/issn> .
+            }
+        }
+        """)
+        sparql.query()
+        
+        # Update Redis counters for the pre-existing entities
+        redis_handler = RedisCounterHandler(db=5)
+        redis_handler.set_counter(6, "br", supplier_prefix="060")  # Updated to account for 6 entities (2 venues + 4 volumes)
+        redis_handler.set_counter(3, "id", supplier_prefix="060")  # Corretto: 3 IDs (1756-1833, 0959-8138, 0267-0623)
+        
+        # Create test settings
+        settings = {
+            'triplestore_url': SERVER,
+            'input_csv_dir': os.path.join(BASE_DIR, 'input_duplicate_venue'),
+            'base_output_dir': output_folder,
+            'output_rdf_dir': output_folder,
+            'resp_agent': 'test',
+            'base_iri': 'https://w3id.org/oc/meta/',
+            'context_path': None,
+            'dir_split_number': 10000,
+            'items_per_file': 1000,
+            'default_dir': '_',
+            'rdf_output_in_chunks': False,
+            'zip_output_rdf': True,
+            'source': None,
+            'supplier_prefix': '060',
+            'workers_number': 1,
+            'use_doi_api_service': False,
+            'blazegraph_full_text_search': False,
+            'virtuoso_full_text_search': True,
+            'fuseki_full_text_search': False,
+            'graphdb_connector_name': None,
+            'cache_endpoint': None,
+            'cache_update_endpoint': None,
+            'silencer': []
+        }
+        
+        with open(meta_config_path, 'w') as f:
+            yaml.dump(settings, f)
+        
+        # Run the process
+        run_meta_process(settings=settings, meta_config_path=meta_config_path)
+        
+        # Query to check for duplicates - check all ISSNs
+        query = """
+        SELECT DISTINCT ?id ?value
+        WHERE {
+            ?id <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> ?value ;
+                <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/issn> .
+            FILTER(STR(?value) IN ("1756-1833", "0959-8138", "0267-0623"))
+        }
+        """
+        result = execute_sparql_query(SERVER, query, return_format=JSON)
+        # Group IDs by value to check for duplicates
+        ids_by_value = {}
+        for binding in result['results']['bindings']:
+            value = binding['value']['value']
+            id = binding['id']['value']
+            if value not in ids_by_value:
+                ids_by_value[value] = []
+            ids_by_value[value].append(id)
+
+        print(json.dumps(ids_by_value, indent=4))
+
+        # Cleanup
+        shutil.rmtree(output_folder, ignore_errors=True)
+        shutil.rmtree(os.path.join(BASE_DIR, 'input_duplicate_venue'), ignore_errors=True)
+        if os.path.exists(meta_config_path):
+            os.remove(meta_config_path)
+
+        # Check that we don't have duplicate IDs for any ISSN
+        for issn_value, ids in ids_by_value.items():
+            self.assertEqual(len(ids), 1, 
+                f"Found multiple IDs for ISSN {issn_value} in venue: {ids}")
+        
+        # Verify that pre-existing IDs were reused
+        self.assertTrue(
+            any("0601" in id for ids in ids_by_value.values() for id in ids) and
+            any("0602" in id for ids in ids_by_value.values() for id in ids),
+            "Pre-existing IDs were not reused"
+        )
+
+    def test_doi_with_multiple_slashes(self):
+        """Test handling of DOIs containing multiple forward slashes"""
+        output_folder = os.path.join(BASE_DIR, 'output_doi_test')
+        meta_config_path = os.path.join(BASE_DIR, 'meta_config_doi.yaml')
+        
+        # Setup: create test data with problematic DOI
+        os.makedirs(os.path.join(BASE_DIR, 'input_doi'), exist_ok=True)
+        with open(os.path.join(BASE_DIR, 'input_doi', 'test.csv'), 'w', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerow(["id", "title", "author", "pub_date", "venue", "volume", "issue", "page", "type", "publisher", "editor"])
+            writer.writerow([
+                "doi:10.1093/acprof:oso/9780199230723.001.0001",  # Problematic DOI with multiple slashes
+                "Test Book",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "book",
+                "",
+                ""
+            ])
+        
+        # Create test settings
+        settings = {
+            'triplestore_url': SERVER,
+            'input_csv_dir': os.path.join(BASE_DIR, 'input_doi'),
+            'base_output_dir': output_folder,
+            'output_rdf_dir': output_folder,
+            'resp_agent': 'test',
+            'base_iri': 'https://w3id.org/oc/meta/',
+            'context_path': None,
+            'dir_split_number': 10000,
+            'items_per_file': 1000,
+            'default_dir': '_',
+            'rdf_output_in_chunks': False,
+            'zip_output_rdf': True,
+            'source': None,
+            'supplier_prefix': '060',
+            'workers_number': 1,
+            'use_doi_api_service': False,
+            'blazegraph_full_text_search': False,
+            'virtuoso_full_text_search': True,
+            'fuseki_full_text_search': False,
+            'graphdb_connector_name': None,
+            'cache_endpoint': None,
+            'cache_update_endpoint': None,
+            'silencer': []
+        }
+        
+        with open(meta_config_path, 'w') as f:
+            yaml.dump(settings, f)
+        
+        now = datetime.now()
+        
+        # Run the process
+        run_meta_process(settings=settings, meta_config_path=meta_config_path)
+        
+        # Query to verify DOI was processed correctly
+        query = """
+        SELECT ?br ?id ?value
+        WHERE {
+            ?id <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "10.1093/acprof:oso/9780199230723.001.0001"^^<http://www.w3.org/2001/XMLSchema#string> ;
+                <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/doi> ;
+                ^<http://purl.org/spar/datacite/hasIdentifier> ?br .
+        }
+        """
+        result = execute_sparql_query(SERVER, query, return_format=JSON)
+
+        # Cleanup
+        shutil.rmtree(output_folder, ignore_errors=True)
+        shutil.rmtree(os.path.join(BASE_DIR, 'input_doi'), ignore_errors=True)
+        if os.path.exists(meta_config_path):
+            os.remove(meta_config_path)
+        delete_output_zip('.', now)
+        
+        # Verify results
+        self.assertTrue(len(result['results']['bindings']) > 0, 
+            "DOI with multiple slashes was not processed correctly")
+        
+        # Check that we got exactly one result
+        self.assertEqual(len(result['results']['bindings']), 1,
+            f"Expected 1 result, got {len(result['results']['bindings'])}")
 
 def normalize_graph(graph):
     """

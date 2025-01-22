@@ -18,7 +18,8 @@ name: Run tests
 
 on:
   push:
-    branches: [master]
+    branches:
+      - "**" # Tutti i branch, inclusi quelli con /
   pull_request:
     branches: [master]
 
@@ -50,9 +51,14 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Setup Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
       - name: Install dependencies
         run: |
-          pip3 install poetry
           sudo apt install -y python-is-python3 libncurses5
           poetry install
 
