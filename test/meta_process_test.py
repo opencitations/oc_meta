@@ -974,7 +974,7 @@ class test_ProcessTest(unittest.TestCase):
         output_folder = os.path.join(BASE_DIR, 'output_vvi_triplestore_test')
         meta_config_path = os.path.join(BASE_DIR, 'meta_config_vvi_triplestore.yaml')
         
-        # Setup: Insert pre-existing venue with volume and issue
+        # Setup: Insert pre-existing venue with duplicate volumes and issues (with/without datatype)
         sparql = SPARQLWrapper(SERVER)
         sparql.setMethod(POST)
         sparql.setQuery("""
@@ -987,19 +987,33 @@ class test_ProcessTest(unittest.TestCase):
                     <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression> ;
                     <http://purl.org/dc/terms/title> "Test Journal" .
                 
-                # Volume 1
+                # Volume 1 (without datatype)
                 <https://w3id.org/oc/meta/br/0602>
                     <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/JournalVolume> ;
                     <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression> ;
                     <http://purl.org/vocab/frbr/core#partOf> <https://w3id.org/oc/meta/br/0601> ;
                     <http://purl.org/spar/fabio/hasSequenceIdentifier> "1" .
+
+                # Volume 1 (with datatype)
+                <https://w3id.org/oc/meta/br/0604>
+                    <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/JournalVolume> ;
+                    <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression> ;
+                    <http://purl.org/vocab/frbr/core#partOf> <https://w3id.org/oc/meta/br/0601> ;
+                    <http://purl.org/spar/fabio/hasSequenceIdentifier> "1"^^<http://www.w3.org/2001/XMLSchema#string> .
                 
-                # Issue 1
+                # Issue 1 (without datatype)
                 <https://w3id.org/oc/meta/br/0603>
                     <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/JournalIssue> ;
                     <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression> ;
                     <http://purl.org/vocab/frbr/core#partOf> <https://w3id.org/oc/meta/br/0602> ;
                     <http://purl.org/spar/fabio/hasSequenceIdentifier> "1" .
+
+                # Issue 1 (with datatype)
+                <https://w3id.org/oc/meta/br/0605>
+                    <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/JournalIssue> ;
+                    <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression> ;
+                    <http://purl.org/vocab/frbr/core#partOf> <https://w3id.org/oc/meta/br/0604> ;
+                    <http://purl.org/spar/fabio/hasSequenceIdentifier> "1"^^<http://www.w3.org/2001/XMLSchema#string> .
             }
             GRAPH <https://w3id.org/oc/meta/id/> {
                 <https://w3id.org/oc/meta/id/0601>
@@ -1012,7 +1026,7 @@ class test_ProcessTest(unittest.TestCase):
         
         # Update Redis counters for pre-existing entities
         redis_handler = RedisCounterHandler(db=5)
-        redis_handler.set_counter(3, "br", supplier_prefix="060")  # 3 entities: venue, volume, issue
+        redis_handler.set_counter(5, "br", supplier_prefix="060")  # 5 entities: venue, 2 volumes, 2 issues
         redis_handler.set_counter(1, "id", supplier_prefix="060")  # 1 identifier for venue
         
         # Create test data - article that should use existing volume and issue
@@ -1067,6 +1081,19 @@ class test_ProcessTest(unittest.TestCase):
         # Run the process
         run_meta_process(settings=settings, meta_config_path=meta_config_path)
         
+        # Check if new volumes/issues were created
+        to_be_uploaded_dir = os.path.join(output_folder, 'rdf', 'to_be_uploaded')
+        new_entities_created = False
+        if os.path.exists(to_be_uploaded_dir):
+            for dirpath, _, filenames in os.walk(to_be_uploaded_dir):
+                for f in filenames:
+                    if f.endswith('.sparql'):
+                        with open(os.path.join(dirpath, f)) as file:
+                            content = file.read()
+                            if any('JournalVolume' in line or 'JournalIssue' in line for line in content.splitlines()):
+                                print(f"\nFound new volume/issue creation in {f}:")
+                                new_entities_created = True
+        
         # Query to get all entities and their relationships
         query = """
         PREFIX fabio: <http://purl.org/spar/fabio/>
@@ -1101,27 +1128,75 @@ class test_ProcessTest(unittest.TestCase):
         self.assertEqual(len(bindings), 1, "Expected exactly one article")
         
         # Get the URIs from the result
-        article_uri = bindings[0]['article']['value']
         venue_uri = bindings[0]['venue']['value']
         volume_uri = bindings[0]['volume']['value']
         issue_uri = bindings[0]['issue']['value']
         issn = bindings[0]['issn']['value']
-                
+        
         # Check if venue was deduplicated (should use existing venue)
         self.assertEqual(venue_uri, "https://w3id.org/oc/meta/br/0601", 
             "Venue was not deduplicated correctly")
         
-        # Check if volume was deduplicated
-        self.assertEqual(volume_uri, "https://w3id.org/oc/meta/br/0602", 
-            "Volume was not deduplicated correctly")
+        # Check if volume was deduplicated - either version is valid
+        self.assertIn(volume_uri, 
+            ["https://w3id.org/oc/meta/br/0602", "https://w3id.org/oc/meta/br/0604"],
+            "Volume was not deduplicated correctly - should use one of the existing volumes")
         
-        # Check if issue was deduplicated
-        self.assertEqual(issue_uri, "https://w3id.org/oc/meta/br/0603", 
-            "Issue was not deduplicated correctly")
+        # Check if issue was deduplicated - either version is valid
+        self.assertIn(issue_uri,
+            ["https://w3id.org/oc/meta/br/0603", "https://w3id.org/oc/meta/br/0605"],
+            "Issue was not deduplicated correctly - should use one of the existing issues")
         
         # Check ISSN
-        self.assertEqual(issn, "1756-1833", 
-            "ISSN does not match")
+        self.assertEqual(issn, "1756-1833", "ISSN does not match")
+        
+        # Verify no new volumes/issues were created
+        self.assertFalse(new_entities_created, 
+            "New volumes/issues were created when they should have been deduplicated")
+                    
+        # # Recreate input directory and file since sono stati cancellati dal cleanup
+        # os.makedirs(os.path.join(BASE_DIR, 'input_vvi_triplestore'), exist_ok=True)
+        # with open(os.path.join(BASE_DIR, 'input_vvi_triplestore', 'test.csv'), 'w', encoding='utf-8') as f:
+        #     writer = csv.writer(f)
+        #     writer.writerow(["id", "title", "author", "pub_date", "venue", "volume", "issue", "page", "type", "publisher", "editor"])
+        #     writer.writerow([
+        #         "doi:10.1234/test.1",
+        #         "Test Article",
+        #         "",
+        #         "2023",
+        #         "Test Journal [issn:1756-1833]",
+        #         "1",
+        #         "1",
+        #         "1-10",
+        #         "journal article",
+        #         "",
+        #         ""
+        #     ])
+            
+        # # Run the process again
+        # run_meta_process(settings=settings, meta_config_path=meta_config_path)
+        
+        # # Check if ANY files were created in to_be_uploaded
+        # to_be_uploaded_dir = os.path.join(output_folder, 'rdf', 'to_be_uploaded')
+        # files_created = False
+        # if os.path.exists(to_be_uploaded_dir):
+        #     for dirpath, _, filenames in os.walk(to_be_uploaded_dir):
+        #         for f in filenames:
+        #             if f.endswith('.sparql'):
+        #                 files_created = True
+        #                 print(f"\nFound unexpected file creation in second pass - {f}:")
+        #                 with open(os.path.join(dirpath, f)) as file:
+        #                     print(file.read())
+                            
+        # # Verify no files were created in second pass
+        # self.assertFalse(files_created, 
+        #     "Files were created in to_be_uploaded during second pass when all data should already exist")
+
+        # # Final cleanup
+        # shutil.rmtree(output_folder, ignore_errors=True)
+        # shutil.rmtree(os.path.join(BASE_DIR, 'input_vvi_triplestore'), ignore_errors=True)
+        # if os.path.exists(meta_config_path):
+        #     os.remove(meta_config_path)
 
 def normalize_graph(graph):
     """

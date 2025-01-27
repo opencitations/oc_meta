@@ -352,39 +352,53 @@ class ResourceFinder:
 
         # Query per trovare tutti i volumi e issue collegati alla venue
         query = f"""
-        SELECT DISTINCT ?entity ?type ?seq ?container
-        WHERE {{
+        CONSTRUCT {{
             ?entity a ?type ;
-                   <{GraphEntity.iri_has_sequence_identifier}> ?seq .
-            OPTIONAL {{ ?entity <{GraphEntity.iri_part_of}> ?container }}
-            ?entity <{GraphEntity.iri_part_of}>* <{self.base_iri}/br/{meta_id}> .
-            FILTER(?type IN (<{GraphEntity.iri_journal_volume}>, <{GraphEntity.iri_journal_issue}>))
+                   <{GraphEntity.iri_has_sequence_identifier}> ?seq ;
+                   <{GraphEntity.iri_part_of}> ?container .
+        }}
+        WHERE {{
+            ?entity <{GraphEntity.iri_part_of}>+ <{self.base_iri}/br/{meta_id}> .
+            VALUES ?type {{ <{GraphEntity.iri_journal_volume}> <{GraphEntity.iri_journal_issue}> }}
+            ?entity a ?type ;
+                   <{GraphEntity.iri_has_sequence_identifier}> ?seq ;
+                   <{GraphEntity.iri_part_of}> ?container .
         }}
         """
         
-        results = self.__query(query)
-        
-        # Prima processiamo tutti i volumi
+        # Esegui la query CONSTRUCT e aggiungi i risultati al grafo locale
+        construct_results = self.__query(query, return_format="xml")
+        self.local_g += construct_results
+
+        # Ora processa i risultati dal grafo locale come prima
         volumes = {}  # Dizionario temporaneo per mappare gli ID dei volumi ai loro sequence numbers
-        for result in results['results']['bindings']:
-            entity_type = result['type']['value']
-            if entity_type == str(GraphEntity.iri_journal_volume):
-                entity_id = result['entity']['value'].replace(f'{self.base_iri}/br/', '')
-                seq = result['seq']['value']
-                volumes[entity_id] = seq
-                content['volume'][seq] = {
-                    'id': entity_id,
-                    'issue': {}
-                }
-        
-        # Poi processiamo tutte le issue
-        for result in results['results']['bindings']:
-            entity_type = result['type']['value']
-            if entity_type == str(GraphEntity.iri_journal_issue):
-                entity_id = result['entity']['value'].replace(f'{self.base_iri}/br/', '')
-                seq = result['seq']['value']
-                container = result.get('container', {}).get('value', '')
-                
+        for triple in self.local_g.triples((None, RDF.type, None)):
+            entity = triple[0]
+            entity_type = triple[2]
+            if entity_type == GraphEntity.iri_journal_volume:
+                entity_id = str(entity).replace(f'{self.base_iri}/br/', '')
+                for seq_triple in self.local_g.triples((entity, GraphEntity.iri_has_sequence_identifier, None)):
+                    seq = str(seq_triple[2])
+                    volumes[entity_id] = seq
+                    content['volume'][seq] = {
+                        'id': entity_id,
+                        'issue': {}
+                    }
+
+        # Processa le issue
+        for triple in self.local_g.triples((None, RDF.type, GraphEntity.iri_journal_issue)):
+            entity = triple[0]
+            entity_id = str(entity).replace(f'{self.base_iri}/br/', '')
+            seq = None
+            container = None
+            
+            for seq_triple in self.local_g.triples((entity, GraphEntity.iri_has_sequence_identifier, None)):
+                seq = str(seq_triple[2])
+            
+            for container_triple in self.local_g.triples((entity, GraphEntity.iri_part_of, None)):
+                container = str(container_triple[2])
+
+            if seq:
                 if container:
                     container_id = container.replace(f'{self.base_iri}/br/', '')
                     # Se il container è un volume che conosciamo

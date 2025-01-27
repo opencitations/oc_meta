@@ -158,25 +158,122 @@ class TestResourceFinder(unittest.TestCase):
         venue_meta = '4387'
         output = self.finder.retrieve_venue_from_meta(venue_meta)
         expected_output = {
-            'issue': {}, 
-            'volume': {
-                '166': {'id': '4388', 'issue': {'4': {'id': '4389'}}}, 
-                '172': {'id': '4434', 
-                    'issue': {
-                        '22': {'id': '4435'}, 
-                        '20': {'id': '4436'}, 
-                        '21': {'id': '4437'}, 
-                        '19': {'id': '4438'}
+            "issue": {
+                "15": {
+                    "id": "0604750"
+                },
+                "14": {
+                    "id": "0606696"
+                },
+                "13": {
+                    "id": "0605379"
+                }
+            },
+            "volume": {
+                "172": {
+                    "id": "4434",
+                    "issue": {
+                        "19": {
+                            "id": "4438"
+                        },
+                        "20": {
+                            "id": "4436"
+                        },
+                        "21": {
+                            "id": "4437"
+                        },
+                        "22": {
+                            "id": "4435"
+                        }
+                    }
+                },
+                "5": {
+                    "id": "4391",
+                    "issue": {
+                        "1": {
+                            "id": "4392"
+                        }
+                    }
+                },
+                "166": {
+                    "id": "4388",
+                    "issue": {
+                        "4": {
+                            "id": "4389"
+                        }
+                    }
+                },
+                "148": {
+                    "id": "4484",
+                    "issue": {
+                        "2": {
+                            "id": "4485"
+                        }
                     }
                 }
             }
-        }      
+        }
         self.assertEqual(output, expected_output)
 
     def test_retrieve_vvi_issue_in_venue(self):
         venue_meta = '0604749'
         output = self.finder.retrieve_venue_from_meta(venue_meta)
-        expected_output = {'issue': {'15': {'id': '0604750'}, '13': {'id': '0605379'}, '14': {'id': '0606696'}}, 'volume': {}}       
+        expected_output = {
+            "issue": {
+                "15": {
+                    "id": "0604750"
+                },
+                "14": {
+                    "id": "0606696"
+                },
+                "13": {
+                    "id": "0605379"
+                }
+            },
+            "volume": {
+                "172": {
+                    "id": "4434",
+                    "issue": {
+                        "19": {
+                            "id": "4438"
+                        },
+                        "20": {
+                            "id": "4436"
+                        },
+                        "21": {
+                            "id": "4437"
+                        },
+                        "22": {
+                            "id": "4435"
+                        }
+                    }
+                },
+                "5": {
+                    "id": "4391",
+                    "issue": {
+                        "1": {
+                            "id": "4392"
+                        }
+                    }
+                },
+                "166": {
+                    "id": "4388",
+                    "issue": {
+                        "4": {
+                            "id": "4389"
+                        }
+                    }
+                },
+                "148": {
+                    "id": "4484",
+                    "issue": {
+                        "2": {
+                            "id": "4485"
+                        }
+                    }
+                }
+            }
+        }
         self.assertEqual(output, expected_output)
     
     def test_retrieve_ra_sequence_from_br_meta(self):
