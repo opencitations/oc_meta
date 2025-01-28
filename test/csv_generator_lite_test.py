@@ -1126,5 +1126,95 @@ class TestCSVGeneratorLite(unittest.TestCase):
         # Check author for article 2001 (which has related entities)
         self.assertEqual(article_2001['author'], f'Test Author [omid:ra/{supplier_prefix}2001]')
 
+    def test_max_rows_per_file_and_data_integrity(self):
+        """Test that output files respect max rows limit and no data is lost in multiprocessing"""
+        supplier_prefix = '060'
+        
+        # Create test data with more than 3000 entries
+        br_data = [{
+            "@graph": [
+                # Generate 3500 test entries
+                *[{
+                    "@id": f"https://w3id.org/oc/meta/br/{supplier_prefix}{i}",
+                    "@type": ["http://purl.org/spar/fabio/Expression", "http://purl.org/spar/fabio/JournalArticle"],
+                    "http://purl.org/dc/terms/title": [{"@value": f"Article {i}"}],
+                    "http://prismstandard.org/namespaces/basic/2.0/publicationDate": [{"@value": "2024-01-01"}]
+                } for i in range(1, 3501)]  # This will create 3500 entries
+            ]
+        }]
+        
+        # Split data into multiple files to test multiprocessing
+        entries_per_file = 1000
+        for i in range(0, 3500, entries_per_file):
+            file_data = [{
+                "@graph": br_data[0]["@graph"][i:i + entries_per_file]
+            }]
+            
+            # Create directory structure for the file
+            file_number = i + entries_per_file
+            dir_path = os.path.join(self.br_dir, supplier_prefix, '10000')
+            os.makedirs(dir_path, exist_ok=True)
+            
+            # Write the file
+            with ZipFile(os.path.join(dir_path, f'{file_number}.zip'), 'w') as zip_file:
+                zip_file.writestr(f'{file_number}.json', json.dumps(file_data))
+
+        # Run generator
+        generate_csv(
+            input_dir=self.rdf_dir,
+            output_dir=self.output_dir,
+            dir_split_number=10000,
+            items_per_file=1000,
+            zip_output_rdf=True
+        )
+
+        # Check output files
+        output_files = sorted(os.listdir(self.output_dir))
+        
+        # Verify number of output files
+        # We expect at least 2 files: 3500 entries should create 2 files (3000 + 500)
+        self.assertGreaterEqual(len(output_files), 2, 
+            "Should have at least 2 output files for 3500 entries")
+
+        # Collect all entries from all output files
+        all_entries = []
+        for output_file in output_files:
+            entries = get_csv_data(os.path.join(self.output_dir, output_file))
+            
+            # Verify each file has at most 3000 rows
+            self.assertLessEqual(
+                len(entries), 3000,
+                f"File {output_file} has more than 3000 rows: {len(entries)}"
+            )
+            
+            all_entries.extend(entries)
+
+        # Verify total number of entries
+        self.assertEqual(
+            len(all_entries), 3500,
+            f"Expected 3500 total entries, got {len(all_entries)}"
+        )
+
+        # Verify no duplicate entries
+        unique_ids = {entry['id'] for entry in all_entries}
+        self.assertEqual(
+            len(unique_ids), 3500,
+            f"Expected 3500 unique entries, got {len(unique_ids)}"
+        )
+
+        # Verify all entries are present (no missing entries)
+        expected_ids = {f"omid:br/{supplier_prefix}{i}" for i in range(1, 3501)}
+        self.assertEqual(
+            unique_ids, expected_ids,
+            "Some entries are missing or unexpected entries are present"
+        )
+
+        # Verify data integrity
+        for i in range(1, 3501):
+            entry = next(e for e in all_entries if e['id'] == f"omid:br/{supplier_prefix}{i}")
+            self.assertEqual(entry['title'], f"Article {i}")
+            self.assertEqual(entry['pub_date'], "2024-01-01")
+            self.assertEqual(entry['type'], "journal article")
+
 if __name__ == '__main__':
     unittest.main() 
