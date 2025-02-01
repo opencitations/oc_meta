@@ -14,14 +14,18 @@
 # ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 # SOFTWARE.
 
+import csv
 import json
 import os
 import unittest
 from shutil import rmtree
 from zipfile import ZipFile
 
+import redis
 from oc_meta.lib.file_manager import get_csv_data
-from oc_meta.plugins.csv_generator_lite.csv_generator_lite import generate_csv
+from oc_meta.plugins.csv_generator_lite.csv_generator_lite import (
+    generate_csv, init_redis_connection, is_omid_processed,
+    load_processed_omids_to_redis)
 
 
 class TestCSVGeneratorLite(unittest.TestCase):
@@ -38,10 +42,259 @@ class TestCSVGeneratorLite(unittest.TestCase):
         self.rdf_dir = os.path.join(self.input_dir, 'rdf')
         self.br_dir = os.path.join(self.rdf_dir, 'br')
         os.makedirs(self.br_dir, exist_ok=True)
+        
+        # Initialize Redis connection for tests
+        self.redis_client = init_redis_connection(db=5)  # Use DB 5 for testing
+        self.redis_client.flushdb()  # Clear test database
 
     def tearDown(self):
         if os.path.exists(self.base_dir):
             rmtree(self.base_dir)
+        # Clean up Redis test database
+        self.redis_client.flushdb()
+
+    def _write_test_data(self, data):
+        """Helper method to write test data to the input directory"""
+        os.makedirs(os.path.join(self.br_dir, '060', '10000'), exist_ok=True)
+        test_data = [{
+            "@graph": [
+                {
+                    "@id": f"https://w3id.org/oc/meta/{item['id'].replace('omid:', '')}",
+                    "@type": ["http://purl.org/spar/fabio/Expression", "http://purl.org/spar/fabio/JournalArticle"],
+                    "http://purl.org/dc/terms/title": [{"@value": item['title']}]
+                } for item in data
+            ]
+        }]
+        with ZipFile(os.path.join(self.br_dir, '060', '10000', '1000.zip'), 'w') as zip_file:
+            zip_file.writestr('1000.json', json.dumps(test_data))
+
+    def test_redis_connection_and_caching(self):
+        """Test Redis connection and basic caching operations"""
+        # Test connection initialization
+        redis_client = init_redis_connection(db=5)
+        self.assertIsInstance(redis_client, redis.Redis)
+        
+        # Create a test CSV file with some OMIDs
+        test_data = [
+            {'id': 'omid:br/0601', 'title': 'Test 1'},
+            {'id': 'omid:br/0602', 'title': 'Test 2'},
+            {'id': 'omid:br/0603 issn:456', 'title': 'Test 3'}
+        ]
+        os.makedirs(self.output_dir, exist_ok=True)
+        with open(os.path.join(self.output_dir, 'test.csv'), 'w', newline='', encoding='utf-8') as f:
+            writer = csv.DictWriter(f, fieldnames=['id', 'title'])
+            writer.writeheader()
+            writer.writerows(test_data)
+        
+        # Test loading OMIDs into Redis
+        count = load_processed_omids_to_redis(self.output_dir, redis_client)
+        self.assertEqual(count, 3)
+        
+        # Test OMID lookup
+        self.assertTrue(is_omid_processed('omid:br/0601', redis_client))
+        self.assertTrue(is_omid_processed('omid:br/0602', redis_client))
+        self.assertTrue(is_omid_processed('omid:br/0603', redis_client))
+        self.assertFalse(is_omid_processed('omid:br/0604', redis_client))
+
+    def test_redis_cache_persistence(self):
+        """Test that Redis is populated from existing CSV files and cleared after completion"""
+        # Create initial test data
+        test_data = [{
+            "@graph": [
+                {
+                    "@id": "https://w3id.org/oc/meta/br/0601",
+                    "@type": ["http://purl.org/spar/fabio/Expression", "http://purl.org/spar/fabio/JournalArticle"],
+                    "http://purl.org/dc/terms/title": [{"@value": "First Run"}]
+                }
+            ]
+        }]
+        
+        os.makedirs(os.path.join(self.br_dir, '060', '10000'), exist_ok=True)
+        with ZipFile(os.path.join(self.br_dir, '060', '10000', '1000.zip'), 'w') as zip_file:
+            zip_file.writestr('1000.json', json.dumps(test_data))
+        
+        # First run - creates initial CSV
+        generate_csv(
+            input_dir=self.rdf_dir,
+            output_dir=self.output_dir,
+            dir_split_number=10000,
+            items_per_file=1000,
+            zip_output_rdf=True,
+            redis_db=5
+        )
+        
+        # Verify Redis is empty after first run
+        self.assertFalse(is_omid_processed('omid:br/0601', self.redis_client))
+        
+        # Create new test data
+        test_data_2 = [{
+            "@graph": [
+                {
+                    "@id": "https://w3id.org/oc/meta/br/0601",  # Same OMID as before
+                    "@type": ["http://purl.org/spar/fabio/Expression", "http://purl.org/spar/fabio/JournalArticle"],
+                    "http://purl.org/dc/terms/title": [{"@value": "Should Be Skipped"}]
+                },
+                {
+                    "@id": "https://w3id.org/oc/meta/br/0602",  # New OMID
+                    "@type": ["http://purl.org/spar/fabio/Expression", "http://purl.org/spar/fabio/JournalArticle"],
+                    "http://purl.org/dc/terms/title": [{"@value": "Should Be Processed"}]
+                }
+            ]
+        }]
+        
+        with ZipFile(os.path.join(self.br_dir, '060', '10000', '1000.zip'), 'w') as zip_file:
+            zip_file.writestr('1000.json', json.dumps(test_data_2))
+        
+        # Second run - should load OMIDs from existing CSV and skip already processed resources
+        generate_csv(
+            input_dir=self.rdf_dir,
+            output_dir=self.output_dir,
+            dir_split_number=10000,
+            items_per_file=1000,
+            zip_output_rdf=True,
+            redis_db=5
+        )
+        
+        # Check output files
+        output_data = []
+        for filename in os.listdir(self.output_dir):
+            if filename.endswith('.csv'):
+                output_data.extend(get_csv_data(os.path.join(self.output_dir, filename)))
+
+        # Verify results
+        # Should find exactly two entries - one from first run and one new one
+        self.assertEqual(len(output_data), 2)
+        
+        # Find entries by title
+        first_run_entry = next(item for item in output_data if item['title'] == 'First Run')
+        second_run_entry = next(item for item in output_data if item['title'] == 'Should Be Processed')
+        
+        # Verify the first entry wasn't overwritten with "Should Be Skipped"
+        self.assertEqual(first_run_entry['title'], 'First Run')
+        self.assertEqual(first_run_entry['id'], 'omid:br/0601')
+        
+        # Verify the new entry was processed
+        self.assertEqual(second_run_entry['title'], 'Should Be Processed')
+        self.assertEqual(second_run_entry['id'], 'omid:br/0602')
+        
+        # Verify Redis is empty after completion
+        self.assertFalse(is_omid_processed('omid:br/0601', self.redis_client))
+        self.assertFalse(is_omid_processed('omid:br/0602', self.redis_client))
+
+    def test_redis_cache_cleanup(self):
+        """Test that Redis cache is properly cleaned up in various scenarios"""
+        # First run - should process successfully and clear Redis
+        input_data = [{'id': 'omid:br/0601', 'title': 'First Entry'}]
+        self._write_test_data(input_data)
+        
+        # Run with valid directory - should process and clear Redis
+        generate_csv(
+            input_dir=self.rdf_dir,
+            output_dir=self.output_dir,
+            dir_split_number=10000,
+            items_per_file=1000,
+            zip_output_rdf=True,
+            redis_db=5
+        )
+        
+        # Verify Redis is empty after successful run
+        self.assertFalse(is_omid_processed('omid:br/0601', self.redis_client))
+        
+        # Load processed OMIDs into Redis
+        load_processed_omids_to_redis(self.output_dir, self.redis_client)
+        
+        # Verify that after loading from CSV, the OMID is in Redis
+        self.assertTrue(is_omid_processed('omid:br/0601', self.redis_client))
+        
+        # Run with non-existent directory - should fail but keep Redis populated
+        generate_csv(
+            input_dir='/nonexistent/dir',
+            output_dir=self.output_dir,
+            dir_split_number=10000,
+            items_per_file=1000,
+            zip_output_rdf=True,
+            redis_db=5
+        )
+        
+        # Verify Redis still has the data after failed run
+        self.assertTrue(is_omid_processed('omid:br/0601', self.redis_client),
+            "Redis cache should be retained after a failed run")
+
+    def test_redis_error_handling(self):
+        """Test handling of Redis connection errors"""
+        # Test with invalid Redis connection
+        with self.assertRaises(redis.ConnectionError):
+            init_redis_connection(port=12345)  # Invalid port
+        
+        # Test loading OMIDs with non-existent directory
+        count = load_processed_omids_to_redis('/nonexistent/dir', self.redis_client)
+        self.assertEqual(count, 0)
+
+    def test_concurrent_processing_with_redis(self):
+        """Test concurrent processing with Redis caching"""
+        # Create multiple test files
+        test_data = []
+        for i in range(100):  # Create 100 test entries
+            test_data.append({
+                "@id": f"https://w3id.org/oc/meta/br/06{i:02d}",
+                "@type": ["http://purl.org/spar/fabio/Expression", "http://purl.org/spar/fabio/JournalArticle"],
+                "http://purl.org/dc/terms/title": [{"@value": f"Article {i}"}]
+            })
+        
+        # Split into multiple files
+        os.makedirs(os.path.join(self.br_dir, '060', '10000'), exist_ok=True)
+        for i in range(0, 100, 10):  # Create 10 files with 10 entries each
+            file_data = [{"@graph": test_data[i:i+10]}]
+            with ZipFile(os.path.join(self.br_dir, '060', '10000', f'{i+1000}.zip'), 'w') as zip_file:
+                zip_file.writestr(f'{i+1000}.json', json.dumps(file_data))
+        
+        # First run to create some CSV files
+        generate_csv(
+            input_dir=self.rdf_dir,
+            output_dir=self.output_dir,
+            dir_split_number=10000,
+            items_per_file=1000,
+            zip_output_rdf=True,
+            redis_db=5
+        )
+        
+        # Create more test entries
+        more_test_data = []
+        for i in range(100, 200):  # Create 100 more test entries
+            more_test_data.append({
+                "@id": f"https://w3id.org/oc/meta/br/06{i:02d}",
+                "@type": ["http://purl.org/spar/fabio/Expression", "http://purl.org/spar/fabio/JournalArticle"],
+                "http://purl.org/dc/terms/title": [{"@value": f"Article {i}"}]
+            })
+        
+        # Add new files
+        for i in range(0, 100, 10):
+            file_data = [{"@graph": more_test_data[i:i+10]}]
+            with ZipFile(os.path.join(self.br_dir, '060', '10000', f'{i+2000}.zip'), 'w') as zip_file:
+                zip_file.writestr(f'{i+2000}.json', json.dumps(file_data))
+        
+        # Second run with existing cache
+        generate_csv(
+            input_dir=self.rdf_dir,
+            output_dir=self.output_dir,
+            dir_split_number=10000,
+            items_per_file=1000,
+            zip_output_rdf=True,
+            redis_db=5
+        )
+        
+        # Verify results
+        all_output_data = []
+        for filename in os.listdir(self.output_dir):
+            if filename.endswith('.csv'):
+                all_output_data.extend(get_csv_data(os.path.join(self.output_dir, filename)))
+        
+        # Should have processed all 200 entries
+        self.assertEqual(len(all_output_data), 200)
+        
+        # Verify no duplicates
+        processed_ids = {row['id'] for row in all_output_data}
+        self.assertEqual(len(processed_ids), 200)
 
     def test_basic_br_processing(self):
         """Test basic bibliographic resource processing"""
@@ -1215,6 +1468,25 @@ class TestCSVGeneratorLite(unittest.TestCase):
             self.assertEqual(entry['title'], f"Article {i}")
             self.assertEqual(entry['pub_date'], "2024-01-01")
             self.assertEqual(entry['type'], "journal article")
+
+    def test_csv_field_limit_handling(self):
+        """Test handling of CSV files with large fields that exceed the default limit"""
+        # Create a test CSV with a very large field
+        large_field = 'omid:br/0601 ' + ' '.join([f'id:{i}' for i in range(10000)])  # This will create a field > 131072 chars
+        test_data = {'id': large_field, 'title': 'Test Large Field'}
+        
+        os.makedirs(self.output_dir, exist_ok=True)
+        with open(os.path.join(self.output_dir, 'large_field.csv'), 'w', newline='', encoding='utf-8') as f:
+            writer = csv.DictWriter(f, fieldnames=['id', 'title'])
+            writer.writeheader()
+            writer.writerow(test_data)
+        
+        # Try loading the data - this should trigger the field limit increase
+        count = load_processed_omids_to_redis(self.output_dir, self.redis_client)
+        
+        # Verify the OMID was loaded despite the large field
+        self.assertEqual(count, 1)
+        self.assertTrue(is_omid_processed('omid:br/0601', self.redis_client))
 
 if __name__ == '__main__':
     unittest.main() 

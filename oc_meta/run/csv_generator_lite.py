@@ -27,6 +27,12 @@ if __name__ == '__main__':
                        help='OpenCitations Meta configuration file location')
     parser.add_argument('-o', '--output_dir', required=True,
                        help='Directory where CSV files will be stored')
+    parser.add_argument('--redis-host', default='localhost',
+                       help='Redis host (default: localhost)')
+    parser.add_argument('--redis-port', type=int, default=6379,
+                       help='Redis port (default: 6379)')
+    parser.add_argument('--redis-db', type=int, default=2,
+                       help='Redis database number (default: 2)')
     args = parser.parse_args()
 
     # Load configuration
@@ -45,5 +51,8 @@ if __name__ == '__main__':
         output_dir=args.output_dir,
         dir_split_number=dir_split_number,
         items_per_file=items_per_file,
-        zip_output_rdf=zip_output_rdf
+        zip_output_rdf=zip_output_rdf,
+        redis_host=args.redis_host,
+        redis_port=args.redis_port,
+        redis_db=args.redis_db
     ) 
