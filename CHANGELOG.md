@@ -1,3 +1,10 @@
+## [2.1.1](https://github.com/opencitations/oc_meta/compare/v2.1.0...v2.1.1) (2025-02-01)
+
+
+### Bug Fixes
+
+* handle temporary identifiers deduplication ([258a88f](https://github.com/opencitations/oc_meta/commit/258a88fff4c889308f390caf34531daf7345a187))
+
 # [2.1.0](https://github.com/opencitations/oc_meta/compare/v2.0.3...v2.1.0) (2025-02-01)
 
 
