@@ -1,3 +1,17 @@
+# [2.1.0](https://github.com/opencitations/oc_meta/compare/v2.0.3...v2.1.0) (2025-02-01)
+
+
+### Bug Fixes
+
+* improve VVI query performance by using direct SPARQL ([dd6b728](https://github.com/opencitations/oc_meta/commit/dd6b72818989d476995309ec5cd7b53cbced08ab))
+
+
+### Features
+
+* add caching and performance improvements to CSV Generator Lite ([491cc1e](https://github.com/opencitations/oc_meta/commit/491cc1ed987845ccacb2de3c6432c80194c1f835))
+* Add support for temporary identifiers in meta process ([856c49e](https://github.com/opencitations/oc_meta/commit/856c49e5898c4c3dd3a9bea98ddc4ab0a103ddc4))
+* create lightweight CSV generator for basic exports ([fe99bcc](https://github.com/opencitations/oc_meta/commit/fe99bcce47f9c3d645d03852986def7f5569ac56))
+
 ## [2.0.3](https://github.com/opencitations/oc_meta/compare/v2.0.2...v2.0.3) (2025-01-22)
 
 
