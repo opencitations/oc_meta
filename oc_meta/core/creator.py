@@ -88,10 +88,7 @@ class Creator(object):
             "wikidata",
             "wikipedia",
         }
-        self.temp_schema = {"temp"}  # New schema for temporary identifiers
-        self.schemas = self.ra_id_schemas.union(self.br_id_schemas).union(
-            self.temp_schema
-        )
+        self.schemas = self.ra_id_schemas.union(self.br_id_schemas)
 
         self.ra_index = self.indexer_id(ra_index)
         self.br_index = self.indexer_id(br_index)

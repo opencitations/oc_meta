@@ -5,6 +5,7 @@ import random
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 import unittest
 from datetime import datetime
@@ -13,11 +14,11 @@ from zipfile import ZipFile
 
 import redis
 import yaml
-from oc_meta.lib.file_manager import get_csv_data
+from oc_meta.lib.file_manager import get_csv_data, write_csv
 from oc_meta.run.meta_process import run_meta_process
 from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
 from rdflib import ConjunctiveGraph, Graph, Literal, URIRef
-from SPARQLWrapper import JSON, POST, XML, SPARQLExceptions, SPARQLWrapper
+from SPARQLWrapper import JSON, POST, XML, SPARQLWrapper
 
 BASE_DIR = os.path.join("test", "meta_process")
 SERVER = "http://127.0.0.1:8805/sparql"
@@ -68,8 +69,13 @@ def reset_redis_counters():
     redis_host = "localhost"
     redis_port = 6379
     redis_db = 5
+    redis_cache_db = 2  # New constant for cache DB
     redis_client = redis.Redis(host=redis_host, port=redis_port, db=redis_db)
+    redis_cache_client = redis.Redis(
+        host=redis_host, port=redis_port, db=redis_cache_db
+    )
     redis_client.flushdb()
+    redis_cache_client.flushdb()
 
 
 def reset_server(server: str = "http://127.0.0.1:8805/sparql") -> None:
@@ -153,6 +159,12 @@ class test_ProcessTest(unittest.TestCase):
 
     def setUp(self):
         """Setup eseguito prima di ogni test"""
+        # Create temporary directory for cache files
+        self.temp_dir = tempfile.mkdtemp()
+        self.cache_file = os.path.join(self.temp_dir, "ts_upload_cache.json")
+        self.failed_file = os.path.join(self.temp_dir, "failed_queries.txt")
+        self.stop_file = os.path.join(self.temp_dir, ".stop_upload")
+
         # Reset del database
         try:
             reset_server()
@@ -162,12 +174,26 @@ class test_ProcessTest(unittest.TestCase):
 
     def tearDown(self):
         reset_redis_counters()
+        # Remove temporary directory and its contents
+        if hasattr(self, "temp_dir") and os.path.exists(self.temp_dir):
+            shutil.rmtree(self.temp_dir)
 
     def test_run_meta_process(self):
         output_folder = os.path.join(BASE_DIR, "output_1")
         meta_config_path = os.path.join(BASE_DIR, "meta_config_1.yaml")
         with open(meta_config_path, encoding="utf-8") as file:
             settings = yaml.full_load(file)
+
+        # Update settings with temporary files and Redis cache DB
+        settings.update(
+            {
+                "redis_cache_db": 2,
+                "ts_upload_cache": self.cache_file,
+                "ts_failed_queries": self.failed_file,
+                "ts_stop_file": self.stop_file,
+            }
+        )
+
         now = datetime.now()
         run_meta_process(settings=settings, meta_config_path=meta_config_path)
         output = list()
@@ -254,6 +280,17 @@ class test_ProcessTest(unittest.TestCase):
         now = datetime.now()
         with open(meta_config_path, encoding="utf-8") as file:
             settings = yaml.full_load(file)
+
+        # Update settings with temporary files and Redis cache DB
+        settings.update(
+            {
+                "redis_cache_db": 2,
+                "ts_upload_cache": self.cache_file,
+                "ts_failed_queries": self.failed_file,
+                "ts_stop_file": self.stop_file,
+            }
+        )
+
         run_meta_process(settings, meta_config_path=meta_config_path)
         output = list()
         for dirpath, _, filenames in os.walk(os.path.join(output_folder, "csv")):
@@ -286,7 +323,18 @@ class test_ProcessTest(unittest.TestCase):
         meta_config_path = os.path.join(BASE_DIR, "meta_config_2.yaml")
         with open(meta_config_path, encoding="utf-8") as file:
             settings = yaml.full_load(file)
-        settings["workers_number"] = 2
+
+        # Update settings with temporary files and Redis cache DB
+        settings.update(
+            {
+                "redis_cache_db": 2,
+                "ts_upload_cache": self.cache_file,
+                "ts_failed_queries": self.failed_file,
+                "ts_stop_file": self.stop_file,
+                "workers_number": 2,
+            }
+        )
+
         now = datetime.now()
         run_meta_process(settings=settings, meta_config_path=meta_config_path)
         output = list()
@@ -375,6 +423,17 @@ class test_ProcessTest(unittest.TestCase):
         meta_config_path = os.path.join(BASE_DIR, "meta_config_3.yaml")
         with open(meta_config_path, encoding="utf-8") as file:
             settings = yaml.full_load(file)
+
+        # Update settings with temporary files and Redis cache DB
+        settings.update(
+            {
+                "redis_cache_db": 2,
+                "ts_upload_cache": self.cache_file,
+                "ts_failed_queries": self.failed_file,
+                "ts_stop_file": self.stop_file,
+            }
+        )
+
         settings["input_csv_dir"] = os.path.join(BASE_DIR, "input")
         run_meta_process(settings=settings, meta_config_path=meta_config_path)
         settings["input_csv_dir"] = os.path.join(BASE_DIR, "input_2")
@@ -954,6 +1013,17 @@ class test_ProcessTest(unittest.TestCase):
         meta_config_path = os.path.join(BASE_DIR, "meta_config_6.yaml")
         with open(meta_config_path, encoding="utf-8") as file:
             settings = yaml.full_load(file)
+
+        # Update settings with temporary files and Redis cache DB
+        settings.update(
+            {
+                "redis_cache_db": 2,
+                "ts_upload_cache": self.cache_file,
+                "ts_failed_queries": self.failed_file,
+                "ts_stop_file": self.stop_file,
+            }
+        )
+
         run_meta_process(settings=settings, meta_config_path=meta_config_path)
         settings["input_csv_dir"] = os.path.join(
             BASE_DIR, "same_as_input_2_with_other_authors"
@@ -993,6 +1063,17 @@ class test_ProcessTest(unittest.TestCase):
         meta_config_path = os.path.join(BASE_DIR, "meta_config_7.yaml")
         with open(meta_config_path, encoding="utf-8") as file:
             settings = yaml.full_load(file)
+
+        # Update settings with temporary files and Redis cache DB
+        settings.update(
+            {
+                "redis_cache_db": 2,
+                "ts_upload_cache": self.cache_file,
+                "ts_failed_queries": self.failed_file,
+                "ts_stop_file": self.stop_file,
+            }
+        )
+
         run_meta_process(settings=settings, meta_config_path=meta_config_path)
         settings["input_csv_dir"] = os.path.join(
             BASE_DIR, "same_as_input_2_with_other_authors"
@@ -1047,6 +1128,17 @@ class test_ProcessTest(unittest.TestCase):
             settings_without_openalex = yaml.full_load(file)
         with open(meta_config_path_with_openalex, encoding="utf-8") as file:
             settings_with_openalex = yaml.full_load(file)
+
+        # Update settings with temporary files and Redis cache DB
+        cache_settings = {
+            "redis_cache_db": 2,
+            "ts_upload_cache": self.cache_file,
+            "ts_failed_queries": self.failed_file,
+            "ts_stop_file": self.stop_file,
+        }
+        settings_without_openalex.update(cache_settings)
+        settings_with_openalex.update(cache_settings)
+
         run_meta_process(
             settings=settings_without_openalex,
             meta_config_path=meta_config_path_without_openalex,
@@ -1108,6 +1200,17 @@ class test_ProcessTest(unittest.TestCase):
         now = datetime.now()
         with open(meta_config_path, encoding="utf-8") as file:
             settings = yaml.full_load(file)
+
+        # Update settings with temporary files and Redis cache DB
+        settings.update(
+            {
+                "redis_cache_db": 2,
+                "ts_upload_cache": self.cache_file,
+                "ts_failed_queries": self.failed_file,
+                "ts_stop_file": self.stop_file,
+            }
+        )
+
         run_meta_process(settings=settings, meta_config_path=meta_config_path)
         query_all = """
             PREFIX datacite: <http://purl.org/spar/datacite/>
@@ -1134,9 +1237,39 @@ class test_ProcessTest(unittest.TestCase):
         )
 
     def test_duplicate_omids_with_datatype(self):
-        """Test to verify that identifiers are not duplicated due to datatype differences"""
         output_folder = os.path.join(BASE_DIR, "output_duplicate_test")
         meta_config_path = os.path.join(BASE_DIR, "meta_config_duplicate.yaml")
+
+        # Create test settings
+        settings = {
+            "triplestore_url": SERVER,
+            "input_csv_dir": os.path.join(BASE_DIR, "input_duplicate"),
+            "base_output_dir": output_folder,
+            "output_rdf_dir": output_folder,
+            "resp_agent": "test",
+            "base_iri": "https://w3id.org/oc/meta/",
+            "context_path": None,
+            "dir_split_number": 10000,
+            "items_per_file": 1000,
+            "default_dir": "_",
+            "rdf_output_in_chunks": False,
+            "zip_output_rdf": True,
+            "source": None,
+            "supplier_prefix": "060",
+            "workers_number": 1,
+            "use_doi_api_service": False,
+            "blazegraph_full_text_search": False,
+            "virtuoso_full_text_search": True,
+            "fuseki_full_text_search": False,
+            "graphdb_connector_name": None,
+            "cache_endpoint": None,
+            "cache_update_endpoint": None,
+            "silencer": [],
+            "redis_cache_db": 2,
+            "ts_upload_cache": self.cache_file,
+            "ts_failed_queries": self.failed_file,
+            "ts_stop_file": self.stop_file,
+        }
 
         # Setup: create test data
         os.makedirs(os.path.join(BASE_DIR, "input_duplicate"), exist_ok=True)
@@ -1206,36 +1339,6 @@ class test_ProcessTest(unittest.TestCase):
         redis_handler.set_counter(
             2, "id", supplier_prefix="060"
         )  # ID counter for two IDs
-
-        # Create test settings
-        settings = {
-            "triplestore_url": SERVER,
-            "input_csv_dir": os.path.join(BASE_DIR, "input_duplicate"),
-            "base_output_dir": output_folder,
-            "output_rdf_dir": output_folder,
-            "resp_agent": "test",
-            "base_iri": "https://w3id.org/oc/meta/",
-            "context_path": None,
-            "dir_split_number": 10000,
-            "items_per_file": 1000,
-            "default_dir": "_",
-            "rdf_output_in_chunks": False,
-            "zip_output_rdf": True,
-            "source": None,
-            "supplier_prefix": "060",
-            "workers_number": 1,
-            "use_doi_api_service": False,
-            "blazegraph_full_text_search": False,
-            "virtuoso_full_text_search": True,
-            "fuseki_full_text_search": False,
-            "graphdb_connector_name": None,
-            "cache_endpoint": None,
-            "cache_update_endpoint": None,
-            "silencer": [],
-        }
-
-        with open(meta_config_path, "w") as f:
-            yaml.dump(settings, f)
 
         # Run the process
         run_meta_process(settings=settings, meta_config_path=meta_config_path)
@@ -1419,6 +1522,10 @@ class test_ProcessTest(unittest.TestCase):
             "cache_endpoint": None,
             "cache_update_endpoint": None,
             "silencer": [],
+            "redis_cache_db": 2,
+            "ts_upload_cache": self.cache_file,
+            "ts_failed_queries": self.failed_file,
+            "ts_stop_file": self.stop_file,
         }
 
         with open(meta_config_path, "w") as f:
@@ -1536,6 +1643,10 @@ class test_ProcessTest(unittest.TestCase):
             "cache_endpoint": None,
             "cache_update_endpoint": None,
             "silencer": [],
+            "redis_cache_db": 2,
+            "ts_upload_cache": self.cache_file,
+            "ts_failed_queries": self.failed_file,
+            "ts_stop_file": self.stop_file,
         }
 
         with open(meta_config_path, "w") as f:
@@ -1661,6 +1772,10 @@ class test_ProcessTest(unittest.TestCase):
             "cache_endpoint": None,
             "cache_update_endpoint": None,
             "silencer": [],
+            "redis_cache_db": 2,
+            "ts_upload_cache": self.cache_file,
+            "ts_failed_queries": self.failed_file,
+            "ts_stop_file": self.stop_file,
         }
 
         with open(meta_config_path, "w") as f:
@@ -1847,6 +1962,10 @@ class test_ProcessTest(unittest.TestCase):
             "cache_endpoint": None,
             "cache_update_endpoint": None,
             "silencer": [],
+            "redis_cache_db": 2,
+            "ts_upload_cache": self.cache_file,
+            "ts_failed_queries": self.failed_file,
+            "ts_stop_file": self.stop_file,
         }
 
         with open(meta_config_path, "w") as f:
@@ -1942,50 +2061,6 @@ class test_ProcessTest(unittest.TestCase):
             "New volumes/issues were created when they should have been deduplicated",
         )
 
-        # # Recreate input directory and file since sono stati cancellati dal cleanup
-        # os.makedirs(os.path.join(BASE_DIR, 'input_vvi_triplestore'), exist_ok=True)
-        # with open(os.path.join(BASE_DIR, 'input_vvi_triplestore', 'test.csv'), 'w', encoding='utf-8') as f:
-        #     writer = csv.writer(f)
-        #     writer.writerow(["id", "title", "author", "pub_date", "venue", "volume", "issue", "page", "type", "publisher", "editor"])
-        #     writer.writerow([
-        #         "doi:10.1234/test.1",
-        #         "Test Article",
-        #         "",
-        #         "2023",
-        #         "Test Journal [issn:1756-1833]",
-        #         "1",
-        #         "1",
-        #         "1-10",
-        #         "journal article",
-        #         "",
-        #         ""
-        #     ])
-
-        # # Run the process again
-        # run_meta_process(settings=settings, meta_config_path=meta_config_path)
-
-        # # Check if ANY files were created in to_be_uploaded
-        # to_be_uploaded_dir = os.path.join(output_folder, 'rdf', 'to_be_uploaded')
-        # files_created = False
-        # if os.path.exists(to_be_uploaded_dir):
-        #     for dirpath, _, filenames in os.walk(to_be_uploaded_dir):
-        #         for f in filenames:
-        #             if f.endswith('.sparql'):
-        #                 files_created = True
-        #                 print(f"\nFound unexpected file creation in second pass - {f}:")
-        #                 with open(os.path.join(dirpath, f)) as file:
-        #                     print(file.read())
-
-        # # Verify no files were created in second pass
-        # self.assertFalse(files_created,
-        #     "Files were created in to_be_uploaded during second pass when all data should already exist")
-
-        # # Final cleanup
-        # shutil.rmtree(output_folder, ignore_errors=True)
-        # shutil.rmtree(os.path.join(BASE_DIR, 'input_vvi_triplestore'), ignore_errors=True)
-        # if os.path.exists(meta_config_path):
-        #     os.remove(meta_config_path)
-
     def test_temporary_identifiers(self):
         """Test that temporary identifiers are used for deduplication but not saved, and an OMID is generated"""
         output_folder = os.path.join(BASE_DIR, "output_temp_id_test")
@@ -2053,6 +2128,10 @@ class test_ProcessTest(unittest.TestCase):
             "cache_endpoint": None,
             "cache_update_endpoint": None,
             "silencer": [],
+            "redis_cache_db": 2,
+            "ts_upload_cache": self.cache_file,
+            "ts_failed_queries": self.failed_file,
+            "ts_stop_file": self.stop_file,
         }
 
         with open(meta_config_path, "w") as f:
@@ -2106,6 +2185,111 @@ class test_ProcessTest(unittest.TestCase):
             "id",
             bindings[0],
             "Found unexpected identifier when only temporary ID was provided",
+        )
+
+    def test_temporary_identifiers_deduplication(self):
+        """Test that multiple rows with the same temporary identifier are correctly deduplicated"""
+        # Create test data with two rows using the same temporary identifier
+        test_data = [
+            {
+                "id": "temp:789",
+                "title": "Test Article 1",
+                "author": "Smith, John [orcid:0000-0002-1234-5678]",
+                "pub_date": "2020",
+                "venue": "",
+                "volume": "",
+                "issue": "",
+                "page": "",
+                "type": "journal article",
+                "publisher": "",
+                "editor": "",
+            },
+            {
+                "id": "temp:789",  # Same temporary ID
+                "title": "Test Article 1",  # Same title
+                "author": "Smith, John [orcid:0000-0002-1234-5678]",
+                "pub_date": "2020",
+                "venue": "",
+                "volume": "",
+                "issue": "",
+                "page": "",
+                "type": "journal article",
+                "publisher": "",
+                "editor": "",
+            },
+        ]
+
+        # Write test data to CSV
+        input_dir = os.path.join(BASE_DIR, "input_temp_dedup")
+        os.makedirs(input_dir, exist_ok=True)
+        csv_path = os.path.join(input_dir, "test.csv")
+        write_csv(csv_path, test_data)
+
+        # Run meta process
+        output_dir = os.path.join(BASE_DIR, "output_temp_dedup")
+        os.makedirs(output_dir, exist_ok=True)
+        config = {
+            "input_csv_dir": input_dir,
+            "base_output_dir": output_dir,
+            "output_rdf_dir": output_dir,
+            "triplestore_url": SERVER,
+            "resp_agent": "https://w3id.org/oc/meta/prov/pa/1",
+            "base_iri": "https://w3id.org/oc/meta/",
+            "context_path": "https://w3id.org/oc/meta/context.json",
+            "supplier_prefix": "060",
+            "dir_split_number": 10000,
+            "items_per_file": 1000,
+            "default_dir": "_",
+            "rdf_output_in_chunks": True,
+            "zip_output_rdf": False,
+            "source": None,
+            "use_doi_api_service": False,
+            "workers_number": 1,
+            "silencer": [],
+            "redis_host": "localhost",
+            "redis_port": 6379,
+            "redis_db": 5,
+            "redis_cache_db": 2,
+            "ts_upload_cache": self.cache_file,
+            "ts_failed_queries": self.failed_file,
+            "ts_stop_file": self.stop_file,
+            "graphdb_connector_name": None,
+            "blazegraph_full_text_search": False,
+            "fuseki_full_text_search": False,
+            "virtuoso_full_text_search": False,
+            "provenance_endpoints": [],
+            "cache_endpoint": None,
+            "cache_update_endpoint": None,
+            "normalize_titles": True,
+        }
+        config_path = os.path.join(output_dir, "config.yaml")
+        with open(config_path, "w") as f:
+            yaml.dump(config, f)
+
+        # Run the process
+        run_meta_process(settings=config, meta_config_path=config_path)
+
+        # Query the triplestore to verify:
+        # 1. Only one OMID was generated for both rows
+        # 2. The temporary identifier was not saved
+        query = """
+        SELECT DISTINCT ?br
+        WHERE {
+            ?br a <http://purl.org/spar/fabio/JournalArticle> .
+        }
+        """
+        results = execute_sparql_query(SERVER, query)
+
+        # Clean up
+        shutil.rmtree(input_dir)
+        shutil.rmtree(output_dir)
+
+        # Should only be one article
+        articles = [
+            str(result["br"]["value"]) for result in results["results"]["bindings"]
+        ]
+        self.assertEqual(
+            len(articles), 1, "Should only be one article after deduplication"
         )
 
 

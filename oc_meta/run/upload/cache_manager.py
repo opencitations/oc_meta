@@ -6,31 +6,38 @@ from typing import Set
 import redis
 from redis.exceptions import ConnectionError as RedisConnectionError
 
+
 class CacheManager:
-    REDIS_DB = 4  # Database di default per Redis
     REDIS_KEY = "processed_files"  # Chiave per il set Redis
-    
-    def __init__(self, json_cache_file: str, redis_host: str = 'localhost', redis_port: int = 6379):
+
+    def __init__(
+        self,
+        json_cache_file: str,
+        redis_host: str = "localhost",
+        redis_port: int = 6379,
+        redis_db: int = 4,
+    ):
         self.json_cache_file = json_cache_file
         self._redis = None
         self.redis_host = redis_host
         self.redis_port = redis_port
+        self.redis_db = redis_db
         self.processed_files: Set[str] = set()
-        
+
         # Inizializza il cache
         self._init_cache()
-        
+
         # Registra handlers per graceful shutdown
         self._register_shutdown_handlers()
-    
+
     def _init_redis(self) -> None:
         """Inizializza la connessione Redis"""
         try:
             self._redis = redis.Redis(
                 host=self.redis_host,
                 port=self.redis_port,
-                db=self.REDIS_DB,
-                decode_responses=True  # Assicura che le stringhe siano decodificate
+                db=self.redis_db,
+                decode_responses=True,  # Assicura che le stringhe siano decodificate
             )
             self._redis.ping()  # Verifica la connessione
         except RedisConnectionError:
@@ -40,12 +47,12 @@ class CacheManager:
     def _init_cache(self) -> None:
         """Inizializza il cache da file JSON e Redis"""
         self._init_redis()
-        
+
         # Carica dal file JSON
         if os.path.exists(self.json_cache_file):
-            with open(self.json_cache_file, 'r', encoding='utf8') as f:
+            with open(self.json_cache_file, "r", encoding="utf8") as f:
                 self.processed_files.update(json.load(f))
-        
+
         # Se Redis è disponibile, sincronizza
         if self._redis:
             # Carica i dati esistenti da Redis
@@ -58,7 +65,7 @@ class CacheManager:
 
     def _save_to_json(self) -> None:
         """Salva il cache su file JSON"""
-        with open(self.json_cache_file, 'w', encoding='utf8') as f:
+        with open(self.json_cache_file, "w", encoding="utf8") as f:
             json.dump(list(self.processed_files), f)
 
     def _register_shutdown_handlers(self) -> None:
@@ -85,7 +92,7 @@ class CacheManager:
     def add(self, filename: str) -> None:
         """
         Aggiunge un file al cache
-        
+
         Args:
             filename (str): Nome del file da aggiungere
         """
@@ -96,10 +103,10 @@ class CacheManager:
     def __contains__(self, filename: str) -> bool:
         """
         Verifica se un file è nel cache
-        
+
         Args:
             filename (str): Nome del file da verificare
-            
+
         Returns:
             bool: True se il file è nel cache, False altrimenti
         """
@@ -108,10 +115,10 @@ class CacheManager:
     def get_all(self) -> Set[str]:
         """
         Restituisce tutti i file nel cache
-        
+
         Returns:
             Set[str]: Set di nomi dei file processati
         """
         if self._redis:
             self.processed_files.update(self._redis.smembers(self.REDIS_KEY))
-        return self.processed_files 
+        return self.processed_files
