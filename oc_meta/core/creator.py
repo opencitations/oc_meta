@@ -88,7 +88,10 @@ class Creator(object):
             "wikidata",
             "wikipedia",
         }
-        self.schemas = self.ra_id_schemas.union(self.br_id_schemas)
+        self.temp_schema = {"temp"}  # New schema for temporary identifiers
+        self.schemas = self.ra_id_schemas.union(self.br_id_schemas).union(
+            self.temp_schema
+        )
 
         self.ra_index = self.indexer_id(ra_index)
         self.br_index = self.indexer_id(br_index)
@@ -657,6 +660,10 @@ class Creator(object):
 
     def id_creator(self, graph: BibliographicEntity, identifier: str, ra: bool) -> None:
         new_id = None
+        # Skip temporary identifiers - they should not be saved in the final dataset
+        if identifier.startswith("temp:"):
+            return
+
         if ra:
             for ra_id_schema in self.ra_id_schemas:
                 if identifier.startswith(ra_id_schema):

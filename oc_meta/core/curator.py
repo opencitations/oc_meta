@@ -719,6 +719,8 @@ class Curator:
         metaid = ""
         id_list = list(filter(None, id_list))
         clean_list = list()
+        temp_ids = list()  # List to store temporary identifiers
+
         for elem in id_list:
             if elem in clean_list:
                 continue
@@ -726,7 +728,12 @@ class Curator:
             identifier = elem.split(":", 1)
             schema = identifier[0].lower()
             value = identifier[1]
-            if schema == "omid":
+
+            if schema == "temp":
+                # Store temporary identifiers separately for deduplication
+                temp_ids.append(value)
+                continue
+            elif schema == "omid":
                 metaid = value.replace(pattern, "")
             else:
                 normalized_id = Cleaner(elem).normalize_id(
@@ -734,9 +741,12 @@ class Curator:
                 )
                 if normalized_id:
                     clean_list.append(normalized_id)
+
         how_many_meta = [i for i in id_list if i.lower().startswith("omid")]
         if len(how_many_meta) > 1:
             clean_list = [i for i in clean_list if not i.lower().startswith("omid")]
+
+        # Use temporary IDs for deduplication but don't include them in clean_list
         return clean_list, metaid
 
     def conflict(
