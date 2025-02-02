@@ -114,7 +114,7 @@ class MetaProcess:
         self.redis_host = settings.get("redis_host", "localhost")
         self.redis_port = settings.get("redis_port", 6379)
         self.redis_db = settings.get("redis_db", 5)
-        self.redis_cache_db = settings.get("redis_cache_db", 4)
+        self.redis_cache_db = settings.get("redis_cache_db", 2)
         self.redis_client = redis.Redis(
             host=self.redis_host, port=self.redis_port, db=self.redis_db
         )
