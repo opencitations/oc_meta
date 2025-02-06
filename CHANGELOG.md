@@ -1,3 +1,10 @@
+## [2.1.2](https://github.com/opencitations/oc_meta/compare/v2.1.1...v2.1.2) (2025-02-06)
+
+
+### Bug Fixes
+
+* enhance agent role processing in csv generation and improve code quality ([64f0814](https://github.com/opencitations/oc_meta/commit/64f0814ea3db7bf4274cf76599bd96f1e68de1fa))
+
 ## [2.1.1](https://github.com/opencitations/oc_meta/compare/v2.1.0...v2.1.1) (2025-02-01)
 
 
