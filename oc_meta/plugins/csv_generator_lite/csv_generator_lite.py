@@ -423,7 +423,6 @@ def process_bibliographic_resource(
     try:
         # Extract OMID and basic BR information
         entity_id = br_data.get("@id", "")
-        print(f"\nProcessing BR: {entity_id}")
         identifiers = [f'omid:br/{entity_id.split("/")[-1]}'] if entity_id else []
 
         output["title"] = br_data.get("http://purl.org/dc/terms/title", [{}])[0].get(
@@ -466,13 +465,10 @@ def process_bibliographic_resource(
         next_relations = {}
 
         if "http://purl.org/spar/pro/isDocumentContextFor" in br_data:
-            print("\nProcessing Agent Roles:")
             # First pass: collect all agent roles and their next relations
             for ar_data in br_data["http://purl.org/spar/pro/isDocumentContextFor"]:
                 ar_uri = ar_data["@id"]
-                print(f"\nLooking for AR file: {ar_uri}")
                 ar_file = find_file(rdf_dir, dir_split_number, items_per_file, ar_uri)
-                print(f"Found AR file: {ar_file}")
                 if ar_file:
                     ar_data = load_json_from_file(ar_file)
                     for graph in ar_data:
@@ -480,19 +476,12 @@ def process_bibliographic_resource(
                             if entity["@id"] == ar_uri:
                                 # Store the agent role data
                                 agent_roles[ar_uri] = entity
-                                print(f"Found AR entity: {entity}")
                                 # Store the next relation if it exists
                                 if "https://w3id.org/oc/ontology/hasNext" in entity:
                                     next_ar = entity[
                                         "https://w3id.org/oc/ontology/hasNext"
                                     ][0]["@id"]
                                     next_relations[ar_uri] = next_ar
-                                    print(
-                                        f"Found hasNext relation: {ar_uri} -> {next_ar}"
-                                    )
-
-            print(f"\nAgent roles found: {list(agent_roles.keys())}")
-            print(f"Next relations: {next_relations}")
 
             # Process each role type separately
             for role_type, role_list in [
@@ -500,13 +489,9 @@ def process_bibliographic_resource(
                 ("editor", editors),
                 ("publisher", publishers),
             ]:
-                print(f"\nProcessing {role_type}s:")
                 first_ar = find_first_ar_by_role(agent_roles, next_relations, role_type)
                 if not first_ar:
-                    print(f"No {role_type} roles found")
                     continue
-
-                print(f"First {role_type} AR: {first_ar}")
 
                 # Process agent roles in order for this role type
                 current_ar = first_ar
@@ -515,7 +500,6 @@ def process_bibliographic_resource(
                 iterations = 0
 
                 while current_ar and current_ar in agent_roles:
-                    print(f"\nProcessing {role_type} AR: {current_ar}")
                     if current_ar in processed_ars or iterations >= max_iterations:
                         print(
                             f"Warning: Detected cycle in hasNext relations or exceeded maximum iterations at AR: {current_ar}"
@@ -530,7 +514,6 @@ def process_bibliographic_resource(
                     role = entity.get("http://purl.org/spar/pro/withRole", [{}])[0].get(
                         "@id", ""
                     )
-                    print(f"Role: {role}")
 
                     # Only process if it matches our current role type
                     if role_type in role:
@@ -538,17 +521,14 @@ def process_bibliographic_resource(
                             ra_uri = entity["http://purl.org/spar/pro/isHeldBy"][0][
                                 "@id"
                             ]
-                            print(f"Looking for RA file: {ra_uri}")
                             ra_file = find_file(
                                 rdf_dir, dir_split_number, items_per_file, ra_uri
                             )
-                            print(f"Found RA file: {ra_file}")
                             if ra_file:
                                 ra_data = load_json_from_file(ra_file)
                                 for ra_graph in ra_data:
                                     for ra_entity in ra_graph.get("@graph", []):
                                         if ra_entity["@id"] == ra_uri:
-                                            print(f"Found RA entity: {ra_entity}")
                                             agent_name = process_responsible_agent(
                                                 ra_entity,
                                                 ra_uri,
@@ -556,21 +536,11 @@ def process_bibliographic_resource(
                                                 dir_split_number,
                                                 items_per_file,
                                             )
-                                            print(f"Processed agent name: {agent_name}")
                                             if agent_name:
                                                 role_list.append(agent_name)
-                                                print(
-                                                    f"Added {role_type}: {agent_name}"
-                                                )
 
                     # Move to next agent role
                     current_ar = next_relations.get(current_ar)
-                    print(f"Next {role_type} AR: {current_ar}")
-
-            print(f"\nFinal results:")
-            print(f"Authors: {authors}")
-            print(f"Editors: {editors}")
-            print(f"Publishers: {publishers}")
 
             output["author"] = "; ".join(authors)
             output["editor"] = "; ".join(editors)
@@ -750,7 +720,6 @@ def generate_csv(
     # Initialize Redis connection and load initial cache
     redis_client = init_redis_connection(redis_host, redis_port, redis_db)
     processed_count = load_processed_omids_to_redis(output_dir, redis_client)
-    print(f"Found {processed_count} previously processed OMIDs")
 
     # Process only files in the 'br' directory
     br_dir = os.path.join(input_dir, "br")
