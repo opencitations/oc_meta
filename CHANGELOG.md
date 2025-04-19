@@ -1,3 +1,11 @@
+## [2.1.3](https://github.com/opencitations/oc_meta/compare/v2.1.2...v2.1.3) (2025-04-19)
+
+
+### Bug Fixes
+
+* **ci:** restore test database and fix release workflow ([adde044](https://github.com/opencitations/oc_meta/commit/adde0448b9c25c245a72ff76e6ebf7c524fad5d5))
+* **ci:** update system dependency in CI workflow ([b5fe073](https://github.com/opencitations/oc_meta/commit/b5fe073dbb230358c4ba35f7daca176aa12192ab))
+
 ## [2.1.2](https://github.com/opencitations/oc_meta/compare/v2.1.1...v2.1.2) (2025-02-06)
 
 
