@@ -1,1 +1,1 @@
-/home/arcangelo/Desktop/repositories/oc_meta/.venv/bin/python -m oc_meta.lib.stopper -t "test/editor/output" --add
+/home/arcangelo/Desktop/repositories/oc_meta/.venv/bin/python -m oc_meta.lib.stopper -t "test/meta_process/output_vvi_triplestore_test" --add

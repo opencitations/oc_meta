@@ -22,6 +22,7 @@ from SPARQLWrapper import JSON, POST, XML, SPARQLWrapper
 
 BASE_DIR = os.path.join("test", "meta_process")
 SERVER = "http://127.0.0.1:8805/sparql"
+VIRTUOSO_CONTAINER = "oc-meta-test-virtuoso"
 
 
 def execute_sparql_query(endpoint, query, return_format=JSON, max_retries=3, delay=5):
@@ -80,48 +81,55 @@ def reset_redis_counters():
 
 def reset_server(server: str = "http://127.0.0.1:8805/sparql") -> None:
     """
-    Reset the SPARQL server using Virtuoso's RDF_GLOBAL_RESET() via isql.
+    Reset the SPARQL server using Virtuoso's RDF_GLOBAL_RESET() via docker exec isql.
 
     Args:
         server (str): SPARQL endpoint URL (kept for compatibility)
     """
     max_retries = 5
     base_delay = 2
-    current_dir = os.getcwd()
+    command = [
+        "docker", "exec", VIRTUOSO_CONTAINER,
+        "/opt/virtuoso-opensource/bin/isql", "1111", "dba", "dba",
+        "exec=RDF_GLOBAL_RESET();"
+    ]
 
     for attempt in range(max_retries):
         try:
             # Add small random delay to avoid race conditions
             time.sleep(base_delay + random.uniform(0, 1))
 
-            # Change to virtuoso directory
-            os.chdir("virtuoso-opensource/bin")
-
             result = subprocess.run(
-                ["./isql", "1105", "dba", "dba"],
-                input=b"RDF_GLOBAL_RESET();",
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                timeout=10,
+                command,
+                capture_output=True, # Use capture_output instead of stdout/stderr pipes
+                text=True, # Decode output as text
+                check=True, # Raise CalledProcessError on non-zero exit code
+                timeout=20, # Increased timeout slightly
             )
+            # If successful, break the loop
+            break
 
-            # Restore original directory
-            os.chdir(current_dir)
-
-            if result.returncode == 0:
-                break
-
-            raise Exception(f"isql command failed: {result.stderr.decode()}")
-
-        except Exception as e:
-            # Ensure we restore the directory even if an error occurs
-            os.chdir(current_dir)
-
+        except subprocess.CalledProcessError as e:
+            print(f"isql command failed (attempt {attempt + 1}/{max_retries}): {e.stderr}")
             if attempt == max_retries - 1:
                 raise URLError(
-                    f"Failed to reset RDF store after {max_retries} attempts: {str(e)}"
-                )
-            print(f"Reset attempt {attempt + 1} failed: {str(e)}")
+                    f"Failed to reset RDF store via docker exec after {max_retries} attempts: {e.stderr}"
+                ) from e
+            continue
+        except subprocess.TimeoutExpired as e:
+            print(f"isql command timed out (attempt {attempt + 1}/{max_retries}).")
+            if attempt == max_retries - 1:
+                 raise URLError(
+                    f"Failed to reset RDF store via docker exec after {max_retries} attempts due to timeout."
+                ) from e
+            continue
+        except Exception as e:
+            # Catch any other unexpected errors
+            print(f"Unexpected error during reset (attempt {attempt + 1}/{max_retries}): {str(e)}")
+            if attempt == max_retries - 1:
+                 raise URLError(
+                    f"Failed to reset RDF store via docker exec after {max_retries} attempts: {str(e)}"
+                ) from e
             continue
 
 
@@ -166,11 +174,8 @@ class test_ProcessTest(unittest.TestCase):
         self.stop_file = os.path.join(self.temp_dir, ".stop_upload")
 
         # Reset del database
-        try:
-            reset_server()
-            reset_redis_counters()
-        except Exception as e:
-            self.skipTest(f"Setup fallito: {str(e)}")
+        reset_server()
+        reset_redis_counters()
 
     def tearDown(self):
         reset_redis_counters()

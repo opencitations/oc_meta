@@ -1,2 +1,2 @@
-/home/arcangelo/Desktop/repositories/oc_meta/.venv/bin/python -m oc_meta.lib.stopper -t "test/editor/output" --remove
-/home/arcangelo/Desktop/repositories/oc_meta/.venv/bin/python -m oc_meta.run.meta_process -c test/editor/meta_config.yaml
+/home/arcangelo/Desktop/repositories/oc_meta/.venv/bin/python -m oc_meta.lib.stopper -t "test/meta_process/output_vvi_triplestore_test" --remove
+/home/arcangelo/Desktop/repositories/oc_meta/.venv/bin/python -m oc_meta.run.meta_process -c test/meta_process/meta_config_vvi_triplestore.yaml
