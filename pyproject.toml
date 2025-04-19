@@ -42,6 +42,7 @@ coverage-badge = "^1.1.0"
 autopep8 = "^2.0.0"
 langdetect = "^1.0.9"
 pycountry = "^22.3.5"
+isort = "^6.0.1"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

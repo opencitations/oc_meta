@@ -10,10 +10,8 @@ on:
 jobs:
   release:
     name: Release
-    runs-on: ubuntu-22.04
-    if: |
-      github.event.workflow_run.conclusion == 'success' &&
-      !contains(github.event.workflow_run.head_commit.message, 'chore(release)')
+    runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.message, '[release]')
     permissions:
       contents: write
       issues: write
@@ -64,3 +62,4 @@ jobs:
           poetry config pypi-token.pypi $PYPI_TOKEN
           poetry build
           poetry publish
+
