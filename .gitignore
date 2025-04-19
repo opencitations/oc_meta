@@ -4,13 +4,10 @@ dist/
 .vscode/
 *.pyc
 meta_input/
-blazegraph*
 *.log
 prova.py
 .env
 *.bat 
-*.sh
-*.lock
 *meta_output*.zip
 nohup.out
 examples_cache.sqlite
@@ -25,3 +22,4 @@ storage
 ts_upload_cache.json
 duplicated_brs_from_files/
 meta_output_csv/
+test/test_virtuoso_db

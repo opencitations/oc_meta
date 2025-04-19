@@ -1,0 +1,2 @@
+/home/arcangelo/Desktop/repositories/oc_meta/.venv/bin/python -m oc_meta.lib.stopper -t "test/editor/output" --remove
+/home/arcangelo/Desktop/repositories/oc_meta/.venv/bin/python -m oc_meta.run.meta_process -c test/editor/meta_config.yaml

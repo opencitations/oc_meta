@@ -1,6 +1,6 @@
 [<img src="https://img.shields.io/badge/powered%20by-OpenCitations-%239931FC?labelColor=2D22DE" />](http://opencitations.net)
 [![Run tests](https://github.com/opencitations/oc_meta/actions/workflows/run_tests.yml/badge.svg)](https://github.com/opencitations/oc_meta/actions/workflows/run_tests.yml)
-![Coverage](https://byob.yarr.is/arcangelo7/badges/opencitations-oc_meta_coverage)
+[![Coverage](https://byob.yarr.is/arcangelo7/badges/opencitations-oc_meta_coverage)](https://opencitations.github.io/oc_meta/)
 ![PyPI](https://img.shields.io/pypi/pyversions/oc_meta?logo=python&logoColor=white&label=python&color=blue)
 ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/opencitations/oc_meta)
 
@@ -23,6 +23,7 @@ An example of a raw CSV input file can be found in [`example.csv`](https://githu
   - [Get a Crossref member-name-prefix index](#get-a-crossref-member-name-prefix-index)
   - [Generate CSVs from triplestore](#generate-csvs-from-triplestore)
   - [Prepare the multiprocess](#prepare-the-multiprocess)
+- [Running Tests](#running-tests)
 - [Utilities](#utilities)
   - [Provenance Management](#provenance-management)
   - [Data Validation & Analysis](#data-validation--analysis)
@@ -138,6 +139,41 @@ Where:
 - -c --config : Path to the same configuration file you want to use for Meta.
 
 Afterwards, launch Meta in multi-process by specifying the same configuration file. All the required modifications are done automatically.
+
+## Running Tests
+
+The test suite is automatically executed via GitHub Actions upon pushes and pull requests. The workflow handles the setup of necessary services (Redis, Virtuoso) using Docker.
+
+To run the test suite locally, follow these steps:
+
+1.  **Install Dependencies:** Ensure you have [Poetry](https://python-poetry.org/) and [Docker](https://www.docker.com/) installed. Then, install project dependencies:
+    ```console
+    poetry install
+    ```
+2.  **Start Services:** Use the provided script to start the required Redis and Virtuoso Docker containers:
+    ```console
+    chmod +x test/start-test-databases.sh
+    ./test/start-test-databases.sh
+    ```
+    Wait for the script to confirm that the services are ready.
+    (The Virtuoso SPARQL endpoint will be available at http://localhost:8805/sparql and ISQL on port 1105).
+3.  **Execute Tests:** Run the tests using the following command, which also generates a coverage report:
+    ```console
+    poetry run coverage run --rcfile=test/coverage/.coveragerc
+    ```
+    To view the coverage report in the console:
+    ```console
+    poetry run coverage report
+    ```
+    To generate an HTML coverage report (saved in the `htmlcov/` directory):
+    ```console
+    poetry run coverage html -d htmlcov
+    ```
+4.  **Stop Services:** Once finished, stop the Docker containers:
+    ```console
+    chmod +x test/stop-test-databases.sh
+    ./test/stop-test-databases.sh
+    ```
 
 ## Utilities
 

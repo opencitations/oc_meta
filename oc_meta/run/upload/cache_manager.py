@@ -64,9 +64,14 @@ class CacheManager:
             self.processed_files.update(existing_redis_files)
 
     def _save_to_json(self) -> None:
-        """Salva il cache su file JSON"""
+        """Save the cache to a JSON file."""
+        cache_dir = os.path.dirname(self.json_cache_file)
+        if cache_dir:
+            os.makedirs(cache_dir, exist_ok=True)
+
         with open(self.json_cache_file, "w", encoding="utf8") as f:
-            json.dump(list(self.processed_files), f)
+            json.dump(list(self.processed_files), f, indent=4, ensure_ascii=False)
+        print(f"Cache saved to {self.json_cache_file}")
 
     def _register_shutdown_handlers(self) -> None:
         """Registra gli handler per gestire l'interruzione del processo"""
