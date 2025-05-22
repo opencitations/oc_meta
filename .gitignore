@@ -23,3 +23,5 @@ ts_upload_cache.json
 duplicated_brs_from_files/
 meta_output_csv/
 test/test_virtuoso_db
+gently_run.sh
+gently_stop.sh
