@@ -33,39 +33,30 @@ import redis
 import yaml
 from oc_meta.core.creator import Creator
 from oc_meta.core.curator import Curator
-from oc_meta.lib.file_manager import (
-    get_csv_data,
-    init_cache,
-    normalize_path,
-    pathoo,
-    sort_files,
-    zipit,
-)
+from oc_meta.lib.file_manager import (get_csv_data, init_cache, normalize_path,
+                                      pathoo, sort_files)
 from oc_meta.plugins.multiprocess.resp_agents_creator import RespAgentsCreator
 from oc_meta.plugins.multiprocess.resp_agents_curator import RespAgentsCurator
 from oc_meta.run.upload.on_triplestore import *
-from pebble import ProcessPool
-from time_agnostic_library.support import generate_config_file
-from tqdm import tqdm
-
 from oc_ocdm import Storer
 from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
 from oc_ocdm.prov import ProvSet
 from oc_ocdm.support.reporter import Reporter
+from pebble import ProcessPool
+from time_agnostic_library.support import generate_config_file
+from tqdm import tqdm
 
 
 class MetaProcess:
     def __init__(self, settings: dict, meta_config_path: str):
         # Mandatory settings
-        self.triplestore_url = settings["triplestore_url"]
+        self.triplestore_url = settings["triplestore_url"]  # Main triplestore for data
+        self.provenance_triplestore_url = settings["provenance_triplestore_url"]  # Separate triplestore for provenance
         self.input_csv_dir = normalize_path(settings["input_csv_dir"])
         self.base_output_dir = normalize_path(settings["base_output_dir"])
         self.resp_agent = settings["resp_agent"]
         self.info_dir = os.path.join(self.base_output_dir, "info_dir")
         self.output_csv_dir = os.path.join(self.base_output_dir, "csv")
-        self.distinct_output_dirs = (
-            True if settings["base_output_dir"] != settings["output_rdf_dir"] else False
-        )
         self.output_rdf_dir = (
             normalize_path(settings["output_rdf_dir"]) + os.sep + "rdf" + os.sep
         )
@@ -79,7 +70,6 @@ class MetaProcess:
         self.dir_split_number = settings["dir_split_number"]
         self.items_per_file = settings["items_per_file"]
         self.default_dir = settings["default_dir"]
-        self.rdf_output_in_chunks = settings["rdf_output_in_chunks"]
         self.zip_output_rdf = settings["zip_output_rdf"]
         self.source = settings["source"]
         self.valid_dois_cache = (
@@ -91,6 +81,7 @@ class MetaProcess:
             supplier_prefix[:-1] if supplier_prefix.endswith("0") else supplier_prefix
         )
         self.silencer = settings["silencer"]
+        self.generate_rdf_files = settings.get("generate_rdf_files", True)
         # Time-Agnostic_library integration
         self.time_agnostic_library_config = os.path.join(
             os.path.dirname(meta_config_path), "time_agnostic_library_config.json"
@@ -100,7 +91,7 @@ class MetaProcess:
                 config_path=self.time_agnostic_library_config,
                 dataset_urls=[self.triplestore_url],
                 dataset_dirs=list(),
-                provenance_urls=settings["provenance_endpoints"],
+                provenance_urls=[self.provenance_triplestore_url] if self.provenance_triplestore_url not in settings["provenance_endpoints"] else settings["provenance_endpoints"],
                 provenance_dirs=list(),
                 blazegraph_full_text_search=settings["blazegraph_full_text_search"],
                 fuseki_full_text_search=settings["fuseki_full_text_search"],
@@ -127,6 +118,9 @@ class MetaProcess:
         self.ts_upload_cache = settings.get("ts_upload_cache", "ts_upload_cache.json")
         self.ts_failed_queries = settings.get("ts_failed_queries", "failed_queries.txt")
         self.ts_stop_file = settings.get("ts_stop_file", ".stop_upload")
+        
+        self.data_update_dir = os.path.join(self.base_output_dir, "to_be_uploaded_data")
+        self.prov_update_dir = os.path.join(self.base_output_dir, "to_be_uploaded_prov")
 
     def prepare_folders(self) -> List[str]:
         completed = init_cache(self.cache_path)
@@ -138,13 +132,8 @@ class MetaProcess:
         files_to_be_processed = sort_files(
             list(files_in_input_csv_dir.difference(completed))
         )
-        for dir in [self.output_csv_dir, self.indexes_dir, self.output_rdf_dir]:
+        for dir in [self.output_csv_dir, self.indexes_dir]:
             pathoo(dir)
-        if self.rdf_output_in_chunks:
-            data_dir = os.path.join(self.output_rdf_dir, "data" + os.sep)
-            prov_dir = os.path.join(self.output_rdf_dir, "prov" + os.sep)
-            for dir in [prov_dir, data_dir]:
-                pathoo(dir)
         csv.field_size_limit(128)
         return files_to_be_processed
 
@@ -269,7 +258,7 @@ class MetaProcess:
                 modified_entities=modified_entities,
             )
             # with suppress_stdout():
-            self.store_data_and_prov(res_storer, prov_storer, filename)
+            self.store_data_and_prov(res_storer, prov_storer)
             return {"message": "success"}, cache_path, errors_path, filename
         except Exception as e:
             tb = traceback.format_exc()
@@ -280,22 +269,26 @@ class MetaProcess:
             return {"message": message}, cache_path, errors_path, filename
 
     def store_data_and_prov(
-        self, res_storer: Storer, prov_storer: Storer, filename: str
+        self, res_storer: Storer, prov_storer: Storer
     ) -> None:
-        if self.rdf_output_in_chunks:
-            filename_without_csv = filename[:-4]
-            f = os.path.join(
-                self.output_rdf_dir, "data", filename_without_csv + ".json"
-            )
-            res_storer.store_graphs_in_file(f, self.context_path)
-            res_storer.upload_all(
-                self.triplestore_url, self.output_rdf_dir, batch_size=10
-            )
-            f_prov = os.path.join(
-                self.output_rdf_dir, "prov", filename_without_csv + ".json"
-            )
-            prov_storer.store_graphs_in_file(f_prov, self.context_path)
-        else:
+        os.makedirs(self.data_update_dir, exist_ok=True)
+        os.makedirs(self.prov_update_dir, exist_ok=True)
+        
+        res_storer.upload_all(
+            triplestore_url=self.triplestore_url,
+            base_dir=self.data_update_dir,
+            batch_size=10,
+            save_queries=True
+        )
+        
+        prov_storer.upload_all(
+            triplestore_url=self.provenance_triplestore_url,
+            base_dir=self.prov_update_dir,
+            batch_size=10,
+            save_queries=True
+        )
+        
+        if self.generate_rdf_files:
             res_storer.store_all(
                 base_dir=self.output_rdf_dir,
                 base_iri=self.base_iri,
@@ -303,25 +296,11 @@ class MetaProcess:
                 process_id=None,
             )
             prov_storer.store_all(
-                self.output_rdf_dir, self.base_iri, self.context_path, process_id=None
+                self.output_rdf_dir, 
+                self.base_iri, 
+                self.context_path, 
+                process_id=None
             )
-            res_storer.upload_all(
-                triplestore_url=self.triplestore_url,
-                base_dir=self.output_rdf_dir,
-                batch_size=10,
-                save_queries=True,
-            )
-
-    def save_data(self):
-        output_dirname = (
-            f"meta_output_{datetime.now().strftime('%Y-%m-%dT%H_%M_%S_%f')}.zip"
-        )
-        dirs_to_zip = (
-            [self.base_output_dir, self.output_rdf_dir]
-            if self.distinct_output_dirs
-            else [self.base_output_dir]
-        )
-        zipit(dirs_to_zip, output_dirname)
 
     def run_sparql_updates(self, endpoint: str, folder: str, batch_size: int = 10):
         cache_manager = CacheManager(
@@ -398,9 +377,16 @@ def run_meta_process(
         if is_unix:
             delete_lock_files(base_dir=meta_process.base_output_dir)
 
+    # Run SPARQL updates for the main triplestore
     meta_process.run_sparql_updates(
         endpoint=settings["triplestore_url"],
-        folder=os.path.join(meta_process.output_rdf_dir, "to_be_uploaded"),
+        folder=os.path.join(meta_process.data_update_dir, "to_be_uploaded"),
+    )
+    
+    # Run SPARQL updates for the provenance triplestore
+    meta_process.run_sparql_updates(
+        endpoint=settings["provenance_triplestore_url"],
+        folder=os.path.join(meta_process.prov_update_dir, "to_be_uploaded"),
     )
 
 

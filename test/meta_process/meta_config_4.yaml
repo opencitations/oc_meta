@@ -20,8 +20,9 @@
 
 # Endpoint URL to load the output RDF
 triplestore_url: http://127.0.0.1:8805/sparql
+provenance_triplestore_url: http://127.0.0.1:8806/sparql
 # A list of triplestore URLs containing provenance metadata
-provenance_endpoints: []
+provenance_endpoints: [http://127.0.0.1:8806/sparql]
 # Directory where raw CSV files are stored
 input_csv_dir: test/meta_process/conflict_input
 # The path to the base directory to save all output files

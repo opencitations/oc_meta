@@ -20,6 +20,7 @@ BASE = os.path.join("test", "merger")
 OUTPUT = os.path.join(BASE, "output/")
 META_CONFIG = os.path.join("test", "merger", "meta_config.yaml")
 SERVER = "http://127.0.0.1:8805/sparql"
+PROV_SERVER = "http://127.0.0.1:8806/sparql"
 
 # Redis configuration
 REDIS_HOST = "localhost"
@@ -30,6 +31,7 @@ REDIS_CACHE_DB = 2  # For cache, using same test DB as on_triplestore_test.py
 
 def reset_triplestore():
     """Reset the test triplestore graphs"""
+    # Reset main triplestore
     endpoint = SPARQLWrapper(SERVER)
     for graph in [
         "https://w3id.org/oc/meta/br/",
@@ -41,6 +43,19 @@ def reset_triplestore():
         endpoint.setQuery(f"CLEAR GRAPH <{graph}>")
         endpoint.setMethod(POST)
         endpoint.query()
+        
+    # Reset provenance triplestore
+    prov_endpoint = SPARQLWrapper(PROV_SERVER)
+    for graph in [
+        "https://w3id.org/oc/meta/br/",
+        "https://w3id.org/oc/meta/ra/",
+        "https://w3id.org/oc/meta/re/",
+        "https://w3id.org/oc/meta/id/",
+        "https://w3id.org/oc/meta/ar/",
+    ]:
+        prov_endpoint.setQuery(f"CLEAR GRAPH <{graph}>")
+        prov_endpoint.setMethod(POST)
+        prov_endpoint.query()
 
 
 def reset_redis_counters():
@@ -79,6 +94,12 @@ class TestEntityMerger(unittest.TestCase):
         self.cache_file = os.path.join(self.temp_dir, "ts_upload_cache.json")
         self.failed_file = os.path.join(self.temp_dir, "failed_queries.txt")
         self.stop_file = os.path.join(self.temp_dir, ".stop_upload")
+        
+        # Create separate directories for data and provenance update queries
+        self.data_update_dir = os.path.join(self.temp_dir, "to_be_uploaded_data")
+        self.prov_update_dir = os.path.join(self.temp_dir, "to_be_uploaded_prov")
+        os.makedirs(self.data_update_dir, exist_ok=True)
+        os.makedirs(self.prov_update_dir, exist_ok=True)
 
         # Update config with Redis and cache settings
         with open(META_CONFIG, encoding="utf-8") as file:
@@ -92,6 +113,9 @@ class TestEntityMerger(unittest.TestCase):
                 "ts_upload_cache": self.cache_file,
                 "ts_failed_queries": self.failed_file,
                 "ts_stop_file": self.stop_file,
+                "provenance_triplestore_url": PROV_SERVER,
+                "data_update_dir": self.data_update_dir,
+                "prov_update_dir": self.prov_update_dir
             }
         )
         with open(META_CONFIG, "w", encoding="utf-8") as file:

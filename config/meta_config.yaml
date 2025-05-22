@@ -20,6 +20,8 @@
 
 # Endpoint URL to load the output RDF
 triplestore_url: http://127.0.0.1:19999/blazegraph/sparql
+# Endpoint URL to load the output provenance
+provenance_triplestore_url: http://127.0.0.1:8806/sparql
 # A list of triplestore URLs containing provenance metadata
 provenance_endpoints: []
 # Directory where raw CSV files are stored
@@ -70,3 +72,5 @@ cache_endpoint: ''
 cache_update_endpoint: ''
 # Fields in the silencer list are only updated if there is no information on that field in OpenCitations Meta. For example, if 'author' is specified, any new authors are not added to the list if authors are already present.
 silencer: ['author', 'editor', 'publisher']
+# If True, generate and store the RDF files during the meta process. If False, RDF files will not be generated.
+generate_rdf_files: True

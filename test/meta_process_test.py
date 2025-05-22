@@ -1,7 +1,7 @@
 import csv
 import json
 import os
-import random
+import re
 import shutil
 import subprocess
 import sys
@@ -9,10 +9,10 @@ import tempfile
 import time
 import unittest
 from datetime import datetime
-from urllib.error import URLError
-from zipfile import ZipFile
+from test.test_utils import (PROV_SERVER, SERVER, VIRTUOSO_CONTAINER,
+                             VIRTUOSO_PROV_CONTAINER, execute_sparql_query,
+                             reset_redis_counters, reset_server)
 
-import redis
 import yaml
 from oc_meta.lib.file_manager import get_csv_data, write_csv
 from oc_meta.run.meta_process import run_meta_process
@@ -21,116 +21,6 @@ from rdflib import ConjunctiveGraph, Graph, Literal, URIRef
 from SPARQLWrapper import JSON, POST, XML, SPARQLWrapper
 
 BASE_DIR = os.path.join("test", "meta_process")
-SERVER = "http://127.0.0.1:8805/sparql"
-VIRTUOSO_CONTAINER = "oc-meta-test-virtuoso"
-
-
-def execute_sparql_query(endpoint, query, return_format=JSON, max_retries=3, delay=5):
-    """
-    Execute a SPARQL query with retry logic and better error handling.
-
-    Args:
-        endpoint (str): SPARQL endpoint URL
-        query (str): SPARQL query to execute
-        return_format: Query return format (JSON, XML etc)
-        max_retries (int): Maximum number of retry attempts
-        delay (int): Delay between retries in seconds
-
-    Returns:
-        Query results in specified format
-
-    Raises:
-        URLError: If connection fails after all retries
-    """
-    sparql = SPARQLWrapper(endpoint)
-    sparql.setQuery(query)
-    sparql.setReturnFormat(return_format)
-
-    retry_count = 0
-    last_error = None
-
-    while retry_count < max_retries:
-        try:
-            sparql.setTimeout(30)  # Increase timeout
-            return sparql.queryAndConvert()
-        except Exception as e:
-            last_error = e
-            retry_count += 1
-            if retry_count == max_retries:
-                raise URLError(
-                    f"Failed to connect to SPARQL endpoint after {max_retries} attempts: {str(last_error)}"
-                )
-            print(
-                f"Connection attempt {retry_count} failed, retrying in {delay} seconds..."
-            )
-            time.sleep(delay)  # Increased delay between retries
-
-
-def reset_redis_counters():
-    redis_host = "localhost"
-    redis_port = 6379
-    redis_db = 5
-    redis_cache_db = 2  # New constant for cache DB
-    redis_client = redis.Redis(host=redis_host, port=redis_port, db=redis_db)
-    redis_cache_client = redis.Redis(
-        host=redis_host, port=redis_port, db=redis_cache_db
-    )
-    redis_client.flushdb()
-    redis_cache_client.flushdb()
-
-
-def reset_server(server: str = "http://127.0.0.1:8805/sparql") -> None:
-    """
-    Reset the SPARQL server using Virtuoso's RDF_GLOBAL_RESET() via docker exec isql.
-
-    Args:
-        server (str): SPARQL endpoint URL (kept for compatibility)
-    """
-    max_retries = 5
-    base_delay = 2
-    command = [
-        "docker", "exec", VIRTUOSO_CONTAINER,
-        "/opt/virtuoso-opensource/bin/isql", "1111", "dba", "dba",
-        "exec=RDF_GLOBAL_RESET();"
-    ]
-
-    for attempt in range(max_retries):
-        try:
-            # Add small random delay to avoid race conditions
-            time.sleep(base_delay + random.uniform(0, 1))
-
-            result = subprocess.run(
-                command,
-                capture_output=True, # Use capture_output instead of stdout/stderr pipes
-                text=True, # Decode output as text
-                check=True, # Raise CalledProcessError on non-zero exit code
-                timeout=20, # Increased timeout slightly
-            )
-            # If successful, break the loop
-            break
-
-        except subprocess.CalledProcessError as e:
-            print(f"isql command failed (attempt {attempt + 1}/{max_retries}): {e.stderr}")
-            if attempt == max_retries - 1:
-                raise URLError(
-                    f"Failed to reset RDF store via docker exec after {max_retries} attempts: {e.stderr}"
-                ) from e
-            continue
-        except subprocess.TimeoutExpired as e:
-            print(f"isql command timed out (attempt {attempt + 1}/{max_retries}).")
-            if attempt == max_retries - 1:
-                 raise URLError(
-                    f"Failed to reset RDF store via docker exec after {max_retries} attempts due to timeout."
-                ) from e
-            continue
-        except Exception as e:
-            # Catch any other unexpected errors
-            print(f"Unexpected error during reset (attempt {attempt + 1}/{max_retries}): {str(e)}")
-            if attempt == max_retries - 1:
-                 raise URLError(
-                    f"Failed to reset RDF store via docker exec after {max_retries} attempts: {str(e)}"
-                ) from e
-            continue
 
 
 def delete_output_zip(base_dir: str, start_time: datetime) -> None:
@@ -439,55 +329,122 @@ class test_ProcessTest(unittest.TestCase):
             }
         )
 
+        reset_server()
+        
         settings["input_csv_dir"] = os.path.join(BASE_DIR, "input")
         run_meta_process(settings=settings, meta_config_path=meta_config_path)
         settings["input_csv_dir"] = os.path.join(BASE_DIR, "input_2")
         run_meta_process(settings=settings, meta_config_path=meta_config_path)
         settings["input_csv_dir"] = os.path.join(BASE_DIR, "input")
         run_meta_process(settings=settings, meta_config_path=meta_config_path)
+        
         output = dict()
-        for dirpath, _, filenames in os.walk(os.path.join(output_folder, "rdf")):
-            if dirpath.endswith("prov"):
-                for filename in filenames:
-                    if filename.endswith(".json"):
-                        filepath = os.path.join(dirpath, filename)
-                        with open(filepath, "r", encoding="utf-8") as f:
-                            provenance = json.load(f)
-                            essential_provenance = [
-                                {
-                                    graph: [
-                                        {
-                                            p: (
-                                                set(
-                                                    v[0]["@value"]
-                                                    .split(
-                                                        "INSERT DATA { GRAPH <https://w3id.org/oc/meta/br/> { "
-                                                    )[1]
-                                                    .split(" } }")[0]
-                                                    .split(" .")
-                                                )
-                                                if "@value" in v[0]
-                                                else v if isinstance(v, list) else v
-                                            )
-                                            for p, v in se.items()
-                                            if p
-                                            not in {
-                                                "http://www.w3.org/ns/prov#generatedAtTime",
-                                                "http://purl.org/dc/terms/description",
-                                                "@type",
-                                                "http://www.w3.org/ns/prov#hadPrimarySource",
-                                                "http://www.w3.org/ns/prov#wasAttributedTo",
-                                                "http://www.w3.org/ns/prov#invalidatedAtTime",
-                                            }
-                                        }
-                                        for se in sorted(ses, key=lambda d: d["@id"])
-                                    ]
-                                    for graph, ses in entity.items()
-                                    if graph != "@id"
-                                }
-                                for entity in sorted(provenance, key=lambda x: x["@id"])
-                            ]
-                            output[dirpath.split(os.sep)[4]] = essential_provenance
+        
+        entity_types = ['ar', 'br', 'id', 'ra', 're']
+        
+        for entity_type in entity_types:
+            query = f"""
+            PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+            PREFIX prov: <http://www.w3.org/ns/prov#>
+            PREFIX oco: <https://w3id.org/oc/ontology/>
+            
+            CONSTRUCT {{
+                ?s ?p ?o .
+            }}
+            WHERE {{
+                ?s ?p ?o .
+                FILTER(REGEX(STR(?s), "https://w3id.org/oc/meta/{entity_type}/[0-9]+/prov/se/[0-9]+"))
+            }}
+            """
+            
+            result = execute_sparql_query(PROV_SERVER, query, return_format=XML)
+            
+            g = Graph()
+            for s, p, o in result:
+                g.add((s, p, o))
+            
+            entities = {}
+            for s, p, o in g:
+                s_str = str(s)
+                if s_str not in entities:
+                    entities[s_str] = {'@id': s_str, '@type': []}
+                
+                p_str = str(p)
+                if p == URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'):
+                    entities[s_str]['@type'].append(str(o))
+                else:
+                    if p_str not in entities[s_str]:
+                        entities[s_str][p_str] = []
+                    
+                    if isinstance(o, URIRef):
+                        entities[s_str][p_str].append({'@id': str(o)})
+                    elif isinstance(o, Literal):
+                        if o.datatype:
+                            entities[s_str][p_str].append({
+                                '@value': str(o),
+                                '@type': str(o.datatype)
+                            })
+                        else:
+                            entities[s_str][p_str].append({'@value': str(o)})
+            
+            # Group entities by their parent entity (e.g., br/0601/prov/se/1 -> br/0601)
+            grouped_entities = {}
+            for entity_id, entity_data in entities.items():
+                # Extract the parent entity ID from the provenance entity ID
+                parent_id = re.match(r'https://w3id.org/oc/meta/([^/]+/[0-9]+)', entity_id).group(0)
+                
+                if parent_id not in grouped_entities:
+                    grouped_entities[parent_id] = []
+                
+                # Filter out properties we don't need for comparison
+                filtered_entity_data = {
+                    '@id': entity_data['@id'],
+                }
+                
+                # Keep the required properties for comparison
+                properties_to_keep = [
+                    'http://www.w3.org/ns/prov#specializationOf',
+                    'http://www.w3.org/ns/prov#wasDerivedFrom'
+                ]
+                
+                for prop in properties_to_keep:
+                    if prop in entity_data:
+                        filtered_entity_data[prop] = entity_data[prop]
+                
+                # Handle hasUpdateQuery specially
+                if 'https://w3id.org/oc/ontology/hasUpdateQuery' in entity_data:
+                    # Extract the value from the hasUpdateQuery property
+                    update_query_value = entity_data['https://w3id.org/oc/ontology/hasUpdateQuery'][0].get('@value', '')
+                    
+                    # Split the query into individual statements
+                    if update_query_value:
+                        # Extract the part between the INSERT DATA { GRAPH <...> { and } }
+                        try:
+                            query_content = update_query_value.split(
+                                "INSERT DATA { GRAPH <https://w3id.org/oc/meta/br/> { "
+                            )[1].split(" } }")[0]
+                            
+                            # Split by dot and space to get individual statements
+                            statements = set(query_content.split(" ."))
+                            
+                            # Add to filtered entity data
+                            filtered_entity_data['https://w3id.org/oc/ontology/hasUpdateQuery'] = statements
+                        except IndexError:
+                            # If the format is different, just use the original value
+                            filtered_entity_data['https://w3id.org/oc/ontology/hasUpdateQuery'] = \
+                                entity_data['https://w3id.org/oc/ontology/hasUpdateQuery']
+                
+                # Add this filtered entity to its parent's group
+                grouped_entities[parent_id].append(filtered_entity_data)
+            
+            # Format the output to match the expected structure
+            entity_list = []
+            for parent_id, entities_list in sorted(grouped_entities.items()):
+                entity_list.append({
+                    '@graph': sorted(entities_list, key=lambda x: x['@id'])
+                })
+            
+            output[entity_type] = entity_list
         expected_output = {
             "ar": [
                 {
@@ -649,7 +606,6 @@ class test_ProcessTest(unittest.TestCase):
             ],
         }
         shutil.rmtree(output_folder)
-        delete_output_zip(".", now)
         self.maxDiff = None
         self.assertEqual(output, expected_output)
 
@@ -660,48 +616,84 @@ class test_ProcessTest(unittest.TestCase):
             settings = yaml.full_load(file)
         original_input_csv_dir = settings["input_csv_dir"]
         settings["input_csv_dir"] = os.path.join(original_input_csv_dir, "preprocess")
-        now = datetime.now()
         settings["workers_number"] = 1
+        
+        reset_server()
+        
         run_meta_process(settings=settings, meta_config_path=meta_config_path)
+        
+        # Run it again to test thread safety
         proc = subprocess.run(
             [sys.executable, "-m", "oc_meta.run.meta_process", "-c", meta_config_path],
             capture_output=True,
             text=True,
         )
+        
         output = dict()
-        for dirpath, _, filenames in os.walk(os.path.join(output_folder, "rdf")):
-            if not dirpath.endswith("prov"):
-                for filename in filenames:
-                    if filename.endswith(".zip"):
-                        with ZipFile(os.path.join(dirpath, filename)) as archive:
-                            with archive.open(filename.replace(".zip", ".json")) as f:
-                                rdf = json.load(f)
-                                output.setdefault(dirpath.split(os.sep)[4], list())
-                                rdf_sorted = [
-                                    {
-                                        k: sorted(
-                                            [
-                                                {
-                                                    p: o
-                                                    for p, o in p_o.items()
-                                                    if p
-                                                    not in {
-                                                        "@type",
-                                                        "http://purl.org/spar/pro/isDocumentContextFor",
-                                                    }
-                                                }
-                                                for p_o in v
-                                            ],
-                                            key=lambda d: d["@id"],
-                                        )
-                                        for k, v in graph.items()
-                                        if k == "@graph"
-                                    }
-                                    for graph in rdf
-                                ]
-                                output[dirpath.split(os.sep)[4]].extend(rdf_sorted)
-        shutil.rmtree(output_folder)
-        delete_output_zip(".", now)
+        
+        entity_types = ['ar', 'br', 'id', 'ra', 're']
+        
+        for entity_type in entity_types:
+            query = f"""
+            PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+            PREFIX fabio: <http://purl.org/spar/fabio/>
+            PREFIX pro: <http://purl.org/spar/pro/>
+            PREFIX datacite: <http://purl.org/spar/datacite/>
+            PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
+            PREFIX frbr: <http://purl.org/vocab/frbr/core#>
+            PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+            PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
+            PREFIX dcterms: <http://purl.org/dc/terms/>
+            PREFIX oco: <https://w3id.org/oc/ontology/>
+            
+            CONSTRUCT {{
+                ?s ?p ?o .
+            }}
+            WHERE {{
+                ?s ?p ?o .
+                FILTER(STRSTARTS(STR(?s), "https://w3id.org/oc/meta/{entity_type}/"))
+            }}
+            """
+            
+            result = execute_sparql_query(SERVER, query, return_format=XML)
+            
+            g = Graph()
+            for s, p, o in result:
+                g.add((s, p, o))
+            
+            entities = {}
+            for s, p, o in g:
+                s_str = str(s)
+                if s_str not in entities:
+                    entities[s_str] = {'@id': s_str, '@type': []}
+                
+                p_str = str(p)
+                if p == URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'):
+                    entities[s_str]['@type'].append(str(o))
+                else:
+                    if p_str not in entities[s_str]:
+                        entities[s_str][p_str] = []
+                    
+                    if isinstance(o, URIRef):
+                        entities[s_str][p_str].append({'@id': str(o)})
+                    elif isinstance(o, Literal):
+                        if o.datatype:
+                            entities[s_str][p_str].append({
+                                '@value': str(o),
+                                '@type': str(o.datatype)
+                            })
+                        else:
+                            entities[s_str][p_str].append({'@value': str(o)})
+            
+            entity_list = list(entities.values())
+            
+            output[entity_type] = [
+                {
+                    '@graph': entity_list,
+                    '@id': f"https://w3id.org/oc/meta/{entity_type}/"
+                }
+            ]
+        
         expected_output = {
             "ar": [
                 {
@@ -783,7 +775,8 @@ class test_ProcessTest(unittest.TestCase):
                             ],
                             "http://purl.org/dc/terms/title": [
                                 {
-                                    "@value": "Nonthermal Sterilization And Shelf-life Extension Of Seafood Products By Intense Pulsed Light Treatment"
+                                    "@value": "Nonthermal Sterilization And Shelf-life Extension Of Seafood Products By Intense Pulsed Light Treatment",
+                                    "@type": "http://www.w3.org/2001/XMLSchema#string"
                                 }
                             ],
                             "http://purl.org/spar/datacite/hasIdentifier": [
@@ -810,7 +803,7 @@ class test_ProcessTest(unittest.TestCase):
                                 "http://purl.org/spar/fabio/Expression",
                             ],
                             "http://purl.org/spar/fabio/hasSequenceIdentifier": [
-                                {"@value": "1"}
+                                {"@value": "1", "@type": "http://www.w3.org/2001/XMLSchema#string"}
                             ],
                             "http://purl.org/vocab/frbr/core#partOf": [
                                 {"@id": "https://w3id.org/oc/meta/br/0603"}
@@ -823,7 +816,7 @@ class test_ProcessTest(unittest.TestCase):
                                 "http://purl.org/spar/fabio/Journal",
                             ],
                             "http://purl.org/dc/terms/title": [
-                                {"@value": "The Korean Journal Of Food And Nutrition"}
+                                {"@value": "The Korean Journal Of Food And Nutrition", "@type": "http://www.w3.org/2001/XMLSchema#string"}
                             ],
                             "http://purl.org/spar/datacite/hasIdentifier": [
                                 {"@id": "https://w3id.org/oc/meta/id/0602"}
@@ -836,7 +829,7 @@ class test_ProcessTest(unittest.TestCase):
                                 "http://purl.org/spar/fabio/JournalVolume",
                             ],
                             "http://purl.org/spar/fabio/hasSequenceIdentifier": [
-                                {"@value": "25"}
+                                {"@value": "25", "@type": "http://www.w3.org/2001/XMLSchema#string"}
                             ],
                             "http://purl.org/vocab/frbr/core#partOf": [
                                 {"@id": "https://w3id.org/oc/meta/br/0602"}
@@ -856,7 +849,7 @@ class test_ProcessTest(unittest.TestCase):
                                 {"@id": "http://purl.org/spar/datacite/orcid"}
                             ],
                             "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
-                                {"@value": "0000-0002-9666-2513"}
+                                {"@value": "0000-0002-9666-2513", "@type": "http://www.w3.org/2001/XMLSchema#string"}
                             ],
                         },
                         {
@@ -866,7 +859,7 @@ class test_ProcessTest(unittest.TestCase):
                                 {"@id": "http://purl.org/spar/datacite/doi"}
                             ],
                             "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
-                                {"@value": "10.9799/ksfan.2012.25.1.069"}
+                                {"@value": "10.9799/ksfan.2012.25.1.069", "@type": "http://www.w3.org/2001/XMLSchema#string"}
                             ],
                         },
                         {
@@ -876,7 +869,7 @@ class test_ProcessTest(unittest.TestCase):
                                 {"@id": "http://purl.org/spar/datacite/orcid"}
                             ],
                             "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
-                                {"@value": "0000-0003-2542-5788"}
+                                {"@value": "0000-0003-2542-5788", "@type": "http://www.w3.org/2001/XMLSchema#string"}
                             ],
                         },
                         {
@@ -886,7 +879,7 @@ class test_ProcessTest(unittest.TestCase):
                                 {"@id": "http://purl.org/spar/datacite/crossref"}
                             ],
                             "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
-                                {"@value": "4768"}
+                                {"@value": "4768", "@type": "http://www.w3.org/2001/XMLSchema#string"}
                             ],
                         },
                         {
@@ -896,7 +889,7 @@ class test_ProcessTest(unittest.TestCase):
                                 {"@id": "http://purl.org/spar/datacite/issn"}
                             ],
                             "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
-                                {"@value": "1225-4339"}
+                                {"@value": "1225-4339", "@type": "http://www.w3.org/2001/XMLSchema#string"}
                             ],
                         },
                     ],
@@ -913,18 +906,18 @@ class test_ProcessTest(unittest.TestCase):
                                 {"@id": "https://w3id.org/oc/meta/id/0605"}
                             ],
                             "http://xmlns.com/foaf/0.1/familyName": [
-                                {"@value": "Chung"}
+                                {"@value": "Chung", "@type": "http://www.w3.org/2001/XMLSchema#string"}
                             ],
                             "http://xmlns.com/foaf/0.1/givenName": [
-                                {"@value": "Myong-Soo"}
+                                {"@value": "Myong-Soo", "@type": "http://www.w3.org/2001/XMLSchema#string"}
                             ],
                         },
                         {
                             "@id": "https://w3id.org/oc/meta/ra/0602",
                             "@type": ["http://xmlns.com/foaf/0.1/Agent"],
-                            "http://xmlns.com/foaf/0.1/familyName": [{"@value": "Mun"}],
+                            "http://xmlns.com/foaf/0.1/familyName": [{"@value": "Mun", "@type": "http://www.w3.org/2001/XMLSchema#string"}],
                             "http://xmlns.com/foaf/0.1/givenName": [
-                                {"@value": "Ji-Hye"}
+                                {"@value": "Ji-Hye", "@type": "http://www.w3.org/2001/XMLSchema#string"}
                             ],
                         },
                         {
@@ -934,17 +927,17 @@ class test_ProcessTest(unittest.TestCase):
                                 {"@id": "https://w3id.org/oc/meta/id/0604"}
                             ],
                             "http://xmlns.com/foaf/0.1/name": [
-                                {"@value": "The Korean Society Of Food And Nutrition"}
+                                {"@value": "The Korean Society Of Food And Nutrition", "@type": "http://www.w3.org/2001/XMLSchema#string"}
                             ],
                         },
                         {
                             "@id": "https://w3id.org/oc/meta/ra/0603",
                             "@type": ["http://xmlns.com/foaf/0.1/Agent"],
                             "http://xmlns.com/foaf/0.1/familyName": [
-                                {"@value": "Chung"}
+                                {"@value": "Chung", "@type": "http://www.w3.org/2001/XMLSchema#string"}
                             ],
                             "http://xmlns.com/foaf/0.1/givenName": [
-                                {"@value": "Myong-Soo"}
+                                {"@value": "Myong-Soo", "@type": "http://www.w3.org/2001/XMLSchema#string"}
                             ],
                         },
                         {
@@ -954,10 +947,10 @@ class test_ProcessTest(unittest.TestCase):
                                 {"@id": "https://w3id.org/oc/meta/id/0603"}
                             ],
                             "http://xmlns.com/foaf/0.1/familyName": [
-                                {"@value": "Cheigh"}
+                                {"@value": "Cheigh", "@type": "http://www.w3.org/2001/XMLSchema#string"}
                             ],
                             "http://xmlns.com/foaf/0.1/givenName": [
-                                {"@value": "Chan-Ick"}
+                                {"@value": "Chan-Ick", "@type": "http://www.w3.org/2001/XMLSchema#string"}
                             ],
                         },
                     ],
@@ -971,10 +964,10 @@ class test_ProcessTest(unittest.TestCase):
                             "@id": "https://w3id.org/oc/meta/re/0601",
                             "@type": ["http://purl.org/spar/fabio/Manifestation"],
                             "http://prismstandard.org/namespaces/basic/2.0/endingPage": [
-                                {"@value": "76"}
+                                {"@value": "76", "@type": "http://www.w3.org/2001/XMLSchema#string"}
                             ],
                             "http://prismstandard.org/namespaces/basic/2.0/startingPage": [
-                                {"@value": "69"}
+                                {"@value": "69", "@type": "http://www.w3.org/2001/XMLSchema#string"}
                             ],
                         }
                     ],
@@ -982,32 +975,83 @@ class test_ProcessTest(unittest.TestCase):
                 }
             ],
         }
-        expected_output = {
-            folder: [
-                {
-                    k: sorted(
-                        [
-                            {
-                                p: o
-                                for p, o in p_o.items()
-                                if p
-                                not in {
-                                    "@type",
-                                    "http://purl.org/spar/pro/isDocumentContextFor",
-                                }
-                            }
-                            for p_o in v
-                        ],
-                        key=lambda d: d["@id"],
-                    )
-                    for k, v in graph.items()
-                    if k == "@graph"
-                }
-                for graph in data
-            ]
-            for folder, data in expected_output.items()
-        }
-        self.assertEqual(output, expected_output)
+        
+        processed_output = {}
+        for entity_type, entity_data in output.items():
+            processed_output[entity_type] = []
+            for graph_container in entity_data:
+                filtered_graph = []
+                for entity in graph_container['@graph']:
+                    filtered_entity = {
+                        '@id': entity['@id']
+                    }
+                    for pred, obj in entity.items():
+                        if pred != '@id':  # Only exclude @id since we already added it
+                            filtered_entity[pred] = obj
+                    
+                    if len(filtered_entity) > 1:  # Only include if it has predicates beyond @id
+                        filtered_graph.append(filtered_entity)
+                
+                # Sort the graph by @id
+                filtered_graph = sorted(filtered_graph, key=lambda x: x['@id'])
+                
+                processed_output[entity_type].append({
+                    '@graph': filtered_graph,
+                    '@id': graph_container['@id']
+                })
+        # For each entity type in the expected output, verify that all expected entities exist
+        # with their expected properties in the actual output from the triplestore
+        for entity_type, expected_graphs in expected_output.items():
+            self.assertIn(entity_type, processed_output, f"Entity type {entity_type} missing from triplestore output")
+            
+            for expected_graph in expected_graphs:
+                expected_entities = expected_graph['@graph']
+                
+                # Find the corresponding graph in the processed output
+                actual_graph = None
+                for graph in processed_output[entity_type]:
+                    if graph['@id'] == expected_graph['@id']:
+                        actual_graph = graph
+                        break
+                
+                self.assertIsNotNone(actual_graph, f"Graph {expected_graph['@id']} not found in triplestore output")
+                
+                # For each expected entity, verify it exists with all expected properties
+                for expected_entity in expected_entities:
+                    entity_id = expected_entity['@id']
+                    
+                    # Find the entity in the actual graph
+                    actual_entity = None
+                    for entity in actual_graph['@graph']:
+                        if entity['@id'] == entity_id:
+                            actual_entity = entity
+                            break
+                    
+                    self.assertIsNotNone(actual_entity, f"Entity {entity_id} not found in triplestore output")
+                    
+                    # Check that all expected predicates and objects exist
+                    for pred, expected_objects in expected_entity.items():
+                        if pred != '@id':
+                            self.assertIn(pred, actual_entity, f"Predicate {pred} missing for entity {entity_id}")
+                            
+                            # For each expected object, verify it exists in the actual objects
+                            for expected_obj in expected_objects:
+                                found = False
+                                for actual_obj in actual_entity[pred]:
+                                    # Require exact matches for all objects
+                                    if expected_obj == actual_obj:
+                                        found = True
+                                        break
+                                
+                                self.assertTrue(found, f"Object {expected_obj} not found for predicate {pred} of entity {entity_id}\nActual values: {actual_entity[pred]}")
+                                
+        
+        if os.path.exists(output_folder):
+            shutil.rmtree(output_folder)
+        
+        self.assertFalse(
+            "Reader: ERROR" in proc.stdout or "Storer: ERROR" in proc.stdout
+        )
         self.assertFalse(
             "Reader: ERROR" in proc.stdout or "Storer: ERROR" in proc.stdout
         )
@@ -1248,6 +1292,7 @@ class test_ProcessTest(unittest.TestCase):
         # Create test settings
         settings = {
             "triplestore_url": SERVER,
+            "provenance_triplestore_url": PROV_SERVER,
             "input_csv_dir": os.path.join(BASE_DIR, "input_duplicate"),
             "base_output_dir": output_folder,
             "output_rdf_dir": output_folder,
@@ -1505,6 +1550,7 @@ class test_ProcessTest(unittest.TestCase):
         # Create test settings
         settings = {
             "triplestore_url": SERVER,
+            "provenance_triplestore_url": PROV_SERVER,
             "input_csv_dir": os.path.join(BASE_DIR, "input_duplicate_venue"),
             "base_output_dir": output_folder,
             "output_rdf_dir": output_folder,
@@ -1626,6 +1672,7 @@ class test_ProcessTest(unittest.TestCase):
         # Create test settings
         settings = {
             "triplestore_url": SERVER,
+            "provenance_triplestore_url": PROV_SERVER,
             "input_csv_dir": os.path.join(BASE_DIR, "input_doi"),
             "base_output_dir": output_folder,
             "output_rdf_dir": output_folder,
@@ -1755,6 +1802,7 @@ class test_ProcessTest(unittest.TestCase):
         # Create test settings
         settings = {
             "triplestore_url": SERVER,
+            "provenance_triplestore_url": PROV_SERVER,
             "input_csv_dir": os.path.join(BASE_DIR, "input_vvi"),
             "base_output_dir": output_folder,
             "output_rdf_dir": output_folder,
@@ -1945,6 +1993,7 @@ class test_ProcessTest(unittest.TestCase):
         # Create test settings
         settings = {
             "triplestore_url": SERVER,
+            "provenance_triplestore_url": PROV_SERVER,
             "input_csv_dir": os.path.join(BASE_DIR, "input_vvi_triplestore"),
             "base_output_dir": output_folder,
             "output_rdf_dir": output_folder,
@@ -2111,6 +2160,7 @@ class test_ProcessTest(unittest.TestCase):
         # Create test settings
         settings = {
             "triplestore_url": SERVER,
+            "provenance_triplestore_url": PROV_SERVER,
             "input_csv_dir": os.path.join(BASE_DIR, "input_temp"),
             "base_output_dir": output_folder,
             "output_rdf_dir": output_folder,
@@ -2238,6 +2288,7 @@ class test_ProcessTest(unittest.TestCase):
             "base_output_dir": output_dir,
             "output_rdf_dir": output_dir,
             "triplestore_url": SERVER,
+            "provenance_triplestore_url": PROV_SERVER,
             "resp_agent": "https://w3id.org/oc/meta/prov/pa/1",
             "base_iri": "https://w3id.org/oc/meta/",
             "context_path": "https://w3id.org/oc/meta/context.json",

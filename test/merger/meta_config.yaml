@@ -4,6 +4,7 @@ blazegraph_full_text_search: false
 cache_endpoint: ''
 cache_update_endpoint: ''
 context_path: https://w3id.org/oc/corpus/context.json
+data_update_dir: test/temp_entity_merger_test/to_be_uploaded_data
 default_dir: _
 dir_split_number: 10000
 fuseki_full_text_search: false
@@ -11,7 +12,10 @@ graphdb_connector_name: ''
 input_csv_dir: test/merger/input
 items_per_file: 1000
 output_rdf_dir: test/merger/output/
-provenance_endpoints: []
+prov_update_dir: test/temp_entity_merger_test/to_be_uploaded_prov
+provenance_endpoints:
+- http://127.0.0.1:8806/sparql
+provenance_triplestore_url: http://127.0.0.1:8806/sparql
 rdf_output_in_chunks: false
 redis_cache_db: 2
 redis_db: 5

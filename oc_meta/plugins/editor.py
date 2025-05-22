@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2022 Arcangelo Massari <arcangelo.massari@unibo.it>
+# Copyright (c) 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
 #
 # Permission to use, copy, modify, and/or distribute this software for any purpose
 # with or without fee is hereby granted, provided that the above copyright notice
@@ -31,7 +31,6 @@ from oc_ocdm.prov import ProvSet
 from oc_ocdm.reader import Reader
 from oc_ocdm.support.support import build_graph_from_results
 from rdflib import RDF, ConjunctiveGraph, URIRef
-from requests.exceptions import RequestException
 from SPARQLWrapper import JSON, SPARQLWrapper
 
 
@@ -65,7 +64,8 @@ class MetaEditor:
         with open(meta_config, encoding="utf-8") as file:
             settings = yaml.full_load(file)
         self.endpoint = settings["triplestore_url"]
-        self.base_dir = os.path.join(settings["output_rdf_dir"], "rdf") + os.sep
+        output_dir = settings.get("base_output_dir")
+        self.base_dir = os.path.join(output_dir, "rdf") + os.sep
         self.base_iri = settings["base_iri"]
         self.resp_agent = resp_agent
         self.dir_split = settings["dir_split_number"]

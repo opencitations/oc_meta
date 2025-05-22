@@ -18,8 +18,10 @@ import json
 import os
 import unittest
 from shutil import rmtree
+from test.test_utils import (PROV_SERVER, REDIS_CACHE_DB, REDIS_DB, REDIS_HOST,
+                             REDIS_PORT, SERVER, reset_redis_counters,
+                             reset_server)
 
-import redis
 import yaml
 from oc_meta.plugins.editor import EntityCache, MetaEditor
 from oc_meta.run.meta_process import run_meta_process
@@ -34,36 +36,6 @@ from SPARQLWrapper import POST, SPARQLWrapper
 BASE = os.path.join("test", "editor")
 OUTPUT = os.path.join(BASE, "output")
 META_CONFIG = os.path.join(BASE, "meta_config.yaml")
-SERVER = "http://127.0.0.1:8805/sparql"
-
-# Redis configuration
-REDIS_HOST = "localhost"
-REDIS_PORT = 6379
-REDIS_DB = 5  # For counters
-REDIS_CACHE_DB = 2  # For cache, using same test DB as on_triplestore_test.py
-
-
-def reset_server(server: str = SERVER) -> None:
-    ts = SPARQLWrapper(server)
-    for graph in {
-        "https://w3id.org/oc/meta/br/",
-        "https://w3id.org/oc/meta/ra/",
-        "https://w3id.org/oc/meta/re/",
-        "https://w3id.org/oc/meta/id/",
-        "https://w3id.org/oc/meta/ar/",
-    }:
-        ts.setQuery(f"CLEAR GRAPH <{graph}>")
-        ts.setMethod(POST)
-        ts.query()
-
-
-def reset_redis_counters():
-    redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
-    redis_cache_client = redis.Redis(
-        host=REDIS_HOST, port=REDIS_PORT, db=REDIS_CACHE_DB
-    )
-    redis_client.flushdb()
-    redis_cache_client.flushdb()
 
 
 def get_counter_handler():
@@ -91,6 +63,12 @@ class TestEditor(unittest.TestCase):
         self.cache_file = os.path.join(self.temp_dir, "ts_upload_cache.json")
         self.failed_file = os.path.join(self.temp_dir, "failed_queries.txt")
         self.stop_file = os.path.join(self.temp_dir, ".stop_upload")
+        
+        # Create separate directories for data and provenance update queries
+        self.data_update_dir = os.path.join(self.temp_dir, "to_be_uploaded_data")
+        self.prov_update_dir = os.path.join(self.temp_dir, "to_be_uploaded_prov")
+        os.makedirs(self.data_update_dir, exist_ok=True)
+        os.makedirs(self.prov_update_dir, exist_ok=True)
 
         with open(META_CONFIG, encoding="utf-8") as file:
             settings = yaml.full_load(file)
@@ -104,6 +82,9 @@ class TestEditor(unittest.TestCase):
                 "ts_upload_cache": self.cache_file,
                 "ts_failed_queries": self.failed_file,
                 "ts_stop_file": self.stop_file,
+                "provenance_triplestore_url": PROV_SERVER,
+                "data_update_dir": self.data_update_dir,
+                "prov_update_dir": self.prov_update_dir
             }
         )
         run_meta_process(settings=settings, meta_config_path=META_CONFIG)

@@ -36,8 +36,7 @@ class ProcessingStats(object):
         self.existing_ids_rows = 0
         self.processed_rows = 0
 
-def create_redis_connection(db=10):
-    # type: (int) -> redis.Redis
+def create_redis_connection(db: int = 10) -> redis.Redis:
     """Create and return a Redis connection."""
     return redis.Redis(
         host=REDIS_HOST,
@@ -46,8 +45,7 @@ def create_redis_connection(db=10):
         decode_responses=True
     )
 
-def check_ids_existence(ids, redis_client):
-    # type: (str, redis.Redis) -> bool
+def check_ids_existence(ids: str, redis_client: redis.Redis) -> bool:
     """
     Check if all IDs in the input string exist in Redis.
     Returns True if all IDs exist, False otherwise.
@@ -64,8 +62,7 @@ def check_ids_existence(ids, redis_client):
     
     return True
 
-def get_csv_files(directory):
-    # type: (str) -> List[str]
+def get_csv_files(directory: str) -> List[str]:
     """Get all CSV files in the specified directory (first level only)."""
     if not os.path.isdir(directory):
         raise ValueError("The specified path '{}' is not a directory".format(directory))
@@ -142,8 +139,7 @@ def process_csv_file(input_file, output_dir, current_file_num, redis_db=10, seen
 
     return file_num, stats, rows_to_write
 
-def print_processing_report(all_stats, input_files):
-    # type: (List[ProcessingStats], List[str]) -> None
+def print_processing_report(all_stats: List[ProcessingStats], input_files: List[str]) -> None:
     """Print a detailed report of the processing statistics."""
     total_stats = ProcessingStats()
     for stats in all_stats:
