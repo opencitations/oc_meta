@@ -1,5 +1,4 @@
 import unittest
-from pprint import pprint
 
 from oc_meta.lib.cleaner import Cleaner
 

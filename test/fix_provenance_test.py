@@ -348,7 +348,6 @@ class TestProvenanceFixing(unittest.TestCase):
         with zipfile.ZipFile(test_file, 'r') as zf:
             with zf.open('se.json') as f:
                 fixed_data = json.loads(f.read())
-        print(json.dumps(fixed_data, indent=4))
         graph_data = fixed_data[0]['@graph']
         
         # Check if the missing snapshot 2 was created
@@ -443,7 +442,6 @@ class TestProvenanceFixing(unittest.TestCase):
                 fixed_data = json.loads(f.read())
                 
         graph_data = fixed_data[0]['@graph']
-        print(json.dumps(fixed_data, indent=4))
         # Raccoglie gli snapshot e i loro numeri
         snapshots = {}
         for item in graph_data:

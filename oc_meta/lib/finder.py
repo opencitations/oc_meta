@@ -586,9 +586,9 @@ class ResourceFinder:
 
         if changes_made:
             print(f"\nChanges made to AR chain for BR: {metaid}")
-            print(f"Initial AR chain: {initial_dict_ar}")
-            print(f"Final AR chain: {dict_ar}")
-            print(f"Final ordered AR list: {ordered_ar_list}\n")
+            # print(f"Initial AR chain: {initial_dict_ar}")
+            # print(f"Final AR chain: {dict_ar}")
+            # print(f"Final ordered AR list: {ordered_ar_list}\n")
         
         return ordered_ar_list
 

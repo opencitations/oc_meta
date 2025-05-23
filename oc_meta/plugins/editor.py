@@ -64,6 +64,7 @@ class MetaEditor:
         with open(meta_config, encoding="utf-8") as file:
             settings = yaml.full_load(file)
         self.endpoint = settings["triplestore_url"]
+        self.provenance_endpoint = settings["provenance_triplestore_url"]
         output_dir = settings.get("base_output_dir")
         self.base_dir = os.path.join(output_dir, "rdf") + os.sep
         self.base_iri = settings["base_iri"]
@@ -71,6 +72,7 @@ class MetaEditor:
         self.dir_split = settings["dir_split_number"]
         self.n_file_item = settings["items_per_file"]
         self.zip_output_rdf = settings["zip_output_rdf"]
+        self.generate_rdf_files = settings.get("generate_rdf_files", True)
         self.reader = Reader()
         self.save_queries = save_queries
         self.update_queries = []
@@ -358,7 +360,7 @@ class MetaEditor:
                     self.save(g_set, supplier_prefix)
                 return False
 
-    def save(self, g_set: GraphSet, supplier_prefix: str = "") -> None:
+    def save(self, g_set: GraphSet, supplier_prefix: str = "") -> None:        
         provset = ProvSet(
             g_set,
             self.base_iri,
@@ -379,10 +381,16 @@ class MetaEditor:
             n_file_item=self.n_file_item,
             zip_output=self.zip_output_rdf,
         )
-        graph_storer.store_all(self.base_dir, self.base_iri)
-        prov_storer.store_all(self.base_dir, self.base_iri)
+        
+        if self.generate_rdf_files:
+            graph_storer.store_all(self.base_dir, self.base_iri)
+            prov_storer.store_all(self.base_dir, self.base_iri)
+            
         graph_storer.upload_all(
             self.endpoint, base_dir=self.base_dir, save_queries=self.save_queries
+        )
+        prov_storer.upload_all(
+            self.provenance_endpoint, base_dir=self.base_dir, save_queries=self.save_queries
         )
         g_set.commit_changes()
 

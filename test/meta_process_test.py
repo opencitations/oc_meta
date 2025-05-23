@@ -1604,8 +1604,6 @@ class test_ProcessTest(unittest.TestCase):
                 ids_by_value[value] = []
             ids_by_value[value].append(id)
 
-        print(json.dumps(ids_by_value, indent=4))
-
         # Cleanup
         shutil.rmtree(output_folder, ignore_errors=True)
         shutil.rmtree(

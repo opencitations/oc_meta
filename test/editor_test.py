@@ -31,7 +31,7 @@ from oc_ocdm.graph import GraphSet
 from oc_ocdm.prov import ProvSet
 from oc_ocdm.reader import Reader
 from rdflib import URIRef
-from SPARQLWrapper import POST, SPARQLWrapper
+from SPARQLWrapper import JSON, POST, SPARQLWrapper
 
 BASE = os.path.join("test", "editor")
 OUTPUT = os.path.join(BASE, "output")
@@ -46,6 +46,7 @@ class TestEditor(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.counter_handler = get_counter_handler()
+        cls.original_generate_rdf_files = None
 
     def setUp(self):
         reset_server()
@@ -82,6 +83,7 @@ class TestEditor(unittest.TestCase):
                 "ts_upload_cache": self.cache_file,
                 "ts_failed_queries": self.failed_file,
                 "ts_stop_file": self.stop_file,
+                "triplestore_url": SERVER,
                 "provenance_triplestore_url": PROV_SERVER,
                 "data_update_dir": self.data_update_dir,
                 "prov_update_dir": self.prov_update_dir
@@ -95,6 +97,14 @@ class TestEditor(unittest.TestCase):
         if os.path.exists(self.temp_dir):
             rmtree(self.temp_dir)
         reset_redis_counters()
+        
+        if self.original_generate_rdf_files is not None:
+            with open(META_CONFIG, encoding="utf-8") as file:
+                settings = yaml.full_load(file)
+            settings["generate_rdf_files"] = self.original_generate_rdf_files
+            with open(META_CONFIG, "w", encoding="utf-8") as file:
+                yaml.dump(settings, file)
+            self.original_generate_rdf_files = None
 
     def test_update_property(self):
         editor = MetaEditor(META_CONFIG, "https://orcid.org/0000-0002-8420-0696")
@@ -118,12 +128,67 @@ class TestEditor(unittest.TestCase):
             "has_next",
             URIRef("https://w3id.org/oc/meta/ar/06105"),
         )
+        
+        sparql = SPARQLWrapper(SERVER)
+        
+        sparql.setQuery("""
+        ASK { 
+            GRAPH <https://w3id.org/oc/meta/ar/> { 
+                <https://w3id.org/oc/meta/ar/06101> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/06104> . 
+            } 
+        }
+        """)
+        sparql.setReturnFormat(JSON)
+        result = sparql.queryAndConvert()
+        self.assertTrue(result["boolean"], "AR/06101 → AR/06104 relationship not found in triplestore")
+        
+        sparql.setQuery("""
+        ASK { 
+            GRAPH <https://w3id.org/oc/meta/ar/> { 
+                <https://w3id.org/oc/meta/ar/06104> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/06103> . 
+            } 
+        }
+        """)
+        result = sparql.queryAndConvert()
+        self.assertTrue(result["boolean"], "AR/06104 → AR/06103 relationship not found in triplestore")
+        
+        sparql.setQuery("""
+        ASK { 
+            GRAPH <https://w3id.org/oc/meta/ar/> { 
+                <https://w3id.org/oc/meta/ar/06103> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/06102> . 
+            } 
+        }
+        """)
+        result = sparql.queryAndConvert()
+        self.assertTrue(result["boolean"], "AR/06103 → AR/06102 relationship not found in triplestore")
+        
+        sparql.setQuery("""
+        ASK { 
+            GRAPH <https://w3id.org/oc/meta/ar/> { 
+                <https://w3id.org/oc/meta/ar/06102> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/06105> . 
+            } 
+        }
+        """)
+        result = sparql.queryAndConvert()
+        self.assertTrue(result["boolean"], "AR/06102 → AR/06105 relationship not found in triplestore")
+        
+        prov_sparql = SPARQLWrapper(PROV_SERVER)
+        prov_sparql.setQuery("""
+        ASK { 
+            ?s <http://www.w3.org/ns/prov#specializationOf> <https://w3id.org/oc/meta/ar/06101> ;
+               <http://www.w3.org/ns/prov#generatedAtTime> ?time .
+        }
+        """)
+        prov_sparql.setReturnFormat(JSON)
+        prov_result = prov_sparql.queryAndConvert()
+        self.assertTrue(prov_result["boolean"], "Provenance for AR/06101 not found in triplestore")
+        
         with open(
             os.path.join(OUTPUT, "rdf", "ar", "0610", "10000", "1000.json"),
             "r",
-            encoding="utf8",
-        ) as f:
-            ar_data = json.load(f)
+            encoding="utf-8",
+        ) as file:
+            ar_data = json.load(file)
             for graph in ar_data:
                 graph_data = graph["@graph"]
                 for ar in graph_data:
@@ -782,6 +847,87 @@ class TestEditor(unittest.TestCase):
                                 "https://w3id.org/oc/meta/br/06105/prov/se/2",
                             )
 
+    def test_no_rdf_files_generation(self):
+        """Test that when generate_rdf_files is False, data is still updated in triplestore but not in files"""
+        with open(META_CONFIG, encoding="utf-8") as file:
+            settings = yaml.full_load(file)
+        self.original_generate_rdf_files = settings.get("generate_rdf_files", True)
+        
+        settings["generate_rdf_files"] = False
+        with open(META_CONFIG, "w", encoding="utf-8") as file:
+            yaml.dump(settings, file)
+        
+        os.makedirs(os.path.join(OUTPUT, "rdf", "br", "0610", "10000"), exist_ok=True)
+        
+        editor = MetaEditor(META_CONFIG, "https://orcid.org/0000-0002-8420-0696")
+        
+        self.assertFalse(editor.generate_rdf_files, "generate_rdf_files should be False")
+        
+        g_set = GraphSet(base_iri="https://w3id.org/oc/meta/")
+        br = g_set.add_br(res=URIRef("https://w3id.org/oc/meta/br/06103"), resp_agent="https://orcid.org/0000-0002-8420-0696")
+        br.has_title("Original Title")
+        editor.save(g_set)
+        
+        editor.update_property(
+            URIRef("https://w3id.org/oc/meta/br/06103"),
+            "has_title",
+            "New Test Title",
+        )
+        
+        sparql = SPARQLWrapper(SERVER)
+        sparql.setQuery("""
+        SELECT ?p ?o
+        WHERE { 
+            GRAPH ?g { 
+                <https://w3id.org/oc/meta/br/06103> ?p ?o . 
+            } 
+        }
+        """)
+        sparql.setReturnFormat(JSON)
+        debug_result = sparql.queryAndConvert()
+        
+        title_found = False
+        if debug_result["results"]["bindings"]:
+            for binding in debug_result["results"]["bindings"]:
+                predicate = binding.get('p', {}).get('value')
+                obj = binding.get('o', {}).get('value')
+                
+                # Check if this is our title property with the expected value
+                if predicate == "http://purl.org/dc/terms/title" and obj == "New Test Title":
+                    title_found = True
+        else:
+            print("No properties found for BR/06103")
+            
+        self.assertTrue(title_found, "Title update not found in triplestore")
+        
+        prov_sparql = SPARQLWrapper(PROV_SERVER)
+        prov_sparql.setQuery("""
+        ASK { 
+            ?s <http://www.w3.org/ns/prov#specializationOf> <https://w3id.org/oc/meta/br/06103> .
+        }
+        """)
+        prov_sparql.setReturnFormat(JSON)
+        prov_result = prov_sparql.queryAndConvert()
+        self.assertTrue(prov_result["boolean"], "Provenance for BR/06103 not found in triplestore")
+        
+        target_file = os.path.join(OUTPUT, "rdf", "br", "0610", "10000", "1000.json")
+        if os.path.exists(target_file):
+            with open(target_file, "r", encoding="utf-8") as file:
+                try:
+                    data = json.load(file)
+                    contains_update = False
+                    for graph in data:
+                        for entity in graph.get("@graph", []):
+                            if entity.get("@id") == "https://w3id.org/oc/meta/br/06103":
+                                titles = entity.get("http://purl.org/dc/terms/title", [])
+                                for title in titles:
+                                    if title.get("@value") == "New Test Title":
+                                        contains_update = True
+                                        break
+                    self.assertFalse(contains_update, "RDF file should not contain the update")
+                except json.JSONDecodeError:
+                    pass
+        
     def test_merge_caches_entities(self):
         """Verifica che le entità vengano correttamente cachate durante merge successivi"""
         base_iri = "https://w3id.org/oc/meta/"

@@ -22,7 +22,6 @@ import os
 import shutil
 import unittest
 from csv import DictReader, DictWriter
-from pprint import pprint
 
 from oc_meta.plugins.orcid.index_orcid_doi import Index_orcid_doi
 

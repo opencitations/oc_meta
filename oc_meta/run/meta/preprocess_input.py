@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2024 Arcangelo <arcangelo.massari@unibo.it>
+# Copyright (c) 2025 Arcangelo <arcangelo.massari@unibo.it>
 #
 # Permission to use, copy, modify, and/or distribute this software for any purpose
 # with or without fee is hereby granted, provided that the above copyright notice
@@ -19,9 +19,10 @@ from __future__ import annotations
 import argparse
 import csv
 import os
-from typing import List
+from typing import List, Union
 
 import redis
+from SPARQLWrapper import JSON, SPARQLWrapper
 from tqdm import tqdm
 
 ROWS_PER_FILE = 3000
@@ -45,7 +46,7 @@ def create_redis_connection(db: int = 10) -> redis.Redis:
         decode_responses=True
     )
 
-def check_ids_existence(ids: str, redis_client: redis.Redis) -> bool:
+def check_ids_existence_redis(ids: str, redis_client: redis.Redis) -> bool:
     """
     Check if all IDs in the input string exist in Redis.
     Returns True if all IDs exist, False otherwise.
@@ -55,12 +56,75 @@ def check_ids_existence(ids: str, redis_client: redis.Redis) -> bool:
 
     id_list = ids.split()
     
-    # Check each ID in Redis
     for id_str in id_list:
         if not redis_client.get(id_str):
             return False
     
     return True
+
+def check_ids_existence_sparql(ids: str, sparql_endpoint: str) -> bool:
+    """
+    Check if all IDs in the input string exist in the SPARQL endpoint.
+    Returns True if all IDs exist, False otherwise.
+    """
+    if not ids:
+        return False
+
+    id_list = ids.split()
+    sparql = SPARQLWrapper(sparql_endpoint)
+    
+    for id_str in id_list:
+        escaped_id = id_str.replace("'", "\\'").replace('"', '\\"')
+        
+        parts = escaped_id.split(":", 1)
+        scheme = parts[0]
+        value = parts[1]
+        
+        query = f"""
+        PREFIX datacite: <http://purl.org/spar/datacite/>
+        PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+        PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
+
+        ASK {{
+            ?identifier datacite:usesIdentifierScheme datacite:{scheme} ;
+                        literal:hasLiteralValue ?value .
+            FILTER(
+                ?value = "{value}" ||
+                ?value = "{value}"^^xsd:string
+            )
+        }}
+        """
+
+        sparql.setQuery(query)
+        sparql.setReturnFormat(JSON)
+        
+        try:
+            results = sparql.query().convert()
+            if not results.get('boolean', False):
+                return False
+        except Exception:
+            return False
+    
+    return True
+
+def check_ids_existence(ids: str, storage_type: str, storage_reference: Union[redis.Redis, str]) -> bool:
+    """
+    Check if all IDs in the input string exist in the storage.
+    
+    Args:
+        ids: String of space-separated IDs to check
+        storage_type: Either 'redis' or 'sparql'
+        storage_reference: Redis client or SPARQL endpoint URL
+        
+    Returns:
+        True if all IDs exist, False otherwise
+    """
+    if storage_type == 'redis':
+        return check_ids_existence_redis(ids, storage_reference)
+    elif storage_type == 'sparql':
+        return check_ids_existence_sparql(ids, storage_reference)
+    else:
+        raise ValueError(f"Invalid storage type: {storage_type}. Must be 'redis' or 'sparql'")
 
 def get_csv_files(directory: str) -> List[str]:
     """Get all CSV files in the specified directory (first level only)."""
@@ -73,7 +137,8 @@ def get_csv_files(directory: str) -> List[str]:
         if f.endswith('.csv') and os.path.isfile(os.path.join(directory, f))
     ]
 
-def process_csv_file(input_file, output_dir, current_file_num, redis_db=10, seen_rows=None, pending_rows=None):
+def process_csv_file(input_file, output_dir, current_file_num, storage_type='redis', 
+                     storage_reference=None, redis_db=10, seen_rows=None, pending_rows=None):
     """
     Process a single CSV file and write non-duplicate rows with non-existing IDs to output files.
     
@@ -81,7 +146,10 @@ def process_csv_file(input_file, output_dir, current_file_num, redis_db=10, seen
         input_file: Path to the input CSV file
         output_dir: Directory where output files will be written
         current_file_num: Number to use for the next output file
-        redis_db: Redis database number to use (default: 10)
+        storage_type: Type of storage to check IDs against ('redis' or 'sparql')
+        storage_reference: Redis client or SPARQL endpoint URL. If None and storage_type is 'redis', 
+                          a new connection will be created
+        redis_db: Redis database number to use if storage_type is 'redis' and storage_reference is None
         seen_rows: Set of previously seen rows (for cross-file deduplication)
         pending_rows: List of rows waiting to be written (for cross-file batching)
     
@@ -91,7 +159,12 @@ def process_csv_file(input_file, output_dir, current_file_num, redis_db=10, seen
     rows_to_write = pending_rows if pending_rows is not None else []
     file_num = current_file_num
     seen_rows = seen_rows if seen_rows is not None else set()
-    redis_client = create_redis_connection(redis_db)
+    
+    if storage_type == 'redis':
+        storage_ref = storage_reference if storage_reference is not None else create_redis_connection(redis_db)
+    else:
+        storage_ref = storage_reference
+        
     stats = ProcessingStats()
 
     while True:
@@ -110,15 +183,13 @@ def process_csv_file(input_file, output_dir, current_file_num, redis_db=10, seen
                         
                     seen_rows.add(row_hash)
                     
-                    # Skip row if all IDs exist in Redis
-                    if check_ids_existence(row['id'], redis_client):
+                    if check_ids_existence(row['id'], storage_type, storage_ref):
                         stats.existing_ids_rows += 1
                         continue
                         
                     stats.processed_rows += 1
                     rows_to_write.append(row)
                     
-                    # Write file when we reach ROWS_PER_FILE
                     if len(rows_to_write) >= ROWS_PER_FILE:
                         output_file = os.path.join(output_dir, "{}.csv".format(file_num))
                         with open(output_file, 'w', encoding='utf-8', newline='') as out_f:
@@ -127,19 +198,17 @@ def process_csv_file(input_file, output_dir, current_file_num, redis_db=10, seen
                             writer.writerows(rows_to_write)
                         file_num += 1
                         rows_to_write = []
-            break  # Se arriviamo qui, la lettura è andata a buon fine
+            break
             
         except csv.Error as e:
             if "field larger than field limit" in str(e):
-                # Aumenta il limite solo se necessario
                 csv.field_size_limit(int(csv.field_size_limit() * 2))
-                # Il ciclo while riproverà con il nuovo limite
             else:
                 raise e
 
     return file_num, stats, rows_to_write
 
-def print_processing_report(all_stats: List[ProcessingStats], input_files: List[str]) -> None:
+def print_processing_report(all_stats: List[ProcessingStats], input_files: List[str], storage_type: str) -> None:
     """Print a detailed report of the processing statistics."""
     total_stats = ProcessingStats()
     for stats in all_stats:
@@ -150,6 +219,7 @@ def print_processing_report(all_stats: List[ProcessingStats], input_files: List[
 
     print("\nProcessing Report:")
     print("=" * 50)
+    print("Storage type used: {}".format(storage_type.upper()))
     print("Total input files processed: {}".format(len(input_files)))
     print("Total input rows: {}".format(total_stats.total_rows))
     print("Rows discarded (duplicates): {}".format(total_stats.duplicate_rows))
@@ -168,7 +238,7 @@ def print_processing_report(all_stats: List[ProcessingStats], input_files: List[
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Process CSV files and check IDs against Redis"
+        description="Process CSV files and check IDs against a storage system (Redis or SPARQL)"
     )
     parser.add_argument(
         "input_dir",
@@ -179,14 +249,27 @@ def main():
         help="Directory for output CSV files"
     )
     parser.add_argument(
+        "--storage-type",
+        choices=["redis", "sparql"],
+        default="redis",
+        help="Storage type to check IDs against (redis or sparql, default: redis)"
+    )
+    parser.add_argument(
         "--redis-db",
         type=int,
         default=10,
-        help="Redis database number to use (default: 10)"
+        help="Redis database number to use if storage type is redis (default: 10)"
+    )
+    parser.add_argument(
+        "--sparql-endpoint",
+        help="SPARQL endpoint URL if storage type is sparql"
     )
     args = parser.parse_args()
 
-    # Create output directory if it doesn't exist
+    if args.storage_type == "sparql" and not args.sparql_endpoint:
+        print("Error: --sparql-endpoint is required when --storage-type is sparql")
+        return 1
+
     os.makedirs(args.output_dir, exist_ok=True)
 
     try:
@@ -196,24 +279,32 @@ def main():
             return 1
 
         print("Found {} CSV files to process".format(len(csv_files)))
+        print("Using {} for ID existence checking".format(args.storage_type.upper()))
+        
+        storage_reference = None
+        if args.storage_type == "redis":
+            storage_reference = create_redis_connection(args.redis_db)
+        else:
+            storage_reference = args.sparql_endpoint
         
         current_file_num = 0
         all_stats = []
-        seen_rows = set()  # Set to track duplicates across all files
-        pending_rows = []  # List to track rows waiting to be written
+        seen_rows = set()
+        pending_rows = []
         
         for csv_file in tqdm(csv_files, desc="Processing CSV files"):
             current_file_num, stats, pending_rows = process_csv_file(
                 csv_file, 
                 args.output_dir, 
                 current_file_num,
-                args.redis_db,
-                seen_rows,
-                pending_rows
+                storage_type=args.storage_type,
+                storage_reference=storage_reference,
+                redis_db=args.redis_db,
+                seen_rows=seen_rows,
+                pending_rows=pending_rows
             )
             all_stats.append(stats)
         
-        # Write any remaining rows after processing all files
         if pending_rows:
             output_file = os.path.join(args.output_dir, "{}.csv".format(current_file_num))
             with open(output_file, 'w', encoding='utf-8', newline='') as out_f:
@@ -221,7 +312,7 @@ def main():
                 writer.writeheader()
                 writer.writerows(pending_rows)
             
-        print_processing_report(all_stats, csv_files)
+        print_processing_report(all_stats, csv_files, args.storage_type)
             
     except Exception as e:
         print("Error: {}".format(str(e)))

@@ -1515,7 +1515,6 @@ class TestCSVGeneratorLite(unittest.TestCase):
 
         # Check output
         output_data = get_csv_data(os.path.join(self.output_dir, "output_0.csv"))
-        print(output_data)
         self.assertEqual(len(output_data), 1)
 
         # Verify that we get at least some authors before the cycle is detected
@@ -2053,7 +2052,6 @@ class TestCSVGeneratorLite(unittest.TestCase):
         # Check output
         output_data = get_csv_data(os.path.join(self.output_dir, "output_0.csv"))
         self.assertEqual(len(output_data), 1)
-        print(output_data)
         # Verify basic metadata
         article = output_data[0]
         self.assertEqual(
@@ -2200,9 +2198,6 @@ class TestCSVGeneratorLite(unittest.TestCase):
         # Check output
         output_data = get_csv_data(os.path.join(self.output_dir, "output_0.csv"))
         self.assertEqual(len(output_data), 1)
-
-        # Print the actual output for analysis
-        print("\nActual output:", output_data[0]["author"])
 
         article = output_data[0]
         authors = article["author"].split("; ")

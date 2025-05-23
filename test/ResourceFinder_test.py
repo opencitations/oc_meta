@@ -1,6 +1,5 @@
 import os
 import unittest
-from pprint import pprint
 
 from rdflib import Graph
 from SPARQLWrapper import POST, SPARQLWrapper
