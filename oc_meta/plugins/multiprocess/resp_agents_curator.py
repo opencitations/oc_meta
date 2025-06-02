@@ -78,6 +78,22 @@ class RespAgentsCurator(Curator):
         self.filename = filename
         self.indexer(path_index, path_csv)
 
+    def collect_identifiers(self, valid_dois_cache):
+        """
+        Override parent method to maintain compatibility - RespAgentsCurator doesn't need venue_ids.
+        """
+        all_metavals = set()
+        all_idslist = set()
+        all_vvis = set()
+        for row in self.data:
+            metavals, idslist, vvis = self.extract_identifiers_and_metavals(
+                row, valid_dois_cache=valid_dois_cache
+            )
+            all_metavals.update(metavals)
+            all_idslist.update(idslist)
+            all_vvis.update(vvis)
+        return all_metavals, all_idslist, all_vvis
+
     def clean_ra(self, row, col_name):
         '''
         This method performs the deduplication process for responsible agents (authors, publishers and editors).

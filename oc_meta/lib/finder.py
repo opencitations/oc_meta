@@ -93,7 +93,7 @@ class ResourceFinder:
 
         return result_list
         
-    def retrieve_br_from_meta(self, metaid: str) -> Tuple[str, List[Tuple[str, str]], bool]:
+    def retrieve_br_from_meta(self, metaid: str) -> Tuple[str, List[Tuple[str, str]]]:
         '''
         Given a MetaID, it retrieves the title of the bibliographic resource having that MetaID and other identifiers of that entity.
 
@@ -308,111 +308,6 @@ class ResourceFinder:
             return f'{family_name}, {given_name}'
         else:
             return ''
-
-    # _______________________________VVI_________________________________ #
-
-    def retrieve_venue_from_meta(self, meta_id:str) -> Dict[str, Dict[str, str]]:
-        '''
-        Given a MetaID, it returns the structure of volumes and issues contained in the related venue.
-        The output has the following format: ::
-
-            {
-                'issue': {SEQUENCE_IDENTIFIER: {'id': META_ID}},
-                'volume': {
-                    SEQUENCE_IDENTIFIER: {
-                        'id': META_ID,
-                        'issue' {SEQUENCE_IDENTIFIER: {'id': META_ID}}
-                    }
-                }
-            }
-
-            {
-                'issue': {}, 
-                'volume': {
-                    '166': {'id': '4388', 'issue': {'4': {'id': '4389'}}}, 
-                    '172': {'id': '4434', 
-                        'issue': {
-                            '22': {'id': '4435'}, 
-                            '20': {'id': '4436'}, 
-                            '21': {'id': '4437'}, 
-                            '19': {'id': '4438'}
-                        }
-                    }
-                }
-            }    
-
-        :params meta_id: a MetaID
-        :type meta_id: str
-        :returns: Dict[str, Dict[str, str]] -- the venue structure with volumes and issues
-        '''
-        content = {
-            'issue': {},
-            'volume': {}
-        }
-
-        # Query per trovare tutti i volumi e issue collegati alla venue
-        query = f"""
-        CONSTRUCT {{
-            ?entity a ?type ;
-                   <{GraphEntity.iri_has_sequence_identifier}> ?seq ;
-                   <{GraphEntity.iri_part_of}> ?container .
-        }}
-        WHERE {{
-            ?entity <{GraphEntity.iri_part_of}>+ <{self.base_iri}/br/{meta_id}> .
-            VALUES ?type {{ <{GraphEntity.iri_journal_volume}> <{GraphEntity.iri_journal_issue}> }}
-            ?entity a ?type ;
-                   <{GraphEntity.iri_has_sequence_identifier}> ?seq ;
-                   <{GraphEntity.iri_part_of}> ?container .
-        }}
-        """
-        
-        # Esegui la query CONSTRUCT e aggiungi i risultati al grafo locale
-        construct_results = self.__query(query, return_format="xml")
-        self.local_g += construct_results
-
-        # Ora processa i risultati dal grafo locale come prima
-        volumes = {}  # Dizionario temporaneo per mappare gli ID dei volumi ai loro sequence numbers
-        for triple in self.local_g.triples((None, RDF.type, None)):
-            entity = triple[0]
-            entity_type = triple[2]
-            if entity_type == GraphEntity.iri_journal_volume:
-                entity_id = str(entity).replace(f'{self.base_iri}/br/', '')
-                for seq_triple in self.local_g.triples((entity, GraphEntity.iri_has_sequence_identifier, None)):
-                    seq = str(seq_triple[2])
-                    volumes[entity_id] = seq
-                    content['volume'][seq] = {
-                        'id': entity_id,
-                        'issue': {}
-                    }
-
-        # Processa le issue
-        for triple in self.local_g.triples((None, RDF.type, GraphEntity.iri_journal_issue)):
-            entity = triple[0]
-            entity_id = str(entity).replace(f'{self.base_iri}/br/', '')
-            seq = None
-            container = None
-            
-            for seq_triple in self.local_g.triples((entity, GraphEntity.iri_has_sequence_identifier, None)):
-                seq = str(seq_triple[2])
-            
-            for container_triple in self.local_g.triples((entity, GraphEntity.iri_part_of, None)):
-                container = str(container_triple[2])
-
-            if seq:
-                if container:
-                    container_id = container.replace(f'{self.base_iri}/br/', '')
-                    # Se il container è un volume che conosciamo
-                    if container_id in volumes:
-                        volume_seq = volumes[container_id]
-                        content['volume'][volume_seq]['issue'][seq] = {'id': entity_id}
-                    else:
-                        # Se il container non è un volume conosciuto, mettiamo l'issue direttamente sotto la venue
-                        content['issue'][seq] = {'id': entity_id}
-                else:
-                    # Se non ha container, va direttamente sotto la venue
-                    content['issue'][seq] = {'id': entity_id}
-
-        return content
 
     def retrieve_ra_sequence_from_br_meta(self, metaid: str, col_name: str) -> List[Dict[str, tuple]]:
         '''
@@ -864,7 +759,6 @@ class ResourceFinder:
                         VALUES ?s {{ {' '.join([f"<{s}>" for s in batch])} }}
                         ?s ?p ?o.
                     }}'''
-                
                 result = self.__query(query_prefix)
                 if result:
                     for row in result['results']['bindings']:
@@ -959,24 +853,121 @@ class ResourceFinder:
             return subjects
 
         def get_initial_subjects_from_vvis(vvis):
-            """Convert vvis to a set of subjects based on batch queries."""
+            """Convert vvis to a set of subjects based on batch queries, handling venue ID to metaid conversion."""
             subjects = set()
-            for batch in batch_process(list(vvis), BATCH_SIZE):
-                if not batch:
-                    continue
+            
+            for volume, issue, venue_metaid, venue_ids_tuple in vvis:
+                venues_to_search = set()
+                
+                if venue_metaid:
+                    venues_to_search.add(venue_metaid)
+                
+                if venue_ids_tuple:
+                    venue_id_subjects = get_initial_subjects_from_identifiers(venue_ids_tuple)
+                    subjects.update(venue_id_subjects)
+                    
+                    # Convert venue URIs to metaid format for VVI search
+                    for venue_uri in venue_id_subjects:
+                        if '/br/' in venue_uri:
+                            metaid = venue_uri.replace(f'{self.base_iri}/br/', '')
+                            venues_to_search.add(f"omid:br/{metaid}")
+                
+                # Search for VVI structures for each venue
+                for venue_metaid_to_search in venues_to_search:
+                    venue_uri = f"{self.base_iri}/{venue_metaid_to_search.replace('omid:', '')}"
+                    sequence_value = issue if issue else volume
+                    escaped_sequence = sequence_value.replace('\\', '\\\\').replace('"', '\\"')
+                    
+                    if issue:
+                        # Search for journal issue
+                        if volume:
+                            # Search for issue within specific volume
+                            escaped_volume = volume.replace('\\', '\\\\').replace('"', '\\"')
+                            query = f'''
+                                SELECT ?s WHERE {{
+                                    {{
+                                        ?volume a <{GraphEntity.iri_journal_volume}> ;
+                                            <{GraphEntity.iri_part_of}> <{venue_uri}> ;
+                                            <{GraphEntity.iri_has_sequence_identifier}> "{escaped_volume}" .
+                                        ?s a <{GraphEntity.iri_journal_issue}> ;
+                                            <{GraphEntity.iri_part_of}> ?volume ;
+                                            <{GraphEntity.iri_has_sequence_identifier}> "{escaped_sequence}" .
+                                    }}
+                                    UNION
+                                    {{
+                                        ?volume a <{GraphEntity.iri_journal_volume}> ;
+                                            <{GraphEntity.iri_part_of}> <{venue_uri}> ;
+                                            <{GraphEntity.iri_has_sequence_identifier}> "{escaped_volume}"^^<{XSD.string}> .
+                                        ?s a <{GraphEntity.iri_journal_issue}> ;
+                                            <{GraphEntity.iri_part_of}> ?volume ;
+                                            <{GraphEntity.iri_has_sequence_identifier}> "{escaped_sequence}" .
+                                    }}
+                                    UNION
+                                    {{
+                                        ?volume a <{GraphEntity.iri_journal_volume}> ;
+                                            <{GraphEntity.iri_part_of}> <{venue_uri}> ;
+                                            <{GraphEntity.iri_has_sequence_identifier}> "{escaped_volume}" .
+                                        ?s a <{GraphEntity.iri_journal_issue}> ;
+                                            <{GraphEntity.iri_part_of}> ?volume ;
+                                            <{GraphEntity.iri_has_sequence_identifier}> "{escaped_sequence}"^^<{XSD.string}> .
+                                    }}
+                                    UNION
+                                    {{
+                                        ?volume a <{GraphEntity.iri_journal_volume}> ;
+                                            <{GraphEntity.iri_part_of}> <{venue_uri}> ;
+                                            <{GraphEntity.iri_has_sequence_identifier}> "{escaped_volume}"^^<{XSD.string}> .
+                                        ?s a <{GraphEntity.iri_journal_issue}> ;
+                                            <{GraphEntity.iri_part_of}> ?volume ;
+                                            <{GraphEntity.iri_has_sequence_identifier}> "{escaped_sequence}"^^<{XSD.string}> .
+                                    }}
+                                }}
+                            '''
+                        else:
+                            # Search for issue directly under venue (no volume specified)
+                            query = f'''
+                                SELECT ?s WHERE {{
+                                    {{
+                                        ?s a <{GraphEntity.iri_journal_issue}> ;
+                                            <{GraphEntity.iri_part_of}> <{venue_uri}> ;
+                                            <{GraphEntity.iri_has_sequence_identifier}> "{escaped_sequence}" .
+                                    }}
+                                    UNION
+                                    {{
+                                        ?s a <{GraphEntity.iri_journal_issue}> ;
+                                            <{GraphEntity.iri_part_of}> <{venue_uri}> ;
+                                            <{GraphEntity.iri_has_sequence_identifier}> "{escaped_sequence}"^^<{XSD.string}> .
+                                    }}
+                                }}
+                            '''
+                    else:
+                        # Search for journal volume (only if volume is specified)
+                        if volume:
+                            query = f'''
+                                SELECT ?s WHERE {{
+                                    {{
+                                        ?s a <{GraphEntity.iri_journal_volume}> ;
+                                            <{GraphEntity.iri_part_of}> <{venue_uri}> ;
+                                            <{GraphEntity.iri_has_sequence_identifier}> "{escaped_sequence}" .
+                                    }}
+                                    UNION
+                                    {{
+                                        ?s a <{GraphEntity.iri_journal_volume}> ;
+                                            <{GraphEntity.iri_part_of}> <{venue_uri}> ;
+                                            <{GraphEntity.iri_has_sequence_identifier}> "{escaped_sequence}"^^<{XSD.string}> .
+                                    }}
+                                }}
+                            '''
+                        else:
+                            # No volume specified, skip this VVI tuple
+                            continue
 
-                for volume, issue, venue_metaid in batch:
-                    vvi_type = GraphEntity.iri_journal_issue if issue else GraphEntity.iri_journal_volume
-                    query = f'''
-                        SELECT ?s WHERE {{
-                            ?s a <{vvi_type}>;
-                                <{GraphEntity.iri_part_of}>+ <{self.base_iri}/{venue_metaid.replace("omid:", "")}>;
-                                <{GraphEntity.iri_has_sequence_identifier}> "{issue if issue else volume}".
-                        }}
-                    '''
                     result = self.__query(query)
                     for row in result['results']['bindings']:
                         subjects.add(str(row['s']['value']))
+                    
+                    # Also add the venue itself as a subject
+                    subjects.add(venue_uri)
+            
             return subjects
 
         initial_subjects = set()
@@ -989,8 +980,7 @@ class ResourceFinder:
 
         if vvis:
             initial_subjects.update(get_initial_subjects_from_vvis(vvis))
-    
-        # Now start the depth-based processing
+
         process_batch(initial_subjects, 0)
 
     def get_subgraph(self, res: str, graphs_dict: dict) -> Graph|None:
@@ -1002,3 +992,61 @@ class ResourceFinder:
         if len(subgraph):
             graphs_dict[res] = subgraph
             return subgraph
+
+    def retrieve_venue_from_local_graph(self, meta_id: str) -> Dict[str, Dict[str, str]]:
+        """
+        Retrieve venue VVI structure from local graph instead of querying triplestore.
+        
+        :params meta_id: a MetaID
+        :type meta_id: str
+        :returns: Dict[str, Dict[str, str]] -- the venue structure with volumes and issues
+        """
+        content = {
+            'issue': {},
+            'volume': {}
+        }
+
+        volumes = {}
+        venue_uri = URIRef(f'{self.base_iri}/br/{meta_id}')
+        
+        # Find all volumes directly part of this venue
+        for triple in self.local_g.triples((None, RDF.type, GraphEntity.iri_journal_volume)):
+            entity = triple[0]
+            # Check if this volume is part of our venue
+            for part_triple in self.local_g.triples((entity, GraphEntity.iri_part_of, venue_uri)):
+                entity_id = str(entity).replace(f'{self.base_iri}/br/', '')
+                for seq_triple in self.local_g.triples((entity, GraphEntity.iri_has_sequence_identifier, None)):
+                    seq = str(seq_triple[2])
+                    volumes[entity_id] = seq
+                    content['volume'][seq] = {
+                        'id': entity_id,
+                        'issue': {}
+                    }
+
+        # Find all issues
+        for triple in self.local_g.triples((None, RDF.type, GraphEntity.iri_journal_issue)):
+            entity = triple[0]
+            entity_id = str(entity).replace(f'{self.base_iri}/br/', '')
+            seq = None
+            container = None
+            
+            # Get sequence identifier
+            for seq_triple in self.local_g.triples((entity, GraphEntity.iri_has_sequence_identifier, None)):
+                seq = str(seq_triple[2])
+            
+            # Get container (could be venue or volume)
+            for container_triple in self.local_g.triples((entity, GraphEntity.iri_part_of, None)):
+                container = str(container_triple[2])
+
+            if seq:
+                if container:
+                    container_id = container.replace(f'{self.base_iri}/br/', '')
+                    # Check if container is a volume of our venue
+                    if container_id in volumes:
+                        volume_seq = volumes[container_id]
+                        content['volume'][volume_seq]['issue'][seq] = {'id': entity_id}
+                    # Check if container is directly our venue
+                    elif container == str(venue_uri):
+                        content['issue'][seq] = {'id': entity_id}
+
+        return content

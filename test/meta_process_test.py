@@ -2074,7 +2074,6 @@ class test_ProcessTest(unittest.TestCase):
 
         # Verify results
         bindings = result["results"]["bindings"]
-
         self.assertEqual(len(bindings), 1, "Expected exactly one article")
 
         # Get the URIs from the result

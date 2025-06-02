@@ -27,7 +27,7 @@ from concurrent.futures import as_completed
 from datetime import datetime
 from itertools import cycle
 from sys import executable, platform
-from typing import List, Tuple
+from typing import Iterator, List, Tuple
 
 import redis
 import yaml
@@ -432,7 +432,7 @@ def task_done(task_output: tuple) -> None:
             aux_file.write(f'{filename}: {message["message"]}' + "\n")
 
 
-def chunks(lst: list, n: int) -> List[list]:
+def chunks(lst: list, n: int) -> Iterator[list]:
     """Yield successive n-sized chunks from lst."""
     for i in range(0, len(lst), n):
         yield lst[i : i + n]

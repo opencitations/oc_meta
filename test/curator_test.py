@@ -160,8 +160,6 @@ class test_Curator(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         add_data_ts()
-        cls.finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
-        cls.finder.get_everything_about_res(metavals={'omid:br/4125', 'omid:br/3757', 'omid:br/4480'}, identifiers=set(), vvis=set())
 
     def setUp(self):
         reset_redis_counters()
@@ -188,15 +186,42 @@ class test_Curator(unittest.TestCase):
         self.assertEqual(output, expected_output)
         
     def test_equalizer(self):
+        # Test equalizer with a row that contains an ID that can be resolved to an existing entity
+        row = {'id': 'doi:10.1001/archderm.104.1.106', 'title': '', 'author': '', 'pub_date': '1972-12-01', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}
         curator = prepareCurator(list())
-        row = {'id': '', 'title': '', 'author': '', 'pub_date': '1972-12-01', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}
+        curator.finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
+        
+        metavals, identifiers, vvis = curator.extract_identifiers_and_metavals(row, valid_dois_cache=set())
+        curator.finder.get_everything_about_res(metavals=metavals, identifiers=identifiers, vvis=vvis)
+        
         curator.log[0] = {'id': {}}
-        curator.finder = self.finder
-        curator.equalizer(row, '4125')
+        curator.clean_id(row)
+        extracted_metaval = row['id']
+        self.assertEqual(extracted_metaval, '3757')
+        
+        # Reset the row to test equalizer
+        row = {'id': '', 'title': '', 'author': '', 'pub_date': '1972-12-01', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}
+        
+        curator.rowcnt = 0
+        curator.log[0] = {
+            'id': {},
+            'author': {},
+            'venue': {},
+            'editor': {},
+            'publisher': {},
+            'page': {},
+            'volume': {},
+            'issue': {},
+            'pub_date': {},
+            'type': {},
+            'title': {}
+        }
+        curator.equalizer(row, extracted_metaval)
         output = (curator.log, row)
+        
         expected_output = (
-            {0: {'id': {'status': 'Entity already exists'}}}, 
-            {'id': '', 'title': '', 'author': 'Katz, R. [omid:ra/6376]', 'pub_date': '1972-12-01', 'venue': 'Archives Of Dermatology [omid:br/4416 issn:0003-987X]', 'volume': '106', 'issue': '6', 'page': '837-838', 'type': 'journal article', 'publisher': 'American Medical Association (ama) [omid:ra/3309 crossref:10]', 'editor': ''}
+            {0: {'id': {'status': 'Entity already exists'}, 'author': {}, 'venue': {}, 'editor': {}, 'publisher': {}, 'page': {}, 'volume': {}, 'issue': {}, 'pub_date': {'status': 'New value proposed'}, 'type': {}, 'title': {}}}, 
+            {'id': '', 'title': '', 'author': 'Curth, W. [omid:ra/6033]', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [omid:br/4416 issn:0003-987X]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': 'American Medical Association (ama) [omid:ra/3309 crossref:10]', 'editor': ''}
         )
         self.assertEqual(output, expected_output)
     
@@ -219,14 +244,36 @@ class test_Curator(unittest.TestCase):
         self.assertEqual(row, expected_output)
     
     def test_merge_duplicate_entities(self):
+        # Test merge_duplicate_entities with realistic data that includes an ID that resolves to an existing entity
         data = [
-            {'id': '3757', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [omid:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''},
-            {'id': 'wannabe_0', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-02', 'venue': 'Archives Of Dermatology [omid:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''},
-            {'id': 'wannabe_0', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-03', 'venue': 'Archives Of Blast [omid:br/4416]', 'volume': '105', 'issue': '2', 'page': '106-108', 'type': 'journal volume', 'publisher': '', 'editor': ''},
+            {'id': 'doi:10.1001/archderm.104.1.106', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [omid:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''},
+            {'id': '', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-02', 'venue': 'Archives Of Dermatology [omid:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''},
+            {'id': '', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-03', 'venue': 'Archives Of Blast [omid:br/4416]', 'volume': '105', 'issue': '2', 'page': '106-108', 'type': 'journal volume', 'publisher': '', 'editor': ''},
         ]
         curator = prepareCurator(list())
         curator.data = data
-        curator.finder = self.finder
+        curator.finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
+        
+        # Extract metavals and identifiers from each row
+        all_metavals = set()
+        all_identifiers = set()
+        all_vvis = set()
+        
+        for row in data:
+            metavals, identifiers, vvis = curator.extract_identifiers_and_metavals(row, valid_dois_cache=set())
+            all_metavals.update(metavals)
+            all_identifiers.update(identifiers)
+            all_vvis.update(vvis)
+        
+        curator.finder.get_everything_about_res(metavals=all_metavals, identifiers=all_identifiers, vvis=all_vvis)
+        
+        # Process each row with clean_id to get the actual metavals
+        for i, row in enumerate(data):
+            curator.log[i] = {'id': {}}
+            curator.rowcnt = i
+            curator.clean_id(row)
+        
+        # Initialize log for merge_duplicate_entities
         for i in range(3):
             curator.log[i] = {
                 'id': {},
@@ -240,8 +287,19 @@ class test_Curator(unittest.TestCase):
                 'pub_date': {},
                 'type': {}
             }
-        curator.brdict = {'3757': {'ids': ['doi:10.1001/archderm.104.1.106', 'pmid:29098884'], 'title': 'Multiple Keloids', 'others': ['wannabe_0']}}
+        
+        # The brdict should be populated by clean_id, but we need to set up the "others" relationship
+        # The first row should have resolved to '3757', and the other rows should be wannabes
+        first_row_metaval = curator.data[0]['id']  # Should be '3757'
+        self.assertEqual(first_row_metaval, '3757')
+        
+        # Set up the relationship between the existing entity and the wannabes
+        if first_row_metaval in curator.brdict:
+            curator.brdict[first_row_metaval]['others'].extend(['wannabe_0', 'wannabe_1'])
+        
         curator.merge_duplicate_entities()
+        output = (curator.data, curator.log)
+        
         expected_output = (
             [
                 {'id': '3757', 'title': 'Multiple Keloids', 'author': 'Curth, W. [omid:ra/6033]', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [issn:0003-987X omid:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': 'American Medical Association (ama) [omid:ra/3309 crossref:10]', 'editor': ''}, 
@@ -254,227 +312,30 @@ class test_Curator(unittest.TestCase):
                 2: {'id': {'status': 'Entity already exists'}, 'author': {}, 'venue': {'status': 'New value proposed'}, 'editor': {}, 'publisher': {}, 'page': {'status': 'New value proposed'}, 'volume': {'status': 'New value proposed'}, 'issue': {'status': 'New value proposed'}, 'pub_date': {'status': 'New value proposed'}, 'type': {'status': 'New value proposed'}}
             }
         )
-        self.assertEqual((curator.data, curator.log), expected_output)
+        self.assertEqual(output, expected_output)
 
     def test_clean_vvi_all_data_on_ts(self):
         # All data are already on the triplestore. They need to be retrieved and organized correctly
-        row = {'id': '3757', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [omid:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}
+        row = {'id': 'doi:10.1001/archderm.104.1.106', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [omid:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}
         curator = prepareCurator(list())
-        curator.finder =self.finder
+        curator.finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
+        
+        metavals, identifiers, vvis = curator.extract_identifiers_and_metavals(row, valid_dois_cache=set())
+        curator.finder.get_everything_about_res(metavals=metavals, identifiers=identifiers, vvis=vvis)
+        
+        curator.log[0] = {'id': {}}
+        curator.clean_id(row)
+        
         curator.clean_vvi(row)
         expected_output = {
             "4416": {
                 "issue": {},
                 "volume": {
-                    "106": {
-                        "id": "4726",
-                        "issue": {
-                            "6": {
-                                "id": "4732"
-                            },
-                            "5": {
-                                "id": "4731"
-                            },
-                            "2": {
-                                "id": "4728"
-                            },
-                            "4": {
-                                "id": "4730"
-                            },
-                            "3": {
-                                "id": "4729"
-                            },
-                            "1": {
-                                "id": "4727"
-                            }
-                        }
-                    },
                     "104": {
                         "id": "4712",
                         "issue": {
                             "1": {
                                 "id": "4713"
-                            },
-                            "6": {
-                                "id": "4718"
-                            },
-                            "3": {
-                                "id": "4715"
-                            },
-                            "5": {
-                                "id": "4717"
-                            },
-                            "4": {
-                                "id": "4716"
-                            },
-                            "2": {
-                                "id": "4714"
-                            }
-                        }
-                    },
-                    "101": {
-                        "id": "4691",
-                        "issue": {
-                            "2": {
-                                "id": "4693"
-                            },
-                            "5": {
-                                "id": "4696"
-                            },
-                            "3": {
-                                "id": "4694"
-                            },
-                            "6": {
-                                "id": "4697"
-                            },
-                            "1": {
-                                "id": "4692"
-                            },
-                            "4": {
-                                "id": "4695"
-                            }
-                        }
-                    },
-                    "103": {
-                        "id": "4705",
-                        "issue": {
-                            "2": {
-                                "id": "4707"
-                            },
-                            "5": {
-                                "id": "4710"
-                            },
-                            "4": {
-                                "id": "4709"
-                            },
-                            "1": {
-                                "id": "4706"
-                            },
-                            "3": {
-                                "id": "4708"
-                            },
-                            "6": {
-                                "id": "4711"
-                            }
-                        }
-                    },
-                    "107": {
-                        "id": "4733",
-                        "issue": {
-                            "4": {
-                                "id": "4737"
-                            },
-                            "3": {
-                                "id": "4736"
-                            },
-                            "2": {
-                                "id": "4735"
-                            },
-                            "1": {
-                                "id": "4734"
-                            },
-                            "5": {
-                                "id": "4738"
-                            },
-                            "6": {
-                                "id": "4739"
-                            }
-                        }
-                    },
-                    "148": {
-                        "id": "4417",
-                        "issue": {
-                            "12": {
-                                "id": "4418"
-                            },
-                            "11": {
-                                "id": "4419"
-                            }
-                        }
-                    },
-                    "102": {
-                        "id": "4698",
-                        "issue": {
-                            "3": {
-                                "id": "4701"
-                            },
-                            "6": {
-                                "id": "4704"
-                            },
-                            "2": {
-                                "id": "4700"
-                            },
-                            "5": {
-                                "id": "4703"
-                            },
-                            "4": {
-                                "id": "4702"
-                            },
-                            "1": {
-                                "id": "4699"
-                            }
-                        }
-                    },
-                    "105": {
-                        "id": "4719",
-                        "issue": {
-                            "6": {
-                                "id": "4725"
-                            },
-                            "3": {
-                                "id": "4722"
-                            },
-                            "2": {
-                                "id": "4721"
-                            },
-                            "1": {
-                                "id": "4720"
-                            },
-                            "4": {
-                                "id": "4723"
-                            },
-                            "5": {
-                                "id": "4724"
-                            }
-                        }
-                    },
-                    "100": {
-                        "id": "4684",
-                        "issue": {
-                            "3": {
-                                "id": "4687"
-                            },
-                            "6": {
-                                "id": "4690"
-                            },
-                            "2": {
-                                "id": "4686"
-                            },
-                            "4": {
-                                "id": "4688"
-                            },
-                            "5": {
-                                "id": "4689"
-                            },
-                            "1": {
-                                "id": "4685"
-                            }
-                        }
-                    },
-                    "108": {
-                        "id": "4740",
-                        "issue": {
-                            "3": {
-                                "id": "4743"
-                            },
-                            "1": {
-                                "id": "4741"
-                            },
-                            "2": {
-                                "id": "4742"
-                            },
-                            "4": {
-                                "id": "4744"
                             }
                         }
                     }
@@ -519,7 +380,10 @@ class test_Curator(unittest.TestCase):
         # There is a row with vvi and no ids
         row = {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': 'Archives Of Surgery [omid:br/4480]', 'volume': '147', 'issue': '11', 'page': '', 'type': 'journal article', 'publisher': '', 'editor': ''}
         curator = prepareCurator(list())
-        curator.finder.get_everything_about_res(metavals=set(), identifiers=set(), vvis={('147', '11', 'omid:br/4480')})
+        curator.finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
+        
+        metavals, identifiers, vvis = curator.extract_identifiers_and_metavals(row, valid_dois_cache=set())
+        curator.finder.get_everything_about_res(metavals=metavals, identifiers=identifiers, vvis=vvis)
         curator.clean_id(row)
         curator.clean_vvi(row)
         expected_output = {
@@ -531,9 +395,6 @@ class test_Curator(unittest.TestCase):
                         "issue": {
                             "11": {
                                 "id": "4482"
-                            },
-                            "12": {
-                                "id": "4487"
                             }
                         }
                     }
@@ -560,10 +421,19 @@ class test_Curator(unittest.TestCase):
         # One author is in the triplestore, the other is not. 
         # br_metaval is a MetaID
         # There are two ids for one author
-        row = {'id': '3757', 'title': 'Multiple Keloids', 'author': 'Curth, W.; McSorley, J. [orcid:0000-0003-0530-4305 schema:12345]', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [omid:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}
+        row = {'id': 'doi:10.1001/archderm.104.1.106', 'title': 'Multiple Keloids', 'author': 'Curth, W.; McSorley, J. [orcid:0000-0003-0530-4305 schema:12345]', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [omid:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}
         curator = prepareCurator(list())
-        curator.brdict = {'3757': {'ids': ['doi:10.1001/archderm.104.1.106'], 'title': 'Multiple Keloids', 'others': []}}
-        curator.finder = self.finder
+        curator.finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
+        metavals, identifiers, vvis = curator.extract_identifiers_and_metavals(row, valid_dois_cache=set())
+        curator.finder.get_everything_about_res(metavals=metavals, identifiers=identifiers, vvis=vvis)
+        
+        curator.log[0] = {'id': {}}
+        curator.clean_id(row)
+        
+        resolved_metaval = row['id']
+        self.assertEqual(resolved_metaval, '3757')
+        curator.brdict = {resolved_metaval: {'ids': ['doi:10.1001/archderm.104.1.106'], 'title': 'Multiple Keloids', 'others': []}}
+        
         curator.clean_ra(row, 'author')
         output = (curator.ardict, curator.radict, curator.idra)
         expected_output = (
@@ -591,10 +461,20 @@ class test_Curator(unittest.TestCase):
 
     def test_clean_ra_with_empty_square_brackets(self):
         # One author's name contains a closed square bracket.
-        row = {'id': '3757', 'title': 'Multiple Keloids', 'author': 'Bernacki, Edward J. [    ]', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [omid:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}
+        row = {'id': 'doi:10.1001/archderm.104.1.106', 'title': 'Multiple Keloids', 'author': 'Bernacki, Edward J. [    ]', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [omid:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}
         curator = prepareCurator(list())
-        curator.brdict = {'3757': {'ids': ['doi:10.1001/archderm.104.1.106'], 'title': 'Multiple Keloids', 'others': []}}
-        curator.finder = self.finder
+        curator.finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
+        
+        metavals, identifiers, vvis = curator.extract_identifiers_and_metavals(row, valid_dois_cache=set())
+        curator.finder.get_everything_about_res(metavals=metavals, identifiers=identifiers, vvis=vvis)
+        
+        curator.log[0] = {'id': {}}
+        curator.clean_id(row)
+        
+        resolved_metaval = row['id']
+        self.assertEqual(resolved_metaval, '3757')
+        curator.brdict = {resolved_metaval: {'ids': ['doi:10.1001/archderm.104.1.106'], 'title': 'Multiple Keloids', 'others': []}}
+        
         curator.clean_ra(row, 'author')
         output = (curator.ardict, curator.radict, curator.idra)
         expected_output = (
@@ -708,7 +588,7 @@ class test_Curator(unittest.TestCase):
         curator = prepareCurator(data=[row])
         curator.curator()
         expected_output = (
-            {'id/4270', 'br/4482', 'ra/3309', 'ar/7240', 'br/4481', 'br/2715', 'br/4480', 'id/4274', 'id/2581', 'br/4487', 're/2350'},
+            {'id/4270', 'ra/3309', 'ar/7240', 'br/4481', 'br/2715', 'br/4480', 'id/4274', 'id/2581', 'br/4487', 're/2350'},
             [{'id': 'doi:10.1001/2013.jamasurg.202 omid:br/2715', 'title': 'Image Of The Year For 2012', 'author': '', 'pub_date': '2012-12-01', 'venue': 'Archives Of Surgery [issn:0004-0010 omid:br/4480]', 'volume': '147', 'issue': '12', 'page': '1140-1140', 'type': 'journal article', 'publisher': 'American Medical Association (ama) [crossref:10 omid:ra/3309]', 'editor': ''}]
         )
         self.assertEqual((curator.preexisting_entities, curator.data), expected_output)

@@ -29,7 +29,6 @@ from oc_meta.lib.cleaner import Cleaner
 from oc_meta.lib.file_manager import *
 from oc_meta.lib.finder import *
 from oc_meta.lib.master_of_regex import *
-
 from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
 
 
@@ -111,8 +110,10 @@ class Curator:
         self, row, valid_dois_cache
     ) -> Tuple[set, set, set]:
         metavals = set()
-        all_idslist = set()
+        identifiers = set()
         vvis = set()
+        venue_ids = set()
+        venue_metaid = None
 
         if row["id"]:
             idslist, metaval = self.clean_id_list(
@@ -124,8 +125,8 @@ class Curator:
             if id_metaval:
                 metavals.add(id_metaval)
             if idslist:
-                all_idslist.update(idslist)
-        venue_metaid = None
+                identifiers.update(idslist)
+        
         fields_with_an_id = [
             (field, re.search(name_and_ids, row[field]).group(2).split())
             for field in ["author", "editor", "publisher", "venue", "volume", "issue"]
@@ -136,8 +137,6 @@ class Curator:
             field_idslist, field_metaval = self.clean_id_list(
                 field_ids, br=br, valid_dois_cache=valid_dois_cache
             )
-            if field == "venue":
-                venue_metaid = field_metaval
             if field_metaval:
                 field_metaval = (
                     f"omid:br/{field_metaval}" if br else f"omid:ra/{field_metaval}"
@@ -146,13 +145,19 @@ class Curator:
                 field_metaval = ""
             if field_metaval:
                 metavals.add(field_metaval)
-            if field_idslist:
-                all_idslist.update(field_idslist)
-        vvi = None
-        if not row["id"] and venue_metaid and (row["volume"] or row["issue"]):
-            vvi = (row["volume"], row["issue"], venue_metaid)
+            if field == "venue":
+                venue_metaid = field_metaval
+                if field_idslist:
+                    venue_ids.update(field_idslist)
+            else:
+                if field_idslist:
+                    identifiers.update(field_idslist)
+        
+        if (venue_metaid or venue_ids) and (row["volume"] or row["issue"]):
+            vvi = (row["volume"], row["issue"], venue_metaid, tuple(sorted(venue_ids)))
             vvis.add(vvi)
-        return metavals, all_idslist, vvis
+        
+        return metavals, identifiers, vvis
 
     def split_identifiers(self, field_value):
         if self.separator:
@@ -398,7 +403,6 @@ class Curator:
         issue = row["issue"]
         br_id = row["id"]
         venue = row["venue"]
-
         # Venue
         if venue:
             # The data must be invalidated, because the resource is journal but a volume or an issue have also been specified
@@ -437,7 +441,7 @@ class Curator:
                 if metaval not in self.vvi:
                     ts_vvi = None
                     if "wannabe" not in metaval:
-                        ts_vvi = self.finder.retrieve_venue_from_meta(metaval)
+                        ts_vvi = self.finder.retrieve_venue_from_local_graph(metaval)
                     if "wannabe" in metaval or not ts_vvi:
                         self.vvi[metaval] = dict()
                         self.vvi[metaval]["volume"] = dict()
