@@ -1,0 +1,4 @@
+id,title,author,pub_date,venue,volume,issue,page,type,publisher,editor
+"pmid:12345 doi:10.1000/test1 omid:br/001","Test Article 1","Smith, John [orcid:0000-0000-0000-0001 omid:ra/101]; Doe, Jane [omid:ra/102]","2023","Nature [issn:0028-0836 omid:br/201]","45","3","123-130","journal article","Nature Publishing [omid:ra/301]",""
+"issn:1234-5678 omid:br/002","Test Article 2","Brown, Alice [omid:ra/103]","2022","Science [omid:br/202]","50","2","45-52","journal article","Science Publishing [omid:ra/302]",""
+"omid:br/003 doi:10.1000/test3","Test Book Chapter","Wilson, Bob [omid:ra/104]; Green, Carol [orcid:0000-0000-0000-0002 omid:ra/105]","2021","Handbook of Science [isbn:978-0-123456-78-9 omid:br/203]","","","200-220","book chapter","Academic Press [omid:ra/303]","Editor, Chief [omid:ra/401]" 

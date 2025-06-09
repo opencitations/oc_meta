@@ -55,6 +55,33 @@ def get_csv_data(filepath:str) -> List[Dict[str, str]]:
         csv.field_size_limit(128)
     return data
 
+
+def get_csv_data_fast(filepath: str) -> List[Dict[str, str]]:
+    """
+    Fast CSV reader that only handles field_size_limit without data cleaning.
+    Use this when you don't need data normalization for better performance.
+    """
+    if not os.path.splitext(filepath)[1].endswith('.csv'):
+        return list()
+    
+    field_size_changed = False
+    cur_field_size = 128
+    data = list()
+    
+    while not data:
+        try:
+            with open(filepath, 'r', encoding='utf8') as data_file:
+                data = list(csv.DictReader(data_file, delimiter=','))
+        except csv.Error:
+            cur_field_size *= 2
+            csv.field_size_limit(cur_field_size)
+            field_size_changed = True
+    
+    if field_size_changed:
+        csv.field_size_limit(128)
+    
+    return data
+
 def pathoo(path):
     if not os.path.isdir(os.path.dirname(path)):
         os.makedirs(os.path.dirname(path))
