@@ -17,6 +17,8 @@ temp*/
 zip_tasks.tmp
 figshare.yaml
 zenodo.yaml
+zenodo.data.yaml
+zenodo.prov.yaml
 internet_archive.yaml
 storage
 ts_upload_cache.json

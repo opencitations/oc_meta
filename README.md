@@ -17,215 +17,253 @@ An example of a raw CSV input file can be found in [`example.csv`](https://githu
 
 ## Table of Contents
 
-- [Meta](#meta)
-- [Plugins](#plugins)
-  - [Get a DOI-ORCID index](#get-a-doi-orcid-index)
-  - [Get a Crossref member-name-prefix index](#get-a-crossref-member-name-prefix-index)
-  - [Generate CSVs from triplestore](#generate-csvs-from-triplestore)
-  - [Prepare the multiprocess](#prepare-the-multiprocess)
+- [OpenCitations Meta Software](#opencitations-meta-software)
+- [Meta Production Workflow](#meta-production-workflow)
+  - [Preprocessing Input Data (Optional)](#preprocessing-input-data-optional)
+  - [Main Processing](#main-processing)
+  - [Manual Upload to Triplestore](#manual-upload-to-triplestore)
+- [Analysing the Dataset](#analysing-the-dataset)
+  - [General Statistics (SPARQL)](#general-statistics-sparql)
+  - [Venue Statistics (CSV)](#venue-statistics-csv)
 - [Running Tests](#running-tests)
-- [Utilities](#utilities)
-  - [Provenance Management](#provenance-management)
-  - [Data Validation & Analysis](#data-validation--analysis)
-    - [Check Redis Info](#check-redis-info)
-    - [Check Processing Results](#check-processing-results)
-    - [Generate Info Directory](#generate-info-directory)
+- [Creating Releases](#creating-releases)
 
-## Meta
+## Meta Production Workflow
 
-The Meta process is launched through the [`meta_process.py`](https://github.com/opencitations/meta/blob/master/oc_meta/run/meta_process.py) file via the prompt command:
+The Meta production process involves several steps to process bibliographic metadata. An optional but recommended preprocessing step is available to optimize the input data before the main processing.
 
-```console
-    python -m oc_meta.run.meta_process -c <PATH>
-```
+### Preprocessing Input Data (Optional)
 
-Where:
+The [`preprocess_input.py`](https://github.com/opencitations/oc_meta/blob/master/oc_meta/run/meta/preprocess_input.py) script helps filter and optimize CSV files before they are processed by the main Meta workflow. This preprocessing step is particularly useful for large datasets as it:
 
-- -c --config : path to the configuration file.
+1. Removes duplicate entries across all input files
+2. Filters out entries that already exist in the database (using either Redis or SPARQL)
+3. Splits large input files into smaller, more manageable chunks
 
-The configuration file is a YAML file with the following keys (an example can be found in [`config/meta_config.yaml`](https://github.com/opencitations/meta/blob/master/config/meta_config.yaml)).
-
-| Setting                     | Mandatory | Description                                                                                                   |
-| --------------------------- | --------- | ------------------------------------------------------------------------------------------------------------- |
-| triplestore_url             | ✓         | Endpoint URL to load the output RDF                                                                           |
-| input_csv_dir               | ✓         | Directory where raw CSV files are stored                                                                      |
-| base_output_dir             | ✓         | The path to the base directory to save all output files                                                       |
-| resp_agent                  | ✓         | A URI string representing the provenance agent which is considered responsible for the RDF graph manipulation |
-| base_iri                    | ☓         | The base URI of entities on Meta. This setting can be safely left as is                                       |
-| context_path                | ☓         | URL where the namespaces and prefixes used in the OpenCitations Data Model are defined                        |
-| dir_split_number            | ☓         | Number of files per folder. Must be multiple of items_per_file                                                |
-| items_per_file              | ☓         | Number of items per file                                                                                      |
-| supplier_prefix             | ☓         | A prefix for the sequential number in entities' URIs                                                          |
-| rdf_output_in_chunks        | ☓         | If True, save all the graphset and provset in one file. If False, use the OpenCitations folder hierarchy      |
-| zip_output_rdf              | ☓         | If True, output will be zipped                                                                                |
-| source                      | ☓         | Data source URL                                                                                               |
-| use_doi_api_service         | ☓         | If True, use the DOI API service to check if DOIs are valid                                                   |
-| workers_number              | ☓         | Number of cores to use for processing                                                                         |
-| blazegraph_full_text_search | ☓         | Enable Blazegraph text index for faster queries                                                               |
-| fuseki_full_text_search     | ☓         | Enable Fuseki text index for faster queries                                                                   |
-| virtuoso_full_text_search   | ☓         | Enable Virtuoso text index for faster queries                                                                 |
-| graphdb_connector_name      | ☓         | Name of the Lucene connector for GraphDB text search                                                          |
-| cache_endpoint              | ☓         | Provenance triplestore URL for caching queries                                                                |
-| cache_update_endpoint       | ☓         | Write endpoint URL for cache triplestore                                                                      |
-| redis_host                  | ☓         | Redis host address (default: localhost)                                                                       |
-| redis_port                  | ☓         | Redis port number (default: 6379)                                                                             |
-| redis_db                    | ☓         | Redis database number (default: 0)                                                                            |
-
-## Plugins
-
-### Get a DOI-ORCID index
-
-[`orcid_process.py`](https://github.com/opencitations/meta/blob/master/oc_meta/run/orcid_process.py) generates an index between DOIs and the author's ORCIDs using the ORCID Summaries Dump (e.g. [ORCID_2019_summaries](https://orcid.figshare.com/articles/ORCID_Public_Data_File_2019/9988322)). The output is a folder containing CSV files with two columns, 'id' and 'value', where 'id' is a DOI or None, and 'value' is an ORCID. This process can be run via the following commad:
+To run the preprocessing script:
 
 ```console
-    python -m oc_meta.run.orcid_process -s <PATH> -out <PATH> -t <INTEGER> -lm -v
+# Using Redis (default)
+poetry run python -m oc_meta.run.meta.preprocess_input <INPUT_DIR> <OUTPUT_DIR> [--redis-db <DB_NUMBER>]
+
+# Using SPARQL endpoint
+poetry run python -m oc_meta.run.meta.preprocess_input <INPUT_DIR> <OUTPUT_DIR> --storage-type sparql --sparql-endpoint <SPARQL_ENDPOINT_URL>
 ```
 
-Where:
+Parameters:
+- `<INPUT_DIR>`: Directory containing the input CSV files to process
+- `<OUTPUT_DIR>`: Directory where the filtered and optimized CSV files will be saved
+- `--storage-type`: Type of storage to check IDs against (`redis` or `sparql`, default: `redis`)
+- `--redis-db`: Redis database number to use if storage type is Redis (default: 10)
+- `--sparql-endpoint`: SPARQL endpoint URL if storage type is set to `sparql`
 
-- -s --summaries: ORCID summaries dump path, subfolder will be considered too.
-- -out --output: a directory where the output CSV files will be store, that is, the ORCID-DOI index.
-- -t --threshold: threshold after which to update the output, not mandatory. A new file will be generated each time.
-- -lm --low-memory: specify this argument if the available RAM is insufficient to accomplish the task. Warning: the processing time will increase.
-- -v --verbose: show a loading bar, elapsed time and estimated time, not mandatory.
+The script will generate a detailed report showing:
+- Total number of input rows processed
+- Number of duplicate rows removed
+- Number of rows with IDs that already exist in the database
+- Number of rows that passed the filtering and were written to output files
 
-### Get a Crossref member-name-prefix index
+#### Choosing the Right Storage Backend
 
-[`crossref_publishers_extractor.py`](https://github.com/opencitations/meta/blob/master/oc_meta/run/crossref_publishers_extractor.py) generates an index between Crossref members' ids, names and DOI prefixes. The output is a CSV file with three columns, 'id', 'name', and 'prefix'.
-This process can be run via the following command:
+- **Redis**: Faster option for ID checking with lower memory overhead. Ideal for rapid preprocessing of large datasets.
+- **SPARQL**: Directly checks against the triplestore where the data will be stored. Useful when you don't have a Redis cache of existing IDs.
+
+After preprocessing, you can use the optimized files in the output directory as input for the main Meta process.
+
+### Main Processing
+
+The main Meta processing is executed through the [`meta_process.py`](https://github.com/opencitations/oc_meta/blob/master/oc_meta/run/meta_process.py) file, which orchestrates the entire data processing workflow:
 
 ```console
-    python -m oc_meta.run.crossref_publishers_extractor -o <PATH>
+poetry run python -m oc_meta.run.meta_process -c <CONFIG_PATH>
 ```
 
-Where:
+Parameters:
+- `-c --config`: Path to the configuration YAML file.
 
-- -o --output: The output CSV file where to store relevant information.
+#### What Meta Process Does
 
-### Generate CSVs from triplestore
+The Meta process performs the following key operations:
 
-This plugin generates CSVs from the Meta triplestore. You can run the [`csv_generator.py`](https://github.com/opencitations/meta/blob/master/oc_meta/plugins/csv_generator/csv_generator.py) script in the following way:
+1. **Preparation**:
+   - Sets up the required directory structure
+   - Initializes connections to Redis and the triplestore
+   - Loads configuration settings
+
+2. **Data Curation**:
+   - Processes input CSV files containing bibliographic metadata
+   - Validates and normalizes the data
+   - Handles duplicate entries and invalid data
+
+3. **RDF Creation**:
+   - Converts the curated data into RDF format following the OpenCitations Data Model
+   - Generates entity identifiers and establishes relationships
+   - Creates provenance information for tracking data lineage
+
+4. **Storage and Triplestore Upload**:
+   - Directly generates SPARQL queries for triplestore updates
+   - Loads RDF data directly into the configured triplestore via SPARQL endpoint
+   - Executes necessary SPARQL updates
+   - Ensures data is properly indexed for querying
+
+#### Meta Configuration
+
+The Meta process requires a YAML configuration file that specifies various settings for the processing workflow. Here's an example of the configuration structure with explanations:
+
+```yaml
+# Endpoint URLs for data and provenance storage
+triplestore_url: "http://127.0.0.1:8805/sparql"
+provenance_triplestore_url: "http://127.0.0.1:8806/sparql"
+
+# Base IRI for RDF entities
+base_iri: "https://w3id.org/oc/meta/"
+
+# JSON-LD context file
+context_path: "https://w3id.org/oc/corpus/context.json"
+
+# Responsible agent for provenance
+resp_agent: "https://w3id.org/oc/meta/prov/pa/1"
+
+# Source information for provenance
+source: "https://api.crossref.org/"
+
+# Redis configuration for counter handling
+redis_host: "localhost"
+redis_port: 6379
+redis_db: 0
+redis_cache_db: 1
+
+# Processing settings
+supplier_prefix: "060"
+workers_number: 16
+dir_split_number: 10000
+items_per_file: 1000
+default_dir: "_"
+
+# Output control
+generate_rdf_files: false
+zip_output_rdf: true
+output_rdf_dir: "/path/to/output"
+
+# Data processing options
+silencer: ["author", "editor", "publisher"]
+normalize_titles: true
+use_doi_api_service: false
+```
+
+### Manual Upload to Triplestore
+
+Occasionally, the automatic upload process during Meta execution might fail due to connection issues, timeout errors, or other problems. In such cases, you can use the [`on_triplestore.py`](https://github.com/opencitations/oc_meta/blob/master/oc_meta/run/upload/on_triplestore.py) script to manually upload the generated SPARQL files to the triplestore.
+
+#### Running the Manual Upload Script
 
 ```console
-    python -m oc_meta.run.csv_generator -c <PATH>
+poetry run python -m oc_meta.run.upload.on_triplestore <ENDPOINT_URL> <SPARQL_FOLDER> [OPTIONS]
 ```
 
-Where:
+Parameters:
+- `<ENDPOINT_URL>`: The SPARQL endpoint URL of the triplestore
+- `<SPARQL_FOLDER>`: Path to the folder containing SPARQL update query files (.sparql)
 
-- -c --config : path to the configuration file.
-  The configuration file is a YAML file with the following keys (an example can be found in [`config/csv_generator_config.yaml`](https://github.com/opencitations/meta/blob/master/oc_meta/config/csv_generator_config.yaml)).
+Options:
+- `--batch_size`: Number of quadruples to include in each batch (default: 10)
+- `--cache_file`: Path to the cache file tracking processed files (default: "ts_upload_cache.json")
+- `--failed_file`: Path to the file recording failed queries (default: "failed_queries.txt")
+- `--stop_file`: Path to the stop file used to gracefully interrupt the process (default: ".stop_upload")
 
-| Setting          | Mandatory | Description                                                                                                                            |
-| ---------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| triplestore_url  | ✓         | URL of the endpoint where the data are located                                                                                         |
-| output_csv_dir   | ✓         | Directory where the output CSV files will be stored                                                                                    |
-| info_dir         | ✓         | The folder where the counters of the various types of entities are stored.                                                             |
-| base_iri         | ☓         | The base IRI of entities on the triplestore. This setting can be safely left as is                                                     |
-| supplier_prefix  | ☓         | A prefix for the sequential number in entities' URIs. This setting can be safely left as is                                            |
-| dir_split_number | ☓         | Number of files per folder. dir_split_number's value must be multiple of items_per_file's value. This setting can be safely left as is |
-| items_per_file   | ☓         | Number of items per file. This setting can be safely left as is                                                                        |
-| verbose          | ☓         | Show a loading bar, elapsed time and estimated time. This setting can be safely left as is                                             |
+## Analysing the Dataset
 
-### Prepare the multiprocess
+To gather statistics on the dataset, you can use the provided analysis tools.
 
-Before running Meta in multiprocess, it is necessary to prepare the input files. In particular, the CSV files must be divided by publisher, while venues and authors having an identifier must be loaded on the triplestore, in order not to generate duplicates during the multiprocess. These operations can be done by simply running the following script:
+### General Statistics (SPARQL)
+
+For most statistics, such as counting bibliographic resources (`--br`) or agent roles (`--ar`), the `sparql_analyser.py` script is the recommended tool. It queries the SPARQL endpoint directly.
 
 ```console
-    python -m oc_meta.run.prepare_multiprocess -c <PATH>
+poetry run python -m oc_meta.run.analyser.sparql_analyser <SPARQL_ENDPOINT_URL> --br --ar
 ```
 
-Where:
+### Venue Statistics (CSV)
 
-- -c --config : Path to the same configuration file you want to use for Meta.
+**Warning:** Using the SPARQL analyser for venue statistics (`--venues`) against an OpenLink Virtuoso endpoint is **not recommended**. The complex query required for venue disambiguation can exhaust Virtuoso's RAM, causing it to return partial (and thus incorrect) results. As this query is not yet optimized for Virtuoso, this count will be wrong.
 
-Afterwards, launch Meta in multi-process by specifying the same configuration file. All the required modifications are done automatically.
+For reliable venue statistics, use the `meta_analyser.py` script to process the raw CSV output files directly.
+
+To count the disambiguated venues, run the following command:
+
+```console
+poetry run python -m oc_meta.run.analyser.meta_analyser -c <PATH_TO_CSV_DUMP> -w venues
+```
+The script will save the result in a file named `venues_count.txt`.
 
 ## Running Tests
 
-The test suite is automatically executed via GitHub Actions upon pushes and pull requests. The workflow handles the setup of necessary services (Redis, Virtuoso) using Docker.
+The test suite is automatically executed via GitHub Actions upon pushes and pull requests. The workflow is defined in [`.github/workflows/run_tests.yml`](https://github.com/opencitations/oc_meta/blob/master/.github/workflows/run_tests.yml) and handles the setup of necessary services (Redis, Virtuoso) using Docker.
 
 To run the test suite locally, follow these steps:
 
-1.  **Install Dependencies:** Ensure you have [Poetry](https://python-poetry.org/) and [Docker](https://www.docker.com/) installed. Then, install project dependencies:
-    ```console
-    poetry install
-    ```
-2.  **Start Services:** Use the provided script to start the required Redis and Virtuoso Docker containers:
-    ```console
-    chmod +x test/start-test-databases.sh
-    ./test/start-test-databases.sh
-    ```
-    Wait for the script to confirm that the services are ready.
-    (The Virtuoso SPARQL endpoint will be available at http://localhost:8805/sparql and ISQL on port 1105).
-3.  **Execute Tests:** Run the tests using the following command, which also generates a coverage report:
-    ```console
-    poetry run coverage run --rcfile=test/coverage/.coveragerc
-    ```
-    To view the coverage report in the console:
-    ```console
-    poetry run coverage report
-    ```
-    To generate an HTML coverage report (saved in the `htmlcov/` directory):
-    ```console
-    poetry run coverage html -d htmlcov
-    ```
-4.  **Stop Services:** Once finished, stop the Docker containers:
-    ```console
-    chmod +x test/stop-test-databases.sh
-    ./test/stop-test-databases.sh
-    ```
+1. **Install Dependencies:** 
+   Ensure you have [Poetry](https://python-poetry.org/) and [Docker](https://www.docker.com/) installed. Then, install project dependencies:
+   ```console
+   poetry install
+   ```
 
-## Utilities
+2. **Start Services:** 
+   Use the provided script to start the required Redis and Virtuoso Docker containers:
+   ```console
+   chmod +x test/start-test-databases.sh
+   ./test/start-test-databases.sh
+   ```
+   Wait for the script to confirm that the services are ready.
+   (The Virtuoso SPARQL endpoint will be available at http://localhost:8805/sparql and ISQL on port 1105.
+   Redis will be available at localhost:6379, using database 0 for some tests and database 5 for most test cases including counter handling and caching).
 
-### Provenance Management
+3. **Execute Tests:** 
+   Run the tests using the following command, which also generates a coverage report:
+   ```console
+   poetry run coverage run --rcfile=test/coverage/.coveragerc
+   ```
+   To view the coverage report in the console:
+   ```console
+   poetry run coverage report
+   ```
+   To generate an HTML coverage report (saved in the `htmlcov/` directory):
+   ```console
+   poetry run coverage html -d htmlcov
+   ```
 
-```console
-python -m oc_meta.run.fixer.prov.fix <input_dir> [--processes <num>] [--log-dir <path>]
-```
+4. **Stop Services:** 
+   Once finished, stop the Docker containers:
+   ```console
+   chmod +x test/stop-test-databases.sh
+   ./test/stop-test-databases.sh
+   ```
 
-Parameters:
+## Creating Releases
 
-- input_dir: Directory containing provenance files
-- --processes: Number of parallel processes (default: CPU count)
-- --log-dir: Directory for log files (default: logs)
+The project uses semantic-release for versioning and publishing releases to PyPI. To create a new release:
 
-### Data Validation & Analysis
+1. **Commit Changes:**
+   Make your changes and commit them with a message that includes `[release]` to trigger the release workflow.
+   For details on how to structure semantic commit messages, see the [Semantic Commits Guide](SEMANTIC_COMMITS.md).
 
-#### Check Redis Info
+2. **Push to Master:**
+   Push your changes to the master branch. This will trigger the test workflow first.
 
-```console
-python -m oc_meta.run.check.info_dir <directory> [--redis-host <host>] [--redis-port <port>] [--redis-db <db>]
-```
+3. **Automatic Release Process:**
+   If tests pass, the release workflow will:
+   - Create a new semantic version based on commit messages
+   - Generate a changelog
+   - Create a GitHub release
+   - Build and publish the package to PyPI
 
-Parameters:
+The release workflow is configured in [`.github/workflows/release.yml`](https://github.com/opencitations/oc_meta/blob/master/.github/workflows/release.yml) and is triggered automatically when:
+- The commit message contains `[release]`
+- The tests workflow completes successfully
+- The changes are on the master branch
 
-- directory: Directory to explore
-- --redis-host: Redis host (default: localhost)
-- --redis-port: Redis port (default: 6379)
-- --redis-db: Redis database number (default: 6)
+## How to Cite
 
-#### Check Processing Results
+If you have used OpenCitations Meta in your research, please cite the following paper:
 
-```console
-python -m oc_meta.run.meta.check_results <directory> --root <path> --endpoint <url> [--show-missing]
-```
-
-Parameters:
-
-- directory: Directory containing input CSV files
-- --root: Root directory containing JSON-LD ZIP files
-- --endpoint: SPARQL endpoint URL
-- --show-missing: Show details of identifiers without associated OMIDs
-
-#### Generate Info Directory
-
-```console
-python -m oc_meta.run.gen_info_dir <directory> [--redis-host <host>] [--redis-port <port>] [--redis-db <db>]
-```
-
-Parameters:
-
-- directory: Directory to explore
-- --redis-host: Redis host (default: localhost)
-- --redis-port: Redis port (default: 6379)
-- --redis-db: Redis database number (default: 6)
+Arcangelo Massari, Fabio Mariani, Ivan Heibi, Silvio Peroni, David Shotton; OpenCitations Meta. *Quantitative Science Studies* 2024; 5 (1): 50–75. doi: [https://doi.org/10.1162/qss_a_00292](https://doi.org/10.1162/qss_a_00292)
