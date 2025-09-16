@@ -116,12 +116,14 @@ def extract_subset(endpoint, class_uri, limit, output_file, compress, max_retrie
                 pending_entities.add(str(o_term))
     
     if compress:
+        if not output_file.endswith('.gz'):
+            output_file = output_file + '.gz'
         with gzip.open(output_file, 'wb') as f:
             dataset.serialize(destination=f, format='nquads')
     else:
         dataset.serialize(destination=output_file, format='nquads')
     
-    return len(processed_entities)
+    return len(processed_entities), output_file
 
 
 def main():
@@ -150,7 +152,7 @@ def main():
         return 1
     
     try:
-        entity_count = extract_subset(
+        entity_count, final_output_file = extract_subset(
             args.endpoint, 
             args.class_uri, 
             args.limit, 
@@ -160,10 +162,7 @@ def main():
         )
         
         print(f"Extraction complete. Processed {entity_count} entities.")
-        if args.compress:
-            print(f"Output saved to {args.output}.gz")
-        else:
-            print(f"Output saved to {args.output}")
+        print(f"Output saved to {final_output_file}")
         
         return 0
     except Exception as e:

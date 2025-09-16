@@ -5,7 +5,7 @@ from multiprocessing import Pool, cpu_count
 
 from oc_meta.run.gen_info_dir import (get_prefix, get_resource_number,
                                       get_short_name)
-from rdflib import ConjunctiveGraph, URIRef
+from rdflib import ConjunctiveGraph
 from rdflib.namespace import PROV, RDF
 from redis import Redis
 from tqdm import tqdm
