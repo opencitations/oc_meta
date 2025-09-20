@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2024, OpenCitations <contact@opencitations.net>
+# Copyright (c) 2025, Arcangelo Massari <arcangelo.massari@unibo.it>
 #
 # Permission to use, copy, modify, and/or distribute this software for any purpose
 # with or without fee is hereby granted, provided that the above copyright notice
@@ -15,24 +15,42 @@
 # SOFTWARE.
 
 """
-Download full dumps from OpenCitations Meta Virtuoso endpoints.
+Download and organize full dumps from OpenCitations Meta Virtuoso endpoints.
 
 This script downloads complete RDF dumps from two Virtuoso endpoints:
 1. Main data endpoint - containing bibliographic and entity data
 2. Provenance endpoint - containing provenance information
 
+After downloading, the script automatically converts the dumps into an organized
+directory structure for better file indexing.
+
 The script uses the virtuoso_utilities package to perform efficient dumps
-and saves the output as compressed N-Quads files.
+and saves the output as both compressed N-Quads files and organized JSON-LD files.
 """
 
 import argparse
+import gzip
 import logging
+import multiprocessing
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Tuple
 
+from rdflib import ConjunctiveGraph, URIRef
+from tqdm import tqdm
 from virtuoso_utilities.dump_quadstore import dump_quadstore
+
+from oc_meta.run.gen_rdf_from_export import (find_paths,
+                                             store_in_file,
+                                             merge_all_files_parallel,
+                                             generate_unique_id)
+
+BASE_IRI = 'https://w3id.org/oc/meta/'
+DIR_SPLIT = 10000
+N_FILE_ITEM = 1000
+ZIP_OUTPUT = True
 
 
 def setup_logging(output_dir: Path, verbose: bool = False) -> None:
@@ -55,10 +73,115 @@ def setup_logging(output_dir: Path, verbose: bool = False) -> None:
         ]
     )
 
+def convert_dumps_to_organized_structure(
+    input_dir: Path,
+    output_dir: Path,
+    num_processes: int = None,
+    batch_size: int = 50
+) -> None:
+    """
+    Convert downloaded N-Quads dumps to organized directory structure using batch processing.
+
+    Args:
+        input_dir: Directory containing .nq.gz dump files
+        output_dir: Directory for organized output
+        num_processes: Number of parallel processes (None for auto)
+        batch_size: Number of dump files to process per batch
+    """
+    logging.info(f"Converting dumps from {input_dir} to organized structure in {output_dir}")
+
+    dump_files = list(input_dir.glob("*.nq.gz"))
+    if not dump_files:
+        logging.warning(f"No .nq.gz files found in {input_dir}")
+        return
+
+    logging.info(f"Found {len(dump_files)} dump files to process in batches of {batch_size}")
+
+    # Process files in batches to avoid inode exhaustion
+    total_batches = (len(dump_files) + batch_size - 1) // batch_size
+    stop_file = str(output_dir / ".stop")
+
+    for batch_idx in range(total_batches):
+        start_idx = batch_idx * batch_size
+        end_idx = min(start_idx + batch_size, len(dump_files))
+        batch_files = dump_files[start_idx:end_idx]
+
+        logging.info(f"Processing batch {batch_idx + 1}/{total_batches} "
+                    f"({len(batch_files)} files: {start_idx}-{end_idx-1})")
+
+        with multiprocessing.Pool(processes=num_processes) as pool:
+            args_list = [
+                (dump_file, output_dir, BASE_IRI, DIR_SPLIT, N_FILE_ITEM, ZIP_OUTPUT)
+                for dump_file in batch_files
+            ]
+
+            list(tqdm(
+                pool.imap(process_dump_file, args_list),
+                total=len(batch_files),
+                desc=f"Batch {batch_idx + 1}/{total_batches}"
+            ))
+
+        logging.info(f"Merging files after batch {batch_idx + 1}/{total_batches}")
+        merge_all_files_parallel(str(output_dir), ZIP_OUTPUT, stop_file)
+
+        logging.info(f"Completed batch {batch_idx + 1}/{total_batches}")
+
+    logging.info("Conversion completed")
+
+def process_dump_file(args: tuple) -> None:
+    """
+    Process a single dump file and organize its contents.
+
+    Args:
+        args: Tuple of (dump_file, output_dir, base_iri, dir_split, n_file_item, zip_output)
+    """
+    dump_file, output_dir, base_iri, dir_split, n_file_item, zip_output = args
+    unique_id = generate_unique_id()
+
+    try:
+        with gzip.open(dump_file, 'rt', encoding='utf-8') as f:
+            graph = ConjunctiveGraph()
+            graph.parse(f, format='nquads')
+
+        files_data = {}
+
+        for context in graph.contexts():
+            for s, p, o in context:
+                if isinstance(s, URIRef):
+                    dir_path, file_path = find_paths(
+                        s, str(output_dir) + os.sep, base_iri,
+                        '_', dir_split, n_file_item, is_json=True
+                    )
+
+                    if file_path:
+                        base_name = os.path.splitext(os.path.basename(file_path))[0]
+                        new_file_name = f"{base_name}_{unique_id}"
+                        file_path = os.path.join(os.path.dirname(file_path),
+                                                new_file_name + ('.zip' if zip_output else '.json'))
+
+                        if file_path not in files_data:
+                            files_data[file_path] = ConjunctiveGraph()
+
+                        files_data[file_path].add((s, p, o, context.identifier))
+
+        for file_path, file_graph in files_data.items():
+            dir_path = os.path.dirname(file_path)
+            os.makedirs(dir_path, exist_ok=True)
+
+            if zip_output and not file_path.endswith('.zip'):
+                file_path = file_path.replace('.json', '.zip')
+
+            store_in_file(file_graph, file_path, zip_output)
+
+        logging.debug(f"Completed processing {dump_file}")
+
+    except Exception as e:
+        logging.error(f"Error processing {dump_file}: {e}")
 
 def create_output_directories(base_output_dir: Path) -> Tuple[Path, Path]:
     """
-    Create output directories for data and provenance dumps.
+    Create or get output directories for data and provenance dumps.
+    Uses fixed names to allow resuming/skipping if already exists.
 
     Args:
         base_output_dir: Base directory for all outputs
@@ -66,21 +189,13 @@ def create_output_directories(base_output_dir: Path) -> Tuple[Path, Path]:
     Returns:
         Tuple of (data_dir, provenance_dir)
     """
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-
-    data_dir = base_output_dir / f"data_dump_{timestamp}"
-    prov_dir = base_output_dir / f"provenance_dump_{timestamp}"
+    data_dir = base_output_dir / "data_dump"
+    prov_dir = base_output_dir / "provenance_dump"
 
     data_dir.mkdir(parents=True, exist_ok=True)
     prov_dir.mkdir(parents=True, exist_ok=True)
 
-    logging.info(f"Created data dump directory: {data_dir}")
-    logging.info(f"Created provenance dump directory: {prov_dir}")
-
     return data_dir, prov_dir
-
-
-
 
 def download_dump(
     host: str,
@@ -137,7 +252,6 @@ def download_dump(
     except Exception as e:
         logging.error(f"Error dumping from {endpoint_name}: {e}")
         return False
-
 
 def main():
     parser = argparse.ArgumentParser(
@@ -221,6 +335,11 @@ def main():
         action="store_true",
         help="Skip downloading provenance dump"
     )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Force re-download even if dumps already exist"
+    )
 
     args = parser.parse_args()
 
@@ -236,67 +355,87 @@ def main():
     success = True
 
     if not args.skip_data:
-        logging.info("\n" + "-" * 40)
-        logging.info("Downloading DATA dump...")
-        logging.info("-" * 40)
-
-        data_success = download_dump(
-            host=args.data_host,
-            port=args.data_port,
-            user=args.data_user,
-            password=args.data_password,
-            output_dir=data_dir,
-            file_length_limit=args.file_length_limit,
-            docker_container=args.data_docker,
-            endpoint_name="Data Endpoint"
-        )
-
-        if not data_success:
-            logging.error("Failed to download data dump")
-            success = False
+        existing_data_files = list(data_dir.glob("*.nq.gz"))
+        if existing_data_files and not args.force:
+            logging.info("\n" + "-" * 40)
+            logging.info(f"DATA dump already exists with {len(existing_data_files)} files")
+            logging.info(f"Skipping data download. Use --force to re-download")
+            logging.info("-" * 40)
         else:
-            files = list(data_dir.glob("*.nq.gz"))
-            logging.info(f"Downloaded {len(files)} data files to {data_dir}")
-            for f in files[:5]:  # Show first 5 files
-                size_mb = f.stat().st_size / (1024 * 1024)
-                logging.info(f"  - {f.name} ({size_mb:.2f} MB)")
-            if len(files) > 5:
-                logging.info(f"  ... and {len(files) - 5} more files")
+            logging.info("\n" + "-" * 40)
+            logging.info("Downloading DATA dump...")
+            logging.info("-" * 40)
+
+            data_success = download_dump(
+                host=args.data_host,
+                port=args.data_port,
+                user=args.data_user,
+                password=args.data_password,
+                output_dir=data_dir,
+                file_length_limit=args.file_length_limit,
+                docker_container=args.data_docker,
+                endpoint_name="Data Endpoint"
+            )
+
+            if not data_success:
+                logging.error("Failed to download data dump")
+                success = False
+            else:
+                files = list(data_dir.glob("*.nq.gz"))
+                logging.info(f"Downloaded {len(files)} data files to {data_dir}")
 
     if not args.skip_provenance:
-        logging.info("\n" + "-" * 40)
-        logging.info("Downloading PROVENANCE dump...")
-        logging.info("-" * 40)
-
-        prov_success = download_dump(
-            host=args.prov_host,
-            port=args.prov_port,
-            user=args.prov_user,
-            password=args.prov_password,
-            output_dir=prov_dir,
-            file_length_limit=args.file_length_limit,
-            docker_container=args.prov_docker,
-            endpoint_name="Provenance Endpoint"
-        )
-
-        if not prov_success:
-            logging.error("Failed to download provenance dump")
-            success = False
+        existing_prov_files = list(prov_dir.glob("*.nq.gz"))
+        if existing_prov_files and not args.force:
+            logging.info("\n" + "-" * 40)
+            logging.info(f"PROVENANCE dump already exists with {len(existing_prov_files)} files")
+            logging.info(f"Skipping provenance download. Use --force to re-download")
+            logging.info("-" * 40)
         else:
-            files = list(prov_dir.glob("*.nq.gz"))
-            logging.info(f"Downloaded {len(files)} provenance files to {prov_dir}")
-            for f in files[:5]:  # Show first 5 files
-                size_mb = f.stat().st_size / (1024 * 1024)
-                logging.info(f"  - {f.name} ({size_mb:.2f} MB)")
-            if len(files) > 5:
-                logging.info(f"  ... and {len(files) - 5} more files")
+            logging.info("\n" + "-" * 40)
+            logging.info("Downloading PROVENANCE dump...")
+            logging.info("-" * 40)
+
+            prov_success = download_dump(
+                host=args.prov_host,
+                port=args.prov_port,
+                user=args.prov_user,
+                password=args.prov_password,
+                output_dir=prov_dir,
+                file_length_limit=args.file_length_limit,
+                docker_container=args.prov_docker,
+                endpoint_name="Provenance Endpoint"
+            )
+
+            if not prov_success:
+                logging.error("Failed to download provenance dump")
+                success = False
+            else:
+                files = list(prov_dir.glob("*.nq.gz"))
+                logging.info(f"Downloaded {len(files)} provenance files to {prov_dir}")
+
+    if success:
+        logging.info("\n" + "=" * 60)
+        logging.info("CONVERTING TO ORGANIZED STRUCTURE...")
+        logging.info("=" * 60)
+
+        rdf_dir = args.output_dir / "rdf"
+
+        if not args.skip_data and data_dir.exists():
+            logging.info(f"\nConverting data dumps to: {rdf_dir}")
+            convert_dumps_to_organized_structure(data_dir, rdf_dir)
+
+        if not args.skip_provenance and prov_dir.exists():
+            logging.info(f"\nConverting provenance dumps to: {rdf_dir}")
+            convert_dumps_to_organized_structure(prov_dir, rdf_dir)
 
     logging.info("\n" + "=" * 60)
     if success:
-        logging.info("DUMP DOWNLOAD COMPLETED SUCCESSFULLY")
-        logging.info(f"All dumps saved to: {args.output_dir}")
+        logging.info("PROCESS COMPLETED SUCCESSFULLY")
+        logging.info(f"Raw dumps saved to: {args.output_dir}")
+        logging.info(f"Organized RDF data saved to: {args.output_dir / 'rdf'}")
     else:
-        logging.error("DUMP DOWNLOAD COMPLETED WITH ERRORS")
+        logging.error("PROCESS COMPLETED WITH ERRORS")
         logging.error("Please check the log for details")
     logging.info("=" * 60)
 
