@@ -38,7 +38,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional, Tuple
 
-from rdflib import ConjunctiveGraph, URIRef
+from rdflib import Dataset, URIRef
 from tqdm import tqdm
 from virtuoso_utilities.dump_quadstore import dump_quadstore
 
@@ -52,10 +52,20 @@ DIR_SPLIT = 10000
 N_FILE_ITEM = 1000
 ZIP_OUTPUT = True
 
+VIRTUOSO_EXCLUDED_GRAPHS = [
+    "http://localhost:8890/DAV/",
+    "http://www.openlinksw.com/schemas/virtrdf#",
+    "http://www.w3.org/2002/07/owl#",
+    "http://www.w3.org/ns/ldp#",
+    "urn:activitystreams-owl:map",
+    "urn:core:services:sparql",
+]
+
 
 def setup_logging(output_dir: Path, verbose: bool = False) -> None:
     """
-    Setup logging configuration.
+    Setup logging configuration for all modules.
+    Configures the root logger to capture logs from all imported modules.
 
     Args:
         output_dir: Directory where log file will be created
@@ -64,20 +74,28 @@ def setup_logging(output_dir: Path, verbose: bool = False) -> None:
     log_level = logging.DEBUG if verbose else logging.INFO
     log_file = output_dir / f"download_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
 
-    logging.basicConfig(
-        level=log_level,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.FileHandler(log_file),
-            logging.StreamHandler()
-        ]
-    )
+    root_logger = logging.getLogger()
+    root_logger.handlers = []
+    root_logger.setLevel(log_level)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+    # File handler - captures everything
+    file_handler = logging.FileHandler(log_file)
+    file_handler.setLevel(log_level)
+    file_handler.setFormatter(formatter)
+
+    # Console handler
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(log_level)
+    console_handler.setFormatter(formatter)
+
+    root_logger.addHandler(file_handler)
+    root_logger.addHandler(console_handler)
 
 def convert_dumps_to_organized_structure(
     input_dir: Path,
     output_dir: Path,
-    num_processes: int = None,
-    batch_size: int = 50
+    num_processes: int = None
 ) -> None:
     """
     Convert downloaded N-Quads dumps to organized directory structure using batch processing.
@@ -86,7 +104,6 @@ def convert_dumps_to_organized_structure(
         input_dir: Directory containing .nq.gz dump files
         output_dir: Directory for organized output
         num_processes: Number of parallel processes (None for auto)
-        batch_size: Number of dump files to process per batch
     """
     logging.info(f"Converting dumps from {input_dir} to organized structure in {output_dir}")
 
@@ -95,42 +112,56 @@ def convert_dumps_to_organized_structure(
         logging.warning(f"No .nq.gz files found in {input_dir}")
         return
 
-    logging.info(f"Found {len(dump_files)} dump files to process in batches of {batch_size}")
+    total_files = len(dump_files)
+    logging.info(f"Found {total_files} dump files to process")
+
+    if total_files < 100:
+        batch_size = min(50, total_files)
+    elif total_files < 1000:
+        batch_size = 100
+    elif total_files < 5000:
+        batch_size = 200
+    else:
+        batch_size = 300
+
+    logging.info(f"Using adaptive batch size of {batch_size} files per batch")
 
     # Process files in batches to avoid inode exhaustion
-    total_batches = (len(dump_files) + batch_size - 1) // batch_size
+    total_batches = (total_files + batch_size - 1) // batch_size
     stop_file = str(output_dir / ".stop")
 
-    for batch_idx in range(total_batches):
-        start_idx = batch_idx * batch_size
-        end_idx = min(start_idx + batch_size, len(dump_files))
-        batch_files = dump_files[start_idx:end_idx]
+    with tqdm(total=total_batches, desc="Processing batches", position=0) as batch_pbar:
+        for batch_idx in range(total_batches):
+            start_idx = batch_idx * batch_size
+            end_idx = min(start_idx + batch_size, total_files)
+            batch_files = dump_files[start_idx:end_idx]
 
-        logging.info(f"Processing batch {batch_idx + 1}/{total_batches} "
-                    f"({len(batch_files)} files: {start_idx}-{end_idx-1})")
+            logging.info(f"Processing batch {batch_idx + 1}/{total_batches} "
+                        f"({len(batch_files)} files: {start_idx}-{end_idx-1})")
 
-        with multiprocessing.Pool(processes=num_processes) as pool:
-            args_list = [
-                (dump_file, output_dir, BASE_IRI, DIR_SPLIT, N_FILE_ITEM, ZIP_OUTPUT)
-                for dump_file in batch_files
-            ]
+            with multiprocessing.Pool(processes=num_processes) as pool:
+                args_list = [
+                    (dump_file, output_dir, BASE_IRI, DIR_SPLIT, N_FILE_ITEM, ZIP_OUTPUT)
+                    for dump_file in batch_files
+                ]
 
-            list(tqdm(
-                pool.imap(process_dump_file, args_list),
-                total=len(batch_files),
-                desc=f"Batch {batch_idx + 1}/{total_batches}"
-            ))
+                list(tqdm(
+                    pool.imap(process_dump_file, args_list),
+                    total=len(batch_files),
+                    desc=f"Files in batch {batch_idx + 1}",
+                    position=1,
+                    leave=False
+                ))
 
-        logging.info(f"Merging files after batch {batch_idx + 1}/{total_batches}")
-        merge_all_files_parallel(str(output_dir), ZIP_OUTPUT, stop_file)
-
-        logging.info(f"Completed batch {batch_idx + 1}/{total_batches}")
+            merge_all_files_parallel(str(output_dir), ZIP_OUTPUT, stop_file)
+            batch_pbar.update(1)
 
     logging.info("Conversion completed")
 
 def process_dump_file(args: tuple) -> None:
     """
     Process a single dump file and organize its contents.
+    Parses N-Quads line by line to handle individual parsing errors gracefully.
 
     Args:
         args: Tuple of (dump_file, output_dir, base_iri, dir_split, n_file_item, zip_output)
@@ -138,31 +169,85 @@ def process_dump_file(args: tuple) -> None:
     dump_file, output_dir, base_iri, dir_split, n_file_item, zip_output = args
     unique_id = generate_unique_id()
 
+    dataset = Dataset()
+    total_lines = 0
+    parsed_lines = 0
+    skipped_lines = 0
+    excluded_lines = 0
+    error_samples = []  # Store first few error examples
+
     try:
         with gzip.open(dump_file, 'rt', encoding='utf-8') as f:
-            graph = ConjunctiveGraph()
-            graph.parse(f, format='nquads')
+            for line_num, line in enumerate(f, 1):
+                total_lines += 1
+                line = line.strip()
+
+                if not line or line.startswith('#'):
+                    continue  # Skip empty lines and comments
+
+                try:
+                    # Parse single N-Quad line
+                    temp_dataset = Dataset()
+                    temp_dataset.parse(data=line, format='nquads')
+
+                    added_any = False
+                    for s, p, o, context in temp_dataset.quads():
+                        # Check if the graph (context) is in the excluded list
+                        if context and str(context) in VIRTUOSO_EXCLUDED_GRAPHS:
+                            continue  # Skip quads from Virtuoso system graphs
+
+                        dataset.add((s, p, o, context))
+                        added_any = True
+
+                    if added_any:
+                        parsed_lines += 1
+                    else:
+                        excluded_lines += 1
+
+                except Exception as line_error:
+                    skipped_lines += 1
+                    # Store first 5 error examples for logging
+                    if len(error_samples) < 5:
+                        error_samples.append({
+                            'line_num': line_num,
+                            'line': line[:200] + '...' if len(line) > 200 else line,
+                            'error': str(line_error)
+                        })
+                    continue
+
+        # Log parsing statistics
+        if skipped_lines > 0 or excluded_lines > 0:
+            if excluded_lines > 0:
+                logging.info(f"File {dump_file}: Parsed {parsed_lines}/{total_lines} lines, "
+                            f"excluded {excluded_lines} Virtuoso system lines, "
+                            f"skipped {skipped_lines} problematic lines")
+            else:
+                logging.warning(f"File {dump_file}: Parsed {parsed_lines}/{total_lines} lines, "
+                               f"skipped {skipped_lines} problematic lines")
+
+            for sample in error_samples:
+                logging.debug(f"  Line {sample['line_num']}: {sample['error']}")
+                logging.debug(f"    Content: {sample['line']}")
 
         files_data = {}
 
-        for context in graph.contexts():
-            for s, p, o in context:
-                if isinstance(s, URIRef):
-                    dir_path, file_path = find_paths(
-                        s, str(output_dir) + os.sep, base_iri,
-                        '_', dir_split, n_file_item, is_json=True
-                    )
+        for s, p, o, context in dataset.quads():
+            if isinstance(s, URIRef):
+                dir_path, file_path = find_paths(
+                    s, str(output_dir) + os.sep, base_iri,
+                    '_', dir_split, n_file_item, is_json=True
+                )
 
-                    if file_path:
-                        base_name = os.path.splitext(os.path.basename(file_path))[0]
-                        new_file_name = f"{base_name}_{unique_id}"
-                        file_path = os.path.join(os.path.dirname(file_path),
-                                                new_file_name + ('.zip' if zip_output else '.json'))
+                if file_path:
+                    base_name = os.path.splitext(os.path.basename(file_path))[0]
+                    new_file_name = f"{base_name}_{unique_id}"
+                    file_path = os.path.join(os.path.dirname(file_path),
+                                            new_file_name + ('.zip' if zip_output else '.json'))
 
-                        if file_path not in files_data:
-                            files_data[file_path] = ConjunctiveGraph()
+                    if file_path not in files_data:
+                        files_data[file_path] = Dataset()
 
-                        files_data[file_path].add((s, p, o, context.identifier))
+                    files_data[file_path].add((s, p, o, context))
 
         for file_path, file_graph in files_data.items():
             dir_path = os.path.dirname(file_path)
@@ -176,7 +261,7 @@ def process_dump_file(args: tuple) -> None:
         logging.debug(f"Completed processing {dump_file}")
 
     except Exception as e:
-        logging.error(f"Error processing {dump_file}: {e}")
+        logging.error(f"Critical error processing {dump_file}: {e}")
 
 def create_output_directories(base_output_dir: Path) -> Tuple[Path, Path]:
     """

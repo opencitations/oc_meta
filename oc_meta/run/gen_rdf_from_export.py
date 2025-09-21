@@ -28,14 +28,12 @@ from zipfile import ZIP_DEFLATED, ZipFile
 
 import orjson
 import rdflib
-from rdflib import ConjunctiveGraph, URIRef
+from rdflib import Dataset, URIRef
 from tqdm import tqdm
 
 # Variable used in several functions
 entity_regex: str = r"^(.+)/([a-z][a-z])/(0[1-9]+0)?((?:[1-9][0-9]*)|(?:\d+-\d+))$"
 prov_regex: str = r"^(.+)/([a-z][a-z])/(0[1-9]+0)?((?:[1-9][0-9]*)|(?:\d+-\d+))/prov/([a-z][a-z])/([1-9][0-9]*)$"
-
-logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
 
 @lru_cache(maxsize=1024)
 def _get_match_cached(regex: str, group: int, string: str) -> str:
@@ -220,12 +218,12 @@ def find_paths(res: URIRef, base_dir: str, base_iri: str, default_dir: str, dir_
 
     return cur_dir_path, cur_file_path
 
-def store(triples, graph_identifier, stored_g: ConjunctiveGraph) -> ConjunctiveGraph:
+def store(triples, graph_identifier, stored_g: Dataset) -> Dataset:
     for triple in triples:
         stored_g.add((triple[0], triple[1], triple[2], graph_identifier))
     return stored_g
 
-def store_in_file(cur_g: ConjunctiveGraph, cur_file_path: str, zip_output: bool) -> None:
+def store_in_file(cur_g: Dataset, cur_file_path: str, zip_output: bool) -> None:
     dir_path = os.path.dirname(cur_file_path)
     if not os.path.exists(dir_path):
         os.makedirs(dir_path, exist_ok=True)
@@ -241,7 +239,7 @@ def store_in_file(cur_g: ConjunctiveGraph, cur_file_path: str, zip_output: bool)
             f.write(orjson.dumps(cur_json_ld))
 
 def load_graph(file_path: str, cur_format: str = 'json-ld'):
-    loaded_graph = ConjunctiveGraph()
+    loaded_graph = Dataset()
     if file_path.endswith('.zip'):
         with ZipFile(file=file_path, mode="r", compression=ZIP_DEFLATED, allowZip64=True) as archive:
             for zf_name in archive.namelist():
@@ -294,7 +292,7 @@ def process_graph(context, graph_identifier, output_root, base_iri, file_limit, 
         modifications_by_file[cur_file_path]["triples"].append(triple)
 
     for file_path, data in modifications_by_file.items():
-        stored_g = load_graph(file_path) if os.path.exists(file_path) else ConjunctiveGraph()
+        stored_g = load_graph(file_path) if os.path.exists(file_path) else Dataset()
         stored_g = store(data["triples"], data["graph_identifier"], stored_g)
         store_in_file(stored_g, file_path, zip_output)
     return triples
@@ -303,7 +301,7 @@ def merge_files(output_root, base_file_name, file_extension, zip_output):
     """Funzione per fondere i file generati dai diversi processi"""
     files_to_merge = [f for f in os.listdir(output_root) if f.startswith(base_file_name) and f.endswith(file_extension)]
     
-    merged_graph = ConjunctiveGraph()
+    merged_graph = Dataset()
 
     for file_path in files_to_merge:
         cur_full_path = os.path.join(output_root, file_path)
@@ -316,7 +314,7 @@ def merge_files(output_root, base_file_name, file_extension, zip_output):
 def merge_files_in_directory(directory, zip_output, stop_file):
     """Function to merge files in a specific directory"""
     if check_stop_file(stop_file):
-        print("Stop file detected. Stopping merge process.")
+        logging.info("Stop file detected. Stopping merge process.")
         return
 
     files = [f for f in os.listdir(directory) if f.endswith('.zip' if zip_output else '.json')]
@@ -333,14 +331,14 @@ def merge_files_in_directory(directory, zip_output, stop_file):
     
     for base_file_name, files_to_merge in file_groups.items():
         if check_stop_file(stop_file):
-            print("Stop file detected. Stopping merge process.")
+            logging.info("Stop file detected. Stopping merge process.")
             return
 
         # Only proceed with merging if there's at least one file with an underscore
         if not any('_' in file for file in files_to_merge):
             continue
 
-        merged_graph = ConjunctiveGraph()
+        merged_graph = Dataset()
 
         for file_path in files_to_merge:
             cur_full_path = os.path.join(directory, file_path)
@@ -368,7 +366,7 @@ def merge_files_wrapper(args):
 def merge_all_files_parallel(output_root, zip_output, stop_file):
     """Function to merge files in parallel"""
     if check_stop_file(stop_file):
-        print("Stop file detected. Stopping merge process.")
+        logging.info("Stop file detected. Stopping merge process.")
         return
 
     directories_to_process = []
@@ -385,7 +383,7 @@ def merge_all_files_parallel(output_root, zip_output, stop_file):
 def process_file_content(file_path, output_root, base_iri, file_limit, item_limit, zip_output, rdf_format):
     with gzip.open(file_path, 'rb') as f:
         data = f.read().decode('utf-8')
-        graph = ConjunctiveGraph()
+        graph = Dataset()
         try:
             graph.parse(data=data, format=rdf_format)
         except rdflib.exceptions.ParserError as e:
@@ -460,14 +458,14 @@ def main():
     chunks = [files_to_process[i:i + args.chunk_size] for i in range(0, len(files_to_process), args.chunk_size)]
     for i, chunk in enumerate(tqdm(chunks, desc="Processing chunks")):
         if check_stop_file(args.stop_file):
-            print("Stop file detected. Gracefully terminating the process.")
+            logging.info("Stop file detected. Gracefully terminating the process.")
             break
-        print(f"\nProcessing chunk {i+1}/{len(chunks)}")
+        logging.info(f"Processing chunk {i+1}/{len(chunks)}")
         process_chunk(chunk, args.output_root, args.base_iri, args.file_limit, args.item_limit, args.zip_output, rdf_format, args.cache_file, args.stop_file)
-        print(f"Merging files for chunk {i+1}")
+        logging.info(f"Merging files for chunk {i+1}")
         merge_all_files_parallel(args.output_root, args.zip_output, args.stop_file)
 
-    print("Processing complete")
+    logging.info("Processing complete")
 
 if __name__ == "__main__":
     main()
