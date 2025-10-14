@@ -3,15 +3,15 @@ from __future__ import annotations
 import os
 from argparse import ArgumentParser
 
-from fakeredis import FakeStrictRedis
+from fakeredis import FakeStrictRedis, FakeRedis
 from oc_ds_converter.datasource.redis import RedisDataSource
 from tqdm import tqdm
 
 from oc_meta.lib.file_manager import get_csv_data, write_csv
 
 
-def discard_existing_res(csv_filepath: str, output_filepath: str, r: FakeStrictRedis|RedisDataSource = FakeStrictRedis()):
-    r = r if isinstance(r, FakeStrictRedis) else r._r
+def discard_existing_res(csv_filepath: str, output_filepath: str, r: FakeStrictRedis|FakeRedis|RedisDataSource = FakeStrictRedis()):
+    r = r if isinstance(r, (FakeStrictRedis, FakeRedis)) else r._r
     pbar = tqdm(total=len(os.listdir(csv_filepath)))
     if not os.path.exists(output_filepath):
         os.makedirs(output_filepath)

@@ -322,7 +322,7 @@ def merge_files_in_directory(directory, zip_output, stop_file):
     # Group files by their base name (number without the unique ID)
     file_groups = {}
     for file in files:
-        match = re.match(r'^(\d+)(?:_[^.]+)?\.', file)
+        match = re.match(r'^((?:\d+)|(?:se))(?:_[^.]+)?\.', file)
         if match:
             base_name = match.group(1)
             if base_name not in file_groups:

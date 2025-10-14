@@ -2,7 +2,7 @@ import os
 import unittest
 from shutil import rmtree
 
-from fakeredis import FakeStrictRedis
+from fakeredis import FakeServer, FakeRedis
 
 from oc_meta.lib.file_manager import get_csv_data
 from oc_meta.run.discard_existing_res import discard_existing_res
@@ -11,7 +11,8 @@ from oc_meta.run.discard_existing_res import discard_existing_res
 class TestDiscardExistingRes(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.r = FakeStrictRedis()
+        cls.server = FakeServer()
+        cls.r = FakeRedis(server=cls.server, decode_responses=True)
 
     def test_discard_existing_res(self):
         preexisting_ids = {

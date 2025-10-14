@@ -34,6 +34,7 @@ import logging
 import multiprocessing
 import os
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Tuple
@@ -52,6 +53,9 @@ DIR_SPLIT = 10000
 N_FILE_ITEM = 1000
 ZIP_OUTPUT = True
 
+INODE_THRESHOLD = 10_000_000  # 10 million free inodes trigger merge
+merge_needed_flag = multiprocessing.Event()  # Shared flag for all processes
+
 VIRTUOSO_EXCLUDED_GRAPHS = [
     "http://localhost:8890/DAV/",
     "http://www.openlinksw.com/schemas/virtrdf#",
@@ -60,6 +64,12 @@ VIRTUOSO_EXCLUDED_GRAPHS = [
     "urn:activitystreams-owl:map",
     "urn:core:services:sparql",
 ]
+
+
+def get_free_inodes(path: str) -> int:
+    """Get the number of free inodes on the filesystem containing the given path."""
+    stat = os.statvfs(path)
+    return stat.f_favail  # Free inodes available to non-root users
 
 
 def setup_logging(output_dir: Path, verbose: bool = False) -> None:
@@ -98,7 +108,7 @@ def convert_dumps_to_organized_structure(
     num_processes: int = None
 ) -> None:
     """
-    Convert downloaded N-Quads dumps to organized directory structure using batch processing.
+    Convert downloaded N-Quads dumps to organized directory structure with dynamic inode monitoring.
 
     Args:
         input_dir: Directory containing .nq.gz dump files
@@ -107,66 +117,123 @@ def convert_dumps_to_organized_structure(
     """
     logging.info(f"Converting dumps from {input_dir} to organized structure in {output_dir}")
 
+    cache_file = output_dir / ".processed_dumps_cache.txt"
+    processed_files = set()
+
+    if cache_file.exists():
+        with open(cache_file, 'r') as f:
+            processed_files = set(line.strip() for line in f if line.strip())
+        logging.info(f"Loaded cache with {len(processed_files)} already processed files")
+
     dump_files = list(input_dir.glob("*.nq.gz"))
     if not dump_files:
         logging.warning(f"No .nq.gz files found in {input_dir}")
         return
 
+    unprocessed_files = [f for f in dump_files if str(f.absolute()) not in processed_files]
+
     total_files = len(dump_files)
-    logging.info(f"Found {total_files} dump files to process")
+    skipped_files = len(dump_files) - len(unprocessed_files)
 
-    if total_files < 100:
-        batch_size = min(50, total_files)
-    elif total_files < 1000:
-        batch_size = 100
-    elif total_files < 5000:
-        batch_size = 200
-    else:
-        batch_size = 300
+    logging.info(f"Found {total_files} total dump files")
+    if skipped_files > 0:
+        logging.info(f"Skipping {skipped_files} already processed files")
+    logging.info(f"Will process {len(unprocessed_files)} files")
 
-    logging.info(f"Using adaptive batch size of {batch_size} files per batch")
+    if not unprocessed_files:
+        logging.info("All files have already been processed")
+        return
 
-    # Process files in batches to avoid inode exhaustion
-    total_batches = (total_files + batch_size - 1) // batch_size
+    dump_files = unprocessed_files
+
     stop_file = str(output_dir / ".stop")
 
-    with tqdm(total=total_batches, desc="Processing batches", position=0) as batch_pbar:
-        for batch_idx in range(total_batches):
-            start_idx = batch_idx * batch_size
-            end_idx = min(start_idx + batch_size, total_files)
-            batch_files = dump_files[start_idx:end_idx]
+    free_inodes = get_free_inodes(str(output_dir))
+    logging.info(f"Starting with {free_inodes:,} free inodes")
 
-            logging.info(f"Processing batch {batch_idx + 1}/{total_batches} "
-                        f"({len(batch_files)} files: {start_idx}-{end_idx-1})")
+    remaining_files = [
+        (dump_file, output_dir, BASE_IRI, DIR_SPLIT, N_FILE_ITEM, ZIP_OUTPUT)
+        for dump_file in dump_files
+    ]
 
-            with multiprocessing.Pool(processes=num_processes) as pool:
-                args_list = [
-                    (dump_file, output_dir, BASE_IRI, DIR_SPLIT, N_FILE_ITEM, ZIP_OUTPUT)
-                    for dump_file in batch_files
-                ]
+    total_processed = 0
+    merge_count = 0
+    successfully_processed = []
 
-                list(tqdm(
-                    pool.imap(process_dump_file, args_list),
-                    total=len(batch_files),
-                    desc=f"Files in batch {batch_idx + 1}",
-                    position=1,
-                    leave=False
-                ))
+    while remaining_files:
+        with multiprocessing.Pool(processes=num_processes) as pool:
+            files_to_retry = []
+            current_batch_processed = 0
 
-            merge_all_files_parallel(str(output_dir), ZIP_OUTPUT, stop_file)
-            batch_pbar.update(1)
+            with tqdm(total=len(remaining_files), desc=f"Processing files (merge count: {merge_count})") as pbar:
+                results = pool.imap_unordered(process_dump_file, remaining_files)
+
+                for i, (success, file_path) in enumerate(results):
+                    current_batch_processed += 1
+                    pbar.update(1)
+
+                    if not success:
+                        # False means this file couldn't be processed due to low inodes
+                        files_to_retry.append(remaining_files[i])
+                    else:
+                        total_processed += 1
+                        successfully_processed.append(file_path)
+                        with open(cache_file, 'a') as f:
+                            f.write(f"{file_path}\n")
+
+                    if merge_needed_flag.is_set():
+                        logging.info("Merge needed due to low inodes. Finishing current tasks...")
+                        pool.close()
+                        pool.join()
+
+                        merge_count += 1
+                        logging.info(f"Starting merge operation #{merge_count}...")
+                        merge_start = time.time()
+                        merge_all_files_parallel(str(output_dir), ZIP_OUTPUT, stop_file)
+                        merge_time = time.time() - merge_start
+
+                        free_inodes = get_free_inodes(str(output_dir))
+                        logging.info(f"Merge #{merge_count} completed in {merge_time:.1f}s. Free inodes: {free_inodes:,}")
+
+                        merge_needed_flag.clear()
+
+                        files_to_retry.extend(remaining_files[current_batch_processed:])
+                        break
+
+            remaining_files = files_to_retry
+
+            if not remaining_files:
+                logging.info(f"All files processed successfully. Total: {total_processed}, Merges: {merge_count}")
+                break
+            else:
+                logging.info(f"Retrying {len(remaining_files)} files after merge")
+
+    logging.info("Performing final merge...")
+    merge_all_files_parallel(str(output_dir), ZIP_OUTPUT, stop_file)
 
     logging.info("Conversion completed")
 
-def process_dump_file(args: tuple) -> None:
+def process_dump_file(args: tuple) -> tuple:
     """
     Process a single dump file and organize its contents.
     Parses N-Quads line by line to handle individual parsing errors gracefully.
 
     Args:
         args: Tuple of (dump_file, output_dir, base_iri, dir_split, n_file_item, zip_output)
+
+    Returns:
+        Tuple of (success: bool, dump_file_path: str)
+        - success: True if processed successfully, False if merge is needed
+        - dump_file_path: Path of the processed file (for cache update)
     """
     dump_file, output_dir, base_iri, dir_split, n_file_item, zip_output = args
+
+    free_inodes = get_free_inodes(str(output_dir))
+    if free_inodes < INODE_THRESHOLD:
+        logging.warning(f"Low inodes detected: {free_inodes:,} < {INODE_THRESHOLD:,}. Triggering merge.")
+        merge_needed_flag.set()
+        return (False, str(dump_file.absolute()))
+
     unique_id = generate_unique_id()
 
     dataset = Dataset()
@@ -176,92 +243,89 @@ def process_dump_file(args: tuple) -> None:
     excluded_lines = 0
     error_samples = []  # Store first few error examples
 
-    try:
-        with gzip.open(dump_file, 'rt', encoding='utf-8') as f:
-            for line_num, line in enumerate(f, 1):
-                total_lines += 1
-                line = line.strip()
+    with gzip.open(dump_file, 'rt', encoding='utf-8') as f:
+        for line_num, line in enumerate(f, 1):
+            total_lines += 1
+            line = line.strip()
 
-                if not line or line.startswith('#'):
-                    continue  # Skip empty lines and comments
+            if not line or line.startswith('#'):
+                continue  # Skip empty lines and comments
 
-                try:
-                    # Parse single N-Quad line
-                    temp_dataset = Dataset()
-                    temp_dataset.parse(data=line, format='nquads')
+            try:
+                # Parse single N-Quad line
+                temp_dataset = Dataset()
+                temp_dataset.parse(data=line, format='nquads')
 
-                    added_any = False
-                    for s, p, o, context in temp_dataset.quads():
-                        # Check if the graph (context) is in the excluded list
-                        if context and str(context) in VIRTUOSO_EXCLUDED_GRAPHS:
-                            continue  # Skip quads from Virtuoso system graphs
+                added_any = False
+                for s, p, o, context in temp_dataset.quads():
+                    # Check if the graph (context) is in the excluded list
+                    if context and str(context) in VIRTUOSO_EXCLUDED_GRAPHS:
+                        continue  # Skip quads from Virtuoso system graphs
 
-                        dataset.add((s, p, o, context))
-                        added_any = True
+                    dataset.add((s, p, o, context))
+                    added_any = True
 
-                    if added_any:
-                        parsed_lines += 1
-                    else:
-                        excluded_lines += 1
+                if added_any:
+                    parsed_lines += 1
+                else:
+                    excluded_lines += 1
 
-                except Exception as line_error:
-                    skipped_lines += 1
-                    # Store first 5 error examples for logging
-                    if len(error_samples) < 5:
-                        error_samples.append({
-                            'line_num': line_num,
-                            'line': line[:200] + '...' if len(line) > 200 else line,
-                            'error': str(line_error)
-                        })
-                    continue
+            except Exception as line_error:
+                skipped_lines += 1
+                # Store first 5 error examples for logging
+                if len(error_samples) < 5:
+                    error_samples.append({
+                        'line_num': line_num,
+                        'line': line[:200] + '...' if len(line) > 200 else line,
+                        'error': str(line_error)
+                    })
+                continue
 
-        # Log parsing statistics
-        if skipped_lines > 0 or excluded_lines > 0:
-            if excluded_lines > 0:
-                logging.info(f"File {dump_file}: Parsed {parsed_lines}/{total_lines} lines, "
-                            f"excluded {excluded_lines} Virtuoso system lines, "
+    # Log parsing statistics
+    if skipped_lines > 0 or excluded_lines > 0:
+        if excluded_lines > 0:
+            logging.info(f"File {dump_file}: Parsed {parsed_lines}/{total_lines} lines, "
+                        f"excluded {excluded_lines} Virtuoso system lines, "
+                        f"skipped {skipped_lines} problematic lines")
+        else:
+            logging.warning(f"File {dump_file}: Parsed {parsed_lines}/{total_lines} lines, "
                             f"skipped {skipped_lines} problematic lines")
-            else:
-                logging.warning(f"File {dump_file}: Parsed {parsed_lines}/{total_lines} lines, "
-                               f"skipped {skipped_lines} problematic lines")
 
-            for sample in error_samples:
-                logging.debug(f"  Line {sample['line_num']}: {sample['error']}")
-                logging.debug(f"    Content: {sample['line']}")
+        for sample in error_samples:
+            logging.debug(f"  Line {sample['line_num']}: {sample['error']}")
+            logging.debug(f"    Content: {sample['line']}")
 
-        files_data = {}
+    files_data = {}
 
-        for s, p, o, context in dataset.quads():
-            if isinstance(s, URIRef):
-                dir_path, file_path = find_paths(
-                    s, str(output_dir) + os.sep, base_iri,
-                    '_', dir_split, n_file_item, is_json=True
-                )
+    for s, p, o, context in dataset.quads():
+        if isinstance(s, URIRef):
+            dir_path, file_path = find_paths(
+                s, str(output_dir) + os.sep, base_iri,
+                '_', dir_split, n_file_item, is_json=True
+            )
 
-                if file_path:
-                    base_name = os.path.splitext(os.path.basename(file_path))[0]
-                    new_file_name = f"{base_name}_{unique_id}"
-                    file_path = os.path.join(os.path.dirname(file_path),
-                                            new_file_name + ('.zip' if zip_output else '.json'))
+            if file_path:
+                base_name = os.path.splitext(os.path.basename(file_path))[0]
+                new_file_name = f"{base_name}_{unique_id}"
+                file_path = os.path.join(os.path.dirname(file_path),
+                                        new_file_name + ('.zip' if zip_output else '.json'))
 
-                    if file_path not in files_data:
-                        files_data[file_path] = Dataset()
+                if file_path not in files_data:
+                    files_data[file_path] = Dataset()
 
-                    files_data[file_path].add((s, p, o, context))
+                files_data[file_path].add((s, p, o, context))
 
-        for file_path, file_graph in files_data.items():
-            dir_path = os.path.dirname(file_path)
-            os.makedirs(dir_path, exist_ok=True)
+    for file_path, file_graph in files_data.items():
+        dir_path = os.path.dirname(file_path)
+        os.makedirs(dir_path, exist_ok=True)
 
-            if zip_output and not file_path.endswith('.zip'):
-                file_path = file_path.replace('.json', '.zip')
+        if zip_output and not file_path.endswith('.zip'):
+            file_path = file_path.replace('.json', '.zip')
 
-            store_in_file(file_graph, file_path, zip_output)
+        store_in_file(file_graph, file_path, zip_output)
 
-        logging.debug(f"Completed processing {dump_file}")
-
-    except Exception as e:
-        logging.error(f"Critical error processing {dump_file}: {e}")
+    logging.debug(f"Completed processing {dump_file}")
+    return (True, str(dump_file.absolute()))
 
 def create_output_directories(base_output_dir: Path) -> Tuple[Path, Path]:
     """
