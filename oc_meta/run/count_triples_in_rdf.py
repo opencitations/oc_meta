@@ -4,7 +4,6 @@ import os
 import zipfile
 from pebble import ProcessPool
 from concurrent.futures import TimeoutError
-from multiprocessing import Manager
 from tqdm import tqdm
 import rdflib
 

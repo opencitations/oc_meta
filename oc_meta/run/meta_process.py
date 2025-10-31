@@ -273,21 +273,7 @@ class MetaProcess:
     ) -> None:
         os.makedirs(self.data_update_dir, exist_ok=True)
         os.makedirs(self.prov_update_dir, exist_ok=True)
-        
-        res_storer.upload_all(
-            triplestore_url=self.triplestore_url,
-            base_dir=self.data_update_dir,
-            batch_size=10,
-            save_queries=True
-        )
-        
-        prov_storer.upload_all(
-            triplestore_url=self.provenance_triplestore_url,
-            base_dir=self.prov_update_dir,
-            batch_size=10,
-            save_queries=True
-        )
-        
+
         if self.generate_rdf_files:
             res_storer.store_all(
                 base_dir=self.output_rdf_dir,
@@ -296,11 +282,25 @@ class MetaProcess:
                 process_id=None,
             )
             prov_storer.store_all(
-                self.output_rdf_dir, 
-                self.base_iri, 
-                self.context_path, 
+                self.output_rdf_dir,
+                self.base_iri,
+                self.context_path,
                 process_id=None
             )
+
+        res_storer.upload_all(
+            triplestore_url=self.triplestore_url,
+            base_dir=self.data_update_dir,
+            batch_size=10,
+            save_queries=True
+        )
+
+        prov_storer.upload_all(
+            triplestore_url=self.provenance_triplestore_url,
+            base_dir=self.prov_update_dir,
+            batch_size=10,
+            save_queries=True
+        )
 
     def run_sparql_updates(self, endpoint: str, folder: str, batch_size: int = 10):
         cache_manager = CacheManager(
