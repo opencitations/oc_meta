@@ -16,6 +16,10 @@ provenance_endpoints:
 - http://127.0.0.1:8806/sparql
 provenance_triplestore_url: http://127.0.0.1:8806/sparql
 rdf_output_in_chunks: false
+redis_cache_db: 2
+redis_db: 5
+redis_host: localhost
+redis_port: 6381
 resp_agent: https://w3id.org/oc/meta/prov/pa/1
 silencer:
 - author

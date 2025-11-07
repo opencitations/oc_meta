@@ -24,7 +24,7 @@ PROV_SERVER = "http://127.0.0.1:8806/sparql"
 
 # Redis configuration
 REDIS_HOST = "localhost"
-REDIS_PORT = 6379
+REDIS_PORT = 6381
 REDIS_DB = 5  # For counters
 REDIS_CACHE_DB = 2  # For cache, using same test DB as on_triplestore_test.py
 

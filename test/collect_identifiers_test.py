@@ -32,8 +32,8 @@ class TestCollectIdentifiers(unittest.TestCase):
         prov_config = "test_prov_config.yaml"
         
         cls.counter_handler = RedisCounterHandler(
-            host="localhost", 
-            port=6379, 
+            host="localhost",
+            port=6381,
             db=0
         )
         

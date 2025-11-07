@@ -17,7 +17,7 @@ SERVER = 'http://127.0.0.1:8805/sparql'
 
 def reset_redis_counters():
     redis_host = 'localhost'
-    redis_port = 6379
+    redis_port = 6381
     redis_db = 5
     redis_client = redis.Redis(host=redis_host, port=redis_port, db=redis_db)
     redis_client.flushdb()
@@ -56,7 +56,7 @@ def prepare2test(name):
     testcase_vi = open_json("test/testcases/testcase_data/indices/" + name + "/index_vi_" + name + ".json")
     testcase_ttl = "test/testcases/testcase_" + name + ".ttl"
 
-    counter_handler = RedisCounterHandler(host='localhost', port=6379, db=5)
+    counter_handler = RedisCounterHandler(host='localhost', port=6381, db=5)
     creator = Creator(data, SERVER, "https://w3id.org/oc/meta/", counter_handler, "060", 'https://orcid.org/0000-0002-8420-0696', testcase_id_ra, testcase_id_br,
                       testcase_re, testcase_ar, testcase_vi, set(), Graph())
     creator_setgraph = creator.creator()
@@ -72,7 +72,7 @@ class test_Creator(unittest.TestCase):
     def setUp(self):
         reset_server()
         reset_redis_counters()
-        self.counter_handler = RedisCounterHandler(host='localhost', port=6379, db=5)
+        self.counter_handler = RedisCounterHandler(host='localhost', port=6381, db=5)
 
     def tearDown(self):
         reset_redis_counters()
@@ -112,7 +112,7 @@ class test_RespAgentsCreator(unittest.TestCase):
     def setUp(self):
         reset_server()
         reset_redis_counters()
-        self.counter_handler = RedisCounterHandler(host='localhost', port=6379, db=5)
+        self.counter_handler = RedisCounterHandler(host='localhost', port=6381, db=5)
 
     def tearDown(self):
         reset_redis_counters()

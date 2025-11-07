@@ -66,6 +66,8 @@ class MetaEditor:
         self.endpoint = settings["triplestore_url"]
         self.provenance_endpoint = settings["provenance_triplestore_url"]
         output_dir = settings.get("base_output_dir")
+        self.data_hotfix_dir = os.path.join(output_dir, "to_be_uploaded_hotfix")
+        self.prov_hotfix_dir = os.path.join(output_dir, "to_be_uploaded_hotfix")
         self.base_dir = os.path.join(output_dir, "rdf") + os.sep
         self.base_iri = settings["base_iri"]
         self.resp_agent = resp_agent
@@ -385,12 +387,12 @@ class MetaEditor:
         if self.generate_rdf_files:
             graph_storer.store_all(self.base_dir, self.base_iri)
             prov_storer.store_all(self.base_dir, self.base_iri)
-            
+
         graph_storer.upload_all(
-            self.endpoint, base_dir=self.base_dir, save_queries=self.save_queries
+            self.endpoint, base_dir=self.data_hotfix_dir, save_queries=self.save_queries
         )
         prov_storer.upload_all(
-            self.provenance_endpoint, base_dir=self.base_dir, save_queries=self.save_queries
+            self.provenance_endpoint, base_dir=self.prov_hotfix_dir, save_queries=self.save_queries
         )
         g_set.commit_changes()
 

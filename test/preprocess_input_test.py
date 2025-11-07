@@ -37,8 +37,7 @@ class TestPreprocessInput(unittest.TestCase):
         self.test_dir = tempfile.mkdtemp(dir='.')
         self.output_dir = tempfile.mkdtemp(dir='.')
         
-        # Create Redis connection for testing (using DB 5)
-        self.redis_client = redis.Redis(host='localhost', port=6379, db=5, decode_responses=True)
+        self.redis_client = redis.Redis(host='localhost', port=6381, db=5, decode_responses=True)
         
         # Add some test data to Redis
         self.redis_client.set('doi:10.1007/978-3-662-07918-8_3', '1')

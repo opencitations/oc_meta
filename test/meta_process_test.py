@@ -617,14 +617,24 @@ class test_ProcessTest(unittest.TestCase):
         original_input_csv_dir = settings["input_csv_dir"]
         settings["input_csv_dir"] = os.path.join(original_input_csv_dir, "preprocess")
         settings["workers_number"] = 1
-        
+
+        # Use temporary cache files to avoid corruption
+        settings["ts_upload_cache"] = self.cache_file
+        settings["ts_failed_queries"] = self.failed_file
+        settings["ts_stop_file"] = self.stop_file
+
         reset_server()
-        
+
         run_meta_process(settings=settings, meta_config_path=meta_config_path)
-        
+
+        # Create a temporary config file with updated settings for subprocess
+        temp_config_path = os.path.join(self.temp_dir, "temp_meta_config.yaml")
+        with open(temp_config_path, "w") as f:
+            yaml.dump(settings, f)
+
         # Run it again to test thread safety
         proc = subprocess.run(
-            [sys.executable, "-m", "oc_meta.run.meta_process", "-c", meta_config_path],
+            [sys.executable, "-m", "oc_meta.run.meta_process", "-c", temp_config_path],
             capture_output=True,
             text=True,
         )
@@ -1315,6 +1325,9 @@ class test_ProcessTest(unittest.TestCase):
             "cache_endpoint": None,
             "cache_update_endpoint": None,
             "silencer": [],
+            "redis_host": "localhost",
+            "redis_port": 6381,
+            "redis_db": 5,
             "redis_cache_db": 2,
             "ts_upload_cache": self.cache_file,
             "ts_failed_queries": self.failed_file,
@@ -1382,7 +1395,7 @@ class test_ProcessTest(unittest.TestCase):
         sparql.query()
 
         # Update Redis counters to match the inserted data
-        redis_handler = RedisCounterHandler(db=5)  # Use test db
+        redis_handler = RedisCounterHandler(port=6381, db=5)  # Use test db
         redis_handler.set_counter(
             2, "br", supplier_prefix="060"
         )  # BR counter for two BRs
@@ -1539,7 +1552,7 @@ class test_ProcessTest(unittest.TestCase):
         sparql.query()
 
         # Update Redis counters for the pre-existing entities
-        redis_handler = RedisCounterHandler(db=5)
+        redis_handler = RedisCounterHandler(port=6381, db=5)
         redis_handler.set_counter(
             6, "br", supplier_prefix="060"
         )  # Updated to account for 6 entities (2 venues + 4 volumes)
@@ -1573,6 +1586,9 @@ class test_ProcessTest(unittest.TestCase):
             "cache_endpoint": None,
             "cache_update_endpoint": None,
             "silencer": [],
+            "redis_host": "localhost",
+            "redis_port": 6381,
+            "redis_db": 5,
             "redis_cache_db": 2,
             "ts_upload_cache": self.cache_file,
             "ts_failed_queries": self.failed_file,
@@ -1693,6 +1709,9 @@ class test_ProcessTest(unittest.TestCase):
             "cache_endpoint": None,
             "cache_update_endpoint": None,
             "silencer": [],
+            "redis_host": "localhost",
+            "redis_port": 6381,
+            "redis_db": 5,
             "redis_cache_db": 2,
             "ts_upload_cache": self.cache_file,
             "ts_failed_queries": self.failed_file,
@@ -1823,6 +1842,9 @@ class test_ProcessTest(unittest.TestCase):
             "cache_endpoint": None,
             "cache_update_endpoint": None,
             "silencer": [],
+            "redis_host": "localhost",
+            "redis_port": 6381,
+            "redis_db": 5,
             "redis_cache_db": 2,
             "ts_upload_cache": self.cache_file,
             "ts_failed_queries": self.failed_file,
@@ -1941,7 +1963,7 @@ class test_ProcessTest(unittest.TestCase):
         sparql.query()
 
         # Update Redis counters for pre-existing entities
-        redis_handler = RedisCounterHandler(db=5)
+        redis_handler = RedisCounterHandler(port=6381, db=5)
         redis_handler.set_counter(
             5, "br", supplier_prefix="060"
         )  # 5 entities: venue, 2 volumes, 2 issues
@@ -2014,6 +2036,9 @@ class test_ProcessTest(unittest.TestCase):
             "cache_endpoint": None,
             "cache_update_endpoint": None,
             "silencer": [],
+            "redis_host": "localhost",
+            "redis_port": 6381,
+            "redis_db": 5,
             "redis_cache_db": 2,
             "ts_upload_cache": self.cache_file,
             "ts_failed_queries": self.failed_file,
@@ -2180,6 +2205,9 @@ class test_ProcessTest(unittest.TestCase):
             "cache_endpoint": None,
             "cache_update_endpoint": None,
             "silencer": [],
+            "redis_host": "localhost",
+            "redis_port": 6381,
+            "redis_db": 5,
             "redis_cache_db": 2,
             "ts_upload_cache": self.cache_file,
             "ts_failed_queries": self.failed_file,
@@ -2300,7 +2328,7 @@ class test_ProcessTest(unittest.TestCase):
             "workers_number": 1,
             "silencer": [],
             "redis_host": "localhost",
-            "redis_port": 6379,
+            "redis_port": 6381,
             "redis_db": 5,
             "redis_cache_db": 2,
             "ts_upload_cache": self.cache_file,

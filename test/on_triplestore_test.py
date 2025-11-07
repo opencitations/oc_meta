@@ -283,6 +283,7 @@ class TestOnTriplestore(unittest.TestCase):
             f.write(invalid_query)
 
         # Esegui l'upload
+        cache_manager = CacheManager(self.cache_file, redis_db=TEST_REDIS_DB)
         upload_sparql_updates(
             SERVER,
             sparql_dir,
@@ -290,11 +291,10 @@ class TestOnTriplestore(unittest.TestCase):
             cache_file=self.cache_file,
             failed_file=self.failed_file,
             stop_file=self.stop_file,
-            cache_manager=CacheManager(self.cache_file, redis_db=TEST_REDIS_DB),
+            cache_manager=cache_manager,
         )
 
-        # Verifica i risultati usando CacheManager
-        cache_manager = CacheManager(self.cache_file, redis_db=TEST_REDIS_DB)
+        # Verifica i risultati usando lo stesso CacheManager
         self.assertIn("valid.sparql", cache_manager)
         self.assertNotIn("invalid.sparql", cache_manager)
 

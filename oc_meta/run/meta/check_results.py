@@ -462,13 +462,13 @@ def process_csv_file(args: tuple):
 
 def main():
     parser = argparse.ArgumentParser(description="Check MetaProcess results by verifying input CSV identifiers")
-    parser.add_argument("directory", help="Directory containing input CSV files")
     parser.add_argument("meta_config", help="Path to meta_config.yaml file")
     args = parser.parse_args()
-    
+
     with open(args.meta_config, 'r', encoding='utf-8') as f:
         config = yaml.safe_load(f)
-    
+
+    input_csv_dir = config['input_csv_dir']
     base_output_dir = config['output_rdf_dir']
     output_rdf_dir = os.path.join(base_output_dir, 'rdf')
     endpoint_url = config['triplestore_url']
@@ -480,13 +480,13 @@ def main():
         return
     
     csv_files = []
-    for root, _, files in os.walk(args.directory):
+    for root, _, files in os.walk(input_csv_dir):
         csv_files.extend(
             os.path.join(root, f) for f in files if f.endswith('.csv')
         )
-    
+
     if not csv_files:
-        print(f"No CSV files found in {args.directory}")
+        print(f"No CSV files found in {input_csv_dir}")
         return
         
     print(f"Found {len(csv_files)} CSV files to process")

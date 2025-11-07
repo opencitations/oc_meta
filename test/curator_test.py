@@ -28,7 +28,7 @@ PROV_CONFIG = f'{BASE_DIR}/prov_config.json'
 
 # Redis configuration
 REDIS_HOST = 'localhost'
-REDIS_PORT = 6379
+REDIS_PORT = 6381
 REDIS_DB = 5
 
 def get_path(path:str) -> str:

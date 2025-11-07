@@ -47,7 +47,7 @@ class TestCSVGeneratorLite(unittest.TestCase):
         os.makedirs(self.br_dir, exist_ok=True)
 
         # Initialize Redis connection for tests
-        self.redis_client = init_redis_connection(db=5)  # Use DB 5 for testing
+        self.redis_client = init_redis_connection(port=6381, db=5)
         self.redis_client.flushdb()  # Clear test database
 
     def tearDown(self):
@@ -82,7 +82,7 @@ class TestCSVGeneratorLite(unittest.TestCase):
     def test_redis_connection_and_caching(self):
         """Test Redis connection and basic caching operations"""
         # Test connection initialization
-        redis_client = init_redis_connection(db=5)
+        redis_client = init_redis_connection(port=6381, db=5)
         self.assertIsInstance(redis_client, redis.Redis)
 
         # Create a test CSV file with some OMIDs
@@ -140,6 +140,7 @@ class TestCSVGeneratorLite(unittest.TestCase):
             dir_split_number=10000,
             items_per_file=1000,
             zip_output_rdf=True,
+            redis_port=6381,
             redis_db=5,
         )
 
@@ -186,6 +187,7 @@ class TestCSVGeneratorLite(unittest.TestCase):
             dir_split_number=10000,
             items_per_file=1000,
             zip_output_rdf=True,
+            redis_port=6381,
             redis_db=5,
         )
 
@@ -234,6 +236,7 @@ class TestCSVGeneratorLite(unittest.TestCase):
             dir_split_number=10000,
             items_per_file=1000,
             zip_output_rdf=True,
+            redis_port=6381,
             redis_db=5,
         )
 
@@ -253,6 +256,7 @@ class TestCSVGeneratorLite(unittest.TestCase):
             dir_split_number=10000,
             items_per_file=1000,
             zip_output_rdf=True,
+            redis_port=6381,
             redis_db=5,
         )
 
@@ -266,7 +270,7 @@ class TestCSVGeneratorLite(unittest.TestCase):
         """Test handling of Redis connection errors"""
         # Test with invalid Redis connection
         with self.assertRaises(redis.ConnectionError):
-            init_redis_connection(port=12345)  # Invalid port
+            init_redis_connection(port=9999)  # Invalid port
 
         # Test loading OMIDs with non-existent directory
         count = load_processed_omids_to_redis("/nonexistent/dir", self.redis_client)
@@ -304,6 +308,7 @@ class TestCSVGeneratorLite(unittest.TestCase):
             dir_split_number=10000,
             items_per_file=1000,
             zip_output_rdf=True,
+            redis_port=6381,
             redis_db=5,
         )
 
@@ -336,6 +341,7 @@ class TestCSVGeneratorLite(unittest.TestCase):
             dir_split_number=10000,
             items_per_file=1000,
             zip_output_rdf=True,
+            redis_port=6381,
             redis_db=5,
         )
 
@@ -392,6 +398,8 @@ class TestCSVGeneratorLite(unittest.TestCase):
             dir_split_number=10000,
             items_per_file=1000,
             zip_output_rdf=True,
+            redis_port=6381,
+            redis_db=5,
         )
 
         # Check output
@@ -497,6 +505,8 @@ class TestCSVGeneratorLite(unittest.TestCase):
             dir_split_number=10000,
             items_per_file=1000,
             zip_output_rdf=True,
+            redis_port=6381,
+            redis_db=5,
         )
 
         # Check output
@@ -532,6 +542,8 @@ class TestCSVGeneratorLite(unittest.TestCase):
             dir_split_number=10000,
             items_per_file=1000,
             zip_output_rdf=True,
+            redis_port=6381,
+            redis_db=5,
         )
 
         self.assertEqual(len(os.listdir(self.output_dir)), 0)
@@ -669,6 +681,8 @@ class TestCSVGeneratorLite(unittest.TestCase):
             dir_split_number=10000,
             items_per_file=1000,
             zip_output_rdf=True,
+            redis_port=6381,
+            redis_db=5,
         )
 
         # Check output
@@ -756,6 +770,8 @@ class TestCSVGeneratorLite(unittest.TestCase):
             dir_split_number=10000,
             items_per_file=1000,
             zip_output_rdf=True,
+            redis_port=6381,
+            redis_db=5,
         )
 
         # Check output
@@ -824,6 +840,8 @@ class TestCSVGeneratorLite(unittest.TestCase):
             dir_split_number=10000,
             items_per_file=1000,
             zip_output_rdf=True,
+            redis_port=6381,
+            redis_db=5,
         )
 
         # Check output
@@ -874,6 +892,8 @@ class TestCSVGeneratorLite(unittest.TestCase):
             dir_split_number=10000,
             items_per_file=1000,
             zip_output_rdf=True,
+            redis_port=6381,
+            redis_db=5,
         )
 
         # Check output
@@ -1033,6 +1053,8 @@ class TestCSVGeneratorLite(unittest.TestCase):
             dir_split_number=10000,
             items_per_file=1000,
             zip_output_rdf=True,
+            redis_port=6381,
+            redis_db=5,
         )
 
         # Check output
@@ -1140,6 +1162,8 @@ class TestCSVGeneratorLite(unittest.TestCase):
             dir_split_number=10000,
             items_per_file=1000,
             zip_output_rdf=True,
+            redis_port=6381,
+            redis_db=5,
         )
 
         # Check output
@@ -1269,6 +1293,8 @@ class TestCSVGeneratorLite(unittest.TestCase):
             dir_split_number=10000,
             items_per_file=1000,
             zip_output_rdf=True,
+            redis_port=6381,
+            redis_db=5,
         )
 
         # Check output
@@ -1388,6 +1414,8 @@ class TestCSVGeneratorLite(unittest.TestCase):
             dir_split_number=10000,
             items_per_file=1000,
             zip_output_rdf=True,
+            redis_port=6381,
+            redis_db=5,
         )
 
         # Check output
@@ -1511,6 +1539,8 @@ class TestCSVGeneratorLite(unittest.TestCase):
             dir_split_number=10000,
             items_per_file=1000,
             zip_output_rdf=True,
+            redis_port=6381,
+            redis_db=5,
         )
 
         # Check output
@@ -1701,6 +1731,8 @@ class TestCSVGeneratorLite(unittest.TestCase):
             dir_split_number=10000,
             items_per_file=1000,
             zip_output_rdf=True,
+            redis_port=6381,
+            redis_db=5,
         )
 
         # Check output
@@ -1806,6 +1838,8 @@ class TestCSVGeneratorLite(unittest.TestCase):
             dir_split_number=10000,
             items_per_file=1000,
             zip_output_rdf=True,
+            redis_port=6381,
+            redis_db=5,
         )
 
         # Check output files
@@ -2047,6 +2081,8 @@ class TestCSVGeneratorLite(unittest.TestCase):
             dir_split_number=10000,
             items_per_file=1000,
             zip_output_rdf=True,
+            redis_port=6381,
+            redis_db=5,
         )
 
         # Check output
@@ -2193,6 +2229,8 @@ class TestCSVGeneratorLite(unittest.TestCase):
             dir_split_number=10000,
             items_per_file=1000,
             zip_output_rdf=True,
+            redis_port=6381,
+            redis_db=5,
         )
 
         # Check output

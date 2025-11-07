@@ -113,7 +113,6 @@ def upload_sparql_updates(
         cache_manager = CacheManager(cache_file)
     failed_files = []
 
-    # Misura tempo scansione directory e filtraggio file
     all_files = [f for f in os.listdir(folder) if f.endswith(".sparql")]
     files_to_process = [f for f in all_files if f not in cache_manager]
     print(

@@ -51,7 +51,7 @@ docker run -d --name $VIRTUOSO_PROV_CONTAINER \
 
 echo "Starting $REDIS_CONTAINER container..."
 docker run -d --name $REDIS_CONTAINER \
-  -p 6379:6379 \
+  -p 6381:6379 \
   redis:7-alpine
 
 echo "Waiting for test databases to start (approx. 30 seconds)..."
@@ -111,4 +111,4 @@ echo "Virtuoso Data SPARQL Endpoint: http://localhost:8805/sparql"
 echo "Virtuoso Data ISQL Port: 1105"
 echo "Virtuoso Provenance SPARQL Endpoint: http://localhost:8806/sparql"
 echo "Virtuoso Provenance ISQL Port: 1106"
-echo "Redis: localhost:6379" 
+echo "Redis: localhost:6381" 
