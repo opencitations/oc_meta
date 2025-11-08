@@ -4,13 +4,13 @@ import os
 import re
 import time
 import zipfile
+from datetime import datetime
 from functools import wraps
 from multiprocessing import Pool, cpu_count
 from typing import Dict, List, Set
 
 import yaml
 from oc_meta.lib.master_of_regex import name_and_ids, semicolon_in_people_field
-from rdflib import ConjunctiveGraph, URIRef
 from SPARQLWrapper import JSON, SPARQLWrapper
 from tqdm import tqdm
 
@@ -207,55 +207,6 @@ def find_prov_file(data_zip_path: str) -> str|None:
         print(f"Error finding provenance file for {data_zip_path}: {str(e)}")
         return None
 
-def load_graph_from_zip(zip_path: str, omid: str, zip_cache: dict) -> tuple[bool, bool]:
-    """
-    Load RDF graph from data ZIP file and check if:
-    1. The OMID exists in the data graph
-    2. A provenance graph exists for this OMID
-    Returns tuple of (data_found, prov_found) booleans
-    """
-    try:
-        data_found = False
-        prov_found = False
-        omid_uri = URIRef(omid)
-        
-        # Check data graph
-        if zip_path not in zip_cache:
-            data_graph = ConjunctiveGraph()
-            with zipfile.ZipFile(zip_path, 'r') as z:
-                json_files = [f for f in z.namelist() if f.endswith('.json')]
-                if json_files:
-                    with z.open(json_files[0]) as f:
-                        data_graph.parse(data=f.read(), format='json-ld')
-            zip_cache[zip_path] = data_graph
-        else:
-            data_graph = zip_cache[zip_path]
-        
-        data_found = any(data_graph.triples((omid_uri, None, None)))
-        
-        # Check provenance graph
-        prov_path = find_prov_file(zip_path)
-        if prov_path:
-            if prov_path not in zip_cache:
-                prov_graph = ConjunctiveGraph()
-                with zipfile.ZipFile(prov_path, 'r') as z:
-                    json_files = [f for f in z.namelist() if f.endswith('.json')]
-                    if json_files:
-                        with z.open(json_files[0]) as f:
-                            prov_graph.parse(data=f.read(), format='json-ld')
-                zip_cache[prov_path] = prov_graph
-            else:
-                prov_graph = zip_cache[prov_path]
-            
-            prov_graph_uri = URIRef(f"{omid}/prov/")
-            prov_found = any(prov_graph.triples((None, None, None), prov_graph_uri))
-        
-        return data_found, prov_found
-        
-    except Exception as e:
-        print(f"Error loading graphs from {zip_path}: {str(e)}")
-        return False, False
-
 def process_csv_file(args: tuple):
     """
     Process a single CSV file and check its identifiers
@@ -377,39 +328,33 @@ def process_csv_file(args: tuple):
 
         # Quarta fase: controllo dei grafi per file
         for zip_path, omids in omids_by_file.items():
-            # Carica il grafo una volta sola per tutti gli OMID nel file
-            data_graph = ConjunctiveGraph()
+            data_content = None
             with zipfile.ZipFile(zip_path, 'r') as z:
                 json_files = [f for f in z.namelist() if f.endswith('.json')]
                 if json_files:
                     with z.open(json_files[0]) as f:
-                        data_graph.parse(data=f.read(), format='json-ld')
-            
-            # Carica il grafo di provenance se esiste
-            prov_graph = None
+                        data_content = f.read().decode('utf-8')
+
+            prov_content = None
             prov_path = find_prov_file(zip_path)
             if prov_path and os.path.exists(prov_path):
-                prov_graph = ConjunctiveGraph()
                 with zipfile.ZipFile(prov_path, 'r') as z:
                     json_files = [f for f in z.namelist() if f.endswith('.json')]
                     if json_files:
                         with z.open(json_files[0]) as f:
-                            prov_graph.parse(data=f.read(), format='json-ld')
-            
-            # Controlla tutti gli OMID nel file
+                            prov_content = f.read().decode('utf-8')
+
             for omid in omids:
                 if omid in omid_results_cache:
                     data_found, prov_found = omid_results_cache[omid]
                 else:
-                    omid_uri = URIRef(omid)
-                    data_found = any(data_graph.triples((omid_uri, None, None)))
-                    
-                    if prov_graph is not None:
-                        prov_graph_uri = URIRef(f"{omid}/prov/")
-                        prov_found = any(prov_graph.triples((None, None, None), prov_graph_uri))
+                    data_found = data_content is not None and omid in data_content
+
+                    if prov_content is not None:
+                        prov_found = omid in prov_content
                     else:
                         prov_found = False
-                    
+
                     omid_results_cache[omid] = (data_found, prov_found)
                 
                 if data_found:
@@ -460,9 +405,110 @@ def process_csv_file(args: tuple):
     
     return stats
 
+def generate_results_output(
+    total_rows: int,
+    total_rows_with_ids: int,
+    total_identifiers: int,
+    total_omid_schema: int,
+    total_with_omids: int,
+    total_without_omids: int,
+    total_data_graphs_found: int,
+    total_data_graphs_missing: int,
+    total_prov_graphs_found: int,
+    total_prov_graphs_missing: int,
+    total_omids_with_provenance: int,
+    total_omids_without_provenance: int,
+    total_found_omids: int,
+    problematic_identifiers: dict,
+    omids_without_prov: dict,
+    missing_omid_identifiers: dict,
+    generate_rdf_files: bool,
+    include_header: bool = False
+) -> List[str]:
+    """Generate output lines for results (used both for console and file)"""
+    lines = []
+
+    if include_header:
+        lines.append("=" * 80)
+        lines.append("CHECK RESULTS REPORT")
+        lines.append(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        lines.append("=" * 80)
+        lines.append("")
+
+    lines.append("Results Summary:")
+    lines.append(f"Total rows processed: {total_rows}")
+    lines.append(f"Rows containing identifiers: {total_rows_with_ids}")
+    lines.append(f"Total identifiers found: {total_identifiers}")
+    lines.append(f"Identifiers with 'omid' schema (skipped checking): {total_omid_schema}")
+
+    non_omid_identifiers = total_identifiers - total_omid_schema
+    if non_omid_identifiers > 0:
+        lines.append(f"Identifiers with associated OMIDs: {total_with_omids} ({(total_with_omids/non_omid_identifiers*100):.2f}%)")
+        lines.append(f"Identifiers without OMIDs: {total_without_omids} ({(total_without_omids/non_omid_identifiers*100):.2f}%)")
+    else:
+        lines.append("No non-omid identifiers found to check for OMID associations.")
+
+    if generate_rdf_files:
+        lines.append("")
+        lines.append("Data Graphs:")
+        lines.append(f"  Found: {total_data_graphs_found}")
+        lines.append(f"  Missing: {total_data_graphs_missing}")
+        lines.append("")
+        lines.append("Provenance Graphs:")
+        lines.append(f"  Found: {total_prov_graphs_found}")
+        lines.append(f"  Missing: {total_prov_graphs_missing}")
+    else:
+        lines.append("")
+        lines.append("RDF file generation is disabled. File checks were skipped.")
+
+    lines.append("")
+    lines.append("Provenance in Triplestore:")
+    if total_found_omids > 0:
+        lines.append(f"  OMIDs with provenance: {total_omids_with_provenance} ({(total_omids_with_provenance/total_found_omids*100):.2f}%)")
+        lines.append(f"  OMIDs without provenance: {total_omids_without_provenance} ({(total_omids_without_provenance/total_found_omids*100):.2f}%)")
+    else:
+        lines.append("  No OMIDs found to check for provenance.")
+
+    if problematic_identifiers:
+        lines.append("")
+        lines.append("=" * 80)
+        lines.append("WARNING: Found identifiers with multiple OMIDs:")
+        lines.append("=" * 80)
+        for id_key, details in problematic_identifiers.items():
+            lines.append(f"\nIdentifier {id_key} is associated with {len(details['omids'])} different OMIDs:")
+            lines.append(f"  OMIDs: {', '.join(sorted(details['omids']))}")
+            lines.append("  Occurrences:")
+            for occ in details['occurrences']:
+                lines.append(f"    - Row {occ['row']} in {occ['file']}, column {occ['column']}")
+
+    if omids_without_prov:
+        lines.append("")
+        lines.append("=" * 80)
+        lines.append("WARNING: Found OMIDs without provenance in the triplestore:")
+        lines.append("=" * 80)
+        for omid, occurrences in omids_without_prov.items():
+            lines.append(f"\nOMID {omid} has no associated provenance")
+            lines.append("  Referenced by:")
+            for occ in occurrences:
+                lines.append(f"    - Identifier {occ['identifier']} in {occ['file']}, row {occ['row']}, column {occ['column']}")
+
+    if missing_omid_identifiers:
+        lines.append("")
+        lines.append("=" * 80)
+        lines.append("WARNING: Found identifiers without any OMID:")
+        lines.append("=" * 80)
+        for id_key, occurrences in missing_omid_identifiers.items():
+            lines.append(f"\nIdentifier {id_key} has no associated OMID")
+            lines.append("  Occurrences:")
+            for occ in occurrences:
+                lines.append(f"    - Row {occ['row']} in {occ['file']}, column {occ['column']}")
+
+    return lines
+
 def main():
     parser = argparse.ArgumentParser(description="Check MetaProcess results by verifying input CSV identifiers")
     parser.add_argument("meta_config", help="Path to meta_config.yaml file")
+    parser.add_argument("--output", help="Output file path. If specified, results are written to file instead of console")
     args = parser.parse_args()
 
     with open(args.meta_config, 'r', encoding='utf-8') as f:
@@ -511,20 +557,23 @@ def main():
     total_prov_graphs_missing = sum(r['prov_graphs_missing'] for r in results)
     total_omids_with_provenance = sum(r['omids_with_provenance'] for r in results)
     total_omids_without_provenance = sum(r['omids_without_provenance'] for r in results)
-    
+
+    id_key_to_omids = {}
+    for r in tqdm(results, desc="Creating lookup dictionary"):
+        for omid, omid_details in r['processed_omids'].items():
+            id_key = omid_details['identifier']
+            if id_key not in id_key_to_omids:
+                id_key_to_omids[id_key] = set()
+            id_key_to_omids[id_key].add(omid)
+
     problematic_identifiers = {}  # identificatori con OMID multipli
     missing_omid_identifiers = {}  # identificatori senza OMID
-    
-    for result in results:
+
+    for result in tqdm(results, desc="Checking for problematic identifiers"):
         for detail in result['identifiers_details']:
             id_key = f"{detail['schema']}:{detail['value']}"
-            omids = set()
-            
-            for r in results:
-                for omid, omid_details in r['processed_omids'].items():
-                    if omid_details['identifier'] == id_key:
-                        omids.add(omid)
-            
+            omids = id_key_to_omids.get(id_key, set())
+
             if len(omids) > 1:
                 if id_key not in problematic_identifiers:
                     problematic_identifiers[id_key] = {
@@ -549,47 +598,14 @@ def main():
                     'column': detail['column']
                 })
 
-    print("\nResults Summary:")
-    print(f"Total rows processed: {total_rows}")
-    print(f"Rows containing identifiers: {total_rows_with_ids}")
-    print(f"Total identifiers found: {total_identifiers}")
-    print(f"Identifiers with 'omid' schema (skipped checking): {total_omid_schema}")
-    non_omid_identifiers = total_identifiers - total_omid_schema
-    if non_omid_identifiers > 0:
-        print(f"Identifiers with associated OMIDs: {total_with_omids} ({(total_with_omids/non_omid_identifiers*100):.2f}%)")
-        print(f"Identifiers without OMIDs: {total_without_omids} ({(total_without_omids/non_omid_identifiers*100):.2f}%)")
-    else:
-        print("No non-omid identifiers found to check for OMID associations.")
-    
-    if config.get('generate_rdf_files', True):
-        print(f"\nData Graphs:")
-        print(f"  Found: {total_data_graphs_found}")
-        print(f"  Missing: {total_data_graphs_missing}")
-        print(f"\nProvenance Graphs:")
-        print(f"  Found: {total_prov_graphs_found}")
-        print(f"  Missing: {total_prov_graphs_missing}")
-    else:
-        print("\nRDF file generation is disabled. File checks were skipped.")
-        
-    print(f"\nProvenance in Triplestore:")
-    total_found_omids = total_with_omids + total_omid_schema
-    if total_found_omids > 0:
-        print(f"  OMIDs with provenance: {total_omids_with_provenance} ({(total_omids_with_provenance/total_found_omids*100):.2f}%)")
-        print(f"  OMIDs without provenance: {total_omids_without_provenance} ({(total_omids_without_provenance/total_found_omids*100):.2f}%)")
-    else:
-        print("  No OMIDs found to check for provenance.")
-    
-    if problematic_identifiers:
-        print("\nWARNING: Found identifiers with multiple OMIDs:")
-        for id_key, details in problematic_identifiers.items():
-            print(f"\nIdentifier {id_key} is associated with {len(details['omids'])} different OMIDs:")
-            print(f"  OMIDs: {', '.join(sorted(details['omids']))}")
-            print("  Occurrences:")
-            for occ in details['occurrences']:
-                print(f"    - Row {occ['row']} in {occ['file']}, column {occ['column']}")
-                
+    omids_without_prov_set = set()
+    for result in tqdm(results, desc="Building provenance lookup set"):
+        for omid, details in result['processed_omids'].items():
+            if not details.get('triplestore_prov_found', False):
+                omids_without_prov_set.add(omid)
+
     omids_without_prov = {}
-    for result in results:
+    for result in tqdm(results, desc="Collecting OMIDs without provenance"):
         for omid, details in result['processed_omids'].items():
             if not details.get('triplestore_prov_found', False):
                 if omid not in omids_without_prov:
@@ -600,43 +616,51 @@ def main():
                     'column': details.get('column', 'unknown'),
                     'identifier': details.get('identifier', 'unknown')
                 })
-        
+
         for detail in result['identifiers_details']:
             if detail['schema'].lower() == 'omid':
                 omid = detail['value']
-                if omid.startswith('http'):
-                    found_without_prov = False
-                    for r in results:
-                        for o, details in r['processed_omids'].items():
-                            if o == omid and not details.get('triplestore_prov_found', False):
-                                found_without_prov = True
-                                break
-                    
-                    if found_without_prov:
-                        if omid not in omids_without_prov:
-                            omids_without_prov[omid] = []
-                        omids_without_prov[omid].append({
-                            'file': detail.get('file', 'unknown'),
-                            'row': detail.get('row_number', 'unknown'),
-                            'column': detail.get('column', 'unknown'),
-                            'identifier': f"omid:{omid}"
-                        })
-                
-    if omids_without_prov:
-        print("\nWARNING: Found OMIDs without provenance in the triplestore:")
-        for omid, occurrences in omids_without_prov.items():
-            print(f"\nOMID {omid} has no associated provenance")
-            print("  Referenced by:")
-            for occ in occurrences:
-                print(f"    - Identifier {occ['identifier']} in {occ['file']}, row {occ['row']}, column {occ['column']}")
-    
-    if missing_omid_identifiers:
-        print("\nWARNING: Found identifiers without any OMID:")
-        for id_key, occurrences in missing_omid_identifiers.items():
-            print(f"\nIdentifier {id_key} has no associated OMID")
-            print("  Occurrences:")
-            for occ in occurrences:
-                print(f"    - Row {occ['row']} in {occ['file']}, column {occ['column']}")
+                if omid.startswith('http') and omid in omids_without_prov_set:
+                    if omid not in omids_without_prov:
+                        omids_without_prov[omid] = []
+                    omids_without_prov[omid].append({
+                        'file': detail.get('file', 'unknown'),
+                        'row': detail.get('row_number', 'unknown'),
+                        'column': detail.get('column', 'unknown'),
+                        'identifier': f"omid:{omid}"
+                    })
+
+    total_found_omids = total_with_omids + total_omid_schema
+
+    output_lines = generate_results_output(
+        total_rows=total_rows,
+        total_rows_with_ids=total_rows_with_ids,
+        total_identifiers=total_identifiers,
+        total_omid_schema=total_omid_schema,
+        total_with_omids=total_with_omids,
+        total_without_omids=total_without_omids,
+        total_data_graphs_found=total_data_graphs_found,
+        total_data_graphs_missing=total_data_graphs_missing,
+        total_prov_graphs_found=total_prov_graphs_found,
+        total_prov_graphs_missing=total_prov_graphs_missing,
+        total_omids_with_provenance=total_omids_with_provenance,
+        total_omids_without_provenance=total_omids_without_provenance,
+        total_found_omids=total_found_omids,
+        problematic_identifiers=problematic_identifiers,
+        omids_without_prov=omids_without_prov,
+        missing_omid_identifiers=missing_omid_identifiers,
+        generate_rdf_files=generate_rdf_files,
+        include_header=bool(args.output)
+    )
+
+    if args.output:
+        output_dir = os.path.dirname(args.output) or '.'
+        os.makedirs(output_dir, exist_ok=True)
+        with open(args.output, 'w', encoding='utf-8') as f:
+            f.write('\n'.join(output_lines))
+        print(f"Results written to: {args.output}")
+    else:
+        print('\n' + '\n'.join(output_lines))
 
 if __name__ == "__main__":
     main() 
