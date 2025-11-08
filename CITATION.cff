@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: article
+title: "OpenCitations Meta"
+authors:
+  - family-names: Massari
+    given-names: Arcangelo
+  - family-names: Mariani
+    given-names: Fabio
+  - family-names: Heibi
+    given-names: Ivan
+  - family-names: Peroni
+    given-names: Silvio
+  - family-names: Shotton
+    given-names: David
+journal: "Quantitative Science Studies"
+year: 2024
+volume: 5
+issue: 1
+start: 50
+end: 75
+doi: 10.1162/qss_a_00292

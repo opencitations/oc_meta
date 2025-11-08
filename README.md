@@ -15,24 +15,25 @@ OpenCitations Meta contains bibliographic metadata associated with the documents
 
 An example of a raw CSV input file can be found in [`example.csv`](https://github.com/opencitations/meta/blob/master/oc_meta/example.csv).
 
-## Table of Contents
+## Table of contents
 
 - [OpenCitations Meta Software](#opencitations-meta-software)
-- [Meta Production Workflow](#meta-production-workflow)
-  - [Preprocessing Input Data (Optional)](#preprocessing-input-data-optional)
-  - [Main Processing](#main-processing)
-  - [Manual Upload to Triplestore](#manual-upload-to-triplestore)
-- [Analysing the Dataset](#analysing-the-dataset)
-  - [General Statistics (SPARQL)](#general-statistics-sparql)
-  - [Venue Statistics (CSV)](#venue-statistics-csv)
-- [Running Tests](#running-tests)
-- [Creating Releases](#creating-releases)
+- [Meta production workflow](#meta-production-workflow)
+  - [Preprocessing input data (optional)](#preprocessing-input-data-optional)
+  - [Main processing](#main-processing)
+  - [Verifying processing results](#verifying-processing-results)
+  - [Manual upload to triplestore](#manual-upload-to-triplestore)
+- [Analysing the dataset](#analysing-the-dataset)
+  - [General statistics (SPARQL)](#general-statistics-sparql)
+  - [Venue statistics (CSV)](#venue-statistics-csv)
+- [Running tests](#running-tests)
+- [Creating releases](#creating-releases)
 
-## Meta Production Workflow
+## Meta production workflow
 
 The Meta production process involves several steps to process bibliographic metadata. An optional but recommended preprocessing step is available to optimize the input data before the main processing.
 
-### Preprocessing Input Data (Optional)
+### Preprocessing input data (optional)
 
 The [`preprocess_input.py`](https://github.com/opencitations/oc_meta/blob/master/oc_meta/run/meta/preprocess_input.py) script helps filter and optimize CSV files before they are processed by the main Meta workflow. This preprocessing step is particularly useful for large datasets as it:
 
@@ -63,14 +64,14 @@ The script will generate a detailed report showing:
 - Number of rows with IDs that already exist in the database
 - Number of rows that passed the filtering and were written to output files
 
-#### Choosing the Right Storage Backend
+#### Choosing the right storage backend
 
-- **Redis**: Faster option for ID checking with lower memory overhead. Ideal for rapid preprocessing of large datasets.
-- **SPARQL**: Directly checks against the triplestore where the data will be stored. Useful when you don't have a Redis cache of existing IDs.
+- **Redis**: faster option for ID checking with lower memory overhead. Ideal for rapid preprocessing of large datasets.
+- **SPARQL**: directly checks against the triplestore where the data will be stored. Useful when you don't have a Redis cache of existing IDs.
 
 After preprocessing, you can use the optimized files in the output directory as input for the main Meta process.
 
-### Main Processing
+### Main processing
 
 The main Meta processing is executed through the [`meta_process.py`](https://github.com/opencitations/oc_meta/blob/master/oc_meta/run/meta_process.py) file, which orchestrates the entire data processing workflow:
 
@@ -81,32 +82,32 @@ poetry run python -m oc_meta.run.meta_process -c <CONFIG_PATH>
 Parameters:
 - `-c --config`: Path to the configuration YAML file.
 
-#### What Meta Process Does
+#### What Meta process does
 
 The Meta process performs the following key operations:
 
 1. **Preparation**:
-   - Sets up the required directory structure
-   - Initializes connections to Redis and the triplestore
-   - Loads configuration settings
+   - sets up the required directory structure
+   - initializes connections to Redis and the triplestore
+   - loads configuration settings
 
-2. **Data Curation**:
-   - Processes input CSV files containing bibliographic metadata
-   - Validates and normalizes the data
-   - Handles duplicate entries and invalid data
+2. **Data curation**:
+   - processes input CSV files containing bibliographic metadata
+   - validates and normalizes the data
+   - handles duplicate entries and invalid data
 
-3. **RDF Creation**:
-   - Converts the curated data into RDF format following the OpenCitations Data Model
-   - Generates entity identifiers and establishes relationships
-   - Creates provenance information for tracking data lineage
+3. **RDF creation**:
+   - converts the curated data into RDF format following the OpenCitations Data Model
+   - generates entity identifiers and establishes relationships
+   - creates provenance information for tracking data lineage
 
-4. **Storage and Triplestore Upload**:
-   - Directly generates SPARQL queries for triplestore updates
-   - Loads RDF data directly into the configured triplestore via SPARQL endpoint
-   - Executes necessary SPARQL updates
-   - Ensures data is properly indexed for querying
+4. **Storage and triplestore upload**:
+   - directly generates SPARQL queries for triplestore updates
+   - loads RDF data directly into the configured triplestore via SPARQL endpoint
+   - executes necessary SPARQL updates
+   - ensures data is properly indexed for querying
 
-#### Meta Configuration
+#### Meta configuration
 
 The Meta process requires a YAML configuration file that specifies various settings for the processing workflow. Here's an example of the configuration structure with explanations:
 
@@ -151,11 +152,47 @@ normalize_titles: true
 use_doi_api_service: false
 ```
 
-### Manual Upload to Triplestore
+### Verifying processing results
+
+After processing your data with the Meta workflow, you can verify that all identifiers were correctly processed and have associated data in the triplestore using the [`check_results.py`](https://github.com/opencitations/oc_meta/blob/master/oc_meta/run/meta/check_results.py) script. This verification step helps identify potential issues such as missing OMIDs, missing provenance, or identifiers with multiple OMIDs.
+
+#### Running the verification script
+
+```console
+poetry run python -m oc_meta.run.meta.check_results <CONFIG_PATH> [--output <OUTPUT_FILE>]
+```
+
+Parameters:
+- `<CONFIG_PATH>`: Path to the same meta_config.yaml file used for processing
+- `--output`: Optional path to save the report to a file. If not specified, results are printed to console
+
+#### What the script checks
+
+The verification script performs the following checks:
+
+1. **Identifier analysis**:
+   - parses all identifiers from input CSV files (id, author, editor, publisher, venue columns)
+   - queries the triplestore to find associated OMIDs for each identifier
+
+2. **OMID verification**:
+   - checks if identifiers have corresponding OMIDs in the triplestore
+   - identifies identifiers without any OMID (potential processing failures)
+   - detects identifiers with multiple OMIDs (potential disambiguation issues)
+
+3. **Data graph verification** (when RDF file generation is enabled):
+   - verifies that data graphs exist in the generated RDF files
+   - reports missing data graphs for entities that should have been created
+
+4. **Provenance verification**:
+   - checks if provenance graphs exist in the generated RDF files
+   - queries the provenance triplestore to verify provenance data
+   - identifies OMIDs without associated provenance information
+
+### Manual upload to triplestore
 
 Occasionally, the automatic upload process during Meta execution might fail due to connection issues, timeout errors, or other problems. In such cases, you can use the [`on_triplestore.py`](https://github.com/opencitations/oc_meta/blob/master/oc_meta/run/upload/on_triplestore.py) script to manually upload the generated SPARQL files to the triplestore.
 
-#### Running the Manual Upload Script
+#### Running the manual upload script
 
 ```console
 poetry run python -m oc_meta.run.upload.on_triplestore <ENDPOINT_URL> <SPARQL_FOLDER> [OPTIONS]
@@ -171,11 +208,11 @@ Options:
 - `--failed_file`: Path to the file recording failed queries (default: "failed_queries.txt")
 - `--stop_file`: Path to the stop file used to gracefully interrupt the process (default: ".stop_upload")
 
-## Analysing the Dataset
+## Analysing the dataset
 
 To gather statistics on the dataset, you can use the provided analysis tools.
 
-### General Statistics (SPARQL)
+### General statistics (SPARQL)
 
 For most statistics, such as counting bibliographic resources (`--br`) or agent roles (`--ar`), the `sparql_analyser.py` script is the recommended tool. It queries the SPARQL endpoint directly.
 
@@ -183,9 +220,9 @@ For most statistics, such as counting bibliographic resources (`--br`) or agent 
 poetry run python -m oc_meta.run.analyser.sparql_analyser <SPARQL_ENDPOINT_URL> --br --ar
 ```
 
-### Venue Statistics (CSV)
+### Venue statistics (CSV)
 
-**Warning:** Using the SPARQL analyser for venue statistics (`--venues`) against an OpenLink Virtuoso endpoint is **not recommended**. The complex query required for venue disambiguation can exhaust Virtuoso's RAM, causing it to return partial (and thus incorrect) results. As this query is not yet optimized for Virtuoso, this count will be wrong.
+**Warning:** using the SPARQL analyser for venue statistics (`--venues`) against an OpenLink Virtuoso endpoint is **not recommended**. The complex query required for venue disambiguation can exhaust Virtuoso's RAM, causing it to return partial (and thus incorrect) results. As this query is not yet optimized for Virtuoso, this count will be wrong.
 
 For reliable venue statistics, use the `meta_analyser.py` script to process the raw CSV output files directly.
 
@@ -196,19 +233,19 @@ poetry run python -m oc_meta.run.analyser.meta_analyser -c <PATH_TO_CSV_DUMP> -w
 ```
 The script will save the result in a file named `venues_count.txt`.
 
-## Running Tests
+## Running tests
 
 The test suite is automatically executed via GitHub Actions upon pushes and pull requests. The workflow is defined in [`.github/workflows/run_tests.yml`](https://github.com/opencitations/oc_meta/blob/master/.github/workflows/run_tests.yml) and handles the setup of necessary services (Redis, Virtuoso) using Docker.
 
 To run the test suite locally, follow these steps:
 
-1. **Install Dependencies:** 
+1. **Install dependencies:** 
    Ensure you have [Poetry](https://python-poetry.org/) and [Docker](https://www.docker.com/) installed. Then, install project dependencies:
    ```console
    poetry install
    ```
 
-2. **Start Services:** 
+2. **Start services:**
    Use the provided script to start the required Redis and Virtuoso Docker containers:
    ```console
    chmod +x test/start-test-databases.sh
@@ -218,7 +255,7 @@ To run the test suite locally, follow these steps:
    (The Virtuoso SPARQL endpoint will be available at http://localhost:8805/sparql and ISQL on port 1105.
    Redis will be available at localhost:6379, using database 0 for some tests and database 5 for most test cases including counter handling and caching).
 
-3. **Execute Tests:** 
+3. **Execute tests:**
    Run the tests using the following command, which also generates a coverage report:
    ```console
    poetry run coverage run --rcfile=test/coverage/.coveragerc
@@ -232,37 +269,37 @@ To run the test suite locally, follow these steps:
    poetry run coverage html -d htmlcov
    ```
 
-4. **Stop Services:** 
+4. **Stop services:**
    Once finished, stop the Docker containers:
    ```console
    chmod +x test/stop-test-databases.sh
    ./test/stop-test-databases.sh
    ```
 
-## Creating Releases
+## Creating releases
 
 The project uses semantic-release for versioning and publishing releases to PyPI. To create a new release:
 
-1. **Commit Changes:**
+1. **Commit changes:**
    Make your changes and commit them with a message that includes `[release]` to trigger the release workflow.
    For details on how to structure semantic commit messages, see the [Semantic Commits Guide](SEMANTIC_COMMITS.md).
 
-2. **Push to Master:**
+2. **Push to master:**
    Push your changes to the master branch. This will trigger the test workflow first.
 
-3. **Automatic Release Process:**
+3. **Automatic release process:**
    If tests pass, the release workflow will:
-   - Create a new semantic version based on commit messages
-   - Generate a changelog
-   - Create a GitHub release
-   - Build and publish the package to PyPI
+   - create a new semantic version based on commit messages
+   - generate a changelog
+   - create a GitHub release
+   - build and publish the package to PyPI
 
 The release workflow is configured in [`.github/workflows/release.yml`](https://github.com/opencitations/oc_meta/blob/master/.github/workflows/release.yml) and is triggered automatically when:
 - The commit message contains `[release]`
 - The tests workflow completes successfully
 - The changes are on the master branch
 
-## How to Cite
+## How to cite
 
 If you have used OpenCitations Meta in your research, please cite the following paper:
 
