@@ -79,38 +79,37 @@ def check_provenance_existence(omids: List[str], prov_endpoint_url: str) -> Dict
     
     for omid in omids:
         prov_results[omid] = False
-    
+
     for i in range(0, len(omids), BATCH_SIZE):
         batch = omids[i:i + BATCH_SIZE]
-        omid_values = ' '.join([f'<{omid}>' for omid in batch])
-        
+
+        union_patterns = []
+        for omid in batch:
+            snapshot_uri = f"{omid}/prov/se/1"
+            union_patterns.append(f"{{ <{snapshot_uri}> prov:specializationOf ?entity . BIND(<{omid}> AS ?omid) }}")
+
+        union_query = "\n            UNION\n            ".join(union_patterns)
+
         sparql = SPARQLWrapper(prov_endpoint_url)
         query = f"""
         PREFIX prov: <http://www.w3.org/ns/prov#>
-        PREFIX dcterms: <http://purl.org/dc/terms/>
-        
-        SELECT DISTINCT ?entity
+
+        SELECT DISTINCT ?omid
         WHERE {{
-            VALUES ?entity {{ {omid_values} }}
-            ?snapshot prov:specializationOf ?entity ;
-                     a prov:Entity ;
-                     dcterms:description ?description ;
-                     prov:wasAttributedTo ?agent ;
-                     prov:hadPrimarySource ?primary_source ;
-                     prov:generatedAtTime ?time .
+            {union_query}
         }}
         """
-        
+
         sparql.setQuery(query)
         sparql.setReturnFormat(JSON)
-        
+
         try:
             results = execute_sparql_query(sparql)
-            
+
             for result in results["results"]["bindings"]:
-                entity_uri = result["entity"]["value"]
-                prov_results[entity_uri] = True
-                
+                omid = result["omid"]["value"]
+                prov_results[omid] = True
+
         except Exception as e:
             print(f"SPARQL query failed for provenance batch check: {str(e)}")
             pass
@@ -463,9 +462,10 @@ def generate_results_output(
 
     lines.append("")
     lines.append("Provenance in Triplestore:")
-    if total_found_omids > 0:
-        lines.append(f"  OMIDs with provenance: {total_omids_with_provenance} ({(total_omids_with_provenance/total_found_omids*100):.2f}%)")
-        lines.append(f"  OMIDs without provenance: {total_omids_without_provenance} ({(total_omids_without_provenance/total_found_omids*100):.2f}%)")
+    total_omids_checked = total_omids_with_provenance + total_omids_without_provenance
+    if total_omids_checked > 0:
+        lines.append(f"  OMIDs with provenance: {total_omids_with_provenance} ({(total_omids_with_provenance/total_omids_checked*100):.2f}%)")
+        lines.append(f"  OMIDs without provenance: {total_omids_without_provenance} ({(total_omids_without_provenance/total_omids_checked*100):.2f}%)")
     else:
         lines.append("  No OMIDs found to check for provenance.")
 

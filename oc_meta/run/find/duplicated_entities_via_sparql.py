@@ -77,11 +77,12 @@ def get_sparql_query(entity_type):
             PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
             SELECT ?entity1 ?entity2 {
                 ?entity1 datacite:usesIdentifierScheme ?scheme;
-                    literal:hasLiteralValue ?literal.
+                    literal:hasLiteralValue ?literal1.
                 ?entity2 datacite:usesIdentifierScheme ?scheme;
-                    literal:hasLiteralValue ?literal.
-                FILTER(?entity1 != ?entity2 )
-            }    
+                    literal:hasLiteralValue ?literal2.
+                FILTER(?entity1 != ?entity2)
+                FILTER(STR(?literal1) = STR(?literal2))
+            }
         """
     elif entity_type == "ra":
         return """
