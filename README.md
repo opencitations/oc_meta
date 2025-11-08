@@ -260,18 +260,33 @@ Before merging duplicates, it's recommended to group related entities using the 
 
 #### Why group entities?
 
-The grouping script solves an important problem: entities to be merged may have relationships with other entities in the dataset. When processing merges in parallel, it's crucial that interconnected entities are handled in the same process to maintain consistency. The script:
+The grouping script solves two important problems:
+
+1. **RDF relationship consistency**: entities to be merged may have relationships with other entities in the dataset. When processing merges in parallel, interconnected entities must be handled in the same process to maintain consistency.
+
+2. **File-level conflicts**: entities sharing the same RDF file (e.g., `br/060/10000/1000.zip`) should be grouped together to minimize file lock contention during parallel processing.
+
+The script performs:
 
 1. **Identifies relationships**: queries the SPARQL endpoint to find all entities related to those being merged
-2. **Groups interconnected entities**: uses a Union-Find algorithm to group entities that share relationships
-3. **Optimizes for parallelization**: combines small independent groups while keeping large interconnected groups separate
-4. **Creates balanced workloads**: targets a minimum group size to ensure efficient parallel processing
+2. **Groups by RDF connections**: uses a Union-Find algorithm to group entities that share relationships
+3. **Groups by file range**: additionally groups entities that share the same RDF file path (considering supplier prefix and number ranges)
+4. **Optimizes for parallelization**: combines small independent groups while keeping large interconnected groups separate
+5. **Creates balanced workloads**: targets a minimum group size to ensure efficient parallel processing
+
+While `oc_ocdm` Storer uses FileLock for safety, this grouping reduces lock contention by ensuring workers process non-overlapping file ranges.
 
 #### Running the grouping script
 
 ```console
-poetry run python -m oc_meta.run.merge.group_entities <CSV_FILE> <OUTPUT_DIR> <SPARQL_ENDPOINT> [--min_group_size SIZE]
+poetry run python -m oc_meta.run.merge.group_entities <CSV_FILE> <OUTPUT_DIR> <META_CONFIG> [--min_group_size SIZE]
 ```
+
+Parameters:
+- `<CSV_FILE>`: Path to the CSV file containing merge instructions
+- `<OUTPUT_DIR>`: Directory where grouped CSV files will be saved
+- `<META_CONFIG>`: Path to the Meta configuration YAML file (reads `triplestore_url`, `dir_split_number`, `items_per_file`, `zip_output_rdf`)
+- `--min_group_size`: Minimum target size for groups (default: 50)
 
 ### Merging duplicate entities
 

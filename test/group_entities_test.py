@@ -8,6 +8,7 @@ import pandas as pd
 from oc_meta.run.merge.group_entities import (
     UnionFind,
     get_all_related_entities,
+    get_file_path,
     group_entities,
     optimize_groups,
     save_grouped_entities,
@@ -323,6 +324,52 @@ class TestOptimizeGroups(unittest.TestCase):
         self.assertEqual(total_rows, 4)
 
 
+class TestGetFilePath(unittest.TestCase):
+    """Test get_file_path function"""
+
+    def test_get_file_path_basic(self):
+        """Test basic file path calculation"""
+        uri = "https://w3id.org/oc/meta/br/060100"
+        result = get_file_path(uri, dir_split=10000, items_per_file=1000, zip_output=True)
+        self.assertEqual(result, "br/060/10000/1000.zip")
+
+    def test_get_file_path_different_number(self):
+        """Test file path for different entity number"""
+        uri = "https://w3id.org/oc/meta/id/0605500"
+        result = get_file_path(uri, dir_split=10000, items_per_file=1000, zip_output=True)
+        self.assertEqual(result, "id/060/10000/6000.zip")
+
+    def test_get_file_path_json_output(self):
+        """Test file path with JSON output (not zipped)"""
+        uri = "https://w3id.org/oc/meta/br/060100"
+        result = get_file_path(uri, dir_split=10000, items_per_file=1000, zip_output=False)
+        self.assertEqual(result, "br/060/10000/1000.json")
+
+    def test_get_file_path_different_supplier(self):
+        """Test file path with different supplier prefix"""
+        uri = "https://w3id.org/oc/meta/ra/070250"
+        result = get_file_path(uri, dir_split=10000, items_per_file=1000, zip_output=True)
+        self.assertEqual(result, "ra/070/10000/1000.zip")
+
+    def test_get_file_path_large_number(self):
+        """Test file path for large entity number"""
+        uri = "https://w3id.org/oc/meta/br/06025000"
+        result = get_file_path(uri, dir_split=10000, items_per_file=1000, zip_output=True)
+        self.assertEqual(result, "br/060/30000/25000.zip")
+
+    def test_get_file_path_invalid_uri(self):
+        """Test that invalid URI returns None"""
+        uri = "https://invalid.uri.com/test"
+        result = get_file_path(uri, dir_split=10000, items_per_file=1000, zip_output=True)
+        self.assertIsNone(result)
+
+    def test_get_file_path_no_supplier_prefix(self):
+        """Test that URI without supplier prefix returns None"""
+        uri = "https://w3id.org/oc/meta/br/100"
+        result = get_file_path(uri, dir_split=10000, items_per_file=1000, zip_output=True)
+        self.assertIsNone(result)
+
+
 class TestGroupEntities(unittest.TestCase):
     """Test group_entities function"""
 
@@ -388,6 +435,38 @@ class TestGroupEntities(unittest.TestCase):
 
         self.assertEqual(df_mock.iterrows.call_count, 1,
                         "DataFrame.iterrows() should be called only once")
+
+    @patch('oc_meta.run.merge.group_entities.get_all_related_entities')
+    def test_group_entities_file_range_grouping(self, mock_get_related):
+        """Test that entities in same file range are grouped together"""
+        mock_get_related.return_value = set()
+
+        df = pd.DataFrame([
+            {"surviving_entity": "https://w3id.org/oc/meta/br/060100",
+             "merged_entities": "https://w3id.org/oc/meta/br/060200"},
+            {"surviving_entity": "https://w3id.org/oc/meta/br/060300",
+             "merged_entities": "https://w3id.org/oc/meta/br/060400"},
+        ])
+
+        result = group_entities(df, "http://endpoint", dir_split=10000, items_per_file=1000)
+
+        self.assertEqual(len(result), 1, "All entities in same file should be in same group")
+
+    @patch('oc_meta.run.merge.group_entities.get_all_related_entities')
+    def test_group_entities_different_files_separate_groups(self, mock_get_related):
+        """Test that entities in different files are in separate groups"""
+        mock_get_related.return_value = set()
+
+        df = pd.DataFrame([
+            {"surviving_entity": "https://w3id.org/oc/meta/br/060100",
+             "merged_entities": "https://w3id.org/oc/meta/br/060200"},
+            {"surviving_entity": "https://w3id.org/oc/meta/br/0601500",
+             "merged_entities": "https://w3id.org/oc/meta/br/0601600"},
+        ])
+
+        result = group_entities(df, "http://endpoint", dir_split=10000, items_per_file=1000)
+
+        self.assertEqual(len(result), 2, "Entities in different files should be in different groups")
 
 
 class TestSaveGroupedEntities(unittest.TestCase):

@@ -1,8 +1,10 @@
 import argparse
 import csv
 import os
+import re
 
 import pandas as pd
+import yaml
 from retrying import retry
 from SPARQLWrapper import JSON, SPARQLWrapper
 from tqdm import tqdm
@@ -119,7 +121,61 @@ def get_all_related_entities(endpoint, uris, batch_size=10):
     return related_entities
 
 
-def group_entities(df, endpoint):
+def get_file_path(uri, dir_split, items_per_file, zip_output=True):
+    """
+    Calculate RDF file path for an entity URI (same logic as MetaEditor.find_file).
+
+    Args:
+        uri: Entity URI (e.g., https://w3id.org/oc/meta/br/060100)
+        dir_split: Directory split number
+        items_per_file: Items per file
+        zip_output: Whether files are zipped (default: True)
+
+    Returns:
+        File path (e.g., br/060/10000/1000.zip) or None if invalid URI
+    """
+    entity_regex = r"^.+/([a-z][a-z])/(0[1-9]+0)([1-9][0-9]*)$"
+    entity_match = re.match(entity_regex, uri)
+
+    if not entity_match:
+        return None
+
+    short_name = entity_match.group(1)
+    supplier_prefix = entity_match.group(2)
+    cur_number = int(entity_match.group(3))
+
+    cur_file_split = 0
+    while True:
+        if cur_number > cur_file_split:
+            cur_file_split += items_per_file
+        else:
+            break
+
+    cur_split = 0
+    while True:
+        if cur_number > cur_split:
+            cur_split += dir_split
+        else:
+            break
+
+    extension = ".zip" if zip_output else ".json"
+    return f"{short_name}/{supplier_prefix}/{cur_split}/{cur_file_split}{extension}"
+
+
+def group_entities(df, endpoint, dir_split=10000, items_per_file=1000, zip_output=True):
+    """
+    Group entities based on RDF connections and file range conflicts.
+
+    Args:
+        df: DataFrame with columns 'surviving_entity' and 'merged_entities'
+        endpoint: SPARQL endpoint URL
+        dir_split: Directory split number (default: 1000)
+        items_per_file: Items per file (default: 1000)
+        zip_output: Whether files are zipped (default: True)
+
+    Returns:
+        Dict of group_id -> DataFrame with grouped rows
+    """
     uf = UnionFind()
     rows_list = []
 
@@ -129,10 +185,17 @@ def group_entities(df, endpoint):
 
         all_entities = [surviving_entity] + merged_entities
 
+        # Union for RDF connections
         all_related_entities = get_all_related_entities(endpoint, all_entities)
-
         for entity in all_related_entities:
             uf.union(surviving_entity, entity)
+
+        # Union for file range conflicts (only for IDs being merged, not related entities)
+        for entity in all_entities:
+            entity_file = get_file_path(entity, dir_split, items_per_file, zip_output)
+            if entity_file:
+                # Use file path as virtual entity in union-find
+                uf.union(surviving_entity, f"FILE:{entity_file}")
 
         rows_list.append(row)
 
@@ -232,21 +295,30 @@ def main():
     parser = argparse.ArgumentParser(description='Process CSV and group entities based on SPARQL queries.')
     parser.add_argument('csv_file_path', type=str, help='Path to the input CSV file')
     parser.add_argument('output_dir', type=str, help='Directory to save the output files')
-    parser.add_argument('sparql_endpoint', type=str, help='SPARQL endpoint URL')
-    parser.add_argument('--min_group_size', type=int, default=50, 
-                      help='Minimum target size for groups (default: 10)')
+    parser.add_argument('meta_config', type=str, help='Path to meta configuration YAML file')
+    parser.add_argument('--min_group_size', type=int, default=50,
+                      help='Minimum target size for groups (default: 50)')
 
     args = parser.parse_args()
-    
+
+    with open(args.meta_config, 'r', encoding='utf-8') as f:
+        config = yaml.safe_load(f)
+
+    sparql_endpoint = config['triplestore_url']
+    dir_split = config['dir_split_number']
+    items_per_file = config['items_per_file']
+    zip_output = config['zip_output_rdf']
+
     df = load_csv(args.csv_file_path)
     print(f"Loaded CSV file with {len(df)} rows")
-    
-    grouped_entities = group_entities(df, args.sparql_endpoint)
+    print(f"Configuration: dir_split={dir_split}, items_per_file={items_per_file}, zip_output={zip_output}")
+
+    grouped_entities = group_entities(df, sparql_endpoint, dir_split, items_per_file, zip_output)
     print(f"Initially grouped entities into {len(grouped_entities)} groups")
-    
+
     optimized_groups = optimize_groups(grouped_entities, args.min_group_size)
     print(f"Optimized into {len(optimized_groups)} groups")
-    
+
     save_grouped_entities(optimized_groups, args.output_dir)
     print("Finished saving grouped entities")
 
