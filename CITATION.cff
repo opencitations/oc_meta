@@ -1,22 +1,42 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
-type: article
 title: "OpenCitations Meta"
 authors:
   - family-names: Massari
     given-names: Arcangelo
+    email: arcangelo.massari@unibo.it
+    orcid: "0000-0002-8420-0696"
   - family-names: Mariani
     given-names: Fabio
-  - family-names: Heibi
-    given-names: Ivan
-  - family-names: Peroni
-    given-names: Silvio
-  - family-names: Shotton
-    given-names: David
-journal: "Quantitative Science Studies"
-year: 2024
-volume: 5
-issue: 1
-start: 50
-end: 75
-doi: 10.1162/qss_a_00292
+    orcid: "0000-0002-7382-0187"
+  - family-names: Persiani
+    given-names: Simone
+preferred-citation:
+  type: article
+  title: "OpenCitations Meta"
+  authors:
+    - family-names: Massari
+      given-names: Arcangelo
+      email: arcangelo.massari@unibo.it
+      orcid: "0000-0002-8420-0696"
+    - family-names: Mariani
+      given-names: Fabio
+      orcid: "0000-0002-7382-0187"
+    - family-names: Heibi
+      given-names: Ivan
+      email: ivan.heibi2@unibo.it
+      orcid: "0000-0001-5366-5194"
+    - family-names: Peroni
+      given-names: Silvio
+      email: silvio.peroni@unibo.it
+      orcid: "0000-0003-0530-4305"
+    - family-names: Shotton
+      given-names: David
+      orcid: "0000-0001-5506-523X"
+  journal: "Quantitative Science Studies"
+  year: 2024
+  volume: 5
+  issue: 1
+  start: 50
+  end: 75
+  doi: 10.1162/qss_a_00292
