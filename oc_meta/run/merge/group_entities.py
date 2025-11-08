@@ -13,16 +13,25 @@ class UnionFind:
         self.parent = {}
 
     def find(self, item):
-        path = [item]
-        while item in self.parent and self.parent[item] != item:
-            item = self.parent[item]
-            path.append(item)
-            if len(path) > 1000:  # Limite arbitrario per evitare loop infiniti
-                print(f"Warning: Long path detected: {' -> '.join(path)}")
-                break
-        for p in path:
-            self.parent[p] = item
-        return item
+        if item not in self.parent:
+            self.parent[item] = item
+            return item
+
+        path = []
+        current = item
+        visited = set()
+
+        while current != self.parent[current]:
+            if current in visited:
+                raise ValueError(f"Cycle detected in union-find structure at {current}")
+            visited.add(current)
+            path.append(current)
+            current = self.parent[current]
+
+        for node in path:
+            self.parent[node] = current
+
+        return current
 
     def union(self, item1, item2):
         root1 = self.find(item1)
@@ -32,72 +41,111 @@ class UnionFind:
 
 
 def load_csv(file_path):
-    return pd.read_csv(file_path)
+    df = pd.read_csv(file_path)
+    required_columns = ["surviving_entity", "merged_entities"]
+    missing_columns = [col for col in required_columns if col not in df.columns]
+    if missing_columns:
+        raise ValueError(f"CSV file missing required columns: {missing_columns}")
+    return df
 
 
 @retry(stop_max_attempt_number=3, wait_exponential_multiplier=1000, wait_exponential_max=10000)
-def query_sparql(endpoint, uri, query_type):
+def query_sparql_batch(endpoint, uris, batch_size=10):
+    """
+    Query SPARQL for related entities in batches.
+
+    Args:
+        endpoint: SPARQL endpoint URL
+        uris: List of URIs to query
+        batch_size: Number of URIs to process in a single query
+
+    Returns:
+        Set of all related entities
+    """
+    related_entities = set()
     sparql = SPARQLWrapper(endpoint)
-    
-    if query_type == 'subjects':
+
+    for i in range(0, len(uris), batch_size):
+        batch_uris = uris[i:i + batch_size]
+
+        subject_clauses = []
+        object_clauses = []
+
+        for uri in batch_uris:
+            subject_clauses.append(f"{{?entity ?p <{uri}>}}")
+            object_clauses.append(f"{{<{uri}> ?p ?entity}}")
+
         query = f"""
-        SELECT ?subject WHERE {{
-            ?subject ?predicate <{uri}> .
-        }}
+            PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+            PREFIX datacite: <http://purl.org/spar/datacite/>
+            PREFIX pro: <http://purl.org/spar/pro/>
+            SELECT DISTINCT ?entity WHERE {{
+                {{
+                    {' UNION '.join(subject_clauses + object_clauses)}
+                }}
+                ?entity ?p2 ?o2 .
+                FILTER (?p != rdf:type)
+                FILTER (?p != datacite:usesIdentifierScheme)
+                FILTER (?p != pro:withRole)
+            }}
         """
-    elif query_type == 'objects':
-        query = f"""
-        SELECT ?object WHERE {{
-            <{uri}> ?predicate ?object .
-            ?object ?p ?o .
-        }}
-        """
-    
-    sparql.setQuery(query)
-    sparql.setReturnFormat(JSON)
-    results = sparql.query().convert()
-    
-    if query_type == 'subjects':
-        return [result['subject']['value'] for result in results['results']['bindings']]
-    elif query_type == 'objects':
-        return [result['object']['value'] for result in results['results']['bindings']]
+
+        sparql.setQuery(query)
+        sparql.setReturnFormat(JSON)
+        results = sparql.query().convert()
+
+        for result in results['results']['bindings']:
+            if result['entity']['type'] == 'uri':
+                related_entities.add(result['entity']['value'])
+
+    return related_entities
 
 
-def get_all_related_entities(endpoint, uris):
+def get_all_related_entities(endpoint, uris, batch_size=10):
+    """
+    Get all related entities for a list of URIs using batch queries.
+
+    Args:
+        endpoint: SPARQL endpoint URL
+        uris: List of URIs to query
+        batch_size: Number of URIs to process in a single query
+
+    Returns:
+        Set of all related entities including input URIs
+    """
     related_entities = set(uris)
-    for uri in uris:
-        subjects = query_sparql(endpoint, uri, 'subjects')
-        objects = query_sparql(endpoint, uri, 'objects')
-        related_entities.update(subjects)
-        related_entities.update(objects)
+    batch_results = query_sparql_batch(endpoint, uris, batch_size)
+    related_entities.update(batch_results)
     return related_entities
 
 
 def group_entities(df, endpoint):
     uf = UnionFind()
-    
-    for index, row in tqdm(df.iterrows(), total=df.shape[0], desc="Processing rows"):
+    rows_list = []
+
+    for _, row in tqdm(df.iterrows(), total=df.shape[0], desc="Processing rows"):
         surviving_entity = row['surviving_entity']
         merged_entities = row['merged_entities'].split("; ")
 
         all_entities = [surviving_entity] + merged_entities
-        
+
         all_related_entities = get_all_related_entities(endpoint, all_entities)
-        
+
         for entity in all_related_entities:
             uf.union(surviving_entity, entity)
 
+        rows_list.append(row)
+
     grouped_data = {}
-    for index, row in df.iterrows():
+    for row in rows_list:
         surviving_entity = row['surviving_entity']
         group_id = uf.find(surviving_entity)
-        
+
         if group_id not in grouped_data:
             grouped_data[group_id] = []
-        
+
         grouped_data[group_id].append(row)
 
-    # Converti le liste di righe in DataFrame
     for group_id in grouped_data:
         grouped_data[group_id] = pd.DataFrame(grouped_data[group_id])
 

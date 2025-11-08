@@ -280,7 +280,7 @@ class TestCheckProvenanceExistence(unittest.TestCase):
         mock_results = {
             "results": {
                 "bindings": [
-                    {"entity": {"value": "https://w3id.org/oc/meta/br/0601"}}
+                    {"omid": {"value": "https://w3id.org/oc/meta/br/0601"}}
                 ]
             }
         }
@@ -312,8 +312,8 @@ class TestCheckProvenanceExistence(unittest.TestCase):
         mock_results = {
             "results": {
                 "bindings": [
-                    {"entity": {"value": "https://w3id.org/oc/meta/br/0601"}},
-                    {"entity": {"value": "https://w3id.org/oc/meta/br/0603"}}
+                    {"omid": {"value": "https://w3id.org/oc/meta/br/0601"}},
+                    {"omid": {"value": "https://w3id.org/oc/meta/br/0603"}}
                 ]
             }
         }
