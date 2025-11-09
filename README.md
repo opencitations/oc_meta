@@ -247,12 +247,16 @@ The [`duplicated_ids_from_files.py`](https://github.com/opencitations/oc_meta/bl
 #### Running the script
 
 ```console
-poetry run python -m oc_meta.run.find.duplicated_ids_from_files <FOLDER_PATH> <CSV_PATH>
+poetry run python -m oc_meta.run.find.duplicated_ids_from_files <FOLDER_PATH> <CSV_PATH> [OPTIONS]
 ```
 
 Parameters:
 - `<FOLDER_PATH>`: Path to the folder containing the `id` subfolder with ZIP files
 - `<CSV_PATH>`: Path to the output CSV file where duplicates will be saved
+
+Options:
+- `--chunk-size`: Number of ZIP files to process per chunk (default: 5000). Decrease this value if you encounter memory issues
+- `--temp-dir`: Directory for temporary files (default: system temp directory). The script automatically cleans up temporary files after completion
 
 ### Grouping entities for efficient merging
 
