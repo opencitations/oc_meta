@@ -23,7 +23,7 @@ import csv
 import os
 import traceback
 from argparse import ArgumentParser
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from sys import executable, platform
 from typing import Iterator, List, Tuple
@@ -62,6 +62,19 @@ def _upload_queries(storer: Storer, triplestore_url: str, update_dir: str) -> No
         base_dir=update_dir,
         batch_size=10,
         save_queries=True
+    )
+
+
+def _upload_to_triplestore(endpoint: str, folder: str, cache_manager: CacheManager, failed_file: str, stop_file: str, batch_size: int = 10) -> None:
+    """Upload SPARQL queries from folder to triplestore endpoint."""
+    upload_sparql_updates(
+        endpoint=endpoint,
+        folder=folder,
+        batch_size=batch_size,
+        cache_file=None,
+        failed_file=failed_file,
+        stop_file=stop_file,
+        cache_manager=cache_manager,
     )
 
 
@@ -135,9 +148,16 @@ class MetaProcess:
         self.ts_upload_cache = settings.get("ts_upload_cache", "ts_upload_cache.json")
         self.ts_failed_queries = settings.get("ts_failed_queries", "failed_queries.txt")
         self.ts_stop_file = settings.get("ts_stop_file", ".stop_upload")
-        
+
         self.data_update_dir = os.path.join(self.base_output_dir, "to_be_uploaded_data")
         self.prov_update_dir = os.path.join(self.base_output_dir, "to_be_uploaded_prov")
+
+        self.cache_manager = CacheManager(
+            json_cache_file=self.ts_upload_cache,
+            redis_host=self.redis_host,
+            redis_port=self.redis_port,
+            redis_db=self.redis_cache_db,
+        )
 
     def prepare_folders(self) -> List[str]:
         completed = init_cache(self.cache_path)
@@ -304,20 +324,46 @@ class MetaProcess:
                     self.context_path
                 ))
 
-            futures.append(executor.submit(
+            sparql_data_future = executor.submit(
                 _upload_queries,
                 res_storer,
                 self.triplestore_url,
                 self.data_update_dir
-            ))
-            futures.append(executor.submit(
+            )
+            sparql_prov_future = executor.submit(
                 _upload_queries,
                 prov_storer,
                 self.provenance_triplestore_url,
                 self.prov_update_dir
-            ))
+            )
 
-            for future in as_completed(futures):
+            sparql_data_future.result()
+            sparql_prov_future.result()
+
+            data_upload_folder = os.path.join(self.data_update_dir, "to_be_uploaded")
+            prov_upload_folder = os.path.join(self.prov_update_dir, "to_be_uploaded")
+
+            upload_data_future = executor.submit(
+                _upload_to_triplestore,
+                self.triplestore_url,
+                data_upload_folder,
+                self.cache_manager,
+                self.ts_failed_queries,
+                self.ts_stop_file
+            )
+            upload_prov_future = executor.submit(
+                _upload_to_triplestore,
+                self.provenance_triplestore_url,
+                prov_upload_folder,
+                self.cache_manager,
+                self.ts_failed_queries,
+                self.ts_stop_file
+            )
+
+            upload_data_future.result()
+            upload_prov_future.result()
+
+            for future in futures:
                 future.result()
 
     def run_sparql_updates(self, endpoint: str, folder: str, batch_size: int = 10):
@@ -377,16 +423,6 @@ def run_meta_process(
             )
         if is_unix:
             delete_lock_files(base_dir=meta_process.base_output_dir)
-
-    meta_process.run_sparql_updates(
-        endpoint=settings["triplestore_url"],
-        folder=os.path.join(meta_process.data_update_dir, "to_be_uploaded"),
-    )
-
-    meta_process.run_sparql_updates(
-        endpoint=settings["provenance_triplestore_url"],
-        folder=os.path.join(meta_process.prov_update_dir, "to_be_uploaded"),
-    )
 
 
 def task_done(task_output: tuple) -> None:
