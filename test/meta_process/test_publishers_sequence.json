@@ -1,6 +1,6 @@
 [
   {
-    "@id": "https://w3id.org/oc/meta/id/06102",
+    "@id": "https://w3id.org/oc/meta/id/0602",
     "@type": [
       "http://purl.org/spar/datacite/Identifier"
     ],
@@ -16,7 +16,7 @@
     ]
   },
   {
-    "@id": "https://w3id.org/oc/meta/id/06103",
+    "@id": "https://w3id.org/oc/meta/id/0603",
     "@type": [
       "http://purl.org/spar/datacite/Identifier"
     ],
@@ -32,45 +32,45 @@
     ]
   },
   {
-    "@id": "https://w3id.org/oc/meta/ra/06102",
+    "@id": "https://w3id.org/oc/meta/ra/0602",
     "@type": [
       "http://xmlns.com/foaf/0.1/Agent"
     ],
     "http://purl.org/spar/datacite/hasIdentifier": [
       {
-        "@id": "https://w3id.org/oc/meta/id/06103"
+        "@id": "https://w3id.org/oc/meta/id/0603"
       }
     ]
   },
   {
-    "@id": "https://w3id.org/oc/meta/ra/06101",
+    "@id": "https://w3id.org/oc/meta/ra/0601",
     "http://purl.org/spar/datacite/hasIdentifier": [
       {
-        "@id": "https://w3id.org/oc/meta/id/06102"
+        "@id": "https://w3id.org/oc/meta/id/0602"
       }
     ]
   },
   {
-    "@id": "https://w3id.org/oc/meta/ar/06102",
+    "@id": "https://w3id.org/oc/meta/ar/0602",
     "http://purl.org/spar/pro/isHeldBy": [
       {
-        "@id": "https://w3id.org/oc/meta/ra/06102"
+        "@id": "https://w3id.org/oc/meta/ra/0602"
       }
     ],
     "https://w3id.org/oc/ontology/hasNext": [
       {
-        "@id": "https://w3id.org/oc/meta/ar/06103"
+        "@id": "https://w3id.org/oc/meta/ar/0603"
       }
     ]
   },
   {
-    "@id": "https://w3id.org/oc/meta/ar/06103",
+    "@id": "https://w3id.org/oc/meta/ar/0603",
     "@type": [
       "http://purl.org/spar/pro/RoleInTime"
     ],
     "http://purl.org/spar/pro/isHeldBy": [
       {
-        "@id": "https://w3id.org/oc/meta/ra/06103"
+        "@id": "https://w3id.org/oc/meta/ra/0603"
       }
     ],
     "http://purl.org/spar/pro/withRole": [
@@ -80,45 +80,45 @@
     ]
   },
   {
-    "@id": "https://w3id.org/oc/meta/ar/06101",
+    "@id": "https://w3id.org/oc/meta/ar/0601",
     "http://purl.org/spar/pro/isHeldBy": [
       {
-        "@id": "https://w3id.org/oc/meta/ra/06101"
+        "@id": "https://w3id.org/oc/meta/ra/0601"
       }
     ],
     "https://w3id.org/oc/ontology/hasNext": [
       {
-        "@id": "https://w3id.org/oc/meta/ar/06102"
+        "@id": "https://w3id.org/oc/meta/ar/0602"
       }
     ]
   },
   {
-    "@id": "https://w3id.org/oc/meta/ra/06103",
+    "@id": "https://w3id.org/oc/meta/ra/0603",
     "@type": [
       "http://xmlns.com/foaf/0.1/Agent"
     ],
     "http://purl.org/spar/datacite/hasIdentifier": [
       {
-        "@id": "https://w3id.org/oc/meta/id/06104"
+        "@id": "https://w3id.org/oc/meta/id/0604"
       }
     ]
   },
   {
-    "@id": "https://w3id.org/oc/meta/br/06101",
+    "@id": "https://w3id.org/oc/meta/br/0601",
     "http://purl.org/spar/pro/isDocumentContextFor": [
       {
-        "@id": "https://w3id.org/oc/meta/ar/06101"
+        "@id": "https://w3id.org/oc/meta/ar/0601"
       },
       {
-        "@id": "https://w3id.org/oc/meta/ar/06103"
+        "@id": "https://w3id.org/oc/meta/ar/0603"
       },
       {
-        "@id": "https://w3id.org/oc/meta/ar/06102"
+        "@id": "https://w3id.org/oc/meta/ar/0602"
       }
     ]
   },
   {
-    "@id": "https://w3id.org/oc/meta/id/06104",
+    "@id": "https://w3id.org/oc/meta/id/0604",
     "@type": [
       "http://purl.org/spar/datacite/Identifier"
     ],

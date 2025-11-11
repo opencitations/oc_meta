@@ -1,6 +1,5 @@
 import argparse
 import csv
-import logging
 import multiprocessing as mp
 import os
 import shutil
@@ -11,9 +10,6 @@ from typing import Dict, List, Set
 
 from rdflib import ConjunctiveGraph, URIRef
 from tqdm import tqdm
-
-logging.basicConfig(filename='error_log_find_duplicated_ids_from_files.txt', level=logging.ERROR,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
 
 def process_zip_file(zip_path: str) -> Dict[tuple, Set[str]]:
     entity_info = defaultdict(set)
@@ -36,11 +32,11 @@ def process_zip_file(zip_path: str) -> Dict[tuple, Set[str]]:
                                 key = (str(identifier_scheme), str(literal_value))
                                 entity_info[key].add(entity_id)
                 except Exception as e:
-                    logging.error(f"Error processing file {zip_file} in {zip_path}: {str(e)}")
+                    print(f"Error processing file {zip_file} in {zip_path}: {str(e)}")
     except zipfile.BadZipFile:
-        logging.error(f"Corrupted or invalid ZIP file: {zip_path}")
+        print(f"Corrupted or invalid ZIP file: {zip_path}")
     except Exception as e:
-        logging.error(f"Error opening ZIP file {zip_path}: {str(e)}")
+        print(f"Error opening ZIP file {zip_path}: {str(e)}")
 
     return entity_info
 
@@ -78,7 +74,7 @@ def read_and_analyze_zip_files(folder_path: str, csv_path: str, chunk_size: int 
     id_folder_path = os.path.join(folder_path, 'id')
 
     if not os.path.exists(id_folder_path):
-        logging.error(f"The 'id' subfolder does not exist in path: {folder_path}")
+        print(f"Error: The 'id' subfolder does not exist in path: {folder_path}")
         return
 
     zip_files = [os.path.join(root, file) for root, _, files in os.walk(id_folder_path)
@@ -122,7 +118,7 @@ def save_duplicates_to_csv(entity_info: Dict[tuple, Set[str]], csv_path: str):
                     ids_list = list(ids)
                     csv_writer.writerow([ids_list[0], '; '.join(ids_list[1:])])
     except Exception as e:
-        logging.error(f"Error saving CSV file {csv_path}: {str(e)}")
+        print(f"Error saving CSV file {csv_path}: {str(e)}")
 
 def main():
     parser = argparse.ArgumentParser(description="Find duplicate identifiers by reading RDF files inside ZIP archives in an 'id' subfolder.")

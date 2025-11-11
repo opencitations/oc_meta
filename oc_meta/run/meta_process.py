@@ -23,9 +23,8 @@ import csv
 import os
 import traceback
 from argparse import ArgumentParser
-from concurrent.futures import as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
-from itertools import cycle
 from sys import executable, platform
 from typing import Iterator, List, Tuple
 
@@ -42,9 +41,28 @@ from oc_ocdm import Storer
 from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
 from oc_ocdm.prov import ProvSet
 from oc_ocdm.support.reporter import Reporter
-from pebble import ProcessPool
 from time_agnostic_library.support import generate_config_file
 from tqdm import tqdm
+
+
+def _store_rdf(storer: Storer, output_rdf_dir: str, base_iri: str, context_path: str) -> None:
+    """Execute storer.store_all() for RDF files."""
+    storer.store_all(
+        base_dir=output_rdf_dir,
+        base_iri=base_iri,
+        context_path=context_path,
+        process_id=None
+    )
+
+
+def _upload_queries(storer: Storer, triplestore_url: str, update_dir: str) -> None:
+    """Execute storer.upload_all() to generate SPARQL queries."""
+    storer.upload_all(
+        triplestore_url=triplestore_url,
+        base_dir=update_dir,
+        batch_size=10,
+        save_queries=True
+    )
 
 
 class MetaProcess:
@@ -75,10 +93,9 @@ class MetaProcess:
         self.valid_dois_cache = (
             dict() if bool(settings["use_doi_api_service"]) == True else None
         )
-        self.workers_number = int(settings["workers_number"])
         supplier_prefix: str = settings["supplier_prefix"]
         self.supplier_prefix = (
-            supplier_prefix[:-1] if supplier_prefix.endswith("0") else supplier_prefix
+            supplier_prefix if supplier_prefix.endswith("0") else f"{supplier_prefix}0"
         )
         self.silencer = settings["silencer"]
         self.generate_rdf_files = settings.get("generate_rdf_files", True)
@@ -142,7 +159,6 @@ class MetaProcess:
         filename: str,
         cache_path: str,
         errors_path: str,
-        worker_number: int = None,
         resp_agents_only: bool = False,
         settings: str | None = None,
         meta_config_path: str = None,
@@ -153,13 +169,8 @@ class MetaProcess:
             filepath = os.path.join(self.input_csv_dir, filename)
             print(filepath)
             data = get_csv_data(filepath)
-            supplier_prefix = (
-                f"{self.supplier_prefix}0"
-                if worker_number is None
-                else f"{self.supplier_prefix}{str(worker_number)}0"
-            )
             # Curator
-            self.info_dir = os.path.join(self.info_dir, supplier_prefix)
+            self.info_dir = os.path.join(self.info_dir, self.supplier_prefix)
             if resp_agents_only:
                 curator_obj = RespAgentsCurator(
                     data=data,
@@ -167,7 +178,7 @@ class MetaProcess:
                     prov_config=self.time_agnostic_library_config,
                     counter_handler=self.counter_handler,
                     base_iri=self.base_iri,
-                    prefix=supplier_prefix,
+                    prefix=self.supplier_prefix,
                     settings=settings,
                     meta_config_path=meta_config_path,
                 )
@@ -178,7 +189,7 @@ class MetaProcess:
                     prov_config=self.time_agnostic_library_config,
                     counter_handler=self.counter_handler,
                     base_iri=self.base_iri,
-                    prefix=supplier_prefix,
+                    prefix=self.supplier_prefix,
                     valid_dois_cache=self.valid_dois_cache,
                     settings=settings,
                     silencer=self.silencer,
@@ -195,7 +206,7 @@ class MetaProcess:
                     endpoint=self.triplestore_url,
                     base_iri=self.base_iri,
                     counter_handler=self.counter_handler,
-                    supplier_prefix=supplier_prefix,
+                    supplier_prefix=self.supplier_prefix,
                     resp_agent=self.resp_agent,
                     ra_index=curator_obj.index_id_ra,
                     preexisting_entities=curator_obj.preexisting_entities,
@@ -209,7 +220,7 @@ class MetaProcess:
                     endpoint=self.triplestore_url,
                     base_iri=self.base_iri,
                     counter_handler=self.counter_handler,
-                    supplier_prefix=supplier_prefix,
+                    supplier_prefix=self.supplier_prefix,
                     resp_agent=self.resp_agent,
                     ra_index=curator_obj.index_id_ra,
                     br_index=curator_obj.index_id_br,
@@ -227,7 +238,7 @@ class MetaProcess:
                 creator,
                 self.base_iri,
                 wanted_label=False,
-                supplier_prefix=supplier_prefix,
+                supplier_prefix=self.supplier_prefix,
                 custom_counter_handler=self.counter_handler,
             )
             modified_entities = prov.generate_provenance()
@@ -274,33 +285,40 @@ class MetaProcess:
         os.makedirs(self.data_update_dir, exist_ok=True)
         os.makedirs(self.prov_update_dir, exist_ok=True)
 
-        if self.generate_rdf_files:
-            res_storer.store_all(
-                base_dir=self.output_rdf_dir,
-                base_iri=self.base_iri,
-                context_path=self.context_path,
-                process_id=None,
-            )
-            prov_storer.store_all(
-                self.output_rdf_dir,
-                self.base_iri,
-                self.context_path,
-                process_id=None
-            )
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            futures = []
 
-        res_storer.upload_all(
-            triplestore_url=self.triplestore_url,
-            base_dir=self.data_update_dir,
-            batch_size=10,
-            save_queries=True
-        )
+            if self.generate_rdf_files:
+                futures.append(executor.submit(
+                    _store_rdf,
+                    res_storer,
+                    self.output_rdf_dir,
+                    self.base_iri,
+                    self.context_path
+                ))
+                futures.append(executor.submit(
+                    _store_rdf,
+                    prov_storer,
+                    self.output_rdf_dir,
+                    self.base_iri,
+                    self.context_path
+                ))
 
-        prov_storer.upload_all(
-            triplestore_url=self.provenance_triplestore_url,
-            base_dir=self.prov_update_dir,
-            batch_size=10,
-            save_queries=True
-        )
+            futures.append(executor.submit(
+                _upload_queries,
+                res_storer,
+                self.triplestore_url,
+                self.data_update_dir
+            ))
+            futures.append(executor.submit(
+                _upload_queries,
+                prov_storer,
+                self.provenance_triplestore_url,
+                self.prov_update_dir
+            ))
+
+            for future in as_completed(futures):
+                future.result()
 
     def run_sparql_updates(self, endpoint: str, folder: str, batch_size: int = 10):
         cache_manager = CacheManager(
@@ -325,43 +343,26 @@ def run_meta_process(
 ) -> None:
     meta_process = MetaProcess(settings=settings, meta_config_path=meta_config_path)
     is_unix = platform in {"linux", "linux2", "darwin"}
-    # delete_lock_files(base_dir=meta_process.base_output_dir)
     files_to_be_processed = meta_process.prepare_folders()
-    max_workers = meta_process.workers_number
-    if max_workers == 0:
-        workers = list(range(1, os.cpu_count()))
-    elif max_workers == 1:
-        workers = [None]
-    else:
-        tens = int(str(max_workers)[:-1]) if max_workers >= 10 else 0
-        multiples_of_ten = {
-            i for i in range(1, max_workers + tens + 1) if int(i) % 10 == 0
-        }
-        workers = [
-            i
-            for i in range(1, max_workers + len(multiples_of_ten) + 1)
-            if i not in multiples_of_ten
-        ]
+
     generate_gentle_buttons(meta_process.base_output_dir, meta_config_path, is_unix)
-    with ProcessPool(max_workers=max_workers, max_tasks=1) as executor, tqdm(
-        total=len(files_to_be_processed), desc="Processing files"
-    ) as progress_bar:
-        futures = [
-            executor.schedule(
-                curate_and_create_wrapper,
-                args=(file, worker, resp_agents_only, settings, meta_config_path),
-            )
-            for file, worker in zip(files_to_be_processed, cycle(workers))
-        ]
-        for future in as_completed(futures):
+
+    with tqdm(total=len(files_to_be_processed), desc="Processing files") as progress_bar:
+        for filename in files_to_be_processed:
             try:
-                result = future.result()
-                task_done(result)  # Gestisci il risultato del task
+                result = meta_process.curate_and_create(
+                    filename,
+                    meta_process.cache_path,
+                    meta_process.errors_path,
+                    resp_agents_only=resp_agents_only,
+                    settings=settings,
+                    meta_config_path=meta_config_path
+                )
+                task_done(result)
             except Exception as e:
-                # Gestisci l'eccezione per il task che ha sollevato un'errore
                 traceback_str = traceback.format_exc()
                 print(
-                    f"Errore durante l'elaborazione: {e}\nTraceback:\n{traceback_str}"
+                    f"Error processing file {filename}: {e}\nTraceback:\n{traceback_str}"
                 )
             finally:
                 progress_bar.update(1)
@@ -377,31 +378,14 @@ def run_meta_process(
         if is_unix:
             delete_lock_files(base_dir=meta_process.base_output_dir)
 
-    # Run SPARQL updates for the main triplestore
     meta_process.run_sparql_updates(
         endpoint=settings["triplestore_url"],
         folder=os.path.join(meta_process.data_update_dir, "to_be_uploaded"),
     )
-    
-    # Run SPARQL updates for the provenance triplestore
+
     meta_process.run_sparql_updates(
         endpoint=settings["provenance_triplestore_url"],
         folder=os.path.join(meta_process.prov_update_dir, "to_be_uploaded"),
-    )
-
-
-def curate_and_create_wrapper(
-    file_to_be_processed, worker_number, resp_agents_only, settings, meta_config_path
-):
-    meta_process = MetaProcess(settings=settings, meta_config_path=meta_config_path)
-    return meta_process.curate_and_create(
-        file_to_be_processed,
-        meta_process.cache_path,
-        meta_process.errors_path,
-        worker_number,
-        resp_agents_only,
-        settings,
-        meta_config_path,
     )
 
 

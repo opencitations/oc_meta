@@ -1,363 +1,6 @@
 [
   {
-    "@id": "https://w3id.org/oc/meta/id/06101",
-    "@type": [
-      "http://purl.org/spar/datacite/Identifier"
-    ],
-    "http://purl.org/spar/datacite/usesIdentifierScheme": [
-      {
-        "@id": "http://purl.org/spar/datacite/doi"
-      }
-    ],
-    "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
-      {
-        "@value": "10.1038/s10038-018-0558-0"
-      }
-    ]
-  },
-  {
-    "@id": "https://w3id.org/oc/meta/id/06102",
-    "@type": [
-      "http://purl.org/spar/datacite/Identifier"
-    ],
-    "http://purl.org/spar/datacite/usesIdentifierScheme": [
-      {
-        "@id": "http://purl.org/spar/datacite/pmid"
-      }
-    ],
-    "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
-      {
-        "@value": "30631120"
-      }
-    ]
-  },
-  {
-    "@id": "https://w3id.org/oc/meta/br/06102",
-    "@type": [
-      "http://purl.org/spar/fabio/Expression",
-      "http://purl.org/spar/fabio/JournalArticle"
-    ],
-    "http://prismstandard.org/namespaces/basic/2.0/publicationDate": [
-      {
-        "@type": "http://www.w3.org/2001/XMLSchema#date",
-        "@value": "2015-10-08"
-      }
-    ],
-    "http://purl.org/dc/terms/title": [
-      {
-        "@value": "Genetics Of Hereditary Large Vessel Diseases"
-      }
-    ],
-    "http://purl.org/spar/datacite/hasIdentifier": [
-      {
-        "@id": "https://w3id.org/oc/meta/id/06104"
-      },
-      {
-        "@id": "https://w3id.org/oc/meta/id/06103"
-      },
-      {
-        "@id": "https://w3id.org/oc/meta/id/06209"
-      }
-    ],
-    "http://purl.org/spar/pro/isDocumentContextFor": [
-      {
-        "@id": "https://w3id.org/oc/meta/ar/06107"
-      },
-      {
-        "@id": "https://w3id.org/oc/meta/ar/06106"
-      },
-      {
-        "@id": "https://w3id.org/oc/meta/ar/06108"
-      }
-    ],
-    "http://purl.org/vocab/frbr/core#embodiment": [
-      {
-        "@id": "https://w3id.org/oc/meta/re/06102"
-      }
-    ],
-    "http://purl.org/vocab/frbr/core#partOf": [
-      {
-        "@id": "https://w3id.org/oc/meta/br/06107"
-      }
-    ]
-  },
-  {
-    "@id": "https://w3id.org/oc/meta/id/06209",
-    "@type": [
-      "http://purl.org/spar/datacite/Identifier"
-    ],
-    "http://purl.org/spar/datacite/usesIdentifierScheme": [
-      {
-        "@id": "http://purl.org/spar/datacite/openalex"
-      }
-    ],
-    "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
-      {
-        "@value": "W3036973359"
-      }
-    ]
-  },
-  {
-    "@id": "https://w3id.org/oc/meta/id/06202",
-    "@type": [
-      "http://purl.org/spar/datacite/Identifier"
-    ],
-    "http://purl.org/spar/datacite/usesIdentifierScheme": [
-      {
-        "@id": "http://purl.org/spar/datacite/pmid"
-      }
-    ],
-    "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
-      {
-        "@value": "31435162"
-      }
-    ]
-  },
-  {
-    "@id": "https://w3id.org/oc/meta/id/06104",
-    "@type": [
-      "http://purl.org/spar/datacite/Identifier"
-    ],
-    "http://purl.org/spar/datacite/usesIdentifierScheme": [
-      {
-        "@id": "http://purl.org/spar/datacite/doi"
-      }
-    ],
-    "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
-      {
-        "@value": "10.1038/jhg.2015.119"
-      }
-    ]
-  },
-  {
-    "@id": "https://w3id.org/oc/meta/id/061010",
-    "@type": [
-      "http://purl.org/spar/datacite/Identifier"
-    ],
-    "http://purl.org/spar/datacite/usesIdentifierScheme": [
-      {
-        "@id": "http://purl.org/spar/datacite/openalex"
-      }
-    ],
-    "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
-      {
-        "@value": "W2908847640"
-      }
-    ]
-  },
-  {
-    "@id": "https://w3id.org/oc/meta/id/061011",
-    "@type": [
-      "http://purl.org/spar/datacite/Identifier"
-    ],
-    "http://purl.org/spar/datacite/usesIdentifierScheme": [
-      {
-        "@id": "http://purl.org/spar/datacite/openalex"
-      }
-    ],
-    "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
-      {
-        "@value": "W2199027811"
-      }
-    ]
-  },
-  {
-    "@id": "https://w3id.org/oc/meta/id/06208",
-    "@type": [
-      "http://purl.org/spar/datacite/Identifier"
-    ],
-    "http://purl.org/spar/datacite/usesIdentifierScheme": [
-      {
-        "@id": "http://purl.org/spar/datacite/openalex"
-      }
-    ],
-    "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
-      {
-        "@value": "W2968927540"
-      }
-    ]
-  },
-  {
-    "@id": "https://w3id.org/oc/meta/id/06203",
-    "@type": [
-      "http://purl.org/spar/datacite/Identifier"
-    ],
-    "http://purl.org/spar/datacite/usesIdentifierScheme": [
-      {
-        "@id": "http://purl.org/spar/datacite/pmid"
-      }
-    ],
-    "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
-      {
-        "@value": "32684734"
-      }
-    ]
-  },
-  {
-    "@id": "https://w3id.org/oc/meta/id/06201",
-    "@type": [
-      "http://purl.org/spar/datacite/Identifier"
-    ],
-    "http://purl.org/spar/datacite/usesIdentifierScheme": [
-      {
-        "@id": "http://purl.org/spar/datacite/doi"
-      }
-    ],
-    "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
-      {
-        "@value": "10.3748/wjg.v25.i30.4043"
-      }
-    ]
-  },
-  {
-    "@id": "https://w3id.org/oc/meta/id/06204",
-    "@type": [
-      "http://purl.org/spar/datacite/Identifier"
-    ],
-    "http://purl.org/spar/datacite/usesIdentifierScheme": [
-      {
-        "@id": "http://purl.org/spar/datacite/doi"
-      }
-    ],
-    "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
-      {
-        "@value": "10.3748/wjg.v26.i23.3182"
-      }
-    ]
-  },
-  {
-    "@id": "https://w3id.org/oc/meta/id/06103",
-    "@type": [
-      "http://purl.org/spar/datacite/Identifier"
-    ],
-    "http://purl.org/spar/datacite/usesIdentifierScheme": [
-      {
-        "@id": "http://purl.org/spar/datacite/pmid"
-      }
-    ],
-    "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
-      {
-        "@value": "26446364"
-      }
-    ]
-  },
-  {
-    "@id": "https://w3id.org/oc/meta/br/06101",
-    "@type": [
-      "http://purl.org/spar/fabio/JournalArticle",
-      "http://purl.org/spar/fabio/Expression"
-    ],
-    "http://prismstandard.org/namespaces/basic/2.0/publicationDate": [
-      {
-        "@type": "http://www.w3.org/2001/XMLSchema#date",
-        "@value": "2019-01-10"
-      }
-    ],
-    "http://purl.org/dc/terms/title": [
-      {
-        "@value": "Treatment Of Two Mitochondrial Disease Patients With A Combination Of Febuxostat And Inosine That Enhances Cellular ATP"
-      }
-    ],
-    "http://purl.org/spar/datacite/hasIdentifier": [
-      {
-        "@id": "https://w3id.org/oc/meta/id/06101"
-      },
-      {
-        "@id": "https://w3id.org/oc/meta/id/061010"
-      },
-      {
-        "@id": "https://w3id.org/oc/meta/id/06102"
-      }
-    ],
-    "http://purl.org/spar/pro/isDocumentContextFor": [
-      {
-        "@id": "https://w3id.org/oc/meta/ar/06102"
-      },
-      {
-        "@id": "https://w3id.org/oc/meta/ar/06103"
-      },
-      {
-        "@id": "https://w3id.org/oc/meta/ar/06101"
-      },
-      {
-        "@id": "https://w3id.org/oc/meta/ar/06104"
-      },
-      {
-        "@id": "https://w3id.org/oc/meta/ar/06105"
-      }
-    ],
-    "http://purl.org/vocab/frbr/core#embodiment": [
-      {
-        "@id": "https://w3id.org/oc/meta/re/06101"
-      }
-    ],
-    "http://purl.org/vocab/frbr/core#partOf": [
-      {
-        "@id": "https://w3id.org/oc/meta/br/06105"
-      }
-    ]
-  },
-  {
-    "@id": "https://w3id.org/oc/meta/br/06201",
-    "@type": [
-      "http://purl.org/spar/fabio/JournalArticle",
-      "http://purl.org/spar/fabio/Expression"
-    ],
-    "http://prismstandard.org/namespaces/basic/2.0/publicationDate": [
-      {
-        "@type": "http://www.w3.org/2001/XMLSchema#date",
-        "@value": "2019-08-14"
-      }
-    ],
-    "http://purl.org/dc/terms/title": [
-      {
-        "@value": "Exhaled Breath Analysis In Hepatology: State-of-the-art And Perspectives"
-      }
-    ],
-    "http://purl.org/spar/datacite/hasIdentifier": [
-      {
-        "@id": "https://w3id.org/oc/meta/id/06201"
-      },
-      {
-        "@id": "https://w3id.org/oc/meta/id/06208"
-      },
-      {
-        "@id": "https://w3id.org/oc/meta/id/06202"
-      }
-    ],
-    "http://purl.org/spar/pro/isDocumentContextFor": [
-      {
-        "@id": "https://w3id.org/oc/meta/ar/06202"
-      },
-      {
-        "@id": "https://w3id.org/oc/meta/ar/06203"
-      },
-      {
-        "@id": "https://w3id.org/oc/meta/ar/06205"
-      },
-      {
-        "@id": "https://w3id.org/oc/meta/ar/06204"
-      },
-      {
-        "@id": "https://w3id.org/oc/meta/ar/06206"
-      },
-      {
-        "@id": "https://w3id.org/oc/meta/ar/06201"
-      }
-    ],
-    "http://purl.org/vocab/frbr/core#embodiment": [
-      {
-        "@id": "https://w3id.org/oc/meta/re/06201"
-      }
-    ],
-    "http://purl.org/vocab/frbr/core#partOf": [
-      {
-        "@id": "https://w3id.org/oc/meta/br/06205"
-      }
-    ]
-  },
-  {
-    "@id": "https://w3id.org/oc/meta/br/06202",
+    "@id": "https://w3id.org/oc/meta/br/0609",
     "@type": [
       "http://purl.org/spar/fabio/JournalArticle",
       "http://purl.org/spar/fabio/Expression"
@@ -375,31 +18,369 @@
     ],
     "http://purl.org/spar/datacite/hasIdentifier": [
       {
-        "@id": "https://w3id.org/oc/meta/id/06204"
+        "@id": "https://w3id.org/oc/meta/id/06012"
       },
       {
-        "@id": "https://w3id.org/oc/meta/id/06203"
+        "@id": "https://w3id.org/oc/meta/id/06013"
       },
       {
-        "@id": "https://w3id.org/oc/meta/id/061011"
+        "@id": "https://w3id.org/oc/meta/id/06019"
       }
     ],
     "http://purl.org/spar/pro/isDocumentContextFor": [
       {
-        "@id": "https://w3id.org/oc/meta/ar/06207"
+        "@id": "https://w3id.org/oc/meta/ar/06016"
       },
       {
-        "@id": "https://w3id.org/oc/meta/ar/06208"
+        "@id": "https://w3id.org/oc/meta/ar/06015"
       }
     ],
     "http://purl.org/vocab/frbr/core#embodiment": [
       {
-        "@id": "https://w3id.org/oc/meta/re/06202"
+        "@id": "https://w3id.org/oc/meta/re/0604"
       }
     ],
     "http://purl.org/vocab/frbr/core#partOf": [
       {
-        "@id": "https://w3id.org/oc/meta/br/06207"
+        "@id": "https://w3id.org/oc/meta/br/06014"
+      }
+    ]
+  },
+  {
+    "@id": "https://w3id.org/oc/meta/id/06011",
+    "@type": [
+      "http://purl.org/spar/datacite/Identifier"
+    ],
+    "http://purl.org/spar/datacite/usesIdentifierScheme": [
+      {
+        "@id": "http://purl.org/spar/datacite/pmid"
+      }
+    ],
+    "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
+      {
+        "@value": "31435162"
+      }
+    ]
+  },
+  {
+    "@id": "https://w3id.org/oc/meta/id/0601",
+    "@type": [
+      "http://purl.org/spar/datacite/Identifier"
+    ],
+    "http://purl.org/spar/datacite/usesIdentifierScheme": [
+      {
+        "@id": "http://purl.org/spar/datacite/doi"
+      }
+    ],
+    "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
+      {
+        "@value": "10.1038/s10038-018-0558-0"
+      }
+    ]
+  },
+  {
+    "@id": "https://w3id.org/oc/meta/id/06012",
+    "@type": [
+      "http://purl.org/spar/datacite/Identifier"
+    ],
+    "http://purl.org/spar/datacite/usesIdentifierScheme": [
+      {
+        "@id": "http://purl.org/spar/datacite/pmid"
+      }
+    ],
+    "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
+      {
+        "@value": "32684734"
+      }
+    ]
+  },
+  {
+    "@id": "https://w3id.org/oc/meta/id/0604",
+    "@type": [
+      "http://purl.org/spar/datacite/Identifier"
+    ],
+    "http://purl.org/spar/datacite/usesIdentifierScheme": [
+      {
+        "@id": "http://purl.org/spar/datacite/doi"
+      }
+    ],
+    "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
+      {
+        "@value": "10.1038/jhg.2015.119"
+      }
+    ]
+  },
+  {
+    "@id": "https://w3id.org/oc/meta/id/0602",
+    "@type": [
+      "http://purl.org/spar/datacite/Identifier"
+    ],
+    "http://purl.org/spar/datacite/usesIdentifierScheme": [
+      {
+        "@id": "http://purl.org/spar/datacite/pmid"
+      }
+    ],
+    "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
+      {
+        "@value": "30631120"
+      }
+    ]
+  },
+  {
+    "@id": "https://w3id.org/oc/meta/id/06013",
+    "@type": [
+      "http://purl.org/spar/datacite/Identifier"
+    ],
+    "http://purl.org/spar/datacite/usesIdentifierScheme": [
+      {
+        "@id": "http://purl.org/spar/datacite/doi"
+      }
+    ],
+    "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
+      {
+        "@value": "10.3748/wjg.v26.i23.3182"
+      }
+    ]
+  },
+  {
+    "@id": "https://w3id.org/oc/meta/id/06017",
+    "@type": [
+      "http://purl.org/spar/datacite/Identifier"
+    ],
+    "http://purl.org/spar/datacite/usesIdentifierScheme": [
+      {
+        "@id": "http://purl.org/spar/datacite/openalex"
+      }
+    ],
+    "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
+      {
+        "@value": "W2908847640"
+      }
+    ]
+  },
+  {
+    "@id": "https://w3id.org/oc/meta/id/06019",
+    "@type": [
+      "http://purl.org/spar/datacite/Identifier"
+    ],
+    "http://purl.org/spar/datacite/usesIdentifierScheme": [
+      {
+        "@id": "http://purl.org/spar/datacite/openalex"
+      }
+    ],
+    "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
+      {
+        "@value": "W2968927540"
+      }
+    ]
+  },
+  {
+    "@id": "https://w3id.org/oc/meta/id/06010",
+    "@type": [
+      "http://purl.org/spar/datacite/Identifier"
+    ],
+    "http://purl.org/spar/datacite/usesIdentifierScheme": [
+      {
+        "@id": "http://purl.org/spar/datacite/doi"
+      }
+    ],
+    "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
+      {
+        "@value": "10.3748/wjg.v25.i30.4043"
+      }
+    ]
+  },
+  {
+    "@id": "https://w3id.org/oc/meta/id/06020",
+    "@type": [
+      "http://purl.org/spar/datacite/Identifier"
+    ],
+    "http://purl.org/spar/datacite/usesIdentifierScheme": [
+      {
+        "@id": "http://purl.org/spar/datacite/openalex"
+      }
+    ],
+    "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
+      {
+        "@value": "W3036973359"
+      }
+    ]
+  },
+  {
+    "@id": "https://w3id.org/oc/meta/id/0603",
+    "@type": [
+      "http://purl.org/spar/datacite/Identifier"
+    ],
+    "http://purl.org/spar/datacite/usesIdentifierScheme": [
+      {
+        "@id": "http://purl.org/spar/datacite/pmid"
+      }
+    ],
+    "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
+      {
+        "@value": "26446364"
+      }
+    ]
+  },
+  {
+    "@id": "https://w3id.org/oc/meta/br/0608",
+    "@type": [
+      "http://purl.org/spar/fabio/JournalArticle",
+      "http://purl.org/spar/fabio/Expression"
+    ],
+    "http://prismstandard.org/namespaces/basic/2.0/publicationDate": [
+      {
+        "@type": "http://www.w3.org/2001/XMLSchema#date",
+        "@value": "2019-08-14"
+      }
+    ],
+    "http://purl.org/dc/terms/title": [
+      {
+        "@value": "Exhaled Breath Analysis In Hepatology: State-of-the-art And Perspectives"
+      }
+    ],
+    "http://purl.org/spar/datacite/hasIdentifier": [
+      {
+        "@id": "https://w3id.org/oc/meta/id/06010"
+      },
+      {
+        "@id": "https://w3id.org/oc/meta/id/06011"
+      }
+    ],
+    "http://purl.org/spar/pro/isDocumentContextFor": [
+      {
+        "@id": "https://w3id.org/oc/meta/ar/06012"
+      },
+      {
+        "@id": "https://w3id.org/oc/meta/ar/06014"
+      },
+      {
+        "@id": "https://w3id.org/oc/meta/ar/0609"
+      },
+      {
+        "@id": "https://w3id.org/oc/meta/ar/06010"
+      },
+      {
+        "@id": "https://w3id.org/oc/meta/ar/06013"
+      },
+      {
+        "@id": "https://w3id.org/oc/meta/ar/06011"
+      }
+    ],
+    "http://purl.org/vocab/frbr/core#embodiment": [
+      {
+        "@id": "https://w3id.org/oc/meta/re/0603"
+      }
+    ],
+    "http://purl.org/vocab/frbr/core#partOf": [
+      {
+        "@id": "https://w3id.org/oc/meta/br/06012"
+      }
+    ]
+  },
+  {
+    "@id": "https://w3id.org/oc/meta/br/0602",
+    "@type": [
+      "http://purl.org/spar/fabio/Expression",
+      "http://purl.org/spar/fabio/JournalArticle"
+    ],
+    "http://prismstandard.org/namespaces/basic/2.0/publicationDate": [
+      {
+        "@type": "http://www.w3.org/2001/XMLSchema#date",
+        "@value": "2015-10-08"
+      }
+    ],
+    "http://purl.org/dc/terms/title": [
+      {
+        "@value": "Genetics Of Hereditary Large Vessel Diseases"
+      }
+    ],
+    "http://purl.org/spar/datacite/hasIdentifier": [
+      {
+        "@id": "https://w3id.org/oc/meta/id/06020"
+      },
+      {
+        "@id": "https://w3id.org/oc/meta/id/0603"
+      },
+      {
+        "@id": "https://w3id.org/oc/meta/id/0604"
+      }
+    ],
+    "http://purl.org/spar/pro/isDocumentContextFor": [
+      {
+        "@id": "https://w3id.org/oc/meta/ar/0607"
+      },
+      {
+        "@id": "https://w3id.org/oc/meta/ar/0608"
+      },
+      {
+        "@id": "https://w3id.org/oc/meta/ar/0606"
+      }
+    ],
+    "http://purl.org/vocab/frbr/core#embodiment": [
+      {
+        "@id": "https://w3id.org/oc/meta/re/0602"
+      }
+    ],
+    "http://purl.org/vocab/frbr/core#partOf": [
+      {
+        "@id": "https://w3id.org/oc/meta/br/0607"
+      }
+    ]
+  },
+  {
+    "@id": "https://w3id.org/oc/meta/br/0601",
+    "@type": [
+      "http://purl.org/spar/fabio/JournalArticle",
+      "http://purl.org/spar/fabio/Expression"
+    ],
+    "http://prismstandard.org/namespaces/basic/2.0/publicationDate": [
+      {
+        "@type": "http://www.w3.org/2001/XMLSchema#date",
+        "@value": "2019-01-10"
+      }
+    ],
+    "http://purl.org/dc/terms/title": [
+      {
+        "@value": "Treatment Of Two Mitochondrial Disease Patients With A Combination Of Febuxostat And Inosine That Enhances Cellular ATP"
+      }
+    ],
+    "http://purl.org/spar/datacite/hasIdentifier": [
+      {
+        "@id": "https://w3id.org/oc/meta/id/0601"
+      },
+      {
+        "@id": "https://w3id.org/oc/meta/id/0602"
+      },
+      {
+        "@id": "https://w3id.org/oc/meta/id/06017"
+      }
+    ],
+    "http://purl.org/spar/pro/isDocumentContextFor": [
+      {
+        "@id": "https://w3id.org/oc/meta/ar/0603"
+      },
+      {
+        "@id": "https://w3id.org/oc/meta/ar/0602"
+      },
+      {
+        "@id": "https://w3id.org/oc/meta/ar/0604"
+      },
+      {
+        "@id": "https://w3id.org/oc/meta/ar/0601"
+      },
+      {
+        "@id": "https://w3id.org/oc/meta/ar/0605"
+      }
+    ],
+    "http://purl.org/vocab/frbr/core#embodiment": [
+      {
+        "@id": "https://w3id.org/oc/meta/re/0601"
+      }
+    ],
+    "http://purl.org/vocab/frbr/core#partOf": [
+      {
+        "@id": "https://w3id.org/oc/meta/br/0605"
       }
     ]
   }
