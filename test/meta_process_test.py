@@ -520,7 +520,6 @@ class test_ProcessTest(unittest.TestCase):
             settings = yaml.full_load(file)
         original_input_csv_dir = settings["input_csv_dir"]
         settings["input_csv_dir"] = os.path.join(original_input_csv_dir, "preprocess")
-        settings["workers_number"] = 1
 
         # Use temporary cache files to avoid corruption
         settings["ts_upload_cache"] = self.cache_file
@@ -1220,7 +1219,6 @@ class test_ProcessTest(unittest.TestCase):
             "zip_output_rdf": True,
             "source": None,
             "supplier_prefix": "060",
-            "workers_number": 1,
             "use_doi_api_service": False,
             "blazegraph_full_text_search": False,
             "virtuoso_full_text_search": True,
@@ -1481,7 +1479,6 @@ class test_ProcessTest(unittest.TestCase):
             "zip_output_rdf": True,
             "source": None,
             "supplier_prefix": "060",
-            "workers_number": 1,
             "use_doi_api_service": False,
             "blazegraph_full_text_search": False,
             "virtuoso_full_text_search": True,
@@ -1604,7 +1601,6 @@ class test_ProcessTest(unittest.TestCase):
             "zip_output_rdf": True,
             "source": None,
             "supplier_prefix": "060",
-            "workers_number": 1,
             "use_doi_api_service": False,
             "blazegraph_full_text_search": False,
             "virtuoso_full_text_search": True,
@@ -1737,7 +1733,6 @@ class test_ProcessTest(unittest.TestCase):
             "zip_output_rdf": True,
             "source": None,
             "supplier_prefix": "060",
-            "workers_number": 1,
             "use_doi_api_service": False,
             "blazegraph_full_text_search": False,
             "virtuoso_full_text_search": True,
@@ -1931,7 +1926,6 @@ class test_ProcessTest(unittest.TestCase):
             "zip_output_rdf": True,
             "source": None,
             "supplier_prefix": "060",
-            "workers_number": 1,
             "use_doi_api_service": False,
             "blazegraph_full_text_search": False,
             "virtuoso_full_text_search": True,
@@ -2100,7 +2094,6 @@ class test_ProcessTest(unittest.TestCase):
             "zip_output_rdf": True,
             "source": None,
             "supplier_prefix": "060",
-            "workers_number": 1,
             "use_doi_api_service": False,
             "blazegraph_full_text_search": False,
             "virtuoso_full_text_search": True,
@@ -2229,7 +2222,6 @@ class test_ProcessTest(unittest.TestCase):
             "zip_output_rdf": False,
             "source": None,
             "use_doi_api_service": False,
-            "workers_number": 1,
             "silencer": [],
             "redis_host": "localhost",
             "redis_port": 6381,

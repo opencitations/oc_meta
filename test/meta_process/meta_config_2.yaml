@@ -57,8 +57,6 @@ zip_output_rdf: True
 source: https://api.crossref.org/
 # If True, use the DOI API service to check if DOIs are valid
 use_doi_api_service: False
-# Number of cores to devote to the Meta process
-workers_number: 1
 # True if Blazegraph was used as a provenance triplestore, and a textual index was built to speed up queries. For more information, see https://github.com/blazegraph/database/wiki/Rebuild_Text_Index_Procedure
 blazegraph_full_text_search: False
 # True if Fuseki was used as a provenance triplestore, and a textual index was built to speed up queries. For more information, see https://jena.apache.org/documentation/query/text-query.html

@@ -139,7 +139,6 @@ redis_cache_db: 1
 
 # Processing settings
 supplier_prefix: "060"
-workers_number: 16
 dir_split_number: 10000
 items_per_file: 1000
 default_dir: "_"

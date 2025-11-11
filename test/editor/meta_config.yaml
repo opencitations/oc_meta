@@ -30,5 +30,4 @@ supplier_prefix: '060'
 triplestore_url: http://127.0.0.1:8805/sparql
 use_doi_api_service: false
 virtuoso_full_text_search: true
-workers_number: 2
 zip_output_rdf: false
