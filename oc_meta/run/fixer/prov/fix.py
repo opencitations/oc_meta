@@ -350,8 +350,7 @@ class ProvenanceProcessor:
 
                 if modified:
                     with zipfile.ZipFile(prov_file_path, 'w', zipfile.ZIP_DEFLATED, allowZip64=True) as zip_out:
-                        jsonld_data = g.serialize(format='json-ld', encoding='utf-8', 
-                                               ensure_ascii=False, indent=None)
+                        jsonld_data = g.serialize(format='json-ld', ensure_ascii=False, indent=None)
                         zip_out.writestr('se.json', jsonld_data)
                     
                     return True

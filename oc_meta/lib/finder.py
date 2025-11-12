@@ -166,7 +166,7 @@ class ResourceFinder:
         metaval = None
         with open(prov_config, 'r', encoding='utf8') as f:
             prov_config_dict = yaml.safe_load(f)
-        agnostic_meta = AgnosticEntity(res=metaid_uri, config=prov_config_dict, related_entities_history=False)
+        agnostic_meta = AgnosticEntity(res=metaid_uri, config=prov_config_dict, include_related_objects=False, include_merged_entities=False, include_reverse_relations=False)
         agnostic_meta_history = agnostic_meta.get_history(include_prov_metadata=True)
         meta_history_data = agnostic_meta_history[0][metaid_uri]
         if meta_history_data:

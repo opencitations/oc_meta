@@ -55,7 +55,7 @@ def process_zip_file(zip_path):
                         g.add((se_uri, PROV.generatedAtTime, Literal(datetime.utcnow(), datatype=XSD.dateTime), graph_uri))
                         g.add((se_uri, PROV.specializationOf, entity_id, graph_uri))
                         g.add((se_uri, PROV.wasAttributedTo, RESP_AGENT, graph_uri))
-    graph_jsonld = g.serialize(format='json-ld', ensure_ascii=False, indent=None, encoding='utf8')
+    graph_jsonld = g.serialize(format='json-ld', ensure_ascii=False, indent=None)
     
     # Create the directory if it doesn't exist
     if not os.path.exists(output_dir):

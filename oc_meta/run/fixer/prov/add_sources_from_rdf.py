@@ -60,7 +60,7 @@ def extract_and_process_json(zip_path, source_folder):
                                     else:
                                         print(o)
     if changes_made:
-        updated_json = graph.serialize(format='json-ld', indent=None, encoding='utf-8', ensure_ascii=False)
+        updated_json = graph.serialize(format='json-ld', indent=None, ensure_ascii=False)
         with zipfile.ZipFile(zip_path, 'w', compression=zipfile.ZIP_DEFLATED, allowZip64=True) as z:
             z.writestr('se.json', updated_json)
 

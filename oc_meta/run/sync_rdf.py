@@ -33,6 +33,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     walk_directory(args.directory)
-    
-    # Qui puoi fare operazioni con il grafo, come stamparlo o salvarlo
-    print(graph.serialize(format='turtle').decode("utf-8"))

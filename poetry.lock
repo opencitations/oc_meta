@@ -702,25 +702,15 @@ files = [
 ]
 
 [[package]]
-name = "html5lib"
-version = "1.1"
+name = "html5rdf"
+version = "1.2.1"
 description = "HTML parser based on the WHATWG HTML specification"
 optional = false
-python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
+python-versions = ">=3.8"
 files = [
-    {file = "html5lib-1.1-py2.py3-none-any.whl", hash = "sha256:0d78f8fde1c230e99fe37986a60526d7049ed4bf8a9fadbad5f00e22e58e041d"},
-    {file = "html5lib-1.1.tar.gz", hash = "sha256:b2e5b40261e20f354d198eae92afc10d750afb487ed5e50f9c4eaf07c184146f"},
+    {file = "html5rdf-1.2.1-py2.py3-none-any.whl", hash = "sha256:1f519121bc366af3e485310dc8041d2e86e5173c1a320fac3dc9d2604069b83e"},
+    {file = "html5rdf-1.2.1.tar.gz", hash = "sha256:ace9b420ce52995bb4f05e7425eedf19e433c981dfe7a831ab391e2fa2e1a195"},
 ]
-
-[package.dependencies]
-six = ">=1.9"
-webencodings = "*"
-
-[package.extras]
-all = ["chardet (>=2.2)", "genshi", "lxml"]
-chardet = ["chardet (>=2.2)"]
-genshi = ["genshi"]
-lxml = ["lxml"]
 
 [[package]]
 name = "idna"
@@ -891,17 +881,14 @@ types = ["tqdm-stubs (>=0.2.0)", "types-colorama", "types-jsonpatch (>=0.1.0a0)"
 
 [[package]]
 name = "isodate"
-version = "0.6.1"
+version = "0.7.2"
 description = "An ISO 8601 date/time/duration parser and formatter"
 optional = false
-python-versions = "*"
+python-versions = ">=3.7"
 files = [
-    {file = "isodate-0.6.1-py2.py3-none-any.whl", hash = "sha256:0751eece944162659049d35f4f549ed815792b38793f07cf73381c1c87cbed96"},
-    {file = "isodate-0.6.1.tar.gz", hash = "sha256:48c5881de7e8b0a0d648cb024c8062dc84e7b840ed81e864c7614fd3c127bde9"},
+    {file = "isodate-0.7.2-py3-none-any.whl", hash = "sha256:28009937d8031054830160fce6d409ed342816b543597cece116d966c6d99e15"},
+    {file = "isodate-0.7.2.tar.gz", hash = "sha256:4cd1aa0f43ca76f4a6c6c0292a85f40b35ec2e43e315b59f06e6d32171a953e6"},
 ]
-
-[package.dependencies]
-six = "*"
 
 [[package]]
 name = "isort"
@@ -1350,23 +1337,22 @@ zstandard = ">=0.21.0,<0.22.0"
 
 [[package]]
 name = "oc-ocdm"
-version = "9.2.1"
+version = "9.2.4"
 description = "Object mapping library for manipulating RDF graphs that are compliant with the OpenCitations datamodel."
 optional = false
-python-versions = "<3.14,>=3.8"
+python-versions = "<3.14,>=3.9"
 files = [
-    {file = "oc_ocdm-9.2.1-py3-none-any.whl", hash = "sha256:19f2cf6b5f5d0ebfac83daff84cd494fb1289f836a7b6cb1540cc1d10e8970ba"},
-    {file = "oc_ocdm-9.2.1.tar.gz", hash = "sha256:3ccdd171c3d8cfe97f95d64807229388208b47463aed9659d33ba1fbb3755ca5"},
+    {file = "oc_ocdm-9.2.4-py3-none-any.whl", hash = "sha256:668ce8419e034e12d7818703a286ec3da44b8e0f7d86ff69186d2c23d7a7c555"},
+    {file = "oc_ocdm-9.2.4.tar.gz", hash = "sha256:5fcbbf7df35479884fcdaf4e26269d82e99bf009245a1f3d6b2de2b5820895a4"},
 ]
 
 [package.dependencies]
 filelock = ">=3.6.0,<4.0.0"
-pyshacl = "0.23.0"
-rdflib = ">=6.0.0,<7.0.0"
-redis = ">=4.5.5,<5.0.0"
-setuptools = ">=68.2.2,<69.0.0"
+pyshacl = ">=0.30.1,<0.31.0"
+rdflib = ">=7.4.0,<8.0.0"
+redis = ">=4.5.5,<8.0.0"
 SPARQLWrapper = "2.0.0"
-tqdm = ">=4.66.5,<5.0.0"
+tqdm = ">=4.67.1,<5.0.0"
 
 [[package]]
 name = "orjson"
@@ -1462,17 +1448,17 @@ files = [
 
 [[package]]
 name = "owlrl"
-version = "6.0.2"
-description = "OWL-RL and RDFS based RDF Closure inferencing for Python"
+version = "7.1.4"
+description = "A simple implementation of the OWL2 RL Profile, as well as a basic RDFS inference, on top of RDFLib. Based mechanical forward chaining."
 optional = false
-python-versions = "*"
+python-versions = "<4.0,>=3.9"
 files = [
-    {file = "owlrl-6.0.2-py3-none-any.whl", hash = "sha256:57eca06b221edbbc682376c8d42e2ddffc99f61e82c0da02e26735592f08bacc"},
-    {file = "owlrl-6.0.2.tar.gz", hash = "sha256:904e3310ff4df15101475776693d2427d1f8244ee9a6a9f9e13c3c57fae90b74"},
+    {file = "owlrl-7.1.4-py3-none-any.whl", hash = "sha256:e78b46020169783345636da93a467d318f18700c483184dd15e885850cf64775"},
+    {file = "owlrl-7.1.4.tar.gz", hash = "sha256:60bd4067e346b9111f0a2924565afe97ac6595b98b2bbe953928b5113971daf7"},
 ]
 
 [package.dependencies]
-rdflib = ">=6.0.2"
+rdflib = ">=7.1.4"
 
 [[package]]
 name = "packaging"
@@ -1690,20 +1676,20 @@ poetry-core = ">=1.7.0,<3.0.0"
 
 [[package]]
 name = "prettytable"
-version = "2.5.0"
+version = "3.16.0"
 description = "A simple Python library for easily displaying tabular data in a visually appealing ASCII table format"
 optional = false
-python-versions = ">=3.6"
+python-versions = ">=3.9"
 files = [
-    {file = "prettytable-2.5.0-py3-none-any.whl", hash = "sha256:1411c65d21dca9eaa505ba1d041bed75a6d629ae22f5109a923f4e719cfecba4"},
-    {file = "prettytable-2.5.0.tar.gz", hash = "sha256:f7da57ba63d55116d65e5acb147bfdfa60dceccabf0d607d6817ee2888a05f2c"},
+    {file = "prettytable-3.16.0-py3-none-any.whl", hash = "sha256:b5eccfabb82222f5aa46b798ff02a8452cf530a352c31bddfa29be41242863aa"},
+    {file = "prettytable-3.16.0.tar.gz", hash = "sha256:3c64b31719d961bf69c9a7e03d0c1e477320906a98da63952bc6698d6164ff57"},
 ]
 
 [package.dependencies]
 wcwidth = "*"
 
 [package.extras]
-tests = ["pytest", "pytest-cov", "pytest-lazy-fixture"]
+tests = ["pytest", "pytest-cov", "pytest-lazy-fixtures"]
 
 [[package]]
 name = "psutil"
@@ -1801,28 +1787,31 @@ files = [
 
 [[package]]
 name = "pyshacl"
-version = "0.23.0"
+version = "0.30.1"
 description = "Python SHACL Validator"
 optional = false
-python-versions = ">=3.7.0,<4.0.0"
+python-versions = "<4,>=3.9"
 files = [
-    {file = "pyshacl-0.23.0-py3-none-any.whl", hash = "sha256:5d77ab194d4333d6c2a3c409d096ac31e68f1ae0e22c3668b2a081e32256c738"},
-    {file = "pyshacl-0.23.0.tar.gz", hash = "sha256:43a80bbf403176f8f37a22fbbe8d95ba5395cf755e378af1db3126e709819d2c"},
+    {file = "pyshacl-0.30.1-py3-none-any.whl", hash = "sha256:d7e0c21b25e948bb643dbc5db6258da64a90a8ac89055c1fe562b469031072aa"},
+    {file = "pyshacl-0.30.1.tar.gz", hash = "sha256:df712ac961b1ee7bcf0b27fa71ecab7785a135b2af69783ce30cb05fe41bcaf5"},
 ]
 
 [package.dependencies]
-html5lib = ">=1.1,<2"
-owlrl = ">=6.0.2,<7"
+importlib-metadata = {version = ">6", markers = "python_version < \"3.12\""}
+owlrl = ">=7.1.2,<8"
 packaging = ">=21.3"
-prettytable = ">=2.2.1,<3.0.0"
-rdflib = ">=6.3.2,<7"
+prettytable = [
+    {version = ">=3.5.0", markers = "python_version < \"3.12\""},
+    {version = ">=3.7.0", markers = "python_version >= \"3.12\""},
+]
+rdflib = {version = ">=7.1.1,<7.1.2 || >7.1.2,<8.0", extras = ["html"]}
 
 [package.extras]
-dev-coverage = ["coverage (>6.1,!=6.1.1,<7)", "platformdirs", "pytest-cov (>=2.8.1,<3.0.0)"]
-dev-lint = ["black (==23.3.0)", "platformdirs", "ruff (>=0.0.267,<0.0.268)"]
-dev-type-checking = ["mypy (>=0.800,<0.900)", "mypy (>=0.900,<0.1000)", "platformdirs", "types-setuptools"]
+dev-coverage = ["coverage (>6.1,!=6.1.1,<7)", "platformdirs", "pytest-cov (>=2.8.1,<3)"]
+dev-lint = ["platformdirs", "ruff (>=0.9.3,<0.10)"]
+dev-type-checking = ["mypy (>=1.13.0)", "platformdirs", "types-setuptools"]
 http = ["sanic (>=22.12,<23)", "sanic-cors (==2.2.0)", "sanic-ext (>=23.3,<23.6)"]
-js = ["pyduktape2 (>=0.4.3,<0.5.0)"]
+js = ["pyduktape2 (>=0.4.6,<1)"]
 
 [[package]]
 name = "python-dateutil"
@@ -2028,39 +2017,41 @@ all = ["numpy"]
 
 [[package]]
 name = "rdflib"
-version = "6.3.2"
+version = "7.4.0"
 description = "RDFLib is a Python library for working with RDF, a simple yet powerful language for representing information."
 optional = false
-python-versions = ">=3.7,<4.0"
+python-versions = ">=3.8.1"
 files = [
-    {file = "rdflib-6.3.2-py3-none-any.whl", hash = "sha256:36b4e74a32aa1e4fa7b8719876fb192f19ecd45ff932ea5ebbd2e417a0247e63"},
-    {file = "rdflib-6.3.2.tar.gz", hash = "sha256:72af591ff704f4caacea7ecc0c5a9056b8553e0489dd4f35a9bc52dbd41522e0"},
+    {file = "rdflib-7.4.0-py3-none-any.whl", hash = "sha256:0af003470404ff21bc0eb04077cc97ee96da581f2429bf42a8e163fc1c2797bc"},
+    {file = "rdflib-7.4.0.tar.gz", hash = "sha256:c8ee16c31848c19c174aed96185327ea139ca3d392fac7fa882ddf5687f8f533"},
 ]
 
 [package.dependencies]
-isodate = ">=0.6.0,<0.7.0"
+html5rdf = {version = ">=1.2,<2", optional = true, markers = "extra == \"html\""}
+isodate = {version = ">=0.7.2,<1.0.0", markers = "python_version < \"3.11\""}
 pyparsing = ">=2.1.0,<4"
 
 [package.extras]
 berkeleydb = ["berkeleydb (>=18.1.0,<19.0.0)"]
-html = ["html5lib (>=1.0,<2.0)"]
-lxml = ["lxml (>=4.3.0,<5.0.0)"]
-networkx = ["networkx (>=2.0.0,<3.0.0)"]
+html = ["html5rdf (>=1.2,<2)"]
+lxml = ["lxml (>=4.3,<6.0)"]
+networkx = ["networkx (>=2,<4)"]
+orjson = ["orjson (>=3.9.14,<4)"]
 
 [[package]]
 name = "rdflib-ocdm"
-version = "1.0.3"
+version = "1.0.7"
 description = ""
 optional = false
 python-versions = "<3.14,>=3.9"
 files = [
-    {file = "rdflib_ocdm-1.0.3-py3-none-any.whl", hash = "sha256:cd6e6ccf800d599fae7ffb6aa7454fc852822389c242b9f52033b9e5031a639d"},
-    {file = "rdflib_ocdm-1.0.3.tar.gz", hash = "sha256:2de2c9701f2b9d85235f227c2413c6aedd208b22db790c279c62429e04e8b252"},
+    {file = "rdflib_ocdm-1.0.7-py3-none-any.whl", hash = "sha256:083f5c3c207fe13d06f8b77cf2eef0174ad9fc4b07f26b805010f79d80d8fc62"},
+    {file = "rdflib_ocdm-1.0.7.tar.gz", hash = "sha256:25597b27adb690b2e64a37bd6cc6bcc93155cc5858cf381136df6060a98221f9"},
 ]
 
 [package.dependencies]
-oc-ocdm = ">=9.1.1,<10.0.0"
-rdflib = ">=6.2.0,<7.0.0"
+oc-ocdm = ">=9.2.2,<10.0.0"
+rdflib = ">=7.1.4,<8.0.0"
 redis = ">=4.5.5,<5.0.0"
 sparqlwrapper = ">=2.0.0,<3.0.0"
 
@@ -2279,18 +2270,18 @@ files = [
 
 [[package]]
 name = "time-agnostic-library"
-version = "4.7.1"
+version = "5.0.7"
 description = "time-agnostic-library is a Python ≥3.7 library that allows performing time-travel queries on RDF datasets compliant with the OCDM v2.0.1 provenance specification."
 optional = false
 python-versions = "<3.14,>=3.9"
 files = [
-    {file = "time_agnostic_library-4.7.1-py3-none-any.whl", hash = "sha256:21655f5b0636b6648f43d9bfa8ee68097b754da57127dfb03d29c16d0505f16c"},
-    {file = "time_agnostic_library-4.7.1.tar.gz", hash = "sha256:dced106f88a01cc62e846c9adecdcd4c190caa8883e3e727d0f5c482c9f1b148"},
+    {file = "time_agnostic_library-5.0.7-py3-none-any.whl", hash = "sha256:09c7826c648e79aa5e68f8b3b381327f0133bedf598f72e95fc6f914f88b1d5f"},
+    {file = "time_agnostic_library-5.0.7.tar.gz", hash = "sha256:f5f15a138aa52232ba8bb29c319797a9ea1d758d18c579646929151b1685b525"},
 ]
 
 [package.dependencies]
 python_dateutil = ">=2.8.2,<3.0.0"
-rdflib = "6.3.2"
+rdflib = ">=7.1.4,<8.0.0"
 SPARQLWrapper = "2.0.0"
 tqdm = ">=4.62.3,<5.0.0"
 
@@ -2525,17 +2516,6 @@ files = [
 ]
 
 [[package]]
-name = "webencodings"
-version = "0.5.1"
-description = "Character encoding aliases for legacy web content"
-optional = false
-python-versions = "*"
-files = [
-    {file = "webencodings-0.5.1-py2.py3-none-any.whl", hash = "sha256:a0af1213f3c2226497a97e2b3aa01a7e4bee4f403f95be16fc9acd2947514a78"},
-    {file = "webencodings-0.5.1.tar.gz", hash = "sha256:b36a1c245f2d304965eb4e0a82848379241dc04b865afcc4aab16748587e1923"},
-]
-
-[[package]]
 name = "wget"
 version = "3.2"
 description = "pure python download utility"
@@ -2739,4 +2719,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<3.14"
-content-hash = "556422ab2f6b77fb48c27ce04bd3061e5067f372817e4d8dc363bab8eaa3f6a6"
+content-hash = "eaa12b726cd85bb9a5fdb22ae684a3bcc1a199ca630927ffd0e83e07946872f1"
