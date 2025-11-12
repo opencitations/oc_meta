@@ -1,0 +1,77 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+# Copyright 2016 Silvio Peroni <essepuntato@gmail.com>
+# Copyright 2020 Fabio Mariani <fabio.mariani555@gmail.com>
+# Copyright 2022 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# Permission to use, copy, modify, and/or distribute this software for any purpose
+# with or without fee is hereby granted, provided that the above copyright notice
+# and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED 'AS IS' AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+# FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT,
+# OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
+# DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS
+# ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
+# SOFTWARE.
+
+# Benchmark Configuration for OpenCitations Meta
+# Uses test databases for isolated performance testing
+
+# Mandatory settings
+
+# Endpoint URL to load the output RDF
+triplestore_url: http://127.0.0.1:8805/sparql
+provenance_triplestore_url: http://127.0.0.1:8806/sparql
+# A list of triplestore URLs containing provenance metadata
+provenance_endpoints: [http://127.0.0.1:8806/sparql]
+# Directory where raw CSV files are stored
+input_csv_dir: test/benchmark/input
+# The path to the base directory to save all output files
+base_output_dir: &base_output_dir test/benchmark/output
+# A URI string representing the provenance agent which is considered responsible for the RDF graph manipulation
+resp_agent: https://github.com/opencitations/oc_meta/benchmark
+
+# Optional settings
+
+# Folder where RDF files are saved
+output_rdf_dir: *base_output_dir
+# If True, titles will be normalized (capitalized). If False, titles will be kept as-is
+normalize_titles: True
+# The base URI of entities on Meta
+base_iri: https://w3id.org/oc/meta/
+# URL where the namespaces and prefixes used in the OpenCitations Data Model are defined
+context_path: https://w3id.org/oc/corpus/context.json
+# Number of files per folder
+dir_split_number: 10000
+# Number of items per file
+items_per_file: 1000
+# Default directory prefix
+default_dir: _
+# A prefix for the sequential number in entities' URIs
+supplier_prefix: '060'
+# Save graphs in chunks
+rdf_output_in_chunks: False
+# Zip output RDF files
+zip_output_rdf: False
+# Data source URL
+source: https://api.crossref.org/
+# Use DOI API service for validation
+use_doi_api_service: False
+# Triplestore full-text search settings
+blazegraph_full_text_search: False
+fuseki_full_text_search: False
+virtuoso_full_text_search: True
+graphdb_connector_name: ''
+# Cache endpoint for faster provenance queries
+cache_endpoint: ''
+cache_update_endpoint: ''
+# Silencer list (empty for benchmark to test full updates)
+silencer: []
+
+# Redis settings (using test database)
+redis_host: localhost
+redis_port: 6381
+redis_db: 10
+cache_db: 11
