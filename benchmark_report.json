@@ -1,0 +1,57 @@
+{
+  "timestamp": "2025-11-12T15:47:56.841922",
+  "config_path": "test/benchmark/benchmark_config.yaml",
+  "metrics": {
+    "input_records": 1000,
+    "curated_records": 1000,
+    "entities_created": 11060,
+    "sparql_files_data": 1106,
+    "sparql_files_prov": 1106,
+    "throughput_records_per_sec": 6.31,
+    "total_duration_seconds": 158.394
+  },
+  "phases": [
+    {
+      "name": "csv_reading",
+      "duration_seconds": 0.006,
+      "start_memory_mb": 55.12,
+      "end_memory_mb": 55.63,
+      "peak_memory_mb": 55.63
+    },
+    {
+      "name": "curation",
+      "duration_seconds": 10.721,
+      "start_memory_mb": 55.63,
+      "end_memory_mb": 65.46,
+      "peak_memory_mb": 65.46
+    },
+    {
+      "name": "rdf_creation",
+      "duration_seconds": 23.18,
+      "start_memory_mb": 65.46,
+      "end_memory_mb": 696.1,
+      "peak_memory_mb": 696.1
+    },
+    {
+      "name": "sparql_generation",
+      "duration_seconds": 11.165,
+      "start_memory_mb": 696.1,
+      "end_memory_mb": 707.89,
+      "peak_memory_mb": 707.89
+    },
+    {
+      "name": "triplestore_upload",
+      "duration_seconds": 113.319,
+      "start_memory_mb": 707.89,
+      "end_memory_mb": 842.42,
+      "peak_memory_mb": 842.42
+    },
+    {
+      "name": "total_processing",
+      "duration_seconds": 158.394,
+      "start_memory_mb": 55.12,
+      "end_memory_mb": 842.42,
+      "peak_memory_mb": 842.42
+    }
+  ]
+}

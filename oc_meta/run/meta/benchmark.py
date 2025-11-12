@@ -108,7 +108,7 @@ class MetaBenchmark:
             return yaml.safe_load(f)
 
     def cleanup_databases(self):
-        """Clean up test databases after benchmark execution."""
+        """Clean up test databases and generated files after benchmark execution."""
         print("\n[Cleanup] Resetting test databases...")
 
         with BenchmarkTimer("cleanup") as timer:
@@ -116,6 +116,7 @@ class MetaBenchmark:
             self._reset_virtuoso(self.ts_prov)
             self._flush_redis()
             self._delete_output_files()
+            self._delete_input_file(self._generated_csv)
 
         self.timers.append(timer)
         print(f"[Cleanup] Completed in {timer.duration:.2f}s")
@@ -183,6 +184,11 @@ class MetaBenchmark:
             except Exception as e:
                 print(f"  - Warning: Failed to delete output files: {e}")
 
+    def _delete_input_file(self, csv_path: str):
+        """Delete generated input CSV file."""
+        os.remove(csv_path)
+        print(f"  - Deleted generated input file: {os.path.basename(csv_path)}")
+
     def run_benchmark(self, size: Optional[int] = None) -> Dict[str, Any]:
         """
         Run complete benchmark on all CSV files in input directory.
@@ -201,6 +207,7 @@ class MetaBenchmark:
         print(f"Timestamp: {datetime.now().isoformat()}")
         print(f"{'='*60}\n")
 
+        self._generated_csv = None
         if size:
             csv_filename = f"benchmark_{size}.csv"
             csv_path = os.path.join(self.input_dir, csv_filename)
@@ -212,6 +219,7 @@ class MetaBenchmark:
             print()
 
             input_csv = csv_path
+            self._generated_csv = csv_path
             print(f"Processing generated file: {csv_filename}\n")
         else:
             csv_files = [f for f in os.listdir(self.input_dir) if f.endswith('.csv')]
@@ -355,8 +363,18 @@ class MetaBenchmark:
             cache_file_data = os.path.join(self.output_dir, "ts_data_cache.json")
             cache_file_prov = os.path.join(self.output_dir, "ts_prov_cache.json")
 
-            cache_manager_data = CacheManager(cache_file_data)
-            cache_manager_prov = CacheManager(cache_file_prov)
+            cache_manager_data = CacheManager(
+                cache_file_data,
+                redis_host=self.redis_host,
+                redis_port=self.redis_port,
+                redis_db=self.cache_db
+            )
+            cache_manager_prov = CacheManager(
+                cache_file_prov,
+                redis_host=self.redis_host,
+                redis_port=self.redis_port,
+                redis_db=self.cache_db
+            )
 
             upload_sparql_updates(
                 endpoint=self.ts_data,
