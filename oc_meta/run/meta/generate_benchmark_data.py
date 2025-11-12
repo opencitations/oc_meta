@@ -72,9 +72,10 @@ class BenchmarkDataGenerator:
         "book chapter",
     ]
 
-    def __init__(self, size: int, output_path: str):
+    def __init__(self, size: int, output_path: str, seed: int = 42):
         self.size = size
         self.output_path = output_path
+        random.seed(seed)
 
     def _generate_doi(self, index: int) -> str:
         """Generate a synthetic DOI."""
@@ -161,12 +162,19 @@ def main():
         required=True,
         help="Output CSV file path"
     )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed for reproducible data generation (default: 42)"
+    )
 
     args = parser.parse_args()
 
     generator = BenchmarkDataGenerator(
         size=args.size,
-        output_path=args.output
+        output_path=args.output,
+        seed=args.seed
     )
     generator.generate()
 

@@ -202,12 +202,13 @@ class MetaBenchmark:
         os.remove(csv_path)
         print(f"  - Deleted generated input file: {os.path.basename(csv_path)}")
 
-    def run_benchmark(self, size: Optional[int] = None) -> Dict[str, Any]:
+    def run_benchmark(self, size: Optional[int] = None, seed: int = 42) -> Dict[str, Any]:
         """
         Run complete benchmark on all CSV files in input directory.
 
         Args:
             size: If specified, generate test data with N records before running benchmark
+            seed: Random seed for reproducible data generation (default: 42)
 
         Returns:
             Dictionary with benchmark results and metrics
@@ -225,9 +226,9 @@ class MetaBenchmark:
             csv_filename = f"benchmark_{size}.csv"
             csv_path = os.path.join(self.input_dir, csv_filename)
 
-            print(f"Generating {size} test records...")
+            print(f"Generating {size} test records (seed={seed})...")
             os.makedirs(self.input_dir, exist_ok=True)
-            generator = BenchmarkDataGenerator(size=size, output_path=csv_path)
+            generator = BenchmarkDataGenerator(size=size, output_path=csv_path, seed=seed)
             generator.generate()
             print()
 
@@ -494,6 +495,12 @@ def main():
         help="Generate test data with N records. If not specified, use existing CSV files"
     )
     parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed for reproducible data generation (default: 42)"
+    )
+    parser.add_argument(
         "--no-cleanup",
         action="store_true",
         help="Skip automatic database cleanup after benchmark"
@@ -504,7 +511,7 @@ def main():
     benchmark = MetaBenchmark(args.config)
 
     try:
-        report = benchmark.run_benchmark(size=args.size)
+        report = benchmark.run_benchmark(size=args.size, seed=args.seed)
         benchmark.save_report(report, args.output)
     finally:
         if not args.no_cleanup:
