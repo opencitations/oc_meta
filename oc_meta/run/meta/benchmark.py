@@ -8,10 +8,13 @@ Meta processing workflow: CSV reading → curation → RDF creation → triplest
 """
 
 import argparse
+import glob
 import json
 import os
+import shutil
 import subprocess
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -173,16 +176,26 @@ class MetaBenchmark:
             print(f"  - Warning: Failed to flush Redis: {e}")
 
     def _delete_output_files(self):
-        """Delete generated output files."""
+        """Delete generated output files including RDF files."""
         output_path = Path(self.output_dir)
         if output_path.exists():
             try:
-                import shutil
                 shutil.rmtree(output_path)
                 output_path.mkdir(parents=True)
                 print(f"  - Deleted output files in {self.output_dir}")
             except Exception as e:
                 print(f"  - Warning: Failed to delete output files: {e}")
+
+        rdf_output_dir = self.config.get("output_rdf_dir")
+        if rdf_output_dir:
+            rdf_pattern = f"{rdf_output_dir}*"
+            for rdf_dir in glob.glob(rdf_pattern):
+                if os.path.isdir(rdf_dir) and rdf_dir != self.output_dir:
+                    try:
+                        shutil.rmtree(rdf_dir)
+                        print(f"  - Deleted RDF directory: {rdf_dir}")
+                    except Exception as e:
+                        print(f"  - Warning: Failed to delete {rdf_dir}: {e}")
 
     def _delete_input_file(self, csv_path: str):
         """Delete generated input CSV file."""
@@ -254,7 +267,7 @@ class MetaBenchmark:
 
     def _read_csv(self, csv_path: str) -> List[Dict[str, str]]:
         """Read CSV file and return data."""
-        print("[Phase 1/5] Reading CSV...")
+        print("[Phase 1/4] Reading CSV...")
         with BenchmarkTimer("csv_reading") as timer:
             data = file_manager.get_csv_data(csv_path)
 
@@ -265,7 +278,7 @@ class MetaBenchmark:
 
     def _run_curation(self, data: List[Dict[str, str]]) -> Curator:
         """Run curation phase."""
-        print("[Phase 2/5] Running curation (validation, disambiguation)...")
+        print("[Phase 2/4] Running curation (validation, disambiguation)...")
         with BenchmarkTimer("curation") as timer:
             curator = Curator(
                 data=data,
@@ -286,7 +299,7 @@ class MetaBenchmark:
 
     def _run_creation(self, curator: Curator):
         """Run RDF creation phase."""
-        print("[Phase 3/5] Creating RDF entities...")
+        print("[Phase 3/4] Creating RDF entities...")
         with BenchmarkTimer("rdf_creation") as timer:
             creator = Creator(
                 data=curator.data,
@@ -322,44 +335,20 @@ class MetaBenchmark:
         return creator.setgraph, prov
 
     def _run_storage_and_upload(self, graphset, prov):
-        """Run storage and triplestore upload phase."""
+        """Run parallel storage and triplestore upload phase."""
         data_update_dir = os.path.join(self.output_dir, "data_updates")
         prov_update_dir = os.path.join(self.output_dir, "prov_updates")
         os.makedirs(data_update_dir, exist_ok=True)
         os.makedirs(prov_update_dir, exist_ok=True)
 
-        print("[Phase 4/5] Generating SPARQL queries...")
-        with BenchmarkTimer("sparql_generation") as timer:
-            storer_data = Storer(graphset)
-            storer_prov = Storer(prov)
-
-            storer_data.upload_all(
-                triplestore_url=self.ts_data,
-                base_dir=data_update_dir,
-                batch_size=10,
-                save_queries=True
-            )
-            storer_prov.upload_all(
-                triplestore_url=self.ts_prov,
-                base_dir=prov_update_dir,
-                batch_size=10,
-                save_queries=True
-            )
-
-        self.timers.append(timer)
-
         data_upload_folder = os.path.join(data_update_dir, "to_be_uploaded")
         prov_upload_folder = os.path.join(prov_update_dir, "to_be_uploaded")
 
-        num_data_files = len([f for f in os.listdir(data_upload_folder) if f.endswith('.sparql')]) if os.path.exists(data_upload_folder) else 0
-        num_prov_files = len([f for f in os.listdir(prov_upload_folder) if f.endswith('.sparql')]) if os.path.exists(prov_upload_folder) else 0
+        print("[Phase 4/4] Running parallel SPARQL generation + upload...")
+        with BenchmarkTimer("storage_and_upload") as timer:
+            storer_data = Storer(graphset)
+            storer_prov = Storer(prov)
 
-        self.metrics["sparql_files_data"] = num_data_files
-        self.metrics["sparql_files_prov"] = num_prov_files
-        print(f"  - Generated {num_data_files} data files + {num_prov_files} prov files in {timer.duration:.2f}s")
-
-        print("[Phase 5/5] Uploading to triplestores...")
-        with BenchmarkTimer("triplestore_upload") as timer:
             cache_file_data = os.path.join(self.output_dir, "ts_data_cache.json")
             cache_file_prov = os.path.join(self.output_dir, "ts_prov_cache.json")
 
@@ -376,18 +365,63 @@ class MetaBenchmark:
                 redis_db=self.cache_db
             )
 
-            upload_sparql_updates(
-                endpoint=self.ts_data,
-                folder=data_upload_folder,
-                batch_size=10,
-                cache_manager=cache_manager_data
-            )
-            upload_sparql_updates(
-                endpoint=self.ts_prov,
-                folder=prov_upload_folder,
-                batch_size=10,
-                cache_manager=cache_manager_prov
-            )
+            with ThreadPoolExecutor(max_workers=4) as executor:
+                rdf_futures = []
+
+                if self.config.get("generate_rdf_files", True):
+                    rdf_futures.append(executor.submit(
+                        storer_data.store_all,
+                        base_dir=self.output_dir,
+                        base_iri=self.base_iri,
+                        context_path=self.config.get("context_path", "https://w3id.org/oc/corpus/context.json"),
+                        process_id=None
+                    ))
+                    rdf_futures.append(executor.submit(
+                        storer_prov.store_all,
+                        base_dir=self.output_dir,
+                        base_iri=self.base_iri,
+                        context_path=self.config.get("context_path", "https://w3id.org/oc/corpus/context.json"),
+                        process_id=None
+                    ))
+
+                sparql_data_future = executor.submit(
+                    storer_data.upload_all,
+                    triplestore_url=self.ts_data,
+                    base_dir=data_update_dir,
+                    batch_size=10,
+                    save_queries=True
+                )
+                sparql_prov_future = executor.submit(
+                    storer_prov.upload_all,
+                    triplestore_url=self.ts_prov,
+                    base_dir=prov_update_dir,
+                    batch_size=10,
+                    save_queries=True
+                )
+
+                sparql_data_future.result()
+                sparql_prov_future.result()
+
+                upload_data_future = executor.submit(
+                    upload_sparql_updates,
+                    endpoint=self.ts_data,
+                    folder=data_upload_folder,
+                    batch_size=10,
+                    cache_manager=cache_manager_data
+                )
+                upload_prov_future = executor.submit(
+                    upload_sparql_updates,
+                    endpoint=self.ts_prov,
+                    folder=prov_upload_folder,
+                    batch_size=10,
+                    cache_manager=cache_manager_prov
+                )
+
+                upload_data_future.result()
+                upload_prov_future.result()
+
+                for future in rdf_futures:
+                    future.result()
 
             cache_manager_data._save_to_json()
             cache_manager_prov._save_to_json()
@@ -397,7 +431,13 @@ class MetaBenchmark:
             atexit.unregister(cache_manager_prov._cleanup)
 
         self.timers.append(timer)
-        print(f"  - Uploaded to triplestores in {timer.duration:.2f}s")
+
+        num_data_files = len([f for f in os.listdir(data_upload_folder) if f.endswith('.sparql')])
+        num_prov_files = len([f for f in os.listdir(prov_upload_folder) if f.endswith('.sparql')])
+
+        self.metrics["sparql_files_data"] = num_data_files
+        self.metrics["sparql_files_prov"] = num_prov_files
+        print(f"  - Generated and uploaded {num_data_files} data + {num_prov_files} prov queries in {timer.duration:.2f}s")
 
     def _calculate_metrics(self, total_records: int):
         """Calculate summary metrics."""

@@ -35,8 +35,10 @@ resp_agent: https://github.com/opencitations/oc_meta/benchmark
 
 # Optional settings
 
-# Folder where RDF files are saved
-output_rdf_dir: *base_output_dir
+# Folder where RDF files are saved (trailing slash important for Storer)
+output_rdf_dir: test/benchmark/output/
+# Generate RDF files (JSON-LD) in addition to SPARQL queries
+generate_rdf_files: True
 # If True, titles will be normalized (capitalized). If False, titles will be kept as-is
 normalize_titles: True
 # The base URI of entities on Meta
@@ -54,7 +56,7 @@ supplier_prefix: '060'
 # Save graphs in chunks
 rdf_output_in_chunks: False
 # Zip output RDF files
-zip_output_rdf: False
+zip_output_rdf: True
 # Data source URL
 source: https://api.crossref.org/
 # Use DOI API service for validation

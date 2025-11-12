@@ -1,57 +1,50 @@
 {
-  "timestamp": "2025-11-12T15:47:56.841922",
+  "timestamp": "2025-11-12T16:17:16.381039",
   "config_path": "test/benchmark/benchmark_config.yaml",
   "metrics": {
     "input_records": 1000,
     "curated_records": 1000,
-    "entities_created": 11060,
-    "sparql_files_data": 1106,
-    "sparql_files_prov": 1106,
-    "throughput_records_per_sec": 6.31,
-    "total_duration_seconds": 158.394
+    "entities_created": 11160,
+    "sparql_files_data": 1116,
+    "sparql_files_prov": 1116,
+    "throughput_records_per_sec": 5.43,
+    "total_duration_seconds": 184.082
   },
   "phases": [
     {
       "name": "csv_reading",
       "duration_seconds": 0.006,
-      "start_memory_mb": 55.12,
-      "end_memory_mb": 55.63,
-      "peak_memory_mb": 55.63
+      "start_memory_mb": 54.24,
+      "end_memory_mb": 54.75,
+      "peak_memory_mb": 54.75
     },
     {
       "name": "curation",
-      "duration_seconds": 10.721,
-      "start_memory_mb": 55.63,
-      "end_memory_mb": 65.46,
-      "peak_memory_mb": 65.46
+      "duration_seconds": 10.77,
+      "start_memory_mb": 54.75,
+      "end_memory_mb": 64.64,
+      "peak_memory_mb": 64.64
     },
     {
       "name": "rdf_creation",
-      "duration_seconds": 23.18,
-      "start_memory_mb": 65.46,
-      "end_memory_mb": 696.1,
-      "peak_memory_mb": 696.1
+      "duration_seconds": 23.713,
+      "start_memory_mb": 64.64,
+      "end_memory_mb": 685.76,
+      "peak_memory_mb": 685.76
     },
     {
-      "name": "sparql_generation",
-      "duration_seconds": 11.165,
-      "start_memory_mb": 696.1,
-      "end_memory_mb": 707.89,
-      "peak_memory_mb": 707.89
-    },
-    {
-      "name": "triplestore_upload",
-      "duration_seconds": 113.319,
-      "start_memory_mb": 707.89,
-      "end_memory_mb": 842.42,
-      "peak_memory_mb": 842.42
+      "name": "storage_and_upload",
+      "duration_seconds": 149.58,
+      "start_memory_mb": 685.76,
+      "end_memory_mb": 841.85,
+      "peak_memory_mb": 841.85
     },
     {
       "name": "total_processing",
-      "duration_seconds": 158.394,
-      "start_memory_mb": 55.12,
-      "end_memory_mb": 842.42,
-      "peak_memory_mb": 842.42
+      "duration_seconds": 184.082,
+      "start_memory_mb": 54.24,
+      "end_memory_mb": 838.03,
+      "peak_memory_mb": 838.03
     }
   ]
 }
