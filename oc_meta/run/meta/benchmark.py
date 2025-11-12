@@ -26,6 +26,7 @@ import yaml
 from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
 from oc_ocdm.prov.prov_set import ProvSet
 from oc_ocdm.storer import Storer
+from oc_ocdm.support.reporter import Reporter
 
 from oc_meta.core.creator import Creator
 from oc_meta.core.curator import Curator
@@ -347,8 +348,10 @@ class MetaBenchmark:
 
         print("[Phase 4/4] Running parallel SPARQL generation + upload...")
         with BenchmarkTimer("storage_and_upload") as timer:
-            storer_data = Storer(graphset)
-            storer_prov = Storer(prov)
+            repok = Reporter(print_sentences=False)
+            reperr = Reporter(print_sentences=True, prefix="[Storer: ERROR] ")
+            storer_data = Storer(graphset, repok=repok, reperr=reperr)
+            storer_prov = Storer(prov, repok=repok, reperr=reperr)
 
             cache_file_data = os.path.join(self.output_dir, "ts_data_cache.json")
             cache_file_prov = os.path.join(self.output_dir, "ts_prov_cache.json")
