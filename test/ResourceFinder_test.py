@@ -1,11 +1,10 @@
 import os
 import unittest
 
-from rdflib import Graph
-from SPARQLWrapper import POST, SPARQLWrapper
-
 from oc_meta.lib.finder import ResourceFinder
-from rdflib import URIRef, Dataset, Graph
+from oc_ocdm.graph import GraphEntity
+from rdflib import Dataset, Graph, Literal, URIRef
+from SPARQLWrapper import POST, SPARQLWrapper
 
 
 def get_path(path:str) -> str:
@@ -182,7 +181,323 @@ class TestResourceFinder(unittest.TestCase):
             'venue': 'Archives Of Internal Medicine [omid:br/4387 issn:0003-9926]'
         }
         self.assertEqual(output, expected_output)
-    
+
+    def test_retrieve_ra_sequence_with_loop(self):
+        """Test that retrieve_ra_sequence_from_br_meta handles circular references without infinite loops"""
+        base_iri = 'https://w3id.org/oc/meta'
+        br_uri = URIRef(f'{base_iri}/br/9999')
+        ar1_uri = URIRef(f'{base_iri}/ar/9991')
+        ar2_uri = URIRef(f'{base_iri}/ar/9992')
+        ra1_uri = URIRef(f'{base_iri}/ra/9981')
+        ra2_uri = URIRef(f'{base_iri}/ra/9982')
+
+        # Create a circular AR chain: AR1 -> AR2 -> AR1 (loop)
+        self.finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar1_uri))
+        self.finder.local_g.add((ar1_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
+        self.finder.local_g.add((ar1_uri, GraphEntity.iri_is_held_by, ra1_uri))
+        self.finder.local_g.add((ar1_uri, GraphEntity.iri_has_next, ar2_uri))
+        self.finder.local_g.add((ra1_uri, GraphEntity.iri_given_name, Literal('John')))
+        self.finder.local_g.add((ra1_uri, GraphEntity.iri_family_name, Literal('Doe')))
+
+        self.finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar2_uri))
+        self.finder.local_g.add((ar2_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
+        self.finder.local_g.add((ar2_uri, GraphEntity.iri_is_held_by, ra2_uri))
+        self.finder.local_g.add((ar2_uri, GraphEntity.iri_has_next, ar1_uri))
+        self.finder.local_g.add((ra2_uri, GraphEntity.iri_given_name, Literal('Jane')))
+        self.finder.local_g.add((ra2_uri, GraphEntity.iri_family_name, Literal('Smith')))
+
+        # This should return only 2 ARs (breaking the loop) without hanging
+        result = self.finder.retrieve_ra_sequence_from_br_meta('9999', 'author')
+
+        # Should return exactly 2 ARs (not infinite loop)
+        self.assertEqual(len(result), 2)
+        # Should contain both ARs
+        ar_ids = [list(item.keys())[0] for item in result]
+        self.assertIn('9991', ar_ids)
+        self.assertIn('9992', ar_ids)
+
+    def test_retrieve_ra_sequence_with_self_reference(self):
+        """Test that retrieve_ra_sequence_from_br_meta handles self-referencing AR"""
+        base_iri = 'https://w3id.org/oc/meta'
+        br_uri = URIRef(f'{base_iri}/br/9998')
+        ar1_uri = URIRef(f'{base_iri}/ar/9981')
+        ra1_uri = URIRef(f'{base_iri}/ra/9971')
+
+        # Create AR that points to itself
+        self.finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar1_uri))
+        self.finder.local_g.add((ar1_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
+        self.finder.local_g.add((ar1_uri, GraphEntity.iri_is_held_by, ra1_uri))
+        self.finder.local_g.add((ar1_uri, GraphEntity.iri_has_next, ar1_uri))
+        self.finder.local_g.add((ra1_uri, GraphEntity.iri_name, Literal('Test Publisher')))
+
+        # This should return only 1 AR (ignoring self-reference)
+        result = self.finder.retrieve_ra_sequence_from_br_meta('9998', 'author')
+
+        # Should return exactly 1 AR
+        self.assertEqual(len(result), 1)
+        self.assertEqual(list(result[0].keys())[0], '9981')
+
+    def test_retrieve_ra_sequence_with_invalid_next(self):
+        """Test that retrieve_ra_sequence_from_br_meta handles invalid 'next' references"""
+        base_iri = 'https://w3id.org/oc/meta'
+        br_uri = URIRef(f'{base_iri}/br/9997')
+        ar1_uri = URIRef(f'{base_iri}/ar/9971')
+        ar2_uri = URIRef(f'{base_iri}/ar/9972')
+        ar_invalid_uri = URIRef(f'{base_iri}/ar/9999')
+        ra1_uri = URIRef(f'{base_iri}/ra/9961')
+        ra2_uri = URIRef(f'{base_iri}/ra/9962')
+
+        # Create AR chain where AR1 -> AR_INVALID (doesn't exist) and AR2 is orphaned
+        self.finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar1_uri))
+        self.finder.local_g.add((ar1_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
+        self.finder.local_g.add((ar1_uri, GraphEntity.iri_is_held_by, ra1_uri))
+        self.finder.local_g.add((ar1_uri, GraphEntity.iri_has_next, ar_invalid_uri))
+        self.finder.local_g.add((ra1_uri, GraphEntity.iri_name, Literal('Author One')))
+
+        self.finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar2_uri))
+        self.finder.local_g.add((ar2_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
+        self.finder.local_g.add((ar2_uri, GraphEntity.iri_is_held_by, ra2_uri))
+        self.finder.local_g.add((ra2_uri, GraphEntity.iri_name, Literal('Author Two')))
+
+        # Should return chain stopping at invalid reference
+        result = self.finder.retrieve_ra_sequence_from_br_meta('9997', 'author')
+
+        # Should return at least AR1 (stops at invalid next)
+        # The method will find 2 start candidates and pick the longest chain
+        self.assertGreaterEqual(len(result), 1)
+        ar_ids = [list(item.keys())[0] for item in result]
+        self.assertIn('9971', ar_ids)
+
+    def test_retrieve_ra_sequence_with_missing_is_held_by(self):
+        """Test that retrieve_ra_sequence_from_br_meta handles AR without is_held_by gracefully"""
+        base_iri = 'https://w3id.org/oc/meta'
+        br_uri = URIRef(f'{base_iri}/br/9996')
+        ar1_uri = URIRef(f'{base_iri}/ar/9961')
+
+        # Create AR without is_held_by relationship (malformed data)
+        self.finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar1_uri))
+        self.finder.local_g.add((ar1_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
+        # Missing: ar1_uri iri_is_held_by ra_uri
+
+        # Should handle gracefully without crash
+        try:
+            result = self.finder.retrieve_ra_sequence_from_br_meta('9996', 'author')
+            # If it doesn't crash, check result is reasonable (either empty or handles error)
+            self.assertIsInstance(result, list)
+        except (KeyError, UnboundLocalError) as e:
+            self.fail(f"Method crashed with missing is_held_by: {e}")
+
+    def test_retrieve_ra_sequence_with_multiple_next_values(self):
+        """Test that retrieve_ra_sequence_from_br_meta handles AR with multiple 'next' relationships"""
+        base_iri = 'https://w3id.org/oc/meta'
+        br_uri = URIRef(f'{base_iri}/br/9995')
+        ar1_uri = URIRef(f'{base_iri}/ar/9951')
+        ar2_uri = URIRef(f'{base_iri}/ar/9952')
+        ar3_uri = URIRef(f'{base_iri}/ar/9953')
+        ra1_uri = URIRef(f'{base_iri}/ra/9941')
+        ra2_uri = URIRef(f'{base_iri}/ra/9942')
+        ra3_uri = URIRef(f'{base_iri}/ra/9943')
+
+        # Create AR1 with multiple 'next' relationships (data error)
+        self.finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar1_uri))
+        self.finder.local_g.add((ar1_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
+        self.finder.local_g.add((ar1_uri, GraphEntity.iri_is_held_by, ra1_uri))
+        self.finder.local_g.add((ar1_uri, GraphEntity.iri_has_next, ar2_uri))
+        self.finder.local_g.add((ar1_uri, GraphEntity.iri_has_next, ar3_uri))
+        self.finder.local_g.add((ra1_uri, GraphEntity.iri_name, Literal('Author One')))
+
+        self.finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar2_uri))
+        self.finder.local_g.add((ar2_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
+        self.finder.local_g.add((ar2_uri, GraphEntity.iri_is_held_by, ra2_uri))
+        self.finder.local_g.add((ra2_uri, GraphEntity.iri_name, Literal('Author Two')))
+
+        self.finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar3_uri))
+        self.finder.local_g.add((ar3_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
+        self.finder.local_g.add((ar3_uri, GraphEntity.iri_is_held_by, ra3_uri))
+        self.finder.local_g.add((ra3_uri, GraphEntity.iri_name, Literal('Author Three')))
+
+        # Should handle multiple next values consistently (last one wins in current implementation)
+        result = self.finder.retrieve_ra_sequence_from_br_meta('9995', 'author')
+
+        # Should return a valid result without crashing
+        self.assertIsInstance(result, list)
+        self.assertGreater(len(result), 0)
+
+    def test_retrieve_ra_sequence_no_ars_for_role(self):
+        """Test that retrieve_ra_sequence_from_br_meta returns empty list when no ARs exist for specified role"""
+        base_iri = 'https://w3id.org/oc/meta'
+        br_uri = URIRef(f'{base_iri}/br/9994')
+        ar1_uri = URIRef(f'{base_iri}/ar/9941')
+        ra1_uri = URIRef(f'{base_iri}/ra/9931')
+
+        # Create BR with editor, but request author
+        self.finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar1_uri))
+        self.finder.local_g.add((ar1_uri, GraphEntity.iri_with_role, GraphEntity.iri_editor))
+        self.finder.local_g.add((ar1_uri, GraphEntity.iri_is_held_by, ra1_uri))
+        self.finder.local_g.add((ra1_uri, GraphEntity.iri_name, Literal('Editor Name')))
+
+        # Request author (should be empty)
+        result = self.finder.retrieve_ra_sequence_from_br_meta('9994', 'author')
+
+        self.assertEqual(result, [])
+
+    def test_retrieve_ra_sequence_single_ar_no_chain(self):
+        """Test that retrieve_ra_sequence_from_br_meta handles single AR without 'next'"""
+        base_iri = 'https://w3id.org/oc/meta'
+        br_uri = URIRef(f'{base_iri}/br/9993')
+        ar1_uri = URIRef(f'{base_iri}/ar/9931')
+        ra1_uri = URIRef(f'{base_iri}/ra/9921')
+
+        # Create single AR without next
+        self.finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar1_uri))
+        self.finder.local_g.add((ar1_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
+        self.finder.local_g.add((ar1_uri, GraphEntity.iri_is_held_by, ra1_uri))
+        self.finder.local_g.add((ra1_uri, GraphEntity.iri_name, Literal('Single Author')))
+
+        result = self.finder.retrieve_ra_sequence_from_br_meta('9993', 'author')
+
+        self.assertEqual(len(result), 1)
+        self.assertEqual(list(result[0].keys())[0], '9931')
+
+    def test_retrieve_ra_sequence_two_independent_chains(self):
+        """Test that retrieve_ra_sequence_from_br_meta picks longest chain when multiple disconnected chains exist"""
+        base_iri = 'https://w3id.org/oc/meta'
+        br_uri = URIRef(f'{base_iri}/br/9992')
+
+        # Chain 1: AR1 -> AR2 (length 2)
+        ar1_uri = URIRef(f'{base_iri}/ar/9921')
+        ar2_uri = URIRef(f'{base_iri}/ar/9922')
+        ra1_uri = URIRef(f'{base_iri}/ra/9911')
+        ra2_uri = URIRef(f'{base_iri}/ra/9912')
+
+        self.finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar1_uri))
+        self.finder.local_g.add((ar1_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
+        self.finder.local_g.add((ar1_uri, GraphEntity.iri_is_held_by, ra1_uri))
+        self.finder.local_g.add((ar1_uri, GraphEntity.iri_has_next, ar2_uri))
+        self.finder.local_g.add((ra1_uri, GraphEntity.iri_name, Literal('Author One')))
+
+        self.finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar2_uri))
+        self.finder.local_g.add((ar2_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
+        self.finder.local_g.add((ar2_uri, GraphEntity.iri_is_held_by, ra2_uri))
+        self.finder.local_g.add((ra2_uri, GraphEntity.iri_name, Literal('Author Two')))
+
+        # Chain 2: AR3 (length 1, disconnected)
+        ar3_uri = URIRef(f'{base_iri}/ar/9923')
+        ra3_uri = URIRef(f'{base_iri}/ra/9913')
+
+        self.finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar3_uri))
+        self.finder.local_g.add((ar3_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
+        self.finder.local_g.add((ar3_uri, GraphEntity.iri_is_held_by, ra3_uri))
+        self.finder.local_g.add((ra3_uri, GraphEntity.iri_name, Literal('Author Three')))
+
+        result = self.finder.retrieve_ra_sequence_from_br_meta('9992', 'author')
+
+        # Should return the longer chain (chain 1 with 2 elements)
+        self.assertEqual(len(result), 2)
+        ar_ids = [list(item.keys())[0] for item in result]
+        self.assertIn('9921', ar_ids)
+        self.assertIn('9922', ar_ids)
+
+    def test_retrieve_ra_sequence_editor_role(self):
+        """Test that retrieve_ra_sequence_from_br_meta works with editor role"""
+        base_iri = 'https://w3id.org/oc/meta'
+        br_uri = URIRef(f'{base_iri}/br/9991')
+        ar1_uri = URIRef(f'{base_iri}/ar/9911')
+        ra1_uri = URIRef(f'{base_iri}/ra/9901')
+
+        self.finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar1_uri))
+        self.finder.local_g.add((ar1_uri, GraphEntity.iri_with_role, GraphEntity.iri_editor))
+        self.finder.local_g.add((ar1_uri, GraphEntity.iri_is_held_by, ra1_uri))
+        self.finder.local_g.add((ra1_uri, GraphEntity.iri_name, Literal('Editor Name')))
+
+        result = self.finder.retrieve_ra_sequence_from_br_meta('9991', 'editor')
+
+        self.assertEqual(len(result), 1)
+        self.assertEqual(list(result[0].keys())[0], '9911')
+
+    def test_retrieve_ra_sequence_publisher_role(self):
+        """Test that retrieve_ra_sequence_from_br_meta works with publisher role"""
+        base_iri = 'https://w3id.org/oc/meta'
+        br_uri = URIRef(f'{base_iri}/br/9990')
+        ar1_uri = URIRef(f'{base_iri}/ar/9901')
+        ra1_uri = URIRef(f'{base_iri}/ra/9891')
+
+        self.finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar1_uri))
+        self.finder.local_g.add((ar1_uri, GraphEntity.iri_with_role, GraphEntity.iri_publisher))
+        self.finder.local_g.add((ar1_uri, GraphEntity.iri_is_held_by, ra1_uri))
+        self.finder.local_g.add((ra1_uri, GraphEntity.iri_name, Literal('Publisher Name')))
+
+        result = self.finder.retrieve_ra_sequence_from_br_meta('9990', 'publisher')
+
+        self.assertEqual(len(result), 1)
+        self.assertEqual(list(result[0].keys())[0], '9901')
+
+    def test_retrieve_ra_sequence_three_node_loop(self):
+        """Test that retrieve_ra_sequence_from_br_meta handles three-node circular loop"""
+        base_iri = 'https://w3id.org/oc/meta'
+        br_uri = URIRef(f'{base_iri}/br/9989')
+        ar1_uri = URIRef(f'{base_iri}/ar/9891')
+        ar2_uri = URIRef(f'{base_iri}/ar/9892')
+        ar3_uri = URIRef(f'{base_iri}/ar/9893')
+        ra1_uri = URIRef(f'{base_iri}/ra/9881')
+        ra2_uri = URIRef(f'{base_iri}/ra/9882')
+        ra3_uri = URIRef(f'{base_iri}/ra/9883')
+
+        # Create circular loop: AR1 -> AR2 -> AR3 -> AR1
+        self.finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar1_uri))
+        self.finder.local_g.add((ar1_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
+        self.finder.local_g.add((ar1_uri, GraphEntity.iri_is_held_by, ra1_uri))
+        self.finder.local_g.add((ar1_uri, GraphEntity.iri_has_next, ar2_uri))
+        self.finder.local_g.add((ra1_uri, GraphEntity.iri_name, Literal('Author One')))
+
+        self.finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar2_uri))
+        self.finder.local_g.add((ar2_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
+        self.finder.local_g.add((ar2_uri, GraphEntity.iri_is_held_by, ra2_uri))
+        self.finder.local_g.add((ar2_uri, GraphEntity.iri_has_next, ar3_uri))
+        self.finder.local_g.add((ra2_uri, GraphEntity.iri_name, Literal('Author Two')))
+
+        self.finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar3_uri))
+        self.finder.local_g.add((ar3_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
+        self.finder.local_g.add((ar3_uri, GraphEntity.iri_is_held_by, ra3_uri))
+        self.finder.local_g.add((ar3_uri, GraphEntity.iri_has_next, ar1_uri))
+        self.finder.local_g.add((ra3_uri, GraphEntity.iri_name, Literal('Author Three')))
+
+        result = self.finder.retrieve_ra_sequence_from_br_meta('9989', 'author')
+
+        # Should return exactly 3 ARs (breaking loop)
+        self.assertEqual(len(result), 3)
+        ar_ids = [list(item.keys())[0] for item in result]
+        self.assertIn('9891', ar_ids)
+        self.assertIn('9892', ar_ids)
+        self.assertIn('9893', ar_ids)
+
+    def test_retrieve_ra_sequence_duplicate_ra(self):
+        """Test that retrieve_ra_sequence_from_br_meta returns both ARs when they point to same RA"""
+        base_iri = 'https://w3id.org/oc/meta'
+        br_uri = URIRef(f'{base_iri}/br/9988')
+        ar1_uri = URIRef(f'{base_iri}/ar/9881')
+        ar2_uri = URIRef(f'{base_iri}/ar/9882')
+        ra1_uri = URIRef(f'{base_iri}/ra/9871')
+
+        # Two ARs pointing to same RA (duplicate author)
+        self.finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar1_uri))
+        self.finder.local_g.add((ar1_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
+        self.finder.local_g.add((ar1_uri, GraphEntity.iri_is_held_by, ra1_uri))
+        self.finder.local_g.add((ar1_uri, GraphEntity.iri_has_next, ar2_uri))
+        self.finder.local_g.add((ra1_uri, GraphEntity.iri_name, Literal('Same Author')))
+
+        self.finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar2_uri))
+        self.finder.local_g.add((ar2_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
+        self.finder.local_g.add((ar2_uri, GraphEntity.iri_is_held_by, ra1_uri))
+
+        result = self.finder.retrieve_ra_sequence_from_br_meta('9988', 'author')
+
+        # Should return both ARs even though they reference same RA
+        self.assertEqual(len(result), 2)
+        # Both should reference RA 9871
+        self.assertEqual(result[0][list(result[0].keys())[0]][2], '9871')
+        self.assertEqual(result[1][list(result[1].keys())[0]][2], '9871')
+
 
 if __name__ == '__main__': # pragma: no cover
     unittest.main()
