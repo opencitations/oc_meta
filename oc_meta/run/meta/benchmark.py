@@ -36,6 +36,36 @@ from oc_meta.run.upload.cache_manager import CacheManager
 from oc_meta.run.upload.on_triplestore import upload_sparql_updates
 
 
+def _store_rdf(storer: Storer, output_rdf_dir: str, base_iri: str, context_path: str) -> None:
+    """Execute storer.store_all() for RDF files."""
+    storer.store_all(
+        base_dir=output_rdf_dir,
+        base_iri=base_iri,
+        context_path=context_path,
+        process_id=None
+    )
+
+
+def _upload_queries(storer: Storer, triplestore_url: str, update_dir: str) -> None:
+    """Execute storer.upload_all() to generate SPARQL queries."""
+    storer.upload_all(
+        triplestore_url=triplestore_url,
+        base_dir=update_dir,
+        batch_size=10,
+        save_queries=True
+    )
+
+
+def _upload_to_triplestore(endpoint: str, folder: str, cache_manager: CacheManager) -> None:
+    """Upload SPARQL queries from folder to triplestore endpoint."""
+    upload_sparql_updates(
+        endpoint=endpoint,
+        folder=folder,
+        batch_size=10,
+        cache_manager=cache_manager
+    )
+
+
 class BenchmarkTimer:
     """Context manager for timing code blocks and collecting metrics."""
 
@@ -382,46 +412,59 @@ class MetaBenchmark:
                 redis_db=self.cache_db
             )
 
-            # TEMPORARY: Sequential execution for benchmarking comparison
-            if self.config["generate_rdf_files"]:
-                storer_data.store_all(
-                    base_dir=self.output_dir,
-                    base_iri=self.base_iri,
-                    context_path=self.config["context_path"],
-                    process_id=None
+            with ThreadPoolExecutor(max_workers=4) as executor:
+                futures = []
+
+                if self.config["generate_rdf_files"]:
+                    futures.append(executor.submit(
+                        _store_rdf,
+                        storer_data,
+                        self.output_dir,
+                        self.base_iri,
+                        self.config["context_path"]
+                    ))
+                    futures.append(executor.submit(
+                        _store_rdf,
+                        storer_prov,
+                        self.output_dir,
+                        self.base_iri,
+                        self.config["context_path"]
+                    ))
+
+                sparql_data_future = executor.submit(
+                    _upload_queries,
+                    storer_data,
+                    self.ts_data,
+                    data_update_dir
                 )
-                storer_prov.store_all(
-                    base_dir=self.output_dir,
-                    base_iri=self.base_iri,
-                    context_path=self.config["context_path"],
-                    process_id=None
+                sparql_prov_future = executor.submit(
+                    _upload_queries,
+                    storer_prov,
+                    self.ts_prov,
+                    prov_update_dir
                 )
 
-            storer_data.upload_all(
-                triplestore_url=self.ts_data,
-                base_dir=data_update_dir,
-                batch_size=10,
-                save_queries=True
-            )
-            storer_prov.upload_all(
-                triplestore_url=self.ts_prov,
-                base_dir=prov_update_dir,
-                batch_size=10,
-                save_queries=True
-            )
+                sparql_data_future.result()
+                sparql_prov_future.result()
 
-            upload_sparql_updates(
-                endpoint=self.ts_data,
-                folder=data_upload_folder,
-                batch_size=10,
-                cache_manager=cache_manager_data
-            )
-            upload_sparql_updates(
-                endpoint=self.ts_prov,
-                folder=prov_upload_folder,
-                batch_size=10,
-                cache_manager=cache_manager_prov
-            )
+                upload_data_future = executor.submit(
+                    _upload_to_triplestore,
+                    self.ts_data,
+                    data_upload_folder,
+                    cache_manager_data
+                )
+                upload_prov_future = executor.submit(
+                    _upload_to_triplestore,
+                    self.ts_prov,
+                    prov_upload_folder,
+                    cache_manager_prov
+                )
+
+                upload_data_future.result()
+                upload_prov_future.result()
+
+                for future in futures:
+                    future.result()
 
             cache_manager_data._save_to_json()
             cache_manager_prov._save_to_json()

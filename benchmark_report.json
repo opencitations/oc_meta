@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-11-13T14:36:31.168204",
+  "timestamp": "2025-11-13T15:13:46.838485",
   "config_path": "test/benchmark/benchmark_config.yaml",
   "metrics": {
     "input_records": 1000,
@@ -7,44 +7,44 @@
     "entities_created": 11066,
     "sparql_files_data": 1107,
     "sparql_files_prov": 1107,
-    "throughput_records_per_sec": 6.0,
-    "total_duration_seconds": 166.538
+    "throughput_records_per_sec": 6.11,
+    "total_duration_seconds": 163.597
   },
   "phases": [
     {
       "name": "csv_reading",
       "duration_seconds": 0.006,
-      "start_memory_mb": 54.14,
-      "end_memory_mb": 54.66,
-      "peak_memory_mb": 54.66
+      "start_memory_mb": 54.2,
+      "end_memory_mb": 54.45,
+      "peak_memory_mb": 54.45
     },
     {
       "name": "curation",
-      "duration_seconds": 10.688,
-      "start_memory_mb": 54.66,
-      "end_memory_mb": 64.29,
-      "peak_memory_mb": 64.29
+      "duration_seconds": 10.243,
+      "start_memory_mb": 54.45,
+      "end_memory_mb": 64.34,
+      "peak_memory_mb": 64.34
     },
     {
       "name": "rdf_creation",
-      "duration_seconds": 23.211,
-      "start_memory_mb": 64.29,
-      "end_memory_mb": 679.93,
-      "peak_memory_mb": 679.93
+      "duration_seconds": 23.111,
+      "start_memory_mb": 64.34,
+      "end_memory_mb": 680.3,
+      "peak_memory_mb": 680.3
     },
     {
       "name": "storage_and_upload",
-      "duration_seconds": 132.63,
-      "start_memory_mb": 679.93,
-      "end_memory_mb": 836.8,
-      "peak_memory_mb": 836.8
+      "duration_seconds": 130.234,
+      "start_memory_mb": 680.3,
+      "end_memory_mb": 845.91,
+      "peak_memory_mb": 845.91
     },
     {
       "name": "total_processing",
-      "duration_seconds": 166.538,
-      "start_memory_mb": 54.14,
-      "end_memory_mb": 836.8,
-      "peak_memory_mb": 836.8
+      "duration_seconds": 163.597,
+      "start_memory_mb": 54.2,
+      "end_memory_mb": 845.91,
+      "peak_memory_mb": 845.91
     }
   ]
 }
