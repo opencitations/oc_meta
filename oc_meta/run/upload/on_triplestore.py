@@ -1,10 +1,10 @@
 import argparse
 import os
-import time
 
+from oc_meta.lib.sparql_utils import safe_sparql_query_with_retry
 from oc_meta.run.split_insert_and_delete import process_sparql_file
 from oc_meta.run.upload.cache_manager import CacheManager
-from oc_meta.run.upload.triplestore_connection import TriplestoreConnection
+from SPARQLWrapper import SPARQLWrapper, POST
 from tqdm import tqdm
 
 
@@ -14,32 +14,16 @@ def save_failed_query_file(filename, failed_file):
 
 
 def execute_sparql_update(endpoint, query):
-    attempt = 0
-    max_attempts = 3
-    wait_time = 5  # Initial wait time in seconds
+    sparql = SPARQLWrapper(endpoint)
+    sparql.setMethod(POST)
+    sparql.setQuery(query)
 
-    connection = TriplestoreConnection(endpoint)
-
-    while attempt < max_attempts:
-        try:
-            success = connection.execute_update(query)
-            if success:
-                return True
-            raise Exception("Query execution failed")
-        except Exception as e:
-            attempt += 1
-            if attempt < max_attempts:
-                print(
-                    f"[3] Attempt {attempt} failed. Could not execute SPARQL update due to communication problems: {e}"
-                )
-                print(f"Retrying in {wait_time} seconds...")
-                time.sleep(wait_time)
-                wait_time *= 2  # Double the wait time for the next attempt
-            else:
-                print(
-                    f"[3] All {max_attempts} attempts failed. Could not execute SPARQL update due to communication problems: {e}"
-                )
-                return False
+    try:
+        safe_sparql_query_with_retry(sparql, max_retries=3, backoff_base=5, backoff_exponential=True)
+        return True
+    except Exception as e:
+        print(f"All 3 attempts failed. Could not execute SPARQL update due to communication problems: {e}")
+        return False
 
 
 def generate_sparql_queries(quads_to_add, quads_to_remove, batch_size):

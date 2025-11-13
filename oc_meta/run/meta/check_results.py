@@ -2,15 +2,14 @@ import argparse
 import csv
 import os
 import re
-import time
 import zipfile
 from datetime import datetime
-from functools import wraps
 from multiprocessing import Pool, cpu_count
 from typing import Dict, List, Set
 
 import yaml
 from oc_meta.lib.master_of_regex import name_and_ids, semicolon_in_people_field
+from oc_meta.lib.sparql_utils import safe_sparql_query_with_retry
 from SPARQLWrapper import JSON, SPARQLWrapper
 from tqdm import tqdm
 
@@ -36,36 +35,6 @@ def parse_identifiers(id_string: str) -> List[Dict[str, str]]:
                 'value': parts[1]
             })
     return identifiers
-
-def retry_with_backoff(retries=3, backoff_in_seconds=1):
-    """
-    Decorator per implementare retry con backoff esponenziale
-    """
-    def decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            delay = backoff_in_seconds
-            last_exception = None
-            
-            for i in range(retries):
-                try:
-                    return func(*args, **kwargs)
-                except Exception as e:
-                    last_exception = e
-                    if i == retries - 1:
-                        break
-                    
-                    time.sleep(delay)
-                    delay *= 2
-            
-            raise RuntimeError(f"All {retries} attempts failed") from last_exception
-            
-        return wrapper
-    return decorator
-
-@retry_with_backoff(retries=3, backoff_in_seconds=1)
-def execute_sparql_query(sparql: SPARQLWrapper) -> dict:
-    return sparql.query().convert()
 
 def check_provenance_existence(omids: List[str], prov_endpoint_url: str) -> Dict[str, bool]:
     """
@@ -104,7 +73,7 @@ def check_provenance_existence(omids: List[str], prov_endpoint_url: str) -> Dict
         sparql.setReturnFormat(JSON)
 
         try:
-            results = execute_sparql_query(sparql)
+            results = safe_sparql_query_with_retry(sparql)
 
             for result in results["results"]["bindings"]:
                 omid = result["omid"]["value"]
@@ -152,7 +121,7 @@ def check_omids_existence(identifiers: List[Dict[str, str]], endpoint_url: str) 
         sparql.setQuery(query)
         sparql.setReturnFormat(JSON)
         try:
-            results = execute_sparql_query(sparql)
+            results = safe_sparql_query_with_retry(sparql)
             omids = set()
             
             for result in results["results"]["bindings"]:

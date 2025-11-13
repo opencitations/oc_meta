@@ -1,3 +1,0 @@
-id,title,author,pub_date,venue,volume,issue,page,type,publisher,editor
-omid:br/003 doi:10.1000/test3,Test Book Chapter,"Wilson, Bob [omid:ra/104]; Green, Carol [omid:ra/105 orcid:0000-0000-0000-0002]",2021,Handbook of Science [omid:br/203 isbn:978-0-123456-78-9],,,200-220,book chapter,Academic Press [omid:ra/303],"Editor, Chief [omid:ra/401]"
-omid:br/004 pmid:67890,Conference Paper 1,"White, Michael [omid:ra/106]",2023,Conference Proceedings [omid:br/204],,,89-95,proceedings article,IEEE [omid:ra/304],

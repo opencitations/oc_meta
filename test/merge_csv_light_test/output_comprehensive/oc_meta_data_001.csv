@@ -1,3 +1,0 @@
-id,title,author,pub_date,venue,volume,issue,page,type,publisher,editor
-omid:br/001 doi:10.1000/test1 pmid:12345,Test Article 1,"Smith, John [omid:ra/101 orcid:0000-0000-0000-0001]; Doe, Jane [omid:ra/102]",2023,Nature [omid:br/201 issn:0028-0836],45,3,123-130,journal article,Nature Publishing [omid:ra/301],
-omid:br/002 arxiv:2023.001 issn:1234-5678,Test Article 2 Updated,"Brown, Alice [omid:ra/103]; New, Author [omid:ra/109]",2023,Science [omid:br/202],51,3,60-70,journal article,Science Publishing [omid:ra/302],

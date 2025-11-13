@@ -18,11 +18,11 @@ from __future__ import annotations
 
 import os
 import re
-from time import sleep, time
 from typing import Set
 
 import validators
 import yaml
+from oc_meta.lib.sparql_utils import safe_sparql_query_with_retry
 from oc_ocdm import Storer
 from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
 from oc_ocdm.graph import GraphSet
@@ -89,26 +89,6 @@ class MetaEditor:
 
         self.entity_cache = EntityCache()
         self.relationship_cache = {}
-
-    def make_sparql_query_with_retry(
-        self, sparql: SPARQLWrapper, query, max_retries=5, backoff_factor=0.3
-    ):
-        sparql.setQuery(query)
-        sparql.setReturnFormat(JSON)
-
-        start_time = time()
-        for attempt in range(max_retries):
-            try:
-                return sparql.queryAndConvert()
-            except Exception as e:
-                duration = time() - start_time
-                if attempt < max_retries - 1:
-                    sleep_time = backoff_factor * (2**attempt)
-                    print(query, duration, f"retry_{attempt + 1}")
-                    sleep(sleep_time)
-                else:
-                    print(f"SPARQL query failed after {max_retries} attempts: {e}")
-                    raise
 
     def update_property(
         self, res: URIRef, property: str, new_value: str | URIRef
@@ -241,7 +221,9 @@ class MetaEditor:
                     FILTER (?p != pro:withRole)
                 }}"""
 
-            data = self.make_sparql_query_with_retry(sparql, query)
+            sparql.setQuery(query)
+            sparql.setReturnFormat(JSON)
+            data = safe_sparql_query_with_retry(sparql, max_retries=5, backoff_base=0.3, backoff_exponential=True)
             other_related = {
                 URIRef(result["entity"]["value"])
                 for result in data["results"]["bindings"]
@@ -266,7 +248,9 @@ class MetaEditor:
                     FILTER (?p != pro:withRole)
                 }}"""
 
-            data = self.make_sparql_query_with_retry(sparql, query)
+            sparql.setQuery(query)
+            sparql.setReturnFormat(JSON)
+            data = safe_sparql_query_with_retry(sparql, max_retries=5, backoff_base=0.3, backoff_exponential=True)
             res_related = {
                 URIRef(result["entity"]["value"])
                 for result in data["results"]["bindings"]

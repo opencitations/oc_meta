@@ -1,3 +1,0 @@
-id,title,author,pub_date,venue,volume,issue,page,type,publisher,editor
-"omid:br/004 pmid:67890","Conference Paper 1","White, Michael [omid:ra/106]","2023","Conference Proceedings [omid:br/204]","","","89-95","proceedings article","IEEE [omid:ra/304]",""
-"doi:10.1000/test5 omid:br/005","Journal Article with Pages","Black, Sarah [orcid:0000-0000-0000-0003 omid:ra/107]; Yellow, David [omid:ra/108]","2022","Advanced Research [omid:br/205]","12","1","333-333","journal article","Research Publishers [omid:ra/305]","" 

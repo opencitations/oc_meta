@@ -6,10 +6,11 @@ import os
 import traceback
 from typing import Dict, List, Set
 
+from oc_meta.lib.sparql_utils import safe_sparql_query_with_retry
 from oc_meta.plugins.editor import MetaEditor
 from oc_ocdm.graph import GraphSet
 from rdflib import URIRef
-from SPARQLWrapper import SPARQLWrapper
+from SPARQLWrapper import JSON, SPARQLWrapper
 from tqdm import tqdm
 
 logging.basicConfig(
@@ -119,7 +120,9 @@ class EntityMerger:
 
             sparql = SPARQLWrapper(meta_editor.endpoint)
             try:
-                results = meta_editor.make_sparql_query_with_retry(sparql, query)
+                sparql.setQuery(query)
+                sparql.setReturnFormat(JSON)
+                results = safe_sparql_query_with_retry(sparql, max_retries=5, backoff_base=0.3, backoff_exponential=True)
                 for result in results["results"]["bindings"]:
                     if result["entity"]["type"] == "uri":
                         related_uri = URIRef(result["entity"]["value"])
@@ -161,7 +164,9 @@ class EntityMerger:
 
             sparql = SPARQLWrapper(meta_editor.endpoint)
             try:
-                results = meta_editor.make_sparql_query_with_retry(sparql, query)
+                sparql.setQuery(query)
+                sparql.setReturnFormat(JSON)
+                results = safe_sparql_query_with_retry(sparql, max_retries=5, backoff_base=0.3, backoff_exponential=True)
                 for result in results["results"]["bindings"]:
                     if result["entity"]["type"] == "uri":
                         related_uri = URIRef(result["entity"]["value"])

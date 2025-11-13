@@ -1,3 +1,0 @@
-id,title,author,pub_date,venue,volume,issue,page,type,publisher,editor
-"omid:br/002 issn:1234-5678 arxiv:2023.001","Test Article 2 Updated","Brown, Alice [omid:ra/103]; New, Author [omid:ra/109]","2023","Science [omid:br/202]","51","3","60-70","journal article","Science Publishing [omid:ra/302]",""
-"omid:br/006 doi:10.1000/test6","New Article from New Files","Purple, Emma [omid:ra/110]","2023","New Journal [omid:br/206]","1","1","1-15","journal article","New Publisher [omid:ra/306]","" 

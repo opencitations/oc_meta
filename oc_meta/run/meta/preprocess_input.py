@@ -22,6 +22,7 @@ import os
 from typing import List, Union
 
 import redis
+from oc_meta.lib.sparql_utils import safe_sparql_query_with_retry
 from SPARQLWrapper import JSON, SPARQLWrapper
 from tqdm import tqdm
 
@@ -99,7 +100,7 @@ def check_ids_existence_sparql(ids: str, sparql_endpoint: str) -> bool:
         sparql.setReturnFormat(JSON)
         
         try:
-            results = sparql.query().convert()
+            results = safe_sparql_query_with_retry(sparql)
             if not results.get('boolean', False):
                 return False
         except Exception:

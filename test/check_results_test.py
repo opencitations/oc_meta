@@ -190,7 +190,7 @@ class TestFindProvFile(unittest.TestCase):
 class TestCheckOMIDsExistence(unittest.TestCase):
     """Test cases for check_omids_existence function."""
 
-    @patch('oc_meta.run.meta.check_results.execute_sparql_query')
+    @patch('oc_meta.run.meta.check_results.safe_sparql_query_with_retry')
     @patch('oc_meta.run.meta.check_results.SPARQLWrapper')
     def test_check_single_identifier_found(self, mock_sparql_wrapper, mock_execute):
         """Test checking single identifier that exists."""
@@ -210,7 +210,7 @@ class TestCheckOMIDsExistence(unittest.TestCase):
         self.assertEqual(result, expected)
         mock_execute.assert_called_once()
 
-    @patch('oc_meta.run.meta.check_results.execute_sparql_query')
+    @patch('oc_meta.run.meta.check_results.safe_sparql_query_with_retry')
     @patch('oc_meta.run.meta.check_results.SPARQLWrapper')
     def test_check_identifier_not_found(self, mock_sparql_wrapper, mock_execute):
         """Test checking identifier that doesn't exist."""
@@ -223,7 +223,7 @@ class TestCheckOMIDsExistence(unittest.TestCase):
         expected = {'doi:10.9999/notfound': set()}
         self.assertEqual(result, expected)
 
-    @patch('oc_meta.run.meta.check_results.execute_sparql_query')
+    @patch('oc_meta.run.meta.check_results.safe_sparql_query_with_retry')
     @patch('oc_meta.run.meta.check_results.SPARQLWrapper')
     def test_check_multiple_omids_for_identifier(self, mock_sparql_wrapper, mock_execute):
         """Test identifier with multiple OMIDs."""
@@ -248,7 +248,7 @@ class TestCheckOMIDsExistence(unittest.TestCase):
         }
         self.assertEqual(result, expected)
 
-    @patch('oc_meta.run.meta.check_results.execute_sparql_query')
+    @patch('oc_meta.run.meta.check_results.safe_sparql_query_with_retry')
     @patch('oc_meta.run.meta.check_results.SPARQLWrapper')
     def test_check_empty_identifiers_list(self, mock_sparql_wrapper, mock_execute):
         """Test with empty identifiers list."""
@@ -256,7 +256,7 @@ class TestCheckOMIDsExistence(unittest.TestCase):
         self.assertEqual(result, {})
         mock_execute.assert_not_called()
 
-    @patch('oc_meta.run.meta.check_results.execute_sparql_query')
+    @patch('oc_meta.run.meta.check_results.safe_sparql_query_with_retry')
     @patch('oc_meta.run.meta.check_results.SPARQLWrapper')
     def test_check_sparql_exception_handling(self, mock_sparql_wrapper, mock_execute):
         """Test that SPARQL exceptions are handled gracefully."""
@@ -273,7 +273,7 @@ class TestCheckOMIDsExistence(unittest.TestCase):
 class TestCheckProvenanceExistence(unittest.TestCase):
     """Test cases for check_provenance_existence function."""
 
-    @patch('oc_meta.run.meta.check_results.execute_sparql_query')
+    @patch('oc_meta.run.meta.check_results.safe_sparql_query_with_retry')
     @patch('oc_meta.run.meta.check_results.SPARQLWrapper')
     def test_check_provenance_exists(self, mock_sparql_wrapper, mock_execute):
         """Test checking provenance that exists."""
@@ -292,7 +292,7 @@ class TestCheckProvenanceExistence(unittest.TestCase):
         expected = {"https://w3id.org/oc/meta/br/0601": True}
         self.assertEqual(result, expected)
 
-    @patch('oc_meta.run.meta.check_results.execute_sparql_query')
+    @patch('oc_meta.run.meta.check_results.safe_sparql_query_with_retry')
     @patch('oc_meta.run.meta.check_results.SPARQLWrapper')
     def test_check_provenance_not_exists(self, mock_sparql_wrapper, mock_execute):
         """Test checking provenance that doesn't exist."""
@@ -305,7 +305,7 @@ class TestCheckProvenanceExistence(unittest.TestCase):
         expected = {"https://w3id.org/oc/meta/br/0601": False}
         self.assertEqual(result, expected)
 
-    @patch('oc_meta.run.meta.check_results.execute_sparql_query')
+    @patch('oc_meta.run.meta.check_results.safe_sparql_query_with_retry')
     @patch('oc_meta.run.meta.check_results.SPARQLWrapper')
     def test_check_multiple_omids_mixed_results(self, mock_sparql_wrapper, mock_execute):
         """Test checking multiple OMIDs with mixed provenance results."""
@@ -331,7 +331,7 @@ class TestCheckProvenanceExistence(unittest.TestCase):
         self.assertFalse(result["https://w3id.org/oc/meta/br/0602"])
         self.assertTrue(result["https://w3id.org/oc/meta/br/0603"])
 
-    @patch('oc_meta.run.meta.check_results.execute_sparql_query')
+    @patch('oc_meta.run.meta.check_results.safe_sparql_query_with_retry')
     @patch('oc_meta.run.meta.check_results.SPARQLWrapper')
     def test_check_empty_omids_list(self, mock_sparql_wrapper, mock_execute):
         """Test with empty OMIDs list."""
@@ -339,7 +339,7 @@ class TestCheckProvenanceExistence(unittest.TestCase):
         self.assertEqual(result, {})
         mock_execute.assert_not_called()
 
-    @patch('oc_meta.run.meta.check_results.execute_sparql_query')
+    @patch('oc_meta.run.meta.check_results.safe_sparql_query_with_retry')
     @patch('oc_meta.run.meta.check_results.SPARQLWrapper')
     def test_check_provenance_batching(self, mock_sparql_wrapper, mock_execute):
         """Test that large lists are batched correctly."""
@@ -358,7 +358,7 @@ class TestCheckProvenanceExistence(unittest.TestCase):
         self.assertEqual(len(result), 25)
         self.assertTrue(all(not v for v in result.values()))
 
-    @patch('oc_meta.run.meta.check_results.execute_sparql_query')
+    @patch('oc_meta.run.meta.check_results.safe_sparql_query_with_retry')
     @patch('oc_meta.run.meta.check_results.SPARQLWrapper')
     def test_check_provenance_exception_handling(self, mock_sparql_wrapper, mock_execute):
         """Test that SPARQL exceptions are handled gracefully."""

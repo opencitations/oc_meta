@@ -13,7 +13,6 @@ from oc_meta.run.upload.on_triplestore import (
     save_failed_query_file,
     upload_sparql_updates,
 )
-from oc_meta.run.upload.triplestore_connection import TriplestoreConnection
 from SPARQLWrapper import POST, SPARQLWrapper
 
 SERVER = "http://127.0.0.1:8805/sparql"
@@ -302,35 +301,6 @@ class TestOnTriplestore(unittest.TestCase):
         with open(self.failed_file, "r") as f:
             failed_content = f.read()
         self.assertIn("invalid.sparql", failed_content)
-
-
-class TestTriplestoreConnection(unittest.TestCase):
-    def setUp(self):
-        self.endpoint = SERVER
-        self.connection = TriplestoreConnection(self.endpoint)
-
-    def test_singleton_pattern(self):
-        """Test che verifica che venga usata la stessa istanza"""
-        connection2 = TriplestoreConnection(self.endpoint)
-        self.assertIs(self.connection, connection2)
-
-    def test_connection_update(self):
-        """Test che verifica che la connessione possa essere aggiornata"""
-        new_endpoint = "http://new.endpoint/sparql"
-        connection2 = TriplestoreConnection(new_endpoint)
-        self.assertEqual(connection2.sparql.endpoint, new_endpoint)
-
-    def test_execute_update(self):
-        """Test dell'esecuzione di una query"""
-        query = """
-        INSERT DATA {
-            GRAPH <http://test.graph> {
-                <http://test.subject> <http://test.predicate> "test object" .
-            }
-        }
-        """
-        success = self.connection.execute_update(query)
-        self.assertTrue(success)
 
 
 if __name__ == "__main__":

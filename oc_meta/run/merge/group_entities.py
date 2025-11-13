@@ -5,7 +5,7 @@ import re
 
 import pandas as pd
 import yaml
-from retrying import retry
+from oc_meta.lib.sparql_utils import safe_sparql_query_with_retry
 from SPARQLWrapper import JSON, SPARQLWrapper
 from tqdm import tqdm
 
@@ -51,7 +51,6 @@ def load_csv(file_path):
     return df
 
 
-@retry(stop_max_attempt_number=3, wait_exponential_multiplier=1000, wait_exponential_max=10000)
 def query_sparql_batch(endpoint, uris, batch_size=10):
     """
     Query SPARQL for related entities in batches.
@@ -94,7 +93,7 @@ def query_sparql_batch(endpoint, uris, batch_size=10):
 
         sparql.setQuery(query)
         sparql.setReturnFormat(JSON)
-        results = sparql.query().convert()
+        results = safe_sparql_query_with_retry(sparql)
 
         for result in results['results']['bindings']:
             if result['entity']['type'] == 'uri':

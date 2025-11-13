@@ -1,8 +1,8 @@
-from time import sleep
 from typing import Dict, List, Tuple
 
 import yaml
 from dateutil import parser
+from oc_meta.lib.sparql_utils import safe_sparql_query_with_retry
 from oc_meta.plugins.editor import MetaEditor
 from oc_ocdm.graph import GraphEntity
 from oc_ocdm.graph.graph_entity import GraphEntity
@@ -26,26 +26,21 @@ class ResourceFinder:
         self.blazegraph_full_text_search = settings['blazegraph_full_text_search'] if settings and 'blazegraph_full_text_search' in settings else False
         self.virtuoso_full_text_search = settings['virtuoso_full_text_search'] if settings and 'virtuoso_full_text_search' in settings else False
 
-    def __query(self, query, return_format = JSON):
+    def __execute_query(self, query, return_format=JSON):
         """Execute a SPARQL query with retries and exponential backoff"""
         self.ts.setReturnFormat(return_format)
         self.ts.setQuery(query)
-        max_retries = 5  # Aumentiamo il numero di tentativi
-        base_wait = 5    # Tempo base di attesa in secondi
-        
-        for attempt in range(max_retries):
-            try:
-                result = self.ts.queryAndConvert()
-                return result
-            except Exception as e:
-                wait_time = base_wait * (2 ** attempt)  # Exponential backoff
-                if attempt < max_retries - 1:  # Se non è l'ultimo tentativo
-                    sleep(wait_time)
-                else:
-                    # Ultimo tentativo fallito, logghiamo l'errore e solleviamo un'eccezione custom
-                    error_msg = f"Failed to execute SPARQL query after {max_retries} attempts: {str(e)}\nQuery: {query}"
-                    print(error_msg)  # Log dell'errore
-                    raise Exception(error_msg)
+        try:
+            return safe_sparql_query_with_retry(
+                self.ts,
+                max_retries=5,
+                backoff_base=5,
+                backoff_exponential=True
+            )
+        except Exception as e:
+            error_msg = f"Failed to execute SPARQL query after 5 attempts: {str(e)}\nQuery: {query}"
+            print(error_msg)
+            raise Exception(error_msg)
 
     # _______________________________BR_________________________________ #
 
@@ -183,7 +178,7 @@ class ResourceFinder:
                         <{ProvEntity.iri_was_derived_from}> <{penultimate_snapshot}>.
                 }}
             '''
-            results = self.__query(query_if_it_was_merged)['results']['bindings']
+            results = self.__execute_query(query_if_it_was_merged)['results']['bindings']
             # The entity was merged to another
             merged_entity = [se for se in results if metaid_uri not in se['se']['value']]
             if merged_entity:
@@ -759,7 +754,7 @@ class ResourceFinder:
                         VALUES ?s {{ {' '.join([f"<{s}>" for s in batch])} }}
                         ?s ?p ?o.
                     }}'''
-                result = self.__query(query_prefix)
+                result = self.__execute_query(query_prefix)
                 if result:
                     for row in result['results']['bindings']:
                         s = URIRef(row['s']['value'])
@@ -801,7 +796,7 @@ class ResourceFinder:
                                     ^<{GraphEntity.iri_has_identifier}> ?s .
                             }}
                         '''
-                        result = self.__query(query)
+                        result = self.__execute_query(query)
                         for row in result['results']['bindings']:
                             subjects.add(str(row['s']['value']))
                 elif self.virtuoso_full_text_search:
@@ -828,7 +823,7 @@ class ResourceFinder:
                             {union_query}
                         }}
                     '''
-                    result = self.__query(query)
+                    result = self.__execute_query(query)
                     for row in result['results']['bindings']:
                         subjects.add(str(row['s']['value']))
                 else:
@@ -847,7 +842,7 @@ class ResourceFinder:
                             ?s <{GraphEntity.iri_has_identifier}> ?id .
                         }}
                     '''
-                    result = self.__query(query)
+                    result = self.__execute_query(query)
                     for row in result['results']['bindings']:
                         subjects.add(str(row['s']['value']))
             return subjects
@@ -961,7 +956,7 @@ class ResourceFinder:
                             # No volume specified, skip this VVI tuple
                             continue
 
-                    result = self.__query(query)
+                    result = self.__execute_query(query)
                     for row in result['results']['bindings']:
                         subjects.add(str(row['s']['value']))
                     
