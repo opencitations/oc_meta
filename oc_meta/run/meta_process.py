@@ -23,7 +23,7 @@ import csv
 import os
 import traceback
 from argparse import ArgumentParser
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime
 from sys import executable, platform
 from typing import Iterator, List, Tuple
@@ -45,18 +45,26 @@ from time_agnostic_library.support import generate_config_file
 from tqdm import tqdm
 
 
-def _store_rdf(storer: Storer, output_rdf_dir: str, base_iri: str, context_path: str) -> None:
-    """Execute storer.store_all() for RDF files."""
+def _store_rdf_process(args: tuple) -> None:
+    """
+    Worker function to execute storer.store_all() in a separate process.
+    """
+    storer, output_dir, base_iri, context_path = args
+
     storer.store_all(
-        base_dir=output_rdf_dir,
+        base_dir=output_dir,
         base_iri=base_iri,
         context_path=context_path,
         process_id=None
     )
 
 
-def _upload_queries(storer: Storer, triplestore_url: str, update_dir: str) -> None:
-    """Execute storer.upload_all() to generate SPARQL queries."""
+def _upload_queries_process(args: tuple) -> None:
+    """
+    Worker function to execute storer.upload_all() in a separate process.
+    """
+    storer, triplestore_url, update_dir = args
+
     storer.upload_all(
         triplestore_url=triplestore_url,
         base_dir=update_dir,
@@ -65,12 +73,19 @@ def _upload_queries(storer: Storer, triplestore_url: str, update_dir: str) -> No
     )
 
 
-def _upload_to_triplestore(endpoint: str, folder: str, cache_manager: CacheManager, failed_file: str, stop_file: str, batch_size: int = 10) -> None:
+def _upload_to_triplestore(endpoint: str, folder: str, redis_host: str, redis_port: int, redis_db: int, cache_file: str, failed_file: str, stop_file: str) -> None:
     """Upload SPARQL queries from folder to triplestore endpoint."""
+    cache_manager = CacheManager(
+        cache_file,
+        redis_host=redis_host,
+        redis_port=redis_port,
+        redis_db=redis_db
+    )
+
     upload_sparql_updates(
         endpoint=endpoint,
         folder=folder,
-        batch_size=batch_size,
+        batch_size=10,
         cache_file=None,
         failed_file=failed_file,
         stop_file=stop_file,
@@ -305,49 +320,58 @@ class MetaProcess:
         os.makedirs(self.data_update_dir, exist_ok=True)
         os.makedirs(self.prov_update_dir, exist_ok=True)
 
-        with ThreadPoolExecutor(max_workers=4) as executor:
+        store_rdf_tasks = []
+        upload_queries_tasks = []
+
+        if self.generate_rdf_files:
+            store_rdf_tasks.append((
+                res_storer,
+                self.output_rdf_dir,
+                self.base_iri,
+                self.context_path
+            ))
+            store_rdf_tasks.append((
+                prov_storer,
+                self.output_rdf_dir,
+                self.base_iri,
+                self.context_path
+            ))
+
+        upload_queries_tasks.append((
+            res_storer,
+            self.triplestore_url,
+            self.data_update_dir
+        ))
+        upload_queries_tasks.append((
+            prov_storer,
+            self.provenance_triplestore_url,
+            self.prov_update_dir
+        ))
+
+        with ProcessPoolExecutor(max_workers=4) as executor:
             futures = []
 
-            if self.generate_rdf_files:
-                futures.append(executor.submit(
-                    _store_rdf,
-                    res_storer,
-                    self.output_rdf_dir,
-                    self.base_iri,
-                    self.context_path
-                ))
-                futures.append(executor.submit(
-                    _store_rdf,
-                    prov_storer,
-                    self.output_rdf_dir,
-                    self.base_iri,
-                    self.context_path
-                ))
+            for task in store_rdf_tasks:
+                futures.append(executor.submit(_store_rdf_process, task))
 
-            sparql_data_future = executor.submit(
-                _upload_queries,
-                res_storer,
-                self.triplestore_url,
-                self.data_update_dir
-            )
-            sparql_prov_future = executor.submit(
-                _upload_queries,
-                prov_storer,
-                self.provenance_triplestore_url,
-                self.prov_update_dir
-            )
+            for task in upload_queries_tasks:
+                futures.append(executor.submit(_upload_queries_process, task))
 
-            sparql_data_future.result()
-            sparql_prov_future.result()
+            for future in futures:
+                future.result()
 
-            data_upload_folder = os.path.join(self.data_update_dir, "to_be_uploaded")
-            prov_upload_folder = os.path.join(self.prov_update_dir, "to_be_uploaded")
+        data_upload_folder = os.path.join(self.data_update_dir, "to_be_uploaded")
+        prov_upload_folder = os.path.join(self.prov_update_dir, "to_be_uploaded")
 
+        with ProcessPoolExecutor(max_workers=2) as executor:
             upload_data_future = executor.submit(
                 _upload_to_triplestore,
                 self.triplestore_url,
                 data_upload_folder,
-                self.cache_manager,
+                self.redis_host,
+                self.redis_port,
+                self.redis_cache_db,
+                self.ts_upload_cache,
                 self.ts_failed_queries,
                 self.ts_stop_file
             )
@@ -355,16 +379,16 @@ class MetaProcess:
                 _upload_to_triplestore,
                 self.provenance_triplestore_url,
                 prov_upload_folder,
-                self.cache_manager,
+                self.redis_host,
+                self.redis_port,
+                self.redis_cache_db,
+                self.ts_upload_cache,
                 self.ts_failed_queries,
                 self.ts_stop_file
             )
 
             upload_data_future.result()
             upload_prov_future.result()
-
-            for future in futures:
-                future.result()
 
     def run_sparql_updates(self, endpoint: str, folder: str, batch_size: int = 10):
         cache_manager = CacheManager(

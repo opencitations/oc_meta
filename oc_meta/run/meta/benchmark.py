@@ -14,7 +14,7 @@ import os
 import shutil
 import subprocess
 import time
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -36,18 +36,26 @@ from oc_meta.run.upload.cache_manager import CacheManager
 from oc_meta.run.upload.on_triplestore import upload_sparql_updates
 
 
-def _store_rdf(storer: Storer, output_rdf_dir: str, base_iri: str, context_path: str) -> None:
-    """Execute storer.store_all() for RDF files."""
+def _store_rdf_process(args: tuple) -> None:
+    """
+    Worker function to execute storer.store_all() in a separate process.
+    """
+    storer, output_dir, base_iri, context_path = args
+
     storer.store_all(
-        base_dir=output_rdf_dir,
+        base_dir=output_dir,
         base_iri=base_iri,
         context_path=context_path,
         process_id=None
     )
 
 
-def _upload_queries(storer: Storer, triplestore_url: str, update_dir: str) -> None:
-    """Execute storer.upload_all() to generate SPARQL queries."""
+def _upload_queries_process(args: tuple) -> None:
+    """
+    Worker function to execute storer.upload_all() in a separate process.
+    """
+    storer, triplestore_url, update_dir = args
+
     storer.upload_all(
         triplestore_url=triplestore_url,
         base_dir=update_dir,
@@ -56,8 +64,15 @@ def _upload_queries(storer: Storer, triplestore_url: str, update_dir: str) -> No
     )
 
 
-def _upload_to_triplestore(endpoint: str, folder: str, cache_manager: CacheManager) -> None:
+def _upload_to_triplestore(endpoint: str, folder: str, redis_host: str, redis_port: int, redis_db: int, cache_file: str) -> None:
     """Upload SPARQL queries from folder to triplestore endpoint."""
+    cache_manager = CacheManager(
+        cache_file,
+        redis_host=redis_host,
+        redis_port=redis_port,
+        redis_db=redis_db
+    )
+
     upload_sparql_updates(
         endpoint=endpoint,
         folder=folder,
@@ -412,59 +427,74 @@ class MetaBenchmark:
                 redis_db=self.cache_db
             )
 
-            with ThreadPoolExecutor(max_workers=4) as executor:
+            # Prepare args for ProcessPoolExecutor
+            store_rdf_tasks = []
+            upload_queries_tasks = []
+
+            if self.config["generate_rdf_files"]:
+                store_rdf_tasks.append((
+                    storer_data,
+                    self.output_dir,
+                    self.base_iri,
+                    self.config["context_path"]
+                ))
+                store_rdf_tasks.append((
+                    storer_prov,
+                    self.output_dir,
+                    self.base_iri,
+                    self.config["context_path"]
+                ))
+
+            upload_queries_tasks.append((
+                storer_data,
+                self.ts_data,
+                data_update_dir
+            ))
+            upload_queries_tasks.append((
+                storer_prov,
+                self.ts_prov,
+                prov_update_dir
+            ))
+
+            # Execute with ProcessPoolExecutor for true parallelism
+            with ProcessPoolExecutor(max_workers=4) as executor:
                 futures = []
 
-                if self.config["generate_rdf_files"]:
-                    futures.append(executor.submit(
-                        _store_rdf,
-                        storer_data,
-                        self.output_dir,
-                        self.base_iri,
-                        self.config["context_path"]
-                    ))
-                    futures.append(executor.submit(
-                        _store_rdf,
-                        storer_prov,
-                        self.output_dir,
-                        self.base_iri,
-                        self.config["context_path"]
-                    ))
+                # Submit RDF file generation tasks
+                for task in store_rdf_tasks:
+                    futures.append(executor.submit(_store_rdf_process, task))
 
-                sparql_data_future = executor.submit(
-                    _upload_queries,
-                    storer_data,
-                    self.ts_data,
-                    data_update_dir
-                )
-                sparql_prov_future = executor.submit(
-                    _upload_queries,
-                    storer_prov,
-                    self.ts_prov,
-                    prov_update_dir
-                )
+                # Submit SPARQL query generation tasks
+                for task in upload_queries_tasks:
+                    futures.append(executor.submit(_upload_queries_process, task))
 
-                sparql_data_future.result()
-                sparql_prov_future.result()
+                # Wait for all to complete
+                for future in futures:
+                    future.result()
 
+            # Upload to triplestore in parallel (only 2 uploads: data and prov)
+            with ProcessPoolExecutor(max_workers=2) as executor:
                 upload_data_future = executor.submit(
                     _upload_to_triplestore,
                     self.ts_data,
                     data_upload_folder,
-                    cache_manager_data
+                    self.redis_host,
+                    self.redis_port,
+                    self.cache_db,
+                    cache_file_data
                 )
                 upload_prov_future = executor.submit(
                     _upload_to_triplestore,
                     self.ts_prov,
                     prov_upload_folder,
-                    cache_manager_prov
+                    self.redis_host,
+                    self.redis_port,
+                    self.cache_db,
+                    cache_file_prov
                 )
 
                 upload_data_future.result()
                 upload_prov_future.result()
-
-                for future in futures:
-                    future.result()
 
             cache_manager_data._save_to_json()
             cache_manager_prov._save_to_json()
