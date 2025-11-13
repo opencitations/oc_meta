@@ -98,7 +98,7 @@ class MetaBenchmark:
         self.cache_db = self.config["cache_db"]
 
         self.input_dir = file_manager.normalize_path(self.config["input_csv_dir"])
-        self.output_dir = file_manager.normalize_path(self.config.get("output_rdf_dir", ""))
+        self.output_dir = file_manager.normalize_path(self.config["output_rdf_dir"])
 
         self.counter_handler = RedisCounterHandler(
             host=self.redis_host,
@@ -187,16 +187,15 @@ class MetaBenchmark:
             except Exception as e:
                 print(f"  - Warning: Failed to delete output files: {e}")
 
-        rdf_output_dir = self.config.get("output_rdf_dir")
-        if rdf_output_dir:
-            rdf_pattern = f"{rdf_output_dir}*"
-            for rdf_dir in glob.glob(rdf_pattern):
-                if os.path.isdir(rdf_dir) and rdf_dir != self.output_dir:
-                    try:
-                        shutil.rmtree(rdf_dir)
-                        print(f"  - Deleted RDF directory: {rdf_dir}")
-                    except Exception as e:
-                        print(f"  - Warning: Failed to delete {rdf_dir}: {e}")
+        rdf_output_dir = self.config["output_rdf_dir"]
+        rdf_pattern = f"{rdf_output_dir}*"
+        for rdf_dir in glob.glob(rdf_pattern):
+            if os.path.isdir(rdf_dir) and rdf_dir != self.output_dir:
+                try:
+                    shutil.rmtree(rdf_dir)
+                    print(f"  - Deleted RDF directory: {rdf_dir}")
+                except Exception as e:
+                    print(f"  - Warning: Failed to delete {rdf_dir}: {e}")
 
     def _delete_input_file(self, csv_path: str):
         """Delete generated input CSV file."""
@@ -350,8 +349,22 @@ class MetaBenchmark:
         with BenchmarkTimer("storage_and_upload") as timer:
             repok = Reporter(print_sentences=False)
             reperr = Reporter(print_sentences=True, prefix="[Storer: ERROR] ")
-            storer_data = Storer(graphset, repok=repok, reperr=reperr)
-            storer_prov = Storer(prov, repok=repok, reperr=reperr)
+            storer_data = Storer(
+                graphset,
+                repok=repok,
+                reperr=reperr,
+                dir_split=self.config["dir_split_number"],
+                n_file_item=self.config["items_per_file"],
+                zip_output=self.config["zip_output_rdf"]
+            )
+            storer_prov = Storer(
+                prov,
+                repok=repok,
+                reperr=reperr,
+                dir_split=self.config["dir_split_number"],
+                n_file_item=self.config["items_per_file"],
+                zip_output=self.config["zip_output_rdf"]
+            )
 
             cache_file_data = os.path.join(self.output_dir, "ts_data_cache.json")
             cache_file_prov = os.path.join(self.output_dir, "ts_prov_cache.json")
@@ -369,63 +382,46 @@ class MetaBenchmark:
                 redis_db=self.cache_db
             )
 
-            with ThreadPoolExecutor(max_workers=4) as executor:
-                rdf_futures = []
-
-                if self.config.get("generate_rdf_files", True):
-                    rdf_futures.append(executor.submit(
-                        storer_data.store_all,
-                        base_dir=self.output_dir,
-                        base_iri=self.base_iri,
-                        context_path=self.config.get("context_path", "https://w3id.org/oc/corpus/context.json"),
-                        process_id=None
-                    ))
-                    rdf_futures.append(executor.submit(
-                        storer_prov.store_all,
-                        base_dir=self.output_dir,
-                        base_iri=self.base_iri,
-                        context_path=self.config.get("context_path", "https://w3id.org/oc/corpus/context.json"),
-                        process_id=None
-                    ))
-
-                sparql_data_future = executor.submit(
-                    storer_data.upload_all,
-                    triplestore_url=self.ts_data,
-                    base_dir=data_update_dir,
-                    batch_size=10,
-                    save_queries=True
+            # TEMPORARY: Sequential execution for benchmarking comparison
+            if self.config["generate_rdf_files"]:
+                storer_data.store_all(
+                    base_dir=self.output_dir,
+                    base_iri=self.base_iri,
+                    context_path=self.config["context_path"],
+                    process_id=None
                 )
-                sparql_prov_future = executor.submit(
-                    storer_prov.upload_all,
-                    triplestore_url=self.ts_prov,
-                    base_dir=prov_update_dir,
-                    batch_size=10,
-                    save_queries=True
+                storer_prov.store_all(
+                    base_dir=self.output_dir,
+                    base_iri=self.base_iri,
+                    context_path=self.config["context_path"],
+                    process_id=None
                 )
 
-                sparql_data_future.result()
-                sparql_prov_future.result()
+            storer_data.upload_all(
+                triplestore_url=self.ts_data,
+                base_dir=data_update_dir,
+                batch_size=10,
+                save_queries=True
+            )
+            storer_prov.upload_all(
+                triplestore_url=self.ts_prov,
+                base_dir=prov_update_dir,
+                batch_size=10,
+                save_queries=True
+            )
 
-                upload_data_future = executor.submit(
-                    upload_sparql_updates,
-                    endpoint=self.ts_data,
-                    folder=data_upload_folder,
-                    batch_size=10,
-                    cache_manager=cache_manager_data
-                )
-                upload_prov_future = executor.submit(
-                    upload_sparql_updates,
-                    endpoint=self.ts_prov,
-                    folder=prov_upload_folder,
-                    batch_size=10,
-                    cache_manager=cache_manager_prov
-                )
-
-                upload_data_future.result()
-                upload_prov_future.result()
-
-                for future in rdf_futures:
-                    future.result()
+            upload_sparql_updates(
+                endpoint=self.ts_data,
+                folder=data_upload_folder,
+                batch_size=10,
+                cache_manager=cache_manager_data
+            )
+            upload_sparql_updates(
+                endpoint=self.ts_prov,
+                folder=prov_upload_folder,
+                batch_size=10,
+                cache_manager=cache_manager_prov
+            )
 
             cache_manager_data._save_to_json()
             cache_manager_prov._save_to_json()
