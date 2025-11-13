@@ -31,7 +31,7 @@ def reset_triplestore():
 def reset_redis():
     """Reset the test Redis database"""
     try:
-        r = redis.Redis(db=TEST_REDIS_DB, decode_responses=True)
+        r = redis.Redis(host="localhost", port=6381, db=TEST_REDIS_DB, decode_responses=True)
         r.flushdb()
     except redis.ConnectionError:
         print("Warning: Redis not available for tests")
@@ -67,7 +67,7 @@ class TestCacheManager(unittest.TestCase):
             json.dump(initial_files, f)
 
         # Inizializza CacheManager con il DB di test
-        cache_manager = CacheManager(self.cache_file, redis_db=TEST_REDIS_DB)
+        cache_manager = CacheManager(self.cache_file, redis_port=6381, redis_db=TEST_REDIS_DB)
 
         # Verifica che i file siano stati caricati
         self.assertEqual(cache_manager.get_all(), set(initial_files))
@@ -79,7 +79,7 @@ class TestCacheManager(unittest.TestCase):
 
     def test_add_and_contains(self):
         """Test dell'aggiunta di file e verifica della presenza"""
-        cache_manager = CacheManager(self.cache_file, redis_db=TEST_REDIS_DB)
+        cache_manager = CacheManager(self.cache_file, redis_port=6381, redis_db=TEST_REDIS_DB)
 
         # Aggiungi un file
         test_file = "test.sparql"
@@ -100,7 +100,7 @@ class TestCacheManager(unittest.TestCase):
     def test_persistence(self):
         """Test della persistenza dei dati"""
         # Crea e popola un cache manager
-        cache_manager = CacheManager(self.cache_file, redis_db=TEST_REDIS_DB)
+        cache_manager = CacheManager(self.cache_file, redis_port=6381, redis_db=TEST_REDIS_DB)
         test_files = ["test1.sparql", "test2.sparql"]
         for file in test_files:
             cache_manager.add(file)
@@ -114,7 +114,7 @@ class TestCacheManager(unittest.TestCase):
         self.assertEqual(saved_files, set(test_files))
 
         # Crea un nuovo cache manager e verifica che carichi i dati correttamente
-        new_cache_manager = CacheManager(self.cache_file, redis_db=TEST_REDIS_DB)
+        new_cache_manager = CacheManager(self.cache_file, redis_port=6381, redis_db=TEST_REDIS_DB)
         self.assertEqual(new_cache_manager.get_all(), set(test_files))
 
     @patch("redis.Redis")
@@ -124,7 +124,7 @@ class TestCacheManager(unittest.TestCase):
         mock_redis.side_effect = redis.ConnectionError()
 
         # Crea cache manager
-        cache_manager = CacheManager(self.cache_file, redis_db=TEST_REDIS_DB)
+        cache_manager = CacheManager(self.cache_file, redis_port=6381, redis_db=TEST_REDIS_DB)
 
         # Verifica che stia usando solo JSON
         self.assertIsNone(cache_manager._redis)
@@ -179,7 +179,7 @@ class TestOnTriplestore(unittest.TestCase):
     def test_cache_operations(self):
         """Test delle operazioni di cache con CacheManager"""
         # Inizializza cache manager con il DB di test
-        cache_manager = CacheManager(self.cache_file, redis_db=TEST_REDIS_DB)
+        cache_manager = CacheManager(self.cache_file, redis_port=6381, redis_db=TEST_REDIS_DB)
 
         # Aggiungi file al cache
         test_files = {"file1.sparql", "file2.sparql"}
@@ -193,7 +193,7 @@ class TestOnTriplestore(unittest.TestCase):
         self.assertTrue(os.path.exists(self.cache_file))
 
         # Crea nuovo cache manager e verifica il contenuto
-        new_cache_manager = CacheManager(self.cache_file, redis_db=TEST_REDIS_DB)
+        new_cache_manager = CacheManager(self.cache_file, redis_port=6381, redis_db=TEST_REDIS_DB)
         self.assertEqual(new_cache_manager.get_all(), test_files)
 
     def test_failed_query_logging(self):
@@ -253,11 +253,11 @@ class TestOnTriplestore(unittest.TestCase):
             cache_file=self.cache_file,
             failed_file=self.failed_file,
             stop_file=self.stop_file,
-            cache_manager=CacheManager(self.cache_file, redis_db=TEST_REDIS_DB),
+            cache_manager=CacheManager(self.cache_file, redis_port=6381, redis_db=TEST_REDIS_DB),
         )
 
         # Verifica che il cache non contenga tutti i file
-        cache_manager = CacheManager(self.cache_file, redis_db=TEST_REDIS_DB)
+        cache_manager = CacheManager(self.cache_file, redis_port=6381, redis_db=TEST_REDIS_DB)
         self.assertLess(len(cache_manager.get_all()), 3)
 
     def test_upload_with_failures(self):
@@ -283,7 +283,7 @@ class TestOnTriplestore(unittest.TestCase):
             f.write(invalid_query)
 
         # Esegui l'upload
-        cache_manager = CacheManager(self.cache_file, redis_db=TEST_REDIS_DB)
+        cache_manager = CacheManager(self.cache_file, redis_port=6381, redis_db=TEST_REDIS_DB)
         upload_sparql_updates(
             SERVER,
             sparql_dir,

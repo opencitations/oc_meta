@@ -2,8 +2,8 @@ import unittest
 import os
 from oc_meta.run.fixer.prov.add_sources_from_rdf import extract_and_process_json
 import shutil
-from rdflib import ConjunctiveGraph, URIRef
-from rdflib.compare import isomorphic, graph_diff
+from rdflib import Dataset, URIRef
+from rdflib.compare import isomorphic
 import zipfile
 import json
 
@@ -32,23 +32,26 @@ class TestExtractAndProcessJson(unittest.TestCase):
             os.remove(self.temp_destination_zip_path)
 
     def test_extraction_and_modification(self):
-        original_graph = self.load_rdf_from_zip(self.source_zip_path)
+        original_dataset = self.load_rdf_from_zip(self.source_zip_path)
         extract_and_process_json(self.temp_destination_zip_path, self.source_zip_folder)
-        modified_graph = self.load_rdf_from_zip(self.temp_destination_zip_path)
-        original_graph.remove((URIRef('https://w3id.org/oc/meta/br/0610897/prov/se/1'), URIRef('http://www.w3.org/ns/prov#hadPrimarySource'), URIRef('https://api.crossref.org/')))
-        original_graph.add((URIRef('https://w3id.org/oc/meta/br/0610897/prov/se/1'), URIRef('http://www.w3.org/ns/prov#hadPrimarySource'), URIRef('https://api.crossref.org/snapshots/monthly/2022/12/all.json.tar.gz')))
-        self.assertTrue(self.graphs_equal(original_graph, modified_graph))
+        modified_dataset = self.load_rdf_from_zip(self.temp_destination_zip_path)
+        context = URIRef('https://w3id.org/oc/meta/br/0610897/prov/')
+        original_dataset.remove((URIRef('https://w3id.org/oc/meta/br/0610897/prov/se/1'), URIRef('http://www.w3.org/ns/prov#hadPrimarySource'), URIRef('https://api.crossref.org/'), context))
+        original_dataset.add((URIRef('https://w3id.org/oc/meta/br/0610897/prov/se/1'), URIRef('http://www.w3.org/ns/prov#hadPrimarySource'), URIRef('https://api.crossref.org/snapshots/monthly/2022/12/all.json.tar.gz'), context))
+        self.assertTrue(self.graphs_equal(original_dataset, modified_dataset))
 
     def load_rdf_from_zip(self, zip_path):
         with zipfile.ZipFile(zip_path, 'r') as zf:
             with zf.open(zf.namelist()[0], 'r') as file:
                 data = json.load(file)
-                graph = ConjunctiveGraph()
-                graph.parse(data=json.dumps(data), format='json-ld')
-                return graph
+                dataset = Dataset(default_union=True)
+                dataset.parse(data=json.dumps(data), format='json-ld')
+                return dataset
 
-    def graphs_equal(self, graph1, graph2):
-        return isomorphic(graph1, graph2)
+    def graphs_equal(self, dataset1, dataset2):
+        quads1 = set(dataset1.quads())
+        quads2 = set(dataset2.quads())
+        return quads1 == quads2
 
 if __name__ == '__main__':
     unittest.main()

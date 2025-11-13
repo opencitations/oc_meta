@@ -2,7 +2,7 @@ import argparse
 import zipfile
 import os
 import json
-from rdflib import ConjunctiveGraph, URIRef
+from rdflib import Dataset, URIRef
 from tqdm import tqdm
 from multiprocessing import Pool, cpu_count
 from oc_meta.run.align_rdf_with_triplestore import find_paths
@@ -21,11 +21,11 @@ def extract_and_process_json(zip_path, source_folder):
             if file_info.filename.endswith('.json'):
                 with z.open(file_info.filename) as file:
                     json_data = json.load(file)
-                    graph = ConjunctiveGraph()
-                    graph.parse(data=json.dumps(json_data), format='json-ld')
-                    for subject in graph.subjects(unique=True):
+                    dataset = Dataset(default_union=True)
+                    dataset.parse(data=json.dumps(json_data), format='json-ld')
+                    for subject in dataset.subjects(unique=True):
                         current_context = URIRef(str(subject).split('/prov/')[0] + '/prov/')
-                        if not (subject, URIRef("http://www.w3.org/ns/prov#hadPrimarySource"), None) in graph:
+                        if not (subject, URIRef("http://www.w3.org/ns/prov#hadPrimarySource"), None) in dataset:
                             _, cur_file_path = find_paths(subject, source_folder, BASE_IRI, "_", DIR_SPLIT, N_FILE_ITEM, IS_JSON)
                             cur_file_path = cur_file_path.replace('.json', '.zip')
                             if cur_file_path not in processed_zip_cache:
@@ -35,32 +35,32 @@ def extract_and_process_json(zip_path, source_folder):
                                             if cur_file_info.filename.endswith('.json'):
                                                 with cur_zip.open(cur_file_info.filename) as cur_file:
                                                     cur_json_data = json.load(cur_file)
-                                                    cur_graph = ConjunctiveGraph()
-                                                    cur_graph.parse(data=json.dumps(cur_json_data), format='json-ld')
-                                                    processed_zip_cache[cur_file_path] = cur_graph
+                                                    cur_dataset = Dataset(default_union=True)
+                                                    cur_dataset.parse(data=json.dumps(cur_json_data), format='json-ld')
+                                                    processed_zip_cache[cur_file_path] = cur_dataset
                             if cur_file_path in processed_zip_cache:
-                                cur_graph: ConjunctiveGraph = processed_zip_cache[cur_file_path]
+                                cur_dataset = processed_zip_cache[cur_file_path]
                                 # Check for the prov#hadPrimarySource predicate
-                                for o in cur_graph.objects(subject, URIRef("http://www.w3.org/ns/prov#hadPrimarySource"), unique=True):
+                                for o in cur_dataset.objects(subject, URIRef("http://www.w3.org/ns/prov#hadPrimarySource"), unique=True):
                                     if str(o) == 'https://api.crossref.org/':
-                                        graph.add((subject, URIRef("http://www.w3.org/ns/prov#hadPrimarySource"), URIRef('https://api.crossref.org/snapshots/monthly/2022/12/all.json.tar.gz'), current_context))
+                                        dataset.add((subject, URIRef("http://www.w3.org/ns/prov#hadPrimarySource"), URIRef('https://api.crossref.org/snapshots/monthly/2022/12/all.json.tar.gz'), current_context))
                                         changes_made = True
                                     elif str(o) == 'https://api.datacite.org/':
-                                        graph.add((subject, URIRef("http://www.w3.org/ns/prov#hadPrimarySource"), URIRef('https://archive.org/details/datacite_dump_20211022'), current_context))
+                                        dataset.add((subject, URIRef("http://www.w3.org/ns/prov#hadPrimarySource"), URIRef('https://archive.org/details/datacite_dump_20211022'), current_context))
                                         changes_made = True
                                     elif str(o) == 'https://nih.figshare.com/collections/iCite_Database_Snapshots_NIH_Open_Citation_Collection_/4586573/42':
-                                        graph.add((subject, URIRef("http://www.w3.org/ns/prov#hadPrimarySource"), URIRef('https://nih.figshare.com/collections/iCite_Database_Snapshots_NIH_Open_Citation_Collection_/4586573/36'), current_context))
+                                        dataset.add((subject, URIRef("http://www.w3.org/ns/prov#hadPrimarySource"), URIRef('https://nih.figshare.com/collections/iCite_Database_Snapshots_NIH_Open_Citation_Collection_/4586573/36'), current_context))
                                         changes_made = True
                                     elif str(o) == 'https://api.crossref.org/snapshots/monthly/2023/09/all.json.tar.gz':
-                                        graph.add((subject, URIRef("http://www.w3.org/ns/prov#hadPrimarySource"), URIRef('https://api.crossref.org/snapshots/monthly/2023/09/all.json.tar.gz'), current_context))
+                                        dataset.add((subject, URIRef("http://www.w3.org/ns/prov#hadPrimarySource"), URIRef('https://api.crossref.org/snapshots/monthly/2023/09/all.json.tar.gz'), current_context))
                                         changes_made = True
                                     elif str(o) == 'https://doi.org/10.5281/zenodo.7845968':
-                                        graph.add((subject, URIRef("http://www.w3.org/ns/prov#hadPrimarySource"), URIRef('https://doi.org/10.5281/zenodo.7845968'), current_context))
+                                        dataset.add((subject, URIRef("http://www.w3.org/ns/prov#hadPrimarySource"), URIRef('https://doi.org/10.5281/zenodo.7845968'), current_context))
                                         changes_made = True
                                     else:
                                         print(o)
     if changes_made:
-        updated_json = graph.serialize(format='json-ld', indent=None, ensure_ascii=False)
+        updated_json = dataset.serialize(format='json-ld', indent=None, ensure_ascii=False)
         with zipfile.ZipFile(zip_path, 'w', compression=zipfile.ZIP_DEFLATED, allowZip64=True) as z:
             z.writestr('se.json', updated_json)
 

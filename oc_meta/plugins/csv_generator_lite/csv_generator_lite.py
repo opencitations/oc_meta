@@ -146,7 +146,6 @@ def load_processed_omids_to_redis(output_dir: str, redis_client: redis.Redis) ->
 
     # Get list of CSV files first
     csv_files = [f for f in os.listdir(output_dir) if f.endswith(".csv")]
-    print(f"Loading {len(csv_files)} CSV files into Redis cache...")
 
     # Read all CSV files and collect OMIDs with progress bar
     for filename in tqdm(csv_files, desc="Loading existing identifiers"):
@@ -179,7 +178,6 @@ def load_processed_omids_to_redis(output_dir: str, redis_client: redis.Redis) ->
             if batch_count > 0:
                 batch_pipe.execute()
 
-    print(f"Loaded {count} identifiers into Redis cache")
     return count
 
 

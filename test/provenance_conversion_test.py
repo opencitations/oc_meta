@@ -4,7 +4,7 @@ import tempfile
 import zipfile
 import shutil
 from pathlib import Path
-from rdflib import ConjunctiveGraph, URIRef, Literal, Graph
+from rdflib import Dataset, URIRef, Literal, Graph
 
 
 from oc_meta.run import provenance_conversion
@@ -45,30 +45,33 @@ class TestProvenanceConversionIntegration(unittest.TestCase):
 
     def test_count_quads(self):
         """Test the count_quads function."""
-        graph = ConjunctiveGraph()
+        graph = Dataset()
         graph.add((URIRef("ex:s1"), URIRef("ex:p1"), Literal("o1")))
         graph.add((URIRef("ex:s2"), URIRef("ex:p2"), Literal("o2"), URIRef("ex:g1")))
         self.assertEqual(provenance_conversion.count_quads(graph), 2)
-        self.assertEqual(provenance_conversion.count_quads(ConjunctiveGraph()), 0)
+        self.assertEqual(provenance_conversion.count_quads(Dataset()), 0)
 
     def test_convert_jsonld_to_nquads_success(self):
         """Test successful conversion from JSON-LD to N-Quads."""
         graph, nquads = provenance_conversion.convert_jsonld_to_nquads(SAMPLE_JSONLD)
         self.assertIsNotNone(graph)
         self.assertIsNotNone(nquads)
-        self.assertIsInstance(graph, ConjunctiveGraph)
+        self.assertIsInstance(graph, Dataset)
 
-        expected_graph = Graph()
+        expected_dataset = Dataset()
         subj = URIRef("http://example.org/entity1")
         type_pred = URIRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
         schema_type = URIRef("http://schema.org/CreativeWork")
         name_pred = URIRef("http://schema.org/name")
         name_obj = Literal("Test Entity")
-        expected_graph.add((subj, type_pred, schema_type))
-        expected_graph.add((subj, name_pred, name_obj))
+        expected_dataset.add((subj, type_pred, schema_type))
+        expected_dataset.add((subj, name_pred, name_obj))
 
-        self.assertEqual(len(graph), len(expected_graph))
-        self.assertTrue(graph.isomorphic(expected_graph))
+        self.assertEqual(len(graph), len(expected_dataset))
+        # Compare quads since Dataset iterates as quads
+        actual_quads = set(graph.quads())
+        expected_quads = set(expected_dataset.quads())
+        self.assertEqual(actual_quads, expected_quads)
 
     def test_convert_jsonld_to_nquads_failure(self):
         """Test conversion failure with invalid JSON-LD."""
@@ -87,18 +90,21 @@ class TestProvenanceConversionIntegration(unittest.TestCase):
         self.assertTrue(expected_output_path.exists(), f"Output file {expected_output_path} was not created")
         self.assertTrue(expected_output_path.is_file())
 
-        output_graph = ConjunctiveGraph()
+        output_graph = Dataset()
         try:
             output_graph.parse(expected_output_path, format='nquads')
         except Exception as e:
             self.fail(f"Failed to parse the generated N-Quads file {expected_output_path}: {e}")
 
-        input_graph_for_check = ConjunctiveGraph()
+        input_graph_for_check = Dataset()
         input_graph_for_check.parse(data=SAMPLE_JSONLD, format='json-ld')
 
         self.assertEqual(len(output_graph), len(input_graph_for_check),
                          f"Quad count mismatch: Output={len(output_graph)}, Expected={len(input_graph_for_check)}")
-        self.assertTrue(output_graph.isomorphic(input_graph_for_check),
+        # Compare quads since Dataset iterates as quads
+        actual_quads = set(output_graph.quads())
+        expected_quads = set(input_graph_for_check.quads())
+        self.assertEqual(actual_quads, expected_quads,
                         "Output graph content does not match expected content")
 
     def test_process_zip_file_no_json_integration(self):

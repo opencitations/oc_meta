@@ -5,7 +5,7 @@ import unittest
 import zipfile
 
 from oc_meta.run.fixer.prov.fix import ProvenanceProcessor
-from rdflib import ConjunctiveGraph, Literal, Namespace, URIRef
+from rdflib import Graph, Literal, Namespace, URIRef
 from rdflib.namespace import XSD
 
 
@@ -93,7 +93,7 @@ class TestProvenanceFixing(unittest.TestCase):
 
     def test_collect_snapshot_info(self):
         """Test collecting snapshot information from the graph."""
-        g = ConjunctiveGraph()
+        g = Graph()
         PROV = Namespace("http://www.w3.org/ns/prov#")
         
         # Add test data
@@ -114,7 +114,7 @@ class TestProvenanceFixing(unittest.TestCase):
 
     def test_multiple_timestamps(self):
         """Test handling of multiple timestamps for a snapshot."""
-        g = ConjunctiveGraph()
+        g = Graph()
         PROV = Namespace("http://www.w3.org/ns/prov#")
         
         snapshot = URIRef("https://w3id.org/oc/meta/br/06504122264/prov/se/1")

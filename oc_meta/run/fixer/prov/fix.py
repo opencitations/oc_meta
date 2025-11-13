@@ -10,7 +10,7 @@ from typing import List, Optional, Tuple
 from zoneinfo import ZoneInfo
 
 from pebble import ProcessPool
-from rdflib import ConjunctiveGraph, Literal, Namespace, URIRef
+from rdflib import Dataset, Graph, Literal, Namespace, URIRef
 from rdflib.namespace import RDF, XSD
 from tqdm import tqdm
 
@@ -125,7 +125,7 @@ class ProvenanceProcessor:
             self.logger.error(f"Error normalizing timestamp {literal}: {e}")
             return literal, False
 
-    def _collect_snapshot_info(self, context: ConjunctiveGraph) -> List[dict]:
+    def _collect_snapshot_info(self, context: Graph) -> List[dict]:
         """Collect all snapshot information in a single pass."""
         snapshots = []
         seen_uris = set()
@@ -154,7 +154,7 @@ class ProvenanceProcessor:
             
         return sorted_snapshots
 
-    def _fill_missing_snapshots(self, context: ConjunctiveGraph, 
+    def _fill_missing_snapshots(self, context: Graph, 
                                 snapshots: List[dict], base_uri: str) -> List[dict]:
         """Fill in missing snapshots in the sequence."""
         if not snapshots:
@@ -200,7 +200,7 @@ class ProvenanceProcessor:
                     
         return sorted(filled_snapshots, key=lambda x: x['number'])
 
-    def _create_missing_snapshot(self, context: ConjunctiveGraph, 
+    def _create_missing_snapshot(self, context: Graph, 
                             missing_uri: URIRef, number: int,
                             prev_snapshot: Optional[dict], 
                             next_snapshot: Optional[dict]) -> dict:
@@ -310,7 +310,7 @@ class ProvenanceProcessor:
             'invalidation_times': [invalidation_time] if invalidation_time else []
         }
 
-    def _remove_multiple_timestamps(self, context: ConjunctiveGraph, 
+    def _remove_multiple_timestamps(self, context: Graph, 
                                   snapshot_uri: URIRef, 
                                   predicate: URIRef, 
                                   timestamps: List[Literal]) -> None:
@@ -330,14 +330,14 @@ class ProvenanceProcessor:
         
         try:
             with zipfile.ZipFile(prov_file_path, 'r') as zip_ref:
-                g = ConjunctiveGraph()
+                g = Dataset()
                 for filename in zip_ref.namelist():
                     with zip_ref.open(filename) as file:
                         g.parse(file, format='json-ld')
-                
+
                 modified = False
-                
-                for context in g.contexts():
+
+                for context in g.graphs():
                     context_uri = str(context.identifier)
                     if not context_uri.endswith('/prov/'):
                         continue
@@ -361,7 +361,7 @@ class ProvenanceProcessor:
             process_logger.error(f"Error processing {prov_file_path}: {e}")
             return None
 
-    def _process_snapshots(self, context: ConjunctiveGraph, entity_uri: URIRef, 
+    def _process_snapshots(self, context: Graph, entity_uri: URIRef, 
                         snapshots: List[dict]) -> bool:
         """Process all snapshots in batch operations."""
         modified = False
@@ -426,7 +426,7 @@ class ProvenanceProcessor:
         
         return modified
 
-    def _process_timestamps(self, context: ConjunctiveGraph, snapshots: List[dict]) -> bool:
+    def _process_timestamps(self, context: Graph, snapshots: List[dict]) -> bool:
         """Process all timestamps in batch."""
         modified = False
         
@@ -448,7 +448,7 @@ class ProvenanceProcessor:
         )
         return Literal(earliest.isoformat(), datatype=XSD.dateTime)
 
-    def _handle_generation_time(self, context: ConjunctiveGraph, 
+    def _handle_generation_time(self, context: Graph, 
                             snapshots: List[dict], index: int) -> bool:
         """Handle generation time for a snapshot."""
         modified = False
@@ -499,7 +499,7 @@ class ProvenanceProcessor:
         
         return modified
 
-    def _handle_invalidation_time(self, context: ConjunctiveGraph, 
+    def _handle_invalidation_time(self, context: Graph, 
                                 snapshots: List[dict], index: int) -> bool:
         """Handle invalidation time for a snapshot.
         
@@ -570,12 +570,12 @@ class ProvenanceProcessor:
         
         return modified
 
-    def _handle_multiple_descriptions(self, context: ConjunctiveGraph, snapshot_uri: URIRef, 
+    def _handle_multiple_descriptions(self, context: Graph, snapshot_uri: URIRef, 
                                 is_first_snapshot: bool, is_last_snapshot: bool) -> bool:
         """Handle cases where a snapshot has multiple descriptions.
-        
+
         Args:
-            context (ConjunctiveGraph): The RDF graph context
+            context (Graph): The RDF graph context
             snapshot_uri (URIRef): The URI of the snapshot to process
             is_first_snapshot (bool): Whether this is the first snapshot in the sequence
             is_last_snapshot (bool): Whether this is the last snapshot in the sequence

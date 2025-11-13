@@ -5,7 +5,7 @@ from rdflib import Graph
 from SPARQLWrapper import POST, SPARQLWrapper
 
 from oc_meta.lib.finder import ResourceFinder
-from rdflib import URIRef, ConjunctiveGraph, Graph
+from rdflib import URIRef, Dataset, Graph
 
 
 def get_path(path:str) -> str:
@@ -22,7 +22,7 @@ def add_data_ts(server, data_path, batch_size:int=100, default_graph_uri=URIRef(
         g = Graph()
         g.parse(location=f_path, format='nt')
     elif file_extension == '.nq':
-        g = ConjunctiveGraph()
+        g = Dataset()
         g.parse(location=f_path, format='nquads')
     elif file_extension == '.ttl':
         g = Graph()

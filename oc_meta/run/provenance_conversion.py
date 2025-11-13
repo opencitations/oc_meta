@@ -10,7 +10,7 @@ import logging
 import os
 import zipfile
 from pathlib import Path
-from rdflib import ConjunctiveGraph
+from rdflib import Dataset
 from tqdm import tqdm
 import multiprocessing
 from pebble import ProcessPool
@@ -18,11 +18,11 @@ from functools import partial
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-def count_quads(graph: ConjunctiveGraph) -> int:
+def count_quads(graph: Dataset) -> int:
     """Counts the number of quads in an RDFLib graph."""
     return len(graph)
 
-def convert_jsonld_to_nquads(jsonld_content: str) -> tuple[ConjunctiveGraph | None, str | None]:
+def convert_jsonld_to_nquads(jsonld_content: str) -> tuple[Dataset | None, str | None]:
     """
     Converts a JSON-LD string into an RDFLib graph and serializes it to N-Quads.
 
@@ -33,7 +33,7 @@ def convert_jsonld_to_nquads(jsonld_content: str) -> tuple[ConjunctiveGraph | No
         A tuple containing the RDFLib graph and the N-Quads string,
         or (None, None) in case of parsing or serialization error.
     """
-    graph = ConjunctiveGraph()
+    graph = Dataset()
     try:
         graph.parse(data=jsonld_content, format='json-ld')
         nquads_content = graph.serialize(format='nquads')
@@ -102,7 +102,7 @@ def process_zip_file(zip_path: Path, output_dir: Path, input_dir_path: Path) -> 
         with open(output_nq_path, 'w', encoding='utf-8') as f:
             f.write(nquads_output)
 
-        output_graph = ConjunctiveGraph()
+        output_graph = Dataset()
         try:
             output_graph.parse(output_nq_path, format='nquads')
             output_quad_count = count_quads(output_graph)

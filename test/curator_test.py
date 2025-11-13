@@ -4,7 +4,7 @@ import unittest
 
 from oc_ocdm import Storer
 from SPARQLWrapper import POST, SPARQLWrapper
-from rdflib import Graph, ConjunctiveGraph
+from rdflib import Graph, Dataset
 import redis
 from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
 
@@ -63,20 +63,20 @@ def add_data_ts(server:str=SERVER, data_path:str=os.path.abspath(os.path.join('t
         g = Graph()
         g.parse(location=f_path, format='nt')
     elif file_extension == '.nq':
-        g = ConjunctiveGraph()
+        g = Dataset(default_union=True)
         g.parse(location=f_path, format='nquads')
     elif file_extension == '.ttl':
         g = Graph()
         g.parse(location=f_path, format='turtle')
     else:
         raise ValueError(f"Unsupported file extension: {file_extension}")
-    
+
     triples_list = []
     if file_extension in {'.nt', '.ttl'}:
         for subj, pred, obj in g:
             triples_list.append((subj, pred, obj, default_graph_uri))
     elif file_extension == '.nq':
-        for subj, pred, obj, ctx in g.quads((None, None, None, None)):
+        for subj, pred, obj, ctx in g.quads():
             triples_list.append((subj, pred, obj, ctx))
     
     for i in range(0, len(triples_list), batch_size):

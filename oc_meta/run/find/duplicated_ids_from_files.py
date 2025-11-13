@@ -8,7 +8,7 @@ import zipfile
 from collections import defaultdict
 from typing import Dict, List, Set
 
-from rdflib import ConjunctiveGraph, URIRef
+from rdflib import Dataset, URIRef
 from tqdm import tqdm
 
 def process_zip_file(zip_path: str) -> Dict[tuple, Set[str]]:
@@ -21,7 +21,7 @@ def process_zip_file(zip_path: str) -> Dict[tuple, Set[str]]:
             for zip_file in zip_ref.namelist():
                 try:
                     with zip_ref.open(zip_file) as rdf_file:
-                        g = ConjunctiveGraph()
+                        g = Dataset(default_union=True)
                         g.parse(data=rdf_file.read(), format="json-ld")
                         
                         for s, _, o in g.triples((None, datacite_uses_identifier_scheme, None)):

@@ -17,7 +17,7 @@ import yaml
 from oc_meta.lib.file_manager import get_csv_data, write_csv
 from oc_meta.run.meta_process import run_meta_process
 from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
-from rdflib import ConjunctiveGraph, Graph, Literal, URIRef
+from rdflib import Dataset, Graph, Literal, URIRef
 from SPARQLWrapper import JSON, POST, XML, SPARQLWrapper
 
 BASE_DIR = os.path.join("test", "meta_process")
@@ -1126,7 +1126,7 @@ class test_ProcessTest(unittest.TestCase):
             location=os.path.join(BASE_DIR, "test_omid_in_input_data.json"),
             format="json-ld",
         )
-        prov_graph = ConjunctiveGraph()
+        prov_graph = Dataset()
         for dirpath, dirnames, filenames in os.walk(os.path.join(output_folder, "rdf")):
             if "br" in dirpath and "prov" in dirpath:
                 for filename in filenames:
@@ -1134,7 +1134,7 @@ class test_ProcessTest(unittest.TestCase):
                         source=os.path.join(dirpath, filename), format="json-ld"
                     )
 
-        expected_prov_graph = ConjunctiveGraph()
+        expected_prov_graph = Dataset()
         expected_prov_graph.parse(
             os.path.join(BASE_DIR, "test_omid_in_input_data_prov.json"),
             format="json-ld",
