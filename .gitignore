@@ -29,4 +29,3 @@ test/test_virtuoso_prov_db
 gently_run.sh
 gently_stop.sh
 virtuoso_dumps
-AGENTS.md

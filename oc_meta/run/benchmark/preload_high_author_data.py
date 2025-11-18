@@ -8,7 +8,9 @@ Used by benchmark.py to generate and load BRs with thousands of authors.
 
 import os
 import random
+import time
 
+import psutil
 import yaml
 
 from oc_meta.run.meta_process import run_meta_process
@@ -80,13 +82,16 @@ def generate_atlas_update_csv(output_path: str) -> None:
     print(f"Generated update CSV: {output_path}")
 
 
-def preload_data(config_path: str, csv_path: str) -> None:
+def preload_data(config_path: str, csv_path: str) -> dict:
     """
     Load test data into triplestore using MetaProcess.
 
     Args:
         config_path: Path to meta_config.yaml
         csv_path: Path to CSV file to process
+
+    Returns:
+        Dictionary with preload metrics (duration and memory usage)
     """
     print(f"\n{'='*60}")
     print("Preloading High-Author Test Data")
@@ -111,14 +116,35 @@ def preload_data(config_path: str, csv_path: str) -> None:
         print(f"Input directory: {test_input_dir}")
         print(f"CSV file: {os.path.basename(csv_path)}\n")
 
+        start_time = time.time()
+        process = psutil.Process()
+        start_memory = process.memory_info().rss
+
         run_meta_process(settings, temp_config_path)
+
+        end_time = time.time()
+        end_memory = process.memory_info().rss
+
+        duration = end_time - start_time
+        start_memory_mb = round(start_memory / 1024 / 1024, 2)
+        end_memory_mb = round(end_memory / 1024 / 1024, 2)
 
         print(f"\n{'='*60}")
         print("Preload Complete")
+        print(f"Duration: {duration:.2f}s")
+        print(f"Memory: {start_memory_mb:.2f} MB -> {end_memory_mb:.2f} MB")
         print(f"{'='*60}\n")
 
+        return {
+            "duration_seconds": round(duration, 3),
+            "start_memory_mb": start_memory_mb,
+            "end_memory_mb": end_memory_mb
+        }
+
     finally:
-        if os.path.exists(temp_config_path):
-            os.remove(temp_config_path)
+        os.remove(temp_config_path)
+
+        time_agnostic_config = os.path.join(test_input_dir, "time_agnostic_library_config.json")
+        os.remove(time_agnostic_config)
 
         settings["input_csv_dir"] = original_input_dir

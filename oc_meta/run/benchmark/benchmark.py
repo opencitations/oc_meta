@@ -325,18 +325,13 @@ class MetaBenchmark:
 
     def _read_csv(self, csv_path: str) -> List[Dict[str, str]]:
         """Read CSV file and return data."""
-        print("[Phase 1/4] Reading CSV...")
-        with BenchmarkTimer("csv_reading") as timer:
-            data = file_manager.get_csv_data(csv_path)
-
-        self.timers.append(timer)
+        data = file_manager.get_csv_data(csv_path)
         self.metrics["input_records"] = len(data)
-        print(f"  - Read {len(data)} records in {timer.duration:.2f}s")
         return data
 
     def _run_curation(self, data: List[Dict[str, str]]) -> Curator:
         """Run curation phase."""
-        print("[Phase 2/4] Running curation (validation, disambiguation)...")
+        print("[Phase 1/3] Running curation (validation, disambiguation)...")
         with BenchmarkTimer("curation") as timer:
             curator = Curator(
                 data=data,
@@ -357,7 +352,7 @@ class MetaBenchmark:
 
     def _run_creation(self, curator: Curator):
         """Run RDF creation phase."""
-        print("[Phase 3/4] Creating RDF entities...")
+        print("[Phase 2/3] Creating RDF entities...")
         with BenchmarkTimer("rdf_creation") as timer:
             local_g_size = len(curator.everything_everywhere_allatonce)
             self.metrics["local_g_triples"] = local_g_size
@@ -419,7 +414,7 @@ class MetaBenchmark:
         data_upload_folder = os.path.join(data_update_dir, "to_be_uploaded")
         prov_upload_folder = os.path.join(prov_update_dir, "to_be_uploaded")
 
-        print("[Phase 4/4] Running parallel SPARQL generation + upload...")
+        print("[Phase 3/3] Running parallel SPARQL generation + upload...")
         with BenchmarkTimer("storage_and_upload") as timer:
             repok = Reporter(print_sentences=False)
             reperr = Reporter(print_sentences=True, prefix="[Storer: ERROR] ")
@@ -624,6 +619,7 @@ def main():
     benchmark = MetaBenchmark(args.config)
 
     try:
+        preload_metrics = None
         if args.preload_high_authors:
             print(f"\n{'='*60}")
             print(f"Preloading BR with {args.preload_high_authors} authors")
@@ -632,7 +628,7 @@ def main():
             preload_csv = os.path.join(benchmark.input_dir, f"_preload_{args.preload_high_authors}_authors.csv")
             generate_atlas_paper_csv(preload_csv, args.preload_high_authors, args.preload_seed)
 
-            preload_data(args.config, preload_csv)
+            preload_metrics = preload_data(args.config, preload_csv)
 
             print("\n[Preload] Complete - triplestore now contains BR with many authors")
 
@@ -646,6 +642,8 @@ def main():
             args.size = None
 
         report = benchmark.run_benchmark(size=args.size, seed=args.seed)
+        if preload_metrics:
+            report["preload_metrics"] = preload_metrics
         benchmark.save_report(report, args.output)
     finally:
         if not args.no_cleanup:
