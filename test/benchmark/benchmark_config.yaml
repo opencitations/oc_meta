@@ -69,8 +69,8 @@ graphdb_connector_name: ''
 # Cache endpoint for faster provenance queries
 cache_endpoint: ''
 cache_update_endpoint: ''
-# Silencer list (empty for benchmark to test full updates)
-silencer: []
+# Silencer list (testing high-author bottleneck with silenced fields)
+silencer: ["author", "editor", "publisher"]
 
 # Redis settings (using test database)
 redis_host: localhost

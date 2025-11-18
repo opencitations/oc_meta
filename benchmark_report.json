@@ -1,72 +1,65 @@
 {
-  "timestamp": "2025-11-18T09:57:12.687660",
+  "timestamp": "2025-11-18T10:57:10.579881",
   "config_path": "./test/benchmark/benchmark_config.yaml",
   "metrics": {
     "input_records": 1,
     "curated_records": 1,
-    "local_g_triples": 25069,
-    "preexisting_entities_count": 6268,
+    "local_g_triples": 23973,
+    "preexisting_entities_count": 5994,
     "modified_entities_count": 0,
-    "entities_created": 6268,
+    "entities_created": 7,
     "sparql_files_data": 0,
     "sparql_files_prov": 0,
-    "throughput_records_per_sec": 0.02,
-    "total_duration_seconds": 65.766
+    "throughput_records_per_sec": 0.04,
+    "total_duration_seconds": 28.218
   },
   "phases": [
     {
-      "name": "csv_reading",
-      "duration_seconds": 0.0,
-      "start_memory_mb": 2742.41,
-      "end_memory_mb": 2742.41,
-      "peak_memory_mb": 2742.41
-    },
-    {
       "name": "curation",
-      "duration_seconds": 28.126,
-      "start_memory_mb": 2742.41,
-      "end_memory_mb": 2554.18,
-      "peak_memory_mb": 2742.41
+      "duration_seconds": 24.076,
+      "start_memory_mb": 2723.5,
+      "end_memory_mb": 2734.55,
+      "peak_memory_mb": 2734.55
     },
     {
       "name": "creator_execution",
-      "duration_seconds": 22.122,
-      "start_memory_mb": 2554.18,
-      "end_memory_mb": 2652.49,
-      "peak_memory_mb": 2652.49
+      "duration_seconds": 3.372,
+      "start_memory_mb": 2734.55,
+      "end_memory_mb": 2600.59,
+      "peak_memory_mb": 2734.55
     },
     {
       "name": "provenance_generation",
-      "duration_seconds": 3.532,
-      "start_memory_mb": 2652.49,
-      "end_memory_mb": 2658.08,
-      "peak_memory_mb": 2658.08
+      "duration_seconds": 0.112,
+      "start_memory_mb": 2600.59,
+      "end_memory_mb": 2600.59,
+      "peak_memory_mb": 2600.59
     },
     {
       "name": "rdf_creation",
-      "duration_seconds": 25.657,
-      "start_memory_mb": 2554.18,
-      "end_memory_mb": 2658.08,
-      "peak_memory_mb": 2658.08
+      "duration_seconds": 3.486,
+      "start_memory_mb": 2734.55,
+      "end_memory_mb": 2600.59,
+      "peak_memory_mb": 2734.55
     },
     {
       "name": "storage_and_upload",
-      "duration_seconds": 11.98,
-      "start_memory_mb": 2658.08,
-      "end_memory_mb": 2712.84,
-      "peak_memory_mb": 2712.84
+      "duration_seconds": 0.653,
+      "start_memory_mb": 2600.59,
+      "end_memory_mb": 2603.42,
+      "peak_memory_mb": 2603.42
     },
     {
       "name": "total_processing",
-      "duration_seconds": 65.766,
-      "start_memory_mb": 2742.41,
-      "end_memory_mb": 2712.84,
-      "peak_memory_mb": 2742.41
+      "duration_seconds": 28.218,
+      "start_memory_mb": 2723.5,
+      "end_memory_mb": 2603.42,
+      "peak_memory_mb": 2723.5
     }
   ],
   "preload_metrics": {
-    "duration_seconds": 294.142,
-    "start_memory_mb": 54.25,
-    "end_memory_mb": 2742.41
+    "duration_seconds": 298.912,
+    "start_memory_mb": 54.18,
+    "end_memory_mb": 2723.5
   }
 }

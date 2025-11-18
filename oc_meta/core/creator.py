@@ -57,6 +57,7 @@ class Creator(object):
         everything_everywhere_allatonce: Graph,
         settings: dict = None,
         meta_config_path: str = None,
+        silencer: list = None,
     ):
         self.url = base_iri
         self.setgraph = GraphSet(
@@ -99,6 +100,40 @@ class Creator(object):
         self.preexisting_graphs = dict()
         self.data = data
         self.counter_handler = counter_handler
+        self.silencer = silencer or []
+
+    def _has_existing_roles(self, br_uri: URIRef) -> dict:
+        """
+        Check if BR has existing author/editor/publisher roles in local_g.
+
+        Args:
+            br_uri: URI of the bibliographic resource
+
+        Returns:
+            Dictionary with keys 'author', 'editor', 'publisher' indicating presence of existing roles
+        """
+        has_roles = {
+            "author": False,
+            "editor": False,
+            "publisher": False
+        }
+
+        pro_isDocumentContextFor = URIRef("http://purl.org/spar/pro/isDocumentContextFor")
+        pro_withRole = URIRef("http://purl.org/spar/pro/withRole")
+        pro_author = URIRef("http://purl.org/spar/pro/author")
+        pro_editor = URIRef("http://purl.org/spar/pro/editor")
+        pro_publisher = URIRef("http://purl.org/spar/pro/publisher")
+
+        for _, _, ar_uri in self.finder.local_g.triples((br_uri, pro_isDocumentContextFor, None)):
+            for _, _, role in self.finder.local_g.triples((ar_uri, pro_withRole, None)):
+                if role == pro_author:
+                    has_roles["author"] = True
+                elif role == pro_editor:
+                    has_roles["editor"] = True
+                elif role == pro_publisher:
+                    has_roles["publisher"] = True
+
+        return has_roles
 
     def creator(self, source=None):
         self.src = source
@@ -122,12 +157,33 @@ class Creator(object):
             self.id_action(ids)
             self.vvi_action(venue, vol, issue)
             self.title_action(title)
-            self.author_action(authors)
+
+            br_is_preexisting = f"br/{self.row_meta}" in self.preexisting_entities
+
+            skip_author = False
+            skip_publisher = False
+            skip_editor = False
+
+            if br_is_preexisting:
+                br_uri = URIRef(f"{self.url}br/{self.row_meta}")
+                existing_roles = self._has_existing_roles(br_uri)
+
+                skip_author = "author" in self.silencer and existing_roles["author"]
+                skip_publisher = "publisher" in self.silencer and existing_roles["publisher"]
+                skip_editor = "editor" in self.silencer and existing_roles["editor"]
+
+            if not skip_author:
+                self.author_action(authors)
+
             self.pub_date_action(pub_date)
             self.page_action(page)
             self.type_action(self.type)
-            self.publisher_action(publisher)
-            self.editor_action(editor, row)
+
+            if not skip_publisher:
+                self.publisher_action(publisher)
+
+            if not skip_editor:
+                self.editor_action(editor, row)
         return self.setgraph
 
     @staticmethod

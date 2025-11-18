@@ -266,6 +266,7 @@ class MetaProcess:
                     everything_everywhere_allatonce=curator_obj.everything_everywhere_allatonce,
                     settings=settings,
                     meta_config_path=meta_config_path,
+                    silencer=settings.get("silencer", []),
                 )
             creator = creator_obj.creator(source=self.source)
             # Provenance

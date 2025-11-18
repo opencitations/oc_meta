@@ -377,7 +377,8 @@ class MetaBenchmark:
                 preexisting_entities=curator.preexisting_entities,
                 everything_everywhere_allatonce=curator.everything_everywhere_allatonce,
                 settings=self.config,
-                meta_config_path=self.config_path
+                meta_config_path=self.config_path,
+                silencer=self.config.get("silencer", [])
             )
 
             with BenchmarkTimer("creator_execution") as exec_timer:
