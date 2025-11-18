@@ -364,7 +364,7 @@ class MetaBenchmark:
 
             creator = Creator(
                 data=curator.data,
-                endpoint=self.ts_data,
+                finder=curator.finder,
                 base_iri=self.base_iri,
                 counter_handler=self.counter_handler,
                 supplier_prefix=self.supplier_prefix,
@@ -374,10 +374,6 @@ class MetaBenchmark:
                 re_index_csv=curator.re_index,
                 ar_index_csv=curator.ar_index,
                 vi_index=curator.VolIss,
-                preexisting_entities=curator.preexisting_entities,
-                everything_everywhere_allatonce=curator.everything_everywhere_allatonce,
-                settings=self.config,
-                meta_config_path=self.config_path,
                 silencer=self.config.get("silencer", [])
             )
 

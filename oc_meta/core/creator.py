@@ -30,7 +30,7 @@ from oc_meta.lib.master_of_regex import (
     one_or_more_spaces,
     semicolon_in_people_field,
 )
-from rdflib import Graph, URIRef
+from rdflib import URIRef
 
 from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
 from oc_ocdm.graph import GraphSet
@@ -43,7 +43,7 @@ class Creator(object):
     def __init__(
         self,
         data: list,
-        endpoint: str,
+        finder: ResourceFinder,
         base_iri: str,
         counter_handler: RedisCounterHandler,
         supplier_prefix: str,
@@ -53,10 +53,6 @@ class Creator(object):
         re_index_csv: dict,
         ar_index_csv: dict,
         vi_index: dict,
-        preexisting_entities: set,
-        everything_everywhere_allatonce: Graph,
-        settings: dict = None,
-        meta_config_path: str = None,
         silencer: list = None,
     ):
         self.url = base_iri
@@ -67,13 +63,7 @@ class Creator(object):
             custom_counter_handler=counter_handler,
         )
         self.resp_agent = resp_agent
-        self.finder = ResourceFinder(
-            ts_url=endpoint,
-            base_iri=base_iri,
-            local_g=everything_everywhere_allatonce,
-            settings=settings,
-            meta_config_path=meta_config_path,
-        )
+        self.finder = finder
 
         self.ra_id_schemas = {"crossref", "orcid", "viaf", "wikidata", "ror"}
         self.br_id_schemas = {
@@ -96,8 +86,6 @@ class Creator(object):
         self.re_index = self.index_re(re_index_csv)
         self.ar_index = self.index_ar(ar_index_csv)
         self.vi_index = vi_index
-        self.preexisting_entities = preexisting_entities
-        self.preexisting_graphs = dict()
         self.data = data
         self.counter_handler = counter_handler
         self.silencer = silencer or []
@@ -158,7 +146,8 @@ class Creator(object):
             self.vvi_action(venue, vol, issue)
             self.title_action(title)
 
-            br_is_preexisting = f"br/{self.row_meta}" in self.preexisting_entities
+            br_uri = URIRef(f"{self.url}br/{self.row_meta}")
+            br_is_preexisting = br_uri in self.finder.prebuilt_subgraphs
 
             skip_author = False
             skip_publisher = False
@@ -232,13 +221,11 @@ class Creator(object):
         for identifier in idslist:
             if "omid:" in identifier:
                 identifier = identifier.replace("omid:", "")
-                preexisting_entity = (
-                    True if identifier in self.preexisting_entities else False
-                )
-                self.row_meta = identifier.replace("br/", "")
                 url = URIRef(self.url + identifier)
+                preexisting_entity = url in self.finder.prebuilt_subgraphs
+                self.row_meta = identifier.replace("br/", "")
                 preexisting_graph = (
-                    self.finder.get_subgraph(url, self.preexisting_graphs)
+                    self.finder.get_subgraph(url)
                     if preexisting_entity
                     else None
                 )
@@ -266,13 +253,11 @@ class Creator(object):
                 for identifier in aut_id_list:
                     if "omid:" in identifier:
                         identifier = str(identifier).replace("omid:", "")
-                        preexisting_entity = (
-                            True if identifier in self.preexisting_entities else False
-                        )
                         url = URIRef(self.url + identifier)
+                        preexisting_entity = url in self.finder.prebuilt_subgraphs
                         aut_meta = identifier.replace("ra/", "")
                         preexisting_graph = (
-                            self.finder.get_subgraph(url, self.preexisting_graphs)
+                            self.finder.get_subgraph(url)
                             if preexisting_entity
                             else None
                         )
@@ -300,12 +285,10 @@ class Creator(object):
                 # Author ROLE
                 AR = self.ar_index[self.row_meta]["author"][aut_meta]
                 ar_id = "ar/" + str(AR)
-                preexisting_entity = (
-                    True if ar_id in self.preexisting_entities else False
-                )
                 url_ar = URIRef(self.url + ar_id)
+                preexisting_entity = url_ar in self.finder.prebuilt_subgraphs
                 preexisting_graph = (
-                    self.finder.get_subgraph(url_ar, self.preexisting_graphs)
+                    self.finder.get_subgraph(url_ar)
                     if preexisting_entity
                     else None
                 )
@@ -345,13 +328,11 @@ class Creator(object):
                 if "omid:" in identifier:
                     ven_id = str(identifier).replace("omid:", "")
                     self.venue_meta = ven_id.replace("br/", "")
-                    preexisting_entity = (
-                        True if ven_id in self.preexisting_entities else False
-                    )
                     url = URIRef(self.url + ven_id)
+                    preexisting_entity = url in self.finder.prebuilt_subgraphs
                     venue_title = venue_and_ids.group(1)
                     preexisting_graph = (
-                        self.finder.get_subgraph(url, self.preexisting_graphs)
+                        self.finder.get_subgraph(url)
                         if preexisting_entity
                         else None
                     )
@@ -376,12 +357,10 @@ class Creator(object):
                 if vol:
                     vol_meta = self.vi_index[self.venue_meta]["volume"][vol]["id"]
                     vol_meta = "br/" + vol_meta
-                    preexisting_entity = (
-                        True if vol_meta in self.preexisting_entities else False
-                    )
                     vol_url = URIRef(self.url + vol_meta)
+                    preexisting_entity = vol_url in self.finder.prebuilt_subgraphs
                     preexisting_graph = (
-                        self.finder.get_subgraph(vol_url, self.preexisting_graphs)
+                        self.finder.get_subgraph(vol_url)
                         if preexisting_entity
                         else None
                     )
@@ -403,12 +382,10 @@ class Creator(object):
                             "id"
                         ]
                     issue_meta = "br/" + issue_meta
-                    preexisting_entity = (
-                        True if issue_meta in self.preexisting_entities else False
-                    )
                     issue_url = URIRef(self.url + issue_meta)
+                    preexisting_entity = issue_url in self.finder.prebuilt_subgraphs
                     preexisting_graph = (
-                        self.finder.get_subgraph(issue_url, self.preexisting_graphs)
+                        self.finder.get_subgraph(issue_url)
                         if preexisting_entity
                         else None
                     )
@@ -477,10 +454,10 @@ class Creator(object):
         if page:
             res_em = self.re_index[self.row_meta]
             re_id = "re/" + str(res_em)
-            preexisting_entity = True if re_id in self.preexisting_entities else False
             url_re = URIRef(self.url + re_id)
+            preexisting_entity = url_re in self.finder.prebuilt_subgraphs
             preexisting_graph = (
-                self.finder.get_subgraph(url_re, self.preexisting_graphs)
+                self.finder.get_subgraph(url_re)
                 if preexisting_entity
                 else None
             )
@@ -585,14 +562,12 @@ class Creator(object):
                 for identifier in publ_id_list:
                     if "omid:" in identifier:
                         identifier = str(identifier).replace("omid:", "")
-                        preexisting_entity = (
-                            True if identifier in self.preexisting_entities else False
-                        )
                         pub_meta = identifier.replace("ra/", "")
                         url = URIRef(self.url + identifier)
+                        preexisting_entity = url in self.finder.prebuilt_subgraphs
                         publ_name = publ_and_ids.group(1)
                         preexisting_graph = (
-                            self.finder.get_subgraph(url, self.preexisting_graphs)
+                            self.finder.get_subgraph(url)
                             if preexisting_entity
                             else None
                         )
@@ -608,13 +583,9 @@ class Creator(object):
                 # publisherRole
                 AR = self.ar_index[self.row_meta]["publisher"][pub_meta]
                 ar_id = "ar/" + str(AR)
-                preexisting_entity = (
-                    True if ar_id in self.preexisting_entities else False
-                )
                 url_ar = URIRef(self.url + ar_id)
-                preexisting_graph = self.finder.get_subgraph(
-                    url_ar, self.preexisting_graphs
-                )
+                preexisting_entity = url_ar in self.finder.prebuilt_subgraphs
+                preexisting_graph = self.finder.get_subgraph(url_ar)
                 publ_role = self.setgraph.add_ar(
                     self.resp_agent,
                     source=self.src,
@@ -641,13 +612,11 @@ class Creator(object):
                 for identifier in ed_id_list:
                     if "omid:" in identifier:
                         identifier = str(identifier).replace("omid:", "")
-                        preexisting_entity = (
-                            True if identifier in self.preexisting_entities else False
-                        )
                         ed_meta = identifier.replace("ra/", "")
                         url = URIRef(self.url + identifier)
+                        preexisting_entity = url in self.finder.prebuilt_subgraphs
                         preexisting_graph = (
-                            self.finder.get_subgraph(url, self.preexisting_graphs)
+                            self.finder.get_subgraph(url)
                             if preexisting_entity
                             else None
                         )
@@ -676,12 +645,10 @@ class Creator(object):
                 br_key = get_edited_br_metaid(row, self.row_meta, self.venue_meta)
                 AR = self.ar_index[br_key]["editor"][ed_meta]
                 ar_id = "ar/" + str(AR)
-                preexisting_entity = (
-                    True if ar_id in self.preexisting_entities else False
-                )
                 url_ar = URIRef(self.url + ar_id)
+                preexisting_entity = url_ar in self.finder.prebuilt_subgraphs
                 preexisting_graph = (
-                    self.finder.get_subgraph(url_ar, self.preexisting_graphs)
+                    self.finder.get_subgraph(url_ar)
                     if preexisting_entity
                     else None
                 )
@@ -722,12 +689,10 @@ class Creator(object):
                 if identifier.startswith(ra_id_schema):
                     identifier = identifier.replace(f"{ra_id_schema}:", "")
                     res = self.ra_index[ra_id_schema][identifier]
-                    preexisting_entity = (
-                        True if f"id/{res}" in self.preexisting_entities else False
-                    )
                     url = URIRef(self.url + "id/" + res)
+                    preexisting_entity = url in self.finder.prebuilt_subgraphs
                     preexisting_graph = (
-                        self.finder.get_subgraph(url, self.preexisting_graphs)
+                        self.finder.get_subgraph(url)
                         if preexisting_entity
                         else None
                     )
@@ -743,12 +708,10 @@ class Creator(object):
                 if identifier.startswith(br_id_schema):
                     identifier = identifier.replace(f"{br_id_schema}:", "")
                     res = self.br_index[br_id_schema][identifier]
-                    preexisting_entity = (
-                        True if f"id/{res}" in self.preexisting_entities else False
-                    )
                     url = URIRef(self.url + "id/" + res)
+                    preexisting_entity = url in self.finder.prebuilt_subgraphs
                     preexisting_graph = (
-                        self.finder.get_subgraph(url, self.preexisting_graphs)
+                        self.finder.get_subgraph(url)
                         if preexisting_entity
                         else None
                     )

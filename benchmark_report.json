@@ -1,65 +1,60 @@
 {
-  "timestamp": "2025-11-18T10:57:10.579881",
+  "timestamp": "2025-11-18T16:00:26.555112",
   "config_path": "./test/benchmark/benchmark_config.yaml",
   "metrics": {
-    "input_records": 1,
-    "curated_records": 1,
-    "local_g_triples": 23973,
-    "preexisting_entities_count": 5994,
-    "modified_entities_count": 0,
-    "entities_created": 7,
-    "sparql_files_data": 0,
-    "sparql_files_prov": 0,
-    "throughput_records_per_sec": 0.04,
-    "total_duration_seconds": 28.218
+    "input_records": 1000,
+    "curated_records": 1000,
+    "local_g_triples": 0,
+    "preexisting_entities_count": 0,
+    "modified_entities_count": 11066,
+    "entities_created": 11066,
+    "sparql_files_data": 1107,
+    "sparql_files_prov": 1107,
+    "throughput_records_per_sec": 8.68,
+    "total_duration_seconds": 115.226
   },
   "phases": [
     {
       "name": "curation",
-      "duration_seconds": 24.076,
-      "start_memory_mb": 2723.5,
-      "end_memory_mb": 2734.55,
-      "peak_memory_mb": 2734.55
+      "duration_seconds": 10.504,
+      "start_memory_mb": 54.75,
+      "end_memory_mb": 64.63,
+      "peak_memory_mb": 64.63
     },
     {
       "name": "creator_execution",
-      "duration_seconds": 3.372,
-      "start_memory_mb": 2734.55,
-      "end_memory_mb": 2600.59,
-      "peak_memory_mb": 2734.55
+      "duration_seconds": 12.199,
+      "start_memory_mb": 65.41,
+      "end_memory_mb": 418.35,
+      "peak_memory_mb": 418.35
     },
     {
       "name": "provenance_generation",
-      "duration_seconds": 0.112,
-      "start_memory_mb": 2600.59,
-      "end_memory_mb": 2600.59,
-      "peak_memory_mb": 2600.59
+      "duration_seconds": 10.881,
+      "start_memory_mb": 418.35,
+      "end_memory_mb": 680.6,
+      "peak_memory_mb": 680.6
     },
     {
       "name": "rdf_creation",
-      "duration_seconds": 3.486,
-      "start_memory_mb": 2734.55,
-      "end_memory_mb": 2600.59,
-      "peak_memory_mb": 2734.55
+      "duration_seconds": 23.087,
+      "start_memory_mb": 64.63,
+      "end_memory_mb": 680.6,
+      "peak_memory_mb": 680.6
     },
     {
       "name": "storage_and_upload",
-      "duration_seconds": 0.653,
-      "start_memory_mb": 2600.59,
-      "end_memory_mb": 2603.42,
-      "peak_memory_mb": 2603.42
+      "duration_seconds": 81.625,
+      "start_memory_mb": 680.6,
+      "end_memory_mb": 813.31,
+      "peak_memory_mb": 813.31
     },
     {
       "name": "total_processing",
-      "duration_seconds": 28.218,
-      "start_memory_mb": 2723.5,
-      "end_memory_mb": 2603.42,
-      "peak_memory_mb": 2723.5
+      "duration_seconds": 115.226,
+      "start_memory_mb": 54.49,
+      "end_memory_mb": 813.31,
+      "peak_memory_mb": 813.31
     }
-  ],
-  "preload_metrics": {
-    "duration_seconds": 298.912,
-    "start_memory_mb": 54.18,
-    "end_memory_mb": 2723.5
-  }
+  ]
 }

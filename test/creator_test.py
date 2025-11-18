@@ -5,6 +5,7 @@ import unittest
 import redis
 from oc_meta.core.creator import *
 from oc_meta.lib.file_manager import get_csv_data
+from oc_meta.lib.finder import ResourceFinder
 from oc_meta.plugins.multiprocess.resp_agents_creator import RespAgentsCreator
 from rdflib import XSD, Graph, compare
 from rdflib.term import _toPythonMapping
@@ -57,8 +58,9 @@ def prepare2test(name):
     testcase_ttl = "test/testcases/testcase_" + name + ".ttl"
 
     counter_handler = RedisCounterHandler(host='localhost', port=6381, db=5)
-    creator = Creator(data, SERVER, "https://w3id.org/oc/meta/", counter_handler, "060", 'https://orcid.org/0000-0002-8420-0696', testcase_id_ra, testcase_id_br,
-                      testcase_re, testcase_ar, testcase_vi, set(), Graph())
+    finder = ResourceFinder(ts_url=SERVER, base_iri="https://w3id.org/oc/meta/", local_g=Graph())
+    creator = Creator(data, finder, "https://w3id.org/oc/meta/", counter_handler, "060", 'https://orcid.org/0000-0002-8420-0696', testcase_id_ra, testcase_id_br,
+                      testcase_re, testcase_ar, testcase_vi)
     creator_setgraph = creator.creator()
     test_graph = Graph()
     hack_dates()
@@ -80,10 +82,11 @@ class test_Creator(unittest.TestCase):
     def test_vvi_action(self):
         base_iri = 'https://w3id.org/oc/meta/'
         vvi = {'0602': {'issue': {}, 'volume': {'107': {'id': '4733', 'issue': {'1': {'id': '4734'}, '2': {'id': '4735'}, '3': {'id': '4736'}, '4': {'id': '4737'}, '5': {'id': '4738'}, '6': {'id': '4739'}}}, '108': {'id': '4740', 'issue': {'1': {'id': '4741'}, '2': {'id': '4742'}, '3': {'id': '4743'}, '4': {'id': '4744'}}}, '104': {'id': '4712', 'issue': {'1': {'id': '4713'}, '2': {'id': '4714'}, '3': {'id': '4715'}, '4': {'id': '4716'}, '5': {'id': '4717'}, '6': {'id': '4718'}}}, '148': {'id': '4417', 'issue': {'12': {'id': '4418'}, '11': {'id': '4419'}}}, '100': {'id': '4684', 'issue': {'1': {'id': '4685'}, '2': {'id': '4686'}, '3': {'id': '4687'}, '4': {'id': '4688'}, '5': {'id': '4689'}, '6': {'id': '4690'}}}, '101': {'id': '4691', 'issue': {'1': {'id': '4692'}, '2': {'id': '4693'}, '3': {'id': '4694'}, '4': {'id': '4695'}, '5': {'id': '4696'}, '6': {'id': '4697'}}}, '102': {'id': '4698', 'issue': {'1': {'id': '4699'}, '2': {'id': '4700'}, '3': {'id': '4701'}, '4': {'id': '4702'}, '5': {'id': '4703'}, '6': {'id': '4704'}}}, '103': {'id': '4705', 'issue': {'1': {'id': '4706'}, '2': {'id': '4707'}, '3': {'id': '4708'}, '4': {'id': '4709'}, '5': {'id': '4710'}, '6': {'id': '4711'}}}, '105': {'id': '4719', 'issue': {'1': {'id': '4720'}, '2': {'id': '4721'}, '3': {'id': '4722'}, '4': {'id': '4723'}, '5': {'id': '4724'}, '6': {'id': '4725'}}}, '106': {'id': '4726', 'issue': {'6': {'id': '4732'}, '1': {'id': '4727'}, '2': {'id': '4728'}, '3': {'id': '4729'}, '4': {'id': '4730'}, '5': {'id': '4731'}}}}}}
-        creator = Creator([], SERVER, base_iri, self.counter_handler, "060", 'https://orcid.org/0000-0002-8420-0696', [], [], [], [], vvi, set(), Graph())
+        finder = ResourceFinder(ts_url=SERVER, base_iri=base_iri, local_g=Graph())
+        creator = Creator([], finder, base_iri, self.counter_handler, "060", 'https://orcid.org/0000-0002-8420-0696', [], [], [], [], vvi)
         creator.src = None
         creator.type = 'journal article'
-        preexisting_graph = creator.finder.get_subgraph(URIRef(f'{base_iri}br/0601'), dict())
+        preexisting_graph = creator.finder.get_subgraph(URIRef(f'{base_iri}br/0601'))
         creator.br_graph = creator.setgraph.add_br('https://orcid.org/0000-0002-8420-0696', None, URIRef(f'{base_iri}br/0601'), preexisting_graph=preexisting_graph)
         creator.vvi_action('OECD [omid:br/0602]', '107', '1')
         output_graph = Graph()
@@ -120,7 +123,8 @@ class test_RespAgentsCreator(unittest.TestCase):
     def test_creator(self):
         data = get_csv_data("test/testcases/testcase_data/resp_agents_creator.csv")
         testcase_id_ra = get_csv_data("test/testcases/testcase_data/indices/resp_agents_creator/index_id_ra.csv")
-        creator = RespAgentsCreator(data, SERVER, "https://w3id.org/oc/meta/", self.counter_handler, "060", 'https://orcid.org/0000-0002-8420-0696', testcase_id_ra, set(), Graph())
+        finder = ResourceFinder(ts_url=SERVER, base_iri="https://w3id.org/oc/meta/", local_g=Graph())
+        creator = RespAgentsCreator(data, finder, "https://w3id.org/oc/meta/", self.counter_handler, "060", 'https://orcid.org/0000-0002-8420-0696', testcase_id_ra)
         creator_graphset = creator.creator()
         output_graph = Graph()
         for g in creator_graphset.graphs():

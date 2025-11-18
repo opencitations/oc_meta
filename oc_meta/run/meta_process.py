@@ -252,7 +252,7 @@ class MetaProcess:
             else:
                 creator_obj = Creator(
                     data=curator_obj.data,
-                    endpoint=self.triplestore_url,
+                    finder=curator_obj.finder,
                     base_iri=self.base_iri,
                     counter_handler=self.counter_handler,
                     supplier_prefix=self.supplier_prefix,
@@ -262,10 +262,6 @@ class MetaProcess:
                     re_index_csv=curator_obj.re_index,
                     ar_index_csv=curator_obj.ar_index,
                     vi_index=curator_obj.VolIss,
-                    preexisting_entities=curator_obj.preexisting_entities,
-                    everything_everywhere_allatonce=curator_obj.everything_everywhere_allatonce,
-                    settings=settings,
-                    meta_config_path=meta_config_path,
                     silencer=settings.get("silencer", []),
                 )
             creator = creator_obj.creator(source=self.source)

@@ -19,6 +19,7 @@ class ResourceFinder:
         self.ts.setMethod(POST)
         self.base_iri = base_iri[:-1] if base_iri[-1] == '/' else base_iri
         self.local_g = local_g
+        self.prebuilt_subgraphs = {}
         self.ids_in_local_g = set()
         self.meta_config_path = meta_config_path
         self.meta_settings = settings
@@ -706,6 +707,9 @@ class ResourceFinder:
                         o_datatype = URIRef(row['o']['datatype']) if 'datatype' in row['o'] else None
                         o = URIRef(o) if o_type == 'uri' else Literal(lexical_or_value=o, datatype=o_datatype)
                         self.local_g.add((s, p, o))
+                        if s not in self.prebuilt_subgraphs:
+                            self.prebuilt_subgraphs[s] = Graph()
+                        self.prebuilt_subgraphs[s].add((s, p, o))
                         if isinstance(o, URIRef) and p not in {RDF.type, GraphEntity.iri_with_role, GraphEntity.iri_uses_identifier_scheme}:
                             next_subjects.add(str(o))
 
@@ -920,15 +924,10 @@ class ResourceFinder:
 
         process_batch(initial_subjects, 0)
 
-    def get_subgraph(self, res: str, graphs_dict: dict) -> Graph|None:
-        if res in graphs_dict:
-            return graphs_dict[res]
-        subgraph = Graph()
-        for triple in self.local_g.triples((res, None, None)):
-            subgraph.add(triple)
-        if len(subgraph):
-            graphs_dict[res] = subgraph
-            return subgraph
+    def get_subgraph(self, res: str) -> Graph|None:
+        if res in self.prebuilt_subgraphs:
+            return self.prebuilt_subgraphs[res]
+        return None
 
     def retrieve_venue_from_local_graph(self, meta_id: str) -> Dict[str, Dict[str, str]]:
         """

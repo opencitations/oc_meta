@@ -97,9 +97,9 @@ def add_data_ts(server:str=SERVER, data_path:str=os.path.abspath(os.path.join('t
         ts.query()
 
 def store_curated_data(curator_obj:Curator, server:str) -> None:
-    creator_obj = Creator(curator_obj.data, SERVER, BASE_IRI, None, None, 'https://orcid.org/0000-0002-8420-0696',
+    creator_obj = Creator(curator_obj.data, curator_obj.finder, BASE_IRI, None, None, 'https://orcid.org/0000-0002-8420-0696',
                             curator_obj.index_id_ra, curator_obj.index_id_br, curator_obj.re_index,
-                            curator_obj.ar_index, curator_obj.VolIss, preexisting_entities=set(), everything_everywhere_allatonce=Graph())
+                            curator_obj.ar_index, curator_obj.VolIss)
     creator = creator_obj.creator(source=None)
     res_storer = Storer(creator)
     res_storer.upload_all(server, base_dir=None, batch_size=100)
