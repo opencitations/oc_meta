@@ -14,7 +14,7 @@ import os
 import shutil
 import subprocess
 import time
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -32,6 +32,8 @@ from oc_meta.core.creator import Creator
 from oc_meta.core.curator import Curator
 from oc_meta.lib import file_manager
 from oc_meta.run.meta.generate_benchmark_data import BenchmarkDataGenerator
+from oc_meta.run.meta.preload_high_author_data import (
+    generate_atlas_paper_csv, generate_atlas_update_csv, preload_data)
 from oc_meta.run.upload.cache_manager import CacheManager
 from oc_meta.run.upload.on_triplestore import upload_sparql_updates
 
@@ -130,6 +132,7 @@ class MetaBenchmark:
         self.config = self._load_config()
         self.timers: List[BenchmarkTimer] = []
         self.metrics: Dict[str, Any] = {}
+        self._generated_csvs = []
 
         self.base_iri = self.config["base_iri"]
         self.resp_agent = self.config["resp_agent"]
@@ -165,7 +168,9 @@ class MetaBenchmark:
             self._reset_virtuoso(self.ts_prov)
             self._flush_redis()
             self._delete_output_files()
-            self._delete_input_file(self._generated_csv)
+            for csv in self._generated_csvs:
+                self._delete_input_file(csv)
+            self._delete_time_agnostic_config()
 
         self.timers.append(timer)
         print(f"[Cleanup] Completed in {timer.duration:.2f}s")
@@ -247,6 +252,14 @@ class MetaBenchmark:
         os.remove(csv_path)
         print(f"  - Deleted generated input file: {os.path.basename(csv_path)}")
 
+    def _delete_time_agnostic_config(self):
+        """Delete auto-generated time_agnostic_library_config.json file."""
+        config_dir = os.path.dirname(self.config_path)
+        time_agnostic_config = os.path.join(config_dir, "time_agnostic_library_config.json")
+        if os.path.exists(time_agnostic_config):
+            os.remove(time_agnostic_config)
+            print(f"  - Deleted time_agnostic_library_config.json")
+
     def run_benchmark(self, size: Optional[int] = None, seed: int = 42) -> Dict[str, Any]:
         """
         Run complete benchmark on all CSV files in input directory.
@@ -266,7 +279,6 @@ class MetaBenchmark:
         print(f"Timestamp: {datetime.now().isoformat()}")
         print(f"{'='*60}\n")
 
-        self._generated_csv = None
         if size:
             csv_filename = f"benchmark_{size}.csv"
             csv_path = os.path.join(self.input_dir, csv_filename)
@@ -278,7 +290,7 @@ class MetaBenchmark:
             print()
 
             input_csv = csv_path
-            self._generated_csv = csv_path
+            self._generated_csvs.append(csv_path)
             print(f"Processing generated file: {csv_filename}\n")
         else:
             csv_files = [f for f in os.listdir(self.input_dir) if f.endswith('.csv')]
@@ -347,6 +359,14 @@ class MetaBenchmark:
         """Run RDF creation phase."""
         print("[Phase 3/4] Creating RDF entities...")
         with BenchmarkTimer("rdf_creation") as timer:
+            local_g_size = len(curator.everything_everywhere_allatonce)
+            self.metrics["local_g_triples"] = local_g_size
+            print(f"  - local_g loaded: {local_g_size} triples")
+
+            preexisting_count = len(curator.preexisting_entities)
+            self.metrics["preexisting_entities_count"] = preexisting_count
+            print(f"  - Preexisting entities: {preexisting_count}")
+
             creator = Creator(
                 data=curator.data,
                 endpoint=self.ts_data,
@@ -364,16 +384,25 @@ class MetaBenchmark:
                 settings=self.config,
                 meta_config_path=self.config_path
             )
-            creator.creator()
 
-            prov = ProvSet(
-                creator.setgraph,
-                self.base_iri,
-                wanted_label=False,
-                supplier_prefix=self.supplier_prefix,
-                custom_counter_handler=self.counter_handler
-            )
-            prov.generate_provenance()
+            with BenchmarkTimer("creator_execution") as exec_timer:
+                creator.creator()
+            self.timers.append(exec_timer)
+            print(f"  - Creator execution: {exec_timer.duration:.2f}s")
+
+            with BenchmarkTimer("provenance_generation") as prov_timer:
+                prov = ProvSet(
+                    creator.setgraph,
+                    self.base_iri,
+                    wanted_label=False,
+                    supplier_prefix=self.supplier_prefix,
+                    custom_counter_handler=self.counter_handler
+                )
+                modified_entities = prov.generate_provenance()
+            self.timers.append(prov_timer)
+            self.metrics["modified_entities_count"] = len(modified_entities)
+            print(f"  - Provenance generation: {prov_timer.duration:.2f}s")
+            print(f"  - Modified entities (with snapshots): {len(modified_entities)}")
 
         self.timers.append(timer)
         self.metrics["entities_created"] = len(creator.setgraph.res_to_entity)
@@ -577,12 +606,45 @@ def main():
         action="store_true",
         help="Skip automatic database cleanup after benchmark"
     )
+    parser.add_argument(
+        "--preload-high-authors",
+        type=int,
+        default=None,
+        help="Preload a BR with N authors before benchmark (e.g., 2869 for ATLAS paper)"
+    )
+    parser.add_argument(
+        "--preload-seed",
+        type=int,
+        default=42,
+        help="Random seed for preload data generation (default: 42)"
+    )
 
     args = parser.parse_args()
 
     benchmark = MetaBenchmark(args.config)
 
     try:
+        if args.preload_high_authors:
+            print(f"\n{'='*60}")
+            print(f"Preloading BR with {args.preload_high_authors} authors")
+            print(f"{'='*60}\n")
+
+            preload_csv = os.path.join(benchmark.input_dir, f"_preload_{args.preload_high_authors}_authors.csv")
+            generate_atlas_paper_csv(preload_csv, args.preload_high_authors, args.preload_seed)
+
+            preload_data(args.config, preload_csv)
+
+            print("\n[Preload] Complete - triplestore now contains BR with many authors")
+
+            update_csv = os.path.join(benchmark.input_dir, "atlas_paper_update.csv")
+            generate_atlas_update_csv(update_csv)
+
+            print("[Preload] Generated update CSV for benchmark")
+            print(f"[Preload] Next benchmark run will process this BR (update scenario)\n")
+
+            benchmark._generated_csvs.extend([preload_csv, update_csv])
+            args.size = None
+
         report = benchmark.run_benchmark(size=args.size, seed=args.seed)
         benchmark.save_report(report, args.output)
     finally:

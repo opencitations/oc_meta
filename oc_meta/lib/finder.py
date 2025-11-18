@@ -354,7 +354,7 @@ class ResourceFinder:
         roles_with_next = set(details['next'] for details in dict_ar.values() if details['next'])
         start_role_candidates = all_roles - roles_with_next
 
-        MAX_ITERATIONS = 1000
+        MAX_ITERATIONS = 10000
 
         if len(all_roles) == 0:
             return []
