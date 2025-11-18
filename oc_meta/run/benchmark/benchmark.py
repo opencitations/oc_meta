@@ -31,8 +31,8 @@ from oc_ocdm.support.reporter import Reporter
 from oc_meta.core.creator import Creator
 from oc_meta.core.curator import Curator
 from oc_meta.lib import file_manager
-from oc_meta.run.meta.generate_benchmark_data import BenchmarkDataGenerator
-from oc_meta.run.meta.preload_high_author_data import (
+from oc_meta.run.benchmark.generate_benchmark_data import BenchmarkDataGenerator
+from oc_meta.run.benchmark.preload_high_author_data import (
     generate_atlas_paper_csv, generate_atlas_update_csv, preload_data)
 from oc_meta.run.upload.cache_manager import CacheManager
 from oc_meta.run.upload.on_triplestore import upload_sparql_updates
