@@ -20,13 +20,14 @@
 from __future__ import annotations
 
 import csv
+import json
 import os
 import traceback
 from argparse import ArgumentParser
 from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime
 from sys import executable, platform
-from typing import Iterator, List, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 import redis
 import yaml
@@ -34,8 +35,10 @@ from oc_meta.core.creator import Creator
 from oc_meta.core.curator import Curator
 from oc_meta.lib.file_manager import (get_csv_data, init_cache, normalize_path,
                                       pathoo, sort_files)
+from oc_meta.lib.timer import ProcessTimer
 from oc_meta.plugins.multiprocess.resp_agents_creator import RespAgentsCreator
 from oc_meta.plugins.multiprocess.resp_agents_curator import RespAgentsCurator
+from oc_meta.run.benchmark.plotting import plot_incremental_progress
 from oc_meta.run.upload.on_triplestore import *
 from oc_ocdm import Storer
 from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
@@ -94,7 +97,7 @@ def _upload_to_triplestore(endpoint: str, folder: str, redis_host: str, redis_po
 
 
 class MetaProcess:
-    def __init__(self, settings: dict, meta_config_path: str):
+    def __init__(self, settings: dict, meta_config_path: str, timer: Optional[ProcessTimer] = None):
         # Mandatory settings
         self.triplestore_url = settings["triplestore_url"]  # Main triplestore for data
         self.provenance_triplestore_url = settings["provenance_triplestore_url"]  # Separate triplestore for provenance
@@ -109,6 +112,7 @@ class MetaProcess:
         self.indexes_dir = os.path.join(self.base_output_dir, "indexes")
         self.cache_path = os.path.join(self.base_output_dir, "cache.txt")
         self.errors_path = os.path.join(self.base_output_dir, "errors.txt")
+        self.timer = timer or ProcessTimer(enabled=False)
         # Optional settings
         self.base_iri = settings["base_iri"]
         self.normalize_titles = settings.get("normalize_titles", True)
@@ -201,107 +205,123 @@ class MetaProcess:
         if os.path.exists(os.path.join(self.base_output_dir, ".stop")):
             return {"message": "skip"}, cache_path, errors_path, filename
         try:
-            filepath = os.path.join(self.input_csv_dir, filename)
-            print(filepath)
-            data = get_csv_data(filepath)
-            # Curator
-            self.info_dir = os.path.join(self.info_dir, self.supplier_prefix)
-            if resp_agents_only:
-                curator_obj = RespAgentsCurator(
-                    data=data,
-                    ts=self.triplestore_url,
-                    prov_config=self.time_agnostic_library_config,
-                    counter_handler=self.counter_handler,
-                    base_iri=self.base_iri,
-                    prefix=self.supplier_prefix,
-                    settings=settings,
-                    meta_config_path=meta_config_path,
-                )
-            else:
-                curator_obj = Curator(
-                    data=data,
-                    ts=self.triplestore_url,
-                    prov_config=self.time_agnostic_library_config,
-                    counter_handler=self.counter_handler,
-                    base_iri=self.base_iri,
-                    prefix=self.supplier_prefix,
-                    valid_dois_cache=self.valid_dois_cache,
-                    settings=settings,
-                    silencer=self.silencer,
-                    meta_config_path=meta_config_path,
-                )
-            name = f"{filename.replace('.csv', '')}_{datetime.now().strftime('%Y-%m-%dT%H-%M-%S')}"
-            curator_obj.curator(
-                filename=name, path_csv=self.output_csv_dir, path_index=self.indexes_dir
-            )
-            # Creator
-            if resp_agents_only:
-                creator_obj = RespAgentsCreator(
-                    data=curator_obj.data,
-                    endpoint=self.triplestore_url,
-                    base_iri=self.base_iri,
-                    counter_handler=self.counter_handler,
-                    supplier_prefix=self.supplier_prefix,
-                    resp_agent=self.resp_agent,
-                    ra_index=curator_obj.index_id_ra,
-                    preexisting_entities=curator_obj.preexisting_entities,
-                    everything_everywhere_allatonce=curator_obj.everything_everywhere_allatonce,
-                    settings=settings,
-                    meta_config_path=meta_config_path,
-                )
-            else:
-                creator_obj = Creator(
-                    data=curator_obj.data,
-                    finder=curator_obj.finder,
-                    base_iri=self.base_iri,
-                    counter_handler=self.counter_handler,
-                    supplier_prefix=self.supplier_prefix,
-                    resp_agent=self.resp_agent,
-                    ra_index=curator_obj.index_id_ra,
-                    br_index=curator_obj.index_id_br,
-                    re_index_csv=curator_obj.re_index,
-                    ar_index_csv=curator_obj.ar_index,
-                    vi_index=curator_obj.VolIss,
-                    silencer=settings.get("silencer", []),
-                )
-            creator = creator_obj.creator(source=self.source)
-            # Provenance
-            prov = ProvSet(
-                creator,
-                self.base_iri,
-                wanted_label=False,
-                supplier_prefix=self.supplier_prefix,
-                custom_counter_handler=self.counter_handler,
-            )
-            modified_entities = prov.generate_provenance()
-            # Storer
-            repok = Reporter(print_sentences=False)
-            reperr = Reporter(print_sentences=True, prefix="[Storer: ERROR] ")
-            res_storer = Storer(
-                abstract_set=creator,
-                repok=repok,
-                reperr=reperr,
-                context_map={},
-                dir_split=self.dir_split_number,
-                n_file_item=self.items_per_file,
-                default_dir=self.default_dir,
-                output_format="json-ld",
-                zip_output=self.zip_output_rdf,
-                modified_entities=modified_entities,
-            )
-            prov_storer = Storer(
-                abstract_set=prov,
-                repok=repok,
-                reperr=reperr,
-                context_map={},
-                dir_split=self.dir_split_number,
-                n_file_item=self.items_per_file,
-                output_format="json-ld",
-                zip_output=self.zip_output_rdf,
-                modified_entities=modified_entities,
-            )
-            # with suppress_stdout():
-            self.store_data_and_prov(res_storer, prov_storer)
+            with self.timer.timer("total_processing"):
+                filepath = os.path.join(self.input_csv_dir, filename)
+                print(filepath)
+                data = get_csv_data(filepath)
+                self.timer.record_metric("input_records", len(data))
+
+                with self.timer.timer("curation"):
+                    self.info_dir = os.path.join(self.info_dir, self.supplier_prefix)
+                    if resp_agents_only:
+                        curator_obj = RespAgentsCurator(
+                            data=data,
+                            ts=self.triplestore_url,
+                            prov_config=self.time_agnostic_library_config,
+                            counter_handler=self.counter_handler,
+                            base_iri=self.base_iri,
+                            prefix=self.supplier_prefix,
+                            settings=settings,
+                            meta_config_path=meta_config_path,
+                        )
+                    else:
+                        curator_obj = Curator(
+                            data=data,
+                            ts=self.triplestore_url,
+                            prov_config=self.time_agnostic_library_config,
+                            counter_handler=self.counter_handler,
+                            base_iri=self.base_iri,
+                            prefix=self.supplier_prefix,
+                            valid_dois_cache=self.valid_dois_cache,
+                            settings=settings,
+                            silencer=self.silencer,
+                            meta_config_path=meta_config_path,
+                        )
+                    name = f"{filename.replace('.csv', '')}_{datetime.now().strftime('%Y-%m-%dT%H-%M-%S')}"
+                    curator_obj.curator(
+                        filename=name, path_csv=self.output_csv_dir, path_index=self.indexes_dir
+                    )
+                    self.timer.record_metric("curated_records", len(curator_obj.data))
+
+                with self.timer.timer("rdf_creation"):
+                    if not resp_agents_only:
+                        local_g_size = len(curator_obj.everything_everywhere_allatonce)
+                        self.timer.record_metric("local_g_triples", local_g_size)
+                        preexisting_count = len(curator_obj.preexisting_entities)
+                        self.timer.record_metric("preexisting_entities_count", preexisting_count)
+
+                    with self.timer.timer("creator_execution"):
+                        if resp_agents_only:
+                            creator_obj = RespAgentsCreator(
+                                data=curator_obj.data,
+                                endpoint=self.triplestore_url,
+                                base_iri=self.base_iri,
+                                counter_handler=self.counter_handler,
+                                supplier_prefix=self.supplier_prefix,
+                                resp_agent=self.resp_agent,
+                                ra_index=curator_obj.index_id_ra,
+                                preexisting_entities=curator_obj.preexisting_entities,
+                                everything_everywhere_allatonce=curator_obj.everything_everywhere_allatonce,
+                                settings=settings,
+                                meta_config_path=meta_config_path,
+                            )
+                        else:
+                            creator_obj = Creator(
+                                data=curator_obj.data,
+                                finder=curator_obj.finder,
+                                base_iri=self.base_iri,
+                                counter_handler=self.counter_handler,
+                                supplier_prefix=self.supplier_prefix,
+                                resp_agent=self.resp_agent,
+                                ra_index=curator_obj.index_id_ra,
+                                br_index=curator_obj.index_id_br,
+                                re_index_csv=curator_obj.re_index,
+                                ar_index_csv=curator_obj.ar_index,
+                                vi_index=curator_obj.VolIss,
+                                silencer=settings.get("silencer", []),
+                            )
+                        creator = creator_obj.creator(source=self.source)
+                        self.timer.record_metric("entities_created", len(creator.res_to_entity))
+
+                    with self.timer.timer("provenance_generation"):
+                        prov = ProvSet(
+                            creator,
+                            self.base_iri,
+                            wanted_label=False,
+                            supplier_prefix=self.supplier_prefix,
+                            custom_counter_handler=self.counter_handler,
+                        )
+                        modified_entities = prov.generate_provenance()
+                        self.timer.record_metric("modified_entities", len(modified_entities))
+
+                with self.timer.timer("storage_and_upload"):
+                    repok = Reporter(print_sentences=False)
+                    reperr = Reporter(print_sentences=True, prefix="[Storer: ERROR] ")
+                    res_storer = Storer(
+                        abstract_set=creator,
+                        repok=repok,
+                        reperr=reperr,
+                        context_map={},
+                        dir_split=self.dir_split_number,
+                        n_file_item=self.items_per_file,
+                        default_dir=self.default_dir,
+                        output_format="json-ld",
+                        zip_output=self.zip_output_rdf,
+                        modified_entities=modified_entities,
+                    )
+                    prov_storer = Storer(
+                        abstract_set=prov,
+                        repok=repok,
+                        reperr=reperr,
+                        context_map={},
+                        dir_split=self.dir_split_number,
+                        n_file_item=self.items_per_file,
+                        output_format="json-ld",
+                        zip_output=self.zip_output_rdf,
+                        modified_entities=modified_entities,
+                    )
+                    self.store_data_and_prov(res_storer, prov_storer)
+
             return {"message": "success"}, cache_path, errors_path, filename
         except Exception as e:
             tb = traceback.format_exc()
@@ -405,18 +425,81 @@ class MetaProcess:
         )
 
 
-def run_meta_process(
-    settings: dict, meta_config_path: str, resp_agents_only: bool = False
-) -> None:
-    meta_process = MetaProcess(settings=settings, meta_config_path=meta_config_path)
-    is_unix = platform in {"linux", "linux2", "darwin"}
-    files_to_be_processed = meta_process.prepare_folders()
+def _save_incremental_report(all_reports: List[Dict[str, Any]], meta_config_path: str, output_path: str) -> None:
+    """Save incremental timing report to JSON file."""
+    aggregate_report = {
+        "timestamp": datetime.now().isoformat(),
+        "config_path": meta_config_path,
+        "total_files_processed": len(all_reports),
+        "files": all_reports,
+        "aggregate": _compute_aggregate_metrics(all_reports)
+    }
+    with open(output_path, 'w') as f:
+        json.dump(aggregate_report, f, indent=2)
 
-    generate_gentle_buttons(meta_process.base_output_dir, meta_config_path, is_unix)
+
+def _compute_aggregate_metrics(all_reports: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Compute aggregate statistics across all file reports."""
+    if not all_reports:
+        return {}
+
+    total_duration = sum(r["report"]["metrics"].get("total_duration_seconds", 0) for r in all_reports)
+    total_records = sum(r["report"]["metrics"].get("input_records", 0) for r in all_reports)
+    total_entities = sum(r["report"]["metrics"].get("entities_created", 0) for r in all_reports)
+
+    durations = [r["report"]["metrics"].get("total_duration_seconds", 0) for r in all_reports]
+    throughputs = [r["report"]["metrics"].get("throughput_records_per_sec", 0) for r in all_reports]
+
+    return {
+        "total_files": len(all_reports),
+        "total_duration_seconds": round(total_duration, 3),
+        "total_records_processed": total_records,
+        "total_entities_created": total_entities,
+        "average_time_per_file": round(total_duration / len(all_reports), 3) if all_reports else 0,
+        "average_throughput": round(sum(throughputs) / len(throughputs), 2) if throughputs else 0,
+        "min_time": round(min(durations), 3) if durations else 0,
+        "max_time": round(max(durations), 3) if durations else 0,
+        "overall_throughput": round(total_records / total_duration, 2) if total_duration > 0 else 0
+    }
+
+
+def _print_aggregate_summary(all_reports: List[Dict[str, Any]]) -> None:
+    """Print aggregate summary of all processed files."""
+    aggregate = _compute_aggregate_metrics(all_reports)
+
+    print(f"\n{'='*60}")
+    print("Aggregate Timing Summary")
+    print(f"{'='*60}")
+    print(f"Total Files: {aggregate['total_files']}")
+    print(f"Total Duration: {aggregate['total_duration_seconds']}s")
+    print(f"Total Records: {aggregate['total_records_processed']}")
+    print(f"Total Entities: {aggregate['total_entities_created']}")
+    print(f"Average Time/File: {aggregate['average_time_per_file']}s")
+    print(f"Min/Max Time: {aggregate['min_time']}s / {aggregate['max_time']}s")
+    print(f"Overall Throughput: {aggregate['overall_throughput']} rec/s")
+    print(f"{'='*60}\n")
+
+
+def run_meta_process(
+    settings: dict, meta_config_path: str, resp_agents_only: bool = False, enable_timing: bool = False, timing_output: Optional[str] = None
+) -> None:
+    is_unix = platform in {"linux", "linux2", "darwin"}
+    all_reports = []
+
+    meta_process_setup = MetaProcess(settings=settings, meta_config_path=meta_config_path)
+    files_to_be_processed = meta_process_setup.prepare_folders()
+
+    generate_gentle_buttons(meta_process_setup.base_output_dir, meta_config_path, is_unix)
 
     with tqdm(total=len(files_to_be_processed), desc="Processing files") as progress_bar:
-        for filename in files_to_be_processed:
+        for idx, filename in enumerate(files_to_be_processed, 1):
             try:
+                if enable_timing:
+                    print(f"\n[{idx}/{len(files_to_be_processed)}] Processing {filename}...")
+
+                file_timer = ProcessTimer(enabled=enable_timing, verbose=enable_timing)
+                meta_process = MetaProcess(settings=settings, meta_config_path=meta_config_path, timer=file_timer)
+
                 result = meta_process.curate_and_create(
                     filename,
                     meta_process.cache_path,
@@ -426,6 +509,24 @@ def run_meta_process(
                     meta_config_path=meta_config_path
                 )
                 task_done(result)
+
+                if enable_timing:
+                    report = file_timer.get_report()
+                    all_reports.append({
+                        "filename": filename,
+                        "report": report
+                    })
+
+                    file_timer.print_file_summary(filename)
+
+                    if timing_output:
+                        _save_incremental_report(all_reports, meta_config_path, timing_output)
+                        print(f"\n  JSON updated: {timing_output}")
+
+                    chart_file = timing_output.replace('.json', '_chart.png') if timing_output else 'meta_process_timing_chart.png'
+                    plot_incremental_progress(all_reports, chart_file)
+                    print(f"  Chart updated: {chart_file}\n")
+
             except Exception as e:
                 traceback_str = traceback.format_exc()
                 print(
@@ -434,16 +535,30 @@ def run_meta_process(
             finally:
                 progress_bar.update(1)
 
-    if not os.path.exists(os.path.join(meta_process.base_output_dir, ".stop")):
-        if os.path.exists(meta_process.cache_path):
+    if not os.path.exists(os.path.join(meta_process_setup.base_output_dir, ".stop")):
+        if os.path.exists(meta_process_setup.cache_path):
             os.rename(
-                meta_process.cache_path,
-                meta_process.cache_path.replace(
+                meta_process_setup.cache_path,
+                meta_process_setup.cache_path.replace(
                     ".txt", f'_{datetime.now().strftime("%Y-%m-%dT%H_%M_%S_%f")}.txt'
                 ),
             )
         if is_unix:
-            delete_lock_files(base_dir=meta_process.base_output_dir)
+            delete_lock_files(base_dir=meta_process_setup.base_output_dir)
+
+    if enable_timing and all_reports:
+        _print_aggregate_summary(all_reports)
+        if timing_output:
+            aggregate_report = {
+                "timestamp": datetime.now().isoformat(),
+                "config_path": meta_config_path,
+                "total_files": len(all_reports),
+                "files": all_reports,
+                "aggregate": _compute_aggregate_metrics(all_reports)
+            }
+            with open(timing_output, 'w') as f:
+                json.dump(aggregate_report, f, indent=2)
+            print(f"[Timing] Report saved to {timing_output}")
 
 
 def task_done(task_output: tuple) -> None:
@@ -510,9 +625,24 @@ if __name__ == "__main__":  # pragma: no cover
         required=True,
         help="Configuration file directory",
     )
+    arg_parser.add_argument(
+        "--timing",
+        action="store_true",
+        help="Enable timing metrics collection and display summary at the end",
+    )
+    arg_parser.add_argument(
+        "--timing-output",
+        dest="timing_output",
+        default=None,
+        help="Optional path to save timing report as JSON file",
+    )
     args = arg_parser.parse_args()
     with open(args.config, encoding="utf-8") as file:
         settings = yaml.full_load(file)
     run_meta_process(
-        settings=settings, meta_config_path=args.config, resp_agents_only=False
+        settings=settings,
+        meta_config_path=args.config,
+        resp_agents_only=False,
+        enable_timing=args.timing,
+        timing_output=args.timing_output
     )

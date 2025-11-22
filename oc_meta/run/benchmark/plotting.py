@@ -8,7 +8,7 @@ including single-size run comparisons and multi-size scalability analysis.
 """
 
 from typing import Any, Dict, List
-
+import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle
@@ -77,16 +77,19 @@ def plot_scalability_analysis(per_size_results: List[Dict[str, Any]], output_pat
     phase_colors = ['#F18F01', '#C73E1D', '#6A994E']
     phase_labels = ['Curation', 'RDF creation', 'Storage + upload']
 
+    x_positions = list(range(len(sizes)))
     bottom = [0] * len(sizes)
     for idx, (phase_name, phase_values) in enumerate([
         ("curation", phase_data["curation"]),
         ("rdf_creation", phase_data["rdf_creation"]),
         ("storage_upload", phase_data["storage_upload"])
     ]):
-        axes[1, 0].bar(sizes, phase_values, bottom=bottom, label=phase_labels[idx],
-                      color=phase_colors[idx], edgecolor='black', linewidth=1)
+        axes[1, 0].bar(x_positions, phase_values, bottom=bottom, label=phase_labels[idx],
+                      color=phase_colors[idx], edgecolor='black', linewidth=1, width=0.6)
         bottom = [b + v for b, v in zip(bottom, phase_values)]
 
+    axes[1, 0].set_xticks(x_positions)
+    axes[1, 0].set_xticklabels([f'{s}' for s in sizes])
     apply_plot_style(axes[1, 0], 'Phase breakdown by dataset size', 'Dataset size (records)', 'Duration (s)')
     axes[1, 0].legend(loc='upper left')
 
@@ -180,3 +183,45 @@ def plot_benchmark_results(all_runs: List[Dict[str, Any]], stats: Dict[str, Dict
     plt.close()
 
     print(f"[Visualization] Saved to {output_path}")
+
+
+def plot_incremental_progress(all_reports: List[Dict[str, Any]], output_path: str):
+    """Generate incremental chart showing meta_process progress."""
+
+    if not all_reports:
+        return
+
+    filenames = [r["filename"] for r in all_reports]
+
+    curation_times = [next((p["duration_seconds"] for p in r["report"]["phases"] if p["name"] == "curation"), 0) for r in all_reports]
+    creation_times = [next((p["duration_seconds"] for p in r["report"]["phases"] if p["name"] == "rdf_creation"), 0) for r in all_reports]
+    storage_times = [next((p["duration_seconds"] for p in r["report"]["phases"] if p["name"] == "storage_and_upload"), 0) for r in all_reports]
+    throughputs = [r["report"]["metrics"].get("throughput_records_per_sec", 0) for r in all_reports]
+
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
+
+    x = np.arange(len(filenames))
+    width = 0.6
+
+    ax1.bar(x, curation_times, width, label='Curation', color='#F18F01')
+    ax1.bar(x, creation_times, width, bottom=curation_times, label='RDF creation', color='#C73E1D')
+    ax1.bar(x, storage_times, width, bottom=np.array(curation_times) + np.array(creation_times), label='Storage & upload', color='#6A994E')
+
+    ax1.set_ylabel('Time (seconds)', fontsize=12, fontweight='bold')
+    ax1.set_title(f'Processing time by phase ({len(filenames)} files processed)', fontsize=14, fontweight='bold')
+    ax1.set_xticks(x)
+    ax1.set_xticklabels([f[:20] for f in filenames], rotation=45, ha='right', fontsize=8)
+    ax1.legend(loc='upper right')
+    ax1.grid(axis='y', alpha=0.3)
+
+    ax2.plot(x, throughputs, marker='o', linewidth=2, markersize=6, color='#2E86AB')
+    ax2.set_xlabel('File index', fontsize=12, fontweight='bold')
+    ax2.set_ylabel('Throughput (records/sec)', fontsize=12, fontweight='bold')
+    ax2.set_title('Processing throughput', fontsize=14, fontweight='bold')
+    ax2.grid(True, alpha=0.3)
+    ax2.set_xticks(x)
+    ax2.set_xticklabels(range(1, len(filenames) + 1), fontsize=8)
+
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=100, bbox_inches='tight')
+    plt.close()
