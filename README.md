@@ -41,38 +41,45 @@ The Meta production process involves several steps to process bibliographic meta
 The [`preprocess_input.py`](https://github.com/opencitations/oc_meta/blob/master/oc_meta/run/meta/preprocess_input.py) script helps filter and optimize CSV files before they are processed by the main Meta workflow. This preprocessing step is particularly useful for large datasets as it:
 
 1. Removes duplicate entries across all input files
-2. Filters out entries that already exist in the database (using either Redis or SPARQL)
+2. Optionally filters out entries that already exist in the database (using either Redis or SPARQL)
 3. Splits large input files into smaller, more manageable chunks
 
 To run the preprocessing script:
 
 ```console
-# Using Redis (default)
-poetry run python -m oc_meta.run.meta.preprocess_input <INPUT_DIR> <OUTPUT_DIR> [--redis-db <DB_NUMBER>]
+# Basic usage: only deduplicate and split files (no storage checking)
+poetry run python -m oc_meta.run.meta.preprocess_input <INPUT_DIR> <OUTPUT_DIR>
 
-# Using SPARQL endpoint
+# With Redis storage checking
+poetry run python -m oc_meta.run.meta.preprocess_input <INPUT_DIR> <OUTPUT_DIR> --storage-type redis
+
+# With SPARQL storage checking
 poetry run python -m oc_meta.run.meta.preprocess_input <INPUT_DIR> <OUTPUT_DIR> --storage-type sparql --sparql-endpoint <SPARQL_ENDPOINT_URL>
+
+# Custom file size and Redis settings
+poetry run python -m oc_meta.run.meta.preprocess_input <INPUT_DIR> <OUTPUT_DIR> \
+  --rows-per-file 5000 \
+  --storage-type redis \
+  --redis-host 192.168.1.100 \
+  --redis-port 6380 \
+  --redis-db 5
 ```
 
 Parameters:
 - `<INPUT_DIR>`: Directory containing the input CSV files to process
 - `<OUTPUT_DIR>`: Directory where the filtered and optimized CSV files will be saved
-- `--storage-type`: Type of storage to check IDs against (`redis` or `sparql`, default: `redis`)
+- `--rows-per-file`: Number of rows per output file (default: 3000)
+- `--storage-type`: Type of storage to check IDs against (`redis` or `sparql`). If not specified, ID checking is skipped
+- `--redis-host`: Redis host (default: localhost)
+- `--redis-port`: Redis port (default: 6379)
 - `--redis-db`: Redis database number to use if storage type is Redis (default: 10)
-- `--sparql-endpoint`: SPARQL endpoint URL if storage type is set to `sparql`
+- `--sparql-endpoint`: SPARQL endpoint URL (required if storage type is `sparql`)
 
 The script will generate a detailed report showing:
 - Total number of input rows processed
 - Number of duplicate rows removed
-- Number of rows with IDs that already exist in the database
+- Number of rows with IDs that already exist in the database (if storage checking is enabled)
 - Number of rows that passed the filtering and were written to output files
-
-#### Choosing the right storage backend
-
-- **Redis**: faster option for ID checking with lower memory overhead. Ideal for rapid preprocessing of large datasets.
-- **SPARQL**: directly checks against the triplestore where the data will be stored. Useful when you don't have a Redis cache of existing IDs.
-
-After preprocessing, you can use the optimized files in the output directory as input for the main Meta process.
 
 ### Main processing
 
