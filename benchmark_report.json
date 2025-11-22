@@ -1,60 +1,1711 @@
 {
-  "timestamp": "2025-11-18T16:00:26.555112",
-  "config_path": "./test/benchmark/benchmark_config.yaml",
-  "metrics": {
-    "input_records": 1000,
-    "curated_records": 1000,
-    "local_g_triples": 0,
-    "preexisting_entities_count": 0,
-    "modified_entities_count": 11066,
-    "entities_created": 11066,
-    "sparql_files_data": 1107,
-    "sparql_files_prov": 1107,
-    "throughput_records_per_sec": 8.68,
-    "total_duration_seconds": 115.226
+  "timestamp": "2025-11-22T17:42:10.258633",
+  "config_path": "test/benchmark/benchmark_config.yaml",
+  "config": {
+    "sizes": [
+      1,
+      10,
+      100
+    ],
+    "runs": 3,
+    "fresh_data": true,
+    "seed": 42
   },
-  "phases": [
+  "per_size_results": [
     {
-      "name": "curation",
-      "duration_seconds": 10.504,
-      "start_memory_mb": 54.75,
-      "end_memory_mb": 64.63,
-      "peak_memory_mb": 64.63
+      "size": 1,
+      "runs": [
+        {
+          "timestamp": "2025-11-22T17:41:03.757126",
+          "config_path": "test/benchmark/benchmark_config.yaml",
+          "metrics": {
+            "input_records": 1,
+            "curated_records": 1,
+            "local_g_triples": 0,
+            "preexisting_entities_count": 0,
+            "modified_entities_count": 16,
+            "entities_created": 16,
+            "sparql_files_data": 2,
+            "sparql_files_prov": 2,
+            "throughput_records_per_sec": 2.51,
+            "total_duration_seconds": 0.399
+          },
+          "phases": [
+            {
+              "name": "curation",
+              "duration_seconds": 0.07,
+              "start_memory_mb": 138.27,
+              "end_memory_mb": 138.87,
+              "peak_memory_mb": 138.87
+            },
+            {
+              "name": "creator_execution",
+              "duration_seconds": 0.017,
+              "start_memory_mb": 138.87,
+              "end_memory_mb": 139.39,
+              "peak_memory_mb": 139.39
+            },
+            {
+              "name": "provenance_generation",
+              "duration_seconds": 0.018,
+              "start_memory_mb": 139.39,
+              "end_memory_mb": 139.7,
+              "peak_memory_mb": 139.7
+            },
+            {
+              "name": "rdf_creation",
+              "duration_seconds": 0.035,
+              "start_memory_mb": 138.87,
+              "end_memory_mb": 139.7,
+              "peak_memory_mb": 139.7
+            },
+            {
+              "name": "storage_and_upload",
+              "duration_seconds": 0.293,
+              "start_memory_mb": 139.7,
+              "end_memory_mb": 136.95,
+              "peak_memory_mb": 139.7
+            },
+            {
+              "name": "total_processing",
+              "duration_seconds": 0.399,
+              "start_memory_mb": 138.27,
+              "end_memory_mb": 136.96,
+              "peak_memory_mb": 138.27
+            }
+          ]
+        },
+        {
+          "timestamp": "2025-11-22T17:41:04.655058",
+          "config_path": "test/benchmark/benchmark_config.yaml",
+          "metrics": {
+            "input_records": 1,
+            "curated_records": 1,
+            "local_g_triples": 0,
+            "preexisting_entities_count": 0,
+            "modified_entities_count": 13,
+            "entities_created": 13,
+            "sparql_files_data": 2,
+            "sparql_files_prov": 2,
+            "throughput_records_per_sec": 3.25,
+            "total_duration_seconds": 0.307
+          },
+          "phases": [
+            {
+              "name": "curation",
+              "duration_seconds": 0.022,
+              "start_memory_mb": 136.99,
+              "end_memory_mb": 137.03,
+              "peak_memory_mb": 137.03
+            },
+            {
+              "name": "creator_execution",
+              "duration_seconds": 0.018,
+              "start_memory_mb": 137.03,
+              "end_memory_mb": 137.11,
+              "peak_memory_mb": 137.11
+            },
+            {
+              "name": "provenance_generation",
+              "duration_seconds": 0.015,
+              "start_memory_mb": 137.11,
+              "end_memory_mb": 137.55,
+              "peak_memory_mb": 137.55
+            },
+            {
+              "name": "rdf_creation",
+              "duration_seconds": 0.033,
+              "start_memory_mb": 137.03,
+              "end_memory_mb": 137.55,
+              "peak_memory_mb": 137.55
+            },
+            {
+              "name": "storage_and_upload",
+              "duration_seconds": 0.251,
+              "start_memory_mb": 137.55,
+              "end_memory_mb": 137.75,
+              "peak_memory_mb": 137.75
+            },
+            {
+              "name": "total_processing",
+              "duration_seconds": 0.307,
+              "start_memory_mb": 136.99,
+              "end_memory_mb": 137.75,
+              "peak_memory_mb": 137.75
+            }
+          ]
+        },
+        {
+          "timestamp": "2025-11-22T17:41:05.531934",
+          "config_path": "test/benchmark/benchmark_config.yaml",
+          "metrics": {
+            "input_records": 1,
+            "curated_records": 1,
+            "local_g_triples": 0,
+            "preexisting_entities_count": 0,
+            "modified_entities_count": 17,
+            "entities_created": 17,
+            "sparql_files_data": 2,
+            "sparql_files_prov": 2,
+            "throughput_records_per_sec": 2.89,
+            "total_duration_seconds": 0.346
+          },
+          "phases": [
+            {
+              "name": "curation",
+              "duration_seconds": 0.021,
+              "start_memory_mb": 137.77,
+              "end_memory_mb": 137.79,
+              "peak_memory_mb": 137.79
+            },
+            {
+              "name": "creator_execution",
+              "duration_seconds": 0.016,
+              "start_memory_mb": 137.8,
+              "end_memory_mb": 138.05,
+              "peak_memory_mb": 138.05
+            },
+            {
+              "name": "provenance_generation",
+              "duration_seconds": 0.016,
+              "start_memory_mb": 138.05,
+              "end_memory_mb": 138.37,
+              "peak_memory_mb": 138.37
+            },
+            {
+              "name": "rdf_creation",
+              "duration_seconds": 0.032,
+              "start_memory_mb": 137.79,
+              "end_memory_mb": 138.37,
+              "peak_memory_mb": 138.37
+            },
+            {
+              "name": "storage_and_upload",
+              "duration_seconds": 0.292,
+              "start_memory_mb": 138.37,
+              "end_memory_mb": 138.41,
+              "peak_memory_mb": 138.41
+            },
+            {
+              "name": "total_processing",
+              "duration_seconds": 0.346,
+              "start_memory_mb": 137.77,
+              "end_memory_mb": 138.41,
+              "peak_memory_mb": 138.41
+            }
+          ]
+        }
+      ],
+      "statistics": {
+        "input_records": {
+          "mean": 1.0,
+          "median": 1.0,
+          "std": 0.0,
+          "min": 1.0,
+          "max": 1.0,
+          "ci_95_lower": 1.0,
+          "ci_95_upper": 1.0,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "curated_records": {
+          "mean": 1.0,
+          "median": 1.0,
+          "std": 0.0,
+          "min": 1.0,
+          "max": 1.0,
+          "ci_95_lower": 1.0,
+          "ci_95_upper": 1.0,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "local_g_triples": {
+          "mean": 0.0,
+          "median": 0.0,
+          "std": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "ci_95_lower": 0.0,
+          "ci_95_upper": 0.0,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "preexisting_entities_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "std": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "ci_95_lower": 0.0,
+          "ci_95_upper": 0.0,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "modified_entities_count": {
+          "mean": 15.333333333333334,
+          "median": 16.0,
+          "std": 2.0816659994661326,
+          "min": 13.0,
+          "max": 17.0,
+          "ci_95_lower": 10.162188320855154,
+          "ci_95_upper": 20.504478345811513,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "entities_created": {
+          "mean": 15.333333333333334,
+          "median": 16.0,
+          "std": 2.0816659994661326,
+          "min": 13.0,
+          "max": 17.0,
+          "ci_95_lower": 10.162188320855154,
+          "ci_95_upper": 20.504478345811513,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "sparql_files_data": {
+          "mean": 2.0,
+          "median": 2.0,
+          "std": 0.0,
+          "min": 2.0,
+          "max": 2.0,
+          "ci_95_lower": 2.0,
+          "ci_95_upper": 2.0,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "sparql_files_prov": {
+          "mean": 2.0,
+          "median": 2.0,
+          "std": 0.0,
+          "min": 2.0,
+          "max": 2.0,
+          "ci_95_lower": 2.0,
+          "ci_95_upper": 2.0,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "throughput_records_per_sec": {
+          "mean": 2.8833333333333333,
+          "median": 2.89,
+          "std": 0.37004504230341123,
+          "min": 2.51,
+          "max": 3.25,
+          "ci_95_lower": 1.964090488712575,
+          "ci_95_upper": 3.8025761779540916,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "total_duration_seconds": {
+          "mean": 0.3506666666666667,
+          "median": 0.346,
+          "std": 0.04617719494873346,
+          "min": 0.307,
+          "max": 0.399,
+          "ci_95_lower": 0.2359561552730926,
+          "ci_95_upper": 0.46537717806024076,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "curation_duration_seconds": {
+          "mean": 0.03766666666666667,
+          "median": 0.022,
+          "std": 0.028005951748393296,
+          "min": 0.021,
+          "max": 0.07,
+          "ci_95_lower": -0.03190397422411506,
+          "ci_95_upper": 0.1072373075574484,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "curation_start_memory_mb": {
+          "mean": 137.67666666666668,
+          "median": 137.77,
+          "std": 0.645083973861802,
+          "min": 136.99,
+          "max": 138.27,
+          "ci_95_lower": 136.07418923997068,
+          "ci_95_upper": 139.27914409336267,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "curation_end_memory_mb": {
+          "mean": 137.89666666666668,
+          "median": 137.79,
+          "std": 0.9246260505379121,
+          "min": 137.03,
+          "max": 138.87,
+          "ci_95_lower": 135.59976822528714,
+          "ci_95_upper": 140.19356510804622,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "curation_peak_memory_mb": {
+          "mean": 137.89666666666668,
+          "median": 137.79,
+          "std": 0.9246260505379121,
+          "min": 137.03,
+          "max": 138.87,
+          "ci_95_lower": 135.59976822528714,
+          "ci_95_upper": 140.19356510804622,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "creator_execution_duration_seconds": {
+          "mean": 0.017,
+          "median": 0.017,
+          "std": 0.0009999999999999992,
+          "min": 0.016,
+          "max": 0.018,
+          "ci_95_lower": 0.014515862288280458,
+          "ci_95_upper": 0.019484137711719546,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "creator_execution_start_memory_mb": {
+          "mean": 137.9,
+          "median": 137.8,
+          "std": 0.9240670971309402,
+          "min": 137.03,
+          "max": 138.87,
+          "ci_95_lower": 135.60449007585783,
+          "ci_95_upper": 140.1955099241422,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "creator_execution_end_memory_mb": {
+          "mean": 138.18333333333334,
+          "median": 138.05,
+          "std": 1.145833030302976,
+          "min": 137.11,
+          "max": 139.39,
+          "ci_95_lower": 135.33692629142382,
+          "ci_95_upper": 141.02974037524285,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "creator_execution_peak_memory_mb": {
+          "mean": 138.18333333333334,
+          "median": 138.05,
+          "std": 1.145833030302976,
+          "min": 137.11,
+          "max": 139.39,
+          "ci_95_lower": 135.33692629142382,
+          "ci_95_upper": 141.02974037524285,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "provenance_generation_duration_seconds": {
+          "mean": 0.01633333333333333,
+          "median": 0.016,
+          "std": 0.0015275252316519462,
+          "min": 0.015,
+          "max": 0.018,
+          "ci_95_lower": 0.012538750299783597,
+          "ci_95_upper": 0.020127916366883068,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "provenance_generation_start_memory_mb": {
+          "mean": 138.18333333333334,
+          "median": 138.05,
+          "std": 1.145833030302976,
+          "min": 137.11,
+          "max": 139.39,
+          "ci_95_lower": 135.33692629142382,
+          "ci_95_upper": 141.02974037524285,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "provenance_generation_end_memory_mb": {
+          "mean": 138.54,
+          "median": 138.37,
+          "std": 1.0850345616615051,
+          "min": 137.55,
+          "max": 139.7,
+          "ci_95_lower": 135.84462472685755,
+          "ci_95_upper": 141.23537527314244,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "provenance_generation_peak_memory_mb": {
+          "mean": 138.54,
+          "median": 138.37,
+          "std": 1.0850345616615051,
+          "min": 137.55,
+          "max": 139.7,
+          "ci_95_lower": 135.84462472685755,
+          "ci_95_upper": 141.23537527314244,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "rdf_creation_duration_seconds": {
+          "mean": 0.03333333333333333,
+          "median": 0.033,
+          "std": 0.001527525231651948,
+          "min": 0.032,
+          "max": 0.035,
+          "ci_95_lower": 0.029538750299783593,
+          "ci_95_upper": 0.03712791636688307,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "rdf_creation_start_memory_mb": {
+          "mean": 137.89666666666668,
+          "median": 137.79,
+          "std": 0.9246260505379121,
+          "min": 137.03,
+          "max": 138.87,
+          "ci_95_lower": 135.59976822528714,
+          "ci_95_upper": 140.19356510804622,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "rdf_creation_end_memory_mb": {
+          "mean": 138.54,
+          "median": 138.37,
+          "std": 1.0850345616615051,
+          "min": 137.55,
+          "max": 139.7,
+          "ci_95_lower": 135.84462472685755,
+          "ci_95_upper": 141.23537527314244,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "rdf_creation_peak_memory_mb": {
+          "mean": 138.54,
+          "median": 138.37,
+          "std": 1.0850345616615051,
+          "min": 137.55,
+          "max": 139.7,
+          "ci_95_lower": 135.84462472685755,
+          "ci_95_upper": 141.23537527314244,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "storage_and_upload_duration_seconds": {
+          "mean": 0.2786666666666667,
+          "median": 0.292,
+          "std": 0.02396525262402491,
+          "min": 0.251,
+          "max": 0.293,
+          "ci_95_lower": 0.2191336788524406,
+          "ci_95_upper": 0.33819965448089273,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "storage_and_upload_start_memory_mb": {
+          "mean": 138.54,
+          "median": 138.37,
+          "std": 1.0850345616615051,
+          "min": 137.55,
+          "max": 139.7,
+          "ci_95_lower": 135.84462472685755,
+          "ci_95_upper": 141.23537527314244,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "storage_and_upload_end_memory_mb": {
+          "mean": 137.70333333333332,
+          "median": 137.75,
+          "std": 0.7311178655547541,
+          "min": 136.95,
+          "max": 138.41,
+          "ci_95_lower": 135.88713587179686,
+          "ci_95_upper": 139.51953079486978,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "storage_and_upload_peak_memory_mb": {
+          "mean": 138.62,
+          "median": 138.41,
+          "std": 0.9918165152889865,
+          "min": 137.75,
+          "max": 139.7,
+          "ci_95_lower": 136.15619119126436,
+          "ci_95_upper": 141.08380880873565,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "total_processing_duration_seconds": {
+          "mean": 0.3506666666666667,
+          "median": 0.346,
+          "std": 0.04617719494873346,
+          "min": 0.307,
+          "max": 0.399,
+          "ci_95_lower": 0.2359561552730926,
+          "ci_95_upper": 0.46537717806024076,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "total_processing_start_memory_mb": {
+          "mean": 137.67666666666668,
+          "median": 137.77,
+          "std": 0.645083973861802,
+          "min": 136.99,
+          "max": 138.27,
+          "ci_95_lower": 136.07418923997068,
+          "ci_95_upper": 139.27914409336267,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "total_processing_end_memory_mb": {
+          "mean": 137.70666666666668,
+          "median": 137.75,
+          "std": 0.7259706146486407,
+          "min": 136.96,
+          "max": 138.41,
+          "ci_95_lower": 135.90325568521777,
+          "ci_95_upper": 139.51007764811558,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "total_processing_peak_memory_mb": {
+          "mean": 138.14333333333335,
+          "median": 138.27,
+          "std": 0.3477547028198666,
+          "min": 137.75,
+          "max": 138.41,
+          "ci_95_lower": 137.2794627616307,
+          "ci_95_upper": 139.007203905036,
+          "outlier_indices": [],
+          "n": 3
+        }
+      }
     },
     {
-      "name": "creator_execution",
-      "duration_seconds": 12.199,
-      "start_memory_mb": 65.41,
-      "end_memory_mb": 418.35,
-      "peak_memory_mb": 418.35
+      "size": 10,
+      "runs": [
+        {
+          "timestamp": "2025-11-22T17:41:09.215310",
+          "config_path": "test/benchmark/benchmark_config.yaml",
+          "metrics": {
+            "input_records": 10,
+            "curated_records": 10,
+            "local_g_triples": 0,
+            "preexisting_entities_count": 0,
+            "modified_entities_count": 141,
+            "entities_created": 141,
+            "sparql_files_data": 15,
+            "sparql_files_prov": 15,
+            "throughput_records_per_sec": 4.28,
+            "total_duration_seconds": 2.338
+          },
+          "phases": [
+            {
+              "name": "curation",
+              "duration_seconds": 0.125,
+              "start_memory_mb": 152.66,
+              "end_memory_mb": 152.76,
+              "peak_memory_mb": 152.76
+            },
+            {
+              "name": "creator_execution",
+              "duration_seconds": 0.126,
+              "start_memory_mb": 152.76,
+              "end_memory_mb": 156.55,
+              "peak_memory_mb": 156.55
+            },
+            {
+              "name": "provenance_generation",
+              "duration_seconds": 0.117,
+              "start_memory_mb": 156.55,
+              "end_memory_mb": 159.97,
+              "peak_memory_mb": 159.97
+            },
+            {
+              "name": "rdf_creation",
+              "duration_seconds": 0.244,
+              "start_memory_mb": 152.76,
+              "end_memory_mb": 159.97,
+              "peak_memory_mb": 159.97
+            },
+            {
+              "name": "storage_and_upload",
+              "duration_seconds": 1.967,
+              "start_memory_mb": 159.97,
+              "end_memory_mb": 164.06,
+              "peak_memory_mb": 164.06
+            },
+            {
+              "name": "total_processing",
+              "duration_seconds": 2.338,
+              "start_memory_mb": 152.64,
+              "end_memory_mb": 164.06,
+              "peak_memory_mb": 164.06
+            }
+          ]
+        },
+        {
+          "timestamp": "2025-11-22T17:41:11.873526",
+          "config_path": "test/benchmark/benchmark_config.yaml",
+          "metrics": {
+            "input_records": 10,
+            "curated_records": 10,
+            "local_g_triples": 0,
+            "preexisting_entities_count": 0,
+            "modified_entities_count": 126,
+            "entities_created": 126,
+            "sparql_files_data": 13,
+            "sparql_files_prov": 13,
+            "throughput_records_per_sec": 4.9,
+            "total_duration_seconds": 2.042
+          },
+          "phases": [
+            {
+              "name": "curation",
+              "duration_seconds": 0.119,
+              "start_memory_mb": 164.06,
+              "end_memory_mb": 164.06,
+              "peak_memory_mb": 164.06
+            },
+            {
+              "name": "creator_execution",
+              "duration_seconds": 0.114,
+              "start_memory_mb": 164.06,
+              "end_memory_mb": 164.09,
+              "peak_memory_mb": 164.09
+            },
+            {
+              "name": "provenance_generation",
+              "duration_seconds": 0.11,
+              "start_memory_mb": 164.09,
+              "end_memory_mb": 165.65,
+              "peak_memory_mb": 165.65
+            },
+            {
+              "name": "rdf_creation",
+              "duration_seconds": 0.225,
+              "start_memory_mb": 164.06,
+              "end_memory_mb": 165.65,
+              "peak_memory_mb": 165.65
+            },
+            {
+              "name": "storage_and_upload",
+              "duration_seconds": 1.697,
+              "start_memory_mb": 165.65,
+              "end_memory_mb": 166.93,
+              "peak_memory_mb": 166.93
+            },
+            {
+              "name": "total_processing",
+              "duration_seconds": 2.042,
+              "start_memory_mb": 164.06,
+              "end_memory_mb": 166.93,
+              "peak_memory_mb": 166.93
+            }
+          ]
+        },
+        {
+          "timestamp": "2025-11-22T17:41:14.555244",
+          "config_path": "test/benchmark/benchmark_config.yaml",
+          "metrics": {
+            "input_records": 10,
+            "curated_records": 10,
+            "local_g_triples": 0,
+            "preexisting_entities_count": 0,
+            "modified_entities_count": 126,
+            "entities_created": 126,
+            "sparql_files_data": 13,
+            "sparql_files_prov": 13,
+            "throughput_records_per_sec": 4.85,
+            "total_duration_seconds": 2.062
+          },
+          "phases": [
+            {
+              "name": "curation",
+              "duration_seconds": 0.124,
+              "start_memory_mb": 166.93,
+              "end_memory_mb": 166.93,
+              "peak_memory_mb": 166.93
+            },
+            {
+              "name": "creator_execution",
+              "duration_seconds": 0.203,
+              "start_memory_mb": 166.93,
+              "end_memory_mb": 168.91,
+              "peak_memory_mb": 168.91
+            },
+            {
+              "name": "provenance_generation",
+              "duration_seconds": 0.105,
+              "start_memory_mb": 168.91,
+              "end_memory_mb": 168.91,
+              "peak_memory_mb": 168.91
+            },
+            {
+              "name": "rdf_creation",
+              "duration_seconds": 0.308,
+              "start_memory_mb": 166.93,
+              "end_memory_mb": 168.91,
+              "peak_memory_mb": 168.91
+            },
+            {
+              "name": "storage_and_upload",
+              "duration_seconds": 1.628,
+              "start_memory_mb": 168.91,
+              "end_memory_mb": 168.95,
+              "peak_memory_mb": 168.95
+            },
+            {
+              "name": "total_processing",
+              "duration_seconds": 2.062,
+              "start_memory_mb": 166.93,
+              "end_memory_mb": 168.95,
+              "peak_memory_mb": 168.95
+            }
+          ]
+        }
+      ],
+      "statistics": {
+        "input_records": {
+          "mean": 10.0,
+          "median": 10.0,
+          "std": 0.0,
+          "min": 10.0,
+          "max": 10.0,
+          "ci_95_lower": 10.0,
+          "ci_95_upper": 10.0,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "curated_records": {
+          "mean": 10.0,
+          "median": 10.0,
+          "std": 0.0,
+          "min": 10.0,
+          "max": 10.0,
+          "ci_95_lower": 10.0,
+          "ci_95_upper": 10.0,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "local_g_triples": {
+          "mean": 0.0,
+          "median": 0.0,
+          "std": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "ci_95_lower": 0.0,
+          "ci_95_upper": 0.0,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "preexisting_entities_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "std": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "ci_95_lower": 0.0,
+          "ci_95_upper": 0.0,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "modified_entities_count": {
+          "mean": 131.0,
+          "median": 126.0,
+          "std": 8.660254037844387,
+          "min": 126.0,
+          "max": 141.0,
+          "ci_95_lower": 109.48673635151928,
+          "ci_95_upper": 152.51326364848072,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "entities_created": {
+          "mean": 131.0,
+          "median": 126.0,
+          "std": 8.660254037844387,
+          "min": 126.0,
+          "max": 141.0,
+          "ci_95_lower": 109.48673635151928,
+          "ci_95_upper": 152.51326364848072,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "sparql_files_data": {
+          "mean": 13.666666666666666,
+          "median": 13.0,
+          "std": 1.1547005383792515,
+          "min": 13.0,
+          "max": 15.0,
+          "ci_95_lower": 10.798231513535905,
+          "ci_95_upper": 16.535101819797426,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "sparql_files_prov": {
+          "mean": 13.666666666666666,
+          "median": 13.0,
+          "std": 1.1547005383792515,
+          "min": 13.0,
+          "max": 15.0,
+          "ci_95_lower": 10.798231513535905,
+          "ci_95_upper": 16.535101819797426,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "throughput_records_per_sec": {
+          "mean": 4.676666666666667,
+          "median": 4.85,
+          "std": 0.3444318994131253,
+          "min": 4.28,
+          "max": 4.9,
+          "ci_95_lower": 3.821050396215329,
+          "ci_95_upper": 5.532282937118005,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "total_duration_seconds": {
+          "mean": 2.147333333333333,
+          "median": 2.062,
+          "std": 0.16542470593394865,
+          "min": 2.042,
+          "max": 2.338,
+          "ci_95_lower": 1.7363955828726951,
+          "ci_95_upper": 2.5582710837939713,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "curation_duration_seconds": {
+          "mean": 0.12266666666666666,
+          "median": 0.124,
+          "std": 0.0032145502536643214,
+          "min": 0.119,
+          "max": 0.125,
+          "ci_95_lower": 0.11468128115532149,
+          "ci_95_upper": 0.13065205217801185,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "curation_start_memory_mb": {
+          "mean": 161.21666666666667,
+          "median": 164.06,
+          "std": 7.547955573089538,
+          "min": 152.66,
+          "max": 166.93,
+          "ci_95_lower": 142.46650558117125,
+          "ci_95_upper": 179.9668277521621,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "curation_end_memory_mb": {
+          "mean": 161.25,
+          "median": 164.06,
+          "std": 7.49128159929929,
+          "min": 152.76,
+          "max": 166.93,
+          "ci_95_lower": 142.64062487006993,
+          "ci_95_upper": 179.85937512993007,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "curation_peak_memory_mb": {
+          "mean": 161.25,
+          "median": 164.06,
+          "std": 7.49128159929929,
+          "min": 152.76,
+          "max": 166.93,
+          "ci_95_lower": 142.64062487006993,
+          "ci_95_upper": 179.85937512993007,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "creator_execution_duration_seconds": {
+          "mean": 0.14766666666666667,
+          "median": 0.126,
+          "std": 0.048294237061303015,
+          "min": 0.114,
+          "max": 0.203,
+          "ci_95_lower": 0.027697131123960106,
+          "ci_95_upper": 0.26763620220937323,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "creator_execution_start_memory_mb": {
+          "mean": 161.25,
+          "median": 164.06,
+          "std": 7.49128159929929,
+          "min": 152.76,
+          "max": 166.93,
+          "ci_95_lower": 142.64062487006993,
+          "ci_95_upper": 179.85937512993007,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "creator_execution_end_memory_mb": {
+          "mean": 163.18333333333334,
+          "median": 164.09,
+          "std": 6.229681639805781,
+          "min": 156.55,
+          "max": 168.91,
+          "ci_95_lower": 147.70794623988493,
+          "ci_95_upper": 178.65872042678174,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "creator_execution_peak_memory_mb": {
+          "mean": 163.18333333333334,
+          "median": 164.09,
+          "std": 6.229681639805781,
+          "min": 156.55,
+          "max": 168.91,
+          "ci_95_lower": 147.70794623988493,
+          "ci_95_upper": 178.65872042678174,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "provenance_generation_duration_seconds": {
+          "mean": 0.11066666666666666,
+          "median": 0.11,
+          "std": 0.006027713773341714,
+          "min": 0.105,
+          "max": 0.117,
+          "ci_95_lower": 0.09569299556685719,
+          "ci_95_upper": 0.12564033776647615,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "provenance_generation_start_memory_mb": {
+          "mean": 163.18333333333334,
+          "median": 164.09,
+          "std": 6.229681639805781,
+          "min": 156.55,
+          "max": 168.91,
+          "ci_95_lower": 147.70794623988493,
+          "ci_95_upper": 178.65872042678174,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "provenance_generation_end_memory_mb": {
+          "mean": 164.84333333333333,
+          "median": 165.65,
+          "std": 4.524260528896775,
+          "min": 159.97,
+          "max": 168.91,
+          "ci_95_lower": 153.60444713585665,
+          "ci_95_upper": 176.08221953081002,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "provenance_generation_peak_memory_mb": {
+          "mean": 164.84333333333333,
+          "median": 165.65,
+          "std": 4.524260528896775,
+          "min": 159.97,
+          "max": 168.91,
+          "ci_95_lower": 153.60444713585665,
+          "ci_95_upper": 176.08221953081002,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "rdf_creation_duration_seconds": {
+          "mean": 0.259,
+          "median": 0.244,
+          "std": 0.0434856298103178,
+          "min": 0.225,
+          "max": 0.308,
+          "ci_95_lower": 0.15097570707031388,
+          "ci_95_upper": 0.36702429292968614,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "rdf_creation_start_memory_mb": {
+          "mean": 161.25,
+          "median": 164.06,
+          "std": 7.49128159929929,
+          "min": 152.76,
+          "max": 166.93,
+          "ci_95_lower": 142.64062487006993,
+          "ci_95_upper": 179.85937512993007,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "rdf_creation_end_memory_mb": {
+          "mean": 164.84333333333333,
+          "median": 165.65,
+          "std": 4.524260528896775,
+          "min": 159.97,
+          "max": 168.91,
+          "ci_95_lower": 153.60444713585665,
+          "ci_95_upper": 176.08221953081002,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "rdf_creation_peak_memory_mb": {
+          "mean": 164.84333333333333,
+          "median": 165.65,
+          "std": 4.524260528896775,
+          "min": 159.97,
+          "max": 168.91,
+          "ci_95_lower": 153.60444713585665,
+          "ci_95_upper": 176.08221953081002,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "storage_and_upload_duration_seconds": {
+          "mean": 1.764,
+          "median": 1.697,
+          "std": 0.17915635629248555,
+          "min": 1.628,
+          "max": 1.967,
+          "ci_95_lower": 1.3189509390395733,
+          "ci_95_upper": 2.2090490609604267,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "storage_and_upload_start_memory_mb": {
+          "mean": 164.84333333333333,
+          "median": 165.65,
+          "std": 4.524260528896775,
+          "min": 159.97,
+          "max": 168.91,
+          "ci_95_lower": 153.60444713585665,
+          "ci_95_upper": 176.08221953081002,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "storage_and_upload_end_memory_mb": {
+          "mean": 166.64666666666668,
+          "median": 166.93,
+          "std": 2.4572816959667656,
+          "min": 164.06,
+          "max": 168.95,
+          "ci_95_lower": 160.54244053739748,
+          "ci_95_upper": 172.75089279593587,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "storage_and_upload_peak_memory_mb": {
+          "mean": 166.64666666666668,
+          "median": 166.93,
+          "std": 2.4572816959667656,
+          "min": 164.06,
+          "max": 168.95,
+          "ci_95_lower": 160.54244053739748,
+          "ci_95_upper": 172.75089279593587,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "total_processing_duration_seconds": {
+          "mean": 2.147333333333333,
+          "median": 2.062,
+          "std": 0.16542470593394865,
+          "min": 2.042,
+          "max": 2.338,
+          "ci_95_lower": 1.7363955828726951,
+          "ci_95_upper": 2.5582710837939713,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "total_processing_start_memory_mb": {
+          "mean": 161.21,
+          "median": 164.06,
+          "std": 7.559292294917571,
+          "min": 152.64,
+          "max": 166.93,
+          "ci_95_lower": 142.43167693628428,
+          "ci_95_upper": 179.98832306371574,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "total_processing_end_memory_mb": {
+          "mean": 166.64666666666668,
+          "median": 166.93,
+          "std": 2.4572816959667656,
+          "min": 164.06,
+          "max": 168.95,
+          "ci_95_lower": 160.54244053739748,
+          "ci_95_upper": 172.75089279593587,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "total_processing_peak_memory_mb": {
+          "mean": 166.64666666666668,
+          "median": 166.93,
+          "std": 2.4572816959667656,
+          "min": 164.06,
+          "max": 168.95,
+          "ci_95_lower": 160.54244053739748,
+          "ci_95_upper": 172.75089279593587,
+          "outlier_indices": [],
+          "n": 3
+        }
+      }
     },
     {
-      "name": "provenance_generation",
-      "duration_seconds": 10.881,
-      "start_memory_mb": 418.35,
-      "end_memory_mb": 680.6,
-      "peak_memory_mb": 680.6
-    },
-    {
-      "name": "rdf_creation",
-      "duration_seconds": 23.087,
-      "start_memory_mb": 64.63,
-      "end_memory_mb": 680.6,
-      "peak_memory_mb": 680.6
-    },
-    {
-      "name": "storage_and_upload",
-      "duration_seconds": 81.625,
-      "start_memory_mb": 680.6,
-      "end_memory_mb": 813.31,
-      "peak_memory_mb": 813.31
-    },
-    {
-      "name": "total_processing",
-      "duration_seconds": 115.226,
-      "start_memory_mb": 54.49,
-      "end_memory_mb": 813.31,
-      "peak_memory_mb": 813.31
+      "size": 100,
+      "runs": [
+        {
+          "timestamp": "2025-11-22T17:41:33.075215",
+          "config_path": "test/benchmark/benchmark_config.yaml",
+          "metrics": {
+            "input_records": 100,
+            "curated_records": 100,
+            "local_g_triples": 0,
+            "preexisting_entities_count": 0,
+            "modified_entities_count": 1134,
+            "entities_created": 1134,
+            "sparql_files_data": 114,
+            "sparql_files_prov": 114,
+            "throughput_records_per_sec": 5.82,
+            "total_duration_seconds": 17.177
+          },
+          "phases": [
+            {
+              "name": "curation",
+              "duration_seconds": 0.99,
+              "start_memory_mb": 198.1,
+              "end_memory_mb": 198.11,
+              "peak_memory_mb": 198.11
+            },
+            {
+              "name": "creator_execution",
+              "duration_seconds": 1.267,
+              "start_memory_mb": 198.11,
+              "end_memory_mb": 182.76,
+              "peak_memory_mb": 198.11
+            },
+            {
+              "name": "provenance_generation",
+              "duration_seconds": 1.055,
+              "start_memory_mb": 182.76,
+              "end_memory_mb": 208.87,
+              "peak_memory_mb": 208.87
+            },
+            {
+              "name": "rdf_creation",
+              "duration_seconds": 2.323,
+              "start_memory_mb": 198.11,
+              "end_memory_mb": 208.87,
+              "peak_memory_mb": 208.87
+            },
+            {
+              "name": "storage_and_upload",
+              "duration_seconds": 13.862,
+              "start_memory_mb": 208.87,
+              "end_memory_mb": 219.33,
+              "peak_memory_mb": 219.33
+            },
+            {
+              "name": "total_processing",
+              "duration_seconds": 17.177,
+              "start_memory_mb": 198.09,
+              "end_memory_mb": 219.33,
+              "peak_memory_mb": 219.33
+            }
+          ]
+        },
+        {
+          "timestamp": "2025-11-22T17:41:51.263263",
+          "config_path": "test/benchmark/benchmark_config.yaml",
+          "metrics": {
+            "input_records": 100,
+            "curated_records": 100,
+            "local_g_triples": 0,
+            "preexisting_entities_count": 0,
+            "modified_entities_count": 1136,
+            "entities_created": 1136,
+            "sparql_files_data": 114,
+            "sparql_files_prov": 114,
+            "throughput_records_per_sec": 5.71,
+            "total_duration_seconds": 17.526
+          },
+          "phases": [
+            {
+              "name": "curation",
+              "duration_seconds": 0.984,
+              "start_memory_mb": 219.34,
+              "end_memory_mb": 219.41,
+              "peak_memory_mb": 219.41
+            },
+            {
+              "name": "creator_execution",
+              "duration_seconds": 1.315,
+              "start_memory_mb": 219.41,
+              "end_memory_mb": 218.81,
+              "peak_memory_mb": 219.41
+            },
+            {
+              "name": "provenance_generation",
+              "duration_seconds": 1.192,
+              "start_memory_mb": 218.81,
+              "end_memory_mb": 218.81,
+              "peak_memory_mb": 218.81
+            },
+            {
+              "name": "rdf_creation",
+              "duration_seconds": 2.508,
+              "start_memory_mb": 219.41,
+              "end_memory_mb": 218.81,
+              "peak_memory_mb": 219.41
+            },
+            {
+              "name": "storage_and_upload",
+              "duration_seconds": 14.032,
+              "start_memory_mb": 218.81,
+              "end_memory_mb": 220.95,
+              "peak_memory_mb": 220.95
+            },
+            {
+              "name": "total_processing",
+              "duration_seconds": 17.526,
+              "start_memory_mb": 219.33,
+              "end_memory_mb": 220.95,
+              "peak_memory_mb": 220.95
+            }
+          ]
+        },
+        {
+          "timestamp": "2025-11-22T17:42:08.528509",
+          "config_path": "test/benchmark/benchmark_config.yaml",
+          "metrics": {
+            "input_records": 100,
+            "curated_records": 100,
+            "local_g_triples": 0,
+            "preexisting_entities_count": 0,
+            "modified_entities_count": 1077,
+            "entities_created": 1077,
+            "sparql_files_data": 108,
+            "sparql_files_prov": 108,
+            "throughput_records_per_sec": 6.03,
+            "total_duration_seconds": 16.592
+          },
+          "phases": [
+            {
+              "name": "curation",
+              "duration_seconds": 0.966,
+              "start_memory_mb": 220.95,
+              "end_memory_mb": 220.95,
+              "peak_memory_mb": 220.95
+            },
+            {
+              "name": "creator_execution",
+              "duration_seconds": 1.333,
+              "start_memory_mb": 220.95,
+              "end_memory_mb": 223.45,
+              "peak_memory_mb": 223.45
+            },
+            {
+              "name": "provenance_generation",
+              "duration_seconds": 1.067,
+              "start_memory_mb": 223.45,
+              "end_memory_mb": 223.45,
+              "peak_memory_mb": 223.45
+            },
+            {
+              "name": "rdf_creation",
+              "duration_seconds": 2.401,
+              "start_memory_mb": 220.95,
+              "end_memory_mb": 223.45,
+              "peak_memory_mb": 223.45
+            },
+            {
+              "name": "storage_and_upload",
+              "duration_seconds": 13.222,
+              "start_memory_mb": 223.45,
+              "end_memory_mb": 229.97,
+              "peak_memory_mb": 229.97
+            },
+            {
+              "name": "total_processing",
+              "duration_seconds": 16.592,
+              "start_memory_mb": 220.95,
+              "end_memory_mb": 229.97,
+              "peak_memory_mb": 229.97
+            }
+          ]
+        }
+      ],
+      "statistics": {
+        "input_records": {
+          "mean": 100.0,
+          "median": 100.0,
+          "std": 0.0,
+          "min": 100.0,
+          "max": 100.0,
+          "ci_95_lower": 100.0,
+          "ci_95_upper": 100.0,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "curated_records": {
+          "mean": 100.0,
+          "median": 100.0,
+          "std": 0.0,
+          "min": 100.0,
+          "max": 100.0,
+          "ci_95_lower": 100.0,
+          "ci_95_upper": 100.0,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "local_g_triples": {
+          "mean": 0.0,
+          "median": 0.0,
+          "std": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "ci_95_lower": 0.0,
+          "ci_95_upper": 0.0,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "preexisting_entities_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "std": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "ci_95_lower": 0.0,
+          "ci_95_upper": 0.0,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "modified_entities_count": {
+          "mean": 1115.6666666666667,
+          "median": 1134.0,
+          "std": 33.50124375800596,
+          "min": 1077.0,
+          "max": 1136.0,
+          "ci_95_lower": 1032.4449636578952,
+          "ci_95_upper": 1198.8883696754383,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "entities_created": {
+          "mean": 1115.6666666666667,
+          "median": 1134.0,
+          "std": 33.50124375800596,
+          "min": 1077.0,
+          "max": 1136.0,
+          "ci_95_lower": 1032.4449636578952,
+          "ci_95_upper": 1198.8883696754383,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "sparql_files_data": {
+          "mean": 112.0,
+          "median": 114.0,
+          "std": 3.4641016151377544,
+          "min": 108.0,
+          "max": 114.0,
+          "ci_95_lower": 103.39469454060772,
+          "ci_95_upper": 120.60530545939228,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "sparql_files_prov": {
+          "mean": 112.0,
+          "median": 114.0,
+          "std": 3.4641016151377544,
+          "min": 108.0,
+          "max": 114.0,
+          "ci_95_lower": 103.39469454060772,
+          "ci_95_upper": 120.60530545939228,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "throughput_records_per_sec": {
+          "mean": 5.8533333333333335,
+          "median": 5.82,
+          "std": 0.1625833119767628,
+          "min": 5.71,
+          "max": 6.03,
+          "ci_95_lower": 5.449453996755593,
+          "ci_95_upper": 6.257212669911074,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "total_duration_seconds": {
+          "mean": 17.098333333333333,
+          "median": 17.177,
+          "std": 0.4719431462934215,
+          "min": 16.592,
+          "max": 17.526,
+          "ci_95_lower": 15.92596156583827,
+          "ci_95_upper": 18.270705100828394,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "curation_duration_seconds": {
+          "mean": 0.98,
+          "median": 0.984,
+          "std": 0.012489995996796807,
+          "min": 0.966,
+          "max": 0.99,
+          "ci_95_lower": 0.9489731299251308,
+          "ci_95_upper": 1.011026870074869,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "curation_start_memory_mb": {
+          "mean": 212.79666666666665,
+          "median": 219.34,
+          "std": 12.75311857285634,
+          "min": 198.1,
+          "max": 220.95,
+          "ci_95_lower": 181.11616387780327,
+          "ci_95_upper": 244.47716945553003,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "curation_end_memory_mb": {
+          "mean": 212.82333333333332,
+          "median": 219.41,
+          "std": 12.76536459852726,
+          "min": 198.11,
+          "max": 220.95,
+          "ci_95_lower": 181.1124097302821,
+          "ci_95_upper": 244.53425693638454,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "curation_peak_memory_mb": {
+          "mean": 212.82333333333332,
+          "median": 219.41,
+          "std": 12.76536459852726,
+          "min": 198.11,
+          "max": 220.95,
+          "ci_95_lower": 181.1124097302821,
+          "ci_95_upper": 244.53425693638454,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "creator_execution_duration_seconds": {
+          "mean": 1.305,
+          "median": 1.315,
+          "std": 0.034117444218463994,
+          "min": 1.267,
+          "max": 1.333,
+          "ci_95_lower": 1.2202475701894255,
+          "ci_95_upper": 1.3897524298105743,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "creator_execution_start_memory_mb": {
+          "mean": 212.82333333333332,
+          "median": 219.41,
+          "std": 12.76536459852726,
+          "min": 198.11,
+          "max": 220.95,
+          "ci_95_lower": 181.1124097302821,
+          "ci_95_upper": 244.53425693638454,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "creator_execution_end_memory_mb": {
+          "mean": 208.34,
+          "median": 218.81,
+          "std": 22.27408135030489,
+          "min": 182.76,
+          "max": 223.45,
+          "ci_95_lower": 153.0081145237986,
+          "ci_95_upper": 263.6718854762014,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "creator_execution_peak_memory_mb": {
+          "mean": 213.65666666666667,
+          "median": 219.41,
+          "std": 13.61449717519281,
+          "min": 198.11,
+          "max": 223.45,
+          "ci_95_lower": 179.836380807671,
+          "ci_95_upper": 247.47695252566234,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "provenance_generation_duration_seconds": {
+          "mean": 1.1046666666666667,
+          "median": 1.067,
+          "std": 0.07587050371081856,
+          "min": 1.055,
+          "max": 1.192,
+          "ci_95_lower": 0.9161938871914646,
+          "ci_95_upper": 1.2931394461418688,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "provenance_generation_start_memory_mb": {
+          "mean": 208.34,
+          "median": 218.81,
+          "std": 22.27408135030489,
+          "min": 182.76,
+          "max": 223.45,
+          "ci_95_lower": 153.0081145237986,
+          "ci_95_upper": 263.6718854762014,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "provenance_generation_end_memory_mb": {
+          "mean": 217.04333333333332,
+          "median": 218.81,
+          "std": 7.448820935781261,
+          "min": 208.87,
+          "max": 223.45,
+          "ci_95_lower": 198.53943633891302,
+          "ci_95_upper": 235.54723032775362,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "provenance_generation_peak_memory_mb": {
+          "mean": 217.04333333333332,
+          "median": 218.81,
+          "std": 7.448820935781261,
+          "min": 208.87,
+          "max": 223.45,
+          "ci_95_lower": 198.53943633891302,
+          "ci_95_upper": 235.54723032775362,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "rdf_creation_duration_seconds": {
+          "mean": 2.4106666666666667,
+          "median": 2.401,
+          "std": 0.09287805625298874,
+          "min": 2.323,
+          "max": 2.508,
+          "ci_95_lower": 2.1799447845374083,
+          "ci_95_upper": 2.641388548795925,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "rdf_creation_start_memory_mb": {
+          "mean": 212.82333333333332,
+          "median": 219.41,
+          "std": 12.76536459852726,
+          "min": 198.11,
+          "max": 220.95,
+          "ci_95_lower": 181.1124097302821,
+          "ci_95_upper": 244.53425693638454,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "rdf_creation_end_memory_mb": {
+          "mean": 217.04333333333332,
+          "median": 218.81,
+          "std": 7.448820935781261,
+          "min": 208.87,
+          "max": 223.45,
+          "ci_95_lower": 198.53943633891302,
+          "ci_95_upper": 235.54723032775362,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "rdf_creation_peak_memory_mb": {
+          "mean": 217.24333333333334,
+          "median": 219.41,
+          "std": 7.5276113962752635,
+          "min": 208.87,
+          "max": 223.45,
+          "ci_95_lower": 198.54370998467613,
+          "ci_95_upper": 235.94295668199055,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "storage_and_upload_duration_seconds": {
+          "mean": 13.705333333333334,
+          "median": 13.862,
+          "std": 0.4271221527073181,
+          "min": 13.222,
+          "max": 14.032,
+          "ci_95_lower": 12.64430308628225,
+          "ci_95_upper": 14.766363580384418,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "storage_and_upload_start_memory_mb": {
+          "mean": 217.04333333333332,
+          "median": 218.81,
+          "std": 7.448820935781261,
+          "min": 208.87,
+          "max": 223.45,
+          "ci_95_lower": 198.53943633891302,
+          "ci_95_upper": 235.54723032775362,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "storage_and_upload_end_memory_mb": {
+          "mean": 223.41666666666666,
+          "median": 220.95,
+          "std": 5.732864321901689,
+          "min": 219.33,
+          "max": 229.97,
+          "ci_95_lower": 209.17544220845917,
+          "ci_95_upper": 237.65789112487414,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "storage_and_upload_peak_memory_mb": {
+          "mean": 223.41666666666666,
+          "median": 220.95,
+          "std": 5.732864321901689,
+          "min": 219.33,
+          "max": 229.97,
+          "ci_95_lower": 209.17544220845917,
+          "ci_95_upper": 237.65789112487414,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "total_processing_duration_seconds": {
+          "mean": 17.098333333333333,
+          "median": 17.177,
+          "std": 0.4719431462934215,
+          "min": 16.592,
+          "max": 17.526,
+          "ci_95_lower": 15.92596156583827,
+          "ci_95_upper": 18.270705100828394,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "total_processing_start_memory_mb": {
+          "mean": 212.79,
+          "median": 219.33,
+          "std": 12.756316082631377,
+          "min": 198.09,
+          "max": 220.95,
+          "ci_95_lower": 181.10155415652085,
+          "ci_95_upper": 244.47844584347914,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "total_processing_end_memory_mb": {
+          "mean": 223.41666666666666,
+          "median": 220.95,
+          "std": 5.732864321901689,
+          "min": 219.33,
+          "max": 229.97,
+          "ci_95_lower": 209.17544220845917,
+          "ci_95_upper": 237.65789112487414,
+          "outlier_indices": [],
+          "n": 3
+        },
+        "total_processing_peak_memory_mb": {
+          "mean": 223.41666666666666,
+          "median": 220.95,
+          "std": 5.732864321901689,
+          "min": 219.33,
+          "max": 229.97,
+          "ci_95_lower": 209.17544220845917,
+          "ci_95_upper": 237.65789112487414,
+          "outlier_indices": [],
+          "n": 3
+        }
+      }
     }
-  ]
+  ],
+  "scalability": {
+    "mean_duration_by_size": {
+      "1": 0.3506666666666667,
+      "10": 2.147333333333333,
+      "100": 17.098333333333333
+    },
+    "throughput_by_size": {
+      "1": 2.8833333333333333,
+      "10": 4.676666666666667,
+      "100": 5.8533333333333335
+    }
+  }
 }

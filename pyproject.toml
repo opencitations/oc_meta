@@ -44,6 +44,8 @@ autopep8 = "^2.0.0"
 langdetect = "^1.0.9"
 pycountry = "^22.3.5"
 isort = "^6.0.1"
+scipy = ">=1.10.0,<1.14.0"
+matplotlib = "^3.10.7"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

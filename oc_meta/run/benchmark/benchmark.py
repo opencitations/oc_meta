@@ -17,7 +17,7 @@ import time
 from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 from urllib.parse import urlparse
 
 import psutil
@@ -32,8 +32,11 @@ from oc_meta.core.creator import Creator
 from oc_meta.core.curator import Curator
 from oc_meta.lib import file_manager
 from oc_meta.run.benchmark.generate_benchmark_data import BenchmarkDataGenerator
+from oc_meta.run.benchmark.plotting import (
+    plot_benchmark_results, plot_scalability_analysis)
 from oc_meta.run.benchmark.preload_high_author_data import (
     generate_atlas_paper_csv, generate_atlas_update_csv, preload_data)
+from oc_meta.run.benchmark.statistics import BenchmarkStatistics
 from oc_meta.run.upload.cache_manager import CacheManager
 from oc_meta.run.upload.on_triplestore import upload_sparql_updates
 
@@ -249,8 +252,9 @@ class MetaBenchmark:
 
     def _delete_input_file(self, csv_path: str):
         """Delete generated input CSV file."""
-        os.remove(csv_path)
-        print(f"  - Deleted generated input file: {os.path.basename(csv_path)}")
+        if os.path.exists(csv_path):
+            os.remove(csv_path)
+            print(f"  - Deleted generated input file: {os.path.basename(csv_path)}")
 
     def _delete_time_agnostic_config(self):
         """Delete auto-generated time_agnostic_library_config.json file."""
@@ -260,45 +264,21 @@ class MetaBenchmark:
             os.remove(time_agnostic_config)
             print(f"  - Deleted time_agnostic_library_config.json")
 
-    def run_benchmark(self, size: Optional[int] = None, seed: int = 42) -> Dict[str, Any]:
+    def _execute_single_run(self, input_csv: str, run_number: Optional[int] = None) -> Dict[str, Any]:
         """
-        Run complete benchmark on all CSV files in input directory.
+        Execute a single benchmark run on the given CSV file.
 
         Args:
-            size: If specified, generate test data with N records before running benchmark
-            seed: Random seed for reproducible data generation (default: 42)
+            input_csv: Path to input CSV file
+            run_number: Optional run number for progress display
 
         Returns:
-            Dictionary with benchmark results and metrics
+            Dictionary with benchmark results and metrics for this run
         """
-        print(f"\n{'='*60}")
-        print(f"OpenCitations Meta Benchmark")
-        print(f"{'='*60}")
-        print(f"Input directory: {self.input_dir}")
-        print(f"Config: {self.config_path}")
-        print(f"Timestamp: {datetime.now().isoformat()}")
-        print(f"{'='*60}\n")
+        self.timers = []
+        self.metrics = {}
 
-        if size:
-            csv_filename = f"benchmark_{size}.csv"
-            csv_path = os.path.join(self.input_dir, csv_filename)
-
-            print(f"Generating {size} test records (seed={seed})...")
-            os.makedirs(self.input_dir, exist_ok=True)
-            generator = BenchmarkDataGenerator(size=size, output_path=csv_path, seed=seed)
-            generator.generate()
-            print()
-
-            input_csv = csv_path
-            self._generated_csvs.append(csv_path)
-            print(f"Processing generated file: {csv_filename}\n")
-        else:
-            csv_files = [f for f in os.listdir(self.input_dir) if f.endswith('.csv')]
-            if not csv_files:
-                raise ValueError(f"No CSV files found in {self.input_dir}")
-
-            input_csv = os.path.join(self.input_dir, csv_files[0])
-            print(f"Processing file: {csv_files[0]}\n")
+        run_prefix = f"[Run {run_number}] " if run_number is not None else ""
 
         overall_timer = BenchmarkTimer("total_processing")
         overall_timer.__enter__()
@@ -313,15 +293,246 @@ class MetaBenchmark:
             self.timers.append(overall_timer)
 
             self._calculate_metrics(len(data))
-            self._print_summary()
 
-            return self._generate_report()
+            report = self._generate_report()
+
+            if run_number is not None:
+                print(f"{run_prefix}Completed in {self.metrics['total_duration_seconds']:.2f}s")
+
+            return report
 
         except Exception as e:
             overall_timer.__exit__(type(e), e, None)
             self.timers.append(overall_timer)
-            print(f"\n[ERROR] Benchmark failed: {e}")
+            print(f"\n{run_prefix}[ERROR] Benchmark failed: {e}")
             raise
+
+    def run_benchmark(
+        self,
+        sizes: Optional[Union[int, List[int]]] = None,
+        seed: int = 42,
+        runs: int = 1,
+        fresh_data: bool = False
+    ) -> Dict[str, Any]:
+        """
+        Run complete benchmark on CSV files with optional multiple runs and statistical analysis.
+
+        Args:
+            sizes: If specified, generate test data with N records (single int) or list of sizes for scalability analysis
+            seed: Random seed for reproducible data generation (default: 42)
+            runs: Number of times to execute the benchmark per size (default: 1)
+            fresh_data: If True, generate new data for each run (default: False)
+
+        Returns:
+            Dictionary with benchmark results. If runs > 1, includes statistical analysis.
+            If multiple sizes provided, returns scalability analysis across sizes.
+        """
+        print(f"\n{'='*60}")
+        print(f"OpenCitations Meta Benchmark")
+        print(f"{'='*60}")
+        print(f"Input directory: {self.input_dir}")
+        print(f"Config: {self.config_path}")
+        print(f"Timestamp: {datetime.now().isoformat()}")
+        print(f"Runs: {runs}")
+        print(f"Fresh data per run: {fresh_data}")
+        print(f"{'='*60}\n")
+
+        if isinstance(sizes, list):
+            return self._run_multi_size_benchmark(sizes, seed, runs, fresh_data)
+        else:
+            return self._run_single_size_benchmark(sizes, seed, runs, fresh_data)
+
+    def _run_multi_size_benchmark(
+        self,
+        sizes: List[int],
+        seed: int,
+        runs: int,
+        fresh_data: bool
+    ) -> Dict[str, Any]:
+        """Run benchmark for multiple sizes and generate scalability analysis."""
+        print(f"Scalability analysis across {len(sizes)} sizes: {sizes}")
+        print(f"{'='*60}\n")
+
+        per_size_results = []
+
+        for size_idx, size in enumerate(sizes):
+            print(f"\n{'#'*60}")
+            print(f"Size {size_idx + 1}/{len(sizes)}: {size} records")
+            print(f"{'#'*60}\n")
+
+            size_result = self._run_single_size_benchmark(size, seed, runs, fresh_data)
+
+            per_size_results.append({
+                "size": size,
+                "runs": size_result.get("runs", [size_result]),
+                "statistics": size_result.get("statistics", {})
+            })
+
+            if size_idx < len(sizes) - 1:
+                self.cleanup_databases()
+
+        print(f"\n{'='*60}")
+        print("Scalability Analysis Summary")
+        print(f"{'='*60}")
+
+        scalability_metrics = self._compute_scalability_metrics(per_size_results)
+
+        for size_data in per_size_results:
+            size = size_data["size"]
+            if size_data["statistics"]:
+                mean_time = size_data["statistics"]["total_duration_seconds"]["mean"]
+                mean_throughput = size_data["statistics"]["throughput_records_per_sec"]["mean"]
+            else:
+                mean_time = size_data["runs"][0]["metrics"]["total_duration_seconds"]
+                mean_throughput = size_data["runs"][0]["metrics"]["throughput_records_per_sec"]
+
+            print(f"Size {size:>4}: {mean_time:>6.2f}s | {mean_throughput:>6.2f} rec/s")
+
+        print(f"{'='*60}\n")
+
+        plot_scalability_analysis(per_size_results, "scalability_analysis.png")
+
+        return {
+            "timestamp": datetime.now().isoformat(),
+            "config_path": self.config_path,
+            "config": {
+                "sizes": sizes,
+                "runs": runs,
+                "fresh_data": fresh_data,
+                "seed": seed
+            },
+            "per_size_results": per_size_results,
+            "scalability": scalability_metrics
+        }
+
+    def _compute_scalability_metrics(self, per_size_results: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Compute aggregate scalability metrics across sizes."""
+        mean_duration_by_size = {}
+        throughput_by_size = {}
+
+        for size_data in per_size_results:
+            size = size_data["size"]
+            if size_data["statistics"]:
+                mean_duration_by_size[size] = size_data["statistics"]["total_duration_seconds"]["mean"]
+                throughput_by_size[size] = size_data["statistics"]["throughput_records_per_sec"]["mean"]
+            else:
+                mean_duration_by_size[size] = size_data["runs"][0]["metrics"]["total_duration_seconds"]
+                throughput_by_size[size] = size_data["runs"][0]["metrics"]["throughput_records_per_sec"]
+
+        return {
+            "mean_duration_by_size": mean_duration_by_size,
+            "throughput_by_size": throughput_by_size
+        }
+
+    def _run_single_size_benchmark(
+        self,
+        sizes: Optional[int],
+        seed: int,
+        runs: int,
+        fresh_data: bool
+    ) -> Dict[str, Any]:
+        """Run benchmark for a single size with multiple runs and statistical analysis."""
+        all_runs = []
+
+        for run_idx in range(runs):
+            run_number = run_idx + 1
+
+            if runs > 1:
+                print(f"\n{'='*60}")
+                print(f"Run {run_number}/{runs}")
+                print(f"{'='*60}\n")
+
+            current_seed = seed + run_number if fresh_data else seed
+            input_csv = self._prepare_input_csv(sizes, current_seed, run_number if fresh_data else None)
+
+            report = self._execute_single_run(input_csv, run_number if runs > 1 else None)
+            all_runs.append(report)
+
+            if fresh_data and run_idx < runs - 1:
+                self.cleanup_databases()
+
+            if runs > 1 and run_number > 1:
+                current_times = [r["metrics"]["total_duration_seconds"] for r in all_runs]
+                mean_time = sum(current_times) / len(current_times)
+                import statistics
+                std_time = statistics.stdev(current_times) if len(current_times) > 1 else 0
+                print(f"Progress: Mean time so far: {mean_time:.2f}s ± {std_time:.2f}s\n")
+
+        if runs == 1:
+            self._print_summary()
+            return all_runs[0]
+
+        print(f"\n{'='*60}")
+        print("Statistical Analysis")
+        print(f"{'='*60}")
+
+        stats = BenchmarkStatistics.calculate_statistics(all_runs)
+
+        print(BenchmarkStatistics.format_statistics_report(stats))
+        print(f"{'='*60}\n")
+
+        if sizes is not None:
+            viz_filename = f"benchmark_results_{sizes}.png"
+        else:
+            viz_filename = "benchmark_results.png"
+
+        plot_benchmark_results(all_runs, stats, viz_filename)
+
+        return {
+            "timestamp": datetime.now().isoformat(),
+            "config_path": self.config_path,
+            "config": {
+                "runs": runs,
+                "fresh_data": fresh_data,
+                "seed": seed,
+                "size": sizes
+            },
+            "runs": all_runs,
+            "statistics": stats
+        }
+
+    def _prepare_input_csv(
+        self,
+        sizes: Optional[int],
+        seed: int,
+        run_number: Optional[int] = None
+    ) -> str:
+        """
+        Prepare input CSV file (generate or use existing).
+
+        Args:
+            sizes: If specified, generate test data with N records
+            seed: Random seed for data generation
+            run_number: Optional run number for unique filenames with fresh data
+
+        Returns:
+            Path to input CSV file
+        """
+        if sizes:
+            if run_number is not None:
+                csv_filename = f"benchmark_{sizes}_run{run_number}.csv"
+            else:
+                csv_filename = f"benchmark_{sizes}.csv"
+
+            csv_path = os.path.join(self.input_dir, csv_filename)
+
+            print(f"Generating {sizes} test records (seed={seed})...")
+            os.makedirs(self.input_dir, exist_ok=True)
+            generator = BenchmarkDataGenerator(size=sizes, output_path=csv_path, seed=seed)
+            generator.generate()
+            print()
+
+            self._generated_csvs.append(csv_path)
+            print(f"Processing generated file: {csv_filename}\n")
+            return csv_path
+        else:
+            csv_files = [f for f in os.listdir(self.input_dir) if f.endswith('.csv')]
+            if not csv_files:
+                raise ValueError(f"No CSV files found in {self.input_dir}")
+
+            input_csv = os.path.join(self.input_dir, csv_files[0])
+            print(f"Processing file: {csv_files[0]}\n")
+            return input_csv
 
     def _read_csv(self, csv_path: str) -> List[Dict[str, str]]:
         """Read CSV file and return data."""
@@ -569,7 +780,7 @@ class MetaBenchmark:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Benchmark OpenCitations Meta processing pipeline"
+        description="Benchmark OpenCitations Meta processing pipeline with statistical analysis"
     )
     parser.add_argument(
         "-c", "--config",
@@ -582,10 +793,22 @@ def main():
         help="Output JSON report file path (default: benchmark_report.json)"
     )
     parser.add_argument(
-        "--size",
+        "--sizes",
         type=int,
+        nargs='+',
         default=None,
-        help="Generate test data with N records. If not specified, use existing CSV files"
+        help="Generate test data with N records. Can specify multiple sizes for scalability analysis (e.g., --sizes 10 50 100). If not specified, use existing CSV files"
+    )
+    parser.add_argument(
+        "--runs",
+        type=int,
+        default=1,
+        help="Number of times to execute the benchmark (default: 1). Multiple runs enable statistical analysis"
+    )
+    parser.add_argument(
+        "--fresh-data",
+        action="store_true",
+        help="Generate new data file for each run (with different seeds). Default: reuse same data to test cache effects"
     )
     parser.add_argument(
         "--seed",
@@ -636,9 +859,18 @@ def main():
             print(f"[Preload] Next benchmark run will process this BR (update scenario)\n")
 
             benchmark._generated_csvs.extend([preload_csv, update_csv])
-            args.size = None
+            args.sizes = None
 
-        report = benchmark.run_benchmark(size=args.size, seed=args.seed)
+        sizes_arg = args.sizes
+        if sizes_arg and len(sizes_arg) == 1:
+            sizes_arg = sizes_arg[0]
+
+        report = benchmark.run_benchmark(
+            sizes=sizes_arg,
+            seed=args.seed,
+            runs=args.runs,
+            fresh_data=args.fresh_data
+        )
         if preload_metrics:
             report["preload_metrics"] = preload_metrics
         benchmark.save_report(report, args.output)
