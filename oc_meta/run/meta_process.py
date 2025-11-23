@@ -202,8 +202,6 @@ class MetaProcess:
         settings: str | None = None,
         meta_config_path: str = None,
     ) -> Tuple[dict, str, str, str]:
-        if os.path.exists(os.path.join(self.base_output_dir, ".stop")):
-            return {"message": "skip"}, cache_path, errors_path, filename
         try:
             with self.timer.timer("total_processing"):
                 filepath = os.path.join(self.input_csv_dir, filename)
@@ -509,6 +507,10 @@ def run_meta_process(
                     meta_config_path=meta_config_path
                 )
                 task_done(result)
+
+                if result[0]["message"] == "skip":
+                    print(f"\nStop file detected. Halting processing.")
+                    break
 
                 if enable_timing:
                     report = file_timer.get_report()
