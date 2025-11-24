@@ -77,3 +77,12 @@ redis_host: localhost
 redis_port: 6381
 redis_db: 10
 cache_db: 11
+
+# Virtuoso bulk load settings
+virtuoso_bulk_load:
+  enabled: True
+  data_container: oc-meta-test-virtuoso
+  prov_container: oc-meta-test-virtuoso-prov
+  bulk_load_dir: /database/bulk_load
+  data_mount_dir: test/test_virtuoso_db/bulk_load
+  prov_mount_dir: test/test_virtuoso_db_prov/bulk_load

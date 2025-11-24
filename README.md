@@ -23,6 +23,7 @@ An example of a raw CSV input file can be found in [`example.csv`](https://githu
   - [Main processing](#main-processing)
   - [Verifying processing results](#verifying-processing-results)
   - [Manual upload to triplestore](#manual-upload-to-triplestore)
+- [Virtuoso bulk loading (performance optimization)](#virtuoso-bulk-loading-performance-optimization)
 - [Analysing the dataset](#analysing-the-dataset)
   - [General statistics (SPARQL)](#general-statistics-sparql)
   - [Venue statistics (CSV)](#venue-statistics-csv)
@@ -216,6 +217,81 @@ Options:
 - `--cache_file`: Path to the cache file tracking processed files (default: "ts_upload_cache.json")
 - `--failed_file`: Path to the file recording failed queries (default: "failed_queries.txt")
 - `--stop_file`: Path to the stop file used to gracefully interrupt the process (default: ".stop_upload")
+
+## Virtuoso bulk loading (performance optimization)
+
+For large-scale data ingestion into Virtuoso triplestores, the Meta process supports an optional bulk loading mode that significantly improves performance compared to standard SPARQL INSERT queries. This mode leverages Virtuoso's native `ld_dir`/`rdf_loader_run` mechanism for fast data loading.
+
+### Prerequisites
+
+Before enabling bulk loading, ensure:
+
+1. **Docker setup**: Both data and provenance Virtuoso instances must run in Docker containers
+2. **Volume mapping**: Host directories for data and provenance must be mounted as volumes into their respective containers
+3. **DirsAllowed configuration**: The bulk load directory must be listed in `DirsAllowed` parameter in `virtuoso.ini`
+
+Example Docker volume mapping:
+```bash
+# Data container
+docker run -d \
+  --name virtuoso-data \
+  -v /srv/meta/data_bulk:/database/bulk_load \
+  -p 8890:8890 \
+  -p 1111:1111 \
+  openlink/virtuoso-opensource-7:latest
+
+# Provenance container
+docker run -d \
+  --name virtuoso-prov \
+  -v /srv/meta/prov_bulk:/database/bulk_load \
+  -p 8891:8890 \
+  -p 1112:1111 \
+  openlink/virtuoso-opensource-7:latest
+```
+
+Example `virtuoso.ini` configuration:
+```ini
+[Parameters]
+DirsAllowed = ., /database, /database/bulk_load
+```
+
+### Configuration
+
+Edit your `meta_config.yaml` to enable bulk loading:
+
+```yaml
+virtuoso_bulk_load:
+  # Set to true to enable bulk loading mode
+  enabled: true
+
+  # Docker container name for the data triplestore
+  data_container: "virtuoso-data"
+
+  # Docker container name for the provenance triplestore
+  prov_container: "virtuoso-prov"
+
+  # Host directory mounted as volume in the data container
+  # Files will be generated directly here (visible to both host and container)
+  # This directory must be mounted in the data container as bulk_load_dir
+  data_mount_dir: "/srv/meta/data_bulk"
+
+  # Host directory mounted as volume in the provenance container
+  # Files will be generated directly here (visible to both host and container)
+  # This directory must be mounted in the prov container as bulk_load_dir
+  prov_mount_dir: "/srv/meta/prov_bulk"
+
+  # Path INSIDE the container where bulk load files are accessed
+  # This directory must be:
+  # 1. Mapped as a volume from the host to the container
+  # 2. Listed in the DirsAllowed parameter in virtuoso.ini
+  bulk_load_dir: "/database/bulk_load"
+```
+
+### Behavior
+
+- **Success**: All files are loaded successfully, files remain in the mounted directories
+- **Failure**: If any file fails to load, the process crashes immediately with a detailed error message
+- Files remain in the mounted directories for manual inspection or retry
 
 ## Analysing the dataset
 

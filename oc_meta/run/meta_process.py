@@ -50,6 +50,11 @@ from tqdm import tqdm
 from virtuoso_utilities.bulk_load import bulk_load
 
 
+class BulkLoadError(Exception):
+    """Raised when Virtuoso bulk load fails."""
+    pass
+
+
 def _store_rdf_process(args: tuple) -> None:
     """
     Worker function to execute storer.store_all() in a separate process.
@@ -97,6 +102,29 @@ def _upload_to_triplestore(endpoint: str, folder: str, redis_host: str, redis_po
         cache_manager=cache_manager,
     )
 
+
+def _run_bulk_load_process(args: tuple) -> None:
+    """
+    Worker function to execute Virtuoso bulk load in a separate process.
+    """
+    container_name, bulk_load_dir, nquads_host_dir = args
+
+    nquads_files = glob.glob(os.path.join(nquads_host_dir, "*.nq.gz"))
+    if not nquads_files:
+        return
+
+    virtuoso_password = "dba"
+
+    try:
+        bulk_load(
+            data_directory=nquads_host_dir,
+            password=virtuoso_password,
+            docker_container=container_name,
+            container_data_directory=bulk_load_dir,
+            log_level="WARNING"
+        )
+    except RuntimeError as e:
+        raise BulkLoadError(f"Bulk load failed for container {container_name}: {e}") from e
 
 class MetaProcess:
     def __init__(self, settings: dict, meta_config_path: str, timer: Optional[ProcessTimer] = None):
@@ -330,6 +358,9 @@ class MetaProcess:
                 "An exception of type {0} occurred. Arguments:\n{1!r}\nTraceback:\n{2}"
             )
             message = template.format(type(e).__name__, e.args, tb)
+            if isinstance(e, BulkLoadError):
+                print(message)
+                raise
             return {"message": message}, cache_path, errors_path, filename
 
     def _setup_output_directories(self) -> None:
@@ -476,43 +507,20 @@ class MetaProcess:
 
         self._upload_sparql_queries_parallel()
 
-        self._run_virtuoso_bulk_load(
-            container_name=data_container,
-            bulk_load_dir=bulk_load_dir,
-            nquads_host_dir=data_nquads_dir
-        )
-        self._run_virtuoso_bulk_load(
-            container_name=prov_container,
-            bulk_load_dir=bulk_load_dir,
-            nquads_host_dir=prov_nquads_dir
-        )
+        bulk_load_tasks = [
+            (data_container, bulk_load_dir, data_nquads_dir),
+            (prov_container, bulk_load_dir, prov_nquads_dir)
+        ]
 
-    def _run_virtuoso_bulk_load(
-        self, container_name: str, bulk_load_dir: str, nquads_host_dir: str
-    ) -> None:
-        """
-        Runs Virtuoso bulk loading using mounted volumes.
+        with ProcessPoolExecutor(max_workers=2) as executor:
+            futures = [executor.submit(_run_bulk_load_process, task) for task in bulk_load_tasks]
+            for future in futures:
+                future.result()
 
-        Args:
-            container_name: Docker container name (used for ISQL commands)
-            bulk_load_dir: Path INSIDE container where files are mounted
-            nquads_host_dir: Host directory mounted as volume (contains .nq.gz files)
-        """
-        nquads_files = glob.glob(os.path.join(nquads_host_dir, "*.nq.gz"))
-        if not nquads_files:
-            return
-
-        virtuoso_password = os.environ.get("VIRTUOSO_PASSWORD", "dba")
-
-        print(f"Running bulk load for {len(nquads_files)} files from {nquads_host_dir} (container: {container_name})")
-        bulk_load(
-            data_directory=nquads_host_dir,
-            password=virtuoso_password,
-            docker_container=container_name,
-            container_data_directory=bulk_load_dir,
-            log_level="WARNING"
-        )
-        print(f"Bulk load completed successfully for {container_name}")
+        for nq_file in glob.glob(os.path.join(data_nquads_dir, "*.nq.gz")):
+            os.remove(nq_file)
+        for nq_file in glob.glob(os.path.join(prov_nquads_dir, "*.nq.gz")):
+            os.remove(nq_file)
 
     def run_sparql_updates(self, endpoint: str, folder: str, batch_size: int = 10):
         cache_manager = CacheManager(
