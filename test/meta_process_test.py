@@ -1,5 +1,5 @@
 import csv
-import json
+import glob
 import os
 import re
 import shutil
@@ -9,8 +9,7 @@ import tempfile
 import time
 import unittest
 from datetime import datetime
-from test.test_utils import (PROV_SERVER, SERVER, VIRTUOSO_CONTAINER,
-                             VIRTUOSO_PROV_CONTAINER, execute_sparql_query,
+from test.test_utils import (PROV_SERVER, SERVER, execute_sparql_query,
                              reset_redis_counters, reset_server)
 
 import yaml
@@ -72,6 +71,23 @@ class test_ProcessTest(unittest.TestCase):
         # Remove temporary directory and its contents
         if hasattr(self, "temp_dir") and os.path.exists(self.temp_dir):
             shutil.rmtree(self.temp_dir)
+
+        # Clean up bulk load files
+        bulk_load_dirs = [
+            "test/test_virtuoso_db/bulk_load",
+            "test/test_virtuoso_db_prov/bulk_load"
+        ]
+        for bulk_dir in bulk_load_dirs:
+            if os.path.exists(bulk_dir):
+                for file in glob.glob(os.path.join(bulk_dir, "*.nq.gz")):
+                    os.remove(file)
+                for file in glob.glob(os.path.join(bulk_dir, "*.backup")):
+                    os.remove(file)
+
+        for i in range(1, 11):
+            output_dir = os.path.join(BASE_DIR, f"output_{i}")
+            if os.path.exists(output_dir):
+                shutil.rmtree(output_dir)
 
     def test_run_meta_process(self):
         output_folder = os.path.join(BASE_DIR, "output_1")
@@ -241,7 +257,7 @@ class test_ProcessTest(unittest.TestCase):
         run_meta_process(settings=settings, meta_config_path=meta_config_path)
         settings["input_csv_dir"] = os.path.join(BASE_DIR, "input")
         run_meta_process(settings=settings, meta_config_path=meta_config_path)
-        
+
         output = dict()
         
         entity_types = ['ar', 'br', 'id', 'ra', 're']

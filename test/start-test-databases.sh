@@ -9,7 +9,14 @@ PROJECT_ROOT="$(dirname "$TEST_DIR")"
 
 # Create test database directories if they don't exist
 mkdir -p "${TEST_DIR}/test_virtuoso_db"
-mkdir -p "${TEST_DIR}/test_virtuoso_prov_db"
+mkdir -p "${TEST_DIR}/test_virtuoso_db_prov"
+mkdir -p "${TEST_DIR}/test_virtuoso_db/bulk_load"
+mkdir -p "${TEST_DIR}/test_virtuoso_db_prov/bulk_load"
+
+# Copy virtuoso.ini template to database directories
+echo "Copying virtuoso.ini template to database directories..."
+cp "${TEST_DIR}/virtuoso_config_template/virtuoso.ini" "${TEST_DIR}/test_virtuoso_db/virtuoso.ini"
+cp "${TEST_DIR}/virtuoso_config_template/virtuoso.ini" "${TEST_DIR}/test_virtuoso_db_prov/virtuoso.ini"
 
 REDIS_CONTAINER="oc-meta-test-redis"
 VIRTUOSO_CONTAINER="oc-meta-test-virtuoso"
@@ -46,7 +53,7 @@ docker run -d --name $VIRTUOSO_PROV_CONTAINER \
   -p 1106:1111 \
   -e DBA_PASSWORD=dba \
   -e SPARQL_UPDATE=true \
-  -v "${TEST_DIR}/test_virtuoso_prov_db:/database" \
+  -v "${TEST_DIR}/test_virtuoso_db_prov:/database" \
   openlink/virtuoso-opensource-7:7.2.15
 
 echo "Starting $REDIS_CONTAINER container..."
@@ -107,6 +114,7 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "Permissions set successfully in Virtuoso containers."
+echo "Test databases are ready."
 echo "Virtuoso Data SPARQL Endpoint: http://localhost:8805/sparql"
 echo "Virtuoso Data ISQL Port: 1105"
 echo "Virtuoso Provenance SPARQL Endpoint: http://localhost:8806/sparql"

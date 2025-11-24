@@ -72,3 +72,26 @@ cache_update_endpoint: ''
 silencer: ['author', 'editor', 'publisher']
 # If True, generate and store the RDF files during the meta process. If False, RDF files will not be generated.
 generate_rdf_files: True
+
+# Virtuoso bulk loading settings (optional)
+# Enable this to use Virtuoso's fast bulk loading via ld_dir/rdf_loader_run instead of SPARQL INSERT queries
+virtuoso_bulk_load:
+  # Set to true to enable bulk loading mode
+  enabled: false
+  # Docker container name for the data triplestore (e.g., "virtuoso-data")
+  data_container: ""
+  # Docker container name for the provenance triplestore (e.g., "virtuoso-prov")
+  prov_container: ""
+  # Host directory mounted as volume in the data container
+  # Files will be generated directly here (visible to both host and container)
+  # This directory must be mounted in the data container as bulk_load_dir
+  data_mount_dir: ""
+  # Host directory mounted as volume in the provenance container
+  # Files will be generated directly here (visible to both host and container)
+  # This directory must be mounted in the prov container as bulk_load_dir
+  prov_mount_dir: ""
+  # Path INSIDE the container where bulk load files will be placed
+  # This directory must be:
+  # 1. Mapped as a volume from the host to the container
+  # 2. Listed in the DirsAllowed parameter in virtuoso.ini
+  bulk_load_dir: "/database/bulk_load"

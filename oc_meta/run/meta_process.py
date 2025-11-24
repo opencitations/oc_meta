@@ -20,11 +20,12 @@
 from __future__ import annotations
 
 import csv
+import glob
 import json
 import os
 import traceback
 from argparse import ArgumentParser
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from datetime import datetime
 from sys import executable, platform
 from typing import Any, Dict, Iterator, List, Optional, Tuple
@@ -46,6 +47,7 @@ from oc_ocdm.prov import ProvSet
 from oc_ocdm.support.reporter import Reporter
 from time_agnostic_library.support import generate_config_file
 from tqdm import tqdm
+from virtuoso_utilities.bulk_load import bulk_load
 
 
 def _store_rdf_process(args: tuple) -> None:
@@ -98,6 +100,7 @@ def _upload_to_triplestore(endpoint: str, folder: str, redis_host: str, redis_po
 
 class MetaProcess:
     def __init__(self, settings: dict, meta_config_path: str, timer: Optional[ProcessTimer] = None):
+        self.settings = settings
         # Mandatory settings
         self.triplestore_url = settings["triplestore_url"]  # Main triplestore for data
         self.provenance_triplestore_url = settings["provenance_triplestore_url"]  # Separate triplestore for provenance
@@ -329,15 +332,14 @@ class MetaProcess:
             message = template.format(type(e).__name__, e.args, tb)
             return {"message": message}, cache_path, errors_path, filename
 
-    def store_data_and_prov(
-        self, res_storer: Storer, prov_storer: Storer
-    ) -> None:
+    def _setup_output_directories(self) -> None:
+        """Create output directories for data and provenance."""
         os.makedirs(self.data_update_dir, exist_ok=True)
         os.makedirs(self.prov_update_dir, exist_ok=True)
 
+    def _prepare_store_rdf_tasks(self, res_storer: Storer, prov_storer: Storer) -> list:
+        """Prepare RDF storage tasks if RDF file generation is enabled."""
         store_rdf_tasks = []
-        upload_queries_tasks = []
-
         if self.generate_rdf_files:
             store_rdf_tasks.append((
                 res_storer,
@@ -351,30 +353,17 @@ class MetaProcess:
                 self.base_iri,
                 self.context_path
             ))
+        return store_rdf_tasks
 
-        upload_queries_tasks.append((
-            res_storer,
-            self.triplestore_url,
-            self.data_update_dir
-        ))
-        upload_queries_tasks.append((
-            prov_storer,
-            self.provenance_triplestore_url,
-            self.prov_update_dir
-        ))
+    def _prepare_upload_queries_tasks(self, res_storer: Storer, prov_storer: Storer) -> list:
+        """Prepare SPARQL query generation tasks."""
+        return [
+            (res_storer, self.triplestore_url, self.data_update_dir),
+            (prov_storer, self.provenance_triplestore_url, self.prov_update_dir)
+        ]
 
-        with ProcessPoolExecutor(max_workers=4) as executor:
-            futures = []
-
-            for task in store_rdf_tasks:
-                futures.append(executor.submit(_store_rdf_process, task))
-
-            for task in upload_queries_tasks:
-                futures.append(executor.submit(_upload_queries_process, task))
-
-            for future in futures:
-                future.result()
-
+    def _upload_sparql_queries_parallel(self) -> None:
+        """Upload SPARQL queries to triplestores in parallel."""
         data_upload_folder = os.path.join(self.data_update_dir, "to_be_uploaded")
         prov_upload_folder = os.path.join(self.prov_update_dir, "to_be_uploaded")
 
@@ -401,9 +390,129 @@ class MetaProcess:
                 self.ts_failed_queries,
                 self.ts_stop_file
             )
-
             upload_data_future.result()
             upload_prov_future.result()
+
+    def store_data_and_prov(
+        self, res_storer: Storer, prov_storer: Storer
+    ) -> None:
+        """Orchestrate storage and upload using appropriate strategy."""
+        self._setup_output_directories()
+
+        bulk_config = self.settings.get("virtuoso_bulk_load", {})
+        if bulk_config.get("enabled", False):
+            self._store_bulk_load(res_storer, prov_storer, bulk_config)
+        else:
+            self._store_standard(res_storer, prov_storer)
+
+    def _store_standard(
+        self, res_storer: Storer, prov_storer: Storer
+    ) -> None:
+        """Standard upload path using SPARQL protocol."""
+        store_rdf_tasks = self._prepare_store_rdf_tasks(res_storer, prov_storer)
+        upload_queries_tasks = self._prepare_upload_queries_tasks(res_storer, prov_storer)
+
+        with ProcessPoolExecutor(max_workers=4) as executor:
+            futures = []
+            for task in store_rdf_tasks:
+                futures.append(executor.submit(_store_rdf_process, task))
+            for task in upload_queries_tasks:
+                futures.append(executor.submit(_upload_queries_process, task))
+            for future in futures:
+                future.result()
+
+        self._upload_sparql_queries_parallel()
+
+    def _store_bulk_load(
+        self, res_storer: Storer, prov_storer: Storer, bulk_config: dict
+    ) -> None:
+        """
+        Alternative upload path using Virtuoso bulk loading for INSERT queries.
+
+        Flow:
+        1. Generate separated queries (INSERTs as .nq.gz, DELETEs as .sparql) + RDF files in parallel
+        2. Execute DELETE queries via SPARQL protocol
+        3. Bulk load INSERT nquads to data and provenance containers in parallel
+        """
+        data_container = bulk_config["data_container"]
+        prov_container = bulk_config["prov_container"]
+        bulk_load_dir = bulk_config["bulk_load_dir"]
+        data_mount_dir = bulk_config["data_mount_dir"]
+        prov_mount_dir = bulk_config["prov_mount_dir"]
+
+        data_nquads_dir = os.path.abspath(data_mount_dir)
+        prov_nquads_dir = os.path.abspath(prov_mount_dir)
+        os.makedirs(data_nquads_dir, exist_ok=True)
+        os.makedirs(prov_nquads_dir, exist_ok=True)
+
+        store_rdf_tasks = self._prepare_store_rdf_tasks(res_storer, prov_storer)
+
+        with ProcessPoolExecutor(max_workers=4) as executor:
+            futures = []
+
+            # Nquads generation (data + prov)
+            futures.append(executor.submit(
+                res_storer.upload_all,
+                triplestore_url=self.triplestore_url,
+                base_dir=self.data_update_dir,
+                batch_size=10,
+                prepare_bulk_load=True,
+                bulk_load_dir=data_nquads_dir
+            ))
+            futures.append(executor.submit(
+                prov_storer.upload_all,
+                triplestore_url=self.provenance_triplestore_url,
+                base_dir=self.prov_update_dir,
+                batch_size=10,
+                prepare_bulk_load=True,
+                bulk_load_dir=prov_nquads_dir
+            ))
+
+            for task in store_rdf_tasks:
+                futures.append(executor.submit(_store_rdf_process, task))
+
+            for future in futures:
+                future.result()
+
+        self._upload_sparql_queries_parallel()
+
+        self._run_virtuoso_bulk_load(
+            container_name=data_container,
+            bulk_load_dir=bulk_load_dir,
+            nquads_host_dir=data_nquads_dir
+        )
+        self._run_virtuoso_bulk_load(
+            container_name=prov_container,
+            bulk_load_dir=bulk_load_dir,
+            nquads_host_dir=prov_nquads_dir
+        )
+
+    def _run_virtuoso_bulk_load(
+        self, container_name: str, bulk_load_dir: str, nquads_host_dir: str
+    ) -> None:
+        """
+        Runs Virtuoso bulk loading using mounted volumes.
+
+        Args:
+            container_name: Docker container name (used for ISQL commands)
+            bulk_load_dir: Path INSIDE container where files are mounted
+            nquads_host_dir: Host directory mounted as volume (contains .nq.gz files)
+        """
+        nquads_files = glob.glob(os.path.join(nquads_host_dir, "*.nq.gz"))
+        if not nquads_files:
+            return
+
+        virtuoso_password = os.environ.get("VIRTUOSO_PASSWORD", "dba")
+
+        print(f"Running bulk load for {len(nquads_files)} files from {nquads_host_dir} (container: {container_name})")
+        bulk_load(
+            data_directory=nquads_host_dir,
+            password=virtuoso_password,
+            docker_container=container_name,
+            container_data_directory=bulk_load_dir,
+            log_level="WARNING"
+        )
+        print(f"Bulk load completed successfully for {container_name}")
 
     def run_sparql_updates(self, endpoint: str, folder: str, batch_size: int = 10):
         cache_manager = CacheManager(
@@ -492,6 +601,10 @@ def run_meta_process(
     with tqdm(total=len(files_to_be_processed), desc="Processing files") as progress_bar:
         for idx, filename in enumerate(files_to_be_processed, 1):
             try:
+                if os.path.exists(os.path.join(meta_process_setup.base_output_dir, ".stop")):
+                    print(f"\nStop file detected. Halting processing.")
+                    break
+
                 if enable_timing:
                     print(f"\n[{idx}/{len(files_to_be_processed)}] Processing {filename}...")
 
@@ -507,10 +620,6 @@ def run_meta_process(
                     meta_config_path=meta_config_path
                 )
                 task_done(result)
-
-                if result[0]["message"] == "skip":
-                    print(f"\nStop file detected. Halting processing.")
-                    break
 
                 if enable_timing:
                     report = file_timer.get_report()

@@ -29,5 +29,12 @@ source: https://api.crossref.org/
 supplier_prefix: '060'
 triplestore_url: http://127.0.0.1:8805/sparql
 use_doi_api_service: false
+virtuoso_bulk_load:
+  bulk_load_dir: /database/bulk_load
+  data_container: oc-meta-test-virtuoso
+  data_mount_dir: test/test_virtuoso_db/bulk_load
+  enabled: true
+  prov_container: oc-meta-test-virtuoso-prov
+  prov_mount_dir: test/test_virtuoso_db_prov/bulk_load
 virtuoso_full_text_search: true
 zip_output_rdf: false

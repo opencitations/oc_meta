@@ -33,5 +33,12 @@ ts_failed_queries: test/temp_entity_merger_test/failed_queries.txt
 ts_stop_file: test/temp_entity_merger_test/.stop_upload
 ts_upload_cache: test/temp_entity_merger_test/ts_upload_cache.json
 use_doi_api_service: false
+virtuoso_bulk_load:
+  bulk_load_dir: /database/bulk_load
+  data_container: oc-meta-test-virtuoso
+  data_mount_dir: test/test_virtuoso_db/bulk_load
+  enabled: true
+  prov_container: oc-meta-test-virtuoso-prov
+  prov_mount_dir: test/test_virtuoso_db_prov/bulk_load
 virtuoso_full_text_search: true
 zip_output_rdf: false
