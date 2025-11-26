@@ -84,10 +84,9 @@ def _upload_queries_process(args: tuple) -> None:
     )
 
 
-def _upload_to_triplestore(endpoint: str, folder: str, redis_host: str, redis_port: int, redis_db: int, cache_file: str, failed_file: str, stop_file: str) -> None:
+def _upload_to_triplestore(endpoint: str, folder: str, redis_host: str, redis_port: int, redis_db: int, failed_file: str, stop_file: str) -> None:
     """Upload SPARQL queries from folder to triplestore endpoint."""
     cache_manager = CacheManager(
-        cache_file,
         redis_host=redis_host,
         redis_port=redis_port,
         redis_db=redis_db
@@ -97,7 +96,6 @@ def _upload_to_triplestore(endpoint: str, folder: str, redis_host: str, redis_po
         endpoint=endpoint,
         folder=folder,
         batch_size=10,
-        cache_file=None,
         failed_file=failed_file,
         stop_file=stop_file,
         cache_manager=cache_manager,
@@ -196,7 +194,6 @@ class MetaProcess:
         )
 
         # Triplestore upload settings
-        self.ts_upload_cache = settings.get("ts_upload_cache", "ts_upload_cache.json")
         self.ts_failed_queries = settings.get("ts_failed_queries", "failed_queries.txt")
         self.ts_stop_file = settings.get("ts_stop_file", ".stop_upload")
 
@@ -204,7 +201,6 @@ class MetaProcess:
         self.prov_update_dir = os.path.join(self.base_output_dir, "to_be_uploaded_prov")
 
         self.cache_manager = CacheManager(
-            json_cache_file=self.ts_upload_cache,
             redis_host=self.redis_host,
             redis_port=self.redis_port,
             redis_db=self.redis_cache_db,
@@ -407,7 +403,6 @@ class MetaProcess:
                 self.redis_host,
                 self.redis_port,
                 self.redis_cache_db,
-                self.ts_upload_cache,
                 self.ts_failed_queries,
                 self.ts_stop_file
             )
@@ -418,7 +413,6 @@ class MetaProcess:
                 self.redis_host,
                 self.redis_port,
                 self.redis_cache_db,
-                self.ts_upload_cache,
                 self.ts_failed_queries,
                 self.ts_stop_file
             )
@@ -525,7 +519,6 @@ class MetaProcess:
 
     def run_sparql_updates(self, endpoint: str, folder: str, batch_size: int = 10):
         cache_manager = CacheManager(
-            json_cache_file=self.ts_upload_cache,
             redis_host=self.redis_host,
             redis_port=self.redis_port,
             redis_db=self.redis_cache_db,
@@ -534,7 +527,6 @@ class MetaProcess:
             endpoint=endpoint,
             folder=folder,
             batch_size=batch_size,
-            cache_file=self.ts_upload_cache,
             failed_file=self.ts_failed_queries,
             stop_file=self.ts_stop_file,
             cache_manager=cache_manager,

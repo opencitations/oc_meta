@@ -73,28 +73,26 @@ def upload_sparql_updates(
     endpoint,
     folder,
     batch_size,
-    cache_file="ts_upload_cache.json",
     failed_file="failed_queries.txt",
     stop_file=".stop_upload",
     cache_manager=None,
 ):
     """
-    Carica gli aggiornamenti SPARQL sul triplestore.
+    Upload SPARQL updates to the triplestore.
 
     Args:
-        endpoint (str): URL dell'endpoint SPARQL
-        folder (str): Cartella contenente i file SPARQL da processare
-        batch_size (int): Numero di triple da includere in ogni batch
-        cache_file (str, optional): File per il caching dei file processati. Default 'ts_upload_cache.json'
-        failed_file (str, optional): File per registrare le query fallite. Default 'failed_queries.txt'
-        stop_file (str, optional): File per interrompere il processo. Default '.stop_upload'
-        cache_manager (CacheManager, optional): Instance of CacheManager to use. If None, a new one will be created.
+        endpoint: URL of the SPARQL endpoint
+        folder: Folder containing SPARQL files to process
+        batch_size: Number of triples to include in each batch
+        failed_file: File to record failed queries
+        stop_file: File to stop the process
+        cache_manager: CacheManager instance. If None, a new one will be created.
     """
     if not os.path.exists(folder):
         return
 
     if cache_manager is None:
-        cache_manager = CacheManager(cache_file)
+        cache_manager = CacheManager()
     failed_files = []
 
     all_files = [f for f in os.listdir(folder) if f.endswith(".sparql")]
@@ -150,12 +148,6 @@ def main():
         help="Number of quadruples to include in a batch (default: 10)",
     )
     parser.add_argument(
-        "--cache_file",
-        type=str,
-        default="ts_upload_cache.json",
-        help="Path to cache file",
-    )
-    parser.add_argument(
         "--failed_file",
         type=str,
         default="failed_queries.txt",
@@ -173,7 +165,6 @@ def main():
         args.endpoint,
         args.folder,
         args.batch_size,
-        args.cache_file,
         args.failed_file,
         args.stop_file,
     )
