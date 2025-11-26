@@ -185,6 +185,37 @@ def plot_benchmark_results(all_runs: List[Dict[str, Any]], stats: Dict[str, Dict
     print(f"[Visualization] Saved to {output_path}")
 
 
+def plot_single_run_results(run: Dict[str, Any], output_path: str):
+    """Generate visualization for a single benchmark run."""
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    fig.suptitle('Single run benchmark results', fontsize=16, fontweight='bold')
+
+    phase_names = ['Curation', 'RDF\ncreation', 'Storage\n+upload']
+    phase_durations = [
+        run["phases"][0]["duration_seconds"],
+        run["phases"][3]["duration_seconds"],
+        run["phases"][4]["duration_seconds"]
+    ]
+    colors = ['#F18F01', '#C73E1D', '#6A994E']
+
+    bars = axes[0].bar(phase_names, phase_durations, color=colors, edgecolor='black', linewidth=1.5)
+    format_bar_labels(axes[0], bars, phase_durations, "s")
+    apply_plot_style(axes[0], 'Phase duration breakdown', ylabel='Duration (s)', grid=False)
+    axes[0].grid(True, axis='y', alpha=0.3)
+
+    throughput = run["metrics"]["throughput_records_per_sec"]
+    bar = axes[1].bar(['Throughput'], [throughput], color='#6A994E', edgecolor='black', linewidth=1.5, width=0.4)
+    format_bar_labels(axes[1], bar, [throughput], " rec/s")
+    apply_plot_style(axes[1], 'Processing throughput', ylabel='Records per second', grid=False)
+    axes[1].grid(True, axis='y', alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=150, bbox_inches='tight')
+    plt.close()
+
+    print(f"[Visualization] Saved to {output_path}")
+
+
 def plot_incremental_progress(all_reports: List[Dict[str, Any]], output_path: str):
     """Generate incremental chart showing meta_process progress."""
 

@@ -26,7 +26,7 @@ from oc_meta.lib import file_manager
 from oc_meta.lib.timer import ProcessTimer
 from oc_meta.run.benchmark.generate_benchmark_data import BenchmarkDataGenerator
 from oc_meta.run.benchmark.plotting import (
-    plot_benchmark_results, plot_scalability_analysis)
+    plot_benchmark_results, plot_scalability_analysis, plot_single_run_results)
 from oc_meta.run.benchmark.preload_high_author_data import (
     generate_atlas_paper_csv, generate_atlas_update_csv, preload_data)
 from oc_meta.run.benchmark.statistics import BenchmarkStatistics
@@ -51,6 +51,7 @@ class MetaBenchmark:
         self.redis_host = self.config["redis_host"]
         self.redis_port = self.config["redis_port"]
         self.redis_db = self.config["redis_db"]
+        self.cache_db = self.config["cache_db"]
 
         self.input_dir = file_manager.normalize_path(self.config["input_csv_dir"])
         self.output_dir = file_manager.normalize_path(self.config["output_rdf_dir"])
@@ -359,7 +360,11 @@ class MetaBenchmark:
                 print(f"Progress: Mean time so far: {mean_time:.2f}s ± {std_time:.2f}s\n")
 
         if runs == 1:
-            self._print_summary()
+            if sizes is not None:
+                viz_filename = f"benchmark_results_{sizes}.png"
+            else:
+                viz_filename = "benchmark_results.png"
+            plot_single_run_results(all_runs[0], viz_filename)
             return all_runs[0]
 
         print(f"\n{'='*60}")
