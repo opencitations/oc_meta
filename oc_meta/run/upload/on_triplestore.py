@@ -76,6 +76,7 @@ def upload_sparql_updates(
     failed_file="failed_queries.txt",
     stop_file=".stop_upload",
     cache_manager=None,
+    description="Processing files",
 ):
     """
     Upload SPARQL updates to the triplestore.
@@ -97,11 +98,11 @@ def upload_sparql_updates(
 
     all_files = [f for f in os.listdir(folder) if f.endswith(".sparql")]
     files_to_process = [f for f in all_files if f not in cache_manager]
-    print(
-        f"Found {len(files_to_process)} files to process out of {len(all_files)} total files"
-    )
 
-    for file in tqdm(files_to_process, desc="Processing files"):
+    if not files_to_process:
+        return
+
+    for file in tqdm(files_to_process, desc=description):
         if os.path.exists(stop_file):
             print(f"\nStop file {stop_file} detected. Interrupting the process...")
             break

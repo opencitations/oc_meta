@@ -84,7 +84,7 @@ def _upload_queries_process(args: tuple) -> None:
     )
 
 
-def _upload_to_triplestore(endpoint: str, folder: str, redis_host: str, redis_port: int, redis_db: int, failed_file: str, stop_file: str) -> None:
+def _upload_to_triplestore(endpoint: str, folder: str, redis_host: str, redis_port: int, redis_db: int, failed_file: str, stop_file: str, description: str = "Processing files") -> None:
     """Upload SPARQL queries from folder to triplestore endpoint."""
     cache_manager = CacheManager(
         redis_host=redis_host,
@@ -99,6 +99,7 @@ def _upload_to_triplestore(endpoint: str, folder: str, redis_host: str, redis_po
         failed_file=failed_file,
         stop_file=stop_file,
         cache_manager=cache_manager,
+        description=description,
     )
 
 
@@ -404,7 +405,8 @@ class MetaProcess:
                 self.redis_port,
                 self.redis_cache_db,
                 self.ts_failed_queries,
-                self.ts_stop_file
+                self.ts_stop_file,
+                "Uploading data SPARQL"
             )
             upload_prov_future = executor.submit(
                 _upload_to_triplestore,
@@ -414,7 +416,8 @@ class MetaProcess:
                 self.redis_port,
                 self.redis_cache_db,
                 self.ts_failed_queries,
-                self.ts_stop_file
+                self.ts_stop_file,
+                "Uploading prov SPARQL"
             )
             upload_data_future.result()
             upload_prov_future.result()
