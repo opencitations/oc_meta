@@ -25,7 +25,8 @@ import json
 import os
 import traceback
 from argparse import ArgumentParser
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+import multiprocessing
+from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime
 from sys import executable, platform
 from typing import Any, Dict, Iterator, List, Optional, Tuple
@@ -398,7 +399,7 @@ class MetaProcess:
         data_upload_folder = os.path.join(self.data_update_dir, "to_be_uploaded")
         prov_upload_folder = os.path.join(self.prov_update_dir, "to_be_uploaded")
 
-        with ProcessPoolExecutor(max_workers=2) as executor:
+        with ProcessPoolExecutor(max_workers=2, mp_context=multiprocessing.get_context('spawn')) as executor:
             upload_data_future = executor.submit(
                 _upload_to_triplestore,
                 self.triplestore_url,
@@ -443,7 +444,7 @@ class MetaProcess:
         store_rdf_tasks = self._prepare_store_rdf_tasks(res_storer, prov_storer)
         upload_queries_tasks = self._prepare_upload_queries_tasks(res_storer, prov_storer)
 
-        with ProcessPoolExecutor(max_workers=4) as executor:
+        with ProcessPoolExecutor(max_workers=4, mp_context=multiprocessing.get_context('spawn')) as executor:
             futures = []
             for task in store_rdf_tasks:
                 futures.append(executor.submit(_store_rdf_process, task))
@@ -478,7 +479,7 @@ class MetaProcess:
 
         store_rdf_tasks = self._prepare_store_rdf_tasks(res_storer, prov_storer)
 
-        with ProcessPoolExecutor(max_workers=4) as executor:
+        with ProcessPoolExecutor(max_workers=4, mp_context=multiprocessing.get_context('spawn')) as executor:
             futures = []
 
             # Nquads generation (data + prov)
@@ -512,7 +513,7 @@ class MetaProcess:
             (prov_container, bulk_load_dir, prov_nquads_dir)
         ]
 
-        with ProcessPoolExecutor(max_workers=2) as executor:
+        with ProcessPoolExecutor(max_workers=2, mp_context=multiprocessing.get_context('spawn')) as executor:
             futures = [executor.submit(_run_bulk_load_process, task) for task in bulk_load_tasks]
             for future in futures:
                 future.result()

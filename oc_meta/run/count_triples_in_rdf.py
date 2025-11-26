@@ -22,7 +22,7 @@ def count_triples_in_file(compression_type, file_path, data_format):
         elif compression_type in ['json', 'ttl']:
             with open(file_path, 'r', encoding='utf8') as f:
                 file_content = f.read()
-        g = rdflib.ConjunctiveGraph()
+        g = rdflib.Dataset(default_union=True)
         g.parse(data=file_content, format=data_format)
         triple_count += len(g)
     except Exception as e:

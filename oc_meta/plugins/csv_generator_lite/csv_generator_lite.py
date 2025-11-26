@@ -19,6 +19,7 @@ from __future__ import annotations
 import concurrent.futures
 import csv
 import json
+import multiprocessing
 import os
 import re
 from typing import Dict, List, Optional
@@ -746,7 +747,7 @@ def generate_csv(
     result_buffer.set_progress_bar(len(all_files))
 
     # Process files one at a time using Pebble
-    with ProcessPool(max_workers=os.cpu_count(), max_tasks=1) as executor:
+    with ProcessPool(max_workers=os.cpu_count(), max_tasks=1, context=multiprocessing.get_context('spawn')) as executor:
         futures: List[concurrent.futures.Future] = []
         for filepath in all_files:
             future = executor.schedule(

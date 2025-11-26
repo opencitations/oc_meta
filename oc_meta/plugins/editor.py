@@ -30,7 +30,7 @@ from oc_ocdm.graph.graph_entity import GraphEntity
 from oc_ocdm.prov import ProvSet
 from oc_ocdm.reader import Reader
 from oc_ocdm.support.support import build_graph_from_results
-from rdflib import RDF, ConjunctiveGraph, URIRef
+from rdflib import RDF, Graph, URIRef
 from SPARQLWrapper import JSON, SPARQLWrapper
 
 
@@ -140,7 +140,7 @@ class MetaEditor:
                 sparql.setMethod("GET")
                 sparql.setReturnFormat(JSON)
                 result = sparql.queryAndConvert()["results"]["bindings"]
-                preexisting_graph: ConjunctiveGraph = build_graph_from_results(result)
+                preexisting_graph: Graph = build_graph_from_results(result)
                 self.add_entity_with_type(g_set, res, inferred_type, preexisting_graph)
             else:
                 return
@@ -436,7 +436,7 @@ class MetaEditor:
         g_set: GraphSet,
         res: str,
         entity_type: str,
-        preexisting_graph: ConjunctiveGraph,
+        preexisting_graph: Graph,
     ):
         subject = URIRef(res)
         if entity_type == GraphEntity.iri_expression:

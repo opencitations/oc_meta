@@ -5,7 +5,7 @@ from multiprocessing import Pool, cpu_count
 
 from oc_meta.run.gen_info_dir import (get_prefix, get_resource_number,
                                       get_short_name)
-from rdflib import ConjunctiveGraph
+from rdflib import Dataset
 from rdflib.namespace import PROV, RDF
 from redis import Redis
 from tqdm import tqdm
@@ -19,7 +19,7 @@ def process_zip_file(args):
     with zipfile.ZipFile(zip_file, 'r') as zip_ref:
         for file_name in zip_ref.namelist():
             with zip_ref.open(file_name) as entity_file:
-                g = ConjunctiveGraph()
+                g = Dataset(default_union=True)
                 g.parse(data=entity_file.read(), format='json-ld')
                 
                 for s, p, o in g.triples((None, RDF.type, PROV.Entity)):

@@ -9,7 +9,7 @@ from functools import partial
 from multiprocessing import Pool, cpu_count
 
 import yaml
-from rdflib import RDF, ConjunctiveGraph, Literal, Namespace, URIRef
+from rdflib import RDF, Dataset, Literal, Namespace, URIRef
 from SPARQLWrapper import JSON, SPARQLWrapper
 from tqdm import tqdm
 
@@ -38,7 +38,7 @@ def sparql_query_with_retry(sparql, max_retries=3, initial_delay=1, backoff_fact
             delay = initial_delay * (backoff_factor ** attempt)
             time.sleep(delay + random.uniform(0, 1))
 
-def check_br_constraints(g: ConjunctiveGraph, entity):
+def check_br_constraints(g: Dataset, entity):
     issues = []
     
     # Check types
@@ -261,7 +261,7 @@ def process_file_group(args):
     try:
         with zipfile.ZipFile(file_path, 'r') as zip_ref:
             # Parse the RDF content
-            g = ConjunctiveGraph()
+            g = Dataset(default_union=True)
             for filename in zip_ref.namelist():
                 with zip_ref.open(filename) as file:
                     g.parse(file, format='json-ld')
@@ -285,7 +285,7 @@ def process_file_group(args):
     prov_graph = None
     try:
         with zipfile.ZipFile(prov_file_path, 'r') as zip_ref:
-            prov_graph = ConjunctiveGraph()
+            prov_graph = Dataset(default_union=True)
             for filename in zip_ref.namelist():
                 with zip_ref.open(filename) as file:
                     prov_graph.parse(file, format='json-ld')

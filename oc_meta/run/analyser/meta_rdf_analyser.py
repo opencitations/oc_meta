@@ -20,7 +20,7 @@ def explore_dir(root_dir, entity_type):
 
 def load_and_query_zip(zip_path, entity_type):
     """Carica e interroga il contenuto del file zip senza decomprimerlo."""
-    g = rdflib.ConjunctiveGraph()
+    g = rdflib.Dataset(default_union=True)
     with ZipFile(zip_path) as myzip:
         with myzip.open(myzip.namelist()[0]) as myfile:
             g.parse(myfile, format='json-ld')

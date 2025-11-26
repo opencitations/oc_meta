@@ -239,7 +239,7 @@ def store_in_file(cur_g: Dataset, cur_file_path: str, zip_output: bool) -> None:
             f.write(orjson.dumps(cur_json_ld))
 
 def load_graph(file_path: str, cur_format: str = 'json-ld'):
-    loaded_graph = Dataset()
+    loaded_graph = Dataset(default_union=True)
     if file_path.endswith('.zip'):
         with ZipFile(file=file_path, mode="r", compression=ZIP_DEFLATED, allowZip64=True) as archive:
             for zf_name in archive.namelist():
@@ -343,7 +343,7 @@ def merge_files_in_directory(directory, zip_output, stop_file):
         for file_path in files_to_merge:
             cur_full_path = os.path.join(directory, file_path)
             loaded_graph = load_graph(cur_full_path)
-            for context in loaded_graph.contexts():
+            for context in loaded_graph.graphs():
                 graph_identifier = context.identifier
                 for triple in context:
                     merged_graph.add(triple + (graph_identifier,))
@@ -390,7 +390,7 @@ def process_file_content(file_path, output_root, base_iri, file_limit, item_limi
             logging.error(f"Failed to parse {file_path}: {e}")
             return
 
-    for context in graph.contexts():
+    for context in graph.graphs():
         graph_identifier = context.identifier
         process_graph(context, graph_identifier, output_root, base_iri, file_limit, item_limit, zip_output)
 

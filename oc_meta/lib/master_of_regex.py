@@ -45,8 +45,8 @@ valid_vi_patterns = [
     fr'({vi_pattern}_)?({vi_pattern}\s)?[\(_]?supp?(plement|pl)?l?[\s\._]*({vi_pattern}|[{alphabets}])?\)?\.?',
     fr'{vi_pattern}*,?\s?part[\s_]{vi_pattern}(\sof\s{vi_pattern})?(,\sno?\.\s?{vi_pattern})?',
     fr'{vi_pattern}*[_\s]?pt?[_\s\.]{vi_pattern}',
-    '(ed|pt|d)\sinside(d|r)',
-    'p(ublish\s)?a(head\sof\s)?p(rint)?',
+    r'(ed|pt|d)\sinside(d|r)',
+    r'p(ublish\s)?a(head\sof\s)?p(rint)?',
     '預刊文章',
     '[\u0621-\u064A]+',
     fr'\[{year_pattern}\]\s(\d\s)?[{alphabets}]+',
@@ -56,13 +56,13 @@ valid_vi_patterns = [
     fr'[{alphabets}]+-\d+',
     fr'[{alphabets}]+(_[{alphabets}]+)+',
     fr'{numero}:?\s?{vi_pattern}(,?\s({year_pattern}|\({vi_pattern}\)))?',
-    'historica\svol\.\s\d+(,\d+(-\d+)?)?',
-    '\d+\(\d+\)\d{2,4}',
+    r'historica\svol\.\s\d+(,\d+(-\d+)?)?',
+    r'\d+\(\d+\)\d{2,4}',
     fr'(\[{year_pattern}\]\s)?(\d+\s)?vl?r(\s\([a-z]+\))?',
     fr'\({vi_pattern}\/{vi_pattern}\)\s[{alphabets}]+(-[{alphabets}]+)?'
 ]
 volumes_valid_patterns = [
-    'original\sseries,\svolume\s\d+',
+    r'original\sseries,\svolume\s\d+',
     fr'(vol(ume)?|tome|cilt)\s?[{separators}]?\s?{vi_pattern}'
 ]
 issues_valid_patterns = [

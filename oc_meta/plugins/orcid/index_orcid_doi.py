@@ -64,7 +64,7 @@ class Index_orcid_doi:
         if file.endswith('.xml'):
             with open(file, 'r', encoding='utf-8') as xml_file:
                 xml_soup = BeautifulSoup(xml_file, 'xml')
-                ids = xml_soup.findAll('common:external-id')                
+                ids = xml_soup.find_all('common:external-id')                
                 if ids:
                     for el in ids:
                         id_type = el.find('common:external-id-type')
