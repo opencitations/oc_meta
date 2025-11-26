@@ -1,63 +1,967 @@
 {
-  "metrics": {
-    "input_records": 1,
-    "curated_records": 1,
-    "local_g_triples": 25069,
-    "preexisting_entities_count": 6268,
-    "entities_created": 7,
-    "modified_entities": 0,
-    "total_duration_seconds": 17.358,
-    "throughput_records_per_sec": 0.06
+  "timestamp": "2025-11-24T23:45:56.121484",
+  "config_path": "./test/benchmark/benchmark_config.yaml",
+  "config": {
+    "runs": 10,
+    "fresh_data": true,
+    "seed": 42,
+    "size": 1000
   },
-  "phases": [
+  "runs": [
     {
-      "name": "total_processing",
-      "duration_seconds": 17.358,
-      "start_memory_mb": 601.25,
-      "end_memory_mb": 478.02,
-      "peak_memory_mb": 601.25
+      "metrics": {
+        "input_records": 1000,
+        "curated_records": 1000,
+        "local_g_triples": 0,
+        "preexisting_entities_count": 0,
+        "entities_created": 11070,
+        "modified_entities": 11070,
+        "total_duration_seconds": 65.701,
+        "throughput_records_per_sec": 15.22
+      },
+      "phases": [
+        {
+          "name": "total_processing",
+          "duration_seconds": 65.701,
+          "start_memory_mb": 250.26,
+          "end_memory_mb": 963.79,
+          "peak_memory_mb": 963.79
+        },
+        {
+          "name": "curation",
+          "duration_seconds": 11.469,
+          "start_memory_mb": 250.77,
+          "end_memory_mb": 223.45,
+          "peak_memory_mb": 250.77
+        },
+        {
+          "name": "rdf_creation",
+          "duration_seconds": 26.138,
+          "start_memory_mb": 223.45,
+          "end_memory_mb": 843.28,
+          "peak_memory_mb": 843.28
+        },
+        {
+          "name": "creator_execution",
+          "duration_seconds": 12.763,
+          "start_memory_mb": 223.45,
+          "end_memory_mb": 561.96,
+          "peak_memory_mb": 561.96
+        },
+        {
+          "name": "provenance_generation",
+          "duration_seconds": 13.375,
+          "start_memory_mb": 561.96,
+          "end_memory_mb": 843.28,
+          "peak_memory_mb": 843.28
+        },
+        {
+          "name": "storage_and_upload",
+          "duration_seconds": 28.061,
+          "start_memory_mb": 843.28,
+          "end_memory_mb": 963.79,
+          "peak_memory_mb": 963.79
+        }
+      ],
+      "timestamp": "2025-11-24T23:34:48.926689",
+      "config_path": "./test/benchmark/benchmark_config.yaml"
     },
     {
-      "name": "curation",
-      "duration_seconds": 15.315,
-      "start_memory_mb": 601.79,
-      "end_memory_mb": 477.95,
-      "peak_memory_mb": 601.79
+      "metrics": {
+        "input_records": 1000,
+        "curated_records": 1000,
+        "local_g_triples": 0,
+        "preexisting_entities_count": 0,
+        "entities_created": 11025,
+        "modified_entities": 11025,
+        "total_duration_seconds": 70.331,
+        "throughput_records_per_sec": 14.22
+      },
+      "phases": [
+        {
+          "name": "total_processing",
+          "duration_seconds": 70.331,
+          "start_memory_mb": 996.59,
+          "end_memory_mb": 1022.88,
+          "peak_memory_mb": 1022.88
+        },
+        {
+          "name": "curation",
+          "duration_seconds": 13.153,
+          "start_memory_mb": 996.59,
+          "end_memory_mb": 643.62,
+          "peak_memory_mb": 996.59
+        },
+        {
+          "name": "rdf_creation",
+          "duration_seconds": 27.403,
+          "start_memory_mb": 643.62,
+          "end_memory_mb": 896.42,
+          "peak_memory_mb": 896.42
+        },
+        {
+          "name": "creator_execution",
+          "duration_seconds": 15.144,
+          "start_memory_mb": 643.62,
+          "end_memory_mb": 652.82,
+          "peak_memory_mb": 652.82
+        },
+        {
+          "name": "provenance_generation",
+          "duration_seconds": 12.258,
+          "start_memory_mb": 652.82,
+          "end_memory_mb": 896.42,
+          "peak_memory_mb": 896.42
+        },
+        {
+          "name": "storage_and_upload",
+          "duration_seconds": 29.735,
+          "start_memory_mb": 896.42,
+          "end_memory_mb": 1022.88,
+          "peak_memory_mb": 1022.88
+        }
+      ],
+      "timestamp": "2025-11-24T23:36:01.691466",
+      "config_path": "./test/benchmark/benchmark_config.yaml"
     },
     {
-      "name": "rdf_creation",
-      "duration_seconds": 0.087,
-      "start_memory_mb": 477.95,
-      "end_memory_mb": 478.02,
-      "peak_memory_mb": 478.02
+      "metrics": {
+        "input_records": 1000,
+        "curated_records": 1000,
+        "local_g_triples": 0,
+        "preexisting_entities_count": 0,
+        "entities_created": 10906,
+        "modified_entities": 10906,
+        "total_duration_seconds": 69.053,
+        "throughput_records_per_sec": 14.48
+      },
+      "phases": [
+        {
+          "name": "total_processing",
+          "duration_seconds": 69.053,
+          "start_memory_mb": 1054.33,
+          "end_memory_mb": 1107.41,
+          "peak_memory_mb": 1107.41
+        },
+        {
+          "name": "curation",
+          "duration_seconds": 10.81,
+          "start_memory_mb": 1054.33,
+          "end_memory_mb": 1054.34,
+          "peak_memory_mb": 1054.34
+        },
+        {
+          "name": "rdf_creation",
+          "duration_seconds": 28.643,
+          "start_memory_mb": 1054.34,
+          "end_memory_mb": 977.41,
+          "peak_memory_mb": 1054.34
+        },
+        {
+          "name": "creator_execution",
+          "duration_seconds": 13.897,
+          "start_memory_mb": 1054.34,
+          "end_memory_mb": 853.51,
+          "peak_memory_mb": 1054.34
+        },
+        {
+          "name": "provenance_generation",
+          "duration_seconds": 14.746,
+          "start_memory_mb": 853.51,
+          "end_memory_mb": 977.41,
+          "peak_memory_mb": 977.41
+        },
+        {
+          "name": "storage_and_upload",
+          "duration_seconds": 29.562,
+          "start_memory_mb": 977.41,
+          "end_memory_mb": 1107.41,
+          "peak_memory_mb": 1107.41
+        }
+      ],
+      "timestamp": "2025-11-24T23:37:13.102355",
+      "config_path": "./test/benchmark/benchmark_config.yaml"
     },
     {
-      "name": "creator_execution",
-      "duration_seconds": 0.034,
-      "start_memory_mb": 477.95,
-      "end_memory_mb": 477.95,
-      "peak_memory_mb": 477.95
+      "metrics": {
+        "input_records": 1000,
+        "curated_records": 1000,
+        "local_g_triples": 0,
+        "preexisting_entities_count": 0,
+        "entities_created": 10892,
+        "modified_entities": 10892,
+        "total_duration_seconds": 72.703,
+        "throughput_records_per_sec": 13.75
+      },
+      "phases": [
+        {
+          "name": "total_processing",
+          "duration_seconds": 72.703,
+          "start_memory_mb": 1139.51,
+          "end_memory_mb": 1173.28,
+          "peak_memory_mb": 1173.28
+        },
+        {
+          "name": "curation",
+          "duration_seconds": 11.409,
+          "start_memory_mb": 1139.51,
+          "end_memory_mb": 1139.51,
+          "peak_memory_mb": 1139.51
+        },
+        {
+          "name": "rdf_creation",
+          "duration_seconds": 26.16,
+          "start_memory_mb": 1139.51,
+          "end_memory_mb": 1043.22,
+          "peak_memory_mb": 1139.51
+        },
+        {
+          "name": "creator_execution",
+          "duration_seconds": 14.77,
+          "start_memory_mb": 1139.51,
+          "end_memory_mb": 1014.06,
+          "peak_memory_mb": 1139.51
+        },
+        {
+          "name": "provenance_generation",
+          "duration_seconds": 11.39,
+          "start_memory_mb": 1014.06,
+          "end_memory_mb": 1043.22,
+          "peak_memory_mb": 1043.22
+        },
+        {
+          "name": "storage_and_upload",
+          "duration_seconds": 35.092,
+          "start_memory_mb": 1043.22,
+          "end_memory_mb": 1173.28,
+          "peak_memory_mb": 1173.28
+        }
+      ],
+      "timestamp": "2025-11-24T23:38:28.280624",
+      "config_path": "./test/benchmark/benchmark_config.yaml"
     },
     {
-      "name": "provenance_generation",
-      "duration_seconds": 0.052,
-      "start_memory_mb": 477.95,
-      "end_memory_mb": 478.02,
-      "peak_memory_mb": 478.02
+      "metrics": {
+        "input_records": 1000,
+        "curated_records": 1000,
+        "local_g_triples": 0,
+        "preexisting_entities_count": 0,
+        "entities_created": 11114,
+        "modified_entities": 11114,
+        "total_duration_seconds": 69.282,
+        "throughput_records_per_sec": 14.43
+      },
+      "phases": [
+        {
+          "name": "total_processing",
+          "duration_seconds": 69.282,
+          "start_memory_mb": 1232.37,
+          "end_memory_mb": 1285.39,
+          "peak_memory_mb": 1285.39
+        },
+        {
+          "name": "curation",
+          "duration_seconds": 11.933,
+          "start_memory_mb": 1232.37,
+          "end_memory_mb": 1232.39,
+          "peak_memory_mb": 1232.39
+        },
+        {
+          "name": "rdf_creation",
+          "duration_seconds": 28.055,
+          "start_memory_mb": 1232.39,
+          "end_memory_mb": 1205.36,
+          "peak_memory_mb": 1232.39
+        },
+        {
+          "name": "creator_execution",
+          "duration_seconds": 15.104,
+          "start_memory_mb": 1232.39,
+          "end_memory_mb": 1205.36,
+          "peak_memory_mb": 1232.39
+        },
+        {
+          "name": "provenance_generation",
+          "duration_seconds": 12.951,
+          "start_memory_mb": 1205.36,
+          "end_memory_mb": 1205.36,
+          "peak_memory_mb": 1205.36
+        },
+        {
+          "name": "storage_and_upload",
+          "duration_seconds": 29.25,
+          "start_memory_mb": 1205.36,
+          "end_memory_mb": 1285.39,
+          "peak_memory_mb": 1285.39
+        }
+      ],
+      "timestamp": "2025-11-24T23:39:40.161610",
+      "config_path": "./test/benchmark/benchmark_config.yaml"
     },
     {
-      "name": "storage_and_upload",
-      "duration_seconds": 1.953,
-      "start_memory_mb": 478.02,
-      "end_memory_mb": 478.02,
-      "peak_memory_mb": 478.02
+      "metrics": {
+        "input_records": 1000,
+        "curated_records": 1000,
+        "local_g_triples": 0,
+        "preexisting_entities_count": 0,
+        "entities_created": 11226,
+        "modified_entities": 11226,
+        "total_duration_seconds": 70.605,
+        "throughput_records_per_sec": 14.16
+      },
+      "phases": [
+        {
+          "name": "total_processing",
+          "duration_seconds": 70.605,
+          "start_memory_mb": 1301.92,
+          "end_memory_mb": 1339.8,
+          "peak_memory_mb": 1339.8
+        },
+        {
+          "name": "curation",
+          "duration_seconds": 11.917,
+          "start_memory_mb": 1301.92,
+          "end_memory_mb": 1301.92,
+          "peak_memory_mb": 1301.92
+        },
+        {
+          "name": "rdf_creation",
+          "duration_seconds": 28.445,
+          "start_memory_mb": 1301.92,
+          "end_memory_mb": 1266.16,
+          "peak_memory_mb": 1301.92
+        },
+        {
+          "name": "creator_execution",
+          "duration_seconds": 15.422,
+          "start_memory_mb": 1301.92,
+          "end_memory_mb": 1266.16,
+          "peak_memory_mb": 1301.92
+        },
+        {
+          "name": "provenance_generation",
+          "duration_seconds": 13.022,
+          "start_memory_mb": 1266.16,
+          "end_memory_mb": 1266.16,
+          "peak_memory_mb": 1266.16
+        },
+        {
+          "name": "storage_and_upload",
+          "duration_seconds": 30.204,
+          "start_memory_mb": 1266.16,
+          "end_memory_mb": 1339.8,
+          "peak_memory_mb": 1339.8
+        }
+      ],
+      "timestamp": "2025-11-24T23:40:53.404915",
+      "config_path": "./test/benchmark/benchmark_config.yaml"
+    },
+    {
+      "metrics": {
+        "input_records": 1000,
+        "curated_records": 1000,
+        "local_g_triples": 0,
+        "preexisting_entities_count": 0,
+        "entities_created": 11008,
+        "modified_entities": 11008,
+        "total_duration_seconds": 70.738,
+        "throughput_records_per_sec": 14.14
+      },
+      "phases": [
+        {
+          "name": "total_processing",
+          "duration_seconds": 70.738,
+          "start_memory_mb": 1370.81,
+          "end_memory_mb": 1396.16,
+          "peak_memory_mb": 1396.16
+        },
+        {
+          "name": "curation",
+          "duration_seconds": 11.68,
+          "start_memory_mb": 1370.81,
+          "end_memory_mb": 1370.81,
+          "peak_memory_mb": 1370.81
+        },
+        {
+          "name": "rdf_creation",
+          "duration_seconds": 28.258,
+          "start_memory_mb": 1370.81,
+          "end_memory_mb": 1354.56,
+          "peak_memory_mb": 1370.81
+        },
+        {
+          "name": "creator_execution",
+          "duration_seconds": 16.329,
+          "start_memory_mb": 1370.81,
+          "end_memory_mb": 1354.56,
+          "peak_memory_mb": 1370.81
+        },
+        {
+          "name": "provenance_generation",
+          "duration_seconds": 11.929,
+          "start_memory_mb": 1354.56,
+          "end_memory_mb": 1354.56,
+          "peak_memory_mb": 1354.56
+        },
+        {
+          "name": "storage_and_upload",
+          "duration_seconds": 30.763,
+          "start_memory_mb": 1354.56,
+          "end_memory_mb": 1396.16,
+          "peak_memory_mb": 1396.16
+        }
+      ],
+      "timestamp": "2025-11-24T23:42:06.608082",
+      "config_path": "./test/benchmark/benchmark_config.yaml"
+    },
+    {
+      "metrics": {
+        "input_records": 1000,
+        "curated_records": 1000,
+        "local_g_triples": 0,
+        "preexisting_entities_count": 0,
+        "entities_created": 11123,
+        "modified_entities": 11123,
+        "total_duration_seconds": 69.837,
+        "throughput_records_per_sec": 14.32
+      },
+      "phases": [
+        {
+          "name": "total_processing",
+          "duration_seconds": 69.837,
+          "start_memory_mb": 1428.32,
+          "end_memory_mb": 1471.7,
+          "peak_memory_mb": 1471.7
+        },
+        {
+          "name": "curation",
+          "duration_seconds": 11.814,
+          "start_memory_mb": 1428.32,
+          "end_memory_mb": 1428.32,
+          "peak_memory_mb": 1428.32
+        },
+        {
+          "name": "rdf_creation",
+          "duration_seconds": 29.681,
+          "start_memory_mb": 1428.32,
+          "end_memory_mb": 1421.39,
+          "peak_memory_mb": 1428.32
+        },
+        {
+          "name": "creator_execution",
+          "duration_seconds": 16.782,
+          "start_memory_mb": 1428.32,
+          "end_memory_mb": 1421.38,
+          "peak_memory_mb": 1428.32
+        },
+        {
+          "name": "provenance_generation",
+          "duration_seconds": 12.898,
+          "start_memory_mb": 1421.38,
+          "end_memory_mb": 1421.39,
+          "peak_memory_mb": 1421.39
+        },
+        {
+          "name": "storage_and_upload",
+          "duration_seconds": 28.307,
+          "start_memory_mb": 1421.39,
+          "end_memory_mb": 1471.7,
+          "peak_memory_mb": 1471.7
+        }
+      ],
+      "timestamp": "2025-11-24T23:43:18.847400",
+      "config_path": "./test/benchmark/benchmark_config.yaml"
+    },
+    {
+      "metrics": {
+        "input_records": 1000,
+        "curated_records": 1000,
+        "local_g_triples": 0,
+        "preexisting_entities_count": 0,
+        "entities_created": 11172,
+        "modified_entities": 11172,
+        "total_duration_seconds": 80.619,
+        "throughput_records_per_sec": 12.4
+      },
+      "phases": [
+        {
+          "name": "total_processing",
+          "duration_seconds": 80.619,
+          "start_memory_mb": 1519.7,
+          "end_memory_mb": 1556.3,
+          "peak_memory_mb": 1556.3
+        },
+        {
+          "name": "curation",
+          "duration_seconds": 11.654,
+          "start_memory_mb": 1519.7,
+          "end_memory_mb": 1519.7,
+          "peak_memory_mb": 1519.7
+        },
+        {
+          "name": "rdf_creation",
+          "duration_seconds": 36.882,
+          "start_memory_mb": 1519.7,
+          "end_memory_mb": 1504.82,
+          "peak_memory_mb": 1519.7
+        },
+        {
+          "name": "creator_execution",
+          "duration_seconds": 24.885,
+          "start_memory_mb": 1519.7,
+          "end_memory_mb": 1504.82,
+          "peak_memory_mb": 1519.7
+        },
+        {
+          "name": "provenance_generation",
+          "duration_seconds": 11.997,
+          "start_memory_mb": 1504.82,
+          "end_memory_mb": 1504.82,
+          "peak_memory_mb": 1504.82
+        },
+        {
+          "name": "storage_and_upload",
+          "duration_seconds": 32.046,
+          "start_memory_mb": 1504.82,
+          "end_memory_mb": 1556.3,
+          "peak_memory_mb": 1556.3
+        }
+      ],
+      "timestamp": "2025-11-24T23:44:41.918906",
+      "config_path": "./test/benchmark/benchmark_config.yaml"
+    },
+    {
+      "metrics": {
+        "input_records": 1000,
+        "curated_records": 1000,
+        "local_g_triples": 0,
+        "preexisting_entities_count": 0,
+        "entities_created": 11074,
+        "modified_entities": 11074,
+        "total_duration_seconds": 70.914,
+        "throughput_records_per_sec": 14.1
+      },
+      "phases": [
+        {
+          "name": "total_processing",
+          "duration_seconds": 70.914,
+          "start_memory_mb": 1588.31,
+          "end_memory_mb": 1618.59,
+          "peak_memory_mb": 1618.59
+        },
+        {
+          "name": "curation",
+          "duration_seconds": 12.021,
+          "start_memory_mb": 1588.31,
+          "end_memory_mb": 1588.31,
+          "peak_memory_mb": 1588.31
+        },
+        {
+          "name": "rdf_creation",
+          "duration_seconds": 27.59,
+          "start_memory_mb": 1588.31,
+          "end_memory_mb": 1604.8,
+          "peak_memory_mb": 1604.8
+        },
+        {
+          "name": "creator_execution",
+          "duration_seconds": 14.547,
+          "start_memory_mb": 1588.31,
+          "end_memory_mb": 1604.72,
+          "peak_memory_mb": 1604.72
+        },
+        {
+          "name": "provenance_generation",
+          "duration_seconds": 13.042,
+          "start_memory_mb": 1604.72,
+          "end_memory_mb": 1604.8,
+          "peak_memory_mb": 1604.8
+        },
+        {
+          "name": "storage_and_upload",
+          "duration_seconds": 31.26,
+          "start_memory_mb": 1604.8,
+          "end_memory_mb": 1618.59,
+          "peak_memory_mb": 1618.59
+        }
+      ],
+      "timestamp": "2025-11-24T23:45:55.361575",
+      "config_path": "./test/benchmark/benchmark_config.yaml"
     }
   ],
-  "timestamp": "2025-11-26T21:36:19.310925",
-  "config_path": "test/benchmark/benchmark_config.yaml",
-  "preload_metrics": {
-    "duration_seconds": 15.225,
-    "start_memory_mb": 152.24,
-    "end_memory_mb": 601.25
+  "statistics": {
+    "input_records": {
+      "mean": 1000.0,
+      "median": 1000.0,
+      "std": 0.0,
+      "min": 1000.0,
+      "max": 1000.0,
+      "ci_95_lower": 1000.0,
+      "ci_95_upper": 1000.0,
+      "outlier_indices": [],
+      "n": 10
+    },
+    "curated_records": {
+      "mean": 1000.0,
+      "median": 1000.0,
+      "std": 0.0,
+      "min": 1000.0,
+      "max": 1000.0,
+      "ci_95_lower": 1000.0,
+      "ci_95_upper": 1000.0,
+      "outlier_indices": [],
+      "n": 10
+    },
+    "local_g_triples": {
+      "mean": 0.0,
+      "median": 0.0,
+      "std": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "ci_95_lower": 0.0,
+      "ci_95_upper": 0.0,
+      "outlier_indices": [],
+      "n": 10
+    },
+    "preexisting_entities_count": {
+      "mean": 0.0,
+      "median": 0.0,
+      "std": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "ci_95_lower": 0.0,
+      "ci_95_upper": 0.0,
+      "outlier_indices": [],
+      "n": 10
+    },
+    "entities_created": {
+      "mean": 11061.0,
+      "median": 11072.0,
+      "std": 107.05138952858108,
+      "min": 10892.0,
+      "max": 11226.0,
+      "ci_95_lower": 10984.420049205082,
+      "ci_95_upper": 11137.579950794918,
+      "outlier_indices": [],
+      "n": 10
+    },
+    "modified_entities": {
+      "mean": 11061.0,
+      "median": 11072.0,
+      "std": 107.05138952858108,
+      "min": 10892.0,
+      "max": 11226.0,
+      "ci_95_lower": 10984.420049205082,
+      "ci_95_upper": 11137.579950794918,
+      "outlier_indices": [],
+      "n": 10
+    },
+    "total_duration_seconds": {
+      "mean": 70.9783,
+      "median": 70.468,
+      "std": 3.833689695029814,
+      "min": 65.701,
+      "max": 80.619,
+      "ci_95_lower": 68.2358436012441,
+      "ci_95_upper": 73.72075639875591,
+      "outlier_indices": [
+        0,
+        8
+      ],
+      "n": 10
+    },
+    "throughput_records_per_sec": {
+      "mean": 14.122,
+      "median": 14.190000000000001,
+      "std": 0.7136261081422276,
+      "min": 12.4,
+      "max": 15.22,
+      "ci_95_lower": 13.611502635246875,
+      "ci_95_upper": 14.632497364753124,
+      "outlier_indices": [
+        0,
+        8
+      ],
+      "n": 10
+    },
+    "total_processing_duration_seconds": {
+      "mean": 70.9783,
+      "median": 70.468,
+      "std": 3.833689695029814,
+      "min": 65.701,
+      "max": 80.619,
+      "ci_95_lower": 68.2358436012441,
+      "ci_95_upper": 73.72075639875591,
+      "outlier_indices": [
+        0,
+        8
+      ],
+      "n": 10
+    },
+    "total_processing_start_memory_mb": {
+      "mean": 1188.212,
+      "median": 1267.145,
+      "std": 381.89661823296865,
+      "min": 250.26,
+      "max": 1588.31,
+      "ci_95_lower": 915.0196167734532,
+      "ci_95_upper": 1461.4043832265468,
+      "outlier_indices": [
+        0
+      ],
+      "n": 10
+    },
+    "total_processing_end_memory_mb": {
+      "mean": 1293.53,
+      "median": 1312.595,
+      "std": 223.67568829296877,
+      "min": 963.79,
+      "max": 1618.59,
+      "ci_95_lower": 1133.5220516779295,
+      "ci_95_upper": 1453.5379483220704,
+      "outlier_indices": [],
+      "n": 10
+    },
+    "total_processing_peak_memory_mb": {
+      "mean": 1293.53,
+      "median": 1312.595,
+      "std": 223.67568829296877,
+      "min": 963.79,
+      "max": 1618.59,
+      "ci_95_lower": 1133.5220516779295,
+      "ci_95_upper": 1453.5379483220704,
+      "outlier_indices": [],
+      "n": 10
+    },
+    "curation_duration_seconds": {
+      "mean": 11.786,
+      "median": 11.747,
+      "std": 0.595102418822919,
+      "min": 10.81,
+      "max": 13.153,
+      "ci_95_lower": 11.360289374924658,
+      "ci_95_upper": 12.21171062507534,
+      "outlier_indices": [
+        1
+      ],
+      "n": 10
+    },
+    "curation_start_memory_mb": {
+      "mean": 1188.263,
+      "median": 1267.145,
+      "std": 381.7574515331837,
+      "min": 250.77,
+      "max": 1588.31,
+      "ci_95_lower": 915.1701706332279,
+      "ci_95_upper": 1461.355829366772,
+      "outlier_indices": [
+        0
+      ],
+      "n": 10
+    },
+    "curation_end_memory_mb": {
+      "mean": 1150.237,
+      "median": 1267.1550000000002,
+      "std": 422.8286419408642,
+      "min": 223.45,
+      "max": 1588.31,
+      "ci_95_lower": 847.7636109379318,
+      "ci_95_upper": 1452.7103890620683,
+      "outlier_indices": [],
+      "n": 10
+    },
+    "curation_peak_memory_mb": {
+      "mean": 1188.266,
+      "median": 1267.1550000000002,
+      "std": 381.75731852695225,
+      "min": 250.77,
+      "max": 1588.31,
+      "ci_95_lower": 915.1732657801543,
+      "ci_95_upper": 1461.3587342198457,
+      "outlier_indices": [
+        0
+      ],
+      "n": 10
+    },
+    "rdf_creation_duration_seconds": {
+      "mean": 28.7255,
+      "median": 28.1565,
+      "std": 3.0643179139537358,
+      "min": 26.138,
+      "max": 36.882,
+      "ci_95_lower": 26.533419018109413,
+      "ci_95_upper": 30.917580981890588,
+      "outlier_indices": [
+        8
+      ],
+      "n": 10
+    },
+    "rdf_creation_start_memory_mb": {
+      "mean": 1150.237,
+      "median": 1267.1550000000002,
+      "std": 422.8286419408642,
+      "min": 223.45,
+      "max": 1588.31,
+      "ci_95_lower": 847.7636109379318,
+      "ci_95_upper": 1452.7103890620683,
+      "outlier_indices": [],
+      "n": 10
+    },
+    "rdf_creation_end_memory_mb": {
+      "mean": 1211.742,
+      "median": 1235.76,
+      "std": 263.78526177345253,
+      "min": 843.28,
+      "max": 1604.8,
+      "ci_95_lower": 1023.0413912924187,
+      "ci_95_upper": 1400.4426087075813,
+      "outlier_indices": [],
+      "n": 10
+    },
+    "rdf_creation_peak_memory_mb": {
+      "mean": 1239.149,
+      "median": 1267.1550000000002,
+      "std": 255.5546072303661,
+      "min": 843.28,
+      "max": 1604.8,
+      "ci_95_lower": 1056.3362468606197,
+      "ci_95_upper": 1421.96175313938,
+      "outlier_indices": [],
+      "n": 10
+    },
+    "creator_execution_duration_seconds": {
+      "mean": 15.9643,
+      "median": 15.123999999999999,
+      "std": 3.3340793848444052,
+      "min": 12.763,
+      "max": 24.885,
+      "ci_95_lower": 13.579243286938198,
+      "ci_95_upper": 18.349356713061802,
+      "outlier_indices": [
+        8
+      ],
+      "n": 10
+    },
+    "creator_execution_start_memory_mb": {
+      "mean": 1150.237,
+      "median": 1267.1550000000002,
+      "std": 422.8286419408642,
+      "min": 223.45,
+      "max": 1588.31,
+      "ci_95_lower": 847.7636109379318,
+      "ci_95_upper": 1452.7103890620683,
+      "outlier_indices": [],
+      "n": 10
+    },
+    "creator_execution_end_memory_mb": {
+      "mean": 1143.935,
+      "median": 1235.76,
+      "std": 359.58532281411783,
+      "min": 561.96,
+      "max": 1604.72,
+      "ci_95_lower": 886.7031560328742,
+      "ci_95_upper": 1401.1668439671257,
+      "outlier_indices": [],
+      "n": 10
+    },
+    "creator_execution_peak_memory_mb": {
+      "mean": 1186.6490000000001,
+      "median": 1267.1550000000002,
+      "std": 347.745696209489,
+      "min": 561.96,
+      "max": 1604.72,
+      "ci_95_lower": 937.8867146888189,
+      "ci_95_upper": 1435.4112853111815,
+      "outlier_indices": [],
+      "n": 10
+    },
+    "provenance_generation_duration_seconds": {
+      "mean": 12.7608,
+      "median": 12.9245,
+      "std": 0.9385415162781974,
+      "min": 11.39,
+      "max": 14.746,
+      "ci_95_lower": 12.089407844773623,
+      "ci_95_upper": 13.432192155226376,
+      "outlier_indices": [],
+      "n": 10
+    },
+    "provenance_generation_start_memory_mb": {
+      "mean": 1143.935,
+      "median": 1235.76,
+      "std": 359.58532281411783,
+      "min": 561.96,
+      "max": 1604.72,
+      "ci_95_lower": 886.7031560328742,
+      "ci_95_upper": 1401.1668439671257,
+      "outlier_indices": [],
+      "n": 10
+    },
+    "provenance_generation_end_memory_mb": {
+      "mean": 1211.742,
+      "median": 1235.76,
+      "std": 263.78526177345253,
+      "min": 843.28,
+      "max": 1604.8,
+      "ci_95_lower": 1023.0413912924187,
+      "ci_95_upper": 1400.4426087075813,
+      "outlier_indices": [],
+      "n": 10
+    },
+    "provenance_generation_peak_memory_mb": {
+      "mean": 1211.742,
+      "median": 1235.76,
+      "std": 263.78526177345253,
+      "min": 843.28,
+      "max": 1604.8,
+      "ci_95_lower": 1023.0413912924187,
+      "ci_95_upper": 1400.4426087075813,
+      "outlier_indices": [],
+      "n": 10
+    },
+    "storage_and_upload_duration_seconds": {
+      "mean": 30.428,
+      "median": 29.9695,
+      "std": 2.0533080085018365,
+      "min": 28.061,
+      "max": 35.092,
+      "ci_95_lower": 28.959151935997046,
+      "ci_95_upper": 31.896848064002956,
+      "outlier_indices": [],
+      "n": 10
+    },
+    "storage_and_upload_start_memory_mb": {
+      "mean": 1211.742,
+      "median": 1235.76,
+      "std": 263.78526177345253,
+      "min": 843.28,
+      "max": 1604.8,
+      "ci_95_lower": 1023.0413912924187,
+      "ci_95_upper": 1400.4426087075813,
+      "outlier_indices": [],
+      "n": 10
+    },
+    "storage_and_upload_end_memory_mb": {
+      "mean": 1293.53,
+      "median": 1312.595,
+      "std": 223.67568829296877,
+      "min": 963.79,
+      "max": 1618.59,
+      "ci_95_lower": 1133.5220516779295,
+      "ci_95_upper": 1453.5379483220704,
+      "outlier_indices": [],
+      "n": 10
+    },
+    "storage_and_upload_peak_memory_mb": {
+      "mean": 1293.53,
+      "median": 1312.595,
+      "std": 223.67568829296877,
+      "min": 963.79,
+      "max": 1618.59,
+      "ci_95_lower": 1133.5220516779295,
+      "ci_95_upper": 1453.5379483220704,
+      "outlier_indices": [],
+      "n": 10
+    }
   }
 }

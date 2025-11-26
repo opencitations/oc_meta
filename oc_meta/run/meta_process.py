@@ -121,7 +121,7 @@ def _run_bulk_load_process(args: tuple) -> None:
             password=virtuoso_password,
             docker_container=container_name,
             container_data_directory=bulk_load_dir,
-            log_level="WARNING"
+            log_level="CRITICAL"
         )
     except RuntimeError as e:
         raise BulkLoadError(f"Bulk load failed for container {container_name}: {e}") from e
@@ -520,7 +520,7 @@ class MetaProcess:
         for nq_file in glob.glob(os.path.join(prov_nquads_dir, "*.nq.gz")):
             os.remove(nq_file)
 
-    def run_sparql_updates(self, endpoint: str, folder: str, batch_size: int = 10):
+    def run_sparql_updates(self, endpoint: str, folder: str):
         cache_manager = CacheManager(
             redis_host=self.redis_host,
             redis_port=self.redis_port,

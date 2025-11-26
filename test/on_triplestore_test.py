@@ -6,7 +6,6 @@ import redis
 from oc_meta.run.upload.cache_manager import CacheManager
 from oc_meta.run.upload.on_triplestore import (
     execute_sparql_update,
-    generate_sparql_queries,
     save_failed_query_file,
     upload_sparql_updates,
 )
@@ -107,24 +106,6 @@ class TestOnTriplestore(unittest.TestCase):
         """Cleanup dopo ogni test"""
         if os.path.exists(self.temp_dir):
             shutil.rmtree(self.temp_dir)
-
-    def test_generate_sparql_queries(self):
-        """Test della generazione delle query SPARQL"""
-        # Prepara i dati di test
-        quads_to_add = [
-            ("<subj1>", "<pred1>", '"obj1"', "<graph1>"),
-            ("<subj2>", "<pred2>", '"obj2"', "<graph1>"),
-            ("<subj3>", "<pred3>", '"obj3"', "<graph2>"),
-        ]
-        quads_to_remove = [("<subj4>", "<pred4>", '"obj4"', "<graph1>")]
-
-        # Genera le query
-        queries = generate_sparql_queries(quads_to_add, quads_to_remove, batch_size=2)
-
-        # Verifica il risultato
-        self.assertEqual(len(queries), 3)  # 2 INSERT (batch size 2) + 1 DELETE
-        self.assertTrue(any(q.startswith("INSERT DATA {") for q in queries))
-        self.assertTrue(any(q.startswith("DELETE DATA {") for q in queries))
 
     def test_cache_operations(self):
         """Test cache operations with CacheManager."""

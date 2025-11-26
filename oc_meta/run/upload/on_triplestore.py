@@ -2,7 +2,6 @@ import argparse
 import os
 
 from oc_meta.lib.sparql_utils import safe_sparql_query_with_retry
-from oc_meta.run.split_insert_and_delete import process_sparql_file
 from oc_meta.run.upload.cache_manager import CacheManager
 from SPARQLWrapper import SPARQLWrapper, POST
 from tqdm import tqdm
@@ -24,43 +23,6 @@ def execute_sparql_update(endpoint, query):
     except Exception as e:
         print(f"All 3 attempts failed. Could not execute SPARQL update due to communication problems: {e}")
         return False
-
-
-def generate_sparql_queries(quads_to_add, quads_to_remove, batch_size):
-    queries = []
-
-    if quads_to_add:
-        for i in range(0, len(quads_to_add), batch_size):
-            insert_query = "INSERT DATA {\n"
-            batch = quads_to_add[i : i + batch_size]
-            for graph in set(q[-1] for q in batch):
-                insert_query += f"  GRAPH {graph} {{\n"
-                for quad in batch:
-                    if quad[-1] == graph:
-                        insert_query += "    " + " ".join(quad[:-1]) + " .\n"
-                insert_query += "  }\n"
-            insert_query += "}\n"
-            queries.append(insert_query)
-
-    if quads_to_remove:
-        for i in range(0, len(quads_to_remove), batch_size):
-            delete_query = "DELETE DATA {\n"
-            batch = quads_to_remove[i : i + batch_size]
-            for graph in set(q[-1] for q in batch):
-                delete_query += f"  GRAPH {graph} {{\n"
-                for quad in batch:
-                    if quad[-1] == graph:
-                        delete_query += "    " + " ".join(quad[:-1]) + " .\n"
-                delete_query += "  }\n"
-            delete_query += "}\n"
-            queries.append(delete_query)
-
-    return queries
-
-
-def split_queries(file_path, batch_size):
-    quads_to_add, quads_to_remove = process_sparql_file(file_path)
-    return generate_sparql_queries(quads_to_add, quads_to_remove, batch_size)
 
 
 def remove_stop_file(stop_file):
@@ -108,28 +70,19 @@ def upload_sparql_updates(
             break
 
         file_path = os.path.join(folder, file)
-        queries = split_queries(file_path, batch_size)
 
-        if not queries:
-            save_failed_query_file(file, failed_file)
+        with open(file_path, "r", encoding="utf-8") as f:
+            query = f.read().strip()
+
+        if not query:
+            cache_manager.add(file)
             continue
 
-        all_queries_successful = True
-
-        for query in queries:
-            success = execute_sparql_update(endpoint, query)
-            if not success:
-                save_failed_query_file(file, failed_file)
-                all_queries_successful = False
-                break
-
-        if all_queries_successful:
+        success = execute_sparql_update(endpoint, query)
+        if success:
             cache_manager.add(file)
-
-    if failed_files:
-        print("Files with failed queries:")
-        for file in failed_files:
-            print(file)
+        else:
+            save_failed_query_file(file, failed_file)
 
 
 def main():
