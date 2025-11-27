@@ -516,8 +516,7 @@ class test_Curator(unittest.TestCase):
         self.assertEqual(output, expected_output)
     
     def test_indexer(self):
-        path_index = f'{OUTPUT_DIR}/index'
-        path_csv = f'{OUTPUT_DIR}'
+        """Test that indexer() correctly transforms internal dicts to list-of-dicts."""
         curator = prepareCurator(list())
         curator.filename = '0.csv'
         curator.idra = {'orcid:0000-0003-0530-4305': '0601', 'schema:12345': '0602'}
@@ -525,47 +524,42 @@ class test_Curator(unittest.TestCase):
         curator.armeta = {'2585': {'author': [('9445', '0602'), ('0601', '0601')], 'editor': [], 'publisher': []}}
         curator.remeta = dict()
         curator.brmeta = {
-            '0601': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en', 'omid:br/0601'], 'others': ['wannabe_0'], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}, 
+            '0601': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en', 'omid:br/0601'], 'others': ['wannabe_0'], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'},
             '0602': {'ids': ['omid:br/0602'], 'others': ['wannabe_1'], 'title': 'OECD Economic Outlook'}
         }
         curator.vvi = {
             'wannabe_1': {
-                'issue': {}, 
+                'issue': {},
                 'volume': {
-                    '107': {'id': '4733', 'issue': {'1': {'id': '4734'}, '2': {'id': '4735'}, '3': {'id': '4736'}, '4': {'id': '4737'}, '5': {'id': '4738'}, '6': {'id': '4739'}}}, 
-                    '108': {'id': '4740', 'issue': {'1': {'id': '4741'}, '2': {'id': '4742'}, '3': {'id': '4743'}, '4': {'id': '4744'}}}, 
-                    '104': {'id': '4712', 'issue': {'1': {'id': '4713'}, '2': {'id': '4714'}, '3': {'id': '4715'}, '4': {'id': '4716'}, '5': {'id': '4717'}, '6': {'id': '4718'}}}, 
-                    '148': {'id': '4417', 'issue': {'12': {'id': '4418'}, '11': {'id': '4419'}}}, 
-                    '100': {'id': '4684', 'issue': {'1': {'id': '4685'}, '2': {'id': '4686'}, '3': {'id': '4687'}, '4': {'id': '4688'}, '5': {'id': '4689'}, '6': {'id': '4690'}}}, 
-                    '101': {'id': '4691', 'issue': {'1': {'id': '4692'}, '2': {'id': '4693'}, '3': {'id': '4694'}, '4': {'id': '4695'}, '5': {'id': '4696'}, '6': {'id': '4697'}}}, 
-                    '102': {'id': '4698', 'issue': {'1': {'id': '4699'}, '2': {'id': '4700'}, '3': {'id': '4701'}, '4': {'id': '4702'}, '5': {'id': '4703'}, '6': {'id': '4704'}}}, 
-                    '103': {'id': '4705', 'issue': {'1': {'id': '4706'}, '2': {'id': '4707'}, '3': {'id': '4708'}, '4': {'id': '4709'}, '5': {'id': '4710'}, '6': {'id': '4711'}}}, 
-                    '105': {'id': '4719', 'issue': {'1': {'id': '4720'}, '2': {'id': '4721'}, '3': {'id': '4722'}, '4': {'id': '4723'}, '5': {'id': '4724'}, '6': {'id': '4725'}}}, 
+                    '107': {'id': '4733', 'issue': {'1': {'id': '4734'}, '2': {'id': '4735'}, '3': {'id': '4736'}, '4': {'id': '4737'}, '5': {'id': '4738'}, '6': {'id': '4739'}}},
+                    '108': {'id': '4740', 'issue': {'1': {'id': '4741'}, '2': {'id': '4742'}, '3': {'id': '4743'}, '4': {'id': '4744'}}},
+                    '104': {'id': '4712', 'issue': {'1': {'id': '4713'}, '2': {'id': '4714'}, '3': {'id': '4715'}, '4': {'id': '4716'}, '5': {'id': '4717'}, '6': {'id': '4718'}}},
+                    '148': {'id': '4417', 'issue': {'12': {'id': '4418'}, '11': {'id': '4419'}}},
+                    '100': {'id': '4684', 'issue': {'1': {'id': '4685'}, '2': {'id': '4686'}, '3': {'id': '4687'}, '4': {'id': '4688'}, '5': {'id': '4689'}, '6': {'id': '4690'}}},
+                    '101': {'id': '4691', 'issue': {'1': {'id': '4692'}, '2': {'id': '4693'}, '3': {'id': '4694'}, '4': {'id': '4695'}, '5': {'id': '4696'}, '6': {'id': '4697'}}},
+                    '102': {'id': '4698', 'issue': {'1': {'id': '4699'}, '2': {'id': '4700'}, '3': {'id': '4701'}, '4': {'id': '4702'}, '5': {'id': '4703'}, '6': {'id': '4704'}}},
+                    '103': {'id': '4705', 'issue': {'1': {'id': '4706'}, '2': {'id': '4707'}, '3': {'id': '4708'}, '4': {'id': '4709'}, '5': {'id': '4710'}, '6': {'id': '4711'}}},
+                    '105': {'id': '4719', 'issue': {'1': {'id': '4720'}, '2': {'id': '4721'}, '3': {'id': '4722'}, '4': {'id': '4723'}, '5': {'id': '4724'}, '6': {'id': '4725'}}},
                     '106': {'id': '4726', 'issue': {'6': {'id': '4732'}, '1': {'id': '4727'}, '2': {'id': '4728'}, '3': {'id': '4729'}, '4': {'id': '4730'}, '5': {'id': '4731'}}}
                 }
             }
         }
         curator.meta_maker()
-        curator.indexer(path_index, path_csv)
-        with open(os.path.join(path_index, 'index_ar.csv'), 'r', encoding='utf-8') as f:
-            index_ar = list(csv.DictReader(f))
-        with open(os.path.join(path_index, 'index_id_br.csv'), 'r', encoding='utf-8') as f:
-            index_id_br = list(csv.DictReader(f))
-        with open(os.path.join(path_index, 'index_id_ra.csv'), 'r', encoding='utf-8') as f:
-            index_id_ra = list(csv.DictReader(f))
-        with open(os.path.join(path_index, 'index_vi.json'), 'r', encoding='utf-8') as f:
-            index_vi = json.load(f)
-        with open(os.path.join(path_index, 'index_re.csv'), 'r', encoding='utf-8') as f:
-            index_re = list(csv.DictReader(f))
+        curator.indexer()
+        # Test in-memory data structures
         expected_index_ar = [{'meta': '2585', 'author': '9445, 0602; 0601, 0601', 'editor': '', 'publisher': ''}]
         expected_index_id_br = [{'id': 'doi:10.1001/2013.jamasurg.270', 'meta': '2585'}]
         expected_index_id_ra = [{'id': 'orcid:0000-0003-0530-4305', 'meta': '0601'}, {'id': 'schema:12345', 'meta': '0602'}]
         expected_index_re = [{'br': '', 're': ''}]
         expected_index_vi = {'0602': {'issue': {}, 'volume': {'107': {'id': '4733', 'issue': {'1': {'id': '4734'}, '2': {'id': '4735'}, '3': {'id': '4736'}, '4': {'id': '4737'}, '5': {'id': '4738'}, '6': {'id': '4739'}}}, '108': {'id': '4740', 'issue': {'1': {'id': '4741'}, '2': {'id': '4742'}, '3': {'id': '4743'}, '4': {'id': '4744'}}}, '104': {'id': '4712', 'issue': {'1': {'id': '4713'}, '2': {'id': '4714'}, '3': {'id': '4715'}, '4': {'id': '4716'}, '5': {'id': '4717'}, '6': {'id': '4718'}}}, '148': {'id': '4417', 'issue': {'12': {'id': '4418'}, '11': {'id': '4419'}}}, '100': {'id': '4684', 'issue': {'1': {'id': '4685'}, '2': {'id': '4686'}, '3': {'id': '4687'}, '4': {'id': '4688'}, '5': {'id': '4689'}, '6': {'id': '4690'}}}, '101': {'id': '4691', 'issue': {'1': {'id': '4692'}, '2': {'id': '4693'}, '3': {'id': '4694'}, '4': {'id': '4695'}, '5': {'id': '4696'}, '6': {'id': '4697'}}}, '102': {'id': '4698', 'issue': {'1': {'id': '4699'}, '2': {'id': '4700'}, '3': {'id': '4701'}, '4': {'id': '4702'}, '5': {'id': '4703'}, '6': {'id': '4704'}}}, '103': {'id': '4705', 'issue': {'1': {'id': '4706'}, '2': {'id': '4707'}, '3': {'id': '4708'}, '4': {'id': '4709'}, '5': {'id': '4710'}, '6': {'id': '4711'}}}, '105': {'id': '4719', 'issue': {'1': {'id': '4720'}, '2': {'id': '4721'}, '3': {'id': '4722'}, '4': {'id': '4723'}, '5': {'id': '4724'}, '6': {'id': '4725'}}}, '106': {'id': '4726', 'issue': {'6': {'id': '4732'}, '1': {'id': '4727'}, '2': {'id': '4728'}, '3': {'id': '4729'}, '4': {'id': '4730'}, '5': {'id': '4731'}}}}}}
-        output = (index_ar, index_id_br, index_id_ra, index_re, index_vi)
-        expected_output = (expected_index_ar, expected_index_id_br, expected_index_id_ra, expected_index_re, expected_index_vi)
-        shutil.rmtree(OUTPUT_DIR)
-        self.assertEqual(output, expected_output)
+        # Sort for comparison (order may vary due to dict iteration)
+        curator.index_id_ra.sort(key=lambda x: x['id'])
+        expected_index_id_ra.sort(key=lambda x: x['id'])
+        self.assertEqual(curator.ar_index, expected_index_ar)
+        self.assertEqual(curator.index_id_br, expected_index_id_br)
+        self.assertEqual(curator.index_id_ra, expected_index_id_ra)
+        self.assertEqual(curator.re_index, expected_index_re)
+        self.assertEqual(curator.VolIss, expected_index_vi)
     
     def test_is_a_valid_row(self):
         rows = [
@@ -602,7 +596,7 @@ class test_RespAgentsCurator(unittest.TestCase):
             {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': 'Elsevier BV [crossref:78]', 'editor': ''}, 
             {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': 'Wiley [crossref:311]', 'editor': ''}]
         resp_agents_curator = prepareCurator(data=data, server=SERVER, resp_agents_only=True)
-        resp_agents_curator.curator(filename=None, path_csv=None, path_index=None)
+        resp_agents_curator.curator(filename=None, path_csv=None)
         output = (resp_agents_curator.data, resp_agents_curator.radict, resp_agents_curator.idra, resp_agents_curator.rameta)
         expected_output = (
             [
@@ -629,7 +623,7 @@ class test_RespAgentsCurator(unittest.TestCase):
             {'id': '', 'title': '', 'author': 'Sarmiento, Félix [orcid:0000-0002-4487-6894]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}
         ]
         resp_agents_curator = prepareCurator(data=data, server=SERVER, resp_agents_only=True)
-        resp_agents_curator.curator(filename='resp_agents_curator_output', path_csv='test/testcases/testcase_data', path_index='test/testcases/testcase_data/indices')
+        resp_agents_curator.curator(filename='resp_agents_curator_output', path_csv='test/testcases/testcase_data')
         output = (resp_agents_curator.data, resp_agents_curator.radict, resp_agents_curator.idra, resp_agents_curator.rameta)
         expected_output = (
             [

@@ -16,12 +16,10 @@
 
 from __future__ import annotations
 
-import json
 import os
 import re
 from typing import List
 
-import redis
 from oc_meta.core.curator import Curator
 from oc_meta.lib.cleaner import Cleaner
 from oc_meta.lib.file_manager import *
@@ -49,7 +47,7 @@ class RespAgentsCurator(Curator):
         self.log = dict()
         self.preexisting_entities = set()
 
-    def curator(self, filename:str=None, path_csv:str=None, path_index:str=None):
+    def curator(self, filename: str = None, path_csv: str = None):
         metavals, identifiers, vvis = self.collect_identifiers(valid_dois_cache=dict())
         self.finder.get_everything_about_res(metavals=metavals, identifiers=identifiers, vvis=vvis)
         for row in self.data:
@@ -73,10 +71,8 @@ class RespAgentsCurator(Curator):
         self.meta_maker()
         self.log = self.log_update()
         self.enrich()
-        if path_index:
-            path_index = os.path.join(path_index, filename)
         self.filename = filename
-        self.indexer(path_index, path_csv)
+        self.indexer(path_csv=path_csv)
 
     def collect_identifiers(self, valid_dois_cache):
         """
@@ -154,16 +150,14 @@ class RespAgentsCurator(Curator):
         for _, omid in self.idra.items():
             self.preexisting_entities.add(f'id/{omid}')
         
-    def indexer(self, path_index:str, path_csv:str) -> None:
-        '''
-        This method is used to transform idra in such a way as to be saved as a csv file.
-        Finally, it generates the enriched CSV and saves it.
+    def indexer(self, path_csv: str = None) -> None:
+        """
+        Transform idra dict to list-of-dicts format for Creator consumption.
+        Optionally saves the enriched CSV file.
 
-        :params path_index: a directory path. It will contain the indexes
-        :type path_index: str
-        :params path_csv: a file path. It will be the output enriched CSV
+        :params path_csv: Directory path for the enriched CSV output (optional)
         :type path_csv: str
-        '''
+        """
         # ID
         self.index_id_ra = list()
         cur_index = self.idra
@@ -178,19 +172,11 @@ class RespAgentsCurator(Curator):
             row['id'] = ''
             row['meta'] = ''
             self.index_id_ra.append(row)
-        if self.filename:
-            if not os.path.exists(path_index):
-                os.makedirs(path_index)
-            ra_path = os.path.join(path_index, 'index_id_ra.csv')
-            write_csv(ra_path, self.index_id_ra)
-            if self.log:
-                log_file = os.path.join(path_index + 'log.json')
-                with open(log_file, 'w') as lf:
-                    json.dump(self.log, lf)
-            if self.data:
-                name = self.filename + '.csv'
-                data_file = os.path.join(path_csv, name)
-                write_csv(data_file, self.data)
+        # Save enriched CSV if path provided
+        if self.filename and path_csv and self.data:
+            name = self.filename + '.csv'
+            data_file = os.path.join(path_csv, name)
+            write_csv(data_file, self.data)
 
     @staticmethod
     def clean_id_list(id_list:List[str], br=None, valid_dois_cache=dict()) -> Tuple[list, str]:

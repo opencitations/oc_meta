@@ -19,7 +19,6 @@
 
 from __future__ import annotations
 
-import json
 import os
 import re
 from typing import Dict, List, Tuple
@@ -167,9 +166,7 @@ class Curator:
                 one_or_more_spaces, re.sub(colon_and_spaces, ":", field_value)
             )
 
-    def curator(
-        self, filename: str = None, path_csv: str = None, path_index: str = None
-    ):
+    def curator(self, filename: str = None, path_csv: str = None):
         metavals, identifiers, vvis = self.collect_identifiers(
             valid_dois_cache=self.valid_dois_cache
         )
@@ -210,10 +207,8 @@ class Curator:
         self.enrich()
         # Remove duplicates
         self.data = list({v["id"]: v for v in self.data}.values())
-        if path_index:
-            path_index = os.path.join(path_index, filename)
         self.filename = filename
-        self.indexer(path_index, path_csv)
+        self.indexer(path_csv=path_csv)
 
     # ID
     def clean_id(self, row: Dict[str, str]) -> None:
@@ -1047,15 +1042,12 @@ class Curator:
             if identifier[1] not in entity_dict[metaval]["ids"]:
                 entity_dict[metaval]["ids"].append(identifier[1])
 
-    def indexer(self, path_index: str, path_csv: str) -> None:
+    def indexer(self, path_csv: str = None) -> None:
         """
-        This method is used to transform idra, idbr, armeta, remeta, brmeta and vvi in such a way as to be saved as csv and json files.
-        As for venue, volume and issues, this method also takes care of replacing any wannabe_id with a meta_id.
-        Finally, it generates the enriched CSV and saves it.
+        Transform internal dicts (idra, idbr, armeta, remeta) to list-of-dicts format
+        for Creator consumption. Optionally saves the enriched CSV file.
 
-        :params path_index: a directory path. It will contain the indexes
-        :type path_index: str
-        :params path_csv: a file path. It will be the output enriched CSV
+        :params path_csv: Directory path for the enriched CSV output (optional)
         :type path_csv: str
         """
         # ID
@@ -1106,28 +1098,11 @@ class Curator:
             row["br"] = ""
             row["re"] = ""
             self.re_index.append(row)
-        if self.filename:
-            if not os.path.exists(path_index):
-                os.makedirs(path_index)
-            ra_path = os.path.join(path_index, "index_id_ra.csv")
-            write_csv(ra_path, self.index_id_ra)
-            br_path = os.path.join(path_index, "index_id_br.csv")
-            write_csv(br_path, self.index_id_br)
-            ar_path = os.path.join(path_index, "index_ar.csv")
-            write_csv(ar_path, self.ar_index)
-            re_path = os.path.join(path_index, "index_re.csv")
-            write_csv(re_path, self.re_index)
-            vvi_file = os.path.join(path_index, "index_vi.json")
-            with open(vvi_file, "w") as fp:
-                json.dump(self.VolIss, fp)
-            if self.log:
-                log_file = os.path.join(path_index + "log.json")
-                with open(log_file, "w") as lf:
-                    json.dump(self.log, lf)
-            if self.data:
-                name = self.filename + ".csv"
-                data_file = os.path.join(path_csv, name)
-                write_csv(data_file, self.data)
+        # Save enriched CSV if path provided
+        if self.filename and path_csv and self.data:
+            name = self.filename + ".csv"
+            data_file = os.path.join(path_csv, name)
+            write_csv(data_file, self.data)
 
     def __merge_VolIss_with_vvi(
         self, VolIss_venue_meta: str, vvi_venue_meta: str

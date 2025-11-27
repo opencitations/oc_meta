@@ -140,7 +140,6 @@ class MetaProcess:
         self.output_rdf_dir = (
             normalize_path(settings["output_rdf_dir"]) + os.sep + "rdf" + os.sep
         )
-        self.indexes_dir = os.path.join(self.base_output_dir, "indexes")
         self.cache_path = os.path.join(self.base_output_dir, "cache.txt")
         self.errors_path = os.path.join(self.base_output_dir, "errors.txt")
         self.timer = timer or ProcessTimer(enabled=False)
@@ -217,8 +216,7 @@ class MetaProcess:
         files_to_be_processed = sort_files(
             list(files_in_input_csv_dir.difference(completed))
         )
-        for dir in [self.output_csv_dir, self.indexes_dir]:
-            pathoo(dir)
+        pathoo(self.output_csv_dir)
         csv.field_size_limit(128)
         return files_to_be_processed
 
@@ -266,7 +264,7 @@ class MetaProcess:
                         )
                     name = f"{filename.replace('.csv', '')}_{datetime.now().strftime('%Y-%m-%dT%H-%M-%S')}"
                     curator_obj.curator(
-                        filename=name, path_csv=self.output_csv_dir, path_index=self.indexes_dir
+                        filename=name, path_csv=self.output_csv_dir
                     )
                     self.timer.record_metric("curated_records", len(curator_obj.data))
 
