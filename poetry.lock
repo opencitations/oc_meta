@@ -3129,13 +3129,13 @@ test = ["covdefaults (>=2.3)", "coverage (>=7.2.7)", "coverage-enable-subprocess
 
 [[package]]
 name = "virtuoso-utilities"
-version = "1.5.1"
+version = "1.5.3"
 description = "A collection of Python utilities for interacting with OpenLink Virtuoso."
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "virtuoso_utilities-1.5.1-py3-none-any.whl", hash = "sha256:2d3e1be2ae427453f9b119491b73d59b0462b7194f8bf38de05e75a4bbd03aa2"},
-    {file = "virtuoso_utilities-1.5.1.tar.gz", hash = "sha256:aece753ab51a25e6b95cf701f2083a4ce399bcfa0cd1f593b9b136796fa8562c"},
+    {file = "virtuoso_utilities-1.5.3-py3-none-any.whl", hash = "sha256:5bbc0d326ea9b92c3d2feab6aaa7930f85873eac01d1909c4e072879d743a6bf"},
+    {file = "virtuoso_utilities-1.5.3.tar.gz", hash = "sha256:1989fee27238a43bab51a4ca19a48d3b458cf7962a66cde9d3e5a99f5c0bdc35"},
 ]
 
 [package.dependencies]
@@ -3337,4 +3337,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<3.14"
-content-hash = "c82c87ac8c9ff0b99d4bde0331522b14264e5056b2f632873adb452b787eebed"
+content-hash = "2d84f22f436add59d57bdd80df2ed2b23bfec88a5e715e69169114f41ea7ca62"

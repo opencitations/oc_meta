@@ -976,9 +976,8 @@ class test_id_worker_with_reset(unittest.TestCase):
         store_curated_data(curator, SERVER)
         name = 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'
         curator_empty = prepareCurator(list())
-        finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI, local_g=curator_empty.everything_everywhere_allatonce)
-        finder.get_everything_about_res(metavals=set(), identifiers={'doi:10.1787/eco_outlook-v2011-2-graph138-en'}, vvis=set())
-        # put metaval in entity_dict        
+        curator_empty.finder.get_everything_about_res(metavals=set(), identifiers={'doi:10.1787/eco_outlook-v2011-2-graph138-en'}, vvis=set())
+        # put metaval in entity_dict
         meta_id = curator_empty.id_worker('id', name, [], '0601', ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
         # metaval is in entity_dict
         meta_id = curator_empty.id_worker('id', name, [], '0601', ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)

@@ -33,7 +33,7 @@ numpy = "^2.1.1"
 pandas = "^2.2.3"
 rdflib-ocdm = "^1.0.2"
 time-agnostic-library = "^5.0.7"
-virtuoso-utilities = "^1.5.1"
+virtuoso-utilities = "^1.5.3"
 
 [tool.poetry.group.dev.dependencies]
 wget = "^3.2"
