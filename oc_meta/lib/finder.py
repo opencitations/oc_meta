@@ -1,3 +1,6 @@
+import multiprocessing
+import os
+from concurrent.futures import ProcessPoolExecutor
 from typing import Dict, List, Tuple
 
 import yaml
@@ -12,6 +15,25 @@ from SPARQLWrapper import JSON, POST, SPARQLWrapper
 from time_agnostic_library.agnostic_entity import AgnosticEntity
 
 
+def _execute_sparql_query(args: tuple) -> list:
+    """
+    Worker function for ProcessPoolExecutor to execute SPARQL queries in parallel.
+    Must be defined at module level to be picklable.
+
+    :params args: Tuple of (ts_url, query_string)
+    :returns: List of result bindings from the query
+    """
+    ts_url, query = args
+    ts = SPARQLWrapper(ts_url)
+    ts.setMethod(POST)
+    ts.setReturnFormat(JSON)
+    ts.setQuery(query)
+    result = safe_sparql_query_with_retry(
+        ts, max_retries=5, backoff_base=5, backoff_exponential=True
+    )
+    return result['results']['bindings'] if result else []
+
+
 class ResourceFinder:
 
     def __init__(self, ts_url, base_iri:str, local_g: Graph = Graph(), settings: dict = dict(), meta_config_path: str = None):
@@ -23,7 +45,6 @@ class ResourceFinder:
         self.ids_in_local_g = set()
         self.meta_config_path = meta_config_path
         self.meta_settings = settings
-        self.blazegraph_full_text_search = settings['blazegraph_full_text_search'] if settings and 'blazegraph_full_text_search' in settings else False
         self.virtuoso_full_text_search = settings['virtuoso_full_text_search'] if settings and 'virtuoso_full_text_search' in settings else False
 
     def __execute_query(self, query, return_format=JSON):
@@ -676,6 +697,8 @@ class ResourceFinder:
             
     def get_everything_about_res(self, metavals: set, identifiers: set, vvis: set, max_depth: int = 10) -> None:
         BATCH_SIZE = 10
+        MAX_WORKERS = 4
+
         def batch_process(input_set, batch_size):
             """Generator to split input data into smaller batches if batch_size is not None."""
             if batch_size is None:
@@ -684,74 +707,83 @@ class ResourceFinder:
                 for i in range(0, len(input_set), batch_size):
                     yield input_set[i:i + batch_size]
 
-        def process_batch(subjects, cur_depth):
-            """Process each batch of subjects up to the specified depth."""
+        def process_batch_parallel(subjects, cur_depth, visited_subjects):
+            """Process batches of subjects in parallel up to the specified depth."""
             if not subjects or (max_depth and cur_depth > max_depth):
                 return
 
-            next_subjects = set()
-            for batch in batch_process(list(subjects), BATCH_SIZE):
-                query_prefix = f'''
+            new_subjects = subjects - visited_subjects
+            if not new_subjects:
+                return
+
+            visited_subjects.update(new_subjects)
+
+            subject_list = list(new_subjects)
+            batches = list(batch_process(subject_list, BATCH_SIZE))
+            batch_queries = []
+            ts_url = self.ts.endpoint
+
+            for batch in batches:
+                query = f'''
                     SELECT ?s ?p ?o
                     WHERE {{
                         VALUES ?s {{ {' '.join([f"<{s}>" for s in batch])} }}
                         ?s ?p ?o.
                     }}'''
-                result = self.__execute_query(query_prefix)
-                if result:
-                    for row in result['results']['bindings']:
-                        s = URIRef(row['s']['value'])
-                        p = URIRef(row['p']['value'])
-                        o = row['o']['value']
-                        o_type = row['o']['type']
-                        o_datatype = URIRef(row['o']['datatype']) if 'datatype' in row['o'] else None
-                        o = URIRef(o) if o_type == 'uri' else Literal(lexical_or_value=o, datatype=o_datatype)
-                        self.local_g.add((s, p, o))
-                        if s not in self.prebuilt_subgraphs:
-                            self.prebuilt_subgraphs[s] = Graph()
-                        self.prebuilt_subgraphs[s].add((s, p, o))
-                        if isinstance(o, URIRef) and p not in {RDF.type, GraphEntity.iri_with_role, GraphEntity.iri_uses_identifier_scheme}:
-                            next_subjects.add(str(o))
+                batch_queries.append((ts_url, query))
 
-            # Dopo aver processato tutti i batch di questo livello, procedi con il prossimo livello di profondità
-            process_batch(next_subjects, cur_depth + 1)
+            next_subjects = set()
+            if len(batch_queries) > 1:
+                with ProcessPoolExecutor(
+                    max_workers=min(len(batch_queries), MAX_WORKERS),
+                    mp_context=multiprocessing.get_context('spawn')
+                ) as executor:
+                    results = list(executor.map(_execute_sparql_query, batch_queries))
+            else:
+                results = [_execute_sparql_query(batch_queries[0])] if batch_queries else []
+
+            for result in results:
+                for row in result:
+                    s = URIRef(row['s']['value'])
+                    p = URIRef(row['p']['value'])
+                    o = row['o']['value']
+                    o_type = row['o']['type']
+                    o_datatype = URIRef(row['o']['datatype']) if 'datatype' in row['o'] else None
+                    o = URIRef(o) if o_type == 'uri' else Literal(lexical_or_value=o, datatype=o_datatype)
+                    self.local_g.add((s, p, o))
+                    if s not in self.prebuilt_subgraphs:
+                        self.prebuilt_subgraphs[s] = Graph()
+                    self.prebuilt_subgraphs[s].add((s, p, o))
+                    if isinstance(o, URIRef) and p not in {RDF.type, GraphEntity.iri_with_role, GraphEntity.iri_uses_identifier_scheme}:
+                        next_subjects.add(str(o))
+
+            process_batch_parallel(next_subjects, cur_depth + 1, visited_subjects)
 
         def get_initial_subjects_from_metavals(metavals):
             """Convert metavals to a set of subjects."""
             return {f"{self.base_iri}/{mid.replace('omid:', '')}" for mid in metavals}
 
         def get_initial_subjects_from_identifiers(identifiers):
-            """Convert identifiers to a set of subjects based on batch queries."""
+            """Convert identifiers to a set of subjects based on batch queries executed in parallel."""
             subjects = set()
-            for batch in batch_process(list(identifiers), BATCH_SIZE):
+            ts_url = self.ts.endpoint
+            batches = list(batch_process(list(identifiers), BATCH_SIZE))
+
+            if not batches:
+                return subjects
+
+            batch_queries = []
+            for batch in batches:
                 if not batch:
                     continue
 
-                if self.blazegraph_full_text_search:
-                    # Processing for text search enabled databases
-                    for identifier in batch:
-                        scheme, literal = identifier.split(":", 1)
-                        escaped_identifier = literal.replace('\\', '\\\\').replace('"', '\\"')
-                        query = f'''
-                            PREFIX bds: <http://www.bigdata.com/rdf/search#>
-                            SELECT ?s WHERE {{
-                                ?literal bds:search "{escaped_identifier}" ;
-                                        bds:matchAllTerms "true" ;
-                                        ^<{GraphEntity.iri_has_literal_value}> ?id.
-                                ?id <{GraphEntity.iri_uses_identifier_scheme}> <{GraphEntity.DATACITE + scheme}>;
-                                    ^<{GraphEntity.iri_has_identifier}> ?s .
-                            }}
-                        '''
-                        result = self.__execute_query(query)
-                        for row in result['results']['bindings']:
-                            subjects.add(str(row['s']['value']))
-                elif self.virtuoso_full_text_search:
+                if self.virtuoso_full_text_search:
                     union_blocks = []
                     for identifier in batch:
                         scheme, literal = identifier.split(':', maxsplit=1)[0], identifier.split(':', maxsplit=1)[1]
                         escaped_literal = literal.replace('\\', '\\\\').replace('"', '\\"')
                         union_blocks.append(f"""
-                            {{  
+                            {{
                                 {{
                                     ?id <{GraphEntity.iri_has_literal_value}> "{escaped_literal}" .
                                 }}
@@ -760,7 +792,7 @@ class ResourceFinder:
                                     ?id <{GraphEntity.iri_has_literal_value}> "{escaped_literal}"^^<{XSD.string}> .
                                 }}
                                 ?id <{GraphEntity.iri_uses_identifier_scheme}> <{GraphEntity.DATACITE + scheme}> .
-                                ?s <{GraphEntity.iri_has_identifier}> ?id .                                    
+                                ?s <{GraphEntity.iri_has_identifier}> ?id .
                             }}
                         """)
                     union_query = " UNION ".join(union_blocks)
@@ -769,9 +801,7 @@ class ResourceFinder:
                             {union_query}
                         }}
                     '''
-                    result = self.__execute_query(query)
-                    for row in result['results']['bindings']:
-                        subjects.add(str(row['s']['value']))
+                    batch_queries.append((ts_url, query))
                 else:
                     identifiers_values = []
                     for identifier in batch:
@@ -788,41 +818,67 @@ class ResourceFinder:
                             ?s <{GraphEntity.iri_has_identifier}> ?id .
                         }}
                     '''
-                    result = self.__execute_query(query)
-                    for row in result['results']['bindings']:
-                        subjects.add(str(row['s']['value']))
+                    batch_queries.append((ts_url, query))
+
+            if len(batch_queries) > 1:
+                with ProcessPoolExecutor(
+                    max_workers=min(len(batch_queries), MAX_WORKERS),
+                    mp_context=multiprocessing.get_context('spawn')
+                ) as executor:
+                    results = list(executor.map(_execute_sparql_query, batch_queries))
+            elif batch_queries:
+                results = [_execute_sparql_query(batch_queries[0])]
+            else:
+                results = []
+
+            for result in results:
+                for row in result:
+                    subjects.add(str(row['s']['value']))
+
             return subjects
 
         def get_initial_subjects_from_vvis(vvis):
-            """Convert vvis to a set of subjects based on batch queries, handling venue ID to metaid conversion."""
+            """Convert vvis to a set of subjects based on batch queries executed in parallel."""
             subjects = set()
-            
+            ts_url = self.ts.endpoint
+            vvi_queries = []
+            venue_uris_to_add = set()
+
+            # First pass: collect all venue IDs and prepare queries
+            all_venue_ids = set()
+            for volume, issue, venue_metaid, venue_ids_tuple in vvis:
+                if venue_ids_tuple:
+                    all_venue_ids.update(venue_ids_tuple)
+
+            # Get venue subjects from identifiers (already parallelized)
+            if all_venue_ids:
+                venue_id_subjects = get_initial_subjects_from_identifiers(all_venue_ids)
+                subjects.update(venue_id_subjects)
+
+            # Second pass: prepare VVI queries
             for volume, issue, venue_metaid, venue_ids_tuple in vvis:
                 venues_to_search = set()
-                
+
                 if venue_metaid:
                     venues_to_search.add(venue_metaid)
-                
+
                 if venue_ids_tuple:
-                    venue_id_subjects = get_initial_subjects_from_identifiers(venue_ids_tuple)
-                    subjects.update(venue_id_subjects)
-                    
                     # Convert venue URIs to metaid format for VVI search
-                    for venue_uri in venue_id_subjects:
+                    for venue_uri in subjects:
                         if '/br/' in venue_uri:
                             metaid = venue_uri.replace(f'{self.base_iri}/br/', '')
                             venues_to_search.add(f"omid:br/{metaid}")
-                
-                # Search for VVI structures for each venue
+
+                # Prepare VVI queries for each venue
                 for venue_metaid_to_search in venues_to_search:
                     venue_uri = f"{self.base_iri}/{venue_metaid_to_search.replace('omid:', '')}"
                     sequence_value = issue if issue else volume
+                    if not sequence_value:
+                        continue
                     escaped_sequence = sequence_value.replace('\\', '\\\\').replace('"', '\\"')
-                    
+
                     if issue:
-                        # Search for journal issue
                         if volume:
-                            # Search for issue within specific volume
                             escaped_volume = volume.replace('\\', '\\\\').replace('"', '\\"')
                             query = f'''
                                 SELECT ?s WHERE {{
@@ -864,7 +920,6 @@ class ResourceFinder:
                                 }}
                             '''
                         else:
-                            # Search for issue directly under venue (no volume specified)
                             query = f'''
                                 SELECT ?s WHERE {{
                                     {{
@@ -881,7 +936,6 @@ class ResourceFinder:
                                 }}
                             '''
                     else:
-                        # Search for journal volume (only if volume is specified)
                         if volume:
                             query = f'''
                                 SELECT ?s WHERE {{
@@ -899,30 +953,44 @@ class ResourceFinder:
                                 }}
                             '''
                         else:
-                            # No volume specified, skip this VVI tuple
                             continue
 
-                    result = self.__execute_query(query)
-                    for row in result['results']['bindings']:
-                        subjects.add(str(row['s']['value']))
-                    
-                    # Also add the venue itself as a subject
-                    subjects.add(venue_uri)
-            
+                    vvi_queries.append((ts_url, query))
+                    venue_uris_to_add.add(venue_uri)
+
+            # Execute VVI queries in parallel
+            if len(vvi_queries) > 1:
+                with ProcessPoolExecutor(
+                    max_workers=min(len(vvi_queries), MAX_WORKERS),
+                    mp_context=multiprocessing.get_context('spawn')
+                ) as executor:
+                    results = list(executor.map(_execute_sparql_query, vvi_queries))
+            elif vvi_queries:
+                results = [_execute_sparql_query(vvi_queries[0])]
+            else:
+                results = []
+
+            for result in results:
+                for row in result:
+                    subjects.add(str(row['s']['value']))
+
+            subjects.update(venue_uris_to_add)
+
             return subjects
 
         initial_subjects = set()
 
         if metavals:
             initial_subjects.update(get_initial_subjects_from_metavals(metavals))
-        
+
         if identifiers:
             initial_subjects.update(get_initial_subjects_from_identifiers(identifiers))
 
         if vvis:
             initial_subjects.update(get_initial_subjects_from_vvis(vvis))
 
-        process_batch(initial_subjects, 0)
+        visited_subjects = set()
+        process_batch_parallel(initial_subjects, 0, visited_subjects)
 
     def get_subgraph(self, res: str) -> Graph|None:
         if res in self.prebuilt_subgraphs:
