@@ -236,37 +236,38 @@ class MetaProcess:
                 data = get_csv_data(filepath)
                 self.timer.record_metric("input_records", len(data))
 
-                with self.timer.timer("curation"):
-                    self.info_dir = os.path.join(self.info_dir, self.supplier_prefix)
-                    if resp_agents_only:
-                        curator_obj = RespAgentsCurator(
-                            data=data,
-                            ts=self.triplestore_url,
-                            prov_config=self.time_agnostic_library_config,
-                            counter_handler=self.counter_handler,
-                            base_iri=self.base_iri,
-                            prefix=self.supplier_prefix,
-                            settings=settings,
-                            meta_config_path=meta_config_path,
-                        )
-                    else:
-                        curator_obj = Curator(
-                            data=data,
-                            ts=self.triplestore_url,
-                            prov_config=self.time_agnostic_library_config,
-                            counter_handler=self.counter_handler,
-                            base_iri=self.base_iri,
-                            prefix=self.supplier_prefix,
-                            valid_dois_cache=self.valid_dois_cache,
-                            settings=settings,
-                            silencer=self.silencer,
-                            meta_config_path=meta_config_path,
-                        )
-                    name = f"{filename.replace('.csv', '')}_{datetime.now().strftime('%Y-%m-%dT%H-%M-%S')}"
-                    curator_obj.curator(
-                        filename=name, path_csv=self.output_csv_dir
+                self.info_dir = os.path.join(self.info_dir, self.supplier_prefix)
+                if resp_agents_only:
+                    curator_obj = RespAgentsCurator(
+                        data=data,
+                        ts=self.triplestore_url,
+                        prov_config=self.time_agnostic_library_config,
+                        counter_handler=self.counter_handler,
+                        base_iri=self.base_iri,
+                        prefix=self.supplier_prefix,
+                        settings=settings,
+                        meta_config_path=meta_config_path,
+                        timer=self.timer,
                     )
-                    self.timer.record_metric("curated_records", len(curator_obj.data))
+                else:
+                    curator_obj = Curator(
+                        data=data,
+                        ts=self.triplestore_url,
+                        prov_config=self.time_agnostic_library_config,
+                        counter_handler=self.counter_handler,
+                        base_iri=self.base_iri,
+                        prefix=self.supplier_prefix,
+                        valid_dois_cache=self.valid_dois_cache,
+                        settings=settings,
+                        silencer=self.silencer,
+                        meta_config_path=meta_config_path,
+                        timer=self.timer,
+                    )
+                name = f"{filename.replace('.csv', '')}_{datetime.now().strftime('%Y-%m-%dT%H-%M-%S')}"
+                curator_obj.curator(
+                    filename=name, path_csv=self.output_csv_dir
+                )
+                self.timer.record_metric("curated_records", len(curator_obj.data))
 
                 with self.timer.timer("rdf_creation"):
                     if not resp_agents_only:

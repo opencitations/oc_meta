@@ -30,7 +30,8 @@ from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
 
 
 class RespAgentsCurator(Curator):
-    def __init__(self, data:List[dict], ts:str, prov_config:str, counter_handler:RedisCounterHandler, base_iri:str='https://w3id.org/oc/meta', prefix:str='060', separator:str=None, settings:dict|None=None, meta_config_path: str = None):
+    def __init__(self, data:List[dict], ts:str, prov_config:str, counter_handler:RedisCounterHandler, base_iri:str='https://w3id.org/oc/meta', prefix:str='060', separator:str=None, settings:dict|None=None, meta_config_path: str = None, timer=None):
+        self.timer = timer
         self.everything_everywhere_allatonce = Graph()
         self.finder = ResourceFinder(ts, base_iri, self.everything_everywhere_allatonce, settings=settings, meta_config_path=meta_config_path)
         self.prov_config = prov_config
@@ -48,31 +49,39 @@ class RespAgentsCurator(Curator):
         self.preexisting_entities = set()
 
     def curator(self, filename: str = None, path_csv: str = None):
-        metavals, identifiers, vvis = self.collect_identifiers(valid_dois_cache=dict())
-        self.finder.get_everything_about_res(metavals=metavals, identifiers=identifiers, vvis=vvis)
-        for row in self.data:
-            self.log[self.rowcnt] = {
-                'id': {},
-                'author': {},
-                'venue': {},
-                'editor': {},
-                'publisher': {},
-                'page': {},
-                'volume': {},
-                'issue': {},
-                'pub_date': {},
-                'type': {}
-            }
-            self.clean_ra(row, 'author')
-            self.clean_ra(row, 'publisher')
-            self.clean_ra(row, 'editor')
-            self.rowcnt += 1
-        self.radict.update(self.conflict_ra)
-        self.meta_maker()
-        self.log = self.log_update()
-        self.enrich()
-        self.filename = filename
-        self.indexer(path_csv=path_csv)
+        # Phase 1: Collect identifiers and SPARQL prefetch
+        with self._timed("curation__collect_identifiers"):
+            metavals, identifiers, vvis = self.collect_identifiers(valid_dois_cache=dict())
+            self.finder.get_everything_about_res(metavals=metavals, identifiers=identifiers, vvis=vvis)
+
+        # Phase 5: Clean RA (author + publisher + editor aggregated)
+        with self._timed("curation__clean_ra"):
+            for row in self.data:
+                self.log[self.rowcnt] = {
+                    'id': {},
+                    'author': {},
+                    'venue': {},
+                    'editor': {},
+                    'publisher': {},
+                    'page': {},
+                    'volume': {},
+                    'issue': {},
+                    'pub_date': {},
+                    'type': {}
+                }
+                self.clean_ra(row, 'author')
+                self.clean_ra(row, 'publisher')
+                self.clean_ra(row, 'editor')
+                self.rowcnt += 1
+            self.radict.update(self.conflict_ra)
+
+        # Phase 6: Finalize (meta_maker + enrich + indexer)
+        with self._timed("curation__finalize"):
+            self.meta_maker()
+            self.log = self.log_update()
+            self.enrich()
+            self.filename = filename
+            self.indexer(path_csv=path_csv)
 
     def collect_identifiers(self, valid_dois_cache):
         """

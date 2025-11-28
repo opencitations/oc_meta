@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import os
 import re
+from contextlib import nullcontext
 from typing import Dict, List, Tuple
 
 from oc_meta.constants import CONTAINER_EDITOR_TYPES
@@ -46,7 +47,9 @@ class Curator:
         settings: dict | None = None,
         silencer: list = [],
         meta_config_path: str = None,
+        timer=None,
     ):
+        self.timer = timer
         self.settings = settings or {}
         self.everything_everywhere_allatonce = Graph()
         self.finder = ResourceFinder(
@@ -91,6 +94,12 @@ class Curator:
         self.valid_dois_cache = valid_dois_cache
         self.preexisting_entities = set()
         self.silencer = silencer
+
+    def _timed(self, name: str):
+        """Return timer context manager or nullcontext if timer not available."""
+        if self.timer:
+            return self.timer.timer(name)
+        return nullcontext()
 
     def collect_identifiers(self, valid_dois_cache):
         all_metavals = set()
@@ -167,48 +176,65 @@ class Curator:
             )
 
     def curator(self, filename: str = None, path_csv: str = None):
-        metavals, identifiers, vvis = self.collect_identifiers(
-            valid_dois_cache=self.valid_dois_cache
-        )
-        self.finder.get_everything_about_res(
-            metavals=metavals, identifiers=identifiers, vvis=vvis
-        )
-        for row in self.data:
-            self.log[self.rowcnt] = {
-                "id": {},
-                "title": {},
-                "author": {},
-                "venue": {},
-                "editor": {},
-                "publisher": {},
-                "page": {},
-                "volume": {},
-                "issue": {},
-                "pub_date": {},
-                "type": {},
-            }
-            self.clean_id(row)
-            self.rowcnt += 1
-        self.merge_duplicate_entities()
-        self.clean_metadata_without_id()
-        self.rowcnt = 0
-        for row in self.data:
-            self.clean_vvi(row)
-            self.rowcnt += 1
-        self.rowcnt = 0
-        for row in self.data:
-            self.clean_ra(row, "author")
-            self.clean_ra(row, "publisher")
-            self.clean_ra(row, "editor")
-            self.rowcnt += 1
-        self.get_preexisting_entities()
-        self.meta_maker()
-        self.log = self.log_update()
-        self.enrich()
-        # Remove duplicates
-        self.data = list({v["id"]: v for v in self.data}.values())
-        self.filename = filename
-        self.indexer(path_csv=path_csv)
+        # Phase 1: Collect identifiers and SPARQL prefetch
+        with self._timed("curation__collect_identifiers"):
+            metavals, identifiers, vvis = self.collect_identifiers(
+                valid_dois_cache=self.valid_dois_cache
+            )
+            self.finder.get_everything_about_res(
+                metavals=metavals, identifiers=identifiers, vvis=vvis
+            )
+
+        # Phase 2: Clean ID (loop over all rows)
+        with self._timed("curation__clean_id"):
+            for row in self.data:
+                self.log[self.rowcnt] = {
+                    "id": {},
+                    "title": {},
+                    "author": {},
+                    "venue": {},
+                    "editor": {},
+                    "publisher": {},
+                    "page": {},
+                    "volume": {},
+                    "issue": {},
+                    "pub_date": {},
+                    "type": {},
+                }
+                self.clean_id(row)
+                self.rowcnt += 1
+
+        # Phase 3: Merge duplicate entities
+        with self._timed("curation__merge_duplicates"):
+            self.merge_duplicate_entities()
+            self.clean_metadata_without_id()
+
+        # Phase 4: Clean VVI (venue/volume/issue)
+        with self._timed("curation__clean_vvi"):
+            self.rowcnt = 0
+            for row in self.data:
+                self.clean_vvi(row)
+                self.rowcnt += 1
+
+        # Phase 5: Clean RA (author + publisher + editor aggregated)
+        with self._timed("curation__clean_ra"):
+            self.rowcnt = 0
+            for row in self.data:
+                self.clean_ra(row, "author")
+                self.clean_ra(row, "publisher")
+                self.clean_ra(row, "editor")
+                self.rowcnt += 1
+
+        # Phase 6: Finalize (preexisting + meta_maker + enrich + indexer)
+        with self._timed("curation__finalize"):
+            self.get_preexisting_entities()
+            self.meta_maker()
+            self.log = self.log_update()
+            self.enrich()
+            # Remove duplicates
+            self.data = list({v["id"]: v for v in self.data}.values())
+            self.filename = filename
+            self.indexer(path_csv=path_csv)
 
     # ID
     def clean_id(self, row: Dict[str, str]) -> None:
