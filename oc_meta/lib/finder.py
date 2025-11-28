@@ -764,13 +764,20 @@ class ResourceFinder:
             return {f"{self.base_iri}/{mid.replace('omid:', '')}" for mid in metavals}
 
         def get_initial_subjects_from_identifiers(identifiers):
-            """Convert identifiers to a set of subjects based on batch queries executed in parallel."""
+            """Convert identifiers to a set of subjects based on batch queries executed in parallel.
+
+            Returns:
+                tuple: (subjects set, id_to_subjects mapping)
+                    - subjects: set of subject URIs found
+                    - id_to_subjects: dict mapping identifier string to set of subject URIs
+            """
             subjects = set()
+            id_to_subjects = {}
             ts_url = self.ts.endpoint
             batches = list(batch_process(list(identifiers), BATCH_SIZE))
 
             if not batches:
-                return subjects
+                return subjects, id_to_subjects
 
             batch_queries = []
             for batch in batches:
@@ -793,11 +800,13 @@ class ResourceFinder:
                                 }}
                                 ?id <{GraphEntity.iri_uses_identifier_scheme}> <{GraphEntity.DATACITE + scheme}> .
                                 ?s <{GraphEntity.iri_has_identifier}> ?id .
+                                BIND("{scheme}" AS ?schemeLabel)
+                                BIND("{escaped_literal}" AS ?literalLabel)
                             }}
                         """)
                     union_query = " UNION ".join(union_blocks)
                     query = f'''
-                        SELECT ?s WHERE {{
+                        SELECT ?s ?schemeLabel ?literalLabel WHERE {{
                             {union_query}
                         }}
                     '''
@@ -810,7 +819,7 @@ class ResourceFinder:
                         identifiers_values.append(f"(<{GraphEntity.DATACITE + scheme}> \"{escaped_literal}\")")
                     identifiers_values_str = " ".join(identifiers_values)
                     query = f'''
-                        SELECT DISTINCT ?s WHERE {{
+                        SELECT DISTINCT ?s ?scheme ?literal WHERE {{
                             VALUES (?scheme ?literal) {{ {identifiers_values_str} }}
                             ?id <{GraphEntity.iri_uses_identifier_scheme}> ?scheme .
                             ?id <{GraphEntity.iri_has_literal_value}> ?literalValue  .
@@ -833,9 +842,20 @@ class ResourceFinder:
 
             for result in results:
                 for row in result:
-                    subjects.add(str(row['s']['value']))
+                    subject = str(row['s']['value'])
+                    subjects.add(subject)
+                    if 'schemeLabel' in row:
+                        scheme = str(row['schemeLabel']['value'])
+                        literal = str(row['literalLabel']['value'])
+                    else:
+                        scheme = str(row['scheme']['value']).replace(str(GraphEntity.DATACITE), '')
+                        literal = str(row['literal']['value'])
+                    identifier = f"{scheme}:{literal}"
+                    if identifier not in id_to_subjects:
+                        id_to_subjects[identifier] = set()
+                    id_to_subjects[identifier].add(subject)
 
-            return subjects
+            return subjects, id_to_subjects
 
         def get_initial_subjects_from_vvis(vvis):
             """Convert vvis to a set of subjects based on batch queries executed in parallel."""
@@ -850,9 +870,10 @@ class ResourceFinder:
                 if venue_ids_tuple:
                     all_venue_ids.update(venue_ids_tuple)
 
-            # Get venue subjects from identifiers (already parallelized)
+            # Get venue subjects from identifiers with mapping
+            venue_id_to_uris = {}
             if all_venue_ids:
-                venue_id_subjects = get_initial_subjects_from_identifiers(all_venue_ids)
+                venue_id_subjects, venue_id_to_uris = get_initial_subjects_from_identifiers(all_venue_ids)
                 subjects.update(venue_id_subjects)
 
             # Second pass: prepare VVI queries
@@ -864,10 +885,13 @@ class ResourceFinder:
 
                 if venue_ids_tuple:
                     # Convert venue URIs to metaid format for VVI search
-                    for venue_uri in subjects:
-                        if '/br/' in venue_uri:
-                            metaid = venue_uri.replace(f'{self.base_iri}/br/', '')
-                            venues_to_search.add(f"omid:br/{metaid}")
+                    # Only use venues matching THIS tuple's identifiers
+                    for venue_id in venue_ids_tuple:
+                        if venue_id in venue_id_to_uris:
+                            for venue_uri in venue_id_to_uris[venue_id]:
+                                if '/br/' in venue_uri:
+                                    metaid = venue_uri.replace(f'{self.base_iri}/br/', '')
+                                    venues_to_search.add(f"omid:br/{metaid}")
 
                 # Prepare VVI queries for each venue
                 for venue_metaid_to_search in venues_to_search:
@@ -984,7 +1008,8 @@ class ResourceFinder:
             initial_subjects.update(get_initial_subjects_from_metavals(metavals))
 
         if identifiers:
-            initial_subjects.update(get_initial_subjects_from_identifiers(identifiers))
+            id_subjects, _ = get_initial_subjects_from_identifiers(identifiers)
+            initial_subjects.update(id_subjects)
 
         if vvis:
             initial_subjects.update(get_initial_subjects_from_vvis(vvis))

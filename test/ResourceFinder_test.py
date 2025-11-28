@@ -499,5 +499,90 @@ class TestResourceFinder(unittest.TestCase):
         self.assertEqual(result[1][list(result[1].keys())[0]][2], '9871')
 
 
+class TestVVIQueryIsolation(unittest.TestCase):
+    """Test that VVI queries only search under the correct venues."""
+
+    @classmethod
+    def setUpClass(cls):
+        ENDPOINT = 'http://127.0.0.1:8805/sparql'
+        BASE_IRI = 'https://w3id.org/oc/meta/'
+        reset_server(server=ENDPOINT)
+
+        # Upload test data: two venues with different ISSNs, each with their own volume
+        test_triples = [
+            # Venue A (br/9001) with ISSN 1111-1111
+            '<https://w3id.org/oc/meta/br/9001> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Journal> .',
+            '<https://w3id.org/oc/meta/br/9001> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/9001> .',
+            '<https://w3id.org/oc/meta/id/9001> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/datacite/Identifier> .',
+            '<https://w3id.org/oc/meta/id/9001> <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/issn> .',
+            '<https://w3id.org/oc/meta/id/9001> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "1111-1111"^^<http://www.w3.org/2001/XMLSchema#string> .',
+            # Volume 10 of Venue A
+            '<https://w3id.org/oc/meta/br/9002> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/JournalVolume> .',
+            '<https://w3id.org/oc/meta/br/9002> <http://purl.org/vocab/frbr/core#partOf> <https://w3id.org/oc/meta/br/9001> .',
+            '<https://w3id.org/oc/meta/br/9002> <http://purl.org/spar/fabio/hasSequenceIdentifier> "10"^^<http://www.w3.org/2001/XMLSchema#string> .',
+            # Venue B (br/9003) with ISSN 2222-2222
+            '<https://w3id.org/oc/meta/br/9003> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Journal> .',
+            '<https://w3id.org/oc/meta/br/9003> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/9002> .',
+            '<https://w3id.org/oc/meta/id/9002> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/datacite/Identifier> .',
+            '<https://w3id.org/oc/meta/id/9002> <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/issn> .',
+            '<https://w3id.org/oc/meta/id/9002> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "2222-2222"^^<http://www.w3.org/2001/XMLSchema#string> .',
+            # Volume 20 of Venue B
+            '<https://w3id.org/oc/meta/br/9004> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/JournalVolume> .',
+            '<https://w3id.org/oc/meta/br/9004> <http://purl.org/vocab/frbr/core#partOf> <https://w3id.org/oc/meta/br/9003> .',
+            '<https://w3id.org/oc/meta/br/9004> <http://purl.org/spar/fabio/hasSequenceIdentifier> "20"^^<http://www.w3.org/2001/XMLSchema#string> .',
+        ]
+
+        ts = SPARQLWrapper(ENDPOINT)
+        ts.setMethod(POST)
+        for triple in test_triples:
+            query = f"INSERT DATA {{ GRAPH <https://w3id.org/oc/meta/br/> {{ {triple} }} }}"
+            ts.setQuery(query)
+            ts.query()
+
+    def test_vvi_queries_only_search_correct_venues(self):
+        """Test that VVI queries only search under venues matching each tuple's identifiers.
+
+        This test verifies the fix for the bug where VVI queries were incorrectly
+        searching under ALL venues instead of just the venues matching each VVI tuple.
+        With the bug, searching for volume "10" under venue with ISSN 2222-2222 would
+        also incorrectly search under venue with ISSN 1111-1111.
+        """
+        ENDPOINT = 'http://127.0.0.1:8805/sparql'
+        BASE_IRI = 'https://w3id.org/oc/meta/'
+        local_g = Graph()
+        settings = {'virtuoso_full_text_search': True}
+        finder = ResourceFinder(ENDPOINT, BASE_IRI, local_g, settings=settings)
+
+        # VVI tuples: each should only search under its corresponding venue
+        vvis = {
+            ("10", "", None, ("issn:1111-1111",)),  # Volume 10 of Venue A
+            ("20", "", None, ("issn:2222-2222",)),  # Volume 20 of Venue B
+        }
+
+        finder.get_everything_about_res(metavals=set(), identifiers=set(), vvis=vvis)
+
+        # Verify both volumes were found
+        volume_10_uri = URIRef('https://w3id.org/oc/meta/br/9002')
+        volume_20_uri = URIRef('https://w3id.org/oc/meta/br/9004')
+        venue_a_uri = URIRef('https://w3id.org/oc/meta/br/9001')
+        venue_b_uri = URIRef('https://w3id.org/oc/meta/br/9003')
+
+        # Check that volume 10 is in local graph and is part of venue A (not venue B)
+        self.assertIn(volume_10_uri, finder.prebuilt_subgraphs)
+        volume_10_graph = finder.prebuilt_subgraphs[volume_10_uri]
+        self.assertTrue(
+            (volume_10_uri, GraphEntity.iri_part_of, venue_a_uri) in volume_10_graph,
+            "Volume 10 should be part of Venue A"
+        )
+
+        # Check that volume 20 is in local graph and is part of venue B (not venue A)
+        self.assertIn(volume_20_uri, finder.prebuilt_subgraphs)
+        volume_20_graph = finder.prebuilt_subgraphs[volume_20_uri]
+        self.assertTrue(
+            (volume_20_uri, GraphEntity.iri_part_of, venue_b_uri) in volume_20_graph,
+            "Volume 20 should be part of Venue B"
+        )
+
+
 if __name__ == '__main__': # pragma: no cover
     unittest.main()
