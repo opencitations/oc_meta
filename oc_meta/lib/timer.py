@@ -89,6 +89,18 @@ class ProcessTimer:
         if self.enabled:
             self.metrics[key] = value
 
+    def record_phase(self, name: str, duration: float):
+        """Record a phase with a specific duration (e.g., 0 for unused phases)."""
+        if self.enabled:
+            timer = BenchmarkTimer(name, verbose=False)
+            timer.start_time = 0
+            timer.end_time = duration
+            timer.duration = duration
+            timer.start_memory = 0
+            timer.end_memory = 0
+            timer.peak_memory = 0
+            self.timers.append(timer)
+
     def get_report(self) -> Dict[str, Any]:
         """Generate timing report."""
         if not self.enabled:

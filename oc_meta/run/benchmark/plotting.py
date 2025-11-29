@@ -19,12 +19,22 @@ CURATION_REST_COLOR = '#FFE066'
 RDF_CREATION_COLOR = '#C73E1D'
 STORAGE_COLOR = '#6A994E'
 
+STORAGE_PREP_COLOR = '#4A7C59'
+STORAGE_SPARQL_COLOR = '#6A994E'
+STORAGE_BULK_COLOR = '#A7C957'
+
 CURATION_REST_PHASES = [
     "curation__clean_id",
     "curation__merge_duplicates",
     "curation__clean_vvi",
     "curation__clean_ra",
     "curation__finalize"
+]
+
+STORAGE_SUB_PHASES = [
+    "storage__preparation",
+    "storage__sparql_upload",
+    "storage__bulk_load"
 ]
 
 
@@ -48,6 +58,11 @@ def get_curation_total(run: Dict[str, Any]) -> float:
 def get_curation_rest(run: Dict[str, Any]) -> float:
     """Calculate curation time excluding collect_identifiers."""
     return sum(get_phase_duration_by_name(run, p) for p in CURATION_REST_PHASES)
+
+
+def get_storage_total(run: Dict[str, Any]) -> float:
+    """Calculate total storage time by summing sub-phases."""
+    return sum(get_phase_duration_by_name(run, p) for p in STORAGE_SUB_PHASES)
 
 
 def apply_plot_style(ax, title: str, xlabel: str = None, ylabel: str = None, grid: bool = True):
@@ -74,31 +89,41 @@ def format_bar_labels(ax, bars, values: List[float], unit: str = "s"):
                f'{val:.1f}{unit}', ha='center', va='bottom', fontweight='bold')
 
 
-def _draw_phase_breakdown(ax, collect_ids: float, curation_rest: float, rdf_time: float, storage_time: float):
+def _draw_phase_breakdown(ax, collect_ids: float, curation_rest: float, rdf_time: float,
+                          storage_prep: float, storage_sparql: float, storage_bulk: float):
     """Draw stacked bar chart for phase breakdown (shared by single/multi run plots)."""
     # Curation stacked bar (Collect IDs + Rest)
     ax.bar(0, collect_ids, color=CURATION_COLLECT_IDS_COLOR, edgecolor='black', linewidth=0.5, width=0.6)
     ax.bar(0, curation_rest, bottom=collect_ids, color=CURATION_REST_COLOR, edgecolor='black', linewidth=0.5, width=0.6)
     curation_total = collect_ids + curation_rest
 
-    # RDF creation and Storage bars
+    # RDF creation bar
     ax.bar(1, rdf_time, color=RDF_CREATION_COLOR, edgecolor='black', linewidth=1.5, width=0.6)
-    ax.bar(2, storage_time, color=STORAGE_COLOR, edgecolor='black', linewidth=1.5, width=0.6)
+
+    # Storage stacked bar (Preparation + SPARQL Upload + Bulk Load)
+    ax.bar(2, storage_prep, color=STORAGE_PREP_COLOR, edgecolor='black', linewidth=0.5, width=0.6)
+    ax.bar(2, storage_sparql, bottom=storage_prep, color=STORAGE_SPARQL_COLOR, edgecolor='black', linewidth=0.5, width=0.6)
+    ax.bar(2, storage_bulk, bottom=storage_prep + storage_sparql, color=STORAGE_BULK_COLOR, edgecolor='black', linewidth=0.5, width=0.6)
+    storage_total = storage_prep + storage_sparql + storage_bulk
 
     # Value labels
     ax.text(0, curation_total, f'{curation_total:.1f}s', ha='center', va='bottom', fontweight='bold')
     ax.text(1, rdf_time, f'{rdf_time:.1f}s', ha='center', va='bottom', fontweight='bold')
-    ax.text(2, storage_time, f'{storage_time:.1f}s', ha='center', va='bottom', fontweight='bold')
+    ax.text(2, storage_total, f'{storage_total:.1f}s', ha='center', va='bottom', fontweight='bold')
 
     ax.set_xticks([0, 1, 2])
     ax.set_xticklabels(['Curation', 'RDF\ncreation', 'Storage\n+upload'])
 
-    # Legend for Curation sub-phases
+    # Legend for Curation and Storage sub-phases
     legend_patches = [
         Rectangle((0, 0), 1, 1, facecolor=CURATION_COLLECT_IDS_COLOR, edgecolor='black', linewidth=0.5),
-        Rectangle((0, 0), 1, 1, facecolor=CURATION_REST_COLOR, edgecolor='black', linewidth=0.5)
+        Rectangle((0, 0), 1, 1, facecolor=CURATION_REST_COLOR, edgecolor='black', linewidth=0.5),
+        Rectangle((0, 0), 1, 1, facecolor=STORAGE_PREP_COLOR, edgecolor='black', linewidth=0.5),
+        Rectangle((0, 0), 1, 1, facecolor=STORAGE_SPARQL_COLOR, edgecolor='black', linewidth=0.5),
+        Rectangle((0, 0), 1, 1, facecolor=STORAGE_BULK_COLOR, edgecolor='black', linewidth=0.5)
     ]
-    ax.legend(legend_patches, ['Collect IDs', 'Rest'], loc='upper right', fontsize=8, title='Curation')
+    legend_labels = ['Collect IDs', 'Curation rest', 'Preparation', 'SPARQL upload', 'Bulk load']
+    ax.legend(legend_patches, legend_labels, loc='upper right', fontsize=7)
 
 
 def plot_scalability_analysis(per_size_results: List[Dict[str, Any]], output_path: str):
@@ -199,13 +224,16 @@ def plot_benchmark_results(all_runs: List[Dict[str, Any]], stats: Dict[str, Dict
     apply_plot_style(axes[0, 0], 'Total duration per run', 'Run number', 'Total duration (s)')
     axes[0, 0].legend()
 
-    # Phase breakdown with stacked Curation bar
+    # Phase breakdown with stacked Curation and Storage bars
     collect_ids_mean = stats["curation__collect_identifiers_duration_seconds"]["mean"]
     curation_rest_mean = sum(stats[f"{p}_duration_seconds"]["mean"] for p in CURATION_REST_PHASES)
     rdf_mean = stats["rdf_creation_duration_seconds"]["mean"]
-    storage_mean = stats["storage_and_upload_duration_seconds"]["mean"]
+    storage_prep_mean = stats.get("storage__preparation_duration_seconds", {}).get("mean", 0)
+    storage_sparql_mean = stats.get("storage__sparql_upload_duration_seconds", {}).get("mean", 0)
+    storage_bulk_mean = stats.get("storage__bulk_load_duration_seconds", {}).get("mean", 0)
 
-    _draw_phase_breakdown(axes[0, 1], collect_ids_mean, curation_rest_mean, rdf_mean, storage_mean)
+    _draw_phase_breakdown(axes[0, 1], collect_ids_mean, curation_rest_mean, rdf_mean,
+                          storage_prep_mean, storage_sparql_mean, storage_bulk_mean)
     apply_plot_style(axes[0, 1], 'Average phase duration breakdown', ylabel='Duration (s)', grid=False)
     axes[0, 1].grid(True, axis='y', alpha=0.3)
 
@@ -260,9 +288,12 @@ def plot_single_run_results(run: Dict[str, Any], output_path: str):
     collect_ids = get_phase_duration_by_name(run, "curation__collect_identifiers")
     curation_rest = get_curation_rest(run)
     rdf_time = get_phase_duration_by_name(run, "rdf_creation")
-    storage_time = get_phase_duration_by_name(run, "storage_and_upload")
+    storage_prep = get_phase_duration_by_name(run, "storage__preparation")
+    storage_sparql = get_phase_duration_by_name(run, "storage__sparql_upload")
+    storage_bulk = get_phase_duration_by_name(run, "storage__bulk_load")
 
-    _draw_phase_breakdown(axes[0], collect_ids, curation_rest, rdf_time, storage_time)
+    _draw_phase_breakdown(axes[0], collect_ids, curation_rest, rdf_time,
+                          storage_prep, storage_sparql, storage_bulk)
     apply_plot_style(axes[0], 'Phase duration breakdown', ylabel='Duration (s)', grid=False)
     axes[0].grid(True, axis='y', alpha=0.3)
 

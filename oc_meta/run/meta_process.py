@@ -429,30 +429,34 @@ class MetaProcess:
 
         bulk_config = self.settings.get("virtuoso_bulk_load", {})
         if bulk_config.get("enabled", False):
-            self._store_bulk_load(res_storer, prov_storer, bulk_config)
+            self._store_bulk_load(res_storer, prov_storer, bulk_config, self.timer)
         else:
-            self._store_standard(res_storer, prov_storer)
+            self._store_standard(res_storer, prov_storer, self.timer)
 
     def _store_standard(
-        self, res_storer: Storer, prov_storer: Storer
+        self, res_storer: Storer, prov_storer: Storer, timer: ProcessTimer
     ) -> None:
         """Standard upload path using SPARQL protocol."""
         store_rdf_tasks = self._prepare_store_rdf_tasks(res_storer, prov_storer)
         upload_queries_tasks = self._prepare_upload_queries_tasks(res_storer, prov_storer)
 
-        with ProcessPoolExecutor(max_workers=4, mp_context=multiprocessing.get_context('spawn')) as executor:
-            futures = []
-            for task in store_rdf_tasks:
-                futures.append(executor.submit(_store_rdf_process, task))
-            for task in upload_queries_tasks:
-                futures.append(executor.submit(_upload_queries_process, task))
-            for future in futures:
-                future.result()
+        with timer.timer("storage__preparation"):
+            with ProcessPoolExecutor(max_workers=4, mp_context=multiprocessing.get_context('spawn')) as executor:
+                futures = []
+                for task in store_rdf_tasks:
+                    futures.append(executor.submit(_store_rdf_process, task))
+                for task in upload_queries_tasks:
+                    futures.append(executor.submit(_upload_queries_process, task))
+                for future in futures:
+                    future.result()
 
-        self._upload_sparql_queries_parallel()
+        with timer.timer("storage__sparql_upload"):
+            self._upload_sparql_queries_parallel()
+
+        timer.record_phase("storage__bulk_load", 0.0)
 
     def _store_bulk_load(
-        self, res_storer: Storer, prov_storer: Storer, bulk_config: dict
+        self, res_storer: Storer, prov_storer: Storer, bulk_config: dict, timer: ProcessTimer
     ) -> None:
         """
         Alternative upload path using Virtuoso bulk loading for INSERT queries.
@@ -475,49 +479,51 @@ class MetaProcess:
 
         store_rdf_tasks = self._prepare_store_rdf_tasks(res_storer, prov_storer)
 
-        with ProcessPoolExecutor(max_workers=4, mp_context=multiprocessing.get_context('spawn')) as executor:
-            futures = []
+        with timer.timer("storage__preparation"):
+            with ProcessPoolExecutor(max_workers=4, mp_context=multiprocessing.get_context('spawn')) as executor:
+                futures = []
 
-            # Nquads generation (data + prov)
-            futures.append(executor.submit(
-                res_storer.upload_all,
-                triplestore_url=self.triplestore_url,
-                base_dir=self.data_update_dir,
-                batch_size=10,
-                prepare_bulk_load=True,
-                bulk_load_dir=data_nquads_dir
-            ))
-            futures.append(executor.submit(
-                prov_storer.upload_all,
-                triplestore_url=self.provenance_triplestore_url,
-                base_dir=self.prov_update_dir,
-                batch_size=10,
-                prepare_bulk_load=True,
-                bulk_load_dir=prov_nquads_dir
-            ))
+                futures.append(executor.submit(
+                    res_storer.upload_all,
+                    triplestore_url=self.triplestore_url,
+                    base_dir=self.data_update_dir,
+                    batch_size=10,
+                    prepare_bulk_load=True,
+                    bulk_load_dir=data_nquads_dir
+                ))
+                futures.append(executor.submit(
+                    prov_storer.upload_all,
+                    triplestore_url=self.provenance_triplestore_url,
+                    base_dir=self.prov_update_dir,
+                    batch_size=10,
+                    prepare_bulk_load=True,
+                    bulk_load_dir=prov_nquads_dir
+                ))
 
-            for task in store_rdf_tasks:
-                futures.append(executor.submit(_store_rdf_process, task))
+                for task in store_rdf_tasks:
+                    futures.append(executor.submit(_store_rdf_process, task))
 
-            for future in futures:
-                future.result()
+                for future in futures:
+                    future.result()
 
-        self._upload_sparql_queries_parallel()
+        with timer.timer("storage__sparql_upload"):
+            self._upload_sparql_queries_parallel()
 
-        bulk_load_tasks = [
-            (data_container, bulk_load_dir, data_nquads_dir),
-            (prov_container, bulk_load_dir, prov_nquads_dir)
-        ]
+        with timer.timer("storage__bulk_load"):
+            bulk_load_tasks = [
+                (data_container, bulk_load_dir, data_nquads_dir),
+                (prov_container, bulk_load_dir, prov_nquads_dir)
+            ]
 
-        with ProcessPoolExecutor(max_workers=2, mp_context=multiprocessing.get_context('spawn')) as executor:
-            futures = [executor.submit(_run_bulk_load_process, task) for task in bulk_load_tasks]
-            for future in futures:
-                future.result()
+            with ProcessPoolExecutor(max_workers=2, mp_context=multiprocessing.get_context('spawn')) as executor:
+                futures = [executor.submit(_run_bulk_load_process, task) for task in bulk_load_tasks]
+                for future in futures:
+                    future.result()
 
-        for nq_file in glob.glob(os.path.join(data_nquads_dir, "*.nq.gz")):
-            os.remove(nq_file)
-        for nq_file in glob.glob(os.path.join(prov_nquads_dir, "*.nq.gz")):
-            os.remove(nq_file)
+            for nq_file in glob.glob(os.path.join(data_nquads_dir, "*.nq.gz")):
+                os.remove(nq_file)
+            for nq_file in glob.glob(os.path.join(prov_nquads_dir, "*.nq.gz")):
+                os.remove(nq_file)
 
     def run_sparql_updates(self, endpoint: str, folder: str):
         cache_manager = CacheManager(
