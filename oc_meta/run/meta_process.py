@@ -320,33 +320,32 @@ class MetaProcess:
                         modified_entities = prov.generate_provenance()
                         self.timer.record_metric("modified_entities", len(modified_entities))
 
-                with self.timer.timer("storage_and_upload"):
-                    repok = Reporter(print_sentences=False)
-                    reperr = Reporter(print_sentences=True, prefix="[Storer: ERROR] ")
-                    res_storer = Storer(
-                        abstract_set=creator,
-                        repok=repok,
-                        reperr=reperr,
-                        context_map={},
-                        dir_split=self.dir_split_number,
-                        n_file_item=self.items_per_file,
-                        default_dir=self.default_dir,
-                        output_format="json-ld",
-                        zip_output=self.zip_output_rdf,
-                        modified_entities=modified_entities,
-                    )
-                    prov_storer = Storer(
-                        abstract_set=prov,
-                        repok=repok,
-                        reperr=reperr,
-                        context_map={},
-                        dir_split=self.dir_split_number,
-                        n_file_item=self.items_per_file,
-                        output_format="json-ld",
-                        zip_output=self.zip_output_rdf,
-                        modified_entities=modified_entities,
-                    )
-                    self.store_data_and_prov(res_storer, prov_storer)
+                repok = Reporter(print_sentences=False)
+                reperr = Reporter(print_sentences=True, prefix="[Storer: ERROR] ")
+                res_storer = Storer(
+                    abstract_set=creator,
+                    repok=repok,
+                    reperr=reperr,
+                    context_map={},
+                    dir_split=self.dir_split_number,
+                    n_file_item=self.items_per_file,
+                    default_dir=self.default_dir,
+                    output_format="json-ld",
+                    zip_output=self.zip_output_rdf,
+                    modified_entities=modified_entities,
+                )
+                prov_storer = Storer(
+                    abstract_set=prov,
+                    repok=repok,
+                    reperr=reperr,
+                    context_map={},
+                    dir_split=self.dir_split_number,
+                    n_file_item=self.items_per_file,
+                    output_format="json-ld",
+                    zip_output=self.zip_output_rdf,
+                    modified_entities=modified_entities,
+                )
+                self.store_data_and_prov(res_storer, prov_storer)
 
             return {"message": "success"}, cache_path, errors_path, filename
         except Exception as e:

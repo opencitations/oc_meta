@@ -311,50 +311,80 @@ def plot_single_run_results(run: Dict[str, Any], output_path: str):
     print(f"[Visualization] Saved to {output_path}")
 
 
-def _get_curation_time_from_report(report: Dict[str, Any]) -> float:
-    """Get curation time from report, summing sub-phases."""
-    phases = report.get("phases", [])
-    return sum(
-        p["duration_seconds"] for p in phases
-        if p["name"].startswith("curation__")
-    )
+def _get_phase_duration_from_report(report: Dict[str, Any], phase_name: str) -> float:
+    """Get phase duration from a report dict by phase name."""
+    for phase in report.get("phases", []):
+        if phase["name"] == phase_name:
+            return phase["duration_seconds"]
+    return 0.0
+
+
+def _get_curation_rest_from_report(report: Dict[str, Any]) -> float:
+    """Get curation rest time (excluding collect_identifiers) from report."""
+    return sum(_get_phase_duration_from_report(report, p) for p in CURATION_REST_PHASES)
 
 
 def plot_incremental_progress(all_reports: List[Dict[str, Any]], output_path: str):
-    """Generate incremental chart showing meta_process progress."""
+    """Generate incremental chart showing meta_process progress with sub-phase breakdown."""
     if not all_reports:
         return
 
     filenames = [r["filename"] for r in all_reports]
 
-    curation_times = [_get_curation_time_from_report(r["report"]) for r in all_reports]
-    creation_times = [next((p["duration_seconds"] for p in r["report"]["phases"] if p["name"] == "rdf_creation"), 0) for r in all_reports]
-    storage_times = [next((p["duration_seconds"] for p in r["report"]["phases"] if p["name"] == "storage_and_upload"), 0) for r in all_reports]
+    collect_ids_times = [_get_phase_duration_from_report(r["report"], "curation__collect_identifiers") for r in all_reports]
+    curation_rest_times = [_get_curation_rest_from_report(r["report"]) for r in all_reports]
+    rdf_times = [_get_phase_duration_from_report(r["report"], "rdf_creation") for r in all_reports]
+    storage_prep_times = [_get_phase_duration_from_report(r["report"], "storage__preparation") for r in all_reports]
+    storage_sparql_times = [_get_phase_duration_from_report(r["report"], "storage__sparql_upload") for r in all_reports]
+    storage_bulk_times = [_get_phase_duration_from_report(r["report"], "storage__bulk_load") for r in all_reports]
     throughputs = [r["report"]["metrics"].get("throughput_records_per_sec", 0) for r in all_reports]
 
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
+    total_times = [
+        c + cr + r + sp + ss + sb
+        for c, cr, r, sp, ss, sb in zip(
+            collect_ids_times, curation_rest_times, rdf_times,
+            storage_prep_times, storage_sparql_times, storage_bulk_times
+        )
+    ]
+    mean_duration = sum(total_times) / len(total_times) if total_times else 0
+    mean_throughput = sum(throughputs) / len(throughputs) if throughputs else 0
+
+    _, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 12))
 
     x = np.arange(len(filenames))
     width = 0.6
 
-    ax1.bar(x, curation_times, width, label='Curation', color=CURATION_COLLECT_IDS_COLOR)
-    ax1.bar(x, creation_times, width, bottom=curation_times, label='RDF creation', color=RDF_CREATION_COLOR)
-    ax1.bar(x, storage_times, width, bottom=np.array(curation_times) + np.array(creation_times), label='Storage & upload', color=STORAGE_COLOR)
+    bottom = np.zeros(len(filenames))
+    ax1.bar(x, collect_ids_times, width, bottom=bottom, label='Collect IDs', color=CURATION_COLLECT_IDS_COLOR, edgecolor='black', linewidth=0.3)
+    bottom += np.array(collect_ids_times)
+    ax1.bar(x, curation_rest_times, width, bottom=bottom, label='Curation rest', color=CURATION_REST_COLOR, edgecolor='black', linewidth=0.3)
+    bottom += np.array(curation_rest_times)
+    ax1.bar(x, rdf_times, width, bottom=bottom, label='RDF creation', color=RDF_CREATION_COLOR, edgecolor='black', linewidth=0.3)
+    bottom += np.array(rdf_times)
+    ax1.bar(x, storage_prep_times, width, bottom=bottom, label='Preparation', color=STORAGE_PREP_COLOR, edgecolor='black', linewidth=0.3)
+    bottom += np.array(storage_prep_times)
+    ax1.bar(x, storage_sparql_times, width, bottom=bottom, label='SPARQL upload', color=STORAGE_SPARQL_COLOR, edgecolor='black', linewidth=0.3)
+    bottom += np.array(storage_sparql_times)
+    ax1.bar(x, storage_bulk_times, width, bottom=bottom, label='Bulk load', color=STORAGE_BULK_COLOR, edgecolor='black', linewidth=0.3)
+
+    ax1.axhline(y=mean_duration, color='#A23B72', linestyle='--', linewidth=2, label=f'Mean ({mean_duration:.1f}s)')
 
     ax1.set_ylabel('Time (seconds)', fontsize=12, fontweight='bold')
     ax1.set_title(f'Processing time by phase ({len(filenames)} files processed)', fontsize=14, fontweight='bold')
     ax1.set_xticks(x)
     ax1.set_xticklabels([f[:20] for f in filenames], rotation=45, ha='right', fontsize=8)
-    ax1.legend(loc='upper right')
+    ax1.legend(loc='upper right', fontsize=8)
     ax1.grid(axis='y', alpha=0.3)
 
     ax2.plot(x, throughputs, marker='o', linewidth=2, markersize=6, color='#2E86AB')
+    ax2.axhline(y=mean_throughput, color='#A23B72', linestyle='--', linewidth=2, label=f'Mean ({mean_throughput:.1f} rec/s)')
     ax2.set_xlabel('File index', fontsize=12, fontweight='bold')
     ax2.set_ylabel('Throughput (records/sec)', fontsize=12, fontweight='bold')
     ax2.set_title('Processing throughput', fontsize=14, fontweight='bold')
     ax2.grid(True, alpha=0.3)
     ax2.set_xticks(x)
     ax2.set_xticklabels(range(1, len(filenames) + 1), fontsize=8)
+    ax2.legend(loc='upper right')
 
     plt.tight_layout()
     plt.savefig(output_path, dpi=100, bbox_inches='tight')
