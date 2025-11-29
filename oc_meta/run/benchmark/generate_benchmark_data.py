@@ -72,9 +72,10 @@ class BenchmarkDataGenerator:
         "book chapter",
     ]
 
-    def __init__(self, size: int, output_path: str, seed: int = 42):
+    def __init__(self, size: int, output_path: str, seed: int = 42, partial_data: bool = False):
         self.size = size
         self.output_path = output_path
+        self.partial_data = partial_data
         random.seed(seed)
 
     def _generate_doi(self, index: int) -> str:
@@ -105,22 +106,29 @@ class BenchmarkDataGenerator:
         return "; ".join(authors)
 
     def _generate_record(self, index: int) -> Dict[str, str]:
-        """Generate a single bibliographic record."""
+        """
+        Generate a single bibliographic record.
+
+        If partial_data is True, generates minimal data (DOI only, no venue/volume/issue/page).
+        This is used for update scenario benchmarks where we first load partial data,
+        then process complete data to trigger graph diff comparisons.
+        """
         base_id = self._generate_doi(index)
 
-        has_pmid = random.random() > 0.3
-        if has_pmid:
-            base_id = f"{base_id} {self._generate_pmid()}"
+        if not self.partial_data:
+            has_pmid = random.random() > 0.3
+            if has_pmid:
+                base_id = f"{base_id} {self._generate_pmid()}"
 
         return {
             "id": base_id,
             "title": random.choice(self.SAMPLE_TITLES),
             "author": self._generate_authors(),
             "pub_date": self._generate_pub_date(),
-            "venue": random.choice(self.SAMPLE_VENUES),
-            "volume": str(random.randint(1, 50)),
-            "issue": str(random.randint(1, 12)),
-            "page": self._generate_pages(),
+            "venue": "" if self.partial_data else random.choice(self.SAMPLE_VENUES),
+            "volume": "" if self.partial_data else str(random.randint(1, 50)),
+            "issue": "" if self.partial_data else str(random.randint(1, 12)),
+            "page": "" if self.partial_data else self._generate_pages(),
             "type": random.choice(self.ARTICLE_TYPES),
             "publisher": random.choice(self.SAMPLE_PUBLISHERS),
             "editor": "",

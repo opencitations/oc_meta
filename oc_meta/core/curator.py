@@ -850,16 +850,27 @@ class Curator:
                             match_elem["existing"].append(k)
         return match_elem
 
-    def __meta_ar(self, newkey, oldkey, role):
-        for x, k in self.ardict[oldkey][role]:
-            if "wannabe" in k:
-                for m in self.rameta:
-                    if k in self.rameta[m]["others"]:
-                        new_v = m
+    def __meta_ar(self, target_br_metaid: str, source_br_key: str, role_type: str) -> None:
+        """
+        Transfer agent role assignments from working dictionary to finalized dictionary.
+
+        Resolves any remaining placeholder ("wannabe") agent identifiers to their
+        final MetaIDs by looking up which finalized agent absorbed them.
+
+        Args:
+            target_br_metaid: The final, deduplicated bibliographic resource MetaID
+            source_br_key: The intermediate key in ardict (may contain "wannabe")
+            role_type: Type of role ("author", "editor", or "publisher")
+        """
+        for ar_metaid, agent_id in self.ardict[source_br_key][role_type]:
+            if "wannabe" in agent_id:
+                for candidate_ra_metaid in self.rameta:
+                    if agent_id in self.rameta[candidate_ra_metaid]["others"]:
+                        resolved_ra_metaid = candidate_ra_metaid
                         break
             else:
-                new_v = k
-            self.armeta[newkey][role].append(tuple((x, new_v)))
+                resolved_ra_metaid = agent_id
+            self.armeta[target_br_metaid][role_type].append((ar_metaid, resolved_ra_metaid))
 
     def __tree_traverse(self, tree: dict, key: str, values: List[Tuple]) -> None:
         for k, v in tree.items():

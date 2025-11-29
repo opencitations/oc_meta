@@ -25,8 +25,7 @@ import yaml
 from oc_meta.lib import file_manager
 from oc_meta.lib.timer import ProcessTimer
 from oc_meta.run.benchmark.generate_benchmark_data import BenchmarkDataGenerator
-from oc_meta.run.benchmark.plotting import (
-    plot_benchmark_results, plot_scalability_analysis, plot_single_run_results)
+from oc_meta.run.benchmark.plotting import plot_benchmark_results, plot_single_run_results
 from oc_meta.run.benchmark.preload_high_author_data import (
     generate_atlas_paper_csv, generate_atlas_update_csv, preload_data)
 from oc_meta.run.benchmark.statistics import BenchmarkStatistics
@@ -291,8 +290,6 @@ class MetaBenchmark:
 
         print(f"{'='*60}\n")
 
-        plot_scalability_analysis(per_size_results, "scalability_analysis.png")
-
         return {
             "timestamp": datetime.now().isoformat(),
             "config_path": self.config_path,
@@ -360,11 +357,6 @@ class MetaBenchmark:
                 print(f"Progress: Mean time so far: {mean_time:.2f}s ± {std_time:.2f}s\n")
 
         if runs == 1:
-            if sizes is not None:
-                viz_filename = f"benchmark_results_{sizes}.png"
-            else:
-                viz_filename = "benchmark_results.png"
-            plot_single_run_results(all_runs[0], viz_filename)
             return all_runs[0]
 
         print(f"\n{'='*60}")
@@ -375,13 +367,6 @@ class MetaBenchmark:
 
         print(BenchmarkStatistics.format_statistics_report(stats))
         print(f"{'='*60}\n")
-
-        if sizes is not None:
-            viz_filename = f"benchmark_results_{sizes}.png"
-        else:
-            viz_filename = "benchmark_results.png"
-
-        plot_benchmark_results(all_runs, stats, viz_filename)
 
         return {
             "timestamp": datetime.now().isoformat(),
@@ -398,32 +383,39 @@ class MetaBenchmark:
 
     def _prepare_input_csv(
         self,
-        sizes: Optional[int],
+        size: Optional[int],
         seed: int,
-        run_number: Optional[int] = None
+        run_number: Optional[int] = None,
+        partial_data: bool = False
     ) -> str:
         """
         Prepare input CSV file (generate or use existing).
 
         Args:
-            sizes: If specified, generate test data with N records
+            size: If specified, generate test data with N records
             seed: Random seed for data generation
             run_number: Optional run number for unique filenames with fresh data
+            partial_data: If True, generate partial records (DOI only, no venue/pages)
 
         Returns:
             Path to input CSV file
         """
-        if sizes:
+        if size:
+            parts = ["input", str(size)]
+            if partial_data:
+                parts.append("partial")
             if run_number is not None:
-                csv_filename = f"benchmark_{sizes}_run{run_number}.csv"
-            else:
-                csv_filename = f"benchmark_{sizes}.csv"
+                parts.append(f"run{run_number}")
+            csv_filename = "_".join(parts) + ".csv"
 
             csv_path = os.path.join(self.input_dir, csv_filename)
 
-            print(f"Generating {sizes} test records (seed={seed})...")
+            data_type = "partial" if partial_data else "complete"
+            print(f"Generating {size} {data_type} records (seed={seed})...")
             os.makedirs(self.input_dir, exist_ok=True)
-            generator = BenchmarkDataGenerator(size=sizes, output_path=csv_path, seed=seed)
+            generator = BenchmarkDataGenerator(
+                size=size, output_path=csv_path, seed=seed, partial_data=partial_data
+            )
             generator.generate()
             print()
 
@@ -439,11 +431,174 @@ class MetaBenchmark:
             print(f"Processing file: {csv_files[0]}\n")
             return input_csv
 
-    def save_report(self, report: Dict[str, Any], output_path: str):
-        """Save benchmark report to JSON file."""
-        with open(output_path, 'w') as f:
+    def _get_reports_dir(self) -> str:
+        """Get the reports directory path (relative to benchmark module)."""
+        benchmark_dir = os.path.dirname(os.path.abspath(__file__))
+        reports_dir = os.path.join(benchmark_dir, "reports")
+        os.makedirs(reports_dir, exist_ok=True)
+        return reports_dir
+
+    def save_report(self, report: Dict[str, Any], prefix: str, size: Optional[int] = None):
+        """Save benchmark report (JSON and PNG) in reports directory."""
+        reports_dir = self._get_reports_dir()
+        if size is not None:
+            base_filename = f"{prefix}_{size}"
+        else:
+            base_filename = prefix
+
+        json_path = os.path.join(reports_dir, f"{base_filename}.json")
+        with open(json_path, 'w') as f:
             json.dump(report, f, indent=2)
-        print(f"[Report] Saved to {output_path}")
+        print(f"[Report] Saved to {json_path}")
+
+        png_path = os.path.join(reports_dir, f"{base_filename}.png")
+        if "statistics" in report and report["statistics"]:
+            runs = report.get("runs", [report])
+            stats = report["statistics"]
+            plot_benchmark_results(runs, stats, png_path)
+        elif "update" in report:
+            plot_single_run_results(report["update"], png_path)
+        elif "metrics" in report:
+            plot_single_run_results(report, png_path)
+
+    def _clear_processing_cache(self):
+        """Clear the processing cache file to allow reprocessing of same records."""
+        cache_file = os.path.join(
+            file_manager.normalize_path(self.config["base_output_dir"]),
+            "cache.txt"
+        )
+        if os.path.exists(cache_file):
+            os.remove(cache_file)
+            print("[Update Scenario] Cleared processing cache")
+
+    def run_update_scenario(self, size: int, seed: int = 42, runs: int = 1) -> Dict[str, Any]:
+        """
+        Run update scenario benchmark to test graph diff performance.
+
+        This benchmark:
+        1. Preloads partial data (DOI only, no venue/volume/issue/page)
+        2. Processes complete data (same DOIs with additional fields)
+
+        This forces _compute_graph_changes() to compare preexisting_graph vs entity.g
+        for every entity, exercising the graph diff code path.
+
+        Args:
+            size: Number of records to generate
+            seed: Random seed for reproducible data generation
+            runs: Number of times to run the benchmark
+
+        Returns:
+            Dictionary with preload and update timing reports
+        """
+        print(f"\n{'='*60}")
+        print("Update Scenario Benchmark (Graph Diff Performance)")
+        print(f"{'='*60}")
+        print(f"Records: {size}")
+        print(f"Seed: {seed}")
+        print(f"Runs: {runs}")
+        print(f"Timestamp: {datetime.now().isoformat()}")
+        print(f"{'='*60}\n")
+
+        all_update_runs = []
+
+        for run_idx in range(runs):
+            run_number = run_idx + 1
+
+            if runs > 1:
+                print(f"\n{'#'*60}")
+                print(f"Run {run_number}/{runs}")
+                print(f"{'#'*60}\n")
+
+            print(f"{'='*60}")
+            print("Phase 1: Generating and processing PARTIAL data")
+            print(f"{'='*60}\n")
+
+            partial_csv = self._prepare_input_csv(
+                size=size, seed=seed, partial_data=True
+            )
+            preload_report = self._execute_single_run(partial_csv)
+
+            self._clear_processing_cache()
+
+            print(f"\n{'='*60}")
+            print("Phase 2: Generating and processing COMPLETE data")
+            print(f"{'='*60}\n")
+
+            complete_csv = self._prepare_input_csv(
+                size=size, seed=seed, partial_data=False
+            )
+            update_report = self._execute_single_run(complete_csv)
+
+            all_update_runs.append(update_report)
+
+            if run_idx < runs - 1:
+                self.cleanup_databases()
+
+        print(f"\n{'='*60}")
+        print("Update Scenario Results Summary")
+        print(f"{'='*60}")
+
+        last_update = all_update_runs[-1]
+        preload_prep = self._get_phase_duration(preload_report, "storage__preparation")
+        update_prep = self._get_phase_duration(last_update, "storage__preparation")
+
+        preload_total = preload_report["metrics"]["total_duration_seconds"]
+        update_total = last_update["metrics"]["total_duration_seconds"]
+
+        print(f"\nPhase 1 - Partial data (initial load):")
+        print(f"  Total: {preload_total:.2f}s")
+        print(f"  storage__preparation: {preload_prep:.2f}s ({100*preload_prep/preload_total:.1f}%)")
+
+        print(f"\nPhase 2 - Complete data (with graph diff):")
+        print(f"  Total: {update_total:.2f}s")
+        print(f"  storage__preparation: {update_prep:.2f}s ({100*update_prep/update_total:.1f}%)")
+
+        if preload_prep > 0:
+            slowdown = update_prep / preload_prep
+            print(f"\nGraph diff overhead: {slowdown:.1f}x slower preparation phase")
+
+        print(f"{'='*60}\n")
+
+        if runs > 1:
+            print(f"\n{'='*60}")
+            print("Statistical Analysis (Update Phase)")
+            print(f"{'='*60}")
+            stats = BenchmarkStatistics.calculate_statistics(all_update_runs)
+            print(BenchmarkStatistics.format_statistics_report(stats))
+            print(f"{'='*60}\n")
+        else:
+            stats = {}
+
+        result = {
+            "timestamp": datetime.now().isoformat(),
+            "config_path": self.config_path,
+            "scenario": "update",
+            "config": {
+                "size": size,
+                "seed": seed,
+                "runs": runs
+            },
+            "preload": preload_report,
+            "update": last_update,
+            "runs": all_update_runs,
+            "statistics": stats,
+            "summary": {
+                "preload_total_seconds": preload_total,
+                "preload_preparation_seconds": preload_prep,
+                "update_total_seconds": update_total,
+                "update_preparation_seconds": update_prep,
+                "preparation_slowdown_factor": update_prep / preload_prep if preload_prep > 0 else None
+            }
+        }
+
+        return result
+
+    def _get_phase_duration(self, report: Dict[str, Any], phase_name: str) -> float:
+        """Extract duration for a specific phase from a timing report."""
+        for phase in report.get("phases", []):
+            if phase["name"] == phase_name:
+                return phase["duration_seconds"]
+        return 0.0
 
 
 def main():
@@ -454,11 +609,6 @@ def main():
         "-c", "--config",
         required=True,
         help="Path to benchmark configuration file (YAML)"
-    )
-    parser.add_argument(
-        "-o", "--output",
-        default="benchmark_report.json",
-        help="Output JSON report file path (default: benchmark_report.json)"
     )
     parser.add_argument(
         "--sizes",
@@ -501,47 +651,61 @@ def main():
         default=42,
         help="Random seed for preload data generation (default: 42)"
     )
+    parser.add_argument(
+        "--update-scenario",
+        action="store_true",
+        help="Run update scenario: preload partial data, then process complete data to trigger graph diff"
+    )
 
     args = parser.parse_args()
 
     benchmark = MetaBenchmark(args.config)
 
     try:
-        preload_metrics = None
-        if args.preload_high_authors:
+        if args.update_scenario:
+            if not args.sizes or len(args.sizes) != 1:
+                raise ValueError("--update-scenario requires exactly one --sizes value")
+            size = args.sizes[0]
+            report = benchmark.run_update_scenario(size=size, seed=args.seed, runs=args.runs)
+            benchmark.save_report(report, prefix="update", size=size)
+
+        elif args.preload_high_authors:
             print(f"\n{'='*60}")
             print(f"Preloading BR with {args.preload_high_authors} authors")
             print(f"{'='*60}\n")
 
-            preload_csv = os.path.join(benchmark.input_dir, f"_preload_{args.preload_high_authors}_authors.csv")
+            preload_csv = os.path.join(benchmark.input_dir, "atlas_preload.csv")
             generate_atlas_paper_csv(preload_csv, args.preload_high_authors, args.preload_seed)
 
             preload_metrics = preload_data(args.config, preload_csv)
 
             print("\n[Preload] Complete - triplestore now contains BR with many authors")
 
-            update_csv = os.path.join(benchmark.input_dir, "atlas_paper_update.csv")
+            update_csv = os.path.join(benchmark.input_dir, "atlas_update.csv")
             generate_atlas_update_csv(update_csv)
 
             print("[Preload] Generated update CSV for benchmark")
             print(f"[Preload] Next benchmark run will process this BR (update scenario)\n")
 
             benchmark._generated_csvs.extend([preload_csv, update_csv])
-            args.sizes = None
 
-        sizes_arg = args.sizes
-        if sizes_arg and len(sizes_arg) == 1:
-            sizes_arg = sizes_arg[0]
-
-        report = benchmark.run_benchmark(
-            sizes=sizes_arg,
-            seed=args.seed,
-            runs=args.runs,
-            fresh_data=args.fresh_data
-        )
-        if preload_metrics:
+            report = benchmark.run_benchmark(sizes=None, seed=args.seed, runs=args.runs, fresh_data=args.fresh_data)
             report["preload_metrics"] = preload_metrics
-        benchmark.save_report(report, args.output)
+            benchmark.save_report(report, prefix="atlas", size=args.preload_high_authors)
+
+        else:
+            sizes_arg = args.sizes
+            if sizes_arg and len(sizes_arg) == 1:
+                sizes_arg = sizes_arg[0]
+
+            report = benchmark.run_benchmark(
+                sizes=sizes_arg,
+                seed=args.seed,
+                runs=args.runs,
+                fresh_data=args.fresh_data
+            )
+            size = sizes_arg if isinstance(sizes_arg, int) else None
+            benchmark.save_report(report, prefix="benchmark", size=size)
     finally:
         if not args.no_cleanup:
             benchmark.cleanup_databases()

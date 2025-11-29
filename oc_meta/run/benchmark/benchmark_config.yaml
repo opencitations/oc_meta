@@ -27,16 +27,16 @@ provenance_triplestore_url: http://127.0.0.1:8806/sparql
 # A list of triplestore URLs containing provenance metadata
 provenance_endpoints: [http://127.0.0.1:8806/sparql]
 # Directory where raw CSV files are stored
-input_csv_dir: test/benchmark/input
+input_csv_dir: oc_meta/run/benchmark/input
 # The path to the base directory to save all output files
-base_output_dir: &base_output_dir test/benchmark/output
+base_output_dir: &base_output_dir oc_meta/run/benchmark/output
 # A URI string representing the provenance agent which is considered responsible for the RDF graph manipulation
 resp_agent: https://github.com/opencitations/oc_meta/benchmark
 
 # Optional settings
 
 # Folder where RDF files are saved (trailing slash important for Storer)
-output_rdf_dir: test/benchmark/output/
+output_rdf_dir: oc_meta/run/benchmark/output/
 # Generate RDF files (JSON-LD) in addition to SPARQL queries
 generate_rdf_files: True
 # If True, titles will be normalized (capitalized). If False, titles will be kept as-is
