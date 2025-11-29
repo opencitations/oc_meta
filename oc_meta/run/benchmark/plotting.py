@@ -147,14 +147,18 @@ def plot_scalability_analysis(per_size_results: List[Dict[str, Any]], output_pat
             )
             phase_data["curation"].append(curation_sum)
             phase_data["rdf_creation"].append(size_data["statistics"]["rdf_creation_duration_seconds"]["mean"])
-            phase_data["storage_upload"].append(size_data["statistics"]["storage_and_upload_duration_seconds"]["mean"])
+            # Sum all storage sub-phases
+            storage_sum = sum(
+                size_data["statistics"][f"{p}_duration_seconds"]["mean"] for p in STORAGE_SUB_PHASES
+            )
+            phase_data["storage_upload"].append(storage_sum)
         else:
             run = size_data["runs"][0]
             mean_durations.append(run["metrics"]["total_duration_seconds"])
             mean_throughputs.append(run["metrics"]["throughput_records_per_sec"])
             phase_data["curation"].append(get_curation_total(run))
             phase_data["rdf_creation"].append(get_phase_duration_by_name(run, "rdf_creation"))
-            phase_data["storage_upload"].append(get_phase_duration_by_name(run, "storage_and_upload"))
+            phase_data["storage_upload"].append(get_storage_total(run))
 
     axes[0, 0].plot(sizes, mean_durations, marker='o', linewidth=2, markersize=8, color='#2E86AB')
     apply_plot_style(axes[0, 0], 'Total duration vs dataset size', 'Dataset size (records)', 'Duration (s)')
@@ -240,7 +244,7 @@ def plot_benchmark_results(all_runs: List[Dict[str, Any]], stats: Dict[str, Dict
     # Box plot for phase distribution
     curation_times = [get_curation_total(r) for r in all_runs]
     rdf_times = [get_phase_duration_by_name(r, "rdf_creation") for r in all_runs]
-    upload_times = [get_phase_duration_by_name(r, "storage_and_upload") for r in all_runs]
+    upload_times = [get_storage_total(r) for r in all_runs]
 
     boxplot_phase_names = ['Curation', 'RDF\ncreation', 'Storage\n+upload']
     boxplot_colors = [CURATION_COLLECT_IDS_COLOR, RDF_CREATION_COLOR, STORAGE_COLOR]
