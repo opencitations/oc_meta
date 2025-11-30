@@ -539,19 +539,19 @@ class MetaBenchmark:
         print(f"{'='*60}")
 
         last_update = all_update_runs[-1]
-        preload_prep = self._get_phase_duration(preload_report, "storage__preparation")
-        update_prep = self._get_phase_duration(last_update, "storage__preparation")
+        preload_prep = self._get_phase_duration(preload_report, "storage__write_files")
+        update_prep = self._get_phase_duration(last_update, "storage__write_files")
 
         preload_total = preload_report["metrics"]["total_duration_seconds"]
         update_total = last_update["metrics"]["total_duration_seconds"]
 
         print(f"\nPhase 1 - Partial data (initial load):")
         print(f"  Total: {preload_total:.2f}s")
-        print(f"  storage__preparation: {preload_prep:.2f}s ({100*preload_prep/preload_total:.1f}%)")
+        print(f"  storage__write_files: {preload_prep:.2f}s ({100*preload_prep/preload_total:.1f}%)")
 
         print(f"\nPhase 2 - Complete data (with graph diff):")
         print(f"  Total: {update_total:.2f}s")
-        print(f"  storage__preparation: {update_prep:.2f}s ({100*update_prep/update_total:.1f}%)")
+        print(f"  storage__write_files: {update_prep:.2f}s ({100*update_prep/update_total:.1f}%)")
 
         if preload_prep > 0:
             slowdown = update_prep / preload_prep

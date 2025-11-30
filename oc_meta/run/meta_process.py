@@ -25,8 +25,6 @@ import json
 import os
 import traceback
 from argparse import ArgumentParser
-import multiprocessing
-from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime
 from sys import executable, platform
 from typing import Any, Dict, Iterator, List, Optional, Tuple
@@ -54,34 +52,6 @@ from virtuoso_utilities.bulk_load import bulk_load
 class BulkLoadError(Exception):
     """Raised when Virtuoso bulk load fails."""
     pass
-
-
-def _store_rdf_process(args: tuple) -> None:
-    """
-    Worker function to execute storer.store_all() in a separate process.
-    """
-    storer, output_dir, base_iri, context_path = args
-
-    storer.store_all(
-        base_dir=output_dir,
-        base_iri=base_iri,
-        context_path=context_path,
-        process_id=None
-    )
-
-
-def _upload_queries_process(args: tuple) -> None:
-    """
-    Worker function to execute storer.upload_all() in a separate process.
-    """
-    storer, triplestore_url, update_dir = args
-
-    storer.upload_all(
-        triplestore_url=triplestore_url,
-        base_dir=update_dir,
-        batch_size=10,
-        save_queries=True
-    )
 
 
 def _upload_to_triplestore(endpoint: str, folder: str, redis_host: str, redis_port: int, redis_db: int, failed_file: str, stop_file: str, description: str = "Processing files") -> None:
@@ -364,61 +334,31 @@ class MetaProcess:
         os.makedirs(self.data_update_dir, exist_ok=True)
         os.makedirs(self.prov_update_dir, exist_ok=True)
 
-    def _prepare_store_rdf_tasks(self, res_storer: Storer, prov_storer: Storer) -> list:
-        """Prepare RDF storage tasks if RDF file generation is enabled."""
-        store_rdf_tasks = []
-        if self.generate_rdf_files:
-            store_rdf_tasks.append((
-                res_storer,
-                self.output_rdf_dir,
-                self.base_iri,
-                self.context_path
-            ))
-            store_rdf_tasks.append((
-                prov_storer,
-                self.output_rdf_dir,
-                self.base_iri,
-                self.context_path
-            ))
-        return store_rdf_tasks
-
-    def _prepare_upload_queries_tasks(self, res_storer: Storer, prov_storer: Storer) -> list:
-        """Prepare SPARQL query generation tasks."""
-        return [
-            (res_storer, self.triplestore_url, self.data_update_dir),
-            (prov_storer, self.provenance_triplestore_url, self.prov_update_dir)
-        ]
-
-    def _upload_sparql_queries_parallel(self) -> None:
-        """Upload SPARQL queries to triplestores in parallel."""
+    def _upload_sparql_queries(self) -> None:
+        """Upload SPARQL queries to triplestores sequentially."""
         data_upload_folder = os.path.join(self.data_update_dir, "to_be_uploaded")
         prov_upload_folder = os.path.join(self.prov_update_dir, "to_be_uploaded")
 
-        with ProcessPoolExecutor(max_workers=2, mp_context=multiprocessing.get_context('spawn')) as executor:
-            upload_data_future = executor.submit(
-                _upload_to_triplestore,
-                self.triplestore_url,
-                data_upload_folder,
-                self.redis_host,
-                self.redis_port,
-                self.redis_cache_db,
-                self.ts_failed_queries,
-                self.ts_stop_file,
-                "Uploading data SPARQL"
-            )
-            upload_prov_future = executor.submit(
-                _upload_to_triplestore,
-                self.provenance_triplestore_url,
-                prov_upload_folder,
-                self.redis_host,
-                self.redis_port,
-                self.redis_cache_db,
-                self.ts_failed_queries,
-                self.ts_stop_file,
-                "Uploading prov SPARQL"
-            )
-            upload_data_future.result()
-            upload_prov_future.result()
+        _upload_to_triplestore(
+            self.triplestore_url,
+            data_upload_folder,
+            self.redis_host,
+            self.redis_port,
+            self.redis_cache_db,
+            self.ts_failed_queries,
+            self.ts_stop_file,
+            "Uploading data SPARQL"
+        )
+        _upload_to_triplestore(
+            self.provenance_triplestore_url,
+            prov_upload_folder,
+            self.redis_host,
+            self.redis_port,
+            self.redis_cache_db,
+            self.ts_failed_queries,
+            self.ts_stop_file,
+            "Uploading prov SPARQL"
+        )
 
     def store_data_and_prov(
         self, res_storer: Storer, prov_storer: Storer
@@ -428,101 +368,78 @@ class MetaProcess:
 
         bulk_config = self.settings.get("virtuoso_bulk_load", {})
         if bulk_config.get("enabled", False):
-            self._store_bulk_load(res_storer, prov_storer, bulk_config, self.timer)
+            self._store_and_upload(res_storer, prov_storer, self.timer, bulk_config)
         else:
-            self._store_standard(res_storer, prov_storer, self.timer)
+            self._store_and_upload(res_storer, prov_storer, self.timer)
 
-    def _store_standard(
-        self, res_storer: Storer, prov_storer: Storer, timer: ProcessTimer
+    def _store_and_upload(
+        self, res_storer: Storer, prov_storer: Storer, timer: ProcessTimer, bulk_config: dict = None
     ) -> None:
-        """Standard upload path using SPARQL protocol."""
-        store_rdf_tasks = self._prepare_store_rdf_tasks(res_storer, prov_storer)
-        upload_queries_tasks = self._prepare_upload_queries_tasks(res_storer, prov_storer)
+        """Store RDF files and upload queries to triplestore."""
+        use_bulk_load = bulk_config is not None
 
-        with timer.timer("storage__preparation"):
-            with ProcessPoolExecutor(max_workers=4, mp_context=multiprocessing.get_context('spawn')) as executor:
-                futures = []
-                for task in store_rdf_tasks:
-                    futures.append(executor.submit(_store_rdf_process, task))
-                for task in upload_queries_tasks:
-                    futures.append(executor.submit(_upload_queries_process, task))
-                for future in futures:
-                    future.result()
+        if use_bulk_load:
+            data_nquads_dir = os.path.abspath(bulk_config["data_mount_dir"])
+            prov_nquads_dir = os.path.abspath(bulk_config["prov_mount_dir"])
+            os.makedirs(data_nquads_dir, exist_ok=True)
+            os.makedirs(prov_nquads_dir, exist_ok=True)
 
-        with timer.timer("storage__sparql_upload"):
-            self._upload_sparql_queries_parallel()
-
-        timer.record_phase("storage__bulk_load", 0.0)
-
-    def _store_bulk_load(
-        self, res_storer: Storer, prov_storer: Storer, bulk_config: dict, timer: ProcessTimer
-    ) -> None:
-        """
-        Alternative upload path using Virtuoso bulk loading for INSERT queries.
-
-        Flow:
-        1. Generate separated queries (INSERTs as .nq.gz, DELETEs as .sparql) + RDF files in parallel
-        2. Execute DELETE queries via SPARQL protocol
-        3. Bulk load INSERT nquads to data and provenance containers in parallel
-        """
-        data_container = bulk_config["data_container"]
-        prov_container = bulk_config["prov_container"]
-        bulk_load_dir = bulk_config["bulk_load_dir"]
-        data_mount_dir = bulk_config["data_mount_dir"]
-        prov_mount_dir = bulk_config["prov_mount_dir"]
-
-        data_nquads_dir = os.path.abspath(data_mount_dir)
-        prov_nquads_dir = os.path.abspath(prov_mount_dir)
-        os.makedirs(data_nquads_dir, exist_ok=True)
-        os.makedirs(prov_nquads_dir, exist_ok=True)
-
-        store_rdf_tasks = self._prepare_store_rdf_tasks(res_storer, prov_storer)
-
-        with timer.timer("storage__preparation"):
-            with ProcessPoolExecutor(max_workers=4, mp_context=multiprocessing.get_context('spawn')) as executor:
-                futures = []
-
-                futures.append(executor.submit(
-                    res_storer.upload_all,
+        with timer.timer("storage__write_files"):
+            if use_bulk_load:
+                res_storer.upload_all(
                     triplestore_url=self.triplestore_url,
                     base_dir=self.data_update_dir,
                     batch_size=10,
                     prepare_bulk_load=True,
                     bulk_load_dir=data_nquads_dir
-                ))
-                futures.append(executor.submit(
-                    prov_storer.upload_all,
+                )
+                prov_storer.upload_all(
                     triplestore_url=self.provenance_triplestore_url,
                     base_dir=self.prov_update_dir,
                     batch_size=10,
                     prepare_bulk_load=True,
                     bulk_load_dir=prov_nquads_dir
-                ))
+                )
+            else:
+                res_storer.upload_all(
+                    triplestore_url=self.triplestore_url,
+                    base_dir=self.data_update_dir,
+                    batch_size=10,
+                    save_queries=True
+                )
+                prov_storer.upload_all(
+                    triplestore_url=self.provenance_triplestore_url,
+                    base_dir=self.prov_update_dir,
+                    batch_size=10,
+                    save_queries=True
+                )
 
-                for task in store_rdf_tasks:
-                    futures.append(executor.submit(_store_rdf_process, task))
-
-                for future in futures:
-                    future.result()
+            if self.generate_rdf_files:
+                res_storer.store_all(
+                    base_dir=self.output_rdf_dir,
+                    base_iri=self.base_iri,
+                    context_path=self.context_path
+                )
+                prov_storer.store_all(
+                    base_dir=self.output_rdf_dir,
+                    base_iri=self.base_iri,
+                    context_path=self.context_path
+                )
 
         with timer.timer("storage__sparql_upload"):
-            self._upload_sparql_queries_parallel()
+            self._upload_sparql_queries()
 
-        with timer.timer("storage__bulk_load"):
-            bulk_load_tasks = [
-                (data_container, bulk_load_dir, data_nquads_dir),
-                (prov_container, bulk_load_dir, prov_nquads_dir)
-            ]
+        if use_bulk_load:
+            with timer.timer("storage__bulk_load"):
+                _run_bulk_load_process((bulk_config["data_container"], bulk_config["bulk_load_dir"], data_nquads_dir))
+                _run_bulk_load_process((bulk_config["prov_container"], bulk_config["bulk_load_dir"], prov_nquads_dir))
 
-            with ProcessPoolExecutor(max_workers=2, mp_context=multiprocessing.get_context('spawn')) as executor:
-                futures = [executor.submit(_run_bulk_load_process, task) for task in bulk_load_tasks]
-                for future in futures:
-                    future.result()
-
-            for nq_file in glob.glob(os.path.join(data_nquads_dir, "*.nq.gz")):
-                os.remove(nq_file)
-            for nq_file in glob.glob(os.path.join(prov_nquads_dir, "*.nq.gz")):
-                os.remove(nq_file)
+                for nq_file in glob.glob(os.path.join(data_nquads_dir, "*.nq.gz")):
+                    os.remove(nq_file)
+                for nq_file in glob.glob(os.path.join(prov_nquads_dir, "*.nq.gz")):
+                    os.remove(nq_file)
+        else:
+            timer.record_phase("storage__bulk_load", 0.0)
 
     def run_sparql_updates(self, endpoint: str, folder: str):
         cache_manager = CacheManager(
