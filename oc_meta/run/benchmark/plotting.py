@@ -19,7 +19,6 @@ CURATION_REST_COLOR = '#FFE066'
 RDF_CREATION_COLOR = '#C73E1D'
 STORAGE_COLOR = '#6A994E'
 
-STORAGE_WRITE_FILES_COLOR = '#264653'
 STORAGE_UPLOAD_DATA_COLOR = '#2A9D8F'
 STORAGE_UPLOAD_PROV_COLOR = '#E9C46A'
 STORAGE_STORE_DATA_COLOR = '#F4A261'
@@ -36,7 +35,6 @@ CURATION_REST_PHASES = [
 ]
 
 STORAGE_SUB_PHASES = [
-    "storage__write_files",
     "storage__upload_data",
     "storage__upload_prov",
     "storage__store_data",
@@ -46,7 +44,6 @@ STORAGE_SUB_PHASES = [
 ]
 
 STORAGE_SUB_PHASE_COLORS = {
-    "storage__write_files": STORAGE_WRITE_FILES_COLOR,
     "storage__upload_data": STORAGE_UPLOAD_DATA_COLOR,
     "storage__upload_prov": STORAGE_UPLOAD_PROV_COLOR,
     "storage__store_data": STORAGE_STORE_DATA_COLOR,
@@ -56,7 +53,6 @@ STORAGE_SUB_PHASE_COLORS = {
 }
 
 STORAGE_SUB_PHASE_LABELS = {
-    "storage__write_files": "Write files",
     "storage__upload_data": "Upload data",
     "storage__upload_prov": "Upload prov",
     "storage__store_data": "Store data",

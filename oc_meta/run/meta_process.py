@@ -384,53 +384,52 @@ class MetaProcess:
             os.makedirs(data_nquads_dir, exist_ok=True)
             os.makedirs(prov_nquads_dir, exist_ok=True)
 
-        with timer.timer("storage__write_files"):
-            if use_bulk_load:
-                with timer.timer("storage__upload_data"):
-                    res_storer.upload_all(
-                        triplestore_url=self.triplestore_url,
-                        base_dir=self.data_update_dir,
-                        batch_size=10,
-                        prepare_bulk_load=True,
-                        bulk_load_dir=data_nquads_dir
-                    )
-                with timer.timer("storage__upload_prov"):
-                    prov_storer.upload_all(
-                        triplestore_url=self.provenance_triplestore_url,
-                        base_dir=self.prov_update_dir,
-                        batch_size=10,
-                        prepare_bulk_load=True,
-                        bulk_load_dir=prov_nquads_dir
-                    )
-            else:
-                with timer.timer("storage__upload_data"):
-                    res_storer.upload_all(
-                        triplestore_url=self.triplestore_url,
-                        base_dir=self.data_update_dir,
-                        batch_size=10,
-                        save_queries=True
-                    )
-                with timer.timer("storage__upload_prov"):
-                    prov_storer.upload_all(
-                        triplestore_url=self.provenance_triplestore_url,
-                        base_dir=self.prov_update_dir,
-                        batch_size=10,
-                        save_queries=True
-                    )
+        if use_bulk_load:
+            with timer.timer("storage__upload_data"):
+                res_storer.upload_all(
+                    triplestore_url=self.triplestore_url,
+                    base_dir=self.data_update_dir,
+                    batch_size=10,
+                    prepare_bulk_load=True,
+                    bulk_load_dir=data_nquads_dir
+                )
+            with timer.timer("storage__upload_prov"):
+                prov_storer.upload_all(
+                    triplestore_url=self.provenance_triplestore_url,
+                    base_dir=self.prov_update_dir,
+                    batch_size=10,
+                    prepare_bulk_load=True,
+                    bulk_load_dir=prov_nquads_dir
+                )
+        else:
+            with timer.timer("storage__upload_data"):
+                res_storer.upload_all(
+                    triplestore_url=self.triplestore_url,
+                    base_dir=self.data_update_dir,
+                    batch_size=10,
+                    save_queries=True
+                )
+            with timer.timer("storage__upload_prov"):
+                prov_storer.upload_all(
+                    triplestore_url=self.provenance_triplestore_url,
+                    base_dir=self.prov_update_dir,
+                    batch_size=10,
+                    save_queries=True
+                )
 
-            if self.generate_rdf_files:
-                with timer.timer("storage__store_data"):
-                    res_storer.store_all(
-                        base_dir=self.output_rdf_dir,
-                        base_iri=self.base_iri,
-                        context_path=self.context_path
-                    )
-                with timer.timer("storage__store_prov"):
-                    prov_storer.store_all(
-                        base_dir=self.output_rdf_dir,
-                        base_iri=self.base_iri,
-                        context_path=self.context_path
-                    )
+        if self.generate_rdf_files:
+            with timer.timer("storage__store_data"):
+                res_storer.store_all(
+                    base_dir=self.output_rdf_dir,
+                    base_iri=self.base_iri,
+                    context_path=self.context_path
+                )
+            with timer.timer("storage__store_prov"):
+                prov_storer.store_all(
+                    base_dir=self.output_rdf_dir,
+                    base_iri=self.base_iri,
+                    context_path=self.context_path
+                )
 
         with timer.timer("storage__sparql_upload"):
             self._upload_sparql_queries()
