@@ -19,12 +19,12 @@ CURATION_REST_COLOR = '#FFE066'
 RDF_CREATION_COLOR = '#C73E1D'
 STORAGE_COLOR = '#6A994E'
 
-STORAGE_UPLOAD_DATA_COLOR = '#2A9D8F'
-STORAGE_UPLOAD_PROV_COLOR = '#E9C46A'
-STORAGE_STORE_DATA_COLOR = '#F4A261'
-STORAGE_STORE_PROV_COLOR = '#E76F51'
-STORAGE_SPARQL_COLOR = '#8338EC'
-STORAGE_BULK_COLOR = '#06D6A0'
+STORAGE_WRITE_QUERIES_DATA_COLOR = '#3498DB'
+STORAGE_WRITE_QUERIES_PROV_COLOR = '#9B59B6'
+STORAGE_STORE_DATA_COLOR = '#E67E22'
+STORAGE_STORE_PROV_COLOR = '#E74C3C'
+STORAGE_SPARQL_COLOR = '#1ABC9C'
+STORAGE_BULK_COLOR = '#2ECC71'
 
 CURATION_REST_PHASES = [
     "curation__clean_id",
@@ -35,8 +35,8 @@ CURATION_REST_PHASES = [
 ]
 
 STORAGE_SUB_PHASES = [
-    "storage__upload_data",
-    "storage__upload_prov",
+    "storage__write_queries_data",
+    "storage__write_queries_prov",
     "storage__store_data",
     "storage__store_prov",
     "storage__sparql_upload",
@@ -44,8 +44,8 @@ STORAGE_SUB_PHASES = [
 ]
 
 STORAGE_SUB_PHASE_COLORS = {
-    "storage__upload_data": STORAGE_UPLOAD_DATA_COLOR,
-    "storage__upload_prov": STORAGE_UPLOAD_PROV_COLOR,
+    "storage__write_queries_data": STORAGE_WRITE_QUERIES_DATA_COLOR,
+    "storage__write_queries_prov": STORAGE_WRITE_QUERIES_PROV_COLOR,
     "storage__store_data": STORAGE_STORE_DATA_COLOR,
     "storage__store_prov": STORAGE_STORE_PROV_COLOR,
     "storage__sparql_upload": STORAGE_SPARQL_COLOR,
@@ -53,8 +53,8 @@ STORAGE_SUB_PHASE_COLORS = {
 }
 
 STORAGE_SUB_PHASE_LABELS = {
-    "storage__upload_data": "Upload data",
-    "storage__upload_prov": "Upload prov",
+    "storage__write_queries_data": "Write queries data",
+    "storage__write_queries_prov": "Write queries prov",
     "storage__store_data": "Store data",
     "storage__store_prov": "Store prov",
     "storage__sparql_upload": "SPARQL upload",

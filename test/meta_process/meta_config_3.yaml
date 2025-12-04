@@ -78,7 +78,7 @@ redis_port: 6381
 redis_db: 5
 
 virtuoso_bulk_load:
-  enabled: true
+  enabled: false
   data_container: "oc-meta-test-virtuoso"
   prov_container: "oc-meta-test-virtuoso-prov"
   data_mount_dir: "test/test_virtuoso_db/bulk_load"

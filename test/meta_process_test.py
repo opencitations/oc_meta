@@ -230,6 +230,7 @@ class test_ProcessTest(unittest.TestCase):
         self.assertEqual(output, expected_output)
 
     def test_provenance(self):
+        # Bulk load disabled in meta_config_3.yaml
         output_folder = os.path.join(BASE_DIR, "output_3")
         now = datetime.now()
         if os.path.exists(output_folder):
