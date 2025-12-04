@@ -168,7 +168,6 @@ class TestOnTriplestore(unittest.TestCase):
         upload_sparql_updates(
             SERVER,
             sparql_dir,
-            batch_size=10,
             failed_file=self.failed_file,
             stop_file=self.stop_file,
             cache_manager=CacheManager(redis_port=6381, redis_db=TEST_REDIS_DB),
@@ -200,7 +199,6 @@ class TestOnTriplestore(unittest.TestCase):
         upload_sparql_updates(
             SERVER,
             sparql_dir,
-            batch_size=10,
             failed_file=self.failed_file,
             stop_file=self.stop_file,
             cache_manager=cache_manager,

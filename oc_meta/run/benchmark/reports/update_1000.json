@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-12-04T17:42:43.456214",
+  "timestamp": "2025-12-04T18:55:42.146035",
   "config_path": "oc_meta/run/benchmark/benchmark_config.yaml",
   "scenario": "update",
   "config": {
@@ -15,252 +15,182 @@
       "preexisting_entities_count": 0,
       "entities_created": 9048,
       "modified_entities": 9048,
-      "total_duration_seconds": 21.7,
-      "throughput_records_per_sec": 46.08
+      "total_duration_seconds": 19.461,
+      "throughput_records_per_sec": 51.38
     },
     "phases": [
       {
         "name": "total_processing",
-        "duration_seconds": 21.7,
-        "start_memory_mb": 152.24,
-        "end_memory_mb": 764.46,
-        "peak_memory_mb": 764.46
+        "duration_seconds": 19.461,
+        "start_memory_mb": 152.12,
+        "end_memory_mb": 623.47,
+        "peak_memory_mb": 623.47
       },
       {
         "name": "curation__collect_identifiers",
-        "duration_seconds": 1.042,
-        "start_memory_mb": 153.02,
-        "end_memory_mb": 154.62,
-        "peak_memory_mb": 154.62
+        "duration_seconds": 0.985,
+        "start_memory_mb": 152.9,
+        "end_memory_mb": 154.49,
+        "peak_memory_mb": 154.49
       },
       {
         "name": "curation__clean_id",
-        "duration_seconds": 0.462,
-        "start_memory_mb": 154.62,
-        "end_memory_mb": 156.27,
-        "peak_memory_mb": 156.27
+        "duration_seconds": 0.454,
+        "start_memory_mb": 154.49,
+        "end_memory_mb": 156.15,
+        "peak_memory_mb": 156.15
       },
       {
         "name": "curation__merge_duplicates",
-        "duration_seconds": 0.03,
-        "start_memory_mb": 156.27,
-        "end_memory_mb": 156.45,
-        "peak_memory_mb": 156.45
+        "duration_seconds": 0.031,
+        "start_memory_mb": 156.15,
+        "end_memory_mb": 156.33,
+        "peak_memory_mb": 156.33
       },
       {
         "name": "curation__clean_vvi",
         "duration_seconds": 0.038,
-        "start_memory_mb": 156.45,
-        "end_memory_mb": 156.53,
-        "peak_memory_mb": 156.53
+        "start_memory_mb": 156.33,
+        "end_memory_mb": 156.41,
+        "peak_memory_mb": 156.41
       },
       {
         "name": "curation__clean_ra",
-        "duration_seconds": 0.264,
-        "start_memory_mb": 156.53,
-        "end_memory_mb": 158.58,
-        "peak_memory_mb": 158.58
+        "duration_seconds": 0.345,
+        "start_memory_mb": 156.41,
+        "end_memory_mb": 158.46,
+        "peak_memory_mb": 158.46
       },
       {
         "name": "curation__finalize",
-        "duration_seconds": 0.346,
-        "start_memory_mb": 158.58,
-        "end_memory_mb": 160.22,
-        "peak_memory_mb": 160.22
+        "duration_seconds": 0.352,
+        "start_memory_mb": 158.46,
+        "end_memory_mb": 160.1,
+        "peak_memory_mb": 160.1
       },
       {
         "name": "rdf_creation",
-        "duration_seconds": 6.049,
-        "start_memory_mb": 160.22,
-        "end_memory_mb": 624.11,
-        "peak_memory_mb": 624.11
+        "duration_seconds": 6.609,
+        "start_memory_mb": 160.1,
+        "end_memory_mb": 623.98,
+        "peak_memory_mb": 623.98
       },
       {
         "name": "creator_execution",
-        "duration_seconds": 3.163,
-        "start_memory_mb": 160.22,
-        "end_memory_mb": 417.27,
-        "peak_memory_mb": 417.27
+        "duration_seconds": 3.337,
+        "start_memory_mb": 160.1,
+        "end_memory_mb": 417.15,
+        "peak_memory_mb": 417.15
       },
       {
         "name": "provenance_generation",
-        "duration_seconds": 2.886,
-        "start_memory_mb": 417.28,
-        "end_memory_mb": 624.11,
-        "peak_memory_mb": 624.11
+        "duration_seconds": 3.272,
+        "start_memory_mb": 417.15,
+        "end_memory_mb": 623.98,
+        "peak_memory_mb": 623.98
       },
       {
-        "name": "storage__write_queries_data",
-        "duration_seconds": 0.445,
-        "start_memory_mb": 624.11,
-        "end_memory_mb": 626.7,
-        "peak_memory_mb": 626.7
-      },
-      {
-        "name": "storage__write_queries_prov",
-        "duration_seconds": 0.229,
-        "start_memory_mb": 626.7,
-        "end_memory_mb": 626.79,
-        "peak_memory_mb": 626.79
-      },
-      {
-        "name": "storage__store_data",
-        "duration_seconds": 0.825,
-        "start_memory_mb": 626.79,
-        "end_memory_mb": 683.78,
-        "peak_memory_mb": 683.78
-      },
-      {
-        "name": "storage__store_prov",
-        "duration_seconds": 2.495,
-        "start_memory_mb": 683.78,
-        "end_memory_mb": 764.98,
-        "peak_memory_mb": 764.98
-      },
-      {
-        "name": "storage__sparql_upload",
-        "duration_seconds": 9.469,
-        "start_memory_mb": 764.98,
-        "end_memory_mb": 764.46,
-        "peak_memory_mb": 764.98
-      },
-      {
-        "name": "storage__bulk_load",
-        "duration_seconds": null,
-        "start_memory_mb": null,
-        "end_memory_mb": null,
-        "peak_memory_mb": null
+        "name": "storage",
+        "duration_seconds": 10.641,
+        "start_memory_mb": 623.98,
+        "end_memory_mb": 623.47,
+        "peak_memory_mb": 623.98
       }
     ],
-    "timestamp": "2025-12-04T17:42:17.240209",
+    "timestamp": "2025-12-04T18:55:20.516515",
     "config_path": "oc_meta/run/benchmark/benchmark_config.yaml"
   },
   "update": {
     "metrics": {
       "input_records": 1000,
       "curated_records": 1000,
-      "local_g_triples": 6725,
+      "local_g_triples": 6721,
       "preexisting_entities_count": 2700,
       "entities_created": 9772,
-      "modified_entities": 9572,
-      "total_duration_seconds": 26.196,
-      "throughput_records_per_sec": 38.17
+      "modified_entities": 9571,
+      "total_duration_seconds": 21.609,
+      "throughput_records_per_sec": 46.28
     },
     "phases": [
       {
         "name": "total_processing",
-        "duration_seconds": 26.196,
-        "start_memory_mb": 764.47,
-        "end_memory_mb": 780.54,
-        "peak_memory_mb": 780.54
+        "duration_seconds": 21.609,
+        "start_memory_mb": 623.7,
+        "end_memory_mb": 695.48,
+        "peak_memory_mb": 695.48
       },
       {
         "name": "curation__collect_identifiers",
-        "duration_seconds": 3.078,
-        "start_memory_mb": 764.47,
-        "end_memory_mb": 480.36,
-        "peak_memory_mb": 764.47
+        "duration_seconds": 2.21,
+        "start_memory_mb": 623.79,
+        "end_memory_mb": 649.99,
+        "peak_memory_mb": 649.99
       },
       {
         "name": "curation__clean_id",
-        "duration_seconds": 0.521,
-        "start_memory_mb": 480.36,
-        "end_memory_mb": 480.36,
-        "peak_memory_mb": 480.36
+        "duration_seconds": 0.513,
+        "start_memory_mb": 649.99,
+        "end_memory_mb": 650.01,
+        "peak_memory_mb": 650.01
       },
       {
         "name": "curation__merge_duplicates",
-        "duration_seconds": 0.074,
-        "start_memory_mb": 480.36,
-        "end_memory_mb": 465.39,
-        "peak_memory_mb": 480.36
+        "duration_seconds": 0.072,
+        "start_memory_mb": 650.01,
+        "end_memory_mb": 650.02,
+        "peak_memory_mb": 650.02
       },
       {
         "name": "curation__clean_vvi",
-        "duration_seconds": 0.094,
-        "start_memory_mb": 465.39,
-        "end_memory_mb": 465.39,
-        "peak_memory_mb": 465.39
+        "duration_seconds": 0.092,
+        "start_memory_mb": 650.02,
+        "end_memory_mb": 650.02,
+        "peak_memory_mb": 650.02
       },
       {
         "name": "curation__clean_ra",
-        "duration_seconds": 0.234,
-        "start_memory_mb": 465.39,
-        "end_memory_mb": 465.39,
-        "peak_memory_mb": 465.39
+        "duration_seconds": 0.225,
+        "start_memory_mb": 650.02,
+        "end_memory_mb": 650.19,
+        "peak_memory_mb": 650.19
       },
       {
         "name": "curation__finalize",
-        "duration_seconds": 0.462,
-        "start_memory_mb": 465.39,
-        "end_memory_mb": 463.41,
-        "peak_memory_mb": 465.39
+        "duration_seconds": 0.454,
+        "start_memory_mb": 650.19,
+        "end_memory_mb": 651.0,
+        "peak_memory_mb": 651.0
       },
       {
         "name": "rdf_creation",
-        "duration_seconds": 6.33,
-        "start_memory_mb": 462.43,
-        "end_memory_mb": 705.16,
-        "peak_memory_mb": 705.16
+        "duration_seconds": 7.206,
+        "start_memory_mb": 651.0,
+        "end_memory_mb": 695.47,
+        "peak_memory_mb": 695.47
       },
       {
         "name": "creator_execution",
-        "duration_seconds": 3.328,
-        "start_memory_mb": 462.43,
-        "end_memory_mb": 508.54,
-        "peak_memory_mb": 508.54
+        "duration_seconds": 4.188,
+        "start_memory_mb": 651.0,
+        "end_memory_mb": 498.87,
+        "peak_memory_mb": 651.0
       },
       {
         "name": "provenance_generation",
-        "duration_seconds": 3.001,
-        "start_memory_mb": 508.54,
-        "end_memory_mb": 705.16,
-        "peak_memory_mb": 705.16
+        "duration_seconds": 3.018,
+        "start_memory_mb": 498.87,
+        "end_memory_mb": 695.47,
+        "peak_memory_mb": 695.47
       },
       {
-        "name": "storage__write_queries_data",
-        "duration_seconds": 0.447,
-        "start_memory_mb": 705.16,
-        "end_memory_mb": 707.69,
-        "peak_memory_mb": 707.69
-      },
-      {
-        "name": "storage__write_queries_prov",
-        "duration_seconds": 0.231,
-        "start_memory_mb": 707.69,
-        "end_memory_mb": 707.79,
-        "peak_memory_mb": 707.79
-      },
-      {
-        "name": "storage__store_data",
-        "duration_seconds": 1.514,
-        "start_memory_mb": 707.79,
-        "end_memory_mb": 738.46,
-        "peak_memory_mb": 738.46
-      },
-      {
-        "name": "storage__store_prov",
-        "duration_seconds": 3.137,
-        "start_memory_mb": 738.46,
-        "end_memory_mb": 780.54,
-        "peak_memory_mb": 780.54
-      },
-      {
-        "name": "storage__sparql_upload",
-        "duration_seconds": 10.07,
-        "start_memory_mb": 780.54,
-        "end_memory_mb": 780.54,
-        "peak_memory_mb": 780.54
-      },
-      {
-        "name": "storage__bulk_load",
-        "duration_seconds": null,
-        "start_memory_mb": null,
-        "end_memory_mb": null,
-        "peak_memory_mb": null
+        "name": "storage",
+        "duration_seconds": 10.831,
+        "start_memory_mb": 695.47,
+        "end_memory_mb": 695.48,
+        "peak_memory_mb": 695.48
       }
     ],
-    "timestamp": "2025-12-04T17:42:43.455905",
+    "timestamp": "2025-12-04T18:55:42.145633",
     "config_path": "oc_meta/run/benchmark/benchmark_config.yaml"
   },
   "runs": [
@@ -268,136 +198,101 @@
       "metrics": {
         "input_records": 1000,
         "curated_records": 1000,
-        "local_g_triples": 6725,
+        "local_g_triples": 6721,
         "preexisting_entities_count": 2700,
         "entities_created": 9772,
-        "modified_entities": 9572,
-        "total_duration_seconds": 26.196,
-        "throughput_records_per_sec": 38.17
+        "modified_entities": 9571,
+        "total_duration_seconds": 21.609,
+        "throughput_records_per_sec": 46.28
       },
       "phases": [
         {
           "name": "total_processing",
-          "duration_seconds": 26.196,
-          "start_memory_mb": 764.47,
-          "end_memory_mb": 780.54,
-          "peak_memory_mb": 780.54
+          "duration_seconds": 21.609,
+          "start_memory_mb": 623.7,
+          "end_memory_mb": 695.48,
+          "peak_memory_mb": 695.48
         },
         {
           "name": "curation__collect_identifiers",
-          "duration_seconds": 3.078,
-          "start_memory_mb": 764.47,
-          "end_memory_mb": 480.36,
-          "peak_memory_mb": 764.47
+          "duration_seconds": 2.21,
+          "start_memory_mb": 623.79,
+          "end_memory_mb": 649.99,
+          "peak_memory_mb": 649.99
         },
         {
           "name": "curation__clean_id",
-          "duration_seconds": 0.521,
-          "start_memory_mb": 480.36,
-          "end_memory_mb": 480.36,
-          "peak_memory_mb": 480.36
+          "duration_seconds": 0.513,
+          "start_memory_mb": 649.99,
+          "end_memory_mb": 650.01,
+          "peak_memory_mb": 650.01
         },
         {
           "name": "curation__merge_duplicates",
-          "duration_seconds": 0.074,
-          "start_memory_mb": 480.36,
-          "end_memory_mb": 465.39,
-          "peak_memory_mb": 480.36
+          "duration_seconds": 0.072,
+          "start_memory_mb": 650.01,
+          "end_memory_mb": 650.02,
+          "peak_memory_mb": 650.02
         },
         {
           "name": "curation__clean_vvi",
-          "duration_seconds": 0.094,
-          "start_memory_mb": 465.39,
-          "end_memory_mb": 465.39,
-          "peak_memory_mb": 465.39
+          "duration_seconds": 0.092,
+          "start_memory_mb": 650.02,
+          "end_memory_mb": 650.02,
+          "peak_memory_mb": 650.02
         },
         {
           "name": "curation__clean_ra",
-          "duration_seconds": 0.234,
-          "start_memory_mb": 465.39,
-          "end_memory_mb": 465.39,
-          "peak_memory_mb": 465.39
+          "duration_seconds": 0.225,
+          "start_memory_mb": 650.02,
+          "end_memory_mb": 650.19,
+          "peak_memory_mb": 650.19
         },
         {
           "name": "curation__finalize",
-          "duration_seconds": 0.462,
-          "start_memory_mb": 465.39,
-          "end_memory_mb": 463.41,
-          "peak_memory_mb": 465.39
+          "duration_seconds": 0.454,
+          "start_memory_mb": 650.19,
+          "end_memory_mb": 651.0,
+          "peak_memory_mb": 651.0
         },
         {
           "name": "rdf_creation",
-          "duration_seconds": 6.33,
-          "start_memory_mb": 462.43,
-          "end_memory_mb": 705.16,
-          "peak_memory_mb": 705.16
+          "duration_seconds": 7.206,
+          "start_memory_mb": 651.0,
+          "end_memory_mb": 695.47,
+          "peak_memory_mb": 695.47
         },
         {
           "name": "creator_execution",
-          "duration_seconds": 3.328,
-          "start_memory_mb": 462.43,
-          "end_memory_mb": 508.54,
-          "peak_memory_mb": 508.54
+          "duration_seconds": 4.188,
+          "start_memory_mb": 651.0,
+          "end_memory_mb": 498.87,
+          "peak_memory_mb": 651.0
         },
         {
           "name": "provenance_generation",
-          "duration_seconds": 3.001,
-          "start_memory_mb": 508.54,
-          "end_memory_mb": 705.16,
-          "peak_memory_mb": 705.16
+          "duration_seconds": 3.018,
+          "start_memory_mb": 498.87,
+          "end_memory_mb": 695.47,
+          "peak_memory_mb": 695.47
         },
         {
-          "name": "storage__write_queries_data",
-          "duration_seconds": 0.447,
-          "start_memory_mb": 705.16,
-          "end_memory_mb": 707.69,
-          "peak_memory_mb": 707.69
-        },
-        {
-          "name": "storage__write_queries_prov",
-          "duration_seconds": 0.231,
-          "start_memory_mb": 707.69,
-          "end_memory_mb": 707.79,
-          "peak_memory_mb": 707.79
-        },
-        {
-          "name": "storage__store_data",
-          "duration_seconds": 1.514,
-          "start_memory_mb": 707.79,
-          "end_memory_mb": 738.46,
-          "peak_memory_mb": 738.46
-        },
-        {
-          "name": "storage__store_prov",
-          "duration_seconds": 3.137,
-          "start_memory_mb": 738.46,
-          "end_memory_mb": 780.54,
-          "peak_memory_mb": 780.54
-        },
-        {
-          "name": "storage__sparql_upload",
-          "duration_seconds": 10.07,
-          "start_memory_mb": 780.54,
-          "end_memory_mb": 780.54,
-          "peak_memory_mb": 780.54
-        },
-        {
-          "name": "storage__bulk_load",
-          "duration_seconds": null,
-          "start_memory_mb": null,
-          "end_memory_mb": null,
-          "peak_memory_mb": null
+          "name": "storage",
+          "duration_seconds": 10.831,
+          "start_memory_mb": 695.47,
+          "end_memory_mb": 695.48,
+          "peak_memory_mb": 695.48
         }
       ],
-      "timestamp": "2025-12-04T17:42:43.455905",
+      "timestamp": "2025-12-04T18:55:42.145633",
       "config_path": "oc_meta/run/benchmark/benchmark_config.yaml"
     }
   ],
   "statistics": {},
   "summary": {
-    "preload_total_seconds": 21.7,
+    "preload_total_seconds": 19.461,
     "preload_preparation_seconds": 0.0,
-    "update_total_seconds": 26.196,
+    "update_total_seconds": 21.609,
     "update_preparation_seconds": 0.0,
     "preparation_slowdown_factor": null
   }

@@ -34,11 +34,11 @@ def remove_stop_file(stop_file):
 def upload_sparql_updates(
     endpoint,
     folder,
-    batch_size,
     failed_file="failed_queries.txt",
     stop_file=".stop_upload",
     cache_manager=None,
     description="Processing files",
+    show_progress=True,
 ):
     """
     Upload SPARQL updates to the triplestore.
@@ -46,7 +46,6 @@ def upload_sparql_updates(
     Args:
         endpoint: URL of the SPARQL endpoint
         folder: Folder containing SPARQL files to process
-        batch_size: Number of triples to include in each batch
         failed_file: File to record failed queries
         stop_file: File to stop the process
         cache_manager: CacheManager instance. If None, a new one will be created.
@@ -56,7 +55,6 @@ def upload_sparql_updates(
 
     if cache_manager is None:
         cache_manager = CacheManager()
-    failed_files = []
 
     all_files = [f for f in os.listdir(folder) if f.endswith(".sparql")]
     files_to_process = [f for f in all_files if f not in cache_manager]
@@ -64,7 +62,8 @@ def upload_sparql_updates(
     if not files_to_process:
         return
 
-    for file in tqdm(files_to_process, desc=description):
+    iterator = tqdm(files_to_process, desc=description) if show_progress else files_to_process
+    for file in iterator:
         if os.path.exists(stop_file):
             print(f"\nStop file {stop_file} detected. Interrupting the process...")
             break
@@ -96,12 +95,6 @@ def main():
         help="Path to the folder containing SPARQL update query files",
     )
     parser.add_argument(
-        "--batch_size",
-        type=int,
-        default=10,
-        help="Number of quadruples to include in a batch (default: 10)",
-    )
-    parser.add_argument(
         "--failed_file",
         type=str,
         default="failed_queries.txt",
@@ -118,7 +111,6 @@ def main():
     upload_sparql_updates(
         args.endpoint,
         args.folder,
-        args.batch_size,
         args.failed_file,
         args.stop_file,
     )

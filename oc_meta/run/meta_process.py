@@ -66,11 +66,11 @@ def _upload_to_triplestore(endpoint: str, folder: str, redis_host: str, redis_po
     upload_sparql_updates(
         endpoint=endpoint,
         folder=folder,
-        batch_size=10,
         failed_file=failed_file,
         stop_file=stop_file,
         cache_manager=cache_manager,
         description=description,
+        show_progress=False,
     )
 
 
@@ -96,6 +96,26 @@ def _run_bulk_load_process(args: tuple) -> None:
         )
     except RuntimeError as e:
         raise BulkLoadError(f"Bulk load failed for container {container_name}: {e}") from e
+
+
+def _generate_queries_worker(storer: Storer, triplestore_url, base_dir, save_queries, prepare_bulk_load, bulk_load_dir):
+    storer.upload_all(
+        triplestore_url=triplestore_url,
+        base_dir=base_dir,
+        batch_size=10,
+        save_queries=save_queries,
+        prepare_bulk_load=prepare_bulk_load,
+        bulk_load_dir=bulk_load_dir
+    )
+
+
+def _store_rdf_worker(storer: Storer, base_dir, base_iri, context_path):
+    storer.store_all(
+        base_dir=base_dir,
+        base_iri=base_iri,
+        context_path=context_path
+    )
+
 
 class MetaProcess:
     def __init__(self, settings: dict, meta_config_path: str, timer: Optional[ProcessTimer] = None):
@@ -391,7 +411,7 @@ class MetaProcess:
     def _store_and_upload(
         self, res_storer: Storer, prov_storer: Storer, timer: ProcessTimer, bulk_config: dict = None
     ) -> None:
-        """Store RDF files and upload queries to triplestore."""
+        """Store RDF files and upload queries to triplestore with parallel execution."""
         use_bulk_load = bulk_config is not None
 
         if use_bulk_load:
@@ -399,68 +419,54 @@ class MetaProcess:
             prov_nquads_dir = os.path.abspath(bulk_config["prov_mount_dir"])
             os.makedirs(data_nquads_dir, exist_ok=True)
             os.makedirs(prov_nquads_dir, exist_ok=True)
-
-        if use_bulk_load:
-            with timer.timer("storage__write_queries_data"):
-                res_storer.upload_all(
-                    triplestore_url=self.triplestore_url,
-                    base_dir=self.data_update_dir,
-                    batch_size=10,
-                    prepare_bulk_load=True,
-                    bulk_load_dir=data_nquads_dir
-                )
-            with timer.timer("storage__write_queries_prov"):
-                prov_storer.upload_all(
-                    triplestore_url=self.provenance_triplestore_url,
-                    base_dir=self.prov_update_dir,
-                    batch_size=10,
-                    prepare_bulk_load=True,
-                    bulk_load_dir=prov_nquads_dir
-                )
         else:
-            with timer.timer("storage__write_queries_data"):
-                res_storer.upload_all(
-                    triplestore_url=self.triplestore_url,
-                    base_dir=self.data_update_dir,
-                    batch_size=10,
-                    save_queries=True
-                )
-            with timer.timer("storage__write_queries_prov"):
-                prov_storer.upload_all(
-                    triplestore_url=self.provenance_triplestore_url,
-                    base_dir=self.prov_update_dir,
-                    batch_size=10,
-                    save_queries=True
-                )
+            data_nquads_dir = None
+            prov_nquads_dir = None
 
-        if self.generate_rdf_files:
-            with timer.timer("storage__store_data"):
-                res_storer.store_all(
-                    base_dir=self.output_rdf_dir,
-                    base_iri=self.base_iri,
-                    context_path=self.context_path
-                )
-            with timer.timer("storage__store_prov"):
-                prov_storer.store_all(
-                    base_dir=self.output_rdf_dir,
-                    base_iri=self.base_iri,
-                    context_path=self.context_path
-                )
+        with timer.timer("storage"):
+            ctx = multiprocessing.get_context('fork')
+            rdf_store_processes = []
 
-        with timer.timer("storage__sparql_upload"):
+            if self.generate_rdf_files:
+                data_store_process = ctx.Process(
+                    target=_store_rdf_worker,
+                    args=(res_storer, self.output_rdf_dir, self.base_iri, self.context_path)
+                )
+                prov_store_process = ctx.Process(
+                    target=_store_rdf_worker,
+                    args=(prov_storer, self.output_rdf_dir, self.base_iri, self.context_path)
+                )
+                rdf_store_processes = [data_store_process, prov_store_process]
+                for p in rdf_store_processes:
+                    p.start()
+
+            data_query_process = ctx.Process(
+                target=_generate_queries_worker,
+                args=(res_storer, self.triplestore_url, self.data_update_dir,
+                      not use_bulk_load, use_bulk_load, data_nquads_dir)
+            )
+            prov_query_process = ctx.Process(
+                target=_generate_queries_worker,
+                args=(prov_storer, self.provenance_triplestore_url, self.prov_update_dir,
+                      not use_bulk_load, use_bulk_load, prov_nquads_dir)
+            )
+            data_query_process.start()
+            prov_query_process.start()
+            data_query_process.join()
+            prov_query_process.join()
+
             self._upload_sparql_queries()
 
-        if use_bulk_load:
-            with timer.timer("storage__bulk_load"):
+            if use_bulk_load:
                 _run_bulk_load_process((bulk_config["data_container"], bulk_config["bulk_load_dir"], data_nquads_dir))
                 _run_bulk_load_process((bulk_config["prov_container"], bulk_config["bulk_load_dir"], prov_nquads_dir))
-
                 for nq_file in glob.glob(os.path.join(data_nquads_dir, "*.nq.gz")):
                     os.remove(nq_file)
                 for nq_file in glob.glob(os.path.join(prov_nquads_dir, "*.nq.gz")):
                     os.remove(nq_file)
-        else:
-            timer.record_phase("storage__bulk_load", 0.0)
+
+            for p in rdf_store_processes:
+                p.join()
 
     def run_sparql_updates(self, endpoint: str, folder: str):
         cache_manager = CacheManager(
@@ -471,7 +477,6 @@ class MetaProcess:
         upload_sparql_updates(
             endpoint=endpoint,
             folder=folder,
-            batch_size=batch_size,
             failed_file=self.ts_failed_queries,
             stop_file=self.ts_stop_file,
             cache_manager=cache_manager,
