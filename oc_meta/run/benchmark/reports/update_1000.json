@@ -1,11 +1,11 @@
 {
-  "timestamp": "2025-11-29T17:18:27.421032",
-  "config_path": "/home/arcangelo/Documents/oc_meta/oc_meta/run/benchmark/benchmark_config.yaml",
+  "timestamp": "2025-12-04T17:42:43.456214",
+  "config_path": "oc_meta/run/benchmark/benchmark_config.yaml",
   "scenario": "update",
   "config": {
     "size": 1000,
     "seed": 42,
-    "runs": 10
+    "runs": 1
   },
   "preload": {
     "metrics": {
@@ -15,2012 +15,390 @@
       "preexisting_entities_count": 0,
       "entities_created": 9048,
       "modified_entities": 9048,
-      "total_duration_seconds": 22.256,
-      "throughput_records_per_sec": 44.93
+      "total_duration_seconds": 21.7,
+      "throughput_records_per_sec": 46.08
     },
     "phases": [
       {
         "name": "total_processing",
-        "duration_seconds": 22.256,
-        "start_memory_mb": 883.7,
-        "end_memory_mb": 881.73,
-        "peak_memory_mb": 883.7
+        "duration_seconds": 21.7,
+        "start_memory_mb": 152.24,
+        "end_memory_mb": 764.46,
+        "peak_memory_mb": 764.46
       },
       {
         "name": "curation__collect_identifiers",
-        "duration_seconds": 1.184,
-        "start_memory_mb": 883.7,
-        "end_memory_mb": 883.7,
-        "peak_memory_mb": 883.7
+        "duration_seconds": 1.042,
+        "start_memory_mb": 153.02,
+        "end_memory_mb": 154.62,
+        "peak_memory_mb": 154.62
       },
       {
         "name": "curation__clean_id",
-        "duration_seconds": 0.489,
-        "start_memory_mb": 883.7,
-        "end_memory_mb": 883.7,
-        "peak_memory_mb": 883.7
+        "duration_seconds": 0.462,
+        "start_memory_mb": 154.62,
+        "end_memory_mb": 156.27,
+        "peak_memory_mb": 156.27
       },
       {
         "name": "curation__merge_duplicates",
-        "duration_seconds": 0.032,
-        "start_memory_mb": 883.7,
-        "end_memory_mb": 883.7,
-        "peak_memory_mb": 883.7
+        "duration_seconds": 0.03,
+        "start_memory_mb": 156.27,
+        "end_memory_mb": 156.45,
+        "peak_memory_mb": 156.45
       },
       {
         "name": "curation__clean_vvi",
-        "duration_seconds": 0.025,
-        "start_memory_mb": 883.7,
-        "end_memory_mb": 883.7,
-        "peak_memory_mb": 883.7
+        "duration_seconds": 0.038,
+        "start_memory_mb": 156.45,
+        "end_memory_mb": 156.53,
+        "peak_memory_mb": 156.53
       },
       {
         "name": "curation__clean_ra",
-        "duration_seconds": 0.298,
-        "start_memory_mb": 883.7,
-        "end_memory_mb": 883.7,
-        "peak_memory_mb": 883.7
+        "duration_seconds": 0.264,
+        "start_memory_mb": 156.53,
+        "end_memory_mb": 158.58,
+        "peak_memory_mb": 158.58
       },
       {
         "name": "curation__finalize",
-        "duration_seconds": 0.447,
-        "start_memory_mb": 883.7,
-        "end_memory_mb": 883.7,
-        "peak_memory_mb": 883.7
+        "duration_seconds": 0.346,
+        "start_memory_mb": 158.58,
+        "end_memory_mb": 160.22,
+        "peak_memory_mb": 160.22
       },
       {
         "name": "rdf_creation",
-        "duration_seconds": 6.84,
-        "start_memory_mb": 883.7,
-        "end_memory_mb": 881.73,
-        "peak_memory_mb": 883.7
+        "duration_seconds": 6.049,
+        "start_memory_mb": 160.22,
+        "end_memory_mb": 624.11,
+        "peak_memory_mb": 624.11
       },
       {
         "name": "creator_execution",
-        "duration_seconds": 3.925,
-        "start_memory_mb": 883.7,
-        "end_memory_mb": 881.73,
-        "peak_memory_mb": 883.7
+        "duration_seconds": 3.163,
+        "start_memory_mb": 160.22,
+        "end_memory_mb": 417.27,
+        "peak_memory_mb": 417.27
       },
       {
         "name": "provenance_generation",
-        "duration_seconds": 2.915,
-        "start_memory_mb": 881.73,
-        "end_memory_mb": 881.73,
-        "peak_memory_mb": 881.73
+        "duration_seconds": 2.886,
+        "start_memory_mb": 417.28,
+        "end_memory_mb": 624.11,
+        "peak_memory_mb": 624.11
       },
       {
-        "name": "storage__preparation",
-        "duration_seconds": 11.01,
-        "start_memory_mb": 881.73,
-        "end_memory_mb": 881.73,
-        "peak_memory_mb": 881.73
+        "name": "storage__write_queries_data",
+        "duration_seconds": 0.445,
+        "start_memory_mb": 624.11,
+        "end_memory_mb": 626.7,
+        "peak_memory_mb": 626.7
+      },
+      {
+        "name": "storage__write_queries_prov",
+        "duration_seconds": 0.229,
+        "start_memory_mb": 626.7,
+        "end_memory_mb": 626.79,
+        "peak_memory_mb": 626.79
+      },
+      {
+        "name": "storage__store_data",
+        "duration_seconds": 0.825,
+        "start_memory_mb": 626.79,
+        "end_memory_mb": 683.78,
+        "peak_memory_mb": 683.78
+      },
+      {
+        "name": "storage__store_prov",
+        "duration_seconds": 2.495,
+        "start_memory_mb": 683.78,
+        "end_memory_mb": 764.98,
+        "peak_memory_mb": 764.98
       },
       {
         "name": "storage__sparql_upload",
-        "duration_seconds": 0.669,
-        "start_memory_mb": 881.73,
-        "end_memory_mb": 881.73,
-        "peak_memory_mb": 881.73
+        "duration_seconds": 9.469,
+        "start_memory_mb": 764.98,
+        "end_memory_mb": 764.46,
+        "peak_memory_mb": 764.98
       },
       {
         "name": "storage__bulk_load",
-        "duration_seconds": 1.257,
-        "start_memory_mb": 881.73,
-        "end_memory_mb": 881.73,
-        "peak_memory_mb": 881.73
+        "duration_seconds": null,
+        "start_memory_mb": null,
+        "end_memory_mb": null,
+        "peak_memory_mb": null
       }
     ],
-    "timestamp": "2025-11-29T17:18:02.773397",
-    "config_path": "/home/arcangelo/Documents/oc_meta/oc_meta/run/benchmark/benchmark_config.yaml"
+    "timestamp": "2025-12-04T17:42:17.240209",
+    "config_path": "oc_meta/run/benchmark/benchmark_config.yaml"
   },
   "update": {
     "metrics": {
       "input_records": 1000,
       "curated_records": 1000,
-      "local_g_triples": 6721,
+      "local_g_triples": 6725,
       "preexisting_entities_count": 2700,
       "entities_created": 9772,
-      "modified_entities": 9571,
-      "total_duration_seconds": 24.629,
-      "throughput_records_per_sec": 40.6
+      "modified_entities": 9572,
+      "total_duration_seconds": 26.196,
+      "throughput_records_per_sec": 38.17
     },
     "phases": [
       {
         "name": "total_processing",
-        "duration_seconds": 24.629,
-        "start_memory_mb": 881.73,
-        "end_memory_mb": 882.73,
-        "peak_memory_mb": 882.73
+        "duration_seconds": 26.196,
+        "start_memory_mb": 764.47,
+        "end_memory_mb": 780.54,
+        "peak_memory_mb": 780.54
       },
       {
         "name": "curation__collect_identifiers",
-        "duration_seconds": 3.405,
-        "start_memory_mb": 881.73,
-        "end_memory_mb": 863.82,
-        "peak_memory_mb": 881.73
+        "duration_seconds": 3.078,
+        "start_memory_mb": 764.47,
+        "end_memory_mb": 480.36,
+        "peak_memory_mb": 764.47
       },
       {
         "name": "curation__clean_id",
-        "duration_seconds": 0.554,
-        "start_memory_mb": 863.82,
-        "end_memory_mb": 863.82,
-        "peak_memory_mb": 863.82
+        "duration_seconds": 0.521,
+        "start_memory_mb": 480.36,
+        "end_memory_mb": 480.36,
+        "peak_memory_mb": 480.36
       },
       {
         "name": "curation__merge_duplicates",
-        "duration_seconds": 0.075,
-        "start_memory_mb": 863.82,
-        "end_memory_mb": 863.82,
-        "peak_memory_mb": 863.82
+        "duration_seconds": 0.074,
+        "start_memory_mb": 480.36,
+        "end_memory_mb": 465.39,
+        "peak_memory_mb": 480.36
       },
       {
         "name": "curation__clean_vvi",
-        "duration_seconds": 0.096,
-        "start_memory_mb": 863.82,
-        "end_memory_mb": 863.82,
-        "peak_memory_mb": 863.82
+        "duration_seconds": 0.094,
+        "start_memory_mb": 465.39,
+        "end_memory_mb": 465.39,
+        "peak_memory_mb": 465.39
       },
       {
         "name": "curation__clean_ra",
-        "duration_seconds": 0.296,
-        "start_memory_mb": 863.82,
-        "end_memory_mb": 863.82,
-        "peak_memory_mb": 863.82
+        "duration_seconds": 0.234,
+        "start_memory_mb": 465.39,
+        "end_memory_mb": 465.39,
+        "peak_memory_mb": 465.39
       },
       {
         "name": "curation__finalize",
-        "duration_seconds": 0.595,
-        "start_memory_mb": 863.82,
-        "end_memory_mb": 862.82,
-        "peak_memory_mb": 863.82
+        "duration_seconds": 0.462,
+        "start_memory_mb": 465.39,
+        "end_memory_mb": 463.41,
+        "peak_memory_mb": 465.39
       },
       {
         "name": "rdf_creation",
-        "duration_seconds": 7.242,
-        "start_memory_mb": 862.82,
-        "end_memory_mb": 854.9,
-        "peak_memory_mb": 862.82
+        "duration_seconds": 6.33,
+        "start_memory_mb": 462.43,
+        "end_memory_mb": 705.16,
+        "peak_memory_mb": 705.16
       },
       {
         "name": "creator_execution",
-        "duration_seconds": 3.759,
-        "start_memory_mb": 862.82,
-        "end_memory_mb": 854.9,
-        "peak_memory_mb": 862.82
+        "duration_seconds": 3.328,
+        "start_memory_mb": 462.43,
+        "end_memory_mb": 508.54,
+        "peak_memory_mb": 508.54
       },
       {
         "name": "provenance_generation",
-        "duration_seconds": 3.482,
-        "start_memory_mb": 854.9,
-        "end_memory_mb": 854.9,
-        "peak_memory_mb": 854.9
+        "duration_seconds": 3.001,
+        "start_memory_mb": 508.54,
+        "end_memory_mb": 705.16,
+        "peak_memory_mb": 705.16
       },
       {
-        "name": "storage__preparation",
-        "duration_seconds": 10.715,
-        "start_memory_mb": 854.9,
-        "end_memory_mb": 882.73,
-        "peak_memory_mb": 882.73
+        "name": "storage__write_queries_data",
+        "duration_seconds": 0.447,
+        "start_memory_mb": 705.16,
+        "end_memory_mb": 707.69,
+        "peak_memory_mb": 707.69
+      },
+      {
+        "name": "storage__write_queries_prov",
+        "duration_seconds": 0.231,
+        "start_memory_mb": 707.69,
+        "end_memory_mb": 707.79,
+        "peak_memory_mb": 707.79
+      },
+      {
+        "name": "storage__store_data",
+        "duration_seconds": 1.514,
+        "start_memory_mb": 707.79,
+        "end_memory_mb": 738.46,
+        "peak_memory_mb": 738.46
+      },
+      {
+        "name": "storage__store_prov",
+        "duration_seconds": 3.137,
+        "start_memory_mb": 738.46,
+        "end_memory_mb": 780.54,
+        "peak_memory_mb": 780.54
       },
       {
         "name": "storage__sparql_upload",
-        "duration_seconds": 0.531,
-        "start_memory_mb": 882.73,
-        "end_memory_mb": 882.73,
-        "peak_memory_mb": 882.73
+        "duration_seconds": 10.07,
+        "start_memory_mb": 780.54,
+        "end_memory_mb": 780.54,
+        "peak_memory_mb": 780.54
       },
       {
         "name": "storage__bulk_load",
-        "duration_seconds": 1.113,
-        "start_memory_mb": 882.73,
-        "end_memory_mb": 882.73,
-        "peak_memory_mb": 882.73
+        "duration_seconds": null,
+        "start_memory_mb": null,
+        "end_memory_mb": null,
+        "peak_memory_mb": null
       }
     ],
-    "timestamp": "2025-11-29T17:18:27.414317",
-    "config_path": "/home/arcangelo/Documents/oc_meta/oc_meta/run/benchmark/benchmark_config.yaml"
+    "timestamp": "2025-12-04T17:42:43.455905",
+    "config_path": "oc_meta/run/benchmark/benchmark_config.yaml"
   },
   "runs": [
     {
       "metrics": {
         "input_records": 1000,
         "curated_records": 1000,
-        "local_g_triples": 6721,
+        "local_g_triples": 6725,
         "preexisting_entities_count": 2700,
         "entities_created": 9772,
-        "modified_entities": 9571,
-        "total_duration_seconds": 25.099,
-        "throughput_records_per_sec": 39.84
+        "modified_entities": 9572,
+        "total_duration_seconds": 26.196,
+        "throughput_records_per_sec": 38.17
       },
       "phases": [
         {
           "name": "total_processing",
-          "duration_seconds": 25.099,
-          "start_memory_mb": 772.29,
-          "end_memory_mb": 861.83,
-          "peak_memory_mb": 861.83
+          "duration_seconds": 26.196,
+          "start_memory_mb": 764.47,
+          "end_memory_mb": 780.54,
+          "peak_memory_mb": 780.54
         },
         {
           "name": "curation__collect_identifiers",
-          "duration_seconds": 2.904,
-          "start_memory_mb": 772.29,
-          "end_memory_mb": 604.02,
-          "peak_memory_mb": 772.29
+          "duration_seconds": 3.078,
+          "start_memory_mb": 764.47,
+          "end_memory_mb": 480.36,
+          "peak_memory_mb": 764.47
         },
         {
           "name": "curation__clean_id",
-          "duration_seconds": 0.569,
-          "start_memory_mb": 604.02,
-          "end_memory_mb": 604.02,
-          "peak_memory_mb": 604.02
+          "duration_seconds": 0.521,
+          "start_memory_mb": 480.36,
+          "end_memory_mb": 480.36,
+          "peak_memory_mb": 480.36
         },
         {
           "name": "curation__merge_duplicates",
-          "duration_seconds": 0.076,
-          "start_memory_mb": 604.02,
-          "end_memory_mb": 581.08,
-          "peak_memory_mb": 604.02
+          "duration_seconds": 0.074,
+          "start_memory_mb": 480.36,
+          "end_memory_mb": 465.39,
+          "peak_memory_mb": 480.36
         },
         {
           "name": "curation__clean_vvi",
           "duration_seconds": 0.094,
-          "start_memory_mb": 581.08,
-          "end_memory_mb": 581.08,
-          "peak_memory_mb": 581.08
+          "start_memory_mb": 465.39,
+          "end_memory_mb": 465.39,
+          "peak_memory_mb": 465.39
         },
         {
           "name": "curation__clean_ra",
-          "duration_seconds": 0.282,
-          "start_memory_mb": 581.08,
-          "end_memory_mb": 581.08,
-          "peak_memory_mb": 581.08
+          "duration_seconds": 0.234,
+          "start_memory_mb": 465.39,
+          "end_memory_mb": 465.39,
+          "peak_memory_mb": 465.39
         },
         {
           "name": "curation__finalize",
-          "duration_seconds": 0.554,
-          "start_memory_mb": 581.08,
-          "end_memory_mb": 581.09,
-          "peak_memory_mb": 581.09
+          "duration_seconds": 0.462,
+          "start_memory_mb": 465.39,
+          "end_memory_mb": 463.41,
+          "peak_memory_mb": 465.39
         },
         {
           "name": "rdf_creation",
-          "duration_seconds": 7.297,
-          "start_memory_mb": 581.09,
-          "end_memory_mb": 728.56,
-          "peak_memory_mb": 728.56
+          "duration_seconds": 6.33,
+          "start_memory_mb": 462.43,
+          "end_memory_mb": 705.16,
+          "peak_memory_mb": 705.16
         },
         {
           "name": "creator_execution",
-          "duration_seconds": 3.782,
-          "start_memory_mb": 581.09,
-          "end_memory_mb": 581.1,
-          "peak_memory_mb": 581.1
+          "duration_seconds": 3.328,
+          "start_memory_mb": 462.43,
+          "end_memory_mb": 508.54,
+          "peak_memory_mb": 508.54
         },
         {
           "name": "provenance_generation",
-          "duration_seconds": 3.515,
-          "start_memory_mb": 581.1,
-          "end_memory_mb": 728.56,
-          "peak_memory_mb": 728.56
+          "duration_seconds": 3.001,
+          "start_memory_mb": 508.54,
+          "end_memory_mb": 705.16,
+          "peak_memory_mb": 705.16
         },
         {
-          "name": "storage__preparation",
-          "duration_seconds": 11.596,
-          "start_memory_mb": 728.57,
-          "end_memory_mb": 861.83,
-          "peak_memory_mb": 861.83
+          "name": "storage__write_queries_data",
+          "duration_seconds": 0.447,
+          "start_memory_mb": 705.16,
+          "end_memory_mb": 707.69,
+          "peak_memory_mb": 707.69
         },
         {
-          "name": "storage__sparql_upload",
-          "duration_seconds": 0.523,
-          "start_memory_mb": 861.83,
-          "end_memory_mb": 861.83,
-          "peak_memory_mb": 861.83
+          "name": "storage__write_queries_prov",
+          "duration_seconds": 0.231,
+          "start_memory_mb": 707.69,
+          "end_memory_mb": 707.79,
+          "peak_memory_mb": 707.79
         },
         {
-          "name": "storage__bulk_load",
-          "duration_seconds": 1.199,
-          "start_memory_mb": 861.83,
-          "end_memory_mb": 861.83,
-          "peak_memory_mb": 861.83
-        }
-      ],
-      "timestamp": "2025-11-29T17:11:17.068957",
-      "config_path": "/home/arcangelo/Documents/oc_meta/oc_meta/run/benchmark/benchmark_config.yaml"
-    },
-    {
-      "metrics": {
-        "input_records": 1000,
-        "curated_records": 1000,
-        "local_g_triples": 6721,
-        "preexisting_entities_count": 2700,
-        "entities_created": 9772,
-        "modified_entities": 9571,
-        "total_duration_seconds": 26.452,
-        "throughput_records_per_sec": 37.8
-      },
-      "phases": [
-        {
-          "name": "total_processing",
-          "duration_seconds": 26.452,
-          "start_memory_mb": 801.84,
-          "end_memory_mb": 869.76,
-          "peak_memory_mb": 869.76
+          "name": "storage__store_data",
+          "duration_seconds": 1.514,
+          "start_memory_mb": 707.79,
+          "end_memory_mb": 738.46,
+          "peak_memory_mb": 738.46
         },
         {
-          "name": "curation__collect_identifiers",
-          "duration_seconds": 2.64,
-          "start_memory_mb": 801.84,
-          "end_memory_mb": 801.85,
-          "peak_memory_mb": 801.85
-        },
-        {
-          "name": "curation__clean_id",
-          "duration_seconds": 0.56,
-          "start_memory_mb": 801.85,
-          "end_memory_mb": 801.85,
-          "peak_memory_mb": 801.85
-        },
-        {
-          "name": "curation__merge_duplicates",
-          "duration_seconds": 0.074,
-          "start_memory_mb": 801.85,
-          "end_memory_mb": 801.85,
-          "peak_memory_mb": 801.85
-        },
-        {
-          "name": "curation__clean_vvi",
-          "duration_seconds": 0.099,
-          "start_memory_mb": 801.85,
-          "end_memory_mb": 801.85,
-          "peak_memory_mb": 801.85
-        },
-        {
-          "name": "curation__clean_ra",
-          "duration_seconds": 0.326,
-          "start_memory_mb": 801.85,
-          "end_memory_mb": 801.85,
-          "peak_memory_mb": 801.85
-        },
-        {
-          "name": "curation__finalize",
-          "duration_seconds": 0.573,
-          "start_memory_mb": 801.85,
-          "end_memory_mb": 801.85,
-          "peak_memory_mb": 801.85
-        },
-        {
-          "name": "rdf_creation",
-          "duration_seconds": 7.956,
-          "start_memory_mb": 801.85,
-          "end_memory_mb": 776.94,
-          "peak_memory_mb": 801.85
-        },
-        {
-          "name": "creator_execution",
-          "duration_seconds": 4.388,
-          "start_memory_mb": 801.85,
-          "end_memory_mb": 776.94,
-          "peak_memory_mb": 801.85
-        },
-        {
-          "name": "provenance_generation",
-          "duration_seconds": 3.568,
-          "start_memory_mb": 776.94,
-          "end_memory_mb": 776.94,
-          "peak_memory_mb": 776.94
-        },
-        {
-          "name": "storage__preparation",
-          "duration_seconds": 12.299,
-          "start_memory_mb": 776.94,
-          "end_memory_mb": 869.76,
-          "peak_memory_mb": 869.76
+          "name": "storage__store_prov",
+          "duration_seconds": 3.137,
+          "start_memory_mb": 738.46,
+          "end_memory_mb": 780.54,
+          "peak_memory_mb": 780.54
         },
         {
           "name": "storage__sparql_upload",
-          "duration_seconds": 0.637,
-          "start_memory_mb": 869.76,
-          "end_memory_mb": 869.76,
-          "peak_memory_mb": 869.76
+          "duration_seconds": 10.07,
+          "start_memory_mb": 780.54,
+          "end_memory_mb": 780.54,
+          "peak_memory_mb": 780.54
         },
         {
           "name": "storage__bulk_load",
-          "duration_seconds": 1.281,
-          "start_memory_mb": 869.76,
-          "end_memory_mb": 869.76,
-          "peak_memory_mb": 869.76
+          "duration_seconds": null,
+          "start_memory_mb": null,
+          "end_memory_mb": null,
+          "peak_memory_mb": null
         }
       ],
-      "timestamp": "2025-11-29T17:12:04.398262",
-      "config_path": "/home/arcangelo/Documents/oc_meta/oc_meta/run/benchmark/benchmark_config.yaml"
-    },
-    {
-      "metrics": {
-        "input_records": 1000,
-        "curated_records": 1000,
-        "local_g_triples": 6721,
-        "preexisting_entities_count": 2700,
-        "entities_created": 9772,
-        "modified_entities": 9571,
-        "total_duration_seconds": 26.76,
-        "throughput_records_per_sec": 37.37
-      },
-      "phases": [
-        {
-          "name": "total_processing",
-          "duration_seconds": 26.76,
-          "start_memory_mb": 864.64,
-          "end_memory_mb": 872.95,
-          "peak_memory_mb": 872.95
-        },
-        {
-          "name": "curation__collect_identifiers",
-          "duration_seconds": 2.607,
-          "start_memory_mb": 864.64,
-          "end_memory_mb": 864.65,
-          "peak_memory_mb": 864.65
-        },
-        {
-          "name": "curation__clean_id",
-          "duration_seconds": 0.604,
-          "start_memory_mb": 864.65,
-          "end_memory_mb": 864.65,
-          "peak_memory_mb": 864.65
-        },
-        {
-          "name": "curation__merge_duplicates",
-          "duration_seconds": 0.075,
-          "start_memory_mb": 864.65,
-          "end_memory_mb": 864.65,
-          "peak_memory_mb": 864.65
-        },
-        {
-          "name": "curation__clean_vvi",
-          "duration_seconds": 0.098,
-          "start_memory_mb": 864.65,
-          "end_memory_mb": 864.65,
-          "peak_memory_mb": 864.65
-        },
-        {
-          "name": "curation__clean_ra",
-          "duration_seconds": 0.315,
-          "start_memory_mb": 864.65,
-          "end_memory_mb": 864.65,
-          "peak_memory_mb": 864.65
-        },
-        {
-          "name": "curation__finalize",
-          "duration_seconds": 0.565,
-          "start_memory_mb": 864.65,
-          "end_memory_mb": 864.65,
-          "peak_memory_mb": 864.65
-        },
-        {
-          "name": "rdf_creation",
-          "duration_seconds": 7.912,
-          "start_memory_mb": 864.65,
-          "end_memory_mb": 856.02,
-          "peak_memory_mb": 864.65
-        },
-        {
-          "name": "creator_execution",
-          "duration_seconds": 4.661,
-          "start_memory_mb": 864.65,
-          "end_memory_mb": 856.02,
-          "peak_memory_mb": 864.65
-        },
-        {
-          "name": "provenance_generation",
-          "duration_seconds": 3.251,
-          "start_memory_mb": 856.02,
-          "end_memory_mb": 856.02,
-          "peak_memory_mb": 856.02
-        },
-        {
-          "name": "storage__preparation",
-          "duration_seconds": 12.576,
-          "start_memory_mb": 856.02,
-          "end_memory_mb": 872.95,
-          "peak_memory_mb": 872.95
-        },
-        {
-          "name": "storage__sparql_upload",
-          "duration_seconds": 0.7,
-          "start_memory_mb": 872.95,
-          "end_memory_mb": 872.95,
-          "peak_memory_mb": 872.95
-        },
-        {
-          "name": "storage__bulk_load",
-          "duration_seconds": 1.302,
-          "start_memory_mb": 872.95,
-          "end_memory_mb": 872.95,
-          "peak_memory_mb": 872.95
-        }
-      ],
-      "timestamp": "2025-11-29T17:12:54.968026",
-      "config_path": "/home/arcangelo/Documents/oc_meta/oc_meta/run/benchmark/benchmark_config.yaml"
-    },
-    {
-      "metrics": {
-        "input_records": 1000,
-        "curated_records": 1000,
-        "local_g_triples": 6721,
-        "preexisting_entities_count": 2700,
-        "entities_created": 9772,
-        "modified_entities": 9571,
-        "total_duration_seconds": 27.122,
-        "throughput_records_per_sec": 36.87
-      },
-      "phases": [
-        {
-          "name": "total_processing",
-          "duration_seconds": 27.122,
-          "start_memory_mb": 866.98,
-          "end_memory_mb": 872.95,
-          "peak_memory_mb": 872.95
-        },
-        {
-          "name": "curation__collect_identifiers",
-          "duration_seconds": 3.279,
-          "start_memory_mb": 866.98,
-          "end_memory_mb": 846.08,
-          "peak_memory_mb": 866.98
-        },
-        {
-          "name": "curation__clean_id",
-          "duration_seconds": 0.61,
-          "start_memory_mb": 846.08,
-          "end_memory_mb": 846.08,
-          "peak_memory_mb": 846.08
-        },
-        {
-          "name": "curation__merge_duplicates",
-          "duration_seconds": 0.08,
-          "start_memory_mb": 846.08,
-          "end_memory_mb": 840.12,
-          "peak_memory_mb": 846.08
-        },
-        {
-          "name": "curation__clean_vvi",
-          "duration_seconds": 0.104,
-          "start_memory_mb": 840.12,
-          "end_memory_mb": 840.12,
-          "peak_memory_mb": 840.12
-        },
-        {
-          "name": "curation__clean_ra",
-          "duration_seconds": 0.295,
-          "start_memory_mb": 840.12,
-          "end_memory_mb": 840.12,
-          "peak_memory_mb": 840.12
-        },
-        {
-          "name": "curation__finalize",
-          "duration_seconds": 0.522,
-          "start_memory_mb": 840.12,
-          "end_memory_mb": 840.12,
-          "peak_memory_mb": 840.12
-        },
-        {
-          "name": "rdf_creation",
-          "duration_seconds": 7.34,
-          "start_memory_mb": 840.12,
-          "end_memory_mb": 837.16,
-          "peak_memory_mb": 840.12
-        },
-        {
-          "name": "creator_execution",
-          "duration_seconds": 3.807,
-          "start_memory_mb": 840.12,
-          "end_memory_mb": 837.16,
-          "peak_memory_mb": 840.12
-        },
-        {
-          "name": "provenance_generation",
-          "duration_seconds": 3.533,
-          "start_memory_mb": 837.16,
-          "end_memory_mb": 837.16,
-          "peak_memory_mb": 837.16
-        },
-        {
-          "name": "storage__preparation",
-          "duration_seconds": 13.214,
-          "start_memory_mb": 837.16,
-          "end_memory_mb": 872.95,
-          "peak_memory_mb": 872.95
-        },
-        {
-          "name": "storage__sparql_upload",
-          "duration_seconds": 0.576,
-          "start_memory_mb": 872.95,
-          "end_memory_mb": 872.95,
-          "peak_memory_mb": 872.95
-        },
-        {
-          "name": "storage__bulk_load",
-          "duration_seconds": 1.097,
-          "start_memory_mb": 872.95,
-          "end_memory_mb": 872.95,
-          "peak_memory_mb": 872.95
-        }
-      ],
-      "timestamp": "2025-11-29T17:13:45.020682",
-      "config_path": "/home/arcangelo/Documents/oc_meta/oc_meta/run/benchmark/benchmark_config.yaml"
-    },
-    {
-      "metrics": {
-        "input_records": 1000,
-        "curated_records": 1000,
-        "local_g_triples": 6721,
-        "preexisting_entities_count": 2700,
-        "entities_created": 9772,
-        "modified_entities": 9571,
-        "total_duration_seconds": 22.841,
-        "throughput_records_per_sec": 43.78
-      },
-      "phases": [
-        {
-          "name": "total_processing",
-          "duration_seconds": 22.841,
-          "start_memory_mb": 857.11,
-          "end_memory_mb": 872.91,
-          "peak_memory_mb": 872.91
-        },
-        {
-          "name": "curation__collect_identifiers",
-          "duration_seconds": 2.378,
-          "start_memory_mb": 857.11,
-          "end_memory_mb": 857.11,
-          "peak_memory_mb": 857.11
-        },
-        {
-          "name": "curation__clean_id",
-          "duration_seconds": 0.549,
-          "start_memory_mb": 857.11,
-          "end_memory_mb": 857.11,
-          "peak_memory_mb": 857.11
-        },
-        {
-          "name": "curation__merge_duplicates",
-          "duration_seconds": 0.071,
-          "start_memory_mb": 857.11,
-          "end_memory_mb": 857.11,
-          "peak_memory_mb": 857.11
-        },
-        {
-          "name": "curation__clean_vvi",
-          "duration_seconds": 0.096,
-          "start_memory_mb": 857.11,
-          "end_memory_mb": 857.11,
-          "peak_memory_mb": 857.11
-        },
-        {
-          "name": "curation__clean_ra",
-          "duration_seconds": 0.241,
-          "start_memory_mb": 857.11,
-          "end_memory_mb": 857.11,
-          "peak_memory_mb": 857.11
-        },
-        {
-          "name": "curation__finalize",
-          "duration_seconds": 0.508,
-          "start_memory_mb": 857.11,
-          "end_memory_mb": 857.11,
-          "peak_memory_mb": 857.11
-        },
-        {
-          "name": "rdf_creation",
-          "duration_seconds": 6.902,
-          "start_memory_mb": 857.11,
-          "end_memory_mb": 826.16,
-          "peak_memory_mb": 857.11
-        },
-        {
-          "name": "creator_execution",
-          "duration_seconds": 3.864,
-          "start_memory_mb": 857.11,
-          "end_memory_mb": 826.16,
-          "peak_memory_mb": 857.11
-        },
-        {
-          "name": "provenance_generation",
-          "duration_seconds": 3.038,
-          "start_memory_mb": 826.16,
-          "end_memory_mb": 826.16,
-          "peak_memory_mb": 826.16
-        },
-        {
-          "name": "storage__preparation",
-          "duration_seconds": 10.334,
-          "start_memory_mb": 826.16,
-          "end_memory_mb": 872.91,
-          "peak_memory_mb": 872.91
-        },
-        {
-          "name": "storage__sparql_upload",
-          "duration_seconds": 0.58,
-          "start_memory_mb": 872.91,
-          "end_memory_mb": 872.91,
-          "peak_memory_mb": 872.91
-        },
-        {
-          "name": "storage__bulk_load",
-          "duration_seconds": 1.176,
-          "start_memory_mb": 872.91,
-          "end_memory_mb": 872.91,
-          "peak_memory_mb": 872.91
-        }
-      ],
-      "timestamp": "2025-11-29T17:14:28.111345",
-      "config_path": "/home/arcangelo/Documents/oc_meta/oc_meta/run/benchmark/benchmark_config.yaml"
-    },
-    {
-      "metrics": {
-        "input_records": 1000,
-        "curated_records": 1000,
-        "local_g_triples": 6667,
-        "preexisting_entities_count": 2615,
-        "entities_created": 9848,
-        "modified_entities": 9657,
-        "total_duration_seconds": 24.704,
-        "throughput_records_per_sec": 40.48
-      },
-      "phases": [
-        {
-          "name": "total_processing",
-          "duration_seconds": 24.704,
-          "start_memory_mb": 869.95,
-          "end_memory_mb": 876.93,
-          "peak_memory_mb": 876.93
-        },
-        {
-          "name": "curation__collect_identifiers",
-          "duration_seconds": 2.387,
-          "start_memory_mb": 869.95,
-          "end_memory_mb": 869.95,
-          "peak_memory_mb": 869.95
-        },
-        {
-          "name": "curation__clean_id",
-          "duration_seconds": 0.528,
-          "start_memory_mb": 869.95,
-          "end_memory_mb": 869.95,
-          "peak_memory_mb": 869.95
-        },
-        {
-          "name": "curation__merge_duplicates",
-          "duration_seconds": 0.068,
-          "start_memory_mb": 869.95,
-          "end_memory_mb": 869.95,
-          "peak_memory_mb": 869.95
-        },
-        {
-          "name": "curation__clean_vvi",
-          "duration_seconds": 0.098,
-          "start_memory_mb": 869.95,
-          "end_memory_mb": 869.95,
-          "peak_memory_mb": 869.95
-        },
-        {
-          "name": "curation__clean_ra",
-          "duration_seconds": 0.236,
-          "start_memory_mb": 869.95,
-          "end_memory_mb": 869.95,
-          "peak_memory_mb": 869.95
-        },
-        {
-          "name": "curation__finalize",
-          "duration_seconds": 0.526,
-          "start_memory_mb": 869.95,
-          "end_memory_mb": 869.95,
-          "peak_memory_mb": 869.95
-        },
-        {
-          "name": "rdf_creation",
-          "duration_seconds": 6.937,
-          "start_memory_mb": 869.95,
-          "end_memory_mb": 863.03,
-          "peak_memory_mb": 869.95
-        },
-        {
-          "name": "creator_execution",
-          "duration_seconds": 4.043,
-          "start_memory_mb": 869.95,
-          "end_memory_mb": 863.03,
-          "peak_memory_mb": 869.95
-        },
-        {
-          "name": "provenance_generation",
-          "duration_seconds": 2.894,
-          "start_memory_mb": 863.03,
-          "end_memory_mb": 863.03,
-          "peak_memory_mb": 863.03
-        },
-        {
-          "name": "storage__preparation",
-          "duration_seconds": 11.931,
-          "start_memory_mb": 863.03,
-          "end_memory_mb": 876.93,
-          "peak_memory_mb": 876.93
-        },
-        {
-          "name": "storage__sparql_upload",
-          "duration_seconds": 0.667,
-          "start_memory_mb": 876.93,
-          "end_memory_mb": 876.93,
-          "peak_memory_mb": 876.93
-        },
-        {
-          "name": "storage__bulk_load",
-          "duration_seconds": 1.32,
-          "start_memory_mb": 876.93,
-          "end_memory_mb": 876.93,
-          "peak_memory_mb": 876.93
-        }
-      ],
-      "timestamp": "2025-11-29T17:15:12.781972",
-      "config_path": "/home/arcangelo/Documents/oc_meta/oc_meta/run/benchmark/benchmark_config.yaml"
-    },
-    {
-      "metrics": {
-        "input_records": 1000,
-        "curated_records": 1000,
-        "local_g_triples": 6721,
-        "preexisting_entities_count": 2700,
-        "entities_created": 9772,
-        "modified_entities": 9571,
-        "total_duration_seconds": 26.162,
-        "throughput_records_per_sec": 38.22
-      },
-      "phases": [
-        {
-          "name": "total_processing",
-          "duration_seconds": 26.162,
-          "start_memory_mb": 874.94,
-          "end_memory_mb": 873.03,
-          "peak_memory_mb": 874.94
-        },
-        {
-          "name": "curation__collect_identifiers",
-          "duration_seconds": 2.552,
-          "start_memory_mb": 874.94,
-          "end_memory_mb": 874.94,
-          "peak_memory_mb": 874.94
-        },
-        {
-          "name": "curation__clean_id",
-          "duration_seconds": 0.546,
-          "start_memory_mb": 874.94,
-          "end_memory_mb": 874.94,
-          "peak_memory_mb": 874.94
-        },
-        {
-          "name": "curation__merge_duplicates",
-          "duration_seconds": 0.075,
-          "start_memory_mb": 874.94,
-          "end_memory_mb": 874.94,
-          "peak_memory_mb": 874.94
-        },
-        {
-          "name": "curation__clean_vvi",
-          "duration_seconds": 0.104,
-          "start_memory_mb": 874.94,
-          "end_memory_mb": 874.94,
-          "peak_memory_mb": 874.94
-        },
-        {
-          "name": "curation__clean_ra",
-          "duration_seconds": 0.266,
-          "start_memory_mb": 874.94,
-          "end_memory_mb": 874.94,
-          "peak_memory_mb": 874.94
-        },
-        {
-          "name": "curation__finalize",
-          "duration_seconds": 0.607,
-          "start_memory_mb": 874.94,
-          "end_memory_mb": 874.94,
-          "peak_memory_mb": 874.94
-        },
-        {
-          "name": "rdf_creation",
-          "duration_seconds": 7.449,
-          "start_memory_mb": 874.94,
-          "end_memory_mb": 868.95,
-          "peak_memory_mb": 874.94
-        },
-        {
-          "name": "creator_execution",
-          "duration_seconds": 4.403,
-          "start_memory_mb": 874.94,
-          "end_memory_mb": 868.95,
-          "peak_memory_mb": 874.94
-        },
-        {
-          "name": "provenance_generation",
-          "duration_seconds": 3.045,
-          "start_memory_mb": 868.95,
-          "end_memory_mb": 868.95,
-          "peak_memory_mb": 868.95
-        },
-        {
-          "name": "storage__preparation",
-          "duration_seconds": 12.63,
-          "start_memory_mb": 868.95,
-          "end_memory_mb": 873.03,
-          "peak_memory_mb": 873.03
-        },
-        {
-          "name": "storage__sparql_upload",
-          "duration_seconds": 0.679,
-          "start_memory_mb": 873.03,
-          "end_memory_mb": 873.03,
-          "peak_memory_mb": 873.03
-        },
-        {
-          "name": "storage__bulk_load",
-          "duration_seconds": 1.25,
-          "start_memory_mb": 873.03,
-          "end_memory_mb": 873.03,
-          "peak_memory_mb": 873.03
-        }
-      ],
-      "timestamp": "2025-11-29T17:16:02.046771",
-      "config_path": "/home/arcangelo/Documents/oc_meta/oc_meta/run/benchmark/benchmark_config.yaml"
-    },
-    {
-      "metrics": {
-        "input_records": 1000,
-        "curated_records": 1000,
-        "local_g_triples": 6721,
-        "preexisting_entities_count": 2700,
-        "entities_created": 9772,
-        "modified_entities": 9571,
-        "total_duration_seconds": 26.571,
-        "throughput_records_per_sec": 37.63
-      },
-      "phases": [
-        {
-          "name": "total_processing",
-          "duration_seconds": 26.571,
-          "start_memory_mb": 882.77,
-          "end_memory_mb": 882.77,
-          "peak_memory_mb": 882.77
-        },
-        {
-          "name": "curation__collect_identifiers",
-          "duration_seconds": 2.619,
-          "start_memory_mb": 882.77,
-          "end_memory_mb": 882.77,
-          "peak_memory_mb": 882.77
-        },
-        {
-          "name": "curation__clean_id",
-          "duration_seconds": 0.638,
-          "start_memory_mb": 882.77,
-          "end_memory_mb": 882.77,
-          "peak_memory_mb": 882.77
-        },
-        {
-          "name": "curation__merge_duplicates",
-          "duration_seconds": 0.074,
-          "start_memory_mb": 882.77,
-          "end_memory_mb": 882.77,
-          "peak_memory_mb": 882.77
-        },
-        {
-          "name": "curation__clean_vvi",
-          "duration_seconds": 0.104,
-          "start_memory_mb": 882.77,
-          "end_memory_mb": 882.77,
-          "peak_memory_mb": 882.77
-        },
-        {
-          "name": "curation__clean_ra",
-          "duration_seconds": 0.311,
-          "start_memory_mb": 882.77,
-          "end_memory_mb": 882.77,
-          "peak_memory_mb": 882.77
-        },
-        {
-          "name": "curation__finalize",
-          "duration_seconds": 0.566,
-          "start_memory_mb": 882.77,
-          "end_memory_mb": 882.77,
-          "peak_memory_mb": 882.77
-        },
-        {
-          "name": "rdf_creation",
-          "duration_seconds": 7.667,
-          "start_memory_mb": 882.77,
-          "end_memory_mb": 879.7,
-          "peak_memory_mb": 882.77
-        },
-        {
-          "name": "creator_execution",
-          "duration_seconds": 4.519,
-          "start_memory_mb": 882.77,
-          "end_memory_mb": 879.7,
-          "peak_memory_mb": 882.77
-        },
-        {
-          "name": "provenance_generation",
-          "duration_seconds": 3.148,
-          "start_memory_mb": 879.7,
-          "end_memory_mb": 879.7,
-          "peak_memory_mb": 879.7
-        },
-        {
-          "name": "storage__preparation",
-          "duration_seconds": 12.624,
-          "start_memory_mb": 879.7,
-          "end_memory_mb": 882.77,
-          "peak_memory_mb": 882.77
-        },
-        {
-          "name": "storage__sparql_upload",
-          "duration_seconds": 0.667,
-          "start_memory_mb": 882.77,
-          "end_memory_mb": 882.77,
-          "peak_memory_mb": 882.77
-        },
-        {
-          "name": "storage__bulk_load",
-          "duration_seconds": 1.294,
-          "start_memory_mb": 882.77,
-          "end_memory_mb": 882.77,
-          "peak_memory_mb": 882.77
-        }
-      ],
-      "timestamp": "2025-11-29T17:16:51.240608",
-      "config_path": "/home/arcangelo/Documents/oc_meta/oc_meta/run/benchmark/benchmark_config.yaml"
-    },
-    {
-      "metrics": {
-        "input_records": 1000,
-        "curated_records": 1000,
-        "local_g_triples": 6721,
-        "preexisting_entities_count": 2700,
-        "entities_created": 9772,
-        "modified_entities": 9571,
-        "total_duration_seconds": 27.15,
-        "throughput_records_per_sec": 36.83
-      },
-      "phases": [
-        {
-          "name": "total_processing",
-          "duration_seconds": 27.15,
-          "start_memory_mb": 882.78,
-          "end_memory_mb": 883.7,
-          "peak_memory_mb": 883.7
-        },
-        {
-          "name": "curation__collect_identifiers",
-          "duration_seconds": 2.687,
-          "start_memory_mb": 882.78,
-          "end_memory_mb": 882.78,
-          "peak_memory_mb": 882.78
-        },
-        {
-          "name": "curation__clean_id",
-          "duration_seconds": 0.552,
-          "start_memory_mb": 882.78,
-          "end_memory_mb": 882.78,
-          "peak_memory_mb": 882.78
-        },
-        {
-          "name": "curation__merge_duplicates",
-          "duration_seconds": 0.075,
-          "start_memory_mb": 882.78,
-          "end_memory_mb": 882.78,
-          "peak_memory_mb": 882.78
-        },
-        {
-          "name": "curation__clean_vvi",
-          "duration_seconds": 0.104,
-          "start_memory_mb": 882.78,
-          "end_memory_mb": 882.78,
-          "peak_memory_mb": 882.78
-        },
-        {
-          "name": "curation__clean_ra",
-          "duration_seconds": 0.295,
-          "start_memory_mb": 882.78,
-          "end_memory_mb": 882.78,
-          "peak_memory_mb": 882.78
-        },
-        {
-          "name": "curation__finalize",
-          "duration_seconds": 0.566,
-          "start_memory_mb": 882.78,
-          "end_memory_mb": 882.78,
-          "peak_memory_mb": 882.78
-        },
-        {
-          "name": "rdf_creation",
-          "duration_seconds": 7.946,
-          "start_memory_mb": 882.78,
-          "end_memory_mb": 882.78,
-          "peak_memory_mb": 882.78
-        },
-        {
-          "name": "creator_execution",
-          "duration_seconds": 4.694,
-          "start_memory_mb": 882.78,
-          "end_memory_mb": 882.78,
-          "peak_memory_mb": 882.78
-        },
-        {
-          "name": "provenance_generation",
-          "duration_seconds": 3.252,
-          "start_memory_mb": 882.78,
-          "end_memory_mb": 882.78,
-          "peak_memory_mb": 882.78
-        },
-        {
-          "name": "storage__preparation",
-          "duration_seconds": 12.989,
-          "start_memory_mb": 882.78,
-          "end_memory_mb": 883.7,
-          "peak_memory_mb": 883.7
-        },
-        {
-          "name": "storage__sparql_upload",
-          "duration_seconds": 0.641,
-          "start_memory_mb": 883.7,
-          "end_memory_mb": 883.7,
-          "peak_memory_mb": 883.7
-        },
-        {
-          "name": "storage__bulk_load",
-          "duration_seconds": 1.289,
-          "start_memory_mb": 883.7,
-          "end_memory_mb": 883.7,
-          "peak_memory_mb": 883.7
-        }
-      ],
-      "timestamp": "2025-11-29T17:17:40.024612",
-      "config_path": "/home/arcangelo/Documents/oc_meta/oc_meta/run/benchmark/benchmark_config.yaml"
-    },
-    {
-      "metrics": {
-        "input_records": 1000,
-        "curated_records": 1000,
-        "local_g_triples": 6721,
-        "preexisting_entities_count": 2700,
-        "entities_created": 9772,
-        "modified_entities": 9571,
-        "total_duration_seconds": 24.629,
-        "throughput_records_per_sec": 40.6
-      },
-      "phases": [
-        {
-          "name": "total_processing",
-          "duration_seconds": 24.629,
-          "start_memory_mb": 881.73,
-          "end_memory_mb": 882.73,
-          "peak_memory_mb": 882.73
-        },
-        {
-          "name": "curation__collect_identifiers",
-          "duration_seconds": 3.405,
-          "start_memory_mb": 881.73,
-          "end_memory_mb": 863.82,
-          "peak_memory_mb": 881.73
-        },
-        {
-          "name": "curation__clean_id",
-          "duration_seconds": 0.554,
-          "start_memory_mb": 863.82,
-          "end_memory_mb": 863.82,
-          "peak_memory_mb": 863.82
-        },
-        {
-          "name": "curation__merge_duplicates",
-          "duration_seconds": 0.075,
-          "start_memory_mb": 863.82,
-          "end_memory_mb": 863.82,
-          "peak_memory_mb": 863.82
-        },
-        {
-          "name": "curation__clean_vvi",
-          "duration_seconds": 0.096,
-          "start_memory_mb": 863.82,
-          "end_memory_mb": 863.82,
-          "peak_memory_mb": 863.82
-        },
-        {
-          "name": "curation__clean_ra",
-          "duration_seconds": 0.296,
-          "start_memory_mb": 863.82,
-          "end_memory_mb": 863.82,
-          "peak_memory_mb": 863.82
-        },
-        {
-          "name": "curation__finalize",
-          "duration_seconds": 0.595,
-          "start_memory_mb": 863.82,
-          "end_memory_mb": 862.82,
-          "peak_memory_mb": 863.82
-        },
-        {
-          "name": "rdf_creation",
-          "duration_seconds": 7.242,
-          "start_memory_mb": 862.82,
-          "end_memory_mb": 854.9,
-          "peak_memory_mb": 862.82
-        },
-        {
-          "name": "creator_execution",
-          "duration_seconds": 3.759,
-          "start_memory_mb": 862.82,
-          "end_memory_mb": 854.9,
-          "peak_memory_mb": 862.82
-        },
-        {
-          "name": "provenance_generation",
-          "duration_seconds": 3.482,
-          "start_memory_mb": 854.9,
-          "end_memory_mb": 854.9,
-          "peak_memory_mb": 854.9
-        },
-        {
-          "name": "storage__preparation",
-          "duration_seconds": 10.715,
-          "start_memory_mb": 854.9,
-          "end_memory_mb": 882.73,
-          "peak_memory_mb": 882.73
-        },
-        {
-          "name": "storage__sparql_upload",
-          "duration_seconds": 0.531,
-          "start_memory_mb": 882.73,
-          "end_memory_mb": 882.73,
-          "peak_memory_mb": 882.73
-        },
-        {
-          "name": "storage__bulk_load",
-          "duration_seconds": 1.113,
-          "start_memory_mb": 882.73,
-          "end_memory_mb": 882.73,
-          "peak_memory_mb": 882.73
-        }
-      ],
-      "timestamp": "2025-11-29T17:18:27.414317",
-      "config_path": "/home/arcangelo/Documents/oc_meta/oc_meta/run/benchmark/benchmark_config.yaml"
+      "timestamp": "2025-12-04T17:42:43.455905",
+      "config_path": "oc_meta/run/benchmark/benchmark_config.yaml"
     }
   ],
-  "statistics": {
-    "input_records": {
-      "mean": 1000.0,
-      "median": 1000.0,
-      "std": 0.0,
-      "min": 1000.0,
-      "max": 1000.0,
-      "ci_95_lower": 1000.0,
-      "ci_95_upper": 1000.0,
-      "outlier_indices": [],
-      "n": 10
-    },
-    "curated_records": {
-      "mean": 1000.0,
-      "median": 1000.0,
-      "std": 0.0,
-      "min": 1000.0,
-      "max": 1000.0,
-      "ci_95_lower": 1000.0,
-      "ci_95_upper": 1000.0,
-      "outlier_indices": [],
-      "n": 10
-    },
-    "local_g_triples": {
-      "mean": 6715.6,
-      "median": 6721.0,
-      "std": 17.07629936490925,
-      "min": 6667.0,
-      "max": 6721.0,
-      "ci_95_lower": 6703.384351320588,
-      "ci_95_upper": 6727.815648679412,
-      "outlier_indices": [
-        5
-      ],
-      "n": 10
-    },
-    "preexisting_entities_count": {
-      "mean": 2691.5,
-      "median": 2700.0,
-      "std": 26.879360111431225,
-      "min": 2615.0,
-      "max": 2700.0,
-      "ci_95_lower": 2672.2716641157404,
-      "ci_95_upper": 2710.7283358842596,
-      "outlier_indices": [
-        5
-      ],
-      "n": 10
-    },
-    "entities_created": {
-      "mean": 9779.6,
-      "median": 9772.0,
-      "std": 24.033310217279684,
-      "min": 9772.0,
-      "max": 9848.0,
-      "ci_95_lower": 9762.40760556231,
-      "ci_95_upper": 9796.79239443769,
-      "outlier_indices": [
-        5
-      ],
-      "n": 10
-    },
-    "modified_entities": {
-      "mean": 9579.6,
-      "median": 9571.0,
-      "std": 27.195587877448062,
-      "min": 9571.0,
-      "max": 9657.0,
-      "ci_95_lower": 9560.145448399455,
-      "ci_95_upper": 9599.054551600546,
-      "outlier_indices": [
-        5
-      ],
-      "n": 10
-    },
-    "total_duration_seconds": {
-      "mean": 25.749000000000002,
-      "median": 26.307000000000002,
-      "std": 1.3918773094078527,
-      "min": 22.841,
-      "max": 27.15,
-      "ci_95_lower": 24.753310954426624,
-      "ci_95_upper": 26.74468904557338,
-      "outlier_indices": [],
-      "n": 10
-    },
-    "throughput_records_per_sec": {
-      "mean": 38.942,
-      "median": 38.01,
-      "std": 2.2135632410713337,
-      "min": 36.83,
-      "max": 43.78,
-      "ci_95_lower": 37.35851224865769,
-      "ci_95_upper": 40.52548775134231,
-      "outlier_indices": [],
-      "n": 10
-    },
-    "total_processing_duration_seconds": {
-      "mean": 25.749000000000002,
-      "median": 26.307000000000002,
-      "std": 1.3918773094078527,
-      "min": 22.841,
-      "max": 27.15,
-      "ci_95_lower": 24.753310954426624,
-      "ci_95_upper": 26.74468904557338,
-      "outlier_indices": [],
-      "n": 10
-    },
-    "total_processing_start_memory_mb": {
-      "mean": 855.503,
-      "median": 868.465,
-      "std": 37.68849221653151,
-      "min": 772.29,
-      "max": 882.78,
-      "ci_95_lower": 828.5422768166164,
-      "ci_95_upper": 882.4637231833836,
-      "outlier_indices": [
-        0
-      ],
-      "n": 10
-    },
-    "total_processing_end_memory_mb": {
-      "mean": 874.956,
-      "median": 872.99,
-      "std": 6.8075272064580545,
-      "min": 861.83,
-      "max": 883.7,
-      "ci_95_lower": 870.0861884001567,
-      "ci_95_upper": 879.8258115998433,
-      "outlier_indices": [],
-      "n": 10
-    },
-    "total_processing_peak_memory_mb": {
-      "mean": 875.147,
-      "median": 873.945,
-      "std": 6.774197861493757,
-      "min": 861.83,
-      "max": 883.7,
-      "ci_95_lower": 870.301030777249,
-      "ci_95_upper": 879.9929692227511,
-      "outlier_indices": [],
-      "n": 10
-    },
-    "curation__collect_identifiers_duration_seconds": {
-      "mean": 2.7458,
-      "median": 2.6295,
-      "std": 0.3488778200650383,
-      "min": 2.378,
-      "max": 3.405,
-      "ci_95_lower": 2.4962278420703172,
-      "ci_95_upper": 2.995372157929683,
-      "outlier_indices": [],
-      "n": 10
-    },
-    "curation__collect_identifiers_start_memory_mb": {
-      "mean": 855.503,
-      "median": 868.465,
-      "std": 37.68849221653151,
-      "min": 772.29,
-      "max": 882.78,
-      "ci_95_lower": 828.5422768166164,
-      "ci_95_upper": 882.4637231833836,
-      "outlier_indices": [
-        0
-      ],
-      "n": 10
-    },
-    "curation__collect_identifiers_end_memory_mb": {
-      "mean": 834.797,
-      "median": 864.235,
-      "std": 84.42828094503248,
-      "min": 604.02,
-      "max": 882.78,
-      "ci_95_lower": 774.4006461652473,
-      "ci_95_upper": 895.1933538347528,
-      "outlier_indices": [
-        0
-      ],
-      "n": 10
-    },
-    "curation__collect_identifiers_peak_memory_mb": {
-      "mean": 855.505,
-      "median": 868.465,
-      "std": 37.6871797388272,
-      "min": 772.29,
-      "max": 882.78,
-      "ci_95_lower": 828.5452157066061,
-      "ci_95_upper": 882.4647842933939,
-      "outlier_indices": [
-        0
-      ],
-      "n": 10
-    },
-    "curation__clean_id_duration_seconds": {
-      "mean": 0.5710000000000001,
-      "median": 0.557,
-      "std": 0.03469229821668715,
-      "min": 0.528,
-      "max": 0.638,
-      "ci_95_lower": 0.5461826248860859,
-      "ci_95_upper": 0.5958173751139142,
-      "outlier_indices": [],
-      "n": 10
-    },
-    "curation__clean_id_start_memory_mb": {
-      "mean": 834.797,
-      "median": 864.235,
-      "std": 84.42828094503248,
-      "min": 604.02,
-      "max": 882.78,
-      "ci_95_lower": 774.4006461652473,
-      "ci_95_upper": 895.1933538347528,
-      "outlier_indices": [
-        0
-      ],
-      "n": 10
-    },
-    "curation__clean_id_end_memory_mb": {
-      "mean": 834.797,
-      "median": 864.235,
-      "std": 84.42828094503248,
-      "min": 604.02,
-      "max": 882.78,
-      "ci_95_lower": 774.4006461652473,
-      "ci_95_upper": 895.1933538347528,
-      "outlier_indices": [
-        0
-      ],
-      "n": 10
-    },
-    "curation__clean_id_peak_memory_mb": {
-      "mean": 834.797,
-      "median": 864.235,
-      "std": 84.42828094503248,
-      "min": 604.02,
-      "max": 882.78,
-      "ci_95_lower": 774.4006461652473,
-      "ci_95_upper": 895.1933538347528,
-      "outlier_indices": [
-        0
-      ],
-      "n": 10
-    },
-    "curation__merge_duplicates_duration_seconds": {
-      "mean": 0.0743,
-      "median": 0.075,
-      "std": 0.003128720008068617,
-      "min": 0.068,
-      "max": 0.08,
-      "ci_95_lower": 0.07206184853532423,
-      "ci_95_upper": 0.07653815146467578,
-      "outlier_indices": [
-        3,
-        5
-      ],
-      "n": 10
-    },
-    "curation__merge_duplicates_start_memory_mb": {
-      "mean": 834.797,
-      "median": 864.235,
-      "std": 84.42828094503248,
-      "min": 604.02,
-      "max": 882.78,
-      "ci_95_lower": 774.4006461652473,
-      "ci_95_upper": 895.1933538347528,
-      "outlier_indices": [
-        0
-      ],
-      "n": 10
-    },
-    "curation__merge_duplicates_end_memory_mb": {
-      "mean": 831.907,
-      "median": 864.235,
-      "std": 91.33881444015644,
-      "min": 581.08,
-      "max": 882.78,
-      "ci_95_lower": 766.5671483054466,
-      "ci_95_upper": 897.2468516945535,
-      "outlier_indices": [
-        0
-      ],
-      "n": 10
-    },
-    "curation__merge_duplicates_peak_memory_mb": {
-      "mean": 834.797,
-      "median": 864.235,
-      "std": 84.42828094503248,
-      "min": 604.02,
-      "max": 882.78,
-      "ci_95_lower": 774.4006461652473,
-      "ci_95_upper": 895.1933538347528,
-      "outlier_indices": [
-        0
-      ],
-      "n": 10
-    },
-    "curation__clean_vvi_duration_seconds": {
-      "mean": 0.0997,
-      "median": 0.0985,
-      "std": 0.003945461527713411,
-      "min": 0.094,
-      "max": 0.104,
-      "ci_95_lower": 0.0968775868488389,
-      "ci_95_upper": 0.10252241315116109,
-      "outlier_indices": [],
-      "n": 10
-    },
-    "curation__clean_vvi_start_memory_mb": {
-      "mean": 831.907,
-      "median": 864.235,
-      "std": 91.33881444015644,
-      "min": 581.08,
-      "max": 882.78,
-      "ci_95_lower": 766.5671483054466,
-      "ci_95_upper": 897.2468516945535,
-      "outlier_indices": [
-        0
-      ],
-      "n": 10
-    },
-    "curation__clean_vvi_end_memory_mb": {
-      "mean": 831.907,
-      "median": 864.235,
-      "std": 91.33881444015644,
-      "min": 581.08,
-      "max": 882.78,
-      "ci_95_lower": 766.5671483054466,
-      "ci_95_upper": 897.2468516945535,
-      "outlier_indices": [
-        0
-      ],
-      "n": 10
-    },
-    "curation__clean_vvi_peak_memory_mb": {
-      "mean": 831.907,
-      "median": 864.235,
-      "std": 91.33881444015644,
-      "min": 581.08,
-      "max": 882.78,
-      "ci_95_lower": 766.5671483054466,
-      "ci_95_upper": 897.2468516945535,
-      "outlier_indices": [
-        0
-      ],
-      "n": 10
-    },
-    "curation__clean_ra_duration_seconds": {
-      "mean": 0.2863,
-      "median": 0.295,
-      "std": 0.030309697751343182,
-      "min": 0.236,
-      "max": 0.326,
-      "ci_95_lower": 0.2646177483951574,
-      "ci_95_upper": 0.3079822516048426,
-      "outlier_indices": [],
-      "n": 10
-    },
-    "curation__clean_ra_start_memory_mb": {
-      "mean": 831.907,
-      "median": 864.235,
-      "std": 91.33881444015644,
-      "min": 581.08,
-      "max": 882.78,
-      "ci_95_lower": 766.5671483054466,
-      "ci_95_upper": 897.2468516945535,
-      "outlier_indices": [
-        0
-      ],
-      "n": 10
-    },
-    "curation__clean_ra_end_memory_mb": {
-      "mean": 831.907,
-      "median": 864.235,
-      "std": 91.33881444015644,
-      "min": 581.08,
-      "max": 882.78,
-      "ci_95_lower": 766.5671483054466,
-      "ci_95_upper": 897.2468516945535,
-      "outlier_indices": [
-        0
-      ],
-      "n": 10
-    },
-    "curation__clean_ra_peak_memory_mb": {
-      "mean": 831.907,
-      "median": 864.235,
-      "std": 91.33881444015644,
-      "min": 581.08,
-      "max": 882.78,
-      "ci_95_lower": 766.5671483054466,
-      "ci_95_upper": 897.2468516945535,
-      "outlier_indices": [
-        0
-      ],
-      "n": 10
-    },
-    "curation__finalize_duration_seconds": {
-      "mean": 0.5582,
-      "median": 0.5654999999999999,
-      "std": 0.0316361256231613,
-      "min": 0.508,
-      "max": 0.607,
-      "ci_95_lower": 0.5355688790567569,
-      "ci_95_upper": 0.5808311209432432,
-      "outlier_indices": [],
-      "n": 10
-    },
-    "curation__finalize_start_memory_mb": {
-      "mean": 831.907,
-      "median": 864.235,
-      "std": 91.33881444015644,
-      "min": 581.08,
-      "max": 882.78,
-      "ci_95_lower": 766.5671483054466,
-      "ci_95_upper": 897.2468516945535,
-      "outlier_indices": [
-        0
-      ],
-      "n": 10
-    },
-    "curation__finalize_end_memory_mb": {
-      "mean": 831.808,
-      "median": 863.735,
-      "std": 91.29748126013358,
-      "min": 581.09,
-      "max": 882.78,
-      "ci_95_lower": 766.4977162812224,
-      "ci_95_upper": 897.1182837187775,
-      "outlier_indices": [
-        0
-      ],
-      "n": 10
-    },
-    "curation__finalize_peak_memory_mb": {
-      "mean": 831.908,
-      "median": 864.235,
-      "std": 91.33576320368708,
-      "min": 581.09,
-      "max": 882.78,
-      "ci_95_lower": 766.5703310285268,
-      "ci_95_upper": 897.2456689714733,
-      "outlier_indices": [
-        0
-      ],
-      "n": 10
-    },
-    "rdf_creation_duration_seconds": {
-      "mean": 7.4648,
-      "median": 7.3945,
-      "std": 0.3947772367635533,
-      "min": 6.902,
-      "max": 7.956,
-      "ci_95_lower": 7.182393377354199,
-      "ci_95_upper": 7.747206622645802,
-      "outlier_indices": [],
-      "n": 10
-    },
-    "rdf_creation_start_memory_mb": {
-      "mean": 831.808,
-      "median": 863.735,
-      "std": 91.29748126013358,
-      "min": 581.09,
-      "max": 882.78,
-      "ci_95_lower": 766.4977162812224,
-      "ci_95_upper": 897.1182837187775,
-      "outlier_indices": [
-        0
-      ],
-      "n": 10
-    },
-    "rdf_creation_end_memory_mb": {
-      "mean": 837.42,
-      "median": 855.46,
-      "std": 49.195569583720314,
-      "min": 728.56,
-      "max": 882.78,
-      "ci_95_lower": 802.2276095542557,
-      "ci_95_upper": 872.6123904457443,
-      "outlier_indices": [],
-      "n": 10
-    },
-    "rdf_creation_peak_memory_mb": {
-      "mean": 846.5550000000001,
-      "median": 863.735,
-      "std": 47.89219914442111,
-      "min": 728.56,
-      "max": 882.78,
-      "ci_95_lower": 812.2949845990695,
-      "ci_95_upper": 880.8150154009306,
-      "outlier_indices": [
-        0
-      ],
-      "n": 10
-    },
-    "creator_execution_duration_seconds": {
-      "mean": 4.192,
-      "median": 4.2155000000000005,
-      "std": 0.3793898610488512,
-      "min": 3.759,
-      "max": 4.694,
-      "ci_95_lower": 3.920600842836748,
-      "ci_95_upper": 4.463399157163253,
-      "outlier_indices": [],
-      "n": 10
-    },
-    "creator_execution_start_memory_mb": {
-      "mean": 831.808,
-      "median": 863.735,
-      "std": 91.29748126013358,
-      "min": 581.09,
-      "max": 882.78,
-      "ci_95_lower": 766.4977162812224,
-      "ci_95_upper": 897.1182837187775,
-      "outlier_indices": [
-        0
-      ],
-      "n": 10
-    },
-    "creator_execution_end_memory_mb": {
-      "mean": 822.674,
-      "median": 855.46,
-      "std": 90.34307096347295,
-      "min": 581.1,
-      "max": 882.78,
-      "ci_95_lower": 758.046460278085,
-      "ci_95_upper": 887.301539721915,
-      "outlier_indices": [
-        0
-      ],
-      "n": 10
-    },
-    "creator_execution_peak_memory_mb": {
-      "mean": 831.809,
-      "median": 863.735,
-      "std": 91.29442996882851,
-      "min": 581.1,
-      "max": 882.78,
-      "ci_95_lower": 766.5008990435297,
-      "ci_95_upper": 897.1171009564703,
-      "outlier_indices": [
-        0
-      ],
-      "n": 10
-    },
-    "provenance_generation_duration_seconds": {
-      "mean": 3.2726,
-      "median": 3.2515,
-      "std": 0.24135460311426518,
-      "min": 2.894,
-      "max": 3.568,
-      "ci_95_lower": 3.0999453178701355,
-      "ci_95_upper": 3.445254682129865,
-      "outlier_indices": [],
-      "n": 10
-    },
-    "provenance_generation_start_memory_mb": {
-      "mean": 822.674,
-      "median": 855.46,
-      "std": 90.34307096347295,
-      "min": 581.1,
-      "max": 882.78,
-      "ci_95_lower": 758.046460278085,
-      "ci_95_upper": 887.301539721915,
-      "outlier_indices": [
-        0
-      ],
-      "n": 10
-    },
-    "provenance_generation_end_memory_mb": {
-      "mean": 837.42,
-      "median": 855.46,
-      "std": 49.195569583720314,
-      "min": 728.56,
-      "max": 882.78,
-      "ci_95_lower": 802.2276095542557,
-      "ci_95_upper": 872.6123904457443,
-      "outlier_indices": [],
-      "n": 10
-    },
-    "provenance_generation_peak_memory_mb": {
-      "mean": 837.42,
-      "median": 855.46,
-      "std": 49.195569583720314,
-      "min": 728.56,
-      "max": 882.78,
-      "ci_95_lower": 802.2276095542557,
-      "ci_95_upper": 872.6123904457443,
-      "outlier_indices": [],
-      "n": 10
-    },
-    "storage__preparation_duration_seconds": {
-      "mean": 12.0908,
-      "median": 12.4375,
-      "std": 0.952871776380339,
-      "min": 10.334,
-      "max": 13.214,
-      "ci_95_lower": 11.409156594244948,
-      "ci_95_upper": 12.772443405755052,
-      "outlier_indices": [],
-      "n": 10
-    },
-    "storage__preparation_start_memory_mb": {
-      "mean": 837.421,
-      "median": 855.46,
-      "std": 49.193110956266565,
-      "min": 728.57,
-      "max": 882.78,
-      "ci_95_lower": 802.2303683503841,
-      "ci_95_upper": 872.611631649616,
-      "outlier_indices": [],
-      "n": 10
-    },
-    "storage__preparation_end_memory_mb": {
-      "mean": 874.956,
-      "median": 872.99,
-      "std": 6.8075272064580545,
-      "min": 861.83,
-      "max": 883.7,
-      "ci_95_lower": 870.0861884001567,
-      "ci_95_upper": 879.8258115998433,
-      "outlier_indices": [],
-      "n": 10
-    },
-    "storage__preparation_peak_memory_mb": {
-      "mean": 874.956,
-      "median": 872.99,
-      "std": 6.8075272064580545,
-      "min": 861.83,
-      "max": 883.7,
-      "ci_95_lower": 870.0861884001567,
-      "ci_95_upper": 879.8258115998433,
-      "outlier_indices": [],
-      "n": 10
-    },
-    "storage__sparql_upload_duration_seconds": {
-      "mean": 0.6201,
-      "median": 0.639,
-      "std": 0.06315316478389839,
-      "min": 0.523,
-      "max": 0.7,
-      "ci_95_lower": 0.5749229474368186,
-      "ci_95_upper": 0.6652770525631814,
-      "outlier_indices": [],
-      "n": 10
-    },
-    "storage__sparql_upload_start_memory_mb": {
-      "mean": 874.956,
-      "median": 872.99,
-      "std": 6.8075272064580545,
-      "min": 861.83,
-      "max": 883.7,
-      "ci_95_lower": 870.0861884001567,
-      "ci_95_upper": 879.8258115998433,
-      "outlier_indices": [],
-      "n": 10
-    },
-    "storage__sparql_upload_end_memory_mb": {
-      "mean": 874.956,
-      "median": 872.99,
-      "std": 6.8075272064580545,
-      "min": 861.83,
-      "max": 883.7,
-      "ci_95_lower": 870.0861884001567,
-      "ci_95_upper": 879.8258115998433,
-      "outlier_indices": [],
-      "n": 10
-    },
-    "storage__sparql_upload_peak_memory_mb": {
-      "mean": 874.956,
-      "median": 872.99,
-      "std": 6.8075272064580545,
-      "min": 861.83,
-      "max": 883.7,
-      "ci_95_lower": 870.0861884001567,
-      "ci_95_upper": 879.8258115998433,
-      "outlier_indices": [],
-      "n": 10
-    },
-    "storage__bulk_load_duration_seconds": {
-      "mean": 1.2321,
-      "median": 1.2654999999999998,
-      "std": 0.08101639065988782,
-      "min": 1.097,
-      "max": 1.32,
-      "ci_95_lower": 1.1741443654432,
-      "ci_95_upper": 1.2900556345568,
-      "outlier_indices": [],
-      "n": 10
-    },
-    "storage__bulk_load_start_memory_mb": {
-      "mean": 874.956,
-      "median": 872.99,
-      "std": 6.8075272064580545,
-      "min": 861.83,
-      "max": 883.7,
-      "ci_95_lower": 870.0861884001567,
-      "ci_95_upper": 879.8258115998433,
-      "outlier_indices": [],
-      "n": 10
-    },
-    "storage__bulk_load_end_memory_mb": {
-      "mean": 874.956,
-      "median": 872.99,
-      "std": 6.8075272064580545,
-      "min": 861.83,
-      "max": 883.7,
-      "ci_95_lower": 870.0861884001567,
-      "ci_95_upper": 879.8258115998433,
-      "outlier_indices": [],
-      "n": 10
-    },
-    "storage__bulk_load_peak_memory_mb": {
-      "mean": 874.956,
-      "median": 872.99,
-      "std": 6.8075272064580545,
-      "min": 861.83,
-      "max": 883.7,
-      "ci_95_lower": 870.0861884001567,
-      "ci_95_upper": 879.8258115998433,
-      "outlier_indices": [],
-      "n": 10
-    }
-  },
+  "statistics": {},
   "summary": {
-    "preload_total_seconds": 22.256,
-    "preload_preparation_seconds": 11.01,
-    "update_total_seconds": 24.629,
-    "update_preparation_seconds": 10.715,
-    "preparation_slowdown_factor": 0.9732061762034514
+    "preload_total_seconds": 21.7,
+    "preload_preparation_seconds": 0.0,
+    "update_total_seconds": 26.196,
+    "update_preparation_seconds": 0.0,
+    "preparation_slowdown_factor": null
   }
 }

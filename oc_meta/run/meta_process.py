@@ -22,6 +22,7 @@ from __future__ import annotations
 import csv
 import glob
 import json
+import multiprocessing
 import os
 import traceback
 from argparse import ArgumentParser
@@ -335,30 +336,45 @@ class MetaProcess:
         os.makedirs(self.prov_update_dir, exist_ok=True)
 
     def _upload_sparql_queries(self) -> None:
-        """Upload SPARQL queries to triplestores sequentially."""
+        """Upload SPARQL queries to triplestores in parallel using fork."""
         data_upload_folder = os.path.join(self.data_update_dir, "to_be_uploaded")
         prov_upload_folder = os.path.join(self.prov_update_dir, "to_be_uploaded")
 
-        _upload_to_triplestore(
-            self.triplestore_url,
-            data_upload_folder,
-            self.redis_host,
-            self.redis_port,
-            self.redis_cache_db,
-            self.ts_failed_queries,
-            self.ts_stop_file,
-            "Uploading data SPARQL"
+        ctx = multiprocessing.get_context('fork')
+
+        data_process = ctx.Process(
+            target=_upload_to_triplestore,
+            args=(
+                self.triplestore_url,
+                data_upload_folder,
+                self.redis_host,
+                self.redis_port,
+                self.redis_cache_db,
+                self.ts_failed_queries,
+                self.ts_stop_file,
+                "Uploading data SPARQL"
+            )
         )
-        _upload_to_triplestore(
-            self.provenance_triplestore_url,
-            prov_upload_folder,
-            self.redis_host,
-            self.redis_port,
-            self.redis_cache_db,
-            self.ts_failed_queries,
-            self.ts_stop_file,
-            "Uploading prov SPARQL"
+
+        prov_process = ctx.Process(
+            target=_upload_to_triplestore,
+            args=(
+                self.provenance_triplestore_url,
+                prov_upload_folder,
+                self.redis_host,
+                self.redis_port,
+                self.redis_cache_db,
+                self.ts_failed_queries,
+                self.ts_stop_file,
+                "Uploading prov SPARQL"
+            )
         )
+
+        data_process.start()
+        prov_process.start()
+
+        data_process.join()
+        prov_process.join()
 
     def store_data_and_prov(
         self, res_storer: Storer, prov_storer: Storer
@@ -422,17 +438,13 @@ class MetaProcess:
                 res_storer.store_all(
                     base_dir=self.output_rdf_dir,
                     base_iri=self.base_iri,
-                    context_path=self.context_path,
-                    verbose_timing=True,
-                    parallel=True
+                    context_path=self.context_path
                 )
             with timer.timer("storage__store_prov"):
                 prov_storer.store_all(
                     base_dir=self.output_rdf_dir,
                     base_iri=self.base_iri,
-                    context_path=self.context_path,
-                    verbose_timing=True,
-                    parallel=True
+                    context_path=self.context_path
                 )
 
         with timer.timer("storage__sparql_upload"):

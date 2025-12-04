@@ -66,7 +66,7 @@ def get_phase_duration_by_name(run: Dict[str, Any], phase_name: str) -> float:
     """Get phase duration by name instead of index."""
     for phase in run["phases"]:
         if phase["name"] == phase_name:
-            return phase["duration_seconds"]
+            return phase["duration_seconds"] or 0
     return 0
 
 
@@ -75,7 +75,7 @@ def get_curation_total(run: Dict[str, Any]) -> float:
     total = 0
     for phase in run["phases"]:
         if phase["name"].startswith("curation__"):
-            total += phase["duration_seconds"]
+            total += phase["duration_seconds"] or 0
     return total
 
 
@@ -356,7 +356,7 @@ def _get_phase_duration_from_report(report: Dict[str, Any], phase_name: str) -> 
     """Get phase duration from a report dict by phase name."""
     for phase in report.get("phases", []):
         if phase["name"] == phase_name:
-            return phase["duration_seconds"]
+            return phase["duration_seconds"] or 0.0
     return 0.0
 
 

@@ -33,7 +33,7 @@ pandas = "^2.2.3"
 rdflib-ocdm = "^1.0.2"
 time-agnostic-library = "^5.0.7"
 virtuoso-utilities = "^1.5.3"
-oc-ocdm = "^9.3.0"
+oc-ocdm = "^9.4.0"
 
 [tool.poetry.group.dev.dependencies]
 wget = "^3.2"

@@ -80,7 +80,7 @@ cache_db: 11
 
 # Virtuoso bulk load settings
 virtuoso_bulk_load:
-  enabled: True
+  enabled: false
   data_container: oc-meta-test-virtuoso
   prov_container: oc-meta-test-virtuoso-prov
   bulk_load_dir: /database/bulk_load
