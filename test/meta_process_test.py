@@ -9,15 +9,16 @@ import tempfile
 import time
 import unittest
 from datetime import datetime
-from test.test_utils import (PROV_SERVER, SERVER, execute_sparql_query,
-                             reset_redis_counters, reset_server)
+from test.test_utils import (PROV_SERVER, SERVER, execute_sparql_construct,
+                             execute_sparql_query, reset_redis_counters,
+                             reset_server)
 
 import yaml
 from oc_meta.lib.file_manager import get_csv_data, write_csv
 from oc_meta.run.meta_process import run_meta_process
 from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
 from rdflib import Dataset, Graph, Literal, URIRef
-from SPARQLWrapper import JSON, POST, XML, SPARQLWrapper
+from sparqlite import SPARQLClient
 
 BASE_DIR = os.path.join("test", "meta_process")
 
@@ -38,16 +39,12 @@ class test_ProcessTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Setup iniziale eseguito una volta per tutta la classe di test"""
-        # Aspetta che Virtuoso sia pronto
-        max_wait = 30  # secondi
+        max_wait = 30
         start_time = time.time()
         while time.time() - start_time < max_wait:
             try:
-                # Prova una query semplice
-                sparql = SPARQLWrapper(SERVER)
-                sparql.setQuery("SELECT * WHERE { ?s ?p ?o } LIMIT 1")
-                sparql.setReturnFormat(JSON)
-                sparql.query()
+                with SPARQLClient(SERVER) as client:
+                    client.query("SELECT * WHERE { ?s ?p ?o } LIMIT 1")
                 break
             except Exception:
                 time.sleep(2)
@@ -265,48 +262,39 @@ class test_ProcessTest(unittest.TestCase):
         
         for entity_type in entity_types:
             query = f"""
-            PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-            PREFIX prov: <http://www.w3.org/ns/prov#>
-            PREFIX oco: <https://w3id.org/oc/ontology/>
-            
-            CONSTRUCT {{
-                ?s ?p ?o .
-            }}
+            SELECT ?s ?p ?o
             WHERE {{
                 ?s ?p ?o .
                 FILTER(REGEX(STR(?s), "https://w3id.org/oc/meta/{entity_type}/[0-9]+/prov/se/[0-9]+"))
             }}
             """
-            
-            result = execute_sparql_query(PROV_SERVER, query, return_format=XML)
-            
-            g = Graph()
-            for s, p, o in result:
-                g.add((s, p, o))
-            
+
+            result = execute_sparql_query(PROV_SERVER, query)
+
             entities = {}
-            for s, p, o in g:
-                s_str = str(s)
+            for binding in result['results']['bindings']:
+                s_str = binding['s']['value']
+                p_str = binding['p']['value']
+                o_data = binding['o']
+
                 if s_str not in entities:
                     entities[s_str] = {'@id': s_str, '@type': []}
-                
-                p_str = str(p)
-                if p == URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'):
-                    entities[s_str]['@type'].append(str(o))
+
+                if p_str == 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type':
+                    entities[s_str]['@type'].append(o_data['value'])
                 else:
                     if p_str not in entities[s_str]:
                         entities[s_str][p_str] = []
-                    
-                    if isinstance(o, URIRef):
-                        entities[s_str][p_str].append({'@id': str(o)})
-                    elif isinstance(o, Literal):
-                        if o.datatype:
-                            entities[s_str][p_str].append({
-                                '@value': str(o),
-                                '@type': str(o.datatype)
-                            })
-                        else:
-                            entities[s_str][p_str].append({'@value': str(o)})
+
+                    if o_data['type'] == 'uri':
+                        entities[s_str][p_str].append({'@id': o_data['value']})
+                    elif o_data.get('datatype'):
+                        entities[s_str][p_str].append({
+                            '@value': o_data['value'],
+                            '@type': o_data['datatype']
+                        })
+                    else:
+                        entities[s_str][p_str].append({'@value': o_data['value']})
             
             # Group entities by their parent entity (e.g., br/0601/prov/se/1 -> br/0601)
             grouped_entities = {}
@@ -565,55 +553,39 @@ class test_ProcessTest(unittest.TestCase):
         
         for entity_type in entity_types:
             query = f"""
-            PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-            PREFIX fabio: <http://purl.org/spar/fabio/>
-            PREFIX pro: <http://purl.org/spar/pro/>
-            PREFIX datacite: <http://purl.org/spar/datacite/>
-            PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
-            PREFIX frbr: <http://purl.org/vocab/frbr/core#>
-            PREFIX foaf: <http://xmlns.com/foaf/0.1/>
-            PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
-            PREFIX dcterms: <http://purl.org/dc/terms/>
-            PREFIX oco: <https://w3id.org/oc/ontology/>
-            
-            CONSTRUCT {{
-                ?s ?p ?o .
-            }}
+            SELECT ?s ?p ?o
             WHERE {{
                 ?s ?p ?o .
                 FILTER(STRSTARTS(STR(?s), "https://w3id.org/oc/meta/{entity_type}/"))
             }}
             """
-            
-            result = execute_sparql_query(SERVER, query, return_format=XML)
-            
-            g = Graph()
-            for s, p, o in result:
-                g.add((s, p, o))
-            
+
+            result = execute_sparql_query(SERVER, query)
+
             entities = {}
-            for s, p, o in g:
-                s_str = str(s)
+            for binding in result['results']['bindings']:
+                s_str = binding['s']['value']
+                p_str = binding['p']['value']
+                o_data = binding['o']
+
                 if s_str not in entities:
                     entities[s_str] = {'@id': s_str, '@type': []}
-                
-                p_str = str(p)
-                if p == URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'):
-                    entities[s_str]['@type'].append(str(o))
+
+                if p_str == 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type':
+                    entities[s_str]['@type'].append(o_data['value'])
                 else:
                     if p_str not in entities[s_str]:
                         entities[s_str][p_str] = []
-                    
-                    if isinstance(o, URIRef):
-                        entities[s_str][p_str].append({'@id': str(o)})
-                    elif isinstance(o, Literal):
-                        if o.datatype:
-                            entities[s_str][p_str].append({
-                                '@value': str(o),
-                                '@type': str(o.datatype)
-                            })
-                        else:
-                            entities[s_str][p_str].append({'@value': str(o)})
+
+                    if o_data['type'] == 'uri':
+                        entities[s_str][p_str].append({'@id': o_data['value']})
+                    elif o_data.get('datatype'):
+                        entities[s_str][p_str].append({
+                            '@value': o_data['value'],
+                            '@type': o_data['datatype']
+                        })
+                    else:
+                        entities[s_str][p_str].append({'@value': o_data['value']})
             
             entity_list = list(entities.values())
             
@@ -1098,9 +1070,8 @@ class test_ProcessTest(unittest.TestCase):
                 ?id ?id_p ?id_o.
             }
         """
-        result = execute_sparql_query(SERVER, query_all, return_format=XML)
+        result = execute_sparql_construct(SERVER, query_all)
         output_folder = os.path.join(BASE_DIR, "output_8")
-        now = datetime.now()
         meta_config_path_without_openalex = os.path.join(BASE_DIR, "meta_config_8.yaml")
         meta_config_path_with_openalex = os.path.join(BASE_DIR, "meta_config_9.yaml")
         with open(meta_config_path_without_openalex, encoding="utf-8") as file:
@@ -1137,7 +1108,7 @@ class test_ProcessTest(unittest.TestCase):
                 ?id ?id_p ?id_o.
             }
         """
-        result = execute_sparql_query(SERVER, query_all, return_format=XML)
+        result = execute_sparql_construct(SERVER, query_all)
         expected_result = Graph()
         expected_result.parse(
             location=os.path.join(BASE_DIR, "test_omid_in_input_data.json"),
@@ -1205,7 +1176,7 @@ class test_ProcessTest(unittest.TestCase):
                 ?ooo ?ooop ?oooo.
             }
         """
-        result = execute_sparql_query(SERVER, query_all, return_format=XML)
+        result = execute_sparql_construct(SERVER, query_all)
         expected_result = Graph()
         expected_result.parse(
             os.path.join(BASE_DIR, "test_publishers_sequence.json"), format="json-ld"
@@ -1291,27 +1262,25 @@ class test_ProcessTest(unittest.TestCase):
             )
 
         # Setup: Insert pre-existing identifiers and BRs in triplestore
-        sparql = SPARQLWrapper(SERVER)
-        sparql.setMethod(POST)
-        sparql.setQuery(
+        with SPARQLClient(SERVER) as client:
+            client.update(
+                """
+            INSERT DATA {
+                GRAPH <https://w3id.org/oc/meta/br/> {
+                    <https://w3id.org/oc/meta/br/0601> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0601> ;
+                        <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Journal> .
+                    <https://w3id.org/oc/meta/br/0602> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0602> ;
+                        <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Journal> .
+                }
+                GRAPH <https://w3id.org/oc/meta/id/> {
+                    <https://w3id.org/oc/meta/id/0601> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "2078-7685" ;
+                                                   <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/issn> .
+                    <https://w3id.org/oc/meta/id/0602> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "2543-3288" ;
+                                                   <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/issn> .
+                }
+            }
             """
-        INSERT DATA {
-            GRAPH <https://w3id.org/oc/meta/br/> {
-                <https://w3id.org/oc/meta/br/0601> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0601> ;
-                    <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Journal> .
-                <https://w3id.org/oc/meta/br/0602> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0602> ;
-                    <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Journal> .
-            }
-            GRAPH <https://w3id.org/oc/meta/id/> {
-                <https://w3id.org/oc/meta/id/0601> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "2078-7685" ;
-                                               <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/issn> .
-                <https://w3id.org/oc/meta/id/0602> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "2543-3288" ;
-                                               <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/issn> .
-            }
-        }
-        """
-        )
-        sparql.query()
+            )
 
         # Update Redis counters to match the inserted data
         redis_handler = RedisCounterHandler(port=6381, db=5)  # Use test db
@@ -1344,7 +1313,7 @@ class test_ProcessTest(unittest.TestCase):
             }
         }
         """
-        result = execute_sparql_query(SERVER, query, return_format=JSON)
+        result = execute_sparql_query(SERVER, query)
         # Group IDs by value to check for duplicates
         ids_by_value = {}
         for binding in result["results"]["bindings"]:
@@ -1432,21 +1401,20 @@ class test_ProcessTest(unittest.TestCase):
             )
 
         # Setup: Insert pre-existing data - aggiungiamo gli identificatori iniziali
-        sparql = SPARQLWrapper(SERVER)
-        sparql.setMethod(POST)
-        sparql.setQuery(
-            """
+        with SPARQLClient(SERVER) as client:
+            client.update(
+                """
         INSERT DATA {
             GRAPH <https://w3id.org/oc/meta/br/> {
                 # First venue - BMJ with initial ISSNs
-                <https://w3id.org/oc/meta/br/0601> 
+                <https://w3id.org/oc/meta/br/0601>
                     <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0601>, <https://w3id.org/oc/meta/id/0602> ;
                     <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Journal> ;
                     <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression> ;
                     <http://purl.org/dc/terms/title> "BMJ" .
 
                 # Second venue
-                <https://w3id.org/oc/meta/br/0602> 
+                <https://w3id.org/oc/meta/br/0602>
                     <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0603> ;
                     <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Journal> ;
                     <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression> ;
@@ -1454,21 +1422,20 @@ class test_ProcessTest(unittest.TestCase):
             }
             GRAPH <https://w3id.org/oc/meta/id/> {
                 # First venue's ISSNs
-                <https://w3id.org/oc/meta/id/0601> 
+                <https://w3id.org/oc/meta/id/0601>
                     <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "1756-1833" ;
                     <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/issn> .
                 <https://w3id.org/oc/meta/id/0602>
                     <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "0959-8138" ;
                     <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/issn> .
                 # Second venue's ISSN
-                <https://w3id.org/oc/meta/id/0603> 
+                <https://w3id.org/oc/meta/id/0603>
                     <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "0267-0623" ;
                     <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/issn> .
             }
         }
         """
-        )
-        sparql.query()
+            )
 
         # Update Redis counters for the pre-existing entities
         redis_handler = RedisCounterHandler(port=6381, db=5)
@@ -1528,7 +1495,7 @@ class test_ProcessTest(unittest.TestCase):
             FILTER(STR(?value) IN ("1756-1833", "0959-8138", "0267-0623"))
         }
         """
-        result = execute_sparql_query(SERVER, query, return_format=JSON)
+        result = execute_sparql_query(SERVER, query)
         # Group IDs by value to check for duplicates
         ids_by_value = {}
         for binding in result["results"]["bindings"]:
@@ -1652,7 +1619,7 @@ class test_ProcessTest(unittest.TestCase):
                 ^<http://purl.org/spar/datacite/hasIdentifier> ?br .
         }
         """
-        result = execute_sparql_query(SERVER, query, return_format=JSON)
+        result = execute_sparql_query(SERVER, query)
 
         # Cleanup
         shutil.rmtree(output_folder, ignore_errors=True)
@@ -1827,19 +1794,18 @@ class test_ProcessTest(unittest.TestCase):
         meta_config_path = os.path.join(BASE_DIR, "meta_config_vvi_triplestore.yaml")
 
         # Setup: Insert pre-existing venue with duplicate volumes and issues (with/without datatype)
-        sparql = SPARQLWrapper(SERVER)
-        sparql.setMethod(POST)
-        sparql.setQuery(
-            """
+        with SPARQLClient(SERVER) as client:
+            client.update(
+                """
         INSERT DATA {
             GRAPH <https://w3id.org/oc/meta/br/> {
                 # Venue
-                <https://w3id.org/oc/meta/br/0601> 
+                <https://w3id.org/oc/meta/br/0601>
                     <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0601> ;
                     <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Journal> ;
                     <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression> ;
                     <http://purl.org/dc/terms/title> "Test Journal" .
-                
+
                 # Volume 1 (without datatype)
                 <https://w3id.org/oc/meta/br/0602>
                     <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/JournalVolume> ;
@@ -1853,7 +1819,7 @@ class test_ProcessTest(unittest.TestCase):
                     <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression> ;
                     <http://purl.org/vocab/frbr/core#partOf> <https://w3id.org/oc/meta/br/0601> ;
                     <http://purl.org/spar/fabio/hasSequenceIdentifier> "1"^^<http://www.w3.org/2001/XMLSchema#string> .
-                
+
                 # Issue 1 (without datatype)
                 <https://w3id.org/oc/meta/br/0603>
                     <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/JournalIssue> ;
@@ -1875,8 +1841,7 @@ class test_ProcessTest(unittest.TestCase):
             }
         }
         """
-        )
-        sparql.query()
+            )
 
         # Update Redis counters for pre-existing entities
         redis_handler = RedisCounterHandler(port=6381, db=5)
@@ -2152,7 +2117,7 @@ class test_ProcessTest(unittest.TestCase):
             }
         }
         """
-        result = execute_sparql_query(SERVER, query, return_format=JSON)
+        result = execute_sparql_query(SERVER, query)
 
         # Cleanup
         shutil.rmtree(output_folder, ignore_errors=True)

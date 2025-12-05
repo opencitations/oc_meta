@@ -3,24 +3,22 @@ import csv
 import os
 from typing import Dict, Set
 
-from SPARQLWrapper import JSON, SPARQLWrapper
+from sparqlite import SPARQLClient
 from tqdm import tqdm
 
 
-def get_entity_existence(endpoint_url: str, entity: str) -> bool:
+def get_entity_existence(client: SPARQLClient, entity: str) -> bool:
     """
     Verifica l'esistenza di un'entità tramite query SPARQL
     """
-    sparql = SPARQLWrapper(endpoint_url)
-    sparql.setQuery(f"""
+    query = f"""
     ASK {{
         <{entity}> ?p ?o
     }}
-    """)
-    sparql.setReturnFormat(JSON)
-    
+    """
+
     try:
-        result = sparql.query().convert()
+        result = client.query(query)
         return result.get('boolean', False)
     except Exception as e:
         print(f"Errore nella verifica dell'entità {entity}: {str(e)}")
@@ -34,23 +32,24 @@ def process_csv(file_path: str, endpoint_url: str) -> Dict[str, Set[str]]:
         'existing': set(),
         'missing': set()
     }
-    
-    with open(file_path, mode='r', encoding='utf-8') as csvfile:
-        reader = csv.DictReader(csvfile)
-        for row in reader:
-            # Controlla solo le righe con Done=false
-            if not row.get('Done') or row.get('Done').strip().lower() == 'false':
-                # Prendi le entità dalla seconda colonna
-                entities = row[list(row.keys())[1]].split('; ')
-                for entity in entities:
-                    entity = entity.strip()
-                    if entity:
-                        # Verifica l'esistenza dell'entità
-                        if get_entity_existence(endpoint_url, entity):
-                            entities_status['existing'].add(entity)
-                        else:
-                            entities_status['missing'].add(entity)
-    
+
+    with SPARQLClient(endpoint_url, max_retries=3, backoff_factor=5) as client:
+        with open(file_path, mode='r', encoding='utf-8') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                # Controlla solo le righe con Done=false
+                if not row.get('Done') or row.get('Done').strip().lower() == 'false':
+                    # Prendi le entità dalla seconda colonna
+                    entities = row[list(row.keys())[1]].split('; ')
+                    for entity in entities:
+                        entity = entity.strip()
+                        if entity:
+                            # Verifica l'esistenza dell'entità
+                            if get_entity_existence(client, entity):
+                                entities_status['existing'].add(entity)
+                            else:
+                                entities_status['missing'].add(entity)
+
     return entities_status
 
 def main():

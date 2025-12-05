@@ -16,12 +16,11 @@
 
 from argparse import ArgumentParser
 
+from oc_meta.lib.csvmanager import CSVManager
 from oc_ocdm.graph.graph_entity import GraphEntity
 from pebble import ProcessFuture, ProcessPool
-from SPARQLWrapper import JSON, SPARQLWrapper
+from sparqlite import SPARQLClient
 from tqdm import tqdm
-
-from oc_meta.lib.csvmanager import CSVManager
 
 
 def task_done(task_output:ProcessFuture) -> None:
@@ -30,7 +29,7 @@ def task_done(task_output:ProcessFuture) -> None:
         print(identifier)
     PBAR.update()
 
-def ask_for_id(identifier: str, sparql: SPARQLWrapper) -> bool:
+def ask_for_id(identifier: str, endpoint: str) -> bool:
     query = f'''
         ASK {{
             ?br <{GraphEntity.iri_has_identifier}> ?identifier.
@@ -38,8 +37,8 @@ def ask_for_id(identifier: str, sparql: SPARQLWrapper) -> bool:
                         <{GraphEntity.iri_has_literal_value}> "{identifier}".
         }}
     '''
-    sparql.setQuery(query)
-    it_exists = sparql.queryAndConvert()['boolean']
+    with SPARQLClient(endpoint, max_retries=3, backoff_factor=5) as client:
+        it_exists = client.query(query)['boolean']
     return identifier, it_exists
 
 if __name__ == '__main__':
@@ -52,13 +51,11 @@ if __name__ == '__main__':
     ids_set = list(CSVManager.load_csv_column_as_set(args.ids, 'id'))
     PBAR = tqdm(total=len(ids_set))
     print('Starting the queries')
-    sparql = SPARQLWrapper(args.ts)
-    sparql.setReturnFormat(JSON)
     with ProcessPool() as executor:
         for identifier in ids_set:
             future:ProcessFuture = executor.schedule(
-                function=ask_for_id, 
-                args=(identifier, sparql)) 
+                function=ask_for_id,
+                args=(identifier, args.ts))
             future.add_done_callback(task_done)
     PBAR.close()
 

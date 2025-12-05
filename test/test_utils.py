@@ -19,7 +19,8 @@ import subprocess
 import time
 
 import redis
-from SPARQLWrapper import JSON, SPARQLWrapper
+from rdflib import Graph
+from sparqlite import SPARQLClient
 
 # Common constants
 SERVER = "http://127.0.0.1:8805/sparql"
@@ -40,14 +41,14 @@ def reset_server() -> None:
     """
     max_retries = 5
     base_delay = 2
-    
+
     # Reset main triplestore
     main_command = [
         "docker", "exec", VIRTUOSO_CONTAINER,
         "/opt/virtuoso-opensource/bin/isql", "1111", "dba", "dba",
         "exec=RDF_GLOBAL_RESET();"
     ]
-    
+
     # Reset provenance triplestore
     prov_command = [
         "docker", "exec", VIRTUOSO_PROV_CONTAINER,
@@ -77,7 +78,7 @@ def reset_server() -> None:
                 raise
             # Exponential backoff with jitter
             time.sleep(base_delay * (2 ** attempt) + random.uniform(0, 1))
-        
+
         except subprocess.TimeoutExpired:
             print(f"Timeout resetting main triplestore (attempt {attempt+1}/{max_retries})")
             if attempt == max_retries - 1:
@@ -107,7 +108,7 @@ def reset_server() -> None:
                 raise
             # Exponential backoff with jitter
             time.sleep(base_delay * (2 ** attempt) + random.uniform(0, 1))
-        
+
         except subprocess.TimeoutExpired:
             print(f"Timeout resetting provenance triplestore (attempt {attempt+1}/{max_retries})")
             if attempt == max_retries - 1:
@@ -128,43 +129,40 @@ def reset_redis_counters():
     redis_cache_client.flushdb()
 
 
-def execute_sparql_query(endpoint, query, return_format=JSON, max_retries=3, delay=5):
+def execute_sparql_query(endpoint, query, max_retries=3, delay=5):
     """
-    Execute a SPARQL query with retry logic and better error handling.
+    Execute a SPARQL SELECT query with retry logic.
 
     Args:
         endpoint (str): SPARQL endpoint URL
-        query (str): SPARQL query to execute
-        return_format: Query return format (JSON, XML etc)
+        query (str): SPARQL SELECT query to execute
         max_retries (int): Maximum number of retry attempts
-        delay (int): Delay between retries in seconds
+        delay (int): Delay between retries in seconds (used as backoff_factor)
 
     Returns:
-        Query results in specified format
+        Query results in JSON format (dict)
 
     Raises:
         URLError: If connection fails after all retries
     """
-    sparql = SPARQLWrapper(endpoint)
-    sparql.setQuery(query)
-    sparql.setReturnFormat(return_format)
+    try:
+        with SPARQLClient(endpoint, max_retries=max_retries, backoff_factor=delay) as client:
+            return client.query(query)
+    except Exception as e:
+        from urllib.error import URLError
+        raise URLError(
+            f"Failed to connect to SPARQL endpoint after {max_retries} attempts: {str(e)}"
+        )
 
-    retry_count = 0
-    last_error = None
 
-    while retry_count < max_retries:
-        try:
-            sparql.setTimeout(30)  # Increase timeout
-            return sparql.queryAndConvert()
-        except Exception as e:
-            last_error = e
-            retry_count += 1
-            if retry_count == max_retries:
-                from urllib.error import URLError
-                raise URLError(
-                    f"Failed to connect to SPARQL endpoint after {max_retries} attempts: {str(last_error)}"
-                )
-            print(
-                f"Connection attempt {retry_count} failed, retrying in {delay} seconds..."
-            )
-            time.sleep(delay)  # Increased delay between retries
+def execute_sparql_construct(endpoint, query, max_retries=3, delay=5):
+    try:
+        with SPARQLClient(endpoint, max_retries=max_retries, backoff_factor=delay) as client:
+            g = Graph()
+            g.parse(data=client.construct(query), format='nt')
+            return g
+    except Exception as e:
+        from urllib.error import URLError
+        raise URLError(
+            f"Failed to connect to SPARQL endpoint after {max_retries} attempts: {str(e)}"
+        )

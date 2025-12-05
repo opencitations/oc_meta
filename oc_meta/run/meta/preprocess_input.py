@@ -22,8 +22,7 @@ import os
 from typing import List, Union
 
 import redis
-from oc_meta.lib.sparql_utils import safe_sparql_query_with_retry
-from SPARQLWrapper import JSON, SPARQLWrapper
+from sparqlite import SPARQLClient
 from tqdm import tqdm
 
 
@@ -69,40 +68,37 @@ def check_ids_existence_sparql(ids: str, sparql_endpoint: str) -> bool:
         return False
 
     id_list = ids.split()
-    sparql = SPARQLWrapper(sparql_endpoint)
-    
-    for id_str in id_list:
-        escaped_id = id_str.replace("'", "\\'").replace('"', '\\"')
-        
-        parts = escaped_id.split(":", 1)
-        scheme = parts[0]
-        value = parts[1]
-        
-        query = f"""
-        PREFIX datacite: <http://purl.org/spar/datacite/>
-        PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
-        PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
 
-        ASK {{
-            ?identifier datacite:usesIdentifierScheme datacite:{scheme} ;
-                        literal:hasLiteralValue ?value .
-            FILTER(
-                ?value = "{value}" ||
-                ?value = "{value}"^^xsd:string
-            )
-        }}
-        """
+    with SPARQLClient(sparql_endpoint, max_retries=5, backoff_factor=5) as client:
+        for id_str in id_list:
+            escaped_id = id_str.replace("'", "\\'").replace('"', '\\"')
 
-        sparql.setQuery(query)
-        sparql.setReturnFormat(JSON)
-        
-        try:
-            results = safe_sparql_query_with_retry(sparql)
-            if not results.get('boolean', False):
+            parts = escaped_id.split(":", 1)
+            scheme = parts[0]
+            value = parts[1]
+
+            query = f"""
+            PREFIX datacite: <http://purl.org/spar/datacite/>
+            PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+            PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
+
+            ASK {{
+                ?identifier datacite:usesIdentifierScheme datacite:{scheme} ;
+                            literal:hasLiteralValue ?value .
+                FILTER(
+                    ?value = "{value}" ||
+                    ?value = "{value}"^^xsd:string
+                )
+            }}
+            """
+
+            try:
+                results = client.query(query)
+                if not results.get('boolean', False):
+                    return False
+            except Exception:
                 return False
-        except Exception:
-            return False
-    
+
     return True
 
 def check_ids_existence(ids: str, storage_type: str, storage_reference: Union[redis.Redis, str, None]) -> bool:

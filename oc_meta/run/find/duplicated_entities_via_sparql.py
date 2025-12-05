@@ -1,6 +1,7 @@
 import argparse
 import csv
-from SPARQLWrapper import SPARQLWrapper, JSON
+
+from sparqlite import SPARQLClient
 
 
 class UnionFind:
@@ -52,10 +53,8 @@ def find_surviving_entities(results):
 
 
 def execute_sparql_query(endpoint_url, query):
-    sparql = SPARQLWrapper(endpoint_url)
-    sparql.setQuery(query)
-    sparql.setReturnFormat(JSON)
-    return sparql.query().convert()
+    with SPARQLClient(endpoint_url, max_retries=3, backoff_factor=5) as client:
+        return client.query(query)
 
 
 def write_results_to_csv(final_entities, csv_file_path):

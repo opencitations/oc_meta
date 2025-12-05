@@ -93,15 +93,8 @@ class TestPreprocessInput(unittest.TestCase):
         self.assertEqual(stats.existing_ids_rows, 3)  # All 3 rows exist in Redis
         self.assertEqual(len(pending_rows), 0)  # No pending rows
 
-    @patch('oc_meta.run.meta.preprocess_input.SPARQLWrapper')
-    def test_process_real_metadata_sparql(self, mock_sparql_wrapper):
+    def test_process_real_metadata_sparql(self):
         """Test processing metadata with SPARQL lookup"""
-        mock_instance = MagicMock()
-        mock_sparql_wrapper.return_value = mock_instance
-        
-        mock_response = MockSPARQLResponse(True)
-        mock_instance.query.return_value = mock_response
-        
         real_data_path = os.path.join(self.test_dir, 'real_metadata_sparql.csv')
         
         # These DOIs are configured to exist in our mocked SPARQL endpoint

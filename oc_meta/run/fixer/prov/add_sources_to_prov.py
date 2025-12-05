@@ -1,9 +1,8 @@
 import argparse
 import os
-import zipfile
-import json
+
 import redis
-from SPARQLWrapper import SPARQLWrapper, JSON
+from sparqlite import SPARQLClient
 
 def create_redis_connection():
     return redis.Redis(host='localhost', port=6379, db=14)
@@ -17,78 +16,70 @@ def search_omid_in_redis(r, omid):
     return result.decode() if result else None
 
 def run_sparql_query(sparql_endpoint, entity_id, entity_class):
-    sparql = SPARQLWrapper(sparql_endpoint)
-    if entity_class == "id":
-        query = f"""
-            PREFIX datacite: <http://purl.org/spar/datacite/>
-            SELECT ?br WHERE {{
-                <{entity_id}> ^datacite:hasIdentifier ?br.
-            }}
-        """
-    elif entity_class == "ar":
-        query = f"""
-            PREFIX pro: <http://purl.org/spar/pro/>
-            SELECT ?br WHERE {{
-                <{entity_id}> ^pro:isDocumentContextFor ?br.
-            }}
-        """
-    elif entity_class == "ra":
-        query = f"""
-            PREFIX pro: <http://purl.org/spar/pro/>
-            SELECT ?br WHERE {{
-                <{entity_id}> ^pro:isHeldBy/isDocumentContextFor ?br.
-            }}
-        """
-    elif entity_class == "re":
-        query = f"""
-            PREFIX frbr: <http://purl.org/vocab/frbr/core#>
-            SELECT ?br WHERE {{
-                <{entity_id}> ^frbr:embodiment ?br.
-            }}
-        """
-    elif entity_class == "br":
-        query = f"""
-            SELECT ?type WHERE {{
-                <{entity_id}> a ?type.
-            }}
-        """
-        sparql.setQuery(query)
-        sparql.setReturnFormat(JSON)
-        results = sparql.query().convert()
+    with SPARQLClient(sparql_endpoint, max_retries=3, backoff_factor=5) as client:
+        if entity_class == "id":
+            query = f"""
+                PREFIX datacite: <http://purl.org/spar/datacite/>
+                SELECT ?br WHERE {{
+                    <{entity_id}> ^datacite:hasIdentifier ?br.
+                }}
+            """
+        elif entity_class == "ar":
+            query = f"""
+                PREFIX pro: <http://purl.org/spar/pro/>
+                SELECT ?br WHERE {{
+                    <{entity_id}> ^pro:isDocumentContextFor ?br.
+                }}
+            """
+        elif entity_class == "ra":
+            query = f"""
+                PREFIX pro: <http://purl.org/spar/pro/>
+                SELECT ?br WHERE {{
+                    <{entity_id}> ^pro:isHeldBy/isDocumentContextFor ?br.
+                }}
+            """
+        elif entity_class == "re":
+            query = f"""
+                PREFIX frbr: <http://purl.org/vocab/frbr/core#>
+                SELECT ?br WHERE {{
+                    <{entity_id}> ^frbr:embodiment ?br.
+                }}
+            """
+        elif entity_class == "br":
+            query = f"""
+                SELECT ?type WHERE {{
+                    <{entity_id}> a ?type.
+                }}
+            """
+            results = client.query(query)
+            for result in results["results"]["bindings"]:
+                br_type = result["type"]["value"]
+            if br_type in {'http://purl.org/spar/fabio/JournalIssue', 'http://purl.org/spar/fabio/JournalVolume', 'http://purl.org/spar/fabio/Journal'}:
+                query = f"""
+                    PREFIX fabio: <http://purl.org/spar/fabio/>
+                    PREFIX frbr: <http://purl.org/vocab/frbr/core#>
+                    SELECT ?br WHERE {{
+                        <{entity_id}> ^frbr:partOf* ?br.
+                        ?br a fabio:JournalArticle.
+                    }}
+                """
+                results = client.query(query)
+                for result in results["results"]["bindings"]:
+                    return result["br"]["value"]
+            else:
+                query = f"""
+                    PREFIX fabio: <http://purl.org/spar/fabio/>
+                    PREFIX frbr: <http://purl.org/vocab/frbr/core#>
+                    SELECT ?br WHERE {{
+                        <{entity_id}> ^frbr:partOf ?br.
+                    }}
+                """
+                results = client.query(query)
+                for result in results["results"]["bindings"]:
+                    return result["br"]["value"]
+        results = client.query(query)
         for result in results["results"]["bindings"]:
-            br_type = result["type"]["value"]
-        if br_type in {'http://purl.org/spar/fabio/JournalIssue', 'http://purl.org/spar/fabio/JournalVolume', 'http://purl.org/spar/fabio/Journal'}:
-            query = f"""
-                PREFIX fabio: <http://purl.org/spar/fabio/>
-                PREFIX frbr: <http://purl.org/vocab/frbr/core#>
-                SELECT ?br WHERE {{
-                    <{entity_id}> ^frbr:partOf* ?br.
-                    ?br a fabio:JournalArticle.
-                }}
-            """
-            sparql.setQuery(query)
-            sparql.setReturnFormat(JSON)
-            results = sparql.query().convert()
-            for result in results["results"]["bindings"]:
-                return result["br"]["value"]
-        else:
-            query = f"""
-                PREFIX fabio: <http://purl.org/spar/fabio/>
-                PREFIX frbr: <http://purl.org/vocab/frbr/core#>
-                SELECT ?br WHERE {{
-                    <{entity_id}> ^frbr:partOf ?br.
-                }}
-            """
-            sparql.setQuery(query)
-            sparql.setReturnFormat(JSON)
-            results = sparql.query().convert()
-            for result in results["results"]["bindings"]:
-                return result["br"]["value"]
-    sparql.setQuery(query)
-    sparql.setReturnFormat(JSON)
-    results = sparql.query().convert()
-    for result in results["results"]["bindings"]:
-        return result["br"]["value"]
+            return result["br"]["value"]
 
 def explore_folder(folder_path, sparql_endpoint, r):
     for root, dirs, files in os.walk(folder_path):

@@ -1,6 +1,7 @@
 import argparse
 import csv
-from SPARQLWrapper import SPARQLWrapper, JSON
+
+from sparqlite import SPARQLClient
 from tqdm import tqdm
 
 def get_entity_type(entity_url):
@@ -12,8 +13,7 @@ def get_entity_type(entity_url):
             return None
     return None
 
-def query_sparql(endpoint_url, entity):
-    sparql = SPARQLWrapper(endpoint_url)
+def query_sparql(client, entity):
     query = f"""
     PREFIX fabio: <http://purl.org/spar/fabio/>
     PREFIX frbr: <http://purl.org/vocab/frbr/core#>
@@ -28,9 +28,7 @@ def query_sparql(endpoint_url, entity):
         }}
     }}
     """
-    sparql.setQuery(query)
-    sparql.setReturnFormat(JSON)
-    return sparql.query().convert()
+    return client.query(query)
 
 def process_csv(input_csv, output_csv, endpoint_url):
     with open(input_csv, mode='r', newline='', encoding='utf-8') as infile, \
@@ -40,16 +38,17 @@ def process_csv(input_csv, output_csv, endpoint_url):
         writer = csv.DictWriter(outfile, fieldnames=['entity', 'type', 'partOfType'])
         writer.writeheader()
 
-        for row in tqdm(reader, desc='Processing rows', unit='row'):
-            entity = row['surviving_entity']
-            if get_entity_type(entity) == 'br':
-                results = query_sparql(endpoint_url, entity)
-                for result in results["results"]["bindings"]:
-                    writer.writerow({
-                        'entity': entity,
-                        'type': result["type"]["value"],
-                        'partOfType': result["partOfType"]["value"] if "partOfType" in result else None
-                    })
+        with SPARQLClient(endpoint_url, max_retries=3, backoff_factor=5) as client:
+            for row in tqdm(reader, desc='Processing rows', unit='row'):
+                entity = row['surviving_entity']
+                if get_entity_type(entity) == 'br':
+                    results = query_sparql(client, entity)
+                    for result in results["results"]["bindings"]:
+                        writer.writerow({
+                            'entity': entity,
+                            'type': result["type"]["value"],
+                            'partOfType': result["partOfType"]["value"] if "partOfType" in result else None
+                        })
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Find the containment chain of bibliographic resources')

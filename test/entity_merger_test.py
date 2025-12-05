@@ -14,7 +14,7 @@ from oc_ocdm.graph import GraphSet
 from oc_ocdm.prov.prov_set import ProvSet
 from oc_ocdm.storer import Storer
 from rdflib import URIRef
-from SPARQLWrapper import POST, SPARQLWrapper
+from sparqlite import SPARQLClient
 
 BASE = os.path.join("test", "merger")
 OUTPUT = os.path.join(BASE, "output/")
@@ -22,40 +22,33 @@ META_CONFIG = os.path.join("test", "merger", "meta_config.yaml")
 SERVER = "http://127.0.0.1:8805/sparql"
 PROV_SERVER = "http://127.0.0.1:8806/sparql"
 
-# Redis configuration
 REDIS_HOST = "localhost"
 REDIS_PORT = 6381
-REDIS_DB = 5  # For counters
-REDIS_CACHE_DB = 2  # For cache, using same test DB as on_triplestore_test.py
+REDIS_DB = 5
+REDIS_CACHE_DB = 2
 
 
 def reset_triplestore():
     """Reset the test triplestore graphs"""
-    # Reset main triplestore
-    endpoint = SPARQLWrapper(SERVER)
-    for graph in [
-        "https://w3id.org/oc/meta/br/",
-        "https://w3id.org/oc/meta/ra/",
-        "https://w3id.org/oc/meta/re/",
-        "https://w3id.org/oc/meta/id/",
-        "https://w3id.org/oc/meta/ar/",
-    ]:
-        endpoint.setQuery(f"CLEAR GRAPH <{graph}>")
-        endpoint.setMethod(POST)
-        endpoint.query()
-        
-    # Reset provenance triplestore
-    prov_endpoint = SPARQLWrapper(PROV_SERVER)
-    for graph in [
-        "https://w3id.org/oc/meta/br/",
-        "https://w3id.org/oc/meta/ra/",
-        "https://w3id.org/oc/meta/re/",
-        "https://w3id.org/oc/meta/id/",
-        "https://w3id.org/oc/meta/ar/",
-    ]:
-        prov_endpoint.setQuery(f"CLEAR GRAPH <{graph}>")
-        prov_endpoint.setMethod(POST)
-        prov_endpoint.query()
+    with SPARQLClient(SERVER) as client:
+        for graph in [
+            "https://w3id.org/oc/meta/br/",
+            "https://w3id.org/oc/meta/ra/",
+            "https://w3id.org/oc/meta/re/",
+            "https://w3id.org/oc/meta/id/",
+            "https://w3id.org/oc/meta/ar/",
+        ]:
+            client.update(f"CLEAR GRAPH <{graph}>")
+
+    with SPARQLClient(PROV_SERVER) as prov_client:
+        for graph in [
+            "https://w3id.org/oc/meta/br/",
+            "https://w3id.org/oc/meta/ra/",
+            "https://w3id.org/oc/meta/re/",
+            "https://w3id.org/oc/meta/id/",
+            "https://w3id.org/oc/meta/ar/",
+        ]:
+            prov_client.update(f"CLEAR GRAPH <{graph}>")
 
 
 def reset_redis_counters():

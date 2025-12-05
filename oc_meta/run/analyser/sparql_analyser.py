@@ -17,23 +17,23 @@ from __future__ import annotations
 
 import argparse
 import sys
-import time
-from SPARQLWrapper import SPARQLWrapper, JSON
-from typing import Dict, Any
+from typing import Any, Dict
+
+from sparqlite import SPARQLClient
 
 
 class OCMetaSPARQLAnalyser:
     """
     System for analyzing dataset statistics through SPARQL queries.
-    
+
     This analyser connects to a SPARQL endpoint and performs various statistical
     analyses on the OpenCitations Meta dataset automatically.
     """
-    
+
     def __init__(self, sparql_endpoint: str, max_retries: int = 3, retry_delay: int = 5):
         """
         Initialize the SPARQL analyser.
-        
+
         Args:
             sparql_endpoint: SPARQL endpoint URL (required)
             max_retries: Maximum number of retries for a failing query. Defaults to 3.
@@ -42,38 +42,39 @@ class OCMetaSPARQLAnalyser:
         self.sparql_endpoint = sparql_endpoint
         self.max_retries = max_retries
         self.retry_delay = retry_delay
-        self.sparql = SPARQLWrapper(self.sparql_endpoint)
-        self.sparql.setReturnFormat(JSON)
-    
+        self.client = SPARQLClient(sparql_endpoint, max_retries=max_retries, backoff_factor=retry_delay)
+
     def _execute_sparql_query(self, query: str) -> Dict[str, Any]:
         """
         Execute a SPARQL query with retry logic and return results.
-        
+
         Args:
             query: SPARQL query string
-            
+
         Returns:
             Query results as dictionary
-            
+
         Raises:
             Exception: If query execution fails after all retries.
         """
-        last_exception = None
-        for attempt in range(self.max_retries):
-            try:
-                self.sparql.setQuery(query)
-                return self.sparql.queryAndConvert()
-            except Exception as e:
-                last_exception = e
-                if attempt < self.max_retries - 1:
-                    time.sleep(self.retry_delay)
-                else:
-                    print(
-                        f"Query failed on attempt {attempt + 1} of {self.max_retries}. "
-                        f"No more retries left.",
-                        file=sys.stderr
-                    )
-        raise Exception("SPARQL query failed after multiple retries.") from last_exception
+        try:
+            return self.client.query(query)
+        except Exception as e:
+            print(
+                f"Query failed after {self.max_retries} retries.",
+                file=sys.stderr
+            )
+            raise Exception("SPARQL query failed after multiple retries.") from e
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+        return False
+
+    def close(self):
+        self.client.close()
     
     def count_expressions(self) -> int:
         """
@@ -335,28 +336,28 @@ If no specific options are provided, all analyses will be executed.
     analyze_venues = args.venues or not (args.br or args.ar or args.venues)
     
     try:
-        analyser = OCMetaSPARQLAnalyser(args.sparql_endpoint)
-        results = analyser.run_selected_analyses(analyze_br, analyze_ar, analyze_venues)
-        
-        print("\n" + "="*50)
-        print("SUMMARY OF RESULTS")
-        print("="*50)
-        
-        if results.get('fabio_expressions') is not None:
-            print(f"fabio:Expression entities: {results['fabio_expressions']:,}")
-        
-        if results.get('roles'):
-            print(f"pro:author roles: {results['roles']['pro:author']:,}")
-            print(f"pro:publisher roles: {results['roles']['pro:publisher']:,}")
-            print(f"pro:editor roles: {results['roles']['pro:editor']:,}")
-        
-        if results.get('venues_disambiguated') is not None:
-            print(f"Distinct venues (disambiguated): {results['venues_disambiguated']:,}")
-            if results.get('venues_simple') is not None:
-                print(f"Distinct venues (simple count): {results['venues_simple']:,}")
-        
-        return results
-        
+        with OCMetaSPARQLAnalyser(args.sparql_endpoint) as analyser:
+            results = analyser.run_selected_analyses(analyze_br, analyze_ar, analyze_venues)
+
+            print("\n" + "="*50)
+            print("SUMMARY OF RESULTS")
+            print("="*50)
+
+            if results.get('fabio_expressions') is not None:
+                print(f"fabio:Expression entities: {results['fabio_expressions']:,}")
+
+            if results.get('roles'):
+                print(f"pro:author roles: {results['roles']['pro:author']:,}")
+                print(f"pro:publisher roles: {results['roles']['pro:publisher']:,}")
+                print(f"pro:editor roles: {results['roles']['pro:editor']:,}")
+
+            if results.get('venues_disambiguated') is not None:
+                print(f"Distinct venues (disambiguated): {results['venues_disambiguated']:,}")
+                if results.get('venues_simple') is not None:
+                    print(f"Distinct venues (simple count): {results['venues_simple']:,}")
+
+            return results
+
     except Exception as e:
         print(f"Analysis failed: {e}")
         return None

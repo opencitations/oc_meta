@@ -96,7 +96,6 @@ class Curator:
         self.silencer = silencer
 
     def _timed(self, name: str):
-        """Return timer context manager or nullcontext if timer not available."""
         if self.timer:
             return self.timer.timer(name)
         return nullcontext()

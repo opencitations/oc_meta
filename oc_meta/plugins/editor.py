@@ -22,7 +22,6 @@ from typing import Set
 
 import validators
 import yaml
-from oc_meta.lib.sparql_utils import safe_sparql_query_with_retry
 from oc_ocdm import Storer
 from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
 from oc_ocdm.graph import GraphSet
@@ -31,7 +30,7 @@ from oc_ocdm.prov import ProvSet
 from oc_ocdm.reader import Reader
 from oc_ocdm.support.support import build_graph_from_results
 from rdflib import RDF, Graph, URIRef
-from SPARQLWrapper import JSON, SPARQLWrapper
+from sparqlite import SPARQLClient
 
 
 class EntityCache:
@@ -132,14 +131,11 @@ class MetaEditor:
             inferred_type = self.infer_type_from_uri(res)
             if inferred_type:
                 print(f"Inferred type {inferred_type} for entity {res}")
-                sparql: SPARQLWrapper = SPARQLWrapper(self.endpoint)
                 query: str = (
                     f"SELECT ?s ?p ?o WHERE {{BIND (<{res}> AS ?s). ?s ?p ?o.}}"
                 )
-                sparql.setQuery(query)
-                sparql.setMethod("GET")
-                sparql.setReturnFormat(JSON)
-                result = sparql.queryAndConvert()["results"]["bindings"]
+                with SPARQLClient(self.endpoint, max_retries=3, backoff_factor=0.3) as client:
+                    result = client.query(query)["results"]["bindings"]
                 preexisting_graph: Graph = build_graph_from_results(result)
                 self.add_entity_with_type(g_set, res, inferred_type, preexisting_graph)
             else:
@@ -177,11 +173,9 @@ class MetaEditor:
             else:
                 getattr(g_set.get_entity(URIRef(res)), remove_method)()
         else:
-            sparql = SPARQLWrapper(endpoint=self.endpoint)
             query = f"SELECT ?s WHERE {{?s ?p <{res}>.}}"
-            sparql.setQuery(query)
-            sparql.setReturnFormat(JSON)
-            result = sparql.queryAndConvert()
+            with SPARQLClient(self.endpoint, max_retries=3, backoff_factor=0.3) as client:
+                result = client.query(query)
             for entity in result["results"]["bindings"]:
                 self.reader.import_entity_from_triplestore(
                     g_set,
@@ -205,60 +199,55 @@ class MetaEditor:
         """
         # First get all related entities with a single SPARQL query
         related_entities = set()
-        if other in self.relationship_cache:
-            related_entities.update(self.relationship_cache[other])
-        else:
-            sparql = SPARQLWrapper(endpoint=self.endpoint)
-            query = f"""
-                PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-                PREFIX datacite: <http://purl.org/spar/datacite/>
-                PREFIX pro: <http://purl.org/spar/pro/>
-                SELECT DISTINCT ?entity WHERE {{
-                    {{?entity ?p <{other}>}} UNION 
-                    {{<{other}> ?p ?entity}}
-                    FILTER (?p != rdf:type) 
-                    FILTER (?p != datacite:usesIdentifierScheme) 
-                    FILTER (?p != pro:withRole)
-                }}"""
+        with SPARQLClient(self.endpoint, max_retries=5, backoff_factor=0.3) as client:
+            if other in self.relationship_cache:
+                related_entities.update(self.relationship_cache[other])
+            else:
+                query = f"""
+                    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+                    PREFIX datacite: <http://purl.org/spar/datacite/>
+                    PREFIX pro: <http://purl.org/spar/pro/>
+                    SELECT DISTINCT ?entity WHERE {{
+                        {{?entity ?p <{other}>}} UNION
+                        {{<{other}> ?p ?entity}}
+                        FILTER (?p != rdf:type)
+                        FILTER (?p != datacite:usesIdentifierScheme)
+                        FILTER (?p != pro:withRole)
+                    }}"""
 
-            sparql.setQuery(query)
-            sparql.setReturnFormat(JSON)
-            data = safe_sparql_query_with_retry(sparql, max_retries=5, backoff_base=0.3, backoff_exponential=True)
-            other_related = {
-                URIRef(result["entity"]["value"])
-                for result in data["results"]["bindings"]
-                if result["entity"]["type"] == "uri"
-            }
+                data = client.query(query)
+                other_related = {
+                    URIRef(result["entity"]["value"])
+                    for result in data["results"]["bindings"]
+                    if result["entity"]["type"] == "uri"
+                }
 
-            self.relationship_cache[other] = other_related
-            related_entities.update(other_related)
-        if res in self.relationship_cache:
-            related_entities.update(self.relationship_cache[res])
-        else:
-            # Query only for objects of the surviving entity if not in cache
-            sparql = SPARQLWrapper(endpoint=self.endpoint)
-            query = f"""
-                PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-                PREFIX datacite: <http://purl.org/spar/datacite/>
-                PREFIX pro: <http://purl.org/spar/pro/>
-                SELECT DISTINCT ?entity WHERE {{
-                    <{res}> ?p ?entity
-                    FILTER (?p != rdf:type) 
-                    FILTER (?p != datacite:usesIdentifierScheme) 
-                    FILTER (?p != pro:withRole)
-                }}"""
+                self.relationship_cache[other] = other_related
+                related_entities.update(other_related)
+            if res in self.relationship_cache:
+                related_entities.update(self.relationship_cache[res])
+            else:
+                # Query only for objects of the surviving entity if not in cache
+                query = f"""
+                    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+                    PREFIX datacite: <http://purl.org/spar/datacite/>
+                    PREFIX pro: <http://purl.org/spar/pro/>
+                    SELECT DISTINCT ?entity WHERE {{
+                        <{res}> ?p ?entity
+                        FILTER (?p != rdf:type)
+                        FILTER (?p != datacite:usesIdentifierScheme)
+                        FILTER (?p != pro:withRole)
+                    }}"""
 
-            sparql.setQuery(query)
-            sparql.setReturnFormat(JSON)
-            data = safe_sparql_query_with_retry(sparql, max_retries=5, backoff_base=0.3, backoff_exponential=True)
-            res_related = {
-                URIRef(result["entity"]["value"])
-                for result in data["results"]["bindings"]
-                if result["entity"]["type"] == "uri"
-            }
+                data = client.query(query)
+                res_related = {
+                    URIRef(result["entity"]["value"])
+                    for result in data["results"]["bindings"]
+                    if result["entity"]["type"] == "uri"
+                }
 
-            self.relationship_cache[res] = res_related
-            related_entities.update(res_related)
+                self.relationship_cache[res] = res_related
+                related_entities.update(res_related)
 
         entities_to_import = set([res, other])
         entities_to_import.update(related_entities)

@@ -2,17 +2,16 @@ import csv
 import shutil
 import unittest
 
-from oc_ocdm import Storer
-from SPARQLWrapper import POST, SPARQLWrapper
-from rdflib import Graph, Dataset
 import redis
-from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
-
 from oc_meta.core.creator import Creator
 from oc_meta.core.curator import *
 from oc_meta.lib.file_manager import get_csv_data
 from oc_meta.lib.finder import ResourceFinder
 from oc_meta.plugins.multiprocess.resp_agents_curator import RespAgentsCurator
+from oc_ocdm import Storer
+from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
+from rdflib import Dataset, Graph
+from sparqlite import SPARQLClient
 
 SERVER = 'http://127.0.0.1:8805/sparql'
 BASE_DIR = os.path.join('test')
@@ -47,17 +46,14 @@ def reset():
     reset_redis_counters()
 
 def reset_server(server:str=SERVER) -> None:
-    ts = SPARQLWrapper(server)
-    for graph in {'https://w3id.org/oc/meta/br/', 'https://w3id.org/oc/meta/ra/', 'https://w3id.org/oc/meta/re/', 'https://w3id.org/oc/meta/id/', 'https://w3id.org/oc/meta/ar/', 'http://default.graph/'}:
-        ts.setQuery(f'CLEAR GRAPH <{graph}>')
-        ts.setMethod(POST)
-        ts.query()
+    with SPARQLClient(server) as client:
+        for graph in {'https://w3id.org/oc/meta/br/', 'https://w3id.org/oc/meta/ra/', 'https://w3id.org/oc/meta/re/', 'https://w3id.org/oc/meta/id/', 'https://w3id.org/oc/meta/ar/', 'http://default.graph/'}:
+            client.update(f'CLEAR GRAPH <{graph}>')
 
 def add_data_ts(server:str=SERVER, data_path:str=os.path.abspath(os.path.join('test', 'testcases', 'ts', 'real_data.nt')).replace('\\', '/'), batch_size:int=100, default_graph_uri=URIRef("http://default.graph/")):
     reset_server(server)
     f_path = get_path(data_path)
-    
-    # Determina il formato del file
+
     file_extension = os.path.splitext(f_path)[1].lower()
     if file_extension == '.nt':
         g = Graph()
@@ -78,23 +74,20 @@ def add_data_ts(server:str=SERVER, data_path:str=os.path.abspath(os.path.join('t
     elif file_extension == '.nq':
         for subj, pred, obj, ctx in g.quads():
             triples_list.append((subj, pred, obj, ctx))
-    
-    for i in range(0, len(triples_list), batch_size):
-        batch_triples = triples_list[i:i + batch_size]
-        
-        triples_str = ""
-        for subj, pred, obj, ctx in batch_triples:
-            if ctx:
-                triples_str += f"GRAPH {ctx.n3().replace('[', '').replace(']', '')} {{ {subj.n3()} {pred.n3()} {obj.n3()} }} "
-            else: 
-                triples_str += f"{subj.n3()} {pred.n3()} {obj.n3()} . "
-        
-        query = f"INSERT DATA {{ {triples_str} }}"
-                
-        ts = SPARQLWrapper(server)
-        ts.setQuery(query)
-        ts.setMethod(POST)
-        ts.query()
+
+    with SPARQLClient(server) as client:
+        for i in range(0, len(triples_list), batch_size):
+            batch_triples = triples_list[i:i + batch_size]
+
+            triples_str = ""
+            for subj, pred, obj, ctx in batch_triples:
+                if ctx:
+                    triples_str += f"GRAPH {ctx.n3().replace('[', '').replace(']', '')} {{ {subj.n3()} {pred.n3()} {obj.n3()} }} "
+                else:
+                    triples_str += f"{subj.n3()} {pred.n3()} {obj.n3()} . "
+
+            query = f"INSERT DATA {{ {triples_str} }}"
+            client.update(query)
 
 def store_curated_data(curator_obj:Curator, server:str) -> None:
     creator_obj = Creator(curator_obj.data, curator_obj.finder, BASE_IRI, None, None, 'https://orcid.org/0000-0002-8420-0696',

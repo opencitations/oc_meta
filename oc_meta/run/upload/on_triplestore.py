@@ -1,28 +1,14 @@
 import argparse
 import os
 
-from oc_meta.lib.sparql_utils import safe_sparql_query_with_retry
 from oc_meta.run.upload.cache_manager import CacheManager
-from SPARQLWrapper import SPARQLWrapper, POST
+from sparqlite import SPARQLClient
 from tqdm import tqdm
 
 
 def save_failed_query_file(filename, failed_file):
     with open(failed_file, "a", encoding="utf8") as failed_file:
         failed_file.write(f"{filename}\n")
-
-
-def execute_sparql_update(endpoint, query):
-    sparql = SPARQLWrapper(endpoint)
-    sparql.setMethod(POST)
-    sparql.setQuery(query)
-
-    try:
-        safe_sparql_query_with_retry(sparql, max_retries=3, backoff_base=5, backoff_exponential=True)
-        return True
-    except Exception as e:
-        print(f"All 3 attempts failed. Could not execute SPARQL update due to communication problems: {e}")
-        return False
 
 
 def remove_stop_file(stop_file):
@@ -63,25 +49,27 @@ def upload_sparql_updates(
         return
 
     iterator = tqdm(files_to_process, desc=description) if show_progress else files_to_process
-    for file in iterator:
-        if os.path.exists(stop_file):
-            print(f"\nStop file {stop_file} detected. Interrupting the process...")
-            break
+    with SPARQLClient(endpoint, max_retries=3, backoff_factor=5) as client:
+        for file in iterator:
+            if os.path.exists(stop_file):
+                print(f"\nStop file {stop_file} detected. Interrupting the process...")
+                break
 
-        file_path = os.path.join(folder, file)
+            file_path = os.path.join(folder, file)
 
-        with open(file_path, "r", encoding="utf-8") as f:
-            query = f.read().strip()
+            with open(file_path, "r", encoding="utf-8") as f:
+                query = f.read().strip()
 
-        if not query:
-            cache_manager.add(file)
-            continue
+            if not query:
+                cache_manager.add(file)
+                continue
 
-        success = execute_sparql_update(endpoint, query)
-        if success:
-            cache_manager.add(file)
-        else:
-            save_failed_query_file(file, failed_file)
+            try:
+                client.update(query)
+                cache_manager.add(file)
+            except Exception as e:
+                print(f"Failed to execute {file}: {e}")
+                save_failed_query_file(file, failed_file)
 
 
 def main():

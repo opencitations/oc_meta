@@ -96,12 +96,12 @@ class TestUnionFind(unittest.TestCase):
 class TestQuerySPARQL(unittest.TestCase):
     """Test SPARQL query functions"""
 
-    @patch('oc_meta.run.merge.group_entities.SPARQLWrapper')
-    def test_query_sparql_batch(self, mock_sparql):
+    @patch('oc_meta.run.merge.group_entities.SPARQLClient')
+    def test_query_sparql_batch(self, mock_sparql_client):
         """Test batch querying for related entities"""
-        mock_instance = MagicMock()
-        mock_sparql.return_value = mock_instance
-        mock_instance.query.return_value.convert.return_value = {
+        mock_client = MagicMock()
+        mock_sparql_client.return_value.__enter__.return_value = mock_client
+        mock_client.query.return_value = {
             'results': {
                 'bindings': [
                     {'entity': {'value': 'https://example.org/related1', 'type': 'uri'}},
@@ -117,55 +117,36 @@ class TestQuerySPARQL(unittest.TestCase):
         self.assertIn('https://example.org/related1', result)
         self.assertIn('https://example.org/related2', result)
 
-    @patch('oc_meta.run.merge.group_entities.SPARQLWrapper')
-    def test_query_sparql_batch_large_input(self, mock_sparql):
+    @patch('oc_meta.run.merge.group_entities.SPARQLClient')
+    def test_query_sparql_batch_large_input(self, mock_sparql_client):
         """Test batch processing with large input (multiple batches)"""
-        mock_instance = MagicMock()
-        mock_sparql.return_value = mock_instance
-        mock_instance.query.return_value.convert.return_value = {
-            'results': {'bindings': []}
-        }
+        mock_client = MagicMock()
+        mock_sparql_client.return_value.__enter__.return_value = mock_client
+        mock_client.query.return_value = {'results': {'bindings': []}}
 
         from oc_meta.run.merge.group_entities import query_sparql_batch
         uris = [f"https://example.org/entity{i}" for i in range(25)]
         query_sparql_batch("http://endpoint", uris, batch_size=10)
 
-        self.assertEqual(mock_instance.query.call_count, 3)
+        self.assertEqual(mock_client.query.call_count, 3)
 
-    @patch('oc_meta.run.merge.group_entities.SPARQLWrapper')
-    def test_query_sparql_batch_empty_results(self, mock_sparql):
+    @patch('oc_meta.run.merge.group_entities.SPARQLClient')
+    def test_query_sparql_batch_empty_results(self, mock_sparql_client):
         """Test handling of empty results"""
-        mock_instance = MagicMock()
-        mock_sparql.return_value = mock_instance
-        mock_instance.query.return_value.convert.return_value = {
-            'results': {'bindings': []}
-        }
+        mock_client = MagicMock()
+        mock_sparql_client.return_value.__enter__.return_value = mock_client
+        mock_client.query.return_value = {'results': {'bindings': []}}
 
         from oc_meta.run.merge.group_entities import query_sparql_batch
         result = query_sparql_batch("http://endpoint", ["https://example.org/test"])
         self.assertEqual(len(result), 0)
 
-    @patch('oc_meta.run.merge.group_entities.SPARQLWrapper')
-    def test_query_sparql_batch_retry_on_failure(self, mock_sparql):
-        """Test that retry mechanism works on failures"""
-        mock_instance = MagicMock()
-        mock_sparql.return_value = mock_instance
-        mock_instance.query.side_effect = [
-            Exception("Connection error"),
-            MagicMock(convert=MagicMock(return_value={'results': {'bindings': []}}))
-        ]
-
-        from oc_meta.run.merge.group_entities import query_sparql_batch
-        result = query_sparql_batch("http://endpoint", ["https://example.org/test"])
-        self.assertEqual(len(result), 0)
-        self.assertEqual(mock_instance.query.call_count, 2)
-
-    @patch('oc_meta.run.merge.group_entities.SPARQLWrapper')
-    def test_query_sparql_batch_filters_literals(self, mock_sparql):
+    @patch('oc_meta.run.merge.group_entities.SPARQLClient')
+    def test_query_sparql_batch_filters_literals(self, mock_sparql_client):
         """Test that literal values are filtered out (only URIs)"""
-        mock_instance = MagicMock()
-        mock_sparql.return_value = mock_instance
-        mock_instance.query.return_value.convert.return_value = {
+        mock_client = MagicMock()
+        mock_sparql_client.return_value.__enter__.return_value = mock_client
+        mock_client.query.return_value = {
             'results': {
                 'bindings': [
                     {'entity': {'value': 'https://example.org/uri1', 'type': 'uri'}},

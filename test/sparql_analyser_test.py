@@ -31,7 +31,7 @@ class TestOCMetaSPARQLAnalyser(unittest.TestCase):
     def test_initialization_with_endpoint(self):
         """Test that analyser initializes correctly with provided endpoint."""
         self.assertEqual(self.analyser.sparql_endpoint, self.test_endpoint)
-        self.assertIsNotNone(self.analyser.sparql)
+        self.assertIsNotNone(self.analyser.client)
     
     def test_initialization_requires_endpoint(self):
         """Test that analyser requires an endpoint parameter."""
@@ -47,51 +47,18 @@ class TestOCMetaSPARQLAnalyser(unittest.TestCase):
                 ]
             }
         }
-        
-        with patch.object(self.analyser.sparql, 'queryAndConvert', return_value=mock_results):
+
+        with patch.object(self.analyser.client, 'query', return_value=mock_results):
             result = self.analyser._execute_sparql_query("SELECT * WHERE { ?s ?p ?o }")
             self.assertEqual(result, mock_results)
     
     def test_execute_sparql_query_failure(self):
         """Test SPARQL query execution failure."""
-        self.analyser.max_retries = 1
-        with patch.object(self.analyser.sparql, 'queryAndConvert', side_effect=Exception("Query failed")):
+        with patch.object(self.analyser.client, 'query', side_effect=Exception("Query failed")):
             with self.assertRaises(Exception) as context:
                 self.analyser._execute_sparql_query("INVALID QUERY")
             self.assertIn("SPARQL query failed after multiple retries", str(context.exception))
     
-    @patch('time.sleep', return_value=None)
-    def test_execute_sparql_query_retry_and_succeed(self, mock_sleep):
-        """Test that query succeeds after a retry."""
-        self.analyser.max_retries = 2
-        self.analyser.retry_delay = 1
-        
-        mock_results = {"results": {"bindings": []}}
-        side_effects = [Exception("Connection failed"), mock_results]
-        
-        with patch.object(self.analyser.sparql, 'queryAndConvert', side_effect=side_effects) as mock_query:
-            result = self.analyser._execute_sparql_query("ANY QUERY")
-            
-            self.assertEqual(result, mock_results)
-            self.assertEqual(mock_query.call_count, 2)
-            mock_sleep.assert_called_once_with(1)
-
-    @patch('time.sleep', return_value=None)
-    def test_execute_sparql_query_retry_and_fail(self, mock_sleep):
-        """Test that query fails after all retries."""
-        self.analyser.max_retries = 3
-        self.analyser.retry_delay = 1
-        
-        side_effects = [Exception("Error 1"), Exception("Error 2"), Exception("Error 3")]
-        
-        with patch.object(self.analyser.sparql, 'queryAndConvert', side_effect=side_effects) as mock_query:
-            with self.assertRaises(Exception) as context:
-                self.analyser._execute_sparql_query("ANY QUERY")
-            
-            self.assertIn("SPARQL query failed after multiple retries", str(context.exception))
-            self.assertEqual(mock_query.call_count, 3)
-            self.assertEqual(mock_sleep.call_count, 2)
-
     def test_count_expressions(self):
         """Test counting fabio:Expression entities."""
         mock_results = {

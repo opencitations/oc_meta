@@ -31,7 +31,7 @@ from oc_ocdm.graph import GraphSet
 from oc_ocdm.prov import ProvSet
 from oc_ocdm.reader import Reader
 from rdflib import URIRef
-from SPARQLWrapper import JSON, POST, SPARQLWrapper
+from sparqlite import SPARQLClient
 
 BASE = os.path.join("test", "editor")
 OUTPUT = os.path.join(BASE, "output")
@@ -129,59 +129,51 @@ class TestEditor(unittest.TestCase):
             URIRef("https://w3id.org/oc/meta/ar/0605"),
         )
         
-        sparql = SPARQLWrapper(SERVER)
-        
-        sparql.setQuery("""
-        ASK { 
-            GRAPH <https://w3id.org/oc/meta/ar/> { 
-                <https://w3id.org/oc/meta/ar/0601> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/0604> . 
-            } 
-        }
-        """)
-        sparql.setReturnFormat(JSON)
-        result = sparql.queryAndConvert()
-        self.assertTrue(result["boolean"], "AR/0601 → AR/0604 relationship not found in triplestore")
-        
-        sparql.setQuery("""
-        ASK { 
-            GRAPH <https://w3id.org/oc/meta/ar/> { 
-                <https://w3id.org/oc/meta/ar/0604> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/0603> . 
-            } 
-        }
-        """)
-        result = sparql.queryAndConvert()
-        self.assertTrue(result["boolean"], "AR/0604 → AR/0603 relationship not found in triplestore")
-        
-        sparql.setQuery("""
-        ASK { 
-            GRAPH <https://w3id.org/oc/meta/ar/> { 
-                <https://w3id.org/oc/meta/ar/0603> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/0602> . 
-            } 
-        }
-        """)
-        result = sparql.queryAndConvert()
-        self.assertTrue(result["boolean"], "AR/0603 → AR/0602 relationship not found in triplestore")
-        
-        sparql.setQuery("""
-        ASK { 
-            GRAPH <https://w3id.org/oc/meta/ar/> { 
-                <https://w3id.org/oc/meta/ar/0602> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/0605> . 
-            } 
-        }
-        """)
-        result = sparql.queryAndConvert()
-        self.assertTrue(result["boolean"], "AR/0602 → AR/0605 relationship not found in triplestore")
-        
-        prov_sparql = SPARQLWrapper(PROV_SERVER)
-        prov_sparql.setQuery("""
-        ASK { 
-            ?s <http://www.w3.org/ns/prov#specializationOf> <https://w3id.org/oc/meta/ar/0601> ;
-               <http://www.w3.org/ns/prov#generatedAtTime> ?time .
-        }
-        """)
-        prov_sparql.setReturnFormat(JSON)
-        prov_result = prov_sparql.queryAndConvert()
-        self.assertTrue(prov_result["boolean"], "Provenance for AR/0601 not found in triplestore")
+        with SPARQLClient(SERVER) as client:
+            result = client.query("""
+            ASK {
+                GRAPH <https://w3id.org/oc/meta/ar/> {
+                    <https://w3id.org/oc/meta/ar/0601> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/0604> .
+                }
+            }
+            """)
+            self.assertTrue(result["boolean"], "AR/0601 → AR/0604 relationship not found in triplestore")
+
+            result = client.query("""
+            ASK {
+                GRAPH <https://w3id.org/oc/meta/ar/> {
+                    <https://w3id.org/oc/meta/ar/0604> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/0603> .
+                }
+            }
+            """)
+            self.assertTrue(result["boolean"], "AR/0604 → AR/0603 relationship not found in triplestore")
+
+            result = client.query("""
+            ASK {
+                GRAPH <https://w3id.org/oc/meta/ar/> {
+                    <https://w3id.org/oc/meta/ar/0603> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/0602> .
+                }
+            }
+            """)
+            self.assertTrue(result["boolean"], "AR/0603 → AR/0602 relationship not found in triplestore")
+
+            result = client.query("""
+            ASK {
+                GRAPH <https://w3id.org/oc/meta/ar/> {
+                    <https://w3id.org/oc/meta/ar/0602> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/0605> .
+                }
+            }
+            """)
+            self.assertTrue(result["boolean"], "AR/0602 → AR/0605 relationship not found in triplestore")
+
+        with SPARQLClient(PROV_SERVER) as client:
+            prov_result = client.query("""
+            ASK {
+                ?s <http://www.w3.org/ns/prov#specializationOf> <https://w3id.org/oc/meta/ar/0601> ;
+                   <http://www.w3.org/ns/prov#generatedAtTime> ?time .
+            }
+            """)
+            self.assertTrue(prov_result["boolean"], "Provenance for AR/0601 not found in triplestore")
         
         with open(
             os.path.join(OUTPUT, "rdf", "ar", "060", "10000", "1000.json"),
@@ -542,44 +534,41 @@ class TestEditor(unittest.TestCase):
 
     def test_delete_entity_with_inferred_type(self):
         editor = MetaEditor(META_CONFIG, "https://orcid.org/0000-0002-8420-0696")
-        endpoint = SPARQLWrapper(SERVER)
 
-        # Remove the type from the entity
-        delete_type_query = """
-        DELETE {
-            GRAPH <https://w3id.org/oc/meta/br/> {
-                <https://w3id.org/oc/meta/br/0605> a <http://purl.org/spar/fabio/Expression> .
+        with SPARQLClient(SERVER) as client:
+            # Remove the type from the entity
+            delete_type_query = """
+            DELETE {
+                GRAPH <https://w3id.org/oc/meta/br/> {
+                    <https://w3id.org/oc/meta/br/0605> a <http://purl.org/spar/fabio/Expression> .
+                }
             }
-        }
-        WHERE {
-            GRAPH <https://w3id.org/oc/meta/br/> {
-                <https://w3id.org/oc/meta/br/0605> a <http://purl.org/spar/fabio/Expression> .
+            WHERE {
+                GRAPH <https://w3id.org/oc/meta/br/> {
+                    <https://w3id.org/oc/meta/br/0605> a <http://purl.org/spar/fabio/Expression> .
+                }
             }
-        }
-        """
-        endpoint.setQuery(delete_type_query)
-        endpoint.setMethod(POST)
-        endpoint.query()
+            """
+            client.update(delete_type_query)
 
-        # Ensure the entity exists before deletion
-        select_query = """
-        SELECT ?s WHERE {
-            GRAPH <https://w3id.org/oc/meta/br/> {
-                ?s <http://prismstandard.org/namespaces/basic/2.0/publicationDate> "2024-04-14"^^<http://www.w3.org/2001/XMLSchema#date> .
+            # Ensure the entity exists before deletion
+            select_query = """
+            SELECT ?s WHERE {
+                GRAPH <https://w3id.org/oc/meta/br/> {
+                    ?s <http://prismstandard.org/namespaces/basic/2.0/publicationDate> "2024-04-14"^^<http://www.w3.org/2001/XMLSchema#date> .
+                }
             }
-        }
-        """
-        endpoint.setQuery(select_query)
-        endpoint.setReturnFormat("json")
-        result = endpoint.query().convert()
-        self.assertEqual(len(result["results"]["bindings"]), 1)
+            """
+            result = client.query(select_query)
+            self.assertEqual(len(result["results"]["bindings"]), 1)
 
         # Perform deletion
         editor.delete(URIRef("https://w3id.org/oc/meta/br/0605"))
 
         # Ensure the entity is deleted
-        result = endpoint.query().convert()
-        self.assertEqual(len(result["results"]["bindings"]), 0)
+        with SPARQLClient(SERVER) as client:
+            result = client.query(select_query)
+            self.assertEqual(len(result["results"]["bindings"]), 0)
 
         # Verify provenance information
         prov_path = os.path.join(
@@ -684,17 +673,15 @@ class TestEditor(unittest.TestCase):
             )
 
         # Reinsert the publication date
-        sparql_update_query = f"""
-        INSERT DATA {{
-            GRAPH <https://w3id.org/oc/meta/br/> {{
+        sparql_update_query = """
+        INSERT DATA {
+            GRAPH <https://w3id.org/oc/meta/br/> {
                 <https://w3id.org/oc/meta/br/0605> <http://prismstandard.org/namespaces/basic/2.0/publicationDate> "2024-04-14"^^<http://www.w3.org/2001/XMLSchema#date> .
-            }}
-        }}
+            }
+        }
         """
-        endpoint = SPARQLWrapper(SERVER)
-        endpoint.setQuery(sparql_update_query)
-        endpoint.setMethod(POST)
-        endpoint.query()
+        with SPARQLClient(SERVER) as client:
+            client.update(sparql_update_query)
 
         # Perform deletion again
         editor.delete(URIRef("https://w3id.org/oc/meta/br/0605"))
@@ -839,41 +826,37 @@ class TestEditor(unittest.TestCase):
             "New Test Title",
         )
         
-        sparql = SPARQLWrapper(SERVER)
-        sparql.setQuery("""
-        SELECT ?p ?o
-        WHERE { 
-            GRAPH ?g { 
-                <https://w3id.org/oc/meta/br/0603> ?p ?o . 
-            } 
-        }
-        """)
-        sparql.setReturnFormat(JSON)
-        debug_result = sparql.queryAndConvert()
-        
-        title_found = False
-        if debug_result["results"]["bindings"]:
-            for binding in debug_result["results"]["bindings"]:
-                predicate = binding.get('p', {}).get('value')
-                obj = binding.get('o', {}).get('value')
-                
-                # Check if this is our title property with the expected value
-                if predicate == "http://purl.org/dc/terms/title" and obj == "New Test Title":
-                    title_found = True
-        else:
-            print("No properties found for BR/0603")
-            
-        self.assertTrue(title_found, "Title update not found in triplestore")
-        
-        prov_sparql = SPARQLWrapper(PROV_SERVER)
-        prov_sparql.setQuery("""
-        ASK { 
-            ?s <http://www.w3.org/ns/prov#specializationOf> <https://w3id.org/oc/meta/br/0603> .
-        }
-        """)
-        prov_sparql.setReturnFormat(JSON)
-        prov_result = prov_sparql.queryAndConvert()
-        self.assertTrue(prov_result["boolean"], "Provenance for BR/0603 not found in triplestore")
+        with SPARQLClient(SERVER) as client:
+            debug_result = client.query("""
+            SELECT ?p ?o
+            WHERE {
+                GRAPH ?g {
+                    <https://w3id.org/oc/meta/br/0603> ?p ?o .
+                }
+            }
+            """)
+
+            title_found = False
+            if debug_result["results"]["bindings"]:
+                for binding in debug_result["results"]["bindings"]:
+                    predicate = binding.get('p', {}).get('value')
+                    obj = binding.get('o', {}).get('value')
+
+                    # Check if this is our title property with the expected value
+                    if predicate == "http://purl.org/dc/terms/title" and obj == "New Test Title":
+                        title_found = True
+            else:
+                print("No properties found for BR/0603")
+
+            self.assertTrue(title_found, "Title update not found in triplestore")
+
+        with SPARQLClient(PROV_SERVER) as client:
+            prov_result = client.query("""
+            ASK {
+                ?s <http://www.w3.org/ns/prov#specializationOf> <https://w3id.org/oc/meta/br/0603> .
+            }
+            """)
+            self.assertTrue(prov_result["boolean"], "Provenance for BR/0603 not found in triplestore")
         
         target_file = os.path.join(OUTPUT, "rdf", "br", "060", "10000", "1000.json")
         if os.path.exists(target_file):

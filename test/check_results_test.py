@@ -15,7 +15,7 @@
 # SOFTWARE.
 
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from oc_meta.run.meta.check_results import (
     check_omids_existence,
@@ -190,32 +190,32 @@ class TestFindProvFile(unittest.TestCase):
 class TestCheckOMIDsExistence(unittest.TestCase):
     """Test cases for check_omids_existence function."""
 
-    @patch('oc_meta.run.meta.check_results.safe_sparql_query_with_retry')
-    @patch('oc_meta.run.meta.check_results.SPARQLWrapper')
-    def test_check_single_identifier_found(self, mock_sparql_wrapper, mock_execute):
+    @patch('oc_meta.run.meta.check_results.SPARQLClient')
+    def test_check_single_identifier_found(self, mock_sparql_client):
         """Test checking single identifier that exists."""
-        mock_results = {
+        mock_client = MagicMock()
+        mock_sparql_client.return_value.__enter__.return_value = mock_client
+        mock_client.query.return_value = {
             "results": {
                 "bindings": [
                     {"omid": {"value": "https://w3id.org/oc/meta/br/0601"}}
                 ]
             }
         }
-        mock_execute.return_value = mock_results
 
         identifiers = [{'schema': 'doi', 'value': '10.1234/test'}]
         result = check_omids_existence(identifiers, "http://example.com/sparql")
 
         expected = {'doi:10.1234/test': {'https://w3id.org/oc/meta/br/0601'}}
         self.assertEqual(result, expected)
-        mock_execute.assert_called_once()
+        mock_client.query.assert_called_once()
 
-    @patch('oc_meta.run.meta.check_results.safe_sparql_query_with_retry')
-    @patch('oc_meta.run.meta.check_results.SPARQLWrapper')
-    def test_check_identifier_not_found(self, mock_sparql_wrapper, mock_execute):
+    @patch('oc_meta.run.meta.check_results.SPARQLClient')
+    def test_check_identifier_not_found(self, mock_sparql_client):
         """Test checking identifier that doesn't exist."""
-        mock_results = {"results": {"bindings": []}}
-        mock_execute.return_value = mock_results
+        mock_client = MagicMock()
+        mock_sparql_client.return_value.__enter__.return_value = mock_client
+        mock_client.query.return_value = {"results": {"bindings": []}}
 
         identifiers = [{'schema': 'doi', 'value': '10.9999/notfound'}]
         result = check_omids_existence(identifiers, "http://example.com/sparql")
@@ -223,11 +223,12 @@ class TestCheckOMIDsExistence(unittest.TestCase):
         expected = {'doi:10.9999/notfound': set()}
         self.assertEqual(result, expected)
 
-    @patch('oc_meta.run.meta.check_results.safe_sparql_query_with_retry')
-    @patch('oc_meta.run.meta.check_results.SPARQLWrapper')
-    def test_check_multiple_omids_for_identifier(self, mock_sparql_wrapper, mock_execute):
+    @patch('oc_meta.run.meta.check_results.SPARQLClient')
+    def test_check_multiple_omids_for_identifier(self, mock_sparql_client):
         """Test identifier with multiple OMIDs."""
-        mock_results = {
+        mock_client = MagicMock()
+        mock_sparql_client.return_value.__enter__.return_value = mock_client
+        mock_client.query.return_value = {
             "results": {
                 "bindings": [
                     {"omid": {"value": "https://w3id.org/oc/meta/br/0601"}},
@@ -235,7 +236,6 @@ class TestCheckOMIDsExistence(unittest.TestCase):
                 ]
             }
         }
-        mock_execute.return_value = mock_results
 
         identifiers = [{'schema': 'doi', 'value': '10.1234/duplicate'}]
         result = check_omids_existence(identifiers, "http://example.com/sparql")
@@ -248,19 +248,17 @@ class TestCheckOMIDsExistence(unittest.TestCase):
         }
         self.assertEqual(result, expected)
 
-    @patch('oc_meta.run.meta.check_results.safe_sparql_query_with_retry')
-    @patch('oc_meta.run.meta.check_results.SPARQLWrapper')
-    def test_check_empty_identifiers_list(self, mock_sparql_wrapper, mock_execute):
+    def test_check_empty_identifiers_list(self):
         """Test with empty identifiers list."""
         result = check_omids_existence([], "http://example.com/sparql")
         self.assertEqual(result, {})
-        mock_execute.assert_not_called()
 
-    @patch('oc_meta.run.meta.check_results.safe_sparql_query_with_retry')
-    @patch('oc_meta.run.meta.check_results.SPARQLWrapper')
-    def test_check_sparql_exception_handling(self, mock_sparql_wrapper, mock_execute):
+    @patch('oc_meta.run.meta.check_results.SPARQLClient')
+    def test_check_sparql_exception_handling(self, mock_sparql_client):
         """Test that SPARQL exceptions are handled gracefully."""
-        mock_execute.side_effect = Exception("SPARQL endpoint unavailable")
+        mock_client = MagicMock()
+        mock_sparql_client.return_value.__enter__.return_value = mock_client
+        mock_client.query.side_effect = Exception("SPARQL endpoint unavailable")
 
         identifiers = [{'schema': 'doi', 'value': '10.1234/test'}]
         result = check_omids_existence(identifiers, "http://example.com/sparql")
@@ -273,18 +271,18 @@ class TestCheckOMIDsExistence(unittest.TestCase):
 class TestCheckProvenanceExistence(unittest.TestCase):
     """Test cases for check_provenance_existence function."""
 
-    @patch('oc_meta.run.meta.check_results.safe_sparql_query_with_retry')
-    @patch('oc_meta.run.meta.check_results.SPARQLWrapper')
-    def test_check_provenance_exists(self, mock_sparql_wrapper, mock_execute):
+    @patch('oc_meta.run.meta.check_results.SPARQLClient')
+    def test_check_provenance_exists(self, mock_sparql_client):
         """Test checking provenance that exists."""
-        mock_results = {
+        mock_client = MagicMock()
+        mock_sparql_client.return_value.__enter__.return_value = mock_client
+        mock_client.query.return_value = {
             "results": {
                 "bindings": [
                     {"omid": {"value": "https://w3id.org/oc/meta/br/0601"}}
                 ]
             }
         }
-        mock_execute.return_value = mock_results
 
         omids = ["https://w3id.org/oc/meta/br/0601"]
         result = check_provenance_existence(omids, "http://example.com/prov-sparql")
@@ -292,12 +290,12 @@ class TestCheckProvenanceExistence(unittest.TestCase):
         expected = {"https://w3id.org/oc/meta/br/0601": True}
         self.assertEqual(result, expected)
 
-    @patch('oc_meta.run.meta.check_results.safe_sparql_query_with_retry')
-    @patch('oc_meta.run.meta.check_results.SPARQLWrapper')
-    def test_check_provenance_not_exists(self, mock_sparql_wrapper, mock_execute):
+    @patch('oc_meta.run.meta.check_results.SPARQLClient')
+    def test_check_provenance_not_exists(self, mock_sparql_client):
         """Test checking provenance that doesn't exist."""
-        mock_results = {"results": {"bindings": []}}
-        mock_execute.return_value = mock_results
+        mock_client = MagicMock()
+        mock_sparql_client.return_value.__enter__.return_value = mock_client
+        mock_client.query.return_value = {"results": {"bindings": []}}
 
         omids = ["https://w3id.org/oc/meta/br/0601"]
         result = check_provenance_existence(omids, "http://example.com/prov-sparql")
@@ -305,11 +303,12 @@ class TestCheckProvenanceExistence(unittest.TestCase):
         expected = {"https://w3id.org/oc/meta/br/0601": False}
         self.assertEqual(result, expected)
 
-    @patch('oc_meta.run.meta.check_results.safe_sparql_query_with_retry')
-    @patch('oc_meta.run.meta.check_results.SPARQLWrapper')
-    def test_check_multiple_omids_mixed_results(self, mock_sparql_wrapper, mock_execute):
+    @patch('oc_meta.run.meta.check_results.SPARQLClient')
+    def test_check_multiple_omids_mixed_results(self, mock_sparql_client):
         """Test checking multiple OMIDs with mixed provenance results."""
-        mock_results = {
+        mock_client = MagicMock()
+        mock_sparql_client.return_value.__enter__.return_value = mock_client
+        mock_client.query.return_value = {
             "results": {
                 "bindings": [
                     {"omid": {"value": "https://w3id.org/oc/meta/br/0601"}},
@@ -317,7 +316,6 @@ class TestCheckProvenanceExistence(unittest.TestCase):
                 ]
             }
         }
-        mock_execute.return_value = mock_results
 
         omids = [
             "https://w3id.org/oc/meta/br/0601",
@@ -331,38 +329,36 @@ class TestCheckProvenanceExistence(unittest.TestCase):
         self.assertFalse(result["https://w3id.org/oc/meta/br/0602"])
         self.assertTrue(result["https://w3id.org/oc/meta/br/0603"])
 
-    @patch('oc_meta.run.meta.check_results.safe_sparql_query_with_retry')
-    @patch('oc_meta.run.meta.check_results.SPARQLWrapper')
-    def test_check_empty_omids_list(self, mock_sparql_wrapper, mock_execute):
+    def test_check_empty_omids_list(self):
         """Test with empty OMIDs list."""
         result = check_provenance_existence([], "http://example.com/prov-sparql")
         self.assertEqual(result, {})
-        mock_execute.assert_not_called()
 
-    @patch('oc_meta.run.meta.check_results.safe_sparql_query_with_retry')
-    @patch('oc_meta.run.meta.check_results.SPARQLWrapper')
-    def test_check_provenance_batching(self, mock_sparql_wrapper, mock_execute):
+    @patch('oc_meta.run.meta.check_results.SPARQLClient')
+    def test_check_provenance_batching(self, mock_sparql_client):
         """Test that large lists are batched correctly."""
         # Create 25 OMIDs (should result in 3 batches with BATCH_SIZE=10)
         omids = [f"https://w3id.org/oc/meta/br/06{i:02d}" for i in range(1, 26)]
 
-        mock_results = {"results": {"bindings": []}}
-        mock_execute.return_value = mock_results
+        mock_client = MagicMock()
+        mock_sparql_client.return_value.__enter__.return_value = mock_client
+        mock_client.query.return_value = {"results": {"bindings": []}}
 
         result = check_provenance_existence(omids, "http://example.com/prov-sparql")
 
         # Should have made 3 calls (batches of 10, 10, 5)
-        self.assertEqual(mock_execute.call_count, 3)
+        self.assertEqual(mock_client.query.call_count, 3)
 
         # All OMIDs should be in result with False
         self.assertEqual(len(result), 25)
         self.assertTrue(all(not v for v in result.values()))
 
-    @patch('oc_meta.run.meta.check_results.safe_sparql_query_with_retry')
-    @patch('oc_meta.run.meta.check_results.SPARQLWrapper')
-    def test_check_provenance_exception_handling(self, mock_sparql_wrapper, mock_execute):
+    @patch('oc_meta.run.meta.check_results.SPARQLClient')
+    def test_check_provenance_exception_handling(self, mock_sparql_client):
         """Test that SPARQL exceptions are handled gracefully."""
-        mock_execute.side_effect = Exception("SPARQL endpoint unavailable")
+        mock_client = MagicMock()
+        mock_sparql_client.return_value.__enter__.return_value = mock_client
+        mock_client.query.side_effect = Exception("SPARQL endpoint unavailable")
 
         omids = ["https://w3id.org/oc/meta/br/0601"]
         result = check_provenance_existence(omids, "http://example.com/prov-sparql")

@@ -6,11 +6,10 @@ import os
 import traceback
 from typing import Dict, List, Set
 
-from oc_meta.lib.sparql_utils import safe_sparql_query_with_retry
 from oc_meta.plugins.editor import MetaEditor
 from oc_ocdm.graph import GraphSet
 from rdflib import URIRef
-from SPARQLWrapper import JSON, SPARQLWrapper
+from sparqlite import SPARQLClient
 from tqdm import tqdm
 
 logging.basicConfig(
@@ -93,95 +92,90 @@ class EntityMerger:
         """
         all_related_entities = set()
 
-        for i in range(0, len(merged_entities), batch_size):
-            batch_merged = merged_entities[i : i + batch_size]
-            merged_clauses = []
-            for entity in batch_merged:
-                merged_clauses.extend(
-                    [f"{{?entity ?p <{entity}>}}", f"{{<{entity}> ?p ?entity}}"]
-                )
+        with SPARQLClient(meta_editor.endpoint, max_retries=5, backoff_factor=0.3) as client:
+            for i in range(0, len(merged_entities), batch_size):
+                batch_merged = merged_entities[i : i + batch_size]
+                merged_clauses = []
+                for entity in batch_merged:
+                    merged_clauses.extend(
+                        [f"{{?entity ?p <{entity}>}}", f"{{<{entity}> ?p ?entity}}"]
+                    )
 
-            if not merged_clauses:
-                continue
+                if not merged_clauses:
+                    continue
 
-            query = f"""
-                PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-                PREFIX datacite: <http://purl.org/spar/datacite/>
-                PREFIX pro: <http://purl.org/spar/pro/>
-                SELECT DISTINCT ?entity WHERE {{
-                    {{
-                        {' UNION '.join(merged_clauses)}
+                query = f"""
+                    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+                    PREFIX datacite: <http://purl.org/spar/datacite/>
+                    PREFIX pro: <http://purl.org/spar/pro/>
+                    SELECT DISTINCT ?entity WHERE {{
+                        {{
+                            {' UNION '.join(merged_clauses)}
+                        }}
+                        FILTER (?p != rdf:type)
+                        FILTER (?p != datacite:usesIdentifierScheme)
+                        FILTER (?p != pro:withRole)
                     }}
-                    FILTER (?p != rdf:type) 
-                    FILTER (?p != datacite:usesIdentifierScheme) 
-                    FILTER (?p != pro:withRole)
-                }}
-            """
+                """
 
-            sparql = SPARQLWrapper(meta_editor.endpoint)
-            try:
-                sparql.setQuery(query)
-                sparql.setReturnFormat(JSON)
-                results = safe_sparql_query_with_retry(sparql, max_retries=5, backoff_base=0.3, backoff_exponential=True)
-                for result in results["results"]["bindings"]:
-                    if result["entity"]["type"] == "uri":
-                        related_uri = URIRef(result["entity"]["value"])
-                        all_related_entities.add(related_uri)
+                try:
+                    results = client.query(query)
+                    for result in results["results"]["bindings"]:
+                        if result["entity"]["type"] == "uri":
+                            related_uri = URIRef(result["entity"]["value"])
+                            all_related_entities.add(related_uri)
 
-                        for entity in batch_merged:
-                            entity_uri = URIRef(entity)
-                            if entity_uri not in meta_editor.relationship_cache:
-                                meta_editor.relationship_cache[entity_uri] = set()
-                            meta_editor.relationship_cache[entity_uri].add(related_uri)
+                            for entity in batch_merged:
+                                entity_uri = URIRef(entity)
+                                if entity_uri not in meta_editor.relationship_cache:
+                                    meta_editor.relationship_cache[entity_uri] = set()
+                                meta_editor.relationship_cache[entity_uri].add(related_uri)
 
-            except Exception as e:
-                print(
-                    f"Error fetching related entities for merged batch {i}-{i+batch_size}: {e}"
-                )
+                except Exception as e:
+                    print(
+                        f"Error fetching related entities for merged batch {i}-{i+batch_size}: {e}"
+                    )
 
-        for i in range(0, len(surviving_entities), batch_size):
-            batch_surviving = surviving_entities[i : i + batch_size]
-            surviving_clauses = []
-            for entity in batch_surviving:
-                surviving_clauses.append(f"{{<{entity}> ?p ?entity}}")
+            for i in range(0, len(surviving_entities), batch_size):
+                batch_surviving = surviving_entities[i : i + batch_size]
+                surviving_clauses = []
+                for entity in batch_surviving:
+                    surviving_clauses.append(f"{{<{entity}> ?p ?entity}}")
 
-            if not surviving_clauses:
-                continue
+                if not surviving_clauses:
+                    continue
 
-            query = f"""
-                PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-                PREFIX datacite: <http://purl.org/spar/datacite/>
-                PREFIX pro: <http://purl.org/spar/pro/>
-                SELECT DISTINCT ?entity WHERE {{
-                    {{
-                        {' UNION '.join(surviving_clauses)}
+                query = f"""
+                    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+                    PREFIX datacite: <http://purl.org/spar/datacite/>
+                    PREFIX pro: <http://purl.org/spar/pro/>
+                    SELECT DISTINCT ?entity WHERE {{
+                        {{
+                            {' UNION '.join(surviving_clauses)}
+                        }}
+                        FILTER (?p != rdf:type)
+                        FILTER (?p != datacite:usesIdentifierScheme)
+                        FILTER (?p != pro:withRole)
                     }}
-                    FILTER (?p != rdf:type) 
-                    FILTER (?p != datacite:usesIdentifierScheme) 
-                    FILTER (?p != pro:withRole)
-                }}
-            """
+                """
 
-            sparql = SPARQLWrapper(meta_editor.endpoint)
-            try:
-                sparql.setQuery(query)
-                sparql.setReturnFormat(JSON)
-                results = safe_sparql_query_with_retry(sparql, max_retries=5, backoff_base=0.3, backoff_exponential=True)
-                for result in results["results"]["bindings"]:
-                    if result["entity"]["type"] == "uri":
-                        related_uri = URIRef(result["entity"]["value"])
-                        all_related_entities.add(related_uri)
+                try:
+                    results = client.query(query)
+                    for result in results["results"]["bindings"]:
+                        if result["entity"]["type"] == "uri":
+                            related_uri = URIRef(result["entity"]["value"])
+                            all_related_entities.add(related_uri)
 
-                        for entity in batch_surviving:
-                            entity_uri = URIRef(entity)
-                            if entity_uri not in meta_editor.relationship_cache:
-                                meta_editor.relationship_cache[entity_uri] = set()
-                            meta_editor.relationship_cache[entity_uri].add(related_uri)
+                            for entity in batch_surviving:
+                                entity_uri = URIRef(entity)
+                                if entity_uri not in meta_editor.relationship_cache:
+                                    meta_editor.relationship_cache[entity_uri] = set()
+                                meta_editor.relationship_cache[entity_uri].add(related_uri)
 
-            except Exception as e:
-                print(
-                    f"Error fetching related entities for surviving batch {i}-{i+batch_size}: {e}"
-                )
+                except Exception as e:
+                    print(
+                        f"Error fetching related entities for surviving batch {i}-{i+batch_size}: {e}"
+                    )
 
         return all_related_entities
 

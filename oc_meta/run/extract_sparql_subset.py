@@ -4,30 +4,14 @@
 import argparse
 import gzip
 import sys
-import time
 from urllib.parse import urlparse
-from SPARQLWrapper import SPARQLWrapper, JSON, SPARQLExceptions
+
 import rdflib
+from sparqlite import SPARQLClient
 
 
-def execute_sparql_query(sparql, max_retries=5, retry_delay=2):
-    """Execute a SPARQL query with retry mechanism"""
-    retries = 0
-    while retries < max_retries:
-        try:
-            return sparql.query().convert()
-        except (SPARQLExceptions.EndPointInternalError, SPARQLExceptions.EndPointNotFound, 
-                SPARQLExceptions.QueryBadFormed, Exception) as e:
-            retries += 1
-            if retries >= max_retries:
-                raise Exception(f"Failed after {max_retries} retries: {str(e)}")
-            print(f"Query failed, retrying ({retries}/{max_retries}): {str(e)}")
-            time.sleep(retry_delay * retries)  # Exponential backoff
-
-
-def get_subjects_of_class(endpoint, class_uri, limit, max_retries=5):
+def get_subjects_of_class(client, class_uri, limit):
     """Get subjects that are instances of the specified class"""
-    sparql = SPARQLWrapper(endpoint)
     query = f"""
     SELECT ?s
     WHERE {{
@@ -35,17 +19,14 @@ def get_subjects_of_class(endpoint, class_uri, limit, max_retries=5):
     }}
     LIMIT {limit}
     """
-    
-    sparql.setQuery(query)
-    sparql.setReturnFormat(JSON)
-    results = execute_sparql_query(sparql, max_retries)
-    
+
+    results = client.query(query)
+
     return [result["s"]["value"] for result in results["results"]["bindings"]]
 
 
-def get_triples_for_entity(endpoint, entity_uri, max_retries=5):
+def get_triples_for_entity(client, entity_uri):
     """Get all triples where the entity is a subject and return RDF terms"""
-    sparql = SPARQLWrapper(endpoint)
     query = f"""
     SELECT ?p ?o ?g
     WHERE {{
@@ -54,26 +35,24 @@ def get_triples_for_entity(endpoint, entity_uri, max_retries=5):
         }}
     }}
     """
-    
-    sparql.setQuery(query)
-    sparql.setReturnFormat(JSON)
-    results = execute_sparql_query(sparql, max_retries)
-    
+
+    results = client.query(query)
+
     s_term = rdflib.URIRef(entity_uri)
     quads = []
-    
+
     for result in results["results"]["bindings"]:
         p_value = result["p"]["value"]
         p_term = rdflib.URIRef(p_value)
-        
+
         o_value = result["o"]["value"]
         o_type = result["o"]["type"]
-        
+
         g_term = None
         if "g" in result:
             g_value = result["g"]["value"]
             g_term = rdflib.URIRef(g_value)
-        
+
         if o_type == 'uri':
             o_term = rdflib.URIRef(o_value)
         elif o_type in {'literal', 'typed-literal'}:
@@ -85,36 +64,37 @@ def get_triples_for_entity(endpoint, entity_uri, max_retries=5):
                 o_term = rdflib.Literal(o_value, lang=lang)
             else:
                 o_term = rdflib.Literal(o_value)
-        
+
         quads.append((s_term, p_term, o_term, g_term))
-    
+
     return quads
 
 
 def extract_subset(endpoint, class_uri, limit, output_file, compress, max_retries=5):
     """Extract a subset of the SPARQL endpoint data"""
-    subjects = get_subjects_of_class(endpoint, class_uri, limit, max_retries)
-    processed_entities = set()
-    pending_entities = set(subjects)
-    
-    dataset = rdflib.Dataset()
-    
-    while pending_entities:
-        entity = pending_entities.pop()
-        if entity in processed_entities:
-            continue
-        
-        processed_entities.add(entity)
-        
-        quads = get_triples_for_entity(endpoint, entity, max_retries)
-        
-        for s_term, p_term, o_term, g_term in quads:
-            graph = dataset.graph(g_term)
-            graph.add((s_term, p_term, o_term))
-            
-            if isinstance(o_term, rdflib.URIRef):
-                pending_entities.add(str(o_term))
-    
+    with SPARQLClient(endpoint, max_retries=max_retries, backoff_factor=2) as client:
+        subjects = get_subjects_of_class(client, class_uri, limit)
+        processed_entities = set()
+        pending_entities = set(subjects)
+
+        dataset = rdflib.Dataset()
+
+        while pending_entities:
+            entity = pending_entities.pop()
+            if entity in processed_entities:
+                continue
+
+            processed_entities.add(entity)
+
+            quads = get_triples_for_entity(client, entity)
+
+            for s_term, p_term, o_term, g_term in quads:
+                graph = dataset.graph(g_term)
+                graph.add((s_term, p_term, o_term))
+
+                if isinstance(o_term, rdflib.URIRef):
+                    pending_entities.add(str(o_term))
+
     if compress:
         if not output_file.endswith('.gz'):
             output_file = output_file + '.gz'
@@ -122,7 +102,7 @@ def extract_subset(endpoint, class_uri, limit, output_file, compress, max_retrie
             dataset.serialize(destination=f, format='nquads')
     else:
         dataset.serialize(destination=output_file, format='nquads')
-    
+
     return len(processed_entities), output_file
 
 

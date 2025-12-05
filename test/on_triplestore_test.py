@@ -9,7 +9,7 @@ from oc_meta.run.upload.on_triplestore import (
     save_failed_query_file,
     upload_sparql_updates,
 )
-from SPARQLWrapper import POST, SPARQLWrapper
+from sparqlite import SPARQLClient
 
 SERVER = "http://127.0.0.1:8805/sparql"
 TEST_REDIS_DB = 2
@@ -17,10 +17,8 @@ TEST_REDIS_DB = 2
 
 def reset_triplestore():
     """Reset the test triplestore"""
-    sparql = SPARQLWrapper(SERVER)
-    sparql.setMethod(POST)
-    sparql.setQuery("DELETE WHERE { GRAPH ?g { ?s ?p ?o } }")
-    sparql.query()
+    with SPARQLClient(SERVER) as client:
+        client.update("DELETE WHERE { GRAPH ?g { ?s ?p ?o } }")
 
 
 def reset_redis():

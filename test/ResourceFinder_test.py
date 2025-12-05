@@ -4,7 +4,7 @@ import unittest
 from oc_meta.lib.finder import ResourceFinder
 from oc_ocdm.graph import GraphEntity
 from rdflib import Dataset, Graph, Literal, URIRef
-from SPARQLWrapper import POST, SPARQLWrapper
+from sparqlite import SPARQLClient
 
 
 def get_path(path:str) -> str:
@@ -14,8 +14,7 @@ def get_path(path:str) -> str:
 
 def add_data_ts(server, data_path, batch_size:int=100, default_graph_uri=URIRef("http://default.graph/")):
     f_path = get_path(data_path)
-    
-    # Determina il formato del file
+
     file_extension = os.path.splitext(f_path)[1].lower()
     if file_extension == '.nt':
         g = Graph()
@@ -28,7 +27,7 @@ def add_data_ts(server, data_path, batch_size:int=100, default_graph_uri=URIRef(
         g.parse(location=f_path, format='turtle')
     else:
         raise ValueError(f"Unsupported file extension: {file_extension}")
-    
+
     triples_list = []
     if file_extension == '.nt':
         for subj, pred, obj in g:
@@ -36,30 +35,25 @@ def add_data_ts(server, data_path, batch_size:int=100, default_graph_uri=URIRef(
     elif file_extension == '.nq':
         for subj, pred, obj, ctx in g.quads((None, None, None, None)):
             triples_list.append((subj, pred, obj, ctx))
-    
-    for i in range(0, len(triples_list), batch_size):
-        batch_triples = triples_list[i:i + batch_size]
-        
-        triples_str = ""
-        for subj, pred, obj, ctx in batch_triples:
-            if ctx:
-                triples_str += f"GRAPH {ctx.n3().replace('[', '').replace(']', '')} {{ {subj.n3()} {pred.n3()} {obj.n3()} }} "
-            else: 
-                triples_str += f"{subj.n3()} {pred.n3()} {obj.n3()} . "
-        
-        query = f"INSERT DATA {{ {triples_str} }}"
-                
-        ts = SPARQLWrapper(server)
-        ts.setQuery(query)
-        ts.setMethod(POST)
-        ts.query()
+
+    with SPARQLClient(server) as client:
+        for i in range(0, len(triples_list), batch_size):
+            batch_triples = triples_list[i:i + batch_size]
+
+            triples_str = ""
+            for subj, pred, obj, ctx in batch_triples:
+                if ctx:
+                    triples_str += f"GRAPH {ctx.n3().replace('[', '').replace(']', '')} {{ {subj.n3()} {pred.n3()} {obj.n3()} }} "
+                else:
+                    triples_str += f"{subj.n3()} {pred.n3()} {obj.n3()} . "
+
+            query = f"INSERT DATA {{ {triples_str} }}"
+            client.update(query)
 
 def reset_server(server) -> None:
-    ts = SPARQLWrapper(server)
-    for graph in {'https://w3id.org/oc/meta/br/', 'https://w3id.org/oc/meta/ra/', 'https://w3id.org/oc/meta/re/', 'https://w3id.org/oc/meta/id/', 'https://w3id.org/oc/meta/ar/'}:
-        ts.setQuery(f'CLEAR GRAPH <{graph}>')
-        ts.setMethod(POST)
-        ts.query()
+    with SPARQLClient(server) as client:
+        for graph in {'https://w3id.org/oc/meta/br/', 'https://w3id.org/oc/meta/ra/', 'https://w3id.org/oc/meta/re/', 'https://w3id.org/oc/meta/id/', 'https://w3id.org/oc/meta/ar/'}:
+            client.update(f'CLEAR GRAPH <{graph}>')
 
 class TestResourceFinder(unittest.TestCase):
     @classmethod
@@ -532,12 +526,10 @@ class TestVVIQueryIsolation(unittest.TestCase):
             '<https://w3id.org/oc/meta/br/9004> <http://purl.org/spar/fabio/hasSequenceIdentifier> "20"^^<http://www.w3.org/2001/XMLSchema#string> .',
         ]
 
-        ts = SPARQLWrapper(ENDPOINT)
-        ts.setMethod(POST)
-        for triple in test_triples:
-            query = f"INSERT DATA {{ GRAPH <https://w3id.org/oc/meta/br/> {{ {triple} }} }}"
-            ts.setQuery(query)
-            ts.query()
+        with SPARQLClient(ENDPOINT) as client:
+            for triple in test_triples:
+                query = f"INSERT DATA {{ GRAPH <https://w3id.org/oc/meta/br/> {{ {triple} }} }}"
+                client.update(query)
 
     def test_vvi_queries_only_search_correct_venues(self):
         """Test that VVI queries only search under venues matching each tuple's identifiers.

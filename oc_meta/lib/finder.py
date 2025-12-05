@@ -5,13 +5,12 @@ from typing import Dict, List, Tuple
 
 import yaml
 from dateutil import parser
-from oc_meta.lib.sparql_utils import safe_sparql_query_with_retry
 from oc_ocdm.graph import GraphEntity
 from oc_ocdm.graph.graph_entity import GraphEntity
 from oc_ocdm.prov.prov_entity import ProvEntity
 from oc_ocdm.support import get_count, get_resource_number
 from rdflib import RDF, XSD, Graph, Literal, URIRef
-from SPARQLWrapper import JSON, POST, SPARQLWrapper
+from sparqlite import SPARQLClient
 from time_agnostic_library.agnostic_entity import AgnosticEntity
 
 
@@ -24,21 +23,15 @@ def _execute_sparql_query(args: tuple) -> list:
     :returns: List of result bindings from the query
     """
     ts_url, query = args
-    ts = SPARQLWrapper(ts_url)
-    ts.setMethod(POST)
-    ts.setReturnFormat(JSON)
-    ts.setQuery(query)
-    result = safe_sparql_query_with_retry(
-        ts, max_retries=5, backoff_base=5, backoff_exponential=True
-    )
+    with SPARQLClient(ts_url, max_retries=5, backoff_factor=5) as client:
+        result = client.query(query)
     return result['results']['bindings'] if result else []
 
 
 class ResourceFinder:
 
-    def __init__(self, ts_url, base_iri:str, local_g: Graph = Graph(), settings: dict = dict(), meta_config_path: str = None):
-        self.ts = SPARQLWrapper(ts_url)
-        self.ts.setMethod(POST)
+    def __init__(self, ts_url, base_iri: str, local_g: Graph = Graph(), settings: dict = dict(), meta_config_path: str = None):
+        self.ts_url = ts_url
         self.base_iri = base_iri[:-1] if base_iri[-1] == '/' else base_iri
         self.local_g = local_g
         self.prebuilt_subgraphs = {}
@@ -47,21 +40,9 @@ class ResourceFinder:
         self.meta_settings = settings
         self.virtuoso_full_text_search = settings['virtuoso_full_text_search'] if settings and 'virtuoso_full_text_search' in settings else False
 
-    def __execute_query(self, query, return_format=JSON):
-        """Execute a SPARQL query with retries and exponential backoff"""
-        self.ts.setReturnFormat(return_format)
-        self.ts.setQuery(query)
-        try:
-            return safe_sparql_query_with_retry(
-                self.ts,
-                max_retries=5,
-                backoff_base=5,
-                backoff_exponential=True
-            )
-        except Exception as e:
-            error_msg = f"Failed to execute SPARQL query after 5 attempts: {str(e)}\nQuery: {query}"
-            print(error_msg)
-            raise Exception(error_msg)
+    def __execute_query(self, query):
+        with SPARQLClient(self.ts_url, max_retries=5, backoff_factor=5) as client:
+            return client.query(query)
 
     # _______________________________BR_________________________________ #
 
@@ -721,7 +702,7 @@ class ResourceFinder:
             subject_list = list(new_subjects)
             batches = list(batch_process(subject_list, BATCH_SIZE))
             batch_queries = []
-            ts_url = self.ts.endpoint
+            ts_url = self.ts_url
 
             for batch in batches:
                 query = f'''
@@ -773,7 +754,7 @@ class ResourceFinder:
             """
             subjects = set()
             id_to_subjects = {}
-            ts_url = self.ts.endpoint
+            ts_url = self.ts_url
             batches = list(batch_process(list(identifiers), BATCH_SIZE))
 
             if not batches:
@@ -860,7 +841,7 @@ class ResourceFinder:
         def get_initial_subjects_from_vvis(vvis):
             """Convert vvis to a set of subjects based on batch queries executed in parallel."""
             subjects = set()
-            ts_url = self.ts.endpoint
+            ts_url = self.ts_url
             vvi_queries = []
             venue_uris_to_add = set()
 

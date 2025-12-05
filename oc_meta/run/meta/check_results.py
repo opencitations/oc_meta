@@ -9,8 +9,7 @@ from typing import Dict, List, Set
 
 import yaml
 from oc_meta.lib.master_of_regex import name_and_ids, semicolon_in_people_field
-from oc_meta.lib.sparql_utils import safe_sparql_query_with_retry
-from SPARQLWrapper import JSON, SPARQLWrapper
+from sparqlite import SPARQLClient
 from tqdm import tqdm
 
 
@@ -43,46 +42,42 @@ def check_provenance_existence(omids: List[str], prov_endpoint_url: str) -> Dict
     """
     if not omids:
         return {}
-    
+
     prov_results = {}
-    
+
     for omid in omids:
         prov_results[omid] = False
 
-    for i in range(0, len(omids), BATCH_SIZE):
-        batch = omids[i:i + BATCH_SIZE]
+    with SPARQLClient(prov_endpoint_url, max_retries=3, backoff_factor=5) as client:
+        for i in range(0, len(omids), BATCH_SIZE):
+            batch = omids[i:i + BATCH_SIZE]
 
-        union_patterns = []
-        for omid in batch:
-            snapshot_uri = f"{omid}/prov/se/1"
-            union_patterns.append(f"{{ <{snapshot_uri}> prov:specializationOf ?entity . BIND(<{omid}> AS ?omid) }}")
+            union_patterns = []
+            for omid in batch:
+                snapshot_uri = f"{omid}/prov/se/1"
+                union_patterns.append(f"{{ <{snapshot_uri}> prov:specializationOf ?entity . BIND(<{omid}> AS ?omid) }}")
 
-        union_query = "\n            UNION\n            ".join(union_patterns)
+            union_query = "\n            UNION\n            ".join(union_patterns)
 
-        sparql = SPARQLWrapper(prov_endpoint_url)
-        query = f"""
-        PREFIX prov: <http://www.w3.org/ns/prov#>
+            query = f"""
+            PREFIX prov: <http://www.w3.org/ns/prov#>
 
-        SELECT DISTINCT ?omid
-        WHERE {{
-            {union_query}
-        }}
-        """
+            SELECT DISTINCT ?omid
+            WHERE {{
+                {union_query}
+            }}
+            """
 
-        sparql.setQuery(query)
-        sparql.setReturnFormat(JSON)
+            try:
+                results = client.query(query)
 
-        try:
-            results = safe_sparql_query_with_retry(sparql)
+                for result in results["results"]["bindings"]:
+                    omid = result["omid"]["value"]
+                    prov_results[omid] = True
 
-            for result in results["results"]["bindings"]:
-                omid = result["omid"]["value"]
-                prov_results[omid] = True
+            except Exception as e:
+                print(f"SPARQL query failed for provenance batch check: {str(e)}")
 
-        except Exception as e:
-            print(f"SPARQL query failed for provenance batch check: {str(e)}")
-            pass
-    
     return prov_results
 
 def check_omids_existence(identifiers: List[Dict[str, str]], endpoint_url: str) -> Dict[str, Set[str]]:
@@ -92,48 +87,46 @@ def check_omids_existence(identifiers: List[Dict[str, str]], endpoint_url: str) 
     """
     if not identifiers:
         return {}
-    
+
     found_omids = {}
-    
-    for identifier in identifiers:
-        sparql = SPARQLWrapper(endpoint_url)
-        id_key = f"{identifier['schema']}:{identifier['value']}"
-                
-        query = f"""
-        PREFIX datacite: <http://purl.org/spar/datacite/>
-        PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
-        PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
-        
-        SELECT DISTINCT ?omid
-        WHERE {{
-            {{
-                ?omid literal:hasLiteralValue "{identifier['value']}"^^xsd:string ;
-                     datacite:usesIdentifierScheme datacite:{identifier['schema']} .
+
+    with SPARQLClient(endpoint_url, max_retries=3, backoff_factor=5) as client:
+        for identifier in identifiers:
+            id_key = f"{identifier['schema']}:{identifier['value']}"
+
+            query = f"""
+            PREFIX datacite: <http://purl.org/spar/datacite/>
+            PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
+            PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+            SELECT DISTINCT ?omid
+            WHERE {{
+                {{
+                    ?omid literal:hasLiteralValue "{identifier['value']}"^^xsd:string ;
+                         datacite:usesIdentifierScheme datacite:{identifier['schema']} .
+                }}
+                UNION
+                {{
+                    ?omid literal:hasLiteralValue "{identifier['value']}" ;
+                         datacite:usesIdentifierScheme datacite:{identifier['schema']} .
+                }}
             }}
-            UNION
-            {{
-                ?omid literal:hasLiteralValue "{identifier['value']}" ;
-                     datacite:usesIdentifierScheme datacite:{identifier['schema']} .
-            }}
-        }}
-        """
-                
-        sparql.setQuery(query)
-        sparql.setReturnFormat(JSON)
-        try:
-            results = safe_sparql_query_with_retry(sparql)
-            omids = set()
-            
-            for result in results["results"]["bindings"]:
-                omid = result["omid"]["value"]
-                omids.add(omid)
-                        
-            found_omids[id_key] = omids
-            
-        except Exception as e:
-            print(f"SPARQL query failed for identifier {id_key}: {str(e)}")
-            found_omids[id_key] = set()
-    
+            """
+
+            try:
+                results = client.query(query)
+                omids = set()
+
+                for result in results["results"]["bindings"]:
+                    omid = result["omid"]["value"]
+                    omids.add(omid)
+
+                found_omids[id_key] = omids
+
+            except Exception as e:
+                print(f"SPARQL query failed for identifier {id_key}: {str(e)}")
+                found_omids[id_key] = set()
+
     return found_omids
 
 def find_file(rdf_dir: str, dir_split_number: int, items_per_file: int, uri: str, zip_output_rdf: bool) -> str|None:

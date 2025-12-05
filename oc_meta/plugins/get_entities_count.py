@@ -5,10 +5,8 @@ import os
 import zipfile
 from multiprocessing import Manager, Pool
 
-from SPARQLWrapper import JSON, SPARQLWrapper
+from sparqlite import SPARQLClient
 from tqdm import tqdm
-
-from oc_meta.lib.file_manager import get_csv_data
 
 # Directories
 rdf_base_directory = 'test/endgame/output/rdf'
@@ -130,24 +128,22 @@ if __name__ == '__main__':
     # print(rdf_result_dict)
     # SPARQL query to count entities of a certain type
     triplestore_dict = {key: 0 for key in entity_types.keys()}
-    for entity_code, entity_type in entity_types.items():
-        sparql_query = f"""
-        SELECT (COUNT(DISTINCT ?entity) as ?count)
-        WHERE {{
-            ?entity a <{entity_type}> .
-        }}
-        """
+    with SPARQLClient(endpoint_url, max_retries=3, backoff_factor=5) as client:
+        for entity_code, entity_type in entity_types.items():
+            sparql_query = f"""
+            SELECT (COUNT(DISTINCT ?entity) as ?count)
+            WHERE {{
+                ?entity a <{entity_type}> .
+            }}
+            """
 
-        # Execute the query
-        sparql = SPARQLWrapper(endpoint_url)
-        sparql.setQuery(sparql_query)
-        sparql.setReturnFormat(JSON)
-        results_sparql = sparql.query().convert()
+            # Execute the query
+            results_sparql = client.query(sparql_query)
 
-        # Extract the count and store it in the dictionary
-        for result in results_sparql["results"]["bindings"]:
-            count = result["count"]["value"]
-            triplestore_dict[entity_code] = int(count)
+            # Extract the count and store it in the dictionary
+            for result in results_sparql["results"]["bindings"]:
+                count = result["count"]["value"]
+                triplestore_dict[entity_code] = int(count)
 
     # Convert sets to counts and prepare final dictionary
     final_results = dict()

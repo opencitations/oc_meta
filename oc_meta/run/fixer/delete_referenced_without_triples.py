@@ -1,10 +1,11 @@
 import argparse
 import json
-from oc_meta.plugins.editor import MetaEditor
-from tqdm import tqdm
 import os
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from SPARQLWrapper import SPARQLWrapper, JSON
+
+from oc_meta.plugins.editor import MetaEditor
+from sparqlite import SPARQLClient
+from tqdm import tqdm
 from yaml import safe_load
 
 def query_and_delete_triples(uri, meta_config, resp_agent, stop_file, endpoint):
@@ -12,25 +13,22 @@ def query_and_delete_triples(uri, meta_config, resp_agent, stop_file, endpoint):
         return "stopped"
 
     meta_editor = MetaEditor(meta_config=meta_config, resp_agent=resp_agent)
-    
-    # Query to find triples where the entity is an object
+
     query = f"""
     SELECT ?s ?p
     WHERE {{
         ?s ?p <{uri}> .
     }}
     """
-    ts = SPARQLWrapper(endpoint)
-    ts.setQuery(query)
-    ts.setReturnFormat(JSON)
-    results = ts.queryAndConvert()
-    # Delete each triple
+    with SPARQLClient(endpoint, max_retries=3, backoff_factor=5) as client:
+        results = client.query(query)
+
     for result in results['results']['bindings']:
         s = result['s']['value']
         p = result['p']['value']
         if p not in {'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://purl.org/spar/datacite/usesIdentifierScheme', 'http://purl.org/spar/pro/withRole'}:
             meta_editor.delete(res=s, property=p, object=uri)
-    
+
     return "deleted"
 
 def single_process_deletion(uris, meta_config, resp_agent, stop_file, endpoint):    

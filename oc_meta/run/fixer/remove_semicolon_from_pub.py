@@ -1,8 +1,9 @@
 import argparse
 import os
-from SPARQLWrapper import SPARQLWrapper, JSON
+
 from oc_meta.plugins.editor import MetaEditor
 from rdflib import URIRef
+from sparqlite import SPARQLClient
 from tqdm import tqdm
 
 def query_publishers(endpoint_url, output_file):
@@ -20,10 +21,8 @@ def query_publishers(endpoint_url, output_file):
         }
         """
 
-        sparql = SPARQLWrapper(endpoint_url)
-        sparql.setQuery(sparql_query)
-        sparql.setReturnFormat(JSON)
-        results = sparql.query().convert()
+        with SPARQLClient(endpoint_url, max_retries=3, backoff_factor=5) as client:
+            results = client.query(sparql_query)
 
         publishers = [result["pub"]["value"] for result in results["results"]["bindings"]]
         with open(output_file, 'w') as file:
@@ -34,19 +33,18 @@ def query_publishers(endpoint_url, output_file):
 
 def update_publishers_names(endpoint_url, publishers, config_path, resp_agent):
     meta_editor = MetaEditor(meta_config=config_path, resp_agent=URIRef(resp_agent))
-    sparql = SPARQLWrapper(endpoint_url)
-    sparql.setReturnFormat(JSON)
 
-    for pub in tqdm(publishers, desc="Updating publisher names"):
-        sparql.setQuery(f"""
-            SELECT ?old_value
-            WHERE {{
-                <{pub}> foaf:name ?old_value.
-            }}""")
-        results = sparql.query().convert()
-        old_value = results["results"]["bindings"][0]["old_value"]["value"]
-        new_value = old_value.replace(";", "")
-        meta_editor.update_property(res=URIRef(pub), property="has_name", new_value=new_value)
+    with SPARQLClient(endpoint_url, max_retries=3, backoff_factor=5) as client:
+        for pub in tqdm(publishers, desc="Updating publisher names"):
+            query = f"""
+                SELECT ?old_value
+                WHERE {{
+                    <{pub}> foaf:name ?old_value.
+                }}"""
+            results = client.query(query)
+            old_value = results["results"]["bindings"][0]["old_value"]["value"]
+            new_value = old_value.replace(";", "")
+            meta_editor.update_property(res=URIRef(pub), property="has_name", new_value=new_value)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Query SPARQL endpoint for publishers whose name contains a semicolon, work with MetaEditor on the URIs.")

@@ -1,9 +1,7 @@
 import argparse
 import csv
 import os
-import random
 import re
-import time
 import zipfile
 from functools import partial
 from multiprocessing import Pool, cpu_count
@@ -11,7 +9,7 @@ from multiprocessing import Pool, cpu_count
 import yaml
 from oc_meta.plugins.editor import MetaEditor
 from rdflib import RDF, Dataset, Literal, Namespace, URIRef
-from SPARQLWrapper import JSON, SPARQLWrapper
+from sparqlite import SPARQLClient
 from tqdm import tqdm
 
 DATACITE = "http://purl.org/spar/datacite/"
@@ -22,16 +20,6 @@ def read_csv(csv_file):
     with open(csv_file, 'r') as f:
         reader = csv.DictReader(f)
         return list(reader)
-
-def sparql_query_with_retry(sparql, max_retries=3, initial_delay=1, backoff_factor=2):
-    for attempt in range(max_retries):
-        try:
-            return sparql.query().convert()
-        except Exception as e:
-            if attempt == max_retries - 1:
-                raise
-            delay = initial_delay * (backoff_factor ** attempt)
-            time.sleep(delay + random.uniform(0, 1))
 
 def check_provenance(prov_file_path, entity_uri, is_surviving):
     def extract_snapshot_number(snapshot_uri):
@@ -148,19 +136,16 @@ def check_entity_file(file_path, entity_uri, is_surviving):
     prov_file_path = file_path.replace('.zip', '') + '/prov/se.zip'
     check_provenance(prov_file_path, entity_uri, is_surviving)
 
-def check_entity_sparql(sparql_endpoint, entity_uri, is_surviving):
-    sparql = SPARQLWrapper(sparql_endpoint)
+def check_entity_sparql(client, entity_uri, is_surviving):
     has_issues = False
-    
+
     # Query to check if the entity exists
     exists_query = f"""
     ASK {{
         <{entity_uri}> ?p ?o .
     }}
     """
-    sparql.setQuery(exists_query)
-    sparql.setReturnFormat(JSON)
-    exists_results = sparql_query_with_retry(sparql)
+    exists_results = client.query(exists_query)
 
     if exists_results['boolean']:
         if not is_surviving:
@@ -178,9 +163,7 @@ def check_entity_sparql(sparql_endpoint, entity_uri, is_surviving):
             ?s ?p <{entity_uri}> .
         }}
         """
-        sparql.setQuery(referenced_query)
-        sparql.setReturnFormat(JSON)
-        referenced_results = sparql_query_with_retry(sparql)
+        referenced_results = client.query(referenced_query)
 
         if referenced_results['boolean']:
             tqdm.write(f"Error in SPARQL: Merged entity {entity_uri} is still referenced by other entities")
@@ -192,9 +175,7 @@ def check_entity_sparql(sparql_endpoint, entity_uri, is_surviving):
         <{entity_uri}> a ?type .
     }}
     """
-    sparql.setQuery(types_query)
-    sparql.setReturnFormat(JSON)
-    types_results = sparql_query_with_retry(sparql)
+    types_results = client.query(types_query)
 
     types = [result['type']['value'] for result in types_results['results']['bindings']]
     if not types:
@@ -209,9 +190,7 @@ def check_entity_sparql(sparql_endpoint, entity_uri, is_surviving):
             <{entity_uri}> <{LITERAL_REIFICATION}hasLiteralValue> ?value .
         }}
         """
-        sparql.setQuery(identifier_query)
-        sparql.setReturnFormat(JSON)
-        identifier_results = sparql_query_with_retry(sparql)
+        identifier_results = client.query(identifier_query)
 
         schemes = [result['scheme']['value'] for result in identifier_results['results']['bindings']]
         values = [result['value']['value'] for result in identifier_results['results']['bindings']]
@@ -251,8 +230,7 @@ def process_csv(args, csv_file):
 
     return tasks
 
-def get_entity_triples(sparql_endpoint, entity_uri):
-    sparql = SPARQLWrapper(sparql_endpoint)
+def get_entity_triples(client, entity_uri):
     query = f"""
     SELECT ?g ?s ?p ?o
     WHERE {{
@@ -269,25 +247,23 @@ def get_entity_triples(sparql_endpoint, entity_uri):
         }}
     }}
     """
-    sparql.setQuery(query)
-    sparql.setReturnFormat(JSON)
-    results = sparql_query_with_retry(sparql)
-    
+    results = client.query(query)
+
     triples = []
     for result in results["results"]["bindings"]:
         graph = result["g"]["value"]
         subject = URIRef(result["s"]["value"])
         predicate = URIRef(result["p"]["value"])
-        
+
         obj_data = result["o"]
         if obj_data["type"] == "uri":
             obj = URIRef(obj_data["value"])
         else:
             datatype = obj_data.get("datatype")
             obj = Literal(obj_data["value"], datatype=URIRef(datatype) if datatype else None)
-        
+
         triples.append((graph, subject, predicate, obj))
-    
+
     return triples
 
 def generate_update_query(merged_entity, surviving_entity, triples):
@@ -315,16 +291,16 @@ def process_entity(args):
     else:
         check_entity_file(file_path, entity, is_surviving)
 
-    has_issues = check_entity_sparql(sparql_endpoint, entity, is_surviving)
+    with SPARQLClient(sparql_endpoint, max_retries=3, backoff_factor=1) as client:
+        has_issues = check_entity_sparql(client, entity, is_surviving)
 
-    if has_issues and not is_surviving:
-        triples = get_entity_triples(sparql_endpoint, entity)
-        combined_query = generate_update_query(entity, surviving_entity, triples)
-        
-        # Save combined DELETE DATA and INSERT DATA query
-        query_file_path = os.path.join(query_output_dir, f"update_{entity.split('/')[-1]}.sparql")
-        with open(query_file_path, 'w') as f:
-            f.write(combined_query)
+        if has_issues and not is_surviving:
+            triples = get_entity_triples(client, entity)
+            combined_query = generate_update_query(entity, surviving_entity, triples)
+
+            query_file_path = os.path.join(query_output_dir, f"update_{entity.split('/')[-1]}.sparql")
+            with open(query_file_path, 'w') as f:
+                f.write(combined_query)
 
 def main():
     parser = argparse.ArgumentParser(description="Check merge process success on files and SPARQL endpoint")
