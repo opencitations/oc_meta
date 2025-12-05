@@ -14,18 +14,14 @@ from sparqlite import SPARQLClient
 from time_agnostic_library.agnostic_entity import AgnosticEntity
 
 
-def _execute_sparql_query(args: tuple) -> list:
-    """
-    Worker function for ProcessPoolExecutor to execute SPARQL queries in parallel.
-    Must be defined at module level to be picklable.
-
-    :params args: Tuple of (ts_url, query_string)
-    :returns: List of result bindings from the query
-    """
-    ts_url, query = args
+def _execute_sparql_queries(args: tuple) -> list:
+    ts_url, queries = args
+    results = []
     with SPARQLClient(ts_url, max_retries=5, backoff_factor=5) as client:
-        result = client.query(query)
-    return result['results']['bindings'] if result else []
+        for query in queries:
+            result = client.query(query)
+            results.append(result['results']['bindings'] if result else [])
+    return results
 
 
 class ResourceFinder:
@@ -39,10 +35,6 @@ class ResourceFinder:
         self.meta_config_path = meta_config_path
         self.meta_settings = settings
         self.virtuoso_full_text_search = settings['virtuoso_full_text_search'] if settings and 'virtuoso_full_text_search' in settings else False
-
-    def __execute_query(self, query):
-        with SPARQLClient(self.ts_url, max_retries=5, backoff_factor=5) as client:
-            return client.query(query)
 
     # _______________________________BR_________________________________ #
 
@@ -180,7 +172,8 @@ class ResourceFinder:
                         <{ProvEntity.iri_was_derived_from}> <{penultimate_snapshot}>.
                 }}
             '''
-            results = self.__execute_query(query_if_it_was_merged)['results']['bindings']
+            with SPARQLClient(self.ts_url, max_retries=5, backoff_factor=5) as client:
+                results = client.query(query_if_it_was_merged)['results']['bindings']
             # The entity was merged to another
             merged_entity = [se for se in results if metaid_uri not in se['se']['value']]
             if merged_entity:
@@ -711,17 +704,22 @@ class ResourceFinder:
                         VALUES ?s {{ {' '.join([f"<{s}>" for s in batch])} }}
                         ?s ?p ?o.
                     }}'''
-                batch_queries.append((ts_url, query))
+                batch_queries.append(query)
 
             next_subjects = set()
-            if len(batch_queries) > 1:
+            if len(batch_queries) > 1 and MAX_WORKERS > 1:
+                queries_per_worker = max(1, len(batch_queries) // MAX_WORKERS)
+                grouped_queries = []
+                for i in range(0, len(batch_queries), queries_per_worker):
+                    grouped_queries.append((ts_url, batch_queries[i:i + queries_per_worker]))
                 with ProcessPoolExecutor(
-                    max_workers=min(len(batch_queries), MAX_WORKERS),
+                    max_workers=min(len(grouped_queries), MAX_WORKERS),
                     mp_context=multiprocessing.get_context('spawn')
                 ) as executor:
-                    results = list(executor.map(_execute_sparql_query, batch_queries))
+                    grouped_results = list(executor.map(_execute_sparql_queries, grouped_queries))
+                results = [item for sublist in grouped_results for item in sublist]
             else:
-                results = [_execute_sparql_query(batch_queries[0])] if batch_queries else []
+                results = _execute_sparql_queries((ts_url, batch_queries)) if batch_queries else []
 
             for result in results:
                 for row in result:
@@ -791,7 +789,7 @@ class ResourceFinder:
                             {union_query}
                         }}
                     '''
-                    batch_queries.append((ts_url, query))
+                    batch_queries.append(query)
                 else:
                     identifiers_values = []
                     for identifier in batch:
@@ -808,16 +806,21 @@ class ResourceFinder:
                             ?s <{GraphEntity.iri_has_identifier}> ?id .
                         }}
                     '''
-                    batch_queries.append((ts_url, query))
+                    batch_queries.append(query)
 
-            if len(batch_queries) > 1:
+            if len(batch_queries) > 1 and MAX_WORKERS > 1:
+                queries_per_worker = max(1, len(batch_queries) // MAX_WORKERS)
+                grouped_queries = []
+                for i in range(0, len(batch_queries), queries_per_worker):
+                    grouped_queries.append((ts_url, batch_queries[i:i + queries_per_worker]))
                 with ProcessPoolExecutor(
-                    max_workers=min(len(batch_queries), MAX_WORKERS),
+                    max_workers=min(len(grouped_queries), MAX_WORKERS),
                     mp_context=multiprocessing.get_context('spawn')
                 ) as executor:
-                    results = list(executor.map(_execute_sparql_query, batch_queries))
+                    grouped_results = list(executor.map(_execute_sparql_queries, grouped_queries))
+                results = [item for sublist in grouped_results for item in sublist]
             elif batch_queries:
-                results = [_execute_sparql_query(batch_queries[0])]
+                results = _execute_sparql_queries((ts_url, batch_queries))
             else:
                 results = []
 
@@ -960,18 +963,23 @@ class ResourceFinder:
                         else:
                             continue
 
-                    vvi_queries.append((ts_url, query))
+                    vvi_queries.append(query)
                     venue_uris_to_add.add(venue_uri)
 
             # Execute VVI queries in parallel
-            if len(vvi_queries) > 1:
+            if len(vvi_queries) > 1 and MAX_WORKERS > 1:
+                queries_per_worker = max(1, len(vvi_queries) // MAX_WORKERS)
+                grouped_queries = []
+                for i in range(0, len(vvi_queries), queries_per_worker):
+                    grouped_queries.append((ts_url, vvi_queries[i:i + queries_per_worker]))
                 with ProcessPoolExecutor(
-                    max_workers=min(len(vvi_queries), MAX_WORKERS),
+                    max_workers=min(len(grouped_queries), MAX_WORKERS),
                     mp_context=multiprocessing.get_context('spawn')
                 ) as executor:
-                    results = list(executor.map(_execute_sparql_query, vvi_queries))
+                    grouped_results = list(executor.map(_execute_sparql_queries, grouped_queries))
+                results = [item for sublist in grouped_results for item in sublist]
             elif vvi_queries:
-                results = [_execute_sparql_query(vvi_queries[0])]
+                results = _execute_sparql_queries((ts_url, vvi_queries))
             else:
                 results = []
 

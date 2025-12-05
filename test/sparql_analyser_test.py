@@ -235,10 +235,11 @@ class TestMainFunction(unittest.TestCase):
         }
         mock_analyser.run_selected_analyses.return_value = mock_results
         mock_analyser_class.return_value = mock_analyser
-        
+        mock_analyser_class.return_value.__enter__.return_value = mock_analyser
+
         from oc_meta.run.analyser.sparql_analyser import main
         result = main()
-        
+
         self.assertEqual(result, mock_results)
         mock_analyser_class.assert_called_once_with('http://test.example.com/sparql')
         mock_analyser.run_selected_analyses.assert_called_once_with(True, True, True)
@@ -272,10 +273,11 @@ class TestMainFunction(unittest.TestCase):
         mock_results = {'fabio_expressions': 1500}
         mock_analyser.run_selected_analyses.return_value = mock_results
         mock_analyser_class.return_value = mock_analyser
-        
+        mock_analyser_class.return_value.__enter__.return_value = mock_analyser
+
         from oc_meta.run.analyser.sparql_analyser import main
         result = main()
-        
+
         self.assertEqual(result, mock_results)
         mock_analyser.run_selected_analyses.assert_called_once_with(True, False, False)
     
@@ -288,10 +290,11 @@ class TestMainFunction(unittest.TestCase):
         mock_results = {'venues_disambiguated': 350, 'venues_simple': 400}
         mock_analyser.run_selected_analyses.return_value = mock_results
         mock_analyser_class.return_value = mock_analyser
-        
+        mock_analyser_class.return_value.__enter__.return_value = mock_analyser
+
         from oc_meta.run.analyser.sparql_analyser import main
         result = main()
-        
+
         self.assertEqual(result, mock_results)
         mock_analyser.run_selected_analyses.assert_called_once_with(False, False, True)
 

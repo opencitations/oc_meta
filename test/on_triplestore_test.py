@@ -5,7 +5,6 @@ import unittest
 import redis
 from oc_meta.run.upload.cache_manager import CacheManager
 from oc_meta.run.upload.on_triplestore import (
-    execute_sparql_update,
     save_failed_query_file,
     upload_sparql_updates,
 )
@@ -125,24 +124,6 @@ class TestOnTriplestore(unittest.TestCase):
         with open(self.failed_file, "r") as f:
             content = f.read()
         self.assertIn(test_file, content)
-
-    def test_execute_sparql_update(self):
-        """Test dell'esecuzione di una query SPARQL"""
-        # Test con una query valida
-        valid_query = """
-        INSERT DATA {
-            GRAPH <http://test.graph> {
-                <http://test.subject> <http://test.predicate> "test object" .
-            }
-        }
-        """
-        success = execute_sparql_update(SERVER, valid_query)
-        self.assertTrue(success)
-
-        # Test con una query non valida
-        invalid_query = "INVALID SPARQL QUERY"
-        success = execute_sparql_update(SERVER, invalid_query)
-        self.assertFalse(success)
 
     def test_upload_with_stop_file(self):
         """Test upload interruption via stop file."""
