@@ -1115,7 +1115,7 @@ class TestProvenanceFixing(unittest.TestCase):
                     ],
                     "https://w3id.org/oc/ontology/hasUpdateQuery": [
                         {
-                            "@value": "DELETE DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06440227509> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06904873317> . } }; INSERT DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06440227509> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/063501394354> . } }"
+                            "@value": "DELETE DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06440227509> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06904873317> . } } ; INSERT DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06440227509> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/063501394354> . } }"
                         }
                     ]
                 },
@@ -1166,7 +1166,7 @@ class TestProvenanceFixing(unittest.TestCase):
                     ],
                     "https://w3id.org/oc/ontology/hasUpdateQuery": [
                         {
-                            "@value": "DELETE DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06440227509> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0644082006> . } }; INSERT DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06440227509> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06904873317> . } }"
+                            "@value": "DELETE DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06440227509> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0644082006> . } } ; INSERT DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06440227509> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06904873317> . } }"
                         }
                     ]
                 }
@@ -1269,7 +1269,7 @@ class TestProvenanceFixing(unittest.TestCase):
                     ],
                     "https://w3id.org/oc/ontology/hasUpdateQuery": [
                         {
-                            "@value": "DELETE DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06490509042> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06320156505> . } }; INSERT DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06490509042> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/063201438132> . } }"
+                            "@value": "DELETE DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06490509042> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06320156505> . } } ; INSERT DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06490509042> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/063201438132> . } }"
                         }
                     ]
                 },
@@ -1305,7 +1305,7 @@ class TestProvenanceFixing(unittest.TestCase):
                     ],
                     "https://w3id.org/oc/ontology/hasUpdateQuery": [
                         {
-                            "@value": "DELETE DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06490509042> <http://xmlns.com/foaf/0.1/givenName> \"Aurora E\" . } }; INSERT DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06490509042> <http://xmlns.com/foaf/0.1/givenName> \"Aurora E.\" . } }"
+                            "@value": "DELETE DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06490509042> <http://xmlns.com/foaf/0.1/givenName> \"Aurora E\" . } } ; INSERT DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06490509042> <http://xmlns.com/foaf/0.1/givenName> \"Aurora E.\" . } }"
                         }
                     ]
                 },
@@ -1341,7 +1341,7 @@ class TestProvenanceFixing(unittest.TestCase):
                     ],
                     "https://w3id.org/oc/ontology/hasUpdateQuery": [
                         {
-                            "@value": "DELETE DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06490509042> <http://xmlns.com/foaf/0.1/givenName> \"Aurora Elizabeth\" . } }; INSERT DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06490509042> <http://xmlns.com/foaf/0.1/givenName> \"Aurora E\" . } }"
+                            "@value": "DELETE DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06490509042> <http://xmlns.com/foaf/0.1/givenName> \"Aurora Elizabeth\" . } } ; INSERT DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06490509042> <http://xmlns.com/foaf/0.1/givenName> \"Aurora E\" . } }"
                         }
                     ]
                 },
@@ -1377,7 +1377,7 @@ class TestProvenanceFixing(unittest.TestCase):
                     ],
                     "https://w3id.org/oc/ontology/hasUpdateQuery": [
                         {
-                            "@value": "DELETE DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06490509042> <http://xmlns.com/foaf/0.1/givenName> \"Aurora\" . } }; INSERT DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06490509042> <http://xmlns.com/foaf/0.1/givenName> \"Aurora E.\" . } }"
+                            "@value": "DELETE DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06490509042> <http://xmlns.com/foaf/0.1/givenName> \"Aurora\" . } } ; INSERT DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06490509042> <http://xmlns.com/foaf/0.1/givenName> \"Aurora E.\" . } }"
                         }
                     ]
                 },
@@ -1447,7 +1447,7 @@ class TestProvenanceFixing(unittest.TestCase):
                     ],
                     "https://w3id.org/oc/ontology/hasUpdateQuery": [
                         {
-                            "@value": "DELETE DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06490509042> <http://xmlns.com/foaf/0.1/givenName> \"Aurora E.\" . } }; INSERT DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06490509042> <http://xmlns.com/foaf/0.1/givenName> \"Aurora Elizabeth\" . } }"
+                            "@value": "DELETE DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06490509042> <http://xmlns.com/foaf/0.1/givenName> \"Aurora E.\" . } } ; INSERT DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06490509042> <http://xmlns.com/foaf/0.1/givenName> \"Aurora Elizabeth\" . } }"
                         }
                     ]
                 },
@@ -1509,7 +1509,7 @@ class TestProvenanceFixing(unittest.TestCase):
                     ],
                     "https://w3id.org/oc/ontology/hasUpdateQuery": [
                         {
-                            "@value": "DELETE DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06490509042> <http://xmlns.com/foaf/0.1/givenName> \"Aurora E.\" . } }; INSERT DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06490509042> <http://xmlns.com/foaf/0.1/givenName> \"Aurora\" . } }"
+                            "@value": "DELETE DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06490509042> <http://xmlns.com/foaf/0.1/givenName> \"Aurora E.\" . } } ; INSERT DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/06490509042> <http://xmlns.com/foaf/0.1/givenName> \"Aurora\" . } }"
                         }
                     ]
                 },
