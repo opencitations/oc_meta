@@ -997,7 +997,7 @@ class test_ProcessTest(unittest.TestCase):
                     {
                         "agent_count": {
                             "datatype": "http://www.w3.org/2001/XMLSchema#integer",
-                            "type": "typed-literal",
+                            "type": "literal",
                             "value": "3",
                         }
                     }
@@ -1047,7 +1047,7 @@ class test_ProcessTest(unittest.TestCase):
                     {
                         "agent_count": {
                             "datatype": "http://www.w3.org/2001/XMLSchema#integer",
-                            "type": "typed-literal",
+                            "type": "literal",
                             "value": "6",
                         }
                     }

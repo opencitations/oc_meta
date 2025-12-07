@@ -45,7 +45,7 @@ docker run -d --name $VIRTUOSO_CONTAINER \
   -e DBA_PASSWORD=dba \
   -e SPARQL_UPDATE=true \
   -v "${TEST_DIR}/test_virtuoso_db:/database" \
-  openlink/virtuoso-opensource-7:7.2.15
+  openlink/virtuoso-opensource-7:7.2.16
 
 echo "Starting $VIRTUOSO_PROV_CONTAINER container (provenance)..."
 docker run -d --name $VIRTUOSO_PROV_CONTAINER \
@@ -54,7 +54,7 @@ docker run -d --name $VIRTUOSO_PROV_CONTAINER \
   -e DBA_PASSWORD=dba \
   -e SPARQL_UPDATE=true \
   -v "${TEST_DIR}/test_virtuoso_db_prov:/database" \
-  openlink/virtuoso-opensource-7:7.2.15
+  openlink/virtuoso-opensource-7:7.2.16
 
 echo "Starting $REDIS_CONTAINER container..."
 docker run -d --name $REDIS_CONTAINER \
