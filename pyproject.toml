@@ -34,6 +34,7 @@ time-agnostic-library = "^5.0.7"
 virtuoso-utilities = "^1.5.3"
 oc-ocdm = "^9.4.3"
 sparqlite = "^1.0.0"
+piccione = "^2.0.0"
 
 [tool.poetry.group.dev.dependencies]
 wget = "^3.2"

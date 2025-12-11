@@ -40,7 +40,7 @@ from oc_meta.lib.timer import ProcessTimer
 from oc_meta.plugins.multiprocess.resp_agents_creator import RespAgentsCreator
 from oc_meta.plugins.multiprocess.resp_agents_curator import RespAgentsCurator
 from oc_meta.run.benchmark.plotting import plot_incremental_progress
-from oc_meta.run.upload.on_triplestore import *
+from piccione.upload.on_triplestore import upload_sparql_updates
 from oc_ocdm import Storer
 from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
 from oc_ocdm.prov import ProvSet
@@ -57,18 +57,14 @@ class BulkLoadError(Exception):
 
 def _upload_to_triplestore(endpoint: str, folder: str, redis_host: str, redis_port: int, redis_db: int, failed_file: str, stop_file: str, description: str = "Processing files") -> None:
     """Upload SPARQL queries from folder to triplestore endpoint."""
-    cache_manager = CacheManager(
-        redis_host=redis_host,
-        redis_port=redis_port,
-        redis_db=redis_db
-    )
-
     upload_sparql_updates(
         endpoint=endpoint,
         folder=folder,
         failed_file=failed_file,
         stop_file=stop_file,
-        cache_manager=cache_manager,
+        redis_host=redis_host,
+        redis_port=redis_port,
+        redis_db=redis_db,
         description=description,
         show_progress=False,
     )
@@ -190,12 +186,6 @@ class MetaProcess:
 
         self.data_update_dir = os.path.join(self.base_output_dir, "to_be_uploaded_data")
         self.prov_update_dir = os.path.join(self.base_output_dir, "to_be_uploaded_prov")
-
-        self.cache_manager = CacheManager(
-            redis_host=self.redis_host,
-            redis_port=self.redis_port,
-            redis_db=self.redis_cache_db,
-        )
 
     def prepare_folders(self) -> List[str]:
         completed = init_cache(self.cache_path)
@@ -469,17 +459,14 @@ class MetaProcess:
                 p.join()
 
     def run_sparql_updates(self, endpoint: str, folder: str):
-        cache_manager = CacheManager(
-            redis_host=self.redis_host,
-            redis_port=self.redis_port,
-            redis_db=self.redis_cache_db,
-        )
         upload_sparql_updates(
             endpoint=endpoint,
             folder=folder,
             failed_file=self.ts_failed_queries,
             stop_file=self.ts_stop_file,
-            cache_manager=cache_manager,
+            redis_host=self.redis_host,
+            redis_port=self.redis_port,
+            redis_db=self.redis_cache_db,
         )
 
 
