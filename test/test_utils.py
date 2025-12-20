@@ -146,7 +146,7 @@ def execute_sparql_query(endpoint, query, max_retries=3, delay=5):
         URLError: If connection fails after all retries
     """
     try:
-        with SPARQLClient(endpoint, max_retries=max_retries, backoff_factor=delay) as client:
+        with SPARQLClient(endpoint, max_retries=max_retries, backoff_factor=delay, timeout=60) as client:
             return client.query(query)
     except Exception as e:
         from urllib.error import URLError
@@ -157,7 +157,7 @@ def execute_sparql_query(endpoint, query, max_retries=3, delay=5):
 
 def execute_sparql_construct(endpoint, query, max_retries=3, delay=5):
     try:
-        with SPARQLClient(endpoint, max_retries=max_retries, backoff_factor=delay) as client:
+        with SPARQLClient(endpoint, max_retries=max_retries, backoff_factor=delay, timeout=60) as client:
             g = Graph()
             g.parse(data=client.construct(query), format='nt')
             return g
@@ -166,3 +166,46 @@ def execute_sparql_construct(endpoint, query, max_retries=3, delay=5):
         raise URLError(
             f"Failed to connect to SPARQL endpoint after {max_retries} attempts: {str(e)}"
         )
+
+
+def wait_for_virtuoso(server: str, max_wait: int = 60) -> bool:
+    """Wait for Virtuoso SPARQL endpoint to be ready.
+
+    Args:
+        server: SPARQL endpoint URL
+        max_wait: Maximum time to wait in seconds
+
+    Returns:
+        True if service is ready, False if timeout
+    """
+    start_time = time.time()
+    while time.time() - start_time < max_wait:
+        try:
+            with SPARQLClient(server, max_retries=1, backoff_factor=1, timeout=60) as client:
+                client.query("SELECT * WHERE { ?s ?p ?o } LIMIT 1")
+            return True
+        except Exception:
+            time.sleep(2)
+    return False
+
+
+def wait_for_redis(host: str = REDIS_HOST, port: int = REDIS_PORT, max_wait: int = 10) -> bool:
+    """Wait for Redis to be ready.
+
+    Args:
+        host: Redis host
+        port: Redis port
+        max_wait: Maximum time to wait in seconds
+
+    Returns:
+        True if service is ready, False if timeout
+    """
+    start_time = time.time()
+    while time.time() - start_time < max_wait:
+        try:
+            client = redis.Redis(host=host, port=port)
+            client.ping()
+            return True
+        except Exception:
+            time.sleep(1)
+    return False

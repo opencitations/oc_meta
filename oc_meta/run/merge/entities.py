@@ -92,7 +92,7 @@ class EntityMerger:
         """
         all_related_entities = set()
 
-        with SPARQLClient(meta_editor.endpoint, max_retries=5, backoff_factor=0.3) as client:
+        with SPARQLClient(meta_editor.endpoint, max_retries=5, backoff_factor=0.3, timeout=3600) as client:
             for i in range(0, len(merged_entities), batch_size):
                 batch_merged = merged_entities[i : i + batch_size]
                 merged_clauses = []

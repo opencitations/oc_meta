@@ -291,7 +291,7 @@ def process_entity(args):
     else:
         check_entity_file(file_path, entity, is_surviving)
 
-    with SPARQLClient(sparql_endpoint, max_retries=3, backoff_factor=1) as client:
+    with SPARQLClient(sparql_endpoint, max_retries=3, backoff_factor=1, timeout=3600) as client:
         has_issues = check_entity_sparql(client, entity, is_surviving)
 
         if has_issues and not is_surviving:

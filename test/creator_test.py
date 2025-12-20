@@ -22,7 +22,7 @@ def reset_redis_counters():
     redis_client.flushdb()
 
 def reset_server(server:str=SERVER) -> None:
-    with SPARQLClient(server) as client:
+    with SPARQLClient(server, timeout=60) as client:
         client.update('DELETE WHERE { GRAPH ?g { ?s ?p ?o } }')
 
 # The following function has been added for handling gYear and gYearMonth correctly.

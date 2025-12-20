@@ -53,7 +53,7 @@ def find_surviving_entities(results):
 
 
 def execute_sparql_query(endpoint_url, query):
-    with SPARQLClient(endpoint_url, max_retries=3, backoff_factor=5) as client:
+    with SPARQLClient(endpoint_url, max_retries=3, backoff_factor=5, timeout=3600) as client:
         return client.query(query)
 
 

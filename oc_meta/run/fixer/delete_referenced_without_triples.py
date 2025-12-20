@@ -20,7 +20,7 @@ def query_and_delete_triples(uri, meta_config, resp_agent, stop_file, endpoint):
         ?s ?p <{uri}> .
     }}
     """
-    with SPARQLClient(endpoint, max_retries=3, backoff_factor=5) as client:
+    with SPARQLClient(endpoint, max_retries=3, backoff_factor=5, timeout=3600) as client:
         results = client.query(query)
 
     for result in results['results']['bindings']:

@@ -27,6 +27,7 @@ import os
 import traceback
 from argparse import ArgumentParser
 from datetime import datetime
+import sys
 from sys import executable, platform
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 
@@ -57,17 +58,21 @@ class BulkLoadError(Exception):
 
 def _upload_to_triplestore(endpoint: str, folder: str, redis_host: str, redis_port: int, redis_db: int, failed_file: str, stop_file: str, description: str = "Processing files") -> None:
     """Upload SPARQL queries from folder to triplestore endpoint."""
-    upload_sparql_updates(
-        endpoint=endpoint,
-        folder=folder,
-        failed_file=failed_file,
-        stop_file=stop_file,
-        redis_host=redis_host,
-        redis_port=redis_port,
-        redis_db=redis_db,
-        description=description,
-        show_progress=False,
-    )
+    try:
+        upload_sparql_updates(
+            endpoint=endpoint,
+            folder=folder,
+            failed_file=failed_file,
+            stop_file=stop_file,
+            redis_host=redis_host,
+            redis_port=redis_port,
+            redis_db=redis_db,
+            description=description,
+            show_progress=False,
+        )
+    except Exception as e:
+        print(f"Upload to {endpoint} failed: {e}", file=sys.stderr)
+        sys.exit(1)
 
 
 def _run_bulk_load_process(args: tuple) -> None:
@@ -386,6 +391,11 @@ class MetaProcess:
         data_process.join()
         prov_process.join()
 
+        if data_process.exitcode != 0:
+            raise RuntimeError(f"Data upload failed with exit code {data_process.exitcode}")
+        if prov_process.exitcode != 0:
+            raise RuntimeError(f"Provenance upload failed with exit code {prov_process.exitcode}")
+
     def store_data_and_prov(
         self, res_storer: Storer, prov_storer: Storer
     ) -> None:
@@ -445,6 +455,11 @@ class MetaProcess:
             data_query_process.join()
             prov_query_process.join()
 
+            if data_query_process.exitcode != 0:
+                raise RuntimeError(f"Data query generation failed with exit code {data_query_process.exitcode}")
+            if prov_query_process.exitcode != 0:
+                raise RuntimeError(f"Prov query generation failed with exit code {prov_query_process.exitcode}")
+
             self._upload_sparql_queries()
 
             if use_bulk_load:
@@ -457,6 +472,8 @@ class MetaProcess:
 
             for p in rdf_store_processes:
                 p.join()
+                if p.exitcode != 0:
+                    raise RuntimeError(f"RDF storage failed with exit code {p.exitcode}")
 
     def run_sparql_updates(self, endpoint: str, folder: str):
         upload_sparql_updates(

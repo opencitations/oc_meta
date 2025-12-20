@@ -42,7 +42,7 @@ class OCMetaSPARQLAnalyser:
         self.sparql_endpoint = sparql_endpoint
         self.max_retries = max_retries
         self.retry_delay = retry_delay
-        self.client = SPARQLClient(sparql_endpoint, max_retries=max_retries, backoff_factor=retry_delay)
+        self.client = SPARQLClient(sparql_endpoint, max_retries=max_retries, backoff_factor=retry_delay, timeout=3600)
 
     def _execute_sparql_query(self, query: str) -> Dict[str, Any]:
         """

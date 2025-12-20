@@ -128,7 +128,7 @@ if __name__ == '__main__':
     # print(rdf_result_dict)
     # SPARQL query to count entities of a certain type
     triplestore_dict = {key: 0 for key in entity_types.keys()}
-    with SPARQLClient(endpoint_url, max_retries=3, backoff_factor=5) as client:
+    with SPARQLClient(endpoint_url, max_retries=3, backoff_factor=5, timeout=3600) as client:
         for entity_code, entity_type in entity_types.items():
             sparql_query = f"""
             SELECT (COUNT(DISTINCT ?entity) as ?count)

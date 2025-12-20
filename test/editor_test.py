@@ -129,7 +129,7 @@ class TestEditor(unittest.TestCase):
             URIRef("https://w3id.org/oc/meta/ar/0605"),
         )
         
-        with SPARQLClient(SERVER) as client:
+        with SPARQLClient(SERVER, timeout=60) as client:
             result = client.query("""
             ASK {
                 GRAPH <https://w3id.org/oc/meta/ar/> {
@@ -166,7 +166,7 @@ class TestEditor(unittest.TestCase):
             """)
             self.assertTrue(result["boolean"], "AR/0602 → AR/0605 relationship not found in triplestore")
 
-        with SPARQLClient(PROV_SERVER) as client:
+        with SPARQLClient(PROV_SERVER, timeout=60) as client:
             prov_result = client.query("""
             ASK {
                 ?s <http://www.w3.org/ns/prov#specializationOf> <https://w3id.org/oc/meta/ar/0601> ;
@@ -535,7 +535,7 @@ class TestEditor(unittest.TestCase):
     def test_delete_entity_with_inferred_type(self):
         editor = MetaEditor(META_CONFIG, "https://orcid.org/0000-0002-8420-0696")
 
-        with SPARQLClient(SERVER) as client:
+        with SPARQLClient(SERVER, timeout=60) as client:
             # Remove the type from the entity
             delete_type_query = """
             DELETE {
@@ -566,7 +566,7 @@ class TestEditor(unittest.TestCase):
         editor.delete(URIRef("https://w3id.org/oc/meta/br/0605"))
 
         # Ensure the entity is deleted
-        with SPARQLClient(SERVER) as client:
+        with SPARQLClient(SERVER, timeout=60) as client:
             result = client.query(select_query)
             self.assertEqual(len(result["results"]["bindings"]), 0)
 
@@ -680,7 +680,7 @@ class TestEditor(unittest.TestCase):
             }
         }
         """
-        with SPARQLClient(SERVER) as client:
+        with SPARQLClient(SERVER, timeout=60) as client:
             client.update(sparql_update_query)
 
         # Perform deletion again
@@ -826,7 +826,7 @@ class TestEditor(unittest.TestCase):
             "New Test Title",
         )
         
-        with SPARQLClient(SERVER) as client:
+        with SPARQLClient(SERVER, timeout=60) as client:
             debug_result = client.query("""
             SELECT ?p ?o
             WHERE {
@@ -850,7 +850,7 @@ class TestEditor(unittest.TestCase):
 
             self.assertTrue(title_found, "Title update not found in triplestore")
 
-        with SPARQLClient(PROV_SERVER) as client:
+        with SPARQLClient(PROV_SERVER, timeout=60) as client:
             prov_result = client.query("""
             ASK {
                 ?s <http://www.w3.org/ns/prov#specializationOf> <https://w3id.org/oc/meta/br/0603> .

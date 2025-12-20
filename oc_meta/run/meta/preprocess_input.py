@@ -69,7 +69,7 @@ def check_ids_existence_sparql(ids: str, sparql_endpoint: str) -> bool:
 
     id_list = ids.split()
 
-    with SPARQLClient(sparql_endpoint, max_retries=5, backoff_factor=5) as client:
+    with SPARQLClient(sparql_endpoint, max_retries=5, backoff_factor=5, timeout=3600) as client:
         for id_str in id_list:
             escaped_id = id_str.replace("'", "\\'").replace('"', '\\"')
 

@@ -36,7 +36,7 @@ def add_data_ts(server, data_path, batch_size:int=100, default_graph_uri=URIRef(
         for subj, pred, obj, ctx in g.quads((None, None, None, None)):
             triples_list.append((subj, pred, obj, ctx))
 
-    with SPARQLClient(server) as client:
+    with SPARQLClient(server, timeout=60) as client:
         for i in range(0, len(triples_list), batch_size):
             batch_triples = triples_list[i:i + batch_size]
 
@@ -51,7 +51,7 @@ def add_data_ts(server, data_path, batch_size:int=100, default_graph_uri=URIRef(
             client.update(query)
 
 def reset_server(server) -> None:
-    with SPARQLClient(server) as client:
+    with SPARQLClient(server, timeout=60) as client:
         for graph in {'https://w3id.org/oc/meta/br/', 'https://w3id.org/oc/meta/ra/', 'https://w3id.org/oc/meta/re/', 'https://w3id.org/oc/meta/id/', 'https://w3id.org/oc/meta/ar/'}:
             client.update(f'CLEAR GRAPH <{graph}>')
 
@@ -526,7 +526,7 @@ class TestVVIQueryIsolation(unittest.TestCase):
             '<https://w3id.org/oc/meta/br/9004> <http://purl.org/spar/fabio/hasSequenceIdentifier> "20"^^<http://www.w3.org/2001/XMLSchema#string> .',
         ]
 
-        with SPARQLClient(ENDPOINT) as client:
+        with SPARQLClient(ENDPOINT, timeout=60) as client:
             for triple in test_triples:
                 query = f"INSERT DATA {{ GRAPH <https://w3id.org/oc/meta/br/> {{ {triple} }} }}"
                 client.update(query)

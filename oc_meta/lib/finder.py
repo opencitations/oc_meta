@@ -17,7 +17,7 @@ from time_agnostic_library.agnostic_entity import AgnosticEntity
 def _execute_sparql_queries(args: tuple) -> list:
     ts_url, queries = args
     results = []
-    with SPARQLClient(ts_url, max_retries=5, backoff_factor=5) as client:
+    with SPARQLClient(ts_url, max_retries=5, backoff_factor=5, timeout=3600) as client:
         for query in queries:
             result = client.query(query)
             results.append(result['results']['bindings'] if result else [])
@@ -172,7 +172,7 @@ class ResourceFinder:
                         <{ProvEntity.iri_was_derived_from}> <{penultimate_snapshot}>.
                 }}
             '''
-            with SPARQLClient(self.ts_url, max_retries=5, backoff_factor=5) as client:
+            with SPARQLClient(self.ts_url, max_retries=5, backoff_factor=5, timeout=3600) as client:
                 results = client.query(query_if_it_was_merged)['results']['bindings']
             # The entity was merged to another
             merged_entity = [se for se in results if metaid_uri not in se['se']['value']]
@@ -671,7 +671,7 @@ class ResourceFinder:
             
     def get_everything_about_res(self, metavals: set, identifiers: set, vvis: set, max_depth: int = 10) -> None:
         BATCH_SIZE = 10
-        MAX_WORKERS = 6
+        MAX_WORKERS = 1
 
         def batch_process(input_set, batch_size):
             """Generator to split input data into smaller batches if batch_size is not None."""

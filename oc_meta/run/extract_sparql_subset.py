@@ -72,7 +72,7 @@ def get_triples_for_entity(client, entity_uri):
 
 def extract_subset(endpoint, class_uri, limit, output_file, compress, max_retries=5):
     """Extract a subset of the SPARQL endpoint data"""
-    with SPARQLClient(endpoint, max_retries=max_retries, backoff_factor=2) as client:
+    with SPARQLClient(endpoint, max_retries=max_retries, backoff_factor=2, timeout=3600) as client:
         subjects = get_subjects_of_class(client, class_uri, limit)
         processed_entities = set()
         pending_entities = set(subjects)

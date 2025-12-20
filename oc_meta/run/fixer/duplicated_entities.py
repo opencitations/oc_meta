@@ -35,7 +35,7 @@ if __name__ == '__main__': # pragma: no cover
     csv_data = get_csv_data(args.csv_filepath)
     pbar = tqdm(total=len(csv_data))
     meta_editor = MetaEditor(meta_config=args.meta_config, resp_agent=args.resp_agent)
-    with SPARQLClient(settings['triplestore_url'], max_retries=3, backoff_factor=5) as client:
+    with SPARQLClient(settings['triplestore_url'], max_retries=3, backoff_factor=5, timeout=3600) as client:
         for entity in csv_data:
             identifier = entity['id']
             id_components = identifier.split(':', maxsplit=1)

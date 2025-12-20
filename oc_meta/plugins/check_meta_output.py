@@ -37,7 +37,7 @@ def ask_for_id(identifier: str, endpoint: str) -> bool:
                         <{GraphEntity.iri_has_literal_value}> "{identifier}".
         }}
     '''
-    with SPARQLClient(endpoint, max_retries=3, backoff_factor=5) as client:
+    with SPARQLClient(endpoint, max_retries=3, backoff_factor=5, timeout=3600) as client:
         it_exists = client.query(query)['boolean']
     return identifier, it_exists
 

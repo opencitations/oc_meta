@@ -3082,13 +3082,13 @@ files = [
 
 [[package]]
 name = "sparqlite"
-version = "1.0.0"
+version = "1.1.0"
 description = "A modern, lightweight SPARQL 1.1 client for Python"
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "sparqlite-1.0.0-py3-none-any.whl", hash = "sha256:5cdf52e6c0201325e7b1fcf4145d66111f6b21c9a4a65ee1203bdc8792a0af84"},
-    {file = "sparqlite-1.0.0.tar.gz", hash = "sha256:aff51a9ad435a6dd66f496f05b5243408da8b86308c6aac09537ab6f574f4abc"},
+    {file = "sparqlite-1.1.0-py3-none-any.whl", hash = "sha256:e7a2d4afde770fba1e41c5f7c1fecf1a203f98111a51ed3f98449884de277fee"},
+    {file = "sparqlite-1.1.0.tar.gz", hash = "sha256:c02339e9faa0a98e35c65afcf72fb1da233b30e9167382e15fad15af7c95b248"},
 ]
 
 [package.dependencies]
@@ -3566,4 +3566,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<3.14"
-content-hash = "73c99e785c462bc2b15090aa3f5d5703eba75df758b637379a9e4a14a7a5afb6"
+content-hash = "201ab580a2e02c09c1d0be307e1aa0be18054db0f63c8e161a16713b0d8f07fe"

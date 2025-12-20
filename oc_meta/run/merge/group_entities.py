@@ -64,7 +64,7 @@ def query_sparql_batch(endpoint, uris, batch_size=10):
     """
     related_entities = set()
 
-    with SPARQLClient(endpoint, max_retries=5, backoff_factor=5) as client:
+    with SPARQLClient(endpoint, max_retries=5, backoff_factor=5, timeout=3600) as client:
         for i in range(0, len(uris), batch_size):
             batch_uris = uris[i:i + batch_size]
 

@@ -30,7 +30,7 @@ REDIS_CACHE_DB = 2
 
 def reset_triplestore():
     """Reset the test triplestore graphs"""
-    with SPARQLClient(SERVER) as client:
+    with SPARQLClient(SERVER, timeout=60) as client:
         for graph in [
             "https://w3id.org/oc/meta/br/",
             "https://w3id.org/oc/meta/ra/",
@@ -40,7 +40,7 @@ def reset_triplestore():
         ]:
             client.update(f"CLEAR GRAPH <{graph}>")
 
-    with SPARQLClient(PROV_SERVER) as prov_client:
+    with SPARQLClient(PROV_SERVER, timeout=60) as prov_client:
         for graph in [
             "https://w3id.org/oc/meta/br/",
             "https://w3id.org/oc/meta/ra/",

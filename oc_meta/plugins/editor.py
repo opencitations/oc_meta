@@ -134,7 +134,7 @@ class MetaEditor:
                 query: str = (
                     f"SELECT ?s ?p ?o WHERE {{BIND (<{res}> AS ?s). ?s ?p ?o.}}"
                 )
-                with SPARQLClient(self.endpoint, max_retries=3, backoff_factor=0.3) as client:
+                with SPARQLClient(self.endpoint, max_retries=3, backoff_factor=0.3, timeout=3600) as client:
                     result = client.query(query)["results"]["bindings"]
                 preexisting_graph: Graph = build_graph_from_results(result)
                 self.add_entity_with_type(g_set, res, inferred_type, preexisting_graph)
@@ -174,7 +174,7 @@ class MetaEditor:
                 getattr(g_set.get_entity(URIRef(res)), remove_method)()
         else:
             query = f"SELECT ?s WHERE {{?s ?p <{res}>.}}"
-            with SPARQLClient(self.endpoint, max_retries=3, backoff_factor=0.3) as client:
+            with SPARQLClient(self.endpoint, max_retries=3, backoff_factor=0.3, timeout=3600) as client:
                 result = client.query(query)
             for entity in result["results"]["bindings"]:
                 self.reader.import_entity_from_triplestore(
@@ -199,7 +199,7 @@ class MetaEditor:
         """
         # First get all related entities with a single SPARQL query
         related_entities = set()
-        with SPARQLClient(self.endpoint, max_retries=5, backoff_factor=0.3) as client:
+        with SPARQLClient(self.endpoint, max_retries=5, backoff_factor=0.3, timeout=3600) as client:
             if other in self.relationship_cache:
                 related_entities.update(self.relationship_cache[other])
             else:

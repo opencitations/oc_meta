@@ -48,7 +48,7 @@ def check_provenance_existence(omids: List[str], prov_endpoint_url: str) -> Dict
     for omid in omids:
         prov_results[omid] = False
 
-    with SPARQLClient(prov_endpoint_url, max_retries=3, backoff_factor=5) as client:
+    with SPARQLClient(prov_endpoint_url, max_retries=3, backoff_factor=5, timeout=3600) as client:
         for i in range(0, len(omids), BATCH_SIZE):
             batch = omids[i:i + BATCH_SIZE]
 
@@ -90,7 +90,7 @@ def check_omids_existence(identifiers: List[Dict[str, str]], endpoint_url: str) 
 
     found_omids = {}
 
-    with SPARQLClient(endpoint_url, max_retries=3, backoff_factor=5) as client:
+    with SPARQLClient(endpoint_url, max_retries=3, backoff_factor=5, timeout=3600) as client:
         for identifier in identifiers:
             id_key = f"{identifier['schema']}:{identifier['value']}"
 

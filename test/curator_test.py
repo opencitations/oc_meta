@@ -46,7 +46,7 @@ def reset():
     reset_redis_counters()
 
 def reset_server(server:str=SERVER) -> None:
-    with SPARQLClient(server) as client:
+    with SPARQLClient(server, timeout=60) as client:
         for graph in {'https://w3id.org/oc/meta/br/', 'https://w3id.org/oc/meta/ra/', 'https://w3id.org/oc/meta/re/', 'https://w3id.org/oc/meta/id/', 'https://w3id.org/oc/meta/ar/', 'http://default.graph/'}:
             client.update(f'CLEAR GRAPH <{graph}>')
 
@@ -75,7 +75,7 @@ def add_data_ts(server:str=SERVER, data_path:str=os.path.abspath(os.path.join('t
         for subj, pred, obj, ctx in g.quads():
             triples_list.append((subj, pred, obj, ctx))
 
-    with SPARQLClient(server) as client:
+    with SPARQLClient(server, timeout=60) as client:
         for i in range(0, len(triples_list), batch_size):
             batch_triples = triples_list[i:i + batch_size]
 

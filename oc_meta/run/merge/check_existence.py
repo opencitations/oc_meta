@@ -33,7 +33,7 @@ def process_csv(file_path: str, endpoint_url: str) -> Dict[str, Set[str]]:
         'missing': set()
     }
 
-    with SPARQLClient(endpoint_url, max_retries=3, backoff_factor=5) as client:
+    with SPARQLClient(endpoint_url, max_retries=3, backoff_factor=5, timeout=3600) as client:
         with open(file_path, mode='r', encoding='utf-8') as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:

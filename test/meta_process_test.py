@@ -11,7 +11,7 @@ import unittest
 from datetime import datetime
 from test.test_utils import (PROV_SERVER, SERVER, execute_sparql_construct,
                              execute_sparql_query, reset_redis_counters,
-                             reset_server)
+                             reset_server, wait_for_virtuoso)
 
 import yaml
 from oc_meta.lib.file_manager import get_csv_data, write_csv
@@ -38,18 +38,9 @@ def delete_output_zip(base_dir: str, start_time: datetime) -> None:
 class test_ProcessTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        """Setup iniziale eseguito una volta per tutta la classe di test"""
-        max_wait = 30
-        start_time = time.time()
-        while time.time() - start_time < max_wait:
-            try:
-                with SPARQLClient(SERVER) as client:
-                    client.query("SELECT * WHERE { ?s ?p ?o } LIMIT 1")
-                break
-            except Exception:
-                time.sleep(2)
-        else:
-            raise TimeoutError(f"Virtuoso non pronto dopo {max_wait} secondi")
+        """Setup eseguito una volta per tutta la classe di test"""
+        if not wait_for_virtuoso(SERVER, max_wait=30):
+            raise TimeoutError("Virtuoso not ready after 30 seconds")
 
     def setUp(self):
         """Setup eseguito prima di ogni test"""
@@ -1262,7 +1253,7 @@ class test_ProcessTest(unittest.TestCase):
             )
 
         # Setup: Insert pre-existing identifiers and BRs in triplestore
-        with SPARQLClient(SERVER) as client:
+        with SPARQLClient(SERVER, timeout=60) as client:
             client.update(
                 """
             INSERT DATA {
@@ -1401,7 +1392,7 @@ class test_ProcessTest(unittest.TestCase):
             )
 
         # Setup: Insert pre-existing data - aggiungiamo gli identificatori iniziali
-        with SPARQLClient(SERVER) as client:
+        with SPARQLClient(SERVER, timeout=60) as client:
             client.update(
                 """
         INSERT DATA {
@@ -1794,7 +1785,7 @@ class test_ProcessTest(unittest.TestCase):
         meta_config_path = os.path.join(BASE_DIR, "meta_config_vvi_triplestore.yaml")
 
         # Setup: Insert pre-existing venue with duplicate volumes and issues (with/without datatype)
-        with SPARQLClient(SERVER) as client:
+        with SPARQLClient(SERVER, timeout=60) as client:
             client.update(
                 """
         INSERT DATA {

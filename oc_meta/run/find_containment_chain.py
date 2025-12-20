@@ -38,7 +38,7 @@ def process_csv(input_csv, output_csv, endpoint_url):
         writer = csv.DictWriter(outfile, fieldnames=['entity', 'type', 'partOfType'])
         writer.writeheader()
 
-        with SPARQLClient(endpoint_url, max_retries=3, backoff_factor=5) as client:
+        with SPARQLClient(endpoint_url, max_retries=3, backoff_factor=5, timeout=3600) as client:
             for row in tqdm(reader, desc='Processing rows', unit='row'):
                 entity = row['surviving_entity']
                 if get_entity_type(entity) == 'br':

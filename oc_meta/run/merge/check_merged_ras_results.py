@@ -255,7 +255,7 @@ def check_entity_provenance(
 def process_file_group(args):
     file_path, entities, sparql_endpoint, query_output_dir = args
 
-    with SPARQLClient(sparql_endpoint, max_retries=3, backoff_factor=1) as client:
+    with SPARQLClient(sparql_endpoint, max_retries=3, backoff_factor=1, timeout=3600) as client:
         if file_path is None:
             for entity, is_surviving, surviving_entity in entities:
                 tqdm.write(f"Error: Could not find file for entity {entity}")

@@ -16,7 +16,7 @@ def search_omid_in_redis(r, omid):
     return result.decode() if result else None
 
 def run_sparql_query(sparql_endpoint, entity_id, entity_class):
-    with SPARQLClient(sparql_endpoint, max_retries=3, backoff_factor=5) as client:
+    with SPARQLClient(sparql_endpoint, max_retries=3, backoff_factor=5, timeout=3600) as client:
         if entity_class == "id":
             query = f"""
                 PREFIX datacite: <http://purl.org/spar/datacite/>

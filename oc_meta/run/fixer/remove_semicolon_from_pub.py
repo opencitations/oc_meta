@@ -21,7 +21,7 @@ def query_publishers(endpoint_url, output_file):
         }
         """
 
-        with SPARQLClient(endpoint_url, max_retries=3, backoff_factor=5) as client:
+        with SPARQLClient(endpoint_url, max_retries=3, backoff_factor=5, timeout=3600) as client:
             results = client.query(sparql_query)
 
         publishers = [result["pub"]["value"] for result in results["results"]["bindings"]]
@@ -34,7 +34,7 @@ def query_publishers(endpoint_url, output_file):
 def update_publishers_names(endpoint_url, publishers, config_path, resp_agent):
     meta_editor = MetaEditor(meta_config=config_path, resp_agent=URIRef(resp_agent))
 
-    with SPARQLClient(endpoint_url, max_retries=3, backoff_factor=5) as client:
+    with SPARQLClient(endpoint_url, max_retries=3, backoff_factor=5, timeout=3600) as client:
         for pub in tqdm(publishers, desc="Updating publisher names"):
             query = f"""
                 SELECT ?old_value
