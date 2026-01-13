@@ -48,7 +48,7 @@ def check_provenance_existence(omids: List[str], prov_endpoint_url: str) -> Dict
     for omid in omids:
         prov_results[omid] = False
 
-    with SPARQLClient(prov_endpoint_url, max_retries=3, backoff_factor=5, timeout=3600) as client:
+    with SPARQLClient(prov_endpoint_url, max_retries=10, backoff_factor=2, timeout=3600) as client:
         for i in range(0, len(omids), BATCH_SIZE):
             batch = omids[i:i + BATCH_SIZE]
 
@@ -68,15 +68,11 @@ def check_provenance_existence(omids: List[str], prov_endpoint_url: str) -> Dict
             }}
             """
 
-            try:
-                results = client.query(query)
+            results = client.query(query)
 
-                for result in results["results"]["bindings"]:
-                    omid = result["omid"]["value"]
-                    prov_results[omid] = True
-
-            except Exception as e:
-                print(f"SPARQL query failed for provenance batch check: {str(e)}")
+            for result in results["results"]["bindings"]:
+                omid = result["omid"]["value"]
+                prov_results[omid] = True
 
     return prov_results
 
@@ -90,7 +86,7 @@ def check_omids_existence(identifiers: List[Dict[str, str]], endpoint_url: str) 
 
     found_omids = {}
 
-    with SPARQLClient(endpoint_url, max_retries=3, backoff_factor=5, timeout=3600) as client:
+    with SPARQLClient(endpoint_url, max_retries=10, backoff_factor=2, timeout=3600) as client:
         for identifier in identifiers:
             id_key = f"{identifier['schema']}:{identifier['value']}"
 
@@ -113,19 +109,14 @@ def check_omids_existence(identifiers: List[Dict[str, str]], endpoint_url: str) 
             }}
             """
 
-            try:
-                results = client.query(query)
-                omids = set()
+            results = client.query(query)
+            omids = set()
 
-                for result in results["results"]["bindings"]:
-                    omid = result["omid"]["value"]
-                    omids.add(omid)
+            for result in results["results"]["bindings"]:
+                omid = result["omid"]["value"]
+                omids.add(omid)
 
-                found_omids[id_key] = omids
-
-            except Exception as e:
-                print(f"SPARQL query failed for identifier {id_key}: {str(e)}")
-                found_omids[id_key] = set()
+            found_omids[id_key] = omids
 
     return found_omids
 
@@ -198,172 +189,168 @@ def process_csv_file(args: tuple):
     unique_identifiers = set()
     row_identifiers = []  # Lista di tuple (row_num, col, identifier)
     
-    try:
-        with open(csv_file, 'r', encoding='utf-8') as f:
-            reader = csv.DictReader(f)
-            for row_num, row in enumerate(reader, 1):
-                stats['total_rows'] += 1
-                row_has_ids = False
-                
-                id_columns = ['id', 'author', 'editor', 'publisher', 'venue']
-                
-                for col in id_columns:
-                    identifiers = []
-                    
-                    if col == 'id':
-                        if row[col]:
-                            identifiers = parse_identifiers(row[col])
-                    else:
-                        if row[col]:
-                            elements = re.split(semicolon_in_people_field, row[col])
-                            for element in elements:
-                                match = re.search(name_and_ids, element)
-                                if match and match.group(2):
-                                    ids_str = match.group(2)
-                                    identifiers.extend(parse_identifiers(ids_str))
-                    
-                    if identifiers:
-                        row_has_ids = True
-                        stats['total_identifiers'] += len(identifiers)
-                        for identifier in identifiers:
-                            id_key = f"{identifier['schema']}:{identifier['value']}"
-                            if identifier['schema'].lower() != 'omid':
-                                unique_identifiers.add(id_key)
-                            else:
-                                stats['omid_schema_identifiers'] += 1
-                            row_identifiers.append((row_num, col, identifier))
-                
-                if row_has_ids:
-                    stats['rows_with_ids'] += 1
+    with open(csv_file, 'r', encoding='utf-8') as f:
+        reader = csv.DictReader(f)
+        for row_num, row in enumerate(reader, 1):
+            stats['total_rows'] += 1
+            row_has_ids = False
 
-        all_identifiers = []
-        for id_key in unique_identifiers:
-            parts = id_key.split(':', 1)
-            if len(parts) == 2:
-                all_identifiers.append({
-                    'schema': parts[0].lower(),
-                    'value': parts[1]
-                })
-        
-        for i in range(0, len(all_identifiers), BATCH_SIZE):
-            batch = all_identifiers[i:i + BATCH_SIZE]
-            batch_results = check_omids_existence(batch, endpoint_url)
-            identifier_cache.update(batch_results)
+            id_columns = ['id', 'author', 'editor', 'publisher', 'venue']
 
-        # Terza fase: mappatura OMID -> file ZIP
-        omids_by_file = {}  # chiave: zip_path, valore: set di OMID
-        all_omids = set()
-        
-        for row_num, col, identifier in row_identifiers:
-            id_key = f"{identifier['schema']}:{identifier['value']}"
-            
-            if identifier['schema'].lower() == 'omid':
-                pass
-            else:
-                omids = identifier_cache.get(id_key, set())
-                
-                if omids:
-                    stats['identifiers_with_omids'] += 1
-                    all_omids.update(omids)
-                    
-                    # Raggruppa OMID per file
-                    for omid in omids:
-                        if omid not in omid_results_cache:  # Skip se già controllato
-                            if generate_rdf_files:
-                                zip_path = find_file(rdf_dir, dir_split_number, items_per_file, omid, zip_output_rdf)
-                                if zip_path and os.path.exists(zip_path):
-                                    if zip_path not in omids_by_file:
-                                        omids_by_file[zip_path] = set()
-                                    omids_by_file[zip_path].add(omid)
+            for col in id_columns:
+                identifiers = []
+
+                if col == 'id':
+                    if row[col]:
+                        identifiers = parse_identifiers(row[col])
                 else:
-                    stats['identifiers_without_omids'] += 1
-            
-            stats['identifiers_details'].append({
-                'schema': identifier['schema'],
-                'value': identifier['value'],
-                'column': col,
-                'has_omid': bool(omids),
-                'row_number': row_num,
-                'file': csv_file
+                    if row[col]:
+                        elements = re.split(semicolon_in_people_field, row[col])
+                        for element in elements:
+                            match = re.search(name_and_ids, element)
+                            if match and match.group(2):
+                                ids_str = match.group(2)
+                                identifiers.extend(parse_identifiers(ids_str))
+
+                if identifiers:
+                    row_has_ids = True
+                    stats['total_identifiers'] += len(identifiers)
+                    for identifier in identifiers:
+                        id_key = f"{identifier['schema']}:{identifier['value']}"
+                        if identifier['schema'].lower() != 'omid':
+                            unique_identifiers.add(id_key)
+                        else:
+                            stats['omid_schema_identifiers'] += 1
+                        row_identifiers.append((row_num, col, identifier))
+
+            if row_has_ids:
+                stats['rows_with_ids'] += 1
+
+    all_identifiers = []
+    for id_key in unique_identifiers:
+        parts = id_key.split(':', 1)
+        if len(parts) == 2:
+            all_identifiers.append({
+                'schema': parts[0].lower(),
+                'value': parts[1]
             })
 
-        # Quarta fase: controllo dei grafi per file
-        for zip_path, omids in omids_by_file.items():
-            data_content = None
-            with zipfile.ZipFile(zip_path, 'r') as z:
+    for i in range(0, len(all_identifiers), BATCH_SIZE):
+        batch = all_identifiers[i:i + BATCH_SIZE]
+        batch_results = check_omids_existence(batch, endpoint_url)
+        identifier_cache.update(batch_results)
+
+    # Terza fase: mappatura OMID -> file ZIP
+    omids_by_file = {}  # chiave: zip_path, valore: set di OMID
+    all_omids = set()
+
+    for row_num, col, identifier in row_identifiers:
+        id_key = f"{identifier['schema']}:{identifier['value']}"
+
+        if identifier['schema'].lower() == 'omid':
+            pass
+        else:
+            omids = identifier_cache.get(id_key, set())
+
+            if omids:
+                stats['identifiers_with_omids'] += 1
+                all_omids.update(omids)
+
+                # Raggruppa OMID per file
+                for omid in omids:
+                    if omid not in omid_results_cache:  # Skip se già controllato
+                        if generate_rdf_files:
+                            zip_path = find_file(rdf_dir, dir_split_number, items_per_file, omid, zip_output_rdf)
+                            if zip_path and os.path.exists(zip_path):
+                                if zip_path not in omids_by_file:
+                                    omids_by_file[zip_path] = set()
+                                omids_by_file[zip_path].add(omid)
+            else:
+                stats['identifiers_without_omids'] += 1
+
+        stats['identifiers_details'].append({
+            'schema': identifier['schema'],
+            'value': identifier['value'],
+            'column': col,
+            'has_omid': bool(omids),
+            'row_number': row_num,
+            'file': csv_file
+        })
+
+    # Quarta fase: controllo dei grafi per file
+    for zip_path, omids in omids_by_file.items():
+        data_content = None
+        with zipfile.ZipFile(zip_path, 'r') as z:
+            json_files = [f for f in z.namelist() if f.endswith('.json')]
+            if json_files:
+                with z.open(json_files[0]) as f:
+                    data_content = f.read().decode('utf-8')
+
+        prov_content = None
+        prov_path = find_prov_file(zip_path)
+        if prov_path and os.path.exists(prov_path):
+            with zipfile.ZipFile(prov_path, 'r') as z:
                 json_files = [f for f in z.namelist() if f.endswith('.json')]
                 if json_files:
                     with z.open(json_files[0]) as f:
-                        data_content = f.read().decode('utf-8')
+                        prov_content = f.read().decode('utf-8')
 
-            prov_content = None
-            prov_path = find_prov_file(zip_path)
-            if prov_path and os.path.exists(prov_path):
-                with zipfile.ZipFile(prov_path, 'r') as z:
-                    json_files = [f for f in z.namelist() if f.endswith('.json')]
-                    if json_files:
-                        with z.open(json_files[0]) as f:
-                            prov_content = f.read().decode('utf-8')
-
-            for omid in omids:
-                if omid in omid_results_cache:
-                    data_found, prov_found = omid_results_cache[omid]
-                else:
-                    data_found = data_content is not None and omid in data_content
-
-                    if prov_content is not None:
-                        prov_found = omid in prov_content
-                    else:
-                        prov_found = False
-
-                    omid_results_cache[omid] = (data_found, prov_found)
-                
-                if data_found:
-                    stats['data_graphs_found'] += 1
-                else:
-                    stats['data_graphs_missing'] += 1
-                    
-                if prov_found:
-                    stats['prov_graphs_found'] += 1
-                else:
-                    stats['prov_graphs_missing'] += 1
-                
-                # Trova il contesto originale dell'OMID
-                for row_num, col, identifier in row_identifiers:
-                    id_key = f"{identifier['schema']}:{identifier['value']}"
-                    if omid in identifier_cache.get(id_key, set()):
-                        stats['processed_omids'][omid] = {
-                            'row': row_num,
-                            'column': col,
-                            'identifier': id_key,
-                            'file': csv_file,
-                            'data_found': data_found,
-                            'prov_found': prov_found
-                        }
-                        break
-                        
-        for row_num, col, identifier in row_identifiers:
-            if identifier['schema'].lower() == 'omid':
-                omid = identifier['value']
-                if omid.startswith('http'):
-                    all_omids.add(omid)
-        
-        all_omids.update(stats['processed_omids'].keys())
-        
-        prov_results = check_provenance_existence(list(all_omids), prov_endpoint_url)
-        
-        for omid, has_prov in prov_results.items():
-            if has_prov:
-                stats['omids_with_provenance'] += 1
+        for omid in omids:
+            if omid in omid_results_cache:
+                data_found, prov_found = omid_results_cache[omid]
             else:
-                stats['omids_without_provenance'] += 1
-                
-            if omid in stats['processed_omids']:
-                stats['processed_omids'][omid]['triplestore_prov_found'] = has_prov
-                
-    except Exception as e:
-        print(f"Error processing {csv_file}: {str(e)}")
-    
+                data_found = data_content is not None and omid in data_content
+
+                if prov_content is not None:
+                    prov_found = omid in prov_content
+                else:
+                    prov_found = False
+
+                omid_results_cache[omid] = (data_found, prov_found)
+
+            if data_found:
+                stats['data_graphs_found'] += 1
+            else:
+                stats['data_graphs_missing'] += 1
+
+            if prov_found:
+                stats['prov_graphs_found'] += 1
+            else:
+                stats['prov_graphs_missing'] += 1
+
+            # Trova il contesto originale dell'OMID
+            for row_num, col, identifier in row_identifiers:
+                id_key = f"{identifier['schema']}:{identifier['value']}"
+                if omid in identifier_cache.get(id_key, set()):
+                    stats['processed_omids'][omid] = {
+                        'row': row_num,
+                        'column': col,
+                        'identifier': id_key,
+                        'file': csv_file,
+                        'data_found': data_found,
+                        'prov_found': prov_found
+                    }
+                    break
+
+    for row_num, col, identifier in row_identifiers:
+        if identifier['schema'].lower() == 'omid':
+            omid = identifier['value']
+            if omid.startswith('http'):
+                all_omids.add(omid)
+
+    all_omids.update(stats['processed_omids'].keys())
+
+    prov_results = check_provenance_existence(list(all_omids), prov_endpoint_url)
+
+    for omid, has_prov in prov_results.items():
+        if has_prov:
+            stats['omids_with_provenance'] += 1
+        else:
+            stats['omids_without_provenance'] += 1
+
+        if omid in stats['processed_omids']:
+            stats['processed_omids'][omid]['triplestore_prov_found'] = has_prov
+
     return stats
 
 def generate_results_output(
