@@ -8,6 +8,7 @@ from datetime import datetime
 from typing import Callable, Dict, List, Set, TypeVar
 
 import yaml
+from oc_meta.lib.cleaner import Cleaner
 from oc_meta.lib.master_of_regex import name_and_ids, semicolon_in_people_field
 from rich.progress import Progress, BarColumn, TaskProgressColumn, TimeRemainingColumn, TextColumn
 from sparqlite import SPARQLClient
@@ -46,9 +47,10 @@ def parse_identifiers(id_string: str) -> List[Dict[str, str]]:
     for identifier in id_string.strip().split():
         parts = identifier.split(':', 1)
         if len(parts) == 2:
+            value = Cleaner(parts[1]).normalize_hyphens()
             identifiers.append({
                 'schema': parts[0].lower(),
-                'value': parts[1]
+                'value': value
             })
     return identifiers
 
@@ -341,8 +343,6 @@ def process_csv_file(args: tuple, progress=None, task_id=None):
             if omid.startswith('http'):
                 all_omids.add(omid)
 
-    all_omids.update(stats['processed_omids'].keys())
-
     update_phase(f"Phase 5/5: Checking provenance for {len(all_omids)} OMIDs")
     prov_results = check_provenance_existence(list(all_omids), prov_endpoint_url)
 
@@ -357,7 +357,65 @@ def process_csv_file(args: tuple, progress=None, task_id=None):
 
     return stats
 
-def generate_results_output(
+def write_header(f):
+    """Write report header to file"""
+    f.write("=" * 80 + "\n")
+    f.write("CHECK RESULTS REPORT\n")
+    f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+    f.write("=" * 80 + "\n\n")
+    f.flush()
+
+
+def write_file_report(f, csv_file: str, stats: dict, generate_rdf_files: bool):
+    """Write report section for a single CSV file, including any problems found"""
+    filename = os.path.basename(csv_file)
+    f.write(f"--- File: {filename} ---\n")
+
+    # Basic stats
+    non_omid = stats['total_identifiers'] - stats['omid_schema_identifiers']
+    f.write(f"Rows: {stats['total_rows']}, With IDs: {stats['rows_with_ids']}, ")
+    f.write(f"Identifiers: {stats['total_identifiers']} (omid schema: {stats['omid_schema_identifiers']})\n")
+
+    if non_omid > 0:
+        f.write(f"With OMID: {stats['identifiers_with_omids']}, Without OMID: {stats['identifiers_without_omids']}\n")
+
+    if generate_rdf_files:
+        f.write(f"Data graphs - Found: {stats['data_graphs_found']}, Missing: {stats['data_graphs_missing']}\n")
+        f.write(f"Prov graphs - Found: {stats['prov_graphs_found']}, Missing: {stats['prov_graphs_missing']}\n")
+
+    f.write(f"Provenance in DB - With: {stats['omids_with_provenance']}, Without: {stats['omids_without_provenance']}\n")
+
+    # Problems for this file
+    problems_found = False
+
+    # Identifiers without OMID
+    missing_omids = [d for d in stats['identifiers_details']
+                    if not d['has_omid'] and d['schema'].lower() != 'omid']
+    if missing_omids:
+        if not problems_found:
+            f.write("\nProblems in this file:\n")
+            problems_found = True
+        for detail in missing_omids:
+            f.write(f"  - Identifier {detail['schema']}:{detail['value']} has no OMID ")
+            f.write(f"(row {detail['row_number']}, column {detail['column']})\n")
+
+    # OMIDs without provenance (only those that were actually checked)
+    omids_no_prov = [(omid, details) for omid, details in stats['processed_omids'].items()
+                     if 'triplestore_prov_found' in details and not details['triplestore_prov_found']]
+    if omids_no_prov:
+        if not problems_found:
+            f.write("\nProblems in this file:\n")
+            problems_found = True
+        for omid, details in omids_no_prov:
+            f.write(f"  - OMID {omid} has no provenance ")
+            f.write(f"(row {details['row']}, identifier {details['identifier']})\n")
+
+    f.write("\n")
+    f.flush()
+
+
+def write_aggregated_summary(
+    f,
     total_rows: int,
     total_rows_with_ids: int,
     total_identifiers: int,
@@ -370,98 +428,58 @@ def generate_results_output(
     total_prov_graphs_missing: int,
     total_omids_with_provenance: int,
     total_omids_without_provenance: int,
-    total_found_omids: int,
     problematic_identifiers: dict,
-    omids_without_prov: dict,
-    missing_omid_identifiers: dict,
-    generate_rdf_files: bool,
-    include_header: bool = False
-) -> List[str]:
-    """Generate output lines for results (used both for console and file)"""
-    lines = []
+    generate_rdf_files: bool
+):
+    """Write aggregated summary at the end of the report"""
+    f.write("=" * 80 + "\n")
+    f.write("AGGREGATED SUMMARY\n")
+    f.write("=" * 80 + "\n\n")
 
-    if include_header:
-        lines.append("=" * 80)
-        lines.append("CHECK RESULTS REPORT")
-        lines.append(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        lines.append("=" * 80)
-        lines.append("")
-
-    lines.append("Results Summary:")
-    lines.append(f"Total rows processed: {total_rows}")
-    lines.append(f"Rows containing identifiers: {total_rows_with_ids}")
-    lines.append(f"Total identifiers found: {total_identifiers}")
-    lines.append(f"Identifiers with 'omid' schema (skipped checking): {total_omid_schema}")
+    f.write(f"Total rows processed: {total_rows}\n")
+    f.write(f"Rows containing identifiers: {total_rows_with_ids}\n")
+    f.write(f"Total identifiers found: {total_identifiers}\n")
+    f.write(f"Identifiers with 'omid' schema (skipped checking): {total_omid_schema}\n")
 
     non_omid_identifiers = total_identifiers - total_omid_schema
     if non_omid_identifiers > 0:
-        lines.append(f"Identifiers with associated OMIDs: {total_with_omids} ({(total_with_omids/non_omid_identifiers*100):.2f}%)")
-        lines.append(f"Identifiers without OMIDs: {total_without_omids} ({(total_without_omids/non_omid_identifiers*100):.2f}%)")
+        f.write(f"Identifiers with associated OMIDs: {total_with_omids} ({(total_with_omids/non_omid_identifiers*100):.2f}%)\n")
+        f.write(f"Identifiers without OMIDs: {total_without_omids} ({(total_without_omids/non_omid_identifiers*100):.2f}%)\n")
     else:
-        lines.append("No non-omid identifiers found to check for OMID associations.")
+        f.write("No non-omid identifiers found to check for OMID associations.\n")
 
     if generate_rdf_files:
-        lines.append("")
-        lines.append("Data Graphs:")
-        lines.append(f"  Found: {total_data_graphs_found}")
-        lines.append(f"  Missing: {total_data_graphs_missing}")
-        lines.append("")
-        lines.append("Provenance Graphs:")
-        lines.append(f"  Found: {total_prov_graphs_found}")
-        lines.append(f"  Missing: {total_prov_graphs_missing}")
+        f.write(f"\nData Graphs - Found: {total_data_graphs_found}, Missing: {total_data_graphs_missing}\n")
+        f.write(f"Provenance Graphs - Found: {total_prov_graphs_found}, Missing: {total_prov_graphs_missing}\n")
     else:
-        lines.append("")
-        lines.append("RDF file generation is disabled. File checks were skipped.")
+        f.write("\nRDF file generation is disabled. File checks were skipped.\n")
 
-    lines.append("")
-    lines.append("Provenance in Triplestore:")
     total_omids_checked = total_omids_with_provenance + total_omids_without_provenance
     if total_omids_checked > 0:
-        lines.append(f"  OMIDs with provenance: {total_omids_with_provenance} ({(total_omids_with_provenance/total_omids_checked*100):.2f}%)")
-        lines.append(f"  OMIDs without provenance: {total_omids_without_provenance} ({(total_omids_without_provenance/total_omids_checked*100):.2f}%)")
+        f.write(f"\nProvenance in Triplestore:\n")
+        f.write(f"  OMIDs with provenance: {total_omids_with_provenance} ({(total_omids_with_provenance/total_omids_checked*100):.2f}%)\n")
+        f.write(f"  OMIDs without provenance: {total_omids_without_provenance} ({(total_omids_without_provenance/total_omids_checked*100):.2f}%)\n")
     else:
-        lines.append("  No OMIDs found to check for provenance.")
+        f.write("\nNo OMIDs found to check for provenance.\n")
 
+    # Cross-file problems: identifiers with multiple OMIDs
     if problematic_identifiers:
-        lines.append("")
-        lines.append("=" * 80)
-        lines.append("WARNING: Found identifiers with multiple OMIDs:")
-        lines.append("=" * 80)
+        f.write("\n" + "=" * 80 + "\n")
+        f.write("WARNING: Found identifiers with multiple OMIDs (cross-file issue):\n")
+        f.write("=" * 80 + "\n")
         for id_key, details in problematic_identifiers.items():
-            lines.append(f"\nIdentifier {id_key} is associated with {len(details['omids'])} different OMIDs:")
-            lines.append(f"  OMIDs: {', '.join(sorted(details['omids']))}")
-            lines.append("  Occurrences:")
+            f.write(f"\nIdentifier {id_key} is associated with {len(details['omids'])} different OMIDs:\n")
+            f.write(f"  OMIDs: {', '.join(sorted(details['omids']))}\n")
+            f.write("  Occurrences:\n")
             for occ in details['occurrences']:
-                lines.append(f"    - Row {occ['row']} in {occ['file']}, column {occ['column']}")
+                f.write(f"    - Row {occ['row']} in {occ['file']}, column {occ['column']}\n")
 
-    if omids_without_prov:
-        lines.append("")
-        lines.append("=" * 80)
-        lines.append("WARNING: Found OMIDs without provenance in the triplestore:")
-        lines.append("=" * 80)
-        for omid, occurrences in omids_without_prov.items():
-            lines.append(f"\nOMID {omid} has no associated provenance")
-            lines.append("  Referenced by:")
-            for occ in occurrences:
-                lines.append(f"    - Identifier {occ['identifier']} in {occ['file']}, row {occ['row']}, column {occ['column']}")
-
-    if missing_omid_identifiers:
-        lines.append("")
-        lines.append("=" * 80)
-        lines.append("WARNING: Found identifiers without any OMID:")
-        lines.append("=" * 80)
-        for id_key, occurrences in missing_omid_identifiers.items():
-            lines.append(f"\nIdentifier {id_key} has no associated OMID")
-            lines.append("  Occurrences:")
-            for occ in occurrences:
-                lines.append(f"    - Row {occ['row']} in {occ['file']}, column {occ['column']}")
-
-    return lines
+    f.flush()
 
 def main():
     parser = argparse.ArgumentParser(description="Check MetaProcess results by verifying input CSV identifiers")
     parser.add_argument("meta_config", help="Path to meta_config.yaml file")
-    parser.add_argument("--output", help="Output file path. If specified, results are written to file instead of console")
+    parser.add_argument("output", help="Output file path for results")
     args = parser.parse_args()
 
     with open(args.meta_config, 'r', encoding='utf-8') as f:
@@ -490,168 +508,122 @@ def main():
         
     print(f"Found {len(csv_files)} CSV files to process")
 
-    process_args = [(f, endpoint_url, prov_endpoint_url, output_rdf_dir, config['dir_split_number'], config['items_per_file'], config['zip_output_rdf'], generate_rdf_files) for f in csv_files]
-    results = []
+    # Prepare output file
+    output_dir = os.path.dirname(args.output) or '.'
+    os.makedirs(output_dir, exist_ok=True)
 
-    with Progress(
-        TextColumn("[progress.description]{task.description}"),
-        BarColumn(),
-        TaskProgressColumn(),
-        TimeRemainingColumn(),
-        TextColumn("[cyan]{task.fields[current_file]}"),
-        TextColumn("[yellow]{task.fields[detail]}"),
-    ) as progress:
-        task = progress.add_task("Processing CSV files", total=len(csv_files), current_file="", detail="")
-        for idx, args in enumerate(process_args):
-            current_file = os.path.basename(csv_files[idx])
-            progress.update(task, current_file=f"[{idx+1}/{len(csv_files)}] {current_file}")
-            result = process_csv_file(args, progress=progress, task_id=task)
-            results.append(result)
-            progress.advance(task)
-    
-    total_rows = sum(r['total_rows'] for r in results)
-    total_rows_with_ids = sum(r['rows_with_ids'] for r in results)
-    total_identifiers = sum(r['total_identifiers'] for r in results)
-    total_with_omids = sum(r['identifiers_with_omids'] for r in results)
-    total_without_omids = sum(r['identifiers_without_omids'] for r in results)
-    total_omid_schema = sum(r['omid_schema_identifiers'] for r in results)
-    total_data_graphs_found = sum(r['data_graphs_found'] for r in results)
-    total_data_graphs_missing = sum(r['data_graphs_missing'] for r in results)
-    total_prov_graphs_found = sum(r['prov_graphs_found'] for r in results)
-    total_prov_graphs_missing = sum(r['prov_graphs_missing'] for r in results)
-    total_omids_with_provenance = sum(r['omids_with_provenance'] for r in results)
-    total_omids_without_provenance = sum(r['omids_without_provenance'] for r in results)
-
+    # Aggregation variables
+    total_rows = 0
+    total_rows_with_ids = 0
+    total_identifiers = 0
+    total_with_omids = 0
+    total_without_omids = 0
+    total_omid_schema = 0
+    total_data_graphs_found = 0
+    total_data_graphs_missing = 0
+    total_prov_graphs_found = 0
+    total_prov_graphs_missing = 0
+    total_omids_with_provenance = 0
+    total_omids_without_provenance = 0
     id_key_to_omids = {}
-    problematic_identifiers = {}
-    missing_omid_identifiers = {}
-    omids_without_prov_set = set()
-    omids_without_prov = {}
+    all_results = []
 
-    with Progress(
-        TextColumn("[progress.description]{task.description}"),
-        BarColumn(),
-        TaskProgressColumn(),
-        TimeRemainingColumn(),
-        TextColumn("[cyan]{task.fields[detail]}"),
-    ) as progress:
-        # Creating lookup dictionary
-        task1 = progress.add_task("Creating lookup dictionary", total=len(results), detail="")
-        for r in results:
-            csv_name = os.path.basename(r['identifiers_details'][0]['file']) if r['identifiers_details'] else "unknown"
-            progress.update(task1, detail=f"Processing: {csv_name}")
-            for omid, omid_details in r['processed_omids'].items():
-                id_key = omid_details['identifier']
-                if id_key not in id_key_to_omids:
-                    id_key_to_omids[id_key] = set()
-                id_key_to_omids[id_key].add(omid)
-            progress.advance(task1)
-        progress.update(task1, detail=f"Found {len(id_key_to_omids)} unique identifiers")
+    with open(args.output, 'w', encoding='utf-8') as output_file:
+        write_header(output_file)
 
-        # Checking for problematic identifiers
-        task2 = progress.add_task("Checking for problematic identifiers", total=len(results), detail="")
-        for result in results:
-            csv_name = os.path.basename(result['identifiers_details'][0]['file']) if result['identifiers_details'] else "unknown"
-            progress.update(task2, detail=f"Processing: {csv_name}")
-            for detail in result['identifiers_details']:
-                id_key = f"{detail['schema']}:{detail['value']}"
-                omids = id_key_to_omids.get(id_key, set())
+        process_args = [(f, endpoint_url, prov_endpoint_url, output_rdf_dir, config['dir_split_number'], config['items_per_file'], config['zip_output_rdf'], generate_rdf_files) for f in csv_files]
 
-                if len(omids) > 1:
-                    if id_key not in problematic_identifiers:
-                        problematic_identifiers[id_key] = {
-                            'omids': omids,
-                            'occurrences': []
-                        }
-                    problematic_identifiers[id_key]['occurrences'].append({
-                        'file': detail['file'],
-                        'row': detail['row_number'],
-                        'column': detail['column']
-                    })
-                elif len(omids) == 0 and detail['schema'].lower() != 'omid' and not detail['has_omid']:
-                    if id_key not in missing_omid_identifiers:
-                        missing_omid_identifiers[id_key] = []
-                    missing_omid_identifiers[id_key].append({
-                        'file': detail['file'],
-                        'row': detail['row_number'],
-                        'column': detail['column']
-                    })
-            progress.advance(task2)
-        progress.update(task2, detail=f"Found {len(problematic_identifiers)} problematic, {len(missing_omid_identifiers)} missing")
+        with Progress(
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            TimeRemainingColumn(),
+            TextColumn("[cyan]{task.fields[current_file]}"),
+            TextColumn("[yellow]{task.fields[detail]}"),
+        ) as progress:
+            task = progress.add_task("Processing CSV files", total=len(csv_files), current_file="", detail="")
+            for idx, proc_args in enumerate(process_args):
+                current_file = os.path.basename(csv_files[idx])
+                progress.update(task, current_file=f"[{idx+1}/{len(csv_files)}] {current_file}")
 
-        # Building provenance lookup set
-        task3 = progress.add_task("Building provenance lookup set", total=len(results), detail="")
-        for result in results:
-            csv_name = os.path.basename(result['identifiers_details'][0]['file']) if result['identifiers_details'] else "unknown"
-            progress.update(task3, detail=f"Processing: {csv_name}")
-            for omid, details in result['processed_omids'].items():
-                if not details.get('triplestore_prov_found', False):
-                    omids_without_prov_set.add(omid)
-            progress.advance(task3)
-        progress.update(task3, detail=f"Found {len(omids_without_prov_set)} OMIDs without provenance")
+                result = process_csv_file(proc_args, progress=progress, task_id=task)
 
-        # Collecting OMIDs without provenance
-        task4 = progress.add_task("Collecting OMIDs without provenance", total=len(results), detail="")
-        for result in results:
-            csv_name = os.path.basename(result['identifiers_details'][0]['file']) if result['identifiers_details'] else "unknown"
-            progress.update(task4, detail=f"Processing: {csv_name}")
-            for omid, details in result['processed_omids'].items():
-                if not details.get('triplestore_prov_found', False):
-                    if omid not in omids_without_prov:
-                        omids_without_prov[omid] = []
-                    omids_without_prov[omid].append({
-                        'file': details.get('file', 'unknown'),
-                        'row': details.get('row', 'unknown'),
-                        'column': details.get('column', 'unknown'),
-                        'identifier': details.get('identifier', 'unknown')
-                    })
+                # Write file report immediately
+                write_file_report(output_file, csv_files[idx], result, generate_rdf_files)
 
-            for detail in result['identifiers_details']:
-                if detail['schema'].lower() == 'omid':
-                    omid = detail['value']
-                    if omid.startswith('http') and omid in omids_without_prov_set:
-                        if omid not in omids_without_prov:
-                            omids_without_prov[omid] = []
-                        omids_without_prov[omid].append({
-                            'file': detail.get('file', 'unknown'),
-                            'row': detail.get('row_number', 'unknown'),
-                            'column': detail.get('column', 'unknown'),
-                            'identifier': f"omid:{omid}"
+                # Accumulate for aggregation
+                total_rows += result['total_rows']
+                total_rows_with_ids += result['rows_with_ids']
+                total_identifiers += result['total_identifiers']
+                total_with_omids += result['identifiers_with_omids']
+                total_without_omids += result['identifiers_without_omids']
+                total_omid_schema += result['omid_schema_identifiers']
+                total_data_graphs_found += result['data_graphs_found']
+                total_data_graphs_missing += result['data_graphs_missing']
+                total_prov_graphs_found += result['prov_graphs_found']
+                total_prov_graphs_missing += result['prov_graphs_missing']
+                total_omids_with_provenance += result['omids_with_provenance']
+                total_omids_without_provenance += result['omids_without_provenance']
+
+                # Build cross-file lookup
+                for omid, omid_details in result['processed_omids'].items():
+                    id_key = omid_details['identifier']
+                    if id_key not in id_key_to_omids:
+                        id_key_to_omids[id_key] = set()
+                    id_key_to_omids[id_key].add(omid)
+
+                all_results.append(result)
+                progress.advance(task)
+
+        # Find cross-file problematic identifiers (same identifier with multiple OMIDs)
+        problematic_identifiers = {}
+        with Progress(
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            TimeRemainingColumn(),
+            TextColumn("[cyan]{task.fields[detail]}"),
+        ) as progress:
+            task = progress.add_task("Checking cross-file issues", total=len(all_results), detail="")
+            for result in all_results:
+                for detail in result['identifiers_details']:
+                    id_key = f"{detail['schema']}:{detail['value']}"
+                    omids = id_key_to_omids.get(id_key, set())
+
+                    if len(omids) > 1:
+                        if id_key not in problematic_identifiers:
+                            problematic_identifiers[id_key] = {
+                                'omids': omids,
+                                'occurrences': []
+                            }
+                        problematic_identifiers[id_key]['occurrences'].append({
+                            'file': detail['file'],
+                            'row': detail['row_number'],
+                            'column': detail['column']
                         })
-            progress.advance(task4)
-        progress.update(task4, detail=f"Collected {len(omids_without_prov)} OMIDs")
+                progress.advance(task)
+            progress.update(task, detail=f"Found {len(problematic_identifiers)} identifiers with multiple OMIDs")
 
-    total_found_omids = total_with_omids + total_omid_schema
+        # Write aggregated summary
+        write_aggregated_summary(
+            output_file,
+            total_rows=total_rows,
+            total_rows_with_ids=total_rows_with_ids,
+            total_identifiers=total_identifiers,
+            total_omid_schema=total_omid_schema,
+            total_with_omids=total_with_omids,
+            total_without_omids=total_without_omids,
+            total_data_graphs_found=total_data_graphs_found,
+            total_data_graphs_missing=total_data_graphs_missing,
+            total_prov_graphs_found=total_prov_graphs_found,
+            total_prov_graphs_missing=total_prov_graphs_missing,
+            total_omids_with_provenance=total_omids_with_provenance,
+            total_omids_without_provenance=total_omids_without_provenance,
+            problematic_identifiers=problematic_identifiers,
+            generate_rdf_files=generate_rdf_files
+        )
 
-    output_lines = generate_results_output(
-        total_rows=total_rows,
-        total_rows_with_ids=total_rows_with_ids,
-        total_identifiers=total_identifiers,
-        total_omid_schema=total_omid_schema,
-        total_with_omids=total_with_omids,
-        total_without_omids=total_without_omids,
-        total_data_graphs_found=total_data_graphs_found,
-        total_data_graphs_missing=total_data_graphs_missing,
-        total_prov_graphs_found=total_prov_graphs_found,
-        total_prov_graphs_missing=total_prov_graphs_missing,
-        total_omids_with_provenance=total_omids_with_provenance,
-        total_omids_without_provenance=total_omids_without_provenance,
-        total_found_omids=total_found_omids,
-        problematic_identifiers=problematic_identifiers,
-        omids_without_prov=omids_without_prov,
-        missing_omid_identifiers=missing_omid_identifiers,
-        generate_rdf_files=generate_rdf_files,
-        include_header=bool(args.output)
-    )
-
-    if args.output:
-        output_dir = os.path.dirname(args.output) or '.'
-        os.makedirs(output_dir, exist_ok=True)
-        with open(args.output, 'w', encoding='utf-8') as f:
-            f.write('\n'.join(output_lines))
-        print(f"Results written to: {args.output}")
-    else:
-        print('\n' + '\n'.join(output_lines))
+    print(f"Results written to: {args.output}")
 
 if __name__ == "__main__":
     main() 
