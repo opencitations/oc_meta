@@ -2,18 +2,35 @@ import argparse
 import csv
 import os
 import re
+import time
 import zipfile
 from datetime import datetime
-from multiprocessing import Pool, cpu_count
-from typing import Dict, List, Set
+from typing import Callable, Dict, List, Set, TypeVar
 
 import yaml
 from oc_meta.lib.master_of_regex import name_and_ids, semicolon_in_people_field
+from rich.progress import Progress, BarColumn, TaskProgressColumn, TimeRemainingColumn, TextColumn
 from sparqlite import SPARQLClient
-from tqdm import tqdm
+from sparqlite.exceptions import EndpointError
 
+T = TypeVar('T')
 
 BATCH_SIZE = 10
+MAX_RETRIES = 10
+RETRY_BACKOFF = 2
+
+
+def retry_on_error(func: Callable[[], T]) -> T:
+    """Retry a function on EndpointError (including 4xx errors from Virtuoso)."""
+    for attempt in range(MAX_RETRIES):
+        try:
+            return func()
+        except EndpointError:
+            if attempt == MAX_RETRIES - 1:
+                raise
+            wait_time = RETRY_BACKOFF ** attempt
+            time.sleep(wait_time)
+    raise RuntimeError("Unreachable")
 
 
 def parse_identifiers(id_string: str) -> List[Dict[str, str]]:
@@ -37,42 +54,20 @@ def parse_identifiers(id_string: str) -> List[Dict[str, str]]:
 
 def check_provenance_existence(omids: List[str], prov_endpoint_url: str) -> Dict[str, bool]:
     """
-    Query provenance SPARQL endpoint to check if provenance exists for the given OMIDs
-    Returns dict mapping OMID to boolean indicating if provenance exists
+    Query provenance SPARQL endpoint to check if provenance exists for the given OMIDs.
+    Uses ASK queries on the snapshot URI for better performance.
+    Returns dict mapping OMID to boolean indicating if provenance exists.
     """
     if not omids:
         return {}
 
-    prov_results = {}
-
-    for omid in omids:
-        prov_results[omid] = False
+    prov_results = {omid: False for omid in omids}
 
     with SPARQLClient(prov_endpoint_url, max_retries=10, backoff_factor=2, timeout=3600) as client:
-        for i in range(0, len(omids), BATCH_SIZE):
-            batch = omids[i:i + BATCH_SIZE]
-
-            union_patterns = []
-            for omid in batch:
-                snapshot_uri = f"{omid}/prov/se/1"
-                union_patterns.append(f"{{ <{snapshot_uri}> prov:specializationOf ?entity . BIND(<{omid}> AS ?omid) }}")
-
-            union_query = "\n            UNION\n            ".join(union_patterns)
-
-            query = f"""
-            PREFIX prov: <http://www.w3.org/ns/prov#>
-
-            SELECT DISTINCT ?omid
-            WHERE {{
-                {union_query}
-            }}
-            """
-
-            results = client.query(query)
-
-            for result in results["results"]["bindings"]:
-                omid = result["omid"]["value"]
-                prov_results[omid] = True
+        for omid in omids:
+            snapshot_uri = f"{omid}/prov/se/1"
+            query = f"ASK {{ <{snapshot_uri}> <http://www.w3.org/ns/prov#specializationOf> ?o }}"
+            prov_results[omid] = retry_on_error(lambda q=query: client.ask(q))
 
     return prov_results
 
@@ -109,7 +104,7 @@ def check_omids_existence(identifiers: List[Dict[str, str]], endpoint_url: str) 
             }}
             """
 
-            results = client.query(query)
+            results = retry_on_error(lambda q=query: client.query(q))
             omids = set()
 
             for result in results["results"]["bindings"]:
@@ -159,13 +154,17 @@ def find_prov_file(data_zip_path: str) -> str|None:
         print(f"Error finding provenance file for {data_zip_path}: {str(e)}")
         return None
 
-def process_csv_file(args: tuple):
+def process_csv_file(args: tuple, progress=None, task_id=None):
     """
     Process a single CSV file and check its identifiers
     Returns statistics about processed rows and found/missing OMIDs
     """
     csv_file, endpoint_url, prov_endpoint_url, rdf_dir, dir_split_number, items_per_file, zip_output_rdf, generate_rdf_files = args
-    
+
+    def update_phase(phase: str):
+        if progress and task_id is not None:
+            progress.update(task_id, detail=phase)
+
     stats = {
         'total_rows': 0,
         'rows_with_ids': 0,
@@ -185,10 +184,11 @@ def process_csv_file(args: tuple):
     
     identifier_cache = {}  # chiave: "schema:value", valore: set di OMID
     omid_results_cache = {}  # chiave: omid, valore: (data_found, prov_found)
-    
+
     unique_identifiers = set()
     row_identifiers = []  # Lista di tuple (row_num, col, identifier)
-    
+
+    update_phase("Phase 1/5: Reading CSV")
     with open(csv_file, 'r', encoding='utf-8') as f:
         reader = csv.DictReader(f)
         for row_num, row in enumerate(reader, 1):
@@ -235,12 +235,14 @@ def process_csv_file(args: tuple):
                 'value': parts[1]
             })
 
+    update_phase(f"Phase 2/5: Querying DB for {len(all_identifiers)} identifiers")
     for i in range(0, len(all_identifiers), BATCH_SIZE):
         batch = all_identifiers[i:i + BATCH_SIZE]
         batch_results = check_omids_existence(batch, endpoint_url)
         identifier_cache.update(batch_results)
 
     # Terza fase: mappatura OMID -> file ZIP
+    update_phase("Phase 3/5: Mapping OMIDs to files")
     omids_by_file = {}  # chiave: zip_path, valore: set di OMID
     all_omids = set()
 
@@ -254,7 +256,7 @@ def process_csv_file(args: tuple):
 
             if omids:
                 stats['identifiers_with_omids'] += 1
-                all_omids.update(omids)
+                all_omids.add(next(iter(omids)))  # Only one OMID per identifier for provenance check
 
                 # Raggruppa OMID per file
                 for omid in omids:
@@ -278,6 +280,7 @@ def process_csv_file(args: tuple):
         })
 
     # Quarta fase: controllo dei grafi per file
+    update_phase(f"Phase 4/5: Checking {len(omids_by_file)} RDF files")
     for zip_path, omids in omids_by_file.items():
         data_content = None
         with zipfile.ZipFile(zip_path, 'r') as z:
@@ -340,6 +343,7 @@ def process_csv_file(args: tuple):
 
     all_omids.update(stats['processed_omids'].keys())
 
+    update_phase(f"Phase 5/5: Checking provenance for {len(all_omids)} OMIDs")
     prov_results = check_provenance_existence(list(all_omids), prov_endpoint_url)
 
     for omid, has_prov in prov_results.items():
@@ -485,14 +489,25 @@ def main():
         return
         
     print(f"Found {len(csv_files)} CSV files to process")
-    
-    with Pool(cpu_count()) as pool:
-        process_args = [(f, endpoint_url, prov_endpoint_url, output_rdf_dir, config['dir_split_number'], config['items_per_file'], config['zip_output_rdf'], generate_rdf_files) for f in csv_files]
-        results = list(tqdm(
-            pool.imap(process_csv_file, process_args),
-            total=len(csv_files),
-            desc="Processing CSV files"
-        ))
+
+    process_args = [(f, endpoint_url, prov_endpoint_url, output_rdf_dir, config['dir_split_number'], config['items_per_file'], config['zip_output_rdf'], generate_rdf_files) for f in csv_files]
+    results = []
+
+    with Progress(
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TaskProgressColumn(),
+        TimeRemainingColumn(),
+        TextColumn("[cyan]{task.fields[current_file]}"),
+        TextColumn("[yellow]{task.fields[detail]}"),
+    ) as progress:
+        task = progress.add_task("Processing CSV files", total=len(csv_files), current_file="", detail="")
+        for idx, args in enumerate(process_args):
+            current_file = os.path.basename(csv_files[idx])
+            progress.update(task, current_file=f"[{idx+1}/{len(csv_files)}] {current_file}")
+            result = process_csv_file(args, progress=progress, task_id=task)
+            results.append(result)
+            progress.advance(task)
     
     total_rows = sum(r['total_rows'] for r in results)
     total_rows_with_ids = sum(r['rows_with_ids'] for r in results)
@@ -508,76 +523,103 @@ def main():
     total_omids_without_provenance = sum(r['omids_without_provenance'] for r in results)
 
     id_key_to_omids = {}
-    for r in tqdm(results, desc="Creating lookup dictionary"):
-        for omid, omid_details in r['processed_omids'].items():
-            id_key = omid_details['identifier']
-            if id_key not in id_key_to_omids:
-                id_key_to_omids[id_key] = set()
-            id_key_to_omids[id_key].add(omid)
-
-    problematic_identifiers = {}  # identificatori con OMID multipli
-    missing_omid_identifiers = {}  # identificatori senza OMID
-
-    for result in tqdm(results, desc="Checking for problematic identifiers"):
-        for detail in result['identifiers_details']:
-            id_key = f"{detail['schema']}:{detail['value']}"
-            omids = id_key_to_omids.get(id_key, set())
-
-            if len(omids) > 1:
-                if id_key not in problematic_identifiers:
-                    problematic_identifiers[id_key] = {
-                        'omids': omids,
-                        'occurrences': []
-                    }
-                problematic_identifiers[id_key]['occurrences'].append({
-                    'file': detail['file'],
-                    'row': detail['row_number'],
-                    'column': detail['column']
-                })
-            # We only want to add identifiers to missing_omid_identifiers if:
-            # 1. They have no omids associated according to the SPARQL check (len(omids) == 0)
-            # 2. They're not OMID schema identifiers (already excluded)
-            # 3. The identifier details show has_omid=False (wasn't marked as found during processing)
-            elif len(omids) == 0 and detail['schema'].lower() != 'omid' and not detail['has_omid']:
-                if id_key not in missing_omid_identifiers:
-                    missing_omid_identifiers[id_key] = []
-                missing_omid_identifiers[id_key].append({
-                    'file': detail['file'],
-                    'row': detail['row_number'],
-                    'column': detail['column']
-                })
-
+    problematic_identifiers = {}
+    missing_omid_identifiers = {}
     omids_without_prov_set = set()
-    for result in tqdm(results, desc="Building provenance lookup set"):
-        for omid, details in result['processed_omids'].items():
-            if not details.get('triplestore_prov_found', False):
-                omids_without_prov_set.add(omid)
-
     omids_without_prov = {}
-    for result in tqdm(results, desc="Collecting OMIDs without provenance"):
-        for omid, details in result['processed_omids'].items():
-            if not details.get('triplestore_prov_found', False):
-                if omid not in omids_without_prov:
-                    omids_without_prov[omid] = []
-                omids_without_prov[omid].append({
-                    'file': details.get('file', 'unknown'),
-                    'row': details.get('row', 'unknown'),
-                    'column': details.get('column', 'unknown'),
-                    'identifier': details.get('identifier', 'unknown')
-                })
 
-        for detail in result['identifiers_details']:
-            if detail['schema'].lower() == 'omid':
-                omid = detail['value']
-                if omid.startswith('http') and omid in omids_without_prov_set:
+    with Progress(
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TaskProgressColumn(),
+        TimeRemainingColumn(),
+        TextColumn("[cyan]{task.fields[detail]}"),
+    ) as progress:
+        # Creating lookup dictionary
+        task1 = progress.add_task("Creating lookup dictionary", total=len(results), detail="")
+        for r in results:
+            csv_name = os.path.basename(r['identifiers_details'][0]['file']) if r['identifiers_details'] else "unknown"
+            progress.update(task1, detail=f"Processing: {csv_name}")
+            for omid, omid_details in r['processed_omids'].items():
+                id_key = omid_details['identifier']
+                if id_key not in id_key_to_omids:
+                    id_key_to_omids[id_key] = set()
+                id_key_to_omids[id_key].add(omid)
+            progress.advance(task1)
+        progress.update(task1, detail=f"Found {len(id_key_to_omids)} unique identifiers")
+
+        # Checking for problematic identifiers
+        task2 = progress.add_task("Checking for problematic identifiers", total=len(results), detail="")
+        for result in results:
+            csv_name = os.path.basename(result['identifiers_details'][0]['file']) if result['identifiers_details'] else "unknown"
+            progress.update(task2, detail=f"Processing: {csv_name}")
+            for detail in result['identifiers_details']:
+                id_key = f"{detail['schema']}:{detail['value']}"
+                omids = id_key_to_omids.get(id_key, set())
+
+                if len(omids) > 1:
+                    if id_key not in problematic_identifiers:
+                        problematic_identifiers[id_key] = {
+                            'omids': omids,
+                            'occurrences': []
+                        }
+                    problematic_identifiers[id_key]['occurrences'].append({
+                        'file': detail['file'],
+                        'row': detail['row_number'],
+                        'column': detail['column']
+                    })
+                elif len(omids) == 0 and detail['schema'].lower() != 'omid' and not detail['has_omid']:
+                    if id_key not in missing_omid_identifiers:
+                        missing_omid_identifiers[id_key] = []
+                    missing_omid_identifiers[id_key].append({
+                        'file': detail['file'],
+                        'row': detail['row_number'],
+                        'column': detail['column']
+                    })
+            progress.advance(task2)
+        progress.update(task2, detail=f"Found {len(problematic_identifiers)} problematic, {len(missing_omid_identifiers)} missing")
+
+        # Building provenance lookup set
+        task3 = progress.add_task("Building provenance lookup set", total=len(results), detail="")
+        for result in results:
+            csv_name = os.path.basename(result['identifiers_details'][0]['file']) if result['identifiers_details'] else "unknown"
+            progress.update(task3, detail=f"Processing: {csv_name}")
+            for omid, details in result['processed_omids'].items():
+                if not details.get('triplestore_prov_found', False):
+                    omids_without_prov_set.add(omid)
+            progress.advance(task3)
+        progress.update(task3, detail=f"Found {len(omids_without_prov_set)} OMIDs without provenance")
+
+        # Collecting OMIDs without provenance
+        task4 = progress.add_task("Collecting OMIDs without provenance", total=len(results), detail="")
+        for result in results:
+            csv_name = os.path.basename(result['identifiers_details'][0]['file']) if result['identifiers_details'] else "unknown"
+            progress.update(task4, detail=f"Processing: {csv_name}")
+            for omid, details in result['processed_omids'].items():
+                if not details.get('triplestore_prov_found', False):
                     if omid not in omids_without_prov:
                         omids_without_prov[omid] = []
                     omids_without_prov[omid].append({
-                        'file': detail.get('file', 'unknown'),
-                        'row': detail.get('row_number', 'unknown'),
-                        'column': detail.get('column', 'unknown'),
-                        'identifier': f"omid:{omid}"
+                        'file': details.get('file', 'unknown'),
+                        'row': details.get('row', 'unknown'),
+                        'column': details.get('column', 'unknown'),
+                        'identifier': details.get('identifier', 'unknown')
                     })
+
+            for detail in result['identifiers_details']:
+                if detail['schema'].lower() == 'omid':
+                    omid = detail['value']
+                    if omid.startswith('http') and omid in omids_without_prov_set:
+                        if omid not in omids_without_prov:
+                            omids_without_prov[omid] = []
+                        omids_without_prov[omid].append({
+                            'file': detail.get('file', 'unknown'),
+                            'row': detail.get('row_number', 'unknown'),
+                            'column': detail.get('column', 'unknown'),
+                            'identifier': f"omid:{omid}"
+                        })
+            progress.advance(task4)
+        progress.update(task4, detail=f"Collected {len(omids_without_prov)} OMIDs")
 
     total_found_omids = total_with_omids + total_omid_schema
 

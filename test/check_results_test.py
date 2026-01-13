@@ -253,19 +253,21 @@ class TestCheckOMIDsExistence(unittest.TestCase):
         result = check_omids_existence([], "http://example.com/sparql")
         self.assertEqual(result, {})
 
+    @patch('oc_meta.run.meta.check_results.time.sleep')
     @patch('oc_meta.run.meta.check_results.SPARQLClient')
-    def test_check_sparql_exception_handling(self, mock_sparql_client):
-        """Test that SPARQL exceptions are handled gracefully."""
+    def test_check_sparql_exception_handling(self, mock_sparql_client, mock_sleep):
+        """Test that SPARQL exceptions are retried and eventually raised."""
+        from sparqlite.exceptions import EndpointError
+
         mock_client = MagicMock()
         mock_sparql_client.return_value.__enter__.return_value = mock_client
-        mock_client.query.side_effect = Exception("SPARQL endpoint unavailable")
+        mock_client.query.side_effect = EndpointError("SPARQL endpoint unavailable")
 
         identifiers = [{'schema': 'doi', 'value': '10.1234/test'}]
-        result = check_omids_existence(identifiers, "http://example.com/sparql")
 
-        # Should return empty set for the identifier
-        expected = {'doi:10.1234/test': set()}
-        self.assertEqual(result, expected)
+        # After MAX_RETRIES, the exception should be raised
+        with self.assertRaises(EndpointError):
+            check_omids_existence(identifiers, "http://example.com/sparql")
 
 
 class TestCheckProvenanceExistence(unittest.TestCase):
@@ -276,26 +278,21 @@ class TestCheckProvenanceExistence(unittest.TestCase):
         """Test checking provenance that exists."""
         mock_client = MagicMock()
         mock_sparql_client.return_value.__enter__.return_value = mock_client
-        mock_client.query.return_value = {
-            "results": {
-                "bindings": [
-                    {"omid": {"value": "https://w3id.org/oc/meta/br/0601"}}
-                ]
-            }
-        }
+        mock_client.ask.return_value = True
 
         omids = ["https://w3id.org/oc/meta/br/0601"]
         result = check_provenance_existence(omids, "http://example.com/prov-sparql")
 
         expected = {"https://w3id.org/oc/meta/br/0601": True}
         self.assertEqual(result, expected)
+        mock_client.ask.assert_called_once()
 
     @patch('oc_meta.run.meta.check_results.SPARQLClient')
     def test_check_provenance_not_exists(self, mock_sparql_client):
         """Test checking provenance that doesn't exist."""
         mock_client = MagicMock()
         mock_sparql_client.return_value.__enter__.return_value = mock_client
-        mock_client.query.return_value = {"results": {"bindings": []}}
+        mock_client.ask.return_value = False
 
         omids = ["https://w3id.org/oc/meta/br/0601"]
         result = check_provenance_existence(omids, "http://example.com/prov-sparql")
@@ -308,14 +305,7 @@ class TestCheckProvenanceExistence(unittest.TestCase):
         """Test checking multiple OMIDs with mixed provenance results."""
         mock_client = MagicMock()
         mock_sparql_client.return_value.__enter__.return_value = mock_client
-        mock_client.query.return_value = {
-            "results": {
-                "bindings": [
-                    {"omid": {"value": "https://w3id.org/oc/meta/br/0601"}},
-                    {"omid": {"value": "https://w3id.org/oc/meta/br/0603"}}
-                ]
-            }
-        }
+        mock_client.ask.side_effect = [True, False, True]
 
         omids = [
             "https://w3id.org/oc/meta/br/0601",
@@ -324,7 +314,6 @@ class TestCheckProvenanceExistence(unittest.TestCase):
         ]
         result = check_provenance_existence(omids, "http://example.com/prov-sparql")
 
-        # 0601 and 0603 have provenance, 0602 doesn't
         self.assertTrue(result["https://w3id.org/oc/meta/br/0601"])
         self.assertFalse(result["https://w3id.org/oc/meta/br/0602"])
         self.assertTrue(result["https://w3id.org/oc/meta/br/0603"])
@@ -335,37 +324,20 @@ class TestCheckProvenanceExistence(unittest.TestCase):
         self.assertEqual(result, {})
 
     @patch('oc_meta.run.meta.check_results.SPARQLClient')
-    def test_check_provenance_batching(self, mock_sparql_client):
-        """Test that large lists are batched correctly."""
-        # Create 25 OMIDs (should result in 3 batches with BATCH_SIZE=10)
-        omids = [f"https://w3id.org/oc/meta/br/06{i:02d}" for i in range(1, 26)]
+    def test_check_provenance_individual_queries(self, mock_sparql_client):
+        """Test that each OMID gets an individual ASK query."""
+        omids = [f"https://w3id.org/oc/meta/br/06{i:02d}" for i in range(1, 6)]
 
         mock_client = MagicMock()
         mock_sparql_client.return_value.__enter__.return_value = mock_client
-        mock_client.query.return_value = {"results": {"bindings": []}}
+        mock_client.ask.return_value = False
 
         result = check_provenance_existence(omids, "http://example.com/prov-sparql")
 
-        # Should have made 3 calls (batches of 10, 10, 5)
-        self.assertEqual(mock_client.query.call_count, 3)
-
-        # All OMIDs should be in result with False
-        self.assertEqual(len(result), 25)
+        # Should have made 5 individual ASK calls
+        self.assertEqual(mock_client.ask.call_count, 5)
+        self.assertEqual(len(result), 5)
         self.assertTrue(all(not v for v in result.values()))
-
-    @patch('oc_meta.run.meta.check_results.SPARQLClient')
-    def test_check_provenance_exception_handling(self, mock_sparql_client):
-        """Test that SPARQL exceptions are handled gracefully."""
-        mock_client = MagicMock()
-        mock_sparql_client.return_value.__enter__.return_value = mock_client
-        mock_client.query.side_effect = Exception("SPARQL endpoint unavailable")
-
-        omids = ["https://w3id.org/oc/meta/br/0601"]
-        result = check_provenance_existence(omids, "http://example.com/prov-sparql")
-
-        # Should still return the OMID with False
-        expected = {"https://w3id.org/oc/meta/br/0601": False}
-        self.assertEqual(result, expected)
 
 
 if __name__ == '__main__':

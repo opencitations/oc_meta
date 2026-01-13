@@ -35,6 +35,7 @@ virtuoso-utilities = "^1.5.3"
 oc-ocdm = "^9.4.3"
 sparqlite = "^1.1.0"
 piccione = "^2.0.0"
+rich = "^14.2.0"
 
 [tool.poetry.group.dev.dependencies]
 wget = "^3.2"
