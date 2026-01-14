@@ -29,10 +29,8 @@ import redis
 from pebble import ProcessPool
 from tqdm import tqdm
 
-# Increase CSV field size limit to handle large fields
-csv.field_size_limit(2**31 - 1)  # Set to max value for 32-bit systems
+csv.field_size_limit(2**31 - 1)
 
-# Constants
 FIELDNAMES = [
     "id",
     "title",
@@ -85,70 +83,27 @@ URI_TYPE_DICT = {
     "http://purl.org/spar/fabio/WebContent": "web content",
 }
 
-# Global cache for JSON files
 _json_cache = {}
 
 
 def init_redis_connection(
     host: str = "localhost", port: int = 6379, db: int = 2
 ) -> redis.Redis:
-    """Initialize Redis connection with given parameters"""
     client = redis.Redis(host=host, port=port, db=db, decode_responses=True)
-    # Test the connection by sending a PING command
-    client.ping()  # This will raise redis.ConnectionError if connection fails
+    client.ping()
     return client
 
 
-def increase_csv_field_limit() -> int:
-    """Incrementally increase the CSV field size limit until it works.
-    Returns the successful limit value."""
-    current_limit = csv.field_size_limit()
-    while True:
-        try:
-            csv.field_size_limit(current_limit)
-            return current_limit
-        except OverflowError:
-            # If we get an overflow, try a smaller value
-            if current_limit >= sys.maxsize:
-                current_limit = int(sys.maxsize / 2)
-            else:
-                break
-        except Exception:
-            break
-
-        # Try next value
-        current_limit *= 2
-
-    # If we get here, we need to try increasing from the default
-    current_limit = csv.field_size_limit()
-    while True:
-        try:
-            next_limit = current_limit * 2
-            csv.field_size_limit(next_limit)
-            current_limit = next_limit
-            return current_limit
-        except Exception as e:
-            # If we can't increase further, return the last working value
-            csv.field_size_limit(current_limit)
-            return current_limit
-
-
 def load_processed_omids_to_redis(output_dir: str, redis_client: redis.Redis) -> int:
-    """Load all previously processed OMID from existing CSV files into Redis.
-    This is done only once at startup to create the initial cache."""
     if not os.path.exists(output_dir):
         return 0
 
-    # Clear any existing data in Redis
     redis_client.delete("processed_omids")
 
     count = 0
-    BATCH_SIZE = 1000  # Process commands in batches of 1000
-
-    # Get list of CSV files first
+    BATCH_SIZE = 1000
     csv_files = [f for f in os.listdir(output_dir) if f.endswith(".csv")]
 
-    # Read all CSV files and collect OMIDs with progress bar
     for filename in tqdm(csv_files, desc="Loading existing identifiers"):
         filepath = os.path.join(output_dir, filename)
         with open(filepath, "r", encoding="utf-8") as f:
@@ -157,25 +112,21 @@ def load_processed_omids_to_redis(output_dir: str, redis_client: redis.Redis) ->
             batch_count = 0
 
             for row in reader:
-                # Extract all OMIDs from the id field
                 omids = [
                     id_part.strip()
                     for id_part in row["id"].split()
                     if id_part.startswith("omid:br/")
                 ]
-                # Add to Redis pipeline
                 for omid in omids:
                     batch_pipe.sadd("processed_omids", omid)
                     batch_count += 1
                     count += 1
 
-                    # Execute batch if we've reached the batch size
                     if batch_count >= BATCH_SIZE:
                         batch_pipe.execute()
                         batch_pipe = redis_client.pipeline()
                         batch_count = 0
 
-            # Execute any remaining commands in the pipeline
             if batch_count > 0:
                 batch_pipe.execute()
 
@@ -183,14 +134,12 @@ def load_processed_omids_to_redis(output_dir: str, redis_client: redis.Redis) ->
 
 
 def is_omid_processed(omid: str, redis_client: redis.Redis) -> bool:
-    """Check if an OMID has been processed by looking it up in Redis"""
     return redis_client.sismember("processed_omids", omid)
 
 
 def find_file(
     rdf_dir: str, dir_split_number: int, items_per_file: int, uri: str
 ) -> Optional[str]:
-    """Find the file path for a given URI based on the directory structure"""
     entity_regex: str = (
         r"^(https:\/\/w3id\.org\/oc\/meta)\/([a-z][a-z])\/(0[1-9]+0)?([1-9][0-9]*)$"
     )
@@ -214,7 +163,6 @@ def find_file(
 
 
 def load_json_from_file(filepath: str) -> dict:
-    """Load JSON data from a ZIP file, using cache if available"""
     if filepath in _json_cache:
         return _json_cache[filepath]
 
@@ -232,7 +180,6 @@ def load_json_from_file(filepath: str) -> dict:
 
 
 def process_identifier(id_data: dict) -> Optional[str]:
-    """Process identifier data to extract schema and value"""
     try:
         id_schema = id_data["http://purl.org/spar/datacite/usesIdentifierScheme"][0][
             "@id"
@@ -248,9 +195,7 @@ def process_identifier(id_data: dict) -> Optional[str]:
 def process_responsible_agent(
     ra_data: dict, ra_uri: str, rdf_dir: str, dir_split_number: int, items_per_file: int
 ) -> Optional[str]:
-    """Process responsible agent data to extract name and identifiers"""
     try:
-        # Process name
         family_name = ra_data.get("http://xmlns.com/foaf/0.1/familyName", [{}])[0].get(
             "@value", ""
         )
@@ -261,7 +206,6 @@ def process_responsible_agent(
             "@value", ""
         )
 
-        # Determine name format
         if family_name or given_name:
             if family_name and given_name:
                 name = f"{family_name}, {given_name}"
@@ -274,11 +218,9 @@ def process_responsible_agent(
         else:
             return None
 
-        # Get OMID
         omid = ra_uri.split("/")[-1]
         identifiers = [f"omid:ra/{omid}"]
 
-        # Process other identifiers
         if "http://purl.org/spar/datacite/hasIdentifier" in ra_data:
             for identifier in ra_data["http://purl.org/spar/datacite/hasIdentifier"]:
                 id_uri = identifier["@id"]
@@ -306,18 +248,15 @@ def process_venue_title(
     dir_split_number: int,
     items_per_file: int,
 ) -> str:
-    """Process venue title and its identifiers"""
     venue_title = venue_data.get("http://purl.org/dc/terms/title", [{}])[0].get(
         "@value", ""
     )
     if not venue_title:
         return ""
 
-    # Get OMID
     omid = venue_uri.split("/")[-1]
     identifiers = [f"omid:br/{omid}"]
 
-    # Process other identifiers
     if "http://purl.org/spar/datacite/hasIdentifier" in venue_data:
         for identifier in venue_data["http://purl.org/spar/datacite/hasIdentifier"]:
             id_uri = identifier["@id"]
@@ -337,7 +276,6 @@ def process_venue_title(
 def process_hierarchical_venue(
     entity: dict, rdf_dir: str, dir_split_number: int, items_per_file: int
 ) -> Dict[str, str]:
-    """Process hierarchical venue structure recursively"""
     result = {"volume": "", "issue": "", "venue": ""}
     entity_types = entity.get("@type", [])
 
@@ -350,13 +288,11 @@ def process_hierarchical_venue(
             "http://purl.org/spar/fabio/hasSequenceIdentifier", [{}]
         )[0].get("@value", "")
     else:
-        # It's a main venue (journal, book series, etc.)
         result["venue"] = process_venue_title(
             entity, entity["@id"], rdf_dir, dir_split_number, items_per_file
         )
         return result
 
-    # Process parent if exists
     if "http://purl.org/vocab/frbr/core#partOf" in entity:
         parent_uri = entity["http://purl.org/vocab/frbr/core#partOf"][0]["@id"]
         parent_file = find_file(rdf_dir, dir_split_number, items_per_file, parent_uri)
@@ -368,9 +304,8 @@ def process_hierarchical_venue(
                         parent_info = process_hierarchical_venue(
                             parent_entity, rdf_dir, dir_split_number, items_per_file
                         )
-                        # Merge parent info, keeping our current values
                         for key, value in parent_info.items():
-                            if not result[key]:  # Only update if we don't have a value
+                            if not result[key]:
                                 result[key] = value
 
     return result
@@ -379,8 +314,6 @@ def process_hierarchical_venue(
 def find_first_ar_by_role(
     agent_roles: Dict, next_relations: Dict, role_type: str
 ) -> Optional[str]:
-    """Find the first AR for a specific role type that isn't referenced by any other AR of the same role"""
-    # Get all ARs of this role type
     role_ars = {
         ar_uri: ar_data
         for ar_uri, ar_data in agent_roles.items()
@@ -388,28 +321,23 @@ def find_first_ar_by_role(
         in ar_data.get("http://purl.org/spar/pro/withRole", [{}])[0].get("@id", "")
     }
 
-    # Get all "next" relations between ARs of this role type
     role_next_relations = {
         ar_uri: next_ar
         for ar_uri, next_ar in next_relations.items()
         if ar_uri in role_ars and next_ar in role_ars
     }
 
-    # Find the AR that isn't referenced as next by any other AR of this role
     referenced_ars = set(role_next_relations.values())
     for ar_uri in role_ars:
         if ar_uri not in referenced_ars:
             return ar_uri
 
-    # If no first AR found, take the first one from the role ARs
     return next(iter(role_ars)) if role_ars else None
 
 
 def process_bibliographic_resource(
     br_data: dict, rdf_dir: str, dir_split_number: int, items_per_file: int
 ) -> Optional[Dict[str, str]]:
-    """Process bibliographic resource data and its related entities"""
-    # Skip if the entity is a JournalVolume or JournalIssue
     br_types = br_data.get("@type", [])
     if (
         "http://purl.org/spar/fabio/JournalVolume" in br_types
@@ -420,7 +348,6 @@ def process_bibliographic_resource(
     output = {field: "" for field in FIELDNAMES}
 
     try:
-        # Extract OMID and basic BR information
         entity_id = br_data.get("@id", "")
         identifiers = [f'omid:br/{entity_id.split("/")[-1]}'] if entity_id else []
 
@@ -431,7 +358,6 @@ def process_bibliographic_resource(
             "http://prismstandard.org/namespaces/basic/2.0/publicationDate", [{}]
         )[0].get("@value", "")
 
-        # Extract type
         br_types = [
             t
             for t in br_data.get("@type", [])
@@ -439,7 +365,6 @@ def process_bibliographic_resource(
         ]
         output["type"] = URI_TYPE_DICT.get(br_types[0], "") if br_types else ""
 
-        # Process identifiers
         if "http://purl.org/spar/datacite/hasIdentifier" in br_data:
             for identifier in br_data["http://purl.org/spar/datacite/hasIdentifier"]:
                 id_uri = identifier["@id"]
@@ -454,17 +379,13 @@ def process_bibliographic_resource(
                                     identifiers.append(id_value)
         output["id"] = " ".join(identifiers)
 
-        # Process authors, editors and publishers through agent roles
         authors = []
         editors = []
         publishers = []
-
-        # Create a dictionary to store agent roles and their next relations
         agent_roles = {}
         next_relations = {}
 
         if "http://purl.org/spar/pro/isDocumentContextFor" in br_data:
-            # First pass: collect all agent roles and their next relations
             for ar_data in br_data["http://purl.org/spar/pro/isDocumentContextFor"]:
                 ar_uri = ar_data["@id"]
                 ar_file = find_file(rdf_dir, dir_split_number, items_per_file, ar_uri)
@@ -473,16 +394,13 @@ def process_bibliographic_resource(
                     for graph in ar_data:
                         for entity in graph.get("@graph", []):
                             if entity["@id"] == ar_uri:
-                                # Store the agent role data
                                 agent_roles[ar_uri] = entity
-                                # Store the next relation if it exists
                                 if "https://w3id.org/oc/ontology/hasNext" in entity:
                                     next_ar = entity[
                                         "https://w3id.org/oc/ontology/hasNext"
                                     ][0]["@id"]
                                     next_relations[ar_uri] = next_ar
 
-            # Process each role type separately
             for role_type, role_list in [
                 ("author", authors),
                 ("editor", editors),
@@ -492,7 +410,6 @@ def process_bibliographic_resource(
                 if not first_ar:
                     continue
 
-                # Process agent roles in order for this role type
                 current_ar = first_ar
                 processed_ars = set()
                 max_iterations = len(agent_roles)
@@ -508,13 +425,11 @@ def process_bibliographic_resource(
                     processed_ars.add(current_ar)
                     iterations += 1
 
-                    # Process the current AR
                     entity = agent_roles[current_ar]
                     role = entity.get("http://purl.org/spar/pro/withRole", [{}])[0].get(
                         "@id", ""
                     )
 
-                    # Only process if it matches our current role type
                     if role_type in role:
                         if "http://purl.org/spar/pro/isHeldBy" in entity:
                             ra_uri = entity["http://purl.org/spar/pro/isHeldBy"][0][
@@ -538,14 +453,12 @@ def process_bibliographic_resource(
                                             if agent_name:
                                                 role_list.append(agent_name)
 
-                    # Move to next agent role
                     current_ar = next_relations.get(current_ar)
 
             output["author"] = "; ".join(authors)
             output["editor"] = "; ".join(editors)
             output["publisher"] = "; ".join(publishers)
 
-        # Process venue information
         if "http://purl.org/vocab/frbr/core#partOf" in br_data:
             venue_uri = br_data["http://purl.org/vocab/frbr/core#partOf"][0]["@id"]
             venue_file = find_file(rdf_dir, dir_split_number, items_per_file, venue_uri)
@@ -559,7 +472,6 @@ def process_bibliographic_resource(
                             )
                             output.update(venue_info)
 
-        # Process page information
         if "http://purl.org/vocab/frbr/core#embodiment" in br_data:
             page_uri = br_data["http://purl.org/vocab/frbr/core#embodiment"][0]["@id"]
             page_file = find_file(rdf_dir, dir_split_number, items_per_file, page_uri)
@@ -586,11 +498,9 @@ def process_bibliographic_resource(
 
 
 def process_single_file(args):
-    """Process a single file and return the results"""
     filepath, input_dir, dir_split_number, items_per_file, redis_params = args
     results = []
 
-    # Initialize Redis client once
     redis_client = redis.Redis(
         host=redis_params["host"],
         port=redis_params["port"],
@@ -601,7 +511,6 @@ def process_single_file(args):
     data = load_json_from_file(filepath)
     for graph in data:
         for entity in graph.get("@graph", []):
-            # Skip if this is a JournalVolume or JournalIssue
             entity_types = entity.get("@type", [])
             if (
                 "http://purl.org/spar/fabio/JournalVolume" in entity_types
@@ -609,11 +518,9 @@ def process_single_file(args):
             ):
                 continue
 
-            # Extract OMID from entity ID
             entity_id = entity.get("@id", "")
             if entity_id:
                 omid = f"omid:br/{entity_id.split('/')[-1]}"
-                # Skip if already processed
                 if is_omid_processed(omid, redis_client):
                     continue
 
@@ -627,8 +534,6 @@ def process_single_file(args):
 
 
 class ResultBuffer:
-    """Buffer to collect results and write them when reaching the row limit"""
-
     def __init__(self, output_dir: str, max_rows: int = 3000):
         self.buffer = []
         self.output_dir = output_dir
@@ -637,7 +542,6 @@ class ResultBuffer:
         self.pbar = None
 
     def _get_last_file_number(self) -> int:
-        """Find the highest file number from existing output files"""
         if not os.path.exists(self.output_dir):
             return -1
 
@@ -645,34 +549,29 @@ class ResultBuffer:
         for filename in os.listdir(self.output_dir):
             if filename.startswith("output_") and filename.endswith(".csv"):
                 try:
-                    number = int(filename[7:-4])  # Extract number from 'output_X.csv'
+                    number = int(filename[7:-4])
                     max_number = max(max_number, number)
                 except ValueError:
                     continue
         return max_number
 
     def set_progress_bar(self, total: int) -> None:
-        """Initialize progress bar with total number of files"""
         self.pbar = tqdm(total=total, desc="Processing files")
 
     def update_progress(self) -> None:
-        """Update progress bar"""
         if self.pbar:
             self.pbar.update(1)
 
     def close_progress_bar(self) -> None:
-        """Close progress bar"""
         if self.pbar:
             self.pbar.close()
 
     def add_results(self, results: List[Dict[str, str]]) -> None:
-        """Add results to buffer and write to file if max_rows is reached"""
         self.buffer.extend(results)
         while len(self.buffer) >= self.max_rows:
             self._write_buffer_chunk()
 
     def _write_buffer_chunk(self) -> None:
-        """Write max_rows records to a new file"""
         chunk = self.buffer[: self.max_rows]
         output_file = os.path.join(self.output_dir, f"output_{self.file_counter}.csv")
         write_csv(output_file, chunk)
@@ -680,7 +579,6 @@ class ResultBuffer:
         self.file_counter += 1
 
     def flush(self) -> None:
-        """Write any remaining results in buffer"""
         if self.buffer:
             output_file = os.path.join(
                 self.output_dir, f"output_{self.file_counter}.csv"
@@ -691,15 +589,14 @@ class ResultBuffer:
 
 
 def task_done(future: concurrent.futures.Future, result_buffer: ResultBuffer):
-    """Callback function for completed tasks"""
     try:
         results = future.result()
         if results:
             result_buffer.add_results(results)
-        result_buffer.update_progress()  # Update progress after task completion
+        result_buffer.update_progress()
     except Exception as e:
         print(f"Task failed: {e}")
-        result_buffer.update_progress()  # Update progress even if task fails
+        result_buffer.update_progress()
 
 
 def generate_csv(
@@ -707,26 +604,21 @@ def generate_csv(
     output_dir: str,
     dir_split_number: int,
     items_per_file: int,
-    zip_output_rdf: bool,
     redis_host: str = "localhost",
     redis_port: int = 6379,
     redis_db: int = 2,
 ) -> None:
-    """Generate CSV files from RDF data using Pebble for process management"""
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    # Initialize Redis connection and load initial cache
     redis_client = init_redis_connection(redis_host, redis_port, redis_db)
-    processed_count = load_processed_omids_to_redis(output_dir, redis_client)
+    load_processed_omids_to_redis(output_dir, redis_client)
 
-    # Process only files in the 'br' directory
     br_dir = os.path.join(input_dir, "br")
     if not os.path.exists(br_dir):
         print(f"Error: bibliographic resources directory not found at {br_dir}")
         return
 
-    # Collect all ZIP files
     all_files = []
     for root, _, files in os.walk(br_dir):
         if "prov" in root:
@@ -739,14 +631,10 @@ def generate_csv(
 
     print(f"Processing {len(all_files)} files...")
 
-    # Redis connection parameters to pass to worker processes
     redis_params = {"host": redis_host, "port": redis_port, "db": redis_db}
-
-    # Create result buffer and initialize progress bar
     result_buffer = ResultBuffer(output_dir)
     result_buffer.set_progress_bar(len(all_files))
 
-    # Process files one at a time using Pebble
     with ProcessPool(max_workers=os.cpu_count(), max_tasks=1, context=multiprocessing.get_context('spawn')) as executor:
         futures: List[concurrent.futures.Future] = []
         for filepath in all_files:
@@ -765,25 +653,20 @@ def generate_csv(
             future.add_done_callback(lambda f: task_done(f, result_buffer))
             futures.append(future)
 
-        # Wait for all futures to complete
         for future in futures:
             try:
                 future.result()
             except Exception as e:
                 print(f"Error processing file: {e}")
-                return  # Exit without clearing Redis if there's an error
+                return
 
-    # Flush any remaining results and close progress bar
     result_buffer.flush()
     result_buffer.close_progress_bar()
-
-    # Clear Redis cache only if we've successfully completed everything
     redis_client.delete("processed_omids")
     print("Processing complete. Redis cache cleared.")
 
 
 def write_csv(filepath: str, data: List[Dict[str, str]]) -> None:
-    """Write data to CSV file"""
     with open(filepath, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=FIELDNAMES)
         writer.writeheader()

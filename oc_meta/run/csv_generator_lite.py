@@ -35,23 +35,18 @@ if __name__ == '__main__':
                        help='Redis database number (default: 2)')
     args = parser.parse_args()
 
-    # Load configuration
     with open(args.config, encoding='utf-8') as f:
         settings = yaml.full_load(f)
 
-    # Extract settings
     rdf_dir = os.path.join(settings['output_rdf_dir'], 'rdf')
     dir_split_number = settings['dir_split_number']
     items_per_file = settings['items_per_file']
-    zip_output_rdf = settings['zip_output_rdf']
 
-    # Generate CSVs
     generate_csv(
         input_dir=rdf_dir,
         output_dir=args.output_dir,
         dir_split_number=dir_split_number,
         items_per_file=items_per_file,
-        zip_output_rdf=zip_output_rdf,
         redis_host=args.redis_host,
         redis_port=args.redis_port,
         redis_db=args.redis_db
