@@ -16,7 +16,6 @@
 
 from __future__ import annotations
 
-import concurrent.futures
 import csv
 import json
 import multiprocessing
@@ -82,9 +81,6 @@ URI_TYPE_DICT = {
     "http://purl.org/spar/fabio/SpecificationDocument": "standard",
     "http://purl.org/spar/fabio/WebContent": "web content",
 }
-
-_json_cache = {}
-
 
 def init_redis_connection(
     host: str = "localhost", port: int = 6379, db: int = 2
@@ -163,20 +159,11 @@ def find_file(
 
 
 def load_json_from_file(filepath: str) -> dict:
-    if filepath in _json_cache:
-        return _json_cache[filepath]
-
-    try:
-        with ZipFile(filepath, "r") as zip_file:
-            json_filename = zip_file.namelist()[0]
-            with zip_file.open(json_filename) as json_file:
-                json_content = json_file.read().decode("utf-8")
-                json_data = json.loads(json_content)
-                _json_cache[filepath] = json_data
-                return json_data
-    except Exception as e:
-        print(f"Error loading file {filepath}: {e}")
-        return {}
+    with ZipFile(filepath, "r") as zip_file:
+        json_filename = zip_file.namelist()[0]
+        with zip_file.open(json_filename) as json_file:
+            json_content = json_file.read().decode("utf-8")
+            return json.loads(json_content)
 
 
 def process_identifier(id_data: dict) -> Optional[str]:
@@ -588,17 +575,6 @@ class ResultBuffer:
             self.file_counter += 1
 
 
-def task_done(future: concurrent.futures.Future, result_buffer: ResultBuffer):
-    try:
-        results = future.result()
-        if results:
-            result_buffer.add_results(results)
-        result_buffer.update_progress()
-    except Exception as e:
-        print(f"Task failed: {e}")
-        result_buffer.update_progress()
-
-
 def generate_csv(
     input_dir: str,
     output_dir: str,
@@ -636,7 +612,6 @@ def generate_csv(
     result_buffer.set_progress_bar(len(all_files))
 
     with ProcessPool(max_workers=os.cpu_count(), max_tasks=1, context=multiprocessing.get_context('spawn')) as executor:
-        futures: List[concurrent.futures.Future] = []
         for filepath in all_files:
             future = executor.schedule(
                 function=process_single_file,
@@ -650,15 +625,13 @@ def generate_csv(
                     ),
                 ),
             )
-            future.add_done_callback(lambda f: task_done(f, result_buffer))
-            futures.append(future)
-
-        for future in futures:
             try:
-                future.result()
+                results = future.result()
+                if results:
+                    result_buffer.add_results(results)
             except Exception as e:
-                print(f"Error processing file: {e}")
-                return
+                print(f"Error processing file {filepath}: {e}")
+            result_buffer.update_progress()
 
     result_buffer.flush()
     result_buffer.close_progress_bar()
