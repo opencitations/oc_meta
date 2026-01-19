@@ -17,7 +17,9 @@
 import os
 from argparse import ArgumentParser
 
+import redis
 import yaml
+
 from oc_meta.plugins.csv_generator_lite.csv_generator_lite import generate_csv
 
 if __name__ == '__main__':
@@ -33,6 +35,8 @@ if __name__ == '__main__':
                        help='Redis port (default: 6379)')
     parser.add_argument('--redis-db', type=int, default=2,
                        help='Redis database number (default: 2)')
+    parser.add_argument('--clean', action='store_true',
+                       help='Clear checkpoint file and Redis cache before starting')
     args = parser.parse_args()
 
     with open(args.config, encoding='utf-8') as f:
@@ -41,6 +45,18 @@ if __name__ == '__main__':
     rdf_dir = os.path.join(settings['output_rdf_dir'], 'rdf')
     dir_split_number = settings['dir_split_number']
     items_per_file = settings['items_per_file']
+
+    if args.clean:
+        checkpoint_file = 'processed_br_files.txt'
+        if os.path.exists(checkpoint_file):
+            os.remove(checkpoint_file)
+            print(f"Removed checkpoint file: {checkpoint_file}")
+        redis_client = redis.Redis(
+            host=args.redis_host, port=args.redis_port, db=args.redis_db
+        )
+        deleted = redis_client.delete('processed_omids')
+        if deleted:
+            print("Cleared Redis processed_omids cache")
 
     generate_csv(
         input_dir=rdf_dir,

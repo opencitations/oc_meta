@@ -98,10 +98,13 @@ def init_redis_connection(
 
 
 def load_processed_omids_to_redis(output_dir: str, redis_client: redis.Redis) -> int:
+    existing_count = redis_client.scard("processed_omids")
+    if existing_count > 0:
+        print(f"Redis already has {existing_count} OMIDs, skipping rebuild")
+        return existing_count
+
     if not os.path.exists(output_dir):
         return 0
-
-    redis_client.delete("processed_omids")
 
     count = 0
     BATCH_SIZE = 1000
@@ -150,6 +153,18 @@ def load_processed_omids_to_redis(output_dir: str, redis_client: redis.Redis) ->
 
 def is_omid_processed(omid: str, redis_client: redis.Redis) -> bool:
     return redis_client.sismember("processed_omids", omid)
+
+
+def load_checkpoint(checkpoint_file: str) -> set:
+    if not os.path.exists(checkpoint_file):
+        return set()
+    with open(checkpoint_file, "r") as f:
+        return set(line.strip() for line in f if line.strip())
+
+
+def mark_file_processed(checkpoint_file: str, filepath: str) -> None:
+    with open(checkpoint_file, "a") as f:
+        f.write(filepath + "\n")
 
 
 def find_file(
@@ -612,12 +627,15 @@ def generate_csv(
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
+    checkpoint_file = "processed_br_files.txt"
+    processed_br_files = load_checkpoint(checkpoint_file)
+
     redis_client = init_redis_connection(redis_host, redis_port, redis_db)
     load_processed_omids_to_redis(output_dir, redis_client)
 
     br_dir = os.path.join(input_dir, "br")
     if not os.path.exists(br_dir):
-        print(f"Error: bibliographic resources directory not found at {br_dir}")
+        print(f"Error: directory not found at {br_dir}")
         return
 
     all_files = []
@@ -626,11 +644,15 @@ def generate_csv(
             continue
         all_files.extend(os.path.join(root, f) for f in files if f.endswith(".zip"))
 
-    if not all_files:
-        print("No files found to process")
+    all_files = sorted(all_files)
+    files_to_process = [f for f in all_files if f not in processed_br_files]
+
+    if not files_to_process:
+        print("All files already processed")
         return
 
-    print(f"Processing {len(all_files)} files...")
+    print(f"Skipping {len(processed_br_files)} already processed files")
+    print(f"Processing {len(files_to_process)} remaining files...")
 
     result_buffer = ResultBuffer(output_dir)
 
@@ -642,22 +664,22 @@ def generate_csv(
         TimeElapsedColumn(),
         TimeRemainingColumn(),
     ) as progress:
-        task = progress.add_task("Processing files", total=len(all_files))
+        task = progress.add_task("Processing files", total=len(files_to_process))
 
-        for filepath in all_files:
+        for filepath in files_to_process:
             try:
                 results = process_single_file(
                     filepath, input_dir, dir_split_number, items_per_file, redis_client
                 )
                 if results:
                     result_buffer.add_results(results)
+                mark_file_processed(checkpoint_file, filepath)
             except Exception as e:
                 print(f"Error processing file {filepath}: {e}")
             progress.update(task, advance=1)
 
     result_buffer.flush()
-    redis_client.delete("processed_omids")
-    print("Processing complete. Redis cache cleared.")
+    print("Processing complete.")
 
 
 def write_csv(filepath: str, data: List[Dict[str, str]]) -> None:
