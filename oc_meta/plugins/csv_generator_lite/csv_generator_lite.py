@@ -18,15 +18,22 @@ from __future__ import annotations
 
 import csv
 import json
-import multiprocessing
 import os
 import re
+from functools import lru_cache
 from typing import Dict, List, Optional
 from zipfile import ZipFile
 
 import redis
-from pebble import ProcessPool
-from tqdm import tqdm
+from rich.progress import (
+    BarColumn,
+    MofNCompleteColumn,
+    Progress,
+    SpinnerColumn,
+    TextColumn,
+    TimeElapsedColumn,
+    TimeRemainingColumn,
+)
 
 csv.field_size_limit(2**31 - 1)
 
@@ -100,31 +107,43 @@ def load_processed_omids_to_redis(output_dir: str, redis_client: redis.Redis) ->
     BATCH_SIZE = 1000
     csv_files = [f for f in os.listdir(output_dir) if f.endswith(".csv")]
 
-    for filename in tqdm(csv_files, desc="Loading existing identifiers"):
-        filepath = os.path.join(output_dir, filename)
-        with open(filepath, "r", encoding="utf-8") as f:
-            reader = csv.DictReader(f)
-            batch_pipe = redis_client.pipeline()
-            batch_count = 0
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        MofNCompleteColumn(),
+        TimeElapsedColumn(),
+        TimeRemainingColumn(),
+    ) as progress:
+        task = progress.add_task("Loading existing identifiers", total=len(csv_files))
 
-            for row in reader:
-                omids = [
-                    id_part.strip()
-                    for id_part in row["id"].split()
-                    if id_part.startswith("omid:br/")
-                ]
-                for omid in omids:
-                    batch_pipe.sadd("processed_omids", omid)
-                    batch_count += 1
-                    count += 1
+        for filename in csv_files:
+            filepath = os.path.join(output_dir, filename)
+            with open(filepath, "r", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                batch_pipe = redis_client.pipeline()
+                batch_count = 0
 
-                    if batch_count >= BATCH_SIZE:
-                        batch_pipe.execute()
-                        batch_pipe = redis_client.pipeline()
-                        batch_count = 0
+                for row in reader:
+                    omids = [
+                        id_part.strip()
+                        for id_part in row["id"].split()
+                        if id_part.startswith("omid:br/")
+                    ]
+                    for omid in omids:
+                        batch_pipe.sadd("processed_omids", omid)
+                        batch_count += 1
+                        count += 1
 
-            if batch_count > 0:
-                batch_pipe.execute()
+                        if batch_count >= BATCH_SIZE:
+                            batch_pipe.execute()
+                            batch_pipe = redis_client.pipeline()
+                            batch_count = 0
+
+                if batch_count > 0:
+                    batch_pipe.execute()
+
+            progress.update(task, advance=1)
 
     return count
 
@@ -158,7 +177,8 @@ def find_file(
     return None
 
 
-def load_json_from_file(filepath: str) -> dict:
+@lru_cache(maxsize=2000)
+def load_json_from_file(filepath: str) -> list:
     with ZipFile(filepath, "r") as zip_file:
         json_filename = zip_file.namelist()[0]
         with zip_file.open(json_filename) as json_file:
@@ -261,9 +281,24 @@ def process_venue_title(
 
 
 def process_hierarchical_venue(
-    entity: dict, rdf_dir: str, dir_split_number: int, items_per_file: int
+    entity: dict,
+    rdf_dir: str,
+    dir_split_number: int,
+    items_per_file: int,
+    visited: Optional[set] = None,
+    depth: int = 0,
 ) -> Dict[str, str]:
     result = {"volume": "", "issue": "", "venue": ""}
+
+    if visited is None:
+        visited = set()
+
+    entity_id = entity.get("@id", "")
+    if entity_id in visited or depth > 5:
+        print(f"Warning: Cycle detected in venue hierarchy at: {entity_id}")
+        return result
+    visited.add(entity_id)
+
     entity_types = entity.get("@type", [])
 
     if "http://purl.org/spar/fabio/JournalIssue" in entity_types:
@@ -289,7 +324,12 @@ def process_hierarchical_venue(
                 for parent_entity in graph.get("@graph", []):
                     if parent_entity["@id"] == parent_uri:
                         parent_info = process_hierarchical_venue(
-                            parent_entity, rdf_dir, dir_split_number, items_per_file
+                            parent_entity,
+                            rdf_dir,
+                            dir_split_number,
+                            items_per_file,
+                            visited,
+                            depth + 1,
                         )
                         for key, value in parent_info.items():
                             if not result[key]:
@@ -478,23 +518,20 @@ def process_bibliographic_resource(
                             if start_page or end_page:
                                 output["page"] = f"{start_page}-{end_page}"
 
-    except (KeyError, IndexError) as e:
-        print(f"Error processing bibliographic resource: {e}")
+    except Exception as e:
+        print(f"Error processing bibliographic resource: {type(e).__name__}: {e}")
 
     return output
 
 
-def process_single_file(args):
-    filepath, input_dir, dir_split_number, items_per_file, redis_params = args
+def process_single_file(
+    filepath: str,
+    input_dir: str,
+    dir_split_number: int,
+    items_per_file: int,
+    redis_client: redis.Redis,
+) -> List[Dict[str, str]]:
     results = []
-
-    redis_client = redis.Redis(
-        host=redis_params["host"],
-        port=redis_params["port"],
-        db=redis_params["db"],
-        decode_responses=True,
-    )
-
     data = load_json_from_file(filepath)
     for graph in data:
         for entity in graph.get("@graph", []):
@@ -526,7 +563,6 @@ class ResultBuffer:
         self.output_dir = output_dir
         self.max_rows = max_rows
         self.file_counter = self._get_last_file_number() + 1
-        self.pbar = None
 
     def _get_last_file_number(self) -> int:
         if not os.path.exists(self.output_dir):
@@ -541,17 +577,6 @@ class ResultBuffer:
                 except ValueError:
                     continue
         return max_number
-
-    def set_progress_bar(self, total: int) -> None:
-        self.pbar = tqdm(total=total, desc="Processing files")
-
-    def update_progress(self) -> None:
-        if self.pbar:
-            self.pbar.update(1)
-
-    def close_progress_bar(self) -> None:
-        if self.pbar:
-            self.pbar.close()
 
     def add_results(self, results: List[Dict[str, str]]) -> None:
         self.buffer.extend(results)
@@ -607,34 +632,30 @@ def generate_csv(
 
     print(f"Processing {len(all_files)} files...")
 
-    redis_params = {"host": redis_host, "port": redis_port, "db": redis_db}
     result_buffer = ResultBuffer(output_dir)
-    result_buffer.set_progress_bar(len(all_files))
 
-    with ProcessPool(max_workers=os.cpu_count(), max_tasks=1, context=multiprocessing.get_context('spawn')) as executor:
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        MofNCompleteColumn(),
+        TimeElapsedColumn(),
+        TimeRemainingColumn(),
+    ) as progress:
+        task = progress.add_task("Processing files", total=len(all_files))
+
         for filepath in all_files:
-            future = executor.schedule(
-                function=process_single_file,
-                args=(
-                    (
-                        filepath,
-                        input_dir,
-                        dir_split_number,
-                        items_per_file,
-                        redis_params,
-                    ),
-                ),
-            )
             try:
-                results = future.result()
+                results = process_single_file(
+                    filepath, input_dir, dir_split_number, items_per_file, redis_client
+                )
                 if results:
                     result_buffer.add_results(results)
             except Exception as e:
                 print(f"Error processing file {filepath}: {e}")
-            result_buffer.update_progress()
+            progress.update(task, advance=1)
 
     result_buffer.flush()
-    result_buffer.close_progress_bar()
     redis_client.delete("processed_omids")
     print("Processing complete. Redis cache cleared.")
 
