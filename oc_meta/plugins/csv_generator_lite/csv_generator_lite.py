@@ -21,7 +21,8 @@ import json
 import os
 import re
 from functools import lru_cache
-from typing import Dict, List, Optional
+from multiprocessing import Pool
+from typing import Dict, List, Optional, Tuple
 from zipfile import ZipFile
 
 import redis
@@ -89,6 +90,41 @@ URI_TYPE_DICT = {
     "http://purl.org/spar/fabio/WebContent": "web content",
 }
 
+_worker_redis: redis.Redis = None
+_worker_config: Tuple[str, int, int] = None
+
+
+def _init_worker(
+    redis_host: str, redis_port: int, redis_db: int, input_dir: str, dir_split_number: int, items_per_file: int
+) -> None:
+    global _worker_redis, _worker_config
+    _worker_redis = redis.Redis(host=redis_host, port=redis_port, db=redis_db, decode_responses=True)
+    _worker_config = (input_dir, dir_split_number, items_per_file)
+
+
+def _process_file_worker(filepath: str) -> Tuple[str, List[Dict[str, str]]]:
+    input_dir, dir_split_number, items_per_file = _worker_config
+    results = []
+    data = load_json_from_file(filepath)
+    for graph in data:
+        for entity in graph.get("@graph", []):
+            entity_types = entity.get("@type", [])
+            if (
+                "http://purl.org/spar/fabio/JournalVolume" in entity_types
+                or "http://purl.org/spar/fabio/JournalIssue" in entity_types
+            ):
+                continue
+            entity_id = entity.get("@id", "")
+            if entity_id:
+                omid = f"omid:br/{entity_id.split('/')[-1]}"
+                if _worker_redis.sismember("processed_omids", omid):
+                    continue
+            br_data = process_bibliographic_resource(entity, input_dir, dir_split_number, items_per_file)
+            if br_data:
+                results.append(br_data)
+    return (filepath, results)
+
+
 def init_redis_connection(
     host: str = "localhost", port: int = 6379, db: int = 2
 ) -> redis.Redis:
@@ -149,10 +185,6 @@ def load_processed_omids_to_redis(output_dir: str, redis_client: redis.Redis) ->
             progress.update(task, advance=1)
 
     return count
-
-
-def is_omid_processed(omid: str, redis_client: redis.Redis) -> bool:
-    return redis_client.sismember("processed_omids", omid)
 
 
 def load_checkpoint(checkpoint_file: str) -> set:
@@ -539,39 +571,6 @@ def process_bibliographic_resource(
     return output
 
 
-def process_single_file(
-    filepath: str,
-    input_dir: str,
-    dir_split_number: int,
-    items_per_file: int,
-    redis_client: redis.Redis,
-) -> List[Dict[str, str]]:
-    results = []
-    data = load_json_from_file(filepath)
-    for graph in data:
-        for entity in graph.get("@graph", []):
-            entity_types = entity.get("@type", [])
-            if (
-                "http://purl.org/spar/fabio/JournalVolume" in entity_types
-                or "http://purl.org/spar/fabio/JournalIssue" in entity_types
-            ):
-                continue
-
-            entity_id = entity.get("@id", "")
-            if entity_id:
-                omid = f"omid:br/{entity_id.split('/')[-1]}"
-                if is_omid_processed(omid, redis_client):
-                    continue
-
-            br_data = process_bibliographic_resource(
-                entity, input_dir, dir_split_number, items_per_file
-            )
-            if br_data:
-                results.append(br_data)
-
-    return results
-
-
 class ResultBuffer:
     def __init__(self, output_dir: str, max_rows: int = 3000):
         self.buffer = []
@@ -623,6 +622,7 @@ def generate_csv(
     redis_host: str = "localhost",
     redis_port: int = 6379,
     redis_db: int = 2,
+    workers: int = 4,
 ) -> None:
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -652,31 +652,30 @@ def generate_csv(
         return
 
     print(f"Skipping {len(processed_br_files)} already processed files")
-    print(f"Processing {len(files_to_process)} remaining files...")
+    print(f"Processing {len(files_to_process)} remaining files with {workers} workers...")
 
     result_buffer = ResultBuffer(output_dir)
 
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        BarColumn(),
-        MofNCompleteColumn(),
-        TimeElapsedColumn(),
-        TimeRemainingColumn(),
-    ) as progress:
-        task = progress.add_task("Processing files", total=len(files_to_process))
+    with Pool(
+        workers,
+        _init_worker,
+        (redis_host, redis_port, redis_db, input_dir, dir_split_number, items_per_file),
+    ) as pool:
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            MofNCompleteColumn(),
+            TimeElapsedColumn(),
+            TimeRemainingColumn(),
+        ) as progress:
+            task = progress.add_task("Processing files", total=len(files_to_process))
 
-        for filepath in files_to_process:
-            try:
-                results = process_single_file(
-                    filepath, input_dir, dir_split_number, items_per_file, redis_client
-                )
+            for filepath, results in pool.imap_unordered(_process_file_worker, files_to_process):
                 if results:
                     result_buffer.add_results(results)
                 mark_file_processed(checkpoint_file, filepath)
-            except Exception as e:
-                print(f"Error processing file {filepath}: {e}")
-            progress.update(task, advance=1)
+                progress.update(task, advance=1)
 
     result_buffer.flush()
     print("Processing complete.")

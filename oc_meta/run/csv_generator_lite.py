@@ -35,6 +35,8 @@ if __name__ == '__main__':
                        help='Redis port (default: 6379)')
     parser.add_argument('--redis-db', type=int, default=2,
                        help='Redis database number (default: 2)')
+    parser.add_argument('--workers', type=int, default=4,
+                       help='Number of parallel workers (default: 4)')
     parser.add_argument('--clean', action='store_true',
                        help='Clear checkpoint file and Redis cache before starting')
     args = parser.parse_args()
@@ -65,5 +67,6 @@ if __name__ == '__main__':
         items_per_file=items_per_file,
         redis_host=args.redis_host,
         redis_port=args.redis_port,
-        redis_db=args.redis_db
+        redis_db=args.redis_db,
+        workers=args.workers,
     ) 
