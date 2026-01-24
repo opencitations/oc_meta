@@ -16,7 +16,10 @@ examples_cache.sqlite-journal
 temp*/
 zip_tasks.tmp
 figshare.yaml
+figshare.prov.yaml
 zenodo.yaml
+zenodo.csv.yaml
+zenodo.rdf.yaml
 zenodo.data.yaml
 zenodo.prov.yaml
 internet_archive.yaml

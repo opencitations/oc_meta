@@ -17,21 +17,29 @@ from __future__ import annotations
 
 import os
 import re
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from datetime import datetime
 from functools import cmp_to_key
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from dateutil.parser import parse
-from tqdm import tqdm
+from rich.progress import BarColumn, Progress, TaskProgressColumn, TextColumn, TimeRemainingColumn
 
 from oc_meta.lib.file_manager import get_csv_data, write_csv
 from oc_meta.lib.master_of_regex import name_and_ids
 
 
+def _process_csv_file(args: tuple) -> Any:
+    filepath, method_name = args
+    csv_data = get_csv_data(filepath)
+    method = getattr(OCMetaCounter, method_name)
+    return method(csv_data)
+
+
 class OCMetaAnalyser:
     def __init__(self, csv_dump_path: str):
         self.csv_dump_path = csv_dump_path
-    
+
     def merge_rows_by_id(self, output_dir: str) -> None:
         ids_by_csv = dict()
         for filename in os.listdir(self.csv_dump_path):
@@ -57,11 +65,11 @@ class OCMetaAnalyser:
             old_data = get_csv_data(os.path.join(self.csv_dump_path, filename))
             new_data = [row for i, row in enumerate(old_data) if i not in rows]
             write_csv(
-                path=os.path.join(output_dir, filename), 
-                datalist=new_data, 
-                fieldnames=['id', 'title', 'pub_date', 'page', 'type', 'author', 'editor', 'publisher', 'volume', 'venue', 'issue'], 
+                path=os.path.join(output_dir, filename),
+                datalist=new_data,
+                fieldnames=['id', 'title', 'pub_date', 'page', 'type', 'author', 'editor', 'publisher', 'volume', 'venue', 'issue'],
                 method='w')
-            
+
     @staticmethod
     def sort_csv_filenames(file_1, file_2) -> str:
         file_1_date = datetime.strptime(file_1.split('_')[1].replace('.csv', ''), '%Y-%m-%dT%H-%M-%S')
@@ -77,48 +85,60 @@ class OCMetaAnalyser:
                 return -1
 
     def explore_csv_dump(self, analyser: callable) -> None|int|dict:
-        global_output = None
+        method_name = analyser.__name__
         filenames = sorted(os.listdir(self.csv_dump_path))
-        pbar = tqdm(total=len(filenames))
-        for i, filename in enumerate(filenames):
-            csv_data = get_csv_data(os.path.join(self.csv_dump_path, filename))
-            local_output = analyser(csv_data)
-            if i == 0:
-                if isinstance(local_output, int):
-                    global_output = 0
-                elif isinstance(local_output, dict):
-                    global_output = dict()
-                elif isinstance(local_output, set):
-                    global_output = set()
-            if isinstance(local_output, int):
-                global_output += local_output
-            elif isinstance(local_output, dict):
-                for k,v in local_output.items():
+        filepaths = [(os.path.join(self.csv_dump_path, f), method_name) for f in filenames]
+
+        results = []
+        with Progress(
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            TimeRemainingColumn(),
+        ) as progress:
+            task = progress.add_task("Processing CSV files...", total=len(filepaths))
+
+            with ProcessPoolExecutor() as executor:
+                futures = {executor.submit(_process_csv_file, args): args for args in filepaths}
+                for future in as_completed(futures):
+                    results.append(future.result())
+                    progress.update(task, advance=1)
+
+        return self._merge_results(results)
+
+    def _merge_results(self, results: List[Any]) -> None|str|dict:
+        if not results:
+            return None
+
+        first = results[0]
+        if isinstance(first, int):
+            return str(sum(results))
+        elif isinstance(first, set):
+            merged = set()
+            for r in results:
+                merged.update(r)
+            return str(len(merged))
+        elif isinstance(first, dict):
+            global_output = {}
+            for local_output in results:
+                for k, v in local_output.items():
                     if k in global_output:
-                        for i_k, _ in v.items():
+                        for i_k in v:
                             if i_k in global_output[k]:
                                 if isinstance(global_output[k][i_k], set):
                                     global_output[k][i_k].update(local_output[k][i_k])
                             else:
                                 global_output[k][i_k] = local_output[k][i_k]
                     else:
-                        global_output[k] = local_output[k]
-            elif isinstance(local_output, set):
-                global_output.update(local_output)      
-            pbar.update()
-        pbar.close()
-        if isinstance(global_output, int):
-            return str(global_output)
-        elif isinstance(global_output, dict):
+                        global_output[k] = v
             return global_output
-        elif isinstance(global_output, set):
-            return str(len(global_output))
-    
+        return None
+
 
 class OCMetaCounter(OCMetaAnalyser):
     def __init__(self, csv_dump_path: str):
         super(OCMetaCounter, self).__init__(csv_dump_path)
-    
+
     def get_top(self, what: str, by_what: str, number: int|None = None) -> dict:
         counter_func = getattr(self, f'count_{what}_by_{by_what}')
         all_data = self.explore_csv_dump(counter_func)
@@ -129,24 +149,27 @@ class OCMetaCounter(OCMetaAnalyser):
             tuple_k_v[1]['total'] = len(tuple_k_v[1][by_what])
         all_top_n = [(meta, {k: v for k, v in data.items() if not isinstance(v, set)}) for meta, data in all_top_n]
         return sorted(all_top_n, key=lambda x: top_n.index(x[0]))
-    
+
     def count(self, what: str) -> int:
         counter_func = getattr(self, f'count_{what}')
         return self.explore_csv_dump(counter_func)
 
-    def count_authors(self, csv_data: List[dict]) -> int:
+    @staticmethod
+    def count_authors(csv_data: List[dict]) -> int:
         count = 0
         for row in csv_data:
             count += len(list(filter(None, row['author'].split('; '))))
         return count
 
-    def count_editors(self, csv_data: List[dict]) -> int:
+    @staticmethod
+    def count_editors(csv_data: List[dict]) -> int:
         count = 0
         for row in csv_data:
             count += len(list(filter(None, row['editor'].split('; '))))
         return count
 
-    def count_publishers(self, csv_data: List[dict]) -> set:
+    @staticmethod
+    def count_publishers(csv_data: List[dict]) -> set:
         publishers = set()
         for row in csv_data:
             if row['publisher']:
@@ -156,7 +179,8 @@ class OCMetaCounter(OCMetaAnalyser):
                     publishers.add(pub_name)
         return publishers
 
-    def count_venues(self, csv_data: List[dict]) -> set:
+    @staticmethod
+    def count_venues(csv_data: List[dict]) -> set:
         venues = set()
         for row in csv_data:
             if row['venue']:
@@ -169,8 +193,9 @@ class OCMetaCounter(OCMetaAnalyser):
                 else:
                     venues.add(venue_metaid)
         return venues
-    
-    def count_publishers_by_venue(self, csv_data: List[dict]) -> Dict[str, Dict[str, set|str]]:
+
+    @staticmethod
+    def count_publishers_by_venue(csv_data: List[dict]) -> Dict[str, Dict[str, set|str]]:
         publishers_by_venue = dict()
         for row in csv_data:
             publisher_name_and_ids = re.search(name_and_ids, row['publisher'])
@@ -185,7 +210,8 @@ class OCMetaCounter(OCMetaAnalyser):
                 publishers_by_venue[publisher_name]['venue'].add(venue_key)
                 return publishers_by_venue
 
-    def count_publishers_by_publication(self, csv_data: List[dict]) -> Dict[str, Dict[str, set|str]]:
+    @staticmethod
+    def count_publishers_by_publication(csv_data: List[dict]) -> Dict[str, Dict[str, set|str]]:
         publishers_by_publication = dict()
         for row in csv_data:
             publishers_name_and_ids = re.search(name_and_ids, row['publisher'])
@@ -196,7 +222,8 @@ class OCMetaCounter(OCMetaAnalyser):
                 publishers_by_publication[publishers_name.lower()]['publication'].add(row_metaid)
         return publishers_by_publication
 
-    def count_venues_by_publication(self, csv_data: List[dict]) -> Dict[str, Dict[str, set|str]]:
+    @staticmethod
+    def count_venues_by_publication(csv_data: List[dict]) -> Dict[str, Dict[str, set|str]]:
         venues_by_publication = dict()
         for row in csv_data:
             venue_name_and_ids = re.search(name_and_ids, row['venue'])
@@ -210,7 +237,8 @@ class OCMetaCounter(OCMetaAnalyser):
                 venues_by_publication[venue_key]['publication'].add(row_metaid)
         return venues_by_publication
 
-    def count_years_by_publication(self, csv_data: List[dict]) -> Dict[str, Dict[str, set]]:
+    @staticmethod
+    def count_years_by_publication(csv_data: List[dict]) -> Dict[str, Dict[str, set]]:
         years_by_publication = dict()
         for row in csv_data:
             pub_date = row['pub_date']
@@ -221,7 +249,8 @@ class OCMetaCounter(OCMetaAnalyser):
                 years_by_publication[year]['publication'].add(row_metaid)
         return years_by_publication
 
-    def count_types_by_publication(self, csv_data: List[dict]) -> Dict[str, Dict[str, set|str]]:
+    @staticmethod
+    def count_types_by_publication(csv_data: List[dict]) -> Dict[str, Dict[str, set|str]]:
         types_by_publication = dict()
         for row in csv_data:
             br_type = row['type']
@@ -233,7 +262,7 @@ class OCMetaCounter(OCMetaAnalyser):
                 if venue_name_and_ids:
                     venue_name = venue_name_and_ids.group(1)
                     venue_ids = set(venue_name_and_ids.group(2).split())
-                    venue_type = self.get_venue_type(br_type, venue_ids)
+                    venue_type = OCMetaCounter.get_venue_type(br_type, venue_ids)
                     venue_metaid = [identifier for identifier in venue_ids if identifier.split(':', maxsplit=1)[0] == 'omid'][0]
                     if venue_type:
                         if not venue_ids.difference({venue_metaid}):
@@ -244,8 +273,8 @@ class OCMetaCounter(OCMetaAnalyser):
                         types_by_publication[venue_type]['publication'].add(venue_key)
         return types_by_publication
 
-    @classmethod
-    def get_venue_type(cls, br_type:str, venue_ids:list) -> str:
+    @staticmethod
+    def get_venue_type(br_type: str, venue_ids: list) -> str:
         schemas = {venue_id.split(':', maxsplit=1)[0] for venue_id in venue_ids}
         if br_type in {'journal article', 'journal volume', 'journal issue'}:
             venue_type = 'journal'
@@ -263,12 +292,10 @@ class OCMetaCounter(OCMetaAnalyser):
             venue_type = 'report series'
         elif not br_type or br_type in {'dataset', 'data file', 'journal'}:
             venue_type = ''
-        # Check the type based on the identifier scheme
         if any(identifier for identifier in venue_ids if not identifier.startswith('omid:')):
             try:
                 if venue_type in {'journal', 'book series', 'series', 'report series'}:
                     if 'isbn' in schemas or 'issn' not in schemas:
-                        # It is undecidable
                         venue_type = ''
                 elif venue_type in {'book', 'proceedings'}:
                     if 'issn' in schemas or 'isbn' not in schemas:
