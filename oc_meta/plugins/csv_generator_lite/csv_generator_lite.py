@@ -133,6 +133,10 @@ def init_redis_connection(
     return client
 
 
+def is_omid_processed(omid: str, redis_client: redis.Redis) -> bool:
+    return redis_client.sismember("processed_omids", omid)
+
+
 def load_processed_omids_to_redis(output_dir: str, redis_client: redis.Redis) -> int:
     existing_count = redis_client.scard("processed_omids")
     if existing_count > 0:
@@ -627,7 +631,7 @@ def generate_csv(
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    checkpoint_file = "processed_br_files.txt"
+    checkpoint_file = os.path.join(output_dir, "processed_br_files.txt")
     processed_br_files = load_checkpoint(checkpoint_file)
 
     redis_client = init_redis_connection(redis_host, redis_port, redis_db)

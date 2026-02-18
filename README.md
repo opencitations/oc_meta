@@ -49,16 +49,16 @@ To run the preprocessing script:
 
 ```console
 # Basic usage: only deduplicate and split files (no storage checking)
-poetry run python -m oc_meta.run.meta.preprocess_input <INPUT_DIR> <OUTPUT_DIR>
+uv run python -m oc_meta.run.meta.preprocess_input <INPUT_DIR> <OUTPUT_DIR>
 
 # With Redis storage checking
-poetry run python -m oc_meta.run.meta.preprocess_input <INPUT_DIR> <OUTPUT_DIR> --storage-type redis
+uv run python -m oc_meta.run.meta.preprocess_input <INPUT_DIR> <OUTPUT_DIR> --storage-type redis
 
 # With SPARQL storage checking
-poetry run python -m oc_meta.run.meta.preprocess_input <INPUT_DIR> <OUTPUT_DIR> --storage-type sparql --sparql-endpoint <SPARQL_ENDPOINT_URL>
+uv run python -m oc_meta.run.meta.preprocess_input <INPUT_DIR> <OUTPUT_DIR> --storage-type sparql --sparql-endpoint <SPARQL_ENDPOINT_URL>
 
 # Custom file size and Redis settings
-poetry run python -m oc_meta.run.meta.preprocess_input <INPUT_DIR> <OUTPUT_DIR> \
+uv run python -m oc_meta.run.meta.preprocess_input <INPUT_DIR> <OUTPUT_DIR> \
   --rows-per-file 5000 \
   --storage-type redis \
   --redis-host 192.168.1.100 \
@@ -87,7 +87,7 @@ The script will generate a detailed report showing:
 The main Meta processing is executed through the [`meta_process.py`](https://github.com/opencitations/oc_meta/blob/master/oc_meta/run/meta_process.py) file, which orchestrates the entire data processing workflow:
 
 ```console
-poetry run python -m oc_meta.run.meta_process -c <CONFIG_PATH>
+uv run python -m oc_meta.run.meta_process -c <CONFIG_PATH>
 ```
 
 Parameters:
@@ -169,7 +169,7 @@ After processing your data with the Meta workflow, you can verify that all ident
 #### Running the verification script
 
 ```console
-poetry run python -m oc_meta.run.meta.check_results <CONFIG_PATH> [--output <OUTPUT_FILE>]
+uv run python -m oc_meta.run.meta.check_results <CONFIG_PATH> [--output <OUTPUT_FILE>]
 ```
 
 Parameters:
@@ -205,7 +205,7 @@ Occasionally, the automatic upload process during Meta execution might fail due 
 #### Running the manual upload script
 
 ```console
-poetry run python -m oc_meta.run.upload.on_triplestore <ENDPOINT_URL> <SPARQL_FOLDER> [OPTIONS]
+uv run python -m oc_meta.run.upload.on_triplestore <ENDPOINT_URL> <SPARQL_FOLDER> [OPTIONS]
 ```
 
 Parameters:
@@ -302,7 +302,7 @@ To gather statistics on the dataset, you can use the provided analysis tools.
 For most statistics, such as counting bibliographic resources (`--br`) or agent roles (`--ar`), the `sparql_analyser.py` script is the recommended tool. It queries the SPARQL endpoint directly.
 
 ```console
-poetry run python -m oc_meta.run.analyser.sparql_analyser <SPARQL_ENDPOINT_URL> --br --ar
+uv run python -m oc_meta.run.analyser.sparql_analyser <SPARQL_ENDPOINT_URL> --br --ar
 ```
 
 ### Venue statistics (CSV)
@@ -314,7 +314,7 @@ For reliable venue statistics, use the `meta_analyser.py` script to process the 
 To count the disambiguated venues, run the following command:
 
 ```console
-poetry run python -m oc_meta.run.analyser.meta_analyser -c <PATH_TO_CSV_DUMP> -w venues
+uv run python -m oc_meta.run.analyser.meta_analyser -c <PATH_TO_CSV_DUMP> -w venues
 ```
 The script will save the result in a file named `venues_count.txt`.
 
@@ -329,7 +329,7 @@ The [`duplicated_ids_from_files.py`](https://github.com/opencitations/oc_meta/bl
 #### Running the script
 
 ```console
-poetry run python -m oc_meta.run.find.duplicated_ids_from_files <FOLDER_PATH> <CSV_PATH> [OPTIONS]
+uv run python -m oc_meta.run.find.duplicated_ids_from_files <FOLDER_PATH> <CSV_PATH> [OPTIONS]
 ```
 
 Parameters:
@@ -365,7 +365,7 @@ While `oc_ocdm` Storer uses FileLock for safety, this grouping reduces lock cont
 #### Running the grouping script
 
 ```console
-poetry run python -m oc_meta.run.merge.group_entities <CSV_FILE> <OUTPUT_DIR> <META_CONFIG> [--min_group_size SIZE]
+uv run python -m oc_meta.run.merge.group_entities <CSV_FILE> <OUTPUT_DIR> <META_CONFIG> [--min_group_size SIZE]
 ```
 
 Parameters:
@@ -381,7 +381,7 @@ Once you have identified duplicates (and optionally grouped them), you can merge
 #### Running the merge script
 
 ```console
-poetry run python -m oc_meta.run.merge.entities <CSV_FOLDER> <META_CONFIG> <RESP_AGENT> [OPTIONS]
+uv run python -m oc_meta.run.merge.entities <CSV_FOLDER> <META_CONFIG> <RESP_AGENT> [OPTIONS]
 ```
 
 Parameters:
@@ -400,10 +400,10 @@ The test suite is automatically executed via GitHub Actions upon pushes and pull
 
 To run the test suite locally, follow these steps:
 
-1. **Install dependencies:** 
-   Ensure you have [Poetry](https://python-poetry.org/) and [Docker](https://www.docker.com/) installed. Then, install project dependencies:
+1. **Install dependencies:**
+   Ensure you have [uv](https://docs.astral.sh/uv/) and [Docker](https://www.docker.com/) installed. Then, install project dependencies:
    ```console
-   poetry install
+   uv sync
    ```
 
 2. **Start services:**
@@ -419,15 +419,15 @@ To run the test suite locally, follow these steps:
 3. **Execute tests:**
    Run the tests using the following command, which also generates a coverage report:
    ```console
-   poetry run coverage run --rcfile=test/coverage/.coveragerc
+   uv run coverage run --rcfile=test/coverage/.coveragerc
    ```
    To view the coverage report in the console:
    ```console
-   poetry run coverage report
+   uv run coverage report
    ```
    To generate an HTML coverage report (saved in the `htmlcov/` directory):
    ```console
-   poetry run coverage html -d htmlcov
+   uv run coverage html -d htmlcov
    ```
 
 4. **Stop services:**

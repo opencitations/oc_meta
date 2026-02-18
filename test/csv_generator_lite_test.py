@@ -134,6 +134,10 @@ class TestCSVGeneratorLite(unittest.TestCase):
 
         self.assertFalse(is_omid_processed("omid:br/0601", self.redis_client))
 
+        checkpoint_file = os.path.join(self.output_dir, "processed_br_files.txt")
+        if os.path.exists(checkpoint_file):
+            os.remove(checkpoint_file)
+
         # Create new test data
         test_data_2 = [
             {
@@ -198,7 +202,9 @@ class TestCSVGeneratorLite(unittest.TestCase):
         self.assertEqual(second_run_entry["title"], "Should Be Processed")
         self.assertEqual(second_run_entry["id"], "omid:br/0602")
 
-        self.assertFalse(is_omid_processed("omid:br/0601", self.redis_client))
+        # After second run, br/0601 IS in Redis (loaded from first run's CSV)
+        self.assertTrue(is_omid_processed("omid:br/0601", self.redis_client))
+        # br/0602 is NOT in Redis (only loaded from CSV, not added during processing)
         self.assertFalse(is_omid_processed("omid:br/0602", self.redis_client))
 
     def test_redis_cache_cleanup(self):
@@ -353,7 +359,7 @@ class TestCSVGeneratorLite(unittest.TestCase):
             redis_db=5,
         )
 
-        output_files = os.listdir(self.output_dir)
+        output_files = [f for f in os.listdir(self.output_dir) if f.endswith(".csv")]
         self.assertEqual(len(output_files), 1)
 
         output_data = get_csv_data(os.path.join(self.output_dir, output_files[0]))
@@ -1603,7 +1609,7 @@ class TestCSVGeneratorLite(unittest.TestCase):
             redis_db=5,
         )
 
-        output_files = sorted(os.listdir(self.output_dir))
+        output_files = sorted(f for f in os.listdir(self.output_dir) if f.endswith(".csv"))
         self.assertGreater(len(output_files), 0)
 
         # Collect all output data
@@ -1700,7 +1706,7 @@ class TestCSVGeneratorLite(unittest.TestCase):
             redis_db=5,
         )
 
-        output_files = sorted(os.listdir(self.output_dir))
+        output_files = sorted(f for f in os.listdir(self.output_dir) if f.endswith(".csv"))
 
         # We expect at least 2 files: 3500 entries should create 2 files (3000 + 500)
         self.assertGreaterEqual(

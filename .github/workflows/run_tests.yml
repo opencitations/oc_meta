@@ -42,23 +42,21 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+      - name: Install UV
+        uses: astral-sh/setup-uv@v7
         with:
+          enable-cache: true
           python-version: ${{ matrix.python-version }}
 
-      - name: Setup Poetry
-        uses: snok/install-poetry@v1
-        with:
-          virtualenvs-create: true
-          virtualenvs-in-project: true
+      - name: Install Python
+        run: uv python install
 
       - name: Install project dependencies
         run: |
-          poetry install
+          uv sync --locked --all-extras --dev
           chmod +x ./test/start-test-databases.sh
           chmod +x ./test/stop-test-databases.sh
-      
+
       - name: Install system dependencies
         run: |
           sudo apt-get update && sudo apt-get install -y libncurses6
@@ -71,10 +69,10 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          poetry run coverage run --rcfile=test/coverage/.coveragerc
+          uv run coverage run --rcfile=test/coverage/.coveragerc
           echo "=== Coverage Report ==="
-          poetry run coverage report
-          echo "COVERAGE=$(poetry run coverage report | grep TOTAL | awk '{print $4}')" >> $GITHUB_ENV
+          uv run coverage report
+          echo "COVERAGE=$(uv run coverage report | grep TOTAL | awk '{print $4}')" >> $GITHUB_ENV
 
       - name: Stop test databases
         if: always()
@@ -82,7 +80,7 @@ jobs:
 
       - name: Generate HTML coverage report
         run: |
-          poetry run coverage html -d htmlcov
+          uv run coverage html -d htmlcov
 
       - name: Upload coverage report artifact (for master branch)
         if: github.ref == 'refs/heads/master' && matrix.python-version == '3.10'
@@ -102,7 +100,7 @@ jobs:
         if: matrix.python-version == '3.10'
         run: |
           COVERAGE_NUM=$(echo ${{ env.COVERAGE }} | sed 's/%//')
-          
+
           if (( $(echo "$COVERAGE_NUM >= 90" | bc -l) )); then
             COLOR="green"
           elif (( $(echo "$COVERAGE_NUM >= 75" | bc -l) )); then
@@ -128,7 +126,7 @@ jobs:
 
   DeployPages:
     needs: CheckCoverage
-    if: github.ref == 'refs/heads/master' 
+    if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     environment:
       name: ${{ github.repository }}/pages

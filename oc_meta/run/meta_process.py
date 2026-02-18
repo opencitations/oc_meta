@@ -168,8 +168,6 @@ class MetaProcess:
                 fuseki_full_text_search=settings["fuseki_full_text_search"],
                 virtuoso_full_text_search=settings["virtuoso_full_text_search"],
                 graphdb_connector_name=settings["graphdb_connector_name"],
-                cache_endpoint=settings["cache_endpoint"],
-                cache_update_endpoint=settings["cache_update_endpoint"],
             )
 
         # Redis settings
