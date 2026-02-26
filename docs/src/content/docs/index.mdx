@@ -1,0 +1,71 @@
+---
+title: OpenCitations Meta
+description: Process bibliographic metadata for the OpenCitations infrastructure
+template: splash
+hero:
+  title: OpenCitations Meta
+  tagline: Process bibliographic metadata and generate RDF compliant with the OpenCitations Data Model
+  actions:
+    - text: Get started
+      link: /oc_meta/guides/getting_started/
+      icon: right-arrow
+      variant: primary
+    - text: View on GitHub
+      link: https://github.com/opencitations/oc_meta
+      icon: external
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## What it does
+
+<CardGrid stagger>
+	<Card title="Data curation" icon="pencil">
+		Validates, normalizes, and cleans bibliographic metadata from CSV files. Handles duplicate detection and identifier validation.
+	</Card>
+	<Card title="RDF generation" icon="document">
+		Converts curated data into RDF following the [OpenCitations Data Model](http://opencitations.net/model). Creates bibliographic resources, responsible agents, and identifiers with their relationships.
+	</Card>
+	<Card title="Provenance tracking" icon="list-format">
+		Every modification generates provenance snapshots. Tracks creation time, modification history, responsible agents, and primary sources.
+	</Card>
+	<Card title="Entity merging" icon="puzzle">
+		Identifies and merges duplicate entities across the dataset. Uses Union-Find algorithm for efficient grouping and parallel processing.
+	</Card>
+</CardGrid>
+
+## Quick example
+
+Install:
+
+```bash
+pip install oc_meta
+```
+
+Run the main processing pipeline:
+
+```bash
+uv run python -m oc_meta.run.meta_process -c meta_config.yaml
+```
+
+The pipeline reads CSV files with bibliographic metadata, curates the data, generates RDF, and uploads to a triplestore.
+
+## Input format
+
+Meta expects CSV files with these columns:
+
+| Column | Description |
+|--------|-------------|
+| `id` | Space-separated identifiers (`doi:10.1162/qss_a_00292 pmid:38034492`) |
+| `title` | Title of the work |
+| `author` | Semicolon-separated names with optional identifiers (`Peroni, Silvio [orcid:0000-0003-0530-4305]; Shotton, David`) |
+| `pub_date` | ISO 8601 date (`2024-01-22`, `2024-01`, or `2024`) |
+| `venue` | Container title with optional identifier (`Quantitative Science Studies [issn:2641-3337]`) |
+| `volume` | Volume number |
+| `issue` | Issue number |
+| `page` | Page range (`50-75`) |
+| `type` | Resource type (`journal article`, `book chapter`, `proceedings article`, etc.) |
+| `publisher` | Publisher name with optional identifier (`MIT Press [crossref:281]`) |
+| `editor` | Same format as `author` |
+
+See the [CSV format reference](/oc_meta/reference/csv_format/) for the complete list of supported identifiers, resource types, and validation rules.

@@ -23,7 +23,7 @@ import shutil
 import unittest
 from csv import DictReader, DictWriter
 
-from oc_meta.plugins.orcid.index_orcid_doi import Index_orcid_doi
+from oc_meta.run.orcid_process import Index_orcid_doi
 
 CSV_PATH = os.path.join('test', 'index_orcid_doi', 'output')
 SUMMARIES_PATH = os.path.join('test', 'index_orcid_doi', 'orcid')

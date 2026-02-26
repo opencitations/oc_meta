@@ -6,7 +6,7 @@ import os
 import traceback
 from typing import Dict, List, Set
 
-from oc_meta.plugins.editor import MetaEditor
+from oc_meta.core.editor import MetaEditor
 from oc_ocdm.graph import GraphSet
 from rdflib import URIRef
 from sparqlite import SPARQLClient

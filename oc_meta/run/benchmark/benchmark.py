@@ -186,7 +186,6 @@ class MetaBenchmark:
                 filename=filename,
                 cache_path=os.path.join(self.output_dir, "benchmark_cache.txt"),
                 errors_path=os.path.join(self.output_dir, "benchmark_errors.txt"),
-                resp_agents_only=False,
                 settings=self.config,
                 meta_config_path=self.config_path
             )

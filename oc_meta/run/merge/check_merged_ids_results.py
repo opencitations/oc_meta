@@ -7,7 +7,7 @@ from functools import partial
 from multiprocessing import Pool, cpu_count
 
 import yaml
-from oc_meta.plugins.editor import MetaEditor
+from oc_meta.core.editor import MetaEditor
 from rdflib import RDF, Dataset, Literal, Namespace, URIRef
 from sparqlite import SPARQLClient
 from tqdm import tqdm

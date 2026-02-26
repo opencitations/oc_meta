@@ -23,7 +23,7 @@ from test.test_utils import (PROV_SERVER, REDIS_CACHE_DB, REDIS_DB, REDIS_HOST,
                              reset_server)
 
 import yaml
-from oc_meta.plugins.editor import EntityCache, MetaEditor
+from oc_meta.core.editor import EntityCache, MetaEditor
 from oc_meta.run.meta_process import run_meta_process
 from oc_ocdm import Storer
 from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler

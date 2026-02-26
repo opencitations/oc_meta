@@ -7,7 +7,6 @@ from oc_meta.core.creator import Creator
 from oc_meta.core.curator import *
 from oc_meta.lib.file_manager import get_csv_data
 from oc_meta.lib.finder import ResourceFinder
-from oc_meta.plugins.multiprocess.resp_agents_curator import RespAgentsCurator
 from oc_ocdm import Storer
 from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
 from rdflib import Dataset, Graph
@@ -138,14 +137,11 @@ def prepare_to_test(data, name):
                     curator_obj.re_index, curator_obj.VolIss]
     return data_curated, testcase
 
-def prepareCurator(data:list, server:str=SERVER, resp_agents_only:bool=False) -> Curator:
+def prepareCurator(data:list, server:str=SERVER) -> Curator:
     settings = {'normalize_titles': True}
     reset_redis_counters()
     counter_handler = get_counter_handler()
-    if resp_agents_only:
-        curator = RespAgentsCurator(data, server, prov_config=PROV_CONFIG, counter_handler=counter_handler)
-    else:
-        curator = Curator(data, server, prov_config=PROV_CONFIG, counter_handler=counter_handler, settings=settings)
+    curator = Curator(data, server, prov_config=PROV_CONFIG, counter_handler=counter_handler, settings=settings)
     return curator
 
 
@@ -579,90 +575,6 @@ class test_Curator(unittest.TestCase):
             [{'id': 'doi:10.1001/2013.jamasurg.202 omid:br/2715', 'title': 'Image Of The Year For 2012', 'author': '', 'pub_date': '2012-12-01', 'venue': 'Archives Of Surgery [issn:0004-0010 omid:br/4480]', 'volume': '147', 'issue': '12', 'page': '1140-1140', 'type': 'journal article', 'publisher': 'American Medical Association (ama) [crossref:10 omid:ra/3309]', 'editor': ''}]
         )
         self.assertEqual((curator.preexisting_entities, curator.data), expected_output)
-        
-
-class test_RespAgentsCurator(unittest.TestCase):
-    def test_curator_publishers(self):
-        reset()
-        data = [
-            {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': 'American Medical Association (AMA) [crossref:10 crossref:9999]', 'editor': ''}, 
-            {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': 'Elsevier BV [crossref:78]', 'editor': ''}, 
-            {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': 'Wiley [crossref:311]', 'editor': ''}]
-        resp_agents_curator = prepareCurator(data=data, server=SERVER, resp_agents_only=True)
-        resp_agents_curator.curator(filename=None, path_csv=None)
-        output = (resp_agents_curator.data, resp_agents_curator.radict, resp_agents_curator.idra, resp_agents_curator.rameta)
-        expected_output = (
-            [
-                {'id': '', 'title': '', 'author': '', 'venue': '', 'editor': '', 'publisher': 'American Medical Association (ama) [crossref:10 crossref:9999 omid:ra/3309]', 'page': '', 'volume': '', 'issue': '', 'pub_date': '', 'type': ''}, 
-                {'id': '', 'title': '', 'author': '', 'venue': '', 'editor': '', 'publisher': 'Elsevier Bv [crossref:78 omid:ra/0601]', 'page': '', 'volume': '', 'issue': '', 'pub_date': '', 'type': ''}, 
-                {'id': '', 'title': '', 'author': '', 'venue': '', 'editor': '', 'publisher': 'Wiley [crossref:311 omid:ra/0602]', 'page': '', 'volume': '', 'issue': '', 'pub_date': '', 'type': ''}],
-            {
-                '3309': {'ids': ['crossref:10', 'crossref:9999', 'omid:ra/3309'], 'others': [], 'title': 'American Medical Association (ama)'}, 
-                'wannabe_0': {'ids': ['crossref:78', 'omid:ra/0601'], 'others': ['wannabe_0'], 'title': 'Elsevier Bv'}, 
-                'wannabe_1': {'ids': ['crossref:311', 'omid:ra/0602'], 'others': ['wannabe_1'], 'title': 'Wiley'}},
-            {'crossref:10': '4274', 'crossref:9999': '0601', 'crossref:78': '0602', 'crossref:311': '0603'},
-            {
-                '3309': {'ids': ['crossref:10', 'crossref:9999', 'omid:ra/3309'], 'others': [], 'title': 'American Medical Association (ama)'}, 
-                '0601': {'ids': ['crossref:78', 'omid:ra/0601'], 'others': ['wannabe_0'], 'title': 'Elsevier Bv'}, 
-                '0602': {'ids': ['crossref:311', 'omid:ra/0602'], 'others': ['wannabe_1'], 'title': 'Wiley'}}        
-        )
-        self.assertEqual(output, expected_output)
-
-    def test_curator(self):
-        reset()
-        data = [
-            {'id': '', 'title': '', 'author': 'Deckert, Ron J. [orcid:0000-0003-2100-6412]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''},
-            {'id': '', 'title': '', 'author': 'Ruso, Juan M. [orcid:0000-0001-5909-6754]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''},
-            {'id': '', 'title': '', 'author': 'Sarmiento, Félix [orcid:0000-0002-4487-6894]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}
-        ]
-        resp_agents_curator = prepareCurator(data=data, server=SERVER, resp_agents_only=True)
-        resp_agents_curator.curator(filename='resp_agents_curator_output', path_csv='test/testcases/testcase_data')
-        output = (resp_agents_curator.data, resp_agents_curator.radict, resp_agents_curator.idra, resp_agents_curator.rameta)
-        expected_output = (
-            [
-                {'id': '', 'title': '', 'author': 'Deckert, Ron J. [orcid:0000-0003-2100-6412 omid:ra/0601]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}, 
-                {'id': '', 'title': '', 'author': 'Ruso, Juan M. [orcid:0000-0001-5909-6754 omid:ra/0602]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}, 
-                {'id': '', 'title': '', 'author': 'Sarmiento, Félix [orcid:0000-0002-4487-6894 omid:ra/0603]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}],
-                {
-                    'wannabe_0': {'ids': ['orcid:0000-0003-2100-6412', 'omid:ra/0601'], 'others': ['wannabe_0'], 'title': 'Deckert, Ron J.'}, 
-                    'wannabe_1': {'ids': ['orcid:0000-0001-5909-6754', 'omid:ra/0602'], 'others': ['wannabe_1'], 'title': 'Ruso, Juan M.'}, 
-                    'wannabe_2': {'ids': ['orcid:0000-0002-4487-6894', 'omid:ra/0603'], 'others': ['wannabe_2'], 'title': 'Sarmiento, Félix'}},
-                {'orcid:0000-0003-2100-6412': '0601', 'orcid:0000-0001-5909-6754': '0602', 'orcid:0000-0002-4487-6894': '0603'},
-                {
-                    '0601': {'ids': ['orcid:0000-0003-2100-6412', 'omid:ra/0601'], 'others': ['wannabe_0'], 'title': 'Deckert, Ron J.'}, 
-                    '0602': {'ids': ['orcid:0000-0001-5909-6754', 'omid:ra/0602'], 'others': ['wannabe_1'], 'title': 'Ruso, Juan M.'}, 
-                    '0603': {'ids': ['orcid:0000-0002-4487-6894', 'omid:ra/0603'], 'others': ['wannabe_2'], 'title': 'Sarmiento, Félix'}}
-        )
-        self.assertEqual(output, expected_output)
-
-    def test_curator_ra_on_ts(self):
-        # A responsible agent is already on the triplestore
-        add_data_ts(server=SERVER, data_path=os.path.abspath(os.path.join('test', 'testcases', 'ts', 'real_data.nt')).replace('\\', '/'))
-        self.maxDiff = None
-        data = [
-            {'id': '', 'title': '', 'author': 'Deckert, Ron J. [orcid:0000-0003-2100-6412]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''},
-            {'id': '', 'title': '', 'author': 'Mehrotra, Ateev [orcid:0000-0003-2223-1582]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''},
-            {'id': '', 'title': '', 'author': 'Sarmiento, Félix [orcid:0000-0002-4487-6894]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}
-        ]
-        resp_agents_curator = prepareCurator(data=data, server=SERVER, resp_agents_only=True)
-        resp_agents_curator.curator()
-        output = (resp_agents_curator.data, resp_agents_curator.radict, resp_agents_curator.idra, resp_agents_curator.rameta)
-        expected_output = (
-            [
-                {'id': '', 'title': '', 'author': 'Deckert, Ron J. [orcid:0000-0003-2100-6412 omid:ra/0601]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}, 
-                {'id': '', 'title': '', 'author': 'Mehrotra, Ateev [orcid:0000-0003-2223-1582 omid:ra/3976]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}, 
-                {'id': '', 'title': '', 'author': 'Sarmiento, Félix [orcid:0000-0002-4487-6894 omid:ra/0602]', 'pub_date': '', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}],
-                {
-                    'wannabe_0': {'ids': ['orcid:0000-0003-2100-6412', 'omid:ra/0601'], 'others': ['wannabe_0'], 'title': 'Deckert, Ron J.'}, 
-                    '3976': {'ids': ['orcid:0000-0003-2223-1582', 'omid:ra/3976'], 'others': [], 'title': 'Mehrotra, Ateev'}, 
-                    'wannabe_1': {'ids': ['orcid:0000-0002-4487-6894', 'omid:ra/0602'], 'others': ['wannabe_1'], 'title': 'Sarmiento, Félix'}},
-                {'orcid:0000-0003-2100-6412': '0601', 'orcid:0000-0003-2223-1582': '4351', 'orcid:0000-0002-4487-6894': '0602'},
-                {
-                    '0601': {'ids': ['orcid:0000-0003-2100-6412', 'omid:ra/0601'], 'others': ['wannabe_0'], 'title': 'Deckert, Ron J.'}, 
-                    '3976': {'ids': ['orcid:0000-0003-2223-1582', 'omid:ra/3976'], 'others': [], 'title': 'Mehrotra, Ateev'}, 
-                    '0602': {'ids': ['orcid:0000-0002-4487-6894', 'omid:ra/0602'], 'others': ['wannabe_1'], 'title': 'Sarmiento, Félix'}}
-        )
-        self.assertEqual(output, expected_output)
 
 
 class test_id_worker(unittest.TestCase):

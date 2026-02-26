@@ -38,8 +38,6 @@ from oc_meta.core.curator import Curator
 from oc_meta.lib.file_manager import (get_csv_data, init_cache, normalize_path,
                                       pathoo, sort_files)
 from oc_meta.lib.timer import ProcessTimer
-from oc_meta.plugins.multiprocess.resp_agents_creator import RespAgentsCreator
-from oc_meta.plugins.multiprocess.resp_agents_curator import RespAgentsCurator
 from oc_meta.run.benchmark.plotting import plot_incremental_progress
 from piccione.upload.on_triplestore import upload_sparql_updates
 from oc_ocdm import Storer
@@ -209,7 +207,6 @@ class MetaProcess:
         filename: str,
         cache_path: str,
         errors_path: str,
-        resp_agents_only: bool = False,
         settings: str | None = None,
         meta_config_path: str = None,
     ) -> Tuple[dict, str, str, str]:
@@ -221,32 +218,19 @@ class MetaProcess:
                 self.timer.record_metric("input_records", len(data))
 
                 self.info_dir = os.path.join(self.info_dir, self.supplier_prefix)
-                if resp_agents_only:
-                    curator_obj = RespAgentsCurator(
-                        data=data,
-                        ts=self.triplestore_url,
-                        prov_config=self.time_agnostic_library_config,
-                        counter_handler=self.counter_handler,
-                        base_iri=self.base_iri,
-                        prefix=self.supplier_prefix,
-                        settings=settings,
-                        meta_config_path=meta_config_path,
-                        timer=self.timer,
-                    )
-                else:
-                    curator_obj = Curator(
-                        data=data,
-                        ts=self.triplestore_url,
-                        prov_config=self.time_agnostic_library_config,
-                        counter_handler=self.counter_handler,
-                        base_iri=self.base_iri,
-                        prefix=self.supplier_prefix,
-                        valid_dois_cache=self.valid_dois_cache,
-                        settings=settings,
-                        silencer=self.silencer,
-                        meta_config_path=meta_config_path,
-                        timer=self.timer,
-                    )
+                curator_obj = Curator(
+                    data=data,
+                    ts=self.triplestore_url,
+                    prov_config=self.time_agnostic_library_config,
+                    counter_handler=self.counter_handler,
+                    base_iri=self.base_iri,
+                    prefix=self.supplier_prefix,
+                    valid_dois_cache=self.valid_dois_cache,
+                    settings=settings,
+                    silencer=self.silencer,
+                    meta_config_path=meta_config_path,
+                    timer=self.timer,
+                )
                 name = f"{filename.replace('.csv', '')}_{datetime.now().strftime('%Y-%m-%dT%H-%M-%S')}"
                 curator_obj.curator(
                     filename=name, path_csv=self.output_csv_dir
@@ -254,42 +238,26 @@ class MetaProcess:
                 self.timer.record_metric("curated_records", len(curator_obj.data))
 
                 with self.timer.timer("rdf_creation"):
-                    if not resp_agents_only:
-                        local_g_size = len(curator_obj.everything_everywhere_allatonce)
-                        self.timer.record_metric("local_g_triples", local_g_size)
-                        preexisting_count = len(curator_obj.preexisting_entities)
-                        self.timer.record_metric("preexisting_entities_count", preexisting_count)
+                    local_g_size = len(curator_obj.everything_everywhere_allatonce)
+                    self.timer.record_metric("local_g_triples", local_g_size)
+                    preexisting_count = len(curator_obj.preexisting_entities)
+                    self.timer.record_metric("preexisting_entities_count", preexisting_count)
 
                     with self.timer.timer("creator_execution"):
-                        if resp_agents_only:
-                            creator_obj = RespAgentsCreator(
-                                data=curator_obj.data,
-                                endpoint=self.triplestore_url,
-                                base_iri=self.base_iri,
-                                counter_handler=self.counter_handler,
-                                supplier_prefix=self.supplier_prefix,
-                                resp_agent=self.resp_agent,
-                                ra_index=curator_obj.index_id_ra,
-                                preexisting_entities=curator_obj.preexisting_entities,
-                                everything_everywhere_allatonce=curator_obj.everything_everywhere_allatonce,
-                                settings=settings,
-                                meta_config_path=meta_config_path,
-                            )
-                        else:
-                            creator_obj = Creator(
-                                data=curator_obj.data,
-                                finder=curator_obj.finder,
-                                base_iri=self.base_iri,
-                                counter_handler=self.counter_handler,
-                                supplier_prefix=self.supplier_prefix,
-                                resp_agent=self.resp_agent,
-                                ra_index=curator_obj.index_id_ra,
-                                br_index=curator_obj.index_id_br,
-                                re_index_csv=curator_obj.re_index,
-                                ar_index_csv=curator_obj.ar_index,
-                                vi_index=curator_obj.VolIss,
-                                silencer=settings.get("silencer", []),
-                            )
+                        creator_obj = Creator(
+                            data=curator_obj.data,
+                            finder=curator_obj.finder,
+                            base_iri=self.base_iri,
+                            counter_handler=self.counter_handler,
+                            supplier_prefix=self.supplier_prefix,
+                            resp_agent=self.resp_agent,
+                            ra_index=curator_obj.index_id_ra,
+                            br_index=curator_obj.index_id_br,
+                            re_index_csv=curator_obj.re_index,
+                            ar_index_csv=curator_obj.ar_index,
+                            vi_index=curator_obj.VolIss,
+                            silencer=settings.get("silencer", []),
+                        )
                         creator = creator_obj.creator(source=self.source)
                         self.timer.record_metric("entities_created", len(creator.res_to_entity))
 
@@ -541,7 +509,7 @@ def _print_aggregate_summary(all_reports: List[Dict[str, Any]]) -> None:
 
 
 def run_meta_process(
-    settings: dict, meta_config_path: str, resp_agents_only: bool = False, enable_timing: bool = False, timing_output: Optional[str] = None
+    settings: dict, meta_config_path: str, enable_timing: bool = False, timing_output: Optional[str] = None
 ) -> None:
     is_unix = platform in {"linux", "linux2", "darwin"}
     all_reports = []
@@ -568,7 +536,6 @@ def run_meta_process(
                     filename,
                     meta_process.cache_path,
                     meta_process.errors_path,
-                    resp_agents_only=resp_agents_only,
                     settings=settings,
                     meta_config_path=meta_config_path
                 )
@@ -706,7 +673,6 @@ if __name__ == "__main__":  # pragma: no cover
     run_meta_process(
         settings=settings,
         meta_config_path=args.config,
-        resp_agents_only=False,
         enable_timing=args.timing,
         timing_output=args.timing_output
     )

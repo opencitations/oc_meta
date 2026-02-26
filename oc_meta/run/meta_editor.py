@@ -18,7 +18,7 @@ from argparse import ArgumentParser
 
 from rdflib import URIRef
 
-from oc_meta.plugins.editor import MetaEditor
+from oc_meta.core.editor import MetaEditor
 
 if __name__ == '__main__':
     arg_parser = ArgumentParser('meta_editor.py', description='This script edits OpenCitations Meta triplestore, RDF and provenance')

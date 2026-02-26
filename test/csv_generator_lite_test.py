@@ -23,7 +23,7 @@ from zipfile import ZipFile
 
 import redis
 from oc_meta.lib.file_manager import get_csv_data
-from oc_meta.plugins.csv_generator_lite.csv_generator_lite import (
+from oc_meta.run.meta.generate_csv import (
     generate_csv,
     init_redis_connection,
     is_omid_processed,

@@ -113,7 +113,6 @@ class TestDatabaseUnavailability(unittest.TestCase):
                 filename,
                 meta_process.cache_path,
                 meta_process.errors_path,
-                resp_agents_only=False,
                 settings=settings,
                 meta_config_path=meta_config_path,
             )

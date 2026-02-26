@@ -6,7 +6,6 @@ import redis
 from oc_meta.core.creator import *
 from oc_meta.lib.file_manager import get_csv_data
 from oc_meta.lib.finder import ResourceFinder
-from oc_meta.plugins.multiprocess.resp_agents_creator import RespAgentsCreator
 from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
 from rdflib import XSD, Graph, compare
 from rdflib.term import _toPythonMapping
@@ -107,56 +106,6 @@ class test_Creator(unittest.TestCase):
         expected_graph = expected_graph.parse(data=expected_data, format="nt")
         self.assertEqual(compare.isomorphic(output_graph, expected_graph), True)
 
-class test_RespAgentsCreator(unittest.TestCase):
-    def setUp(self):
-        reset_server()
-        reset_redis_counters()
-        self.counter_handler = RedisCounterHandler(host='localhost', port=6381, db=5)
-
-    def tearDown(self):
-        reset_redis_counters()
-
-    def test_creator(self):
-        data = get_csv_data("test/testcases/testcase_data/resp_agents_creator.csv")
-        testcase_id_ra = get_csv_data("test/testcases/testcase_data/indices/resp_agents_creator/index_id_ra.csv")
-        finder = ResourceFinder(ts_url=SERVER, base_iri="https://w3id.org/oc/meta/", local_g=Graph())
-        creator = RespAgentsCreator(data, finder, "https://w3id.org/oc/meta/", self.counter_handler, "060", 'https://orcid.org/0000-0002-8420-0696', testcase_id_ra)
-        creator_graphset = creator.creator()
-        output_graph = Graph()
-        for g in creator_graphset.graphs():
-            output_graph += g
-        expected_data = '''
-            <https://w3id.org/oc/meta/ra/0601> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0601> .
-            <https://w3id.org/oc/meta/ra/0601> <http://xmlns.com/foaf/0.1/givenName> "Ron J."^^<http://www.w3.org/2001/XMLSchema#string> .
-            <https://w3id.org/oc/meta/ra/0601> <http://xmlns.com/foaf/0.1/familyName> "Deckert"^^<http://www.w3.org/2001/XMLSchema#string> .
-            <https://w3id.org/oc/meta/ra/0601> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> .
-            <https://w3id.org/oc/meta/id/0601> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "0000-0003-2100-6412"^^<http://www.w3.org/2001/XMLSchema#string> .
-            <https://w3id.org/oc/meta/id/0601> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/datacite/Identifier> .
-            <https://w3id.org/oc/meta/id/0601> <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/orcid> .
-            <https://w3id.org/oc/meta/ra/0602> <http://xmlns.com/foaf/0.1/givenName> "Juan M."^^<http://www.w3.org/2001/XMLSchema#string> .
-            <https://w3id.org/oc/meta/ra/0602> <http://xmlns.com/foaf/0.1/familyName> "Ruso"^^<http://www.w3.org/2001/XMLSchema#string> .
-            <https://w3id.org/oc/meta/ra/0602> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> .
-            <https://w3id.org/oc/meta/ra/0602> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0602> .
-            <https://w3id.org/oc/meta/id/0602> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "0000-0001-5909-6754"^^<http://www.w3.org/2001/XMLSchema#string> .
-            <https://w3id.org/oc/meta/id/0602> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/datacite/Identifier> .
-            <https://w3id.org/oc/meta/id/0602> <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/orcid> .
-            <https://w3id.org/oc/meta/ra/0603> <http://xmlns.com/foaf/0.1/familyName> "Sarmiento"^^<http://www.w3.org/2001/XMLSchema#string> .
-            <https://w3id.org/oc/meta/ra/0603> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0603> .
-            <https://w3id.org/oc/meta/ra/0603> <http://xmlns.com/foaf/0.1/givenName> "Félix"^^<http://www.w3.org/2001/XMLSchema#string> .
-            <https://w3id.org/oc/meta/ra/0603> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> .
-            <https://w3id.org/oc/meta/id/0603> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/datacite/Identifier> .
-            <https://w3id.org/oc/meta/id/0603> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "0000-0002-4487-6894"^^<http://www.w3.org/2001/XMLSchema#string> .
-            <https://w3id.org/oc/meta/id/0603> <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/orcid> .
-            <https://w3id.org/oc/meta/ra/0604> <http://xmlns.com/foaf/0.1/name> "Pub1"^^<http://www.w3.org/2001/XMLSchema#string> .
-            <https://w3id.org/oc/meta/ra/0604> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0604> .
-            <https://w3id.org/oc/meta/ra/0604> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> .
-            <https://w3id.org/oc/meta/id/0604> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/datacite/Identifier> .
-            <https://w3id.org/oc/meta/id/0604> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "1111"^^<http://www.w3.org/2001/XMLSchema#string> .
-            <https://w3id.org/oc/meta/id/0604> <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/crossref> .
-        '''
-        expected_graph = Graph()
-        expected_graph = expected_graph.parse(data=expected_data, format="nt")
-        self.assertEqual(compare.isomorphic(output_graph, expected_graph), True)
 
 class testcase_01(unittest.TestCase):
     def test(self):
