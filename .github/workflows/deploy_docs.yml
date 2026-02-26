@@ -3,14 +3,13 @@ name: Deploy documentation
 on:
   push:
     branches: [master]
-    paths:
-      - 'docs/**'
   workflow_dispatch:
 
 permissions:
   contents: read
   pages: write
   id-token: write
+  actions: read
 
 concurrency:
   group: "pages"
@@ -35,6 +34,16 @@ jobs:
       - name: Build
         working-directory: ./docs
         run: npm run build
+
+      - name: Download coverage artifact
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          workflow: run_tests.yml
+          name: coverage-report-3.10
+          path: ./docs/dist/coverage
+          branch: master
+          search_artifacts: true
+          if_no_artifact_found: warn
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

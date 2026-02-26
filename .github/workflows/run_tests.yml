@@ -23,11 +23,8 @@ on:
   pull_request:
     branches: [master]
 
-# Add permissions for GitHub Pages deployment
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 jobs:
   CheckCoverage:
@@ -90,12 +87,6 @@ jobs:
           path: htmlcov/
           retention-days: 14
 
-      - name: Upload coverage report to GitHub Pages artifact
-        if: github.ref == 'refs/heads/master' && matrix.python-version == '3.10'
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: htmlcov/
-
       - name: Determine badge color
         if: matrix.python-version == '3.10'
         run: |
@@ -123,15 +114,3 @@ jobs:
           github_token: ${{ secrets.GIST_PAT }}
           repository: arcangelo7/badges
           actor: arcangelo7
-
-  DeployPages:
-    needs: CheckCoverage
-    if: github.ref == 'refs/heads/master'
-    runs-on: ubuntu-latest
-    environment:
-      name: ${{ github.repository }}/pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
