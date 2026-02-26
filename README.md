@@ -6,7 +6,7 @@
 
 # OpenCitations Meta
 
-OpenCitations Meta processes bibliographic metadata for the [OpenCitations](https://opencitations.net/) infrastructure. It curates data from CSV files and generates RDF compliant with the [OpenCitations Data Model](http://opencitations.net/model).
+OpenCitations Meta processes bibliographic metadata for the [OpenCitations](https://opencitations.net/) infrastructure. It curates data from CSV files and generates RDF compliant with the [OpenCitations Data Model](https://figshare.com/articles/Metadata_for_the_OpenCitations_Corpus/3443876).
 
 ## Documentation
 

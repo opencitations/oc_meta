@@ -17,24 +17,49 @@ hero:
 
 import { Card, CardGrid } from '@astrojs/starlight/components';
 
-## What it does
+## Core pipeline
 
 <CardGrid stagger>
 	<Card title="Data curation" icon="pencil">
-		Validates, normalizes, and cleans bibliographic metadata from CSV files. Handles duplicate detection and identifier validation.
+		Validates, normalizes, and cleans bibliographic metadata from CSV files. Handles identifier validation, duplicate detection, and data normalization.
 	</Card>
 	<Card title="RDF generation" icon="document">
-		Converts curated data into RDF following the [OpenCitations Data Model](http://opencitations.net/model). Creates bibliographic resources, responsible agents, and identifiers with their relationships.
-	</Card>
-	<Card title="Provenance tracking" icon="list-format">
-		Every modification generates provenance snapshots. Tracks creation time, modification history, responsible agents, and primary sources.
-	</Card>
-	<Card title="Entity merging" icon="puzzle">
-		Identifies and merges duplicate entities across the dataset. Uses Union-Find algorithm for efficient grouping and parallel processing.
+		Converts curated data into RDF following the [OpenCitations Data Model](https://figshare.com/articles/Metadata_for_the_OpenCitations_Corpus/3443876). Creates bibliographic resources, responsible agents, and identifiers with provenance tracking.
 	</Card>
 </CardGrid>
 
-## Quick example
+## Entity management
+
+<CardGrid stagger>
+	<Card title="Duplicate detection" icon="magnifier">
+		Identifies duplicate entities across the dataset by analyzing identifiers in RDF files. Groups related entities for batch processing.
+	</Card>
+	<Card title="Entity merging" icon="puzzle">
+		Merges duplicate entities using Union-Find algorithm. Handles bibliographic resources, responsible agents, and identifiers with parallel processing.
+	</Card>
+	<Card title="Entity editing" icon="setting">
+		Modifies existing RDF entities: add, update, or delete triples. Generates provenance snapshots for each modification.
+	</Card>
+</CardGrid>
+
+## Utilities
+
+<CardGrid stagger>
+	<Card title="CSV generation" icon="list-format">
+		Generates CSV dumps from RDF data. Extracts bibliographic metadata back to tabular format for analysis or migration.
+	</Card>
+	<Card title="Info dir management" icon="information">
+		Manages Redis counters for entity numbering. Rebuilds counters from RDF files after system recovery or data import.
+	</Card>
+	<Card title="Migration tools" icon="rocket">
+		Imports RDF from external sources, extracts subsets from triplestores, and converts provenance formats.
+	</Card>
+	<Card title="Benchmarks" icon="approve-check">
+		Measures processing performance with synthetic data. Supports scalability analysis across dataset sizes.
+	</Card>
+</CardGrid>
+
+## Quick start
 
 Install:
 
@@ -45,10 +70,8 @@ pip install oc_meta
 Run the main processing pipeline:
 
 ```bash
-uv run python -m oc_meta.run.meta_process -c meta_config.yaml
+python -m oc_meta.run.meta_process -c meta_config.yaml
 ```
-
-The pipeline reads CSV files with bibliographic metadata, curates the data, generates RDF, and uploads to a triplestore.
 
 ## Input format
 
@@ -68,4 +91,4 @@ Meta expects CSV files with these columns:
 | `publisher` | Publisher name with optional identifier (`MIT Press [crossref:281]`) |
 | `editor` | Same format as `author` |
 
-See the [CSV format reference](/oc_meta/reference/csv_format/) for the complete list of supported identifiers, resource types, and validation rules.
+See the [CSV format reference](/oc_meta/reference/csv_format/) for the complete specification.
