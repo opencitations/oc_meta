@@ -16,105 +16,134 @@
 # SOFTWARE.
 
 import os
+import re
 from argparse import ArgumentParser
 
 from bs4 import BeautifulSoup
 from oc_ds_converter.oc_idmanager import DOIManager
-from tqdm import tqdm
+from rich.console import Console
+from rich.progress import (
+    BarColumn,
+    MofNCompleteColumn,
+    Progress,
+    SpinnerColumn,
+    TextColumn,
+    TimeElapsedColumn,
+    TimeRemainingColumn,
+)
 
 from oc_meta.lib.csvmanager import CSVManager
+from oc_meta.lib.master_of_regex import orcid_pattern
 
 
 class IndexOrcidDoi:
-    def __init__(self, output_path: str, threshold: int = 10000, low_memory: bool = False, verbose: bool = False):
+    def __init__(self, output_path: str, threshold: int = 10000):
         self.file_counter = 0
-        self.threshold = 10000 if not threshold else int(threshold)
-        self.verbose = verbose
-        if self.verbose:
-            print("[INFO: CSVManager] Loading existing csv file")
+        self.threshold = threshold
+        self.console = Console()
+        self.console.print("[cyan][INFO][/cyan] Loading existing CSV files")
+        self.orcid_re = re.compile(orcid_pattern)
         self.doimanager = DOIManager(use_api_service=False)
-        self.csvstorage = CSVManager(output_path=output_path, line_threshold=threshold, low_memory=low_memory)
-        self.cache = set(el.split("[")[1][:-1].strip() for _, v in self.csvstorage.data.items() for el in v)
+        self.csvstorage = CSVManager(output_path=output_path)
+        self.cache = self._build_cache()
+
+    def _build_cache(self) -> set[str]:
+        cache = set()
+        for values in self.csvstorage.data.values():
+            for value in values:
+                orcid = self._extract_orcid(value)
+                if orcid:
+                    cache.add(orcid)
+        return cache
+
+    def _extract_orcid(self, text: str) -> str | None:
+        match = self.orcid_re.search(text)
+        return match.group(0) if match else None
 
     def explorer(self, summaries_path: str) -> None:
-        if self.verbose:
-            print("[INFO: IndexOrcidDoi] Counting files to process")
+        self.console.print("[cyan][INFO][/cyan] Counting files to process")
         files_to_process = [
-            os.path.join(fold, file)
+            os.path.join(fold, filename)
             for fold, _, files in os.walk(summaries_path)
-            for file in files
-            if file.replace('.xml', '') not in self.cache
+            for filename in files
+            if filename.endswith('.xml') and self._extract_orcid(filename) not in self.cache
         ]
         processed_files = len(self.cache)
         del self.cache
-        if self.verbose:
-            pbar = tqdm(total=len(files_to_process))
-        for file in files_to_process:
-            self.finder(file)
-            self.file_counter += 1
-            cur_file = self.file_counter + processed_files
-            if self.file_counter % self.threshold == 0:
-                self.csvstorage.dump_data(f'{cur_file - self.threshold + 1}-{cur_file}.csv')
-            if self.verbose:
-                pbar.update(1)
-        cur_file = self.file_counter + processed_files
-        self.csvstorage.dump_data(f'{cur_file + 1 - (cur_file % self.threshold)}-{cur_file}.csv')
-        if self.verbose:
-            pbar.close()
+        progress = Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            MofNCompleteColumn(),
+            TimeElapsedColumn(),
+            TimeRemainingColumn(),
+            console=self.console,
+        )
+        with progress:
+            task = progress.add_task("Processing files", total=len(files_to_process))
+            for file in files_to_process:
+                self._process_file(file)
+                self.file_counter += 1
+                if self.file_counter % self.threshold == 0:
+                    start = processed_files + self.file_counter - self.threshold + 1
+                    end = processed_files + self.file_counter
+                    self.csvstorage.dump_data(f'{start}-{end}.csv')
+                progress.advance(task)
+        if self.csvstorage.data_to_store:
+            start = processed_files + self.file_counter - (self.file_counter % self.threshold) + 1
+            end = processed_files + self.file_counter
+            self.csvstorage.dump_data(f'{start}-{end}.csv')
 
-    def finder(self, file: str):
-        orcid = file.replace('.xml', '')[-19:]
+    def _process_file(self, file_path: str) -> None:
+        orcid = self._extract_orcid(file_path)
+        if not orcid:
+            return
+        with open(file_path, 'r', encoding='utf-8') as xml_file:
+            xml_soup = BeautifulSoup(xml_file, 'xml')
+        name = self._extract_name(xml_soup)
+        author = f'{name} [{orcid}]' if name else f'[{orcid}]'
         valid_doi = False
-        if file.endswith('.xml'):
-            with open(file, 'r', encoding='utf-8') as xml_file:
-                xml_soup = BeautifulSoup(xml_file, 'xml')
-                ids = xml_soup.find_all('common:external-id')
-                if ids:
-                    for el in ids:
-                        id_type = el.find('common:external-id-type')
-                        rel = el.find('common:external-id-relationship')
-                        if id_type and rel:
-                            if id_type.get_text().lower() == 'doi' and rel.get_text().lower() == 'self':
-                                doi = el.find('common:external-id-value').get_text()
-                                doi = self.doimanager.normalise(doi)
-                                if doi:
-                                    g_name = xml_soup.find('personal-details:given-names')
-                                    f_name = xml_soup.find('personal-details:family-name')
-                                    if f_name:
-                                        f_name = f_name.get_text()
-                                        if g_name:
-                                            g_name = g_name.get_text()
-                                            name = f_name + ', ' + g_name
-                                        else:
-                                            name = f_name
-                                        auto = name + ' [' + orcid + ']'
-                                        valid_doi = True
-                                        self.csvstorage.add_value(doi, auto)
+        for el in xml_soup.find_all('common:external-id'):
+            id_type = el.find('common:external-id-type')
+            rel = el.find('common:external-id-relationship')
+            if not (id_type and rel):
+                continue
+            if id_type.get_text().lower() != 'doi' or rel.get_text().lower() != 'self':
+                continue
+            doi_el = el.find('common:external-id-value')
+            if not doi_el:
+                continue
+            doi = self.doimanager.normalise(doi_el.get_text())
+            if not doi:
+                continue
+            valid_doi = True
+            self.csvstorage.add_value(doi, author)
         if not valid_doi:
             self.csvstorage.add_value('None', f'[{orcid}]')
 
-
-# Backward compatibility alias
-Index_orcid_doi = IndexOrcidDoi
+    def _extract_name(self, xml_soup: BeautifulSoup) -> str | None:
+        family_name_el = xml_soup.find('personal-details:family-name')
+        given_name_el = xml_soup.find('personal-details:given-names')
+        if family_name_el and given_name_el:
+            return f'{family_name_el.get_text()}, {given_name_el.get_text()}'
+        if family_name_el:
+            return family_name_el.get_text()
+        if given_name_el:
+            return given_name_el.get_text()
+        return None
 
 
 if __name__ == '__main__':  # pragma: no cover
     arg_parser = ArgumentParser(
         'orcid_process.py',
-        description='This script builds a csv index of DOIs associated with ORCIDs, '
-                    'starting from XML files containing ORCID data'
+        description='Build a CSV index of DOIs associated with ORCIDs from XML summary files'
     )
     arg_parser.add_argument('-out', '--output', dest='output_path', required=True,
-                            help='The output CSV file path')
+                            help='Output directory for CSV files')
     arg_parser.add_argument('-s', '--summaries', dest='summaries_path', required=True,
-                            help='The folder path containing orcid summaries, subfolder will be considered too')
-    arg_parser.add_argument('-t', '--threshold', dest='threshold', required=False,
-                            help='Number of files to save after')
-    arg_parser.add_argument('-lm', '--low-memory', dest='low_memory', required=False, action='store_true',
-                            help='Specify this argument if the available RAM is insufficient to accomplish the task. '
-                                 'Warning: the processing time will increase')
-    arg_parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', required=False,
-                            help='Show a loading bar, elapsed time and estimated time')
+                            help='Directory containing ORCID XML summaries (scanned recursively)')
+    arg_parser.add_argument('-t', '--threshold', dest='threshold', type=int, default=10000,
+                            help='Number of files to process before saving a CSV chunk (default: 10000)')
     args = arg_parser.parse_args()
-    iod = IndexOrcidDoi(output_path=args.output_path, threshold=args.threshold, verbose=args.verbose)
+    iod = IndexOrcidDoi(output_path=args.output_path, threshold=args.threshold)
     iod.explorer(summaries_path=args.summaries_path)
