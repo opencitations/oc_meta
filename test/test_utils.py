@@ -20,7 +20,8 @@ from concurrent.futures import ThreadPoolExecutor
 
 import redis
 from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
-from rdflib import Dataset, Graph, Identifier, URIRef
+from rdflib import Dataset, Graph, URIRef
+from rdflib.term import Node
 from sparqlite import SPARQLClient
 
 SERVER = "http://127.0.0.1:8805/sparql"
@@ -181,7 +182,7 @@ def add_data_ts(
     else:
         raise ValueError(f"Unsupported file extension: {file_extension}")
 
-    triples_list: list[tuple[Identifier, Identifier, Identifier, Identifier | None]] = []
+    triples_list: list[tuple[Node, Node, Node, Node | None]] = []
     if file_extension in {".nt", ".ttl"}:
         assert isinstance(g, Graph)
         for subj, pred, obj in g.triples((None, None, None)):
