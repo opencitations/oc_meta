@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+# Copyright 2021-2026 Arcangelo Massari <arcangelo.massari@unibo.it>
 # Copyright 2019-2020 Fabio Mariani <fabio.mariani555@gmail.com>
-# Copyright 2021-2022 Arcangelo Massari <arcangelo.massari@unibo.it>
 #
 # Permission to use, copy, modify, and/or distribute this software for any purpose
 # with or without fee is hereby granted, provided that the above copyright notice

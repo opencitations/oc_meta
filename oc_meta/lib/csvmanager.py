@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+# Copyright (c) 2022-2026, Arcangelo Massari <arcangelo.massari@unibo.it>
 # Copyright (c) 2019, Silvio Peroni <essepuntato@gmail.com>
 #
 # Permission to use, copy, modify, and/or distribute this software for any purpose
