@@ -18,15 +18,22 @@ import json
 import os
 import unittest
 from shutil import rmtree
-from test.test_utils import (PROV_SERVER, REDIS_CACHE_DB, REDIS_DB, REDIS_HOST,
-                             REDIS_PORT, SERVER, reset_redis_counters,
-                             reset_server)
+from test.test_utils import (
+    PROV_SERVER,
+    REDIS_CACHE_DB,
+    REDIS_DB,
+    REDIS_HOST,
+    REDIS_PORT,
+    SERVER,
+    get_counter_handler,
+    reset_redis_counters,
+    reset_server,
+)
 
 import yaml
 from oc_meta.core.editor import EntityCache, MetaEditor
 from oc_meta.run.meta_process import run_meta_process
 from oc_ocdm import Storer
-from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
 from oc_ocdm.graph import GraphSet
 from oc_ocdm.prov import ProvSet
 from oc_ocdm.reader import Reader
@@ -36,10 +43,6 @@ from sparqlite import SPARQLClient
 BASE = os.path.join("test", "editor")
 OUTPUT = os.path.join(BASE, "output")
 META_CONFIG = os.path.join(BASE, "meta_config.yaml")
-
-
-def get_counter_handler():
-    return RedisCounterHandler(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
 
 
 class TestEditor(unittest.TestCase):
@@ -585,7 +588,8 @@ class TestEditor(unittest.TestCase):
                     if entity["@id"] == "https://w3id.org/oc/meta/br/0605/prov/se/1":
                         br_0605_prov_se_1 = entity
 
-            self.assertIsNotNone(br_0605_prov_se_2)
+            assert br_0605_prov_se_2 is not None
+            assert br_0605_prov_se_1 is not None
             self.assertEqual(
                 br_0605_prov_se_2["http://purl.org/dc/terms/description"][0]["@value"],
                 "The entity 'https://w3id.org/oc/meta/br/0605' has been deleted.",
@@ -638,7 +642,6 @@ class TestEditor(unittest.TestCase):
             }
             self.assertEqual(actual_triples, expected_triples)
 
-            self.assertIsNotNone(br_0605_prov_se_1)
             self.assertEqual(
                 br_0605_prov_se_1["http://purl.org/dc/terms/description"][0]["@value"],
                 "The entity 'https://w3id.org/oc/meta/br/0605' has been created.",

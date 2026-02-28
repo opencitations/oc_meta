@@ -10,7 +10,7 @@ def launch_blazegraph(port:int):
     Launch Blazegraph triplestore at a given port.
     '''
     Popen(
-        ['java', '-server', '-Xmx4g', '-Dcom.bigdata.journal.AbstractJournal.file=./blazegraph.jnl', f'-Djetty.port={port}', '-jar', f'./blazegraph.jar']
+        ['java', '-server', '-Xmx4g', '-Dcom.bigdata.journal.AbstractJournal.file=./blazegraph.jnl', f'-Djetty.port={port}', '-jar', './blazegraph.jar']
     )
 
 def main():

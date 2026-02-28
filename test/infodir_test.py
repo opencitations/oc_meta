@@ -1,10 +1,12 @@
 import unittest
 import os
+
+import redis
+from rdflib import URIRef
+
 from oc_meta.run.infodir.gen import explore_directories
 from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
 from oc_ocdm.support import get_count
-import shutil
-import redis
 
 class TestGenInfoDir(unittest.TestCase):
     
@@ -32,14 +34,14 @@ class TestGenInfoDir(unittest.TestCase):
         prov_counter_101 = counter_handler.read_counter(
             entity_short_name="br",
             prov_short_name="se",
-            identifier=int(get_count('https://w3id.org/oc/meta/br/0670101')),
-            supplier_prefix="0670"
+            identifier=int(get_count(URIRef("https://w3id.org/oc/meta/br/0670101"))),
+            supplier_prefix="0670",
         )
         prov_counter_3 = counter_handler.read_counter(
             entity_short_name="br",
             prov_short_name="se",
-            identifier=int(get_count('https://w3id.org/oc/meta/br/06703')),
-            supplier_prefix="0670"
+            identifier=int(get_count(URIRef("https://w3id.org/oc/meta/br/06703"))),
+            supplier_prefix="0670",
         )
         self.assertEqual(prov_counter_101, 2)
         self.assertEqual(prov_counter_3, 1)

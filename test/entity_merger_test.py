@@ -5,63 +5,28 @@ import re
 import unittest
 from shutil import rmtree
 
-import redis
 import yaml
 from oc_meta.run.merge.entities import EntityMerger
 from oc_meta.run.meta_editor import MetaEditor
-from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
 from oc_ocdm.graph import GraphSet
 from oc_ocdm.prov.prov_set import ProvSet
 from oc_ocdm.storer import Storer
 from rdflib import URIRef
-from sparqlite import SPARQLClient
+from test.test_utils import (
+    PROV_SERVER,
+    REDIS_CACHE_DB,
+    REDIS_DB,
+    REDIS_HOST,
+    REDIS_PORT,
+    SERVER,
+    get_counter_handler,
+    reset_redis_counters,
+    reset_server as reset_triplestore,
+)
 
 BASE = os.path.join("test", "merger")
 OUTPUT = os.path.join(BASE, "output/")
 META_CONFIG = os.path.join("test", "merger", "meta_config.yaml")
-SERVER = "http://127.0.0.1:8805/sparql"
-PROV_SERVER = "http://127.0.0.1:8806/sparql"
-
-REDIS_HOST = "localhost"
-REDIS_PORT = 6381
-REDIS_DB = 5
-REDIS_CACHE_DB = 2
-
-
-def reset_triplestore():
-    """Reset the test triplestore graphs"""
-    with SPARQLClient(SERVER, timeout=60) as client:
-        for graph in [
-            "https://w3id.org/oc/meta/br/",
-            "https://w3id.org/oc/meta/ra/",
-            "https://w3id.org/oc/meta/re/",
-            "https://w3id.org/oc/meta/id/",
-            "https://w3id.org/oc/meta/ar/",
-        ]:
-            client.update(f"CLEAR GRAPH <{graph}>")
-
-    with SPARQLClient(PROV_SERVER, timeout=60) as prov_client:
-        for graph in [
-            "https://w3id.org/oc/meta/br/",
-            "https://w3id.org/oc/meta/ra/",
-            "https://w3id.org/oc/meta/re/",
-            "https://w3id.org/oc/meta/id/",
-            "https://w3id.org/oc/meta/ar/",
-        ]:
-            prov_client.update(f"CLEAR GRAPH <{graph}>")
-
-
-def reset_redis_counters():
-    redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
-    redis_cache_client = redis.Redis(
-        host=REDIS_HOST, port=REDIS_PORT, db=REDIS_CACHE_DB
-    )
-    redis_client.flushdb()
-    redis_cache_client.flushdb()
-
-
-def get_counter_handler():
-    return RedisCounterHandler(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
 
 
 class TestEntityMerger(unittest.TestCase):
@@ -345,7 +310,7 @@ class TestEntityMerger(unittest.TestCase):
 
         # Process test file
         test_file = os.path.join(BASE, "csv", "merge_test.csv")
-        result = self.merger.process_file(test_file)
+        self.merger.process_file(test_file)
 
         # Verify the file wasn't processed (Done should still be False)
         data = EntityMerger.read_csv(test_file)
@@ -632,7 +597,6 @@ class TestEntityMerger(unittest.TestCase):
                 "Done": "False",
             }
         ]
-        test_file = os.path.join(BASE, "csv", "multiple_merge.csv")
         self.write_csv("multiple_merge.csv", merge_data)
 
         # Process the merge
@@ -908,7 +872,6 @@ class TestEntityMerger(unittest.TestCase):
                 "Done": "False",
             }
         ]
-        test_file = os.path.join(BASE, "csv", "conflicting_merge.csv")
         self.write_csv("conflicting_merge.csv", merge_data)
 
         # Process the merge
@@ -979,7 +942,7 @@ class TestEntityMerger(unittest.TestCase):
                             merge_snapshot = entity
                             break
 
-            self.assertIsNotNone(merge_snapshot, "No merge snapshot found")
+            assert merge_snapshot is not None, "No merge snapshot found"
 
             # Verify merge metadata
             self.assertIn("http://www.w3.org/ns/prov#generatedAtTime", merge_snapshot)
@@ -1017,9 +980,7 @@ class TestEntityMerger(unittest.TestCase):
                             delete_snapshot = entity
                             break
 
-            self.assertIsNotNone(
-                delete_snapshot, "No deletion snapshot found for merged entity"
-            )
+            assert delete_snapshot is not None, "No deletion snapshot found for merged entity"
 
             # Verify deletion query
             delete_query = delete_snapshot[
@@ -1179,7 +1140,6 @@ class TestEntityMerger(unittest.TestCase):
                 "Done": "False",
             }
         ]
-        test_file = os.path.join(BASE, "csv", "br_merge.csv")
         self.write_csv("br_merge.csv", merge_data)
 
         # Process the merge
@@ -1346,7 +1306,7 @@ class TestEntityMerger(unittest.TestCase):
                             merge_snapshot = entity
                             break
 
-            self.assertIsNotNone(merge_snapshot, "No merge snapshot found")
+            assert merge_snapshot is not None, "No merge snapshot found"
 
             # Check merge query content
             merge_query = merge_snapshot["https://w3id.org/oc/ontology/hasUpdateQuery"][
@@ -1379,9 +1339,7 @@ class TestEntityMerger(unittest.TestCase):
                             delete_snapshot = entity
                             break
 
-                    self.assertIsNotNone(
-                        delete_snapshot, "No deletion snapshot found for merged entity"
-                    )
+                    assert delete_snapshot is not None, "No deletion snapshot found for merged entity"
 
                     # Verify deletion query
                     delete_query = delete_snapshot[
@@ -1774,7 +1732,6 @@ class TestEntityMerger(unittest.TestCase):
                 "Done": "False",
             }
         ]
-        test_file = os.path.join(BASE, "csv", "br_dois_merge.csv")
         self.write_csv("br_dois_merge.csv", merge_data)
 
         # # Process the merge

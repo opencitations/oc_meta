@@ -79,8 +79,8 @@ class Curator:
         # Redis counter handler
         self.counter_handler = counter_handler
         self.brdict = {}
-        self.radict: Dict[str, Dict[str, list]] = {}
-        self.ardict: Dict[str, Dict[str, list]] = {}
+        self.radict = {}
+        self.ardict = {}
         self.vvi = {}  # Venue, Volume, Issue
         self.idra = {}  # key id; value metaid of id related to ra
         self.idbr = {}  # key id; value metaid of id related to br

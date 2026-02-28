@@ -6,7 +6,6 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import time
 import unittest
 from datetime import datetime
 from test.test_utils import (PROV_SERVER, SERVER, execute_sparql_construct,
@@ -291,7 +290,9 @@ class test_ProcessTest(unittest.TestCase):
             grouped_entities = {}
             for entity_id, entity_data in entities.items():
                 # Extract the parent entity ID from the provenance entity ID
-                parent_id = re.match(r'https://w3id.org/oc/meta/([^/]+/[0-9]+)', entity_id).group(0)
+                match = re.match(r'https://w3id.org/oc/meta/([^/]+/[0-9]+)', entity_id)
+                assert match is not None
+                parent_id = match.group(0)
                 
                 if parent_id not in grouped_entities:
                     grouped_entities[parent_id] = []
@@ -907,21 +908,21 @@ class test_ProcessTest(unittest.TestCase):
                         actual_graph = graph
                         break
                 
-                self.assertIsNotNone(actual_graph, f"Graph {expected_graph['@id']} not found in triplestore output")
-                
+                assert actual_graph is not None, f"Graph {expected_graph['@id']} not found in triplestore output"
+
                 # For each expected entity, verify it exists with all expected properties
                 for expected_entity in expected_entities:
                     entity_id = expected_entity['@id']
-                    
+
                     # Find the entity in the actual graph
                     actual_entity = None
                     for entity in actual_graph['@graph']:
                         if entity['@id'] == entity_id:
                             actual_entity = entity
                             break
-                    
-                    self.assertIsNotNone(actual_entity, f"Entity {entity_id} not found in triplestore output")
-                    
+
+                    assert actual_entity is not None, f"Entity {entity_id} not found in triplestore output"
+
                     # Check that all expected predicates and objects exist
                     for pred, expected_objects in expected_entity.items():
                         if pred != '@id':
@@ -1119,16 +1120,16 @@ class test_ProcessTest(unittest.TestCase):
             format="json-ld",
         )
         prov_graph.remove(
-            (None, URIRef("http://www.w3.org/ns/prov#generatedAtTime"), None)
+            (None, URIRef("http://www.w3.org/ns/prov#generatedAtTime"), None)  # type: ignore[arg-type]
         )
         expected_prov_graph.remove(
-            (None, URIRef("http://www.w3.org/ns/prov#generatedAtTime"), None)
+            (None, URIRef("http://www.w3.org/ns/prov#generatedAtTime"), None)  # type: ignore[arg-type]
         )
         prov_graph.remove(
-            (None, URIRef("http://www.w3.org/ns/prov#invalidatedAtTime"), None)
+            (None, URIRef("http://www.w3.org/ns/prov#invalidatedAtTime"), None)  # type: ignore[arg-type]
         )
         expected_prov_graph.remove(
-            (None, URIRef("http://www.w3.org/ns/prov#invalidatedAtTime"), None)
+            (None, URIRef("http://www.w3.org/ns/prov#invalidatedAtTime"), None)  # type: ignore[arg-type]
         )
         shutil.rmtree(output_folder)
         self.assertTrue(
@@ -1138,7 +1139,6 @@ class test_ProcessTest(unittest.TestCase):
     def test_publishers_sequence(self):
         output_folder = os.path.join(BASE_DIR, "output_9")
         meta_config_path = os.path.join(BASE_DIR, "meta_config_10.yaml")
-        now = datetime.now()
         with open(meta_config_path, encoding="utf-8") as file:
             settings = yaml.full_load(file)
 

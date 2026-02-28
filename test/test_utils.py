@@ -14,113 +14,71 @@
 # ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 # SOFTWARE.
 
-import random
-import subprocess
+import os
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 import redis
-from rdflib import Graph
+from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
+from rdflib import Dataset, Graph, Identifier, URIRef
 from sparqlite import SPARQLClient
 
-# Common constants
 SERVER = "http://127.0.0.1:8805/sparql"
 PROV_SERVER = "http://127.0.0.1:8806/sparql"
 VIRTUOSO_CONTAINER = "oc-meta-test-virtuoso"
 VIRTUOSO_PROV_CONTAINER = "oc-meta-test-virtuoso-prov"
 
-# Redis configuration
 REDIS_HOST = "localhost"
 REDIS_PORT = 6381
-REDIS_DB = 5  # For counters
-REDIS_CACHE_DB = 2  # For cache
+REDIS_DB = 5
+REDIS_CACHE_DB = 2
+
+BASE_IRI = "https://w3id.org/oc/meta/"
+
+GRAPHS_TO_CLEAR = {
+    "https://w3id.org/oc/meta/br/",
+    "https://w3id.org/oc/meta/ra/",
+    "https://w3id.org/oc/meta/re/",
+    "https://w3id.org/oc/meta/id/",
+    "https://w3id.org/oc/meta/ar/",
+    "http://default.graph/",
+    "https://w3id.org/oc/meta/",
+}
+
+
+def _clear_all_meta_graphs(endpoint: str, max_retries: int = 3) -> None:
+    for attempt in range(max_retries):
+        try:
+            with SPARQLClient(endpoint, timeout=60) as client:
+                result = client.query(
+                    "SELECT DISTINCT ?g WHERE { GRAPH ?g { ?s ?p ?o } "
+                    "FILTER(STRSTARTS(STR(?g), 'https://w3id.org/oc/meta/')) }"
+                )
+                graphs = [b["g"]["value"] for b in result["results"]["bindings"]]
+                for graph in GRAPHS_TO_CLEAR:
+                    client.update(f"CLEAR GRAPH <{graph}>")
+                for graph in graphs:
+                    client.update(f"CLEAR GRAPH <{graph}>")
+            return
+        except Exception:
+            if attempt == max_retries - 1:
+                raise
+            time.sleep(0.5 * (2**attempt))
 
 
 def reset_server() -> None:
-    """
-    Reset the SPARQL servers using Virtuoso's RDF_GLOBAL_RESET() via docker exec isql.
-    """
-    max_retries = 5
-    base_delay = 2
-
-    # Reset main triplestore
-    main_command = [
-        "docker", "exec", VIRTUOSO_CONTAINER,
-        "/opt/virtuoso-opensource/bin/isql", "1111", "dba", "dba",
-        "exec=RDF_GLOBAL_RESET();"
-    ]
-
-    # Reset provenance triplestore
-    prov_command = [
-        "docker", "exec", VIRTUOSO_PROV_CONTAINER,
-        "/opt/virtuoso-opensource/bin/isql", "1111", "dba", "dba",
-        "exec=RDF_GLOBAL_RESET();"
-    ]
-
-    # Reset main triplestore
-    for attempt in range(max_retries):
-        try:
-            # Add small random delay to avoid race conditions
-            time.sleep(base_delay + random.uniform(0, 1))
-
-            result = subprocess.run(
-                main_command,
-                capture_output=True, # Use capture_output instead of stdout/stderr pipes
-                text=True, # Decode output as text
-                check=True, # Raise CalledProcessError on non-zero exit code
-                timeout=20, # Increased timeout slightly
-            )
-            # If successful, break the loop
-            break
-
-        except subprocess.CalledProcessError as e:
-            print(f"Error resetting main triplestore (attempt {attempt+1}/{max_retries}): {e}")
-            if attempt == max_retries - 1:
-                raise
-            # Exponential backoff with jitter
-            time.sleep(base_delay * (2 ** attempt) + random.uniform(0, 1))
-
-        except subprocess.TimeoutExpired:
-            print(f"Timeout resetting main triplestore (attempt {attempt+1}/{max_retries})")
-            if attempt == max_retries - 1:
-                raise
-            # Exponential backoff with jitter
-            time.sleep(base_delay * (2 ** attempt) + random.uniform(0, 1))
-
-    # Reset provenance triplestore
-    for attempt in range(max_retries):
-        try:
-            # Add small random delay to avoid race conditions
-            time.sleep(base_delay + random.uniform(0, 1))
-
-            result = subprocess.run(
-                prov_command,
-                capture_output=True, # Use capture_output instead of stdout/stderr pipes
-                text=True, # Decode output as text
-                check=True, # Raise CalledProcessError on non-zero exit code
-                timeout=20, # Increased timeout slightly
-            )
-            # If successful, break the loop
-            break
-
-        except subprocess.CalledProcessError as e:
-            print(f"Error resetting provenance triplestore (attempt {attempt+1}/{max_retries}): {e}")
-            if attempt == max_retries - 1:
-                raise
-            # Exponential backoff with jitter
-            time.sleep(base_delay * (2 ** attempt) + random.uniform(0, 1))
-
-        except subprocess.TimeoutExpired:
-            print(f"Timeout resetting provenance triplestore (attempt {attempt+1}/{max_retries})")
-            if attempt == max_retries - 1:
-                raise
-            # Exponential backoff with jitter
-            time.sleep(base_delay * (2 ** attempt) + random.uniform(0, 1))
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        main_future = executor.submit(_clear_all_meta_graphs, SERVER)
+        prov_future = executor.submit(_clear_all_meta_graphs, PROV_SERVER)
+        main_future.result()
+        prov_future.result()
 
 
-def reset_redis_counters():
-    """
-    Reset the Redis counters and cache databases.
-    """
+def reset_triplestore(server: str = SERVER) -> None:
+    _clear_all_meta_graphs(server)
+
+
+def reset_redis_counters() -> None:
     redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
     redis_cache_client = redis.Redis(
         host=REDIS_HOST, port=REDIS_PORT, db=REDIS_CACHE_DB
@@ -129,59 +87,51 @@ def reset_redis_counters():
     redis_cache_client.flushdb()
 
 
-def execute_sparql_query(endpoint, query, max_retries=3, delay=5):
-    """
-    Execute a SPARQL SELECT query with retry logic.
+def get_counter_handler() -> RedisCounterHandler:
+    return RedisCounterHandler(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
 
-    Args:
-        endpoint (str): SPARQL endpoint URL
-        query (str): SPARQL SELECT query to execute
-        max_retries (int): Maximum number of retry attempts
-        delay (int): Delay between retries in seconds (used as backoff_factor)
 
-    Returns:
-        Query results in JSON format (dict)
-
-    Raises:
-        URLError: If connection fails after all retries
-    """
+def execute_sparql_query(
+    endpoint: str, query: str, max_retries: int = 3, delay: int = 5
+) -> dict:
     try:
-        with SPARQLClient(endpoint, max_retries=max_retries, backoff_factor=delay, timeout=60) as client:
+        with SPARQLClient(
+            endpoint, max_retries=max_retries, backoff_factor=delay, timeout=60
+        ) as client:
             return client.query(query)
     except Exception as e:
         from urllib.error import URLError
+
         raise URLError(
             f"Failed to connect to SPARQL endpoint after {max_retries} attempts: {str(e)}"
         )
 
 
-def execute_sparql_construct(endpoint, query, max_retries=3, delay=5):
+def execute_sparql_construct(
+    endpoint: str, query: str, max_retries: int = 3, delay: int = 5
+) -> Graph:
     try:
-        with SPARQLClient(endpoint, max_retries=max_retries, backoff_factor=delay, timeout=60) as client:
+        with SPARQLClient(
+            endpoint, max_retries=max_retries, backoff_factor=delay, timeout=60
+        ) as client:
             g = Graph()
-            g.parse(data=client.construct(query), format='nt')
+            g.parse(data=client.construct(query), format="nt")
             return g
     except Exception as e:
         from urllib.error import URLError
+
         raise URLError(
             f"Failed to connect to SPARQL endpoint after {max_retries} attempts: {str(e)}"
         )
 
 
 def wait_for_virtuoso(server: str, max_wait: int = 60) -> bool:
-    """Wait for Virtuoso SPARQL endpoint to be ready.
-
-    Args:
-        server: SPARQL endpoint URL
-        max_wait: Maximum time to wait in seconds
-
-    Returns:
-        True if service is ready, False if timeout
-    """
     start_time = time.time()
     while time.time() - start_time < max_wait:
         try:
-            with SPARQLClient(server, max_retries=1, backoff_factor=1, timeout=60) as client:
+            with SPARQLClient(
+                server, max_retries=1, backoff_factor=1, timeout=60
+            ) as client:
                 client.query("SELECT * WHERE { ?s ?p ?o } LIMIT 1")
             return True
         except Exception:
@@ -189,17 +139,9 @@ def wait_for_virtuoso(server: str, max_wait: int = 60) -> bool:
     return False
 
 
-def wait_for_redis(host: str = REDIS_HOST, port: int = REDIS_PORT, max_wait: int = 10) -> bool:
-    """Wait for Redis to be ready.
-
-    Args:
-        host: Redis host
-        port: Redis port
-        max_wait: Maximum time to wait in seconds
-
-    Returns:
-        True if service is ready, False if timeout
-    """
+def wait_for_redis(
+    host: str = REDIS_HOST, port: int = REDIS_PORT, max_wait: int = 10
+) -> bool:
     start_time = time.time()
     while time.time() - start_time < max_wait:
         try:
@@ -209,3 +151,56 @@ def wait_for_redis(host: str = REDIS_HOST, port: int = REDIS_PORT, max_wait: int
         except Exception:
             time.sleep(1)
     return False
+
+
+def get_path(path: str) -> str:
+    return path.replace("\\", "/")
+
+
+def add_data_ts(
+    server: str = SERVER,
+    data_path: str = os.path.abspath(
+        os.path.join("test", "testcases", "ts", "real_data.nt")
+    ).replace("\\", "/"),
+    batch_size: int = 100,
+    default_graph_uri: URIRef = URIRef("http://default.graph/"),
+) -> None:
+    reset_triplestore(server)
+    f_path = get_path(data_path)
+
+    file_extension = os.path.splitext(f_path)[1].lower()
+    if file_extension == ".nt":
+        g = Graph()
+        g.parse(location=f_path, format="nt")
+    elif file_extension == ".nq":
+        g = Dataset(default_union=True)
+        g.parse(location=f_path, format="nquads")
+    elif file_extension == ".ttl":
+        g = Graph()
+        g.parse(location=f_path, format="turtle")
+    else:
+        raise ValueError(f"Unsupported file extension: {file_extension}")
+
+    triples_list: list[tuple[Identifier, Identifier, Identifier, Identifier | None]] = []
+    if file_extension in {".nt", ".ttl"}:
+        assert isinstance(g, Graph)
+        for subj, pred, obj in g.triples((None, None, None)):
+            triples_list.append((subj, pred, obj, default_graph_uri))
+    elif file_extension == ".nq":
+        assert isinstance(g, Dataset)
+        for subj, pred, obj, ctx in g.quads():
+            triples_list.append((subj, pred, obj, ctx))
+
+    with SPARQLClient(server, timeout=60) as client:
+        for i in range(0, len(triples_list), batch_size):
+            batch_triples = triples_list[i : i + batch_size]
+
+            triples_str = ""
+            for subj, pred, obj, ctx in batch_triples:
+                if ctx:
+                    triples_str += f"GRAPH {ctx.n3().replace('[', '').replace(']', '')} {{ {subj.n3()} {pred.n3()} {obj.n3()} }} "
+                else:
+                    triples_str += f"{subj.n3()} {pred.n3()} {obj.n3()} . "
+
+            query = f"INSERT DATA {{ {triples_str} }}"
+            client.update(query)

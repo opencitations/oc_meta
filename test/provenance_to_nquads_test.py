@@ -4,7 +4,7 @@ import tempfile
 import zipfile
 import shutil
 from pathlib import Path
-from rdflib import Dataset, URIRef, Literal, Graph
+from rdflib import Dataset, URIRef, Literal
 
 
 from oc_meta.run.migration import provenance_to_nquads as provenance_conversion
@@ -47,16 +47,15 @@ class TestProvenanceConversionIntegration(unittest.TestCase):
         """Test the count_quads function."""
         graph = Dataset()
         graph.add((URIRef("ex:s1"), URIRef("ex:p1"), Literal("o1")))
-        graph.add((URIRef("ex:s2"), URIRef("ex:p2"), Literal("o2"), URIRef("ex:g1")))
+        graph.add((URIRef("ex:s2"), URIRef("ex:p2"), Literal("o2"), URIRef("ex:g1")))  # type: ignore[arg-type]
         self.assertEqual(provenance_conversion.count_quads(graph), 2)
         self.assertEqual(provenance_conversion.count_quads(Dataset()), 0)
 
     def test_convert_jsonld_to_nquads_success(self):
         """Test successful conversion from JSON-LD to N-Quads."""
         graph, nquads = provenance_conversion.convert_jsonld_to_nquads(SAMPLE_JSONLD)
-        self.assertIsNotNone(graph)
-        self.assertIsNotNone(nquads)
-        self.assertIsInstance(graph, Dataset)
+        assert graph is not None
+        assert nquads is not None
 
         expected_dataset = Dataset()
         subj = URIRef("http://example.org/entity1")

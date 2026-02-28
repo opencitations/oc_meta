@@ -21,8 +21,7 @@ from rdflib import Graph
 from sparqlite import SPARQLClient
 
 from oc_meta.run.count.meta_entities import OCMetaStatistics, _count_venues_in_file
-
-SERVER = 'http://127.0.0.1:8805/sparql'
+from test.test_utils import SERVER, reset_triplestore
 
 TEST_DATA = """
 @prefix fabio: <http://purl.org/spar/fabio/> .
@@ -58,8 +57,7 @@ TEST_DATA = """
 
 
 def reset_server(server: str = SERVER) -> None:
-    with SPARQLClient(server, timeout=60) as client:
-        client.update('DELETE WHERE { GRAPH ?g { ?s ?p ?o } }')
+    reset_triplestore(server)
 
 
 def load_test_data(server: str = SERVER) -> None:

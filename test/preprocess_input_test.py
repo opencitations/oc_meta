@@ -19,7 +19,7 @@ import os
 import shutil
 import tempfile
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import redis
 from oc_meta.run.meta.preprocess_input import process_csv_file

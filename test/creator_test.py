@@ -2,27 +2,21 @@ import json
 import os
 import unittest
 
-import redis
-from oc_meta.core.creator import *
+from oc_meta.core.creator import Creator
 from oc_meta.lib.file_manager import get_csv_data
 from oc_meta.lib.finder import ResourceFinder
-from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
-from rdflib import XSD, Graph, compare
+from rdflib import XSD, Graph, URIRef, compare
 from rdflib.term import _toPythonMapping
-from sparqlite import SPARQLClient
+from test.test_utils import (
+    SERVER,
+    get_counter_handler,
+    reset_redis_counters,
+    reset_triplestore,
+)
 
-SERVER = 'http://127.0.0.1:8805/sparql'
 
-def reset_redis_counters():
-    redis_host = 'localhost'
-    redis_port = 6381
-    redis_db = 5
-    redis_client = redis.Redis(host=redis_host, port=redis_port, db=redis_db)
-    redis_client.flushdb()
-
-def reset_server(server:str=SERVER) -> None:
-    with SPARQLClient(server, timeout=60) as client:
-        client.update('DELETE WHERE { GRAPH ?g { ?s ?p ?o } }')
+def reset_server(server: str = SERVER) -> None:
+    reset_triplestore(server)
 
 # The following function has been added for handling gYear and gYearMonth correctly.
 # Source: https://github.com/opencitations/script/blob/master/ocdm/storer.py
@@ -52,7 +46,7 @@ def prepare2test(name):
     testcase_vi = open_json("test/testcases/testcase_data/indices/" + name + "/index_vi_" + name + ".json")
     testcase_ttl = "test/testcases/testcase_" + name + ".ttl"
 
-    counter_handler = RedisCounterHandler(host='localhost', port=6381, db=5)
+    counter_handler = get_counter_handler()
     finder = ResourceFinder(ts_url=SERVER, base_iri="https://w3id.org/oc/meta/", local_g=Graph())
     creator = Creator(data, finder, "https://w3id.org/oc/meta/", counter_handler, "060", 'https://orcid.org/0000-0002-8420-0696', testcase_id_ra, testcase_id_br,
                       testcase_re, testcase_ar, testcase_vi)
@@ -69,7 +63,7 @@ class test_Creator(unittest.TestCase):
     def setUp(self):
         reset_server()
         reset_redis_counters()
-        self.counter_handler = RedisCounterHandler(host='localhost', port=6381, db=5)
+        self.counter_handler = get_counter_handler()
 
     def tearDown(self):
         reset_redis_counters()
@@ -81,8 +75,10 @@ class test_Creator(unittest.TestCase):
         creator = Creator([], finder, base_iri, self.counter_handler, "060", 'https://orcid.org/0000-0002-8420-0696', [], [], [], [], vvi)
         creator.src = None
         creator.type = 'journal article'
-        preexisting_graph = creator.finder.get_subgraph(URIRef(f'{base_iri}br/0601'))
-        creator.br_graph = creator.setgraph.add_br('https://orcid.org/0000-0002-8420-0696', None, URIRef(f'{base_iri}br/0601'), preexisting_graph=preexisting_graph)
+        creator.br_graph = creator.setgraph.add_br(
+            resp_agent='https://orcid.org/0000-0002-8420-0696',
+            res=URIRef(f'{base_iri}br/0601'),
+        )
         creator.vvi_action('OECD [omid:br/0602]', '107', '1')
         output_graph = Graph()
         for g in creator.setgraph.graphs():

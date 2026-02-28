@@ -20,8 +20,7 @@ import os
 import unittest
 from shutil import rmtree
 
-from oc_meta.lib.file_manager import (read_zipped_json, rm_tmp_csv_files,
-                                      unzip_files_in_dir, zip_files_in_dir)
+from oc_meta.lib.file_manager import (read_zipped_json, unzip_files_in_dir, zip_files_in_dir)
 
 BASE = os.path.join('test', 'file_manager')
 UNZIPPED_DIR = os.path.join(BASE, 'unzipped_dir')

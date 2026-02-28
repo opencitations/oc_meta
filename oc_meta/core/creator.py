@@ -48,12 +48,12 @@ class Creator(object):
         counter_handler: RedisCounterHandler,
         supplier_prefix: str,
         resp_agent: str,
-        ra_index: dict,
-        br_index: dict,
-        re_index_csv: dict,
-        ar_index_csv: dict,
+        ra_index: list,
+        br_index: list,
+        re_index_csv: list,
+        ar_index_csv: list,
         vi_index: dict,
-        silencer: list = None,
+        silencer: list | None = None,
     ):
         self.url = base_iri
         self.setgraph = GraphSet(

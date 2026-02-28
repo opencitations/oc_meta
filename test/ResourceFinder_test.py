@@ -3,57 +3,13 @@ import unittest
 
 from oc_meta.lib.finder import ResourceFinder
 from oc_ocdm.graph import GraphEntity
-from rdflib import Dataset, Graph, Literal, URIRef
+from rdflib import Graph, Literal, URIRef
 from sparqlite import SPARQLClient
+from test.test_utils import add_data_ts, reset_triplestore
 
 
-def get_path(path:str) -> str:
-    # absolute_path:str = os.path.abspath(path)
-    universal_path = path.replace('\\', '/')
-    return universal_path
-
-def add_data_ts(server, data_path, batch_size:int=100, default_graph_uri=URIRef("http://default.graph/")):
-    f_path = get_path(data_path)
-
-    file_extension = os.path.splitext(f_path)[1].lower()
-    if file_extension == '.nt':
-        g = Graph()
-        g.parse(location=f_path, format='nt')
-    elif file_extension == '.nq':
-        g = Dataset()
-        g.parse(location=f_path, format='nquads')
-    elif file_extension == '.ttl':
-        g = Graph()
-        g.parse(location=f_path, format='turtle')
-    else:
-        raise ValueError(f"Unsupported file extension: {file_extension}")
-
-    triples_list = []
-    if file_extension == '.nt':
-        for subj, pred, obj in g:
-            triples_list.append((subj, pred, obj, default_graph_uri))
-    elif file_extension == '.nq':
-        for subj, pred, obj, ctx in g.quads((None, None, None, None)):
-            triples_list.append((subj, pred, obj, ctx))
-
-    with SPARQLClient(server, timeout=60) as client:
-        for i in range(0, len(triples_list), batch_size):
-            batch_triples = triples_list[i:i + batch_size]
-
-            triples_str = ""
-            for subj, pred, obj, ctx in batch_triples:
-                if ctx:
-                    triples_str += f"GRAPH {ctx.n3().replace('[', '').replace(']', '')} {{ {subj.n3()} {pred.n3()} {obj.n3()} }} "
-                else:
-                    triples_str += f"{subj.n3()} {pred.n3()} {obj.n3()} . "
-
-            query = f"INSERT DATA {{ {triples_str} }}"
-            client.update(query)
-
-def reset_server(server) -> None:
-    with SPARQLClient(server, timeout=60) as client:
-        for graph in {'https://w3id.org/oc/meta/br/', 'https://w3id.org/oc/meta/ra/', 'https://w3id.org/oc/meta/re/', 'https://w3id.org/oc/meta/id/', 'https://w3id.org/oc/meta/ar/'}:
-            client.update(f'CLEAR GRAPH <{graph}>')
+def reset_server(server: str) -> None:
+    reset_triplestore(server)
 
 class TestResourceFinder(unittest.TestCase):
     @classmethod
@@ -67,7 +23,7 @@ class TestResourceFinder(unittest.TestCase):
         reset_server(server=ENDPOINT)
         # Upload data
         add_data_ts(server=ENDPOINT, data_path=REAL_DATA_FILE)
-        cls.finder.get_everything_about_res(metavals={'omid:br/2373', 'omid:br/2380', 'omid:br/2730', 'omid:br/2374', 'omid:br/4435', 'omid:br/4436', 'omid:br/4437', 'omid:br/4438', 'omid:br/0604750', 'omid:br/0605379', 'omid:br/0606696'}, identifiers={'doi:10.1001/.391', 'orcid:0000-0001-6994-8412'}, vvis={})
+        cls.finder.get_everything_about_res(metavals={'omid:br/2373', 'omid:br/2380', 'omid:br/2730', 'omid:br/2374', 'omid:br/4435', 'omid:br/4436', 'omid:br/4437', 'omid:br/4438', 'omid:br/0604750', 'omid:br/0605379', 'omid:br/0606696'}, identifiers={'doi:10.1001/.391', 'orcid:0000-0001-6994-8412'}, vvis=set())
 
     def test_retrieve_br_from_id(self):
         value = '10.1001/.391'
@@ -499,7 +455,6 @@ class TestVVIQueryIsolation(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         ENDPOINT = 'http://127.0.0.1:8805/sparql'
-        BASE_IRI = 'https://w3id.org/oc/meta/'
         reset_server(server=ENDPOINT)
 
         # Upload test data: two venues with different ISSNs, each with their own volume

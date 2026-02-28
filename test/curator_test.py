@@ -1,18 +1,21 @@
-import csv
-import shutil
+import json
+import os
 import unittest
 
-import redis
 from oc_meta.core.creator import Creator
-from oc_meta.core.curator import *
+from oc_meta.core.curator import Curator, is_a_valid_row
 from oc_meta.lib.file_manager import get_csv_data
 from oc_meta.lib.finder import ResourceFinder
 from oc_ocdm import Storer
-from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
-from rdflib import Dataset, Graph
-from sparqlite import SPARQLClient
+from test.test_utils import (
+    SERVER,
+    add_data_ts,
+    get_counter_handler,
+    get_path,
+    reset_redis_counters,
+    reset_triplestore,
+)
 
-SERVER = 'http://127.0.0.1:8805/sparql'
 BASE_DIR = os.path.join('test')
 MANUAL_DATA_CSV = f'{BASE_DIR}/manual_data.csv'
 MANUAL_DATA_RDF = f'{BASE_DIR}/testcases/ts/testcase_ts-13.ttl'
@@ -24,77 +27,28 @@ CURATOR_COUNTER_DIR = f'{BASE_DIR}/curator_counter'
 OUTPUT_DIR = f'{BASE_DIR}/output'
 PROV_CONFIG = f'{BASE_DIR}/prov_config.json'
 
-# Redis configuration
-REDIS_HOST = 'localhost'
-REDIS_PORT = 6381
-REDIS_DB = 5
 
-def get_path(path:str) -> str:
-    # absolute_path:str = os.path.abspath(path)
-    universal_path = path.replace('\\', '/')
-    return universal_path
+def reset_server(server: str = SERVER) -> None:
+    reset_triplestore(server)
 
-def reset_redis_counters():
-    redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
-    redis_client.flushdb()
-
-def get_counter_handler():
-    return RedisCounterHandler(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
-
-def reset():
-    reset_redis_counters()
-
-def reset_server(server:str=SERVER) -> None:
-    with SPARQLClient(server, timeout=60) as client:
-        for graph in {'https://w3id.org/oc/meta/br/', 'https://w3id.org/oc/meta/ra/', 'https://w3id.org/oc/meta/re/', 'https://w3id.org/oc/meta/id/', 'https://w3id.org/oc/meta/ar/', 'http://default.graph/'}:
-            client.update(f'CLEAR GRAPH <{graph}>')
-
-def add_data_ts(server:str=SERVER, data_path:str=os.path.abspath(os.path.join('test', 'testcases', 'ts', 'real_data.nt')).replace('\\', '/'), batch_size:int=100, default_graph_uri=URIRef("http://default.graph/")):
-    reset_server(server)
-    f_path = get_path(data_path)
-
-    file_extension = os.path.splitext(f_path)[1].lower()
-    if file_extension == '.nt':
-        g = Graph()
-        g.parse(location=f_path, format='nt')
-    elif file_extension == '.nq':
-        g = Dataset(default_union=True)
-        g.parse(location=f_path, format='nquads')
-    elif file_extension == '.ttl':
-        g = Graph()
-        g.parse(location=f_path, format='turtle')
-    else:
-        raise ValueError(f"Unsupported file extension: {file_extension}")
-
-    triples_list = []
-    if file_extension in {'.nt', '.ttl'}:
-        for subj, pred, obj in g:
-            triples_list.append((subj, pred, obj, default_graph_uri))
-    elif file_extension == '.nq':
-        for subj, pred, obj, ctx in g.quads():
-            triples_list.append((subj, pred, obj, ctx))
-
-    with SPARQLClient(server, timeout=60) as client:
-        for i in range(0, len(triples_list), batch_size):
-            batch_triples = triples_list[i:i + batch_size]
-
-            triples_str = ""
-            for subj, pred, obj, ctx in batch_triples:
-                if ctx:
-                    triples_str += f"GRAPH {ctx.n3().replace('[', '').replace(']', '')} {{ {subj.n3()} {pred.n3()} {obj.n3()} }} "
-                else:
-                    triples_str += f"{subj.n3()} {pred.n3()} {obj.n3()} . "
-
-            query = f"INSERT DATA {{ {triples_str} }}"
-            client.update(query)
-
-def store_curated_data(curator_obj:Curator, server:str) -> None:
-    creator_obj = Creator(curator_obj.data, curator_obj.finder, BASE_IRI, None, None, 'https://orcid.org/0000-0002-8420-0696',
-                            curator_obj.index_id_ra, curator_obj.index_id_br, curator_obj.re_index,
-                            curator_obj.ar_index, curator_obj.VolIss)
+def store_curated_data(curator_obj: Curator, server: str) -> None:
+    counter_handler = get_counter_handler()
+    creator_obj = Creator(
+        curator_obj.data,
+        curator_obj.finder,
+        BASE_IRI,
+        counter_handler,
+        "060",
+        "https://orcid.org/0000-0002-8420-0696",
+        curator_obj.index_id_ra,
+        curator_obj.index_id_br,
+        curator_obj.re_index,
+        curator_obj.ar_index,
+        curator_obj.VolIss,
+    )
     creator = creator_obj.creator(source=None)
     res_storer = Storer(creator)
-    res_storer.upload_all(server, base_dir=None, batch_size=100)
+    res_storer.upload_all(server)
 
 def prepare_to_test(data, name):
     reset_redis_counters()
