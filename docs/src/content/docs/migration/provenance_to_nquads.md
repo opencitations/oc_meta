@@ -46,8 +46,7 @@ uv run python -m oc_meta.run.migration.provenance_to_nquads /srv/oc_meta/rdf /da
 At completion, the script reports the number of successfully processed files and failures:
 
 ```
------ Final Report -----
-Successfully processed files: 12345
-Failed files: 0
------------------------
+Final report
+  Success: 12345
+  Failed:  0
 ```

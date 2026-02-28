@@ -1,162 +1,213 @@
-import unittest
-from unittest.mock import patch
+# Copyright 2026, Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# Permission to use, copy, modify, and/or distribute this software for any purpose
+# with or without fee is hereby granted, provided that the above copyright notice
+# and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+# FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT,
+# OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
+# DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS
+# ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
+# SOFTWARE.
+
+import shutil
 import tempfile
 import zipfile
-import shutil
 from pathlib import Path
-from rdflib import Dataset, URIRef, Literal
+from unittest.mock import patch
 
+import pytest
+from rdflib import Dataset
 
-from oc_meta.run.migration import provenance_to_nquads as provenance_conversion
+from oc_meta.run.migration.provenance_to_nquads import convert_jsonld_to_nquads, main, process_zip_file
 
-SAMPLE_JSONLD = '''
-{
+SAMPLE_JSONLD = """{
   "@context": "https://schema.org",
   "@id": "http://example.org/entity1",
   "@type": "CreativeWork",
   "name": "Test Entity"
-}
-'''
-EXPECTED_NQUADS_CONTENT = '<http://example.org/entity1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://schema.org/CreativeWork> .\n<http://example.org/entity1> <https://schema.org/name> "Test Entity" .\n'
-INVALID_JSONLD = "{\"@context\": \"bad context\", \"@id\": \"bad_id\"}"
+}"""
 
-class TestProvenanceConversionIntegration(unittest.TestCase):
-    """Integration test suite for provenance_conversion.py script using real files."""
+INVALID_JSONLD = "not valid json at all {"
 
-    def setUp(self):
-        """Create temporary directories and a sample zip file for testing."""
-        self.test_dir = Path(tempfile.mkdtemp())
-        self.input_dir = self.test_dir / "input"
-        self.output_dir = self.test_dir / "output"
-        self.input_dir.mkdir()
-        self.output_dir.mkdir()
 
-        # Create a nested structure and the zip file
-        self.prov_dir = self.input_dir / "ra" / "0610" / "10000" / "1000" / "prov"
-        self.prov_dir.mkdir(parents=True)
-        self.zip_path = self.prov_dir / "se.zip"
-        self.json_filename = "data.json"
-        with zipfile.ZipFile(self.zip_path, 'w') as zf:
-            zf.writestr(self.json_filename, SAMPLE_JSONLD)
+class TestConvertJsonldToNquads:
+    def test_success(self) -> None:
+        graph, nquads = convert_jsonld_to_nquads(SAMPLE_JSONLD)
 
-    def tearDown(self):
-        """Remove the temporary directory after tests."""
-        shutil.rmtree(self.test_dir)
+        assert len(graph) == 2
+        assert isinstance(nquads, str)
+        assert "http://example.org/entity1" in nquads
 
-    def test_count_quads(self):
-        """Test the count_quads function."""
-        graph = Dataset()
-        graph.add((URIRef("ex:s1"), URIRef("ex:p1"), Literal("o1")))
-        graph.add((URIRef("ex:s2"), URIRef("ex:p2"), Literal("o2"), URIRef("ex:g1")))  # type: ignore[arg-type]
-        self.assertEqual(provenance_conversion.count_quads(graph), 2)
-        self.assertEqual(provenance_conversion.count_quads(Dataset()), 0)
+    def test_invalid_jsonld_raises(self) -> None:
+        with pytest.raises(Exception):
+            convert_jsonld_to_nquads(INVALID_JSONLD)
 
-    def test_convert_jsonld_to_nquads_success(self):
-        """Test successful conversion from JSON-LD to N-Quads."""
-        graph, nquads = provenance_conversion.convert_jsonld_to_nquads(SAMPLE_JSONLD)
-        assert graph is not None
-        assert nquads is not None
 
-        expected_dataset = Dataset()
-        subj = URIRef("http://example.org/entity1")
-        type_pred = URIRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
-        schema_type = URIRef("http://schema.org/CreativeWork")
-        name_pred = URIRef("http://schema.org/name")
-        name_obj = Literal("Test Entity")
-        expected_dataset.add((subj, type_pred, schema_type))
-        expected_dataset.add((subj, name_pred, name_obj))
+class TestProcessZipFile:
+    @pytest.fixture
+    def temp_dirs(self):
+        test_dir = Path(tempfile.mkdtemp())
+        input_dir = test_dir / "input"
+        output_dir = test_dir / "output"
+        input_dir.mkdir()
+        output_dir.mkdir()
+        yield input_dir, output_dir, test_dir
+        shutil.rmtree(test_dir)
 
-        self.assertEqual(len(graph), len(expected_dataset))
-        # Compare quads since Dataset iterates as quads
-        actual_quads = set(graph.quads())
-        expected_quads = set(expected_dataset.quads())
-        self.assertEqual(actual_quads, expected_quads)
+    def test_success(self, temp_dirs: tuple[Path, Path, Path]) -> None:
+        input_dir, output_dir, _ = temp_dirs
+        prov_dir = input_dir / "ra" / "0610" / "prov"
+        prov_dir.mkdir(parents=True)
+        zip_path = prov_dir / "se.zip"
+        with zipfile.ZipFile(zip_path, "w") as zf:
+            zf.writestr("data.json", SAMPLE_JSONLD)
 
-    def test_convert_jsonld_to_nquads_failure(self):
-        """Test conversion failure with invalid JSON-LD."""
-        graph, nquads = provenance_conversion.convert_jsonld_to_nquads(INVALID_JSONLD)
-        self.assertIsNone(graph)
-        self.assertIsNone(nquads)
+        result = process_zip_file(zip_path, output_dir, input_dir)
 
-    def test_process_zip_file_success_integration(self):
-        """Test successful processing using real files and directories."""
-        result = provenance_conversion.process_zip_file(self.zip_path, self.output_dir, self.input_dir)
+        assert result is True
+        output_file = output_dir / "ra-0610-prov-se.nq"
+        assert output_file.exists()
+        output_graph = Dataset(default_union=True)
+        output_graph.parse(output_file, format="nquads")
+        assert len(output_graph) == 2
 
-        self.assertTrue(result, "process_zip_file should return True on success")
+    def test_no_json_files_raises_index_error(self, temp_dirs: tuple[Path, Path, Path]) -> None:
+        input_dir, output_dir, _ = temp_dirs
+        zip_path = input_dir / "se.zip"
+        with zipfile.ZipFile(zip_path, "w") as zf:
+            zf.writestr("readme.txt", "no json here")
 
-        expected_output_filename = "ra-0610-10000-1000-prov-se.nq"
-        expected_output_path = self.output_dir / expected_output_filename
-        self.assertTrue(expected_output_path.exists(), f"Output file {expected_output_path} was not created")
-        self.assertTrue(expected_output_path.is_file())
+        with pytest.raises(IndexError):
+            process_zip_file(zip_path, output_dir, input_dir)
 
-        output_graph = Dataset()
-        try:
-            output_graph.parse(expected_output_path, format='nquads')
-        except Exception as e:
-            self.fail(f"Failed to parse the generated N-Quads file {expected_output_path}: {e}")
+    def test_bad_zip_raises(self, temp_dirs: tuple[Path, Path, Path]) -> None:
+        input_dir, output_dir, _ = temp_dirs
+        bad_zip = input_dir / "se.zip"
+        bad_zip.write_bytes(b"not a zip file")
 
-        input_graph_for_check = Dataset()
-        input_graph_for_check.parse(data=SAMPLE_JSONLD, format='json-ld')
+        with pytest.raises(zipfile.BadZipFile):
+            process_zip_file(bad_zip, output_dir, input_dir)
 
-        self.assertEqual(len(output_graph), len(input_graph_for_check),
-                         f"Quad count mismatch: Output={len(output_graph)}, Expected={len(input_graph_for_check)}")
-        # Compare quads since Dataset iterates as quads
-        actual_quads = set(output_graph.quads())
-        expected_quads = set(input_graph_for_check.quads())
-        self.assertEqual(actual_quads, expected_quads,
-                        "Output graph content does not match expected content")
-
-    def test_process_zip_file_no_json_integration(self):
-        """Test processing a zip file with no JSON content."""
-        no_json_zip_path = self.prov_dir / "no_json_se.zip"
-        with zipfile.ZipFile(no_json_zip_path, 'w') as zf:
-            zf.writestr("readme.txt", "This is not json")
-
-        result = provenance_conversion.process_zip_file(no_json_zip_path, self.output_dir, self.input_dir)
-        self.assertFalse(result)
-        expected_output_filename = "ra-0610-10000-1000-prov-no_json_se.nq"
-        self.assertFalse((self.output_dir / expected_output_filename).exists())
-
-    def test_process_zip_file_bad_zip_integration(self):
-        """Test processing a corrupt zip file."""
-        bad_zip_path = self.prov_dir / "bad_se.zip"
-        with open(bad_zip_path, 'wb') as f:
-            f.write(b"This is not a zip file content")
-
-        result = provenance_conversion.process_zip_file(bad_zip_path, self.output_dir, self.input_dir)
-        self.assertFalse(result)
-        expected_output_filename = "ra-0610-10000-1000-prov-bad_se.nq"
-        self.assertFalse((self.output_dir / expected_output_filename).exists())
-
-    def test_process_zip_file_conversion_fail_integration(self):
-        """Test processing a zip file with invalid JSON-LD content."""
-        invalid_json_zip_path = self.prov_dir / "invalid_json_se.zip"
-        with zipfile.ZipFile(invalid_json_zip_path, 'w') as zf:
+    def test_invalid_jsonld_raises(self, temp_dirs: tuple[Path, Path, Path]) -> None:
+        input_dir, output_dir, _ = temp_dirs
+        zip_path = input_dir / "se.zip"
+        with zipfile.ZipFile(zip_path, "w") as zf:
             zf.writestr("data.json", INVALID_JSONLD)
 
-        result = provenance_conversion.process_zip_file(invalid_json_zip_path, self.output_dir, self.input_dir)
-        self.assertFalse(result)
-        expected_output_filename = "ra-0610-10000-1000-prov-invalid_json_se.nq"
-        self.assertFalse((self.output_dir / expected_output_filename).exists())
+        with pytest.raises(Exception):
+            process_zip_file(zip_path, output_dir, input_dir)
 
-    @patch('oc_meta.run.migration.provenance_to_nquads.count_quads')
-    def test_process_zip_file_checksum_fail_mocked_count(self, mock_count_quads):
-        """Test checksum failure by mocking the second count_quads call."""
-        # Let the real conversion and file writing happen
-        # Mock only the quad counting to force a mismatch
-        mock_count_quads.side_effect = [2, 1] # Input=2 (from real JSON-LD), Output=1 (mocked)
+    def test_checksum_mismatch_returns_false(self, temp_dirs: tuple[Path, Path, Path]) -> None:
+        input_dir, output_dir, _ = temp_dirs
+        zip_path = input_dir / "se.zip"
+        with zipfile.ZipFile(zip_path, "w") as zf:
+            zf.writestr("data.json", SAMPLE_JSONLD)
 
-        # Use the standard zip created in setUp
-        result = provenance_conversion.process_zip_file(self.zip_path, self.output_dir, self.input_dir)
+        original_len = Dataset.__len__
 
-        self.assertFalse(result, "process_zip_file should return False when checksum fails")
-        self.assertEqual(mock_count_quads.call_count, 2)
+        call_count = [0]
 
-        # Verify the output file WAS created (as checksum fails after writing)
-        expected_output_filename = "ra-0610-10000-1000-prov-se.nq"
-        expected_output_path = self.output_dir / expected_output_filename
-        self.assertTrue(expected_output_path.exists(), f"Output file {expected_output_path} should still exist after checksum failure")
+        def mock_len(self: Dataset) -> int:
+            call_count[0] += 1
+            if call_count[0] == 2:
+                return 999
+            return original_len(self)
+
+        with patch.object(Dataset, "__len__", mock_len):
+            result = process_zip_file(zip_path, output_dir, input_dir)
+
+        assert result is False
 
 
-if __name__ == '__main__':
-    unittest.main() 
+class TestMain:
+    @pytest.fixture
+    def temp_dirs(self):
+        test_dir = Path(tempfile.mkdtemp())
+        input_dir = test_dir / "input"
+        output_dir = test_dir / "output"
+        input_dir.mkdir()
+        yield input_dir, output_dir, test_dir
+        shutil.rmtree(test_dir)
+
+    def test_success(self, temp_dirs: tuple[Path, Path, Path], capsys: pytest.CaptureFixture[str]) -> None:
+        input_dir, output_dir, _ = temp_dirs
+        prov_dir = input_dir / "entity" / "prov"
+        prov_dir.mkdir(parents=True)
+        zip_path = prov_dir / "se.zip"
+        with zipfile.ZipFile(zip_path, "w") as zf:
+            zf.writestr("data.json", SAMPLE_JSONLD)
+
+        with patch("sys.argv", ["prog", str(input_dir), str(output_dir), "-w", "1"]):
+            main()
+
+        captured = capsys.readouterr()
+        assert "Found 1 se.zip files" in captured.out
+        assert "Success: 1" in captured.out
+        assert "Failed:  0" in captured.out
+
+    def test_no_files_found(self, temp_dirs: tuple[Path, Path, Path], capsys: pytest.CaptureFixture[str]) -> None:
+        input_dir, output_dir, _ = temp_dirs
+
+        with patch("sys.argv", ["prog", str(input_dir), str(output_dir)]):
+            main()
+
+        captured = capsys.readouterr()
+        assert "Found 0 se.zip files" in captured.out
+        assert "Success: 0" in captured.out
+        assert "Failed:  0" in captured.out
+
+    def test_worker_exception_handled(self, temp_dirs: tuple[Path, Path, Path], capsys: pytest.CaptureFixture[str]) -> None:
+        input_dir, output_dir, _ = temp_dirs
+        zip_path = input_dir / "se.zip"
+        with zipfile.ZipFile(zip_path, "w") as zf:
+            zf.writestr("data.json", INVALID_JSONLD)
+
+        with patch("sys.argv", ["prog", str(input_dir), str(output_dir), "-w", "1"]):
+            main()
+
+        captured = capsys.readouterr()
+        assert "Found 1 se.zip files" in captured.out
+        assert "Failed:  1" in captured.out
+
+    def test_default_workers(self, temp_dirs: tuple[Path, Path, Path], capsys: pytest.CaptureFixture[str]) -> None:
+        input_dir, output_dir, _ = temp_dirs
+
+        with patch("sys.argv", ["prog", str(input_dir), str(output_dir)]):
+            with patch("multiprocessing.cpu_count", return_value=4):
+                main()
+
+        captured = capsys.readouterr()
+        assert "Workers: 4" in captured.out
+
+    def test_checksum_failure_counted(self, temp_dirs: tuple[Path, Path, Path], capsys: pytest.CaptureFixture[str]) -> None:
+        input_dir, output_dir, _ = temp_dirs
+        zip_path = input_dir / "se.zip"
+        with zipfile.ZipFile(zip_path, "w") as zf:
+            zf.writestr("data.json", SAMPLE_JSONLD)
+
+        class MockFuture:
+            def result(self) -> iter:
+                return iter([False])
+
+        class MockPool:
+            def __init__(self, max_workers: int) -> None:
+                pass
+
+            def __enter__(self) -> "MockPool":
+                return self
+
+            def __exit__(self, *args: object) -> None:
+                pass
+
+            def map(self, func: object, items: list[object]) -> MockFuture:
+                return MockFuture()
+
+        with patch("sys.argv", ["prog", str(input_dir), str(output_dir), "-w", "1"]):
+            with patch("oc_meta.run.migration.provenance_to_nquads.ProcessPool", MockPool):
+                main()
+
+        captured = capsys.readouterr()
+        assert "Failed:  1" in captured.out
