@@ -63,8 +63,7 @@ export default defineConfig({
 					label: 'Count',
 					items: [
 						{ label: 'Meta entities', slug: 'count/meta_entities' },
-						{ label: 'Quads in GZ', slug: 'count/quads_in_gz' },
-						{ label: 'Triples in RDF', slug: 'count/triples_in_rdf' },
+						{ label: 'Triples', slug: 'count/triples' },
 					],
 				},
 				{
