@@ -23,12 +23,12 @@ import re
 import time
 import uuid
 from functools import lru_cache
-from typing import Match
 from zipfile import ZIP_DEFLATED, ZipFile
 
 import orjson
-import rdflib
 from rdflib import Dataset, URIRef
+from rdflib.exceptions import ParserError
+from rich_argparse import RichHelpFormatter
 from tqdm import tqdm
 
 # Variable used in several functions
@@ -37,7 +37,7 @@ prov_regex: str = r"^(.+)/([a-z][a-z])/(0[1-9]+0)?((?:[1-9][0-9]*)|(?:\d+-\d+))/
 
 @lru_cache(maxsize=1024)
 def _get_match_cached(regex: str, group: int, string: str) -> str:
-    match: Match = re.match(regex, string)
+    match = re.match(regex, string)
     if match is not None:
         return match.group(group)
     else:
@@ -251,9 +251,9 @@ def load_graph(file_path: str, cur_format: str = 'json-ld'):
                         for json_ld_resource in json_ld_file:
                             loaded_graph.parse(data=orjson.dumps(json_ld_resource).decode('utf-8'), format=cur_format)
                     else:
-                        loaded_graph.parse(file=f, format=cur_format)
+                        loaded_graph.parse(file=f, format=cur_format)  # type: ignore[arg-type]
     else:
-        with open(file_path, 'rb', encoding='utf-8') as f:
+        with open(file_path, 'rb') as f:
             if cur_format == "json-ld":
                 json_ld_file = orjson.loads(f.read())
                 if isinstance(json_ld_file, dict):
@@ -261,7 +261,7 @@ def load_graph(file_path: str, cur_format: str = 'json-ld'):
                 for json_ld_resource in json_ld_file:
                     loaded_graph.parse(data=orjson.dumps(json_ld_resource).decode('utf-8'), format=cur_format)
             else:
-                loaded_graph.parse(file=f, format=cur_format)
+                loaded_graph.parse(file=f, format=cur_format)  # type: ignore[arg-type]
 
     return loaded_graph
 
@@ -309,7 +309,7 @@ def merge_files(output_root, base_file_name, file_extension, zip_output):
         merged_graph += loaded_graph
 
     final_file_path = os.path.join(output_root, base_file_name + file_extension)
-    store_in_file(merged_graph, final_file_path, zip_output)
+    store_in_file(merged_graph, final_file_path, zip_output)  # type: ignore[arg-type]
 
 def merge_files_in_directory(directory, zip_output, stop_file):
     """Function to merge files in a specific directory"""
@@ -346,7 +346,7 @@ def merge_files_in_directory(directory, zip_output, stop_file):
             for context in loaded_graph.graphs():
                 graph_identifier = context.identifier
                 for triple in context:
-                    merged_graph.add(triple + (graph_identifier,))
+                    merged_graph.add(triple + (graph_identifier,))  # type: ignore[arg-type]
         
         final_file_path = os.path.join(directory, f"{base_file_name}" + ('.zip' if zip_output else '.json'))
         store_in_file(merged_graph, final_file_path, zip_output)
@@ -382,11 +382,13 @@ def merge_all_files_parallel(output_root, zip_output, stop_file):
 
 def process_file_content(file_path, output_root, base_iri, file_limit, item_limit, zip_output, rdf_format):
     with gzip.open(file_path, 'rb') as f:
-        data = f.read().decode('utf-8')
+        content = f.read()
+        assert isinstance(content, bytes)
+        data = content.decode('utf-8')
         graph = Dataset()
         try:
             graph.parse(data=data, format=rdf_format)
-        except rdflib.exceptions.ParserError as e:
+        except ParserError as e:
             logging.error(f"Failed to parse {file_path}: {e}")
             return
 
@@ -413,7 +415,7 @@ def process_chunk(chunk, output_root, base_iri, file_limit, item_limit, zip_outp
 def create_cache_file(cache_file):
     if cache_file:
         if not os.path.exists(cache_file):
-            with open(cache_file, 'w', encoding='utf8') as f:
+            with open(cache_file, 'w', encoding='utf8'):
                 pass  # Create an empty file
     else:
         logging.info("No cache file specified. Skipping cache creation.")
@@ -436,7 +438,10 @@ def check_stop_file(stop_file):
     return os.path.exists(stop_file)
 
 def main():
-    parser = argparse.ArgumentParser(description="Process gzipped input files into OC Meta RDF")
+    parser = argparse.ArgumentParser(
+        description="Process gzipped input files into OC Meta RDF",
+        formatter_class=RichHelpFormatter,
+    )
     parser.add_argument('input_folder', type=str, help='Input folder containing gzipped input files')
     parser.add_argument('output_root', type=str, help='Root folder for output OC Meta RDF files')
     parser.add_argument('--base_iri', type=str, default='https://w3id.org/oc/meta/', help='The base URI of entities on Meta')

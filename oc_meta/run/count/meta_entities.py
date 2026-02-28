@@ -20,9 +20,11 @@ import os
 import re
 import sys
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from typing import Dict, List, Set
+from typing import Dict, Set
 
-from rich.progress import BarColumn, Progress, TaskProgressColumn, TextColumn, TimeRemainingColumn
+from rich.progress import (BarColumn, Progress, TaskProgressColumn, TextColumn,
+                           TimeRemainingColumn)
+from rich_argparse import RichHelpFormatter
 from sparqlite import SPARQLClient
 
 from oc_meta.lib.file_manager import get_csv_data
@@ -199,7 +201,7 @@ class OCMetaStatistics:
 def main():
     parser = argparse.ArgumentParser(
         description='Compute OpenCitations Meta dataset statistics',
-        formatter_class=argparse.RawDescriptionHelpFormatter,
+        formatter_class=RichHelpFormatter,
         epilog="""
 Examples:
   # Run all statistics

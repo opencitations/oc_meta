@@ -13,6 +13,8 @@ import random
 from pathlib import Path
 from typing import Dict
 
+from rich_argparse import RichHelpFormatter
+
 
 class BenchmarkDataGenerator:
     """Generate synthetic bibliographic metadata for benchmark testing."""
@@ -157,7 +159,8 @@ class BenchmarkDataGenerator:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Generate synthetic test data for Meta benchmarks"
+        description="Generate synthetic test data for Meta benchmarks",
+        formatter_class=RichHelpFormatter,
     )
     parser.add_argument(
         "-s", "--size",

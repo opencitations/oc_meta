@@ -20,11 +20,12 @@ import argparse
 import json
 import os
 import zipfile
-from concurrent.futures import TimeoutError, as_completed
+from concurrent.futures import as_completed
 
 from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
 from oc_ocdm.support import get_prefix, get_resource_number, get_short_name
 from pebble import ProcessPool
+from rich_argparse import RichHelpFormatter
 from tqdm import tqdm
 
 
@@ -38,12 +39,12 @@ def find_max_numbered_folder(path):
             max_number = max(max_number, int(folder))
     return max_number
 
-def find_max_numbered_zip_file(folder_path):
+def find_max_numbered_zip_file(folder_path: str) -> str | None:
     """
     Trova il file zippato con il numero più elevato prima di ".zip" all'interno di una cartella.
     """
     max_number = -1
-    max_zip_file = None
+    max_zip_file: str | None = None
 
     for file_name in os.listdir(folder_path):
         if file_name.endswith(".zip"):
@@ -97,6 +98,8 @@ def explore_directories(root_path, redis_host, redis_port, redis_db):
                 supplier_path = os.path.join(main_folder_path, supplier_prefix)
                 max_folder = find_max_numbered_folder(supplier_path)
                 max_zip_file = find_max_numbered_zip_file(os.path.join(supplier_path, str(max_folder)))
+                if max_zip_file is None:
+                    continue
                 zip_file_path = os.path.join(supplier_path, str(max_folder), max_zip_file)
                 with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
                     first_file = zip_ref.namelist()[0]
@@ -121,7 +124,7 @@ def explore_directories(root_path, redis_host, redis_port, redis_db):
         results = []
         with tqdm(total=len(zip_files), desc="Processing provenance zip files") as pbar:
             for future in as_completed(future_results):
-                zip_file = future_results[future]
+                zip_file = future_results[future]  # type: ignore[index]
                 try:
                     result = future.result()
                     results.append(result)
@@ -149,7 +152,10 @@ def explore_directories(root_path, redis_host, redis_port, redis_db):
     counter_handler.batch_update_counters(final_batch_updates)
 
 def main():
-    parser = argparse.ArgumentParser(description="Esplora le directory e trova i numeri massimi.")
+    parser = argparse.ArgumentParser(
+        description="Esplora le directory e trova i numeri massimi.",
+        formatter_class=RichHelpFormatter,
+    )
     parser.add_argument("directory", type=str, help="Il percorso della directory da esplorare")
     parser.add_argument("--redis-host", type=str, default="localhost", help="L'host del server Redis")
     parser.add_argument("--redis-port", type=int, default=6379, help="La porta del server Redis")

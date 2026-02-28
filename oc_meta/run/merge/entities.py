@@ -6,11 +6,13 @@ import os
 import traceback
 from typing import Dict, List, Set
 
-from oc_meta.core.editor import MetaEditor
 from oc_ocdm.graph import GraphSet
 from rdflib import URIRef
+from rich_argparse import RichHelpFormatter
 from sparqlite import SPARQLClient
 from tqdm import tqdm
+
+from oc_meta.core.editor import MetaEditor
 
 logging.basicConfig(
     level=logging.INFO,
@@ -37,7 +39,7 @@ class EntityMerger:
         self.batch_size = 10
 
     @staticmethod
-    def get_entity_type(entity_url: str) -> str:
+    def get_entity_type(entity_url: str) -> str | None:
         parts = entity_url.split("/")
         if "oc" in parts and "meta" in parts:
             try:
@@ -349,7 +351,8 @@ class EntityMerger:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Merge entities from CSV files in a folder."
+        description="Merge entities from CSV files in a folder.",
+        formatter_class=RichHelpFormatter,
     )
     parser.add_argument(
         "csv_folder", type=str, help="Path to the folder containing CSV files"

@@ -5,6 +5,7 @@ import re
 
 import pandas as pd
 import yaml
+from rich_argparse import RichHelpFormatter
 from sparqlite import SPARQLClient
 from tqdm import tqdm
 
@@ -288,7 +289,10 @@ def save_grouped_entities(grouped_data, output_dir):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Process CSV and group entities based on SPARQL queries.')
+    parser = argparse.ArgumentParser(
+        description='Process CSV and group entities based on SPARQL queries.',
+        formatter_class=RichHelpFormatter,
+    )
     parser.add_argument('csv_file_path', type=str, help='Path to the input CSV file')
     parser.add_argument('output_dir', type=str, help='Directory to save the output files')
     parser.add_argument('meta_config', type=str, help='Path to meta configuration YAML file')

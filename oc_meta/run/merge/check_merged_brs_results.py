@@ -8,6 +8,7 @@ from multiprocessing import Pool, cpu_count
 
 import yaml
 from rdflib import RDF, Dataset, Literal, Namespace, URIRef
+from rich_argparse import RichHelpFormatter
 from sparqlite import SPARQLClient
 from tqdm import tqdm
 
@@ -289,7 +290,7 @@ def process_file_group(args):
                         tqdm.write(f"Error in file {file_path}: {issue}")
 
             # Check provenance if possible
-            if prov_graph == None:
+            if prov_graph is None:
                 tqdm.write(f"Error: Provenance file not found for entity {entity}")
             elif prov_graph == "badzip":
                 tqdm.write(f"Error: Invalid zip file for provenance of entity {entity}")
@@ -363,7 +364,10 @@ def check_entity_provenance(entity_uri, is_surviving, prov_graph, prov_file_path
             tqdm.write(f"Error in provenance file {prov_file_path}: Last snapshot {last_snapshot} of merged entity {entity_uri} is not invalidated")
 
 def main():
-    parser = argparse.ArgumentParser(description="Check merge process success on files and SPARQL endpoint for bibliographic resources")
+    parser = argparse.ArgumentParser(
+        description="Check merge process success on files and SPARQL endpoint for bibliographic resources",
+        formatter_class=RichHelpFormatter,
+    )
     parser.add_argument('csv_folder', type=str, help="Path to the folder containing CSV files")
     parser.add_argument('rdf_dir', type=str, help="Path to the RDF directory")
     parser.add_argument('--meta_config', type=str, required=True, help="Path to meta configuration file")
@@ -396,7 +400,7 @@ def main():
         tasks_by_file[file_path].append((entity, is_surviving, surviving_entity))
 
     # Convert to a list of arguments for parallel processing
-    file_groups = [(file_path, tasks, sparql_endpoint, query_output_dir) for file_path, tasks in tasks_by_file.items()]
+    file_groups = [(file_path, tasks, sparql_endpoint, args.query_output) for file_path, tasks in tasks_by_file.items()]
 
     # Process each file group in parallel
     with Pool(processes=cpu_count()) as pool:

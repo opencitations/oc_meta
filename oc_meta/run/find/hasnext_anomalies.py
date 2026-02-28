@@ -9,20 +9,12 @@ from multiprocessing import Pool
 from typing import Dict, List, Optional, Tuple
 
 import yaml
-from rich.progress import (
-    BarColumn,
-    MofNCompleteColumn,
-    Progress,
-    SpinnerColumn,
-    TextColumn,
-    TimeElapsedColumn,
-    TimeRemainingColumn,
-)
+from rich.progress import (BarColumn, MofNCompleteColumn, Progress,
+                           SpinnerColumn, TextColumn, TimeElapsedColumn,
+                           TimeRemainingColumn)
+from rich_argparse import RichHelpFormatter
 
-from oc_meta.run.meta.generate_csv import (
-    find_file,
-    load_json_from_file,
-)
+from oc_meta.run.meta.generate_csv import find_file, load_json_from_file
 
 ROLE_MAP = {
     "http://purl.org/spar/pro/author": "author",
@@ -231,6 +223,7 @@ def find_anomalies(
 
 
 def _detect_anomalies_in_file(filepath: str) -> Tuple[str, int, List[dict]]:
+    assert _worker_config is not None
     rdf_dir, dir_split_number, items_per_file = _worker_config
     anomalies: List[dict] = []
     br_count = 0
@@ -266,7 +259,8 @@ def _detect_anomalies_in_file(filepath: str) -> Tuple[str, int, List[dict]]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Detect hasNext chain anomalies in RDF data"
+        description="Detect hasNext chain anomalies in RDF data",
+        formatter_class=RichHelpFormatter,
     )
     parser.add_argument(
         "-c", "--config", required=True, help="Meta config YAML file path"

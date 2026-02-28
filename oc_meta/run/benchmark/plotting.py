@@ -55,7 +55,7 @@ def get_storage_total(run: Dict[str, Any]) -> float:
     return get_phase_duration_by_name(run, "storage")
 
 
-def apply_plot_style(ax, title: str, xlabel: str = None, ylabel: str = None, grid: bool = True):
+def apply_plot_style(ax, title: str, xlabel: str | None = None, ylabel: str | None = None, grid: bool = True):
     """Apply consistent styling to plot axes."""
     ax.set_title(title, fontweight='bold')
     if xlabel:

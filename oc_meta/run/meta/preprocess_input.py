@@ -22,6 +22,7 @@ import os
 from typing import List, Union
 
 import redis
+from rich_argparse import RichHelpFormatter
 from sparqlite import SPARQLClient
 from tqdm import tqdm
 
@@ -116,8 +117,10 @@ def check_ids_existence(ids: str, storage_type: str, storage_reference: Union[re
     if storage_type is None:
         return False
     elif storage_type == 'redis':
+        assert isinstance(storage_reference, redis.Redis)
         return check_ids_existence_redis(ids, storage_reference)
     elif storage_type == 'sparql':
+        assert isinstance(storage_reference, str)
         return check_ids_existence_sparql(ids, storage_reference)
     else:
         raise ValueError(f"Invalid storage type: {storage_type}. Must be 'redis', 'sparql', or None")
@@ -172,7 +175,8 @@ def process_csv_file(input_file, output_dir, current_file_num, rows_per_file=300
             with open(input_file, 'r', encoding='utf-8') as f:
                 reader = csv.DictReader(f)
                 fieldnames = reader.fieldnames
-                
+                assert fieldnames is not None
+
                 for row in reader:
                     stats.total_rows += 1
                     row_hash = frozenset(row.items())
@@ -243,7 +247,8 @@ def print_processing_report(all_stats: List[ProcessingStats], input_files: List[
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Process CSV files and optionally check IDs against a storage system (Redis or SPARQL)"
+        description="Process CSV files and optionally check IDs against a storage system (Redis or SPARQL)",
+        formatter_class=RichHelpFormatter,
     )
     parser.add_argument(
         "input_dir",

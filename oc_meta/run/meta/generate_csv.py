@@ -28,15 +28,9 @@ from zipfile import ZipFile
 
 import redis
 import yaml
-from rich.progress import (
-    BarColumn,
-    MofNCompleteColumn,
-    Progress,
-    SpinnerColumn,
-    TextColumn,
-    TimeElapsedColumn,
-    TimeRemainingColumn,
-)
+from rich.progress import (BarColumn, MofNCompleteColumn, Progress,
+                           SpinnerColumn, TextColumn, TimeElapsedColumn,
+                           TimeRemainingColumn)
 
 csv.field_size_limit(2**31 - 1)
 

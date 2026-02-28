@@ -9,7 +9,9 @@ from collections import defaultdict
 from typing import Dict, List, Set
 
 from rdflib import Dataset, URIRef
+from rich_argparse import RichHelpFormatter
 from tqdm import tqdm
+
 
 def process_zip_file(zip_path: str) -> Dict[tuple, Set[str]]:
     entity_info = defaultdict(set)
@@ -70,7 +72,7 @@ def process_chunk(zip_files_chunk: List[str], temp_dir: str, chunk_index: int) -
 
     return temp_file_path
 
-def read_and_analyze_zip_files(folder_path: str, csv_path: str, chunk_size: int = 5000, temp_dir: str = None):
+def read_and_analyze_zip_files(folder_path: str, csv_path: str, chunk_size: int = 5000, temp_dir: str | None = None):
     id_folder_path = os.path.join(folder_path, 'id')
 
     if not os.path.exists(id_folder_path):
@@ -121,7 +123,10 @@ def save_duplicates_to_csv(entity_info: Dict[tuple, Set[str]], csv_path: str):
         print(f"Error saving CSV file {csv_path}: {str(e)}")
 
 def main():
-    parser = argparse.ArgumentParser(description="Find duplicate identifiers by reading RDF files inside ZIP archives in an 'id' subfolder.")
+    parser = argparse.ArgumentParser(
+        description="Find duplicate identifiers by reading RDF files inside ZIP archives in an 'id' subfolder.",
+        formatter_class=RichHelpFormatter,
+    )
     parser.add_argument("folder_path", type=str, help="Path to the folder containing the 'id' subfolder")
     parser.add_argument("csv_path", type=str, help="Path to the CSV file to save duplicates")
     parser.add_argument("--chunk-size", type=int, default=5000,

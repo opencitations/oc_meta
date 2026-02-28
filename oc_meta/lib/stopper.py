@@ -18,6 +18,8 @@ __author__ = 'essepuntato'
 import argparse
 import os
 
+from rich_argparse import RichHelpFormatter
+
 
 class Stopper(object):
     def __init__(self, target_dir):
@@ -39,7 +41,7 @@ class Stopper(object):
 
 
 if __name__ == "__main__":
-    arg_parser = argparse.ArgumentParser("stopper.py")
+    arg_parser = argparse.ArgumentParser("stopper.py", formatter_class=RichHelpFormatter)
     arg_parser.add_argument("-t", "--target-dir", dest="target_dir", required=True,
                             help="The configuration file to access the ORCID API.")
     arg_parser.add_argument("--add", dest="add", default=True, action="store_true",

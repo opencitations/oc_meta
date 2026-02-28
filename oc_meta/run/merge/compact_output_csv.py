@@ -18,12 +18,18 @@ import argparse
 import csv
 import os
 from pathlib import Path
-from typing import List, Tuple, Dict
+from typing import List, Tuple, TypedDict
 
+from rich_argparse import RichHelpFormatter
 from tqdm import tqdm
 
 
-def process_merge_file(input_file: str) -> Dict[str, List[Tuple[str, str]]]:
+class MergeFileResult(TypedDict):
+    valid_entries: List[Tuple[str, str]]
+    total_rows: int
+
+
+def process_merge_file(input_file: str) -> MergeFileResult:
     """Process a single merge CSV file and return list of surviving and merged entities.
 
     Args:
@@ -88,7 +94,8 @@ def process_merge_directory(input_dir: str, output_file: str):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Process merge CSV files and combine into single output"
+        description="Process merge CSV files and combine into single output",
+        formatter_class=RichHelpFormatter,
     )
     parser.add_argument("input_dir", help="Directory containing input CSV files")
     parser.add_argument("output_file", help="Path for output CSV file")

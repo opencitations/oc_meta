@@ -45,6 +45,7 @@ dev = [
     "langdetect>=1.0.9",
     "matplotlib>=3.10.7",
     "pycountry>=22.3.5",
+    "pyright>=1.1.408",
     "pytest>=8.0.0",
     "requests-cache>=0.9.4",
     "ruff>=0.15.4",

@@ -7,10 +7,12 @@ from functools import partial
 from multiprocessing import Pool, cpu_count
 
 import yaml
-from oc_meta.core.editor import MetaEditor
 from rdflib import RDF, Dataset, Literal, Namespace, URIRef
+from rich_argparse import RichHelpFormatter
 from sparqlite import SPARQLClient
 from tqdm import tqdm
+
+from oc_meta.core.editor import MetaEditor
 
 DATACITE = "http://purl.org/spar/datacite/"
 LITERAL_REIFICATION = "http://www.essepuntato.it/2010/06/literalreification/"
@@ -303,7 +305,10 @@ def process_entity(args):
                 f.write(combined_query)
 
 def main():
-    parser = argparse.ArgumentParser(description="Check merge process success on files and SPARQL endpoint")
+    parser = argparse.ArgumentParser(
+        description="Check merge process success on files and SPARQL endpoint",
+        formatter_class=RichHelpFormatter,
+    )
     parser.add_argument('csv_folder', type=str, help="Path to the folder containing CSV files")
     parser.add_argument('rdf_dir', type=str, help="Path to the RDF directory")
     parser.add_argument('--meta_config', type=str, required=True, help="Path to meta configuration file")

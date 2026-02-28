@@ -1,10 +1,12 @@
 import argparse
+import csv
+import json
+import logging
 import os
 import zipfile
-import json
-import csv
+
+from rich_argparse import RichHelpFormatter
 from tqdm import tqdm
-import logging
 
 logging.basicConfig(filename='error_log_find_duplicated_resources.txt', level=logging.ERROR, 
                     format='%(asctime)s - %(levelname)s - %(message)s')
@@ -156,7 +158,10 @@ def find_duplicates(resources):
     return [sorted(group) for group in groups.values() if len(group) > 1]
 
 def main():
-    parser = argparse.ArgumentParser(description="Trova risorse duplicate in base ai loro ID.")
+    parser = argparse.ArgumentParser(
+        description="Trova risorse duplicate in base ai loro ID.",
+        formatter_class=RichHelpFormatter,
+    )
     parser.add_argument("folder_path", type=str, help="Percorso della cartella contenente le sottocartelle 'br' e 'ra'")
     parser.add_argument("csv_path", type=str, help="Percorso del file CSV per salvare i duplicati")
     parser.add_argument("resource_type", type=str, choices=['br', 'ra', 'both'], 

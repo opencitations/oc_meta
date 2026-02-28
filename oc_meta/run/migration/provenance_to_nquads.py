@@ -24,7 +24,8 @@ from pathlib import Path
 from pebble import ProcessPool
 from rdflib import Dataset
 from rich.console import Console
-from rich.progress import BarColumn, MofNCompleteColumn, Progress, TextColumn, TimeElapsedColumn, TimeRemainingColumn
+from rich.progress import (BarColumn, MofNCompleteColumn, Progress, TextColumn,
+                           TimeElapsedColumn, TimeRemainingColumn)
 from rich_argparse import RichHelpFormatter
 
 console = Console(stderr=True)

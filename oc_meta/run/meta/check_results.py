@@ -8,11 +8,14 @@ from datetime import datetime
 from typing import Callable, Dict, List, Set, TypeVar
 
 import yaml
-from oc_meta.lib.cleaner import Cleaner
-from oc_meta.lib.master_of_regex import name_and_ids, semicolon_in_people_field
-from rich.progress import Progress, BarColumn, TaskProgressColumn, TimeRemainingColumn, TextColumn
+from rich.progress import (BarColumn, Progress, TaskProgressColumn, TextColumn,
+                           TimeRemainingColumn)
+from rich_argparse import RichHelpFormatter
 from sparqlite import SPARQLClient
 from sparqlite.exceptions import EndpointError
+
+from oc_meta.lib.cleaner import Cleaner
+from oc_meta.lib.master_of_regex import name_and_ids, semicolon_in_people_field
 
 T = TypeVar('T')
 
@@ -251,6 +254,7 @@ def process_csv_file(args: tuple, progress=None, task_id=None):
     for row_num, col, identifier in row_identifiers:
         id_key = f"{identifier['schema']}:{identifier['value']}"
 
+        omids: set = set()
         if identifier['schema'].lower() == 'omid':
             pass
         else:
@@ -456,7 +460,7 @@ def write_aggregated_summary(
 
     total_omids_checked = total_omids_with_provenance + total_omids_without_provenance
     if total_omids_checked > 0:
-        f.write(f"\nProvenance in Triplestore:\n")
+        f.write("\nProvenance in Triplestore:\n")
         f.write(f"  OMIDs with provenance: {total_omids_with_provenance} ({(total_omids_with_provenance/total_omids_checked*100):.2f}%)\n")
         f.write(f"  OMIDs without provenance: {total_omids_without_provenance} ({(total_omids_without_provenance/total_omids_checked*100):.2f}%)\n")
     else:
@@ -477,7 +481,10 @@ def write_aggregated_summary(
     f.flush()
 
 def main():
-    parser = argparse.ArgumentParser(description="Check MetaProcess results by verifying input CSV identifiers")
+    parser = argparse.ArgumentParser(
+        description="Check MetaProcess results by verifying input CSV identifiers",
+        formatter_class=RichHelpFormatter,
+    )
     parser.add_argument("meta_config", help="Path to meta_config.yaml file")
     parser.add_argument("output", help="Output file path for results")
     args = parser.parse_args()

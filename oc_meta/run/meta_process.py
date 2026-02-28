@@ -24,29 +24,30 @@ import glob
 import json
 import multiprocessing
 import os
+import sys
 import traceback
 from argparse import ArgumentParser
 from datetime import datetime
-import sys
 from sys import executable, platform
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 import redis
 import yaml
+from oc_ocdm import Storer
+from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
+from oc_ocdm.prov import ProvSet
+from oc_ocdm.support.reporter import Reporter
+from piccione.upload.on_triplestore import upload_sparql_updates
+from time_agnostic_library.support import generate_config_file
+from tqdm import tqdm
+from virtuoso_utilities.bulk_load import bulk_load
+
 from oc_meta.core.creator import Creator
 from oc_meta.core.curator import Curator
 from oc_meta.lib.file_manager import (get_csv_data, init_cache, normalize_path,
                                       pathoo, sort_files)
 from oc_meta.lib.timer import ProcessTimer
 from oc_meta.run.benchmark.plotting import plot_incremental_progress
-from piccione.upload.on_triplestore import upload_sparql_updates
-from oc_ocdm import Storer
-from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
-from oc_ocdm.prov import ProvSet
-from oc_ocdm.support.reporter import Reporter
-from time_agnostic_library.support import generate_config_file
-from tqdm import tqdm
-from virtuoso_utilities.bulk_load import bulk_load
 
 
 class BulkLoadError(Exception):
@@ -207,8 +208,8 @@ class MetaProcess:
         filename: str,
         cache_path: str,
         errors_path: str,
-        settings: str | None = None,
-        meta_config_path: str = None,
+        settings: dict | None = None,
+        meta_config_path: str | None = None,
     ) -> Tuple[dict, str, str, str]:
         try:
             with self.timer.timer("total_processing"):
@@ -523,7 +524,7 @@ def run_meta_process(
         for idx, filename in enumerate(files_to_be_processed, 1):
             try:
                 if os.path.exists(os.path.join(meta_process_setup.base_output_dir, ".stop")):
-                    print(f"\nStop file detected. Halting processing.")
+                    print("\nStop file detected. Halting processing.")
                     break
 
                 if enable_timing:

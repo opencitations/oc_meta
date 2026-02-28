@@ -16,21 +16,13 @@ import requests
 import yaml
 from oc_ocdm.graph import GraphSet
 from rdflib import URIRef
-from rich.progress import (
-    BarColumn,
-    MofNCompleteColumn,
-    Progress,
-    SpinnerColumn,
-    TextColumn,
-    TimeElapsedColumn,
-    TimeRemainingColumn,
-)
+from rich.progress import (BarColumn, MofNCompleteColumn, Progress,
+                           SpinnerColumn, TextColumn, TimeElapsedColumn,
+                           TimeRemainingColumn)
+from rich_argparse import RichHelpFormatter
 
-from oc_meta.run.meta.generate_csv import (
-    find_file,
-    load_json_from_file,
-)
 from oc_meta.core.editor import MetaEditor
+from oc_meta.run.meta.generate_csv import find_file, load_json_from_file
 
 HAS_IDENTIFIER = "http://purl.org/spar/datacite/hasIdentifier"
 USES_ID_SCHEME = "http://purl.org/spar/datacite/usesIdentifierScheme"
@@ -66,8 +58,10 @@ SESSION.headers.update(
 )
 
 
-def get_supplier_prefix(uri: str) -> str:
+def get_supplier_prefix(uri: str) -> str | None:
     match = re.match(r"^(.+)/([a-z][a-z])/(0[1-9]+0)?([1-9][0-9]*)$", uri)
+    if match is None:
+        return None
     return match.group(3)
 
 
@@ -305,7 +299,7 @@ def fetch_pubmed(pmid: str) -> Optional[dict]:
         for i, author_elem in enumerate(author_list.findall("Author")):
             orcid = None
             for ident in author_elem.findall("Identifier"):
-                if ident.get("Source") == "ORCID":
+                if ident.get("Source") == "ORCID" and ident.text is not None:
                     orcid = _strip_orcid_url(ident.text)
                     break
             authors.append({
@@ -653,6 +647,7 @@ def dry_run(
 def apply_correction(editor: MetaEditor, correction: dict) -> None:
     br_uri = correction["br"]
     supplier_prefix = get_supplier_prefix(br_uri)
+    assert supplier_prefix is not None
     g_set = GraphSet(
         editor.base_iri,
         supplier_prefix=supplier_prefix,
@@ -670,10 +665,12 @@ def apply_correction(editor: MetaEditor, correction: dict) -> None:
         batch_size=10,
     )
     br_entity = g_set.get_entity(URIRef(br_uri))
+    assert br_entity is not None
     for ar_uri in correction["delete_ars"]:
         ar_entity = g_set.get_entity(URIRef(ar_uri))
-        ar_entity.remove_next()
-        br_entity.remove_contributor(ar_entity)
+        assert ar_entity is not None
+        ar_entity.remove_next()  # type: ignore[attr-defined]
+        br_entity.remove_contributor(ar_entity)  # type: ignore[attr-defined]
         ar_entity.mark_as_to_be_deleted()
     editor.save(g_set, supplier_prefix)
 
@@ -717,7 +714,8 @@ def execute(config_path: str, plan_path: str, resp_agent: str) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Fix hasNext chain anomalies in RDF data"
+        description="Fix hasNext chain anomalies in RDF data",
+        formatter_class=RichHelpFormatter,
     )
     parser.add_argument(
         "-c", "--config", required=True, help="Meta config YAML file path"

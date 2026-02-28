@@ -21,11 +21,14 @@ from urllib.parse import urlparse
 
 import redis
 import yaml
+from rich_argparse import RichHelpFormatter
 
 from oc_meta.lib import file_manager
 from oc_meta.lib.timer import ProcessTimer
-from oc_meta.run.benchmark.generate_benchmark_data import BenchmarkDataGenerator
-from oc_meta.run.benchmark.plotting import plot_benchmark_results, plot_single_run_results
+from oc_meta.run.benchmark.generate_benchmark_data import \
+    BenchmarkDataGenerator
+from oc_meta.run.benchmark.plotting import (plot_benchmark_results,
+                                            plot_single_run_results)
 from oc_meta.run.benchmark.preload_high_author_data import (
     generate_atlas_paper_csv, generate_atlas_update_csv, preload_data)
 from oc_meta.run.benchmark.statistics import BenchmarkStatistics
@@ -72,7 +75,7 @@ class MetaBenchmark:
             self._delete_input_file(csv)
         self._delete_time_agnostic_config()
 
-        print(f"[Cleanup] Completed")
+        print("[Cleanup] Completed")
 
     def _reset_virtuoso(self, endpoint: str):
         """Reset Virtuoso triplestore using RDF_GLOBAL_RESET."""
@@ -90,7 +93,7 @@ class MetaBenchmark:
         max_attempts = 3
         for attempt in range(max_attempts):
             try:
-                result = subprocess.run([
+                subprocess.run([
                     "docker", "exec", container_name,
                     "isql", "1111", "dba", "dba",
                     "exec=RDF_GLOBAL_RESET();"
@@ -158,7 +161,7 @@ class MetaBenchmark:
         time_agnostic_config = os.path.join(config_dir, "time_agnostic_library_config.json")
         if os.path.exists(time_agnostic_config):
             os.remove(time_agnostic_config)
-            print(f"  - Deleted time_agnostic_library_config.json")
+            print("  - Deleted time_agnostic_library_config.json")
 
     def _execute_single_run(self, input_csv: str, run_number: Optional[int] = None) -> Dict[str, Any]:
         """
@@ -227,7 +230,7 @@ class MetaBenchmark:
             If multiple sizes provided, returns scalability analysis across sizes.
         """
         print(f"\n{'='*60}")
-        print(f"OpenCitations Meta Benchmark")
+        print("OpenCitations Meta Benchmark")
         print(f"{'='*60}")
         print(f"Input directory: {self.input_dir}")
         print(f"Config: {self.config_path}")
@@ -499,6 +502,7 @@ class MetaBenchmark:
         print(f"{'='*60}\n")
 
         all_update_runs = []
+        preload_report: dict = {}
 
         for run_idx in range(runs):
             run_number = run_idx + 1
@@ -544,11 +548,11 @@ class MetaBenchmark:
         preload_total = preload_report["metrics"]["total_duration_seconds"]
         update_total = last_update["metrics"]["total_duration_seconds"]
 
-        print(f"\nPhase 1 - Partial data (initial load):")
+        print("\nPhase 1 - Partial data (initial load):")
         print(f"  Total: {preload_total:.2f}s")
         print(f"  storage__write_files: {preload_prep:.2f}s ({100*preload_prep/preload_total:.1f}%)")
 
-        print(f"\nPhase 2 - Complete data (with graph diff):")
+        print("\nPhase 2 - Complete data (with graph diff):")
         print(f"  Total: {update_total:.2f}s")
         print(f"  storage__write_files: {update_prep:.2f}s ({100*update_prep/update_total:.1f}%)")
 
@@ -602,7 +606,8 @@ class MetaBenchmark:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Benchmark OpenCitations Meta processing pipeline with statistical analysis"
+        description="Benchmark OpenCitations Meta processing pipeline with statistical analysis",
+        formatter_class=RichHelpFormatter,
     )
     parser.add_argument(
         "-c", "--config",
@@ -684,7 +689,7 @@ def main():
             generate_atlas_update_csv(update_csv)
 
             print("[Preload] Generated update CSV for benchmark")
-            print(f"[Preload] Next benchmark run will process this BR (update scenario)\n")
+            print("[Preload] Next benchmark run will process this BR (update scenario)\n")
 
             benchmark._generated_csvs.extend([preload_csv, update_csv])
 

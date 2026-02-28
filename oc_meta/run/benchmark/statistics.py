@@ -1,5 +1,5 @@
 import statistics
-from typing import List, Dict, Any, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import scipy.stats
 

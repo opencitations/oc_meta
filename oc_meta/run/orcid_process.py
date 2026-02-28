@@ -22,15 +22,9 @@ from argparse import ArgumentParser
 from bs4 import BeautifulSoup
 from oc_ds_converter.oc_idmanager import DOIManager
 from rich.console import Console
-from rich.progress import (
-    BarColumn,
-    MofNCompleteColumn,
-    Progress,
-    SpinnerColumn,
-    TextColumn,
-    TimeElapsedColumn,
-    TimeRemainingColumn,
-)
+from rich.progress import (BarColumn, MofNCompleteColumn, Progress,
+                           SpinnerColumn, TextColumn, TimeElapsedColumn,
+                           TimeRemainingColumn)
 
 from oc_meta.lib.csvmanager import CSVManager
 from oc_meta.lib.master_of_regex import orcid_pattern

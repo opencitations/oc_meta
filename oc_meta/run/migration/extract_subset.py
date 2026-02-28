@@ -7,6 +7,7 @@ import sys
 from urllib.parse import urlparse
 
 import rdflib
+from rich_argparse import RichHelpFormatter
 from sparqlite import SPARQLClient
 
 
@@ -55,6 +56,8 @@ def get_triples_for_entity(client, entity_uri):
 
         if o_type == 'uri':
             o_term = rdflib.URIRef(o_value)
+        elif o_type == 'bnode':
+            o_term = rdflib.BNode(o_value)
         elif o_type in {'literal', 'typed-literal'}:
             if 'datatype' in result["o"]:
                 datatype = result["o"]["datatype"]
@@ -64,6 +67,8 @@ def get_triples_for_entity(client, entity_uri):
                 o_term = rdflib.Literal(o_value, lang=lang)
             else:
                 o_term = rdflib.Literal(o_value)
+        else:
+            o_term = rdflib.Literal(o_value)
 
         quads.append((s_term, p_term, o_term, g_term))
 
@@ -99,7 +104,7 @@ def extract_subset(endpoint, class_uri, limit, output_file, compress, max_retrie
         if not output_file.endswith('.gz'):
             output_file = output_file + '.gz'
         with gzip.open(output_file, 'wb') as f:
-            dataset.serialize(destination=f, format='nquads')
+            dataset.serialize(destination=f, format='nquads')  # type: ignore[arg-type]
     else:
         dataset.serialize(destination=output_file, format='nquads')
 
@@ -107,7 +112,10 @@ def extract_subset(endpoint, class_uri, limit, output_file, compress, max_retrie
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Extract a subset of data from a SPARQL endpoint in N-Quads format')
+    parser = argparse.ArgumentParser(
+        description='Extract a subset of data from a SPARQL endpoint in N-Quads format',
+        formatter_class=RichHelpFormatter,
+    )
     parser.add_argument('--endpoint', default='http://localhost:8890/sparql', 
                         help='SPARQL endpoint URL (default: http://localhost:8890/sparql)')
     parser.add_argument('--class', dest='class_uri', default='http://purl.org/spar/fabio/Expression',

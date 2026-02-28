@@ -8,6 +8,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 
 import yaml
 from rich.console import Console
+from rich_argparse import RichHelpFormatter
 from tqdm import tqdm
 
 console = Console()
@@ -103,7 +104,8 @@ def group_by_final_surviving(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Find all merged entities and reconstruct merge chains from provenance files"
+        description="Find all merged entities and reconstruct merge chains from provenance files",
+        formatter_class=RichHelpFormatter,
     )
     parser.add_argument(
         "-c", "--config", required=True, help="Path to meta configuration YAML file"

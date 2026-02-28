@@ -15,6 +15,7 @@ import yaml
 
 from oc_meta.run.meta_process import run_meta_process
 
+
 def generate_atlas_paper_csv(output_path: str, num_authors: int = 2869, seed: int = 42) -> None:
     """
     Generate CSV file with a single BR having many authors (simulating ATLAS paper).

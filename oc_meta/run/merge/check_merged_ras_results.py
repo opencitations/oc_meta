@@ -8,10 +8,12 @@ from multiprocessing import Pool, cpu_count
 
 import filelock
 import yaml
-from oc_meta.core.editor import MetaEditor
 from rdflib import RDF, Dataset, Literal, Namespace, URIRef
+from rich_argparse import RichHelpFormatter
 from sparqlite import SPARQLClient
 from tqdm import tqdm
+
+from oc_meta.core.editor import MetaEditor
 
 DATACITE = "http://purl.org/spar/datacite/"
 FOAF = Namespace("http://xmlns.com/foaf/0.1/")
@@ -336,7 +338,7 @@ def process_file_group(args):
                                     for issue in agent_issues:
                                         tqdm.write(f"Error in file {file_path}: {issue}")
 
-                            if prov_graph == None:
+                            if prov_graph is None:
                                 tqdm.write(
                                     f"Error: Provenance file not found for entity {entity}"
                                 )
@@ -433,7 +435,8 @@ def process_csv(args, csv_file):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Check merge process success on files and SPARQL endpoint for responsible agents"
+        description="Check merge process success on files and SPARQL endpoint for responsible agents",
+        formatter_class=RichHelpFormatter,
     )
     parser.add_argument(
         "csv_folder", type=str, help="Path to the folder containing CSV files"

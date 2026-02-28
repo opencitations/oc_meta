@@ -4,9 +4,10 @@ import zipfile
 from multiprocessing import Pool, cpu_count
 
 from oc_ocdm.support import get_prefix, get_resource_number, get_short_name
-from rdflib import Dataset
+from rdflib import Dataset, URIRef
 from rdflib.namespace import PROV, RDF
 from redis import Redis
+from rich_argparse import RichHelpFormatter
 from tqdm import tqdm
 
 
@@ -24,14 +25,15 @@ def process_zip_file(args):
                 for s, p, o in g.triples((None, RDF.type, PROV.Entity)):
                     prov_entity_uri = str(s)
                     entity_uri = prov_entity_uri.split('/prov/se/')[0]
-                    supplier_prefix = get_prefix(entity_uri)
-                    short_name = get_short_name(entity_uri)
-                    resource_number = get_resource_number(entity_uri)
+                    entity_uri_ref = URIRef(entity_uri)
+                    supplier_prefix = get_prefix(entity_uri_ref)
+                    short_name = get_short_name(entity_uri_ref)
+                    resource_number = get_resource_number(entity_uri_ref)
                     
                     expected_key = f"{short_name}:{supplier_prefix}:{resource_number}:se"
                     
                     if not redis_client.exists(expected_key):
-                        print(f"\nEntità mancante trovata:")
+                        print("\nEntità mancante trovata:")
                         print(f"URI: {entity_uri}")
                         print(f"Prov URI: {prov_entity_uri}")
                         print(f"Chiave Redis attesa: {expected_key}")
@@ -60,7 +62,10 @@ def explore_provenance_files(root_path, redis_host, redis_port, redis_db):
     print(f"\nTotale entità mancanti trovate: {len(all_missing_entities)}")
 
 def main():
-    parser = argparse.ArgumentParser(description="Verifica la presenza di entità di provenance in Redis.")
+    parser = argparse.ArgumentParser(
+        description="Verifica la presenza di entità di provenance in Redis.",
+        formatter_class=RichHelpFormatter,
+    )
     parser.add_argument("directory", type=str, help="Il percorso della directory da esplorare")
     parser.add_argument("--redis-host", type=str, default="localhost", help="L'host del server Redis")
     parser.add_argument("--redis-port", type=int, default=6379, help="La porta del server Redis")

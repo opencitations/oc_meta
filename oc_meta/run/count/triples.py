@@ -10,23 +10,18 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
 from rdflib import Dataset
-from rich.progress import (
-    BarColumn,
-    MofNCompleteColumn,
-    Progress,
-    SpinnerColumn,
-    TaskProgressColumn,
-    TextColumn,
-    TimeElapsedColumn,
-    TimeRemainingColumn,
-)
+from rich.progress import (BarColumn, MofNCompleteColumn, Progress,
+                           SpinnerColumn, TaskProgressColumn, TextColumn,
+                           TimeElapsedColumn, TimeRemainingColumn)
+from rich_argparse import RichHelpFormatter
 
 QUAD_FORMATS = {"nquads", "trig"}
 
 
 def parse_args() -> argparse.Namespace:  # pragma: no cover
     parser = argparse.ArgumentParser(
-        description="Count RDF triples or quads in compressed or uncompressed files."
+        description="Count RDF triples or quads in compressed or uncompressed files.",
+        formatter_class=RichHelpFormatter,
     )
     parser.add_argument(
         "directory",
