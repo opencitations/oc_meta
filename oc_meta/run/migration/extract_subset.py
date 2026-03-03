@@ -26,16 +26,35 @@ def get_subjects_of_class(client, class_uri, limit):
     return [result["s"]["value"] for result in results["results"]["bindings"]]
 
 
-def get_triples_for_entity(client, entity_uri):
-    """Get all triples where the entity is a subject and return RDF terms"""
+def get_subjects_by_predicate(client, predicate_uri, limit):
     query = f"""
-    SELECT ?p ?o ?g
+    SELECT ?s
     WHERE {{
-        GRAPH ?g {{
+        ?s <{predicate_uri}> ?o .
+    }}
+    LIMIT {limit}
+    """
+    results = client.query(query)
+    return [result["s"]["value"] for result in results["results"]["bindings"]]
+
+
+def get_triples_for_entity(client, entity_uri, use_graphs=True):
+    if use_graphs:
+        query = f"""
+        SELECT ?p ?o ?g
+        WHERE {{
+            GRAPH ?g {{
+                <{entity_uri}> ?p ?o .
+            }}
+        }}
+        """
+    else:
+        query = f"""
+        SELECT ?p ?o
+        WHERE {{
             <{entity_uri}> ?p ?o .
         }}
-    }}
-    """
+        """
 
     results = client.query(query)
 
@@ -75,14 +94,25 @@ def get_triples_for_entity(client, entity_uri):
     return quads
 
 
-def extract_subset(endpoint, class_uri, limit, output_file, compress, max_retries=5):
-    """Extract a subset of the SPARQL endpoint data"""
+def extract_subset(
+    endpoint, limit, output_file, compress, max_retries=5,
+    class_uri=None, predicate_uri=None, use_graphs=True, recurse=True,
+):
     with SPARQLClient(endpoint, max_retries=max_retries, backoff_factor=2, timeout=3600) as client:
-        subjects = get_subjects_of_class(client, class_uri, limit)
-        processed_entities = set()
+        if predicate_uri:
+            subjects = get_subjects_by_predicate(client, predicate_uri, limit)
+        else:
+            subjects = get_subjects_of_class(client, class_uri, limit)
+
+        processed_entities: set[str] = set()
         pending_entities = set(subjects)
 
-        dataset = rdflib.Dataset()
+        dataset: rdflib.Dataset | None = None
+        graph: rdflib.Graph | None = None
+        if use_graphs:
+            dataset = rdflib.Dataset()
+        else:
+            graph = rdflib.Graph()
 
         while pending_entities:
             entity = pending_entities.pop()
@@ -91,35 +121,46 @@ def extract_subset(endpoint, class_uri, limit, output_file, compress, max_retrie
 
             processed_entities.add(entity)
 
-            quads = get_triples_for_entity(client, entity)
+            quads = get_triples_for_entity(client, entity, use_graphs)
 
             for s_term, p_term, o_term, g_term in quads:
-                graph = dataset.graph(g_term)
-                graph.add((s_term, p_term, o_term))
+                if dataset is not None:
+                    named_graph = dataset.graph(g_term)
+                    named_graph.add((s_term, p_term, o_term))
+                elif graph is not None:
+                    graph.add((s_term, p_term, o_term))
 
-                if isinstance(o_term, rdflib.URIRef):
+                if recurse and isinstance(o_term, rdflib.URIRef):
                     pending_entities.add(str(o_term))
 
+    store = dataset if dataset is not None else graph
+    assert store is not None
+    output_format = "nquads" if use_graphs else "nt"
     if compress:
         if not output_file.endswith('.gz'):
             output_file = output_file + '.gz'
         with gzip.open(output_file, 'wb') as f:
-            dataset.serialize(destination=f, format='nquads')  # type: ignore[arg-type]
+            store.serialize(destination=f, format=output_format)  # type: ignore[arg-type]
     else:
-        dataset.serialize(destination=output_file, format='nquads')
+        store.serialize(destination=output_file, format=output_format)
 
     return len(processed_entities), output_file
 
 
-def main():
+def main():  # pragma: no cover
     parser = argparse.ArgumentParser(
-        description='Extract a subset of data from a SPARQL endpoint in N-Quads format',
+        description='Extract a subset of data from a SPARQL endpoint',
         formatter_class=RichHelpFormatter,
     )
-    parser.add_argument('--endpoint', default='http://localhost:8890/sparql', 
+    parser.add_argument('--endpoint', default='http://localhost:8890/sparql',
                         help='SPARQL endpoint URL (default: http://localhost:8890/sparql)')
-    parser.add_argument('--class', dest='class_uri', default='http://purl.org/spar/fabio/Expression',
-                        help='Class URI to extract instances of (default: http://purl.org/spar/fabio/Expression)')
+
+    discovery = parser.add_mutually_exclusive_group()
+    discovery.add_argument('--class', dest='class_uri',
+                           help='Class URI to extract instances of (default: fabio:Expression)')
+    discovery.add_argument('--predicate', dest='predicate_uri',
+                           help='Predicate URI for entity discovery (alternative to --class)')
+
     parser.add_argument('--limit', type=int, default=1000,
                         help='Maximum number of initial entities to process (default: 1000)')
     parser.add_argument('--output', default='output.nq',
@@ -128,9 +169,16 @@ def main():
                         help='Compress output file using gzip')
     parser.add_argument('--retries', type=int, default=5,
                         help='Maximum number of retries for failed queries (default: 5)')
-    
+    parser.add_argument('--no-graphs', action='store_true',
+                        help='Disable named graph queries and output N-Triples instead of N-Quads')
+    parser.add_argument('--no-recurse', action='store_true',
+                        help='Do not recursively follow URI objects')
+
     args = parser.parse_args()
-    
+
+    if not args.class_uri and not args.predicate_uri:
+        args.class_uri = 'http://purl.org/spar/fabio/Expression'
+
     try:
         parsed_url = urlparse(args.endpoint)
         if not all([parsed_url.scheme, parsed_url.netloc]):
@@ -138,15 +186,18 @@ def main():
     except Exception:
         print(f"Error: Invalid endpoint URL: {args.endpoint}")
         return 1
-    
+
     try:
         entity_count, final_output_file = extract_subset(
-            args.endpoint, 
-            args.class_uri, 
-            args.limit, 
-            args.output, 
+            args.endpoint,
+            args.limit,
+            args.output,
             args.compress,
-            args.retries
+            args.retries,
+            class_uri=args.class_uri,
+            predicate_uri=args.predicate_uri,
+            use_graphs=not args.no_graphs,
+            recurse=not args.no_recurse,
         )
         
         print(f"Extraction complete. Processed {entity_count} entities.")
@@ -158,5 +209,5 @@ def main():
         return 1
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     sys.exit(main())

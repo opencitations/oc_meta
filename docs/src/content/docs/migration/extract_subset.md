@@ -16,11 +16,14 @@ uv run python -m oc_meta.run.migration.extract_subset [options]
 | Parameter | Required | Default | Description |
 |-----------|----------|---------|-------------|
 | `--endpoint` | No | http://localhost:8890/sparql | SPARQL endpoint URL |
-| `--class` | No | http://purl.org/spar/fabio/Expression | Class URI to extract instances of |
+| `--class` | No | http://purl.org/spar/fabio/Expression | Class URI to extract instances of (mutually exclusive with `--predicate`) |
+| `--predicate` | No | - | Predicate URI for entity discovery (mutually exclusive with `--class`) |
 | `--limit` | No | 1000 | Maximum number of initial entities |
 | `--output` | No | output.nq | Output file name |
 | `--compress` | No | False | Compress output with gzip |
 | `--retries` | No | 5 | Maximum retries for failed queries |
+| `--no-graphs` | No | False | Disable named graph queries and output N-Triples instead of N-Quads |
+| `--no-recurse` | No | False | Do not recursively follow URI objects |
 
 ## Process
 
