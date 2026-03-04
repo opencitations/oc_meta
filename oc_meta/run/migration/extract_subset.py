@@ -7,12 +7,14 @@ import sys
 from urllib.parse import urlparse
 
 import rdflib
+from rdflib.term import Node
 from rich_argparse import RichHelpFormatter
 from sparqlite import SPARQLClient
 
+CHUNK_SIZE = 20
 
-def get_subjects_of_class(client, class_uri, limit):
-    """Get subjects that are instances of the specified class"""
+
+def get_subjects_of_class(client: SPARQLClient, class_uri: str, limit: int) -> list[str]:
     query = f"""
     SELECT ?s
     WHERE {{
@@ -20,88 +22,85 @@ def get_subjects_of_class(client, class_uri, limit):
     }}
     LIMIT {limit}
     """
-
-    results = client.query(query)
-
-    return [result["s"]["value"] for result in results["results"]["bindings"]]
-
-
-def get_subjects_by_predicate(client, predicate_uri, limit):
-    query = f"""
-    SELECT ?s
-    WHERE {{
-        ?s <{predicate_uri}> ?o .
-    }}
-    LIMIT {limit}
-    """
     results = client.query(query)
     return [result["s"]["value"] for result in results["results"]["bindings"]]
 
 
-def get_triples_for_entity(client, entity_uri, use_graphs=True):
-    if use_graphs:
-        query = f"""
-        SELECT ?p ?o ?g
-        WHERE {{
-            GRAPH ?g {{
-                <{entity_uri}> ?p ?o .
+def load_entities_from_file(entities_file: str) -> list[str]:
+    with open(entities_file, 'r') as f:
+        return [line.strip() for line in f if line.strip()]
+
+
+def parse_object(result: dict[str, dict[str, str]]) -> rdflib.URIRef | rdflib.BNode | rdflib.Literal:
+    o_value = result["o"]["value"]
+    o_type = result["o"]["type"]
+    if o_type == 'uri':
+        return rdflib.URIRef(o_value)
+    if o_type == 'bnode':
+        return rdflib.BNode(o_value)
+    if 'datatype' in result["o"]:
+        return rdflib.Literal(o_value, datatype=result["o"]["datatype"])
+    if 'xml:lang' in result["o"]:
+        return rdflib.Literal(o_value, lang=result["o"]["xml:lang"])
+    return rdflib.Literal(o_value)
+
+
+def get_triples_for_entities(
+    client: SPARQLClient,
+    entity_uris: list[str],
+    use_graphs: bool,
+) -> list[tuple[rdflib.URIRef, rdflib.URIRef, Node, rdflib.URIRef | None]]:
+    quads: list[tuple[rdflib.URIRef, rdflib.URIRef, Node, rdflib.URIRef | None]] = []
+
+    for i in range(0, len(entity_uris), CHUNK_SIZE):
+        chunk = entity_uris[i:i + CHUNK_SIZE]
+        values = " ".join(f"<{uri}>" for uri in chunk)
+
+        if use_graphs:
+            query = f"""
+            SELECT ?s ?p ?o ?g
+            WHERE {{
+                GRAPH ?g {{
+                    VALUES ?s {{ {values} }}
+                    ?s ?p ?o .
+                }}
             }}
-        }}
-        """
-    else:
-        query = f"""
-        SELECT ?p ?o
-        WHERE {{
-            <{entity_uri}> ?p ?o .
-        }}
-        """
-
-    results = client.query(query)
-
-    s_term = rdflib.URIRef(entity_uri)
-    quads = []
-
-    for result in results["results"]["bindings"]:
-        p_value = result["p"]["value"]
-        p_term = rdflib.URIRef(p_value)
-
-        o_value = result["o"]["value"]
-        o_type = result["o"]["type"]
-
-        g_term = None
-        if "g" in result:
-            g_value = result["g"]["value"]
-            g_term = rdflib.URIRef(g_value)
-
-        if o_type == 'uri':
-            o_term = rdflib.URIRef(o_value)
-        elif o_type == 'bnode':
-            o_term = rdflib.BNode(o_value)
-        elif o_type in {'literal', 'typed-literal'}:
-            if 'datatype' in result["o"]:
-                datatype = result["o"]["datatype"]
-                o_term = rdflib.Literal(o_value, datatype=datatype)
-            elif 'xml:lang' in result["o"]:
-                lang = result["o"]["xml:lang"]
-                o_term = rdflib.Literal(o_value, lang=lang)
-            else:
-                o_term = rdflib.Literal(o_value)
+            """
         else:
-            o_term = rdflib.Literal(o_value)
+            query = f"""
+            SELECT ?s ?p ?o
+            WHERE {{
+                VALUES ?s {{ {values} }}
+                ?s ?p ?o .
+            }}
+            """
 
-        quads.append((s_term, p_term, o_term, g_term))
+        results = client.query(query)
+        for result in results["results"]["bindings"]:
+            s_term = rdflib.URIRef(result["s"]["value"])
+            p_term = rdflib.URIRef(result["p"]["value"])
+            o_term = parse_object(result)
+            g_term = rdflib.URIRef(result["g"]["value"]) if "g" in result else None
+            quads.append((s_term, p_term, o_term, g_term))
 
     return quads
 
 
 def extract_subset(
-    endpoint, limit, output_file, compress, max_retries=5,
-    class_uri=None, predicate_uri=None, use_graphs=True, recurse=True,
-):
+    endpoint: str,
+    limit: int,
+    output_file: str,
+    compress: bool,
+    max_retries: int = 5,
+    class_uri: str | None = None,
+    entities_file: str | None = None,
+    use_graphs: bool = True,
+) -> tuple[int, str]:
     with SPARQLClient(endpoint, max_retries=max_retries, backoff_factor=2, timeout=3600) as client:
-        if predicate_uri:
-            subjects = get_subjects_by_predicate(client, predicate_uri, limit)
+        if entities_file:
+            subjects = load_entities_from_file(entities_file)
         else:
+            assert class_uri is not None
             subjects = get_subjects_of_class(client, class_uri, limit)
 
         processed_entities: set[str] = set()
@@ -115,13 +114,14 @@ def extract_subset(
             graph = rdflib.Graph()
 
         while pending_entities:
-            entity = pending_entities.pop()
-            if entity in processed_entities:
-                continue
+            batch = sorted(pending_entities - processed_entities)
+            if not batch:
+                break  # pragma: no cover
 
-            processed_entities.add(entity)
+            processed_entities.update(batch)
+            pending_entities.clear()
 
-            quads = get_triples_for_entity(client, entity, use_graphs)
+            quads = get_triples_for_entities(client, batch, use_graphs)
 
             for s_term, p_term, o_term, g_term in quads:
                 if dataset is not None:
@@ -130,8 +130,10 @@ def extract_subset(
                 elif graph is not None:
                     graph.add((s_term, p_term, o_term))
 
-                if recurse and isinstance(o_term, rdflib.URIRef):
-                    pending_entities.add(str(o_term))
+                if isinstance(o_term, rdflib.URIRef):
+                    o_str = str(o_term)
+                    if o_str not in processed_entities:
+                        pending_entities.add(o_str)
 
     store = dataset if dataset is not None else graph
     assert store is not None
@@ -158,8 +160,8 @@ def main():  # pragma: no cover
     discovery = parser.add_mutually_exclusive_group()
     discovery.add_argument('--class', dest='class_uri',
                            help='Class URI to extract instances of (default: fabio:Expression)')
-    discovery.add_argument('--predicate', dest='predicate_uri',
-                           help='Predicate URI for entity discovery (alternative to --class)')
+    discovery.add_argument('--entities-file', dest='entities_file',
+                           help='File with entity URIs to extract (one per line)')
 
     parser.add_argument('--limit', type=int, default=1000,
                         help='Maximum number of initial entities to process (default: 1000)')
@@ -171,12 +173,10 @@ def main():  # pragma: no cover
                         help='Maximum number of retries for failed queries (default: 5)')
     parser.add_argument('--no-graphs', action='store_true',
                         help='Disable named graph queries and output N-Triples instead of N-Quads')
-    parser.add_argument('--no-recurse', action='store_true',
-                        help='Do not recursively follow URI objects')
 
     args = parser.parse_args()
 
-    if not args.class_uri and not args.predicate_uri:
+    if not args.class_uri and not args.entities_file:
         args.class_uri = 'http://purl.org/spar/fabio/Expression'
 
     try:
@@ -195,14 +195,13 @@ def main():  # pragma: no cover
             args.compress,
             args.retries,
             class_uri=args.class_uri,
-            predicate_uri=args.predicate_uri,
+            entities_file=args.entities_file,
             use_graphs=not args.no_graphs,
-            recurse=not args.no_recurse,
         )
-        
+
         print(f"Extraction complete. Processed {entity_count} entities.")
         print(f"Output saved to {final_output_file}")
-        
+
         return 0
     except Exception as e:
         print(f"Error: {e}")
