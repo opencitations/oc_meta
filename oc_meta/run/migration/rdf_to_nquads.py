@@ -65,13 +65,24 @@ def process_zip_file(zip_path: Path, output_dir: Path, input_dir_path: Path) -> 
     return True
 
 
+def find_zip_files(input_path: Path, mode: str) -> list[Path]:
+    if mode == "prov":
+        return list(input_path.rglob("se.zip"))
+    if mode == "data":
+        all_zips = input_path.rglob("*.zip")
+        return [z for z in all_zips if z.name != "se.zip" and "prov" not in z.parts]
+    return list(input_path.rglob("*.zip"))
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Converts JSON-LD files from se.zip to N-Quads.",
+        description="Converts JSON-LD files from ZIP archives to N-Quads format.",
         formatter_class=RichHelpFormatter
     )
-    parser.add_argument("input_dir", type=str, help="Input directory containing se.zip files (recursive search)")
+    parser.add_argument("input_dir", type=str, help="Input directory containing ZIP files (recursive search)")
     parser.add_argument("output_dir", type=str, help="Output directory for the converted .nq files")
+    parser.add_argument("-m", "--mode", type=str, choices=["all", "data", "prov"], default="all",
+                        help="Mode: 'all' for all ZIP files (default), 'data' for entity data only, 'prov' for provenance only")
     parser.add_argument("-w", "--workers", type=int, default=None, help="Number of worker processes (defaults to CPU count)")
     args = parser.parse_args()
 
@@ -81,10 +92,11 @@ def main() -> None:
 
     output_path.mkdir(parents=True, exist_ok=True)
 
-    zip_files = list(input_path.rglob("se.zip"))
+    zip_files = find_zip_files(input_path, args.mode)
     total_files = len(zip_files)
 
-    print(f"Found {total_files} se.zip files in {input_path}")
+    mode_labels = {"all": "", "data": "data ", "prov": "provenance "}
+    print(f"Found {total_files} {mode_labels[args.mode]}ZIP files in {input_path}")
     print(f"Output directory: {output_path}")
     print(f"Workers: {num_workers}")
 

@@ -15,13 +15,14 @@
 import shutil
 import tempfile
 import zipfile
+from collections.abc import Iterator
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 from rdflib import Dataset
 
-from oc_meta.run.migration.provenance_to_nquads import convert_jsonld_to_nquads, main, process_zip_file
+from oc_meta.run.migration.rdf_to_nquads import convert_jsonld_to_nquads, find_zip_files, main, process_zip_file
 
 SAMPLE_JSONLD = """{
   "@context": "https://schema.org",
@@ -44,6 +45,64 @@ class TestConvertJsonldToNquads:
     def test_invalid_jsonld_raises(self) -> None:
         with pytest.raises(Exception):
             convert_jsonld_to_nquads(INVALID_JSONLD)
+
+
+class TestFindZipFiles:
+    @pytest.fixture
+    def temp_dirs(self):
+        test_dir = Path(tempfile.mkdtemp())
+        yield test_dir
+        shutil.rmtree(test_dir)
+
+    def test_prov_mode(self, temp_dirs: Path) -> None:
+        test_dir = temp_dirs
+        prov_dir = test_dir / "br" / "060" / "1000" / "prov"
+        prov_dir.mkdir(parents=True)
+        (prov_dir / "se.zip").touch()
+        (test_dir / "br" / "060" / "1000.zip").touch()
+
+        result = find_zip_files(test_dir, "prov")
+
+        assert len(result) == 1
+        assert result[0].name == "se.zip"
+
+    def test_data_mode(self, temp_dirs: Path) -> None:
+        test_dir = temp_dirs
+        prov_dir = test_dir / "br" / "060" / "1000" / "prov"
+        prov_dir.mkdir(parents=True)
+        (prov_dir / "se.zip").touch()
+        data_zip = test_dir / "br" / "060" / "1000.zip"
+        data_zip.touch()
+
+        result = find_zip_files(test_dir, "data")
+
+        assert len(result) == 1
+        assert result[0] == data_zip
+
+    def test_data_mode_excludes_prov_folder(self, temp_dirs: Path) -> None:
+        test_dir = temp_dirs
+        prov_dir = test_dir / "br" / "060" / "prov"
+        prov_dir.mkdir(parents=True)
+        (prov_dir / "other.zip").touch()
+        data_zip = test_dir / "br" / "060" / "1000.zip"
+        data_zip.touch()
+
+        result = find_zip_files(test_dir, "data")
+
+        assert len(result) == 1
+        assert result[0] == data_zip
+
+    def test_all_mode(self, temp_dirs: Path) -> None:
+        test_dir = temp_dirs
+        prov_dir = test_dir / "br" / "060" / "1000" / "prov"
+        prov_dir.mkdir(parents=True)
+        (prov_dir / "se.zip").touch()
+        data_zip = test_dir / "br" / "060" / "1000.zip"
+        data_zip.touch()
+
+        result = find_zip_files(test_dir, "all")
+
+        assert len(result) == 2
 
 
 class TestProcessZipFile:
@@ -144,7 +203,7 @@ class TestMain:
             main()
 
         captured = capsys.readouterr()
-        assert "Found 1 se.zip files" in captured.out
+        assert "Found 1 ZIP files" in captured.out
         assert "Success: 1" in captured.out
         assert "Failed:  0" in captured.out
 
@@ -155,7 +214,7 @@ class TestMain:
             main()
 
         captured = capsys.readouterr()
-        assert "Found 0 se.zip files" in captured.out
+        assert "Found 0 ZIP files" in captured.out
         assert "Success: 0" in captured.out
         assert "Failed:  0" in captured.out
 
@@ -169,7 +228,7 @@ class TestMain:
             main()
 
         captured = capsys.readouterr()
-        assert "Found 1 se.zip files" in captured.out
+        assert "Found 1 ZIP files" in captured.out
         assert "Failed:  1" in captured.out
 
     def test_default_workers(self, temp_dirs: tuple[Path, Path, Path], capsys: pytest.CaptureFixture[str]) -> None:
@@ -189,7 +248,7 @@ class TestMain:
             zf.writestr("data.json", SAMPLE_JSONLD)
 
         class MockFuture:
-            def result(self) -> iter:
+            def result(self) -> Iterator[bool]:
                 return iter([False])
 
         class MockPool:
@@ -206,8 +265,44 @@ class TestMain:
                 return MockFuture()
 
         with patch("sys.argv", ["prog", str(input_dir), str(output_dir), "-w", "1"]):
-            with patch("oc_meta.run.migration.provenance_to_nquads.ProcessPool", MockPool):
+            with patch("oc_meta.run.migration.rdf_to_nquads.ProcessPool", MockPool):
                 main()
 
         captured = capsys.readouterr()
         assert "Failed:  1" in captured.out
+
+    def test_data_mode_success(self, temp_dirs: tuple[Path, Path, Path], capsys: pytest.CaptureFixture[str]) -> None:
+        input_dir, output_dir, _ = temp_dirs
+        data_dir = input_dir / "br" / "060"
+        data_dir.mkdir(parents=True)
+        zip_path = data_dir / "1000.zip"
+        with zipfile.ZipFile(zip_path, "w") as zf:
+            zf.writestr("1000.json", SAMPLE_JSONLD)
+
+        with patch("sys.argv", ["prog", str(input_dir), str(output_dir), "-m", "data", "-w", "1"]):
+            main()
+
+        captured = capsys.readouterr()
+        assert "Found 1 data ZIP files" in captured.out
+        assert "Success: 1" in captured.out
+        assert "Failed:  0" in captured.out
+        output_file = output_dir / "br-060-1000.nq"
+        assert output_file.exists()
+
+    def test_prov_mode_success(self, temp_dirs: tuple[Path, Path, Path], capsys: pytest.CaptureFixture[str]) -> None:
+        input_dir, output_dir, _ = temp_dirs
+        prov_dir = input_dir / "br" / "060" / "1000" / "prov"
+        prov_dir.mkdir(parents=True)
+        zip_path = prov_dir / "se.zip"
+        with zipfile.ZipFile(zip_path, "w") as zf:
+            zf.writestr("se.json", SAMPLE_JSONLD)
+        data_zip = input_dir / "br" / "060" / "1000.zip"
+        with zipfile.ZipFile(data_zip, "w") as zf:
+            zf.writestr("1000.json", SAMPLE_JSONLD)
+
+        with patch("sys.argv", ["prog", str(input_dir), str(output_dir), "-m", "prov", "-w", "1"]):
+            main()
+
+        captured = capsys.readouterr()
+        assert "Found 1 provenance ZIP files" in captured.out
+        assert "Success: 1" in captured.out
