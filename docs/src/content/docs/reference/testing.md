@@ -5,7 +5,7 @@ description: Running tests and CI/CD setup
 
 ## Running tests locally
 
-Tests require Docker for Redis and Virtuoso containers.
+Tests require Docker. Redis and QLever containers are managed automatically by pytest fixtures in `test/conftest.py`.
 
 ### 1. Install dependencies
 
@@ -13,25 +13,19 @@ Tests require Docker for Redis and Virtuoso containers.
 uv sync
 ```
 
-### 2. Start test databases
-
-```bash
-./test/start-test-databases.sh
-```
-
-This starts:
-
-- Redis on port 6381 (databases 0 and 5)
-- Virtuoso data on port 8805 (SPARQL), 1105 (ISQL)
-- Virtuoso provenance on port 8806 (SPARQL), 1106 (ISQL)
-
-Wait for the script to confirm services are ready.
-
-### 3. Run tests
+### 2. Run tests
 
 ```bash
 uv run coverage run --rcfile=test/coverage/.coveragerc
 ```
+
+Docker containers start automatically at the beginning of the test session and stop when tests complete.
+
+Test infrastructure:
+
+- Redis on port 6381 (databases 0 and 5)
+- QLever data triplestore on port 8805
+- QLever provenance triplestore on port 8806
 
 View coverage report:
 
@@ -43,12 +37,6 @@ Generate HTML report:
 
 ```bash
 uv run coverage html -d htmlcov
-```
-
-### 4. Stop test databases
-
-```bash
-./test/stop-test-databases.sh
 ```
 
 ## Running specific tests
@@ -107,9 +95,8 @@ The workflow:
 
 1. Sets up Python with UV
 2. Installs dependencies
-3. Starts Redis and Virtuoso containers
-4. Runs tests with coverage
-5. Uploads coverage report
+3. Runs tests with coverage (Docker containers managed by pytest)
+4. Uploads coverage report
 
 ### Test matrix
 
@@ -144,10 +131,10 @@ def test_counter_increment(redis_handler):
 
 ### Triplestore tests
 
-Tests that need SPARQL use the test Virtuoso instance:
+Tests that need SPARQL use the test QLever instance:
 
 ```python
-SPARQL_ENDPOINT = "http://localhost:8805/sparql"
+SPARQL_ENDPOINT = "http://localhost:8805"
 
 def test_sparql_query():
     finder = ResourceFinder(ts=SPARQL_ENDPOINT, base_iri="https://w3id.org/oc/meta")

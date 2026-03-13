@@ -24,10 +24,12 @@ from rdflib import Dataset, Graph, URIRef
 from rdflib.term import Node
 from sparqlite import SPARQLClient
 
-SERVER = "http://127.0.0.1:8805/sparql"
-PROV_SERVER = "http://127.0.0.1:8806/sparql"
-VIRTUOSO_CONTAINER = "oc-meta-test-virtuoso"
-VIRTUOSO_PROV_CONTAINER = "oc-meta-test-virtuoso-prov"
+
+QLEVER_ACCESS_TOKEN = "qlever_test_token"
+SERVER = f"http://127.0.0.1:8805?access-token={QLEVER_ACCESS_TOKEN}"
+PROV_SERVER = f"http://127.0.0.1:8806?access-token={QLEVER_ACCESS_TOKEN}"
+QLEVER_CONTAINER = "oc-meta-test-qlever"
+QLEVER_PROV_CONTAINER = "oc-meta-test-qlever-prov"
 
 REDIS_HOST = "localhost"
 REDIS_PORT = 6381
@@ -68,11 +70,27 @@ def _clear_all_meta_graphs(endpoint: str, max_retries: int = 3) -> None:
 
 
 def reset_server() -> None:
-    with ThreadPoolExecutor(max_workers=2) as executor:
-        main_future = executor.submit(_clear_all_meta_graphs, SERVER)
-        prov_future = executor.submit(_clear_all_meta_graphs, PROV_SERVER)
-        main_future.result()
-        prov_future.result()
+    for _ in range(10):
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            main_future = executor.submit(_clear_all_meta_graphs, SERVER)
+            prov_future = executor.submit(_clear_all_meta_graphs, PROV_SERVER)
+            main_future.result()
+            prov_future.result()
+        time.sleep(0.2)
+        data_result = execute_sparql_query(
+            SERVER,
+            "SELECT (COUNT(*) AS ?c) WHERE { GRAPH ?g { ?s ?p ?o } "
+            "FILTER(STRSTARTS(STR(?g), 'https://w3id.org/oc/meta/')) }"
+        )
+        prov_result = execute_sparql_query(
+            PROV_SERVER,
+            "SELECT (COUNT(*) AS ?c) WHERE { GRAPH ?g { ?s ?p ?o } "
+            "FILTER(STRSTARTS(STR(?g), 'https://w3id.org/oc/meta/')) }"
+        )
+        data_count = int(data_result['results']['bindings'][0]['c']['value'])
+        prov_count = int(prov_result['results']['bindings'][0]['c']['value'])
+        if data_count == 0 and prov_count == 0:
+            return
 
 
 def reset_triplestore(server: str = SERVER) -> None:
@@ -126,7 +144,7 @@ def execute_sparql_construct(
         )
 
 
-def wait_for_virtuoso(server: str, max_wait: int = 60) -> bool:
+def wait_for_triplestore(server: str, max_wait: int = 60) -> bool:
     start_time = time.time()
     while time.time() - start_time < max_wait:
         try:

@@ -13,8 +13,8 @@ input_csv_dir: test/editor/input
 items_per_file: 1000
 output_rdf_dir: test/editor/output
 provenance_endpoints:
-- http://127.0.0.1:8806/sparql
-provenance_triplestore_url: http://127.0.0.1:8806/sparql
+- http://127.0.0.1:8806?access-token=qlever_test_token
+provenance_triplestore_url: http://127.0.0.1:8806?access-token=qlever_test_token
 rdf_output_in_chunks: false
 redis_cache_db: 2
 redis_db: 5
@@ -27,14 +27,7 @@ silencer:
 - publisher
 source: https://api.crossref.org/
 supplier_prefix: '060'
-triplestore_url: http://127.0.0.1:8805/sparql
+triplestore_url: http://127.0.0.1:8805?access-token=qlever_test_token
 use_doi_api_service: false
-virtuoso_bulk_load:
-  bulk_load_dir: /database/bulk_load
-  data_container: oc-meta-test-virtuoso
-  data_mount_dir: test/test_virtuoso_db/bulk_load
-  enabled: true
-  prov_container: oc-meta-test-virtuoso-prov
-  prov_mount_dir: test/test_virtuoso_db_prov/bulk_load
-virtuoso_full_text_search: true
+virtuoso_full_text_search: false
 zip_output_rdf: false

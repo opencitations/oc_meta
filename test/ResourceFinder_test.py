@@ -14,7 +14,7 @@ def reset_server(server: str) -> None:
 class TestResourceFinder(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        ENDPOINT = 'http://127.0.0.1:8805/sparql'
+        ENDPOINT = 'http://127.0.0.1:8805?access-token=qlever_test_token'
         BASE_IRI = 'https://w3id.org/oc/meta/'
         REAL_DATA_FILE = os.path.join('test', 'testcases', 'ts', 'real_data.nt')
         local_g = Graph()
@@ -88,7 +88,7 @@ class TestResourceFinder(unittest.TestCase):
     def test_retrieve_ra_from_id(self):
         schema = 'orcid'
         value = '0000-0001-6994-8412'
-        output = self.finder.retrieve_ra_from_id(schema, value, publisher=False)
+        output = self.finder.retrieve_ra_from_id(schema, value)
         expected_output = [
             ('1000000', 'Alarcon, Louis H.', [('4475', 'orcid:0000-0001-6994-8412')]),
             ('4940', 'Alarcon, Louis H.', [('4475', 'orcid:0000-0001-6994-8412')])
@@ -98,7 +98,7 @@ class TestResourceFinder(unittest.TestCase):
     def test_retrieve_ra_from_id_if_publisher(self):
         schema = 'crossref'
         value = '10'
-        output = self.finder.retrieve_ra_from_id(schema, value, publisher=True)
+        output = self.finder.retrieve_ra_from_id(schema, value)
         expected_output = [('3309', 'American Medical Association (ama)', [('4274', 'crossref:10')])]
         self.assertEqual(output, expected_output)
     
@@ -454,7 +454,7 @@ class TestVVIQueryIsolation(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        ENDPOINT = 'http://127.0.0.1:8805/sparql'
+        ENDPOINT = 'http://127.0.0.1:8805?access-token=qlever_test_token'
         reset_server(server=ENDPOINT)
 
         # Upload test data: two venues with different ISSNs, each with their own volume
@@ -494,10 +494,10 @@ class TestVVIQueryIsolation(unittest.TestCase):
         With the bug, searching for volume "10" under venue with ISSN 2222-2222 would
         also incorrectly search under venue with ISSN 1111-1111.
         """
-        ENDPOINT = 'http://127.0.0.1:8805/sparql'
+        ENDPOINT = 'http://127.0.0.1:8805?access-token=qlever_test_token'
         BASE_IRI = 'https://w3id.org/oc/meta/'
         local_g = Graph()
-        settings = {'virtuoso_full_text_search': True}
+        settings = {'virtuoso_full_text_search': False}
         finder = ResourceFinder(ENDPOINT, BASE_IRI, local_g, settings=settings)
 
         # VVI tuples: each should only search under its corresponding venue

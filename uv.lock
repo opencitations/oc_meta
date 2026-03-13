@@ -1420,7 +1420,7 @@ requires-dist = [
     { name = "filelock", specifier = ">=3.24.0" },
     { name = "numpy", specifier = ">=2.2.0" },
     { name = "oc-ds-converter", specifier = ">=1.0.4" },
-    { name = "oc-ocdm", specifier = ">=9.4.3" },
+    { name = "oc-ocdm", specifier = "==9.4.4" },
     { name = "orjson", specifier = ">=3.11.0" },
     { name = "pandas", specifier = ">=2.2.3" },
     { name = "pebble", specifier = ">=5.2.0" },
@@ -1432,7 +1432,7 @@ requires-dist = [
     { name = "requests", specifier = ">=2.32.0" },
     { name = "rich", specifier = ">=14.3.0" },
     { name = "rich-argparse", specifier = ">=1.7.2" },
-    { name = "sparqlite", specifier = ">=1.2.0" },
+    { name = "sparqlite", specifier = "==1.2.1" },
     { name = "time-agnostic-library", specifier = ">=6.0.0" },
     { name = "tqdm", specifier = ">=4.67.0" },
     { name = "virtuoso-utilities", specifier = ">=1.10.0" },
@@ -1457,7 +1457,7 @@ dev = [
 
 [[package]]
 name = "oc-ocdm"
-version = "9.4.3"
+version = "9.4.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "filelock" },
@@ -1467,9 +1467,9 @@ dependencies = [
     { name = "sparqlite" },
     { name = "tqdm" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/0e/8f/7759b8055c5aac917dc904ae831bfd24123ddd94b0a04fe9434b92afe641/oc_ocdm-9.4.3.tar.gz", hash = "sha256:3c472c238819c19162f15b4bfe031d9dbf6f27a596706dc46d0c0963a3cf261e", size = 64943, upload-time = "2025-12-06T00:00:32.797Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/af/41/365856af7eaf2f6fd52051508b02ea2a5c73ee8528f2b8a8dda950189cfe/oc_ocdm-9.4.4.tar.gz", hash = "sha256:6a7a207459912b5b01ad7271a507b8b154d3a8fc5d971281fea45f1c81c911a1", size = 702887, upload-time = "2026-03-13T15:32:21.985Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/23/c5/8c97816a5ade9cf93c164bc19120016e47bf49ae8e24f075724e2d95841e/oc_ocdm-9.4.3-py3-none-any.whl", hash = "sha256:3692779a132810d34aece51aec4adf294ed9a99dbb2a3c072f717d966c1ccf85", size = 118016, upload-time = "2025-12-06T00:00:31.354Z" },
+    { url = "https://files.pythonhosted.org/packages/b7/85/3ff73cb0fd2137b3023d53f2b735cbaa0f04c465226dccc3167553daeeb1/oc_ocdm-9.4.4-py3-none-any.whl", hash = "sha256:ed9fa7928488f6b9ffcad3358efbb568b430c95299e09391785ee96d32ad3fef", size = 118722, upload-time = "2026-03-13T15:32:20.901Z" },
 ]
 
 [[package]]
@@ -2431,14 +2431,14 @@ wheels = [
 
 [[package]]
 name = "sparqlite"
-version = "1.2.0"
+version = "1.2.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pycurl" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/3d/5f/d025875cb2153f959dc1f0a0982c3574c791acda740a89997ff56434580d/sparqlite-1.2.0.tar.gz", hash = "sha256:80dd11d4931b6beced4f35f68a703c0ea718102795ce92bea1dfe847a12489f1", size = 692969, upload-time = "2026-03-03T17:07:16.763Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/83/d4/f7a4a45a5d123dc6a3b8cbd0f72f3a0feee70eb7391ce57ef9229755b298/sparqlite-1.2.1.tar.gz", hash = "sha256:dc3dd259c621e1750dbc22fc2ad1c551c88464e80c48061ce1165bc8e954b4dd", size = 691201, upload-time = "2026-03-12T21:27:11.343Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/9c/5e/f4b6a099529fa1025b61cee16d8401e1ec17568ef66999059caf874cf7bc/sparqlite-1.2.0-py3-none-any.whl", hash = "sha256:51a178ed36aab54ab6c3e6118b961dff545884762ee61b8cfb7362b8f66c5a01", size = 4558, upload-time = "2026-03-03T17:07:17.695Z" },
+    { url = "https://files.pythonhosted.org/packages/a2/7e/c4d3c731c73ffd5825e059bad348770a191682517052a58697eddcc9fd5f/sparqlite-1.2.1-py3-none-any.whl", hash = "sha256:e637dc3fea38900cdaad8b07b23fd4f786b7bd0819694ad13d5244ca061035d2", size = 4661, upload-time = "2026-03-12T21:27:12.303Z" },
 ]
 
 [[package]]

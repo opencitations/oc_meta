@@ -26,12 +26,12 @@ from unittest.mock import patch
 import yaml
 from sparqlite import SPARQLClient as OriginalSPARQLClient
 from test.test_utils import (
+    QLEVER_CONTAINER,
     REDIS_CACHE_DB,
     SERVER,
-    VIRTUOSO_CONTAINER,
     reset_redis_counters,
     reset_server,
-    wait_for_virtuoso,
+    wait_for_triplestore,
 )
 
 from oc_meta.run.meta_process import MetaProcess
@@ -55,10 +55,10 @@ class TestDatabaseUnavailability(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        print("[DEBUG] setUpClass: waiting for Virtuoso...")
-        if not wait_for_virtuoso(SERVER, max_wait=30):
-            raise TimeoutError("Virtuoso not ready")
-        print("[DEBUG] setUpClass: Virtuoso ready")
+        print("[DEBUG] setUpClass: waiting for QLever...")
+        if not wait_for_triplestore(SERVER, max_wait=30):
+            raise TimeoutError("QLever not ready")
+        print("[DEBUG] setUpClass: QLever ready")
 
     def setUp(self):
         print("[DEBUG] setUp: creating temp dir...")
@@ -74,14 +74,14 @@ class TestDatabaseUnavailability(unittest.TestCase):
         reset_redis_counters()
         if hasattr(self, "temp_dir") and os.path.exists(self.temp_dir):
             shutil.rmtree(self.temp_dir)
-        subprocess.run(["docker", "start", VIRTUOSO_CONTAINER], capture_output=True, check=False)
-        wait_for_virtuoso(SERVER, max_wait=30)
+        subprocess.run(["docker", "start", QLEVER_CONTAINER], capture_output=True, check=False)
+        wait_for_triplestore(SERVER, max_wait=30)
         print("[DEBUG] tearDown: done")
 
     @patch("oc_meta.lib.finder.SPARQLClient", side_effect=short_timeout_sparql_client)
     @patch("sparqlite.SPARQLClient", side_effect=short_timeout_sparql_client)
-    def test_virtuoso_unavailable_prevents_cache_update(self, mock_sparqlite, mock_finder):
-        """When Virtuoso is offline, processing fails and file is NOT cached."""
+    def test_triplestore_unavailable_prevents_cache_update(self, mock_sparqlite, mock_finder):
+        """When triplestore is offline, processing fails and file is NOT cached."""
         print("[DEBUG] test: loading config...")
         meta_config_path = os.path.join(BASE_DIR, "meta_config_3.yaml")
         with open(meta_config_path, encoding="utf-8") as f:
@@ -103,9 +103,9 @@ class TestDatabaseUnavailability(unittest.TestCase):
         filename = files_to_process[0]
         print(f"[DEBUG] test: file to process: {filename}")
 
-        print("[DEBUG] test: stopping Virtuoso...")
-        subprocess.run(["docker", "stop", VIRTUOSO_CONTAINER], capture_output=True, check=True)
-        print("[DEBUG] test: Virtuoso stopped")
+        print("[DEBUG] test: stopping QLever...")
+        subprocess.run(["docker", "stop", QLEVER_CONTAINER], capture_output=True, check=True)
+        print("[DEBUG] test: QLever stopped")
 
         try:
             print("[DEBUG] test: calling curate_and_create...")
@@ -125,9 +125,9 @@ class TestDatabaseUnavailability(unittest.TestCase):
                     self.assertNotIn(filename, f.read(), "File should NOT be cached when upload fails")
 
         finally:
-            print("[DEBUG] test: restarting Virtuoso...")
-            subprocess.run(["docker", "start", VIRTUOSO_CONTAINER], capture_output=True, check=True)
-            wait_for_virtuoso(SERVER, max_wait=30)
+            print("[DEBUG] test: restarting QLever...")
+            subprocess.run(["docker", "start", QLEVER_CONTAINER], capture_output=True, check=True)
+            wait_for_triplestore(SERVER, max_wait=30)
             print("[DEBUG] test: done")
 
 

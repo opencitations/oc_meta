@@ -273,12 +273,11 @@ class TestEditor(unittest.TestCase):
                 graph_prov = graph["@graph"]
                 for br in graph_prov:
                     if br["@id"] == "https://w3id.org/oc/meta/br/0601/prov/se/2":
-                        self.assertEqual(
-                            br["https://w3id.org/oc/ontology/hasUpdateQuery"][0][
-                                "@value"
-                            ],
-                            'DELETE DATA { GRAPH <https://w3id.org/oc/meta/br/> { <https://w3id.org/oc/meta/br/0601> <http://purl.org/dc/terms/title> "A Review Of Hemolytic Uremic Syndrome In Patients Treated With Gemcitabine Therapy"^^<http://www.w3.org/2001/XMLSchema#string> . } }',
-                        )
+                        actual_query = br[
+                            "https://w3id.org/oc/ontology/hasUpdateQuery"
+                        ][0]["@value"]
+                        expected_query = 'DELETE DATA { GRAPH <https://w3id.org/oc/meta/br/> { <https://w3id.org/oc/meta/br/0601> <http://purl.org/dc/terms/title> "A Review Of Hemolytic Uremic Syndrome In Patients Treated With Gemcitabine Therapy"^^<http://www.w3.org/2001/XMLSchema#string> . } }'
+                        self.assertEqual(actual_query, expected_query)
 
     def test_delete_entity(self):
         editor = MetaEditor(META_CONFIG, "https://orcid.org/0000-0002-8420-0696")
@@ -321,14 +320,12 @@ class TestEditor(unittest.TestCase):
                             .replace("\n", "")
                             .split(" .")
                         )
-                        self.assertEqual(
-                            set(update_query),
-                            {
-                                "<https://w3id.org/oc/meta/id/0601> <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/doi>",
-                                "<https://w3id.org/oc/meta/id/0601> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/datacite/Identifier>",
-                                '<https://w3id.org/oc/meta/id/0601> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "10.1002/(sici)1097-0142(19990501)85:9<2023::aid-cncr21>3.0.co;2-2"^^<http://www.w3.org/2001/XMLSchema#string>',
-                            },
-                        )
+                        expected_triples = {
+                            "<https://w3id.org/oc/meta/id/0601> <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/doi>",
+                            "<https://w3id.org/oc/meta/id/0601> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/datacite/Identifier>",
+                            '<https://w3id.org/oc/meta/id/0601> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "10.1002/(sici)1097-0142(19990501)85:9<2023::aid-cncr21>3.0.co;2-2"^^<http://www.w3.org/2001/XMLSchema#string>',
+                        }
+                        self.assertEqual(set(update_query), expected_triples)
         with open(
             os.path.join(
                 OUTPUT, "rdf", "br", "060", "10000", "1000", "prov", "se.json"
@@ -357,7 +354,7 @@ class TestEditor(unittest.TestCase):
             wanted_label=False,
             custom_counter_handler=self.counter_handler,
         )
-        endpoint = "http://127.0.0.1:8805/sparql"
+        endpoint = SERVER
 
         # Create entities  testing
         ra = g_set.add_ra(
@@ -889,7 +886,7 @@ class TestEditor(unittest.TestCase):
             wanted_label=False,
             custom_counter_handler=self.counter_handler,
         )
-        endpoint = "http://127.0.0.1:8805/sparql"
+        endpoint = SERVER
 
         # Prepara le entità di test
         ra = g_set.add_ra(

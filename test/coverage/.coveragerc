@@ -1,6 +1,6 @@
 # .coveragerc to control coverage.py
 [run]
-command_line = -m unittest discover -s test -p *_test.py
+command_line = -m pytest test/ -p no:cacheprovider
 source = oc_meta
 omit =
     oc_meta/lib/oc_ocdm/*

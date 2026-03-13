@@ -1,5 +1,4 @@
 import csv
-import glob
 import os
 import re
 import shutil
@@ -10,16 +9,25 @@ import unittest
 from datetime import datetime
 from test.test_utils import (PROV_SERVER, SERVER, execute_sparql_construct,
                              execute_sparql_query, reset_redis_counters,
-                             reset_server, wait_for_virtuoso)
+                             reset_server, wait_for_triplestore)
 
 import yaml
 from oc_meta.lib.file_manager import get_csv_data, write_csv
 from oc_meta.run.meta_process import run_meta_process
 from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
+from oc_ocdm.support import sparql_binding_to_term
 from rdflib import Dataset, Graph, Literal, URIRef
 from sparqlite import SPARQLClient
 
 BASE_DIR = os.path.join("test", "meta_process")
+
+
+def _term_to_jsonld(term: URIRef | Literal) -> dict:
+    if isinstance(term, URIRef):
+        return {"@id": str(term)}
+    if term.language:
+        return {"@value": str(term), "@language": term.language}
+    return {"@value": str(term), "@type": str(term.datatype)}
 
 
 def delete_output_zip(base_dir: str, start_time: datetime) -> None:
@@ -38,8 +46,8 @@ class test_ProcessTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Setup eseguito una volta per tutta la classe di test"""
-        if not wait_for_virtuoso(SERVER, max_wait=30):
-            raise TimeoutError("Virtuoso not ready after 30 seconds")
+        if not wait_for_triplestore(SERVER, max_wait=30):
+            raise TimeoutError("Triplestore not ready after 30 seconds")
 
     def setUp(self):
         """Setup eseguito prima di ogni test"""
@@ -49,7 +57,6 @@ class test_ProcessTest(unittest.TestCase):
         self.failed_file = os.path.join(self.temp_dir, "failed_queries.txt")
         self.stop_file = os.path.join(self.temp_dir, ".stop_upload")
 
-        # Reset del database
         reset_server()
         reset_redis_counters()
 
@@ -58,18 +65,6 @@ class test_ProcessTest(unittest.TestCase):
         # Remove temporary directory and its contents
         if hasattr(self, "temp_dir") and os.path.exists(self.temp_dir):
             shutil.rmtree(self.temp_dir)
-
-        # Clean up bulk load files
-        bulk_load_dirs = [
-            "test/test_virtuoso_db/bulk_load",
-            "test/test_virtuoso_db_prov/bulk_load"
-        ]
-        for bulk_dir in bulk_load_dirs:
-            if os.path.exists(bulk_dir):
-                for file in glob.glob(os.path.join(bulk_dir, "*.nq.gz")):
-                    os.remove(file)
-                for file in glob.glob(os.path.join(bulk_dir, "*.backup")):
-                    os.remove(file)
 
         for i in range(1, 11):
             output_dir = os.path.join(BASE_DIR, f"output_{i}")
@@ -275,17 +270,9 @@ class test_ProcessTest(unittest.TestCase):
                 else:
                     if p_str not in entities[s_str]:
                         entities[s_str][p_str] = []
+                    term = sparql_binding_to_term(o_data)
+                    entities[s_str][p_str].append(_term_to_jsonld(term))
 
-                    if o_data['type'] == 'uri':
-                        entities[s_str][p_str].append({'@id': o_data['value']})
-                    elif o_data.get('datatype'):
-                        entities[s_str][p_str].append({
-                            '@value': o_data['value'],
-                            '@type': o_data['datatype']
-                        })
-                    else:
-                        entities[s_str][p_str].append({'@value': o_data['value']})
-            
             # Group entities by their parent entity (e.g., br/0601/prov/se/1 -> br/0601)
             grouped_entities = {}
             for entity_id, entity_data in entities.items():
@@ -568,17 +555,9 @@ class test_ProcessTest(unittest.TestCase):
                 else:
                     if p_str not in entities[s_str]:
                         entities[s_str][p_str] = []
+                    term = sparql_binding_to_term(o_data)
+                    entities[s_str][p_str].append(_term_to_jsonld(term))
 
-                    if o_data['type'] == 'uri':
-                        entities[s_str][p_str].append({'@id': o_data['value']})
-                    elif o_data.get('datatype'):
-                        entities[s_str][p_str].append({
-                            '@value': o_data['value'],
-                            '@type': o_data['datatype']
-                        })
-                    else:
-                        entities[s_str][p_str].append({'@value': o_data['value']})
-            
             entity_list = list(entities.values())
             
             output[entity_type] = [
@@ -932,11 +911,10 @@ class test_ProcessTest(unittest.TestCase):
                             for expected_obj in expected_objects:
                                 found = False
                                 for actual_obj in actual_entity[pred]:
-                                    # Require exact matches for all objects
                                     if expected_obj == actual_obj:
                                         found = True
                                         break
-                                
+
                                 self.assertTrue(found, f"Object {expected_obj} not found for predicate {pred} of entity {entity_id}\nActual values: {actual_entity[pred]}")
                                 
         
@@ -981,14 +959,12 @@ class test_ProcessTest(unittest.TestCase):
         """
         result = execute_sparql_query(SERVER, query_agents)
         expected_result = {
-            "head": {"link": [], "vars": ["agent_count"]},
+            "head": {"vars": ["agent_count"]},
             "results": {
-                "distinct": False,
-                "ordered": True,
                 "bindings": [
                     {
                         "agent_count": {
-                            "datatype": "http://www.w3.org/2001/XMLSchema#integer",
+                            "datatype": "http://www.w3.org/2001/XMLSchema#int",
                             "type": "literal",
                             "value": "3",
                         }
@@ -998,7 +974,8 @@ class test_ProcessTest(unittest.TestCase):
         }
         shutil.rmtree(output_folder)
         delete_output_zip(".", now)
-        self.assertEqual(result, expected_result)
+        self.assertEqual(result["head"], expected_result["head"])
+        self.assertEqual(result["results"], expected_result["results"])
 
     def test_silencer_off(self):
         output_folder = os.path.join(BASE_DIR, "output_7")
@@ -1031,14 +1008,12 @@ class test_ProcessTest(unittest.TestCase):
         """
         result = execute_sparql_query(SERVER, query_agents)
         expected_result = {
-            "head": {"link": [], "vars": ["agent_count"]},
+            "head": {"vars": ["agent_count"]},
             "results": {
-                "distinct": False,
-                "ordered": True,
                 "bindings": [
                     {
                         "agent_count": {
-                            "datatype": "http://www.w3.org/2001/XMLSchema#integer",
+                            "datatype": "http://www.w3.org/2001/XMLSchema#int",
                             "type": "literal",
                             "value": "6",
                         }
@@ -1048,7 +1023,8 @@ class test_ProcessTest(unittest.TestCase):
         }
         shutil.rmtree(output_folder)
         delete_output_zip(".", now)
-        self.assertEqual(result, expected_result)
+        self.assertEqual(result["head"], expected_result["head"])
+        self.assertEqual(result["results"], expected_result["results"])
 
     def test_omid_in_input_data(self):
         query_all = """
@@ -1200,7 +1176,7 @@ class test_ProcessTest(unittest.TestCase):
             "supplier_prefix": "060",
             "use_doi_api_service": False,
             "blazegraph_full_text_search": False,
-            "virtuoso_full_text_search": True,
+            "virtuoso_full_text_search": False,
             "fuseki_full_text_search": False,
             "graphdb_connector_name": None,
             "cache_endpoint": None,
@@ -1456,7 +1432,7 @@ class test_ProcessTest(unittest.TestCase):
             "supplier_prefix": "060",
             "use_doi_api_service": False,
             "blazegraph_full_text_search": False,
-            "virtuoso_full_text_search": True,
+            "virtuoso_full_text_search": False,
             "fuseki_full_text_search": False,
             "graphdb_connector_name": None,
             "cache_endpoint": None,
@@ -1578,7 +1554,7 @@ class test_ProcessTest(unittest.TestCase):
             "supplier_prefix": "060",
             "use_doi_api_service": False,
             "blazegraph_full_text_search": False,
-            "virtuoso_full_text_search": True,
+            "virtuoso_full_text_search": False,
             "fuseki_full_text_search": False,
             "graphdb_connector_name": None,
             "cache_endpoint": None,
@@ -1710,7 +1686,7 @@ class test_ProcessTest(unittest.TestCase):
             "supplier_prefix": "060",
             "use_doi_api_service": False,
             "blazegraph_full_text_search": False,
-            "virtuoso_full_text_search": True,
+            "virtuoso_full_text_search": False,
             "fuseki_full_text_search": False,
             "graphdb_connector_name": None,
             "cache_endpoint": None,
@@ -1901,7 +1877,7 @@ class test_ProcessTest(unittest.TestCase):
             "supplier_prefix": "060",
             "use_doi_api_service": False,
             "blazegraph_full_text_search": False,
-            "virtuoso_full_text_search": True,
+            "virtuoso_full_text_search": False,
             "fuseki_full_text_search": False,
             "graphdb_connector_name": None,
             "cache_endpoint": None,
@@ -2069,7 +2045,7 @@ class test_ProcessTest(unittest.TestCase):
             "supplier_prefix": "060",
             "use_doi_api_service": False,
             "blazegraph_full_text_search": False,
-            "virtuoso_full_text_search": True,
+            "virtuoso_full_text_search": False,
             "fuseki_full_text_search": False,
             "graphdb_connector_name": None,
             "cache_endpoint": None,
