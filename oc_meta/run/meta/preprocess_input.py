@@ -18,6 +18,8 @@ from __future__ import annotations
 
 import argparse
 import os
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from dataclasses import dataclass
 from typing import List
 
 import redis
@@ -40,29 +42,54 @@ from oc_meta.lib.file_manager import get_csv_data, write_csv
 console = Console()
 
 
+@dataclass
 class ProcessingStats:
-    def __init__(self):
-        self.total_rows = 0
-        self.duplicate_rows = 0
-        self.existing_ids_rows = 0
-        self.processed_rows = 0
+    total_rows: int = 0
+    duplicate_rows: int = 0
+    existing_ids_rows: int = 0
+    processed_rows: int = 0
+
+
+@dataclass
+class FileResult:
+    file_path: str
+    rows: list[tuple[tuple[tuple[str, str], ...], dict[str, str]]]
+    stats: ProcessingStats
 
 
 def create_redis_connection(host: str, port: int, db: int = 10) -> redis.Redis:
     return redis.Redis(host=host, port=port, db=db, decode_responses=True)
 
 
-def check_ids_existence(ids: str, redis_client: redis.Redis) -> bool:
-    if not ids:
-        return False
+def check_ids_existence_batch(
+    rows: list[dict[str, str]], redis_client: redis.Redis
+) -> list[bool]:
+    row_id_lists: list[list[str]] = []
+    for row in rows:
+        ids_str = row["id"]
+        row_id_lists.append(ids_str.split() if ids_str else [])
 
-    id_list = ids.split()
+    pipe = redis_client.pipeline()
+    for id_list in row_id_lists:
+        for id_str in id_list:
+            pipe.exists(id_str)
 
-    for id_str in id_list:
-        if not redis_client.exists(id_str):
-            return False
+    results = pipe.execute()
 
-    return True
+    row_results: list[bool] = []
+    idx = 0
+    for id_list in row_id_lists:
+        if not id_list:
+            row_results.append(False)
+        else:
+            all_exist = True
+            for _ in id_list:
+                if not results[idx]:
+                    all_exist = False
+                idx += 1
+            row_results.append(all_exist)
+
+    return row_results
 
 
 def get_csv_files(directory: str) -> List[str]:
@@ -78,75 +105,78 @@ def get_csv_files(directory: str) -> List[str]:
     ]
 
 
-def process_csv_file(
-    input_file: str,
-    output_dir: str,
-    current_file_num: int,
-    redis_client: redis.Redis,
-    rows_per_file: int = 3000,
-    seen_rows: set | None = None,
-    pending_rows: list | None = None,
-) -> tuple[int, ProcessingStats, list]:
-    rows_to_write = pending_rows if pending_rows is not None else []
-    file_num = current_file_num
-    seen_rows = seen_rows if seen_rows is not None else set()
+def filter_existing_ids_from_file(
+    file_path: str, redis_host: str, redis_port: int, redis_db: int
+) -> FileResult:
+    redis_client = create_redis_connection(redis_host, redis_port, redis_db)
+    data = get_csv_data(file_path, clean_data=False)
 
     stats = ProcessingStats()
+    stats.total_rows = len(data)
 
-    data = get_csv_data(input_file, clean_data=False)
+    existence_results = check_ids_existence_batch(data, redis_client)
 
-    for row in data:
-        stats.total_rows += 1
-        row_hash = frozenset(row.items())
-
-        if row_hash in seen_rows:
-            stats.duplicate_rows += 1
-            continue
-
-        seen_rows.add(row_hash)
-
-        if check_ids_existence(row["id"], redis_client):
+    valid_rows: list[tuple[tuple[tuple[str, str], ...], dict[str, str]]] = []
+    for row, exists in zip(data, existence_results):
+        if exists:
             stats.existing_ids_rows += 1
-            continue
+        else:
+            row_hash = tuple(sorted(row.items()))
+            valid_rows.append((row_hash, row))
 
-        stats.processed_rows += 1
-        rows_to_write.append(row)
-
-        if len(rows_to_write) >= rows_per_file:
-            output_file = os.path.join(output_dir, "{}.csv".format(file_num))
-            write_csv(output_file, rows_to_write)
-            file_num += 1
-            rows_to_write = []
-
-    return file_num, stats, rows_to_write
+    return FileResult(file_path=file_path, rows=valid_rows, stats=stats)
 
 
-def print_processing_report(
-    all_stats: List[ProcessingStats], input_files: List[str]
-) -> None:
+def deduplicate_and_write(
+    results: list[FileResult], output_dir: str, rows_per_file: int
+) -> ProcessingStats:
+    seen_rows: set[tuple[tuple[str, str], ...]] = set()
+    rows_to_write: list[dict[str, str]] = []
+    file_num = 0
+
     total_stats = ProcessingStats()
-    for stats in all_stats:
-        total_stats.total_rows += stats.total_rows
-        total_stats.duplicate_rows += stats.duplicate_rows
-        total_stats.existing_ids_rows += stats.existing_ids_rows
-        total_stats.processed_rows += stats.processed_rows
 
+    for result in results:
+        total_stats.total_rows += result.stats.total_rows
+        total_stats.existing_ids_rows += result.stats.existing_ids_rows
+
+        for row_hash, row in result.rows:
+            if row_hash in seen_rows:
+                total_stats.duplicate_rows += 1
+                continue
+
+            seen_rows.add(row_hash)
+            total_stats.processed_rows += 1
+            rows_to_write.append(row)
+
+            if len(rows_to_write) >= rows_per_file:
+                output_file = os.path.join(output_dir, "{}.csv".format(file_num))
+                write_csv(output_file, rows_to_write)
+                file_num += 1
+                rows_to_write = []
+
+    if rows_to_write:
+        output_file = os.path.join(output_dir, "{}.csv".format(file_num))
+        write_csv(output_file, rows_to_write)
+
+    return total_stats
+
+
+def print_processing_report(stats: ProcessingStats, num_files: int) -> None:
     table = Table(title="Processing Report")
     table.add_column("Metric", style="cyan")
     table.add_column("Value", style="green")
 
-    table.add_row("Total input files processed", str(len(input_files)))
-    table.add_row("Total input rows", str(total_stats.total_rows))
-    table.add_row("Rows discarded (duplicates)", str(total_stats.duplicate_rows))
-    table.add_row("Rows discarded (existing IDs)", str(total_stats.existing_ids_rows))
-    table.add_row("Rows written to output", str(total_stats.processed_rows))
+    table.add_row("Total input files processed", str(num_files))
+    table.add_row("Total input rows", str(stats.total_rows))
+    table.add_row("Rows discarded (duplicates)", str(stats.duplicate_rows))
+    table.add_row("Rows discarded (existing IDs)", str(stats.existing_ids_rows))
+    table.add_row("Rows written to output", str(stats.processed_rows))
 
-    if total_stats.total_rows > 0:
-        duplicate_percent = (total_stats.duplicate_rows / total_stats.total_rows) * 100
-        existing_percent = (
-            total_stats.existing_ids_rows / total_stats.total_rows
-        ) * 100
-        processed_percent = (total_stats.processed_rows / total_stats.total_rows) * 100
+    if stats.total_rows > 0:
+        duplicate_percent = (stats.duplicate_rows / stats.total_rows) * 100
+        existing_percent = (stats.existing_ids_rows / stats.total_rows) * 100
+        processed_percent = (stats.processed_rows / stats.total_rows) * 100
 
         table.add_row("", "")
         table.add_row("Duplicate rows %", "{:.1f}%".format(duplicate_percent))
@@ -179,6 +209,12 @@ def main():  # pragma: no cover
         default=10,
         help="Redis database number (default: 10)",
     )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=4,
+        help="Number of parallel workers (default: 4)",
+    )
     args = parser.parse_args()
 
     os.makedirs(args.output_dir, exist_ok=True)
@@ -191,17 +227,13 @@ def main():  # pragma: no cover
         return 1
 
     console.print(
-        "Found [green]{}[/green] CSV files to process".format(len(csv_files))
+        "Found [green]{}[/green] CSV files to process with [green]{}[/green] workers".format(
+            len(csv_files), args.workers
+        )
     )
 
-    redis_client = create_redis_connection(
-        args.redis_host, args.redis_port, args.redis_db
-    )
-
-    current_file_num = 0
-    all_stats = []
-    seen_rows: set = set()
-    pending_rows: list = []
+    results: list[FileResult] = []
+    file_order = {f: i for i, f in enumerate(csv_files)}
 
     with Progress(
         SpinnerColumn(),
@@ -212,26 +244,31 @@ def main():  # pragma: no cover
         TimeElapsedColumn(),
         TimeRemainingColumn(),
     ) as progress:
-        task = progress.add_task("Processing", total=len(csv_files))
-        for csv_file in csv_files:
-            progress.update(task, description=f"Processing [cyan]{os.path.basename(csv_file)}[/cyan]")
-            current_file_num, stats, pending_rows = process_csv_file(
-                csv_file,
-                args.output_dir,
-                current_file_num,
-                redis_client,
-                rows_per_file=args.rows_per_file,
-                seen_rows=seen_rows,
-                pending_rows=pending_rows,
-            )
-            all_stats.append(stats)
-            progress.advance(task)
+        task = progress.add_task("Filtering existing IDs", total=len(csv_files))
 
-    if pending_rows:
-        output_file = os.path.join(args.output_dir, "{}.csv".format(current_file_num))
-        write_csv(output_file, pending_rows)
+        with ProcessPoolExecutor(max_workers=args.workers) as executor:
+            futures = {
+                executor.submit(
+                    filter_existing_ids_from_file,
+                    csv_file,
+                    args.redis_host,
+                    args.redis_port,
+                    args.redis_db,
+                ): csv_file
+                for csv_file in csv_files
+            }
 
-    print_processing_report(all_stats, csv_files)
+            for future in as_completed(futures):
+                result = future.result()
+                results.append(result)
+                progress.advance(task)
+
+    results.sort(key=lambda r: file_order[r.file_path])
+
+    console.print("Deduplicating and writing output files...")
+    total_stats = deduplicate_and_write(results, args.output_dir, args.rows_per_file)
+
+    print_processing_report(total_stats, len(csv_files))
 
     return 0
 

@@ -7,9 +7,9 @@ The preprocessing script filters and optimizes CSV files before they enter the m
 
 ## What preprocessing does
 
-1. **Removes duplicates** across all input files
-2. **Filters existing IDs** that are already in the Redis database
-3. **Splits large files** into smaller, manageable chunks
+1. **Filters existing IDs** that are already in the Redis database (parallelized across multiple workers)
+2. **Removes duplicates** across all input files
+3. **Splits output** into smaller, manageable chunks
 
 ## Redis database structure
 
@@ -39,7 +39,8 @@ uv run python -m oc_meta.run.meta.preprocess_input input/ output/ \
   --redis-port 6379 \
   --rows-per-file 5000 \
   --redis-host 192.168.1.100 \
-  --redis-db 10
+  --redis-db 10 \
+  --workers 8
 ```
 
 ## Options
@@ -52,6 +53,7 @@ uv run python -m oc_meta.run.meta.preprocess_input input/ output/ \
 | `--rows-per-file` | No | 3000 | Number of rows per output file |
 | `--redis-host` | No | localhost | Redis hostname |
 | `--redis-db` | No | 10 | Redis database number |
+| `--workers` | No | 4 | Number of parallel workers |
 
 ## Progress display
 
