@@ -1390,7 +1390,6 @@ dependencies = [
     { name = "requests" },
     { name = "rich" },
     { name = "rich-argparse" },
-    { name = "sparqlite" },
     { name = "time-agnostic-library" },
     { name = "tqdm" },
     { name = "virtuoso-utilities" },
@@ -1432,9 +1431,8 @@ requires-dist = [
     { name = "requests", specifier = ">=2.32.0" },
     { name = "rich", specifier = ">=14.3.0" },
     { name = "rich-argparse", specifier = ">=1.7.2" },
-    { name = "sparqlite", specifier = "==1.2.1" },
     { name = "time-agnostic-library", specifier = ">=6.0.0" },
-    { name = "tqdm", specifier = ">=4.67.0" },
+    { name = "tqdm", specifier = ">=4.67.3" },
     { name = "virtuoso-utilities", specifier = ">=1.10.0" },
 ]
 

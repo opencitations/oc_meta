@@ -36,50 +36,28 @@ from requests.exceptions import ConnectionError
 from oc_meta.lib.cleaner import Cleaner
 
 
-def get_csv_data(filepath:str) -> List[Dict[str, str]]:
-    if not os.path.splitext(filepath)[1].endswith('.csv'):
+def get_csv_data(filepath: str, clean_data: bool = True) -> List[Dict[str, str]]:
+    if not os.path.splitext(filepath)[1].endswith(".csv"):
         return list()
     field_size_changed = False
     cur_field_size = 128
-    data = list()
+    data: List[Dict[str, str]] = list()
     while not data:
         try:
-            with open(filepath, 'r', encoding='utf8') as data_initial:
-                valid_data = (Cleaner(line.replace('\0','')).normalize_spaces() for line in data_initial)
-                data = list(csv.DictReader(valid_data, delimiter=','))
+            with open(filepath, "r", encoding="utf8") as f:
+                if clean_data:
+                    lines = (
+                        Cleaner(line.replace("\0", "")).normalize_spaces() for line in f
+                    )
+                    data = list(csv.DictReader(lines, delimiter=","))
+                else:
+                    data = list(csv.DictReader(f, delimiter=","))
         except csv.Error:
             cur_field_size *= 2
             csv.field_size_limit(cur_field_size)
             field_size_changed = True
     if field_size_changed:
         csv.field_size_limit(128)
-    return data
-
-
-def get_csv_data_fast(filepath: str) -> List[Dict[str, str]]:
-    """
-    Fast CSV reader that only handles field_size_limit without data cleaning.
-    Use this when you don't need data normalization for better performance.
-    """
-    if not os.path.splitext(filepath)[1].endswith('.csv'):
-        return list()
-    
-    field_size_changed = False
-    cur_field_size = 128
-    data = list()
-    
-    while not data:
-        try:
-            with open(filepath, 'r', encoding='utf8') as data_file:
-                data = list(csv.DictReader(data_file, delimiter=','))
-        except csv.Error:
-            cur_field_size *= 2
-            csv.field_size_limit(cur_field_size)
-            field_size_changed = True
-    
-    if field_size_changed:
-        csv.field_size_limit(128)
-    
     return data
 
 def pathoo(path):
