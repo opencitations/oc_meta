@@ -136,24 +136,37 @@ def deduplicate_and_write(
 
     total_stats = ProcessingStats()
 
-    for result in results:
-        total_stats.total_rows += result.stats.total_rows
-        total_stats.existing_ids_rows += result.stats.existing_ids_rows
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TaskProgressColumn(),
+        MofNCompleteColumn(),
+        TimeElapsedColumn(),
+        TimeRemainingColumn(),
+    ) as progress:
+        task = progress.add_task("Deduplicating and writing", total=len(results))
 
-        for row_hash, row in result.rows:
-            if row_hash in seen_rows:
-                total_stats.duplicate_rows += 1
-                continue
+        for result in results:
+            total_stats.total_rows += result.stats.total_rows
+            total_stats.existing_ids_rows += result.stats.existing_ids_rows
 
-            seen_rows.add(row_hash)
-            total_stats.processed_rows += 1
-            rows_to_write.append(row)
+            for row_hash, row in result.rows:
+                if row_hash in seen_rows:
+                    total_stats.duplicate_rows += 1
+                    continue
 
-            if len(rows_to_write) >= rows_per_file:
-                output_file = os.path.join(output_dir, "{}.csv".format(file_num))
-                write_csv(output_file, rows_to_write)
-                file_num += 1
-                rows_to_write = []
+                seen_rows.add(row_hash)
+                total_stats.processed_rows += 1
+                rows_to_write.append(row)
+
+                if len(rows_to_write) >= rows_per_file:
+                    output_file = os.path.join(output_dir, "{}.csv".format(file_num))
+                    write_csv(output_file, rows_to_write)
+                    file_num += 1
+                    rows_to_write = []
+
+            progress.advance(task)
 
     if rows_to_write:
         output_file = os.path.join(output_dir, "{}.csv".format(file_num))
@@ -265,7 +278,6 @@ def main():  # pragma: no cover
 
     results.sort(key=lambda r: file_order[r.file_path])
 
-    console.print("Deduplicating and writing output files...")
     total_stats = deduplicate_and_write(results, args.output_dir, args.rows_per_file)
 
     print_processing_report(total_stats, len(csv_files))
