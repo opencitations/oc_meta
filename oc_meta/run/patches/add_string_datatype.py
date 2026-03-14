@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import shutil
 import zipfile
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -20,9 +22,26 @@ from rich.progress import (
 )
 from rich_argparse import RichHelpFormatter
 
+BATCH_SIZE = 100
+
 
 def collect_zip_files(input_dir: Path) -> list[Path]:
-    return list(input_dir.rglob("*.zip"))
+    result = []
+    for root, _, files in os.walk(input_dir):
+        for f in files:
+            if f.endswith(".zip"):
+                result.append(Path(root) / f)
+    return result
+
+
+def needs_modification(data: object) -> bool:
+    if isinstance(data, list):
+        return any(needs_modification(item) for item in data)
+    if isinstance(data, dict):
+        if "@value" in data and "@type" not in data and "@language" not in data:
+            return True
+        return any(needs_modification(v) for v in data.values() if isinstance(v, (dict, list)))
+    return False
 
 
 def process_dataset(ds: Dataset) -> dict[str, int]:
@@ -48,23 +67,33 @@ def process_zip_file(
     relative_path = input_path.relative_to(input_dir)
     output_path = output_dir / relative_path
     output_path.parent.mkdir(parents=True, exist_ok=True)
+
     with zipfile.ZipFile(input_path, "r") as zf_in:
         json_name = zf_in.namelist()[0]
-        with zf_in.open(json_name) as f:
-            data = json.load(f)
+        raw_bytes = zf_in.read(json_name)
+
+    data = json.loads(raw_bytes.decode("utf-8"))
+
+    if not needs_modification(data):
+        shutil.copy2(input_path, output_path)
+        return {}
+
     ds = Dataset()
-    ds.parse(data=json.dumps(data), format="json-ld")
+    ds.parse(data=raw_bytes, format="json-ld")
     modifications = process_dataset(ds)
     serialized = ds.serialize(format="json-ld")
     result = json.loads(serialized)
+
     with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED) as zf_out:
         zf_out.writestr(json_name, json.dumps(result, ensure_ascii=False))
+
     return modifications
 
 
-def process_single_file(args: tuple[Path, Path, Path]) -> dict[str, int]:
-    input_path, input_dir, output_dir = args
-    return process_zip_file(input_path, input_dir, output_dir)
+def process_batch(
+    batch: list[tuple[Path, Path, Path]]
+) -> list[dict[str, int]]:
+    return [process_zip_file(input_path, input_dir, output_dir) for input_path, input_dir, output_dir in batch]
 
 
 def main() -> None:  # pragma: no cover
@@ -76,6 +105,9 @@ def main() -> None:  # pragma: no cover
     parser.add_argument("output_dir", type=Path, help="Output directory for modified data")
     parser.add_argument(
         "-w", "--workers", type=int, default=4, help="Number of parallel workers"
+    )
+    parser.add_argument(
+        "-b", "--batch-size", type=int, default=BATCH_SIZE, help="Files per batch"
     )
     args = parser.parse_args()
 
@@ -94,6 +126,7 @@ def main() -> None:  # pragma: no cover
     files_unchanged = 0
 
     work_items = [(zf, input_dir, output_dir) for zf in zip_files]
+    batches = [work_items[i:i + args.batch_size] for i in range(0, len(work_items), args.batch_size)]
 
     with Progress(
         SpinnerColumn(),
@@ -107,19 +140,17 @@ def main() -> None:  # pragma: no cover
         task = progress.add_task("Processing files", total=len(zip_files))
 
         with ProcessPoolExecutor(max_workers=args.workers) as executor:
-            futures = {
-                executor.submit(process_single_file, item): item
-                for item in work_items
-            }
+            futures = {executor.submit(process_batch, batch): batch for batch in batches}
             for future in as_completed(futures):
-                modifications = future.result()
-                if modifications:
-                    files_modified += 1
-                    for prop, count in modifications.items():
-                        total_modifications[prop] += count
-                else:
-                    files_unchanged += 1
-                progress.update(task, advance=1)
+                batch_results = future.result()
+                for modifications in batch_results:
+                    if modifications:
+                        files_modified += 1
+                        for prop, count in modifications.items():
+                            total_modifications[prop] += count
+                    else:
+                        files_unchanged += 1
+                progress.update(task, advance=len(futures[future]))
 
     console.print("\n[bold]Statistics:[/bold]")
     console.print(f"  Files processed: {len(zip_files)}")

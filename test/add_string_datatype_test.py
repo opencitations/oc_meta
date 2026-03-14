@@ -7,8 +7,9 @@ from rdflib import XSD, Dataset, Literal, URIRef
 
 from oc_meta.run.patches.add_string_datatype import (
     collect_zip_files,
+    needs_modification,
+    process_batch,
     process_dataset,
-    process_single_file,
     process_zip_file,
 )
 
@@ -55,6 +56,46 @@ class TestCollectZipFiles:
         result = collect_zip_files(input_dir)
 
         assert result == []
+
+
+class TestNeedsModification:
+    def test_detects_untyped_value(self):
+        data = {"@value": "test"}
+        assert needs_modification(data) is True
+
+    def test_ignores_typed_value(self):
+        data = {"@value": "test", "@type": "http://www.w3.org/2001/XMLSchema#string"}
+        assert needs_modification(data) is False
+
+    def test_ignores_language_tagged_value(self):
+        data = {"@value": "test", "@language": "en"}
+        assert needs_modification(data) is False
+
+    def test_detects_untyped_in_nested_list(self):
+        data = [{"@graph": [{"prop": [{"@value": "untyped"}]}]}]
+        assert needs_modification(data) is True
+
+    def test_all_typed_returns_false(self):
+        data = [
+            {
+                "@graph": [
+                    {
+                        "http://purl.org/dc/terms/title": [
+                            {"@value": "Title", "@type": "http://www.w3.org/2001/XMLSchema#string"}
+                        ]
+                    }
+                ]
+            }
+        ]
+        assert needs_modification(data) is False
+
+    def test_empty_data(self):
+        assert needs_modification([]) is False
+        assert needs_modification({}) is False
+
+    def test_non_value_dict(self):
+        data = {"@id": "http://example.org/entity"}
+        assert needs_modification(data) is False
 
 
 class TestProcessDataset:
@@ -369,7 +410,7 @@ class TestProcessZipFile:
 
         assert modifications == {"http://purl.org/spar/fabio/hasSequenceIdentifier": 2}
 
-    def test_no_modifications_when_all_typed(self, temp_dirs):
+    def test_copies_unchanged_file(self, temp_dirs):
         input_dir, output_dir = temp_dirs
         br_data = [
             {
@@ -397,6 +438,8 @@ class TestProcessZipFile:
         modifications = process_zip_file(zip_path, input_dir, output_dir)
 
         assert modifications == {}
+        output_path = output_dir / "br" / "0690" / "10000" / "1000.zip"
+        assert output_path.exists()
 
     def test_preserves_directory_structure(self, temp_dirs):
         input_dir, output_dir = temp_dirs
@@ -496,29 +539,51 @@ class TestProcessZipFile:
         assert entity["http://prismstandard.org/namespaces/basic/2.0/publicationDate"][0]["@type"] == "http://www.w3.org/2001/XMLSchema#date"
 
 
-class TestProcessSingleFile:
-    def test_wrapper_delegates_to_process_zip_file(self, temp_dirs):
+class TestProcessBatch:
+    def test_processes_multiple_files(self, temp_dirs):
         input_dir, output_dir = temp_dirs
-        br_data = [
+        br_data1 = [
             {
                 "@graph": [
                     {
                         "@id": "https://w3id.org/oc/meta/br/0601",
                         "@type": ["http://purl.org/spar/fabio/Expression"],
-                        "http://purl.org/dc/terms/title": [{"@value": "Test Title"}]
+                        "http://purl.org/dc/terms/title": [{"@value": "Title 1"}]
                     }
                 ],
                 "@id": "https://w3id.org/oc/meta/br/"
             }
         ]
-        zip_path = input_dir / "br" / "0690" / "10000" / "1000.zip"
-        create_zip_file(zip_path, "1000.json", br_data)
+        br_data2 = [
+            {
+                "@graph": [
+                    {
+                        "@id": "https://w3id.org/oc/meta/br/0602",
+                        "@type": ["http://purl.org/spar/fabio/Expression"],
+                        "http://purl.org/dc/terms/title": [{"@value": "Title 2"}]
+                    }
+                ],
+                "@id": "https://w3id.org/oc/meta/br/"
+            }
+        ]
+        zip_path1 = input_dir / "br" / "0690" / "10000" / "1000.zip"
+        zip_path2 = input_dir / "br" / "0690" / "10000" / "2000.zip"
+        create_zip_file(zip_path1, "1000.json", br_data1)
+        create_zip_file(zip_path2, "2000.json", br_data2)
 
-        modifications = process_single_file((zip_path, input_dir, output_dir))
+        batch = [
+            (zip_path1, input_dir, output_dir),
+            (zip_path2, input_dir, output_dir),
+        ]
+        results = process_batch(batch)
 
-        assert modifications == {"http://purl.org/dc/terms/title": 1}
-        output_path = output_dir / "br" / "0690" / "10000" / "1000.zip"
-        assert output_path.exists()
+        assert len(results) == 2
+        assert results[0] == {"http://purl.org/dc/terms/title": 1}
+        assert results[1] == {"http://purl.org/dc/terms/title": 1}
+
+    def test_empty_batch(self):
+        results = process_batch([])
+        assert results == []
 
 
 class TestIntegrationFullStructure:
