@@ -3,11 +3,13 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import signal
 import shutil
 import zipfile
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
+
 
 from rdflib import XSD, Dataset, Literal
 from rich.console import Console
@@ -23,6 +25,10 @@ from rich.progress import (
 from rich_argparse import RichHelpFormatter
 
 BATCH_SIZE = 100
+
+
+def _worker_init() -> None:
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
 
 
 def collect_zip_files(input_dir: Path) -> list[Path]:
@@ -128,18 +134,18 @@ def main() -> None:  # pragma: no cover
     work_items = [(zf, input_dir, output_dir) for zf in zip_files]
     batches = [work_items[i:i + args.batch_size] for i in range(0, len(work_items), args.batch_size)]
 
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        BarColumn(),
-        MofNCompleteColumn(),
-        TimeElapsedColumn(),
-        TimeRemainingColumn(),
-        console=console,
-    ) as progress:
-        task = progress.add_task("Processing files", total=len(zip_files))
-
-        with ProcessPoolExecutor(max_workers=args.workers) as executor:
+    executor = ProcessPoolExecutor(max_workers=args.workers, initializer=_worker_init)
+    try:
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            MofNCompleteColumn(),
+            TimeElapsedColumn(),
+            TimeRemainingColumn(),
+            console=console,
+        ) as progress:
+            task = progress.add_task("Processing files", total=len(zip_files))
             futures = {executor.submit(process_batch, batch): batch for batch in batches}
             for future in as_completed(futures):
                 batch_results = future.result()
@@ -151,6 +157,12 @@ def main() -> None:  # pragma: no cover
                     else:
                         files_unchanged += 1
                 progress.update(task, advance=len(futures[future]))
+    except KeyboardInterrupt:
+        console.print("\n[bold red]Interrupted. Shutting down workers...[/bold red]")
+        executor.shutdown(wait=False, cancel_futures=True)
+        raise
+    finally:
+        executor.shutdown(wait=True)
 
     console.print("\n[bold]Statistics:[/bold]")
     console.print(f"  Files processed: {len(zip_files)}")

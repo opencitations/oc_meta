@@ -6,6 +6,7 @@ import pytest
 from rdflib import XSD, Dataset, Literal, URIRef
 
 from oc_meta.run.patches.add_string_datatype import (
+    _worker_init,
     collect_zip_files,
     needs_modification,
     process_batch,
@@ -33,6 +34,11 @@ def read_zip_file(path: Path) -> list:
         json_name = zf.namelist()[0]
         with zf.open(json_name) as f:
             return json.load(f)
+
+
+class TestWorkerInit:
+    def test_sets_signal_handler(self):
+        _worker_init()
 
 
 class TestCollectZipFiles:
