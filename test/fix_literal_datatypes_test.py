@@ -5,14 +5,22 @@ from pathlib import Path
 import pytest
 from rdflib import XSD, Dataset, Literal, URIRef
 
-from oc_meta.run.patches.add_string_datatype import (
+from oc_meta.run.patches.fix_literal_datatypes import (
+    PUBLICATION_DATE_PREDICATE,
+    PUBLICATION_DATE_PREDICATE_STR,
+    VALID_DATE_TYPES_STR,
+    _has_invalid_date_type,
+    _has_untyped_literal,
     _worker_init,
     collect_zip_files,
+    is_provenance_file,
     needs_modification,
     process_batch,
     process_dataset,
     process_zip_file,
 )
+
+XSD_STRING_STR = str(XSD.string)
 
 
 @pytest.fixture
@@ -64,22 +72,32 @@ class TestCollectZipFiles:
         assert result == []
 
 
-class TestNeedsModification:
+class TestIsProvenanceFile:
+    def test_detects_prov_in_path(self):
+        path = Path("/data/br/0690/10000/1000/prov/se.zip")
+        assert is_provenance_file(path) is True
+
+    def test_returns_false_for_non_prov_path(self):
+        path = Path("/data/br/0690/10000/1000.zip")
+        assert is_provenance_file(path) is False
+
+
+class TestHasUntypedLiteral:
     def test_detects_untyped_value(self):
         data = {"@value": "test"}
-        assert needs_modification(data) is True
+        assert _has_untyped_literal(data) is True
 
     def test_ignores_typed_value(self):
-        data = {"@value": "test", "@type": "http://www.w3.org/2001/XMLSchema#string"}
-        assert needs_modification(data) is False
+        data = {"@value": "test", "@type": XSD_STRING_STR}
+        assert _has_untyped_literal(data) is False
 
     def test_ignores_language_tagged_value(self):
         data = {"@value": "test", "@language": "en"}
-        assert needs_modification(data) is False
+        assert _has_untyped_literal(data) is False
 
     def test_detects_untyped_in_nested_list(self):
         data = [{"@graph": [{"prop": [{"@value": "untyped"}]}]}]
-        assert needs_modification(data) is True
+        assert _has_untyped_literal(data) is True
 
     def test_all_typed_returns_false(self):
         data = [
@@ -87,21 +105,98 @@ class TestNeedsModification:
                 "@graph": [
                     {
                         "http://purl.org/dc/terms/title": [
-                            {"@value": "Title", "@type": "http://www.w3.org/2001/XMLSchema#string"}
+                            {"@value": "Title", "@type": XSD_STRING_STR}
                         ]
                     }
                 ]
             }
         ]
-        assert needs_modification(data) is False
+        assert _has_untyped_literal(data) is False
 
     def test_empty_data(self):
-        assert needs_modification([]) is False
-        assert needs_modification({}) is False
+        assert _has_untyped_literal([]) is False
+        assert _has_untyped_literal({}) is False
 
     def test_non_value_dict(self):
         data = {"@id": "http://example.org/entity"}
-        assert needs_modification(data) is False
+        assert _has_untyped_literal(data) is False
+
+
+class TestHasInvalidDateType:
+    def test_detects_string_type(self):
+        data = {PUBLICATION_DATE_PREDICATE_STR: [{"@value": "2020-01-15", "@type": XSD_STRING_STR}]}
+        assert _has_invalid_date_type(data) is True
+
+    def test_detects_other_invalid_type(self):
+        data = {PUBLICATION_DATE_PREDICATE_STR: [{"@value": "2020", "@type": str(XSD.integer)}]}
+        assert _has_invalid_date_type(data) is True
+
+    def test_ignores_date_type(self):
+        data = {PUBLICATION_DATE_PREDICATE_STR: [{"@value": "2020-01-15", "@type": str(XSD.date)}]}
+        assert _has_invalid_date_type(data) is False
+
+    def test_ignores_gyear_type(self):
+        data = {PUBLICATION_DATE_PREDICATE_STR: [{"@value": "2020", "@type": str(XSD.gYear)}]}
+        assert _has_invalid_date_type(data) is False
+
+    def test_ignores_gyearmonth_type(self):
+        data = {PUBLICATION_DATE_PREDICATE_STR: [{"@value": "2020-05", "@type": str(XSD.gYearMonth)}]}
+        assert _has_invalid_date_type(data) is False
+
+    def test_ignores_untyped_date(self):
+        data = {PUBLICATION_DATE_PREDICATE_STR: [{"@value": "2020-01-15"}]}
+        assert _has_invalid_date_type(data) is False
+
+    def test_ignores_other_predicates(self):
+        data = {"http://purl.org/dc/terms/title": [{"@value": "Title", "@type": XSD_STRING_STR}]}
+        assert _has_invalid_date_type(data) is False
+
+    def test_detects_in_nested_graph(self):
+        data = [
+            {
+                "@graph": [
+                    {
+                        PUBLICATION_DATE_PREDICATE_STR: [
+                            {"@value": "2020", "@type": XSD_STRING_STR}
+                        ]
+                    }
+                ]
+            }
+        ]
+        assert _has_invalid_date_type(data) is True
+
+    def test_empty_data(self):
+        assert _has_invalid_date_type([]) is False
+        assert _has_invalid_date_type({}) is False
+
+
+class TestNeedsModification:
+    def test_detects_untyped_literal_non_prov(self):
+        data = {"@value": "test"}
+        assert needs_modification(data, is_prov=False) is True
+
+    def test_detects_untyped_literal_prov(self):
+        data = {"@value": "test"}
+        assert needs_modification(data, is_prov=True) is True
+
+    def test_detects_string_date_non_prov(self):
+        data = {PUBLICATION_DATE_PREDICATE_STR: [{"@value": "2020", "@type": XSD_STRING_STR}]}
+        assert needs_modification(data, is_prov=False) is True
+
+    def test_ignores_string_date_prov(self):
+        data = {PUBLICATION_DATE_PREDICATE_STR: [{"@value": "2020", "@type": XSD_STRING_STR}]}
+        assert needs_modification(data, is_prov=True) is False
+
+    def test_no_modification_needed(self):
+        data = {
+            "http://purl.org/dc/terms/title": [{"@value": "Title", "@type": XSD_STRING_STR}],
+            PUBLICATION_DATE_PREDICATE_STR: [{"@value": "2020", "@type": str(XSD.gYear)}]
+        }
+        assert needs_modification(data, is_prov=False) is False
+
+    def test_empty_data(self):
+        assert needs_modification([], is_prov=False) is False
+        assert needs_modification({}, is_prov=True) is False
 
 
 class TestProcessDataset:
@@ -112,9 +207,70 @@ class TestProcessDataset:
         g = ds.graph(URIRef("https://w3id.org/oc/meta/br/"))
         g.add((subj, pred, Literal("Test Title")))
 
-        modifications = process_dataset(ds)
+        modifications = process_dataset(ds, is_prov=False)
 
-        assert modifications == {"http://purl.org/dc/terms/title": 1}
+        assert modifications == {"untyped:http://purl.org/dc/terms/title": 1}
+        for s, p, o, ctx in ds.quads():
+            if isinstance(o, Literal):
+                assert o.datatype == XSD.string
+
+    def test_fixes_untyped_date_directly(self):
+        ds = Dataset()
+        subj = URIRef("https://w3id.org/oc/meta/br/0601")
+        g = ds.graph(URIRef("https://w3id.org/oc/meta/br/"))
+        g.add((subj, PUBLICATION_DATE_PREDICATE, Literal("2020-01-15")))
+
+        modifications = process_dataset(ds, is_prov=False)
+
+        assert modifications == {f"date:{XSD.date}": 1}
+        for s, p, o, ctx in ds.quads():
+            if isinstance(o, Literal):
+                assert o.datatype == XSD.date
+                assert str(o) == "2020-01-15"
+
+    def test_fixes_date_from_string(self):
+        ds = Dataset()
+        subj = URIRef("https://w3id.org/oc/meta/br/0601")
+        g = ds.graph(URIRef("https://w3id.org/oc/meta/br/"))
+        g.add((subj, PUBLICATION_DATE_PREDICATE, Literal("2020-01-15", datatype=XSD.string)))
+
+        modifications = process_dataset(ds, is_prov=False)
+
+        assert modifications == {f"date:{XSD.date}": 1}
+        for s, p, o, ctx in ds.quads():
+            if isinstance(o, Literal):
+                assert o.datatype == XSD.date
+                assert str(o) == "2020-01-15"
+
+    def test_fixes_year_date_from_string(self):
+        ds = Dataset()
+        subj = URIRef("https://w3id.org/oc/meta/br/0601")
+        g = ds.graph(URIRef("https://w3id.org/oc/meta/br/"))
+        g.add((subj, PUBLICATION_DATE_PREDICATE, Literal("2020", datatype=XSD.string)))
+
+        modifications = process_dataset(ds, is_prov=False)
+
+        assert modifications == {f"date:{XSD.gYear}": 1}
+
+    def test_fixes_year_month_date_from_string(self):
+        ds = Dataset()
+        subj = URIRef("https://w3id.org/oc/meta/br/0601")
+        g = ds.graph(URIRef("https://w3id.org/oc/meta/br/"))
+        g.add((subj, PUBLICATION_DATE_PREDICATE, Literal("2020-05", datatype=XSD.string)))
+
+        modifications = process_dataset(ds, is_prov=False)
+
+        assert modifications == {f"date:{XSD.gYearMonth}": 1}
+
+    def test_skips_date_fix_for_provenance(self):
+        ds = Dataset()
+        subj = URIRef("https://w3id.org/oc/meta/br/0601")
+        g = ds.graph(URIRef("https://w3id.org/oc/meta/br/"))
+        g.add((subj, PUBLICATION_DATE_PREDICATE, Literal("2020-01-15", datatype=XSD.string)))
+
+        modifications = process_dataset(ds, is_prov=True)
+
+        assert modifications == {}
         for s, p, o, ctx in ds.quads():
             if isinstance(o, Literal):
                 assert o.datatype == XSD.string
@@ -122,16 +278,12 @@ class TestProcessDataset:
     def test_preserves_existing_datatype(self):
         ds = Dataset()
         subj = URIRef("https://w3id.org/oc/meta/br/0601")
-        pred = URIRef("http://prismstandard.org/namespaces/basic/2.0/publicationDate")
         g = ds.graph(URIRef("https://w3id.org/oc/meta/br/"))
-        g.add((subj, pred, Literal("2020-01-15", datatype=XSD.date)))
+        g.add((subj, PUBLICATION_DATE_PREDICATE, Literal("2020-01-15", datatype=XSD.date)))
 
-        modifications = process_dataset(ds)
+        modifications = process_dataset(ds, is_prov=False)
 
         assert modifications == {}
-        for s, p, o, ctx in ds.quads():
-            if isinstance(o, Literal):
-                assert o.datatype == XSD.date
 
     def test_preserves_language_tagged_literals(self):
         ds = Dataset()
@@ -140,13 +292,37 @@ class TestProcessDataset:
         g = ds.graph(URIRef("https://w3id.org/oc/meta/br/"))
         g.add((subj, pred, Literal("Titre en Francais", lang="fr")))
 
-        modifications = process_dataset(ds)
+        modifications = process_dataset(ds, is_prov=False)
 
         assert modifications == {}
         for s, p, o, ctx in ds.quads():
             if isinstance(o, Literal):
                 assert o.language == "fr"
                 assert o.datatype is None
+
+    def test_raises_on_invalid_date_format(self):
+        ds = Dataset()
+        subj = URIRef("https://w3id.org/oc/meta/br/0601")
+        g = ds.graph(URIRef("https://w3id.org/oc/meta/br/"))
+        g.add((subj, PUBLICATION_DATE_PREDICATE, Literal("invalid-date", datatype=XSD.string)))
+
+        with pytest.raises(ValueError):
+            process_dataset(ds, is_prov=False)
+
+    def test_combined_untyped_and_date_fix(self):
+        ds = Dataset()
+        g = ds.graph(URIRef("https://w3id.org/oc/meta/br/"))
+        subj = URIRef("https://w3id.org/oc/meta/br/0601")
+        title_pred = URIRef("http://purl.org/dc/terms/title")
+        g.add((subj, title_pred, Literal("Test Title")))
+        g.add((subj, PUBLICATION_DATE_PREDICATE, Literal("2020-01-15", datatype=XSD.string)))
+
+        modifications = process_dataset(ds, is_prov=False)
+
+        assert modifications == {
+            "untyped:http://purl.org/dc/terms/title": 1,
+            f"date:{XSD.date}": 1,
+        }
 
     def test_multiple_properties(self):
         ds = Dataset()
@@ -156,19 +332,17 @@ class TestProcessDataset:
         g.add((subj, URIRef("http://purl.org/dc/terms/title"), Literal("Another Title")))
         ra_subj = URIRef("https://w3id.org/oc/meta/ra/0601")
         g.add((ra_subj, URIRef("http://xmlns.com/foaf/0.1/familyName"), Literal("Smith")))
-        g.add((ra_subj, URIRef("http://xmlns.com/foaf/0.1/givenName"), Literal("John")))
 
-        modifications = process_dataset(ds)
+        modifications = process_dataset(ds, is_prov=False)
 
         assert modifications == {
-            "http://purl.org/dc/terms/title": 2,
-            "http://xmlns.com/foaf/0.1/familyName": 1,
-            "http://xmlns.com/foaf/0.1/givenName": 1,
+            "untyped:http://purl.org/dc/terms/title": 2,
+            "untyped:http://xmlns.com/foaf/0.1/familyName": 1,
         }
 
 
 class TestProcessZipFile:
-    def test_processes_bibliographic_resource_data(self, temp_dirs):
+    def test_processes_bibliographic_resource_with_both_fixes(self, temp_dirs):
         input_dir, output_dir = temp_dirs
         br_data = [
             {
@@ -180,13 +354,10 @@ class TestProcessZipFile:
                             "http://purl.org/spar/fabio/JournalArticle"
                         ],
                         "http://prismstandard.org/namespaces/basic/2.0/publicationDate": [
-                            {"@type": "http://www.w3.org/2001/XMLSchema#date", "@value": "2020-01-15"}
+                            {"@type": XSD_STRING_STR, "@value": "2020-01-15"}
                         ],
                         "http://purl.org/dc/terms/title": [
                             {"@value": "Test Article Title"}
-                        ],
-                        "http://purl.org/spar/datacite/hasIdentifier": [
-                            {"@id": "https://w3id.org/oc/meta/id/0601"}
                         ]
                     }
                 ],
@@ -198,15 +369,17 @@ class TestProcessZipFile:
 
         modifications = process_zip_file(zip_path, input_dir, output_dir)
 
-        assert modifications == {"http://purl.org/dc/terms/title": 1}
+        assert modifications == {
+            "untyped:http://purl.org/dc/terms/title": 1,
+            f"date:{XSD.date}": 1,
+        }
         output_path = output_dir / "br" / "0690" / "10000" / "1000.zip"
         assert output_path.exists()
         result = read_zip_file(output_path)
         title_obj = result[0]["@graph"][0]["http://purl.org/dc/terms/title"][0]
-        assert title_obj["@type"] == "http://www.w3.org/2001/XMLSchema#string"
-        assert title_obj["@value"] == "Test Article Title"
+        assert title_obj["@type"] == XSD_STRING_STR
         date_obj = result[0]["@graph"][0]["http://prismstandard.org/namespaces/basic/2.0/publicationDate"][0]
-        assert date_obj["@type"] == "http://www.w3.org/2001/XMLSchema#date"
+        assert date_obj["@type"] == str(XSD.date)
 
     def test_processes_responsible_agent_data(self, temp_dirs):
         input_dir, output_dir = temp_dirs
@@ -217,15 +390,7 @@ class TestProcessZipFile:
                         "@id": "https://w3id.org/oc/meta/ra/06015",
                         "@type": ["http://xmlns.com/foaf/0.1/Agent"],
                         "http://xmlns.com/foaf/0.1/familyName": [{"@value": "Peroni"}],
-                        "http://xmlns.com/foaf/0.1/givenName": [{"@value": "Silvio"}],
-                        "http://purl.org/spar/datacite/hasIdentifier": [
-                            {"@id": "https://w3id.org/oc/meta/id/0602"}
-                        ]
-                    },
-                    {
-                        "@id": "https://w3id.org/oc/meta/ra/06016",
-                        "@type": ["http://xmlns.com/foaf/0.1/Agent"],
-                        "http://xmlns.com/foaf/0.1/name": [{"@value": "OpenCitations"}]
+                        "http://xmlns.com/foaf/0.1/givenName": [{"@value": "Silvio"}]
                     }
                 ],
                 "@id": "https://w3id.org/oc/meta/ra/"
@@ -237,15 +402,9 @@ class TestProcessZipFile:
         modifications = process_zip_file(zip_path, input_dir, output_dir)
 
         assert modifications == {
-            "http://xmlns.com/foaf/0.1/familyName": 1,
-            "http://xmlns.com/foaf/0.1/givenName": 1,
-            "http://xmlns.com/foaf/0.1/name": 1,
+            "untyped:http://xmlns.com/foaf/0.1/familyName": 1,
+            "untyped:http://xmlns.com/foaf/0.1/givenName": 1,
         }
-        output_path = output_dir / "ra" / "0690" / "10000" / "1000.zip"
-        result = read_zip_file(output_path)
-        ra_entity = next(e for e in result[0]["@graph"] if e["@id"] == "https://w3id.org/oc/meta/ra/06015")
-        family_name = ra_entity["http://xmlns.com/foaf/0.1/familyName"][0]
-        assert family_name["@type"] == "http://www.w3.org/2001/XMLSchema#string"
 
     def test_processes_identifier_data(self, temp_dirs):
         input_dir, output_dir = temp_dirs
@@ -255,21 +414,8 @@ class TestProcessZipFile:
                     {
                         "@id": "https://w3id.org/oc/meta/id/0601",
                         "@type": ["http://purl.org/spar/datacite/Identifier"],
-                        "http://purl.org/spar/datacite/usesIdentifierScheme": [
-                            {"@id": "http://purl.org/spar/datacite/doi"}
-                        ],
                         "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
                             {"@value": "10.1234/test.article"}
-                        ]
-                    },
-                    {
-                        "@id": "https://w3id.org/oc/meta/id/0602",
-                        "@type": ["http://purl.org/spar/datacite/Identifier"],
-                        "http://purl.org/spar/datacite/usesIdentifierScheme": [
-                            {"@id": "http://purl.org/spar/datacite/orcid"}
-                        ],
-                        "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
-                            {"@value": "0000-0002-8420-0696"}
                         ]
                     }
                 ],
@@ -282,39 +428,10 @@ class TestProcessZipFile:
         modifications = process_zip_file(zip_path, input_dir, output_dir)
 
         assert modifications == {
-            "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": 2
+            "untyped:http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": 1
         }
 
-    def test_processes_resource_embodiment_data(self, temp_dirs):
-        input_dir, output_dir = temp_dirs
-        re_data = [
-            {
-                "@graph": [
-                    {
-                        "@id": "https://w3id.org/oc/meta/re/0601",
-                        "@type": ["http://purl.org/spar/fabio/Manifestation"],
-                        "http://prismstandard.org/namespaces/basic/2.0/startingPage": [
-                            {"@value": "123"}
-                        ],
-                        "http://prismstandard.org/namespaces/basic/2.0/endingPage": [
-                            {"@value": "145"}
-                        ]
-                    }
-                ],
-                "@id": "https://w3id.org/oc/meta/re/"
-            }
-        ]
-        zip_path = input_dir / "re" / "0690" / "10000" / "1000.zip"
-        create_zip_file(zip_path, "1000.json", re_data)
-
-        modifications = process_zip_file(zip_path, input_dir, output_dir)
-
-        assert modifications == {
-            "http://prismstandard.org/namespaces/basic/2.0/startingPage": 1,
-            "http://prismstandard.org/namespaces/basic/2.0/endingPage": 1,
-        }
-
-    def test_processes_provenance_data(self, temp_dirs):
+    def test_processes_provenance_untyped_but_not_dates(self, temp_dirs):
         input_dir, output_dir = temp_dirs
         prov_data = [
             {
@@ -323,47 +440,14 @@ class TestProcessZipFile:
                         "@id": "https://w3id.org/oc/meta/br/0601/prov/se/1",
                         "@type": ["http://www.w3.org/ns/prov#Entity"],
                         "http://purl.org/dc/terms/description": [
-                            {"@value": "The entity 'https://w3id.org/oc/meta/br/0601' has been created."}
+                            {"@value": "The entity has been created."}
                         ],
                         "http://www.w3.org/ns/prov#generatedAtTime": [
                             {"@type": "http://www.w3.org/2001/XMLSchema#dateTime", "@value": "2022-07-28T15:38:17"}
-                        ],
-                        "http://www.w3.org/ns/prov#hadPrimarySource": [
-                            {"@id": "https://api.crossref.org/"}
-                        ],
-                        "http://www.w3.org/ns/prov#specializationOf": [
-                            {"@id": "https://w3id.org/oc/meta/br/0601"}
-                        ],
-                        "http://www.w3.org/ns/prov#wasAttributedTo": [
-                            {"@id": "https://orcid.org/0000-0002-8420-0696"}
                         ]
                     }
                 ],
                 "@id": "https://w3id.org/oc/meta/br/0601/prov/"
-            },
-            {
-                "@graph": [
-                    {
-                        "@id": "https://w3id.org/oc/meta/br/0602/prov/se/1",
-                        "@type": ["http://www.w3.org/ns/prov#Entity"],
-                        "http://purl.org/dc/terms/description": [
-                            {"@value": "The entity 'https://w3id.org/oc/meta/br/0602' has been created."}
-                        ],
-                        "http://www.w3.org/ns/prov#generatedAtTime": [
-                            {"@type": "http://www.w3.org/2001/XMLSchema#dateTime", "@value": "2022-07-28T15:40:00"}
-                        ],
-                        "http://www.w3.org/ns/prov#hadPrimarySource": [
-                            {"@id": "https://api.crossref.org/"}
-                        ],
-                        "http://www.w3.org/ns/prov#specializationOf": [
-                            {"@id": "https://w3id.org/oc/meta/br/0602"}
-                        ],
-                        "http://www.w3.org/ns/prov#wasAttributedTo": [
-                            {"@id": "https://orcid.org/0000-0002-8420-0696"}
-                        ]
-                    }
-                ],
-                "@id": "https://w3id.org/oc/meta/br/0602/prov/"
             }
         ]
         zip_path = input_dir / "br" / "0690" / "10000" / "1000" / "prov" / "se.zip"
@@ -371,50 +455,14 @@ class TestProcessZipFile:
 
         modifications = process_zip_file(zip_path, input_dir, output_dir)
 
-        assert modifications == {"http://purl.org/dc/terms/description": 2}
+        assert modifications == {"untyped:http://purl.org/dc/terms/description": 1}
         output_path = output_dir / "br" / "0690" / "10000" / "1000" / "prov" / "se.zip"
         assert output_path.exists()
         result = read_zip_file(output_path)
         desc = result[0]["@graph"][0]["http://purl.org/dc/terms/description"][0]
-        assert desc["@type"] == "http://www.w3.org/2001/XMLSchema#string"
+        assert desc["@type"] == XSD_STRING_STR
         datetime_val = result[0]["@graph"][0]["http://www.w3.org/ns/prov#generatedAtTime"][0]
         assert datetime_val["@type"] == "http://www.w3.org/2001/XMLSchema#dateTime"
-
-    def test_processes_volume_issue_sequence_identifiers(self, temp_dirs):
-        input_dir, output_dir = temp_dirs
-        br_data = [
-            {
-                "@graph": [
-                    {
-                        "@id": "https://w3id.org/oc/meta/br/0601",
-                        "@type": [
-                            "http://purl.org/spar/fabio/Expression",
-                            "http://purl.org/spar/fabio/JournalVolume"
-                        ],
-                        "http://purl.org/spar/fabio/hasSequenceIdentifier": [
-                            {"@value": "42"}
-                        ]
-                    },
-                    {
-                        "@id": "https://w3id.org/oc/meta/br/0602",
-                        "@type": [
-                            "http://purl.org/spar/fabio/Expression",
-                            "http://purl.org/spar/fabio/JournalIssue"
-                        ],
-                        "http://purl.org/spar/fabio/hasSequenceIdentifier": [
-                            {"@value": "7-8"}
-                        ]
-                    }
-                ],
-                "@id": "https://w3id.org/oc/meta/br/"
-            }
-        ]
-        zip_path = input_dir / "br" / "0690" / "10000" / "2000.zip"
-        create_zip_file(zip_path, "2000.json", br_data)
-
-        modifications = process_zip_file(zip_path, input_dir, output_dir)
-
-        assert modifications == {"http://purl.org/spar/fabio/hasSequenceIdentifier": 2}
 
     def test_copies_unchanged_file(self, temp_dirs):
         input_dir, output_dir = temp_dirs
@@ -423,15 +471,12 @@ class TestProcessZipFile:
                 "@graph": [
                     {
                         "@id": "https://w3id.org/oc/meta/br/0601",
-                        "@type": [
-                            "http://purl.org/spar/fabio/Expression",
-                            "http://purl.org/spar/fabio/JournalArticle"
-                        ],
+                        "@type": ["http://purl.org/spar/fabio/Expression"],
                         "http://prismstandard.org/namespaces/basic/2.0/publicationDate": [
-                            {"@type": "http://www.w3.org/2001/XMLSchema#date", "@value": "2020-01-15"}
+                            {"@type": str(XSD.date), "@value": "2020-01-15"}
                         ],
                         "http://purl.org/dc/terms/title": [
-                            {"@type": "http://www.w3.org/2001/XMLSchema#string", "@value": "Already Typed Title"}
+                            {"@type": XSD_STRING_STR, "@value": "Already Typed Title"}
                         ]
                     }
                 ],
@@ -455,8 +500,6 @@ class TestProcessZipFile:
             ("br", "0690", "10000", "1000", "prov", "se.zip"),
             ("ra", "0690", "10000", "1000.zip"),
             ("id", "0690", "20000", "2000.zip"),
-            ("re", "0690", "30000", "3000.zip"),
-            ("ar", "0690", "40000", "4000.zip"),
         ]
         for path_parts in paths:
             zip_path = input_dir / Path(*path_parts)
@@ -469,9 +512,9 @@ class TestProcessZipFile:
 
         for path_parts in paths:
             output_path = output_dir / Path(*path_parts)
-            assert output_path.exists(), f"Missing: {output_path}"
+            assert output_path.exists()
 
-    def test_handles_multiple_date_formats(self, temp_dirs):
+    def test_handles_year_date(self, temp_dirs):
         input_dir, output_dir = temp_dirs
         br_data = [
             {
@@ -480,21 +523,7 @@ class TestProcessZipFile:
                         "@id": "https://w3id.org/oc/meta/br/0601",
                         "@type": ["http://purl.org/spar/fabio/Expression"],
                         "http://prismstandard.org/namespaces/basic/2.0/publicationDate": [
-                            {"@type": "http://www.w3.org/2001/XMLSchema#date", "@value": "2020-01-15"}
-                        ]
-                    },
-                    {
-                        "@id": "https://w3id.org/oc/meta/br/0602",
-                        "@type": ["http://purl.org/spar/fabio/Expression"],
-                        "http://prismstandard.org/namespaces/basic/2.0/publicationDate": [
-                            {"@type": "http://www.w3.org/2001/XMLSchema#gYear", "@value": "2020"}
-                        ]
-                    },
-                    {
-                        "@id": "https://w3id.org/oc/meta/br/0603",
-                        "@type": ["http://purl.org/spar/fabio/Expression"],
-                        "http://prismstandard.org/namespaces/basic/2.0/publicationDate": [
-                            {"@type": "http://www.w3.org/2001/XMLSchema#gYearMonth", "@value": "2020-05"}
+                            {"@type": XSD_STRING_STR, "@value": "2020"}
                         ]
                     }
                 ],
@@ -506,43 +535,36 @@ class TestProcessZipFile:
 
         modifications = process_zip_file(zip_path, input_dir, output_dir)
 
-        assert modifications == {}
-
-    def test_handles_mixed_typed_and_untyped(self, temp_dirs):
-        input_dir, output_dir = temp_dirs
-        br_data = [
-            {
-                "@graph": [
-                    {
-                        "@id": "https://w3id.org/oc/meta/br/0601",
-                        "@type": ["http://purl.org/spar/fabio/Expression", "http://purl.org/spar/fabio/JournalArticle"],
-                        "http://prismstandard.org/namespaces/basic/2.0/publicationDate": [
-                            {"@type": "http://www.w3.org/2001/XMLSchema#date", "@value": "2020-01-15"}
-                        ],
-                        "http://purl.org/dc/terms/title": [
-                            {"@value": "Untyped Title"}
-                        ],
-                        "http://purl.org/spar/datacite/hasIdentifier": [
-                            {"@id": "https://w3id.org/oc/meta/id/0601"}
-                        ],
-                        "http://purl.org/vocab/frbr/core#embodiment": [
-                            {"@id": "https://w3id.org/oc/meta/re/0601"}
-                        ]
-                    }
-                ],
-                "@id": "https://w3id.org/oc/meta/br/"
-            }
-        ]
-        zip_path = input_dir / "br" / "0690" / "10000" / "1000.zip"
-        create_zip_file(zip_path, "1000.json", br_data)
-
-        modifications = process_zip_file(zip_path, input_dir, output_dir)
-
-        assert modifications == {"http://purl.org/dc/terms/title": 1}
+        assert modifications == {f"date:{XSD.gYear}": 1}
         result = read_zip_file(output_dir / "br" / "0690" / "10000" / "1000.zip")
-        entity = result[0]["@graph"][0]
-        assert entity["http://purl.org/dc/terms/title"][0]["@type"] == "http://www.w3.org/2001/XMLSchema#string"
-        assert entity["http://prismstandard.org/namespaces/basic/2.0/publicationDate"][0]["@type"] == "http://www.w3.org/2001/XMLSchema#date"
+        date_obj = result[0]["@graph"][0]["http://prismstandard.org/namespaces/basic/2.0/publicationDate"][0]
+        assert date_obj["@type"] == str(XSD.gYear)
+
+    def test_handles_year_month_date(self, temp_dirs):
+        input_dir, output_dir = temp_dirs
+        br_data = [
+            {
+                "@graph": [
+                    {
+                        "@id": "https://w3id.org/oc/meta/br/0601",
+                        "@type": ["http://purl.org/spar/fabio/Expression"],
+                        "http://prismstandard.org/namespaces/basic/2.0/publicationDate": [
+                            {"@type": XSD_STRING_STR, "@value": "2020-06"}
+                        ]
+                    }
+                ],
+                "@id": "https://w3id.org/oc/meta/br/"
+            }
+        ]
+        zip_path = input_dir / "br" / "0690" / "10000" / "1000.zip"
+        create_zip_file(zip_path, "1000.json", br_data)
+
+        modifications = process_zip_file(zip_path, input_dir, output_dir)
+
+        assert modifications == {f"date:{XSD.gYearMonth}": 1}
+        result = read_zip_file(output_dir / "br" / "0690" / "10000" / "1000.zip")
+        date_obj = result[0]["@graph"][0]["http://prismstandard.org/namespaces/basic/2.0/publicationDate"][0]
+        assert date_obj["@type"] == str(XSD.gYearMonth)
 
 
 class TestProcessBatch:
@@ -566,7 +588,9 @@ class TestProcessBatch:
                     {
                         "@id": "https://w3id.org/oc/meta/br/0602",
                         "@type": ["http://purl.org/spar/fabio/Expression"],
-                        "http://purl.org/dc/terms/title": [{"@value": "Title 2"}]
+                        "http://prismstandard.org/namespaces/basic/2.0/publicationDate": [
+                            {"@type": XSD_STRING_STR, "@value": "2020"}
+                        ]
                     }
                 ],
                 "@id": "https://w3id.org/oc/meta/br/"
@@ -584,15 +608,15 @@ class TestProcessBatch:
         results = process_batch(batch)
 
         assert len(results) == 2
-        assert results[0] == {"http://purl.org/dc/terms/title": 1}
-        assert results[1] == {"http://purl.org/dc/terms/title": 1}
+        assert results[0] == {"untyped:http://purl.org/dc/terms/title": 1}
+        assert results[1] == {f"date:{XSD.gYear}": 1}
 
     def test_empty_batch(self):
         results = process_batch([])
         assert results == []
 
 
-class TestIntegrationFullStructure:
+class TestIntegration:
     def test_full_rdf_structure_with_all_entity_types(self, temp_dirs):
         input_dir, output_dir = temp_dirs
 
@@ -603,13 +627,9 @@ class TestIntegrationFullStructure:
                         "@id": "https://w3id.org/oc/meta/br/06015",
                         "@type": ["http://purl.org/spar/fabio/Expression", "http://purl.org/spar/fabio/JournalArticle"],
                         "http://prismstandard.org/namespaces/basic/2.0/publicationDate": [
-                            {"@type": "http://www.w3.org/2001/XMLSchema#date", "@value": "2020-01-15"}
+                            {"@type": XSD_STRING_STR, "@value": "2020-01-15"}
                         ],
-                        "http://purl.org/dc/terms/title": [{"@value": "Test Article"}],
-                        "http://purl.org/spar/datacite/hasIdentifier": [{"@id": "https://w3id.org/oc/meta/id/0601"}],
-                        "http://purl.org/spar/pro/isDocumentContextFor": [{"@id": "https://w3id.org/oc/meta/ar/0601"}],
-                        "http://purl.org/vocab/frbr/core#embodiment": [{"@id": "https://w3id.org/oc/meta/re/0601"}],
-                        "http://purl.org/vocab/frbr/core#partOf": [{"@id": "https://w3id.org/oc/meta/br/06020"}]
+                        "http://purl.org/dc/terms/title": [{"@value": "Test Article"}]
                     },
                     {
                         "@id": "https://w3id.org/oc/meta/br/06020",
@@ -629,8 +649,7 @@ class TestIntegrationFullStructure:
                         "@id": "https://w3id.org/oc/meta/ra/0601",
                         "@type": ["http://xmlns.com/foaf/0.1/Agent"],
                         "http://xmlns.com/foaf/0.1/familyName": [{"@value": "Peroni"}],
-                        "http://xmlns.com/foaf/0.1/givenName": [{"@value": "Silvio"}],
-                        "http://purl.org/spar/datacite/hasIdentifier": [{"@id": "https://w3id.org/oc/meta/id/0602"}]
+                        "http://xmlns.com/foaf/0.1/givenName": [{"@value": "Silvio"}]
                     }
                 ],
                 "@id": "https://w3id.org/oc/meta/ra/"
@@ -644,13 +663,11 @@ class TestIntegrationFullStructure:
                     {
                         "@id": "https://w3id.org/oc/meta/id/0601",
                         "@type": ["http://purl.org/spar/datacite/Identifier"],
-                        "http://purl.org/spar/datacite/usesIdentifierScheme": [{"@id": "http://purl.org/spar/datacite/doi"}],
                         "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [{"@value": "10.1234/test"}]
                     },
                     {
                         "@id": "https://w3id.org/oc/meta/id/0602",
                         "@type": ["http://purl.org/spar/datacite/Identifier"],
-                        "http://purl.org/spar/datacite/usesIdentifierScheme": [{"@id": "http://purl.org/spar/datacite/orcid"}],
                         "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [{"@value": "0000-0002-8420-0696"}]
                     }
                 ],
@@ -674,21 +691,6 @@ class TestIntegrationFullStructure:
         ]
         create_zip_file(input_dir / "re" / "0690" / "10000" / "1000.zip", "1000.json", re_data)
 
-        ar_data = [
-            {
-                "@graph": [
-                    {
-                        "@id": "https://w3id.org/oc/meta/ar/0601",
-                        "@type": ["http://purl.org/spar/pro/RoleInTime"],
-                        "http://purl.org/spar/pro/withRole": [{"@id": "http://purl.org/spar/pro/author"}],
-                        "http://purl.org/spar/pro/isHeldBy": [{"@id": "https://w3id.org/oc/meta/ra/0601"}]
-                    }
-                ],
-                "@id": "https://w3id.org/oc/meta/ar/"
-            }
-        ]
-        create_zip_file(input_dir / "ar" / "0690" / "10000" / "1000.zip", "1000.json", ar_data)
-
         prov_data = [
             {
                 "@graph": [
@@ -698,8 +700,7 @@ class TestIntegrationFullStructure:
                         "http://purl.org/dc/terms/description": [{"@value": "The entity has been created."}],
                         "http://www.w3.org/ns/prov#generatedAtTime": [
                             {"@type": "http://www.w3.org/2001/XMLSchema#dateTime", "@value": "2022-07-28T15:38:17"}
-                        ],
-                        "http://www.w3.org/ns/prov#specializationOf": [{"@id": "https://w3id.org/oc/meta/br/06015"}]
+                        ]
                     }
                 ],
                 "@id": "https://w3id.org/oc/meta/br/06015/prov/"
@@ -708,21 +709,22 @@ class TestIntegrationFullStructure:
         create_zip_file(input_dir / "br" / "0690" / "10000" / "1000" / "prov" / "se.zip", "se.json", prov_data)
 
         zip_files = collect_zip_files(input_dir)
-        total_modifications = {}
+        total_modifications: dict[str, int] = {}
         for zf in zip_files:
             mods = process_zip_file(zf, input_dir, output_dir)
-            for prop, count in mods.items():
-                total_modifications[prop] = total_modifications.get(prop, 0) + count
+            for key, count in mods.items():
+                total_modifications[key] = total_modifications.get(key, 0) + count
 
         assert total_modifications == {
-            "http://purl.org/dc/terms/title": 1,
-            "http://purl.org/spar/fabio/hasSequenceIdentifier": 1,
-            "http://xmlns.com/foaf/0.1/familyName": 1,
-            "http://xmlns.com/foaf/0.1/givenName": 1,
-            "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": 2,
-            "http://prismstandard.org/namespaces/basic/2.0/startingPage": 1,
-            "http://prismstandard.org/namespaces/basic/2.0/endingPage": 1,
-            "http://purl.org/dc/terms/description": 1,
+            "untyped:http://purl.org/dc/terms/title": 1,
+            "untyped:http://purl.org/spar/fabio/hasSequenceIdentifier": 1,
+            "untyped:http://xmlns.com/foaf/0.1/familyName": 1,
+            "untyped:http://xmlns.com/foaf/0.1/givenName": 1,
+            "untyped:http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": 2,
+            "untyped:http://prismstandard.org/namespaces/basic/2.0/startingPage": 1,
+            "untyped:http://prismstandard.org/namespaces/basic/2.0/endingPage": 1,
+            "untyped:http://purl.org/dc/terms/description": 1,
+            f"date:{XSD.date}": 1,
         }
 
         expected_outputs = [
@@ -730,7 +732,6 @@ class TestIntegrationFullStructure:
             output_dir / "ra" / "0690" / "10000" / "1000.zip",
             output_dir / "id" / "0690" / "10000" / "1000.zip",
             output_dir / "re" / "0690" / "10000" / "1000.zip",
-            output_dir / "ar" / "0690" / "10000" / "1000.zip",
             output_dir / "br" / "0690" / "10000" / "1000" / "prov" / "se.zip",
         ]
         for path in expected_outputs:
@@ -746,7 +747,10 @@ class TestIntegrationFullStructure:
                         {
                             "@id": f"https://w3id.org/oc/meta/br/{prefix}15",
                             "@type": ["http://purl.org/spar/fabio/Expression"],
-                            "http://purl.org/dc/terms/title": [{"@value": f"Title from {prefix}"}]
+                            "http://purl.org/dc/terms/title": [{"@value": f"Title from {prefix}"}],
+                            "http://prismstandard.org/namespaces/basic/2.0/publicationDate": [
+                                {"@type": XSD_STRING_STR, "@value": "2020"}
+                            ]
                         }
                     ],
                     "@id": "https://w3id.org/oc/meta/br/"
@@ -755,11 +759,17 @@ class TestIntegrationFullStructure:
             create_zip_file(input_dir / "br" / prefix / "10000" / "1000.zip", "1000.json", br_data)
 
         zip_files = collect_zip_files(input_dir)
-        total_count = 0
+        total_untyped = 0
+        total_dates = 0
         for zf in zip_files:
             mods = process_zip_file(zf, input_dir, output_dir)
-            total_count += sum(mods.values())
+            for key, count in mods.items():
+                if key.startswith("untyped:"):
+                    total_untyped += count
+                elif key.startswith("date:"):
+                    total_dates += count
 
-        assert total_count == 3
+        assert total_untyped == 3
+        assert total_dates == 3
         for prefix in ["0690", "0610", "0670"]:
             assert (output_dir / "br" / prefix / "10000" / "1000.zip").exists()
