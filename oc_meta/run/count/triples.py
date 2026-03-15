@@ -6,8 +6,10 @@ import argparse
 import gzip
 import multiprocessing
 import zipfile
+from collections.abc import Iterable
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
+from typing import TextIO
 
 from rdflib import Dataset
 from rich.progress import (BarColumn, MofNCompleteColumn, Progress,
@@ -16,6 +18,7 @@ from rich.progress import (BarColumn, MofNCompleteColumn, Progress,
 from rich_argparse import RichHelpFormatter
 
 QUAD_FORMATS = {"nquads", "trig"}
+LINE_BASED_FORMATS = {"nquads", "nt"}
 
 
 def parse_args() -> argparse.Namespace:  # pragma: no cover
@@ -36,7 +39,7 @@ def parse_args() -> argparse.Namespace:  # pragma: no cover
     parser.add_argument(
         "--format",
         default="nquads",
-        choices=["nquads", "json-ld", "turtle", "trig"],
+        choices=["nquads", "nt", "json-ld", "turtle", "trig"],
         help="RDF format of the input files (default: nquads).",
     )
     parser.add_argument(
@@ -100,21 +103,55 @@ def discover_files(
     return sorted(files)
 
 
+def _count_lines_binary(file_obj: Iterable[bytes]) -> int:
+    count = 0
+    for line_num, line in enumerate(file_obj, 1):
+        stripped = line.strip()
+        if not stripped or stripped.startswith(b"#"):
+            continue
+        if not stripped.endswith(b"."):
+            raise ValueError(f"line {line_num}: statement does not end with '.'")
+        count += 1
+    return count
+
+
+def _count_lines_text(file_obj: TextIO) -> int:
+    count = 0
+    for line_num, line in enumerate(file_obj, 1):
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        if not stripped.endswith("."):
+            raise ValueError(f"line {line_num}: statement does not end with '.'")
+        count += 1
+    return count
+
+
 def count_in_file(file_path: Path, rdf_format: str) -> tuple[str, int, str | None]:
     try:
         suffix = file_path.suffix.lower()
+        use_line_count = rdf_format in LINE_BASED_FORMATS
+
         if suffix == ".zip":
             with zipfile.ZipFile(file_path, "r") as z:
                 inner_name = z.namelist()[0]
                 with z.open(inner_name) as f:
+                    if use_line_count:
+                        return str(file_path), _count_lines_binary(f), None
                     content = f.read().decode("utf-8")
             dataset: Dataset = Dataset(default_union=True)
             dataset.parse(data=content, format=rdf_format)
         elif suffix == ".gz":
+            with gzip.open(file_path, "rb") as f:
+                if use_line_count:
+                    return str(file_path), _count_lines_binary(f), None
             dataset = Dataset(default_union=True)
             with gzip.open(file_path, "rt", encoding="utf-8") as f:
                 dataset.parse(f, format=rdf_format)
         else:
+            if use_line_count:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    return str(file_path), _count_lines_text(f), None
             dataset = Dataset(default_union=True)
             with open(file_path, "r", encoding="utf-8") as f:
                 dataset.parse(f, format=rdf_format)

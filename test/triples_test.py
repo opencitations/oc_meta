@@ -13,6 +13,20 @@ SAMPLE_NQUADS = """<http://example.org/s1> <http://example.org/p1> <http://examp
 <http://example.org/s2> <http://example.org/p2> "value" <http://example.org/g1> .
 """
 
+SAMPLE_NQUADS_WITH_COMMENTS = """# This is a comment
+<http://example.org/s1> <http://example.org/p1> <http://example.org/o1> <http://example.org/g1> .
+
+# Another comment
+<http://example.org/s2> <http://example.org/p2> "value" <http://example.org/g1> .
+"""
+
+SAMPLE_TRIG = """@prefix ex: <http://example.org/> .
+ex:g1 {
+    ex:s1 ex:p1 ex:o1 .
+    ex:s2 ex:p2 "value" .
+}
+"""
+
 SAMPLE_TURTLE = """@prefix ex: <http://example.org/> .
 ex:s1 ex:p1 ex:o1 .
 ex:s2 ex:p2 "value" .
@@ -141,6 +155,50 @@ class TestCountInFile:
         assert str(corrupt_file) == path
         assert count == 0
         assert error is not None
+
+    def test_nquads_with_comments_and_empty_lines(self, temp_dir: Path) -> None:
+        nq_file = temp_dir / "comments.nq"
+        nq_file.write_text(SAMPLE_NQUADS_WITH_COMMENTS)
+        path, count, error = triples.count_in_file(nq_file, "nquads")
+        assert str(nq_file) == path
+        assert count == 2
+        assert error is None
+
+    def test_corrupt_gzip_file(self, temp_dir: Path) -> None:
+        gz_file = temp_dir / "corrupt.nq.gz"
+        with gzip.open(gz_file, "wt", encoding="utf-8") as f:
+            f.write("invalid {{{")
+        path, count, error = triples.count_in_file(gz_file, "nquads")
+        assert str(gz_file) == path
+        assert count == 0
+        assert error is not None
+
+    def test_gzip_with_comments(self, temp_dir: Path) -> None:
+        gz_file = temp_dir / "comments.nq.gz"
+        with gzip.open(gz_file, "wt", encoding="utf-8") as f:
+            f.write(SAMPLE_NQUADS_WITH_COMMENTS)
+        path, count, error = triples.count_in_file(gz_file, "nquads")
+        assert str(gz_file) == path
+        assert count == 2
+        assert error is None
+
+    def test_zip_with_nquads(self, temp_dir: Path) -> None:
+        zip_file = temp_dir / "data.zip"
+        with zipfile.ZipFile(zip_file, "w") as z:
+            z.writestr("inner.nq", SAMPLE_NQUADS)
+        path, count, error = triples.count_in_file(zip_file, "nquads")
+        assert str(zip_file) == path
+        assert count == 2
+        assert error is None
+
+    def test_trig_gzip_file(self, temp_dir: Path) -> None:
+        gz_file = temp_dir / "data.trig.gz"
+        with gzip.open(gz_file, "wt", encoding="utf-8") as f:
+            f.write(SAMPLE_TRIG)
+        path, count, error = triples.count_in_file(gz_file, "trig")
+        assert str(gz_file) == path
+        assert count == 2
+        assert error is None
 
 
 class TestProcessFiles:
