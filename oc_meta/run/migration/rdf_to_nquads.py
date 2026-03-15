@@ -31,21 +31,19 @@ from rich_argparse import RichHelpFormatter
 console = Console(stderr=True)
 
 
-def convert_jsonld_to_nquads(jsonld_content: str) -> tuple[Dataset, str]:
+def convert_jsonld_to_nquads(jsonld_content: str) -> str:
     graph = Dataset(default_union=True)
     graph.parse(data=jsonld_content, format="json-ld")
-    nquads_content = graph.serialize(format="nquads")
-    return graph, nquads_content
+    return graph.serialize(format="nquads")
 
 
-def process_zip_file(zip_path: Path, output_dir: Path, input_dir_path: Path) -> bool:
+def process_zip_file(zip_path: Path, output_dir: Path, input_dir_path: Path) -> None:
     with zipfile.ZipFile(zip_path, "r") as zf:
         json_files = [name for name in zf.namelist() if name.endswith(".json")]
         json_filename = json_files[0]
         jsonld_content = zf.read(json_filename).decode("utf-8")
 
-    input_graph, nquads_output = convert_jsonld_to_nquads(jsonld_content)
-    input_quad_count = len(input_graph)
+    nquads_output = convert_jsonld_to_nquads(jsonld_content)
 
     relative_path = zip_path.relative_to(input_dir_path)
     output_filename = str(relative_path).replace(os.sep, "-")
@@ -54,15 +52,6 @@ def process_zip_file(zip_path: Path, output_dir: Path, input_dir_path: Path) -> 
 
     with open(output_nq_path, "w", encoding="utf-8") as f:
         f.write(nquads_output)
-
-    output_graph = Dataset(default_union=True)
-    output_graph.parse(output_nq_path, format="nquads")
-    output_quad_count = len(output_graph)
-
-    if input_quad_count != output_quad_count:
-        console.print(f"[red]Checksum failed for {zip_path}: Input={input_quad_count}, Output={output_quad_count}[/red]")
-        return False
-    return True
 
 
 def find_zip_files(input_path: Path, mode: str) -> list[Path]:
@@ -96,13 +85,11 @@ def main() -> None:
     total_files = len(zip_files)
 
     mode_labels = {"all": "", "data": "data ", "prov": "provenance "}
-    print(f"Found {total_files} {mode_labels[args.mode]}ZIP files in {input_path}")
-    print(f"Output directory: {output_path}")
-    print(f"Workers: {num_workers}")
+    console.print(f"Found {total_files} {mode_labels[args.mode]}ZIP files in {input_path}")
+    console.print(f"Output directory: {output_path}")
+    console.print(f"Workers: {num_workers}")
 
-    success_count = 0
     fail_count = 0
-
     task_func = partial(process_zip_file, output_dir=output_path, input_dir_path=input_path)
 
     with ProcessPool(max_workers=num_workers) as pool:
@@ -115,16 +102,12 @@ def main() -> None:
             MofNCompleteColumn(),
             TimeElapsedColumn(),
             TimeRemainingColumn(),
-            console=Console(),
+            console=console,
         ) as progress:
             task = progress.add_task("Converting", total=total_files)
             while True:
                 try:
-                    result = next(iterator)
-                    if result:
-                        success_count += 1
-                    else:
-                        fail_count += 1
+                    next(iterator)
                 except StopIteration:
                     break
                 except Exception as e:
@@ -133,10 +116,10 @@ def main() -> None:
                 finally:
                     progress.update(task, advance=1)
 
-    print()
-    print("Final report")
-    print(f"  Success: {success_count}")
-    print(f"  Failed:  {fail_count}")
+    console.print()
+    console.print("Final report")
+    console.print(f"  Success: {total_files - fail_count}")
+    console.print(f"  Failed:  {fail_count}")
 
 
 if __name__ == "__main__":  # pragma: no cover

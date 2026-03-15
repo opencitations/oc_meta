@@ -3,7 +3,7 @@ title: RDF to N-Quads
 description: Convert JSON-LD archives to N-Quads format
 ---
 
-Recursively searches for ZIP files containing JSON-LD data, converts the content to N-Quads format, and verifies the quad count matches between input and output.
+Recursively searches for ZIP files containing JSON-LD data and converts the content to N-Quads format.
 
 ## Usage
 
@@ -52,7 +52,6 @@ uv run python -m oc_meta.run.migration.rdf_to_nquads /srv/oc_meta/rdf /data/prov
 2. For each archive, extracts the JSON-LD content
 3. Converts JSON-LD to N-Quads using rdflib
 4. Writes the output to a flat directory with filenames derived from the path
-5. Verifies that the quad count matches between input and output
 
 ## Output naming
 

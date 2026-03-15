@@ -15,7 +15,6 @@
 import shutil
 import tempfile
 import zipfile
-from collections.abc import Iterator
 from pathlib import Path
 from unittest.mock import patch
 
@@ -36,9 +35,8 @@ INVALID_JSONLD = "not valid json at all {"
 
 class TestConvertJsonldToNquads:
     def test_success(self) -> None:
-        graph, nquads = convert_jsonld_to_nquads(SAMPLE_JSONLD)
+        nquads = convert_jsonld_to_nquads(SAMPLE_JSONLD)
 
-        assert len(graph) == 2
         assert isinstance(nquads, str)
         assert "http://example.org/entity1" in nquads
 
@@ -124,9 +122,8 @@ class TestProcessZipFile:
         with zipfile.ZipFile(zip_path, "w") as zf:
             zf.writestr("data.json", SAMPLE_JSONLD)
 
-        result = process_zip_file(zip_path, output_dir, input_dir)
+        process_zip_file(zip_path, output_dir, input_dir)
 
-        assert result is True
         output_file = output_dir / "ra-0610-prov-se.nq"
         assert output_file.exists()
         output_graph = Dataset(default_union=True)
@@ -159,28 +156,6 @@ class TestProcessZipFile:
         with pytest.raises(Exception):
             process_zip_file(zip_path, output_dir, input_dir)
 
-    def test_checksum_mismatch_returns_false(self, temp_dirs: tuple[Path, Path, Path]) -> None:
-        input_dir, output_dir, _ = temp_dirs
-        zip_path = input_dir / "se.zip"
-        with zipfile.ZipFile(zip_path, "w") as zf:
-            zf.writestr("data.json", SAMPLE_JSONLD)
-
-        original_len = Dataset.__len__
-
-        call_count = [0]
-
-        def mock_len(self: Dataset) -> int:
-            call_count[0] += 1
-            if call_count[0] == 2:
-                return 999
-            return original_len(self)
-
-        with patch.object(Dataset, "__len__", mock_len):
-            result = process_zip_file(zip_path, output_dir, input_dir)
-
-        assert result is False
-
-
 class TestMain:
     @pytest.fixture
     def temp_dirs(self):
@@ -203,9 +178,9 @@ class TestMain:
             main()
 
         captured = capsys.readouterr()
-        assert "Found 1 ZIP files" in captured.out
-        assert "Success: 1" in captured.out
-        assert "Failed:  0" in captured.out
+        assert "Found 1 ZIP files" in captured.err
+        assert "Success: 1" in captured.err
+        assert "Failed:  0" in captured.err
 
     def test_no_files_found(self, temp_dirs: tuple[Path, Path, Path], capsys: pytest.CaptureFixture[str]) -> None:
         input_dir, output_dir, _ = temp_dirs
@@ -214,9 +189,9 @@ class TestMain:
             main()
 
         captured = capsys.readouterr()
-        assert "Found 0 ZIP files" in captured.out
-        assert "Success: 0" in captured.out
-        assert "Failed:  0" in captured.out
+        assert "Found 0 ZIP files" in captured.err
+        assert "Success: 0" in captured.err
+        assert "Failed:  0" in captured.err
 
     def test_worker_exception_handled(self, temp_dirs: tuple[Path, Path, Path], capsys: pytest.CaptureFixture[str]) -> None:
         input_dir, output_dir, _ = temp_dirs
@@ -228,8 +203,8 @@ class TestMain:
             main()
 
         captured = capsys.readouterr()
-        assert "Found 1 ZIP files" in captured.out
-        assert "Failed:  1" in captured.out
+        assert "Found 1 ZIP files" in captured.err
+        assert "Failed:  1" in captured.err
 
     def test_default_workers(self, temp_dirs: tuple[Path, Path, Path], capsys: pytest.CaptureFixture[str]) -> None:
         input_dir, output_dir, _ = temp_dirs
@@ -239,37 +214,7 @@ class TestMain:
                 main()
 
         captured = capsys.readouterr()
-        assert "Workers: 4" in captured.out
-
-    def test_checksum_failure_counted(self, temp_dirs: tuple[Path, Path, Path], capsys: pytest.CaptureFixture[str]) -> None:
-        input_dir, output_dir, _ = temp_dirs
-        zip_path = input_dir / "se.zip"
-        with zipfile.ZipFile(zip_path, "w") as zf:
-            zf.writestr("data.json", SAMPLE_JSONLD)
-
-        class MockFuture:
-            def result(self) -> Iterator[bool]:
-                return iter([False])
-
-        class MockPool:
-            def __init__(self, max_workers: int) -> None:
-                pass
-
-            def __enter__(self) -> "MockPool":
-                return self
-
-            def __exit__(self, *args: object) -> None:
-                pass
-
-            def map(self, func: object, items: list[object]) -> MockFuture:
-                return MockFuture()
-
-        with patch("sys.argv", ["prog", str(input_dir), str(output_dir), "-w", "1"]):
-            with patch("oc_meta.run.migration.rdf_to_nquads.ProcessPool", MockPool):
-                main()
-
-        captured = capsys.readouterr()
-        assert "Failed:  1" in captured.out
+        assert "Workers: 4" in captured.err
 
     def test_data_mode_success(self, temp_dirs: tuple[Path, Path, Path], capsys: pytest.CaptureFixture[str]) -> None:
         input_dir, output_dir, _ = temp_dirs
@@ -283,9 +228,9 @@ class TestMain:
             main()
 
         captured = capsys.readouterr()
-        assert "Found 1 data ZIP files" in captured.out
-        assert "Success: 1" in captured.out
-        assert "Failed:  0" in captured.out
+        assert "Found 1 data ZIP files" in captured.err
+        assert "Success: 1" in captured.err
+        assert "Failed:  0" in captured.err
         output_file = output_dir / "br-060-1000.nq"
         assert output_file.exists()
 
@@ -304,5 +249,5 @@ class TestMain:
             main()
 
         captured = capsys.readouterr()
-        assert "Found 1 provenance ZIP files" in captured.out
-        assert "Success: 1" in captured.out
+        assert "Found 1 provenance ZIP files" in captured.err
+        assert "Success: 1" in captured.err
