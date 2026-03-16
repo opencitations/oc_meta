@@ -108,12 +108,12 @@ def main() -> None:
             while True:
                 try:
                     next(iterator)
+                    progress.update(task, advance=1)
                 except StopIteration:
                     break
                 except Exception as e:
                     console.print(f"[red]Error: {e}[/red]")
                     fail_count += 1
-                finally:
                     progress.update(task, advance=1)
 
     console.print()
