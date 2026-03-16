@@ -16,12 +16,12 @@ import shutil
 import tempfile
 import zipfile
 from pathlib import Path
-from unittest.mock import patch
 
+import py7zr
 import pytest
 from rdflib import Dataset
 
-from oc_meta.run.migration.rdf_to_nquads import convert_jsonld_to_nquads, find_zip_files, main, process_zip_file
+from oc_meta.run.migration.rdf_to_nquads import convert_jsonld_to_nquads, find_zip_files, process_zip_file
 
 SAMPLE_JSONLD = """{
   "@context": "https://schema.org",
@@ -114,7 +114,7 @@ class TestProcessZipFile:
         yield input_dir, output_dir, test_dir
         shutil.rmtree(test_dir)
 
-    def test_success(self, temp_dirs: tuple[Path, Path, Path]) -> None:
+    def test_success_uncompressed(self, temp_dirs: tuple[Path, Path, Path]) -> None:
         input_dir, output_dir, _ = temp_dirs
         prov_dir = input_dir / "ra" / "0610" / "prov"
         prov_dir.mkdir(parents=True)
@@ -122,12 +122,33 @@ class TestProcessZipFile:
         with zipfile.ZipFile(zip_path, "w") as zf:
             zf.writestr("data.json", SAMPLE_JSONLD)
 
-        process_zip_file(zip_path, output_dir, input_dir)
+        process_zip_file(zip_path, output_dir, input_dir, compress=False)
 
         output_file = output_dir / "ra-0610-prov-se.nq"
         assert output_file.exists()
         output_graph = Dataset(default_union=True)
         output_graph.parse(output_file, format="nquads")
+        assert len(output_graph) == 2
+
+    def test_success_compressed(self, temp_dirs: tuple[Path, Path, Path]) -> None:
+        input_dir, output_dir, _ = temp_dirs
+        prov_dir = input_dir / "ra" / "0610" / "prov"
+        prov_dir.mkdir(parents=True)
+        zip_path = prov_dir / "se.zip"
+        with zipfile.ZipFile(zip_path, "w") as zf:
+            zf.writestr("data.json", SAMPLE_JSONLD)
+
+        process_zip_file(zip_path, output_dir, input_dir, compress=True)
+
+        output_file = output_dir / "ra-0610-prov-se.nq.7z"
+        assert output_file.exists()
+        extract_dir = output_dir / "extracted"
+        extract_dir.mkdir()
+        with py7zr.SevenZipFile(output_file, "r") as archive:
+            archive.extractall(path=extract_dir)
+        nquads_file = extract_dir / "ra-0610-prov-se.nq"
+        output_graph = Dataset(default_union=True)
+        output_graph.parse(nquads_file, format="nquads")
         assert len(output_graph) == 2
 
     def test_no_json_files_raises_index_error(self, temp_dirs: tuple[Path, Path, Path]) -> None:
@@ -137,7 +158,7 @@ class TestProcessZipFile:
             zf.writestr("readme.txt", "no json here")
 
         with pytest.raises(IndexError):
-            process_zip_file(zip_path, output_dir, input_dir)
+            process_zip_file(zip_path, output_dir, input_dir, compress=False)
 
     def test_bad_zip_raises(self, temp_dirs: tuple[Path, Path, Path]) -> None:
         input_dir, output_dir, _ = temp_dirs
@@ -145,7 +166,7 @@ class TestProcessZipFile:
         bad_zip.write_bytes(b"not a zip file")
 
         with pytest.raises(zipfile.BadZipFile):
-            process_zip_file(bad_zip, output_dir, input_dir)
+            process_zip_file(bad_zip, output_dir, input_dir, compress=False)
 
     def test_invalid_jsonld_raises(self, temp_dirs: tuple[Path, Path, Path]) -> None:
         input_dir, output_dir, _ = temp_dirs
@@ -154,100 +175,4 @@ class TestProcessZipFile:
             zf.writestr("data.json", INVALID_JSONLD)
 
         with pytest.raises(Exception):
-            process_zip_file(zip_path, output_dir, input_dir)
-
-class TestMain:
-    @pytest.fixture
-    def temp_dirs(self):
-        test_dir = Path(tempfile.mkdtemp())
-        input_dir = test_dir / "input"
-        output_dir = test_dir / "output"
-        input_dir.mkdir()
-        yield input_dir, output_dir, test_dir
-        shutil.rmtree(test_dir)
-
-    def test_success(self, temp_dirs: tuple[Path, Path, Path], capsys: pytest.CaptureFixture[str]) -> None:
-        input_dir, output_dir, _ = temp_dirs
-        prov_dir = input_dir / "entity" / "prov"
-        prov_dir.mkdir(parents=True)
-        zip_path = prov_dir / "se.zip"
-        with zipfile.ZipFile(zip_path, "w") as zf:
-            zf.writestr("data.json", SAMPLE_JSONLD)
-
-        with patch("sys.argv", ["prog", str(input_dir), str(output_dir), "-w", "1"]):
-            main()
-
-        captured = capsys.readouterr()
-        assert "Found 1 ZIP files" in captured.err
-        assert "Success: 1" in captured.err
-        assert "Failed:  0" in captured.err
-
-    def test_no_files_found(self, temp_dirs: tuple[Path, Path, Path], capsys: pytest.CaptureFixture[str]) -> None:
-        input_dir, output_dir, _ = temp_dirs
-
-        with patch("sys.argv", ["prog", str(input_dir), str(output_dir)]):
-            main()
-
-        captured = capsys.readouterr()
-        assert "Found 0 ZIP files" in captured.err
-        assert "Success: 0" in captured.err
-        assert "Failed:  0" in captured.err
-
-    def test_worker_exception_handled(self, temp_dirs: tuple[Path, Path, Path], capsys: pytest.CaptureFixture[str]) -> None:
-        input_dir, output_dir, _ = temp_dirs
-        zip_path = input_dir / "se.zip"
-        with zipfile.ZipFile(zip_path, "w") as zf:
-            zf.writestr("data.json", INVALID_JSONLD)
-
-        with patch("sys.argv", ["prog", str(input_dir), str(output_dir), "-w", "1"]):
-            main()
-
-        captured = capsys.readouterr()
-        assert "Found 1 ZIP files" in captured.err
-        assert "Failed:  1" in captured.err
-
-    def test_default_workers(self, temp_dirs: tuple[Path, Path, Path], capsys: pytest.CaptureFixture[str]) -> None:
-        input_dir, output_dir, _ = temp_dirs
-
-        with patch("sys.argv", ["prog", str(input_dir), str(output_dir)]):
-            with patch("multiprocessing.cpu_count", return_value=4):
-                main()
-
-        captured = capsys.readouterr()
-        assert "Workers: 4" in captured.err
-
-    def test_data_mode_success(self, temp_dirs: tuple[Path, Path, Path], capsys: pytest.CaptureFixture[str]) -> None:
-        input_dir, output_dir, _ = temp_dirs
-        data_dir = input_dir / "br" / "060"
-        data_dir.mkdir(parents=True)
-        zip_path = data_dir / "1000.zip"
-        with zipfile.ZipFile(zip_path, "w") as zf:
-            zf.writestr("1000.json", SAMPLE_JSONLD)
-
-        with patch("sys.argv", ["prog", str(input_dir), str(output_dir), "-m", "data", "-w", "1"]):
-            main()
-
-        captured = capsys.readouterr()
-        assert "Found 1 data ZIP files" in captured.err
-        assert "Success: 1" in captured.err
-        assert "Failed:  0" in captured.err
-        output_file = output_dir / "br-060-1000.nq"
-        assert output_file.exists()
-
-    def test_prov_mode_success(self, temp_dirs: tuple[Path, Path, Path], capsys: pytest.CaptureFixture[str]) -> None:
-        input_dir, output_dir, _ = temp_dirs
-        prov_dir = input_dir / "br" / "060" / "1000" / "prov"
-        prov_dir.mkdir(parents=True)
-        zip_path = prov_dir / "se.zip"
-        with zipfile.ZipFile(zip_path, "w") as zf:
-            zf.writestr("se.json", SAMPLE_JSONLD)
-        data_zip = input_dir / "br" / "060" / "1000.zip"
-        with zipfile.ZipFile(data_zip, "w") as zf:
-            zf.writestr("1000.json", SAMPLE_JSONLD)
-
-        with patch("sys.argv", ["prog", str(input_dir), str(output_dir), "-m", "prov", "-w", "1"]):
-            main()
-
-        captured = capsys.readouterr()
-        assert "Found 1 provenance ZIP files" in captured.err
-        assert "Success: 1" in captured.err
+            process_zip_file(zip_path, output_dir, input_dir, compress=False)

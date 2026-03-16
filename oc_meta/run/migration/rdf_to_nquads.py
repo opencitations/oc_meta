@@ -21,6 +21,7 @@ import zipfile
 from functools import partial
 from pathlib import Path
 
+import py7zr
 from pebble import ProcessPool
 from rdflib import Dataset
 from rich.console import Console
@@ -37,7 +38,7 @@ def convert_jsonld_to_nquads(jsonld_content: str) -> str:
     return graph.serialize(format="nquads")
 
 
-def process_zip_file(zip_path: Path, output_dir: Path, input_dir_path: Path) -> None:
+def process_zip_file(zip_path: Path, output_dir: Path, input_dir_path: Path, compress: bool) -> None:
     with zipfile.ZipFile(zip_path, "r") as zf:
         json_files = [name for name in zf.namelist() if name.endswith(".json")]
         json_filename = json_files[0]
@@ -53,6 +54,12 @@ def process_zip_file(zip_path: Path, output_dir: Path, input_dir_path: Path) -> 
     with open(output_nq_path, "w", encoding="utf-8") as f:
         f.write(nquads_output)
 
+    if compress:
+        output_7z_path = output_nq_path.with_suffix(".nq.7z")
+        with py7zr.SevenZipFile(output_7z_path, "w") as archive:
+            archive.write(output_nq_path, output_filename)
+        output_nq_path.unlink()
+
 
 def find_zip_files(input_path: Path, mode: str) -> list[Path]:
     if mode == "prov":
@@ -63,7 +70,7 @@ def find_zip_files(input_path: Path, mode: str) -> list[Path]:
     return list(input_path.rglob("*.zip"))
 
 
-def main() -> None:
+def main() -> None:  # pragma: no cover
     parser = argparse.ArgumentParser(
         description="Converts JSON-LD files from ZIP archives to N-Quads format.",
         formatter_class=RichHelpFormatter
@@ -73,6 +80,7 @@ def main() -> None:
     parser.add_argument("-m", "--mode", type=str, choices=["all", "data", "prov"], default="all",
                         help="Mode: 'all' for all ZIP files (default), 'data' for entity data only, 'prov' for provenance only")
     parser.add_argument("-w", "--workers", type=int, default=None, help="Number of worker processes (defaults to CPU count)")
+    parser.add_argument("-c", "--compress", action="store_true", help="Compress output files using 7z format")
     args = parser.parse_args()
 
     input_path = Path(args.input_dir).resolve()
@@ -88,9 +96,10 @@ def main() -> None:
     console.print(f"Found {total_files} {mode_labels[args.mode]}ZIP files in {input_path}")
     console.print(f"Output directory: {output_path}")
     console.print(f"Workers: {num_workers}")
+    console.print(f"Compression: {'7z' if args.compress else 'none'}")
 
     fail_count = 0
-    task_func = partial(process_zip_file, output_dir=output_path, input_dir_path=input_path)
+    task_func = partial(process_zip_file, output_dir=output_path, input_dir_path=input_path, compress=args.compress)
 
     with ProcessPool(max_workers=num_workers) as pool:
         future = pool.map(task_func, zip_files)

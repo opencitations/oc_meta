@@ -24,6 +24,7 @@ dependencies = [
     "pebble>=5.2.0",
     "piccione>=3.0.0",
     "psutil>=7.2.0",
+    "py7zr>=1.1.0",
     "python-dateutil>=2.9.0",
     "pyyaml>=6.0.3",
     "rdflib>=7.6.0",
