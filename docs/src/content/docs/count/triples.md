@@ -23,6 +23,7 @@ uv run python -m oc_meta.run.count.triples <DIRECTORY> [OPTIONS]
 | `--workers` | CPU count | Number of parallel workers |
 | `--show-per-file` | false | Print count for each file |
 | `--keep-going` | false | Continue processing even if errors occur |
+| `--fast` | false | Use fast JSON parsing instead of RDFLib for JSON-LD files |
 
 ## Examples
 
@@ -61,3 +62,11 @@ Count uncompressed Turtle files:
 ```bash
 uv run python -m oc_meta.run.count.triples /data/rdf --pattern "*.ttl" --format turtle
 ```
+
+Fast counting for JSON-LD files (uses native JSON parser instead of RDFLib):
+
+```bash
+uv run python -m oc_meta.run.count.triples /data/rdf --pattern "*.json" --format json-ld --recursive --fast
+```
+
+The `--fast` option parses JSON-LD files directly without RDFLib, which is significantly faster for large datasets. The count may differ slightly from RDFLib in edge cases (complex blank nodes, RDF lists), but is consistent for comparison between directories.

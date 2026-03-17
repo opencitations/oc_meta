@@ -257,3 +257,102 @@ class TestProcessFiles:
                 files, "nquads", None, False, False, "quads"
             )
         assert total == 2
+
+    def test_fast_jsonld(self, sample_files: Path) -> None:
+        zip_file = sample_files / "data" / "data.zip"
+        total, failures = triples.process_files(
+            [zip_file], "json-ld", 1, False, False, "triples", fast=True
+        )
+        assert total == 2
+        assert failures == []
+
+
+class TestFastJsonLdCounting:
+    def test_simple_graph(self) -> None:
+        data = {
+            "@context": {"ex": "http://example.org/"},
+            "@graph": [
+                {"@id": "ex:s1", "ex:p1": {"@id": "ex:o1"}},
+                {"@id": "ex:s2", "ex:p2": "value"},
+            ],
+        }
+        assert triples._count_jsonld_triples(data) == 2
+
+    def test_multiple_types(self) -> None:
+        data = {
+            "@graph": [
+                {"@id": "ex:s1", "@type": ["ex:Type1", "ex:Type2"], "ex:p1": "value"}
+            ]
+        }
+        assert triples._count_jsonld_triples(data) == 3
+
+    def test_single_type(self) -> None:
+        data = {"@graph": [{"@id": "ex:s1", "@type": "ex:Type1", "ex:p1": "value"}]}
+        assert triples._count_jsonld_triples(data) == 2
+
+    def test_array_values(self) -> None:
+        data = {"@graph": [{"@id": "ex:s1", "ex:p1": ["v1", "v2", "v3"]}]}
+        assert triples._count_jsonld_triples(data) == 3
+
+    def test_nested_blank_node(self) -> None:
+        data = {
+            "@graph": [{"@id": "ex:s1", "ex:p1": {"ex:nested_p": "nested_value"}}]
+        }
+        assert triples._count_jsonld_triples(data) == 2
+
+    def test_value_object(self) -> None:
+        data = {
+            "@graph": [
+                {"@id": "ex:s1", "ex:p1": {"@value": "typed", "@language": "en"}}
+            ]
+        }
+        assert triples._count_jsonld_triples(data) == 1
+
+    def test_list_container(self) -> None:
+        data = {"@graph": [{"@id": "ex:s1", "ex:p1": {"@list": ["a", "b", "c"]}}]}
+        assert triples._count_jsonld_triples(data) == 3
+
+    def test_set_container(self) -> None:
+        data = {"@graph": [{"@id": "ex:s1", "ex:p1": {"@set": ["a", "b"]}}]}
+        assert triples._count_jsonld_triples(data) == 2
+
+    def test_top_level_array(self) -> None:
+        data = [
+            {"@id": "ex:s1", "ex:p1": "v1"},
+            {"@id": "ex:s2", "ex:p2": "v2"},
+        ]
+        assert triples._count_jsonld_triples(data) == 2
+
+    def test_single_object_without_graph(self) -> None:
+        data = {"@id": "ex:s1", "ex:p1": "v1", "ex:p2": "v2"}
+        assert triples._count_jsonld_triples(data) == 2
+
+    def test_count_in_file_fast_plain(self, temp_dir: Path) -> None:
+        json_file = temp_dir / "data.json"
+        json_file.write_text(SAMPLE_JSONLD)
+        path, count, error = triples.count_in_file(json_file, "json-ld", fast=True)
+        assert count == 2
+        assert error is None
+
+    def test_count_in_file_fast_gzip(self, temp_dir: Path) -> None:
+        gz_file = temp_dir / "data.json.gz"
+        with gzip.open(gz_file, "wt", encoding="utf-8") as f:
+            f.write(SAMPLE_JSONLD)
+        path, count, error = triples.count_in_file(gz_file, "json-ld", fast=True)
+        assert count == 2
+        assert error is None
+
+    def test_count_in_file_fast_zip(self, temp_dir: Path) -> None:
+        zip_file = temp_dir / "data.zip"
+        with zipfile.ZipFile(zip_file, "w") as z:
+            z.writestr("inner.json", SAMPLE_JSONLD)
+        path, count, error = triples.count_in_file(zip_file, "json-ld", fast=True)
+        assert count == 2
+        assert error is None
+
+    def test_fast_flag_ignored_for_nquads(self, temp_dir: Path) -> None:
+        nq_file = temp_dir / "data.nq"
+        nq_file.write_text(SAMPLE_NQUADS)
+        path, count, error = triples.count_in_file(nq_file, "nquads", fast=True)
+        assert count == 2
+        assert error is None
