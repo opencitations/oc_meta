@@ -3,7 +3,7 @@ title: Triples
 description: Count RDF triples or quads in compressed or uncompressed files
 ---
 
-Counts RDF triples or quads in files using parallel processing. Supports ZIP, GZIP, and uncompressed files. The output dynamically shows "triples" or "quads" based on the RDF format (quads for `nquads` and `trig`, triples for `json-ld` and `turtle`).
+Counts RDF triples or quads in files using parallel processing. Supports ZIP, GZIP, and uncompressed files. The output dynamically shows "triples" or "quads" based on the RDF format (quads for `nquads`, triples for `nt` and `json-ld`).
 
 ## Usage
 
@@ -16,14 +16,13 @@ uv run python -m oc_meta.run.count.triples <DIRECTORY> [OPTIONS]
 | Option | Default | Description |
 |--------|---------|-------------|
 | `--pattern` | `*.nq.gz` | Glob pattern for locating files |
-| `--format` | `nquads` | RDF format: `nquads`, `json-ld`, `turtle`, `trig` |
+| `--format` | `nquads` | RDF format: `nquads`, `nt`, `json-ld` |
 | `--recursive` | false | Search subdirectories recursively |
 | `--prov-only` | false | Count only files in `prov` subdirectories |
 | `--data-only` | false | Count only files not in `prov` subdirectories |
 | `--workers` | CPU count | Number of parallel workers |
 | `--show-per-file` | false | Print count for each file |
 | `--keep-going` | false | Continue processing even if errors occur |
-| `--fast` | false | Use fast JSON parsing instead of RDFLib for JSON-LD files |
 
 ## Examples
 
@@ -56,17 +55,3 @@ Show per-file counts with 8 workers:
 ```bash
 uv run python -m oc_meta.run.count.triples /data/rdf --recursive --workers 8 --show-per-file
 ```
-
-Count uncompressed Turtle files:
-
-```bash
-uv run python -m oc_meta.run.count.triples /data/rdf --pattern "*.ttl" --format turtle
-```
-
-Fast counting for JSON-LD files (uses native JSON parser instead of RDFLib):
-
-```bash
-uv run python -m oc_meta.run.count.triples /data/rdf --pattern "*.json" --format json-ld --recursive --fast
-```
-
-The `--fast` option parses JSON-LD files directly without RDFLib, which is significantly faster for large datasets. The count may differ slightly from RDFLib in edge cases (complex blank nodes, RDF lists), but is consistent for comparison between directories.

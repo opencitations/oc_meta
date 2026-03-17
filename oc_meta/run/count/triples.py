@@ -15,12 +15,11 @@ from multiprocessing import Pool
 from pathlib import Path
 from typing import TextIO
 
-from rdflib import Dataset
 from rich_argparse import RichHelpFormatter
 
 from oc_meta.lib.console import create_progress
 
-QUAD_FORMATS = {"nquads", "trig"}
+QUAD_FORMATS = {"nquads"}
 LINE_BASED_FORMATS = {"nquads", "nt"}
 JSONLD_SPECIAL_KEYS = {"@id", "@context", "@graph", "@list", "@set", "@language", "@value"}
 
@@ -104,7 +103,7 @@ def parse_args() -> argparse.Namespace:  # pragma: no cover
     parser.add_argument(
         "--format",
         default="nquads",
-        choices=["nquads", "nt", "json-ld", "turtle", "trig"],
+        choices=["nquads", "nt", "json-ld"],
         help="RDF format of the input files (default: nquads).",
     )
     parser.add_argument(
@@ -137,11 +136,6 @@ def parse_args() -> argparse.Namespace:  # pragma: no cover
         "--keep-going",
         action="store_true",
         help="Continue processing even if errors occur.",
-    )
-    parser.add_argument(
-        "--fast",
-        action="store_true",
-        help="Use fast JSON parsing instead of RDFLib for JSON-LD files.",
     )
     return parser.parse_args()
 
@@ -204,12 +198,11 @@ def _count_lines_text(file_obj: TextIO) -> int:
 
 
 def count_in_file(
-    file_path: Path, rdf_format: str, fast: bool = False
+    file_path: Path, rdf_format: str
 ) -> tuple[str, int, str | None]:
     try:
         suffix = file_path.suffix.lower()
         use_line_count = rdf_format in LINE_BASED_FORMATS
-        use_fast_jsonld = fast and rdf_format == "json-ld"
 
         if suffix == ".zip":
             with zipfile.ZipFile(file_path, "r") as z:
@@ -218,34 +211,22 @@ def count_in_file(
                     if use_line_count:
                         return str(file_path), _count_lines_binary(f), None
                     content = f.read().decode("utf-8")
-            if use_fast_jsonld:
-                data = json.loads(content)
-                return str(file_path), _count_jsonld_triples(data), None
-            dataset: Dataset = Dataset(default_union=True)
-            dataset.parse(data=content, format=rdf_format)
+            data = json.loads(content)
+            return str(file_path), _count_jsonld_triples(data), None
         elif suffix == ".gz":
             if use_line_count:
                 with gzip.open(file_path, "rb") as f:
                     return str(file_path), _count_lines_binary(f), None
-            if use_fast_jsonld:
-                with gzip.open(file_path, "rt", encoding="utf-8") as f:
-                    data = json.load(f)
-                return str(file_path), _count_jsonld_triples(data), None
-            dataset = Dataset(default_union=True)
             with gzip.open(file_path, "rt", encoding="utf-8") as f:
-                dataset.parse(f, format=rdf_format)
+                data = json.load(f)
+            return str(file_path), _count_jsonld_triples(data), None
         else:
             if use_line_count:
                 with open(file_path, "r", encoding="utf-8") as f:
                     return str(file_path), _count_lines_text(f), None
-            if use_fast_jsonld:
-                with open(file_path, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                return str(file_path), _count_jsonld_triples(data), None
-            dataset = Dataset(default_union=True)
             with open(file_path, "r", encoding="utf-8") as f:
-                dataset.parse(f, format=rdf_format)
-        return str(file_path), len(dataset), None
+                data = json.load(f)
+            return str(file_path), _count_jsonld_triples(data), None
     except Exception as exc:
         return str(file_path), 0, str(exc)
 
@@ -257,7 +238,6 @@ def process_files(
     show_per_file: bool,
     keep_going: bool,
     unit_name: str,
-    fast: bool = False,
 ) -> tuple[int, list[tuple[str, str]]]:
     workers = max_workers or multiprocessing.cpu_count()
     if workers < 1:
@@ -268,7 +248,7 @@ def process_files(
     failures: list[tuple[str, str]] = []
     chunksize = max(1, len(files) // (workers * 4))
 
-    worker_fn = partial(count_in_file, rdf_format=rdf_format, fast=fast)
+    worker_fn = partial(count_in_file, rdf_format=rdf_format)
 
     with create_progress() as progress:
         task = progress.add_task(f"Counting {unit_name}", total=len(files))
@@ -336,7 +316,6 @@ def main() -> None:  # pragma: no cover
         args.show_per_file,
         args.keep_going,
         unit_name,
-        args.fast,
     )
 
     print(f"Total {unit_name}: {total}")

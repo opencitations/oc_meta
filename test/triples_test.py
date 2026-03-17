@@ -20,18 +20,6 @@ SAMPLE_NQUADS_WITH_COMMENTS = """# This is a comment
 <http://example.org/s2> <http://example.org/p2> "value" <http://example.org/g1> .
 """
 
-SAMPLE_TRIG = """@prefix ex: <http://example.org/> .
-ex:g1 {
-    ex:s1 ex:p1 ex:o1 .
-    ex:s2 ex:p2 "value" .
-}
-"""
-
-SAMPLE_TURTLE = """@prefix ex: <http://example.org/> .
-ex:s1 ex:p1 ex:o1 .
-ex:s2 ex:p2 "value" .
-"""
-
 SAMPLE_JSONLD = """{
   "@context": {"ex": "http://example.org/"},
   "@graph": [
@@ -69,9 +57,6 @@ def sample_files(temp_dir: Path):
     with zipfile.ZipFile(zip_file, "w") as z:
         z.writestr("inner.json", SAMPLE_JSONLD)
 
-    ttl_file = data_dir / "data.ttl"
-    ttl_file.write_text(SAMPLE_TURTLE)
-
     return temp_dir
 
 
@@ -107,11 +92,6 @@ class TestDiscoverFiles:
         assert len(result) == 1
         assert result[0].name == "data.nq"
 
-    def test_glob_pattern(self, sample_files: Path) -> None:
-        result = triples.discover_files(sample_files, "*.ttl", True, False, False)
-        assert len(result) == 1
-        assert result[0].name == "data.ttl"
-
     def test_skips_directories(self, temp_dir: Path) -> None:
         subdir = temp_dir / "data.nq"
         subdir.mkdir()
@@ -138,13 +118,6 @@ class TestCountInFile:
         zip_file = sample_files / "data" / "data.zip"
         path, count, error = triples.count_in_file(zip_file, "json-ld")
         assert str(zip_file) == path
-        assert count == 2
-        assert error is None
-
-    def test_turtle_file(self, sample_files: Path) -> None:
-        ttl_file = sample_files / "data" / "data.ttl"
-        path, count, error = triples.count_in_file(ttl_file, "turtle")
-        assert str(ttl_file) == path
         assert count == 2
         assert error is None
 
@@ -191,15 +164,6 @@ class TestCountInFile:
         assert count == 2
         assert error is None
 
-    def test_trig_gzip_file(self, temp_dir: Path) -> None:
-        gz_file = temp_dir / "data.trig.gz"
-        with gzip.open(gz_file, "wt", encoding="utf-8") as f:
-            f.write(SAMPLE_TRIG)
-        path, count, error = triples.count_in_file(gz_file, "trig")
-        assert str(gz_file) == path
-        assert count == 2
-        assert error is None
-
 
 class TestProcessFiles:
     def test_basic_processing(self, sample_files: Path) -> None:
@@ -212,7 +176,7 @@ class TestProcessFiles:
 
     def test_show_per_file(self, sample_files: Path, capsys) -> None:
         files = [sample_files / "data" / "data.nq"]
-        total, failures = triples.process_files(
+        total, _ = triples.process_files(
             files, "nquads", 1, True, False, "quads"
         )
         assert total == 2
@@ -226,7 +190,7 @@ class TestProcessFiles:
         valid = temp_dir / "valid.nq"
         valid.write_text(SAMPLE_NQUADS)
         files = [corrupt, valid]
-        total, failures = triples.process_files(
+        _, failures = triples.process_files(
             files, "nquads", 1, False, False, "quads"
         )
         assert len(failures) == 1
@@ -245,7 +209,7 @@ class TestProcessFiles:
 
     def test_workers_none_uses_cpu_count(self, sample_files: Path) -> None:
         files = [sample_files / "data" / "data.nq"]
-        total, failures = triples.process_files(
+        total, _ = triples.process_files(
             files, "nquads", None, False, False, "quads"
         )
         assert total == 2
@@ -253,21 +217,13 @@ class TestProcessFiles:
     def test_workers_zero_defaults_to_one(self, sample_files: Path) -> None:
         files = [sample_files / "data" / "data.nq"]
         with patch("oc_meta.run.count.triples.multiprocessing.cpu_count", return_value=0):
-            total, failures = triples.process_files(
+            total, _ = triples.process_files(
                 files, "nquads", None, False, False, "quads"
             )
         assert total == 2
 
-    def test_fast_jsonld(self, sample_files: Path) -> None:
-        zip_file = sample_files / "data" / "data.zip"
-        total, failures = triples.process_files(
-            [zip_file], "json-ld", 1, False, False, "triples", fast=True
-        )
-        assert total == 2
-        assert failures == []
 
-
-class TestFastJsonLdCounting:
+class TestJsonLdCounting:
     def test_simple_graph(self) -> None:
         data = {
             "@context": {"ex": "http://example.org/"},
@@ -344,32 +300,25 @@ class TestFastJsonLdCounting:
         data = {"@id": "ex:s1", "ex:p1": "v1", "ex:p2": "v2"}
         assert triples._count_jsonld_triples(data) == 2
 
-    def test_count_in_file_fast_plain(self, temp_dir: Path) -> None:
+    def test_count_in_file_plain(self, temp_dir: Path) -> None:
         json_file = temp_dir / "data.json"
         json_file.write_text(SAMPLE_JSONLD)
-        path, count, error = triples.count_in_file(json_file, "json-ld", fast=True)
+        _, count, error = triples.count_in_file(json_file, "json-ld")
         assert count == 2
         assert error is None
 
-    def test_count_in_file_fast_gzip(self, temp_dir: Path) -> None:
+    def test_count_in_file_gzip(self, temp_dir: Path) -> None:
         gz_file = temp_dir / "data.json.gz"
         with gzip.open(gz_file, "wt", encoding="utf-8") as f:
             f.write(SAMPLE_JSONLD)
-        path, count, error = triples.count_in_file(gz_file, "json-ld", fast=True)
+        _, count, error = triples.count_in_file(gz_file, "json-ld")
         assert count == 2
         assert error is None
 
-    def test_count_in_file_fast_zip(self, temp_dir: Path) -> None:
+    def test_count_in_file_zip(self, temp_dir: Path) -> None:
         zip_file = temp_dir / "data.zip"
         with zipfile.ZipFile(zip_file, "w") as z:
             z.writestr("inner.json", SAMPLE_JSONLD)
-        path, count, error = triples.count_in_file(zip_file, "json-ld", fast=True)
-        assert count == 2
-        assert error is None
-
-    def test_fast_flag_ignored_for_nquads(self, temp_dir: Path) -> None:
-        nq_file = temp_dir / "data.nq"
-        nq_file.write_text(SAMPLE_NQUADS)
-        path, count, error = triples.count_in_file(nq_file, "nquads", fast=True)
+        _, count, error = triples.count_in_file(zip_file, "json-ld")
         assert count == 2
         assert error is None
