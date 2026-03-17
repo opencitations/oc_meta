@@ -16,12 +16,10 @@ import requests
 import yaml
 from oc_ocdm.graph import GraphSet
 from rdflib import URIRef
-from rich.progress import (BarColumn, MofNCompleteColumn, Progress,
-                           SpinnerColumn, TextColumn, TimeElapsedColumn,
-                           TimeRemainingColumn)
 from rich_argparse import RichHelpFormatter
 
 from oc_meta.core.editor import MetaEditor
+from oc_meta.lib.console import create_progress
 from oc_meta.run.meta.generate_csv import find_file, load_json_from_file
 
 HAS_IDENTIFIER = "http://purl.org/spar/datacite/hasIdentifier"
@@ -491,14 +489,7 @@ def dry_run(
         "manual_review_needed": 0,
     }
 
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        BarColumn(),
-        MofNCompleteColumn(),
-        TimeElapsedColumn(),
-        TimeRemainingColumn(),
-    ) as progress:
+    with create_progress() as progress:
         task = progress.add_task("Analyzing anomalies", total=len(groups))
         for (br_uri, role_type), anomalies in groups.items():
             anomaly_types = list({a["anomaly_type"] for a in anomalies})
@@ -686,14 +677,7 @@ def execute(config_path: str, plan_path: str, resp_agent: str) -> None:
 
     succeeded = 0
     failed = 0
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        BarColumn(),
-        MofNCompleteColumn(),
-        TimeElapsedColumn(),
-        TimeRemainingColumn(),
-    ) as progress:
+    with create_progress() as progress:
         task = progress.add_task(
             "Applying corrections", total=len(ready_corrections)
         )

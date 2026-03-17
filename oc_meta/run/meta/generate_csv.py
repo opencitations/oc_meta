@@ -28,9 +28,8 @@ from zipfile import ZipFile
 
 import redis
 import yaml
-from rich.progress import (BarColumn, MofNCompleteColumn, Progress,
-                           SpinnerColumn, TextColumn, TimeElapsedColumn,
-                           TimeRemainingColumn)
+
+from oc_meta.lib.console import create_progress
 
 csv.field_size_limit(2**31 - 1)
 
@@ -148,14 +147,7 @@ def load_processed_omids_to_redis(output_dir: str, redis_client: redis.Redis) ->
     BATCH_SIZE = 1000
     csv_files = [f for f in os.listdir(output_dir) if f.endswith(".csv")]
 
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        BarColumn(),
-        MofNCompleteColumn(),
-        TimeElapsedColumn(),
-        TimeRemainingColumn(),
-    ) as progress:
+    with create_progress() as progress:
         task = progress.add_task("Loading existing identifiers", total=len(csv_files))
 
         for filename in csv_files:
@@ -663,14 +655,7 @@ def generate_csv(
         _init_worker,
         (redis_host, redis_port, redis_db, input_dir, dir_split_number, items_per_file),
     ) as pool:
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            BarColumn(),
-            MofNCompleteColumn(),
-            TimeElapsedColumn(),
-            TimeRemainingColumn(),
-        ) as progress:
+        with create_progress() as progress:
             task = progress.add_task("Processing files", total=len(files_to_process))
 
             for filepath, results in pool.imap_unordered(_process_file_worker, files_to_process):

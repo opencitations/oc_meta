@@ -9,11 +9,9 @@ from multiprocessing import Pool
 from typing import Dict, List, Optional, Tuple
 
 import yaml
-from rich.progress import (BarColumn, MofNCompleteColumn, Progress,
-                           SpinnerColumn, TextColumn, TimeElapsedColumn,
-                           TimeRemainingColumn)
 from rich_argparse import RichHelpFormatter
 
+from oc_meta.lib.console import create_progress
 from oc_meta.run.meta.generate_csv import find_file, load_json_from_file
 
 ROLE_MAP = {
@@ -313,14 +311,7 @@ def main() -> None:
         _init_worker,
         (rdf_dir, dir_split_number, items_per_file),
     ) as pool:
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            BarColumn(),
-            MofNCompleteColumn(),
-            TimeElapsedColumn(),
-            TimeRemainingColumn(),
-        ) as progress:
+        with create_progress() as progress:
             task = progress.add_task(
                 "Scanning for anomalies", total=len(all_files)
             )

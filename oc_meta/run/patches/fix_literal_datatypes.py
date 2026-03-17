@@ -13,16 +13,9 @@ from pathlib import Path
 from oc_ocdm.support.support import get_datatype_from_iso_8601
 from rdflib import XSD, Dataset, Literal, URIRef
 from rich.console import Console
-from rich.progress import (
-    BarColumn,
-    MofNCompleteColumn,
-    Progress,
-    SpinnerColumn,
-    TextColumn,
-    TimeElapsedColumn,
-    TimeRemainingColumn,
-)
 from rich_argparse import RichHelpFormatter
+
+from oc_meta.lib.console import create_progress
 
 BATCH_SIZE = 100
 PUBLICATION_DATE_PREDICATE = URIRef(
@@ -201,15 +194,7 @@ def main() -> None:  # pragma: no cover
 
     executor = ProcessPoolExecutor(max_workers=args.workers, initializer=_worker_init)
     try:
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            BarColumn(),
-            MofNCompleteColumn(),
-            TimeElapsedColumn(),
-            TimeRemainingColumn(),
-            console=console,
-        ) as progress:
+        with create_progress() as progress:
             task = progress.add_task("Processing files", total=len(zip_files))
             futures = {
                 executor.submit(process_batch, batch): batch for batch in batches

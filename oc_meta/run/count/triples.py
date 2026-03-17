@@ -16,10 +16,9 @@ from pathlib import Path
 from typing import TextIO
 
 from rdflib import Dataset
-from rich.progress import (BarColumn, MofNCompleteColumn, Progress,
-                           SpinnerColumn, TaskProgressColumn, TextColumn,
-                           TimeElapsedColumn, TimeRemainingColumn)
 from rich_argparse import RichHelpFormatter
+
+from oc_meta.lib.console import create_progress
 
 QUAD_FORMATS = {"nquads", "trig"}
 LINE_BASED_FORMATS = {"nquads", "nt"}
@@ -62,7 +61,20 @@ def _count_jsonld_object(obj: Mapping[str, object]) -> int:
 def _count_jsonld_triples(data: Mapping[str, object] | Sequence[object]) -> int:
     """Count triples in a JSON-LD document without RDFLib parsing."""
     if isinstance(data, Sequence) and not isinstance(data, (str, bytes)):
-        return sum(_count_jsonld_object(obj) for obj in data if isinstance(obj, dict))
+        total = 0
+        for obj in data:
+            if isinstance(obj, dict):
+                if "@graph" in obj:
+                    graph = obj["@graph"]
+                    if isinstance(graph, list):
+                        total += sum(
+                            _count_jsonld_object(item)
+                            for item in graph
+                            if isinstance(item, dict)
+                        )
+                else:
+                    total += _count_jsonld_object(obj)
+        return total
     if isinstance(data, Mapping):
         if "@graph" in data:
             graph = data["@graph"]
@@ -258,15 +270,7 @@ def process_files(
 
     worker_fn = partial(count_in_file, rdf_format=rdf_format, fast=fast)
 
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        BarColumn(),
-        TaskProgressColumn(),
-        MofNCompleteColumn(),
-        TimeElapsedColumn(),
-        TimeRemainingColumn(),
-    ) as progress:
+    with create_progress() as progress:
         task = progress.add_task(f"Counting {unit_name}", total=len(files))
 
         with Pool(processes=workers) as pool:

@@ -8,13 +8,13 @@ from datetime import datetime
 from typing import Callable, Dict, List, Set, TypeVar
 
 import yaml
-from rich.progress import (BarColumn, Progress, TaskProgressColumn, TextColumn,
-                           TimeRemainingColumn)
+from rich.progress import BarColumn, Progress, TaskProgressColumn, TextColumn
 from rich_argparse import RichHelpFormatter
 from sparqlite import SPARQLClient
 from sparqlite.exceptions import EndpointError
 
 from oc_meta.lib.cleaner import Cleaner
+from oc_meta.lib.console import EMATimeRemainingColumn
 from oc_meta.lib.master_of_regex import name_and_ids, semicolon_in_people_field
 
 T = TypeVar('T')
@@ -544,7 +544,7 @@ def main():
             TextColumn("[progress.description]{task.description}"),
             BarColumn(),
             TaskProgressColumn(),
-            TimeRemainingColumn(),
+            EMATimeRemainingColumn(),
             TextColumn("[cyan]{task.fields[current_file]}"),
             TextColumn("[yellow]{task.fields[detail]}"),
         ) as progress:
@@ -588,7 +588,7 @@ def main():
             TextColumn("[progress.description]{task.description}"),
             BarColumn(),
             TaskProgressColumn(),
-            TimeRemainingColumn(),
+            EMATimeRemainingColumn(),
             TextColumn("[cyan]{task.fields[detail]}"),
         ) as progress:
             task = progress.add_task("Checking cross-file issues", total=len(all_results), detail="")

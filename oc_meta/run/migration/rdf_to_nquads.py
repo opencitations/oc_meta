@@ -24,12 +24,9 @@ from pathlib import Path
 import py7zr
 from pebble import ProcessPool
 from rdflib import Dataset
-from rich.console import Console
-from rich.progress import (BarColumn, MofNCompleteColumn, Progress, TextColumn,
-                           TimeElapsedColumn, TimeRemainingColumn)
 from rich_argparse import RichHelpFormatter
 
-console = Console(stderr=True)
+from oc_meta.lib.console import console, create_progress
 
 
 def convert_jsonld_to_nquads(jsonld_content: str) -> str:
@@ -105,14 +102,7 @@ def main() -> None:  # pragma: no cover
         future = pool.map(task_func, zip_files)
         iterator = future.result()
 
-        with Progress(
-            TextColumn("[progress.description]{task.description}"),
-            BarColumn(),
-            MofNCompleteColumn(),
-            TimeElapsedColumn(),
-            TimeRemainingColumn(),
-            console=console,
-        ) as progress:
+        with create_progress() as progress:
             task = progress.add_task("Converting", total=total_files)
             while True:
                 try:

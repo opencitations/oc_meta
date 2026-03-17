@@ -23,23 +23,11 @@ from dataclasses import dataclass
 from typing import List
 
 import redis
-from rich.console import Console
-from rich.progress import (
-    BarColumn,
-    MofNCompleteColumn,
-    Progress,
-    SpinnerColumn,
-    TaskProgressColumn,
-    TextColumn,
-    TimeElapsedColumn,
-    TimeRemainingColumn,
-)
 from rich.table import Table
 from rich_argparse import RichHelpFormatter
 
+from oc_meta.lib.console import console, create_progress
 from oc_meta.lib.file_manager import get_csv_data, write_csv
-
-console = Console()
 
 
 @dataclass
@@ -136,15 +124,7 @@ def deduplicate_and_write(
 
     total_stats = ProcessingStats()
 
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        BarColumn(),
-        TaskProgressColumn(),
-        MofNCompleteColumn(),
-        TimeElapsedColumn(),
-        TimeRemainingColumn(),
-    ) as progress:
+    with create_progress() as progress:
         task = progress.add_task("Deduplicating and writing", total=len(results))
 
         for result in results:
@@ -248,15 +228,7 @@ def main():  # pragma: no cover
     results: list[FileResult] = []
     file_order = {f: i for i, f in enumerate(csv_files)}
 
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        BarColumn(),
-        TaskProgressColumn(),
-        MofNCompleteColumn(),
-        TimeElapsedColumn(),
-        TimeRemainingColumn(),
-    ) as progress:
+    with create_progress() as progress:
         task = progress.add_task("Filtering existing IDs", total=len(csv_files))
 
         with ProcessPoolExecutor(max_workers=args.workers) as executor:

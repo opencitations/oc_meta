@@ -22,10 +22,8 @@ from argparse import ArgumentParser
 from bs4 import BeautifulSoup
 from oc_ds_converter.oc_idmanager import DOIManager
 from rich.console import Console
-from rich.progress import (BarColumn, MofNCompleteColumn, Progress,
-                           SpinnerColumn, TextColumn, TimeElapsedColumn,
-                           TimeRemainingColumn)
 
+from oc_meta.lib.console import create_progress
 from oc_meta.lib.csvmanager import CSVManager
 from oc_meta.lib.master_of_regex import orcid_pattern
 
@@ -64,15 +62,7 @@ class IndexOrcidDoi:
         ]
         processed_files = len(self.cache)
         del self.cache
-        progress = Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            BarColumn(),
-            MofNCompleteColumn(),
-            TimeElapsedColumn(),
-            TimeRemainingColumn(),
-            console=self.console,
-        )
+        progress = create_progress()
         with progress:
             task = progress.add_task("Processing files", total=len(files_to_process))
             for file in files_to_process:

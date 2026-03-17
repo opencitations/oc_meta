@@ -323,6 +323,23 @@ class TestFastJsonLdCounting:
         ]
         assert triples._count_jsonld_triples(data) == 2
 
+    def test_top_level_array_with_graphs(self) -> None:
+        data = [
+            {
+                "@graph": [
+                    {"@id": "ex:s1", "@type": ["ex:Type1"], "ex:p1": "v1"}
+                ],
+                "@id": "ex:graph1",
+            },
+            {
+                "@graph": [
+                    {"@id": "ex:s2", "ex:p2": {"@id": "ex:o2"}, "ex:p3": "v3"}
+                ],
+                "@id": "ex:graph2",
+            },
+        ]
+        assert triples._count_jsonld_triples(data) == 4
+
     def test_single_object_without_graph(self) -> None:
         data = {"@id": "ex:s1", "ex:p1": "v1", "ex:p2": "v2"}
         assert triples._count_jsonld_triples(data) == 2

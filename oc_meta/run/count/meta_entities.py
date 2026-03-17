@@ -22,11 +22,10 @@ import sys
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from typing import Dict, Set
 
-from rich.progress import (BarColumn, Progress, TaskProgressColumn, TextColumn,
-                           TimeRemainingColumn)
 from rich_argparse import RichHelpFormatter
 from sparqlite import SPARQLClient
 
+from oc_meta.lib.console import create_progress
 from oc_meta.lib.file_manager import get_csv_data
 from oc_meta.lib.master_of_regex import name_and_ids
 
@@ -126,12 +125,7 @@ class OCMetaStatistics:
 
         all_venues: Set[str] = set()
 
-        with Progress(
-            TextColumn("[progress.description]{task.description}"),
-            BarColumn(),
-            TaskProgressColumn(),
-            TimeRemainingColumn(),
-        ) as progress:
+        with create_progress() as progress:
             task = progress.add_task("Counting venues from CSV files...", total=len(filepaths))
 
             with ProcessPoolExecutor() as executor:
