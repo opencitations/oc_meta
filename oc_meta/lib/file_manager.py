@@ -18,12 +18,9 @@
 from __future__ import annotations
 
 import csv
-import fnmatch
 import json
 import os
 import sys
-from collections import deque
-from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
@@ -35,57 +32,34 @@ from _collections_abc import dict_keys
 from bs4 import BeautifulSoup
 from requests import ReadTimeout, get
 from requests.exceptions import ConnectionError
+from scandir_rs import Walk  # type: ignore[import-untyped]
 
 from oc_meta.lib.cleaner import Cleaner
 
 
-def collect_files_parallel(
+def collect_files(
     root: str,
     pattern: str = "*.zip",
     path_filter: Callable[[str], bool] | None = None,
-    workers: int = 8,
 ) -> List[str]:
     """
-    Parallel BFS directory traversal to collect files matching a pattern.
+    Directory traversal to collect files matching a pattern.
 
-    Uses ThreadPoolExecutor with os.scandir for efficient parallel I/O.
-    The GIL is released during filesystem syscalls, allowing true parallelism.
+    Uses scandir-rs (Rust-based) for fast directory iteration.
 
     :param root: Root directory to start traversal
     :param pattern: Glob pattern for filenames (e.g., '*.zip', 'se.zip')
     :param path_filter: Optional callable that receives full file path and returns
                         True to include, False to exclude. Example:
                         lambda p: 'prov' not in p  # exclude prov directories
-    :param workers: Number of parallel workers (default: 8)
     :returns: List of matching file paths
     """
     collected: List[str] = []
-    queue: deque[str] = deque([root])
-
-    def scan_dir(path: str) -> tuple[List[str], List[str]]:
-        subdirs: List[str] = []
-        files: List[str] = []
-        with os.scandir(path) as entries:
-            for entry in entries:
-                if entry.is_dir(follow_symlinks=False):
-                    subdirs.append(entry.path)
-                elif entry.is_file(follow_symlinks=False):
-                    if fnmatch.fnmatch(entry.name, pattern):
-                        files.append(entry.path)
-        return subdirs, files
-
-    with ThreadPoolExecutor(max_workers=workers) as executor:
-        while queue:
-            batch_size = min(len(queue), workers * 4)
-            batch = [queue.popleft() for _ in range(batch_size)]
-
-            for subdirs, files in executor.map(scan_dir, batch):
-                queue.extend(subdirs)
-                if path_filter is None:
-                    collected.extend(files)
-                else:
-                    collected.extend(f for f in files if path_filter(f))
-
+    for dirpath, _, filenames in Walk(root, file_include=[pattern]):
+        for filename in filenames:
+            full_path = os.path.join(root, dirpath, filename)
+            if path_filter is None or path_filter(full_path):
+                collected.append(full_path)
     return collected
 
 
@@ -93,7 +67,6 @@ def collect_zip_files(
     root: str,
     only_data: bool = False,
     only_prov: bool = False,
-    workers: int = 8,
 ) -> List[str]:
     """
     Collect ZIP files from a directory tree.
@@ -101,7 +74,6 @@ def collect_zip_files(
     :param root: Root directory to start traversal
     :param only_data: Only include files NOT in paths containing 'prov'
     :param only_prov: Only include files in paths containing 'prov'
-    :param workers: Number of parallel workers
     :returns: Sorted list of ZIP file paths
 
     If both only_data and only_prov are False, all ZIP files are collected.
@@ -115,7 +87,7 @@ def collect_zip_files(
     elif only_prov:
         path_filter = lambda p: "prov" in p
 
-    files = collect_files_parallel(root, "*.zip", path_filter, workers)
+    files = collect_files(root, "*.zip", path_filter)
     return sorted(files)
 
 

@@ -8,7 +8,7 @@ import zipfile
 from rich_argparse import RichHelpFormatter
 from tqdm import tqdm
 
-from oc_meta.lib.file_manager import collect_files_parallel
+from oc_meta.lib.file_manager import collect_files
 
 logging.basicConfig(filename='error_log_find_duplicated_resources.txt', level=logging.ERROR, 
                     format='%(asctime)s - %(levelname)s - %(message)s')
@@ -81,7 +81,7 @@ def process_folder(folder_path, resources, expected_type):
             logging.error(f"Errore nell'apertura del file ZIP {zip_path}: {str(e)}")
 
 def get_zip_files(folder_path: str) -> list[str]:
-    return sorted(collect_files_parallel(
+    return sorted(collect_files(
         folder_path,
         pattern="*.zip",
         path_filter=lambda p: os.path.basename(p) != "se.zip",

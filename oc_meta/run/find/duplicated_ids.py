@@ -12,7 +12,7 @@ from rdflib import Dataset, URIRef
 from rich_argparse import RichHelpFormatter
 from tqdm import tqdm
 
-from oc_meta.lib.file_manager import collect_files_parallel
+from oc_meta.lib.file_manager import collect_files
 
 
 def process_zip_file(zip_path: str) -> Dict[tuple, Set[str]]:
@@ -81,7 +81,7 @@ def read_and_analyze_zip_files(folder_path: str, csv_path: str, chunk_size: int 
         print(f"Error: The 'id' subfolder does not exist in path: {folder_path}")
         return
 
-    zip_files = sorted(collect_files_parallel(
+    zip_files = sorted(collect_files(
         id_folder_path,
         pattern="*.zip",
         path_filter=lambda p: os.path.basename(p) != "se.zip",

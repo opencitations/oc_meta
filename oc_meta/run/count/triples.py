@@ -18,7 +18,7 @@ from typing import TextIO
 from rich_argparse import RichHelpFormatter
 
 from oc_meta.lib.console import create_progress
-from oc_meta.lib.file_manager import collect_files_parallel
+from oc_meta.lib.file_manager import collect_files
 
 QUAD_FORMATS = {"nquads"}
 LINE_BASED_FORMATS = {"nquads", "nt"}
@@ -164,7 +164,7 @@ def discover_files(
                 return False
             return True
 
-        str_files = collect_files_parallel(root_str, pattern, path_filter)
+        str_files = collect_files(root_str, pattern, path_filter)
         return sorted(Path(f) for f in str_files)
 
     is_prov = path.name == "prov"

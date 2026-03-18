@@ -11,7 +11,7 @@ from rich.console import Console
 from rich_argparse import RichHelpFormatter
 from tqdm import tqdm
 
-from oc_meta.lib.file_manager import collect_files_parallel
+from oc_meta.lib.file_manager import collect_files
 
 console = Console()
 
@@ -25,7 +25,7 @@ def extract_entity_from_snapshot(snapshot_uri: str) -> str:
 
 def find_prov_files(rdf_dir: str, entity_type: str) -> list[str]:
     entity_dir = os.path.join(rdf_dir, entity_type)
-    return sorted(collect_files_parallel(entity_dir, pattern="se.zip"))
+    return sorted(collect_files(entity_dir, pattern="se.zip"))
 
 
 def process_prov_file(prov_file: str) -> list[tuple[str, str]]:
