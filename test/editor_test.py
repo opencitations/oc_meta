@@ -14,7 +14,6 @@
 # ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 # SOFTWARE.
 
-import json
 import os
 import unittest
 from shutil import rmtree
@@ -30,6 +29,7 @@ from test.test_utils import (
     reset_server,
 )
 
+import orjson
 import yaml
 from oc_meta.core.editor import EntityCache, MetaEditor
 from oc_meta.run.meta_process import run_meta_process
@@ -183,7 +183,7 @@ class TestEditor(unittest.TestCase):
             "r",
             encoding="utf-8",
         ) as file:
-            ar_data = json.load(file)
+            ar_data = orjson.loads(file.read())
             for graph in ar_data:
                 graph_data = graph["@graph"]
                 for ar in graph_data:
@@ -214,7 +214,7 @@ class TestEditor(unittest.TestCase):
             "r",
             encoding="utf8",
         ) as f:
-            ar_prov = json.load(f)
+            ar_prov = orjson.loads(f.read())
             for graph in ar_prov:
                 graph_prov = graph["@graph"]
                 for ar in graph_prov:
@@ -255,7 +255,7 @@ class TestEditor(unittest.TestCase):
             "r",
             encoding="utf8",
         ) as f:
-            br_data = json.load(f)
+            br_data = orjson.loads(f.read())
             for graph in br_data:
                 graph_data = graph["@graph"]
                 for br in graph_data:
@@ -268,7 +268,7 @@ class TestEditor(unittest.TestCase):
             "r",
             encoding="utf8",
         ) as f:
-            br_prov = json.load(f)
+            br_prov = orjson.loads(f.read())
             for graph in br_prov:
                 graph_prov = graph["@graph"]
                 for br in graph_prov:
@@ -287,7 +287,7 @@ class TestEditor(unittest.TestCase):
             "r",
             encoding="utf8",
         ) as f:
-            id_data = json.load(f)
+            id_data = orjson.loads(f.read())
             for graph in id_data:
                 graph_data = graph["@graph"]
                 for identifier in graph_data:
@@ -300,7 +300,7 @@ class TestEditor(unittest.TestCase):
             "r",
             encoding="utf8",
         ) as f:
-            id_prov = json.load(f)
+            id_prov = orjson.loads(f.read())
             for graph in id_prov:
                 graph_prov = graph["@graph"]
                 for identifier in graph_prov:
@@ -333,7 +333,7 @@ class TestEditor(unittest.TestCase):
             "r",
             encoding="utf8",
         ) as f:
-            ra_prov = json.load(f)
+            ra_prov = orjson.loads(f.read())
             for graph in ra_prov:
                 graph_prov = graph["@graph"]
                 for ra in graph_prov:
@@ -461,7 +461,7 @@ class TestEditor(unittest.TestCase):
             ),
         ]:
             with open(filepath, "r", encoding="utf8") as f:
-                data = json.load(f)
+                data = orjson.loads(f.read())
                 for graph in data:
                     graph_data = graph["@graph"]
                     for entity in graph_data:
@@ -575,7 +575,7 @@ class TestEditor(unittest.TestCase):
             OUTPUT, "rdf", "br", "060", "10000", "1000", "prov", "se.json"
         )
         with open(prov_path, "r", encoding="utf8") as f:
-            prov_data = json.load(f)
+            prov_data = orjson.loads(f.read())
             br_0605_prov_se_2 = None
             br_0605_prov_se_1 = None
             for graph in prov_data:
@@ -691,7 +691,7 @@ class TestEditor(unittest.TestCase):
             OUTPUT, "rdf", "br", "060", "10000", "1000", "prov", "se.json"
         )
         with open(prov_path, "r", encoding="utf8") as f:
-            prov_data = json.load(f)
+            prov_data = orjson.loads(f.read())
             for graph in prov_data:
                 for entity in graph["@graph"]:
                     if "https://w3id.org/oc/meta/br/0605" in entity["@id"]:
@@ -862,7 +862,7 @@ class TestEditor(unittest.TestCase):
         if os.path.exists(target_file):
             with open(target_file, "r", encoding="utf-8") as file:
                 try:
-                    data = json.load(file)
+                    data = orjson.loads(file.read())
                     contains_update = False
                     for graph in data:
                         for entity in graph.get("@graph", []):
@@ -873,7 +873,7 @@ class TestEditor(unittest.TestCase):
                                         contains_update = True
                                         break
                     self.assertFalse(contains_update, "RDF file should not contain the update")
-                except json.JSONDecodeError:
+                except orjson.JSONDecodeError:
                     pass
         
     def test_merge_caches_entities(self):

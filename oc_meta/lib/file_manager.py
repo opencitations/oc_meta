@@ -18,7 +18,6 @@
 from __future__ import annotations
 
 import csv
-import json
 import os
 import sys
 from contextlib import contextmanager
@@ -28,6 +27,7 @@ from time import sleep
 from typing import Callable, Dict, List, Set
 from zipfile import ZIP_DEFLATED, ZipFile
 
+import orjson
 from _collections_abc import dict_keys
 from bs4 import BeautifulSoup
 from requests import ReadTimeout, get
@@ -245,7 +245,7 @@ def read_zipped_json(filepath:str) -> dict|None:
         for filename in zipf.namelist(): 
             with zipf.open(filename) as f:
                 json_data = f.read()
-                json_dict = json.loads(json_data.decode("utf-8"))
+                json_dict = orjson.loads(json_data)
                 return json_dict
 
 def call_api(url: str, headers: dict[str, str], r_format: str = "json") -> dict | BeautifulSoup | None:
@@ -257,7 +257,7 @@ def call_api(url: str, headers: dict[str, str], r_format: str = "json") -> dict 
             if r.status_code == 200:
                 r.encoding = "utf-8"
                 if r_format == "json":
-                    return json.loads(r.text)
+                    return orjson.loads(r.text)
                 return BeautifulSoup(r.text, "xml")
             elif r.status_code == 404:
                 return None

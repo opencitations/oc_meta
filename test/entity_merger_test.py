@@ -1,10 +1,10 @@
 import csv
-import json
 import os
 import re
 import unittest
 from shutil import rmtree
 
+import orjson
 import yaml
 from oc_meta.run.merge.entities import EntityMerger
 from oc_meta.run.meta_editor import MetaEditor
@@ -378,7 +378,7 @@ class TestEntityMerger(unittest.TestCase):
         # Load and verify data files
         ra_file = os.path.join(rdf_path, "rdf", "ra", "060", "10000", "1000.json")
         with open(ra_file) as f:
-            data = json.load(f)
+            data = orjson.loads(f.read())
             for graph in data:
                 for entity in graph.get("@graph", []):
                     if entity["@id"] == "https://w3id.org/oc/meta/ra/0601":
@@ -406,7 +406,7 @@ class TestEntityMerger(unittest.TestCase):
         # Check role reassignment
         ar_file = os.path.join(rdf_path, "rdf", "ar", "060", "10000", "1000.json")
         with open(ar_file) as f:
-            data = json.load(f)
+            data = orjson.loads(f.read())
             for graph in data:
                 for entity in graph.get("@graph", []):
                     agent = entity["http://purl.org/spar/pro/isHeldBy"][0]["@id"]
@@ -431,7 +431,7 @@ class TestEntityMerger(unittest.TestCase):
             ],
         }
         with open(prov_file) as f:
-            data = json.load(f)
+            data = orjson.loads(f.read())
             for graph in data:
                 for entity in graph.get("@graph", []):
                     if (
@@ -609,7 +609,7 @@ class TestEntityMerger(unittest.TestCase):
         # 1. Check researcher file for surviving entity and merged data
         ra_file = os.path.join(rdf_path, "ra", "060", "10000", "1000.json")
         with open(ra_file) as f:
-            data = json.load(f)
+            data = orjson.loads(f.read())
             for graph in data:
                 for entity in graph.get("@graph", []):
                     if entity["@id"] == "https://w3id.org/oc/meta/ra/0601":
@@ -648,7 +648,7 @@ class TestEntityMerger(unittest.TestCase):
         # 2. Check role assignments in agent role file
         ar_file = os.path.join(rdf_path, "ar", "060", "10000", "1000.json")
         with open(ar_file) as f:
-            data = json.load(f)
+            data = orjson.loads(f.read())
             for graph in data:
                 for entity in graph.get("@graph", []):
                     if "http://purl.org/spar/pro/isHeldBy" in entity:
@@ -664,7 +664,7 @@ class TestEntityMerger(unittest.TestCase):
             rdf_path, "ra", "060", "10000", "1000", "prov", "se.json"
         )
         with open(prov_file) as f:
-            data = json.load(f)
+            data = orjson.loads(f.read())
 
             # Get all provenance snapshots for surviving entity
             surviving_snapshots = []
@@ -884,7 +884,7 @@ class TestEntityMerger(unittest.TestCase):
         # 1. Check researcher file for surviving entity and merged data
         ra_file = os.path.join(rdf_path, "ra", "060", "10000", "1000.json")
         with open(ra_file) as f:
-            data = json.load(f)
+            data = orjson.loads(f.read())
             for graph in data:
                 for entity in graph.get("@graph", []):
                     if entity["@id"] == "https://w3id.org/oc/meta/ra/0605":
@@ -924,7 +924,7 @@ class TestEntityMerger(unittest.TestCase):
             rdf_path, "ra", "060", "10000", "1000", "prov", "se.json"
         )
         with open(prov_file) as f:
-            data = json.load(f)
+            data = orjson.loads(f.read())
 
             # Find merge snapshot
             merge_snapshot = None
@@ -1152,7 +1152,7 @@ class TestEntityMerger(unittest.TestCase):
         # 1. Check bibliographic resource file
         br_file = os.path.join(rdf_path, "br", "060", "10000", "1000.json")
         with open(br_file) as f:
-            data = json.load(f)
+            data = orjson.loads(f.read())
             for graph in data:
                 for entity in graph.get("@graph", []):
                     if entity["@id"] == "https://w3id.org/oc/meta/br/0603":
@@ -1237,7 +1237,7 @@ class TestEntityMerger(unittest.TestCase):
         # 2. Check resource embodiments
         re_file = os.path.join(rdf_path, "re", "060", "10000", "1000.json")
         with open(re_file) as f:
-            data = json.load(f)
+            data = orjson.loads(f.read())
             res_embodiments = {}
             for graph in data:
                 for entity in graph.get("@graph", []):
@@ -1271,7 +1271,7 @@ class TestEntityMerger(unittest.TestCase):
         # 3. Check role assignments
         ar_file = os.path.join(rdf_path, "ar", "060", "10000", "1000.json")
         with open(ar_file) as f:
-            data = json.load(f)
+            data = orjson.loads(f.read())
             for graph in data:
                 for entity in graph.get("@graph", []):
                     if entity["@id"] == "https://w3id.org/oc/meta/ar/0605":
@@ -1288,7 +1288,7 @@ class TestEntityMerger(unittest.TestCase):
             rdf_path, "br", "060", "10000", "1000", "prov", "se.json"
         )
         with open(prov_file) as f:
-            data = json.load(f)
+            data = orjson.loads(f.read())
 
             # Find merge snapshot
             merge_snapshot = None
@@ -1445,7 +1445,7 @@ class TestEntityMerger(unittest.TestCase):
 
                     br_file = os.path.join(rdf_path, "br", "060", "10000", "1000.json")
                     with open(br_file) as f:
-                        data = json.load(f)
+                        data = orjson.loads(f.read())
                         volume_found = False
                         for graph in data:
                             for entity in graph.get("@graph", []):
@@ -1464,7 +1464,7 @@ class TestEntityMerger(unittest.TestCase):
 
                     re_file = os.path.join(rdf_path, "re", "060", "10000", "1000.json")
                     with open(re_file) as f:
-                        data = json.load(f)
+                        data = orjson.loads(f.read())
                         re_found = False
                         for graph in data:
                             for entity in graph.get("@graph", []):
@@ -1742,7 +1742,7 @@ class TestEntityMerger(unittest.TestCase):
         br_file = os.path.join(rdf_path, "br", "0650", "1850000", "1845000.json")
 
         with open(br_file) as f:
-            data = json.load(f)
+            data = orjson.loads(f.read())
             surviving_entity_found = False
 
             for graph in data:
@@ -1796,7 +1796,7 @@ class TestEntityMerger(unittest.TestCase):
             rdf_path, "br", "0650", "1850000", "1845000", "prov", "se.json"
         )
         with open(prov_file) as f:
-            data = json.load(f)
+            data = orjson.loads(f.read())
             merge_snapshot_found = False
 
             for graph in data:

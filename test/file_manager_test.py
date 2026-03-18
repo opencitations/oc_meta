@@ -15,11 +15,11 @@
 # SOFTWARE.
 
 
-import json
 import os
 import unittest
 from shutil import rmtree
 
+import orjson
 from oc_meta.lib.file_manager import (read_zipped_json, unzip_files_in_dir, zip_files_in_dir)
 
 BASE = os.path.join('test', 'file_manager')
@@ -37,8 +37,8 @@ class test_JsonArchiveManager(unittest.TestCase):
                 original_path = os.path.join(
                     UNZIPPED_DIR, 
                     dirpath.replace(f'{OUTPUT_DIR}{os.sep}', ''))
-                with open(os.path.join(original_path, filename.replace('.zip', '.json')), 'r', encoding='utf-8') as original_f:
-                    original_json = json.load(original_f)
+                with open(os.path.join(original_path, filename.replace('.zip', '.json')), 'rb') as original_f:
+                    original_json = orjson.loads(original_f.read())
                     self.assertEqual(json_data, original_json)
         rmtree(OUTPUT_DIR)
 
@@ -48,8 +48,8 @@ class test_JsonArchiveManager(unittest.TestCase):
         for dirpath, _, filenames in os.walk(OUTPUT_DIR_1):
             for filename in filenames:
                 if os.path.splitext(filename)[1] == ".json":
-                    with open(os.path.join(dirpath, filename), encoding='utf-8') as f:
-                        json_data = json.load(f)
+                    with open(os.path.join(dirpath, filename), 'rb') as f:
+                        json_data = orjson.loads(f.read())
                     original_zip = read_zipped_json(os.path.join(dirpath, filename.replace('.json', '.zip')))
                     self.assertEqual(json_data, original_zip)
         rmtree(OUTPUT_DIR_1)

@@ -15,12 +15,12 @@
 # SOFTWARE.
 
 import csv
-import json
 import os
 import unittest
 from shutil import rmtree
 from zipfile import ZipFile
 
+import orjson
 import redis
 from oc_meta.lib.file_manager import get_csv_data
 from oc_meta.run.meta.generate_csv import (
@@ -72,7 +72,7 @@ class TestCSVGeneratorLite(unittest.TestCase):
         with ZipFile(
             os.path.join(self.br_dir, "060", "10000", "1000.zip"), "w"
         ) as zip_file:
-            zip_file.writestr("1000.json", json.dumps(test_data))
+            zip_file.writestr("1000.json", orjson.dumps(test_data))
 
     def test_redis_connection_and_caching(self):
         redis_client = init_redis_connection(port=6381, db=5)
@@ -121,7 +121,7 @@ class TestCSVGeneratorLite(unittest.TestCase):
         with ZipFile(
             os.path.join(self.br_dir, "060", "10000", "1000.zip"), "w"
         ) as zip_file:
-            zip_file.writestr("1000.json", json.dumps(test_data))
+            zip_file.writestr("1000.json", orjson.dumps(test_data))
 
         generate_csv(
             input_dir=self.rdf_dir,
@@ -169,7 +169,7 @@ class TestCSVGeneratorLite(unittest.TestCase):
         with ZipFile(
             os.path.join(self.br_dir, "060", "10000", "1000.zip"), "w"
         ) as zip_file:
-            zip_file.writestr("1000.json", json.dumps(test_data_2))
+            zip_file.writestr("1000.json", orjson.dumps(test_data_2))
 
         generate_csv(
             input_dir=self.rdf_dir,
@@ -268,7 +268,7 @@ class TestCSVGeneratorLite(unittest.TestCase):
             with ZipFile(
                 os.path.join(self.br_dir, "060", "10000", f"{i+1000}.zip"), "w"
             ) as zip_file:
-                zip_file.writestr(f"{i+1000}.json", json.dumps(file_data))
+                zip_file.writestr(f"{i+1000}.json", orjson.dumps(file_data))
 
         generate_csv(
             input_dir=self.rdf_dir,
@@ -298,7 +298,7 @@ class TestCSVGeneratorLite(unittest.TestCase):
             with ZipFile(
                 os.path.join(self.br_dir, "060", "10000", f"{i+2000}.zip"), "w"
             ) as zip_file:
-                zip_file.writestr(f"{i+2000}.json", json.dumps(file_data))
+                zip_file.writestr(f"{i+2000}.json", orjson.dumps(file_data))
 
         generate_csv(
             input_dir=self.rdf_dir,
@@ -348,7 +348,7 @@ class TestCSVGeneratorLite(unittest.TestCase):
         with ZipFile(
             os.path.join(self.br_dir, "060", "10000", "1000.zip"), "w"
         ) as zip_file:
-            zip_file.writestr("1000.json", json.dumps(test_data))
+            zip_file.writestr("1000.json", orjson.dumps(test_data))
 
         generate_csv(
             input_dir=self.rdf_dir,
@@ -450,7 +450,7 @@ class TestCSVGeneratorLite(unittest.TestCase):
                 self.rdf_dir, entity_type, supplier_prefix, "10000", "1000.zip"
             )
             with ZipFile(zip_path, "w") as zip_file:
-                zip_file.writestr("1000.json", json.dumps(data))
+                zip_file.writestr("1000.json", orjson.dumps(data))
 
         generate_csv(
             input_dir=self.rdf_dir,
@@ -616,7 +616,7 @@ class TestCSVGeneratorLite(unittest.TestCase):
 
             zip_path = os.path.join(dir_path, "1000.zip")
             with ZipFile(zip_path, "w") as zip_file:
-                zip_file.writestr("1000.json", json.dumps(data))
+                zip_file.writestr("1000.json", orjson.dumps(data))
 
         generate_csv(
             input_dir=self.rdf_dir,
@@ -699,7 +699,7 @@ class TestCSVGeneratorLite(unittest.TestCase):
 
             zip_path = os.path.join(dir_path, "1000.zip")
             with ZipFile(zip_path, "w") as zip_file:
-                zip_file.writestr("1000.json", json.dumps(data))
+                zip_file.writestr("1000.json", orjson.dumps(data))
 
         generate_csv(
             input_dir=self.rdf_dir,
@@ -763,7 +763,7 @@ class TestCSVGeneratorLite(unittest.TestCase):
 
             zip_path = os.path.join(dir_path, "1000.zip")
             with ZipFile(zip_path, "w") as zip_file:
-                zip_file.writestr("1000.json", json.dumps(data))
+                zip_file.writestr("1000.json", orjson.dumps(data))
 
         generate_csv(
             input_dir=self.rdf_dir,
@@ -810,7 +810,7 @@ class TestCSVGeneratorLite(unittest.TestCase):
 
             zip_path = os.path.join(dir_path, "1000.zip")
             with ZipFile(zip_path, "w") as zip_file:
-                zip_file.writestr("1000.json", json.dumps(data))
+                zip_file.writestr("1000.json", orjson.dumps(data))
 
         generate_csv(
             input_dir=self.rdf_dir,
@@ -964,7 +964,7 @@ class TestCSVGeneratorLite(unittest.TestCase):
 
         zip_path = os.path.join(dir_path, "1000.zip")
         with ZipFile(zip_path, "w") as zip_file:
-            zip_file.writestr("1000.json", json.dumps(br_data))
+            zip_file.writestr("1000.json", orjson.dumps(br_data))
 
         generate_csv(
             input_dir=self.rdf_dir,
@@ -1060,7 +1060,7 @@ class TestCSVGeneratorLite(unittest.TestCase):
 
         zip_path = os.path.join(dir_path, "1000.zip")
         with ZipFile(zip_path, "w") as zip_file:
-            zip_file.writestr("1000.json", json.dumps(br_data))
+            zip_file.writestr("1000.json", orjson.dumps(br_data))
 
         generate_csv(
             input_dir=self.rdf_dir,
@@ -1184,7 +1184,7 @@ class TestCSVGeneratorLite(unittest.TestCase):
 
             zip_path = os.path.join(dir_path, "1000.zip")
             with ZipFile(zip_path, "w") as zip_file:
-                zip_file.writestr("1000.json", json.dumps(data))
+                zip_file.writestr("1000.json", orjson.dumps(data))
 
         generate_csv(
             input_dir=self.rdf_dir,
@@ -1299,7 +1299,7 @@ class TestCSVGeneratorLite(unittest.TestCase):
 
             zip_path = os.path.join(dir_path, "1000.zip")
             with ZipFile(zip_path, "w") as zip_file:
-                zip_file.writestr("1000.json", json.dumps(data))
+                zip_file.writestr("1000.json", orjson.dumps(data))
 
         generate_csv(
             input_dir=self.rdf_dir,
@@ -1418,7 +1418,7 @@ class TestCSVGeneratorLite(unittest.TestCase):
 
             zip_path = os.path.join(dir_path, "1000.zip")
             with ZipFile(zip_path, "w") as zip_file:
-                zip_file.writestr("1000.json", json.dumps(data))
+                zip_file.writestr("1000.json", orjson.dumps(data))
 
         generate_csv(
             input_dir=self.rdf_dir,
@@ -1581,24 +1581,24 @@ class TestCSVGeneratorLite(unittest.TestCase):
         with ZipFile(
             os.path.join(self.br_dir, supplier_prefix, "10000", "1000.zip"), "w"
         ) as zip_file:
-            zip_file.writestr("1000.json", json.dumps(br_data_1))
+            zip_file.writestr("1000.json", orjson.dumps(br_data_1))
         with ZipFile(
             os.path.join(self.br_dir, supplier_prefix, "10000", "2000.zip"), "w"
         ) as zip_file:
-            zip_file.writestr("2000.json", json.dumps(br_data_2))
+            zip_file.writestr("2000.json", orjson.dumps(br_data_2))
         with ZipFile(
             os.path.join(self.br_dir, supplier_prefix, "10000", "3000.zip"), "w"
         ) as zip_file:
-            zip_file.writestr("3000.json", json.dumps(br_data_3))
+            zip_file.writestr("3000.json", orjson.dumps(br_data_3))
 
         with ZipFile(
             os.path.join(self.rdf_dir, "ar", supplier_prefix, "10000", "3000.zip"), "w"
         ) as zip_file:
-            zip_file.writestr("3000.json", json.dumps(ar_data))
+            zip_file.writestr("3000.json", orjson.dumps(ar_data))
         with ZipFile(
             os.path.join(self.rdf_dir, "ra", supplier_prefix, "10000", "3000.zip"), "w"
         ) as zip_file:
-            zip_file.writestr("3000.json", json.dumps(ra_data))
+            zip_file.writestr("3000.json", orjson.dumps(ra_data))
 
         generate_csv(
             input_dir=self.rdf_dir,
@@ -1695,7 +1695,7 @@ class TestCSVGeneratorLite(unittest.TestCase):
 
             # Write the file
             with ZipFile(os.path.join(dir_path, f"{file_number}.zip"), "w") as zip_file:
-                zip_file.writestr(f"{file_number}.json", json.dumps(file_data))
+                zip_file.writestr(f"{file_number}.json", orjson.dumps(file_data))
 
         generate_csv(
             input_dir=self.rdf_dir,
@@ -1912,18 +1912,18 @@ class TestCSVGeneratorLite(unittest.TestCase):
         os.makedirs(ra_shotton_dir_path, exist_ok=True)
 
         with ZipFile(os.path.join(br_dir_path, "1778000.zip"), "w") as zip_file:
-            zip_file.writestr("1778000.json", json.dumps(br_data))
+            zip_file.writestr("1778000.json", orjson.dumps(br_data))
 
         with ZipFile(os.path.join(ar_dir_path, "7978000.zip"), "w") as zip_file:
-            zip_file.writestr("7978000.json", json.dumps(ar_data))
+            zip_file.writestr("7978000.json", orjson.dumps(ar_data))
 
         with ZipFile(os.path.join(ra_peroni_dir_path, "10841000.zip"), "w") as zip_file:
-            zip_file.writestr("10841000.json", json.dumps(ra_data_peroni))
+            zip_file.writestr("10841000.json", orjson.dumps(ra_data_peroni))
 
         with ZipFile(
             os.path.join(ra_shotton_dir_path, "10776000.zip"), "w"
         ) as zip_file:
-            zip_file.writestr("10776000.json", json.dumps(ra_data_shotton))
+            zip_file.writestr("10776000.json", orjson.dumps(ra_data_shotton))
 
         generate_csv(
             input_dir=self.rdf_dir,
@@ -2062,7 +2062,7 @@ class TestCSVGeneratorLite(unittest.TestCase):
 
             zip_path = os.path.join(dir_path, "1000.zip")
             with ZipFile(zip_path, "w") as zip_file:
-                zip_file.writestr("1000.json", json.dumps(data))
+                zip_file.writestr("1000.json", orjson.dumps(data))
 
         generate_csv(
             input_dir=self.rdf_dir,

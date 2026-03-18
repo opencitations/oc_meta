@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import csv
-import json
 import os
 import re
 import time
@@ -12,6 +11,7 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Tuple
 
+import orjson
 import requests
 import yaml
 from oc_ocdm.graph import GraphSet
@@ -472,8 +472,8 @@ def dry_run(
     dir_split = settings["dir_split_number"]
     items_per_file = settings["items_per_file"]
 
-    with open(anomaly_path, encoding="utf-8") as f:
-        report = json.load(f)
+    with open(anomaly_path, "rb") as f:
+        report = orjson.loads(f.read())
 
     groups: Dict[Tuple[str, str], List[dict]] = defaultdict(list)
     for anomaly in report["anomalies"]:
@@ -621,8 +621,8 @@ def dry_run(
     output_dir = os.path.dirname(os.path.abspath(output_path))
     if output_dir:
         os.makedirs(output_dir, exist_ok=True)
-    with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(plan, f, indent=2, ensure_ascii=False)
+    with open(output_path, "wb") as f:
+        f.write(orjson.dumps(plan, option=orjson.OPT_INDENT_2))
 
     print(f"Correction plan saved to {output_path}")
     print(f"  Total groups: {summary['total_brs']}")
@@ -667,8 +667,8 @@ def apply_correction(editor: MetaEditor, correction: dict) -> None:
 
 
 def execute(config_path: str, plan_path: str, resp_agent: str) -> None:
-    with open(plan_path, encoding="utf-8") as f:
-        plan = json.load(f)
+    with open(plan_path, "rb") as f:
+        plan = orjson.loads(f.read())
 
     editor = MetaEditor(config_path, resp_agent)
     ready_corrections = [c for c in plan["corrections"] if c["status"] == "ready"]

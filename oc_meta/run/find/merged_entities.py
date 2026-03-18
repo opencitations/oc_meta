@@ -1,11 +1,11 @@
 import argparse
 import csv
-import json
 import os
 import zipfile
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
+import orjson
 import yaml
 from rich.console import Console
 from rich_argparse import RichHelpFormatter
@@ -34,8 +34,8 @@ def process_prov_file(prov_file: str) -> list[tuple[str, str]]:
     try:
         with zipfile.ZipFile(prov_file, "r") as zf:
             with zf.open("se.json") as f:
-                data = json.load(f)
-    except (zipfile.BadZipFile, json.JSONDecodeError, KeyError):
+                data = orjson.loads(f.read())
+    except (zipfile.BadZipFile, orjson.JSONDecodeError, KeyError):
         return results
 
     for graph in data:

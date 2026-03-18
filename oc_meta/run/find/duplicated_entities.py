@@ -1,10 +1,10 @@
 import argparse
 import csv
-import json
 import logging
 import os
 import zipfile
 
+import orjson
 from rich_argparse import RichHelpFormatter
 from tqdm import tqdm
 
@@ -69,9 +69,9 @@ def process_folder(folder_path, resources, expected_type):
                 for zip_file in zip_ref.namelist():
                     try:
                         with zip_ref.open(zip_file) as json_file:
-                            data = json.load(json_file)
+                            data = orjson.loads(json_file.read())
                             analyze_json(data, resources, zip_path, zip_file, expected_type)
-                    except json.JSONDecodeError:
+                    except orjson.JSONDecodeError:
                         logging.error(f"Errore nel parsing JSON del file {zip_file} in {zip_path}")
                     except Exception as e:
                         logging.error(f"Errore nell'elaborazione del file {zip_file} in {zip_path}: {str(e)}")

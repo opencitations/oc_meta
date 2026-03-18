@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 import signal
 import shutil
 import zipfile
@@ -9,6 +8,7 @@ from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
+import orjson
 from oc_ocdm.support.support import get_datatype_from_iso_8601
 from rdflib import XSD, Dataset, Literal, URIRef
 from rich.console import Console
@@ -116,7 +116,7 @@ def process_zip_file(
         json_name = zf_in.namelist()[0]
         raw_bytes = zf_in.read(json_name)
 
-    data = json.loads(raw_bytes.decode("utf-8"))
+    data = orjson.loads(raw_bytes)
 
     if not needs_modification(data, is_prov):
         shutil.copy2(input_path, output_path)
@@ -131,10 +131,10 @@ def process_zip_file(
         return {}
 
     serialized = ds.serialize(format="json-ld")
-    result = json.loads(serialized)
+    result = orjson.loads(serialized)
 
     with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED) as zf_out:
-        zf_out.writestr(json_name, json.dumps(result, ensure_ascii=False, indent=None))
+        zf_out.writestr(json_name, orjson.dumps(result))
 
     return modifications
 

@@ -1,7 +1,7 @@
-import json
 import os
 import unittest
 
+import orjson
 from oc_meta.core.creator import Creator
 from oc_meta.core.curator import Curator, is_a_valid_row
 from oc_meta.lib.file_manager import get_csv_data
@@ -84,8 +84,8 @@ def prepare_to_test(data, name):
                 csv.sort(key=lambda x:x['meta'])
             except KeyError:
                 csv.sort(key=lambda x:x['br'])
-    with open(testcase_vi) as json_file:
-        testcase_vi = json.load(json_file)
+    with open(testcase_vi, "rb") as json_file:
+        testcase_vi = orjson.loads(json_file.read())
     testcase = [testcase_csv, testcase_id_br, testcase_id_ra, testcase_ar, testcase_re, testcase_vi]
     data_curated = [curator_obj.data, curator_obj.index_id_br, curator_obj.index_id_ra, curator_obj.ar_index,
                     curator_obj.re_index, curator_obj.VolIss]

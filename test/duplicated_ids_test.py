@@ -15,7 +15,6 @@
 # SOFTWARE.
 
 import csv
-import json
 import os
 import shutil
 import tempfile
@@ -23,6 +22,7 @@ import unittest
 import zipfile
 from collections import defaultdict
 
+import orjson
 from oc_meta.run.find.duplicated_ids import (
     load_and_merge_temp_csv, process_chunk, process_zip_file,
     read_and_analyze_zip_files, save_chunk_to_temp_csv, save_duplicates_to_csv)
@@ -147,7 +147,7 @@ class TestDuplicatedIds(unittest.TestCase):
                 start_idx = i * 2
                 end_idx = min(start_idx + 2, len(self.test_rdf_with_duplicates))
                 for j in range(start_idx, end_idx):
-                    rdf_content = json.dumps(self.test_rdf_with_duplicates[j], indent=2)
+                    rdf_content = orjson.dumps(self.test_rdf_with_duplicates[j])
                     zf.writestr(f'rdf_{j}.json', rdf_content)
             zip_paths.append(zip_path)
         return zip_paths

@@ -1,7 +1,7 @@
-import json
 import zipfile
 from pathlib import Path
 
+import orjson
 import pytest
 from rdflib import XSD, Dataset, Literal, URIRef
 
@@ -34,14 +34,14 @@ def temp_dirs(tmp_path):
 def create_zip_file(path: Path, json_name: str, data: list) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as zf:
-        zf.writestr(json_name, json.dumps(data, ensure_ascii=False))
+        zf.writestr(json_name, orjson.dumps(data))
 
 
 def read_zip_file(path: Path) -> list:
     with zipfile.ZipFile(path, "r") as zf:
         json_name = zf.namelist()[0]
         with zf.open(json_name) as f:
-            return json.load(f)
+            return orjson.loads(f.read())
 
 
 class TestWorkerInit:

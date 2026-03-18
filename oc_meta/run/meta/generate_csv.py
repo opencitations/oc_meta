@@ -17,7 +17,6 @@
 from __future__ import annotations
 
 import csv
-import json
 import os
 import re
 from argparse import ArgumentParser
@@ -26,6 +25,7 @@ from multiprocessing import Pool
 from typing import Dict, List, Optional, Tuple
 from zipfile import ZipFile
 
+import orjson
 import redis
 import yaml
 
@@ -224,8 +224,7 @@ def load_json_from_file(filepath: str) -> list:
     with ZipFile(filepath, "r") as zip_file:
         json_filename = zip_file.namelist()[0]
         with zip_file.open(json_filename) as json_file:
-            json_content = json_file.read().decode("utf-8")
-            return json.loads(json_content)
+            return orjson.loads(json_file.read())
 
 
 def process_identifier(id_data: dict) -> Optional[str]:

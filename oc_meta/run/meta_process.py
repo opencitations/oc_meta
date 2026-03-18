@@ -21,7 +21,6 @@ from __future__ import annotations
 
 import csv
 import glob
-import json
 import multiprocessing
 import os
 import sys
@@ -31,6 +30,7 @@ from datetime import datetime
 from sys import executable, platform
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 
+import orjson
 import redis
 import yaml
 from oc_ocdm import Storer
@@ -463,8 +463,8 @@ def _save_incremental_report(all_reports: List[Dict[str, Any]], meta_config_path
         "files": all_reports,
         "aggregate": _compute_aggregate_metrics(all_reports)
     }
-    with open(output_path, 'w') as f:
-        json.dump(aggregate_report, f, indent=2)
+    with open(output_path, 'wb') as f:
+        f.write(orjson.dumps(aggregate_report, option=orjson.OPT_INDENT_2))
 
 
 def _compute_aggregate_metrics(all_reports: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -588,8 +588,8 @@ def run_meta_process(
                 "files": all_reports,
                 "aggregate": _compute_aggregate_metrics(all_reports)
             }
-            with open(timing_output, 'w') as f:
-                json.dump(aggregate_report, f, indent=2)
+            with open(timing_output, 'wb') as f:
+                f.write(orjson.dumps(aggregate_report, option=orjson.OPT_INDENT_2))
             print(f"[Timing] Report saved to {timing_output}")
 
 

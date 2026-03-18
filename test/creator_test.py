@@ -1,7 +1,7 @@
-import json
 import os
 import unittest
 
+import orjson
 from oc_meta.core.creator import Creator
 from oc_meta.lib.file_manager import get_csv_data
 from oc_meta.lib.finder import ResourceFinder
@@ -30,9 +30,8 @@ def hack_dates():
 
 def open_json(path):
     path = os.path.abspath(path)
-    with open(path) as json_file:
-        data = json.load(json_file)
-        return data
+    with open(path, "rb") as json_file:
+        return orjson.loads(json_file.read())
 
 # creator executor
 def prepare2test(name):

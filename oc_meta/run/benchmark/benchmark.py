@@ -9,7 +9,6 @@ Meta processing workflow: CSV reading → curation → RDF creation → triplest
 
 import argparse
 import glob
-import json
 import os
 import shutil
 import subprocess
@@ -19,6 +18,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 from urllib.parse import urlparse
 
+import orjson
 import redis
 import yaml
 from rich_argparse import RichHelpFormatter
@@ -449,8 +449,8 @@ class MetaBenchmark:
             base_filename = prefix
 
         json_path = os.path.join(reports_dir, f"{base_filename}.json")
-        with open(json_path, 'w') as f:
-            json.dump(report, f, indent=2)
+        with open(json_path, 'wb') as f:
+            f.write(orjson.dumps(report, option=orjson.OPT_INDENT_2))
         print(f"[Report] Saved to {json_path}")
 
         png_path = os.path.join(reports_dir, f"{base_filename}.png")

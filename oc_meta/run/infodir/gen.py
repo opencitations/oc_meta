@@ -17,11 +17,11 @@
 from __future__ import annotations
 
 import argparse
-import json
 import os
 import zipfile
 from concurrent.futures import as_completed
 
+import orjson
 from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
 from oc_ocdm.support import get_prefix, get_resource_number, get_short_name
 from pebble import ProcessPool
@@ -63,7 +63,7 @@ def process_zip_file(zip_file_path):
     with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
         first_file = zip_ref.namelist()[0]
         with zip_ref.open(first_file) as entity_file:
-            json_data = json.load(entity_file)
+            json_data = orjson.loads(entity_file.read())
             for graph in json_data:
                 for entity in graph['@graph']:
                     prov_entity_uri = entity['@id']
@@ -106,7 +106,7 @@ def explore_directories(root_path, redis_host, redis_port, redis_db):
                 with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
                     first_file = zip_ref.namelist()[0]
                     with zip_ref.open(first_file) as entity_file:
-                        json_data = json.load(entity_file)
+                        json_data = orjson.loads(entity_file.read())
                         max_entity = -1
                         for graph in json_data:
                             for entity in graph['@graph']:

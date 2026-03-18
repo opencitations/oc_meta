@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import fnmatch
 import gzip
-import json
 import multiprocessing
 import os
 import zipfile
@@ -15,6 +14,7 @@ from multiprocessing import Pool
 from pathlib import Path
 from typing import TextIO
 
+import orjson
 from rich_argparse import RichHelpFormatter
 
 from oc_meta.lib.console import create_progress
@@ -216,21 +216,21 @@ def count_in_file(
                     if use_line_count:
                         return str(file_path), _count_lines_binary(f), None
                     content = f.read().decode("utf-8")
-            data = json.loads(content)
+            data = orjson.loads(content)
             return str(file_path), _count_jsonld_triples(data), None
         elif suffix == ".gz":
             if use_line_count:
                 with gzip.open(file_path, "rb") as f:
                     return str(file_path), _count_lines_binary(f), None
-            with gzip.open(file_path, "rt", encoding="utf-8") as f:
-                data = json.load(f)
+            with gzip.open(file_path, "rb") as f:
+                data = orjson.loads(f.read())
             return str(file_path), _count_jsonld_triples(data), None
         else:
             if use_line_count:
                 with open(file_path, "r", encoding="utf-8") as f:
                     return str(file_path), _count_lines_text(f), None
-            with open(file_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
+            with open(file_path, "rb") as f:
+                data = orjson.loads(f.read())
             return str(file_path), _count_jsonld_triples(data), None
     except Exception as exc:
         return str(file_path), 0, str(exc)

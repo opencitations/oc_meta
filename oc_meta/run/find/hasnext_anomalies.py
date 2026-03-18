@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import argparse
-import json
 import os
 from collections import Counter
 from datetime import datetime, timezone
 from multiprocessing import Pool
 from typing import Dict, List, Optional, Tuple
 
+import orjson
 import yaml
 from rich_argparse import RichHelpFormatter
 
@@ -332,8 +332,8 @@ def main() -> None:
 
     output_dir = os.path.dirname(os.path.abspath(args.output))
     os.makedirs(output_dir, exist_ok=True)
-    with open(args.output, "w", encoding="utf-8") as f:
-        json.dump(report, f, indent=2, ensure_ascii=False)
+    with open(args.output, "wb") as f:
+        f.write(orjson.dumps(report, option=orjson.OPT_INDENT_2))
 
     print(f"Analyzed {total_brs} BRs, found {len(all_anomalies)} anomalies")
     for atype, count in sorted(anomalies_by_type.items()):
