@@ -4,7 +4,7 @@ import os
 import re
 import zipfile
 from functools import partial
-from multiprocessing import Pool, cpu_count
+import multiprocessing
 
 import yaml
 from rdflib import RDF, Dataset, Literal, Namespace, URIRef
@@ -383,8 +383,11 @@ def main():
 
     csv_files = [f for f in os.listdir(args.csv_folder) if f.endswith('.csv')]
     
+    # Use forkserver to avoid deadlocks when forking in a multi-threaded environment
+    ctx = multiprocessing.get_context('forkserver')
+
     # Process CSV files to gather tasks
-    with Pool(processes=cpu_count()) as pool:
+    with ctx.Pool(processes=multiprocessing.cpu_count()) as pool:
         process_csv_partial = partial(process_csv, (args.csv_folder, args.rdf_dir, args.meta_config, sparql_endpoint, args.query_output))
         all_tasks_list = list(tqdm(pool.imap(process_csv_partial, csv_files), total=len(csv_files), desc="Processing CSV files"))
     
@@ -403,7 +406,7 @@ def main():
     file_groups = [(file_path, tasks, sparql_endpoint, args.query_output) for file_path, tasks in tasks_by_file.items()]
 
     # Process each file group in parallel
-    with Pool(processes=cpu_count()) as pool:
+    with ctx.Pool(processes=multiprocessing.cpu_count()) as pool:
         list(tqdm(pool.imap(process_file_group, file_groups), total=len(file_groups), desc="Processing files"))
 
 if __name__ == "__main__":

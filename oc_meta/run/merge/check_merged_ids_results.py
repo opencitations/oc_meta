@@ -1,10 +1,10 @@
 import argparse
 import csv
+import multiprocessing
 import os
 import re
 import zipfile
 from functools import partial
-from multiprocessing import Pool, cpu_count
 
 import yaml
 from rdflib import RDF, Dataset, Literal, Namespace, URIRef
@@ -323,17 +323,20 @@ def main():
     os.makedirs(args.query_output, exist_ok=True)
 
     csv_files = [f for f in os.listdir(args.csv_folder) if f.endswith('.csv')]
-    
+
+    # Use forkserver to avoid deadlocks when forking in a multi-threaded environment
+    ctx = multiprocessing.get_context('forkserver')
+
     # Process CSV files in parallel
-    with Pool(processes=cpu_count()) as pool:
+    with ctx.Pool(processes=multiprocessing.cpu_count()) as pool:
         process_csv_partial = partial(process_csv, (args.csv_folder, args.rdf_dir, args.meta_config, sparql_endpoint, args.query_output))
         all_tasks = list(tqdm(pool.imap(process_csv_partial, csv_files), total=len(csv_files), desc="Processing CSV files"))
-    
+
     # Flatten the list of lists into a single list
     all_tasks = [task for sublist in all_tasks for task in sublist]
 
     # Process entities in parallel
-    with Pool(processes=cpu_count()) as pool:
+    with ctx.Pool(processes=multiprocessing.cpu_count()) as pool:
         list(tqdm(pool.imap(process_entity, all_tasks), total=len(all_tasks), desc="Processing entities"))
 
 if __name__ == "__main__":

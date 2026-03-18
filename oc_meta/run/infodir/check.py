@@ -1,6 +1,6 @@
 import argparse
 import zipfile
-from multiprocessing import Pool, cpu_count
+import multiprocessing
 
 from oc_ocdm.support import get_prefix, get_resource_number, get_short_name
 from rdflib import Dataset, URIRef
@@ -53,8 +53,9 @@ def explore_provenance_files(root_path, redis_host, redis_port, redis_db):
 
     args_list = [(zip_file, redis_host, redis_port, redis_db) for zip_file in prov_zip_files]
     
-    num_processes = cpu_count()  # Usa tutti i core disponibili
-    with Pool(processes=num_processes) as pool:
+    # Use forkserver to avoid deadlocks when forking in a multi-threaded environment
+    ctx = multiprocessing.get_context('forkserver')
+    with ctx.Pool(processes=multiprocessing.cpu_count()) as pool:
         results = list(tqdm(pool.imap(process_zip_file, args_list), total=len(args_list), desc="Processing provenance zip files"))
 
     all_missing_entities = [item for sublist in results for item in sublist]

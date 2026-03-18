@@ -2,6 +2,7 @@ import argparse
 import concurrent.futures
 import csv
 import logging
+import multiprocessing
 import os
 import traceback
 from typing import Dict, List, Set
@@ -318,8 +319,10 @@ class EntityMerger:
                 file for file in csv_files if self.count_csv_rows(file) <= 10000
             ]
 
+        # Use forkserver to avoid deadlocks when forking in a multi-threaded environment
         with concurrent.futures.ProcessPoolExecutor(
-            max_workers=self.workers
+            max_workers=self.workers,
+            mp_context=multiprocessing.get_context('forkserver')
         ) as executor:
             futures = {}
             for csv_file in csv_files:

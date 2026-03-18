@@ -318,11 +318,14 @@ class MetaProcess:
         os.makedirs(self.prov_update_dir, exist_ok=True)
 
     def _upload_sparql_queries(self) -> None:
-        """Upload SPARQL queries to triplestores in parallel using fork."""
+        """Upload SPARQL queries to triplestores in parallel."""
         data_upload_folder = os.path.join(self.data_update_dir, "to_be_uploaded")
         prov_upload_folder = os.path.join(self.prov_update_dir, "to_be_uploaded")
 
-        ctx = multiprocessing.get_context('fork')
+        # Use forkserver to avoid deadlocks when forking from a multi-threaded process.
+        # Libraries like Redis and rdflib create background threads, and fork() would
+        # copy locked mutexes into the child process, causing hangs.
+        ctx = multiprocessing.get_context('forkserver')
 
         data_process = ctx.Process(
             target=_upload_to_triplestore,
@@ -391,7 +394,10 @@ class MetaProcess:
             prov_nquads_dir = None
 
         with timer.timer("storage"):
-            ctx = multiprocessing.get_context('fork')
+            # Use forkserver to avoid deadlocks when forking from a multi-threaded process.
+            # Libraries like Redis and rdflib create background threads, and fork() would
+            # copy locked mutexes into the child process, causing hangs.
+            ctx = multiprocessing.get_context('forkserver')
             rdf_store_processes = []
 
             if self.generate_rdf_files:

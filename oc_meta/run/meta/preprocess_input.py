@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import multiprocessing
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass
 from typing import List
@@ -231,7 +232,8 @@ def main():  # pragma: no cover
     with create_progress() as progress:
         task = progress.add_task("Filtering existing IDs", total=len(csv_files))
 
-        with ProcessPoolExecutor(max_workers=args.workers) as executor:
+        # Use forkserver to avoid deadlocks when forking in a multi-threaded environment
+        with ProcessPoolExecutor(max_workers=args.workers, mp_context=multiprocessing.get_context('forkserver')) as executor:
             futures = {
                 executor.submit(
                     filter_existing_ids_from_file,

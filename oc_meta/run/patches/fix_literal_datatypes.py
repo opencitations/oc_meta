@@ -5,6 +5,7 @@ import signal
 import shutil
 import zipfile
 from collections import defaultdict
+import multiprocessing
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
@@ -183,7 +184,8 @@ def main() -> None:  # pragma: no cover
         for i in range(0, len(work_items), args.batch_size)
     ]
 
-    executor = ProcessPoolExecutor(max_workers=args.workers, initializer=_worker_init)
+    # Use forkserver to avoid deadlocks when forking in a multi-threaded environment
+    executor = ProcessPoolExecutor(max_workers=args.workers, initializer=_worker_init, mp_context=multiprocessing.get_context('forkserver'))
     try:
         with create_progress() as progress:
             task = progress.add_task("Processing files", total=len(zip_files))

@@ -4,7 +4,7 @@ import argparse
 import os
 from collections import Counter
 from datetime import datetime, timezone
-from multiprocessing import Pool
+import multiprocessing
 from typing import Dict, List, Optional, Tuple
 
 import orjson
@@ -300,7 +300,9 @@ def main() -> None:
     total_brs = 0
     all_anomalies: List[dict] = []
 
-    with Pool(
+    # Use forkserver to avoid deadlocks when forking in a multi-threaded environment
+    ctx = multiprocessing.get_context('forkserver')
+    with ctx.Pool(
         args.workers,
         _init_worker,
         (rdf_dir, dir_split_number, items_per_file),

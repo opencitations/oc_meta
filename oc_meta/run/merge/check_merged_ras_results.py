@@ -1,10 +1,10 @@
 import argparse
 import csv
+import multiprocessing
 import os
 import re
 import zipfile
 from functools import partial
-from multiprocessing import Pool, cpu_count
 
 import filelock
 import yaml
@@ -461,8 +461,11 @@ def main():
 
     csv_files = [f for f in os.listdir(args.csv_folder) if f.endswith(".csv")]
 
+    # Use forkserver to avoid deadlocks when forking in a multi-threaded environment
+    ctx = multiprocessing.get_context('forkserver')
+
     # Process CSV files to gather tasks
-    with Pool(processes=cpu_count()) as pool:
+    with ctx.Pool(processes=multiprocessing.cpu_count()) as pool:
         process_csv_partial = partial(
             process_csv,
             (
@@ -507,7 +510,7 @@ def main():
     ]
 
     # Process each file group in parallel
-    with Pool(processes=cpu_count()) as pool:
+    with ctx.Pool(processes=multiprocessing.cpu_count()) as pool:
         list(
             tqdm(
                 pool.imap(process_file_group, file_groups),

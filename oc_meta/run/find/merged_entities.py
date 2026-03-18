@@ -3,6 +3,7 @@ import csv
 import os
 import zipfile
 from collections import defaultdict
+import multiprocessing
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
 import orjson
@@ -133,7 +134,8 @@ def main():
 
     all_results: list[tuple[str, str]] = []
 
-    with ProcessPoolExecutor(max_workers=args.workers) as executor:
+    # Use forkserver to avoid deadlocks when forking in a multi-threaded environment
+    with ProcessPoolExecutor(max_workers=args.workers, mp_context=multiprocessing.get_context('forkserver')) as executor:
         futures = {executor.submit(process_prov_file, f): f for f in prov_files}
 
         for future in tqdm(as_completed(futures), total=len(futures), desc="Processing files"):

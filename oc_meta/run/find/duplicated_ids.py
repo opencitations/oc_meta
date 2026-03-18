@@ -62,7 +62,9 @@ def load_and_merge_temp_csv(temp_file_path: str, entity_info: Dict[tuple, Set[st
 def process_chunk(zip_files_chunk: List[str], temp_dir: str, chunk_index: int) -> str:
     entity_info = defaultdict(set)
 
-    with mp.Pool(processes=mp.cpu_count()) as pool:
+    # Use forkserver to avoid deadlocks when forking in a multi-threaded environment
+    ctx = mp.get_context('forkserver')
+    with ctx.Pool(processes=mp.cpu_count()) as pool:
         results = pool.map(process_zip_file, zip_files_chunk)
 
     for result in results:

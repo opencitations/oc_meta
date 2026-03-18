@@ -21,7 +21,7 @@ import os
 import re
 from argparse import ArgumentParser
 from functools import lru_cache
-from multiprocessing import Pool
+import multiprocessing
 from typing import Dict, List, Optional, Tuple
 from zipfile import ZipFile
 
@@ -644,7 +644,9 @@ def generate_csv(
 
     result_buffer = ResultBuffer(output_dir)
 
-    with Pool(
+    # Use forkserver to avoid deadlocks when forking in a multi-threaded environment
+    ctx = multiprocessing.get_context('forkserver')
+    with ctx.Pool(
         workers,
         _init_worker,
         (redis_host, redis_port, redis_db, input_dir, dir_split_number, items_per_file),

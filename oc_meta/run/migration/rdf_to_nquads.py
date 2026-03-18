@@ -18,11 +18,11 @@ import argparse
 import multiprocessing
 import os
 import zipfile
+from concurrent.futures import ProcessPoolExecutor
 from functools import partial
 from pathlib import Path
 
 import py7zr
-from pebble import ProcessPool
 from rdflib import Dataset
 from rich_argparse import RichHelpFormatter
 
@@ -98,9 +98,10 @@ def main() -> None:  # pragma: no cover
     fail_count = 0
     task_func = partial(process_zip_file, output_dir=output_path, input_dir_path=input_path, compress=args.compress)
 
-    with ProcessPool(max_workers=num_workers) as pool:
-        future = pool.map(task_func, zip_files)
-        iterator = future.result()
+    # Use forkserver to avoid deadlocks when forking in a multi-threaded environment
+    ctx = multiprocessing.get_context('forkserver')
+    with ProcessPoolExecutor(max_workers=num_workers, mp_context=ctx) as executor:
+        iterator = executor.map(task_func, zip_files)
 
         with create_progress() as progress:
             task = progress.add_task("Converting", total=total_files)

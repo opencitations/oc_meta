@@ -19,6 +19,7 @@ import argparse
 import os
 import re
 import sys
+import multiprocessing
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from typing import Dict, Set
 
@@ -128,7 +129,8 @@ class OCMetaStatistics:
         with create_progress() as progress:
             task = progress.add_task("Counting venues from CSV files...", total=len(filepaths))
 
-            with ProcessPoolExecutor() as executor:
+            # Use forkserver to avoid deadlocks when forking in a multi-threaded environment
+            with ProcessPoolExecutor(mp_context=multiprocessing.get_context('forkserver')) as executor:
                 futures = {executor.submit(_count_venues_in_file, fp): fp for fp in filepaths}
                 for future in as_completed(futures):
                     venues = future.result()

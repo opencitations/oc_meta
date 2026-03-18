@@ -713,9 +713,12 @@ class ResourceFinder:
                 grouped_queries = []
                 for i in range(0, len(batch_queries), queries_per_worker):
                     grouped_queries.append((ts_url, batch_queries[i:i + queries_per_worker]))
+                # Use forkserver to avoid deadlocks when forking from a multi-threaded process.
+                # Libraries like Redis and rdflib create background threads, and fork() would
+                # copy locked mutexes into the child process, causing hangs.
                 with ProcessPoolExecutor(
                     max_workers=min(len(grouped_queries), MAX_WORKERS),
-                    mp_context=multiprocessing.get_context('spawn')
+                    mp_context=multiprocessing.get_context('forkserver')
                 ) as executor:
                     grouped_results = list(executor.map(_execute_sparql_queries, grouped_queries))
                 results = [item for sublist in grouped_results for item in sublist]
@@ -813,7 +816,7 @@ class ResourceFinder:
                     grouped_queries.append((ts_url, batch_queries[i:i + queries_per_worker]))
                 with ProcessPoolExecutor(
                     max_workers=min(len(grouped_queries), MAX_WORKERS),
-                    mp_context=multiprocessing.get_context('spawn')
+                    mp_context=multiprocessing.get_context('forkserver')
                 ) as executor:
                     grouped_results = list(executor.map(_execute_sparql_queries, grouped_queries))
                 results = [item for sublist in grouped_results for item in sublist]
@@ -972,7 +975,7 @@ class ResourceFinder:
                     grouped_queries.append((ts_url, vvi_queries[i:i + queries_per_worker]))
                 with ProcessPoolExecutor(
                     max_workers=min(len(grouped_queries), MAX_WORKERS),
-                    mp_context=multiprocessing.get_context('spawn')
+                    mp_context=multiprocessing.get_context('forkserver')
                 ) as executor:
                     grouped_results = list(executor.map(_execute_sparql_queries, grouped_queries))
                 results = [item for sublist in grouped_results for item in sublist]

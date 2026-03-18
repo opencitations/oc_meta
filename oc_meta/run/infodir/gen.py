@@ -17,14 +17,14 @@
 from __future__ import annotations
 
 import argparse
+import multiprocessing
 import os
 import zipfile
-from concurrent.futures import as_completed
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 import orjson
 from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
 from oc_ocdm.support import get_prefix, get_resource_number, get_short_name
-from pebble import ProcessPool
 from rich_argparse import RichHelpFormatter
 from tqdm import tqdm
 
@@ -118,14 +118,16 @@ def explore_directories(root_path, redis_host, redis_port, redis_db):
     
     zip_files = collect_zip_files(root_path, only_prov=True)
     
-    with ProcessPool() as pool:
-        future_results = {pool.schedule(process_zip_file, args=[zip_file]): zip_file 
+    # Use forkserver to avoid deadlocks when forking in a multi-threaded environment
+    ctx = multiprocessing.get_context('forkserver')
+    with ProcessPoolExecutor(mp_context=ctx) as executor:
+        future_results = {executor.submit(process_zip_file, zip_file): zip_file
                           for zip_file in zip_files}
 
         results = []
         with tqdm(total=len(zip_files), desc="Processing provenance zip files") as pbar:
             for future in as_completed(future_results):
-                zip_file = future_results[future]  # type: ignore[index]
+                zip_file = future_results[future]
                 try:
                     result = future.result()
                     results.append(result)
