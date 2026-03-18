@@ -30,6 +30,7 @@ import redis
 import yaml
 
 from oc_meta.lib.console import create_progress
+from oc_meta.lib.file_manager import collect_zip_files
 
 csv.field_size_limit(2**31 - 1)
 
@@ -632,13 +633,7 @@ def generate_csv(
         print(f"Error: directory not found at {br_dir}")
         return
 
-    all_files = []
-    for root, _, files in os.walk(br_dir):
-        if "prov" in root:
-            continue
-        all_files.extend(os.path.join(root, f) for f in files if f.endswith(".zip"))
-
-    all_files = sorted(all_files)
+    all_files = collect_zip_files(br_dir, only_data=True)
     files_to_process = [f for f in all_files if f not in processed_br_files]
 
     if not files_to_process:

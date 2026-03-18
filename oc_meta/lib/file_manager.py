@@ -18,14 +18,17 @@
 from __future__ import annotations
 
 import csv
+import fnmatch
 import json
 import os
 import sys
+from collections import deque
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 from time import sleep
-from typing import Dict, List, Set
+from typing import Callable, Dict, List, Set
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from _collections_abc import dict_keys
@@ -34,6 +37,86 @@ from requests import ReadTimeout, get
 from requests.exceptions import ConnectionError
 
 from oc_meta.lib.cleaner import Cleaner
+
+
+def collect_files_parallel(
+    root: str,
+    pattern: str = "*.zip",
+    path_filter: Callable[[str], bool] | None = None,
+    workers: int = 8,
+) -> List[str]:
+    """
+    Parallel BFS directory traversal to collect files matching a pattern.
+
+    Uses ThreadPoolExecutor with os.scandir for efficient parallel I/O.
+    The GIL is released during filesystem syscalls, allowing true parallelism.
+
+    :param root: Root directory to start traversal
+    :param pattern: Glob pattern for filenames (e.g., '*.zip', 'se.zip')
+    :param path_filter: Optional callable that receives full file path and returns
+                        True to include, False to exclude. Example:
+                        lambda p: 'prov' not in p  # exclude prov directories
+    :param workers: Number of parallel workers (default: 8)
+    :returns: List of matching file paths
+    """
+    collected: List[str] = []
+    queue: deque[str] = deque([root])
+
+    def scan_dir(path: str) -> tuple[List[str], List[str]]:
+        subdirs: List[str] = []
+        files: List[str] = []
+        with os.scandir(path) as entries:
+            for entry in entries:
+                if entry.is_dir(follow_symlinks=False):
+                    subdirs.append(entry.path)
+                elif entry.is_file(follow_symlinks=False):
+                    if fnmatch.fnmatch(entry.name, pattern):
+                        files.append(entry.path)
+        return subdirs, files
+
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        while queue:
+            batch_size = min(len(queue), workers * 4)
+            batch = [queue.popleft() for _ in range(batch_size)]
+
+            for subdirs, files in executor.map(scan_dir, batch):
+                queue.extend(subdirs)
+                if path_filter is None:
+                    collected.extend(files)
+                else:
+                    collected.extend(f for f in files if path_filter(f))
+
+    return collected
+
+
+def collect_zip_files(
+    root: str,
+    only_data: bool = False,
+    only_prov: bool = False,
+    workers: int = 8,
+) -> List[str]:
+    """
+    Collect ZIP files from a directory tree.
+
+    :param root: Root directory to start traversal
+    :param only_data: Only include files NOT in paths containing 'prov'
+    :param only_prov: Only include files in paths containing 'prov'
+    :param workers: Number of parallel workers
+    :returns: Sorted list of ZIP file paths
+
+    If both only_data and only_prov are False, all ZIP files are collected.
+    """
+    if only_data and only_prov:
+        return []
+
+    path_filter: Callable[[str], bool] | None = None
+    if only_data:
+        path_filter = lambda p: "prov" not in p
+    elif only_prov:
+        path_filter = lambda p: "prov" in p
+
+    files = collect_files_parallel(root, "*.zip", path_filter, workers)
+    return sorted(files)
 
 
 def get_csv_data(filepath: str, clean_data: bool = True) -> List[Dict[str, str]]:
@@ -193,7 +276,7 @@ def read_zipped_json(filepath:str) -> dict|None:
                 json_dict = json.loads(json_data.decode("utf-8"))
                 return json_dict
 
-def call_api(url:str, headers:str, r_format:str="json") -> dict|None:
+def call_api(url: str, headers: dict[str, str], r_format: str = "json") -> dict | BeautifulSoup | None:
     tentative = 3
     while tentative:
         tentative -= 1
@@ -201,14 +284,14 @@ def call_api(url:str, headers:str, r_format:str="json") -> dict|None:
             r = get(url, headers=headers, timeout=30)
             if r.status_code == 200:
                 r.encoding = "utf-8"
-                return json.loads(r.text) if r_format == "json" else BeautifulSoup(r.text, 'xml')
+                if r_format == "json":
+                    return json.loads(r.text)
+                return BeautifulSoup(r.text, "xml")
             elif r.status_code == 404:
                 return None
         except ReadTimeout:
-            # Do nothing, just try again
             pass
         except ConnectionError:
-            # Sleep 5 seconds, then try again
             sleep(5)
     return None
 

@@ -12,6 +12,7 @@ import yaml
 from rich_argparse import RichHelpFormatter
 
 from oc_meta.lib.console import create_progress
+from oc_meta.lib.file_manager import collect_zip_files
 from oc_meta.run.meta.generate_csv import find_file, load_json_from_file
 
 ROLE_MAP = {
@@ -286,14 +287,7 @@ def main() -> None:
         print(f"Error: BR directory not found at {br_dir}")
         return
 
-    all_files = []
-    for root, _, files in os.walk(br_dir):
-        if "prov" in root:
-            continue
-        all_files.extend(
-            os.path.join(root, f) for f in files if f.endswith(".zip")
-        )
-    all_files = sorted(all_files)
+    all_files = collect_zip_files(br_dir, only_data=True)
 
     if not all_files:
         print("No BR zip files found")

@@ -28,6 +28,8 @@ from pebble import ProcessPool
 from rich_argparse import RichHelpFormatter
 from tqdm import tqdm
 
+from oc_meta.lib.file_manager import collect_zip_files
+
 
 def find_max_numbered_folder(path):
     """
@@ -114,8 +116,7 @@ def explore_directories(root_path, redis_host, redis_port, redis_db):
 
                 counter_handler.set_counter(max_entity, main_folder, supplier_prefix=supplier_prefix)
     
-    zip_files = [os.path.join(dp, f) for dp, dn, filenames in os.walk(root_path) 
-                 for f in filenames if f.endswith('.zip') and 'prov' in dp]
+    zip_files = collect_zip_files(root_path, only_prov=True)
     
     with ProcessPool() as pool:
         future_results = {pool.schedule(process_zip_file, args=[zip_file]): zip_file 

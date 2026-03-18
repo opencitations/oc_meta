@@ -1,5 +1,4 @@
 import argparse
-import os
 import zipfile
 from multiprocessing import Pool, cpu_count
 
@@ -9,6 +8,8 @@ from rdflib.namespace import PROV, RDF
 from redis import Redis
 from rich_argparse import RichHelpFormatter
 from tqdm import tqdm
+
+from oc_meta.lib.file_manager import collect_zip_files
 
 
 def process_zip_file(args):
@@ -48,8 +49,7 @@ def process_zip_file(args):
     return missing_entities
 
 def explore_provenance_files(root_path, redis_host, redis_port, redis_db):
-    prov_zip_files = [os.path.join(dp, f) for dp, dn, filenames in os.walk(root_path) 
-                      for f in filenames if f.endswith('.zip') and 'prov' in dp]
+    prov_zip_files = collect_zip_files(root_path, only_prov=True)
 
     args_list = [(zip_file, redis_host, redis_port, redis_db) for zip_file in prov_zip_files]
     

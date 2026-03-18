@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import signal
 import shutil
 import zipfile
@@ -16,6 +15,7 @@ from rich.console import Console
 from rich_argparse import RichHelpFormatter
 
 from oc_meta.lib.console import create_progress
+from oc_meta.lib.file_manager import collect_zip_files
 
 BATCH_SIZE = 100
 PUBLICATION_DATE_PREDICATE = URIRef(
@@ -28,15 +28,6 @@ VALID_DATE_TYPES_STR = {str(t) for t in VALID_DATE_TYPES}
 
 def _worker_init() -> None:
     signal.signal(signal.SIGINT, signal.SIG_IGN)
-
-
-def collect_zip_files(input_dir: Path) -> list[Path]:
-    result = []
-    for root, _, files in os.walk(input_dir):
-        for f in files:
-            if f.endswith(".zip"):
-                result.append(Path(root) / f)
-    return result
 
 
 def is_provenance_file(path: Path) -> bool:
@@ -177,7 +168,7 @@ def main() -> None:  # pragma: no cover
     output_dir = args.output_dir.resolve()
 
     console.print(f"Scanning {input_dir} for ZIP files...")
-    zip_files = collect_zip_files(input_dir)
+    zip_files = [Path(f) for f in collect_zip_files(str(input_dir))]
     console.print(f"Found {len(zip_files)} ZIP files to process")
 
     output_dir.mkdir(parents=True, exist_ok=True)

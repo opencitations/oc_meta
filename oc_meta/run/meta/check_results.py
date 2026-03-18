@@ -15,6 +15,7 @@ from sparqlite.exceptions import EndpointError
 
 from oc_meta.lib.cleaner import Cleaner
 from oc_meta.lib.console import EMATimeRemainingColumn
+from oc_meta.lib.file_manager import collect_files_parallel
 from oc_meta.lib.master_of_regex import name_and_ids, semicolon_in_people_field
 
 T = TypeVar('T')
@@ -503,11 +504,7 @@ def main():
         print(f"RDF directory not found at {output_rdf_dir}")
         return
     
-    csv_files = []
-    for root, _, files in os.walk(input_csv_dir):
-        csv_files.extend(
-            os.path.join(root, f) for f in files if f.endswith('.csv')
-        )
+    csv_files = sorted(collect_files_parallel(input_csv_dir, pattern="*.csv"))
 
     if not csv_files:
         print(f"No CSV files found in {input_csv_dir}")

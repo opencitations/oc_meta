@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 from rdflib import XSD, Dataset, Literal, URIRef
 
+from oc_meta.lib.file_manager import collect_zip_files
 from oc_meta.run.patches.fix_literal_datatypes import (
     PUBLICATION_DATE_PREDICATE,
     PUBLICATION_DATE_PREDICATE_STR,
@@ -12,7 +13,6 @@ from oc_meta.run.patches.fix_literal_datatypes import (
     _has_invalid_date_type,
     _has_untyped_literal,
     _worker_init,
-    collect_zip_files,
     is_provenance_file,
     needs_modification,
     process_batch,
@@ -59,15 +59,15 @@ class TestCollectZipFiles:
         (input_dir / "ra" / "0690" / "10000").mkdir(parents=True)
         (input_dir / "ra" / "0690" / "10000" / "1000.zip").touch()
 
-        result = collect_zip_files(input_dir)
+        result = collect_zip_files(str(input_dir))
 
         assert len(result) == 3
-        assert all(p.suffix == ".zip" for p in result)
+        assert all(p.endswith(".zip") for p in result)
 
     def test_empty_directory(self, temp_dirs):
         input_dir, _ = temp_dirs
 
-        result = collect_zip_files(input_dir)
+        result = collect_zip_files(str(input_dir))
 
         assert result == []
 
@@ -708,10 +708,10 @@ class TestIntegration:
         ]
         create_zip_file(input_dir / "br" / "0690" / "10000" / "1000" / "prov" / "se.zip", "se.json", prov_data)
 
-        zip_files = collect_zip_files(input_dir)
+        zip_files = collect_zip_files(str(input_dir))
         total_modifications: dict[str, int] = {}
         for zf in zip_files:
-            mods = process_zip_file(zf, input_dir, output_dir)
+            mods = process_zip_file(Path(zf), input_dir, output_dir)
             for key, count in mods.items():
                 total_modifications[key] = total_modifications.get(key, 0) + count
 
@@ -758,11 +758,11 @@ class TestIntegration:
             ]
             create_zip_file(input_dir / "br" / prefix / "10000" / "1000.zip", "1000.json", br_data)
 
-        zip_files = collect_zip_files(input_dir)
+        zip_files = collect_zip_files(str(input_dir))
         total_untyped = 0
         total_dates = 0
         for zf in zip_files:
-            mods = process_zip_file(zf, input_dir, output_dir)
+            mods = process_zip_file(Path(zf), input_dir, output_dir)
             for key, count in mods.items():
                 if key.startswith("untyped:"):
                     total_untyped += count

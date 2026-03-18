@@ -12,6 +12,8 @@ from rdflib import Dataset, URIRef
 from rich_argparse import RichHelpFormatter
 from tqdm import tqdm
 
+from oc_meta.lib.file_manager import collect_files_parallel
+
 
 def process_zip_file(zip_path: str) -> Dict[tuple, Set[str]]:
     entity_info = defaultdict(set)
@@ -79,8 +81,11 @@ def read_and_analyze_zip_files(folder_path: str, csv_path: str, chunk_size: int 
         print(f"Error: The 'id' subfolder does not exist in path: {folder_path}")
         return
 
-    zip_files = [os.path.join(root, file) for root, _, files in os.walk(id_folder_path)
-                 for file in files if file.endswith('.zip') and file != 'se.zip']
+    zip_files = sorted(collect_files_parallel(
+        id_folder_path,
+        pattern="*.zip",
+        path_filter=lambda p: os.path.basename(p) != "se.zip",
+    ))
 
     if temp_dir is None:
         temp_dir = tempfile.mkdtemp(prefix='oc_meta_duplicates_')

@@ -11,6 +11,8 @@ from rich.console import Console
 from rich_argparse import RichHelpFormatter
 from tqdm import tqdm
 
+from oc_meta.lib.file_manager import collect_files_parallel
+
 console = Console()
 
 PROV_DERIVED_FROM = "http://www.w3.org/ns/prov#wasDerivedFrom"
@@ -23,14 +25,7 @@ def extract_entity_from_snapshot(snapshot_uri: str) -> str:
 
 def find_prov_files(rdf_dir: str, entity_type: str) -> list[str]:
     entity_dir = os.path.join(rdf_dir, entity_type)
-    prov_files = []
-
-    for root, _, files in os.walk(entity_dir):
-        for f in files:
-            if f == "se.zip":
-                prov_files.append(os.path.join(root, f))
-
-    return prov_files
+    return sorted(collect_files_parallel(entity_dir, pattern="se.zip"))
 
 
 def process_prov_file(prov_file: str) -> list[tuple[str, str]]:

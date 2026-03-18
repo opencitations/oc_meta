@@ -18,6 +18,7 @@ from typing import TextIO
 from rich_argparse import RichHelpFormatter
 
 from oc_meta.lib.console import create_progress
+from oc_meta.lib.file_manager import collect_files_parallel
 
 QUAD_FORMATS = {"nquads"}
 LINE_BASED_FORMATS = {"nquads", "nt"}
@@ -151,25 +152,29 @@ def discover_files(
     if not path.is_dir():
         raise ValueError(f"'{path}' does not exist or is not a directory.")
 
-    files: list[Path] = []
     root_str = str(path)
 
     if recursive:
-        for dirpath, _, filenames in os.walk(root_str):
-            is_prov = "/prov" in dirpath or dirpath.endswith("/prov")
-            if prov_only and not is_prov:
-                continue
-            if data_only and is_prov:
-                continue
-            for filename in fnmatch.filter(filenames, pattern):
-                files.append(Path(dirpath) / filename)
-    else:
-        is_prov = path.name == "prov"
-        if not (prov_only and not is_prov) and not (data_only and is_prov):
-            for entry in os.scandir(root_str):
-                if entry.is_file() and fnmatch.fnmatch(entry.name, pattern):
-                    files.append(Path(entry.path))
 
+        def path_filter(p: str) -> bool:
+            is_prov = "/prov" in p or p.endswith("/prov")
+            if prov_only and not is_prov:
+                return False
+            if data_only and is_prov:
+                return False
+            return True
+
+        str_files = collect_files_parallel(root_str, pattern, path_filter)
+        return sorted(Path(f) for f in str_files)
+
+    is_prov = path.name == "prov"
+    if (prov_only and not is_prov) or (data_only and is_prov):
+        return []
+
+    files: list[Path] = []
+    for entry in os.scandir(root_str):
+        if entry.is_file() and fnmatch.fnmatch(entry.name, pattern):
+            files.append(Path(entry.path))
     return sorted(files)
 
 
