@@ -407,3 +407,12 @@ path = [
 ]
 SPDX-FileCopyrightText = "2024-2025 Arcangelo Massari <arcangelo.massari@unibo.it>"
 SPDX-License-Identifier = "ISC"
+
+# Generated during tests
+[[annotations]]
+path = [
+    "test/editor/meta_config.yaml",
+    "test/merger/meta_config.yaml",
+]
+SPDX-FileCopyrightText = "2024-2026 Arcangelo Massari <arcangelo.massari@unibo.it>"
+SPDX-License-Identifier = "ISC"

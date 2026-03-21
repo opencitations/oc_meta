@@ -1,7 +1,3 @@
-# SPDX-FileCopyrightText: 2023-2026 Arcangelo Massari <arcangelo.massari@unibo.it>
-#
-# SPDX-License-Identifier: ISC
-
 base_iri: https://w3id.org/oc/meta/
 base_output_dir: test/editor/output
 blazegraph_full_text_search: false

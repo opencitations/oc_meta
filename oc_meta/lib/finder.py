@@ -56,14 +56,13 @@ class ResourceFinder:
         result_list = []
         identifier_uri = None
 
-        # Search for both string-typed and untyped literals
-        for literal_value in [Literal(value, datatype=XSD.string), Literal(value)]:
-            for starting_triple in self.local_g.triples((None, GraphEntity.iri_has_literal_value, literal_value)):
-                for known_id_triple in self.local_g.triples((starting_triple[0], None, None)):
-                    if known_id_triple[1] == GraphEntity.iri_uses_identifier_scheme and known_id_triple[2] == schema_uri:
-                        identifier_uri = known_id_triple[0]
-                if identifier_uri:
-                    break
+        literal_value = Literal(value, datatype=XSD.string)
+        for starting_triple in self.local_g.triples((None, GraphEntity.iri_has_literal_value, literal_value)):
+            for known_id_triple in self.local_g.triples((starting_triple[0], None, None)):
+                if known_id_triple[1] == GraphEntity.iri_uses_identifier_scheme and known_id_triple[2] == schema_uri:
+                    identifier_uri = known_id_triple[0]
+            if identifier_uri:
+                break
         if identifier_uri:
             metaid_id_list = [(str(identifier_uri).replace(f'{self.base_iri}/id/', ''), f'{schema}:{value}')]
             for triple in self.local_g.triples((None, GraphEntity.iri_has_identifier, identifier_uri)):
@@ -139,11 +138,11 @@ class ResourceFinder:
         schema_uri = URIRef(GraphEntity.DATACITE + schema)
         value = value.replace('\\', '\\\\')
 
-        for literal in [Literal(value, datatype=XSD.string), Literal(value)]:
-            for starting_triple in self.local_g.triples((None, GraphEntity.iri_has_literal_value, literal)):
-                for known_id_triple in self.local_g.triples((starting_triple[0], None, None)):
-                    if known_id_triple[1] == GraphEntity.iri_uses_identifier_scheme and known_id_triple[2] == schema_uri:
-                        return str(known_id_triple[0]).replace(f'{self.base_iri}/id/', '')
+        literal_value = Literal(value, datatype=XSD.string)
+        for starting_triple in self.local_g.triples((None, GraphEntity.iri_has_literal_value, literal_value)):
+            for known_id_triple in self.local_g.triples((starting_triple[0], None, None)):
+                if known_id_triple[1] == GraphEntity.iri_uses_identifier_scheme and known_id_triple[2] == schema_uri:
+                    return str(known_id_triple[0]).replace(f'{self.base_iri}/id/', '')
 
         return None
 
@@ -250,15 +249,14 @@ class ResourceFinder:
         result_list = []
         identifier_uri = None
 
-        # Search for both string-typed and untyped literals
-        for literal_value in [Literal(value, datatype=XSD.string), Literal(value)]:
-            for starting_triple in self.local_g.triples((None, GraphEntity.iri_has_literal_value, literal_value)):
-                for known_id_triple in self.local_g.triples((starting_triple[0], None, None)):
-                    if known_id_triple[1] == GraphEntity.iri_uses_identifier_scheme and known_id_triple[2] == schema_uri:
-                        identifier_uri = known_id_triple[0]
-                        break
-                if identifier_uri:
+        literal_value = Literal(value, datatype=XSD.string)
+        for starting_triple in self.local_g.triples((None, GraphEntity.iri_has_literal_value, literal_value)):
+            for known_id_triple in self.local_g.triples((starting_triple[0], None, None)):
+                if known_id_triple[1] == GraphEntity.iri_uses_identifier_scheme and known_id_triple[2] == schema_uri:
+                    identifier_uri = known_id_triple[0]
                     break
+            if identifier_uri:
+                break
         if identifier_uri:
             metaid_id_list: List[Tuple[str, str]] = [(str(identifier_uri).replace(f'{self.base_iri}/id/', ''), f'{schema}:{value}')]
             for triple in self.local_g.triples((None, GraphEntity.iri_has_identifier, identifier_uri)):
@@ -775,13 +773,7 @@ class ResourceFinder:
                         escaped_literal = literal.replace('\\', '\\\\').replace('"', '\\"')
                         union_blocks.append(f"""
                             {{
-                                {{
-                                    ?id <{GraphEntity.iri_has_literal_value}> "{escaped_literal}" .
-                                }}
-                                UNION
-                                {{
-                                    ?id <{GraphEntity.iri_has_literal_value}> "{escaped_literal}"^^<{XSD.string}> .
-                                }}
+                                ?id <{GraphEntity.iri_has_literal_value}> "{escaped_literal}"^^<{XSD.string}> .
                                 ?id <{GraphEntity.iri_uses_identifier_scheme}> <{GraphEntity.DATACITE + scheme}> .
                                 ?s <{GraphEntity.iri_has_identifier}> ?id .
                                 BIND("{scheme}" AS ?schemeLabel)
@@ -895,74 +887,29 @@ class ResourceFinder:
                             escaped_volume = volume.replace('\\', '\\\\').replace('"', '\\"')
                             query = f'''
                                 SELECT ?s WHERE {{
-                                    {{
-                                        ?volume a <{GraphEntity.iri_journal_volume}> ;
-                                            <{GraphEntity.iri_part_of}> <{venue_uri}> ;
-                                            <{GraphEntity.iri_has_sequence_identifier}> "{escaped_volume}" .
-                                        ?s a <{GraphEntity.iri_journal_issue}> ;
-                                            <{GraphEntity.iri_part_of}> ?volume ;
-                                            <{GraphEntity.iri_has_sequence_identifier}> "{escaped_sequence}" .
-                                    }}
-                                    UNION
-                                    {{
-                                        ?volume a <{GraphEntity.iri_journal_volume}> ;
-                                            <{GraphEntity.iri_part_of}> <{venue_uri}> ;
-                                            <{GraphEntity.iri_has_sequence_identifier}> "{escaped_volume}"^^<{XSD.string}> .
-                                        ?s a <{GraphEntity.iri_journal_issue}> ;
-                                            <{GraphEntity.iri_part_of}> ?volume ;
-                                            <{GraphEntity.iri_has_sequence_identifier}> "{escaped_sequence}" .
-                                    }}
-                                    UNION
-                                    {{
-                                        ?volume a <{GraphEntity.iri_journal_volume}> ;
-                                            <{GraphEntity.iri_part_of}> <{venue_uri}> ;
-                                            <{GraphEntity.iri_has_sequence_identifier}> "{escaped_volume}" .
-                                        ?s a <{GraphEntity.iri_journal_issue}> ;
-                                            <{GraphEntity.iri_part_of}> ?volume ;
-                                            <{GraphEntity.iri_has_sequence_identifier}> "{escaped_sequence}"^^<{XSD.string}> .
-                                    }}
-                                    UNION
-                                    {{
-                                        ?volume a <{GraphEntity.iri_journal_volume}> ;
-                                            <{GraphEntity.iri_part_of}> <{venue_uri}> ;
-                                            <{GraphEntity.iri_has_sequence_identifier}> "{escaped_volume}"^^<{XSD.string}> .
-                                        ?s a <{GraphEntity.iri_journal_issue}> ;
-                                            <{GraphEntity.iri_part_of}> ?volume ;
-                                            <{GraphEntity.iri_has_sequence_identifier}> "{escaped_sequence}"^^<{XSD.string}> .
-                                    }}
+                                    ?volume a <{GraphEntity.iri_journal_volume}> ;
+                                        <{GraphEntity.iri_part_of}> <{venue_uri}> ;
+                                        <{GraphEntity.iri_has_sequence_identifier}> "{escaped_volume}"^^<{XSD.string}> .
+                                    ?s a <{GraphEntity.iri_journal_issue}> ;
+                                        <{GraphEntity.iri_part_of}> ?volume ;
+                                        <{GraphEntity.iri_has_sequence_identifier}> "{escaped_sequence}"^^<{XSD.string}> .
                                 }}
                             '''
                         else:
                             query = f'''
                                 SELECT ?s WHERE {{
-                                    {{
-                                        ?s a <{GraphEntity.iri_journal_issue}> ;
-                                            <{GraphEntity.iri_part_of}> <{venue_uri}> ;
-                                            <{GraphEntity.iri_has_sequence_identifier}> "{escaped_sequence}" .
-                                    }}
-                                    UNION
-                                    {{
-                                        ?s a <{GraphEntity.iri_journal_issue}> ;
-                                            <{GraphEntity.iri_part_of}> <{venue_uri}> ;
-                                            <{GraphEntity.iri_has_sequence_identifier}> "{escaped_sequence}"^^<{XSD.string}> .
-                                    }}
+                                    ?s a <{GraphEntity.iri_journal_issue}> ;
+                                        <{GraphEntity.iri_part_of}> <{venue_uri}> ;
+                                        <{GraphEntity.iri_has_sequence_identifier}> "{escaped_sequence}"^^<{XSD.string}> .
                                 }}
                             '''
                     else:
                         if volume:
                             query = f'''
                                 SELECT ?s WHERE {{
-                                    {{
-                                        ?s a <{GraphEntity.iri_journal_volume}> ;
-                                            <{GraphEntity.iri_part_of}> <{venue_uri}> ;
-                                            <{GraphEntity.iri_has_sequence_identifier}> "{escaped_sequence}" .
-                                    }}
-                                    UNION
-                                    {{
-                                        ?s a <{GraphEntity.iri_journal_volume}> ;
-                                            <{GraphEntity.iri_part_of}> <{venue_uri}> ;
-                                            <{GraphEntity.iri_has_sequence_identifier}> "{escaped_sequence}"^^<{XSD.string}> .
-                                    }}
+                                    ?s a <{GraphEntity.iri_journal_volume}> ;
+                                        <{GraphEntity.iri_part_of}> <{venue_uri}> ;
+                                        <{GraphEntity.iri_has_sequence_identifier}> "{escaped_sequence}"^^<{XSD.string}> .
                                 }}
                             '''
                         else:

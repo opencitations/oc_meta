@@ -102,15 +102,8 @@ def check_omids_existence(identifiers: List[Dict[str, str]], endpoint_url: str) 
 
             SELECT DISTINCT ?omid
             WHERE {{
-                {{
-                    ?omid literal:hasLiteralValue "{identifier['value']}"^^xsd:string ;
-                         datacite:usesIdentifierScheme datacite:{identifier['schema']} .
-                }}
-                UNION
-                {{
-                    ?omid literal:hasLiteralValue "{identifier['value']}" ;
-                         datacite:usesIdentifierScheme datacite:{identifier['schema']} .
-                }}
+                ?omid literal:hasLiteralValue "{identifier['value']}"^^xsd:string ;
+                      datacite:usesIdentifierScheme datacite:{identifier['schema']} .
             }}
             """
 
