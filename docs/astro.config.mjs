@@ -79,7 +79,7 @@ export default defineConfig({
 					items: [
 						{ label: 'Extract subset', slug: 'migration/extract_subset' },
 						{ label: 'RDF from export', slug: 'migration/rdf_from_export' },
-						{ label: 'Provenance to N-Quads', slug: 'migration/provenance_to_nquads' },
+						{ label: 'RDF to N-Quads', slug: 'migration/rdf_to_nquads' },
 					],
 				},
 				{
