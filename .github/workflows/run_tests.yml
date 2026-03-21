@@ -48,46 +48,27 @@ jobs:
       - name: Run tests with coverage
         run: |
           uv run coverage run --rcfile=test/coverage/.coveragerc
-          echo "=== Coverage Report ==="
+          uv run coverage xml
           uv run coverage report
-          echo "COVERAGE=$(uv run coverage report | grep TOTAL | awk '{print $4}')" >> $GITHUB_ENV
 
       - name: Generate HTML coverage report
-        run: |
-          uv run coverage html -d htmlcov
+        if: matrix.python-version == '3.12'
+        run: uv run coverage html -d htmlcov
 
-      - name: Upload coverage report artifact (for master branch)
-        if: github.ref == 'refs/heads/master' && matrix.python-version == '3.10'
+      - name: Generate coverage badge
+        if: matrix.python-version == '3.12'
+        run: uv run genbadge coverage -i coverage.xml -o coverage-badge.svg
+
+      - name: Upload coverage report
+        if: matrix.python-version == '3.12' && github.ref == 'refs/heads/master'
         uses: actions/upload-artifact@v7
         with:
-          name: coverage-report-${{ matrix.python-version }}
-          path: htmlcov/
-          retention-days: 14
+          name: coverage-report
+          path: htmlcov
 
-      - name: Determine badge color
-        if: matrix.python-version == '3.10'
-        run: |
-          COVERAGE_NUM=$(echo ${{ env.COVERAGE }} | sed 's/%//')
-
-          if (( $(echo "$COVERAGE_NUM >= 90" | bc -l) )); then
-            COLOR="green"
-          elif (( $(echo "$COVERAGE_NUM >= 75" | bc -l) )); then
-            COLOR="yellow"
-          elif (( $(echo "$COVERAGE_NUM >= 60" | bc -l) )); then
-            COLOR="orange"
-          else
-            COLOR="red"
-          fi
-          echo "BADGE_COLOR=$COLOR" >> $GITHUB_ENV
-
-      - name: Generate coverage badge (for master branch)
-        if: github.ref == 'refs/heads/master' && matrix.python-version == '3.10'
-        uses: RubbaBoy/BYOB@v1.3.0
+      - name: Upload coverage badge
+        if: matrix.python-version == '3.12' && github.ref == 'refs/heads/master'
+        uses: actions/upload-artifact@v7
         with:
-          name: opencitations-oc_meta_coverage
-          label: "Coverage"
-          status: "${{ env.COVERAGE }}"
-          color: ${{ env.BADGE_COLOR }}
-          github_token: ${{ secrets.GIST_PAT }}
-          repository: arcangelo7/badges
-          actor: arcangelo7
+          name: coverage-badge
+          path: coverage-badge.svg
