@@ -26,12 +26,13 @@ from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
 from oc_ocdm.prov import ProvSet
 from oc_ocdm.support.reporter import Reporter
 from piccione.upload.on_triplestore import upload_sparql_updates
+from rich_argparse import RichHelpFormatter
 from time_agnostic_library.support import generate_config_file
-from tqdm import tqdm
 from virtuoso_utilities.bulk_load import bulk_load
 
 from oc_meta.core.creator import Creator
 from oc_meta.core.curator import Curator
+from oc_meta.lib.console import console, create_progress
 from oc_meta.lib.file_manager import (get_csv_data, init_cache, normalize_path,
                                       pathoo, sort_files)
 from oc_meta.lib.timer import ProcessTimer
@@ -58,7 +59,7 @@ def _upload_to_triplestore(endpoint: str, folder: str, redis_host: str, redis_po
             show_progress=False,
         )
     except Exception as e:
-        print(f"Upload to {endpoint} failed: {e}", file=sys.stderr)
+        console.print(f"[red]Upload to {endpoint} failed: {e}[/red]")
         sys.exit(1)
 
 
@@ -131,8 +132,8 @@ class MetaProcess:
         self.default_dir = settings["default_dir"]
         self.zip_output_rdf = settings["zip_output_rdf"]
         self.source = settings["source"]
-        self.valid_dois_cache = (
-            dict() if bool(settings["use_doi_api_service"]) == True else None
+        self.valid_dois_cache: dict[str, str] = (
+            dict() if settings["use_doi_api_service"] else {}
         )
         supplier_prefix: str = settings["supplier_prefix"]
         self.supplier_prefix = (
@@ -202,7 +203,7 @@ class MetaProcess:
         try:
             with self.timer.timer("total_processing"):
                 filepath = os.path.join(self.input_csv_dir, filename)
-                print(filepath)
+                console.print(filepath)
                 data = get_csv_data(filepath)
                 self.timer.record_metric("input_records", len(data))
 
@@ -245,7 +246,7 @@ class MetaProcess:
                             re_index_csv=curator_obj.re_index,
                             ar_index_csv=curator_obj.ar_index,
                             vi_index=curator_obj.VolIss,
-                            silencer=settings.get("silencer", []),
+                            silencer=self.silencer,
                         )
                         creator = creator_obj.creator(source=self.source)
                         self.timer.record_metric("entities_created", len(creator.res_to_entity))
@@ -296,7 +297,7 @@ class MetaProcess:
             )
             message = template.format(type(e).__name__, e.args, tb)
             if isinstance(e, BulkLoadError):
-                print(message)
+                console.print(message)
                 raise
             return {"message": message}, cache_path, errors_path, filename
 
@@ -367,7 +368,7 @@ class MetaProcess:
             self._store_and_upload(res_storer, prov_storer, self.timer)
 
     def _store_and_upload(
-        self, res_storer: Storer, prov_storer: Storer, timer: ProcessTimer, bulk_config: dict = None
+        self, res_storer: Storer, prov_storer: Storer, timer: ProcessTimer, bulk_config: dict | None = None
     ) -> None:
         """Store RDF files and upload queries to triplestore with parallel execution."""
         use_bulk_load = bulk_config is not None
@@ -424,6 +425,9 @@ class MetaProcess:
             self._upload_sparql_queries()
 
             if use_bulk_load:
+                assert bulk_config is not None
+                assert data_nquads_dir is not None
+                assert prov_nquads_dir is not None
                 _run_bulk_load_process((bulk_config["data_container"], bulk_config["bulk_load_dir"], data_nquads_dir))
                 _run_bulk_load_process((bulk_config["prov_container"], bulk_config["bulk_load_dir"], prov_nquads_dir))
                 for nq_file in glob.glob(os.path.join(data_nquads_dir, "*.nq.gz")):
@@ -490,17 +494,17 @@ def _print_aggregate_summary(all_reports: List[Dict[str, Any]]) -> None:
     """Print aggregate summary of all processed files."""
     aggregate = _compute_aggregate_metrics(all_reports)
 
-    print(f"\n{'='*60}")
-    print("Aggregate Timing Summary")
-    print(f"{'='*60}")
-    print(f"Total Files: {aggregate['total_files']}")
-    print(f"Total Duration: {aggregate['total_duration_seconds']}s")
-    print(f"Total Records: {aggregate['total_records_processed']}")
-    print(f"Total Entities: {aggregate['total_entities_created']}")
-    print(f"Average Time/File: {aggregate['average_time_per_file']}s")
-    print(f"Min/Max Time: {aggregate['min_time']}s / {aggregate['max_time']}s")
-    print(f"Overall Throughput: {aggregate['overall_throughput']} rec/s")
-    print(f"{'='*60}\n")
+    console.print(f"\n{'='*60}")
+    console.print("[bold]Aggregate Timing Summary[/bold]")
+    console.print(f"{'='*60}")
+    console.print(f"Total Files: {aggregate['total_files']}")
+    console.print(f"Total Duration: {aggregate['total_duration_seconds']}s")
+    console.print(f"Total Records: {aggregate['total_records_processed']}")
+    console.print(f"Total Entities: {aggregate['total_entities_created']}")
+    console.print(f"Average Time/File: {aggregate['average_time_per_file']}s")
+    console.print(f"Min/Max Time: {aggregate['min_time']}s / {aggregate['max_time']}s")
+    console.print(f"Overall Throughput: {aggregate['overall_throughput']} rec/s")
+    console.print(f"{'='*60}\n")
 
 
 def run_meta_process(
@@ -514,15 +518,16 @@ def run_meta_process(
 
     generate_gentle_buttons(meta_process_setup.base_output_dir, meta_config_path, is_unix)
 
-    with tqdm(total=len(files_to_be_processed), desc="Processing files") as progress_bar:
+    with create_progress() as progress:
+        task_id = progress.add_task("Processing files", total=len(files_to_be_processed))
         for idx, filename in enumerate(files_to_be_processed, 1):
             try:
                 if os.path.exists(os.path.join(meta_process_setup.base_output_dir, ".stop")):
-                    print("\nStop file detected. Halting processing.")
+                    console.print("\n[yellow]Stop file detected. Halting processing.[/yellow]")
                     break
 
                 if enable_timing:
-                    print(f"\n[{idx}/{len(files_to_be_processed)}] Processing {filename}...")
+                    console.print(f"\n[cyan][{idx}/{len(files_to_be_processed)}][/cyan] Processing {filename}...")
 
                 file_timer = ProcessTimer(enabled=enable_timing, verbose=enable_timing)
                 meta_process = MetaProcess(settings=settings, meta_config_path=meta_config_path, timer=file_timer)
@@ -547,19 +552,19 @@ def run_meta_process(
 
                     if timing_output:
                         _save_incremental_report(all_reports, meta_config_path, timing_output)
-                        print(f"\n  JSON updated: {timing_output}")
+                        console.print(f"\n  JSON updated: {timing_output}")
 
                     chart_file = timing_output.replace('.json', '_chart.png') if timing_output else 'meta_process_timing_chart.png'
                     plot_incremental_progress(all_reports, chart_file)
-                    print(f"  Chart updated: {chart_file}\n")
+                    console.print(f"  Chart updated: {chart_file}\n")
 
             except Exception as e:
                 traceback_str = traceback.format_exc()
-                print(
-                    f"Error processing file {filename}: {e}\nTraceback:\n{traceback_str}"
+                console.print(
+                    f"[red]Error processing file {filename}: {e}\nTraceback:\n{traceback_str}[/red]"
                 )
             finally:
-                progress_bar.update(1)
+                progress.advance(task_id)
 
     if not os.path.exists(os.path.join(meta_process_setup.base_output_dir, ".stop")):
         if os.path.exists(meta_process_setup.cache_path):
@@ -584,7 +589,7 @@ def run_meta_process(
             }
             with open(timing_output, 'wb') as f:
                 f.write(orjson.dumps(aggregate_report, option=orjson.OPT_INDENT_2))
-            print(f"[Timing] Report saved to {timing_output}")
+            console.print(f"[green][Timing] Report saved to {timing_output}[/green]")
 
 
 def task_done(task_output: tuple) -> None:
@@ -620,7 +625,7 @@ def chunks(lst: list, n: int) -> Iterator[list]:
         yield lst[i : i + n]
 
 
-def delete_lock_files(base_dir: list) -> None:
+def delete_lock_files(base_dir: str) -> None:
     for dirpath, _, filenames in os.walk(base_dir):
         for filename in filenames:
             if filename.endswith(".lock"):
@@ -643,6 +648,7 @@ if __name__ == "__main__":  # pragma: no cover
     arg_parser = ArgumentParser(
         "meta_process.py",
         description="This script runs the OCMeta data processing workflow",
+        formatter_class=RichHelpFormatter,
     )
     arg_parser.add_argument(
         "-c",
