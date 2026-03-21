@@ -151,7 +151,7 @@ class test_ProcessTest(unittest.TestCase):
                 "editor": "",
             },
             {
-                "id": "doi:10.1097/01.rct.0000185385.35389.cd omid:br/0607",
+                "id": "doi:10.1097/01.rct.0000185385.35389\\.cd omid:br/0607",
                 "title": "Comprehensive Assessment Of Lung CT Attenuation Alteration At Perfusion Defects Of Acute Pulmonary Thromboembolism With Breath-Hold SPECT-CT Fusion Images",
                 "author": "Suga, Kazuyoshi [omid:ra/06012]; Kawakami, Yasuhiko [omid:ra/06013]; Iwanaga, Hideyuki [omid:ra/06014]; Hayashi, Noriko [omid:ra/06015]; Seto, Aska [omid:ra/06016]; Matsunaga, Naofumi [omid:ra/06017]",
                 "pub_date": "2006-01",
