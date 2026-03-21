@@ -1,0 +1,409 @@
+version = 1
+
+[[annotations]]
+path = [
+    "CHANGELOG.md",
+    "REUSE.toml",
+]
+SPDX-FileCopyrightText = "2026 Arcangelo Massari <arcangelo.massari@unibo.it>"
+SPDX-License-Identifier = "ISC"
+
+[[annotations]]
+path = ".gitignore"
+SPDX-FileCopyrightText = [
+    "2021-2026 Arcangelo Massari <arcangelo.massari@unibo.it>",
+    "2021 Fabio Mariani <33620930+FabioMariani@users.noreply.github.com>",
+    "2020 Silvio Peroni <silvio.peroni@unibo.it>",
+    "2021 Simone Persiani <iosonopersia@gmail.com>",
+    "2023 ariannamorettj <arianna.moretti2@studio.unibo.it>",
+]
+SPDX-License-Identifier = "ISC"
+
+[[annotations]]
+path = [
+    ".python-version",
+    "docs/.gitignore",
+    "docs/astro.config.mjs",
+    "docs/package-lock.json",
+    "docs/package.json",
+    "docs/public/favicon.svg",
+    "docs/src/assets/houston.webp",
+    "docs/tsconfig.json",
+    "uv.lock",
+]
+SPDX-FileCopyrightText = "2026 Arcangelo Massari <arcangelo.massari@unibo.it>"
+SPDX-License-Identifier = "ISC"
+
+[[annotations]]
+path = ".releaserc.json"
+SPDX-FileCopyrightText = "2025-2026 Arcangelo Massari <arcangelo.massari@unibo.it>"
+SPDX-License-Identifier = "ISC"
+
+[[annotations]]
+path = [
+    "CITATION.cff",
+    "oc_meta/run/benchmark/reports/update_10.json",
+    "oc_meta/run/benchmark/reports/update_10.png",
+    "oc_meta/run/benchmark/reports/update_1000.json",
+    "oc_meta/run/benchmark/reports/update_1000.png",
+    "test/test_data_collect_identifiers.csv",
+    "test/virtuoso_config_template/virtuoso.ini",
+]
+SPDX-FileCopyrightText = "2025 Arcangelo Massari <arcangelo.massari@unibo.it>"
+SPDX-License-Identifier = "ISC"
+
+[[annotations]]
+path = [
+    "config/time_agnostic_library_config.json",
+    "example_citations.csv",
+    "example_metadata.csv",
+    "test/file_manager/unzipped_dir/060/10000/1000.json",
+    "test/file_manager/unzipped_dir/060/10000/1000/prov/se.json",
+    "test/meta_process/base_input/0.csv",
+    "test/meta_process/base_input/1.csv",
+    "test/meta_process/conflict_input/0.csv",
+    "test/meta_process/conflict_input/1.csv",
+    "test/meta_process/conflict_input/2.csv",
+    "test/meta_process/conflict_input/3.csv",
+    "test/meta_process/conflict_input/4.csv",
+    "test/meta_process/conflict_input/preprocess/0.csv",
+    "test/meta_process/input/0.csv",
+    "test/meta_process/input_2/0.csv",
+    "test/meta_process/input_3/0.csv",
+    "test/meta_process/long_field.csv",
+    "test/real_data.csv",
+    "test/testcases/testcase_X.ttl",
+    "test/testcases/testcase_data/indices/01/index_ar_01.csv",
+    "test/testcases/testcase_data/indices/01/index_id_br_01.csv",
+    "test/testcases/testcase_data/indices/01/index_id_ra_01.csv",
+    "test/testcases/testcase_data/indices/01/index_re_01.csv",
+    "test/testcases/testcase_data/indices/01/index_vi_01.json",
+    "test/testcases/testcase_data/indices/02/index_ar_02.csv",
+    "test/testcases/testcase_data/indices/02/index_id_br_02.csv",
+    "test/testcases/testcase_data/indices/02/index_id_ra_02.csv",
+    "test/testcases/testcase_data/indices/02/index_re_02.csv",
+    "test/testcases/testcase_data/indices/02/index_vi_02.json",
+    "test/testcases/testcase_data/indices/03/index_ar_03.csv",
+    "test/testcases/testcase_data/indices/03/index_id_br_03.csv",
+    "test/testcases/testcase_data/indices/03/index_id_ra_03.csv",
+    "test/testcases/testcase_data/indices/03/index_re_03.csv",
+    "test/testcases/testcase_data/indices/03/index_vi_03.json",
+    "test/testcases/testcase_data/indices/04/index_ar_04.csv",
+    "test/testcases/testcase_data/indices/04/index_id_br_04.csv",
+    "test/testcases/testcase_data/indices/04/index_id_ra_04.csv",
+    "test/testcases/testcase_data/indices/04/index_re_04.csv",
+    "test/testcases/testcase_data/indices/04/index_vi_04.json",
+    "test/testcases/testcase_data/indices/05/index_ar_05.csv",
+    "test/testcases/testcase_data/indices/05/index_id_br_05.csv",
+    "test/testcases/testcase_data/indices/05/index_id_ra_05.csv",
+    "test/testcases/testcase_data/indices/05/index_re_05.csv",
+    "test/testcases/testcase_data/indices/05/index_vi_05.json",
+    "test/testcases/testcase_data/indices/06/index_ar_06.csv",
+    "test/testcases/testcase_data/indices/06/index_id_br_06.csv",
+    "test/testcases/testcase_data/indices/06/index_id_ra_06.csv",
+    "test/testcases/testcase_data/indices/06/index_re_06.csv",
+    "test/testcases/testcase_data/indices/06/index_vi_06.json",
+    "test/testcases/testcase_data/indices/07/index_ar_07.csv",
+    "test/testcases/testcase_data/indices/07/index_id_br_07.csv",
+    "test/testcases/testcase_data/indices/07/index_id_ra_07.csv",
+    "test/testcases/testcase_data/indices/07/index_re_07.csv",
+    "test/testcases/testcase_data/indices/07/index_vi_07.json",
+    "test/testcases/testcase_data/indices/08/index_ar_08.csv",
+    "test/testcases/testcase_data/indices/08/index_id_br_08.csv",
+    "test/testcases/testcase_data/indices/08/index_id_ra_08.csv",
+    "test/testcases/testcase_data/indices/08/index_re_08.csv",
+    "test/testcases/testcase_data/indices/08/index_vi_08.json",
+    "test/testcases/testcase_data/indices/09/index_ar_09.csv",
+    "test/testcases/testcase_data/indices/09/index_id_br_09.csv",
+    "test/testcases/testcase_data/indices/09/index_id_ra_09.csv",
+    "test/testcases/testcase_data/indices/09/index_re_09.csv",
+    "test/testcases/testcase_data/indices/09/index_vi_09.json",
+    "test/testcases/testcase_data/indices/10/index_ar_10.csv",
+    "test/testcases/testcase_data/indices/10/index_id_br_10.csv",
+    "test/testcases/testcase_data/indices/10/index_id_ra_10.csv",
+    "test/testcases/testcase_data/indices/10/index_re_10.csv",
+    "test/testcases/testcase_data/indices/10/index_vi_10.json",
+    "test/testcases/testcase_data/indices/11/index_ar_11.csv",
+    "test/testcases/testcase_data/indices/11/index_id_br_11.csv",
+    "test/testcases/testcase_data/indices/11/index_id_ra_11.csv",
+    "test/testcases/testcase_data/indices/11/index_re_11.csv",
+    "test/testcases/testcase_data/indices/11/index_vi_11.json",
+    "test/testcases/testcase_data/indices/12/index_ar_12.csv",
+    "test/testcases/testcase_data/indices/12/index_id_br_12.csv",
+    "test/testcases/testcase_data/indices/12/index_id_ra_12.csv",
+    "test/testcases/testcase_data/indices/12/index_re_12.csv",
+    "test/testcases/testcase_data/indices/12/index_vi_12.json",
+    "test/testcases/testcase_data/indices/13.1/index_ar_13.1.csv",
+    "test/testcases/testcase_data/indices/13.1/index_id_br_13.1.csv",
+    "test/testcases/testcase_data/indices/13.1/index_id_ra_13.1.csv",
+    "test/testcases/testcase_data/indices/13.1/index_re_13.1.csv",
+    "test/testcases/testcase_data/indices/13.1/index_vi_13.1.json",
+    "test/testcases/testcase_data/indices/13.2/index_ar_13.2.csv",
+    "test/testcases/testcase_data/indices/13.2/index_id_ra_13.2.csv",
+    "test/testcases/testcase_data/indices/13.2/index_re_13.2.csv",
+    "test/testcases/testcase_data/indices/13.2/index_vi_13.2.json",
+    "test/testcases/testcase_data/indices/13.3/index_ar_13.3.csv",
+    "test/testcases/testcase_data/indices/13.3/index_id_br_13.3.csv",
+    "test/testcases/testcase_data/indices/13.3/index_id_ra_13.3.csv",
+    "test/testcases/testcase_data/indices/13.3/index_re_13.3.csv",
+    "test/testcases/testcase_data/indices/13.3/index_vi_13.3.json",
+    "test/testcases/testcase_data/indices/14.1/index_ar_14.1.csv",
+    "test/testcases/testcase_data/indices/14.1/index_id_br_14.1.csv",
+    "test/testcases/testcase_data/indices/14.1/index_id_ra_14.1.csv",
+    "test/testcases/testcase_data/indices/14.1/index_re_14.1.csv",
+    "test/testcases/testcase_data/indices/14.1/index_vi_14.1.json",
+    "test/testcases/testcase_data/indices/14.2/index_ar_14.2.csv",
+    "test/testcases/testcase_data/indices/14.2/index_id_br_14.2.csv",
+    "test/testcases/testcase_data/indices/14.2/index_id_ra_14.2.csv",
+    "test/testcases/testcase_data/indices/14.2/index_re_14.2.csv",
+    "test/testcases/testcase_data/indices/14.2/index_vi_14.2.json",
+    "test/testcases/testcase_data/indices/14.3/index_id_br_14.3.csv",
+    "test/testcases/testcase_data/indices/14.3/index_re_14.3.csv",
+    "test/testcases/testcase_data/indices/14.3/index_vi_14.3.json",
+    "test/testcases/testcase_data/indices/14.4/index_ar_14.4.csv",
+    "test/testcases/testcase_data/indices/14.4/index_id_br_14.4.csv",
+    "test/testcases/testcase_data/indices/14.4/index_id_ra_14.4.csv",
+    "test/testcases/testcase_data/indices/14.4/index_re_14.4.csv",
+    "test/testcases/testcase_data/indices/14.4/index_vi_14.4.json",
+    "test/testcases/testcase_data/indices/15.1/index_vi_15.1.json",
+    "test/testcases/testcase_data/indices/15.3/index_ar_15.3.csv",
+    "test/testcases/testcase_data/indices/15.3/index_id_br_15.3.csv",
+    "test/testcases/testcase_data/indices/15.3/index_id_ra_15.3.csv",
+    "test/testcases/testcase_data/indices/15.3/index_re_15.3.csv",
+    "test/testcases/testcase_data/indices/15.3/index_vi_15.3.json",
+    "test/testcases/testcase_data/indices/15.5/index_ar_15.5.csv",
+    "test/testcases/testcase_data/indices/15.5/index_id_br_15.5.csv",
+    "test/testcases/testcase_data/indices/15.5/index_id_ra_15.5.csv",
+    "test/testcases/testcase_data/indices/15.5/index_re_15.5.csv",
+    "test/testcases/testcase_data/indices/15.6/index_ar_15.6.csv",
+    "test/testcases/testcase_data/indices/15.6/index_re_15.6.csv",
+    "test/testcases/testcase_data/indices/15.7/index_ar_15.7.csv",
+    "test/testcases/testcase_data/indices/15.7/index_id_br_15.7.csv",
+    "test/testcases/testcase_data/indices/15.7/index_id_ra_15.7.csv",
+    "test/testcases/testcase_data/indices/15.7/index_re_15.7.csv",
+    "test/testcases/testcase_data/indices/15.7/index_vi_15.7.json",
+    "test/testcases/testcase_data/indices/15.8/index_ar_15.8.csv",
+    "test/testcases/testcase_data/indices/15.8/index_re_15.8.csv",
+    "test/testcases/testcase_data/indices/15.8/index_vi_15.8.json",
+    "test/testcases/testcase_data/indices/16.1/index_ar_16.1.csv",
+    "test/testcases/testcase_data/indices/16.1/index_id_br_16.1.csv",
+    "test/testcases/testcase_data/indices/16.1/index_id_ra_16.1.csv",
+    "test/testcases/testcase_data/indices/16.1/index_re_16.1.csv",
+    "test/testcases/testcase_data/indices/16.1/index_vi_16.1.json",
+    "test/testcases/testcase_data/indices/16.2/index_ar_16.2.csv",
+    "test/testcases/testcase_data/indices/16.2/index_id_br_16.2.csv",
+    "test/testcases/testcase_data/indices/16.2/index_id_ra_16.2.csv",
+    "test/testcases/testcase_data/indices/16.2/index_re_16.2.csv",
+    "test/testcases/testcase_data/indices/16.2/index_vi_16.2.json",
+    "test/testcases/testcase_data/indices/16.3/index_ar_16.3.csv",
+    "test/testcases/testcase_data/indices/16.3/index_id_br_16.3.csv",
+    "test/testcases/testcase_data/indices/16.3/index_id_ra_16.3.csv",
+    "test/testcases/testcase_data/indices/16.3/index_re_16.3.csv",
+    "test/testcases/testcase_data/indices/16.3/index_vi_16.3.json",
+    "test/testcases/ts/real_data.nt",
+    "test/testcases/ts/real_data_with_prov.nq",
+]
+SPDX-FileCopyrightText = "2022 Arcangelo Massari <arcangelo.massari@unibo.it>"
+SPDX-License-Identifier = "ISC"
+
+[[annotations]]
+path = "pyproject.toml"
+SPDX-FileCopyrightText = [
+    "2022-2026 Arcangelo Massari <arcangelo.massari@unibo.it>",
+    "2023 ariannamorettj <arianna.moretti2@studio.unibo.it>",
+    "2023 martasoricetti <marta.soricetti@studio.unibo.it>",
+]
+SPDX-License-Identifier = "ISC"
+
+[[annotations]]
+path = [
+    "test/coverage/.coverage",
+    "test/testcases/testcase_data/indices/13.2/index_id_br_13.2.csv",
+    "test/testcases/testcase_data/indices/14.3/index_id_ra_14.3.csv",
+    "test/testcases/testcase_data/indices/15.2/index_id_br_15.2.csv",
+    "test/testcases/testcase_data/indices/15.2/index_id_ra_15.2.csv",
+    "test/testcases/testcase_data/indices/15.5/index_vi_15.5.json",
+    "test/testcases/testcase_data/indices/15.6/index_vi_15.6.json",
+]
+SPDX-FileCopyrightText = "2022-2025 Arcangelo Massari <arcangelo.massari@unibo.it>"
+SPDX-License-Identifier = "ISC"
+
+[[annotations]]
+path = [
+    "test/coverage/.coveragerc",
+    "test/meta_process/time_agnostic_library_config.json",
+]
+SPDX-FileCopyrightText = "2022-2026 Arcangelo Massari <arcangelo.massari@unibo.it>"
+SPDX-License-Identifier = "ISC"
+
+[[annotations]]
+path = [
+    "test/coverage/coverage.svg",
+    "test/prov_config.json",
+    "test/testcases/testcase_01.ttl",
+    "test/testcases/testcase_02.ttl",
+    "test/testcases/testcase_03.ttl",
+    "test/testcases/testcase_04.ttl",
+    "test/testcases/testcase_05.ttl",
+    "test/testcases/testcase_06.ttl",
+    "test/testcases/testcase_07.ttl",
+    "test/testcases/testcase_08.ttl",
+    "test/testcases/testcase_09.ttl",
+    "test/testcases/testcase_10.ttl",
+    "test/testcases/testcase_data/indices/14.3/index_ar_14.3.csv",
+    "test/testcases/testcase_data/indices/15.2/index_vi_15.2.json",
+    "test/testcases/testcase_data/testcase_13.3_data.csv",
+    "test/testcases/testcase_data/testcase_14.3_data.csv",
+    "test/testcases/testcase_data/testcase_15.2_data.csv",
+]
+SPDX-FileCopyrightText = "2022-2024 Arcangelo Massari <arcangelo.massari@unibo.it>"
+SPDX-License-Identifier = "ISC"
+
+[[annotations]]
+path = [
+    "test/editor/input/0.csv",
+    "test/editor/input/1.csv",
+]
+SPDX-FileCopyrightText = "2023-2024 Arcangelo Massari <arcangelo.massari@unibo.it>"
+SPDX-License-Identifier = "ISC"
+
+[[annotations]]
+path = [
+    "test/editor/input/2.csv",
+    "test/fixer_tests/data/destination/br/0610/10000/1000/prov/se.zip",
+    "test/fixer_tests/data/source/br/0610/10000/1000/prov/se.zip",
+    "test/fixer_tests/data/tmp/br/0610/10000/1000/prov/.placeholder",
+    "test/gen_info_dir/rdf/br/0670/10000/1000/prov/se.json",
+    "test/gen_info_dir/rdf/br/0670/10000/1000/prov/se.zip",
+    "test/gen_info_dir/rdf/br/0670/390000/1000.json",
+    "test/gen_info_dir/rdf/br/0670/390000/386000.zip",
+    "test/merger/input/0.csv",
+    "test/merger/input/1.csv",
+    "test/merger/input/2.csv",
+    "test/merger/input/empty.csv",
+    "test/meta_process/input_4/without_openalex/0.csv",
+    "test/meta_process/input_4/without_openalex/1.csv",
+    "test/meta_process/input_5/0.csv",
+    "test/testcases/testcase_data/indices/13.31/index_ar_13.31.csv",
+    "test/testcases/testcase_data/indices/13.31/index_id_br_13.31.csv",
+    "test/testcases/testcase_data/indices/13.31/index_id_ra_13.31.csv",
+    "test/testcases/testcase_data/indices/13.31/index_re_13.31.csv",
+    "test/testcases/testcase_data/indices/13.31/index_vi_13.31.json",
+    "test/testcases/testcase_data/indices/14.31/index_ar_14.31.csv",
+    "test/testcases/testcase_data/indices/14.31/index_id_br_14.31.csv",
+    "test/testcases/testcase_data/indices/14.31/index_id_ra_14.31.csv",
+    "test/testcases/testcase_data/indices/14.31/index_re_14.31.csv",
+    "test/testcases/testcase_data/indices/14.31/index_vi_14.31.json",
+    "test/testcases/testcase_data/testcase_13.31_data.csv",
+    "test/testcases/testcase_data/testcase_14.31_data.csv",
+    "time_agnostic_config.json",
+]
+SPDX-FileCopyrightText = "2024 Arcangelo Massari <arcangelo.massari@unibo.it>"
+SPDX-License-Identifier = "ISC"
+
+[[annotations]]
+path = [
+    "test/editor/time_agnostic_library_config.json",
+    "test/endgame/time_agnostic_library_config.json",
+]
+SPDX-FileCopyrightText = "2023-2026 Arcangelo Massari <arcangelo.massari@unibo.it>"
+SPDX-License-Identifier = "ISC"
+
+[[annotations]]
+path = [
+    "test/endgame/input/0.csv",
+    "test/endgame/input/1.csv",
+    "test/endgame/input/10.csv",
+    "test/endgame/input/11.csv",
+    "test/endgame/input/12.csv",
+    "test/endgame/input/13.csv",
+    "test/endgame/input/14.csv",
+    "test/endgame/input/15.csv",
+    "test/endgame/input/16.csv",
+    "test/endgame/input/17.csv",
+    "test/endgame/input/18.csv",
+    "test/endgame/input/19.csv",
+    "test/endgame/input/2.csv",
+    "test/endgame/input/20.csv",
+    "test/endgame/input/21.csv",
+    "test/endgame/input/22.csv",
+    "test/endgame/input/23.csv",
+    "test/endgame/input/3.csv",
+    "test/endgame/input/4.csv",
+    "test/endgame/input/5.csv",
+    "test/endgame/input/6.csv",
+    "test/endgame/input/7.csv",
+    "test/endgame/input/8.csv",
+    "test/endgame/input/9.csv",
+    "test/fixer/duplicated_ids/input/0.csv",
+    "test/meta_process/same_as_input_2_with_other_authors/0.csv",
+]
+SPDX-FileCopyrightText = "2023 Arcangelo Massari <arcangelo.massari@unibo.it>"
+SPDX-License-Identifier = "ISC"
+
+[[annotations]]
+path = [
+    "test/manual_data.csv",
+    "test/testcases/testcase_data/indices/15.1/index_ar_15.1.csv",
+    "test/testcases/testcase_data/indices/15.1/index_id_br_15.1.csv",
+    "test/testcases/testcase_data/indices/15.1/index_id_ra_15.1.csv",
+    "test/testcases/testcase_data/indices/15.1/index_re_15.1.csv",
+    "test/testcases/testcase_data/indices/15.2/index_ar_15.2.csv",
+    "test/testcases/testcase_data/indices/15.2/index_re_15.2.csv",
+    "test/testcases/testcase_data/indices/15.4/index_ar_15.4.csv",
+    "test/testcases/testcase_data/indices/15.4/index_id_br_15.4.csv",
+    "test/testcases/testcase_data/indices/15.4/index_id_ra_15.4.csv",
+    "test/testcases/testcase_data/indices/15.4/index_re_15.4.csv",
+    "test/testcases/testcase_data/indices/15.4/index_vi_15.4.json",
+    "test/testcases/testcase_data/indices/15.6/index_id_br_15.6.csv",
+    "test/testcases/testcase_data/indices/15.6/index_id_ra_15.6.csv",
+    "test/testcases/testcase_data/indices/15.8/index_id_br_15.8.csv",
+    "test/testcases/testcase_data/indices/15.8/index_id_ra_15.8.csv",
+    "test/testcases/testcase_data/testcase_01_data.csv",
+    "test/testcases/testcase_data/testcase_02_data.csv",
+    "test/testcases/testcase_data/testcase_03_data.csv",
+    "test/testcases/testcase_data/testcase_04_data.csv",
+    "test/testcases/testcase_data/testcase_05_data.csv",
+    "test/testcases/testcase_data/testcase_06_data.csv",
+    "test/testcases/testcase_data/testcase_07_data.csv",
+    "test/testcases/testcase_data/testcase_08_data.csv",
+    "test/testcases/testcase_data/testcase_09_data.csv",
+    "test/testcases/testcase_data/testcase_10_data.csv",
+    "test/testcases/testcase_data/testcase_11_data.csv",
+    "test/testcases/testcase_data/testcase_12_data.csv",
+    "test/testcases/testcase_data/testcase_13.1_data.csv",
+    "test/testcases/testcase_data/testcase_13.2_data.csv",
+    "test/testcases/testcase_data/testcase_14.1_data.csv",
+    "test/testcases/testcase_data/testcase_14.2_data.csv",
+    "test/testcases/testcase_data/testcase_14.4_data.csv",
+    "test/testcases/testcase_data/testcase_15.1_data.csv",
+    "test/testcases/testcase_data/testcase_15.3_data.csv",
+    "test/testcases/testcase_data/testcase_15.4_data.csv",
+    "test/testcases/testcase_data/testcase_15.5_data.csv",
+    "test/testcases/testcase_data/testcase_15.6_data.csv",
+    "test/testcases/testcase_data/testcase_15.7_data.csv",
+    "test/testcases/testcase_data/testcase_15.8_data.csv",
+    "test/testcases/testcase_data/testcase_16.1_data.csv",
+    "test/testcases/testcase_data/testcase_16.2_data.csv",
+    "test/testcases/testcase_data/testcase_16.3_data.csv",
+    "test/testcases/testcase_data/testcase_X_data.csv",
+    "test/testcases/ts/testcase_ts-13.ttl",
+]
+SPDX-FileCopyrightText = "2022-2023 Arcangelo Massari <arcangelo.massari@unibo.it>"
+SPDX-License-Identifier = "ISC"
+
+[[annotations]]
+path = "test/merger/time_agnostic_library_config.json"
+SPDX-FileCopyrightText = "2024-2026 Arcangelo Massari <arcangelo.massari@unibo.it>"
+SPDX-License-Identifier = "ISC"
+
+[[annotations]]
+path = [
+    "test/meta_process/input_4/with_openalex/0.csv",
+    "test/meta_process/input_4/with_openalex/1.csv",
+    "test/meta_process/test_omid_in_input_data.json",
+    "test/meta_process/test_omid_in_input_data_prov.json",
+    "test/meta_process/test_publishers_sequence.json",
+]
+SPDX-FileCopyrightText = "2024-2025 Arcangelo Massari <arcangelo.massari@unibo.it>"
+SPDX-License-Identifier = "ISC"

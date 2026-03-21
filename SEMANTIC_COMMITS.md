@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+
+SPDX-License-Identifier: ISC
+-->
+
 # Semantic Commit Messages
 
 This document explains how to structure commit messages in a semantic way for the OpenCitations Meta project. Following these conventions ensures that automatic versioning and changelog generation work correctly.

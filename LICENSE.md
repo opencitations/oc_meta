@@ -1,9 +1,13 @@
-# ISC License (ISC)
+<!--
+SPDX-FileCopyrightText: 2019 Silvio Peroni <silvio.peroni@unibo.it>
+SPDX-FileCopyrightText: 2019-2020 Fabio Mariani <fabio.mariani555@gmail.com>
+SPDX-FileCopyrightText: 2021 Simone Persiani <iosonopersia@gmail.com>
+SPDX-FileCopyrightText: 2021-2025 Arcangelo Massari <arcangelo.massari@unibo.it>
 
-_Copyright 2019 Silvio Peroni <essepuntato@gmail.com>_  
-_Copyright 2019-2020 Fabio Mariani <fabio.mariani555@gmail.com>_  
-_Copyright 2021 Simone Persiani <iosonopersia@gmail.com>_  
-_Copyright 2021-2025 Arcangelo Massari <arcangelo.massari@unibo.it>_
+SPDX-License-Identifier: ISC
+-->
+
+# ISC License (ISC)
 
 Permission to use, copy, modify, and/or distribute this software for any purpose with or
 without fee is hereby granted, provided that the above copyright notice and this permission

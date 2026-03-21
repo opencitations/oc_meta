@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
 # Script to create compressed and split archives using 7zip
 # Usage: ./create_archive.sh SOURCE_DIR OUTPUT_DIR ARCHIVE_NAME MAX_SIZE
 

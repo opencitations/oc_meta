@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2022-2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
 # Split by ';' outside '[]' (any spaces before and after ';').
 semicolon_in_people_field = r'\s*;\s*(?=[^\]]*(?:\[|$))'
 

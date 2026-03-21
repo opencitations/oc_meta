@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
 # Script to extract split 7zip archives
 # Usage: ./extract_archive.sh PART_FILE [EXTRACT_TO]
 

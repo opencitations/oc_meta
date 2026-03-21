@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2024-2026 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
 import argparse
 import concurrent.futures
 import csv

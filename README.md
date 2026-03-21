@@ -1,8 +1,16 @@
+<!--
+SPDX-FileCopyrightText: 2020 FabioMariani <fabios.ap93@hotmail.com>
+SPDX-FileCopyrightText: 2021-2026 Arcangelo Massari <arcangelo.massari@unibo.it>
+
+SPDX-License-Identifier: ISC
+-->
+
 [<img src="https://img.shields.io/badge/powered%20by-OpenCitations-%239931FC?labelColor=2D22DE" />](http://opencitations.net)
 [![Run tests](https://github.com/opencitations/oc_meta/actions/workflows/run_tests.yml/badge.svg)](https://github.com/opencitations/oc_meta/actions/workflows/run_tests.yml)
 [![Coverage](https://byob.yarr.is/arcangelo7/badges/opencitations-oc_meta_coverage)](https://opencitations.github.io/oc_meta/coverage/)
 ![PyPI](https://img.shields.io/pypi/pyversions/oc_meta?logo=python&logoColor=white&label=python&color=blue)
 ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/opencitations/oc_meta)
+[![REUSE](https://github.com/opencitations/oc_meta/actions/workflows/reuse.yml/badge.svg)](https://github.com/opencitations/oc_meta/actions/workflows/reuse.yml)
 
 # OpenCitations Meta
 
