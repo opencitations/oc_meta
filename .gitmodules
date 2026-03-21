@@ -1,0 +1,3 @@
+[submodule "oc_ds_converter"]
+	path = oc_ds_converter
+	url = https://github.com/opencitations/oc_ds_converter.git
