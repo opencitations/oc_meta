@@ -13,7 +13,7 @@ import pytest
 import redis
 
 
-QLEVER_IMAGE = "adfreiburg/qlever"
+QLEVER_IMAGE = "adfreiburg/qlever:commit-5c6a72a"
 QLEVER_ACCESS_TOKEN = "qlever_test_token"
 
 

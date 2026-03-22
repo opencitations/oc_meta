@@ -792,14 +792,13 @@ class ResourceFinder:
                     for identifier in batch:
                         scheme, literal = identifier.split(':', maxsplit=1)[0], identifier.split(':', maxsplit=1)[1]
                         escaped_literal = literal.replace('\\', '\\\\').replace('"', '\\"')
-                        identifiers_values.append(f"(<{GraphEntity.DATACITE + scheme}> \"{escaped_literal}\")")
+                        identifiers_values.append(f'(<{GraphEntity.DATACITE + scheme}> "{escaped_literal}"^^<{XSD.string}>)')
                     identifiers_values_str = " ".join(identifiers_values)
                     query = f'''
                         SELECT DISTINCT ?s ?scheme ?literal WHERE {{
                             VALUES (?scheme ?literal) {{ {identifiers_values_str} }}
                             ?id <{GraphEntity.iri_uses_identifier_scheme}> ?scheme .
-                            ?id <{GraphEntity.iri_has_literal_value}> ?literalValue  .
-                            FILTER(str(?literalValue) = str(?literal))
+                            ?id <{GraphEntity.iri_has_literal_value}> ?literal .
                             ?s <{GraphEntity.iri_has_identifier}> ?id .
                         }}
                     '''
