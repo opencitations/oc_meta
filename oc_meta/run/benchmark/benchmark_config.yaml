@@ -25,8 +25,6 @@ resp_agent: https://github.com/opencitations/oc_meta/benchmark
 
 # Folder where RDF files are saved (trailing slash important for Storer)
 output_rdf_dir: oc_meta/run/benchmark/output/
-# Generate RDF files (JSON-LD) in addition to SPARQL queries
-generate_rdf_files: True
 # If True, titles will be normalized (capitalized). If False, titles will be kept as-is
 normalize_titles: True
 # The base URI of entities on Meta
@@ -65,12 +63,3 @@ redis_host: localhost
 redis_port: 6381
 redis_db: 10
 cache_db: 11
-
-# Virtuoso bulk load settings
-virtuoso_bulk_load:
-  enabled: false
-  data_container: oc-meta-test-virtuoso
-  prov_container: oc-meta-test-virtuoso-prov
-  bulk_load_dir: /database/bulk_load
-  data_mount_dir: test/test_virtuoso_db/bulk_load
-  prov_mount_dir: test/test_virtuoso_db_prov/bulk_load

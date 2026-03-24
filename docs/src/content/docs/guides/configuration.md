@@ -39,22 +39,13 @@ default_dir: "_"
 # Input/output
 input_csv_dir: "/path/to/input"
 output_rdf_dir: "/path/to/output"
-generate_rdf_files: false
+rdf_files_only: false
 zip_output_rdf: true
 
 # Processing options
 silencer: ["author", "editor", "publisher"]
 normalize_titles: true
 use_doi_api_service: false
-
-# Virtuoso bulk loading (optional)
-virtuoso_bulk_load:
-  enabled: false
-  data_container: "virtuoso-data"
-  prov_container: "virtuoso-prov"
-  data_mount_dir: "/srv/meta/data_bulk"
-  prov_mount_dir: "/srv/meta/prov_bulk"
-  bulk_load_dir: "/database/bulk_load"
 ```
 
 ## Option reference
@@ -136,8 +127,8 @@ output_rdf_dir/
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `input_csv_dir` | string | - | Directory containing input CSV files |
-| `output_rdf_dir` | string | - | Directory for RDF output (if enabled) |
-| `generate_rdf_files` | bool | false | Generate RDF files in addition to SPARQL |
+| `output_rdf_dir` | string | - | Directory for RDF output |
+| `rdf_files_only` | bool | false | Generate only RDF files without updating triplestores |
 | `zip_output_rdf` | bool | true | Compress RDF files to ZIP archives |
 
 ### Processing options
@@ -149,43 +140,6 @@ output_rdf_dir/
 | `use_doi_api_service` | bool | false | Query DOI API for metadata |
 
 The `silencer` option accepts a list of field names: `author`, `editor`, and `publisher`. Meta always works in addition mode (it never overwrites existing data). The silencer prevents adding new elements to an existing sequence. For example, if `silencer: ["author"]` is set and a resource already has authors, new authors from the CSV will not be added to the existing author chain.
-
-### Virtuoso bulk loading
-
-Bulk loading bypasses SPARQL INSERT and uses Virtuoso's native loader:
-
-> **Note**: We have observed empirically that Virtuoso's database tends to lose integrity when using bulk loading. While it improves performance and speed, we recommend keeping this option disabled.
-
-| Option | Type | Description |
-|--------|------|-------------|
-| `virtuoso_bulk_load.enabled` | bool | Enable bulk loading mode |
-| `virtuoso_bulk_load.data_container` | string | Docker container name for data triplestore |
-| `virtuoso_bulk_load.prov_container` | string | Docker container name for provenance triplestore |
-| `virtuoso_bulk_load.data_mount_dir` | string | Host directory mounted in data container |
-| `virtuoso_bulk_load.prov_mount_dir` | string | Host directory mounted in prov container |
-| `virtuoso_bulk_load.bulk_load_dir` | string | Path inside container for bulk load |
-
-**Requirements for bulk loading:**
-
-1. Both Virtuoso instances must run in Docker containers
-2. Host directories must be mounted as volumes
-3. The bulk load directory must be in `DirsAllowed` in `virtuoso.ini`
-
-Example Docker setup:
-
-```bash
-docker run -d --name virtuoso-data \
-  -v /srv/meta/data_bulk:/database/bulk_load \
-  -p 8890:8890 -p 1111:1111 \
-  openlink/virtuoso-opensource-7:latest
-```
-
-Example `virtuoso.ini`:
-
-```ini
-[Parameters]
-DirsAllowed = ., /database, /database/bulk_load
-```
 
 ## Generated files
 

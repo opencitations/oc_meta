@@ -673,7 +673,7 @@ class ResourceFinder:
         return '; '.join(publishers_output)
             
     def get_everything_about_res(self, metavals: set, identifiers: set, vvis: set, max_depth: int = 10) -> None:
-        BATCH_SIZE = 10
+        BATCH_SIZE = 30
         MAX_WORKERS = 1
 
         def batch_process(input_set, batch_size):

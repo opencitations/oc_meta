@@ -8,7 +8,6 @@
 from __future__ import annotations
 
 import csv
-import glob
 import multiprocessing
 import os
 import sys
@@ -28,7 +27,6 @@ from oc_ocdm.support.reporter import Reporter
 from piccione.upload.on_triplestore import upload_sparql_updates
 from rich_argparse import RichHelpFormatter
 from time_agnostic_library.support import generate_config_file
-from virtuoso_utilities.bulk_load import bulk_load
 
 from oc_meta.core.creator import Creator
 from oc_meta.core.curator import Curator
@@ -37,11 +35,6 @@ from oc_meta.lib.file_manager import (get_csv_data, init_cache, normalize_path,
                                       pathoo, sort_files)
 from oc_meta.lib.timer import ProcessTimer
 from oc_meta.run.benchmark.plotting import plot_incremental_progress
-
-
-class BulkLoadError(Exception):
-    """Raised when Virtuoso bulk load fails."""
-    pass
 
 
 def _upload_to_triplestore(endpoint: str, folder: str, redis_host: str, redis_port: int, redis_db: int, failed_file: str, stop_file: str, description: str = "Processing files") -> None:
@@ -63,38 +56,11 @@ def _upload_to_triplestore(endpoint: str, folder: str, redis_host: str, redis_po
         sys.exit(1)
 
 
-def _run_bulk_load_process(args: tuple) -> None:
-    """
-    Worker function to execute Virtuoso bulk load in a separate process.
-    """
-    container_name, bulk_load_dir, nquads_host_dir = args
-
-    nquads_files = glob.glob(os.path.join(nquads_host_dir, "*.nq.gz"))
-    if not nquads_files:
-        return
-
-    virtuoso_password = "dba"
-
-    try:
-        bulk_load(
-            data_directory=nquads_host_dir,
-            password=virtuoso_password,
-            docker_container=container_name,
-            container_data_directory=bulk_load_dir,
-            log_level="CRITICAL"
-        )
-    except RuntimeError as e:
-        raise BulkLoadError(f"Bulk load failed for container {container_name}: {e}") from e
-
-
-def _generate_queries_worker(storer: Storer, triplestore_url, base_dir, save_queries, prepare_bulk_load, bulk_load_dir):
+def _generate_queries_worker(storer: Storer, triplestore_url: str, base_dir: str) -> None:
     storer.upload_all(
         triplestore_url=triplestore_url,
         base_dir=base_dir,
         batch_size=10,
-        save_queries=save_queries,
-        prepare_bulk_load=prepare_bulk_load,
-        bulk_load_dir=bulk_load_dir
     )
 
 
@@ -140,7 +106,7 @@ class MetaProcess:
             supplier_prefix if supplier_prefix.endswith("0") else f"{supplier_prefix}0"
         )
         self.silencer = settings["silencer"]
-        self.generate_rdf_files = settings.get("generate_rdf_files", True)
+        self.rdf_files_only = settings.get("rdf_files_only", False)
         # Time-Agnostic_library integration
         self.time_agnostic_library_config = os.path.join(
             os.path.dirname(meta_config_path), "time_agnostic_library_config.json"
@@ -296,9 +262,6 @@ class MetaProcess:
                 "An exception of type {0} occurred. Arguments:\n{1!r}\nTraceback:\n{2}"
             )
             message = template.format(type(e).__name__, e.args, tb)
-            if isinstance(e, BulkLoadError):
-                console.print(message)
-                raise
             return {"message": message}, cache_path, errors_path, filename
 
     def _setup_output_directories(self) -> None:
@@ -358,82 +321,53 @@ class MetaProcess:
     def store_data_and_prov(
         self, res_storer: Storer, prov_storer: Storer
     ) -> None:
-        """Orchestrate storage and upload using appropriate strategy."""
+        """Orchestrate storage and upload."""
         self._setup_output_directories()
-
-        bulk_config = self.settings.get("virtuoso_bulk_load", {})
-        if bulk_config.get("enabled", False):
-            self._store_and_upload(res_storer, prov_storer, self.timer, bulk_config)
-        else:
-            self._store_and_upload(res_storer, prov_storer, self.timer)
+        self._store_and_upload(res_storer, prov_storer, self.timer)
 
     def _store_and_upload(
-        self, res_storer: Storer, prov_storer: Storer, timer: ProcessTimer, bulk_config: dict | None = None
+        self, res_storer: Storer, prov_storer: Storer, timer: ProcessTimer
     ) -> None:
         """Store RDF files and upload queries to triplestore with parallel execution."""
-        use_bulk_load = bulk_config is not None
-
-        if use_bulk_load:
-            data_nquads_dir = os.path.abspath(bulk_config["data_mount_dir"])
-            prov_nquads_dir = os.path.abspath(bulk_config["prov_mount_dir"])
-            os.makedirs(data_nquads_dir, exist_ok=True)
-            os.makedirs(prov_nquads_dir, exist_ok=True)
-        else:
-            data_nquads_dir = None
-            prov_nquads_dir = None
 
         with timer.timer("storage"):
             # Use forkserver to avoid deadlocks when forking from a multi-threaded process.
             # Libraries like Redis and rdflib create background threads, and fork() would
             # copy locked mutexes into the child process, causing hangs.
             ctx = multiprocessing.get_context('forkserver')
-            rdf_store_processes = []
 
-            if self.generate_rdf_files:
-                data_store_process = ctx.Process(
-                    target=_store_rdf_worker,
-                    args=(res_storer, self.output_rdf_dir, self.base_iri, self.context_path)
-                )
-                prov_store_process = ctx.Process(
-                    target=_store_rdf_worker,
-                    args=(prov_storer, self.output_rdf_dir, self.base_iri, self.context_path)
-                )
-                rdf_store_processes = [data_store_process, prov_store_process]
-                for p in rdf_store_processes:
-                    p.start()
-
-            data_query_process = ctx.Process(
-                target=_generate_queries_worker,
-                args=(res_storer, self.triplestore_url, self.data_update_dir,
-                      not use_bulk_load, use_bulk_load, data_nquads_dir)
+            data_store_process = ctx.Process(
+                target=_store_rdf_worker,
+                args=(res_storer, self.output_rdf_dir, self.base_iri, self.context_path)
             )
-            prov_query_process = ctx.Process(
-                target=_generate_queries_worker,
-                args=(prov_storer, self.provenance_triplestore_url, self.prov_update_dir,
-                      not use_bulk_load, use_bulk_load, prov_nquads_dir)
+            prov_store_process = ctx.Process(
+                target=_store_rdf_worker,
+                args=(prov_storer, self.output_rdf_dir, self.base_iri, self.context_path)
             )
-            data_query_process.start()
-            prov_query_process.start()
-            data_query_process.join()
-            prov_query_process.join()
+            rdf_store_processes = [data_store_process, prov_store_process]
+            for p in rdf_store_processes:
+                p.start()
 
-            if data_query_process.exitcode != 0:
-                raise RuntimeError(f"Data query generation failed with exit code {data_query_process.exitcode}")
-            if prov_query_process.exitcode != 0:
-                raise RuntimeError(f"Prov query generation failed with exit code {prov_query_process.exitcode}")
+            if not self.rdf_files_only:
+                data_query_process = ctx.Process(
+                    target=_generate_queries_worker,
+                    args=(res_storer, self.triplestore_url, self.data_update_dir)
+                )
+                prov_query_process = ctx.Process(
+                    target=_generate_queries_worker,
+                    args=(prov_storer, self.provenance_triplestore_url, self.prov_update_dir)
+                )
+                data_query_process.start()
+                prov_query_process.start()
+                data_query_process.join()
+                prov_query_process.join()
 
-            self._upload_sparql_queries()
+                if data_query_process.exitcode != 0:
+                    raise RuntimeError(f"Data query generation failed with exit code {data_query_process.exitcode}")
+                if prov_query_process.exitcode != 0:
+                    raise RuntimeError(f"Prov query generation failed with exit code {prov_query_process.exitcode}")
 
-            if use_bulk_load:
-                assert bulk_config is not None
-                assert data_nquads_dir is not None
-                assert prov_nquads_dir is not None
-                _run_bulk_load_process((bulk_config["data_container"], bulk_config["bulk_load_dir"], data_nquads_dir))
-                _run_bulk_load_process((bulk_config["prov_container"], bulk_config["bulk_load_dir"], prov_nquads_dir))
-                for nq_file in glob.glob(os.path.join(data_nquads_dir, "*.nq.gz")):
-                    os.remove(nq_file)
-                for nq_file in glob.glob(os.path.join(prov_nquads_dir, "*.nq.gz")):
-                    os.remove(nq_file)
+                self._upload_sparql_queries()
 
             for p in rdf_store_processes:
                 p.join()

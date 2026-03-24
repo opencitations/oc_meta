@@ -2222,6 +2222,92 @@ class test_ProcessTest(unittest.TestCase):
             len(articles), 1, "Should only be one article after deduplication"
         )
 
+    def test_rdf_files_only(self):
+        """Test that rdf_files_only generates RDF files without updating triplestores"""
+        test_data = [
+            {
+                "id": "doi:10.1234/rdf-only-test",
+                "title": "RDF Only Test Article",
+                "author": "Test, Author",
+                "pub_date": "2024",
+                "venue": "",
+                "volume": "",
+                "issue": "",
+                "page": "",
+                "type": "journal article",
+                "publisher": "",
+                "editor": "",
+            }
+        ]
+
+        input_dir = os.path.join(BASE_DIR, "input_rdf_only")
+        os.makedirs(input_dir, exist_ok=True)
+        csv_path = os.path.join(input_dir, "test.csv")
+        write_csv(csv_path, test_data)
+
+        output_dir = os.path.join(BASE_DIR, "output_rdf_only")
+        os.makedirs(output_dir, exist_ok=True)
+        config = {
+            "input_csv_dir": input_dir,
+            "base_output_dir": output_dir,
+            "output_rdf_dir": output_dir,
+            "triplestore_url": SERVER,
+            "provenance_triplestore_url": PROV_SERVER,
+            "resp_agent": "https://w3id.org/oc/meta/prov/pa/1",
+            "base_iri": "https://w3id.org/oc/meta/",
+            "context_path": "https://w3id.org/oc/meta/context.json",
+            "supplier_prefix": "060",
+            "dir_split_number": 10000,
+            "items_per_file": 1000,
+            "default_dir": "_",
+            "rdf_output_in_chunks": True,
+            "zip_output_rdf": False,
+            "source": None,
+            "use_doi_api_service": False,
+            "silencer": [],
+            "redis_host": "localhost",
+            "redis_port": 6381,
+            "redis_db": 5,
+            "redis_cache_db": 2,
+            "ts_upload_cache": self.cache_file,
+            "ts_failed_queries": self.failed_file,
+            "ts_stop_file": self.stop_file,
+            "graphdb_connector_name": None,
+            "blazegraph_full_text_search": False,
+            "fuseki_full_text_search": False,
+            "virtuoso_full_text_search": False,
+            "provenance_endpoints": [],
+            "cache_endpoint": None,
+            "cache_update_endpoint": None,
+            "normalize_titles": True,
+            "rdf_files_only": True,
+        }
+        config_path = os.path.join(output_dir, "config.yaml")
+        with open(config_path, "w") as f:
+            yaml.dump(config, f)
+
+        run_meta_process(settings=config, meta_config_path=config_path)
+
+        rdf_dir = os.path.join(output_dir, "rdf")
+        rdf_files_exist = os.path.exists(rdf_dir) and any(
+            f.endswith(".json") for root, _, files in os.walk(rdf_dir) for f in files
+        )
+
+        query = """
+        SELECT ?s WHERE {
+            ?s <http://purl.org/spar/datacite/hasIdentifier> ?id .
+            ?id <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "10.1234/rdf-only-test" .
+        }
+        """
+        results = execute_sparql_query(SERVER, query)
+        triplestore_empty = len(results["results"]["bindings"]) == 0
+
+        shutil.rmtree(input_dir)
+        shutil.rmtree(output_dir)
+
+        self.assertTrue(rdf_files_exist, "RDF files should be generated")
+        self.assertTrue(triplestore_empty, "Triplestore should not be updated when rdf_files_only is True")
+
 
 def normalize_graph(graph):
     """
