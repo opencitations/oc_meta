@@ -10,7 +10,7 @@ from __future__ import annotations
 import os
 import re
 from contextlib import nullcontext
-from typing import Dict, List, Tuple
+from typing import TYPE_CHECKING, Dict, List, Tuple
 
 from oc_meta.constants import CONTAINER_EDITOR_TYPES
 from oc_meta.lib.cleaner import Cleaner
@@ -18,6 +18,9 @@ from oc_meta.lib.file_manager import *
 from oc_meta.lib.finder import *
 from oc_meta.lib.master_of_regex import *
 from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
+
+if TYPE_CHECKING:
+    from rich.progress import Progress
 
 
 class Curator:
@@ -36,8 +39,10 @@ class Curator:
         silencer: list = [],
         meta_config_path: str | None = None,
         timer=None,
+        progress: Progress | None = None,
     ):
         self.timer = timer
+        self.progress = progress
         self.settings = settings or {}
         self.everything_everywhere_allatonce = Graph()
         self.finder = ResourceFinder(
@@ -88,6 +93,9 @@ class Curator:
         return nullcontext()
 
     def collect_identifiers(self, valid_dois_cache):
+        return self._collect_identifiers_with_progress(valid_dois_cache, task_id=None)
+
+    def _collect_identifiers_with_progress(self, valid_dois_cache, task_id=None):
         all_metavals = set()
         all_idslist = set()
         all_vvis = set()
@@ -98,6 +106,8 @@ class Curator:
             all_metavals.update(metavals)
             all_idslist.update(idslist)
             all_vvis.update(vvis)
+            if self.progress and task_id is not None:
+                self.progress.advance(task_id)
         return all_metavals, all_idslist, all_vvis
 
     def extract_identifiers_and_metavals(
@@ -162,20 +172,39 @@ class Curator:
             )
 
     def curator(self, filename: str | None = None, path_csv: str | None = None):
+        total_rows = len(self.data)
+
         # Phase 1: Collect identifiers and SPARQL prefetch
         with self._timed("curation__collect_identifiers"):
-            metavals, identifiers, vvis = self.collect_identifiers(
-                valid_dois_cache=self.valid_dois_cache
+            task_collect = None
+            if self.progress:
+                task_collect = self.progress.add_task(
+                    "  [dim]Collecting identifiers[/dim]", total=total_rows
+                )
+            metavals, identifiers, vvis = self._collect_identifiers_with_progress(
+                valid_dois_cache=self.valid_dois_cache,
+                task_id=task_collect,
             )
+            if self.progress and task_collect is not None:
+                self.progress.remove_task(task_collect)
             self.finder.get_everything_about_res(
                 metavals=metavals, identifiers=identifiers, vvis=vvis
             )
 
         # Phase 2: Clean ID (loop over all rows)
         with self._timed("curation__clean_id"):
+            task_clean_id = None
+            if self.progress:
+                task_clean_id = self.progress.add_task(
+                    "  [dim]Cleaning IDs[/dim]", total=total_rows
+                )
             for row in self.data:
                 self.clean_id(row)
                 self.rowcnt += 1
+                if self.progress and task_clean_id is not None:
+                    self.progress.advance(task_clean_id)
+            if self.progress and task_clean_id is not None:
+                self.progress.remove_task(task_clean_id)
 
         # Phase 3: Merge duplicate entities
         with self._timed("curation__merge_duplicates"):
@@ -185,18 +214,36 @@ class Curator:
         # Phase 4: Clean VVI (venue/volume/issue)
         with self._timed("curation__clean_vvi"):
             self.rowcnt = 0
+            task_vvi = None
+            if self.progress:
+                task_vvi = self.progress.add_task(
+                    "  [dim]Cleaning VVI[/dim]", total=total_rows
+                )
             for row in self.data:
                 self.clean_vvi(row)
                 self.rowcnt += 1
+                if self.progress and task_vvi is not None:
+                    self.progress.advance(task_vvi)
+            if self.progress and task_vvi is not None:
+                self.progress.remove_task(task_vvi)
 
         # Phase 5: Clean RA (author + publisher + editor aggregated)
         with self._timed("curation__clean_ra"):
             self.rowcnt = 0
+            task_ra = None
+            if self.progress:
+                task_ra = self.progress.add_task(
+                    "  [dim]Cleaning RA[/dim]", total=total_rows
+                )
             for row in self.data:
                 self.clean_ra(row, "author")
                 self.clean_ra(row, "publisher")
                 self.clean_ra(row, "editor")
                 self.rowcnt += 1
+                if self.progress and task_ra is not None:
+                    self.progress.advance(task_ra)
+            if self.progress and task_ra is not None:
+                self.progress.remove_task(task_ra)
 
         # Phase 6: Finalize (preexisting + meta_maker + enrich + indexer)
         with self._timed("curation__finalize"):

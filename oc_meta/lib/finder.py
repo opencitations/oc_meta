@@ -674,7 +674,7 @@ class ResourceFinder:
             
     def get_everything_about_res(self, metavals: set, identifiers: set, vvis: set, max_depth: int = 10) -> None:
         BATCH_SIZE = 30
-        MAX_WORKERS = 1
+        MAX_WORKERS = 24
 
         def batch_process(input_set, batch_size):
             """Generator to split input data into smaller batches if batch_size is not None."""

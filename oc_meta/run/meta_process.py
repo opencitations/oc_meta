@@ -165,6 +165,7 @@ class MetaProcess:
         errors_path: str,
         settings: dict | None = None,
         meta_config_path: str | None = None,
+        progress=None,
     ) -> Tuple[dict, str, str, str]:
         try:
             with self.timer.timer("total_processing"):
@@ -186,6 +187,7 @@ class MetaProcess:
                     silencer=self.silencer,
                     meta_config_path=meta_config_path,
                     timer=self.timer,
+                    progress=progress,
                 )
                 name = f"{filename.replace('.csv', '')}_{datetime.now().strftime('%Y-%m-%dT%H-%M-%S')}"
                 curator_obj.curator(
@@ -213,6 +215,7 @@ class MetaProcess:
                             ar_index_csv=curator_obj.ar_index,
                             vi_index=curator_obj.VolIss,
                             silencer=self.silencer,
+                            progress=progress,
                         )
                         creator = creator_obj.creator(source=self.source)
                         self.timer.record_metric("entities_created", len(creator.res_to_entity))
@@ -471,7 +474,8 @@ def run_meta_process(
                     meta_process.cache_path,
                     meta_process.errors_path,
                     settings=settings,
-                    meta_config_path=meta_config_path
+                    meta_config_path=meta_config_path,
+                    progress=progress if enable_timing else None,
                 )
                 task_done(result)
 

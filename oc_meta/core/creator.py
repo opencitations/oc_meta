@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 import re
-from typing import List
+from typing import TYPE_CHECKING, List
 
 from oc_meta.core.curator import get_edited_br_metaid
 from oc_meta.lib.finder import ResourceFinder
@@ -26,6 +26,9 @@ from oc_ocdm.graph.entities.bibliographic import BibliographicResource
 from oc_ocdm.graph.entities.bibliographic_entity import BibliographicEntity
 from oc_ocdm.support import create_date
 
+if TYPE_CHECKING:
+    from rich.progress import Progress
+
 
 class Creator(object):
     def __init__(
@@ -42,8 +45,10 @@ class Creator(object):
         ar_index_csv: list,
         vi_index: dict,
         silencer: list | None = None,
+        progress: Progress | None = None,
     ):
         self.url = base_iri
+        self.progress = progress
         self.setgraph = GraphSet(
             self.url,
             supplier_prefix=supplier_prefix,
@@ -113,6 +118,11 @@ class Creator(object):
 
     def creator(self, source=None):
         self.src = source
+        task_id = None
+        if self.progress:
+            task_id = self.progress.add_task(
+                "  [dim]Creating RDF entities[/dim]", total=len(self.data)
+            )
         for row in self.data:
             self.row_meta = ""
             self.venue_meta = ""
@@ -161,6 +171,12 @@ class Creator(object):
 
             if not skip_editor:
                 self.editor_action(editor, row)
+
+            if self.progress and task_id is not None:
+                self.progress.advance(task_id)
+
+        if self.progress and task_id is not None:
+            self.progress.remove_task(task_id)
         return self.setgraph
 
     @staticmethod
