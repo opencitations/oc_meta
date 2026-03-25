@@ -1,9 +1,33 @@
 version = 1
 
+# CC0-1.0 — files without creative expression
+
+[[annotations]]
+path = [
+    ".python-version",
+    "config/time_agnostic_library_config.json",
+    "docs/package-lock.json",
+    "docs/tsconfig.json",
+    "test/coverage/.coverage",
+    "test/coverage/coverage.svg",
+    "test/editor/time_agnostic_library_config.json",
+    "test/endgame/time_agnostic_library_config.json",
+    "test/merger/time_agnostic_library_config.json",
+    "test/meta_process/time_agnostic_library_config.json",
+    "test/prov_config.json",
+    "time_agnostic_config.json",
+    "uv.lock",
+]
+SPDX-FileCopyrightText = "NONE"
+SPDX-License-Identifier = "CC0-1.0"
+
+# ISC — project files
+
 [[annotations]]
 path = [
     ".gitmodules",
     "CHANGELOG.md",
+    "LICENSE",
     "REUSE.toml",
 ]
 SPDX-FileCopyrightText = "2026 Arcangelo Massari <arcangelo.massari@unibo.it>"
@@ -22,15 +46,11 @@ SPDX-License-Identifier = "ISC"
 
 [[annotations]]
 path = [
-    ".python-version",
     "docs/.gitignore",
     "docs/astro.config.mjs",
-    "docs/package-lock.json",
     "docs/package.json",
     "docs/public/favicon.svg",
     "docs/src/assets/houston.webp",
-    "docs/tsconfig.json",
-    "uv.lock",
 ]
 SPDX-FileCopyrightText = "2026 Arcangelo Massari <arcangelo.massari@unibo.it>"
 SPDX-License-Identifier = "ISC"
@@ -55,7 +75,6 @@ SPDX-License-Identifier = "ISC"
 
 [[annotations]]
 path = [
-    "config/time_agnostic_library_config.json",
     "example_citations.csv",
     "example_metadata.csv",
     "test/file_manager/unzipped_dir/060/10000/1000.json",
@@ -218,7 +237,6 @@ SPDX-License-Identifier = "ISC"
 
 [[annotations]]
 path = [
-    "test/coverage/.coverage",
     "test/testcases/testcase_data/indices/13.2/index_id_br_13.2.csv",
     "test/testcases/testcase_data/indices/14.3/index_id_ra_14.3.csv",
     "test/testcases/testcase_data/indices/15.2/index_id_br_15.2.csv",
@@ -230,17 +248,12 @@ SPDX-FileCopyrightText = "2022-2025 Arcangelo Massari <arcangelo.massari@unibo.i
 SPDX-License-Identifier = "ISC"
 
 [[annotations]]
-path = [
-    "test/coverage/.coveragerc",
-    "test/meta_process/time_agnostic_library_config.json",
-]
+path = "test/coverage/.coveragerc"
 SPDX-FileCopyrightText = "2022-2026 Arcangelo Massari <arcangelo.massari@unibo.it>"
 SPDX-License-Identifier = "ISC"
 
 [[annotations]]
 path = [
-    "test/coverage/coverage.svg",
-    "test/prov_config.json",
     "test/testcases/testcase_01.ttl",
     "test/testcases/testcase_02.ttl",
     "test/testcases/testcase_03.ttl",
@@ -297,17 +310,8 @@ path = [
     "test/testcases/testcase_data/indices/14.31/index_vi_14.31.json",
     "test/testcases/testcase_data/testcase_13.31_data.csv",
     "test/testcases/testcase_data/testcase_14.31_data.csv",
-    "time_agnostic_config.json",
 ]
 SPDX-FileCopyrightText = "2024 Arcangelo Massari <arcangelo.massari@unibo.it>"
-SPDX-License-Identifier = "ISC"
-
-[[annotations]]
-path = [
-    "test/editor/time_agnostic_library_config.json",
-    "test/endgame/time_agnostic_library_config.json",
-]
-SPDX-FileCopyrightText = "2023-2026 Arcangelo Massari <arcangelo.massari@unibo.it>"
 SPDX-License-Identifier = "ISC"
 
 [[annotations]]
@@ -391,11 +395,6 @@ path = [
     "test/testcases/ts/testcase_ts-13.ttl",
 ]
 SPDX-FileCopyrightText = "2022-2023 Arcangelo Massari <arcangelo.massari@unibo.it>"
-SPDX-License-Identifier = "ISC"
-
-[[annotations]]
-path = "test/merger/time_agnostic_library_config.json"
-SPDX-FileCopyrightText = "2024-2026 Arcangelo Massari <arcangelo.massari@unibo.it>"
 SPDX-License-Identifier = "ISC"
 
 [[annotations]]
