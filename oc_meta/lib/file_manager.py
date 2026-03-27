@@ -88,7 +88,7 @@ def get_csv_data(filepath: str, clean_data: bool = True) -> List[Dict[str, str]]
     field_size_changed = False
     cur_field_size = 128
     data: List[Dict[str, str]] = list()
-    while not data:
+    while True:
         try:
             with open(filepath, "r", encoding="utf8") as f:
                 if clean_data:
@@ -98,6 +98,7 @@ def get_csv_data(filepath: str, clean_data: bool = True) -> List[Dict[str, str]]
                     data = list(csv.DictReader(lines, delimiter=","))
                 else:
                     data = list(csv.DictReader(f, delimiter=","))
+            break
         except csv.Error:
             cur_field_size *= 2
             csv.field_size_limit(cur_field_size)

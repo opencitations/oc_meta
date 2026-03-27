@@ -7,11 +7,12 @@
 
 
 import os
+import tempfile
 import unittest
 from shutil import rmtree
 
 import orjson
-from oc_meta.lib.file_manager import (read_zipped_json, unzip_files_in_dir, zip_files_in_dir)
+from oc_meta.lib.file_manager import (get_csv_data, read_zipped_json, unzip_files_in_dir, zip_files_in_dir)
 
 BASE = os.path.join('test', 'file_manager')
 UNZIPPED_DIR = os.path.join(BASE, 'unzipped_dir')
@@ -45,19 +46,29 @@ class test_JsonArchiveManager(unittest.TestCase):
                     self.assertEqual(json_data, original_zip)
         rmtree(OUTPUT_DIR_1)
     
-    # def test_rm_tmp_csv_files(self):
-    #     csv_dir = os.path.join(BASE, 'csv')
-    #     os.mkdir(csv_dir)
-    #     files = ['0_2022-09-29T02-35-31', '0_2022-09-29T08-03-27', '2_2022-09-29T08-03-27', '4_2022-09-29T08-03-27', '4_2022-09-29T02-35-31']
-    #     for file in files:
-    #         fp = open(os.path.join(csv_dir, f'{file}.csv'), 'w')
-    #         fp.close()
-    #     rm_tmp_csv_files(csv_dir)
-    #     output = os.listdir(csv_dir)
-    #     expected_output = ['0_2022-09-29T08-03-27.csv', '2_2022-09-29T08-03-27.csv', '4_2022-09-29T08-03-27.csv']
-    #     rmtree(csv_dir)
-    #     self.assertEqual(output, expected_output)
-        
+class TestGetCsvData(unittest.TestCase):
+    def test_get_csv_data_header_only(self):
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
+            f.write("id,title\n")
+            path = f.name
+        try:
+            result = get_csv_data(path, clean_data=False)
+            self.assertEqual(result, [])
+        finally:
+            os.unlink(path)
+
+    def test_get_csv_data_with_data(self):
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
+            f.write("id,title\n")
+            f.write('"doi:10.1234/test","Test Title"\n')
+            path = f.name
+        try:
+            result = get_csv_data(path, clean_data=False)
+            self.assertEqual(len(result), 1)
+            self.assertEqual(result[0]["id"], "doi:10.1234/test")
+        finally:
+            os.unlink(path)
+
 
 if __name__ == '__main__': # pragma: no cover
     unittest.main()
