@@ -176,13 +176,14 @@ class ResourceFinder:
                         <{ProvEntity.iri_was_derived_from}> <{penultimate_snapshot}>.
                 }}
             '''
-            with SPARQLClient(self.ts_url, max_retries=5, backoff_factor=5, timeout=3600) as client:
+            prov_endpoint = prov_config_dict['provenance']['triplestore_urls'][0]
+            with SPARQLClient(prov_endpoint, max_retries=5, backoff_factor=5, timeout=3600) as client:
                 results = client.query(query_if_it_was_merged)['results']['bindings']
             merged_entities = [se for se in results if metaid_uri not in se['se']['value']]
             if merged_entities:
                 merged_entity_uri = merged_entities[0]['se']['value']
                 merged_entity_uri = merged_entity_uri.split('/prov/')[0]
-                metaval = get_count(URIRef(merged_entity_uri))
+                metaval = merged_entity_uri.split('/')[-1]
         return metaval
 
     # _______________________________RA_________________________________ #

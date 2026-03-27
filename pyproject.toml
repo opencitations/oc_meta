@@ -31,7 +31,7 @@ dependencies = [
     "rich>=14.3.0",
     "rich-argparse>=1.7.2",
     "scandir-rs>=2.9.5",
-    "time-agnostic-library>=6.0.0",
+    "time-agnostic-library>=7,<8",
     "tqdm>=4.67.3",
     "virtuoso-utilities>=1.10.0",
 ]

@@ -1575,7 +1575,7 @@ requires-dist = [
     { name = "rich", specifier = ">=14.3.0" },
     { name = "rich-argparse", specifier = ">=1.7.2" },
     { name = "scandir-rs", specifier = ">=2.9.5" },
-    { name = "time-agnostic-library", specifier = ">=6.0.0" },
+    { name = "time-agnostic-library", specifier = ">=7,<8" },
     { name = "tqdm", specifier = ">=4.67.3" },
     { name = "virtuoso-utilities", specifier = ">=1.10.0" },
 ]
@@ -2663,15 +2663,15 @@ wheels = [
 
 [[package]]
 name = "time-agnostic-library"
-version = "6.0.0"
+version = "7.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "rdflib" },
     { name = "sparqlite" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f0/de/64fc05c20cb663eb00261d3879bb9aba231309d7ffed6da9bd287b8c5e5c/time_agnostic_library-6.0.0.tar.gz", hash = "sha256:9f7af757a7c27b5473b60e8336bae96f626ee6f89bee86b55a6dbe5a5a4f08a6", size = 269291, upload-time = "2026-02-13T16:39:08.373Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/9c/08/6b33118e2251aa1e5d078bacd45ec2c11d8701059dfc3ade6ff91be254ab/time_agnostic_library-7.0.0.tar.gz", hash = "sha256:a4de7b786d73888d2b13afe6f945e933e21837d8c0a3852252ce6c2d1938a70e", size = 283876, upload-time = "2026-03-11T11:26:51.581Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/dd/e7/3d3165c819f44dfea21f32223a7ef18f4fb325e0da7db37e23f5e5ff1d15/time_agnostic_library-6.0.0-py3-none-any.whl", hash = "sha256:f13e754b86d0771d8eed6508fb2d37381588a00991a9c1b5d05f5a5a66233198", size = 31874, upload-time = "2026-02-13T16:39:09.321Z" },
+    { url = "https://files.pythonhosted.org/packages/9b/5f/31ceef8b9fa9b29acbd8c0d858711867d05f86c8ce859eb41e9faa624ef4/time_agnostic_library-7.0.0-py3-none-any.whl", hash = "sha256:2989d4eae59455415e5c82cb962e30470555598aa76c29fa17a80a07dfbc7010", size = 31781, upload-time = "2026-03-11T11:26:49.278Z" },
 ]
 
 [[package]]
