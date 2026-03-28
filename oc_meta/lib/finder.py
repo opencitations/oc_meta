@@ -2,16 +2,21 @@
 #
 # SPDX-License-Identifier: ISC
 
+from __future__ import annotations
+
 import multiprocessing
 from concurrent.futures import ProcessPoolExecutor
-from typing import Dict, List, Tuple
+from typing import TYPE_CHECKING, Dict, List, Tuple
 
 import orjson
+
+if TYPE_CHECKING:
+    from rich.progress import Progress
 from dateutil import parser
 from oc_ocdm.graph import GraphEntity
 from oc_ocdm.graph.graph_entity import GraphEntity
 from oc_ocdm.prov.prov_entity import ProvEntity
-from oc_ocdm.support import get_count, get_resource_number, sparql_binding_to_term
+from oc_ocdm.support import get_resource_number, sparql_binding_to_term
 from rdflib import RDF, XSD, Graph, Literal, URIRef
 from sparqlite import SPARQLClient
 from time_agnostic_library.agnostic_entity import AgnosticEntity
@@ -29,7 +34,7 @@ def _execute_sparql_queries(args: tuple) -> list:
 
 class ResourceFinder:
 
-    def __init__(self, ts_url: str, base_iri: str, local_g: Graph = Graph(), settings: dict = dict(), meta_config_path: str | None = None):
+    def __init__(self, ts_url: str, base_iri: str, local_g: Graph = Graph(), settings: dict = dict(), meta_config_path: str | None = None, workers: int = 1):
         self.ts_url = ts_url
         self.base_iri = base_iri[:-1] if base_iri[-1] == '/' else base_iri
         self.local_g = local_g
@@ -38,6 +43,7 @@ class ResourceFinder:
         self.meta_config_path = meta_config_path
         self.meta_settings = settings
         self.virtuoso_full_text_search = settings['virtuoso_full_text_search'] if settings and 'virtuoso_full_text_search' in settings else False
+        self.workers = workers
 
     # _______________________________BR_________________________________ #
 
@@ -673,9 +679,9 @@ class ResourceFinder:
             publishers_output.append(pub_full)
         return '; '.join(publishers_output)
             
-    def get_everything_about_res(self, metavals: set, identifiers: set, vvis: set, max_depth: int = 10) -> None:
+    def get_everything_about_res(self, metavals: set, identifiers: set, vvis: set, max_depth: int = 10, progress: Progress | None = None) -> None:
         BATCH_SIZE = 30
-        MAX_WORKERS = 24
+        MAX_WORKERS = min(self.workers, 24)  # Cap at 24 based on benchmark
 
         def batch_process(input_set, batch_size):
             """Generator to split input data into smaller batches if batch_size is not None."""
@@ -684,6 +690,23 @@ class ResourceFinder:
             else:
                 for i in range(0, len(input_set), batch_size):
                     yield input_set[i:i + batch_size]
+
+        task_metavals = None
+        task_identifiers = None
+        task_vvis = None
+        if progress:
+            if metavals:
+                task_metavals = progress.add_task(
+                    "  [dim]Resolving OMIDs[/dim]", total=len(metavals)
+                )
+            if identifiers:
+                task_identifiers = progress.add_task(
+                    "  [dim]Resolving identifiers[/dim]", total=len(identifiers)
+                )
+            if vvis:
+                task_vvis = progress.add_task(
+                    "  [dim]Resolving VVI[/dim]", total=len(vvis)
+                )
 
         def process_batch_parallel(subjects, cur_depth, visited_subjects):
             """Process batches of subjects in parallel up to the specified depth."""
@@ -746,7 +769,7 @@ class ResourceFinder:
             """Convert metavals to a set of subjects."""
             return {f"{self.base_iri}/{mid.replace('omid:', '')}" for mid in metavals}
 
-        def get_initial_subjects_from_identifiers(identifiers):
+        def get_initial_subjects_from_identifiers(identifiers, progress_task=None):
             """Convert identifiers to a set of subjects based on batch queries executed in parallel.
 
             Returns:
@@ -763,10 +786,12 @@ class ResourceFinder:
                 return subjects, id_to_subjects
 
             batch_queries = []
+            batch_sizes = []
             for batch in batches:
                 if not batch:
                     continue
 
+                batch_sizes.append(len(batch))
                 if self.virtuoso_full_text_search:
                     union_blocks = []
                     for identifier in batch:
@@ -806,18 +831,27 @@ class ResourceFinder:
                     batch_queries.append(query)
 
             if len(batch_queries) > 1 and MAX_WORKERS > 1:
-                queries_per_worker = max(1, len(batch_queries) // MAX_WORKERS)
+                # Create smaller groups for more frequent progress updates
+                # Target ~100 queries per group for responsive progress bar
+                QUERIES_PER_GROUP = 100
                 grouped_queries = []
-                for i in range(0, len(batch_queries), queries_per_worker):
-                    grouped_queries.append((ts_url, batch_queries[i:i + queries_per_worker]))
+                grouped_batch_sizes = []
+                for i in range(0, len(batch_queries), QUERIES_PER_GROUP):
+                    grouped_queries.append((ts_url, batch_queries[i:i + QUERIES_PER_GROUP]))
+                    grouped_batch_sizes.append(sum(batch_sizes[i:i + QUERIES_PER_GROUP]))
                 with ProcessPoolExecutor(
-                    max_workers=min(len(grouped_queries), MAX_WORKERS),
+                    max_workers=MAX_WORKERS,
                     mp_context=multiprocessing.get_context('forkserver')
                 ) as executor:
-                    grouped_results = list(executor.map(_execute_sparql_queries, grouped_queries))
-                results = [item for sublist in grouped_results for item in sublist]
+                    results = []
+                    for idx, grouped_result in enumerate(executor.map(_execute_sparql_queries, grouped_queries)):
+                        results.extend(grouped_result)
+                        if progress and progress_task is not None:
+                            progress.advance(progress_task, grouped_batch_sizes[idx])
             elif batch_queries:
                 results = _execute_sparql_queries((ts_url, batch_queries))
+                if progress and progress_task is not None:
+                    progress.advance(progress_task, sum(batch_sizes))
             else:
                 results = []
 
@@ -838,16 +872,18 @@ class ResourceFinder:
 
             return subjects, id_to_subjects
 
-        def get_initial_subjects_from_vvis(vvis):
+        def get_initial_subjects_from_vvis(vvis, progress_task=None):
             """Convert vvis to a set of subjects based on batch queries executed in parallel."""
             subjects = set()
             ts_url = self.ts_url
             vvi_queries = []
             venue_uris_to_add = set()
+            vvis_list = list(vvis)
+            total_vvis = len(vvis_list)
 
             # First pass: collect all venue IDs and prepare queries
             all_venue_ids = set()
-            for volume, issue, venue_metaid, venue_ids_tuple in vvis:
+            for volume, issue, venue_metaid, venue_ids_tuple in vvis_list:
                 if venue_ids_tuple:
                     all_venue_ids.update(venue_ids_tuple)
 
@@ -858,15 +894,15 @@ class ResourceFinder:
                 subjects.update(venue_id_subjects)
 
             # Second pass: prepare VVI queries
-            for volume, issue, venue_metaid, venue_ids_tuple in vvis:
+            vvi_to_query_count = {}
+            for idx, (volume, issue, venue_metaid, venue_ids_tuple) in enumerate(vvis_list):
                 venues_to_search = set()
+                query_count = 0
 
                 if venue_metaid:
                     venues_to_search.add(venue_metaid)
 
                 if venue_ids_tuple:
-                    # Convert venue URIs to metaid format for VVI search
-                    # Only use venues matching THIS tuple's identifiers
                     for venue_id in venue_ids_tuple:
                         if venue_id in venue_id_to_uris:
                             for venue_uri in venue_id_to_uris[venue_id]:
@@ -874,7 +910,6 @@ class ResourceFinder:
                                     metaid = venue_uri.replace(f'{self.base_iri}/br/', '')
                                     venues_to_search.add(f"omid:br/{metaid}")
 
-                # Prepare VVI queries for each venue
                 for venue_metaid_to_search in venues_to_search:
                     venue_uri = f"{self.base_iri}/{venue_metaid_to_search.replace('omid:', '')}"
                     sequence_value = issue if issue else volume
@@ -917,23 +952,38 @@ class ResourceFinder:
 
                     vvi_queries.append(query)
                     venue_uris_to_add.add(venue_uri)
+                    query_count += 1
+
+                vvi_to_query_count[idx] = query_count
 
             # Execute VVI queries in parallel
             if len(vvi_queries) > 1 and MAX_WORKERS > 1:
-                queries_per_worker = max(1, len(vvi_queries) // MAX_WORKERS)
+                # Create smaller groups for more frequent progress updates
+                QUERIES_PER_GROUP = 100
                 grouped_queries = []
-                for i in range(0, len(vvi_queries), queries_per_worker):
-                    grouped_queries.append((ts_url, vvi_queries[i:i + queries_per_worker]))
+                grouped_vvi_counts = []
+                for i in range(0, len(vvi_queries), QUERIES_PER_GROUP):
+                    group_size = min(QUERIES_PER_GROUP, len(vvi_queries) - i)
+                    grouped_queries.append((ts_url, vvi_queries[i:i + QUERIES_PER_GROUP]))
+                    vvi_count = int(total_vvis * group_size / len(vvi_queries)) if vvi_queries else 0
+                    grouped_vvi_counts.append(max(1, vvi_count))
                 with ProcessPoolExecutor(
-                    max_workers=min(len(grouped_queries), MAX_WORKERS),
+                    max_workers=MAX_WORKERS,
                     mp_context=multiprocessing.get_context('forkserver')
                 ) as executor:
-                    grouped_results = list(executor.map(_execute_sparql_queries, grouped_queries))
-                results = [item for sublist in grouped_results for item in sublist]
+                    results = []
+                    for idx, grouped_result in enumerate(executor.map(_execute_sparql_queries, grouped_queries)):
+                        results.extend(grouped_result)
+                        if progress and progress_task is not None:
+                            progress.advance(progress_task, grouped_vvi_counts[idx])
             elif vvi_queries:
                 results = _execute_sparql_queries((ts_url, vvi_queries))
+                if progress and progress_task is not None:
+                    progress.advance(progress_task, total_vvis)
             else:
                 results = []
+                if progress and progress_task is not None:
+                    progress.advance(progress_task, total_vvis)
 
             for result in results:
                 for row in result:
@@ -947,13 +997,20 @@ class ResourceFinder:
 
         if metavals:
             initial_subjects.update(get_initial_subjects_from_metavals(metavals))
+            if progress and task_metavals is not None:
+                progress.advance(task_metavals, len(metavals))
+                progress.remove_task(task_metavals)
 
         if identifiers:
-            id_subjects, _ = get_initial_subjects_from_identifiers(identifiers)
+            id_subjects, _ = get_initial_subjects_from_identifiers(identifiers, progress_task=task_identifiers)
             initial_subjects.update(id_subjects)
+            if progress and task_identifiers is not None:
+                progress.remove_task(task_identifiers)
 
         if vvis:
-            initial_subjects.update(get_initial_subjects_from_vvis(vvis))
+            initial_subjects.update(get_initial_subjects_from_vvis(vvis, progress_task=task_vvis))
+            if progress and task_vvis is not None:
+                progress.remove_task(task_vvis)
 
         visited_subjects = set()
         process_batch_parallel(initial_subjects, 0, visited_subjects)

@@ -7,8 +7,10 @@
 
 from __future__ import annotations
 
+import multiprocessing
 import os
 import re
+from concurrent.futures import ProcessPoolExecutor
 from contextlib import nullcontext
 from typing import TYPE_CHECKING, Dict, List, Tuple
 
@@ -23,6 +25,60 @@ if TYPE_CHECKING:
     from rich.progress import Progress
 
 
+def _extract_ids_from_chunk(args: tuple) -> Tuple[set, set, set]:
+    rows, valid_dois_cache = args
+    all_metavals = set()
+    all_identifiers = set()
+    all_vvis = set()
+
+    for row in rows:
+        metavals = set()
+        identifiers = set()
+        vvis = set()
+        venue_ids = set()
+        venue_metaid = None
+
+        if row["id"]:
+            id_list = re.split(one_or_more_spaces, re.sub(colon_and_spaces, ":", row["id"]))
+            idslist, metaval = Curator.clean_id_list(id_list, br=True, valid_dois_cache=valid_dois_cache)
+            if metaval:
+                metavals.add(f"omid:br/{metaval}")
+            if idslist:
+                identifiers.update(idslist)
+
+        fields_with_an_id = [
+            (field, match.group(2).split())
+            for field in ["author", "editor", "publisher", "venue", "volume", "issue"]
+            if (match := re.search(name_and_ids, row[field]))
+        ]
+        for field, field_ids in fields_with_an_id:
+            br = field in ["venue", "volume", "issue"]
+            field_idslist, field_metaval = Curator.clean_id_list(field_ids, br=br, valid_dois_cache=valid_dois_cache)
+            if field_metaval:
+                field_metaval = f"omid:br/{field_metaval}" if br else f"omid:ra/{field_metaval}"
+            else:
+                field_metaval = ""
+            if field_metaval:
+                metavals.add(field_metaval)
+            if field == "venue":
+                venue_metaid = field_metaval
+                if field_idslist:
+                    venue_ids.update(field_idslist)
+            else:
+                if field_idslist:
+                    identifiers.update(field_idslist)
+
+        if (venue_metaid or venue_ids) and (row["volume"] or row["issue"]):
+            vvi = (row["volume"], row["issue"], venue_metaid, tuple(sorted(venue_ids)))
+            vvis.add(vvi)
+
+        all_metavals.update(metavals)
+        all_identifiers.update(identifiers)
+        all_vvis.update(vvis)
+
+    return all_metavals, all_identifiers, all_vvis
+
+
 class Curator:
 
     def __init__(
@@ -33,17 +89,18 @@ class Curator:
         counter_handler: RedisCounterHandler,
         base_iri: str = "https://w3id.org/oc/meta",
         prefix: str = "060",
-        separator: str | None = None,
         valid_dois_cache: dict = dict(),
         settings: dict | None = None,
         silencer: list = [],
         meta_config_path: str | None = None,
         timer=None,
         progress: Progress | None = None,
+        min_rows_parallel: int = 1000,
     ):
         self.timer = timer
         self.progress = progress
         self.settings = settings or {}
+        self.workers = self.settings.get("workers", 1)
         self.everything_everywhere_allatonce = Graph()
         self.finder = ResourceFinder(
             ts,
@@ -51,10 +108,10 @@ class Curator:
             self.everything_everywhere_allatonce,
             settings=self.settings,
             meta_config_path=meta_config_path,
+            workers=self.workers,
         )
         self.base_iri = base_iri
         self.prov_config = prov_config
-        self.separator = separator
         # Preliminary pass to clear volume and issue if id is present but venue is missing
         for row in data:
             if row["id"] and (row["volume"] or row["issue"]):
@@ -86,6 +143,7 @@ class Curator:
         self.valid_dois_cache = valid_dois_cache
         self.preexisting_entities = set()
         self.silencer = silencer
+        self.min_rows_parallel = min_rows_parallel
 
     def _timed(self, name: str):
         if self.timer:
@@ -99,15 +157,37 @@ class Curator:
         all_metavals = set()
         all_idslist = set()
         all_vvis = set()
-        for row in self.data:
-            metavals, idslist, vvis = self.extract_identifiers_and_metavals(
-                row, valid_dois_cache=valid_dois_cache
-            )
-            all_metavals.update(metavals)
-            all_idslist.update(idslist)
-            all_vvis.update(vvis)
-            if self.progress and task_id is not None:
-                self.progress.advance(task_id)
+
+        total_rows = len(self.data)
+        if total_rows == 0:
+            return all_metavals, all_idslist, all_vvis
+
+        if total_rows > self.min_rows_parallel and self.workers > 1:
+            chunks = []
+            for i in range(0, total_rows, self.min_rows_parallel):
+                chunks.append((self.data[i:i + self.min_rows_parallel], valid_dois_cache))
+
+            with ProcessPoolExecutor(
+                max_workers=self.workers,
+                mp_context=multiprocessing.get_context('forkserver')
+            ) as executor:
+                for chunk_metavals, chunk_ids, chunk_vvis in executor.map(_extract_ids_from_chunk, chunks):
+                    all_metavals.update(chunk_metavals)
+                    all_idslist.update(chunk_ids)
+                    all_vvis.update(chunk_vvis)
+                    if self.progress and task_id is not None:
+                        self.progress.advance(task_id, min(self.min_rows_parallel, total_rows))
+        else:
+            for row in self.data:
+                metavals, idslist, vvis = self.extract_identifiers_and_metavals(
+                    row, valid_dois_cache=valid_dois_cache
+                )
+                all_metavals.update(metavals)
+                all_idslist.update(idslist)
+                all_vvis.update(vvis)
+                if self.progress and task_id is not None:
+                    self.progress.advance(task_id)
+
         return all_metavals, all_idslist, all_vvis
 
     def extract_identifiers_and_metavals(
@@ -164,12 +244,7 @@ class Curator:
         return metavals, identifiers, vvis
 
     def split_identifiers(self, field_value):
-        if self.separator:
-            return re.sub(colon_and_spaces, ":", field_value).split(self.separator)
-        else:
-            return re.split(
-                one_or_more_spaces, re.sub(colon_and_spaces, ":", field_value)
-            )
+        return re.split(one_or_more_spaces, re.sub(colon_and_spaces, ":", field_value))
 
     def curator(self, filename: str | None = None, path_csv: str | None = None):
         total_rows = len(self.data)
@@ -188,7 +263,8 @@ class Curator:
             if self.progress and task_collect is not None:
                 self.progress.remove_task(task_collect)
             self.finder.get_everything_about_res(
-                metavals=metavals, identifiers=identifiers, vvis=vvis
+                metavals=metavals, identifiers=identifiers, vvis=vvis,
+                progress=self.progress
             )
 
         # Phase 2: Clean ID (loop over all rows)
@@ -208,7 +284,14 @@ class Curator:
 
         # Phase 3: Merge duplicate entities
         with self._timed("curation__merge_duplicates"):
-            self.merge_duplicate_entities()
+            task_merge = None
+            if self.progress:
+                task_merge = self.progress.add_task(
+                    "  [dim]Merging duplicates[/dim]", total=total_rows
+                )
+            self.merge_duplicate_entities(task_id=task_merge)
+            if self.progress and task_merge is not None:
+                self.progress.remove_task(task_merge)
             self.clean_metadata_without_id()
 
         # Phase 4: Clean VVI (venue/volume/issue)
@@ -247,9 +330,16 @@ class Curator:
 
         # Phase 6: Finalize (preexisting + meta_maker + enrich + indexer)
         with self._timed("curation__finalize"):
+            task_finalize = None
+            if self.progress:
+                task_finalize = self.progress.add_task(
+                    "  [dim]Finalizing[/dim]", total=total_rows
+                )
             self.get_preexisting_entities()
             self.meta_maker()
-            self.enrich()
+            self.enrich(task_id=task_finalize)
+            if self.progress and task_finalize is not None:
+                self.progress.remove_task(task_finalize)
             # Remove duplicates
             self.data = list({v["id"]: v for v in self.data}.values())
             self.filename = filename
@@ -279,12 +369,7 @@ class Curator:
         idslist: list = []
         metaval = ""
         if row["id"]:
-            if self.separator:
-                idslist = re.sub(colon_and_spaces, ":", row["id"]).split(self.separator)
-            else:
-                idslist = re.split(
-                    one_or_more_spaces, re.sub(colon_and_spaces, ":", row["id"])
-                )
+            idslist = re.split(one_or_more_spaces, re.sub(colon_and_spaces, ":", row["id"]))
             idslist, metaval = self.clean_id_list(
                 idslist, br=True, valid_dois_cache=self.valid_dois_cache
             )
@@ -455,14 +540,7 @@ class Curator:
                     bool(self.settings.get("normalize_titles", False))
                 )
                 venue_id = venue_id.group(2)
-                if self.separator:
-                    idslist = re.sub(colon_and_spaces, ":", venue_id).split(
-                        self.separator
-                    )
-                else:
-                    idslist = re.split(
-                        one_or_more_spaces, re.sub(colon_and_spaces, ":", venue_id)
-                    )
+                idslist = re.split(one_or_more_spaces, re.sub(colon_and_spaces, ":", venue_id))
                 idslist, metaval = self.clean_id_list(
                     idslist, br=True, valid_dois_cache=self.valid_dois_cache
                 )
@@ -656,14 +734,7 @@ class Curator:
         for pos, ra in enumerate(ra_list):
             ra_id, name, new_elem_seq = process_individual_ra(ra, sequence)
             if ra_id:
-                if self.separator:
-                    ra_id_list = re.sub(colon_and_spaces, ":", ra_id).split(
-                        self.separator
-                    )
-                else:
-                    ra_id_list = re.split(
-                        one_or_more_spaces, re.sub(colon_and_spaces, ":", ra_id)
-                    )
+                ra_id_list = re.split(one_or_more_spaces, re.sub(colon_and_spaces, ":", ra_id))
                 if sequence:
                     ar_ra = None
                     for ps, el in enumerate(sequence):
@@ -1010,7 +1081,7 @@ class Curator:
                 else:
                     self.__merge_VolIss_with_vvi(venue_meta, venue_meta)
 
-    def enrich(self):
+    def enrich(self, task_id=None):
         """
         This method replaces the wannabeID placeholders with the
         actual data and MetaIDs as a result of the deduplication process.
@@ -1052,6 +1123,8 @@ class Curator:
             self.ra_update(row, metaid, "author")
             self.ra_update(row, metaid, "publisher")
             self.ra_update(row, br_key_for_editor, "editor")
+            if self.progress and task_id is not None:
+                self.progress.advance(task_id)
 
     @staticmethod
     def name_check(ts_name, name):
@@ -1463,7 +1536,7 @@ class Curator:
                 if "issue" not in path:  # it's a Volume
                     path[value]["issue"] = dict()
 
-    def merge_duplicate_entities(self) -> None:
+    def merge_duplicate_entities(self, task_id=None) -> None:
         """
         The 'merge_duplicate_entities()' function merge duplicate entities.
         Moreover, it modifies the CSV cells, giving precedence to the first found information
@@ -1486,6 +1559,8 @@ class Curator:
                             if row[field] and row[field] != other_row[field]:
                                 other_row[field] = row[field]
                     other_rowcnt += 1
+            if self.progress and task_id is not None:
+                self.progress.advance(task_id)
             self.rowcnt += 1
 
     def extract_name_and_ids(self, venue_str: str) -> Tuple[str, List[str]]:

@@ -10,7 +10,6 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from datetime import datetime
 from test.test_utils import (PROV_SERVER, SERVER, execute_sparql_construct,
                              execute_sparql_query, reset_redis_counters,
                              reset_server, wait_for_triplestore)
@@ -32,18 +31,6 @@ def _term_to_jsonld(term: URIRef | Literal) -> dict:
     if term.language:
         return {"@value": str(term), "@language": term.language}
     return {"@value": str(term), "@type": str(term.datatype)}
-
-
-def delete_output_zip(base_dir: str, start_time: datetime) -> None:
-    for file in os.listdir(base_dir):
-        if file.startswith("meta_output") and file.endswith(".zip"):
-            file_creation_time = file.split("meta_output_")[1].replace(".zip", "")
-            file_creation_time = datetime.strptime(
-                file_creation_time, "%Y-%m-%dT%H_%M_%S_%f"
-            )
-            was_created_after_time = True if file_creation_time > start_time else False
-            if was_created_after_time:
-                os.remove(os.path.join(base_dir, file))
 
 
 class test_ProcessTest(unittest.TestCase):
@@ -91,7 +78,6 @@ class test_ProcessTest(unittest.TestCase):
             }
         )
 
-        now = datetime.now()
         run_meta_process(settings=settings, meta_config_path=meta_config_path)
         output = list()
         for dirpath, _, filenames in os.walk(os.path.join(output_folder, "csv")):
@@ -168,13 +154,11 @@ class test_ProcessTest(unittest.TestCase):
         expected_output = sorted(sorted(d.items()) for d in expected_output)
         self.maxDiff = None
         shutil.rmtree(output_folder)
-        delete_output_zip(".", now)
         self.assertEqual(output, expected_output)
 
     def test_run_meta_process_ids_only(self):
         output_folder = os.path.join(BASE_DIR, "output_5")
         meta_config_path = os.path.join(BASE_DIR, "meta_config_5.yaml")
-        now = datetime.now()
         with open(meta_config_path, encoding="utf-8") as file:
             settings = yaml.full_load(file)
 
@@ -212,16 +196,13 @@ class test_ProcessTest(unittest.TestCase):
         expected_output = sorted(sorted(d.items()) for d in expected_output)
         self.maxDiff = None
         shutil.rmtree(output_folder)
-        delete_output_zip(".", now)
         self.assertEqual(output, expected_output)
 
     def test_provenance(self):
         # Bulk load disabled in meta_config_3.yaml
         output_folder = os.path.join(BASE_DIR, "output_3")
-        now = datetime.now()
         if os.path.exists(output_folder):
             shutil.rmtree(output_folder)
-        delete_output_zip(".", now)
         meta_config_path = os.path.join(BASE_DIR, "meta_config_3.yaml")
         with open(meta_config_path, encoding="utf-8") as file:
             settings = yaml.full_load(file)
@@ -934,7 +915,6 @@ class test_ProcessTest(unittest.TestCase):
 
     def test_silencer_on(self):
         output_folder = os.path.join(BASE_DIR, "output_6")
-        now = datetime.now()
         meta_config_path = os.path.join(BASE_DIR, "meta_config_6.yaml")
         with open(meta_config_path, encoding="utf-8") as file:
             settings = yaml.full_load(file)
@@ -977,13 +957,11 @@ class test_ProcessTest(unittest.TestCase):
             },
         }
         shutil.rmtree(output_folder)
-        delete_output_zip(".", now)
         self.assertEqual(result["head"], expected_result["head"])
         self.assertEqual(result["results"], expected_result["results"])
 
     def test_silencer_off(self):
         output_folder = os.path.join(BASE_DIR, "output_7")
-        now = datetime.now()
         meta_config_path = os.path.join(BASE_DIR, "meta_config_7.yaml")
         with open(meta_config_path, encoding="utf-8") as file:
             settings = yaml.full_load(file)
@@ -1026,7 +1004,6 @@ class test_ProcessTest(unittest.TestCase):
             },
         }
         shutil.rmtree(output_folder)
-        delete_output_zip(".", now)
         self.assertEqual(result["head"], expected_result["head"])
         self.assertEqual(result["results"], expected_result["results"])
 
@@ -1576,7 +1553,6 @@ class test_ProcessTest(unittest.TestCase):
         with open(meta_config_path, "w") as f:
             yaml.dump(settings, f)
 
-        now = datetime.now()
 
         # Run the process
         run_meta_process(settings=settings, meta_config_path=meta_config_path)
@@ -1597,7 +1573,6 @@ class test_ProcessTest(unittest.TestCase):
         shutil.rmtree(os.path.join(BASE_DIR, "input_doi"), ignore_errors=True)
         if os.path.exists(meta_config_path):
             os.remove(meta_config_path)
-        delete_output_zip(".", now)
 
         # Verify results
         self.assertTrue(
@@ -2067,7 +2042,6 @@ class test_ProcessTest(unittest.TestCase):
         with open(meta_config_path, "w") as f:
             yaml.dump(settings, f)
 
-        now = datetime.now()
 
         # Run the process
         run_meta_process(settings=settings, meta_config_path=meta_config_path)
@@ -2095,7 +2069,6 @@ class test_ProcessTest(unittest.TestCase):
         shutil.rmtree(os.path.join(BASE_DIR, "input_temp"), ignore_errors=True)
         if os.path.exists(meta_config_path):
             os.remove(meta_config_path)
-        delete_output_zip(".", now)
 
         # Verify results
         bindings = result["results"]["bindings"]
@@ -2307,6 +2280,106 @@ class test_ProcessTest(unittest.TestCase):
 
         self.assertTrue(rdf_files_exist, "RDF files should be generated")
         self.assertTrue(triplestore_empty, "Triplestore should not be updated when rdf_files_only is True")
+
+
+    def test_parallel_collect_identifiers(self):
+        """Test that parallel identifier collection produces identical results to sequential."""
+        output_folder = os.path.join(BASE_DIR, "output_parallel")
+        meta_config_path = os.path.join(BASE_DIR, "meta_config_1.yaml")
+
+        with open(meta_config_path, encoding="utf-8") as file:
+            settings = yaml.full_load(file)
+
+        settings.update({
+            "base_output_dir": output_folder,
+            "output_rdf_dir": output_folder,
+            "redis_cache_db": 2,
+            "ts_upload_cache": self.cache_file,
+            "ts_failed_queries": self.failed_file,
+            "ts_stop_file": self.stop_file,
+            "min_rows_parallel": 2,
+        })
+
+        run_meta_process(settings=settings, meta_config_path=meta_config_path)
+
+        output = list()
+        for dirpath, _, filenames in os.walk(os.path.join(output_folder, "csv")):
+            for file in filenames:
+                output.extend(get_csv_data(os.path.join(dirpath, file)))
+
+        expected_output = [
+            {
+                "id": "doi:10.17117/na.2015.08.1067 omid:br/0601",
+                "title": "",
+                "author": "",
+                "pub_date": "",
+                "venue": "Scientometrics [issn:0138-9130 issn:1588-2861 omid:br/0603]",
+                "volume": "26",
+                "issue": "",
+                "page": "",
+                "type": "journal article",
+                "publisher": "Consulting Company Ucom [crossref:6623 omid:ra/0601]",
+                "editor": "Naimi, Elmehdi [orcid:0000-0002-4126-8519 omid:ra/0602]",
+            },
+            {
+                "id": "issn:1524-4539 issn:0009-7322 omid:br/0602",
+                "title": "Circulation",
+                "author": "",
+                "pub_date": "",
+                "venue": "",
+                "volume": "",
+                "issue": "",
+                "page": "",
+                "type": "journal",
+                "publisher": "",
+                "editor": "",
+            },
+            {
+                "id": "doi:10.9799/ksfan.2012.25.1.069 omid:br/0605",
+                "title": "Nonthermal Sterilization And Shelf-life Extension Of Seafood Products By Intense Pulsed Light Treatment",
+                "author": "Cheigh, Chan-Ick [orcid:0000-0003-2542-5788 omid:ra/0603]; Mun, Ji-Hye [omid:ra/0604]; Chung, Myong-Soo [omid:ra/0605]",
+                "pub_date": "2012-03-31",
+                "venue": "The Korean Journal Of Food And Nutrition [issn:1225-4339 omid:br/0608]",
+                "volume": "25",
+                "issue": "1",
+                "page": "69-76",
+                "type": "journal article",
+                "publisher": "The Korean Society Of Food And Nutrition [crossref:4768 omid:ra/0606]",
+                "editor": "Chung, Myong-Soo [orcid:0000-0002-9666-2513 omid:ra/0607]",
+            },
+            {
+                "id": "doi:10.9799/ksfan.2012.25.1.077 omid:br/0606",
+                "title": "Properties Of Immature Green Cherry Tomato Pickles",
+                "author": "Koh, Jong-Ho [omid:ra/0608]; Shin, Hae-Hun [omid:ra/0609]; Kim, Young-Shik [orcid:0000-0001-5673-6314 omid:ra/06010]; Kook, Moo-Chang [omid:ra/06011]",
+                "pub_date": "2012-03-31",
+                "venue": "The Korean Journal Of Food And Nutrition [issn:1225-4339 omid:br/0608]",
+                "volume": "",
+                "issue": "2",
+                "page": "77-82",
+                "type": "journal article",
+                "publisher": "The Korean Society Of Food And Nutrition [crossref:4768 omid:ra/0606]",
+                "editor": "",
+            },
+            {
+                "id": "doi:10.1097/01.rct.0000185385.35389\\.cd omid:br/0607",
+                "title": "Comprehensive Assessment Of Lung CT Attenuation Alteration At Perfusion Defects Of Acute Pulmonary Thromboembolism With Breath-Hold SPECT-CT Fusion Images",
+                "author": "Suga, Kazuyoshi [omid:ra/06012]; Kawakami, Yasuhiko [omid:ra/06013]; Iwanaga, Hideyuki [omid:ra/06014]; Hayashi, Noriko [omid:ra/06015]; Seto, Aska [omid:ra/06016]; Matsunaga, Naofumi [omid:ra/06017]",
+                "pub_date": "2006-01",
+                "venue": "Journal Of Computer Assisted Tomography [issn:0363-8715 omid:br/06012]",
+                "volume": "30",
+                "issue": "1",
+                "page": "83-91",
+                "type": "journal article",
+                "publisher": "Ovid Technologies (Wolters Kluwer Health) [crossref:276 omid:ra/06018]",
+                "editor": "",
+            },
+        ]
+
+        output = sorted(sorted(d.items()) for d in output)
+        expected_output = sorted(sorted(d.items()) for d in expected_output)
+        self.maxDiff = None
+        shutil.rmtree(output_folder)
+        self.assertEqual(output, expected_output)
 
 
 def normalize_graph(graph):

@@ -133,6 +133,8 @@ class MetaProcess:
             host=self.redis_host, port=self.redis_port, db=self.redis_db
         )
 
+        self.workers = settings.get("workers", 1)
+
         self.counter_handler = RedisCounterHandler(
             host=self.redis_host, port=self.redis_port, db=self.redis_db
         )
@@ -175,6 +177,7 @@ class MetaProcess:
                 self.timer.record_metric("input_records", len(data))
 
                 self.info_dir = os.path.join(self.info_dir, self.supplier_prefix)
+                min_rows_parallel = settings.get("min_rows_parallel", 1000) if settings else 1000
                 curator_obj = Curator(
                     data=data,
                     ts=self.triplestore_url,
@@ -188,6 +191,7 @@ class MetaProcess:
                     meta_config_path=meta_config_path,
                     timer=self.timer,
                     progress=progress,
+                    min_rows_parallel=min_rows_parallel,
                 )
                 name = f"{filename.replace('.csv', '')}_{datetime.now().strftime('%Y-%m-%dT%H-%M-%S')}"
                 curator_obj.curator(
@@ -332,7 +336,6 @@ class MetaProcess:
         self, res_storer: Storer, prov_storer: Storer, timer: ProcessTimer
     ) -> None:
         """Store RDF files and upload queries to triplestore with parallel execution."""
-
         with timer.timer("storage"):
             # Use forkserver to avoid deadlocks when forking from a multi-threaded process.
             # Libraries like Redis and rdflib create background threads, and fork() would
