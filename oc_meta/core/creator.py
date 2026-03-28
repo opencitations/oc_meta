@@ -306,9 +306,7 @@ class Creator(object):
                 pub_aut_role.is_held_by(pub_aut)
                 aut_role_list.append(pub_aut_role)
                 if len(aut_role_list) > 1:
-                    aut_role_list[aut_role_list.index(pub_aut_role) - 1].has_next(
-                        pub_aut_role
-                    )
+                    aut_role_list[-2].has_next(pub_aut_role)
 
     def pub_date_action(self, pub_date):
         if pub_date:
@@ -600,9 +598,7 @@ class Creator(object):
                 publ_role.is_held_by(publ)
                 pub_role_list.append(publ_role)
                 if len(pub_role_list) > 1:
-                    pub_role_list[pub_role_list.index(publ_role) - 1].has_next(
-                        publ_role
-                    )
+                    pub_role_list[-2].has_next(publ_role)
 
     def editor_action(self, editor, row):
         if editor:
@@ -673,9 +669,8 @@ class Creator(object):
                         graph.has_contributor(pub_ed_role)
                 pub_ed_role.is_held_by(pub_ed)
                 edit_role_list.append(pub_ed_role)
-            for i, edit_role in enumerate(edit_role_list):
-                if i > 0:
-                    edit_role_list[i - 1].has_next(edit_role)
+                if len(edit_role_list) > 1:
+                    edit_role_list[-2].has_next(pub_ed_role)
 
     def __res_metaid(self, graph: BibliographicResource):
         if graph:
