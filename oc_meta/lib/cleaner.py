@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2019 Silvio Peroni <silvio.peroni@unibo.it>
 # SPDX-FileCopyrightText: 2019-2020 Fabio Mariani <fabio.mariani555@gmail.com>
 # SPDX-FileCopyrightText: 2021 Simone Persiani <iosonopersia@gmail.com>
-# SPDX-FileCopyrightText: 2021-2024 Arcangelo Massari <arcangelo.massari@unibo.it>
+# SPDX-FileCopyrightText: 2021-2026 Arcangelo Massari <arcangelo.massari@unibo.it>
 #
 # SPDX-License-Identifier: ISC
 
@@ -22,6 +22,31 @@ from oc_meta.lib.master_of_regex import (
     RE_NAME_AND_IDS,
     RE_VOLUMES_VALID_PATTERNS,
 )
+
+_HYPHEN_TRANS = str.maketrans({
+    '\u00AD': '\u002D',  # Soft hyphen
+    '\u06D4': '\u002D',  # Arabic Full Stop
+    '\u2010': '\u002D',  # Hyphen
+    '\u2011': '\u002D',  # Non-breaking Hyphen
+    '\u2012': '\u002D',  # Figure Dash
+    '\u2013': '\u002D',  # En-Dash
+    '\u2014': '\u002D',  # Em-Dash
+    '\u2043': '\u002D',  # Hyphen Bullet
+    '\u2212': '\u002D',  # Minus Sign
+    '\u2796': '\u002D',  # Heavy Minus Sign
+    '\u2CBA': '\u002D',  # Coptic Capital Letter Dialect-p Ni
+    '\uFE58': '\u002D',  # Small Em Dash
+})
+
+_SPACE_TRANS = str.maketrans({
+    '\u0009': '\u0020',  # Character Tabulation
+    '\u00A0': '\u0020',  # No-break space
+    '\u200B': '\u0020',  # Zero width space
+    '\u202F': '\u0020',  # Narrow no-break space
+    '\u2003': '\u0020',  # Em Space
+    '\u2005': '\u0020',  # Four-Per-Em Space
+    '\u2009': '\u0020',  # Thin Space
+})
 
 
 class Cleaner:
@@ -86,13 +111,7 @@ class Cleaner:
 
         :returns: str -- the string with normalized hyphens
         '''
-        string = self.string
-        wrong_characters = {'\u00AD', '\u06D4', '\u2010', '\u2011', '\u2012', '\u2013', '\u2014', '\u2043', '\u2212', '\u2796', '\u2CBA', '\uFE58'}
-        for c in wrong_characters:
-            string = string.replace(c, '\u002D')
-        if 'isbn:' in string:
-            string.replace(u'\u002D', '')
-        return string
+        return self.string.translate(_HYPHEN_TRANS)
     
     def normalize_spaces(self) -> str:
         '''
@@ -123,11 +142,7 @@ class Cleaner:
 
         :returns: str -- the string with normalized spaces
         '''
-        string = self.string
-        wrong_characters = {'\u0009', '\u00A0', '&nbsp;', '\u200B', '\u202F', '\u2003', '\u2005', '\u2009'}
-        for c in wrong_characters:
-            string = string.replace(c, '\u0020')
-        return string
+        return self.string.translate(_SPACE_TRANS).replace('&nbsp;', '\u0020')
 
     def clean_title(self, normalize_titles:bool=True) -> str:
         '''
