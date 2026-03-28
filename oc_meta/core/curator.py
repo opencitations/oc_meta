@@ -678,8 +678,8 @@ class Curator:
                             sequence.append(tuple((ar_metaid, ra_metaid)))
                             if ra_metaid not in self.radict:
                                 self.radict[ra_metaid] = dict()
-                                self.radict[ra_metaid]["ids"] = list()
-                                self.radict[ra_metaid]["others"] = list()
+                                self.radict[ra_metaid]["ids"] = set()
+                                self.radict[ra_metaid]["others"] = set()
                                 self.radict[ra_metaid]["title"] = agent[ar_metaid][0]
                             for identifier in agent[ar_metaid][1]:
                                 # other ids after meta
@@ -688,7 +688,7 @@ class Curator:
                                 if id_metaid not in self.idra:
                                     self.idra[literal] = id_metaid
                                 if literal not in self.radict[ra_metaid]["ids"]:
-                                    self.radict[ra_metaid]["ids"].append(literal)
+                                    self.radict[ra_metaid]["ids"].add(literal)
                     self.ardict[br_metaval][col_name].extend(sequence)
                 else:
                     sequence = []
@@ -867,9 +867,9 @@ class Curator:
         else:
             entity_dict = self.radict
         metaval = self.new_entity(entity_dict, name)
-        entity_dict[metaval] = {"ids": list(), "others": list(), "title": name}
+        entity_dict[metaval] = {"ids": set(), "others": set(), "title": name}
         for identifier in idslist:
-            entity_dict[metaval]["ids"].append(identifier)
+            entity_dict[metaval]["ids"].add(identifier)
             if identifier not in id_dict:
                 schema_value = identifier.split(":", maxsplit=1)
                 found_metaid = self.finder.retrieve_metaid_from_id(
@@ -913,7 +913,7 @@ class Curator:
             row[col_name] = "; ".join(ras_list)
 
     @staticmethod
-    def build_name_ids_string(name: str, ids: list) -> str:
+    def build_name_ids_string(name: str, ids: set) -> str:
         if name and ids:
             return f"{name} [{' '.join(ids)}]"
         elif name:
@@ -1010,22 +1010,22 @@ class Curator:
                 count = self._add_number("br")
                 meta = self.prefix + str(count)
                 self.brmeta[meta] = self.brdict[identifier]
-                self.brmeta[meta]["others"].append(other)
-                self.brmeta[meta]["ids"].append("omid:br/" + meta)
+                self.brmeta[meta]["others"].add(other)
+                self.brmeta[meta]["ids"].add("omid:br/" + meta)
             else:
                 self.brmeta[identifier] = self.brdict[identifier]
-                self.brmeta[identifier]["ids"].append("omid:br/" + identifier)
+                self.brmeta[identifier]["ids"].add("omid:br/" + identifier)
         for identifier in self.radict:
             if "wannabe" in identifier:
                 other = identifier
                 count = self._add_number("ra")
                 meta = self.prefix + str(count)
                 self.rameta[meta] = self.radict[identifier]
-                self.rameta[meta]["others"].append(other)
-                self.rameta[meta]["ids"].append("omid:ra/" + meta)
+                self.rameta[meta]["others"].add(other)
+                self.rameta[meta]["ids"].add("omid:ra/" + meta)
             else:
                 self.rameta[identifier] = self.radict[identifier]
-                self.rameta[identifier]["ids"].append("omid:ra/" + identifier)
+                self.rameta[identifier]["ids"].add("omid:ra/" + identifier)
         for ar_id in self.ardict:
             br_key = ar_id
             if "wannabe" in ar_id:
@@ -1158,14 +1158,14 @@ class Curator:
         self,
         existing_ids: list,
         id_dict: dict,
-        entity_dict: Dict[str, Dict[str, list]],
+        entity_dict: dict,
         metaval: str,
     ) -> None:
         for identifier in existing_ids:
             if identifier[1] not in id_dict:
                 id_dict[identifier[1]] = identifier[0]
             if identifier[1] not in entity_dict[metaval]["ids"]:
-                entity_dict[metaval]["ids"].append(identifier[1])
+                entity_dict[metaval]["ids"].add(identifier[1])
 
     def indexer(self, path_csv: str | None = None) -> None:
         """
@@ -1267,13 +1267,9 @@ class Curator:
         old_meta: str,
         temporary_name: str,
     ) -> None:
-        for x in dict_to_match[old_meta]["ids"]:
-            if x not in dict_to_match[metaval]["ids"]:
-                dict_to_match[metaval]["ids"].append(x)
-        for x in dict_to_match[old_meta]["others"]:
-            if x not in dict_to_match[metaval]["others"]:
-                dict_to_match[metaval]["others"].append(x)
-        dict_to_match[metaval]["others"].append(old_meta)
+        dict_to_match[metaval]["ids"].update(dict_to_match[old_meta]["ids"])
+        dict_to_match[metaval]["others"].update(dict_to_match[old_meta]["others"])
+        dict_to_match[metaval]["others"].add(old_meta)
         if not dict_to_match[metaval]["title"]:
             if dict_to_match[old_meta]["title"]:
                 dict_to_match[metaval]["title"] = dict_to_match[old_meta]["title"]
@@ -1295,7 +1291,7 @@ class Curator:
                 self.merge(entity_dict, metaval, old_meta, name)
         for identifier in idslist:
             if identifier not in entity_dict[metaval]["ids"]:
-                entity_dict[metaval]["ids"].append(identifier)
+                entity_dict[metaval]["ids"].add(identifier)
             if identifier not in id_dict:
                 self.__update_id_count(id_dict, identifier)
         self.__update_title(entity_dict, metaval, name)
@@ -1337,14 +1333,14 @@ class Curator:
                 # 2 Retrieve EntityA data in triplestore to update EntityA inside CSV
                 if found_meta_ts[2]:
                     entity_dict[metaval] = dict()
-                    entity_dict[metaval]["ids"] = list()
+                    entity_dict[metaval]["ids"] = set()
                     if col_name == "author" or col_name == "editor":
                         entity_dict[metaval]["title"] = self.name_check(
                             found_meta_ts[0], name
                         )
                     else:
                         entity_dict[metaval]["title"] = found_meta_ts[0]
-                    entity_dict[metaval]["others"] = list()
+                    entity_dict[metaval]["others"] = set()
                     existing_ids = found_meta_ts[1]
                     self.__update_id_and_entity_dict(
                         existing_ids, id_dict, entity_dict, metaval
@@ -1425,8 +1421,8 @@ class Curator:
                         old_metaval = metaval
                         metaval = sparql_match[0][0]
                         entity_dict[metaval] = dict()
-                        entity_dict[metaval]["ids"] = list()
-                        entity_dict[metaval]["others"] = list()
+                        entity_dict[metaval]["ids"] = set()
+                        entity_dict[metaval]["others"] = set()
                         entity_dict[metaval]["title"] = (
                             sparql_match[0][1] if sparql_match[0][1] else ""
                         )
@@ -1461,8 +1457,8 @@ class Curator:
                     # elif len(new_sparql_match) == 1:
                     metaval = sparql_match[0][0]
                     entity_dict[metaval] = dict()
-                    entity_dict[metaval]["ids"] = list()
-                    entity_dict[metaval]["others"] = list()
+                    entity_dict[metaval]["ids"] = set()
+                    entity_dict[metaval]["others"] = set()
                     if col_name == "author" or col_name == "editor":
                         entity_dict[metaval]["title"] = self.name_check(
                             sparql_match[0][1], name
@@ -1480,7 +1476,7 @@ class Curator:
                 if identifier not in id_dict:
                     self.__update_id_count(id_dict, identifier)
                 if identifier not in entity_dict[metaval]["ids"]:
-                    entity_dict[metaval]["ids"].append(identifier)
+                    entity_dict[metaval]["ids"].add(identifier)
             self.__update_title(entity_dict, metaval, name)
         # 1 EntityA is a new one
         if not idslist and not metaval:
@@ -1491,8 +1487,8 @@ class Curator:
         metaval = "wannabe_" + str(self.wnb_cnt)
         self.wnb_cnt += 1
         entity_dict[metaval] = dict()
-        entity_dict[metaval]["ids"] = list()
-        entity_dict[metaval]["others"] = list()
+        entity_dict[metaval]["ids"] = set()
+        entity_dict[metaval]["others"] = set()
         entity_dict[metaval]["title"] = name
         return metaval
 
@@ -1526,13 +1522,13 @@ class Curator:
                     if "wannabe" not in old_meta and old_meta not in self.brdict:
                         br4dict = self.finder.retrieve_br_from_meta(old_meta)
                         self.brdict[old_meta] = dict()
-                        self.brdict[old_meta]["ids"] = list()
-                        self.brdict[old_meta]["others"] = list()
+                        self.brdict[old_meta]["ids"] = set()
+                        self.brdict[old_meta]["others"] = set()
                         self.brdict[old_meta]["title"] = br4dict[0] if br4dict else None
                         if br4dict:
                             for x in br4dict[1]:
                                 identifier = x[1]
-                                self.brdict[old_meta]["ids"].append(identifier)
+                                self.brdict[old_meta]["ids"].add(identifier)
                                 if identifier not in self.idbr:
                                     self.idbr[identifier] = x[0]
                     self.merge(self.brdict, old_meta, meta, row["title"])

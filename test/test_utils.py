@@ -10,6 +10,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 
 import redis
+import re
 from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
 from rdflib import Dataset, Graph, URIRef
 from rdflib.term import Node
@@ -165,6 +166,23 @@ def wait_for_redis(
 
 def get_path(path: str) -> str:
     return path.replace("\\", "/")
+
+
+def normalize_ids_in_brackets(s: str) -> str:
+    """Sort IDs inside square brackets to make comparison order-independent."""
+    def sort_ids(match):
+        ids = match.group(1).split()
+        return f"[{' '.join(sorted(ids))}]"
+    return re.sub(r'\[([^\]]+)\]', sort_ids, s)
+
+
+def normalize_row_ids(row: dict) -> None:
+    """Normalize ID ordering in all fields that may contain IDs."""
+    if row.get('id') and isinstance(row['id'], str):
+        row['id'] = ' '.join(sorted(row['id'].split()))
+    for field in ['author', 'venue', 'publisher', 'editor']:
+        if row.get(field):
+            row[field] = normalize_ids_in_brackets(row[field])
 
 
 def add_data_ts(

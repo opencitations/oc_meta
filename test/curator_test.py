@@ -16,6 +16,7 @@ from test.test_utils import (
     add_data_ts,
     get_counter_handler,
     get_path,
+    normalize_row_ids,
     reset_redis_counters,
     reset_triplestore,
 )
@@ -56,7 +57,7 @@ def store_curated_data(curator_obj: Curator, server: str) -> None:
 
 def prepare_to_test(data, name):
     reset_redis_counters()
-    
+
     reset_server(SERVER)
     if float(name) > 12:
         add_data_ts(SERVER, os.path.abspath(os.path.join('test', 'testcases', 'ts', 'testcase_ts-13.ttl')).replace('\\', '/'))
@@ -76,6 +77,7 @@ def prepare_to_test(data, name):
     for csv in [testcase_csv, curator_obj.data]:
         for row in csv:
             row['id'] = sorted(row['id'].split())
+            normalize_row_ids(row)
     testcase_id_br = get_csv_data(testcase_id_br)
     testcase_id_ra = get_csv_data(testcase_id_ra)
     testcase_ar = get_csv_data(testcase_ar)
@@ -117,11 +119,11 @@ class test_Curator(unittest.TestCase):
     def test_merge_entities_in_csv(self):
         curator = prepareCurator(list())
         curator.counter_handler.set_counter(4, 'id', supplier_prefix='060')
-        entity_dict = {'0601': {'ids': [], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China', 'others': []}}
+        entity_dict = {'0601': {'ids': set(), 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China', 'others': set()}}
         id_dict = dict()
         curator.merge_entities_in_csv(['doi:10.1787/eco_outlook-v2011-2-graph138-en'], '0601', 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China', entity_dict, id_dict)
         expected_output = (
-            {'0601': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China', 'others': []}},
+            {'0601': {'ids': {'doi:10.1787/eco_outlook-v2011-2-graph138-en'}, 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China', 'others': set()}},
             {'doi:10.1787/eco_outlook-v2011-2-graph138-en': '0605'}
         )
         self.assertEqual((entity_dict, id_dict), expected_output)
@@ -206,7 +208,7 @@ class test_Curator(unittest.TestCase):
 
         # Set up the relationship between the existing entity and the wannabes
         if first_row_metaval in curator.brdict:
-            curator.brdict[first_row_metaval]['others'].extend(['wannabe_0', 'wannabe_1'])
+            curator.brdict[first_row_metaval]['others'].update({'wannabe_0', 'wannabe_1'})
 
         curator.merge_duplicate_entities()
 
@@ -309,12 +311,12 @@ class test_Curator(unittest.TestCase):
         # The surname of one author is included in the surname of another.
         row = {'id': 'wannabe_0', 'title': 'Giant Oyster Mushroom Pleurotus giganteus (Agaricomycetes) Enhances Adipocyte Differentiation and Glucose Uptake via Activation of PPARγ and Glucose Transporters 1 and 4 in 3T3-L1 Cells', 'author': 'Paravamsivam, Puvaneswari; Heng, Chua Kek; Malek, Sri Nurestri Abdul [orcid:0000-0001-6278-8559]; Sabaratnam, Vikineswary; M, Ravishankar Ram; Kuppusamy, Umah Rani', 'pub_date': '2016', 'venue': 'International Journal of Medicinal Mushrooms [issn:1521-9437]', 'volume': '18', 'issue': '9', 'page': '821-831', 'type': 'journal article', 'publisher': 'Begell House [crossref:613]', 'editor': ''}
         curator = prepareCurator(list())
-        curator.brdict = {'wannabe_0': {'ids': ['doi:10.1615/intjmedmushrooms.v18.i9.60'], 'title': 'Giant Oyster Mushroom Pleurotus giganteus (Agaricomycetes) Enhances Adipocyte Differentiation and Glucose Uptake via Activation of PPARγ and Glucose Transporters 1 and 4 in 3T3-L1 Cells', 'others': []}}
+        curator.brdict = {'wannabe_0': {'ids': {'doi:10.1615/intjmedmushrooms.v18.i9.60'}, 'title': 'Giant Oyster Mushroom Pleurotus giganteus (Agaricomycetes) Enhances Adipocyte Differentiation and Glucose Uptake via Activation of PPARγ and Glucose Transporters 1 and 4 in 3T3-L1 Cells', 'others': set()}}
         curator.clean_ra(row, 'author')
         output = (curator.ardict, curator.radict, curator.idra)
         expected_output = (
             {'wannabe_0': {'author': [('0601', 'wannabe_0'), ('0602', 'wannabe_1'), ('0603', 'wannabe_2'), ('0604', 'wannabe_3'), ('0605', 'wannabe_4'), ('0606', 'wannabe_5')], 'editor': [], 'publisher': []}}, 
-            {'wannabe_0': {'ids': [], 'others': [], 'title': 'Paravamsivam, Puvaneswari'}, 'wannabe_1': {'ids': [], 'others': [], 'title': 'Heng, Chua Kek'}, 'wannabe_2': {'ids': ['orcid:0000-0001-6278-8559'], 'others': [], 'title': 'Malek, Sri Nurestri Abdul'}, 'wannabe_3': {'ids': [], 'others': [], 'title': 'Sabaratnam, Vikineswary'}, 'wannabe_4': {'ids': [], 'others': [], 'title': 'M, Ravishankar Ram'}, 'wannabe_5': {'ids': [], 'others': [], 'title': 'Kuppusamy, Umah Rani'}},
+            {'wannabe_0': {'ids': set(), 'others': set(), 'title': 'Paravamsivam, Puvaneswari'}, 'wannabe_1': {'ids': set(), 'others': set(), 'title': 'Heng, Chua Kek'}, 'wannabe_2': {'ids': {'orcid:0000-0001-6278-8559'}, 'others': set(), 'title': 'Malek, Sri Nurestri Abdul'}, 'wannabe_3': {'ids': set(), 'others': set(), 'title': 'Sabaratnam, Vikineswary'}, 'wannabe_4': {'ids': set(), 'others': set(), 'title': 'M, Ravishankar Ram'}, 'wannabe_5': {'ids': set(), 'others': set(), 'title': 'Kuppusamy, Umah Rani'}},
             {'orcid:0000-0001-6278-8559': '0601'}
         )
         self.assertEqual(output, expected_output)
@@ -333,13 +335,13 @@ class test_Curator(unittest.TestCase):
         
         resolved_metaval = row['id']
         self.assertEqual(resolved_metaval, '3757')
-        curator.brdict = {resolved_metaval: {'ids': ['doi:10.1001/archderm.104.1.106'], 'title': 'Multiple Keloids', 'others': []}}
+        curator.brdict = {resolved_metaval: {'ids': {'doi:10.1001/archderm.104.1.106'}, 'title': 'Multiple Keloids', 'others': set()}}
         
         curator.clean_ra(row, 'author')
         output = (curator.ardict, curator.radict, curator.idra)
         expected_output = (
             {'3757': {'author': [('9445', '6033'), ('0601', 'wannabe_0')], 'editor': [], 'publisher': []}}, 
-            {'6033': {'ids': [], 'others': [], 'title': 'Curth, W.'}, 'wannabe_0': {'ids': ['orcid:0000-0003-0530-4305', 'schema:12345'], 'others': [], 'title': 'McSorley, J.'}}, 
+            {'6033': {'ids': set(), 'others': set(), 'title': 'Curth, W.'}, 'wannabe_0': {'ids': {'orcid:0000-0003-0530-4305', 'schema:12345'}, 'others': set(), 'title': 'McSorley, J.'}}, 
             {'orcid:0000-0003-0530-4305': '0601', 'schema:12345': '0602'}
         )
         self.assertEqual(output, expected_output)
@@ -349,13 +351,13 @@ class test_Curator(unittest.TestCase):
         # br_metaval is a wannabe
         row = {'id': 'wannabe_0', 'title': 'Multiple Keloids', 'author': 'Curth, W. [orcid:0000-0002-8420-0696] ; McSorley, J. [orcid:0000-0003-0530-4305]', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [omid:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}
         curator = prepareCurator(list())
-        curator.brdict = {'wannabe_0': {'ids': ['doi:10.1001/archderm.104.1.106'], 'title': 'Multiple Keloids', 'others': []}}
+        curator.brdict = {'wannabe_0': {'ids': {'doi:10.1001/archderm.104.1.106'}, 'title': 'Multiple Keloids', 'others': set()}}
         curator.wnb_cnt = 1
         curator.clean_ra(row, 'author')
         output = (curator.ardict, curator.radict, curator.idra)
         expected_output = (
             {'wannabe_0': {'author': [('0601', 'wannabe_1'), ('0602', 'wannabe_2')], 'editor': [], 'publisher': []}}, 
-            {'wannabe_1': {'ids': ['orcid:0000-0002-8420-0696'], 'others': [], 'title': 'Curth, W.'}, 'wannabe_2': {'ids': ['orcid:0000-0003-0530-4305'], 'others': [], 'title': 'McSorley, J.'}}, 
+            {'wannabe_1': {'ids': {'orcid:0000-0002-8420-0696'}, 'others': set(), 'title': 'Curth, W.'}, 'wannabe_2': {'ids': {'orcid:0000-0003-0530-4305'}, 'others': set(), 'title': 'McSorley, J.'}}, 
             {'orcid:0000-0002-8420-0696': '0601', 'orcid:0000-0003-0530-4305': '0602'}
         )
         self.assertEqual(output, expected_output)
@@ -373,28 +375,28 @@ class test_Curator(unittest.TestCase):
         
         resolved_metaval = row['id']
         self.assertEqual(resolved_metaval, '3757')
-        curator.brdict = {resolved_metaval: {'ids': ['doi:10.1001/archderm.104.1.106'], 'title': 'Multiple Keloids', 'others': []}}
+        curator.brdict = {resolved_metaval: {'ids': {'doi:10.1001/archderm.104.1.106'}, 'title': 'Multiple Keloids', 'others': set()}}
         
         curator.clean_ra(row, 'author')
         output = (curator.ardict, curator.radict, curator.idra)
         expected_output = (
             {'3757': {'author': [('9445', '6033'), ('0601', 'wannabe_0')], 'editor': [], 'publisher': []}},
-            {'6033': {'ids': [], 'others': [], 'title': 'Curth, W.'}, 'wannabe_0': {'ids': [], 'others': [], 'title': 'Bernacki, Edward J.'}},
+            {'6033': {'ids': set(), 'others': set(), 'title': 'Curth, W.'}, 'wannabe_0': {'ids': set(), 'others': set(), 'title': 'Bernacki, Edward J.'}},
             {}
         )
         self.assertEqual(output, expected_output)
     
     def test_meta_maker(self):
         curator = prepareCurator(list())
-        curator.brdict = {'3757': {'ids': ['doi:10.1001/archderm.104.1.106', 'pmid:29098884'], 'title': 'Multiple Keloids', 'others': []}, '4416': {'ids': ['issn:0003-987X'], 'title': 'Archives Of Dermatology', 'others': []}}
-        curator.radict = {'6033': {'ids': [], 'others': [], 'title': 'Curth, W.'}, 'wannabe_0': {'ids': ['orcid:0000-0003-0530-4305', 'schema:12345'], 'others': [], 'title': 'Mcsorley, J.'}}
+        curator.brdict = {'3757': {'ids': {'doi:10.1001/archderm.104.1.106', 'pmid:29098884'}, 'title': 'Multiple Keloids', 'others': set()}, '4416': {'ids': {'issn:0003-987X'}, 'title': 'Archives Of Dermatology', 'others': set()}}
+        curator.radict = {'6033': {'ids': set(), 'others': set(), 'title': 'Curth, W.'}, 'wannabe_0': {'ids': {'orcid:0000-0003-0530-4305', 'schema:12345'}, 'others': set(), 'title': 'Mcsorley, J.'}}
         curator.ardict = {'3757': {'author': [('9445', '6033'), ('0601', 'wannabe_0')], 'editor': [], 'publisher': []}}
         curator.vvi = {'4416': {'issue': {}, 'volume': {'107': {'id': '4733', 'issue': {'1': {'id': '4734'}, '2': {'id': '4735'}, '3': {'id': '4736'}, '4': {'id': '4737'}, '5': {'id': '4738'}, '6': {'id': '4739'}}}, '108': {'id': '4740', 'issue': {'1': {'id': '4741'}, '2': {'id': '4742'}, '3': {'id': '4743'}, '4': {'id': '4744'}}}, '104': {'id': '4712', 'issue': {'1': {'id': '4713'}, '2': {'id': '4714'}, '3': {'id': '4715'}, '4': {'id': '4716'}, '5': {'id': '4717'}, '6': {'id': '4718'}}}, '148': {'id': '4417', 'issue': {'12': {'id': '4418'}, '11': {'id': '4419'}}}, '100': {'id': '4684', 'issue': {'1': {'id': '4685'}, '2': {'id': '4686'}, '3': {'id': '4687'}, '4': {'id': '4688'}, '5': {'id': '4689'}, '6': {'id': '4690'}}}, '101': {'id': '4691', 'issue': {'1': {'id': '4692'}, '2': {'id': '4693'}, '3': {'id': '4694'}, '4': {'id': '4695'}, '5': {'id': '4696'}, '6': {'id': '4697'}}}, '102': {'id': '4698', 'issue': {'1': {'id': '4699'}, '2': {'id': '4700'}, '3': {'id': '4701'}, '4': {'id': '4702'}, '5': {'id': '4703'}, '6': {'id': '4704'}}}, '103': {'id': '4705', 'issue': {'1': {'id': '4706'}, '2': {'id': '4707'}, '3': {'id': '4708'}, '4': {'id': '4709'}, '5': {'id': '4710'}, '6': {'id': '4711'}}}, '105': {'id': '4719', 'issue': {'1': {'id': '4720'}, '2': {'id': '4721'}, '3': {'id': '4722'}, '4': {'id': '4723'}, '5': {'id': '4724'}, '6': {'id': '4725'}}}, '106': {'id': '4726', 'issue': {'6': {'id': '4732'}, '1': {'id': '4727'}, '2': {'id': '4728'}, '3': {'id': '4729'}, '4': {'id': '4730'}, '5': {'id': '4731'}}}}}}
         curator.meta_maker()
         output = (curator.brmeta, curator.rameta, curator.armeta)
         expected_output = (
-            {'3757': {'ids': ['doi:10.1001/archderm.104.1.106', 'pmid:29098884', 'omid:br/3757'], 'title': 'Multiple Keloids', 'others': []}, '4416': {'ids': ['issn:0003-987X', 'omid:br/4416'], 'title': 'Archives Of Dermatology', 'others': []}},
-            {'6033': {'ids': ['omid:ra/6033'], 'others': [], 'title': 'Curth, W.'}, '0601': {'ids': ['orcid:0000-0003-0530-4305', 'schema:12345', 'omid:ra/0601'], 'others': ['wannabe_0'], 'title': 'Mcsorley, J.'}},
+            {'3757': {'ids': {'doi:10.1001/archderm.104.1.106', 'pmid:29098884', 'omid:br/3757'}, 'title': 'Multiple Keloids', 'others': set()}, '4416': {'ids': {'issn:0003-987X', 'omid:br/4416'}, 'title': 'Archives Of Dermatology', 'others': set()}},
+            {'6033': {'ids': {'omid:ra/6033'}, 'others': set(), 'title': 'Curth, W.'}, '0601': {'ids': {'orcid:0000-0003-0530-4305', 'schema:12345', 'omid:ra/0601'}, 'others': {'wannabe_0'}, 'title': 'Mcsorley, J.'}},
             {'3757': {'author': [('9445', '6033'), ('0601', '0601')], 'editor': [], 'publisher': []}}
         )
         self.assertEqual(output, expected_output)
@@ -403,16 +405,20 @@ class test_Curator(unittest.TestCase):
         curator = prepareCurator(list())
         curator.data = [{'id': 'wannabe_0', 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China', 'author': '', 'pub_date': '2011-11-28', 'venue': 'wannabe_1', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': 'OECD [crossref:1963]', 'editor': ''}]
         curator.brmeta = {
-            '0601': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en', 'omid:br/0601'], 'others': ['wannabe_0'], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}, 
-            '0602': {'ids': ['omid:br/0604'], 'others': ['wannabe_1'], 'title': 'OECD Economic Outlook'}
+            '0601': {'ids': {'doi:10.1787/eco_outlook-v2011-2-graph138-en', 'omid:br/0601'}, 'others': {'wannabe_0'}, 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}, 
+            '0602': {'ids': {'omid:br/0604'}, 'others': {'wannabe_1'}, 'title': 'OECD Economic Outlook'}
         }
         curator.armeta = {'0601': {'author': [], 'editor': [], 'publisher': [('0601', '0601')]}}
-        curator.rameta = {'0601': {'ids': ['crossref:1963', 'omid:ra/0601'], 'others': ['wannabe_2'], 'title': 'Oecd'}}
+        curator.rameta = {'0601': {'ids': {'crossref:1963', 'omid:ra/0601'}, 'others': {'wannabe_2'}, 'title': 'Oecd'}}
         curator.remeta = dict()
         curator.meta_maker()
         curator.enrich()
         output = curator.data
         expected_output = [{'id': 'doi:10.1787/eco_outlook-v2011-2-graph138-en omid:br/0601', 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China', 'author': '', 'pub_date': '2011-11-28', 'venue': 'OECD Economic Outlook [omid:br/0604]', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': 'Oecd [crossref:1963 omid:ra/0601]', 'editor': ''}]
+        for row in output:
+            normalize_row_ids(row)
+        for row in expected_output:
+            normalize_row_ids(row)
         self.assertEqual(output, expected_output)
     
     def test_indexer(self):
@@ -424,8 +430,8 @@ class test_Curator(unittest.TestCase):
         curator.armeta = {'2585': {'author': [('9445', '0602'), ('0601', '0601')], 'editor': [], 'publisher': []}}
         curator.remeta = dict()
         curator.brmeta = {
-            '0601': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en', 'omid:br/0601'], 'others': ['wannabe_0'], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'},
-            '0602': {'ids': ['omid:br/0602'], 'others': ['wannabe_1'], 'title': 'OECD Economic Outlook'}
+            '0601': {'ids': {'doi:10.1787/eco_outlook-v2011-2-graph138-en', 'omid:br/0601'}, 'others': {'wannabe_0'}, 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'},
+            '0602': {'ids': {'omid:br/0602'}, 'others': {'wannabe_1'}, 'title': 'OECD Economic Outlook'}
         }
         curator.vvi = {
             'wannabe_1': {
@@ -481,11 +487,14 @@ class test_Curator(unittest.TestCase):
         row = {'id': 'omid:br/2715', 'title': 'Image Of The Year For 2012', 'author': '', 'pub_date': '', 'venue': 'Archives Of Surgery [omid:br/4480]', 'volume': '99', 'issue': '1', 'page': '', 'type': 'journal article', 'publisher': '', 'editor': ''}
         curator = prepareCurator(data=[row])
         curator.curator()
-        expected_output = (
-            {'id/4270', 'ra/3309', 'ar/7240', 'br/4481', 'br/2715', 'br/4480', 'id/4274', 'id/2581', 'br/4487', 're/2350'},
-            [{'id': 'doi:10.1001/2013.jamasurg.202 omid:br/2715', 'title': 'Image Of The Year For 2012', 'author': '', 'pub_date': '2012-12-01', 'venue': 'Archives Of Surgery [issn:0004-0010 omid:br/4480]', 'volume': '147', 'issue': '12', 'page': '1140-1140', 'type': 'journal article', 'publisher': 'American Medical Association (ama) [crossref:10 omid:ra/3309]', 'editor': ''}]
-        )
-        self.assertEqual((curator.preexisting_entities, curator.data), expected_output)
+        expected_data = [{'id': 'doi:10.1001/2013.jamasurg.202 omid:br/2715', 'title': 'Image Of The Year For 2012', 'author': '', 'pub_date': '2012-12-01', 'venue': 'Archives Of Surgery [issn:0004-0010 omid:br/4480]', 'volume': '147', 'issue': '12', 'page': '1140-1140', 'type': 'journal article', 'publisher': 'American Medical Association (ama) [crossref:10 omid:ra/3309]', 'editor': ''}]
+        expected_entities = {'id/4270', 'ra/3309', 'ar/7240', 'br/4481', 'br/2715', 'br/4480', 'id/4274', 'id/2581', 'br/4487', 're/2350'}
+        for row in curator.data:
+            normalize_row_ids(row)
+        for row in expected_data:
+            normalize_row_ids(row)
+        self.assertEqual(curator.preexisting_entities, expected_entities)
+        self.assertEqual(curator.data, expected_data)
 
 
 class test_id_worker(unittest.TestCase):
@@ -504,7 +513,7 @@ class test_id_worker(unittest.TestCase):
         output = (wannabe_id, curator.brdict, curator.radict, curator.idbr, curator.idra)
         expected_output = (
             'wannabe_0',
-            {'wannabe_0': {'ids': ['doi:10.1163/2214-8655_lgo_lgo_02_0074_ger'], 'others': [], 'title': 'βέβαιος, α, ον'}},
+            {'wannabe_0': {'ids': {'doi:10.1163/2214-8655_lgo_lgo_02_0074_ger'}, 'others': set(), 'title': 'βέβαιος, α, ον'}},
             {},
             {'doi:10.1163/2214-8655_lgo_lgo_02_0074_ger': '0601'},
             {}
@@ -520,7 +529,7 @@ class test_id_worker(unittest.TestCase):
         output = (wannabe_id, curator.brdict, curator.radict, curator.idbr, curator.idra)
         expected_output = (
             'wannabe_0',
-            {'wannabe_0': {'ids': [], 'others': [], 'title': 'βέβαιος, α, ον'}},
+            {'wannabe_0': {'ids': set(), 'others': set(), 'title': 'βέβαιος, α, ον'}},
             {},
             {},
             {}
@@ -535,7 +544,7 @@ class test_id_worker(unittest.TestCase):
         idslist = ['crossref:10']
         wannabe_id = curator.id_worker('editor', name, idslist, '', ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
         output = (wannabe_id, curator.brdict, curator.radict, curator.idbr, curator.idra)
-        expected_output = ('3309', {}, {'3309': {'ids': ['crossref:10'], 'others': [], 'title': 'American Medical Association (ama)'}}, {}, {'crossref:10': '4274'})
+        expected_output = ('3309', {}, {'3309': {'ids': {'crossref:10'}, 'others': set(), 'title': 'American Medical Association (ama)'}}, {}, {'crossref:10': '4274'})
         self.assertEqual(output, expected_output)
 
     def test_id_worker_2_metaid_ts(self):
@@ -546,7 +555,7 @@ class test_id_worker(unittest.TestCase):
         # MetaID only
         wannabe_id = curator.id_worker('editor', name, [], '3309', ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
         output = (wannabe_id, curator.brdict, curator.radict, curator.idbr, curator.idra)
-        expected_output = ('3309', {}, {'3309': {'ids': ['crossref:10'], 'others': [], 'title': 'American Medical Association (ama)'}}, {}, {'crossref:10': '4274'})
+        expected_output = ('3309', {}, {'3309': {'ids': {'crossref:10'}, 'others': set(), 'title': 'American Medical Association (ama)'}}, {}, {'crossref:10': '4274'})
         self.assertEqual(output, expected_output)
 
     def test_id_worker_2_id_metaid_ts(self):
@@ -557,7 +566,7 @@ class test_id_worker(unittest.TestCase):
         # ID and MetaID
         wannabe_id = curator.id_worker('publisher', name, ['crossref:10'], '3309', ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
         output = (wannabe_id, curator.brdict, curator.radict, curator.idbr, curator.idra)
-        expected_output = ('3309', {}, {'3309': {'ids': ['crossref:10'], 'others': [], 'title': 'American Medical Association (ama)'}}, {}, {'crossref:10': '4274'})
+        expected_output = ('3309', {}, {'3309': {'ids': {'crossref:10'}, 'others': set(), 'title': 'American Medical Association (ama)'}}, {}, {'crossref:10': '4274'})
         self.assertEqual(output, expected_output)
 
     def test_id_worker_3(self):
@@ -568,7 +577,7 @@ class test_id_worker(unittest.TestCase):
         # ID and MetaID, but it's omid:ra/3309 on ts
         wannabe_id = curator.id_worker('publisher', name, ['crossref:10'], '33090', ra_ent=True, br_ent=False, vvi_ent=False, publ_entity=True)
         output = (wannabe_id, curator.brdict, curator.radict, curator.idbr, curator.idra)
-        expected_output = ('3309', {}, {'3309': {'ids': ['crossref:10'], 'others': [], 'title': 'American Medical Association (ama)'}}, {}, {'crossref:10': '4274'})
+        expected_output = ('3309', {}, {'3309': {'ids': {'crossref:10'}, 'others': set(), 'title': 'American Medical Association (ama)'}}, {}, {'crossref:10': '4274'})
         self.assertEqual(output, expected_output)
 
     def test_id_worker_conflict(self):
@@ -584,7 +593,7 @@ class test_id_worker(unittest.TestCase):
         output = (metaval, curator.brdict, id_dict)
         expected_output = (
             'wannabe_0',
-            {'wannabe_0': {'ids': ['doi:10.1001/2013.jamasurg.270'], 'others': [], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}},
+            {'wannabe_0': {'ids': {'doi:10.1001/2013.jamasurg.270'}, 'others': set(), 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}},
             {'doi:10.1001/2013.jamasurg.270': '2585'}
         )
         self.assertEqual(output, expected_output)
@@ -601,13 +610,13 @@ class test_id_worker(unittest.TestCase):
             '2719',
             {'doi:10.1001/2013.jamasurg.270': '2585'},
             {},
-            {'2719': {'ids': ['doi:10.1001/2013.jamasurg.270'], 'others': [], 'title': 'Patient Satisfaction As A Possible Indicator Of Quality Surgical Care'}}
+            {'2719': {'ids': {'doi:10.1001/2013.jamasurg.270'}, 'others': set(), 'title': 'Patient Satisfaction As A Possible Indicator Of Quality Surgical Care'}}
         )
         expected_output_2 = ('2720',
             {'doi:10.1001/2013.jamasurg.270': '2585'},
             {},
-            {'2720': {'ids': ['doi:10.1001/2013.jamasurg.270'],
-                    'others': [],
+            {'2720': {'ids': {'doi:10.1001/2013.jamasurg.270'},
+                    'others': set(),
                     'title': 'Pediatric Injury Outcomes In Racial/Ethnic Minorities In '
                                 'California'}}
         )
@@ -626,23 +635,23 @@ class test_id_worker(unittest.TestCase):
             {},
             {'orcid:0000-0001-6994-8412': '4475'},
             {},
-            {'4940': {'ids': ['orcid:0000-0001-6994-8412'], 'others': [], 'title': 'Alarcon, Louis H.'}}
+            {'4940': {'ids': {'orcid:0000-0001-6994-8412'}, 'others': set(), 'title': 'Alarcon, Louis H.'}}
         )
         expected_output_2 = ('1000000',
             {},
             {'orcid:0000-0001-6994-8412': '4475'},
             {},
-            {'1000000': {'ids': ['orcid:0000-0001-6994-8412'],
-                        'others': [],
+            {'1000000': {'ids': {'orcid:0000-0001-6994-8412'},
+                        'others': set(),
                         'title': 'Alarcon, Louis H.'}})
         self.assertTrue(output == expected_output_1 or output == expected_output_2)
     
     def test_conflict_suspect_id_among_existing(self):
         # ID already exist in entity_dict and refer to one entity having a MetaID, but there is another ID not in entity_dict that highlights a conflict on ts
         br_dict = {
-            'omid:br/0601': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'], 'others': [], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}, 
-            'omid:br/0602': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph150-en'], 'others': [], 'title': 'Contributions To GDP Growth And Inflation: South Africa'}, 
-            'omid:br/0603': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph18-en'], 'others': [], 'title': 'Official Loans To The Governments Of Greece, Ireland And Portugal'}, 
+            'omid:br/0601': {'ids': {'doi:10.1787/eco_outlook-v2011-2-graph138-en'}, 'others': set(), 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}, 
+            'omid:br/0602': {'ids': {'doi:10.1787/eco_outlook-v2011-2-graph150-en'}, 'others': set(), 'title': 'Contributions To GDP Growth And Inflation: South Africa'}, 
+            'omid:br/0603': {'ids': {'doi:10.1787/eco_outlook-v2011-2-graph18-en'}, 'others': set(), 'title': 'Official Loans To The Governments Of Greece, Ireland And Portugal'}, 
         }
         name = 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: Japan' # The first title must have precedence (China, not Japan)
         idslist = ['doi:10.1787/eco_outlook-v2011-2-graph138-en', 'doi:10.1001/2013.jamasurg.270']
@@ -658,21 +667,21 @@ class test_id_worker(unittest.TestCase):
                 'doi:10.1001/2013.jamasurg.270': '2585'
             },
             {},
-            {'omid:br/0601': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'],
-                            'others': [],
+            {'omid:br/0601': {'ids': {'doi:10.1787/eco_outlook-v2011-2-graph138-en'},
+                            'others': set(),
                             'title': 'Money Growth, Interest Rates, Inflation And Raw '
                                         'Materials Prices: China'},
-            'omid:br/0602': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph150-en'],
-                            'others': [],
+            'omid:br/0602': {'ids': {'doi:10.1787/eco_outlook-v2011-2-graph150-en'},
+                            'others': set(),
                             'title': 'Contributions To GDP Growth And Inflation: South '
                                         'Africa'},
-            'omid:br/0603': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph18-en'],
-                            'others': [],
+            'omid:br/0603': {'ids': {'doi:10.1787/eco_outlook-v2011-2-graph18-en'},
+                            'others': set(),
                             'title': 'Official Loans To The Governments Of Greece, '
                                         'Ireland And Portugal'},
-            'wannabe_0': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en',
-                                    'doi:10.1001/2013.jamasurg.270'],
-                            'others': [],
+            'wannabe_0': {'ids': {'doi:10.1787/eco_outlook-v2011-2-graph138-en',
+                                    'doi:10.1001/2013.jamasurg.270'},
+                            'others': set(),
                             'title': 'Money Growth, Interest Rates, Inflation And Raw '
                                     'Materials Prices: Japan'}},
             {}
@@ -682,9 +691,9 @@ class test_id_worker(unittest.TestCase):
     def test_conflict_suspect_id_among_wannabe(self):
         # ID already exist in entity_dict and refer to one temporary, but there is another ID not in entity_dict that highlights a conflict on ts
         br_dict = {
-            'wannabe_0': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'], 'others': [], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'},
-            'wannabe_2': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph150-en'], 'others': [], 'title': 'Contributions To GDP Growth And Inflation: South Africa'},
-            'wannabe_3': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph18-en'], 'others': [], 'title': 'Official Loans To The Governments Of Greece, Ireland And Portugal'},
+            'wannabe_0': {'ids': {'doi:10.1787/eco_outlook-v2011-2-graph138-en'}, 'others': set(), 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'},
+            'wannabe_2': {'ids': {'doi:10.1787/eco_outlook-v2011-2-graph150-en'}, 'others': set(), 'title': 'Contributions To GDP Growth And Inflation: South Africa'},
+            'wannabe_3': {'ids': {'doi:10.1787/eco_outlook-v2011-2-graph18-en'}, 'others': set(), 'title': 'Official Loans To The Governments Of Greece, Ireland And Portugal'},
         }
         name = 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: Japan' # The first title must have precedence (China, not Japan)
         idslist = ['doi:10.1787/eco_outlook-v2011-2-graph138-en', 'doi:10.1001/2013.jamasurg.270']
@@ -700,16 +709,16 @@ class test_id_worker(unittest.TestCase):
                 'doi:10.1001/2013.jamasurg.270': '2585'
             },
             {},
-            {'2720': {'ids': ['doi:10.1001/2013.jamasurg.270', 'doi:10.1787/eco_outlook-v2011-2-graph138-en'],
-                            'others': ['wannabe_0'],
+            {'2720': {'ids': {'doi:10.1001/2013.jamasurg.270', 'doi:10.1787/eco_outlook-v2011-2-graph138-en'},
+                            'others': {'wannabe_0'},
                             'title': 'Pediatric Injury Outcomes In Racial/Ethnic Minorities In '
                                         'California'},
-            'wannabe_2': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph150-en'],
-                            'others': [],
+            'wannabe_2': {'ids': {'doi:10.1787/eco_outlook-v2011-2-graph150-en'},
+                            'others': set(),
                             'title': 'Contributions To GDP Growth And Inflation: South '
                                     'Africa'},
-            'wannabe_3': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph18-en'],
-                            'others': [],
+            'wannabe_3': {'ids': {'doi:10.1787/eco_outlook-v2011-2-graph18-en'},
+                            'others': set(),
                             'title': 'Official Loans To The Governments Of Greece, Ireland '
                                     'And Portugal'}},
             {}
@@ -721,16 +730,16 @@ class test_id_worker(unittest.TestCase):
                 'doi:10.1001/2013.jamasurg.270': '2585'
             },
             {},
-            {'2719': {'ids': ['doi:10.1001/2013.jamasurg.270', 'doi:10.1787/eco_outlook-v2011-2-graph138-en'],
-                            'others': ['wannabe_0'],
+            {'2719': {'ids': {'doi:10.1001/2013.jamasurg.270', 'doi:10.1787/eco_outlook-v2011-2-graph138-en'},
+                            'others': {'wannabe_0'},
                             'title': 'Patient Satisfaction As A Possible Indicator Of Quality '
                                         'Surgical Care'},
-            'wannabe_2': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph150-en'],
-                            'others': [],
+            'wannabe_2': {'ids': {'doi:10.1787/eco_outlook-v2011-2-graph150-en'},
+                            'others': set(),
                             'title': 'Contributions To GDP Growth And Inflation: South '
                                     'Africa'},
-            'wannabe_3': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph18-en'],
-                            'others': [],
+            'wannabe_3': {'ids': {'doi:10.1787/eco_outlook-v2011-2-graph18-en'},
+                            'others': set(),
                             'title': 'Official Loans To The Governments Of Greece, Ireland '
                                     'And Portugal'}},
             {}
@@ -740,8 +749,8 @@ class test_id_worker(unittest.TestCase):
     def test_id_worker_4(self):
         # 4 Merge data from EntityA (CSV) with data from EntityX (CSV), update both with data from EntityA (RDF)
         br_dict = {
-            'wannabe_0': {'ids': ['doi:10.1001/archderm.104.1.106'], 'others': [], 'title': 'Multiple eloids'}, 
-            'wannabe_1': {'ids': ['doi:10.1001/archderm.104.1.106'], 'others': [], 'title': 'Multiple Blastoids'}, 
+            'wannabe_0': {'ids': {'doi:10.1001/archderm.104.1.106'}, 'others': set(), 'title': 'Multiple eloids'}, 
+            'wannabe_1': {'ids': {'doi:10.1001/archderm.104.1.106'}, 'others': set(), 'title': 'Multiple Blastoids'}, 
         }
         name = 'Multiple Palloids'
         idslist = ['doi:10.1001/archderm.104.1.106', 'pmid:29098884']
@@ -776,16 +785,16 @@ class test_id_worker_with_reset(unittest.TestCase):
         # metaval is in entity_dict
         meta_id = curator_empty.id_worker('id', name, [], '0601', ra_ent=False, br_ent=True, vvi_ent=False, publ_entity=False)
         output = (meta_id, curator_empty.brdict, curator_empty.radict, curator_empty.idbr, curator_empty.idra)
-        expected_output = ('0601', {'0601': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China', 'others': []}}, {}, {'doi:10.1787/eco_outlook-v2011-2-graph138-en': '0601'}, {})
+        expected_output = ('0601', {'0601': {'ids': {'doi:10.1787/eco_outlook-v2011-2-graph138-en'}, 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China', 'others': set()}}, {}, {'doi:10.1787/eco_outlook-v2011-2-graph138-en': '0601'}, {})
         self.assertEqual(output, expected_output)
 
     def test_conflict_existing(self):
         # ID already exist in entity_dict but refer to multiple entities having a MetaID
         reset_server()
         br_dict = {
-            'omid:br/0601': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'], 'others': [], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}, 
-            'omid:br/0602': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph150-en'], 'others': [], 'title': 'Contributions To GDP Growth And Inflation: South Africa'}, 
-            'omid:br/0603': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'], 'others': [], 'title': 'Official Loans To The Governments Of Greece, Ireland And Portugal'}, 
+            'omid:br/0601': {'ids': {'doi:10.1787/eco_outlook-v2011-2-graph138-en'}, 'others': set(), 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}, 
+            'omid:br/0602': {'ids': {'doi:10.1787/eco_outlook-v2011-2-graph150-en'}, 'others': set(), 'title': 'Contributions To GDP Growth And Inflation: South Africa'}, 
+            'omid:br/0603': {'ids': {'doi:10.1787/eco_outlook-v2011-2-graph138-en'}, 'others': set(), 'title': 'Official Loans To The Governments Of Greece, Ireland And Portugal'}, 
         }
         name = 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'
         idslist = ['doi:10.1787/eco_outlook-v2011-2-graph138-en']
@@ -797,20 +806,20 @@ class test_id_worker_with_reset(unittest.TestCase):
             'wannabe_0',
             {'doi:10.1787/eco_outlook-v2011-2-graph138-en': '0601'},
             {},
-            {'omid:br/0601': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'],
-                            'others': [],
+            {'omid:br/0601': {'ids': {'doi:10.1787/eco_outlook-v2011-2-graph138-en'},
+                            'others': set(),
                             'title': 'Money Growth, Interest Rates, Inflation And Raw '
                                         'Materials Prices: China'},
-            'omid:br/0602': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph150-en'],
-                            'others': [],
+            'omid:br/0602': {'ids': {'doi:10.1787/eco_outlook-v2011-2-graph150-en'},
+                            'others': set(),
                             'title': 'Contributions To GDP Growth And Inflation: South '
                                         'Africa'},
-            'omid:br/0603': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'],
-                            'others': [],
+            'omid:br/0603': {'ids': {'doi:10.1787/eco_outlook-v2011-2-graph138-en'},
+                            'others': set(),
                             'title': 'Official Loans To The Governments Of Greece, '
                                         'Ireland And Portugal'},
-            'wannabe_0': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'],
-                            'others': [],
+            'wannabe_0': {'ids': {'doi:10.1787/eco_outlook-v2011-2-graph138-en'},
+                            'others': set(),
                             'title': 'Money Growth, Interest Rates, Inflation And Raw '
                                     'Materials Prices: China'}},
             {}
@@ -821,9 +830,9 @@ class test_id_worker_with_reset(unittest.TestCase):
         # ID already exist in entity_dict and refer to one or more temporary entities -> collective merge
         reset_server()
         br_dict = {
-            'wannabe_0': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'], 'others': [], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}, 
-            'wannabe_1': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph150-en'], 'others': [], 'title': 'Contributions To GDP Growth And Inflation: South Africa'}, 
-            'wannabe_2': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'], 'others': [], 'title': 'Official Loans To The Governments Of Greece, Ireland And Portugal'}, 
+            'wannabe_0': {'ids': {'doi:10.1787/eco_outlook-v2011-2-graph138-en'}, 'others': set(), 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}, 
+            'wannabe_1': {'ids': {'doi:10.1787/eco_outlook-v2011-2-graph150-en'}, 'others': set(), 'title': 'Contributions To GDP Growth And Inflation: South Africa'}, 
+            'wannabe_2': {'ids': {'doi:10.1787/eco_outlook-v2011-2-graph138-en'}, 'others': set(), 'title': 'Official Loans To The Governments Of Greece, Ireland And Portugal'}, 
         }
         name = 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'
         idslist = ['doi:10.1787/eco_outlook-v2011-2-graph138-en']
@@ -843,9 +852,9 @@ class test_id_worker_with_reset(unittest.TestCase):
         # ID already exist in entity_dict and refer to one entity
         reset_server()
         br_dict = {
-            'omid:br/0601': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph138-en'], 'others': [], 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}, 
-            'omid:br/0602': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph150-en'], 'others': [], 'title': 'Contributions To GDP Growth And Inflation: South Africa'}, 
-            'omid:br/0603': {'ids': ['doi:10.1787/eco_outlook-v2011-2-graph18-en'], 'others': [], 'title': 'Official Loans To The Governments Of Greece, Ireland And Portugal'}, 
+            'omid:br/0601': {'ids': {'doi:10.1787/eco_outlook-v2011-2-graph138-en'}, 'others': set(), 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}, 
+            'omid:br/0602': {'ids': {'doi:10.1787/eco_outlook-v2011-2-graph150-en'}, 'others': set(), 'title': 'Contributions To GDP Growth And Inflation: South Africa'}, 
+            'omid:br/0603': {'ids': {'doi:10.1787/eco_outlook-v2011-2-graph18-en'}, 'others': set(), 'title': 'Official Loans To The Governments Of Greece, Ireland And Portugal'}, 
         }
         name = 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: Japan' # The first title must have precedence (China, not Japan)
         idslist = ['doi:10.1787/eco_outlook-v2011-2-graph138-en']

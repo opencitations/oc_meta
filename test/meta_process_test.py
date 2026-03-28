@@ -11,8 +11,9 @@ import sys
 import tempfile
 import unittest
 from test.test_utils import (PROV_SERVER, SERVER, execute_sparql_construct,
-                             execute_sparql_query, reset_redis_counters,
-                             reset_server, wait_for_triplestore)
+                             execute_sparql_query, normalize_row_ids,
+                             reset_redis_counters, reset_server,
+                             wait_for_triplestore)
 
 import yaml
 from oc_meta.lib.file_manager import get_csv_data, write_csv
@@ -150,6 +151,10 @@ class test_ProcessTest(unittest.TestCase):
                 "editor": "",
             },
         ]
+        for row in output:
+            normalize_row_ids(row)
+        for row in expected_output:
+            normalize_row_ids(row)
         output = sorted(sorted(d.items()) for d in output)
         expected_output = sorted(sorted(d.items()) for d in expected_output)
         self.maxDiff = None
@@ -192,6 +197,10 @@ class test_ProcessTest(unittest.TestCase):
                 "editor": "[orcid:0000-0002-4126-8519 omid:ra/0601]; [orcid:0000-0002-8420-0696 omid:ra/0604]",
             }
         ]
+        for row in output:
+            normalize_row_ids(row)
+        for row in expected_output:
+            normalize_row_ids(row)
         output = sorted(sorted(d.items()) for d in output)
         expected_output = sorted(sorted(d.items()) for d in expected_output)
         self.maxDiff = None
@@ -2375,6 +2384,10 @@ class test_ProcessTest(unittest.TestCase):
             },
         ]
 
+        for row in output:
+            normalize_row_ids(row)
+        for row in expected_output:
+            normalize_row_ids(row)
         output = sorted(sorted(d.items()) for d in output)
         expected_output = sorted(sorted(d.items()) for d in expected_output)
         self.maxDiff = None
