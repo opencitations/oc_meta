@@ -251,8 +251,11 @@ class Creator(object):
             aut_role_list = list()
             for aut in authorslist:
                 aut_and_ids = RE_NAME_AND_IDS.search(aut)
+                assert aut_and_ids is not None
                 aut_id = aut_and_ids.group(2)
                 aut_id_list = aut_id.split(" ")
+                author_ra = None
+                aut_meta = ""
                 for identifier in aut_id_list:
                     if "omid:" in identifier:
                         identifier = str(identifier).replace("omid:", "")
@@ -264,7 +267,7 @@ class Creator(object):
                             if preexisting_entity
                             else None
                         )
-                        pub_aut = self.setgraph.add_ra(
+                        author_ra = self.setgraph.add_ra(
                             self.resp_agent,
                             source=self.src,
                             res=url,
@@ -278,14 +281,13 @@ class Creator(object):
                             first_name = author_name_splitted[1]
                             last_name = author_name_splitted[0]
                             if first_name.strip():
-                                pub_aut.has_given_name(first_name)
-                            pub_aut.has_family_name(last_name)
+                                author_ra.has_given_name(first_name)
+                            author_ra.has_family_name(last_name)
                         else:
-                            pub_aut.has_name(author_name)
-                # lists of authors' IDs
+                            author_ra.has_name(author_name)
+                assert author_ra is not None
                 for identifier in aut_id_list:
-                    self.id_creator(pub_aut, identifier, ra=True)
-                # Author ROLE
+                    self.id_creator(author_ra, identifier, ra=True)
                 AR = self.ar_index[self.row_meta]["author"][aut_meta]
                 ar_id = "ar/" + str(AR)
                 url_ar = URIRef(self.url + ar_id)
@@ -295,18 +297,18 @@ class Creator(object):
                     if preexisting_entity
                     else None
                 )
-                pub_aut_role = self.setgraph.add_ar(
+                author_ra_role = self.setgraph.add_ar(
                     self.resp_agent,
                     source=self.src,
                     res=url_ar,
                     preexisting_graph=preexisting_graph,
                 )
-                pub_aut_role.create_author()
-                self.br_graph.has_contributor(pub_aut_role)
-                pub_aut_role.is_held_by(pub_aut)
-                aut_role_list.append(pub_aut_role)
+                author_ra_role.create_author()
+                self.br_graph.has_contributor(author_ra_role)
+                author_ra_role.is_held_by(author_ra)
+                aut_role_list.append(author_ra_role)
                 if len(aut_role_list) > 1:
-                    aut_role_list[-2].has_next(pub_aut_role)
+                    aut_role_list[-2].has_next(author_ra_role)
 
     def pub_date_action(self, pub_date):
         if pub_date:
@@ -318,11 +320,13 @@ class Creator(object):
             else:
                 datelist.append(int(pub_date))
             str_date = create_date(datelist)
-            self.br_graph.has_pub_date(str_date)
+            if str_date:
+                self.br_graph.has_pub_date(str_date)
 
     def vvi_action(self, venue, vol, issue):
         if venue:
             venue_and_ids = RE_NAME_AND_IDS.search(venue)
+            assert venue_and_ids is not None
             venue_ids = venue_and_ids.group(2)
             venue_ids_list = venue_ids.split()
             for identifier in venue_ids_list:
@@ -352,6 +356,7 @@ class Creator(object):
                         venue_type = venue_type.replace(" ", "_")
                         getattr(self.venue_graph, f"create_{venue_type}")()
                     self.venue_graph.has_title(venue_title)
+            assert self.venue_graph is not None
             for identifier in venue_ids_list:
                 self.id_creator(self.venue_graph, identifier, ra=False)
             if self.type in {"journal article", "journal volume", "journal issue"}:
@@ -399,15 +404,23 @@ class Creator(object):
                     self.issue_graph.create_issue()
                     self.issue_graph.has_number(issue)
         if venue and vol and issue:
+            assert self.issue_graph is not None
+            assert self.vol_graph is not None
+            assert self.venue_graph is not None
             self.br_graph.is_part_of(self.issue_graph)
             self.issue_graph.is_part_of(self.vol_graph)
             self.vol_graph.is_part_of(self.venue_graph)
         elif venue and vol and not issue:
+            assert self.vol_graph is not None
+            assert self.venue_graph is not None
             self.br_graph.is_part_of(self.vol_graph)
             self.vol_graph.is_part_of(self.venue_graph)
         elif venue and not vol and not issue:
+            assert self.venue_graph is not None
             self.br_graph.is_part_of(self.venue_graph)
         elif venue and not vol and issue:
+            assert self.issue_graph is not None
+            assert self.venue_graph is not None
             self.br_graph.is_part_of(self.issue_graph)
             self.issue_graph.is_part_of(self.venue_graph)
 
@@ -558,8 +571,11 @@ class Creator(object):
             pub_role_list = list()
             for pub in publishers_list:
                 publ_and_ids = RE_NAME_AND_IDS.search(pub)
+                assert publ_and_ids is not None
                 publ_id = publ_and_ids.group(2)
                 publ_id_list = publ_id.split()
+                publisher_ra = None
+                pub_meta = ""
                 for identifier in publ_id_list:
                     if "omid:" in identifier:
                         identifier = str(identifier).replace("omid:", "")
@@ -572,16 +588,16 @@ class Creator(object):
                             if preexisting_entity
                             else None
                         )
-                        publ = self.setgraph.add_ra(
+                        publisher_ra = self.setgraph.add_ra(
                             self.resp_agent,
                             source=self.src,
                             res=url,
                             preexisting_graph=preexisting_graph,
                         )
-                        publ.has_name(publ_name)
+                        publisher_ra.has_name(publ_name)
+                assert publisher_ra is not None
                 for identifier in publ_id_list:
-                    self.id_creator(publ, identifier, ra=True)
-                # publisherRole
+                    self.id_creator(publisher_ra, identifier, ra=True)
                 AR = self.ar_index[self.row_meta]["publisher"][pub_meta]
                 ar_id = "ar/" + str(AR)
                 url_ar = URIRef(self.url + ar_id)
@@ -595,7 +611,7 @@ class Creator(object):
                 )
                 publ_role.create_publisher()
                 self.br_graph.has_contributor(publ_role)
-                publ_role.is_held_by(publ)
+                publ_role.is_held_by(publisher_ra)
                 pub_role_list.append(publ_role)
                 if len(pub_role_list) > 1:
                     pub_role_list[-2].has_next(publ_role)
@@ -606,8 +622,11 @@ class Creator(object):
             edit_role_list = list()
             for ed in editorslist:
                 ed_and_ids = RE_NAME_AND_IDS.search(ed)
+                assert ed_and_ids is not None
                 ed_id = ed_and_ids.group(2)
                 ed_id_list = ed_id.split(" ")
+                editor_ra = None
+                ed_meta = ""
                 for identifier in ed_id_list:
                     if "omid:" in identifier:
                         identifier = str(identifier).replace("omid:", "")
@@ -619,7 +638,7 @@ class Creator(object):
                             if preexisting_entity
                             else None
                         )
-                        pub_ed = self.setgraph.add_ra(
+                        editor_ra = self.setgraph.add_ra(
                             self.resp_agent,
                             source=self.src,
                             res=url,
@@ -633,14 +652,13 @@ class Creator(object):
                             firstName = editor_name_splitted[1]
                             lastName = editor_name_splitted[0]
                             if firstName.strip():
-                                pub_ed.has_given_name(firstName)
-                            pub_ed.has_family_name(lastName)
+                                editor_ra.has_given_name(firstName)
+                            editor_ra.has_family_name(lastName)
                         else:
-                            pub_ed.has_name(editor_name)
-                # lists of editor's IDs
+                            editor_ra.has_name(editor_name)
+                assert editor_ra is not None
                 for identifier in ed_id_list:
-                    self.id_creator(pub_ed, identifier, ra=True)
-                # editorRole
+                    self.id_creator(editor_ra, identifier, ra=True)
                 br_key = get_edited_br_metaid(row, self.row_meta, self.venue_meta)
                 AR = self.ar_index[br_key]["editor"][ed_meta]
                 ar_id = "ar/" + str(AR)
@@ -651,26 +669,24 @@ class Creator(object):
                     if preexisting_entity
                     else None
                 )
-                pub_ed_role = self.setgraph.add_ar(
+                editor_ra_role = self.setgraph.add_ar(
                     self.resp_agent,
                     source=self.src,
                     res=url_ar,
                     preexisting_graph=preexisting_graph,
                 )
-                pub_ed_role.create_editor()
+                editor_ra_role.create_editor()
                 br_graphs: List[BibliographicResource] = [
-                    self.br_graph,
-                    self.issue_graph,
-                    self.vol_graph,
-                    self.venue_graph,
+                    g for g in [self.br_graph, self.issue_graph, self.vol_graph, self.venue_graph]
+                    if g is not None
                 ]
                 for graph in br_graphs:
                     if br_key == self.__res_metaid(graph):
-                        graph.has_contributor(pub_ed_role)
-                pub_ed_role.is_held_by(pub_ed)
-                edit_role_list.append(pub_ed_role)
+                        graph.has_contributor(editor_ra_role)
+                editor_ra_role.is_held_by(editor_ra)
+                edit_role_list.append(editor_ra_role)
                 if len(edit_role_list) > 1:
-                    edit_role_list[-2].has_next(pub_ed_role)
+                    edit_role_list[-2].has_next(editor_ra_role)
 
     def __res_metaid(self, graph: BibliographicResource):
         if graph:
