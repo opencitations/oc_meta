@@ -15,10 +15,13 @@ from dateutil.parser import parse
 from oc_ds_converter.oc_idmanager import (DOIManager, ISBNManager, ISSNManager,
                                           ORCIDManager)
 
-from oc_meta.lib.master_of_regex import *
-from oc_meta.lib.master_of_regex import (invalid_vi_patterns,
-                                         issues_valid_patterns,
-                                         volumes_valid_patterns)
+from oc_meta.lib.master_of_regex import (
+    RE_COMMA_AND_SPACES,
+    RE_INVALID_VI_PATTERNS,
+    RE_ISSUES_VALID_PATTERNS,
+    RE_NAME_AND_IDS,
+    RE_VOLUMES_VALID_PATTERNS,
+)
 
 
 class Cleaner:
@@ -148,7 +151,7 @@ class Cleaner:
             new_title = title
         return new_title
 
-    def __date_parse_hack(self, date:str) -> datetime:
+    def __date_parse_hack(self, date:str) -> str:
         dt = parse(date, default=datetime(2001, 1, 1))
         dt2 = parse(date, default=datetime(2002, 2, 2))
 
@@ -213,7 +216,7 @@ class Cleaner:
         '''
         name = self.string
         if ',' in name:
-            split_name = re.split(comma_and_spaces, name)
+            split_name = RE_COMMA_AND_SPACES.split(name)
             first_name = split_name[1].split()
             for i, w in enumerate(first_name):
                 first_name[i] = Cleaner(w).clean_title()
@@ -269,7 +272,7 @@ class Cleaner:
         for ra in ra_list:
             if ra.lower().strip() == 'not available':
                 continue
-            match = re.compile(name_and_ids).match(ra)
+            match = RE_NAME_AND_IDS.match(ra)
             if match:
                 name, ids = match.groups()
                 if name:
@@ -298,7 +301,7 @@ class Cleaner:
             if ra.lower().strip() == 'not available':
                 continue
             if ',' in ra:
-                split_name = re.split(comma_and_spaces, ra)
+                split_name = RE_COMMA_AND_SPACES.split(ra)
                 first_name = split_name[1].strip() if split_name[1].strip().lower() != 'not available' else ''
                 last_name = split_name[0].strip() if split_name[0].strip().lower() != 'not available' else ''
                 if not last_name:
@@ -306,7 +309,7 @@ class Cleaner:
                 ra_cleaned_name = f'{last_name}, {first_name}' if first_name else f'{last_name}, '
             else:
                 ra_cleaned_name = ra
-            match = re.compile(name_and_ids).match(ra)
+            match = RE_NAME_AND_IDS.match(ra)
             if match:
                 name, ids = match.groups()
                 if name:
@@ -366,9 +369,8 @@ class Cleaner:
             vi = Cleaner(vi).normalize_hyphens()
             vi = Cleaner(vi).normalize_spaces().strip()
             vi = html.unescape(vi)
-            for pattern, strategy in invalid_vi_patterns.items():
-                pattern = f'^{pattern}$'
-                capturing_groups = re.search(pattern, vi, re.IGNORECASE)
+            for compiled_pattern, strategy in RE_INVALID_VI_PATTERNS.items():
+                capturing_groups = compiled_pattern.search(vi)
                 if capturing_groups:
                     if strategy == 'del':
                         row[field] = ''
@@ -389,14 +391,12 @@ class Cleaner:
         switch_vi = {'volume': '', 'issue': ''}
         for field in {'volume', 'issue'}:
             vi = row[field]
-            for pattern in volumes_valid_patterns:
-                pattern = f'^{pattern}$'
-                if re.search(pattern, vi, re.IGNORECASE):
+            for compiled_pattern in RE_VOLUMES_VALID_PATTERNS:
+                if compiled_pattern.search(vi):
                     if field == 'issue':
                         switch_vi['volume'] = vi
-            for pattern in issues_valid_patterns:
-                pattern = f'^{pattern}$'
-                if re.search(pattern, vi, re.IGNORECASE):
+            for compiled_pattern in RE_ISSUES_VALID_PATTERNS:
+                if compiled_pattern.search(vi):
                     if field == 'volume':
                         switch_vi['issue'] = vi
         if switch_vi['volume'] and switch_vi['issue']:
@@ -412,7 +412,7 @@ class Cleaner:
             row['type'] = 'journal issue' if row['type'] == 'journal volume' else row['type']
     
     @staticmethod
-    def fix_invalid_vi(capturing_groups:re.Match, strategy:str) -> Tuple[str, str, str, str]:
+    def fix_invalid_vi(capturing_groups:re.Match, strategy:str) -> Tuple[str | None, str | None, str | None, str | None]:
         vol_group = 1 if 'vol_iss' in strategy else 2
         iss_group = 1 if 'iss_vol' in strategy else 2
         whatever = None

@@ -1,13 +1,15 @@
-# SPDX-FileCopyrightText: 2022-2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+# SPDX-FileCopyrightText: 2022-2026 Arcangelo Massari <arcangelo.massari@unibo.it>
 #
 # SPDX-License-Identifier: ISC
+
+import re
 
 # Split by ';' outside '[]' (any spaces before and after ';').
 semicolon_in_people_field = r'\s*;\s*(?=[^\]]*(?:\[|$))'
 
 # It gets string inside '[]' ignoring any space between (ex: [ TARGET  ] --> TARGET).
 # An id schema must be present, followed by a colon.
-# Before the colon, there must be any character that is not a square bracket 
+# Before the colon, there must be any character that is not a square bracket
 # to prevent that in strings like 'Boezaart, Andr[eacute] [omid:123]' the id captured is '[eacute] [omid:123]'.
 # Alternatively, empty square brackets containing one or more spaces also represent a valid match.
 ids_inside_square_brackets = r'\[\s*((?:[^\s]+:[^\s]+)?(?:\s+[^\s]+:[^\s]+)*)\s*\]'
@@ -25,6 +27,12 @@ comma_and_spaces = r'\s*,\s*'
 
 # It captures one or more spaces.
 one_or_more_spaces = r'\s+'
+
+RE_SEMICOLON_IN_PEOPLE_FIELD = re.compile(semicolon_in_people_field)
+RE_NAME_AND_IDS = re.compile(name_and_ids)
+RE_COLON_AND_SPACES = re.compile(colon_and_spaces)
+RE_COMMA_AND_SPACES = re.compile(comma_and_spaces)
+RE_ONE_OR_MORE_SPACES = re.compile(one_or_more_spaces)
 
 # It captures any pages range separator.
 pages_separator = r'[^A-Za-z\d]+(?=[A-Za-z\d]+)'
@@ -100,3 +108,16 @@ invalid_vi_patterns = {
     fr'{vi_pattern}(?:â\x80[\x92\x93\x94]|�+|â|\?+){vi_pattern}': 'sep',
     fr'{vi_pattern}\s?\(first\sserie': 's)'
 }
+
+RE_INVALID_VI_PATTERNS = {
+    re.compile(f'^{pattern}$', re.IGNORECASE): strategy
+    for pattern, strategy in invalid_vi_patterns.items()
+}
+RE_VOLUMES_VALID_PATTERNS = [
+    re.compile(f'^{pattern}$', re.IGNORECASE)
+    for pattern in volumes_valid_patterns
+]
+RE_ISSUES_VALID_PATTERNS = [
+    re.compile(f'^{pattern}$', re.IGNORECASE)
+    for pattern in issues_valid_patterns
+]

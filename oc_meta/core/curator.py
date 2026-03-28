@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import multiprocessing
 import os
-import re
 from concurrent.futures import ProcessPoolExecutor
 from contextlib import nullcontext
 from typing import TYPE_CHECKING, Dict, List, Tuple
@@ -18,7 +17,12 @@ from oc_meta.constants import CONTAINER_EDITOR_TYPES
 from oc_meta.lib.cleaner import Cleaner
 from oc_meta.lib.file_manager import *
 from oc_meta.lib.finder import *
-from oc_meta.lib.master_of_regex import *
+from oc_meta.lib.master_of_regex import (
+    RE_COLON_AND_SPACES,
+    RE_NAME_AND_IDS,
+    RE_ONE_OR_MORE_SPACES,
+    RE_SEMICOLON_IN_PEOPLE_FIELD
+)
 from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
 
 if TYPE_CHECKING:
@@ -39,7 +43,7 @@ def _extract_ids_from_chunk(args: tuple) -> Tuple[set, set, set]:
         venue_metaid = None
 
         if row["id"]:
-            id_list = re.split(one_or_more_spaces, re.sub(colon_and_spaces, ":", row["id"]))
+            id_list = RE_ONE_OR_MORE_SPACES.split(RE_COLON_AND_SPACES.sub(":", row["id"]))
             idslist, metaval = Curator.clean_id_list(id_list, br=True, valid_dois_cache=valid_dois_cache)
             if metaval:
                 metavals.add(f"omid:br/{metaval}")
@@ -49,7 +53,7 @@ def _extract_ids_from_chunk(args: tuple) -> Tuple[set, set, set]:
         fields_with_an_id = [
             (field, match.group(2).split())
             for field in ["author", "editor", "publisher", "venue", "volume", "issue"]
-            if (match := re.search(name_and_ids, row[field]))
+            if (match := RE_NAME_AND_IDS.search(row[field]))
         ]
         for field, field_ids in fields_with_an_id:
             br = field in ["venue", "volume", "issue"]
@@ -214,7 +218,7 @@ class Curator:
         fields_with_an_id = [
             (field, match.group(2).split())
             for field in ["author", "editor", "publisher", "venue", "volume", "issue"]
-            if (match := re.search(name_and_ids, row[field]))
+            if (match := RE_NAME_AND_IDS.search(row[field]))
         ]
         for field, field_ids in fields_with_an_id:
             br = field in ["venue", "volume", "issue"]
@@ -244,7 +248,7 @@ class Curator:
         return metavals, identifiers, vvis
 
     def split_identifiers(self, field_value):
-        return re.split(one_or_more_spaces, re.sub(colon_and_spaces, ":", field_value))
+        return RE_ONE_OR_MORE_SPACES.split(RE_COLON_AND_SPACES.sub(":", field_value))
 
     def curator(self, filename: str | None = None, path_csv: str | None = None):
         total_rows = len(self.data)
@@ -369,7 +373,7 @@ class Curator:
         idslist: list = []
         metaval = ""
         if row["id"]:
-            idslist = re.split(one_or_more_spaces, re.sub(colon_and_spaces, ":", row["id"]))
+            idslist = RE_ONE_OR_MORE_SPACES.split(RE_COLON_AND_SPACES.sub(":", row["id"]))
             idslist, metaval = self.clean_id_list(
                 idslist, br=True, valid_dois_cache=self.valid_dois_cache
             )
@@ -378,7 +382,7 @@ class Curator:
         fields_with_an_id = [
             (field, match.group(2).split())
             for field in ["author", "editor", "publisher", "venue", "volume", "issue"]
-            if (match := re.search(name_and_ids, row[field]))
+            if (match := RE_NAME_AND_IDS.search(row[field]))
         ]
         for field, field_ids in fields_with_an_id:
             br = field in ["venue", "volume", "issue"]
@@ -534,13 +538,13 @@ class Curator:
                 row["venue"] = ""
                 row["volume"] = ""
                 row["issue"] = ""
-            venue_id = re.search(name_and_ids, venue)
+            venue_id = RE_NAME_AND_IDS.search(venue)
             if venue_id:
                 name = Cleaner(venue_id.group(1)).clean_title(
                     bool(self.settings.get("normalize_titles", False))
                 )
                 venue_id = venue_id.group(2)
-                idslist = re.split(one_or_more_spaces, re.sub(colon_and_spaces, ":", venue_id))
+                idslist = RE_ONE_OR_MORE_SPACES.split(RE_COLON_AND_SPACES.sub(":", venue_id))
                 idslist, metaval = self.clean_id_list(
                     idslist, br=True, valid_dois_cache=self.valid_dois_cache
                 )
@@ -691,14 +695,14 @@ class Curator:
             return sequence
 
         def parse_ra_list(row):
-            ra_list = re.split(semicolon_in_people_field, row[col_name])
+            ra_list = RE_SEMICOLON_IN_PEOPLE_FIELD.split(row[col_name])
             ra_list = Cleaner.clean_ra_list(ra_list)
             return ra_list
 
         def process_individual_ra(ra, sequence):
             new_elem_seq = True
             ra_id = None
-            ra_id_match = re.search(name_and_ids, ra)
+            ra_id_match = RE_NAME_AND_IDS.search(ra)
             if ra_id_match:
                 cleaner = Cleaner(ra_id_match.group(1))
                 name = cleaner.clean_name()
@@ -734,7 +738,7 @@ class Curator:
         for pos, ra in enumerate(ra_list):
             ra_id, name, new_elem_seq = process_individual_ra(ra, sequence)
             if ra_id:
-                ra_id_list = re.split(one_or_more_spaces, re.sub(colon_and_spaces, ":", ra_id))
+                ra_id_list = RE_ONE_OR_MORE_SPACES.split(RE_COLON_AND_SPACES.sub(":", ra_id))
                 if sequence:
                     ar_ra = None
                     for ps, el in enumerate(sequence):
@@ -1571,7 +1575,7 @@ class Curator:
         :type venue_str: str
         :returns: Tuple[str, List[str]] -- the name and list of IDs extracted from the venue string
         """
-        match = re.search(name_and_ids, venue_str)
+        match = RE_NAME_AND_IDS.search(venue_str)
         if match:
             name = match.group(1).strip()
             ids = match.group(2).strip().split()

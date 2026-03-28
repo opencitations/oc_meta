@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import argparse
 import os
-import re
 import sys
 import multiprocessing
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -20,7 +19,7 @@ from sparqlite import SPARQLClient
 
 from oc_meta.lib.console import create_progress
 from oc_meta.lib.file_manager import get_csv_data
-from oc_meta.lib.master_of_regex import name_and_ids
+from oc_meta.lib.master_of_regex import RE_NAME_AND_IDS
 
 
 def _count_venues_in_file(filepath: str) -> Set[str]:
@@ -28,7 +27,7 @@ def _count_venues_in_file(filepath: str) -> Set[str]:
     venues = set()
     for row in csv_data:
         if row['venue']:
-            ven_name_and_ids = re.search(name_and_ids, row['venue'])
+            ven_name_and_ids = RE_NAME_AND_IDS.search(row['venue'])
             if ven_name_and_ids:
                 venue_name = ven_name_and_ids.group(1).lower()
                 venue_ids = set(ven_name_and_ids.group(2).split())

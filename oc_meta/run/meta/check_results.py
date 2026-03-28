@@ -20,7 +20,7 @@ from sparqlite.exceptions import EndpointError
 from oc_meta.lib.cleaner import Cleaner
 from oc_meta.lib.console import EMATimeRemainingColumn
 from oc_meta.lib.file_manager import collect_files
-from oc_meta.lib.master_of_regex import name_and_ids, semicolon_in_people_field
+from oc_meta.lib.master_of_regex import RE_NAME_AND_IDS, RE_SEMICOLON_IN_PEOPLE_FIELD
 
 T = TypeVar('T')
 
@@ -208,9 +208,9 @@ def process_csv_file(args: tuple, progress=None, task_id=None):
                         identifiers = parse_identifiers(row[col])
                 else:
                     if row[col]:
-                        elements = re.split(semicolon_in_people_field, row[col])
+                        elements = RE_SEMICOLON_IN_PEOPLE_FIELD.split(row[col])
                         for element in elements:
-                            match = re.search(name_and_ids, element)
+                            match = RE_NAME_AND_IDS.search(element)
                             if match and match.group(2):
                                 ids_str = match.group(2)
                                 identifiers.extend(parse_identifiers(ids_str))

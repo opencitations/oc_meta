@@ -7,16 +7,15 @@
 
 from __future__ import annotations
 
-import re
 from typing import TYPE_CHECKING, List
 
 from oc_meta.core.curator import get_edited_br_metaid
 from oc_meta.lib.finder import ResourceFinder
 from oc_meta.lib.master_of_regex import (
-    comma_and_spaces,
-    name_and_ids,
-    one_or_more_spaces,
-    semicolon_in_people_field,
+    RE_COMMA_AND_SPACES,
+    RE_NAME_AND_IDS,
+    RE_ONE_OR_MORE_SPACES,
+    RE_SEMICOLON_IN_PEOPLE_FIELD,
 )
 from rdflib import URIRef
 
@@ -220,7 +219,7 @@ class Creator(object):
         return index
 
     def id_action(self, ids):
-        idslist = re.split(one_or_more_spaces, ids)
+        idslist = RE_ONE_OR_MORE_SPACES.split(ids)
         # publication id
         for identifier in idslist:
             if "omid:" in identifier:
@@ -248,10 +247,10 @@ class Creator(object):
 
     def author_action(self, authors):
         if authors:
-            authorslist = re.split(semicolon_in_people_field, authors)
+            authorslist = RE_SEMICOLON_IN_PEOPLE_FIELD.split(authors)
             aut_role_list = list()
             for aut in authorslist:
-                aut_and_ids = re.search(name_and_ids, aut)
+                aut_and_ids = RE_NAME_AND_IDS.search(aut)
                 aut_id = aut_and_ids.group(2)
                 aut_id_list = aut_id.split(" ")
                 for identifier in aut_id_list:
@@ -273,8 +272,8 @@ class Creator(object):
                         )
                         author_name = aut_and_ids.group(1)
                         if "," in author_name:
-                            author_name_splitted = re.split(
-                                comma_and_spaces, author_name
+                            author_name_splitted = RE_COMMA_AND_SPACES.split(
+                                author_name
                             )
                             first_name = author_name_splitted[1]
                             last_name = author_name_splitted[0]
@@ -325,7 +324,7 @@ class Creator(object):
 
     def vvi_action(self, venue, vol, issue):
         if venue:
-            venue_and_ids = re.search(name_and_ids, venue)
+            venue_and_ids = RE_NAME_AND_IDS.search(venue)
             venue_ids = venue_and_ids.group(2)
             venue_ids_list = venue_ids.split()
             for identifier in venue_ids_list:
@@ -557,10 +556,10 @@ class Creator(object):
 
     def publisher_action(self, publisher):
         if publisher:
-            publishers_list = re.split(semicolon_in_people_field, publisher)
+            publishers_list = RE_SEMICOLON_IN_PEOPLE_FIELD.split(publisher)
             pub_role_list = list()
             for pub in publishers_list:
-                publ_and_ids = re.search(name_and_ids, pub)
+                publ_and_ids = RE_NAME_AND_IDS.search(pub)
                 publ_id = publ_and_ids.group(2)
                 publ_id_list = publ_id.split()
                 for identifier in publ_id_list:
@@ -607,10 +606,10 @@ class Creator(object):
 
     def editor_action(self, editor, row):
         if editor:
-            editorslist = re.split(semicolon_in_people_field, editor)
+            editorslist = RE_SEMICOLON_IN_PEOPLE_FIELD.split(editor)
             edit_role_list = list()
             for ed in editorslist:
-                ed_and_ids = re.search(name_and_ids, ed)
+                ed_and_ids = RE_NAME_AND_IDS.search(ed)
                 ed_id = ed_and_ids.group(2)
                 ed_id_list = ed_id.split(" ")
                 for identifier in ed_id_list:
@@ -632,8 +631,8 @@ class Creator(object):
                         )
                         editor_name = ed_and_ids.group(1)
                         if "," in editor_name:
-                            editor_name_splitted = re.split(
-                                comma_and_spaces, editor_name
+                            editor_name_splitted = RE_COMMA_AND_SPACES.split(
+                                editor_name
                             )
                             firstName = editor_name_splitted[1]
                             lastName = editor_name_splitted[0]
