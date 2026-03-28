@@ -832,11 +832,13 @@ class Curator:
         pattern = "br/" if br else "ra/"
         metaid = ""
         id_list = list(filter(None, id_list))
-        clean_list = list()
+        clean_set = set()
+        clean_list = []
 
         for elem in id_list:
-            if elem in clean_list:
+            if elem in clean_set:
                 continue
+            clean_set.add(elem)
             elem = Cleaner(elem).normalize_hyphens()
             identifier = elem.split(":", 1)
             schema = identifier[0].lower()
