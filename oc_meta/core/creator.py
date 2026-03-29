@@ -208,14 +208,14 @@ class Creator(object):
             return dict()
 
     def indexer_id(self, csv_index):
-        index = dict()
-        for schema in self.schemas:
-            index[schema] = dict()
+        index = {schema: {} for schema in self.schemas}
         for row in csv_index:
-            for schema in self.schemas:
-                if row["id"].startswith(schema):
-                    identifier = row["id"].replace(f"{schema}:", "")
-                    index[schema][identifier] = row["meta"]
+            row_id = row["id"]
+            if not row_id:
+                continue
+            schema, value = row_id.split(":", 1)
+            if schema in index:
+                index[schema][value] = row["meta"]
         return index
 
     def id_action(self, ids):
