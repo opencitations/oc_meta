@@ -33,6 +33,7 @@ RE_NAME_AND_IDS = re.compile(name_and_ids)
 RE_COLON_AND_SPACES = re.compile(colon_and_spaces)
 RE_COMMA_AND_SPACES = re.compile(comma_and_spaces)
 RE_ONE_OR_MORE_SPACES = re.compile(one_or_more_spaces)
+RE_MULTIPLE_SPACES = re.compile(r'\s+')
 
 # It captures any pages range separator.
 pages_separator = r'[^A-Za-z\d]+(?=[A-Za-z\d]+)'
