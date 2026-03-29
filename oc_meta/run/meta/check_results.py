@@ -17,7 +17,7 @@ from rich_argparse import RichHelpFormatter
 from sparqlite import SPARQLClient
 from sparqlite.exceptions import EndpointError
 
-from oc_meta.lib.cleaner import Cleaner
+from oc_meta.lib.cleaner import normalize_hyphens
 from oc_meta.lib.console import EMATimeRemainingColumn
 from oc_meta.lib.file_manager import collect_files
 from oc_meta.lib.master_of_regex import RE_NAME_AND_IDS, RE_SEMICOLON_IN_PEOPLE_FIELD
@@ -55,7 +55,7 @@ def parse_identifiers(id_string: str) -> List[Dict[str, str]]:
     for identifier in id_string.strip().split():
         parts = identifier.split(':', 1)
         if len(parts) == 2:
-            value = Cleaner(parts[1]).normalize_hyphens()
+            value = normalize_hyphens(parts[1])
             identifiers.append({
                 'schema': parts[0].lower(),
                 'value': value

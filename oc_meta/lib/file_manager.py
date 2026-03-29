@@ -25,7 +25,7 @@ from requests import ReadTimeout, get
 from requests.exceptions import ConnectionError
 from scandir_rs import Walk  # type: ignore[import-untyped]
 
-from oc_meta.lib.cleaner import Cleaner
+from oc_meta.lib.cleaner import normalize_spaces
 
 
 def collect_files(
@@ -93,7 +93,7 @@ def get_csv_data(filepath: str, clean_data: bool = True) -> List[Dict[str, str]]
             with open(filepath, "r", encoding="utf8") as f:
                 if clean_data:
                     lines = (
-                        Cleaner(line.replace("\0", "")).normalize_spaces() for line in f
+                        normalize_spaces(line.replace("\0", "")) for line in f
                     )
                     data = list(csv.DictReader(lines, delimiter=","))
                 else:

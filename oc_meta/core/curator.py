@@ -14,7 +14,15 @@ from contextlib import nullcontext
 from typing import TYPE_CHECKING, Dict, List, Tuple
 
 from oc_meta.constants import CONTAINER_EDITOR_TYPES, VALID_ENTITY_TYPES
-from oc_meta.lib.cleaner import Cleaner
+from oc_meta.lib.cleaner import (
+    clean_date,
+    clean_name,
+    clean_ra_list,
+    clean_title,
+    clean_volume_and_issue,
+    normalize_hyphens,
+    normalize_id,
+)
 from oc_meta.lib.file_manager import *
 from oc_meta.lib.finder import *
 from oc_meta.lib.master_of_regex import (
@@ -365,8 +373,8 @@ class Curator:
         :returns: None -- This method modifies the input CSV row without returning it.
         """
         if row["title"]:
-            name = Cleaner(row["title"]).clean_title(
-                bool(self.settings.get("normalize_titles", False))
+            name = clean_title(
+                row["title"], bool(self.settings.get("normalize_titles", False))
             )
         else:
             name = ""
@@ -417,11 +425,10 @@ class Curator:
         for row in self.data:
             # page
             if row["page"]:
-                row["page"] = Cleaner(row["page"]).normalize_hyphens()
+                row["page"] = normalize_hyphens(row["page"])
             # date
             if pub_date := row["pub_date"]:
-                cleaner = Cleaner(pub_date)
-                row["pub_date"] = Cleaner(cleaner.normalize_hyphens()).clean_date()
+                row["pub_date"] = clean_date(normalize_hyphens(pub_date))
             # type
             if row["type"]:
                 entity_type = RE_MULTIPLE_SPACES.sub(" ", row["type"].lower()).strip()
@@ -486,7 +493,7 @@ class Curator:
         } and (row["volume"] or row["issue"]):
             row["volume"] = ""
             row["issue"] = ""
-        Cleaner.clean_volume_and_issue(row=row)
+        clean_volume_and_issue(row=row)
         vol_meta = None
         br_type = row["type"]
         volume = row["volume"]
@@ -502,8 +509,8 @@ class Curator:
                 row["issue"] = ""
             venue_id = RE_NAME_AND_IDS.search(venue)
             if venue_id:
-                name = Cleaner(venue_id.group(1)).clean_title(
-                    bool(self.settings.get("normalize_titles", False))
+                name = clean_title(
+                    venue_id.group(1), bool(self.settings.get("normalize_titles", False))
                 )
                 venue_id = venue_id.group(2)
                 idslist = RE_ONE_OR_MORE_SPACES.split(RE_COLON_AND_SPACES.sub(":", venue_id))
@@ -532,7 +539,7 @@ class Curator:
                     elif ts_vvi:
                         self.vvi[metaval] = ts_vvi
             else:
-                name = Cleaner(venue).clean_title(bool(self.settings.get("normalize_titles", False)))
+                name = clean_title(venue, bool(self.settings.get("normalize_titles", False)))
                 metaval = self.new_entity(self.brdict, name)
                 self.vvi[metaval] = dict()
                 self.vvi[metaval]["volume"] = dict()
@@ -657,7 +664,7 @@ class Curator:
 
         def parse_ra_list(row):
             ra_list = RE_SEMICOLON_IN_PEOPLE_FIELD.split(row[col_name])
-            ra_list = Cleaner.clean_ra_list(ra_list)
+            ra_list = clean_ra_list(ra_list)
             return ra_list
 
         def process_individual_ra(ra, sequence):
@@ -665,7 +672,7 @@ class Curator:
             ra_id = None
             ra_id_match = RE_NAME_AND_IDS.search(ra)
             raw_name = ra_id_match.group(1) if ra_id_match else ra
-            name = Cleaner(raw_name).clean_name()
+            name = clean_name(raw_name)
             if ra_id_match:
                 ra_id = ra_id_match.group(2)
             if not ra_id and sequence:
@@ -797,7 +804,7 @@ class Curator:
             if elem in clean_set:
                 continue
             clean_set.add(elem)
-            elem = Cleaner(elem).normalize_hyphens()
+            elem = normalize_hyphens(elem)
             identifier = elem.split(":", 1)
             schema = identifier[0].lower()
             value = identifier[1]
@@ -805,9 +812,7 @@ class Curator:
             if schema == "omid":
                 metaid = value.replace(pattern, "")
             else:
-                normalized_id = Cleaner(elem).normalize_id(
-                    valid_dois_cache=valid_dois_cache
-                )
+                normalized_id = normalize_id(elem, valid_dois_cache=valid_dois_cache)
                 if normalized_id:
                     clean_list.append(normalized_id)
 
@@ -1482,21 +1487,34 @@ class Curator:
 
         :returns: None -- This method updates the CSV rows and returns None.
         """
+        # Build index mapping row IDs to row indices for O(1) lookup
+        id_to_indices: dict[str, list[int]] = {}
+        for idx, row in enumerate(self.data):
+            row_id = row["id"]
+            if row_id not in id_to_indices:
+                id_to_indices[row_id] = []
+            id_to_indices[row_id].append(idx)
+
         self.rowcnt = 0
         for row in self.data:
-            id = row["id"]
-            if "wannabe" not in id:
-                self.equalizer(row, id)
-                other_rowcnt = 0
-                for other_row in self.data:
-                    if (
-                        other_row["id"] in self.brdict[id]["others"]
-                        or other_row["id"] == id
-                    ) and self.rowcnt != other_rowcnt:
-                        for field, _ in row.items():
-                            if row[field] and row[field] != other_row[field]:
-                                other_row[field] = row[field]
-                    other_rowcnt += 1
+            row_id = row["id"]
+            if "wannabe" not in row_id:
+                self.equalizer(row, row_id)
+                # Collect indices of related rows: same ID or in "others"
+                related_indices: set[int] = set()
+                if row_id in id_to_indices:
+                    related_indices.update(id_to_indices[row_id])
+                for other_id in self.brdict[row_id]["others"]:
+                    if other_id in id_to_indices:
+                        related_indices.update(id_to_indices[other_id])
+                # Exclude current row: no need to update a row with its own values
+                related_indices.discard(self.rowcnt)
+                # Update related rows
+                for other_idx in related_indices:
+                    other_row = self.data[other_idx]
+                    for field in row:
+                        if row[field] and row[field] != other_row[field]:
+                            other_row[field] = row[field]
             if self.progress and task_id is not None:
                 self.progress.advance(task_id)
             self.rowcnt += 1

@@ -48,407 +48,408 @@ _SPACE_TRANS = str.maketrans({
     '\u2009': '\u0020',  # Thin Space
 })
 
+# Translation table for control characters and extended ASCII to space
+# Covers: 0x00-0x1F (control chars), 0x7F (DEL), 0x80-0xFF (extended ASCII)
+_ASCII_CONTROL_TRANS = str.maketrans(
+    {chr(i): ' ' for i in range(0x00, 0x20)}
+    | {chr(0x7F): ' '}
+    | {chr(i): ' ' for i in range(0x80, 0x100)}
+)
 
-class Cleaner:
-    def __init__(self, string:str):
-        '''
-        :params string: the string to be cleaned.
-        :type string: str
-        '''
-        self.string = string
-    
-    def normalize_hyphens(self) -> str:
-        '''
-        It replaces any hyphen, dash and minus sign with a hyphen-minus character.
-        This is done for pages, IDs and dates.
+_DOI_MANAGER = DOIManager(use_api_service=False, storage_manager=None)
+_ISBN_MANAGER = ISBNManager()
+_ISSN_MANAGER = ISSNManager()
+_ORCID_MANAGER = ORCIDManager(use_api_service=False, storage_manager=None)
 
-        .. list-table:: Comparison between the various characters similar to hyphen-minus
-            :widths: 25 25 50
-            :header-rows: 1
 
-            * - UTF-8
-                - SIGN
-                - NAME
-            * - U+002D
-                - -
-                - Hyphen-minus
-            * - U+00AD
-                - ­
-                - Soft hyphen
-            * - U+06D4
-                - ۔
-                - Arabic Full Stop
-            * - U+2010
-                - ‐
-                - Hyphen
-            * - U+2011
-                - −
-                - Non-breaking Hyphen
-            * - U+2012
-                - –
-                - Figure Dash
-            * - U+2013
-                - –
-                - En-Dash
-            * - U+2014
-                - —
-                - Em-Dash
-            * - U+2043
-                - ⁃
-                - Hyphen Bullet
-            * - U+2212
-                - −
-                - Minus Sign
-            * - U+2796
-                - ➖
-                - Heavy Minus Sign
-            * - U+2CBA
-                - Ⲻ
-                - Coptic Capital Letter Dialect-p Ni
-            * - U+FE58
-                - ﹘
-                - Small Em Dash
+def normalize_hyphens(string: str) -> str:
+    '''
+    It replaces any hyphen, dash and minus sign with a hyphen-minus character.
+    This is done for pages, IDs and dates.
 
-        :returns: str -- the string with normalized hyphens
-        '''
-        return self.string.translate(_HYPHEN_TRANS)
-    
-    def normalize_spaces(self) -> str:
-        '''
-        It replaces any ambiguous spaces with a space.
+    .. list-table:: Comparison between the various characters similar to hyphen-minus
+        :widths: 25 25 50
+        :header-rows: 1
 
-        .. list-table:: List of the various characters similar to the space
-            :widths: 25 25 50
-            :header-rows: 1
+        * - UTF-8
+            - SIGN
+            - NAME
+        * - U+002D
+            - -
+            - Hyphen-minus
+        * - U+00AD
+            - ­
+            - Soft hyphen
+        * - U+06D4
+            - ۔
+            - Arabic Full Stop
+        * - U+2010
+            - ‐
+            - Hyphen
+        * - U+2011
+            - −
+            - Non-breaking Hyphen
+        * - U+2012
+            - –
+            - Figure Dash
+        * - U+2013
+            - –
+            - En-Dash
+        * - U+2014
+            - —
+            - Em-Dash
+        * - U+2043
+            - ⁃
+            - Hyphen Bullet
+        * - U+2212
+            - −
+            - Minus Sign
+        * - U+2796
+            - ➖
+            - Heavy Minus Sign
+        * - U+2CBA
+            - Ⲻ
+            - Coptic Capital Letter Dialect-p Ni
+        * - U+FE58
+            - ﹘
+            - Small Em Dash
 
-            * - UTF-8
-                - NAME
-            * - U+0020
-                - Space
-            * - U+0009
-                - Character Tabulation
-            * - U+00A0
-                - No-break space
-            * - U+200B
-                - Zero width space
-            * - U+202F
-                - Narrow no-break space
-            * - U+2003
-                - Em Space
-            * - U+2005
-                - Four-Per-Em Space
-            * - U+2009
-                - Thin Space
+    :returns: str -- the string with normalized hyphens
+    '''
+    return string.translate(_HYPHEN_TRANS)
 
-        :returns: str -- the string with normalized spaces
-        '''
-        return self.string.translate(_SPACE_TRANS).replace('&nbsp;', '\u0020')
 
-    def clean_title(self, normalize_titles:bool=True) -> str:
-        '''
-        Concerning titles of bibliographic resources ('venue' and 'title' columns), 
-        every word in the title is capitalized except for those that have capitals within them 
-        (probably acronyms, e.g. 'FaBiO and CiTO'). This exception, however, does not include entirely capitalized titles. 
-        Finally, null characters and spaces are removed.
+def normalize_spaces(string: str) -> str:
+    '''
+    It replaces any ambiguous spaces with a space.
 
-        :returns: str -- The cleaned title
-        '''
-        title = self.string
-        if normalize_titles:
-            if title.isupper():
-                title = title.lower()
-            words = title.split()
-            for i, w in enumerate(words):
-                if not any(x.isupper() for x in w):
-                    words[i] = w.title()
-            new_title = ' '.join(words)
-        else:
-            new_title = title
-        return new_title
+    .. list-table:: List of the various characters similar to the space
+        :widths: 25 25 50
+        :header-rows: 1
 
-    def __date_parse_hack(self, date:str) -> str:
-        dt = parse(date, default=datetime(2001, 1, 1))
-        dt2 = parse(date, default=datetime(2002, 2, 2))
+        * - UTF-8
+            - NAME
+        * - U+0020
+            - Space
+        * - U+0009
+            - Character Tabulation
+        * - U+00A0
+            - No-break space
+        * - U+200B
+            - Zero width space
+        * - U+202F
+            - Narrow no-break space
+        * - U+2003
+            - Em Space
+        * - U+2005
+            - Four-Per-Em Space
+        * - U+2009
+            - Thin Space
 
-        if dt.year == dt2.year and dt.month == dt2.month and dt.day == dt2.day:
-            clean_date = parse(date).strftime('%Y-%m-%d')
-        elif dt.year == dt2.year and dt.month == dt2.month:
-            clean_date = parse(date).strftime('%Y-%m')
-        elif dt.year == dt2.year:
-            clean_date = parse(date).strftime('%Y')
-        else:
-            clean_date = ''
-        return clean_date
+    :returns: str -- the string with normalized spaces
+    '''
+    return string.translate(_SPACE_TRANS).replace('&nbsp;', '\u0020')
 
-    def clean_date(self) -> str:
-        '''
-        It tries to parse a date-string into a datetime object, 
-        considering both the validity of the format (YYYYY-MM-DD) and the value (e.g. 30 February is not a valid date). 
-        For example, a date 2020-02-30 will become 2020-02, because the day is invalid. 
-        On the other hand, 2020-27-12 will become 2020 since the day
-        and month are invalid. 
-        If the year is not valid (e.g.year >9999) data would be totally discarded.
 
-        :returns: str -- The cleaned date or an empty string
-        '''
-        date = self.string
+def clean_title(string: str, normalize: bool = True) -> str:
+    '''
+    Concerning titles of bibliographic resources ('venue' and 'title' columns),
+    every word in the title is capitalized except for those that have capitals within them
+    (probably acronyms, e.g. 'FaBiO and CiTO'). This exception, however, does not include entirely capitalized titles.
+    Finally, null characters and spaces are removed.
+
+    :returns: str -- The cleaned title
+    '''
+    title = string
+    if normalize:
+        if title.isupper():
+            title = title.lower()
+        words = title.split()
+        for i, w in enumerate(words):
+            if not any(x.isupper() for x in w):
+                words[i] = w.title()
+        return ' '.join(words)
+    return title
+
+
+def _date_parse_hack(date: str) -> str:
+    dt = parse(date, default=datetime(2001, 1, 1))
+    dt2 = parse(date, default=datetime(2002, 2, 2))
+
+    if dt.year == dt2.year and dt.month == dt2.month and dt.day == dt2.day:
+        clean_date = parse(date).strftime('%Y-%m-%d')
+    elif dt.year == dt2.year and dt.month == dt2.month:
+        clean_date = parse(date).strftime('%Y-%m')
+    elif dt.year == dt2.year:
+        clean_date = parse(date).strftime('%Y')
+    else:
+        clean_date = ''
+    return clean_date
+
+
+def clean_date(string: str) -> str:
+    '''
+    It tries to parse a date-string into a datetime object,
+    considering both the validity of the format (YYYYY-MM-DD) and the value (e.g. 30 February is not a valid date).
+    For example, a date 2020-02-30 will become 2020-02, because the day is invalid.
+    On the other hand, 2020-27-12 will become 2020 since the day
+    and month are invalid.
+    If the year is not valid (e.g.year >9999) data would be totally discarded.
+
+    :returns: str -- The cleaned date or an empty string
+    '''
+    date = string
+    try:
+        date = _date_parse_hack(date)
+    except ValueError:
         try:
-            date = self.__date_parse_hack(date)
-        except ValueError:
-            try:
-                # e.g. 2021-12-17
-                if len(date) == 10:
+            # e.g. 2021-12-17
+            if len(date) == 10:
+                try:
+                    # Maybe only the day is invalid, try year-month
+                    new_date = date[:-3]
+                    date = _date_parse_hack(new_date)
+                except ValueError:
                     try:
-                        # Maybe only the day is invalid, try year-month
-                        new_date = date[:-3]
-                        date = self.__date_parse_hack(new_date)
-                    except ValueError:
-                        try:
-                            # Maybe only the month is invalid, try year
-                            new_date = date[:-6]
-                            date = self.__date_parse_hack(new_date)
-                        except ValueError:
-                            date = ''
-                # e.g. 2021-12
-                elif len(date) == 7:
-                    # Maybe only the month is invalid, try year
-                    try:
-                        new_date = date[:-3]
-                        date = self.__date_parse_hack(new_date)
+                        # Maybe only the month is invalid, try year
+                        new_date = date[:-6]
+                        date = _date_parse_hack(new_date)
                     except ValueError:
                         date = ''
-                else:
-                    date = ''
-            except ValueError:
-                date = ''
-        return date
-
-    def clean_name(self) -> str:
-        '''
-        The first letter of each element of the name is capitalized and superfluous spaces are removed.
-
-        :returns: str -- The cleaned name
-        '''
-        name = self.string
-        if ',' in name:
-            split_name = RE_COMMA_AND_SPACES.split(name)
-            first_name = split_name[1].split()
-            for i, w in enumerate(first_name):
-                first_name[i] = Cleaner(w).clean_title()
-            new_first_name = ' '.join(first_name)
-            surname = split_name[0].split()
-            for i, w in enumerate(surname):
-                surname[i] = Cleaner(w).clean_title()
-            new_surname = ' '.join(surname)
-            if new_surname:
-                new_name = new_surname + ', ' + new_first_name
-            else:
-                new_name = ''
-        else:
-            split_name = name.split()
-            for i, w in enumerate(split_name):
-                split_name[i] = Cleaner(w).clean_title()
-            new_name = ' '.join(split_name)
-        return new_name
-    
-    def remove_unwanted_characters(self) -> str:
-        '''
-        This method helps remove unwanted characters from a string. 
-        Such characters are all characters other than letters, numbers, space, '&', apostrophe, or dots that are not preceded by letters. 
-        Numbers and '&' are significant if the author is an organization and not a person.
-        Finally, hyphens are normalized, Unicode encodings decoded, and extra spaces removed.
-
-        :param string: str -- The string to clean.
-        :returns: str -- The cleaned string.
-        '''
-        unwanted_characters = {'[', ']', ';', '?'}
-        clean_string = str()
-        for i, c in enumerate(self.string):
-            if c == '.':
-                if self.string[i-1].isalpha():
-                    clean_string += c
-            elif c not in unwanted_characters:
-                clean_string += c
-        clean_string = ' '.join(clean_string.split()).strip()
-        clean_string = html.unescape(clean_string)
-        clean_string = Cleaner(clean_string).normalize_hyphens()
-        return clean_string
-    
-    @staticmethod
-    def clean_ra_list(ra_list:list) -> list:
-        '''
-        This method removes responsible agents reported as 'Not Available', duplicates with the same name and at least one matching identifier, and common identifiers among different names.
-
-        :returns: list -- The cleaned responsible agents' list
-        '''
-
-        # Step 1: Collect all identifiers for each unique name
-        agents_ids = OrderedDict()
-        for ra in ra_list:
-            if ra.lower().strip() == 'not available':
-                continue
-            match = RE_NAME_AND_IDS.match(ra)
-            if match:
-                name, ids = match.groups()
-                if name:
-                    cleaner = Cleaner(name)
-                    cleaned_name = cleaner.remove_unwanted_characters()
-                    agents_ids.setdefault(cleaned_name, OrderedDict()).update(
-                        OrderedDict.fromkeys(ids.split()))
-                else: # If there are only IDs, treat the whole string as an identifier
-                    agents_ids.setdefault(ra, OrderedDict()).update(
-                        OrderedDict.fromkeys(ids.split()))
-        # Step 2: Find identifiers that are shared between different names
-        shared_ids = set()
-        for name, ids in agents_ids.items():
-            for other_name, other_ids in agents_ids.items():
-                if name != other_name:
-                    shared_ids.update(ids.keys() & other_ids.keys())
-
-        # Step 3: Remove shared identifiers from the responsible agents
-        for name, ids in agents_ids.items():
-            agents_ids[name] = OrderedDict((id_key, None) for id_key in ids if id_key not in shared_ids)
-
-        # Step 4: Clean the list from 'Not Available', duplicates, and shared identifiers
-        new_ra_list = []
-        seen_agents = OrderedDict()
-        for ra in ra_list:
-            if ra.lower().strip() == 'not available':
-                continue
-            if ',' in ra:
-                split_name = RE_COMMA_AND_SPACES.split(ra)
-                first_name = split_name[1].strip() if split_name[1].strip().lower() != 'not available' else ''
-                last_name = split_name[0].strip() if split_name[0].strip().lower() != 'not available' else ''
-                if not last_name:
-                    continue
-                ra_cleaned_name = f'{last_name}, {first_name}' if first_name else f'{last_name}, '
-            else:
-                ra_cleaned_name = ra
-            match = RE_NAME_AND_IDS.match(ra)
-            if match:
-                name, ids = match.groups()
-                if name:
-                    cleaner = Cleaner(name)
-                    cleaned_name = cleaner.remove_unwanted_characters()
-                    cleaned_ids = ' '.join(agents_ids.get(cleaned_name, []))
-                    cleaned_ids_set = set(cleaned_ids.split())
-                    ra_cleaned = f'{cleaned_name} [{cleaned_ids}]' if cleaned_ids else cleaned_name
-                    if cleaned_name in seen_agents and seen_agents[cleaned_name] & cleaned_ids_set:
-                        continue  # Skip adding this ra since it's a duplicate with a matching identifier
-                    seen_agents.setdefault(cleaned_name, set()).update(cleaned_ids_set)
-                else:
-                    cleaned_ids = [identifier for identifier in ids.split() if identifier not in shared_ids]
-                    ra_cleaned = f"[{' '.join(cleaned_ids)}]"
-                new_ra_list.append(ra_cleaned)
-            else:
-                new_ra_list.append(ra_cleaned_name)
-        return new_ra_list
-    
-    def normalize_id(self, valid_dois_cache:dict=dict()) -> Union[str, None]:
-        '''
-        This function verifies and normalizes identifiers whose schema corresponds to a DOI, an ISSN, an ISBN or an ORCID.
-
-        :returns: Union[str, None] -- The normalized identifier if it is valid, None otherwise
-        '''
-        identifier = self.string.split(':', 1)
-        schema = identifier[0].lower()
-        value = identifier[1]
-        if schema == 'doi':
-            doi_manager = DOIManager(use_api_service=False, storage_manager=None)
-            valid_id = doi_manager.normalise(value, include_prefix=True) if doi_manager.syntax_ok(value) else None
-        elif schema == 'isbn':
-            isbn_manager = ISBNManager()
-            valid_id = isbn_manager.normalise(value, include_prefix=True) if isbn_manager.is_valid(value, get_extra_info=False) else None
-        elif schema == 'issn':
-            if value == '0000-0000':
-                valid_id = None
-            else:
-                issn_manager = ISSNManager()
+            # e.g. 2021-12
+            elif len(date) == 7:
+                # Maybe only the month is invalid, try year
                 try:
-                    valid_id = issn_manager.normalise(value, include_prefix=True) if issn_manager.is_valid(value, get_extra_info=False) else None
+                    new_date = date[:-3]
+                    date = _date_parse_hack(new_date)
                 except ValueError:
-                    print(value)
-                    raise(ValueError)
-        elif schema == 'orcid':
-            orcid_manager = ORCIDManager(use_api_service=False, storage_manager=None)
-            valid_id = orcid_manager.normalise(value, include_prefix=True) if orcid_manager.is_valid(value, get_extra_info=False) else None
+                    date = ''
+            else:
+                date = ''
+        except ValueError:
+            date = ''
+    return date
+
+
+def clean_name(string: str) -> str:
+    '''
+    The first letter of each element of the name is capitalized and superfluous spaces are removed.
+
+    :returns: str -- The cleaned name
+    '''
+    name = string
+    if ',' in name:
+        split_name = RE_COMMA_AND_SPACES.split(name)
+        first_name = split_name[1].split()
+        for i, w in enumerate(first_name):
+            first_name[i] = clean_title(w)
+        new_first_name = ' '.join(first_name)
+        surname = split_name[0].split()
+        for i, w in enumerate(surname):
+            surname[i] = clean_title(w)
+        new_surname = ' '.join(surname)
+        if new_surname:
+            return new_surname + ', ' + new_first_name
+        return ''
+    split_name = name.split()
+    for i, w in enumerate(split_name):
+        split_name[i] = clean_title(w)
+    return ' '.join(split_name)
+
+
+def clean_agent_name(string: str) -> str:
+    '''
+    Clean a responsible agent name (author, editor, publisher).
+
+    Removes unwanted characters while preserving letters, numbers, spaces,
+    '&', apostrophes, and dots preceded by letters. Numbers and '&' are
+    kept for organization names (e.g., "3M", "Smith & Sons").
+    Normalizes hyphens, decodes HTML entities, and removes extra spaces.
+
+    :returns: str -- The cleaned agent name.
+    '''
+    unwanted_characters = {'[', ']', ';', '?'}
+    chars = []
+    for i, c in enumerate(string):
+        if c == '.':
+            if i > 0 and string[i-1].isalpha():
+                chars.append(c)
+        elif c not in unwanted_characters:
+            chars.append(c)
+    clean_string = ' '.join(''.join(chars).split())
+    clean_string = html.unescape(clean_string)
+    clean_string = clean_string.translate(_HYPHEN_TRANS)
+    return clean_string
+
+
+def clean_ra_list(ra_list: list) -> list:
+    '''
+    This function removes responsible agents reported as 'Not Available', duplicates with the same name and at least one matching identifier, and common identifiers among different names.
+
+    :returns: list -- The cleaned responsible agents' list
+    '''
+
+    # Step 1: Collect all identifiers for each unique name
+    agents_ids = OrderedDict()
+    for ra in ra_list:
+        if ra.lower().strip() == 'not available':
+            continue
+        match = RE_NAME_AND_IDS.match(ra)
+        if match:
+            name, ids = match.groups()
+            if name:
+                cleaned_name = clean_agent_name(name)
+                agents_ids.setdefault(cleaned_name, OrderedDict()).update(
+                    OrderedDict.fromkeys(ids.split()))
+            else:  # If there are only IDs, treat the whole string as an identifier
+                agents_ids.setdefault(ra, OrderedDict()).update(
+                    OrderedDict.fromkeys(ids.split()))
+    # Step 2: Find identifiers that are shared between different names
+    shared_ids = set()
+    for name, ids in agents_ids.items():
+        for other_name, other_ids in agents_ids.items():
+            if name != other_name:
+                shared_ids.update(ids.keys() & other_ids.keys())
+
+    # Step 3: Remove shared identifiers from the responsible agents
+    for name, ids in agents_ids.items():
+        agents_ids[name] = OrderedDict((id_key, None) for id_key in ids if id_key not in shared_ids)
+
+    # Step 4: Clean the list from 'Not Available', duplicates, and shared identifiers
+    new_ra_list = []
+    seen_agents = OrderedDict()
+    for ra in ra_list:
+        if ra.lower().strip() == 'not available':
+            continue
+        if ',' in ra:
+            split_name = RE_COMMA_AND_SPACES.split(ra)
+            first_name = split_name[1].strip() if split_name[1].strip().lower() != 'not available' else ''
+            last_name = split_name[0].strip() if split_name[0].strip().lower() != 'not available' else ''
+            if not last_name:
+                continue
+            ra_cleaned_name = f'{last_name}, {first_name}' if first_name else f'{last_name}, '
         else:
-            valid_id = f'{schema}:{value}'
-        return valid_id
+            ra_cleaned_name = ra
+        match = RE_NAME_AND_IDS.match(ra)
+        if match:
+            name, ids = match.groups()
+            if name:
+                cleaned_name = clean_agent_name(name)
+                cleaned_ids = ' '.join(agents_ids.get(cleaned_name, []))
+                cleaned_ids_set = set(cleaned_ids.split())
+                ra_cleaned = f'{cleaned_name} [{cleaned_ids}]' if cleaned_ids else cleaned_name
+                if cleaned_name in seen_agents and seen_agents[cleaned_name] & cleaned_ids_set:
+                    continue  # Skip adding this ra since it's a duplicate with a matching identifier
+                seen_agents.setdefault(cleaned_name, set()).update(cleaned_ids_set)
+            else:
+                cleaned_ids = [identifier for identifier in ids.split() if identifier not in shared_ids]
+                ra_cleaned = f"[{' '.join(cleaned_ids)}]"
+            new_ra_list.append(ra_cleaned)
+        else:
+            new_ra_list.append(ra_cleaned_name)
+    return new_ra_list
 
-    @classmethod
-    def clean_volume_and_issue(cls, row:dict) -> None:
-        output = {'volume': '', 'issue': '', 'pub_date': ''}
-        for field in {'volume', 'issue'}:
-            vi = row[field]
-            vi = Cleaner(vi).normalize_hyphens()
-            vi = Cleaner(vi).normalize_spaces().strip()
-            vi = html.unescape(vi)
-            for compiled_pattern, strategy in RE_INVALID_VI_PATTERNS.items():
-                capturing_groups = compiled_pattern.search(vi)
-                if capturing_groups:
-                    if strategy == 'del':
-                        row[field] = ''
-                    elif strategy == 'do_nothing':
-                        row[field] = vi
-                    elif strategy == 's)':
-                        row[field] = f'{vi}s)'
-                    else:
-                        row[field] = ''
-                        whatever, volume, issue, pub_date = cls.fix_invalid_vi(capturing_groups, strategy)
-                        row[field] = whatever if whatever else row[field]
-                        output['volume'] = volume if volume else ''
-                        output['issue'] = issue if issue else ''
-                        output['pub_date'] = pub_date if pub_date else ''
-        row['volume'] = output['volume'] if not row['volume'] else row['volume']
-        row['issue'] = output['issue'] if not row['issue'] else row['issue']
-        row['pub_date'] = output['pub_date'] if not row['pub_date'] else row['pub_date']
-        switch_vi = {'volume': '', 'issue': ''}
-        for field in {'volume', 'issue'}:
-            vi = row[field]
-            for compiled_pattern in RE_VOLUMES_VALID_PATTERNS:
-                if compiled_pattern.search(vi):
-                    if field == 'issue':
-                        switch_vi['volume'] = vi
-            for compiled_pattern in RE_ISSUES_VALID_PATTERNS:
-                if compiled_pattern.search(vi):
-                    if field == 'volume':
-                        switch_vi['issue'] = vi
-        if switch_vi['volume'] and switch_vi['issue']:
-            row['volume'] = switch_vi['volume']
-            row['issue'] = switch_vi['issue']
-        elif switch_vi['volume'] and not row['volume']:
-            row['volume'] = switch_vi['volume']
-            row['issue'] = ''
-            row['type'] = 'journal volume' if row['type'] == 'journal issue' else row['type']
-        elif switch_vi['issue'] and not row['issue']:
-            row['issue'] = switch_vi['issue']
-            row['volume'] = ''
-            row['type'] = 'journal issue' if row['type'] == 'journal volume' else row['type']
-    
-    @staticmethod
-    def fix_invalid_vi(capturing_groups:re.Match, strategy:str) -> Tuple[str | None, str | None, str | None, str | None]:
-        vol_group = 1 if 'vol_iss' in strategy else 2
-        iss_group = 1 if 'iss_vol' in strategy else 2
-        whatever = None
-        volume = None
-        issue = None
-        pub_date = None
-        if 'vol' in strategy and 'iss' in strategy:
-            volume = capturing_groups.group(vol_group)
-            issue = capturing_groups.group(iss_group)
-            if 'year' in strategy:
-                pub_date = capturing_groups.group(3)
-        elif strategy == 'all':
-            whatever = capturing_groups.group(1)
-        elif strategy == 'sep':
-            first = capturing_groups.group(1)
-            second = capturing_groups.group(2)
-            whatever = f'{first}-{second}'
-        return whatever, volume, issue, pub_date
 
-    def remove_ascii(self):
-        unwanted_chars = '\x00\x01\x02\x03\x04\x05\x06\x07\x08\t\n\x0b\x0c\r\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x7f\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9a\x9b\x9c\x9d\x9e\x9f\xa0\xa1\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xab\xac\xad\xae\xaf\xb0\xb1\xb2\xb3\xb4\xb5\xb6\xb7\xb8\xb9\xba\xbb\xbc\xbd\xbe\xbf\xc0\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8\xc9\xca\xcb\xcc\xcd\xce\xcf\xd0\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xdb\xdc\xdd\xde\xdf\xe0\xe1\xe2\xe3\xe4\xe5\xe6\xe7\xe8\xe9\xea\xeb\xec\xed\xee\xef\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff'
-        clean_string = ''.join([' ' if c in unwanted_chars else c for c in self.string])
-        clean_string = ' '.join(clean_string.split())
-        return clean_string           
+def normalize_id(string: str, valid_dois_cache: dict = dict()) -> Union[str, None]:
+    '''
+    This function verifies and normalizes identifiers whose schema corresponds to a DOI, an ISSN, an ISBN or an ORCID.
+
+    :returns: Union[str, None] -- The normalized identifier if it is valid, None otherwise
+    '''
+    identifier = string.split(':', 1)
+    schema = identifier[0].lower()
+    value = identifier[1]
+    if schema == 'doi':
+        valid_id = _DOI_MANAGER.normalise(value, include_prefix=True) if _DOI_MANAGER.syntax_ok(value) else None
+    elif schema == 'isbn':
+        valid_id = _ISBN_MANAGER.normalise(value, include_prefix=True) if _ISBN_MANAGER.is_valid(value, get_extra_info=False) else None
+    elif schema == 'issn':
+        if value == '0000-0000':
+            valid_id = None
+        else:
+            try:
+                valid_id = _ISSN_MANAGER.normalise(value, include_prefix=True) if _ISSN_MANAGER.is_valid(value, get_extra_info=False) else None
+            except ValueError:
+                print(value)
+                raise(ValueError)
+    elif schema == 'orcid':
+        valid_id = _ORCID_MANAGER.normalise(value, include_prefix=True) if _ORCID_MANAGER.is_valid(value, get_extra_info=False) else None
+    else:
+        valid_id = f'{schema}:{value}'
+    return valid_id
+
+
+def clean_volume_and_issue(row: dict) -> None:
+    output = {'volume': '', 'issue': '', 'pub_date': ''}
+    for field in {'volume', 'issue'}:
+        vi = row[field]
+        vi = normalize_hyphens(vi)
+        vi = normalize_spaces(vi).strip()
+        vi = html.unescape(vi)
+        for compiled_pattern, strategy in RE_INVALID_VI_PATTERNS.items():
+            capturing_groups = compiled_pattern.search(vi)
+            if capturing_groups:
+                if strategy == 'del':
+                    row[field] = ''
+                elif strategy == 'do_nothing':
+                    row[field] = vi
+                elif strategy == 's)':
+                    row[field] = f'{vi}s)'
+                else:
+                    row[field] = ''
+                    whatever, volume, issue, pub_date = _fix_invalid_vi(capturing_groups, strategy)
+                    row[field] = whatever if whatever else row[field]
+                    output['volume'] = volume if volume else ''
+                    output['issue'] = issue if issue else ''
+                    output['pub_date'] = pub_date if pub_date else ''
+    row['volume'] = output['volume'] if not row['volume'] else row['volume']
+    row['issue'] = output['issue'] if not row['issue'] else row['issue']
+    row['pub_date'] = output['pub_date'] if not row['pub_date'] else row['pub_date']
+    switch_vi = {'volume': '', 'issue': ''}
+    for field in {'volume', 'issue'}:
+        vi = row[field]
+        for compiled_pattern in RE_VOLUMES_VALID_PATTERNS:
+            if compiled_pattern.search(vi):
+                if field == 'issue':
+                    switch_vi['volume'] = vi
+        for compiled_pattern in RE_ISSUES_VALID_PATTERNS:
+            if compiled_pattern.search(vi):
+                if field == 'volume':
+                    switch_vi['issue'] = vi
+    if switch_vi['volume'] and switch_vi['issue']:
+        row['volume'] = switch_vi['volume']
+        row['issue'] = switch_vi['issue']
+    elif switch_vi['volume'] and not row['volume']:
+        row['volume'] = switch_vi['volume']
+        row['issue'] = ''
+        row['type'] = 'journal volume' if row['type'] == 'journal issue' else row['type']
+    elif switch_vi['issue'] and not row['issue']:
+        row['issue'] = switch_vi['issue']
+        row['volume'] = ''
+        row['type'] = 'journal issue' if row['type'] == 'journal volume' else row['type']
+
+
+def _fix_invalid_vi(capturing_groups: re.Match, strategy: str) -> Tuple[str | None, str | None, str | None, str | None]:
+    vol_group = 1 if 'vol_iss' in strategy else 2
+    iss_group = 1 if 'iss_vol' in strategy else 2
+    whatever = None
+    volume = None
+    issue = None
+    pub_date = None
+    if 'vol' in strategy and 'iss' in strategy:
+        volume = capturing_groups.group(vol_group)
+        issue = capturing_groups.group(iss_group)
+        if 'year' in strategy:
+            pub_date = capturing_groups.group(3)
+    elif strategy == 'all':
+        whatever = capturing_groups.group(1)
+    elif strategy == 'sep':
+        first = capturing_groups.group(1)
+        second = capturing_groups.group(2)
+        whatever = f'{first}-{second}'
+    return whatever, volume, issue, pub_date
+
+
+def remove_ascii(string: str) -> str:
+    clean_string = string.translate(_ASCII_CONTROL_TRANS)
+    return ' '.join(clean_string.split())

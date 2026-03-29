@@ -1,18 +1,29 @@
-# SPDX-FileCopyrightText: 2022-2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+# SPDX-FileCopyrightText: 2022-2026 Arcangelo Massari <arcangelo.massari@unibo.it>
 #
 # SPDX-License-Identifier: ISC
 
 import unittest
 
-from oc_meta.lib.cleaner import Cleaner
+from oc_meta.lib.cleaner import (
+    clean_agent_name,
+    clean_date,
+    clean_name,
+    clean_ra_list,
+    clean_title,
+    clean_volume_and_issue,
+    normalize_hyphens,
+    normalize_id,
+    normalize_spaces,
+    remove_ascii,
+)
 
 
-class test_Cleaner(unittest.TestCase):
+class test_cleaner(unittest.TestCase):
     def test_clen_hyphen(self):
         broken_strings = ['100­101', '100−101', '100–101', '100–101', '100—101', '100⁃101', '100−101', '100➖101', '100Ⲻ101', '100﹘101']
         fixed_strings = list()
         for string in broken_strings:
-            fixed_string = Cleaner(string).normalize_hyphens()
+            fixed_string = normalize_hyphens(string)
             fixed_strings.append(fixed_string)
         expected_output = ['100-101', '100-101', '100-101', '100-101', '100-101', '100-101', '100-101', '100-101', '100-101', '100-101']
         self.assertEqual(fixed_strings, expected_output)
@@ -28,7 +39,7 @@ class test_Cleaner(unittest.TestCase):
         ]
         outputs = list()
         for input in inputs:
-            outputs.append(Cleaner(input).clean_title())
+            outputs.append(clean_title(input))
         expected_output = [
             'OpenCitations, An Infrastructure Organization For Open Scholarship',
             'Opencitations, An Infrastructure Organization For Open Scholarship',
@@ -43,7 +54,7 @@ class test_Cleaner(unittest.TestCase):
         inputs = ['2020-13-50', '2020-02-50', '2020-02-11', '2020-12-12', '2000', '2000-12', '2000-13']
         outputs = list()
         for input in inputs:
-            outputs.append(Cleaner(input).clean_date())
+            outputs.append(clean_date(input))
         expected_output = ['2020', '2020-02', '2020-02-11', '2020-12-12', '2000', '2000-12', '2000']
         self.assertEqual(outputs, expected_output)
 
@@ -51,7 +62,7 @@ class test_Cleaner(unittest.TestCase):
         inputs = ['100000-13-50', '02-11', '11', '100000', 'godopoli']
         outputs = list()
         for input in inputs:
-            outputs.append(Cleaner(input).clean_date())
+            outputs.append(clean_date(input))
         expected_output = ['', '', '', '', '']
         self.assertEqual(outputs, expected_output)
     
@@ -59,39 +70,39 @@ class test_Cleaner(unittest.TestCase):
         names = ['Peroni, Silvio', 'Peroni, S.', '  Peroni   ,    Silvio  ', 'PERONI, SILVIO', '', 'peroni', 'peroni, Silvio', 'McSorley, Stephen', 'OECD', ',']
         outputs = list()
         for name in names:
-            outputs.append(Cleaner(name).clean_name())
+            outputs.append(clean_name(name))
         expected_output = ['Peroni, Silvio', 'Peroni, S.', 'Peroni, Silvio', 'Peroni, Silvio', '', 'Peroni', 'Peroni, Silvio', 'McSorley, Stephen', 'Oecd', '']
         self.assertEqual(outputs, expected_output)
     
-    def test_remove_unwanted_characters(self):
+    def test_clean_agent_name(self):
         names = ['Edward ].', 'Bernacki', 'Tom??&OV0165;', 'Gavin         E.', 'Andr[eacute]', 'Albers\u2010Miller', "O'Connor", 'O\u2019Connell', 'Gonz\u0301alez-Santiago', 'Gonz\u00e1lez-Benito', 'Andr&eacute;']
         outputs = list()
         for name in names:
-            outputs.append(Cleaner(name).remove_unwanted_characters())
+            outputs.append(clean_agent_name(name))
         expected_output = ['Edward', 'Bernacki', 'Tom&OV0165', 'Gavin E.', 'Andreacute', 'Albers-Miller', "O'Connor", 'O’Connell', 'Gonźalez-Santiago', 'González-Benito', 'André']
         self.assertEqual(outputs, expected_output)
     
     def test_clean_ra_list(self):
         names = ['Not Available, Not Available', 'Peroni, Not Available', 'Not Available, Silvio', 'Not Available', 'Peroni, Silvio', ',']
-        output = Cleaner.clean_ra_list(names)
+        output = clean_ra_list(names)
         expected_output = ['Peroni, ', 'Peroni, Silvio']
         self.assertEqual(output, expected_output)
 
     def test_clean_ra_list_duplicates(self):
         names = ['Peroni, Silvio [orcid:0000-0003-0530-4305 viaf:1]', 'Peroni, Not Available', 'Peroni, Silvio [orcid:0000-0003-0530-4305]', 'Massari, Arcangelo']
-        output = Cleaner.clean_ra_list(names)
+        output = clean_ra_list(names)
         expected_output = ['Peroni, Silvio [orcid:0000-0003-0530-4305 viaf:1]', 'Peroni, ', 'Massari, Arcangelo']
         self.assertEqual(output, expected_output)
 
     def test_clean_ra_list_remove_ids(self):
         names = ['Peroni, Silvio [orcid:0000-0003-0530-4305 viaf:1]', 'Peroni, Not Available', 'Perone, Silvio [orcid:0000-0003-0530-4305]', 'Massari, Arcangelo']
-        output = Cleaner.clean_ra_list(names)
+        output = clean_ra_list(names)
         expected_output = ['Peroni, Silvio [viaf:1]', 'Peroni, ', 'Perone, Silvio', 'Massari, Arcangelo']
         self.assertEqual(output, expected_output)
 
     def test_clean_ra_list_only_ids(self):
         names = ['Peroni, Silvio [orcid:0000-0003-0530-4305]', '[orcid:0000-0003-0530-4305 viaf:1]', '[orcid:0000-0003-0530-4306]']
-        output = Cleaner.clean_ra_list(names)
+        output = clean_ra_list(names)
         expected_output = ['Peroni, Silvio', '[viaf:1]', '[orcid:0000-0003-0530-4306]']
         self.assertEqual(output, expected_output)
 
@@ -99,7 +110,7 @@ class test_Cleaner(unittest.TestCase):
         broken_strings = ['100\u0009101', '100\u00A0101', '100\u200B101', '100\u202F101']
         fixed_strings = list()
         for string in broken_strings:
-            fixed_string = Cleaner(string).normalize_spaces()
+            fixed_string = normalize_spaces(string)
             fixed_strings.append(fixed_string)
         expected_output = ['100 101', '100 101', '100 101', '100 101']
         self.assertEqual(fixed_strings, expected_output)
@@ -109,7 +120,7 @@ class test_Cleaner(unittest.TestCase):
         output = list()
         csv_manager = dict()
         for id in identifiers:
-            output.append(Cleaner(id).normalize_id(valid_dois_cache=csv_manager))
+            output.append(normalize_id(id, valid_dois_cache=csv_manager))
         expected_output = ['doi:10.1123/ijatt.2015-0070', None, 'orcid:0000-0003-0530-4305', None, 'issn:1479-6708', None, 'isbn:9783319403120', None]
         self.assertEqual(output, expected_output)
     
@@ -176,7 +187,7 @@ class test_Cleaner(unittest.TestCase):
             {'pub_date': '', 'volume': 'Not Available', 'issue': 'not available', 'type': ''}
         ]
         for row in invalid_vi_rows:
-            Cleaner.clean_volume_and_issue(row)
+            clean_volume_and_issue(row)
         expected_output = [
             {'pub_date': '', 'volume': '15', 'issue': '1', 'type': ''}, 
             {'pub_date': '', 'volume': '2', 'issue': '3', 'type': ''}, 
@@ -244,7 +255,7 @@ class test_Cleaner(unittest.TestCase):
         clean_strings = []
         broken_strings = ['5â\x80\x926']
         for string in broken_strings:
-            clean_strings.append(Cleaner(string).remove_ascii())
+            clean_strings.append(remove_ascii(string))
         expected_output = ['5 6']
         self.assertEqual(clean_strings, expected_output)
 
