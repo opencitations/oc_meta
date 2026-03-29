@@ -12,7 +12,6 @@ import csv
 import os
 import sys
 from contextlib import contextmanager
-from datetime import datetime
 from pathlib import Path
 from time import sleep
 from typing import Callable, Dict, List, Set
@@ -259,15 +258,3 @@ def call_api(url: str, headers: dict[str, str], r_format: str = "json") -> dict 
             sleep(5)
     return None
 
-def rm_tmp_csv_files(base_dir:str) -> None:
-    for filename in os.listdir(base_dir):
-        number = filename.split('_')[0]
-        date = datetime.strptime(filename.split('_')[1].replace('.csv', ''), '%Y-%m-%dT%H-%M-%S')
-        for other_filename in os.listdir(base_dir):
-            other_number = other_filename.split('_')[0]
-            other_date = datetime.strptime(other_filename.split('_')[1].replace('.csv', ''), '%Y-%m-%dT%H-%M-%S')
-            if number == other_number and filename != other_filename:
-                if date < other_date:
-                    os.remove(os.path.join(base_dir, filename))
-                elif other_date < date:
-                    os.remove(os.path.join(base_dir, other_filename))

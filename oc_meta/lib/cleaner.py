@@ -305,11 +305,13 @@ def clean_ra_list(ra_list: list) -> list:
                 agents_ids.setdefault(ra, OrderedDict()).update(
                     OrderedDict.fromkeys(ids.split()))
     # Step 2: Find identifiers that are shared between different names
-    shared_ids = set()
-    for name, ids in agents_ids.items():
-        for other_name, other_ids in agents_ids.items():
-            if name != other_name:
-                shared_ids.update(ids.keys() & other_ids.keys())
+    # Count how many different names each ID belongs to (O(n) instead of O(n²))
+    id_name_count: dict[str, int] = {}
+    for ids in agents_ids.values():
+        for id_key in ids:
+            id_name_count[id_key] = id_name_count.get(id_key, 0) + 1
+    # IDs appearing in more than one name's set are shared
+    shared_ids = {id_key for id_key, count in id_name_count.items() if count > 1}
 
     # Step 3: Remove shared identifiers from the responsible agents
     for name, ids in agents_ids.items():
