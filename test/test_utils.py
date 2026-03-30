@@ -62,27 +62,11 @@ def _clear_all_meta_graphs(endpoint: str, max_retries: int = 3) -> None:
 
 
 def reset_server() -> None:
-    for _ in range(10):
-        with ThreadPoolExecutor(max_workers=2) as executor:
-            main_future = executor.submit(_clear_all_meta_graphs, SERVER)
-            prov_future = executor.submit(_clear_all_meta_graphs, PROV_SERVER)
-            main_future.result()
-            prov_future.result()
-        time.sleep(0.2)
-        data_result = execute_sparql_query(
-            SERVER,
-            "SELECT (COUNT(*) AS ?c) WHERE { GRAPH ?g { ?s ?p ?o } "
-            "FILTER(STRSTARTS(STR(?g), 'https://w3id.org/oc/meta/')) }"
-        )
-        prov_result = execute_sparql_query(
-            PROV_SERVER,
-            "SELECT (COUNT(*) AS ?c) WHERE { GRAPH ?g { ?s ?p ?o } "
-            "FILTER(STRSTARTS(STR(?g), 'https://w3id.org/oc/meta/')) }"
-        )
-        data_count = int(data_result['results']['bindings'][0]['c']['value'])
-        prov_count = int(prov_result['results']['bindings'][0]['c']['value'])
-        if data_count == 0 and prov_count == 0:
-            return
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        main_future = executor.submit(_clear_all_meta_graphs, SERVER)
+        prov_future = executor.submit(_clear_all_meta_graphs, PROV_SERVER)
+        main_future.result()
+        prov_future.result()
 
 
 def reset_triplestore(server: str = SERVER) -> None:
@@ -190,7 +174,7 @@ def add_data_ts(
     data_path: str = os.path.abspath(
         os.path.join("test", "testcases", "ts", "real_data.nt")
     ).replace("\\", "/"),
-    batch_size: int = 100,
+    batch_size: int = 1000,
     default_graph_uri: URIRef = URIRef("http://default.graph/"),
 ) -> None:
     reset_triplestore(server)
