@@ -585,50 +585,32 @@ class ResourceFinder:
                                         res_dict['venue'] = f"{venue_title} [{' '.join(venue_ids)}]"
         return res_dict
 
+    _IRI_TO_TYPE = {
+        GraphEntity.iri_archival_document: 'archival document',
+        GraphEntity.iri_book: 'book',
+        GraphEntity.iri_book_chapter: 'book chapter',
+        GraphEntity.iri_part: 'book part',
+        GraphEntity.iri_expression_collection: 'book section',
+        GraphEntity.iri_book_series: 'book series',
+        GraphEntity.iri_book_set: 'book set',
+        GraphEntity.iri_data_file: 'data file',
+        GraphEntity.iri_thesis: 'dissertation',
+        GraphEntity.iri_journal: 'journal',
+        GraphEntity.iri_journal_article: 'journal article',
+        GraphEntity.iri_journal_issue: 'journal issue',
+        GraphEntity.iri_journal_volume: 'journal volume',
+        GraphEntity.iri_proceedings_paper: 'proceedings article',
+        GraphEntity.iri_academic_proceedings: 'proceedings',
+        GraphEntity.iri_reference_book: 'reference book',
+        GraphEntity.iri_reference_entry: 'reference entry',
+        GraphEntity.iri_series: 'series',
+        GraphEntity.iri_report_document: 'report',
+        GraphEntity.iri_specification_document: 'standard',
+    }
+
     @staticmethod
     def _type_it(br_type: URIRef) -> str:
-        output_type = ''
-        if br_type == GraphEntity.iri_archival_document:
-            output_type = 'archival document'
-        if br_type == GraphEntity.iri_book:
-            output_type = 'book'
-        if br_type == GraphEntity.iri_book_chapter:
-            output_type = 'book chapter'
-        if br_type == GraphEntity.iri_part:
-            output_type = 'book part'
-        if br_type == GraphEntity.iri_expression_collection:
-            output_type = 'book section'
-        if br_type == GraphEntity.iri_book_series:
-            output_type = 'book series'
-        if br_type == GraphEntity.iri_book_set:
-            output_type = 'book set'
-        if br_type == GraphEntity.iri_data_file:
-            output_type = 'data file'
-        if br_type == GraphEntity.iri_thesis:
-            output_type = 'dissertation'
-        if br_type == GraphEntity.iri_journal:
-            output_type = 'journal'
-        if br_type == GraphEntity.iri_journal_article:
-            output_type = 'journal article'
-        if br_type == GraphEntity.iri_journal_issue:
-            output_type = 'journal issue'
-        if br_type == GraphEntity.iri_journal_volume:
-            output_type = 'journal volume'
-        if br_type == GraphEntity.iri_proceedings_paper:
-            output_type = 'proceedings article'
-        if br_type == GraphEntity.iri_academic_proceedings:
-            output_type = 'proceedings'
-        if br_type == GraphEntity.iri_reference_book:
-            output_type = 'reference book'
-        if br_type == GraphEntity.iri_reference_entry:
-            output_type = 'reference entry'
-        if br_type == GraphEntity.iri_series:
-            output_type = 'series'
-        if br_type == GraphEntity.iri_report_document:
-            output_type = 'report'
-        if br_type == GraphEntity.iri_specification_document:
-            output_type = 'standard'
-        return output_type
+        return ResourceFinder._IRI_TO_TYPE.get(br_type, '')
     
     def retrieve_publisher_from_br_metaid(self, metaid:str):
         metaid_uri = URIRef(f'{self.base_iri}/br/{metaid}')

@@ -405,13 +405,16 @@ class test_Curator(unittest.TestCase):
         curator = prepareCurator(list())
         curator.data = [{'id': 'wannabe_0', 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China', 'author': '', 'pub_date': '2011-11-28', 'venue': 'wannabe_1', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': 'OECD [crossref:1963]', 'editor': ''}]
         curator.brmeta = {
-            '0601': {'ids': {'doi:10.1787/eco_outlook-v2011-2-graph138-en', 'omid:br/0601'}, 'others': {'wannabe_0'}, 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'}, 
+            '0601': {'ids': {'doi:10.1787/eco_outlook-v2011-2-graph138-en', 'omid:br/0601'}, 'others': {'wannabe_0'}, 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'},
             '0602': {'ids': {'omid:br/0604'}, 'others': {'wannabe_1'}, 'title': 'OECD Economic Outlook'}
         }
         curator.armeta = {'0601': {'author': [], 'editor': [], 'publisher': [('0601', '0601')]}}
         curator.rameta = {'0601': {'ids': {'crossref:1963', 'omid:ra/0601'}, 'others': {'wannabe_2'}, 'title': 'Oecd'}}
         curator.remeta = dict()
         curator.meta_maker()
+        # Set inverse indexes after meta_maker() since it resets them
+        curator._br_wannabe_to_meta = {'wannabe_0': '0601', 'wannabe_1': '0602'}
+        curator._ra_wannabe_to_meta = {'wannabe_2': '0601'}
         curator.enrich()
         output = curator.data
         expected_output = [{'id': 'doi:10.1787/eco_outlook-v2011-2-graph138-en omid:br/0601', 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China', 'author': '', 'pub_date': '2011-11-28', 'venue': 'OECD Economic Outlook [omid:br/0604]', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': 'Oecd [crossref:1963 omid:ra/0601]', 'editor': ''}]
@@ -433,8 +436,10 @@ class test_Curator(unittest.TestCase):
             '0601': {'ids': {'doi:10.1787/eco_outlook-v2011-2-graph138-en', 'omid:br/0601'}, 'others': {'wannabe_0'}, 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'},
             '0602': {'ids': {'omid:br/0602'}, 'others': {'wannabe_1'}, 'title': 'OECD Economic Outlook'}
         }
-        curator.vvi = {
-            'wannabe_1': {
+        # VolIss is set directly with resolved venue ID (0602 instead of wannabe_1)
+        # since we're not calling meta_maker() which would do the resolution
+        curator.VolIss = {
+            '0602': {
                 'issue': {},
                 'volume': {
                     '107': {'id': '4733', 'issue': {'1': {'id': '4734'}, '2': {'id': '4735'}, '3': {'id': '4736'}, '4': {'id': '4737'}, '5': {'id': '4738'}, '6': {'id': '4739'}}},
@@ -450,7 +455,6 @@ class test_Curator(unittest.TestCase):
                 }
             }
         }
-        curator.meta_maker()
         curator.indexer()
         # Test in-memory data structures
         expected_index_ar = [{'meta': '2585', 'author': '9445, 0602; 0601, 0601', 'editor': '', 'publisher': ''}]

@@ -483,85 +483,49 @@ class Creator(object):
             form.has_ending_page(page)
             self.br_graph.has_format(form)
 
+    _TYPE_TO_METHOD = {
+        "abstract": "create_abstract",
+        "archival document": "create_archival_document",
+        "audio document": "create_audio_document",
+        "book": "create_book",
+        "book chapter": "create_book_chapter",
+        "book part": "create_book_part",
+        "book section": "create_book_section",
+        "book series": "create_book_series",
+        "book set": "create_book_set",
+        "computer program": "create_computer_program",
+        "data file": "create_dataset",
+        "dataset": "create_dataset",
+        "data management plan": "create_data_management_plan",
+        "dissertation": "create_dissertation",
+        "editorial": "create_editorial",
+        "journal": "create_journal",
+        "journal article": "create_journal_article",
+        "journal editorial": "create_journal_editorial",
+        "journal issue": "create_issue",
+        "journal volume": "create_volume",
+        "newspaper": "create_newspaper",
+        "newspaper article": "create_newspaper_article",
+        "newspaper issue": "create_newspaper_issue",
+        "peer review": "create_peer_review",
+        "preprint": "create_preprint",
+        "presentation": "create_presentation",
+        "proceedings": "create_proceedings",
+        "proceedings article": "create_proceedings_article",
+        "reference book": "create_reference_book",
+        "reference entry": "create_reference_entry",
+        "report": "create_report",
+        "report series": "create_report_series",
+        "retraction notice": "create_retraction_notice",
+        "standard": "create_standard",
+        "series": "create_series",
+        "web content": "create_web_content",
+    }
+
     def type_action(self, entity_type):
-        if entity_type == "abstract":
-            self.br_graph.create_abstract()
-        if entity_type == "archival document":
-            self.br_graph.create_archival_document()
-        elif entity_type == "audio document":
-            self.br_graph.create_audio_document()
-        elif entity_type == "book":
-            self.br_graph.create_book()
-        elif entity_type == "book chapter":
-            self.br_graph.create_book_chapter()
-        elif entity_type == "book part":
-            self.br_graph.create_book_part()
-        elif entity_type == "book section":
-            self.br_graph.create_book_section()
-        elif entity_type == "book series":
-            self.br_graph.create_book_series()
-        elif entity_type == "book set":
-            self.br_graph.create_book_set()
-        elif entity_type == "computer program":
-            self.br_graph.create_computer_program()
-        elif entity_type in {"data file", "dataset"}:
-            self.br_graph.create_dataset()
-        elif entity_type == "data management plan":
-            self.br_graph.create_data_management_plan()
-        elif entity_type == "dissertation":
-            self.br_graph.create_dissertation()
-        elif entity_type == "editorial":
-            self.br_graph.create_editorial()
-        # elif entity_type == 'edited book':
-        #     self.br_graph.create_edited_book()
-        elif entity_type == "journal":
-            self.br_graph.create_journal()
-        elif entity_type == "journal article":
-            self.br_graph.create_journal_article()
-        elif entity_type == "journal editorial":
-            self.br_graph.create_journal_editorial()
-        elif entity_type == "journal issue":
-            self.br_graph.create_issue()
-        elif entity_type == "journal volume":
-            self.br_graph.create_volume()
-        elif entity_type == "newspaper":
-            self.br_graph.create_newspaper()
-        elif entity_type == "newspaper article":
-            self.br_graph.create_newspaper_article()
-        elif entity_type == "newspaper issue":
-            self.br_graph.create_newspaper_issue()
-        # elif entity_type == 'monograph':
-        #     self.br_graph.create_monograph()
-        elif entity_type == "peer review":
-            self.br_graph.create_peer_review()
-        elif entity_type == "preprint":
-            self.br_graph.create_preprint()
-        elif entity_type == "presentation":
-            self.br_graph.create_presentation()
-        elif entity_type == "proceedings":
-            self.br_graph.create_proceedings()
-        elif entity_type == "proceedings article":
-            self.br_graph.create_proceedings_article()
-        # elif entity_type == 'proceedings series':
-        #     self.br_graph.create_proceedings_series()
-        elif entity_type == "reference book":
-            self.br_graph.create_reference_book()
-        elif entity_type == "reference entry":
-            self.br_graph.create_reference_entry()
-        elif entity_type == "report":
-            self.br_graph.create_report()
-        elif entity_type == "report series":
-            self.br_graph.create_report_series()
-        elif entity_type == "retraction notice":
-            self.br_graph.create_retraction_notice()
-        elif entity_type == "standard":
-            self.br_graph.create_standard()
-        elif entity_type == "series":
-            self.br_graph.create_series()
-        # elif entity_type == 'standard series':
-        #     self.br_graph.create_standard_series()()
-        elif entity_type == "web content":
-            self.br_graph.create_web_content()
+        method_name = self._TYPE_TO_METHOD.get(entity_type)
+        if method_name:
+            getattr(self.br_graph, method_name)()
 
     def publisher_action(self, publisher):
         if publisher:

@@ -915,10 +915,7 @@ class Curator:
         for ar_metaid, agent_id in self.ardict[source_br_key][role_type]:
             resolved_ra_metaid = agent_id
             if "wannabe" in agent_id:
-                for candidate_ra_metaid in self.rameta:
-                    if agent_id in self.rameta[candidate_ra_metaid]["others"]:
-                        resolved_ra_metaid = candidate_ra_metaid
-                        break
+                resolved_ra_metaid = self._ra_wannabe_to_meta[agent_id]
             self.armeta[target_br_metaid][role_type].append((ar_metaid, resolved_ra_metaid))
 
     def __tree_traverse(self, tree: dict, key: str, values: List[Tuple]) -> None:
@@ -966,35 +963,47 @@ class Curator:
         For each dictionary ('brdict', 'ardict', 'radict', 'vvi') the corresponding MetaID dictionary is created
         ('brmeta', 'armeta', 'rameta', and 'vvi').
         """
+        self._br_wannabe_to_meta: dict[str, str] = {}
+        self._ra_wannabe_to_meta: dict[str, str] = {}
+
         for identifier in self.brdict:
             if "wannabe" in identifier:
                 other = identifier
                 count = self._add_number("br")
-                meta = self.prefix + str(count)
-                self.brmeta[meta] = self.brdict[identifier]
-                self.brmeta[meta]["others"].add(other)
-                self.brmeta[meta]["ids"].add("omid:br/" + meta)
+                target_meta = self.prefix + str(count)
+                self.brmeta[target_meta] = self.brdict[identifier]
+                self.brmeta[target_meta]["others"].add(other)
+                self.brmeta[target_meta]["ids"].add("omid:br/" + target_meta)
+                self._br_wannabe_to_meta[other] = target_meta
             else:
+                target_meta = identifier
                 self.brmeta[identifier] = self.brdict[identifier]
                 self.brmeta[identifier]["ids"].add("omid:br/" + identifier)
+            # Index wannabes in "others" from previous merges
+            for existing_other in self.brdict[identifier]["others"]:
+                if "wannabe" in existing_other:
+                    self._br_wannabe_to_meta[existing_other] = target_meta
         for identifier in self.radict:
             if "wannabe" in identifier:
                 other = identifier
                 count = self._add_number("ra")
-                meta = self.prefix + str(count)
-                self.rameta[meta] = self.radict[identifier]
-                self.rameta[meta]["others"].add(other)
-                self.rameta[meta]["ids"].add("omid:ra/" + meta)
+                target_meta = self.prefix + str(count)
+                self.rameta[target_meta] = self.radict[identifier]
+                self.rameta[target_meta]["others"].add(other)
+                self.rameta[target_meta]["ids"].add("omid:ra/" + target_meta)
+                self._ra_wannabe_to_meta[other] = target_meta
             else:
+                target_meta = identifier
                 self.rameta[identifier] = self.radict[identifier]
                 self.rameta[identifier]["ids"].add("omid:ra/" + identifier)
+            # Index wannabes in "others" from previous merges
+            for existing_other in self.radict[identifier]["others"]:
+                if "wannabe" in existing_other:
+                    self._ra_wannabe_to_meta[existing_other] = target_meta
         for ar_id in self.ardict:
             br_key = ar_id
             if "wannabe" in ar_id:
-                for br_id in self.brmeta:
-                    if ar_id in self.brmeta[br_id]["others"]:
-                        br_key = br_id
-                        break
+                br_key = self._br_wannabe_to_meta[ar_id]
             self.armeta[br_key] = dict()
             self.armeta[br_key]["author"] = list()
             self.armeta[br_key]["editor"] = list()
@@ -1010,42 +1019,31 @@ class Curator:
                     for issue in venue_issue:
                         issue_id = venue_issue[issue]["id"]
                         if "wannabe" in issue_id:
-                            for br_meta in self.brmeta:
-                                if issue_id in self.brmeta[br_meta]["others"]:
-                                    self.vvi[venue_meta]["issue"][issue]["id"] = str(
-                                        br_meta
-                                    )
-                                    break
+                            self.vvi[venue_meta]["issue"][issue]["id"] = str(
+                                self._br_wannabe_to_meta[issue_id]
+                            )
 
                 venue_volume = self.vvi[venue_meta]["volume"]
                 if venue_volume:
                     for volume in venue_volume:
                         volume_id = venue_volume[volume]["id"]
                         if "wannabe" in volume_id:
-                            for br_meta in self.brmeta:
-                                if volume_id in self.brmeta[br_meta]["others"]:
-                                    self.vvi[venue_meta]["volume"][volume]["id"] = str(
-                                        br_meta
-                                    )
-                                    break
+                            self.vvi[venue_meta]["volume"][volume]["id"] = str(
+                                self._br_wannabe_to_meta[volume_id]
+                            )
                         if venue_volume[volume]["issue"]:
                             volume_issue = venue_volume[volume]["issue"]
                             for issue in volume_issue:
                                 volume_issue_id = volume_issue[issue]["id"]
                                 if "wannabe" in volume_issue_id:
-                                    for br_meta in self.brmeta:
-                                        if (
-                                            volume_issue_id
-                                            in self.brmeta[br_meta]["others"]
-                                        ):
-                                            self.vvi[venue_meta]["volume"][volume][
-                                                "issue"
-                                            ][issue]["id"] = str(br_meta)
-                                            break
+                                    self.vvi[venue_meta]["volume"][volume][
+                                        "issue"
+                                    ][issue]["id"] = str(
+                                        self._br_wannabe_to_meta[volume_issue_id]
+                                    )
                 if "wannabe" in venue_meta:
-                    for br_meta in self.brmeta:
-                        if venue_meta in self.brmeta[br_meta]["others"]:
-                            self.__merge_VolIss_with_vvi(br_meta, venue_meta)
+                    br_meta = self._br_wannabe_to_meta[venue_meta]
+                    self.__merge_VolIss_with_vvi(br_meta, venue_meta)
                 else:
                     self.__merge_VolIss_with_vvi(venue_meta, venue_meta)
 
@@ -1057,10 +1055,7 @@ class Curator:
         for row in self.data:
             metaid = row["id"]
             if "wannabe" in row["id"]:
-                for br_metaid in self.brmeta:
-                    if row["id"] in self.brmeta[br_metaid]["others"]:
-                        metaid = br_metaid
-                        break
+                metaid = self._br_wannabe_to_meta[row["id"]]
             if row["page"] and (metaid not in self.remeta):
                 re_meta = self.finder.retrieve_re_from_br_meta(metaid)
                 if re_meta:
@@ -1079,9 +1074,7 @@ class Curator:
             if row["venue"]:
                 venue = row["venue"]
                 if "wannabe" in venue:
-                    for i in self.brmeta:
-                        if venue in self.brmeta[i]["others"]:
-                            venue_metaid = i
+                    venue_metaid = self._br_wannabe_to_meta[venue]
                 else:
                     venue_metaid = venue
                 row["venue"] = self.build_name_ids_string(
