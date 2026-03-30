@@ -7,8 +7,8 @@
 
 import os
 import tempfile
-import unittest
 
+import pytest
 from rdflib import Graph
 from sparqlite import SPARQLClient
 
@@ -67,23 +67,23 @@ def load_test_data(server: str = SERVER) -> None:
             ''')
 
 
-class TestOCMetaStatistics(unittest.TestCase):
+class TestOCMetaStatistics:
 
-    @classmethod
-    def setUpClass(cls):
+    @pytest.fixture(scope="class", autouse=True)
+    def setup_class(self, request):
         reset_server()
 
-    def setUp(self):
+    @pytest.fixture(autouse=True)
+    def setup_method(self, request):
         reset_server()
         load_test_data()
-
-    def tearDown(self):
+        yield
         reset_server()
 
     def test_count_expressions(self):
         with OCMetaStatistics(SERVER) as stats:
             count = stats.count_expressions()
-        self.assertEqual(count, 3)
+        assert count == 3
 
     def test_count_role_entities(self):
         with OCMetaStatistics(SERVER) as stats:
@@ -94,21 +94,21 @@ class TestOCMetaStatistics(unittest.TestCase):
             'pro:publisher': 2,
             'pro:editor': 1
         }
-        self.assertEqual(counts, expected)
+        assert counts == expected
 
     def test_count_venues_from_csv_requires_path(self):
         with OCMetaStatistics(SERVER) as stats:
-            with self.assertRaises(ValueError) as context:
+            with pytest.raises(ValueError) as context:
                 stats.count_venues_from_csv()
-            self.assertIn("CSV dump path is required", str(context.exception))
+            assert "CSV dump path is required" in str(context.value)
 
 
-class TestVenueCountingFromCSV(unittest.TestCase):
+class TestVenueCountingFromCSV:
 
-    def setUp(self):
+    @pytest.fixture(autouse=True)
+    def setup_method(self, request):
         self.temp_dir = tempfile.mkdtemp()
-
-    def tearDown(self):
+        yield
         for f in os.listdir(self.temp_dir):
             os.remove(os.path.join(self.temp_dir, f))
         os.rmdir(self.temp_dir)
@@ -127,7 +127,7 @@ class TestVenueCountingFromCSV(unittest.TestCase):
 '''
         filepath = self._write_csv('test1.csv', csv_content)
         venues = _count_venues_in_file(filepath)
-        self.assertEqual(venues, {'omid:br/0601', 'omid:br/0602'})
+        assert venues == {'omid:br/0601', 'omid:br/0602'}
 
     def test_count_venues_in_file_omid_only(self):
         csv_content = '''"id","title","author","pub_date","venue","volume","issue","page","type","publisher","editor"
@@ -136,7 +136,7 @@ class TestVenueCountingFromCSV(unittest.TestCase):
 '''
         filepath = self._write_csv('test2.csv', csv_content)
         venues = _count_venues_in_file(filepath)
-        self.assertEqual(venues, {'conference a'})
+        assert venues == {'conference a'}
 
     def test_count_venues_in_file_mixed(self):
         csv_content = '''"id","title","author","pub_date","venue","volume","issue","page","type","publisher","editor"
@@ -146,7 +146,7 @@ class TestVenueCountingFromCSV(unittest.TestCase):
 '''
         filepath = self._write_csv('test3.csv', csv_content)
         venues = _count_venues_in_file(filepath)
-        self.assertEqual(venues, {'omid:br/0601', 'conference a'})
+        assert venues == {'omid:br/0601', 'conference a'}
 
     def test_count_venues_from_csv_integration(self):
         csv1 = '''"id","title","author","pub_date","venue","volume","issue","page","type","publisher","editor"
@@ -163,7 +163,7 @@ class TestVenueCountingFromCSV(unittest.TestCase):
         with OCMetaStatistics(SERVER, csv_dump_path=self.temp_dir) as stats:
             count = stats.count_venues_from_csv()
 
-        self.assertEqual(count, 3)
+        assert count == 3
 
     def test_count_venues_empty_venue_field(self):
         csv_content = '''"id","title","author","pub_date","venue","volume","issue","page","type","publisher","editor"
@@ -172,16 +172,17 @@ class TestVenueCountingFromCSV(unittest.TestCase):
 '''
         filepath = self._write_csv('test4.csv', csv_content)
         venues = _count_venues_in_file(filepath)
-        self.assertEqual(venues, {'omid:br/0601'})
+        assert venues == {'omid:br/0601'}
 
 
-class TestRunSelectedAnalyses(unittest.TestCase):
+class TestRunSelectedAnalyses:
 
-    @classmethod
-    def setUpClass(cls):
+    @pytest.fixture(scope="class", autouse=True)
+    def setup_class(self, request):
         reset_server()
 
-    def setUp(self):
+    @pytest.fixture(autouse=True)
+    def setup_method(self, request):
         reset_server()
         load_test_data()
         self.temp_dir = tempfile.mkdtemp()
@@ -191,8 +192,7 @@ class TestRunSelectedAnalyses(unittest.TestCase):
 '''
         with open(os.path.join(self.temp_dir, 'test.csv'), 'w') as f:
             f.write(csv_content)
-
-    def tearDown(self):
+        yield
         reset_server()
         for f in os.listdir(self.temp_dir):
             os.remove(os.path.join(self.temp_dir, f))
@@ -202,7 +202,7 @@ class TestRunSelectedAnalyses(unittest.TestCase):
         with OCMetaStatistics(SERVER) as stats:
             results = stats.run_selected_analyses(analyze_br=True, analyze_ar=False, analyze_venues=False)
 
-        self.assertEqual(results, {'fabio_expressions': 3})
+        assert results == {'fabio_expressions': 3}
 
     def test_run_selected_analyses_ar_only(self):
         with OCMetaStatistics(SERVER) as stats:
@@ -215,13 +215,13 @@ class TestRunSelectedAnalyses(unittest.TestCase):
                 'pro:editor': 1
             }
         }
-        self.assertEqual(results, expected)
+        assert results == expected
 
     def test_run_selected_analyses_venues_without_csv_path(self):
         with OCMetaStatistics(SERVER) as stats:
             results = stats.run_selected_analyses(analyze_br=False, analyze_ar=False, analyze_venues=True)
 
-        self.assertEqual(results, {'venues': None})
+        assert results == {'venues': None}
 
     def test_run_all_analyses(self):
         with OCMetaStatistics(SERVER, csv_dump_path=self.temp_dir) as stats:
@@ -236,8 +236,4 @@ class TestRunSelectedAnalyses(unittest.TestCase):
             },
             'venues': 2
         }
-        self.assertEqual(results, expected)
-
-
-if __name__ == '__main__':
-    unittest.main()
+        assert results == expected

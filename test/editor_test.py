@@ -6,7 +6,6 @@
 # SPDX-License-Identifier: ISC
 
 import os
-import unittest
 from shutil import rmtree
 from test.test_utils import (
     PROV_SERVER,
@@ -21,28 +20,43 @@ from test.test_utils import (
 )
 
 import orjson
+import pytest
 import yaml
 from oc_meta.core.editor import EntityCache, MetaEditor
 from oc_meta.run.meta_process import run_meta_process
 from oc_ocdm import Storer
+from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
 from oc_ocdm.graph import GraphSet
+from oc_ocdm.graph.entities.identifier import Identifier
 from oc_ocdm.prov import ProvSet
 from oc_ocdm.reader import Reader
 from rdflib import URIRef
 from sparqlite import SPARQLClient
+from typing import cast
 
 BASE = os.path.join("test", "editor")
 OUTPUT = os.path.join(BASE, "output")
 META_CONFIG = os.path.join(BASE, "meta_config.yaml")
 
 
-class TestEditor(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.counter_handler = get_counter_handler()
-        cls.original_generate_rdf_files = None
+class TestEditor:
+    counter_handler: RedisCounterHandler
+    original_generate_rdf_files: bool | None
+    temp_dir: str
+    cache_file: str
+    failed_file: str
+    stop_file: str
+    data_update_dir: str
+    prov_update_dir: str
 
-    def setUp(self):
+    @pytest.fixture(scope="class", autouse=True)
+    def setup_class(self, request: pytest.FixtureRequest) -> None:
+        assert request.cls is not None
+        request.cls.counter_handler = get_counter_handler()
+        request.cls.original_generate_rdf_files = None
+
+    @pytest.fixture(autouse=True)
+    def setup_method(self, request):
         reset_server()
         reset_redis_counters()
         if os.path.exists(OUTPUT):
@@ -58,7 +72,7 @@ class TestEditor(unittest.TestCase):
         self.cache_file = os.path.join(self.temp_dir, "ts_upload_cache.json")
         self.failed_file = os.path.join(self.temp_dir, "failed_queries.txt")
         self.stop_file = os.path.join(self.temp_dir, ".stop_upload")
-        
+
         # Create separate directories for data and provenance update queries
         self.data_update_dir = os.path.join(self.temp_dir, "to_be_uploaded_data")
         self.prov_update_dir = os.path.join(self.temp_dir, "to_be_uploaded_prov")
@@ -84,14 +98,13 @@ class TestEditor(unittest.TestCase):
             }
         )
         run_meta_process(settings=settings, meta_config_path=META_CONFIG)
-
-    def tearDown(self):
+        yield
         if os.path.exists(OUTPUT):
             rmtree(OUTPUT)
         if os.path.exists(self.temp_dir):
             rmtree(self.temp_dir)
         reset_redis_counters()
-        
+
         if self.original_generate_rdf_files is not None:
             with open(META_CONFIG, encoding="utf-8") as file:
                 settings = yaml.full_load(file)
@@ -122,7 +135,7 @@ class TestEditor(unittest.TestCase):
             "has_next",
             URIRef("https://w3id.org/oc/meta/ar/0605"),
         )
-        
+
         with SPARQLClient(SERVER, timeout=60) as client:
             result = client.query("""
             ASK {
@@ -131,7 +144,7 @@ class TestEditor(unittest.TestCase):
                 }
             }
             """)
-            self.assertTrue(result["boolean"], "AR/0601 → AR/0604 relationship not found in triplestore")
+            assert result["boolean"], "AR/0601 → AR/0604 relationship not found in triplestore"
 
             result = client.query("""
             ASK {
@@ -140,7 +153,7 @@ class TestEditor(unittest.TestCase):
                 }
             }
             """)
-            self.assertTrue(result["boolean"], "AR/0604 → AR/0603 relationship not found in triplestore")
+            assert result["boolean"], "AR/0604 → AR/0603 relationship not found in triplestore"
 
             result = client.query("""
             ASK {
@@ -149,7 +162,7 @@ class TestEditor(unittest.TestCase):
                 }
             }
             """)
-            self.assertTrue(result["boolean"], "AR/0603 → AR/0602 relationship not found in triplestore")
+            assert result["boolean"], "AR/0603 → AR/0602 relationship not found in triplestore"
 
             result = client.query("""
             ASK {
@@ -158,7 +171,7 @@ class TestEditor(unittest.TestCase):
                 }
             }
             """)
-            self.assertTrue(result["boolean"], "AR/0602 → AR/0605 relationship not found in triplestore")
+            assert result["boolean"], "AR/0602 → AR/0605 relationship not found in triplestore"
 
         with SPARQLClient(PROV_SERVER, timeout=60) as client:
             prov_result = client.query("""
@@ -167,8 +180,8 @@ class TestEditor(unittest.TestCase):
                    <http://www.w3.org/ns/prov#generatedAtTime> ?time .
             }
             """)
-            self.assertTrue(prov_result["boolean"], "Provenance for AR/0601 not found in triplestore")
-        
+            assert prov_result["boolean"], "Provenance for AR/0601 not found in triplestore"
+
         with open(
             os.path.join(OUTPUT, "rdf", "ar", "060", "10000", "1000.json"),
             "r",
@@ -179,24 +192,24 @@ class TestEditor(unittest.TestCase):
                 graph_data = graph["@graph"]
                 for ar in graph_data:
                     if ar["@id"] == "https://w3id.org/oc/meta/ar/0601":
-                        self.assertEqual(
-                            ar["https://w3id.org/oc/ontology/hasNext"][0]["@id"],
-                            "https://w3id.org/oc/meta/ar/0604",
+                        assert (
+                            ar["https://w3id.org/oc/ontology/hasNext"][0]["@id"]
+                            == "https://w3id.org/oc/meta/ar/0604"
                         )
                     elif ar["@id"] == "https://w3id.org/oc/meta/ar/0603":
-                        self.assertEqual(
-                            ar["https://w3id.org/oc/ontology/hasNext"][0]["@id"],
-                            "https://w3id.org/oc/meta/ar/0602",
+                        assert (
+                            ar["https://w3id.org/oc/ontology/hasNext"][0]["@id"]
+                            == "https://w3id.org/oc/meta/ar/0602"
                         )
                     elif ar["@id"] == "https://w3id.org/oc/meta/ar/0604":
-                        self.assertEqual(
-                            ar["https://w3id.org/oc/ontology/hasNext"][0]["@id"],
-                            "https://w3id.org/oc/meta/ar/0603",
+                        assert (
+                            ar["https://w3id.org/oc/ontology/hasNext"][0]["@id"]
+                            == "https://w3id.org/oc/meta/ar/0603"
                         )
                     elif ar["@id"] == "https://w3id.org/oc/meta/ar/0602":
-                        self.assertEqual(
-                            ar["https://w3id.org/oc/ontology/hasNext"][0]["@id"],
-                            "https://w3id.org/oc/meta/ar/0605",
+                        assert (
+                            ar["https://w3id.org/oc/ontology/hasNext"][0]["@id"]
+                            == "https://w3id.org/oc/meta/ar/0605"
                         )
         with open(
             os.path.join(
@@ -210,32 +223,32 @@ class TestEditor(unittest.TestCase):
                 graph_prov = graph["@graph"]
                 for ar in graph_prov:
                     if ar["@id"] == "https://w3id.org/oc/meta/ar/0601/prov/se/2":
-                        self.assertEqual(
+                        assert (
                             ar["https://w3id.org/oc/ontology/hasUpdateQuery"][0][
                                 "@value"
-                            ],
-                            "DELETE DATA { GRAPH <https://w3id.org/oc/meta/ar/> { <https://w3id.org/oc/meta/ar/0601> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/0602> . } } ; INSERT DATA { GRAPH <https://w3id.org/oc/meta/ar/> { <https://w3id.org/oc/meta/ar/0601> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/0604> . } }",
+                            ]
+                            == "DELETE DATA { GRAPH <https://w3id.org/oc/meta/ar/> { <https://w3id.org/oc/meta/ar/0601> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/0602> . } } ; INSERT DATA { GRAPH <https://w3id.org/oc/meta/ar/> { <https://w3id.org/oc/meta/ar/0601> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/0604> . } }"
                         )
                     if ar["@id"] == "https://w3id.org/oc/meta/ar/0603/prov/se/2":
-                        self.assertEqual(
+                        assert (
                             ar["https://w3id.org/oc/ontology/hasUpdateQuery"][0][
                                 "@value"
-                            ],
-                            "DELETE DATA { GRAPH <https://w3id.org/oc/meta/ar/> { <https://w3id.org/oc/meta/ar/0603> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/0604> . } } ; INSERT DATA { GRAPH <https://w3id.org/oc/meta/ar/> { <https://w3id.org/oc/meta/ar/0603> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/0602> . } }",
+                            ]
+                            == "DELETE DATA { GRAPH <https://w3id.org/oc/meta/ar/> { <https://w3id.org/oc/meta/ar/0603> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/0604> . } } ; INSERT DATA { GRAPH <https://w3id.org/oc/meta/ar/> { <https://w3id.org/oc/meta/ar/0603> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/0602> . } }"
                         )
                     if ar["@id"] == "https://w3id.org/oc/meta/ar/0604/prov/se/2":
-                        self.assertEqual(
+                        assert (
                             ar["https://w3id.org/oc/ontology/hasUpdateQuery"][0][
                                 "@value"
-                            ],
-                            "DELETE DATA { GRAPH <https://w3id.org/oc/meta/ar/> { <https://w3id.org/oc/meta/ar/0604> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/0605> . } } ; INSERT DATA { GRAPH <https://w3id.org/oc/meta/ar/> { <https://w3id.org/oc/meta/ar/0604> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/0603> . } }",
+                            ]
+                            == "DELETE DATA { GRAPH <https://w3id.org/oc/meta/ar/> { <https://w3id.org/oc/meta/ar/0604> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/0605> . } } ; INSERT DATA { GRAPH <https://w3id.org/oc/meta/ar/> { <https://w3id.org/oc/meta/ar/0604> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/0603> . } }"
                         )
                     if ar["@id"] == "https://w3id.org/oc/meta/ar/0602/prov/se/2":
-                        self.assertEqual(
+                        assert (
                             ar["https://w3id.org/oc/ontology/hasUpdateQuery"][0][
                                 "@value"
-                            ],
-                            "DELETE DATA { GRAPH <https://w3id.org/oc/meta/ar/> { <https://w3id.org/oc/meta/ar/0602> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/0603> . } } ; INSERT DATA { GRAPH <https://w3id.org/oc/meta/ar/> { <https://w3id.org/oc/meta/ar/0602> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/0605> . } }",
+                            ]
+                            == "DELETE DATA { GRAPH <https://w3id.org/oc/meta/ar/> { <https://w3id.org/oc/meta/ar/0602> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/0603> . } } ; INSERT DATA { GRAPH <https://w3id.org/oc/meta/ar/> { <https://w3id.org/oc/meta/ar/0602> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/0605> . } }"
                         )
 
     def test_delete_property(self):
@@ -251,7 +264,7 @@ class TestEditor(unittest.TestCase):
                 graph_data = graph["@graph"]
                 for br in graph_data:
                     if br["@id"] == "https://w3id.org/oc/meta/br/0601":
-                        self.assertFalse("http://purl.org/dc/terms/title" in br)
+                        assert "http://purl.org/dc/terms/title" not in br
         with open(
             os.path.join(
                 OUTPUT, "rdf", "br", "060", "10000", "1000", "prov", "se.json"
@@ -268,7 +281,7 @@ class TestEditor(unittest.TestCase):
                             "https://w3id.org/oc/ontology/hasUpdateQuery"
                         ][0]["@value"]
                         expected_query = 'DELETE DATA { GRAPH <https://w3id.org/oc/meta/br/> { <https://w3id.org/oc/meta/br/0601> <http://purl.org/dc/terms/title> "A Review Of Hemolytic Uremic Syndrome In Patients Treated With Gemcitabine Therapy"^^<http://www.w3.org/2001/XMLSchema#string> . } }'
-                        self.assertEqual(actual_query, expected_query)
+                        assert actual_query == expected_query
 
     def test_delete_entity(self):
         editor = MetaEditor(META_CONFIG, "https://orcid.org/0000-0002-8420-0696")
@@ -283,7 +296,7 @@ class TestEditor(unittest.TestCase):
                 graph_data = graph["@graph"]
                 for identifier in graph_data:
                     if identifier["@id"] == "https://w3id.org/oc/meta/id/0601":
-                        self.fail()
+                        pytest.fail()
         with open(
             os.path.join(
                 OUTPUT, "rdf", "id", "060", "10000", "1000", "prov", "se.json"
@@ -316,7 +329,7 @@ class TestEditor(unittest.TestCase):
                             "<https://w3id.org/oc/meta/id/0601> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/datacite/Identifier>",
                             '<https://w3id.org/oc/meta/id/0601> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "10.1002/(sici)1097-0142(19990501)85:9<2023::aid-cncr21>3.0.co;2-2"^^<http://www.w3.org/2001/XMLSchema#string>',
                         }
-                        self.assertEqual(set(update_query), expected_triples)
+                        assert set(update_query) == expected_triples
         with open(
             os.path.join(
                 OUTPUT, "rdf", "br", "060", "10000", "1000", "prov", "se.json"
@@ -329,11 +342,11 @@ class TestEditor(unittest.TestCase):
                 graph_prov = graph["@graph"]
                 for ra in graph_prov:
                     if ra["@id"] == "https://w3id.org/oc/meta/br/0601/prov/se/2":
-                        self.assertEqual(
+                        assert (
                             ra["https://w3id.org/oc/ontology/hasUpdateQuery"][0][
                                 "@value"
-                            ],
-                            "DELETE DATA { GRAPH <https://w3id.org/oc/meta/br/> { <https://w3id.org/oc/meta/br/0601> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0601> . } }",
+                            ]
+                            == "DELETE DATA { GRAPH <https://w3id.org/oc/meta/br/> { <https://w3id.org/oc/meta/br/0601> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0601> . } }"
                         )
 
     def test_merge(self):
@@ -364,7 +377,7 @@ class TestEditor(unittest.TestCase):
         id_0609 = g_set.add_id(resp_agent=resp_agent)
         id_0609.create_crossref("313")
 
-        ra.has_identifier(id_0605)
+        ra.has_identifier(cast(Identifier, id_0605))
         ra.has_identifier(id_0609)
 
         # Generate provenance
@@ -401,47 +414,47 @@ class TestEditor(unittest.TestCase):
         editor.save(g_set)
 
         # Check Redis counters
-        self.assertEqual(
+        assert (
             self.counter_handler.read_counter(
                 "ra", prov_short_name="se", identifier=1, supplier_prefix="060"
-            ),
-            1,
+            )
+            == 1
         )
-        self.assertEqual(
+        assert (
             self.counter_handler.read_counter(
                 "ra", prov_short_name="se", identifier=2, supplier_prefix="060"
-            ),
-            1,
+            )
+            == 1
         )
-        self.assertEqual(
+        assert (
             self.counter_handler.read_counter(
                 "ra", prov_short_name="se", identifier=3, supplier_prefix="060"
-            ),
-            1,
+            )
+            == 1
         )
-        self.assertEqual(
+        assert (
             self.counter_handler.read_counter(
                 "ra", prov_short_name="se", identifier=4, supplier_prefix="060"
-            ),
-            1,
+            )
+            == 1
         )
-        self.assertEqual(
+        assert (
             self.counter_handler.read_counter(
                 "ra", prov_short_name="se", identifier=5, supplier_prefix="060"
-            ),
-            1,
+            )
+            == 1
         )
-        self.assertEqual(
+        assert (
             self.counter_handler.read_counter(
                 "ra", prov_short_name="se", identifier=6, supplier_prefix="060"
-            ),
-            1,
+            )
+            == 1
         )
-        self.assertEqual(
+        assert (
             self.counter_handler.read_counter(
                 "ra", prov_short_name="se", identifier=7, supplier_prefix="060"
-            ),
-            2,
+            )
+            == 2
         )
 
         # Verify merged data
@@ -463,39 +476,36 @@ class TestEditor(unittest.TestCase):
                                     "http://purl.org/spar/datacite/hasIdentifier"
                                 ]
                             }
-                            self.assertEqual(
-                                identifiers,
-                                {
-                                    str(id_0605.res),
-                                    str(id_0609.res),
-                                },
-                            )
+                            assert identifiers == {
+                                str(id_0605.res),
+                                str(id_0609.res),
+                            }
                         elif entity["@id"] == "https://w3id.org/oc/meta/ra/06010":
-                            self.fail()
+                            pytest.fail()
                         # elif entity['@id'] == 'https://w3id.org/oc/meta/ar/06010':
-                        #     self.assertEqual(entity['http://purl.org/spar/pro/isHeldBy'][0]['@id'], 'https://w3id.org/oc/meta/ra/0607')
+                        #     assert entity['http://purl.org/spar/pro/isHeldBy'][0]['@id'] == 'https://w3id.org/oc/meta/ra/0607'
                         elif entity["@id"] in {
                             "https://w3id.org/oc/meta/ra/0607/prov/se/1",
                             "https://w3id.org/oc/meta/ra/06010/prov/se/1",
                         }:
-                            self.assertTrue(
+                            assert (
                                 "http://www.w3.org/ns/prov#invalidatedAtTime" in entity
                             )
                         elif (
                             entity["@id"]
                             == "https://w3id.org/oc/meta/ra/0607/prov/se/3"
                         ):
-                            self.assertEqual(
+                            assert (
                                 entity["http://purl.org/dc/terms/description"][0][
                                     "@value"
-                                ],
-                                "The entity 'https://w3id.org/oc/meta/ra/0607' has been merged with 'https://w3id.org/oc/meta/ra/06010'.",
+                                ]
+                                == "The entity 'https://w3id.org/oc/meta/ra/0607' has been merged with 'https://w3id.org/oc/meta/ra/06010'."
                             )
-                            self.assertEqual(
+                            assert (
                                 entity["https://w3id.org/oc/ontology/hasUpdateQuery"][
                                     0
-                                ]["@value"],
-                                "INSERT DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/0607> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06011> . } }",
+                                ]["@value"]
+                                == "INSERT DATA { GRAPH <https://w3id.org/oc/meta/ra/> { <https://w3id.org/oc/meta/ra/0607> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06011> . } }"
                             )
                         elif (
                             entity["@id"]
@@ -513,15 +523,12 @@ class TestEditor(unittest.TestCase):
                                 .replace("\n", "")
                                 .split(" .")
                             )
-                            self.assertEqual(
-                                set(update_query),
-                                {
-                                    '<https://w3id.org/oc/meta/ra/06010> <http://xmlns.com/foaf/0.1/name> "Wiley"^^<http://www.w3.org/2001/XMLSchema#string>',
-                                    f"<https://w3id.org/oc/meta/ra/06010> <http://purl.org/spar/datacite/hasIdentifier> <{id_0609.res}>",
-                                    f"<https://w3id.org/oc/meta/ra/06010> <http://purl.org/spar/datacite/hasIdentifier> <{id_0605.res}>",
-                                    "<https://w3id.org/oc/meta/ra/06010> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent>",
-                                },
-                            )
+                            assert set(update_query) == {
+                                '<https://w3id.org/oc/meta/ra/06010> <http://xmlns.com/foaf/0.1/name> "Wiley"^^<http://www.w3.org/2001/XMLSchema#string>',
+                                f"<https://w3id.org/oc/meta/ra/06010> <http://purl.org/spar/datacite/hasIdentifier> <{id_0609.res}>",
+                                f"<https://w3id.org/oc/meta/ra/06010> <http://purl.org/spar/datacite/hasIdentifier> <{id_0605.res}>",
+                                "<https://w3id.org/oc/meta/ra/06010> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent>",
+                            }
 
     def test_delete_entity_with_inferred_type(self):
         editor = MetaEditor(META_CONFIG, "https://orcid.org/0000-0002-8420-0696")
@@ -551,7 +558,7 @@ class TestEditor(unittest.TestCase):
             }
             """
             result = client.query(select_query)
-            self.assertEqual(len(result["results"]["bindings"]), 1)
+            assert len(result["results"]["bindings"]) == 1
 
         # Perform deletion
         editor.delete(URIRef("https://w3id.org/oc/meta/br/0605"))
@@ -559,7 +566,7 @@ class TestEditor(unittest.TestCase):
         # Ensure the entity is deleted
         with SPARQLClient(SERVER, timeout=60) as client:
             result = client.query(select_query)
-            self.assertEqual(len(result["results"]["bindings"]), 0)
+            assert len(result["results"]["bindings"]) == 0
 
         # Verify provenance information
         prov_path = os.path.join(
@@ -578,36 +585,36 @@ class TestEditor(unittest.TestCase):
 
             assert br_0605_prov_se_2 is not None
             assert br_0605_prov_se_1 is not None
-            self.assertEqual(
-                br_0605_prov_se_2["http://purl.org/dc/terms/description"][0]["@value"],
-                "The entity 'https://w3id.org/oc/meta/br/0605' has been deleted.",
+            assert (
+                br_0605_prov_se_2["http://purl.org/dc/terms/description"][0]["@value"]
+                == "The entity 'https://w3id.org/oc/meta/br/0605' has been deleted."
             )
-            self.assertEqual(
-                br_0605_prov_se_2["@type"][0], "http://www.w3.org/ns/prov#Entity"
+            assert (
+                br_0605_prov_se_2["@type"][0] == "http://www.w3.org/ns/prov#Entity"
             )
-            self.assertEqual(
+            assert (
                 br_0605_prov_se_2["http://www.w3.org/ns/prov#specializationOf"][0][
                     "@id"
-                ],
-                "https://w3id.org/oc/meta/br/0605",
+                ]
+                == "https://w3id.org/oc/meta/br/0605"
             )
-            self.assertEqual(
+            assert (
                 br_0605_prov_se_2["http://www.w3.org/ns/prov#wasAttributedTo"][0][
                     "@id"
-                ],
-                "https://orcid.org/0000-0002-8420-0696",
+                ]
+                == "https://orcid.org/0000-0002-8420-0696"
             )
-            self.assertIn(
-                "http://www.w3.org/ns/prov#invalidatedAtTime", br_0605_prov_se_2
+            assert (
+                "http://www.w3.org/ns/prov#invalidatedAtTime" in br_0605_prov_se_2
             )
-            self.assertIn(
-                "http://www.w3.org/ns/prov#generatedAtTime", br_0605_prov_se_2
+            assert (
+                "http://www.w3.org/ns/prov#generatedAtTime" in br_0605_prov_se_2
             )
-            self.assertEqual(
-                len(br_0605_prov_se_1["http://www.w3.org/ns/prov#generatedAtTime"]), 1
+            assert (
+                len(br_0605_prov_se_1["http://www.w3.org/ns/prov#generatedAtTime"]) == 1
             )
-            self.assertIn(
-                "https://w3id.org/oc/ontology/hasUpdateQuery", br_0605_prov_se_2
+            assert (
+                "https://w3id.org/oc/ontology/hasUpdateQuery" in br_0605_prov_se_2
             )
             update_query_value = br_0605_prov_se_2[
                 "https://w3id.org/oc/ontology/hasUpdateQuery"
@@ -628,39 +635,39 @@ class TestEditor(unittest.TestCase):
                 "<https://w3id.org/oc/meta/br/0605> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0606>",
                 '<https://w3id.org/oc/meta/br/0605> <http://prismstandard.org/namespaces/basic/2.0/publicationDate> "2024-04-14"^^<http://www.w3.org/2001/XMLSchema#date>',
             }
-            self.assertEqual(actual_triples, expected_triples)
+            assert actual_triples == expected_triples
 
-            self.assertEqual(
-                br_0605_prov_se_1["http://purl.org/dc/terms/description"][0]["@value"],
-                "The entity 'https://w3id.org/oc/meta/br/0605' has been created.",
+            assert (
+                br_0605_prov_se_1["http://purl.org/dc/terms/description"][0]["@value"]
+                == "The entity 'https://w3id.org/oc/meta/br/0605' has been created."
             )
-            self.assertEqual(
-                br_0605_prov_se_1["@type"][0], "http://www.w3.org/ns/prov#Entity"
+            assert (
+                br_0605_prov_se_1["@type"][0] == "http://www.w3.org/ns/prov#Entity"
             )
-            self.assertEqual(
+            assert (
                 br_0605_prov_se_1["http://www.w3.org/ns/prov#specializationOf"][0][
                     "@id"
-                ],
-                "https://w3id.org/oc/meta/br/0605",
+                ]
+                == "https://w3id.org/oc/meta/br/0605"
             )
-            self.assertEqual(
+            assert (
                 br_0605_prov_se_1["http://www.w3.org/ns/prov#wasAttributedTo"][0][
                     "@id"
-                ],
-                "https://w3id.org/oc/meta/prov/pa/1",
+                ]
+                == "https://w3id.org/oc/meta/prov/pa/1"
             )
-            self.assertIn(
-                "http://www.w3.org/ns/prov#generatedAtTime", br_0605_prov_se_1
+            assert (
+                "http://www.w3.org/ns/prov#generatedAtTime" in br_0605_prov_se_1
             )
-            self.assertEqual(
-                len(br_0605_prov_se_1["http://www.w3.org/ns/prov#generatedAtTime"]), 1
+            assert (
+                len(br_0605_prov_se_1["http://www.w3.org/ns/prov#generatedAtTime"]) == 1
             )
-            self.assertEqual(
-                len(br_0605_prov_se_2["http://www.w3.org/ns/prov#invalidatedAtTime"]),
-                1,
+            assert (
+                len(br_0605_prov_se_2["http://www.w3.org/ns/prov#invalidatedAtTime"])
+                == 1
             )
-            self.assertIn(
-                "http://www.w3.org/ns/prov#hadPrimarySource", br_0605_prov_se_1
+            assert (
+                "http://www.w3.org/ns/prov#hadPrimarySource" in br_0605_prov_se_1
             )
 
         # Reinsert the publication date
@@ -690,43 +697,43 @@ class TestEditor(unittest.TestCase):
                             entity["@id"]
                             == "https://w3id.org/oc/meta/br/0605/prov/se/1"
                         ):
-                            self.assertEqual(
+                            assert (
                                 len(
                                     entity["http://www.w3.org/ns/prov#generatedAtTime"]
-                                ),
-                                1,
+                                )
+                                == 1
                             )
-                            self.assertEqual(
+                            assert (
                                 len(
                                     entity[
                                         "http://www.w3.org/ns/prov#invalidatedAtTime"
                                     ]
-                                ),
-                                1,
+                                )
+                                == 1
                             )
                         elif (
                             entity["@id"]
                             == "https://w3id.org/oc/meta/br/0605/prov/se/2"
                         ):
-                            self.assertEqual(
+                            assert (
                                 len(
                                     entity["http://www.w3.org/ns/prov#generatedAtTime"]
-                                ),
-                                1,
+                                )
+                                == 1
                             )
-                            # self.assertEqual(len(entity['http://www.w3.org/ns/prov#invalidatedAtTime']), 2)
+                            # assert len(entity['http://www.w3.org/ns/prov#invalidatedAtTime']) == 2
                         elif (
                             entity["@id"]
                             == "https://w3id.org/oc/meta/br/0605/prov/se/3"
                         ):
-                            self.assertEqual(
+                            assert (
                                 entity["http://purl.org/dc/terms/description"][0][
                                     "@value"
-                                ],
-                                "The entity 'https://w3id.org/oc/meta/br/0605' has been deleted.",
+                                ]
+                                == "The entity 'https://w3id.org/oc/meta/br/0605' has been deleted."
                             )
-                            self.assertIn(
-                                "https://w3id.org/oc/ontology/hasUpdateQuery", entity
+                            assert (
+                                "https://w3id.org/oc/ontology/hasUpdateQuery" in entity
                             )
                             update_query_value = entity[
                                 "https://w3id.org/oc/ontology/hasUpdateQuery"
@@ -747,47 +754,47 @@ class TestEditor(unittest.TestCase):
                             expected_triples = {
                                 '<https://w3id.org/oc/meta/br/0605> <http://prismstandard.org/namespaces/basic/2.0/publicationDate> "2024-04-14"^^<http://www.w3.org/2001/XMLSchema#date>'
                             }
-                            self.assertEqual(actual_triples, expected_triples)
-                            self.assertEqual(
-                                entity["@type"][0], "http://www.w3.org/ns/prov#Entity"
+                            assert actual_triples == expected_triples
+                            assert (
+                                entity["@type"][0] == "http://www.w3.org/ns/prov#Entity"
                             )
-                            self.assertEqual(
+                            assert (
                                 entity["http://www.w3.org/ns/prov#specializationOf"][0][
                                     "@id"
-                                ],
-                                "https://w3id.org/oc/meta/br/0605",
+                                ]
+                                == "https://w3id.org/oc/meta/br/0605"
                             )
-                            self.assertEqual(
+                            assert (
                                 entity["http://www.w3.org/ns/prov#wasAttributedTo"][0][
                                     "@id"
-                                ],
-                                "https://orcid.org/0000-0002-8420-0696",
+                                ]
+                                == "https://orcid.org/0000-0002-8420-0696"
                             )
-                            self.assertIn(
-                                "http://www.w3.org/ns/prov#invalidatedAtTime", entity
+                            assert (
+                                "http://www.w3.org/ns/prov#invalidatedAtTime" in entity
                             )
-                            self.assertIn(
-                                "http://www.w3.org/ns/prov#generatedAtTime", entity
+                            assert (
+                                "http://www.w3.org/ns/prov#generatedAtTime" in entity
                             )
-                            self.assertEqual(
+                            assert (
                                 len(
                                     entity["http://www.w3.org/ns/prov#generatedAtTime"]
-                                ),
-                                1,
+                                )
+                                == 1
                             )
-                            self.assertEqual(
+                            assert (
                                 len(
                                     entity[
                                         "http://www.w3.org/ns/prov#invalidatedAtTime"
                                     ]
-                                ),
-                                1,
+                                )
+                                == 1
                             )
-                            self.assertEqual(
+                            assert (
                                 entity["http://www.w3.org/ns/prov#wasDerivedFrom"][0][
                                     "@id"
-                                ],
-                                "https://w3id.org/oc/meta/br/0605/prov/se/2",
+                                ]
+                                == "https://w3id.org/oc/meta/br/0605/prov/se/2"
                             )
 
     def test_no_rdf_files_generation(self):
@@ -795,28 +802,28 @@ class TestEditor(unittest.TestCase):
         with open(META_CONFIG, encoding="utf-8") as file:
             settings = yaml.full_load(file)
         self.original_generate_rdf_files = settings.get("generate_rdf_files", True)
-        
+
         settings["generate_rdf_files"] = False
         with open(META_CONFIG, "w", encoding="utf-8") as file:
             yaml.dump(settings, file)
-        
+
         os.makedirs(os.path.join(OUTPUT, "rdf", "br", "060", "10000"), exist_ok=True)
-        
+
         editor = MetaEditor(META_CONFIG, "https://orcid.org/0000-0002-8420-0696")
-        
-        self.assertFalse(editor.generate_rdf_files, "generate_rdf_files should be False")
-        
+
+        assert not editor.generate_rdf_files, "generate_rdf_files should be False"
+
         g_set = GraphSet(base_iri="https://w3id.org/oc/meta/")
         br = g_set.add_br(res=URIRef("https://w3id.org/oc/meta/br/0603"), resp_agent="https://orcid.org/0000-0002-8420-0696")
         br.has_title("Original Title")
         editor.save(g_set)
-        
+
         editor.update_property(
             URIRef("https://w3id.org/oc/meta/br/0603"),
             "has_title",
             "New Test Title",
         )
-        
+
         with SPARQLClient(SERVER, timeout=60) as client:
             debug_result = client.query("""
             SELECT ?p ?o
@@ -839,7 +846,7 @@ class TestEditor(unittest.TestCase):
             else:
                 print("No properties found for BR/0603")
 
-            self.assertTrue(title_found, "Title update not found in triplestore")
+            assert title_found, "Title update not found in triplestore"
 
         with SPARQLClient(PROV_SERVER, timeout=60) as client:
             prov_result = client.query("""
@@ -847,8 +854,8 @@ class TestEditor(unittest.TestCase):
                 ?s <http://www.w3.org/ns/prov#specializationOf> <https://w3id.org/oc/meta/br/0603> .
             }
             """)
-            self.assertTrue(prov_result["boolean"], "Provenance for BR/0603 not found in triplestore")
-        
+            assert prov_result["boolean"], "Provenance for BR/0603 not found in triplestore"
+
         target_file = os.path.join(OUTPUT, "rdf", "br", "060", "10000", "1000.json")
         if os.path.exists(target_file):
             with open(target_file, "r", encoding="utf-8") as file:
@@ -863,10 +870,10 @@ class TestEditor(unittest.TestCase):
                                     if title.get("@value") == "New Test Title":
                                         contains_update = True
                                         break
-                    self.assertFalse(contains_update, "RDF file should not contain the update")
+                    assert not contains_update, "RDF file should not contain the update"
                 except orjson.JSONDecodeError:
                     pass
-        
+
     def test_merge_caches_entities(self):
         """Verifica che le entità vengano correttamente cachate durante merge successivi"""
         base_iri = "https://w3id.org/oc/meta/"
@@ -896,7 +903,7 @@ class TestEditor(unittest.TestCase):
         id_0609 = g_set.add_id(resp_agent=resp_agent)
         id_0609.create_crossref("313")
 
-        ra.has_identifier(id_0605)
+        ra.has_identifier(cast(Identifier, id_0605))
         ra.has_identifier(id_0609)
 
         # Genera provenance
@@ -934,37 +941,34 @@ class TestEditor(unittest.TestCase):
         )
 
         # Verifica che le entità principali siano in cache
-        self.assertTrue(
+        assert (
             editor.entity_cache.is_cached(URIRef("https://w3id.org/oc/meta/ra/0607"))
         )
-        self.assertTrue(
+        assert (
             editor.entity_cache.is_cached(URIRef("https://w3id.org/oc/meta/ra/06010"))
         )
 
         # Verifica che le entità correlate siano in cache
-        self.assertTrue(
+        assert (
             editor.entity_cache.is_cached(id_0609.res)
         )
-        self.assertTrue(
+        assert (
             editor.entity_cache.is_cached(id_0605.res)
         )
 
 
-class TestEntityCache(unittest.TestCase):
-    def setUp(self):
+class TestEntityCache:
+    @pytest.fixture(autouse=True)
+    def setup_method(self, request):
         self.cache = EntityCache()
         self.entity = URIRef("https://w3id.org/oc/meta/ra/0607")
 
     def test_add_and_is_cached(self):
-        self.assertFalse(self.cache.is_cached(self.entity))
+        assert not self.cache.is_cached(self.entity)
         self.cache.add(self.entity)
-        self.assertTrue(self.cache.is_cached(self.entity))
+        assert self.cache.is_cached(self.entity)
 
     def test_clear(self):
         self.cache.add(self.entity)
         self.cache.clear()
-        self.assertFalse(self.cache.is_cached(self.entity))
-
-
-if __name__ == "__main__":  # pragma: no cover
-    unittest.main()
+        assert not self.cache.is_cached(self.entity)

@@ -8,7 +8,6 @@
 
 import os
 import tempfile
-import unittest
 from shutil import rmtree
 
 import orjson
@@ -20,18 +19,18 @@ OUTPUT_DIR = os.path.join(BASE, 'output')
 OUTPUT_DIR_1 = os.path.join(BASE, 'output_1')
 
 
-class test_JsonArchiveManager(unittest.TestCase):
+class TestJsonArchiveManager:
     def test_zip_jsons_files_in_dir(self):
         zip_files_in_dir(UNZIPPED_DIR, OUTPUT_DIR)
         for dirpath, _, filenames in os.walk(OUTPUT_DIR):
             for filename in filenames:
                 json_data = read_zipped_json(os.path.join(dirpath, filename))
                 original_path = os.path.join(
-                    UNZIPPED_DIR, 
+                    UNZIPPED_DIR,
                     dirpath.replace(f'{OUTPUT_DIR}{os.sep}', ''))
                 with open(os.path.join(original_path, filename.replace('.zip', '.json')), 'rb') as original_f:
                     original_json = orjson.loads(original_f.read())
-                    self.assertEqual(json_data, original_json)
+                    assert json_data == original_json
         rmtree(OUTPUT_DIR)
 
     def test_unzip_files_in_dir(self):
@@ -43,17 +42,18 @@ class test_JsonArchiveManager(unittest.TestCase):
                     with open(os.path.join(dirpath, filename), 'rb') as f:
                         json_data = orjson.loads(f.read())
                     original_zip = read_zipped_json(os.path.join(dirpath, filename.replace('.json', '.zip')))
-                    self.assertEqual(json_data, original_zip)
+                    assert json_data == original_zip
         rmtree(OUTPUT_DIR_1)
-    
-class TestGetCsvData(unittest.TestCase):
+
+
+class TestGetCsvData:
     def test_get_csv_data_header_only(self):
         with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
             f.write("id,title\n")
             path = f.name
         try:
             result = get_csv_data(path, clean_data=False)
-            self.assertEqual(result, [])
+            assert result == []
         finally:
             os.unlink(path)
 
@@ -64,11 +64,7 @@ class TestGetCsvData(unittest.TestCase):
             path = f.name
         try:
             result = get_csv_data(path, clean_data=False)
-            self.assertEqual(len(result), 1)
-            self.assertEqual(result[0]["id"], "doi:10.1234/test")
+            assert len(result) == 1
+            assert result[0]["id"] == "doi:10.1234/test"
         finally:
             os.unlink(path)
-
-
-if __name__ == '__main__': # pragma: no cover
-    unittest.main()

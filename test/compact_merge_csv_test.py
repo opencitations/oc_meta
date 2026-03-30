@@ -8,8 +8,9 @@
 import csv
 import os
 import tempfile
-import unittest
 from pathlib import Path
+
+import pytest
 
 from oc_meta.run.merge.compact_output_csv import (
     process_merge_directory,
@@ -17,8 +18,9 @@ from oc_meta.run.merge.compact_output_csv import (
 )
 
 
-class TestProcessMergeCSV(unittest.TestCase):
-    def setUp(self):
+class TestProcessMergeCSV:
+    @pytest.fixture(autouse=True)
+    def setup_method(self, request):
         # Create a temporary directory for test files
         self.test_dir = tempfile.mkdtemp()  # Using default system temp directory
 
@@ -39,7 +41,8 @@ class TestProcessMergeCSV(unittest.TestCase):
             writer = csv.writer(f)
             writer.writerows(self.test_csv_content)
 
-    def tearDown(self):
+        yield
+
         # Clean up temporary files
         for file in Path(self.test_dir).glob("*.csv"):
             file.unlink()
@@ -49,25 +52,16 @@ class TestProcessMergeCSV(unittest.TestCase):
         results = process_merge_file(self.test_file)
 
         # Should only include rows with Done=True
-        self.assertEqual(len(results["valid_entries"]), 2)
-        self.assertEqual(results["total_rows"], 3)  # 3 data rows (excluding header)
+        assert len(results["valid_entries"]) == 2
+        assert results["total_rows"] == 3  # 3 data rows (excluding header)
 
         # Check first result
-        self.assertEqual(
-            results["valid_entries"][0][0], "https://w3id.org/oc/meta/id/1"
-        )
-        self.assertEqual(
-            results["valid_entries"][0][1], "https://w3id.org/oc/meta/id/2"
-        )
+        assert results["valid_entries"][0][0] == "https://w3id.org/oc/meta/id/1"
+        assert results["valid_entries"][0][1] == "https://w3id.org/oc/meta/id/2"
 
         # Check second result with multiple merged entities
-        self.assertEqual(
-            results["valid_entries"][1][0], "https://w3id.org/oc/meta/id/5"
-        )
-        self.assertEqual(
-            results["valid_entries"][1][1],
-            "https://w3id.org/oc/meta/id/6; https://w3id.org/oc/meta/id/7",
-        )
+        assert results["valid_entries"][1][0] == "https://w3id.org/oc/meta/id/5"
+        assert results["valid_entries"][1][1] == "https://w3id.org/oc/meta/id/6; https://w3id.org/oc/meta/id/7"
 
     def test_process_merge_directory(self):
         # Create a second test file
@@ -94,11 +88,7 @@ class TestProcessMergeCSV(unittest.TestCase):
             rows = list(reader)
 
             # Check header
-            self.assertEqual(rows[0], ["surviving_entity", "merged_entities"])
+            assert rows[0] == ["surviving_entity", "merged_entities"]
 
             # Should have 3 rows total (2 from first file + 1 from second file)
-            self.assertEqual(len(rows), 4)
-
-
-if __name__ == "__main__":
-    unittest.main()
+            assert len(rows) == 4

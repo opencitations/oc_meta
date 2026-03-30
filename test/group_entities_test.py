@@ -5,8 +5,9 @@
 import csv
 import os
 import shutil
-import unittest
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 import pandas as pd
 from oc_meta.run.merge.group_entities import (
@@ -22,23 +23,24 @@ BASE = os.path.join("test", "group_entities")
 OUTPUT = os.path.join(BASE, "output")
 
 
-class TestUnionFind(unittest.TestCase):
+class TestUnionFind:
     """Test UnionFind data structure for correctness and edge cases"""
 
-    def setUp(self):
+    @pytest.fixture(autouse=True)
+    def setup_method(self, request):
         self.uf = UnionFind()
 
     def test_find_single_element(self):
         """Test find on a single element"""
         result = self.uf.find("entity1")
-        self.assertEqual(result, "entity1")
+        assert result == "entity1"
 
     def test_union_two_elements(self):
         """Test union of two elements"""
         self.uf.union("entity1", "entity2")
         root1 = self.uf.find("entity1")
         root2 = self.uf.find("entity2")
-        self.assertEqual(root1, root2)
+        assert root1 == root2
 
     def test_union_multiple_elements(self):
         """Test union of multiple elements forms single group"""
@@ -47,9 +49,9 @@ class TestUnionFind(unittest.TestCase):
         self.uf.union("entity3", "entity4")
 
         root = self.uf.find("entity1")
-        self.assertEqual(self.uf.find("entity2"), root)
-        self.assertEqual(self.uf.find("entity3"), root)
-        self.assertEqual(self.uf.find("entity4"), root)
+        assert self.uf.find("entity2") == root
+        assert self.uf.find("entity3") == root
+        assert self.uf.find("entity4") == root
 
     def test_separate_groups(self):
         """Test that separate unions create separate groups"""
@@ -58,7 +60,7 @@ class TestUnionFind(unittest.TestCase):
 
         root1 = self.uf.find("entity1")
         root3 = self.uf.find("entity3")
-        self.assertNotEqual(root1, root3)
+        assert root1 != root3
 
     def test_path_compression(self):
         """Test that path compression works to flatten structure"""
@@ -68,7 +70,7 @@ class TestUnionFind(unittest.TestCase):
 
         self.uf.find("entity4")
 
-        self.assertIn("entity4", self.uf.parent)
+        assert "entity4" in self.uf.parent
 
     def test_find_long_chain(self):
         """Test find on a long chain of unions"""
@@ -77,7 +79,7 @@ class TestUnionFind(unittest.TestCase):
 
         root = self.uf.find("entity0")
         for i in range(101):
-            self.assertEqual(self.uf.find(f"entity{i}"), root)
+            assert self.uf.find(f"entity{i}") == root
 
     def test_circular_reference_bug(self):
         """Test that circular references raise ValueError"""
@@ -85,19 +87,19 @@ class TestUnionFind(unittest.TestCase):
         self.uf.parent["entity2"] = "entity3"
         self.uf.parent["entity3"] = "entity1"
 
-        with self.assertRaises(ValueError) as context:
+        with pytest.raises(ValueError) as context:
             self.uf.find("entity1")
 
-        self.assertIn("Cycle detected", str(context.exception))
+        assert "Cycle detected" in str(context.value)
 
     def test_self_loop(self):
         """Test handling of self-loop (should not happen)"""
         self.uf.parent["entity1"] = "entity1"
         result = self.uf.find("entity1")
-        self.assertEqual(result, "entity1")
+        assert result == "entity1"
 
 
-class TestQuerySPARQL(unittest.TestCase):
+class TestQuerySPARQL:
     """Test SPARQL query functions"""
 
     @patch('oc_meta.run.merge.group_entities.SPARQLClient')
@@ -117,9 +119,9 @@ class TestQuerySPARQL(unittest.TestCase):
         from oc_meta.run.merge.group_entities import query_sparql_batch
         result = query_sparql_batch("http://endpoint",
                                     ["https://example.org/test1", "https://example.org/test2"])
-        self.assertEqual(len(result), 2)
-        self.assertIn('https://example.org/related1', result)
-        self.assertIn('https://example.org/related2', result)
+        assert len(result) == 2
+        assert 'https://example.org/related1' in result
+        assert 'https://example.org/related2' in result
 
     @patch('oc_meta.run.merge.group_entities.SPARQLClient')
     def test_query_sparql_batch_large_input(self, mock_sparql_client):
@@ -132,7 +134,7 @@ class TestQuerySPARQL(unittest.TestCase):
         uris = [f"https://example.org/entity{i}" for i in range(25)]
         query_sparql_batch("http://endpoint", uris, batch_size=10)
 
-        self.assertEqual(mock_client.query.call_count, 3)
+        assert mock_client.query.call_count == 3
 
     @patch('oc_meta.run.merge.group_entities.SPARQLClient')
     def test_query_sparql_batch_empty_results(self, mock_sparql_client):
@@ -143,7 +145,7 @@ class TestQuerySPARQL(unittest.TestCase):
 
         from oc_meta.run.merge.group_entities import query_sparql_batch
         result = query_sparql_batch("http://endpoint", ["https://example.org/test"])
-        self.assertEqual(len(result), 0)
+        assert len(result) == 0
 
     @patch('oc_meta.run.merge.group_entities.SPARQLClient')
     def test_query_sparql_batch_filters_literals(self, mock_sparql_client):
@@ -162,13 +164,13 @@ class TestQuerySPARQL(unittest.TestCase):
 
         from oc_meta.run.merge.group_entities import query_sparql_batch
         result = query_sparql_batch("http://endpoint", ["https://example.org/test"])
-        self.assertEqual(len(result), 2)
-        self.assertIn('https://example.org/uri1', result)
-        self.assertIn('https://example.org/uri2', result)
-        self.assertNotIn('Some Literal', result)
+        assert len(result) == 2
+        assert 'https://example.org/uri1' in result
+        assert 'https://example.org/uri2' in result
+        assert 'Some Literal' not in result
 
 
-class TestGetAllRelatedEntities(unittest.TestCase):
+class TestGetAllRelatedEntities:
     """Test get_all_related_entities function"""
 
     @patch('oc_meta.run.merge.group_entities.query_sparql_batch')
@@ -179,7 +181,7 @@ class TestGetAllRelatedEntities(unittest.TestCase):
         uris = [f"https://example.org/entity{i}" for i in range(10)]
         get_all_related_entities("http://endpoint", uris)
 
-        self.assertEqual(mock_query_batch.call_count, 1)
+        assert mock_query_batch.call_count == 1
 
     @patch('oc_meta.run.merge.group_entities.query_sparql_batch')
     def test_get_all_related_entities_performance_large_batch(self, mock_query_batch):
@@ -189,7 +191,7 @@ class TestGetAllRelatedEntities(unittest.TestCase):
         uris = [f"https://example.org/entity{i}" for i in range(100)]
         get_all_related_entities("http://endpoint", uris, batch_size=10)
 
-        self.assertEqual(mock_query_batch.call_count, 1)
+        assert mock_query_batch.call_count == 1
 
     @patch('oc_meta.run.merge.group_entities.query_sparql_batch')
     def test_get_all_related_entities_includes_input_uris(self, mock_query_batch):
@@ -199,8 +201,8 @@ class TestGetAllRelatedEntities(unittest.TestCase):
         uris = ["https://example.org/entity1", "https://example.org/entity2"]
         result = get_all_related_entities("http://endpoint", uris)
 
-        self.assertIn("https://example.org/entity1", result)
-        self.assertIn("https://example.org/entity2", result)
+        assert "https://example.org/entity1" in result
+        assert "https://example.org/entity2" in result
 
     @patch('oc_meta.run.merge.group_entities.query_sparql_batch')
     def test_get_all_related_entities_combines_results(self, mock_query_batch):
@@ -212,13 +214,13 @@ class TestGetAllRelatedEntities(unittest.TestCase):
 
         result = get_all_related_entities("http://endpoint", ["https://example.org/entity1"])
 
-        self.assertIn("https://example.org/entity1", result)
-        self.assertIn("https://example.org/related1", result)
-        self.assertIn("https://example.org/related2", result)
-        self.assertEqual(len(result), 3)
+        assert "https://example.org/entity1" in result
+        assert "https://example.org/related1" in result
+        assert "https://example.org/related2" in result
+        assert len(result) == 3
 
 
-class TestOptimizeGroups(unittest.TestCase):
+class TestOptimizeGroups:
     """Test optimize_groups function"""
 
     def test_optimize_groups_combines_single_groups(self):
@@ -232,7 +234,7 @@ class TestOptimizeGroups(unittest.TestCase):
         result = optimize_groups(grouped_data, target_size=2)
 
         combined_count = sum(1 for df in result.values() if len(df) >= 2)
-        self.assertGreater(combined_count, 0)
+        assert combined_count > 0
 
     def test_optimize_groups_preserves_multi_groups(self):
         """Test that multi-row groups are preserved and singles are combined"""
@@ -248,15 +250,15 @@ class TestOptimizeGroups(unittest.TestCase):
         result = optimize_groups(grouped_data, target_size=2)
 
         has_two_row_group = any(len(df) == 2 for df in result.values())
-        self.assertTrue(has_two_row_group)
+        assert has_two_row_group
 
         total_rows = sum(len(df) for df in result.values())
-        self.assertEqual(total_rows, 4)
+        assert total_rows == 4
 
     def test_optimize_groups_handles_empty_input(self):
         """Test handling of empty input"""
         result = optimize_groups({}, target_size=10)
-        self.assertEqual(len(result), 0)
+        assert len(result) == 0
 
     def test_optimize_groups_data_loss_bug(self):
         """Test for data loss bug when remaining group < target_size"""
@@ -272,8 +274,7 @@ class TestOptimizeGroups(unittest.TestCase):
         total_rows_input = sum(len(df) for df in grouped_data.values())
         total_rows_output = sum(len(df) for df in result.values())
 
-        self.assertEqual(total_rows_input, total_rows_output,
-                        "Data loss detected: not all rows preserved after optimization")
+        assert total_rows_input == total_rows_output, "Data loss detected: not all rows preserved after optimization"
 
     def test_optimize_groups_no_multi_groups_edge_case(self):
         """Test edge case where there are no multi-row groups"""
@@ -287,7 +288,7 @@ class TestOptimizeGroups(unittest.TestCase):
         result = optimize_groups(grouped_data, target_size=10)
 
         total_rows_output = sum(len(df) for df in result.values())
-        self.assertEqual(total_rows_output, 25)
+        assert total_rows_output == 25
 
     def test_optimize_groups_all_multi_groups(self):
         """Test when all groups are already multi-row"""
@@ -304,58 +305,58 @@ class TestOptimizeGroups(unittest.TestCase):
 
         result = optimize_groups(grouped_data, target_size=10)
 
-        self.assertEqual(len(result), 2)
+        assert len(result) == 2
         total_rows = sum(len(df) for df in result.values())
-        self.assertEqual(total_rows, 4)
+        assert total_rows == 4
 
 
-class TestGetFilePath(unittest.TestCase):
+class TestGetFilePath:
     """Test get_file_path function"""
 
     def test_get_file_path_basic(self):
         """Test basic file path calculation"""
         uri = "https://w3id.org/oc/meta/br/060100"
         result = get_file_path(uri, dir_split=10000, items_per_file=1000, zip_output=True)
-        self.assertEqual(result, "br/060/10000/1000.zip")
+        assert result == "br/060/10000/1000.zip"
 
     def test_get_file_path_different_number(self):
         """Test file path for different entity number"""
         uri = "https://w3id.org/oc/meta/id/0605500"
         result = get_file_path(uri, dir_split=10000, items_per_file=1000, zip_output=True)
-        self.assertEqual(result, "id/060/10000/6000.zip")
+        assert result == "id/060/10000/6000.zip"
 
     def test_get_file_path_json_output(self):
         """Test file path with JSON output (not zipped)"""
         uri = "https://w3id.org/oc/meta/br/060100"
         result = get_file_path(uri, dir_split=10000, items_per_file=1000, zip_output=False)
-        self.assertEqual(result, "br/060/10000/1000.json")
+        assert result == "br/060/10000/1000.json"
 
     def test_get_file_path_different_supplier(self):
         """Test file path with different supplier prefix"""
         uri = "https://w3id.org/oc/meta/ra/070250"
         result = get_file_path(uri, dir_split=10000, items_per_file=1000, zip_output=True)
-        self.assertEqual(result, "ra/070/10000/1000.zip")
+        assert result == "ra/070/10000/1000.zip"
 
     def test_get_file_path_large_number(self):
         """Test file path for large entity number"""
         uri = "https://w3id.org/oc/meta/br/06025000"
         result = get_file_path(uri, dir_split=10000, items_per_file=1000, zip_output=True)
-        self.assertEqual(result, "br/060/30000/25000.zip")
+        assert result == "br/060/30000/25000.zip"
 
     def test_get_file_path_invalid_uri(self):
         """Test that invalid URI returns None"""
         uri = "https://invalid.uri.com/test"
         result = get_file_path(uri, dir_split=10000, items_per_file=1000, zip_output=True)
-        self.assertIsNone(result)
+        assert result is None
 
     def test_get_file_path_no_supplier_prefix(self):
         """Test that URI without supplier prefix returns None"""
         uri = "https://w3id.org/oc/meta/br/100"
         result = get_file_path(uri, dir_split=10000, items_per_file=1000, zip_output=True)
-        self.assertIsNone(result)
+        assert result is None
 
 
-class TestGroupEntities(unittest.TestCase):
+class TestGroupEntities:
     """Test group_entities function"""
 
     @patch('oc_meta.run.merge.group_entities.get_all_related_entities')
@@ -370,7 +371,7 @@ class TestGroupEntities(unittest.TestCase):
 
         result = group_entities(df, "http://endpoint")
 
-        self.assertGreater(len(result), 0)
+        assert len(result) > 0
 
     @patch('oc_meta.run.merge.group_entities.get_all_related_entities')
     def test_group_entities_handles_multiple_merged_entities(self, mock_get_related):
@@ -384,7 +385,7 @@ class TestGroupEntities(unittest.TestCase):
 
         result = group_entities(df, "http://endpoint")
 
-        self.assertGreater(len(result), 0)
+        assert len(result) > 0
 
     @patch('oc_meta.run.merge.group_entities.get_all_related_entities')
     def test_group_entities_single_iteration(self, mock_get_related):
@@ -399,8 +400,8 @@ class TestGroupEntities(unittest.TestCase):
 
         result = group_entities(df, "http://endpoint")
 
-        self.assertEqual(mock_get_related.call_count, 10)
-        self.assertGreater(len(result), 0)
+        assert mock_get_related.call_count == 10
+        assert len(result) > 0
 
     @patch('oc_meta.run.merge.group_entities.get_all_related_entities')
     def test_group_entities_no_double_iteration(self, mock_get_related):
@@ -418,8 +419,7 @@ class TestGroupEntities(unittest.TestCase):
 
         group_entities(df_mock, "http://endpoint")
 
-        self.assertEqual(df_mock.iterrows.call_count, 1,
-                        "DataFrame.iterrows() should be called only once")
+        assert df_mock.iterrows.call_count == 1, "DataFrame.iterrows() should be called only once"
 
     @patch('oc_meta.run.merge.group_entities.get_all_related_entities')
     def test_group_entities_file_range_grouping(self, mock_get_related):
@@ -435,7 +435,7 @@ class TestGroupEntities(unittest.TestCase):
 
         result = group_entities(df, "http://endpoint", dir_split=10000, items_per_file=1000)
 
-        self.assertEqual(len(result), 1, "All entities in same file should be in same group")
+        assert len(result) == 1, "All entities in same file should be in same group"
 
     @patch('oc_meta.run.merge.group_entities.get_all_related_entities')
     def test_group_entities_different_files_separate_groups(self, mock_get_related):
@@ -451,18 +451,20 @@ class TestGroupEntities(unittest.TestCase):
 
         result = group_entities(df, "http://endpoint", dir_split=10000, items_per_file=1000)
 
-        self.assertEqual(len(result), 2, "Entities in different files should be in different groups")
+        assert len(result) == 2, "Entities in different files should be in different groups"
 
 
-class TestSaveGroupedEntities(unittest.TestCase):
+class TestSaveGroupedEntities:
     """Test save_grouped_entities function"""
 
-    def setUp(self):
+    @pytest.fixture(autouse=True)
+    def setup_method(self, request):
         if os.path.exists(OUTPUT):
             shutil.rmtree(OUTPUT)
         os.makedirs(OUTPUT, exist_ok=True)
 
-    def tearDown(self):
+        yield
+
         if os.path.exists(OUTPUT):
             shutil.rmtree(OUTPUT)
 
@@ -480,8 +482,8 @@ class TestSaveGroupedEntities(unittest.TestCase):
         save_grouped_entities(grouped_data, OUTPUT)
 
         files = os.listdir(OUTPUT)
-        self.assertEqual(len(files), 2)
-        self.assertTrue(all(f.endswith('.csv') for f in files))
+        assert len(files) == 2
+        assert all(f.endswith('.csv') for f in files)
 
     def test_save_grouped_entities_preserves_data(self):
         """Test that saved data matches input data"""
@@ -495,12 +497,12 @@ class TestSaveGroupedEntities(unittest.TestCase):
         save_grouped_entities(grouped_data, OUTPUT)
 
         saved_file = os.path.join(OUTPUT, "e1.csv")
-        self.assertTrue(os.path.exists(saved_file))
+        assert os.path.exists(saved_file)
 
         loaded_df = pd.read_csv(saved_file)
-        self.assertEqual(len(loaded_df), 2)
-        self.assertIn("surviving_entity", loaded_df.columns)
-        self.assertIn("merged_entities", loaded_df.columns)
+        assert len(loaded_df) == 2
+        assert "surviving_entity" in loaded_df.columns
+        assert "merged_entities" in loaded_df.columns
 
     def test_save_grouped_entities_handles_special_characters(self):
         """Test handling of special characters in URIs"""
@@ -513,7 +515,7 @@ class TestSaveGroupedEntities(unittest.TestCase):
         save_grouped_entities(grouped_data, OUTPUT)
 
         files = os.listdir(OUTPUT)
-        self.assertEqual(len(files), 1)
+        assert len(files) == 1
 
     def test_save_grouped_entities_creates_output_dir(self):
         """Test that output directory is created if it doesn't exist"""
@@ -527,21 +529,23 @@ class TestSaveGroupedEntities(unittest.TestCase):
 
         save_grouped_entities(grouped_data, new_output)
 
-        self.assertTrue(os.path.exists(new_output))
+        assert os.path.exists(new_output)
         files = os.listdir(new_output)
-        self.assertEqual(len(files), 1)
+        assert len(files) == 1
 
 
-class TestIntegration(unittest.TestCase):
+class TestIntegration:
     """Integration tests for complete workflow"""
 
-    def setUp(self):
+    @pytest.fixture(autouse=True)
+    def setup_method(self, request):
         if os.path.exists(BASE):
             shutil.rmtree(BASE)
         os.makedirs(BASE, exist_ok=True)
         os.makedirs(OUTPUT, exist_ok=True)
 
-    def tearDown(self):
+        yield
+
         if os.path.exists(BASE):
             shutil.rmtree(BASE)
 
@@ -555,10 +559,10 @@ class TestIntegration(unittest.TestCase):
             writer.writeheader()
             writer.writerow({"wrong_column": "value"})
 
-        with self.assertRaises(ValueError) as context:
+        with pytest.raises(ValueError) as context:
             load_csv(csv_path)
 
-        self.assertIn("missing required columns", str(context.exception))
+        assert "missing required columns" in str(context.value)
 
     @patch('oc_meta.run.merge.group_entities.get_all_related_entities')
     def test_complete_workflow(self, mock_get_related):
@@ -581,7 +585,7 @@ class TestIntegration(unittest.TestCase):
         save_grouped_entities(optimized, OUTPUT)
 
         output_files = os.listdir(OUTPUT)
-        self.assertGreater(len(output_files), 0)
+        assert len(output_files) > 0
 
         total_rows = 0
         for file in output_files:
@@ -589,8 +593,4 @@ class TestIntegration(unittest.TestCase):
             df_saved = pd.read_csv(file_path)
             total_rows += len(df_saved)
 
-        self.assertEqual(total_rows, 5)
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert total_rows == 5

@@ -11,9 +11,9 @@ import os
 import shutil
 import subprocess
 import tempfile
-import unittest
 from unittest.mock import patch
 
+import pytest
 import yaml
 from sparqlite import SPARQLClient as OriginalSPARQLClient
 from test.test_utils import (
@@ -41,17 +41,18 @@ def short_timeout_sparql_client(*args, **kwargs):
     return OriginalSPARQLClient(*args, **kwargs)
 
 
-class TestDatabaseUnavailability(unittest.TestCase):
+class TestDatabaseUnavailability:
     """Test that database unavailability is handled correctly."""
 
-    @classmethod
-    def setUpClass(cls):
+    @pytest.fixture(scope="class", autouse=True)
+    def setup_class(self, request):
         print("[DEBUG] setUpClass: waiting for QLever...")
         if not wait_for_triplestore(SERVER, max_wait=30):
             raise TimeoutError("QLever not ready")
         print("[DEBUG] setUpClass: QLever ready")
 
-    def setUp(self):
+    @pytest.fixture(autouse=True)
+    def setup_method(self, request):
         print("[DEBUG] setUp: creating temp dir...")
         self.temp_dir = tempfile.mkdtemp()
         print("[DEBUG] setUp: resetting server...")
@@ -59,8 +60,7 @@ class TestDatabaseUnavailability(unittest.TestCase):
         print("[DEBUG] setUp: resetting redis...")
         reset_redis_counters()
         print("[DEBUG] setUp: done")
-
-    def tearDown(self):
+        yield
         print("[DEBUG] tearDown: start")
         reset_redis_counters()
         if hasattr(self, "temp_dir") and os.path.exists(self.temp_dir):
@@ -89,7 +89,7 @@ class TestDatabaseUnavailability(unittest.TestCase):
         meta_process = MetaProcess(settings=settings, meta_config_path=meta_config_path)
         print("[DEBUG] test: preparing folders...")
         files_to_process = meta_process.prepare_folders()
-        self.assertGreater(len(files_to_process), 0, "No input files found")
+        assert len(files_to_process) > 0, "No input files found"
 
         filename = files_to_process[0]
         print(f"[DEBUG] test: file to process: {filename}")
@@ -109,18 +109,14 @@ class TestDatabaseUnavailability(unittest.TestCase):
             )
             print(f"[DEBUG] test: result = {result}")
 
-            self.assertNotEqual(result[0]["message"], "success", "Should fail when database unavailable")
+            assert result[0]["message"] != "success", "Should fail when database unavailable"
 
             if os.path.exists(meta_process.cache_path):
                 with open(meta_process.cache_path) as f:
-                    self.assertNotIn(filename, f.read(), "File should NOT be cached when upload fails")
+                    assert filename not in f.read(), "File should NOT be cached when upload fails"
 
         finally:
             print("[DEBUG] test: restarting QLever...")
             subprocess.run(["docker", "start", QLEVER_CONTAINER], capture_output=True, check=True)
             wait_for_triplestore(SERVER, max_wait=30)
             print("[DEBUG] test: done")
-
-
-if __name__ == "__main__":
-    unittest.main()

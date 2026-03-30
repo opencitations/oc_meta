@@ -5,13 +5,14 @@
 import csv
 import os
 import re
-import unittest
+import pytest
 from shutil import rmtree
 
 import orjson
 import yaml
 from oc_meta.run.merge.entities import EntityMerger
 from oc_meta.run.meta_editor import MetaEditor
+from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
 from oc_ocdm.graph import GraphSet
 from oc_ocdm.prov.prov_set import ProvSet
 from oc_ocdm.storer import Storer
@@ -33,12 +34,15 @@ OUTPUT = os.path.join(BASE, "output/")
 META_CONFIG = os.path.join("test", "merger", "meta_config.yaml")
 
 
-class TestEntityMerger(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.counter_handler = get_counter_handler()
+class TestEntityMerger:
+    counter_handler: RedisCounterHandler
 
-    def setUp(self):
+    @pytest.fixture(scope="class", autouse=True)
+    def setup_class(self, request):
+        request.cls.counter_handler = get_counter_handler()
+
+    @pytest.fixture(autouse=True)
+    def setup_method(self, request):
         # Reset environment
         if os.path.exists(OUTPUT):
             rmtree(OUTPUT)
@@ -56,7 +60,7 @@ class TestEntityMerger(unittest.TestCase):
         self.cache_file = os.path.join(self.temp_dir, "ts_upload_cache.json")
         self.failed_file = os.path.join(self.temp_dir, "failed_queries.txt")
         self.stop_file = os.path.join(self.temp_dir, ".stop_upload")
-        
+
         # Create separate directories for data and provenance update queries
         self.data_update_dir = os.path.join(self.temp_dir, "to_be_uploaded_data")
         self.prov_update_dir = os.path.join(self.temp_dir, "to_be_uploaded_prov")
@@ -95,7 +99,9 @@ class TestEntityMerger(unittest.TestCase):
             workers=4,
         )
 
-    def tearDown(self):
+        yield
+
+        # Teardown
         if os.path.exists(os.path.join(BASE, "csv")):
             rmtree(os.path.join(BASE, "csv"))
         if os.path.exists(OUTPUT):
@@ -245,20 +251,12 @@ class TestEntityMerger(unittest.TestCase):
         # Check DELETE patterns
         if "delete" in expected_triples:
             for triple in expected_triples["delete"]:
-                self.assertIn(
-                    triple,
-                    delete_section.strip(),
-                    f"Expected triple not found in DELETE section: {triple}",
-                )
+                assert triple in delete_section.strip(), f"Expected triple not found in DELETE section: {triple}"
 
         # Check INSERT patterns
         if "insert" in expected_triples:
             for triple in expected_triples["insert"]:
-                self.assertIn(
-                    triple,
-                    insert_section.strip(),
-                    f"Expected triple not found in INSERT section: {triple}",
-                )
+                assert triple in insert_section.strip(), f"Expected triple not found in INSERT section: {triple}"
 
     def test_get_entity_type(self):
         """Test the static method get_entity_type"""
@@ -271,8 +269,7 @@ class TestEntityMerger(unittest.TestCase):
         ]
 
         for url, expected in test_cases:
-            with self.subTest(url=url):
-                self.assertEqual(EntityMerger.get_entity_type(url), expected)
+            assert EntityMerger.get_entity_type(url) == expected
 
     def test_read_write_csv(self):
         """Test CSV read and write operations"""
@@ -290,7 +287,7 @@ class TestEntityMerger(unittest.TestCase):
 
         # Read back and verify
         read_data = EntityMerger.read_csv(test_file)
-        self.assertEqual(test_data, read_data)
+        assert test_data == read_data
 
     def test_count_csv_rows(self):
         """Test CSV row counting"""
@@ -299,12 +296,12 @@ class TestEntityMerger(unittest.TestCase):
         with open(empty_file, "w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=["col1", "col2"])
             writer.writeheader()
-        self.assertEqual(EntityMerger.count_csv_rows(empty_file), 0)
+        assert EntityMerger.count_csv_rows(empty_file) == 0
 
         # Test with multiple rows
         test_file = os.path.join(BASE, "input", "0.csv")
         row_count = EntityMerger.count_csv_rows(test_file)
-        self.assertEqual(row_count, 1)
+        assert row_count == 1
 
     def test_process_file_with_stop_file(self):
         """Test that processing stops when stop file is present"""
@@ -318,7 +315,7 @@ class TestEntityMerger(unittest.TestCase):
 
         # Verify the file wasn't processed (Done should still be False)
         data = EntityMerger.read_csv(test_file)
-        self.assertEqual(data[0]["Done"], "False")
+        assert data[0]["Done"] == "False"
 
     def test_process_folder(self):
         """Test processing multiple files in a folder"""
@@ -327,9 +324,8 @@ class TestEntityMerger(unittest.TestCase):
 
         # Verify all files were processed
         for filename in ["merge_test.csv"]:
-            with self.subTest(file=filename):
-                data = EntityMerger.read_csv(os.path.join(csv_folder, filename))
-                self.assertEqual(data[0]["Done"], "True")
+            data = EntityMerger.read_csv(os.path.join(csv_folder, filename))
+            assert data[0]["Done"] == "True"
 
     def test_process_folder_with_worker_limit(self):
         """Test processing folder with worker count > 4"""
@@ -351,16 +347,12 @@ class TestEntityMerger(unittest.TestCase):
 
         # Verify only small files were processed
         large_file_data = EntityMerger.read_csv(os.path.join(csv_folder, "large.csv"))
-        self.assertEqual(
-            large_file_data[0]["Done"], "False"
-        )  # Large file should be skipped
+        assert large_file_data[0]["Done"] == "False"  # Large file should be skipped
 
         small_file_data = EntityMerger.read_csv(
             os.path.join(csv_folder, "merge_test.csv")
         )
-        self.assertEqual(
-            small_file_data[0]["Done"], "True"
-        )  # Small file should be processed
+        assert small_file_data[0]["Done"] == "True"  # Small file should be processed
 
     def test_merge_authors_with_real_data(self):
         """Test merging two author entities with real data"""
@@ -370,13 +362,9 @@ class TestEntityMerger(unittest.TestCase):
 
         # Verify files structure
         rdf_path = os.path.join(OUTPUT)
-        self.assertTrue(
-            os.path.exists(os.path.join(rdf_path, "rdf", "ra", "060", "10000", "1000"))
-        )
-        self.assertTrue(
-            os.path.exists(
-                os.path.join(rdf_path, "rdf", "ra", "060", "10000", "1000", "prov")
-            )
+        assert os.path.exists(os.path.join(rdf_path, "rdf", "ra", "060", "10000", "1000"))
+        assert os.path.exists(
+            os.path.join(rdf_path, "rdf", "ra", "060", "10000", "1000", "prov")
         )
 
         # Load and verify data files
@@ -393,19 +381,16 @@ class TestEntityMerger(unittest.TestCase):
                                 "http://purl.org/spar/datacite/hasIdentifier"
                             ]
                         }
-                        self.assertEqual(len(identifiers), 2)
-                        self.assertIn("https://w3id.org/oc/meta/id/0601", identifiers)
-                        self.assertIn("https://w3id.org/oc/meta/id/0602", identifiers)
+                        assert len(identifiers) == 2
+                        assert "https://w3id.org/oc/meta/id/0601" in identifiers
+                        assert "https://w3id.org/oc/meta/id/0602" in identifiers
 
                         # Check name
-                        self.assertEqual(
-                            entity["http://xmlns.com/foaf/0.1/name"][0]["@value"],
-                            "J. Smith",
-                        )
+                        assert entity["http://xmlns.com/foaf/0.1/name"][0]["@value"] == "J. Smith"
 
                     # Check merged entity no longer exists
                     if entity["@id"] == "https://w3id.org/oc/meta/ra/0602":
-                        self.fail("Merged entity should not exist")
+                        pytest.fail("Merged entity should not exist")
 
         # Check role reassignment
         ar_file = os.path.join(rdf_path, "rdf", "ar", "060", "10000", "1000.json")
@@ -414,11 +399,7 @@ class TestEntityMerger(unittest.TestCase):
             for graph in data:
                 for entity in graph.get("@graph", []):
                     agent = entity["http://purl.org/spar/pro/isHeldBy"][0]["@id"]
-                    self.assertEqual(
-                        agent,
-                        "https://w3id.org/oc/meta/ra/0601",
-                        "All roles should point to surviving entity",
-                    )
+                    assert agent == "https://w3id.org/oc/meta/ra/0601", "All roles should point to surviving entity"
 
         # Check provenance
         prov_file = os.path.join(
@@ -448,15 +429,9 @@ class TestEntityMerger(unittest.TestCase):
                         found_merge_prov = True
 
                         # Check provenance fields
-                        self.assertIn(
-                            "http://www.w3.org/ns/prov#generatedAtTime", entity
-                        )
-                        self.assertIn(
-                            "http://www.w3.org/ns/prov#wasAttributedTo", entity
-                        )
-                        self.assertIn(
-                            "https://w3id.org/oc/ontology/hasUpdateQuery", entity
-                        )
+                        assert "http://www.w3.org/ns/prov#generatedAtTime" in entity
+                        assert "http://www.w3.org/ns/prov#wasAttributedTo" in entity
+                        assert "https://w3id.org/oc/ontology/hasUpdateQuery" in entity
 
                         # Get actual query and normalize both expected and actual
                         actual_query = entity[
@@ -464,7 +439,7 @@ class TestEntityMerger(unittest.TestCase):
                         ][0]["@value"]
                         self.check_sparql_query_content(actual_query, expected_triples)
 
-        self.assertTrue(found_merge_prov, "No merge provenance found")
+        assert found_merge_prov, "No merge provenance found"
 
     def test_merge_with_invalid_entity_type(self):
         """Test merging with an invalid entity type"""
@@ -480,7 +455,7 @@ class TestEntityMerger(unittest.TestCase):
         self.write_csv("invalid_type.csv", invalid_data)
         self.merger.process_file(test_file)
         data = EntityMerger.read_csv(test_file)
-        self.assertEqual(data[0]["Done"], "False")
+        assert data[0]["Done"] == "False"
 
     def test_merge_with_nonexistent_entities(self):
         """Test merging when one or both entities don't exist"""
@@ -496,7 +471,7 @@ class TestEntityMerger(unittest.TestCase):
         self.write_csv("nonexistent.csv", nonexistent_data)
         self.merger.process_file(test_file)
         data = EntityMerger.read_csv(test_file)
-        self.assertEqual(data[0]["Done"], "True")
+        assert data[0]["Done"] == "True"
 
     def test_merge_multiple_entities(self):
         """Test merging multiple entities into one surviving entity"""
@@ -624,30 +599,24 @@ class TestEntityMerger(unittest.TestCase):
                                 "http://purl.org/spar/datacite/hasIdentifier"
                             ]
                         }
-                        self.assertEqual(len(identifiers), 4)
+                        assert len(identifiers) == 4
                         expected_ids = {
                             "https://w3id.org/oc/meta/id/0601",
                             "https://w3id.org/oc/meta/id/0602",
                             "https://w3id.org/oc/meta/id/0603",
                             "https://w3id.org/oc/meta/id/0604",
                         }
-                        self.assertEqual(identifiers, expected_ids)
+                        assert identifiers == expected_ids
 
                         # Check name (should take the last merged name)
-                        self.assertEqual(
-                            entity["http://xmlns.com/foaf/0.1/name"][0]["@value"],
-                            "J A Smith",
-                        )
+                        assert entity["http://xmlns.com/foaf/0.1/name"][0]["@value"] == "J A Smith"
 
                     # Check merged entities no longer exist
-                    self.assertNotIn(
-                        entity["@id"],
-                        [
-                            "https://w3id.org/oc/meta/ra/0602",
-                            "https://w3id.org/oc/meta/ra/0603",
-                            "https://w3id.org/oc/meta/ra/0604",
-                        ],
-                    )
+                    assert entity["@id"] not in [
+                        "https://w3id.org/oc/meta/ra/0602",
+                        "https://w3id.org/oc/meta/ra/0603",
+                        "https://w3id.org/oc/meta/ra/0604",
+                    ]
 
         # 2. Check role assignments in agent role file
         ar_file = os.path.join(rdf_path, "ar", "060", "10000", "1000.json")
@@ -657,11 +626,7 @@ class TestEntityMerger(unittest.TestCase):
                 for entity in graph.get("@graph", []):
                     if "http://purl.org/spar/pro/isHeldBy" in entity:
                         agent = entity["http://purl.org/spar/pro/isHeldBy"][0]["@id"]
-                        self.assertEqual(
-                            agent,
-                            "https://w3id.org/oc/meta/ra/0601",
-                            "All roles should point to surviving entity",
-                        )
+                        assert agent == "https://w3id.org/oc/meta/ra/0601", "All roles should point to surviving entity"
 
         # 3. Check provenance
         prov_file = os.path.join(
@@ -687,9 +652,7 @@ class TestEntityMerger(unittest.TestCase):
                             surviving_snapshots.append(entity)
 
             # Should have 2 merge snapshots (one partial, one final)
-            self.assertEqual(
-                len(surviving_snapshots), 2, "Should have exactly 2 merge snapshots"
-            )
+            assert len(surviving_snapshots) == 2, "Should have exactly 2 merge snapshots"
 
             # Verify partial merge (0601 with 0602)
             partial_merge = next(
@@ -700,12 +663,9 @@ class TestEntityMerger(unittest.TestCase):
             )
 
             # Check partial merge metadata
-            self.assertIn("http://www.w3.org/ns/prov#generatedAtTime", partial_merge)
-            self.assertIn("http://www.w3.org/ns/prov#wasAttributedTo", partial_merge)
-            self.assertEqual(
-                partial_merge["http://www.w3.org/ns/prov#wasAttributedTo"][0]["@id"],
-                "https://orcid.org/0000-0002-8420-0696",
-            )
+            assert "http://www.w3.org/ns/prov#generatedAtTime" in partial_merge
+            assert "http://www.w3.org/ns/prov#wasAttributedTo" in partial_merge
+            assert partial_merge["http://www.w3.org/ns/prov#wasAttributedTo"][0]["@id"] == "https://orcid.org/0000-0002-8420-0696"
 
             # Check partial merge query content
             partial_query = partial_merge[
@@ -732,12 +692,9 @@ class TestEntityMerger(unittest.TestCase):
             )
 
             # Check final merge metadata
-            self.assertIn("http://www.w3.org/ns/prov#generatedAtTime", final_merge)
-            self.assertIn("http://www.w3.org/ns/prov#wasAttributedTo", final_merge)
-            self.assertEqual(
-                final_merge["http://www.w3.org/ns/prov#wasAttributedTo"][0]["@id"],
-                "https://orcid.org/0000-0002-8420-0696",
-            )
+            assert "http://www.w3.org/ns/prov#generatedAtTime" in final_merge
+            assert "http://www.w3.org/ns/prov#wasAttributedTo" in final_merge
+            assert final_merge["http://www.w3.org/ns/prov#wasAttributedTo"][0]["@id"] == "https://orcid.org/0000-0002-8420-0696"
 
             # Check final merge query content
             final_query = final_merge["https://w3id.org/oc/ontology/hasUpdateQuery"][0][
@@ -773,24 +730,16 @@ class TestEntityMerger(unittest.TestCase):
                             ):
                                 merged_snapshots.append(entity)
 
-                self.assertGreater(
-                    len(merged_snapshots),
-                    0,
-                    f"No deletion snapshot found for ra/{merged_id}",
-                )
+                assert len(merged_snapshots) > 0, f"No deletion snapshot found for ra/{merged_id}"
 
                 # Verify deletion queries
                 for snapshot in merged_snapshots:
-                    self.assertIn(
-                        "https://w3id.org/oc/ontology/hasUpdateQuery", snapshot
-                    )
+                    assert "https://w3id.org/oc/ontology/hasUpdateQuery" in snapshot
                     delete_query = snapshot[
                         "https://w3id.org/oc/ontology/hasUpdateQuery"
                     ][0]["@value"]
-                    self.assertIn(
-                        f"<https://w3id.org/oc/meta/ra/{merged_id}>", delete_query
-                    )
-                    self.assertIn("DELETE DATA", delete_query)
+                    assert f"<https://w3id.org/oc/meta/ra/{merged_id}>" in delete_query
+                    assert "DELETE DATA" in delete_query
 
     def test_merge_with_conflicting_data(self):
         """Test merging entities with conflicting information"""
@@ -899,29 +848,16 @@ class TestEntityMerger(unittest.TestCase):
                                 "http://purl.org/spar/datacite/hasIdentifier", []
                             )
                         }
-                        self.assertEqual(len(identifiers), 1)
-                        self.assertEqual(
-                            identifiers, {"https://w3id.org/oc/meta/id/0605"}
-                        )
+                        assert len(identifiers) == 1
+                        assert identifiers == {"https://w3id.org/oc/meta/id/0605"}
 
                         # Check name was preserved
-                        self.assertEqual(
-                            entity["http://xmlns.com/foaf/0.1/name"][0]["@value"],
-                            "Johnny Smith",
-                        )
-                        self.assertEqual(
-                            entity["http://xmlns.com/foaf/0.1/givenName"][0]["@value"],
-                            "Johnny",
-                        )
-                        self.assertEqual(
-                            entity["http://xmlns.com/foaf/0.1/familyName"][0]["@value"],
-                            "Smith",
-                        )
+                        assert entity["http://xmlns.com/foaf/0.1/name"][0]["@value"] == "Johnny Smith"
+                        assert entity["http://xmlns.com/foaf/0.1/givenName"][0]["@value"] == "Johnny"
+                        assert entity["http://xmlns.com/foaf/0.1/familyName"][0]["@value"] == "Smith"
 
                     # Check merged entity does not exist in output
-                    self.assertNotEqual(
-                        entity["@id"], "https://w3id.org/oc/meta/ra/0606"
-                    )
+                    assert entity["@id"] != "https://w3id.org/oc/meta/ra/0606"
 
         # 2. Check provenance
         prov_file = os.path.join(
@@ -949,8 +885,8 @@ class TestEntityMerger(unittest.TestCase):
             assert merge_snapshot is not None, "No merge snapshot found"
 
             # Verify merge metadata
-            self.assertIn("http://www.w3.org/ns/prov#generatedAtTime", merge_snapshot)
-            self.assertIn("http://www.w3.org/ns/prov#wasAttributedTo", merge_snapshot)
+            assert "http://www.w3.org/ns/prov#generatedAtTime" in merge_snapshot
+            assert "http://www.w3.org/ns/prov#wasAttributedTo" in merge_snapshot
 
             # Check the merge query - should not duplicate the conflicting ORCID
             merge_query = merge_snapshot["https://w3id.org/oc/ontology/hasUpdateQuery"][
@@ -990,8 +926,8 @@ class TestEntityMerger(unittest.TestCase):
             delete_query = delete_snapshot[
                 "https://w3id.org/oc/ontology/hasUpdateQuery"
             ][0]["@value"]
-            self.assertIn("DELETE DATA", delete_query)
-            self.assertIn("<https://w3id.org/oc/meta/ra/0606>", delete_query)
+            assert "DELETE DATA" in delete_query
+            assert "<https://w3id.org/oc/meta/ra/0606>" in delete_query
 
     def test_merge_bibliographic_resources(self):
         """Test merging two bibliographic resource entities"""
@@ -1161,32 +1097,17 @@ class TestEntityMerger(unittest.TestCase):
                 for entity in graph.get("@graph", []):
                     if entity["@id"] == "https://w3id.org/oc/meta/br/0603":
                         # Check basic metadata
-                        self.assertEqual(
-                            entity["http://purl.org/dc/terms/title"][0]["@value"],
-                            "Data Integration Methods",
-                        )
-                        self.assertEqual(
-                            entity["http://purl.org/spar/fabio/hasSubtitle"][0][
-                                "@value"
-                            ],
-                            "A Comprehensive Review",
-                        )
-                        self.assertEqual(
-                            entity[
-                                "http://prismstandard.org/namespaces/basic/2.0/publicationDate"
-                            ][0]["@value"],
-                            "2023",
-                        )
+                        assert entity["http://purl.org/dc/terms/title"][0]["@value"] == "Data Integration Methods"
+                        assert entity["http://purl.org/spar/fabio/hasSubtitle"][0]["@value"] == "A Comprehensive Review"
+                        assert entity["http://prismstandard.org/namespaces/basic/2.0/publicationDate"][0]["@value"] == "2023"
 
                         # Check part relationships
                         parts = {
                             part["@id"]
                             for part in entity["http://purl.org/vocab/frbr/core#partOf"]
                         }
-                        self.assertEqual(len(parts), 1)
-                        self.assertIn(
-                            "https://w3id.org/oc/meta/br/0606", parts
-                        )  # Volume
+                        assert len(parts) == 1
+                        assert "https://w3id.org/oc/meta/br/0606" in parts  # Volume
 
                         # Check formats (resource embodiments)
                         formats = {
@@ -1195,8 +1116,8 @@ class TestEntityMerger(unittest.TestCase):
                                 "http://purl.org/vocab/frbr/core#embodiment"
                             ]
                         }
-                        self.assertEqual(len(formats), 1)
-                        self.assertIn("https://w3id.org/oc/meta/re/0603", formats)
+                        assert len(formats) == 1
+                        assert "https://w3id.org/oc/meta/re/0603" in formats
 
                         # Check identifiers
                         identifiers = {
@@ -1205,38 +1126,22 @@ class TestEntityMerger(unittest.TestCase):
                                 "http://purl.org/spar/datacite/hasIdentifier"
                             ]
                         }
-                        self.assertEqual(len(identifiers), 2)
-                        self.assertIn("https://w3id.org/oc/meta/id/0603", identifiers)
-                        self.assertIn("https://w3id.org/oc/meta/id/0604", identifiers)
+                        assert len(identifiers) == 2
+                        assert "https://w3id.org/oc/meta/id/0603" in identifiers
+                        assert "https://w3id.org/oc/meta/id/0604" in identifiers
 
                     # Check issue metadata
                     elif entity["@id"] == "https://w3id.org/oc/meta/br/0605":
-                        self.assertIn(
-                            "http://purl.org/spar/fabio/JournalIssue", entity["@type"]
-                        )
-                        self.assertEqual(
-                            entity["http://purl.org/spar/fabio/hasSequenceIdentifier"][
-                                0
-                            ]["@value"],
-                            "4",
-                        )
+                        assert "http://purl.org/spar/fabio/JournalIssue" in entity["@type"]
+                        assert entity["http://purl.org/spar/fabio/hasSequenceIdentifier"][0]["@value"] == "4"
 
                     # Check volume metadata
                     elif entity["@id"] == "https://w3id.org/oc/meta/br/0606":
-                        self.assertIn(
-                            "http://purl.org/spar/fabio/JournalVolume", entity["@type"]
-                        )
-                        self.assertEqual(
-                            entity["http://purl.org/spar/fabio/hasSequenceIdentifier"][
-                                0
-                            ]["@value"],
-                            "15",
-                        )
+                        assert "http://purl.org/spar/fabio/JournalVolume" in entity["@type"]
+                        assert entity["http://purl.org/spar/fabio/hasSequenceIdentifier"][0]["@value"] == "15"
 
                     # Check merged entity no longer exists
-                    self.assertNotEqual(
-                        entity["@id"], "https://w3id.org/oc/meta/br/0604"
-                    )
+                    assert entity["@id"] != "https://w3id.org/oc/meta/br/0604"
 
         # 2. Check resource embodiments
         re_file = os.path.join(rdf_path, "re", "060", "10000", "1000.json")
@@ -1258,19 +1163,11 @@ class TestEntityMerger(unittest.TestCase):
                             ][0]["@value"],
                         }
 
-            self.assertEqual(len(res_embodiments), 2)
-            self.assertEqual(
-                res_embodiments["https://w3id.org/oc/meta/re/0603"]["start"], "1"
-            )
-            self.assertEqual(
-                res_embodiments["https://w3id.org/oc/meta/re/0603"]["end"], "20"
-            )
-            self.assertEqual(
-                res_embodiments["https://w3id.org/oc/meta/re/0604"]["start"], "100"
-            )
-            self.assertEqual(
-                res_embodiments["https://w3id.org/oc/meta/re/0604"]["end"], "120"
-            )
+            assert len(res_embodiments) == 2
+            assert res_embodiments["https://w3id.org/oc/meta/re/0603"]["start"] == "1"
+            assert res_embodiments["https://w3id.org/oc/meta/re/0603"]["end"] == "20"
+            assert res_embodiments["https://w3id.org/oc/meta/re/0604"]["start"] == "100"
+            assert res_embodiments["https://w3id.org/oc/meta/re/0604"]["end"] == "120"
 
         # 3. Check role assignments
         ar_file = os.path.join(rdf_path, "ar", "060", "10000", "1000.json")
@@ -1279,13 +1176,10 @@ class TestEntityMerger(unittest.TestCase):
             for graph in data:
                 for entity in graph.get("@graph", []):
                     if entity["@id"] == "https://w3id.org/oc/meta/ar/0605":
-                        self.assertIn("http://purl.org/spar/pro/withRole", entity)
-                        self.assertEqual(
-                            entity["http://purl.org/spar/pro/withRole"][0]["@id"],
-                            "http://purl.org/spar/pro/author",
-                        )
+                        assert "http://purl.org/spar/pro/withRole" in entity
+                        assert entity["http://purl.org/spar/pro/withRole"][0]["@id"] == "http://purl.org/spar/pro/author"
                         holder = entity["http://purl.org/spar/pro/isHeldBy"][0]["@id"]
-                        self.assertEqual(holder, "https://w3id.org/oc/meta/ra/0605")
+                        assert holder == "https://w3id.org/oc/meta/ra/0605"
 
         # 4. Check provenance
         prov_file = os.path.join(
@@ -1379,18 +1273,9 @@ class TestEntityMerger(unittest.TestCase):
                                     .lower()
                                 ):
                                     found_volume_creation = True
-                                    self.assertIn(
-                                        "http://www.w3.org/ns/prov#generatedAtTime",
-                                        entity,
-                                    )
-                                    self.assertIn(
-                                        "http://www.w3.org/ns/prov#wasAttributedTo",
-                                        entity,
-                                    )
-                            self.assertTrue(
-                                found_volume_creation,
-                                "No creation provenance found for volume",
-                            )
+                                    assert "http://www.w3.org/ns/prov#generatedAtTime" in entity
+                                    assert "http://www.w3.org/ns/prov#wasAttributedTo" in entity
+                            assert found_volume_creation, "No creation provenance found for volume"
 
                         # Check resource embodiment provenance
                         if graph["@id"] == "https://w3id.org/oc/meta/re/0604/prov/":
@@ -1405,18 +1290,9 @@ class TestEntityMerger(unittest.TestCase):
                                     .lower()
                                 ):
                                     found_re_creation = True
-                                    self.assertIn(
-                                        "http://www.w3.org/ns/prov#generatedAtTime",
-                                        entity,
-                                    )
-                                    self.assertIn(
-                                        "http://www.w3.org/ns/prov#wasAttributedTo",
-                                        entity,
-                                    )
-                            self.assertTrue(
-                                found_re_creation,
-                                "No creation provenance found for resource embodiment",
-                            )
+                                    assert "http://www.w3.org/ns/prov#generatedAtTime" in entity
+                                    assert "http://www.w3.org/ns/prov#wasAttributedTo" in entity
+                            assert found_re_creation, "No creation provenance found for resource embodiment"
 
                     # Verify all metadata inheritance
                     # We expect the surviving entity to inherit all identifiers
@@ -1441,11 +1317,7 @@ class TestEntityMerger(unittest.TestCase):
                                     merge_timestamps.append(timestamp)
 
                     # Check timestamps are in correct order
-                    self.assertEqual(
-                        len(merge_timestamps),
-                        1,
-                        "Should have exactly one merge operation",
-                    )
+                    assert len(merge_timestamps) == 1, "Should have exactly one merge operation"
 
                     br_file = os.path.join(rdf_path, "br", "060", "10000", "1000.json")
                     with open(br_file) as f:
@@ -1457,14 +1329,9 @@ class TestEntityMerger(unittest.TestCase):
                                     entity["@id"] == "https://w3id.org/oc/meta/br/0606"
                                 ):  # Volume
                                     volume_found = True
-                                    self.assertIn(
-                                        "http://purl.org/spar/fabio/JournalVolume",
-                                        entity["@type"],
-                                    )
+                                    assert "http://purl.org/spar/fabio/JournalVolume" in entity["@type"]
 
-                        self.assertTrue(
-                            volume_found, "Volume should still exist after merge"
-                        )
+                        assert volume_found, "Volume should still exist after merge"
 
                     re_file = os.path.join(rdf_path, "re", "060", "10000", "1000.json")
                     with open(re_file) as f:
@@ -1476,17 +1343,9 @@ class TestEntityMerger(unittest.TestCase):
                                     entity["@id"] == "https://w3id.org/oc/meta/re/0604"
                                 ):  # RE from merged entity
                                     re_found = True
-                                    self.assertEqual(
-                                        entity[
-                                            "http://prismstandard.org/namespaces/basic/2.0/startingPage"
-                                        ][0]["@value"],
-                                        "100",
-                                    )
+                                    assert entity["http://prismstandard.org/namespaces/basic/2.0/startingPage"][0]["@value"] == "100"
 
-                        self.assertTrue(
-                            re_found,
-                            "Resource embodiment should still exist after merge",
-                        )
+                        assert re_found, "Resource embodiment should still exist after merge"
 
     def test_fetch_related_entities_batch(self):
         """Test batch fetching of related entities"""
@@ -1575,58 +1434,57 @@ class TestEntityMerger(unittest.TestCase):
 
         batch_sizes = [1, 5, 11, 25]
         for batch_size in batch_sizes:
-            with self.subTest(batch_size=batch_size):
-                # Test con una singola entità
-                merged_entities = [f"https://w3id.org/oc/meta/ra/060{valid_numbers[0]}"]
-                surviving_entities = [
-                    f"https://w3id.org/oc/meta/ra/060{valid_numbers[1]}"
-                ]
+            # Test con una singola entità
+            merged_entities = [f"https://w3id.org/oc/meta/ra/060{valid_numbers[0]}"]
+            surviving_entities = [
+                f"https://w3id.org/oc/meta/ra/060{valid_numbers[1]}"
+            ]
 
-                related = self.merger.fetch_related_entities_batch(
-                    meta_editor=meta_editor,
-                    merged_entities=merged_entities,
-                    surviving_entities=surviving_entities,
-                    batch_size=batch_size,
-                )
+            related = self.merger.fetch_related_entities_batch(
+                meta_editor=meta_editor,
+                merged_entities=merged_entities,
+                surviving_entities=surviving_entities,
+                batch_size=batch_size,
+            )
 
-                expected_related = {
-                    URIRef(
-                        f"https://w3id.org/oc/meta/id/060{valid_numbers[0]}"
-                    ),  # ID della merged
-                    URIRef(
-                        f"https://w3id.org/oc/meta/ar/060{valid_numbers[0]}"
-                    ),  # AR della merged
-                    URIRef(
-                        f"https://w3id.org/oc/meta/id/060{valid_numbers[1]}"
-                    ),  # AR della surviving
-                }
+            expected_related = {
+                URIRef(
+                    f"https://w3id.org/oc/meta/id/060{valid_numbers[0]}"
+                ),  # ID della merged
+                URIRef(
+                    f"https://w3id.org/oc/meta/ar/060{valid_numbers[0]}"
+                ),  # AR della merged
+                URIRef(
+                    f"https://w3id.org/oc/meta/id/060{valid_numbers[1]}"
+                ),  # AR della surviving
+            }
 
-                self.assertEqual(related, expected_related)
+            assert related == expected_related
 
-                # Test con multiple entità
-                merged_entities = [
-                    f"https://w3id.org/oc/meta/ra/060{i}" for i in valid_numbers[:3]
-                ]
-                surviving_entities = [
-                    f"https://w3id.org/oc/meta/ra/060{valid_numbers[3]}"
-                ]
+            # Test con multiple entità
+            merged_entities = [
+                f"https://w3id.org/oc/meta/ra/060{i}" for i in valid_numbers[:3]
+            ]
+            surviving_entities = [
+                f"https://w3id.org/oc/meta/ra/060{valid_numbers[3]}"
+            ]
 
-                related = self.merger.fetch_related_entities_batch(
-                    meta_editor=meta_editor,
-                    merged_entities=merged_entities,
-                    surviving_entities=surviving_entities,
-                    batch_size=batch_size,
-                )
+            related = self.merger.fetch_related_entities_batch(
+                meta_editor=meta_editor,
+                merged_entities=merged_entities,
+                surviving_entities=surviving_entities,
+                batch_size=batch_size,
+            )
 
-                expected_related = set()
-                for i in valid_numbers[:3]:  # Entità merged
-                    expected_related.add(URIRef(f"https://w3id.org/oc/meta/id/060{i}"))
-                    expected_related.add(URIRef(f"https://w3id.org/oc/meta/ar/060{i}"))
-                expected_related.add(
-                    URIRef(f"https://w3id.org/oc/meta/id/060{valid_numbers[3]}")
-                )
+            expected_related = set()
+            for i in valid_numbers[:3]:  # Entità merged
+                expected_related.add(URIRef(f"https://w3id.org/oc/meta/id/060{i}"))
+                expected_related.add(URIRef(f"https://w3id.org/oc/meta/ar/060{i}"))
+            expected_related.add(
+                URIRef(f"https://w3id.org/oc/meta/id/060{valid_numbers[3]}")
+            )
 
-                self.assertEqual(related, expected_related)
+            assert related == expected_related
 
     def test_merge_bibliographic_resources_with_multiple_identifiers(self):
         """Test merging two bibliographic resources with different identifiers"""
@@ -1761,39 +1619,24 @@ class TestEntityMerger(unittest.TestCase):
                                 "http://purl.org/spar/datacite/hasIdentifier"
                             ]
                         }
-                        self.assertEqual(len(identifiers), 2)
+                        assert len(identifiers) == 2
                         expected_ids = {
                             "https://w3id.org/oc/meta/id/0680503588",
                             "https://w3id.org/oc/meta/id/0680503589",
                         }
-                        self.assertEqual(identifiers, expected_ids)
+                        assert identifiers == expected_ids
 
                         # Check other metadata preserved
-                        self.assertEqual(
-                            entity["http://purl.org/dc/terms/title"][0]["@value"],
-                            "Higgsing The Stringy Higher Spin Symmetry",
-                        )
-                        self.assertEqual(
-                            entity[
-                                "http://prismstandard.org/namespaces/basic/2.0/publicationDate"
-                            ][0]["@value"],
-                            "2015-10-01",  # Should keep original date format
-                        )
+                        assert entity["http://purl.org/dc/terms/title"][0]["@value"] == "Higgsing The Stringy Higher Spin Symmetry"
+                        assert entity["http://prismstandard.org/namespaces/basic/2.0/publicationDate"][0]["@value"] == "2015-10-01"  # Should keep original date format
 
                         # Check part of relationship preserved
-                        self.assertEqual(
-                            entity["http://purl.org/vocab/frbr/core#partOf"][0]["@id"],
-                            "https://w3id.org/oc/meta/br/06501844297",
-                        )
+                        assert entity["http://purl.org/vocab/frbr/core#partOf"][0]["@id"] == "https://w3id.org/oc/meta/br/06501844297"
 
                     # Verify merged entity doesn't exist
-                    self.assertNotEqual(
-                        entity["@id"], "https://w3id.org/oc/meta/br/06804303923"
-                    )
+                    assert entity["@id"] != "https://w3id.org/oc/meta/br/06804303923"
 
-            self.assertTrue(
-                surviving_entity_found, "Surviving entity not found in output"
-            )
+            assert surviving_entity_found, "Surviving entity not found in output"
 
         # # Verify provenance
         prov_file = os.path.join(
@@ -1829,10 +1672,4 @@ class TestEntityMerger(unittest.TestCase):
                                 merge_query, expected_triples
                             )
 
-            self.assertTrue(
-                merge_snapshot_found, "No merge snapshot found in provenance"
-            )
-
-
-if __name__ == "__main__":
-    unittest.main()
+            assert merge_snapshot_found, "No merge snapshot found in provenance"

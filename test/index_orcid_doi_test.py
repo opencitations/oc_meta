@@ -7,7 +7,6 @@
 
 import os
 import shutil
-import unittest
 from csv import DictReader, DictWriter
 
 from oc_meta.run.orcid_process import IndexOrcidDoi
@@ -23,7 +22,7 @@ def load_files_from_dir(dir:str):
     return output
 
 
-class test_IndexOrcidDoi(unittest.TestCase):
+class TestIndexOrcidDoi:
     def test_explorer(self):
         iOd = IndexOrcidDoi(output_path=CSV_PATH)
         iOd.explorer(summaries_path=SUMMARIES_PATH)
@@ -37,41 +36,41 @@ class test_IndexOrcidDoi(unittest.TestCase):
             {'id': '10.1186/s13568-016-0300-2', 'value': 'Gargouri, Ali [0000-0001-5009-9000]'},
             {'id': '10.1016/j.toxicon.2014.04.010', 'value': 'Gargouri, Ali [0000-0001-5009-9000]'},
             {'id': '10.1155/2014/691742', 'value': 'Gargouri, Ali [0000-0001-5009-9000]'},
-            {'id': '10.1002/rmv.2149', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'}, 
-            {'id': '10.1016/j.transproceed.2019.01.147', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'}, 
-            {'id': '10.1016/j.transproceed.2019.02.044', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'}, 
-            {'id': '10.1016/j.ijcard.2016.06.064', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'}, 
-            {'id': '10.4103/1319-2442.190782', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'}, 
-            {'id': '10.1053/j.jrn.2015.04.009', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'}, 
-            {'id': '10.26719/2015.21.5.354', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'}, 
-            {'id': '10.1093/ckj/sfu046', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'}, 
-            {'id': '10.1007/s00393-012-1058-9', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'}, 
-            {'id': '10.1159/000356118', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'}, 
-            {'id': '10.1111/1756-185x.12007', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'}, 
-            {'id': '10.1007/s11255-011-0007-x', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'}, 
-            {'id': '10.1016/j.jbspin.2011.06.009', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'}, 
+            {'id': '10.1002/rmv.2149', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'},
+            {'id': '10.1016/j.transproceed.2019.01.147', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'},
+            {'id': '10.1016/j.transproceed.2019.02.044', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'},
+            {'id': '10.1016/j.ijcard.2016.06.064', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'},
+            {'id': '10.4103/1319-2442.190782', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'},
+            {'id': '10.1053/j.jrn.2015.04.009', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'},
+            {'id': '10.26719/2015.21.5.354', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'},
+            {'id': '10.1093/ckj/sfu046', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'},
+            {'id': '10.1007/s00393-012-1058-9', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'},
+            {'id': '10.1159/000356118', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'},
+            {'id': '10.1111/1756-185x.12007', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'},
+            {'id': '10.1007/s11255-011-0007-x', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'},
+            {'id': '10.1016/j.jbspin.2011.06.009', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'},
             {'id': '10.1093/ndt/gfq089', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'}
         ], key=lambda d: d['id'])
         shutil.rmtree(CSV_PATH)
-        self.assertEqual(output, expected_output)
+        assert output == expected_output
 
     def test_cache(self):
         os.mkdir(CSV_PATH)
         with open(os.path.join(CSV_PATH, '0.csv'), 'w', encoding='utf-8') as output_file:
-            data_to_write = [            
-                {'id': '10.1002/rmv.2149', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'}, 
-                {'id': '10.1016/j.transproceed.2019.01.147', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'}, 
-                {'id': '10.1016/j.transproceed.2019.02.044', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'}, 
-                {'id': '10.1016/j.ijcard.2016.06.064', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'}, 
-                {'id': '10.4103/1319-2442.190782', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'}, 
-                {'id': '10.1053/j.jrn.2015.04.009', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'}, 
-                {'id': '10.26719/2015.21.5.354', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'}, 
-                {'id': '10.1093/ckj/sfu046', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'}, 
-                {'id': '10.1007/s00393-012-1058-9', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'}, 
-                {'id': '10.1159/000356118', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'}, 
-                {'id': '10.1111/1756-185x.12007', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'}, 
-                {'id': '10.1007/s11255-011-0007-x', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'}, 
-                {'id': '10.1016/j.jbspin.2011.06.009', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'}, 
+            data_to_write = [
+                {'id': '10.1002/rmv.2149', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'},
+                {'id': '10.1016/j.transproceed.2019.01.147', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'},
+                {'id': '10.1016/j.transproceed.2019.02.044', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'},
+                {'id': '10.1016/j.ijcard.2016.06.064', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'},
+                {'id': '10.4103/1319-2442.190782', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'},
+                {'id': '10.1053/j.jrn.2015.04.009', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'},
+                {'id': '10.26719/2015.21.5.354', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'},
+                {'id': '10.1093/ckj/sfu046', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'},
+                {'id': '10.1007/s00393-012-1058-9', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'},
+                {'id': '10.1159/000356118', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'},
+                {'id': '10.1111/1756-185x.12007', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'},
+                {'id': '10.1007/s11255-011-0007-x', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'},
+                {'id': '10.1016/j.jbspin.2011.06.009', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'},
                 {'id': '10.1093/ndt/gfq089', 'value': 'NasrAllah, Mohamed M [0000-0001-5650-3000]'}
             ]
             dict_writer = DictWriter(output_file, ['id', 'value'])
@@ -83,31 +82,27 @@ class test_IndexOrcidDoi(unittest.TestCase):
         output = load_files_from_dir(CSV_PATH)
         unordered_output = {key_value['id']:key_value['value'] for key_value in output}
         expected_output = {
-            '10.1002/rmv.2149': 'NasrAllah, Mohamed M [0000-0001-5650-3000]', 
-            '10.1016/j.transproceed.2019.01.147': 'NasrAllah, Mohamed M [0000-0001-5650-3000]', 
-            '10.1016/j.transproceed.2019.02.044': 'NasrAllah, Mohamed M [0000-0001-5650-3000]', 
-            '10.1016/j.ijcard.2016.06.064': 'NasrAllah, Mohamed M [0000-0001-5650-3000]', 
-            '10.4103/1319-2442.190782': 'NasrAllah, Mohamed M [0000-0001-5650-3000]', 
-            '10.1053/j.jrn.2015.04.009': 'NasrAllah, Mohamed M [0000-0001-5650-3000]', 
-            '10.26719/2015.21.5.354': 'NasrAllah, Mohamed M [0000-0001-5650-3000]', 
-            '10.1093/ckj/sfu046': 'NasrAllah, Mohamed M [0000-0001-5650-3000]', 
-            '10.1007/s00393-012-1058-9': 'NasrAllah, Mohamed M [0000-0001-5650-3000]', 
-            '10.1159/000356118': 'NasrAllah, Mohamed M [0000-0001-5650-3000]', 
-            '10.1111/1756-185x.12007': 'NasrAllah, Mohamed M [0000-0001-5650-3000]', 
-            '10.1007/s11255-011-0007-x': 'NasrAllah, Mohamed M [0000-0001-5650-3000]', 
-            '10.1016/j.jbspin.2011.06.009': 'NasrAllah, Mohamed M [0000-0001-5650-3000]', 
-            '10.1093/ndt/gfq089': 'NasrAllah, Mohamed M [0000-0001-5650-3000]', 
-            'None': '[0000-0001-5002-1000]', 
-            '10.1016/j.indcrop.2020.112103': 'Gargouri, Ali [0000-0001-5009-9000]', 
-            '10.1155/2019/3213521': 'Gargouri, Ali [0000-0001-5009-9000]', 
-            '10.1016/j.bioorg.2018.11.028': 'Gargouri, Ali [0000-0001-5009-9000]', 
-            '10.1016/j.bioorg.2018.03.004': 'Gargouri, Ali [0000-0001-5009-9000]', 
-            '10.1186/s13568-016-0300-2': 'Gargouri, Ali [0000-0001-5009-9000]', 
-            '10.1016/j.toxicon.2014.04.010': 'Gargouri, Ali [0000-0001-5009-9000]', 
+            '10.1002/rmv.2149': 'NasrAllah, Mohamed M [0000-0001-5650-3000]',
+            '10.1016/j.transproceed.2019.01.147': 'NasrAllah, Mohamed M [0000-0001-5650-3000]',
+            '10.1016/j.transproceed.2019.02.044': 'NasrAllah, Mohamed M [0000-0001-5650-3000]',
+            '10.1016/j.ijcard.2016.06.064': 'NasrAllah, Mohamed M [0000-0001-5650-3000]',
+            '10.4103/1319-2442.190782': 'NasrAllah, Mohamed M [0000-0001-5650-3000]',
+            '10.1053/j.jrn.2015.04.009': 'NasrAllah, Mohamed M [0000-0001-5650-3000]',
+            '10.26719/2015.21.5.354': 'NasrAllah, Mohamed M [0000-0001-5650-3000]',
+            '10.1093/ckj/sfu046': 'NasrAllah, Mohamed M [0000-0001-5650-3000]',
+            '10.1007/s00393-012-1058-9': 'NasrAllah, Mohamed M [0000-0001-5650-3000]',
+            '10.1159/000356118': 'NasrAllah, Mohamed M [0000-0001-5650-3000]',
+            '10.1111/1756-185x.12007': 'NasrAllah, Mohamed M [0000-0001-5650-3000]',
+            '10.1007/s11255-011-0007-x': 'NasrAllah, Mohamed M [0000-0001-5650-3000]',
+            '10.1016/j.jbspin.2011.06.009': 'NasrAllah, Mohamed M [0000-0001-5650-3000]',
+            '10.1093/ndt/gfq089': 'NasrAllah, Mohamed M [0000-0001-5650-3000]',
+            'None': '[0000-0001-5002-1000]',
+            '10.1016/j.indcrop.2020.112103': 'Gargouri, Ali [0000-0001-5009-9000]',
+            '10.1155/2019/3213521': 'Gargouri, Ali [0000-0001-5009-9000]',
+            '10.1016/j.bioorg.2018.11.028': 'Gargouri, Ali [0000-0001-5009-9000]',
+            '10.1016/j.bioorg.2018.03.004': 'Gargouri, Ali [0000-0001-5009-9000]',
+            '10.1186/s13568-016-0300-2': 'Gargouri, Ali [0000-0001-5009-9000]',
+            '10.1016/j.toxicon.2014.04.010': 'Gargouri, Ali [0000-0001-5009-9000]',
             '10.1155/2014/691742': 'Gargouri, Ali [0000-0001-5009-9000]'}
         shutil.rmtree(CSV_PATH)
-        self.assertEqual((unordered_output, cache), (expected_output, {'0000-0001-5650-3000'}))
-
-
-if __name__ == '__main__':  # pragma: no cover
-    unittest.main()
+        assert (unordered_output, cache) == (expected_output, {'0000-0001-5650-3000'})

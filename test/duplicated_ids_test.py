@@ -9,9 +9,10 @@ import csv
 import os
 import shutil
 import tempfile
-import unittest
 import zipfile
 from collections import defaultdict
+
+import pytest
 
 import orjson
 from oc_meta.run.find.duplicated_ids import (
@@ -19,8 +20,9 @@ from oc_meta.run.find.duplicated_ids import (
     read_and_analyze_zip_files, save_chunk_to_temp_csv, save_duplicates_to_csv)
 
 
-class TestDuplicatedIds(unittest.TestCase):
-    def setUp(self):
+class TestDuplicatedIds:
+    @pytest.fixture(autouse=True)
+    def setup_method(self, request):
         self.test_dir = tempfile.mkdtemp()
         self.id_dir = os.path.join(self.test_dir, 'id')
         os.makedirs(self.id_dir)
@@ -29,7 +31,8 @@ class TestDuplicatedIds(unittest.TestCase):
         self.test_rdf_with_duplicates = self._create_test_rdf_data()
         self.test_zip_paths = self._create_test_zip_files()
 
-    def tearDown(self):
+        yield
+
         shutil.rmtree(self.test_dir, ignore_errors=True)
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
@@ -146,12 +149,12 @@ class TestDuplicatedIds(unittest.TestCase):
     def test_process_zip_file(self):
         result = process_zip_file(self.test_zip_paths[0])
 
-        self.assertIsInstance(result, dict)
-        self.assertGreater(len(result), 0)
+        assert isinstance(result, dict)
+        assert len(result) > 0
 
         doi_key = ("http://purl.org/spar/datacite/doi", "10.1234/test1")
-        self.assertIn(doi_key, result)
-        self.assertIn("https://w3id.org/oc/meta/id/1", result[doi_key])
+        assert doi_key in result
+        assert "https://w3id.org/oc/meta/id/1" in result[doi_key]
 
     def test_save_and_load_chunk_csv(self):
         entity_info = defaultdict(set)
@@ -166,26 +169,26 @@ class TestDuplicatedIds(unittest.TestCase):
         temp_file = os.path.join(self.temp_dir, 'test_chunk.csv')
         save_chunk_to_temp_csv(entity_info, temp_file)
 
-        self.assertTrue(os.path.exists(temp_file))
+        assert os.path.exists(temp_file)
 
         loaded_info = defaultdict(set)
         load_and_merge_temp_csv(temp_file, loaded_info)
 
-        self.assertEqual(len(loaded_info), 2)
+        assert len(loaded_info) == 2
         doi_key = ("http://purl.org/spar/datacite/doi", "10.1234/test1")
-        self.assertIn(doi_key, loaded_info)
-        self.assertEqual(len(loaded_info[doi_key]), 2)
+        assert doi_key in loaded_info
+        assert len(loaded_info[doi_key]) == 2
 
     def test_process_chunk(self):
         chunk_files = self.test_zip_paths[:2]
         temp_file = process_chunk(chunk_files, self.temp_dir, 0)
 
-        self.assertTrue(os.path.exists(temp_file))
+        assert os.path.exists(temp_file)
 
         with open(temp_file, 'r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             rows = list(reader)
-            self.assertGreater(len(rows), 0)
+            assert len(rows) > 0
 
     def test_save_duplicates_to_csv(self):
         entity_info = defaultdict(set)
@@ -201,57 +204,57 @@ class TestDuplicatedIds(unittest.TestCase):
         output_file = os.path.join(self.temp_dir, 'duplicates.csv')
         save_duplicates_to_csv(entity_info, output_file)
 
-        self.assertTrue(os.path.exists(output_file))
+        assert os.path.exists(output_file)
 
         with open(output_file, 'r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             rows = list(reader)
 
-            self.assertEqual(len(rows), 1)
+            assert len(rows) == 1
 
-            self.assertIn(rows[0]['surviving_entity'], {
+            assert rows[0]['surviving_entity'] in {
                 "https://w3id.org/oc/meta/id/1",
                 "https://w3id.org/oc/meta/id/2",
                 "https://w3id.org/oc/meta/id/3"
-            })
+            }
 
             merged_entities = rows[0]['merged_entities'].split('; ')
-            self.assertEqual(len(merged_entities), 2)
+            assert len(merged_entities) == 2
 
     def test_read_and_analyze_zip_files(self):
         output_csv = os.path.join(self.temp_dir, 'output.csv')
 
         read_and_analyze_zip_files(self.test_dir, output_csv, chunk_size=2)
 
-        self.assertTrue(os.path.exists(output_csv))
+        assert os.path.exists(output_csv)
 
         with open(output_csv, 'r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             rows = list(reader)
 
-            self.assertGreater(len(rows), 0)
+            assert len(rows) > 0
 
     def test_chunking_behavior(self):
         output_csv = os.path.join(self.temp_dir, 'output_chunked.csv')
 
         read_and_analyze_zip_files(self.test_dir, output_csv, chunk_size=1)
 
-        self.assertTrue(os.path.exists(output_csv))
+        assert os.path.exists(output_csv)
 
         with open(output_csv, 'r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             rows = list(reader)
 
             for row in rows:
-                self.assertIn('surviving_entity', row)
-                self.assertIn('merged_entities', row)
+                assert 'surviving_entity' in row
+                assert 'merged_entities' in row
 
     def test_datatype_normalization(self):
         output_csv = os.path.join(self.temp_dir, 'output_datatype.csv')
 
         read_and_analyze_zip_files(self.test_dir, output_csv, chunk_size=2)
 
-        self.assertTrue(os.path.exists(output_csv))
+        assert os.path.exists(output_csv)
 
         with open(output_csv, 'r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
@@ -266,11 +269,4 @@ class TestDuplicatedIds(unittest.TestCase):
                     id6_and_id7_merged = True
                     break
 
-            self.assertTrue(
-                id6_and_id7_merged,
-                "ID 6 (with xsd:string datatype) and ID 7 (without datatype) should be merged as duplicates"
-            )
-
-
-if __name__ == "__main__":
-    unittest.main()
+            assert id6_and_id7_merged, "ID 6 (with xsd:string datatype) and ID 7 (without datatype) should be merged as duplicates"

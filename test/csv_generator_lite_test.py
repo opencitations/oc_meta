@@ -7,11 +7,11 @@
 
 import csv
 import os
-import unittest
 from shutil import rmtree
 from zipfile import ZipFile
 
 import orjson
+import pytest
 import redis
 from oc_meta.lib.file_manager import get_csv_data
 from oc_meta.run.meta.generate_csv import (
@@ -22,8 +22,9 @@ from oc_meta.run.meta.generate_csv import (
 )
 
 
-class TestCSVGeneratorLite(unittest.TestCase):
-    def setUp(self):
+class TestCSVGeneratorLite:
+    @pytest.fixture(autouse=True)
+    def setup_method(self, request):
         self.base_dir = os.path.join("test", "csv_generator_lite")
         self.input_dir = os.path.join(self.base_dir, "input")
         self.output_dir = os.path.join(self.base_dir, "output")
@@ -37,8 +38,7 @@ class TestCSVGeneratorLite(unittest.TestCase):
 
         self.redis_client = init_redis_connection(port=6381, db=5)
         self.redis_client.flushdb()  # Clear test database
-
-    def tearDown(self):
+        yield
         if os.path.exists(self.base_dir):
             rmtree(self.base_dir)
         self.redis_client.flushdb()
@@ -67,7 +67,7 @@ class TestCSVGeneratorLite(unittest.TestCase):
 
     def test_redis_connection_and_caching(self):
         redis_client = init_redis_connection(port=6381, db=5)
-        self.assertIsInstance(redis_client, redis.Redis)
+        assert isinstance(redis_client, redis.Redis)
 
         # Create a test CSV file with some OMIDs
         test_data = [
@@ -84,12 +84,12 @@ class TestCSVGeneratorLite(unittest.TestCase):
             writer.writerows(test_data)
 
         count = load_processed_omids_to_redis(self.output_dir, redis_client)
-        self.assertEqual(count, 3)
+        assert count == 3
 
-        self.assertTrue(is_omid_processed("omid:br/0601", redis_client))
-        self.assertTrue(is_omid_processed("omid:br/0602", redis_client))
-        self.assertTrue(is_omid_processed("omid:br/0603", redis_client))
-        self.assertFalse(is_omid_processed("omid:br/0604", redis_client))
+        assert is_omid_processed("omid:br/0601", redis_client)
+        assert is_omid_processed("omid:br/0602", redis_client)
+        assert is_omid_processed("omid:br/0603", redis_client)
+        assert not is_omid_processed("omid:br/0604", redis_client)
 
     def test_redis_cache_persistence(self):
         # Create initial test data
@@ -123,7 +123,7 @@ class TestCSVGeneratorLite(unittest.TestCase):
             redis_db=5,
         )
 
-        self.assertFalse(is_omid_processed("omid:br/0601", self.redis_client))
+        assert not is_omid_processed("omid:br/0601", self.redis_client)
 
         checkpoint_file = os.path.join(self.output_dir, "processed_br_files.txt")
         if os.path.exists(checkpoint_file):
@@ -178,7 +178,7 @@ class TestCSVGeneratorLite(unittest.TestCase):
                     get_csv_data(os.path.join(self.output_dir, filename))
                 )
 
-        self.assertEqual(len(output_data), 2)
+        assert len(output_data) == 2
 
         first_run_entry = next(
             item for item in output_data if item["title"] == "First Run"
@@ -187,16 +187,16 @@ class TestCSVGeneratorLite(unittest.TestCase):
             item for item in output_data if item["title"] == "Should Be Processed"
         )
 
-        self.assertEqual(first_run_entry["title"], "First Run")
-        self.assertEqual(first_run_entry["id"], "omid:br/0601")
+        assert first_run_entry["title"] == "First Run"
+        assert first_run_entry["id"] == "omid:br/0601"
 
-        self.assertEqual(second_run_entry["title"], "Should Be Processed")
-        self.assertEqual(second_run_entry["id"], "omid:br/0602")
+        assert second_run_entry["title"] == "Should Be Processed"
+        assert second_run_entry["id"] == "omid:br/0602"
 
         # After second run, br/0601 IS in Redis (loaded from first run's CSV)
-        self.assertTrue(is_omid_processed("omid:br/0601", self.redis_client))
+        assert is_omid_processed("omid:br/0601", self.redis_client)
         # br/0602 is NOT in Redis (only loaded from CSV, not added during processing)
-        self.assertFalse(is_omid_processed("omid:br/0602", self.redis_client))
+        assert not is_omid_processed("omid:br/0602", self.redis_client)
 
     def test_redis_cache_cleanup(self):
         input_data = [{"id": "omid:br/0601", "title": "First Entry"}]
@@ -211,11 +211,11 @@ class TestCSVGeneratorLite(unittest.TestCase):
             redis_db=5,
         )
 
-        self.assertFalse(is_omid_processed("omid:br/0601", self.redis_client))
+        assert not is_omid_processed("omid:br/0601", self.redis_client)
 
         load_processed_omids_to_redis(self.output_dir, self.redis_client)
 
-        self.assertTrue(is_omid_processed("omid:br/0601", self.redis_client))
+        assert is_omid_processed("omid:br/0601", self.redis_client)
 
         generate_csv(
             input_dir="/nonexistent/dir",
@@ -226,17 +226,14 @@ class TestCSVGeneratorLite(unittest.TestCase):
             redis_db=5,
         )
 
-        self.assertTrue(
-            is_omid_processed("omid:br/0601", self.redis_client),
-            "Redis cache should be retained after a failed run",
-        )
+        assert is_omid_processed("omid:br/0601", self.redis_client), "Redis cache should be retained after a failed run"
 
     def test_redis_error_handling(self):
-        with self.assertRaises(redis.ConnectionError):
+        with pytest.raises(redis.ConnectionError):
             init_redis_connection(port=9999)  # Invalid port
 
         count = load_processed_omids_to_redis("/nonexistent/dir", self.redis_client)
-        self.assertEqual(count, 0)
+        assert count == 0
 
     def test_concurrent_processing_with_redis(self):
         # Create multiple test files
@@ -307,10 +304,10 @@ class TestCSVGeneratorLite(unittest.TestCase):
                     get_csv_data(os.path.join(self.output_dir, filename))
                 )
 
-        self.assertEqual(len(all_output_data), 200)
+        assert len(all_output_data) == 200
 
         processed_ids = {row["id"] for row in all_output_data}
-        self.assertEqual(len(processed_ids), 200)
+        assert len(processed_ids) == 200
 
     def test_basic_br_processing(self):
         test_data = [
@@ -351,14 +348,14 @@ class TestCSVGeneratorLite(unittest.TestCase):
         )
 
         output_files = [f for f in os.listdir(self.output_dir) if f.endswith(".csv")]
-        self.assertEqual(len(output_files), 1)
+        assert len(output_files) == 1
 
         output_data = get_csv_data(os.path.join(self.output_dir, output_files[0]))
-        self.assertEqual(len(output_data), 1)
-        self.assertEqual(output_data[0]["title"], "Test Article")
-        self.assertEqual(output_data[0]["pub_date"], "2024-01-01")
-        self.assertEqual(output_data[0]["type"], "journal article")
-        self.assertEqual(output_data[0]["id"], "omid:br/0601")
+        assert len(output_data) == 1
+        assert output_data[0]["title"] == "Test Article"
+        assert output_data[0]["pub_date"] == "2024-01-01"
+        assert output_data[0]["type"] == "journal article"
+        assert output_data[0]["id"] == "omid:br/0601"
 
     def test_complex_br_with_related_entities(self):
         # Create directory structure for each entity type
@@ -453,7 +450,7 @@ class TestCSVGeneratorLite(unittest.TestCase):
         )
 
         output_data = get_csv_data(os.path.join(self.output_dir, "output_0.csv"))
-        self.assertEqual(len(output_data), 2)  # Should have 2 rows: article and journal
+        assert len(output_data) == 2  # Should have 2 rows: article and journal
 
         article = next(
             (item for item in output_data if item["type"] == "journal article"), None
@@ -462,16 +459,16 @@ class TestCSVGeneratorLite(unittest.TestCase):
             (item for item in output_data if item["type"] == "journal"), None
         )
 
-        self.assertIsNotNone(article)
-        self.assertEqual(article["title"], "Complex Article")
-        self.assertEqual(article["venue"], f"Test Journal [omid:br/{supplier_prefix}3]")
-        self.assertEqual(article["author"], "Test Author [omid:ra/0601]")
-        self.assertEqual(article["id"], f"omid:br/{supplier_prefix}2")
+        assert article is not None
+        assert article["title"] == "Complex Article"
+        assert article["venue"] == f"Test Journal [omid:br/{supplier_prefix}3]"
+        assert article["author"] == "Test Author [omid:ra/0601]"
+        assert article["id"] == f"omid:br/{supplier_prefix}2"
 
-        self.assertIsNotNone(journal)
-        self.assertEqual(journal["title"], "Test Journal")
-        self.assertEqual(journal["type"], "journal")
-        self.assertEqual(journal["id"], f"omid:br/{supplier_prefix}3")
+        assert journal is not None
+        assert journal["title"] == "Test Journal"
+        assert journal["type"] == "journal"
+        assert journal["id"] == f"omid:br/{supplier_prefix}3"
 
     def test_empty_input_directory(self):
         generate_csv(
@@ -483,7 +480,7 @@ class TestCSVGeneratorLite(unittest.TestCase):
             redis_db=5,
         )
 
-        self.assertEqual(len(os.listdir(self.output_dir)), 0)
+        assert len(os.listdir(self.output_dir)) == 0
 
     def test_br_with_multiple_authors_and_editors(self):
         supplier_prefix = "060"
@@ -619,7 +616,7 @@ class TestCSVGeneratorLite(unittest.TestCase):
         )
 
         output_data = get_csv_data(os.path.join(self.output_dir, "output_0.csv"))
-        self.assertEqual(len(output_data), 1)
+        assert len(output_data) == 1
 
         expected_authors = (
             f"Smith, John [omid:ra/{supplier_prefix}1]; "
@@ -630,8 +627,8 @@ class TestCSVGeneratorLite(unittest.TestCase):
             f"Wilson, Alice [omid:ra/{supplier_prefix}4]"
         )
 
-        self.assertEqual(output_data[0]["author"], expected_authors)
-        self.assertEqual(output_data[0]["editor"], expected_editors)
+        assert output_data[0]["author"] == expected_authors
+        assert output_data[0]["editor"] == expected_editors
 
     def test_br_with_identifiers(self):
         supplier_prefix = "060"
@@ -702,12 +699,12 @@ class TestCSVGeneratorLite(unittest.TestCase):
         )
 
         output_data = get_csv_data(os.path.join(self.output_dir, "output_0.csv"))
-        self.assertEqual(len(output_data), 1)
+        assert len(output_data) == 1
 
         expected_ids = (
             f"omid:br/{supplier_prefix}1 doi:10.1234/test.123 isbn:978-0-123456-47-2"
         )
-        self.assertEqual(output_data[0]["id"], expected_ids)
+        assert output_data[0]["id"] == expected_ids
 
     def test_br_with_page_numbers(self):
         supplier_prefix = "060"
@@ -766,8 +763,8 @@ class TestCSVGeneratorLite(unittest.TestCase):
         )
 
         output_data = get_csv_data(os.path.join(self.output_dir, "output_0.csv"))
-        self.assertEqual(len(output_data), 1)
-        self.assertEqual(output_data[0]["page"], "100-120")
+        assert len(output_data) == 1
+        assert output_data[0]["page"] == "100-120"
 
     def test_malformed_data_handling(self):
         supplier_prefix = "060"
@@ -813,10 +810,10 @@ class TestCSVGeneratorLite(unittest.TestCase):
         )
 
         output_data = get_csv_data(os.path.join(self.output_dir, "output_0.csv"))
-        self.assertEqual(len(output_data), 1)
-        self.assertEqual(output_data[0]["title"], "")
-        self.assertEqual(output_data[0]["author"], "")
-        self.assertEqual(output_data[0]["venue"], "")
+        assert len(output_data) == 1
+        assert output_data[0]["title"] == ""
+        assert output_data[0]["author"] == ""
+        assert output_data[0]["venue"] == ""
 
     def test_br_with_hierarchical_venue_structures(self):
         supplier_prefix = "060"
@@ -968,14 +965,14 @@ class TestCSVGeneratorLite(unittest.TestCase):
 
         output_data = get_csv_data(os.path.join(self.output_dir, "output_0.csv"))
 
-        self.assertEqual(len(output_data), 5)  # 4 articles + 1 journal
+        assert len(output_data) == 5  # 4 articles + 1 journal
 
         volume_or_issue_entries = [
             item
             for item in output_data
             if item["type"] in ["journal volume", "journal issue"]
         ]
-        self.assertEqual(len(volume_or_issue_entries), 0)
+        assert len(volume_or_issue_entries) == 0
 
         full_hierarchy = next(
             item for item in output_data if item["title"] == "Article in Full Hierarchy"
@@ -990,29 +987,21 @@ class TestCSVGeneratorLite(unittest.TestCase):
             item for item in output_data if item["title"] == "Article in Journal"
         )
 
-        self.assertEqual(full_hierarchy["issue"], "2")
-        self.assertEqual(full_hierarchy["volume"], "42")
-        self.assertEqual(
-            full_hierarchy["venue"], f"Test Journal [omid:br/{supplier_prefix}4]"
-        )
+        assert full_hierarchy["issue"] == "2"
+        assert full_hierarchy["volume"] == "42"
+        assert full_hierarchy["venue"] == f"Test Journal [omid:br/{supplier_prefix}4]"
 
-        self.assertEqual(issue_journal["issue"], "3")
-        self.assertEqual(issue_journal["volume"], "")
-        self.assertEqual(
-            issue_journal["venue"], f"Test Journal [omid:br/{supplier_prefix}4]"
-        )
+        assert issue_journal["issue"] == "3"
+        assert issue_journal["volume"] == ""
+        assert issue_journal["venue"] == f"Test Journal [omid:br/{supplier_prefix}4]"
 
-        self.assertEqual(volume_journal["issue"], "")
-        self.assertEqual(volume_journal["volume"], "5")
-        self.assertEqual(
-            volume_journal["venue"], f"Test Journal [omid:br/{supplier_prefix}4]"
-        )
+        assert volume_journal["issue"] == ""
+        assert volume_journal["volume"] == "5"
+        assert volume_journal["venue"] == f"Test Journal [omid:br/{supplier_prefix}4]"
 
-        self.assertEqual(direct_journal["issue"], "")
-        self.assertEqual(direct_journal["volume"], "")
-        self.assertEqual(
-            direct_journal["venue"], f"Test Journal [omid:br/{supplier_prefix}4]"
-        )
+        assert direct_journal["issue"] == ""
+        assert direct_journal["volume"] == ""
+        assert direct_journal["venue"] == f"Test Journal [omid:br/{supplier_prefix}4]"
 
     def test_book_in_series(self):
         supplier_prefix = "060"
@@ -1066,12 +1055,10 @@ class TestCSVGeneratorLite(unittest.TestCase):
 
         book = next(item for item in output_data if item["type"] == "book")
 
-        self.assertEqual(book["title"], "Test Book")
-        self.assertEqual(
-            book["venue"], f"Test Book Series [omid:br/{supplier_prefix}2]"
-        )
-        self.assertEqual(book["volume"], "")  # Should not have volume
-        self.assertEqual(book["issue"], "")  # Should not have issue
+        assert book["title"] == "Test Book"
+        assert book["venue"] == f"Test Book Series [omid:br/{supplier_prefix}2]"
+        assert book["volume"] == ""  # Should not have volume
+        assert book["issue"] == ""  # Should not have issue
 
     def test_br_with_multiple_roles(self):
         supplier_prefix = "060"
@@ -1187,15 +1174,13 @@ class TestCSVGeneratorLite(unittest.TestCase):
         )
 
         output_data = get_csv_data(os.path.join(self.output_dir, "output_0.csv"))
-        self.assertEqual(len(output_data), 1)
+        assert len(output_data) == 1
 
         book = output_data[0]
-        self.assertEqual(book["title"], "Multi-Role Book")
-        self.assertEqual(book["author"], f"Smith, John [omid:ra/{supplier_prefix}1]")
-        self.assertEqual(book["editor"], f"Editor Name [omid:ra/{supplier_prefix}2]")
-        self.assertEqual(
-            book["publisher"], f"Publisher House [omid:ra/{supplier_prefix}3]"
-        )
+        assert book["title"] == "Multi-Role Book"
+        assert book["author"] == f"Smith, John [omid:ra/{supplier_prefix}1]"
+        assert book["editor"] == f"Editor Name [omid:ra/{supplier_prefix}2]"
+        assert book["publisher"] == f"Publisher House [omid:ra/{supplier_prefix}3]"
 
     def test_ordered_authors(self):
         supplier_prefix = "060"
@@ -1302,14 +1287,14 @@ class TestCSVGeneratorLite(unittest.TestCase):
         )
 
         output_data = get_csv_data(os.path.join(self.output_dir, "output_0.csv"))
-        self.assertEqual(len(output_data), 1)
+        assert len(output_data) == 1
 
         expected_authors = (
             f"First Author [omid:ra/{supplier_prefix}1]; "
             f"Second Author [omid:ra/{supplier_prefix}2]; "
             f"Third Author [omid:ra/{supplier_prefix}3]"
         )
-        self.assertEqual(output_data[0]["author"], expected_authors)
+        assert output_data[0]["author"] == expected_authors
 
     def test_cyclic_hasNext_relations(self):
         supplier_prefix = "060"
@@ -1421,42 +1406,30 @@ class TestCSVGeneratorLite(unittest.TestCase):
         )
 
         output_data = get_csv_data(os.path.join(self.output_dir, "output_0.csv"))
-        self.assertEqual(len(output_data), 1)
+        assert len(output_data) == 1
 
         # The order should be maintained until the cycle is detected
         authors = output_data[0]["author"].split("; ")
-        self.assertGreater(len(authors), 0)
+        assert len(authors) > 0
 
-        self.assertTrue(
-            any(
-                f"First Author [omid:ra/{supplier_prefix}1]" in author
-                for author in authors
-            )
+        assert any(
+            f"First Author [omid:ra/{supplier_prefix}1]" in author
+            for author in authors
         )
-        self.assertTrue(
-            any(
-                f"Second Author [omid:ra/{supplier_prefix}2]" in author
-                for author in authors
-            )
+        assert any(
+            f"Second Author [omid:ra/{supplier_prefix}2]" in author
+            for author in authors
         )
 
         author_set = set(authors)
-        self.assertEqual(
-            len(authors),
-            len(author_set),
-            "Found duplicate authors in output: each author should appear exactly once",
-        )
+        assert len(authors) == len(author_set), "Found duplicate authors in output: each author should appear exactly once"
 
         expected_authors = [
             f"First Author [omid:ra/{supplier_prefix}1]",
             f"Second Author [omid:ra/{supplier_prefix}2]",
             f"Third Author [omid:ra/{supplier_prefix}3]",
         ]
-        self.assertEqual(
-            authors,
-            expected_authors,
-            "Authors should be in correct order and each should appear exactly once",
-        )
+        assert authors == expected_authors, "Authors should be in correct order and each should appear exactly once"
 
     def test_multiple_input_files(self):
         supplier_prefix = "060"
@@ -1601,7 +1574,7 @@ class TestCSVGeneratorLite(unittest.TestCase):
         )
 
         output_files = sorted(f for f in os.listdir(self.output_dir) if f.endswith(".csv"))
-        self.assertGreater(len(output_files), 0)
+        assert len(output_files) > 0
 
         # Collect all output data
         all_output_data = []
@@ -1610,7 +1583,7 @@ class TestCSVGeneratorLite(unittest.TestCase):
                 get_csv_data(os.path.join(self.output_dir, output_file))
             )
 
-        self.assertEqual(len(all_output_data), 5)  # Should have 5 articles total
+        assert len(all_output_data) == 5  # Should have 5 articles total
 
         article_1 = next(
             item
@@ -1638,15 +1611,13 @@ class TestCSVGeneratorLite(unittest.TestCase):
             if item["id"] == f"omid:br/{supplier_prefix}2001"
         )
 
-        self.assertEqual(article_1["title"], "Article 1")
-        self.assertEqual(article_1000["title"], "Article 1000")
-        self.assertEqual(article_1001["title"], "Article 1001")
-        self.assertEqual(article_2000["title"], "Article 2000")
-        self.assertEqual(article_2001["title"], "Article 2001")
+        assert article_1["title"] == "Article 1"
+        assert article_1000["title"] == "Article 1000"
+        assert article_1001["title"] == "Article 1001"
+        assert article_2000["title"] == "Article 2000"
+        assert article_2001["title"] == "Article 2001"
 
-        self.assertEqual(
-            article_2001["author"], f"Test Author [omid:ra/{supplier_prefix}2001]"
-        )
+        assert article_2001["author"] == f"Test Author [omid:ra/{supplier_prefix}2001]"
 
     def test_max_rows_per_file_and_data_integrity(self):
         supplier_prefix = "060"
@@ -1700,9 +1671,7 @@ class TestCSVGeneratorLite(unittest.TestCase):
         output_files = sorted(f for f in os.listdir(self.output_dir) if f.endswith(".csv"))
 
         # We expect at least 2 files: 3500 entries should create 2 files (3000 + 500)
-        self.assertGreaterEqual(
-            len(output_files), 2, "Should have at least 2 output files for 3500 entries"
-        )
+        assert len(output_files) >= 2, "Should have at least 2 output files for 3500 entries"
 
         # Collect all entries from all output files
         all_entries = []
@@ -1710,41 +1679,25 @@ class TestCSVGeneratorLite(unittest.TestCase):
             entries = get_csv_data(os.path.join(self.output_dir, output_file))
 
             # Verify each file has at most 3000 rows
-            self.assertLessEqual(
-                len(entries),
-                3000,
-                f"File {output_file} has more than 3000 rows: {len(entries)}",
-            )
+            assert len(entries) <= 3000, f"File {output_file} has more than 3000 rows: {len(entries)}"
 
             all_entries.extend(entries)
 
-        self.assertEqual(
-            len(all_entries),
-            3500,
-            f"Expected 3500 total entries, got {len(all_entries)}",
-        )
+        assert len(all_entries) == 3500, f"Expected 3500 total entries, got {len(all_entries)}"
 
         unique_ids = {entry["id"] for entry in all_entries}
-        self.assertEqual(
-            len(unique_ids),
-            3500,
-            f"Expected 3500 unique entries, got {len(unique_ids)}",
-        )
+        assert len(unique_ids) == 3500, f"Expected 3500 unique entries, got {len(unique_ids)}"
 
         expected_ids = {f"omid:br/{supplier_prefix}{i}" for i in range(1, 3501)}
-        self.assertEqual(
-            unique_ids,
-            expected_ids,
-            "Some entries are missing or unexpected entries are present",
-        )
+        assert unique_ids == expected_ids, "Some entries are missing or unexpected entries are present"
 
         for i in range(1, 3501):
             entry = next(
                 e for e in all_entries if e["id"] == f"omid:br/{supplier_prefix}{i}"
             )
-            self.assertEqual(entry["title"], f"Article {i}")
-            self.assertEqual(entry["pub_date"], "2024-01-01")
-            self.assertEqual(entry["type"], "journal article")
+            assert entry["title"] == f"Article {i}"
+            assert entry["pub_date"] == "2024-01-01"
+            assert entry["type"] == "journal article"
 
     def test_csv_field_limit_handling(self):
         # Create a test CSV with a very large field
@@ -1767,8 +1720,8 @@ class TestCSVGeneratorLite(unittest.TestCase):
         # Try loading the data - this should trigger the field limit increase
         count = load_processed_omids_to_redis(self.output_dir, self.redis_client)
 
-        self.assertEqual(count, 1)
-        self.assertTrue(is_omid_processed("omid:br/0601", self.redis_client))
+        assert count == 1
+        assert is_omid_processed("omid:br/0601", self.redis_client)
 
     def test_complex_br_with_missing_authors(self):
         supplier_prefix = "06250"
@@ -1926,24 +1879,21 @@ class TestCSVGeneratorLite(unittest.TestCase):
         )
 
         output_data = get_csv_data(os.path.join(self.output_dir, "output_0.csv"))
-        self.assertEqual(len(output_data), 1)
+        assert len(output_data) == 1
         article = output_data[0]
-        self.assertEqual(
-            article["title"],
-            "OpenCitations, An Infrastructure Organization For Open Scholarship",
-        )
-        self.assertEqual(article["pub_date"], "2020-02")
-        self.assertEqual(article["type"], "journal article")
-        self.assertEqual(article["id"], "omid:br/062501777134")
+        assert article["title"] == "OpenCitations, An Infrastructure Organization For Open Scholarship"
+        assert article["pub_date"] == "2020-02"
+        assert article["type"] == "journal article"
+        assert article["id"] == "omid:br/062501777134"
 
         expected_authors = (
             "Peroni, Silvio [omid:ra/0614010840729]; "
             "Shotton, D M [omid:ra/0621010775619]"
         )
-        self.assertEqual(article["author"], expected_authors)
+        assert article["author"] == expected_authors
 
         # Publisher field should still be empty since we haven't added the publisher RA data
-        self.assertEqual(article["publisher"], "")
+        assert article["publisher"] == ""
 
     def test_multiple_first_ars(self):
         supplier_prefix = "060"
@@ -2065,33 +2015,17 @@ class TestCSVGeneratorLite(unittest.TestCase):
         )
 
         output_data = get_csv_data(os.path.join(self.output_dir, "output_0.csv"))
-        self.assertEqual(len(output_data), 1)
+        assert len(output_data) == 1
 
         article = output_data[0]
         authors = article["author"].split("; ")
 
-        self.assertEqual(
-            len(authors),
-            2,
-            "Should have exactly two authors (first author and connected one)",
-        )
+        assert len(authors) == 2, "Should have exactly two authors (first author and connected one)"
 
         expected_authors = [
             f"First Potential Author [omid:ra/{supplier_prefix}1]",
             f"Connected Author [omid:ra/{supplier_prefix}3]",
         ]
-        self.assertEqual(
-            authors,
-            expected_authors,
-            "Should have first author and connected author in correct order",
-        )
+        assert authors == expected_authors, "Should have first author and connected author in correct order"
 
-        self.assertNotIn(
-            f"Second Potential Author [omid:ra/{supplier_prefix}2]",
-            article["author"],
-            "Second potential author should not be in the output",
-        )
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert f"Second Potential Author [omid:ra/{supplier_prefix}2]" not in article["author"], "Second potential author should not be in the output"

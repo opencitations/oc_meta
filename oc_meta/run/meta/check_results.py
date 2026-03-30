@@ -42,7 +42,7 @@ def retry_on_error(func: Callable[[], T]) -> T:
     raise RuntimeError("Unreachable")
 
 
-def parse_identifiers(id_string: str) -> List[Dict[str, str]]:
+def parse_identifiers(id_string: str | None) -> List[Dict[str, str]]:
     """
     Parse space-separated identifiers in the format schema:value
     Returns a list of dicts with 'schema' and 'value' keys.

@@ -9,7 +9,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import unittest
+import pytest
 from test.test_utils import (PROV_SERVER, SERVER, execute_sparql_construct,
                              execute_sparql_query, normalize_row_ids,
                              reset_redis_counters, reset_server,
@@ -34,15 +34,14 @@ def _term_to_jsonld(term: URIRef | Literal) -> dict:
     return {"@value": str(term), "@type": str(term.datatype)}
 
 
-class test_ProcessTest(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        """Setup eseguito una volta per tutta la classe di test"""
+class TestProcessTest:
+    @pytest.fixture(scope="class", autouse=True)
+    def setup_class(self, request):
         if not wait_for_triplestore(SERVER, max_wait=30):
             raise TimeoutError("Triplestore not ready after 30 seconds")
 
-    def setUp(self):
-        """Setup eseguito prima di ogni test"""
+    @pytest.fixture(autouse=True)
+    def setup_method(self, request):
         # Create temporary directory for cache files
         self.temp_dir = tempfile.mkdtemp()
         self.cache_file = os.path.join(self.temp_dir, "ts_upload_cache.json")
@@ -52,7 +51,8 @@ class test_ProcessTest(unittest.TestCase):
         reset_server()
         reset_redis_counters()
 
-    def tearDown(self):
+        yield
+
         reset_redis_counters()
         # Remove temporary directory and its contents
         if hasattr(self, "temp_dir") and os.path.exists(self.temp_dir):
@@ -157,9 +157,8 @@ class test_ProcessTest(unittest.TestCase):
             normalize_row_ids(row)
         output = sorted(sorted(d.items()) for d in output)
         expected_output = sorted(sorted(d.items()) for d in expected_output)
-        self.maxDiff = None
         shutil.rmtree(output_folder)
-        self.assertEqual(output, expected_output)
+        assert output == expected_output
 
     def test_run_meta_process_ids_only(self):
         output_folder = os.path.join(BASE_DIR, "output_5")
@@ -203,9 +202,8 @@ class test_ProcessTest(unittest.TestCase):
             normalize_row_ids(row)
         output = sorted(sorted(d.items()) for d in output)
         expected_output = sorted(sorted(d.items()) for d in expected_output)
-        self.maxDiff = None
         shutil.rmtree(output_folder)
-        self.assertEqual(output, expected_output)
+        assert output == expected_output
 
     def test_provenance(self):
         # Bulk load disabled in meta_config_3.yaml
@@ -488,8 +486,7 @@ class test_ProcessTest(unittest.TestCase):
             ],
         }
         shutil.rmtree(output_folder)
-        self.maxDiff = None
-        self.assertEqual(output, expected_output)
+        assert output == expected_output
 
     def test_run_meta_process_thread_safe(self):
         output_folder = os.path.join(BASE_DIR, "output_4")
@@ -869,7 +866,7 @@ class test_ProcessTest(unittest.TestCase):
         # For each entity type in the expected output, verify that all expected entities exist
         # with their expected properties in the actual output from the triplestore
         for entity_type, expected_graphs in expected_output.items():
-            self.assertIn(entity_type, processed_output, f"Entity type {entity_type} missing from triplestore output")
+            assert entity_type in processed_output, f"Entity type {entity_type} missing from triplestore output"
             
             for expected_graph in expected_graphs:
                 expected_entities = expected_graph['@graph']
@@ -899,7 +896,7 @@ class test_ProcessTest(unittest.TestCase):
                     # Check that all expected predicates and objects exist
                     for pred, expected_objects in expected_entity.items():
                         if pred != '@id':
-                            self.assertIn(pred, actual_entity, f"Predicate {pred} missing for entity {entity_id}")
+                            assert pred in actual_entity, f"Predicate {pred} missing for entity {entity_id}"
                             
                             # For each expected object, verify it exists in the actual objects
                             for expected_obj in expected_objects:
@@ -909,18 +906,14 @@ class test_ProcessTest(unittest.TestCase):
                                         found = True
                                         break
 
-                                self.assertTrue(found, f"Object {expected_obj} not found for predicate {pred} of entity {entity_id}\nActual values: {actual_entity[pred]}")
+                                assert found, f"Object {expected_obj} not found for predicate {pred} of entity {entity_id}\nActual values: {actual_entity[pred]}"
                                 
         
         if os.path.exists(output_folder):
             shutil.rmtree(output_folder)
         
-        self.assertFalse(
-            "Reader: ERROR" in proc.stdout or "Storer: ERROR" in proc.stdout
-        )
-        self.assertFalse(
-            "Reader: ERROR" in proc.stdout or "Storer: ERROR" in proc.stdout
-        )
+        assert not ("Reader: ERROR" in proc.stdout or "Storer: ERROR" in proc.stdout)
+        assert not ("Reader: ERROR" in proc.stdout or "Storer: ERROR" in proc.stdout)
 
     def test_silencer_on(self):
         output_folder = os.path.join(BASE_DIR, "output_6")
@@ -966,8 +959,8 @@ class test_ProcessTest(unittest.TestCase):
             },
         }
         shutil.rmtree(output_folder)
-        self.assertEqual(result["head"], expected_result["head"])
-        self.assertEqual(result["results"], expected_result["results"])
+        assert result["head"] == expected_result["head"]
+        assert result["results"] == expected_result["results"]
 
     def test_silencer_off(self):
         output_folder = os.path.join(BASE_DIR, "output_7")
@@ -1013,8 +1006,8 @@ class test_ProcessTest(unittest.TestCase):
             },
         }
         shutil.rmtree(output_folder)
-        self.assertEqual(result["head"], expected_result["head"])
-        self.assertEqual(result["results"], expected_result["results"])
+        assert result["head"] == expected_result["head"]
+        assert result["results"] == expected_result["results"]
 
     def test_omid_in_input_data(self):
         query_all = """
@@ -1098,9 +1091,7 @@ class test_ProcessTest(unittest.TestCase):
             (None, URIRef("http://www.w3.org/ns/prov#invalidatedAtTime"), None)  # type: ignore[arg-type]
         )
         shutil.rmtree(output_folder)
-        self.assertTrue(
-            normalize_graph(result).isomorphic(normalize_graph(expected_result))
-        )
+        assert normalize_graph(result).isomorphic(normalize_graph(expected_result))
 
     def test_publishers_sequence(self):
         output_folder = os.path.join(BASE_DIR, "output_9")
@@ -1139,9 +1130,7 @@ class test_ProcessTest(unittest.TestCase):
             os.path.join(BASE_DIR, "test_publishers_sequence.json"), format="json-ld"
         )
         shutil.rmtree(output_folder)
-        self.assertTrue(
-            normalize_graph(result).isomorphic(normalize_graph(expected_result))
-        )
+        assert normalize_graph(result).isomorphic(normalize_graph(expected_result))
 
     def test_duplicate_omids_with_datatype(self):
         output_folder = os.path.join(BASE_DIR, "output_duplicate_test")
@@ -1288,15 +1277,9 @@ class test_ProcessTest(unittest.TestCase):
 
         # Check that we have both ISSNs and no duplicates
         for issn_value, ids in ids_by_value.items():
-            self.assertEqual(
-                len(ids), 1, f"Found multiple IDs for ISSN {issn_value}: {ids}"
-            )
+            assert len(ids) == 1, f"Found multiple IDs for ISSN {issn_value}: {ids}"
 
-        self.assertEqual(
-            len(ids_by_value),
-            2,
-            f"Expected 2 ISSNs, found {len(ids_by_value)}: {list(ids_by_value.keys())}",
-        )
+        assert len(ids_by_value) == 2, f"Expected 2 ISSNs, found {len(ids_by_value)}: {list(ids_by_value.keys())}"
 
     def test_duplicate_omids_with_venue_datatype(self):
         """Test to verify that identifiers are not duplicated when merging previously unconnected venues"""
@@ -1472,16 +1455,10 @@ class test_ProcessTest(unittest.TestCase):
 
         # Check that we don't have duplicate IDs for any ISSN
         for issn_value, ids in ids_by_value.items():
-            self.assertEqual(
-                len(ids), 1, f"Found multiple IDs for ISSN {issn_value} in venue: {ids}"
-            )
+            assert len(ids) == 1, f"Found multiple IDs for ISSN {issn_value} in venue: {ids}"
 
         # Verify that pre-existing IDs were reused
-        self.assertTrue(
-            any("0601" in id for ids in ids_by_value.values() for id in ids)
-            and any("0602" in id for ids in ids_by_value.values() for id in ids),
-            "Pre-existing IDs were not reused",
-        )
+        assert any("0601" in id for ids in ids_by_value.values() for id in ids) and any("0602" in id for ids in ids_by_value.values() for id in ids), "Pre-existing IDs were not reused"
 
     def test_doi_with_multiple_slashes(self):
         """Test handling of DOIs containing multiple forward slashes"""
@@ -1584,17 +1561,10 @@ class test_ProcessTest(unittest.TestCase):
             os.remove(meta_config_path)
 
         # Verify results
-        self.assertTrue(
-            len(result["results"]["bindings"]) > 0,
-            "DOI with multiple slashes was not processed correctly",
-        )
+        assert len(result["results"]["bindings"]) > 0, "DOI with multiple slashes was not processed correctly"
 
         # Check that we got exactly one result
-        self.assertEqual(
-            len(result["results"]["bindings"]),
-            1,
-            f"Expected 1 result, got {len(result['results']['bindings'])}",
-        )
+        assert len(result["results"]["bindings"]) == 1, f"Expected 1 result, got {len(result['results']['bindings'])}"
 
     def test_volume_issue_deduplication(self):
         """Test to verify that volumes and issues are properly deduplicated"""
@@ -1725,23 +1695,15 @@ class test_ProcessTest(unittest.TestCase):
         bindings = result["results"]["bindings"]
 
         # Should have 2 articles
-        self.assertEqual(len(bindings), 2, "Expected 2 articles")
+        assert len(bindings) == 2, "Expected 2 articles"
 
         # Both articles should reference the same volume and issue
         first_volume = bindings[0]["volume"]["value"]
         first_issue = bindings[0]["issue"]["value"]
 
         for binding in bindings[1:]:
-            self.assertEqual(
-                binding["volume"]["value"],
-                first_volume,
-                "Articles reference different volumes",
-            )
-            self.assertEqual(
-                binding["issue"]["value"],
-                first_issue,
-                "Articles reference different issues",
-            )
+            assert binding["volume"]["value"] == first_volume, "Articles reference different volumes"
+            assert binding["issue"]["value"] == first_issue, "Articles reference different issues"
 
     def test_volume_issue_deduplication_with_triplestore(self):
         """Test that volumes and issues are properly deduplicated when they already exist in the triplestore"""
@@ -1934,7 +1896,7 @@ class test_ProcessTest(unittest.TestCase):
 
         # Verify results
         bindings = result["results"]["bindings"]
-        self.assertEqual(len(bindings), 1, "Expected exactly one article")
+        assert len(bindings) == 1, "Expected exactly one article"
 
         # Get the URIs from the result
         venue_uri = bindings[0]["venue"]["value"]
@@ -1943,34 +1905,19 @@ class test_ProcessTest(unittest.TestCase):
         issn = bindings[0]["issn"]["value"]
 
         # Check if venue was deduplicated (should use existing venue)
-        self.assertEqual(
-            venue_uri,
-            "https://w3id.org/oc/meta/br/0601",
-            "Venue was not deduplicated correctly",
-        )
+        assert venue_uri == "https://w3id.org/oc/meta/br/0601", "Venue was not deduplicated correctly"
 
         # Check if volume was deduplicated - either version is valid
-        self.assertIn(
-            volume_uri,
-            ["https://w3id.org/oc/meta/br/0602", "https://w3id.org/oc/meta/br/0604"],
-            "Volume was not deduplicated correctly - should use one of the existing volumes",
-        )
+        assert volume_uri in ["https://w3id.org/oc/meta/br/0602", "https://w3id.org/oc/meta/br/0604"], "Volume was not deduplicated correctly - should use one of the existing volumes"
 
         # Check if issue was deduplicated - either version is valid
-        self.assertIn(
-            issue_uri,
-            ["https://w3id.org/oc/meta/br/0603", "https://w3id.org/oc/meta/br/0605"],
-            "Issue was not deduplicated correctly - should use one of the existing issues",
-        )
+        assert issue_uri in ["https://w3id.org/oc/meta/br/0603", "https://w3id.org/oc/meta/br/0605"], "Issue was not deduplicated correctly - should use one of the existing issues"
 
         # Check ISSN
-        self.assertEqual(issn, "1756-1833", "ISSN does not match")
+        assert issn == "1756-1833", "ISSN does not match"
 
         # Verify no new volumes/issues were created
-        self.assertFalse(
-            new_entities_created,
-            "New volumes/issues were created when they should have been deduplicated",
-        )
+        assert not new_entities_created, "New volumes/issues were created when they should have been deduplicated"
 
     def test_temporary_identifiers(self):
         """Test that temporary identifiers are used for deduplication but not saved, and an OMID is generated"""
@@ -2083,21 +2030,14 @@ class test_ProcessTest(unittest.TestCase):
         bindings = result["results"]["bindings"]
 
         # Should find exactly one article
-        self.assertEqual(len(bindings), 1, "Expected exactly one article")
+        assert len(bindings) == 1, "Expected exactly one article"
 
         # The article should have a br/ URI (OMID)
         br_uri = bindings[0]["br"]["value"]
-        self.assertTrue(
-            "br/" in br_uri,
-            f"Article URI {br_uri} does not contain expected OMID pattern 'br/'",
-        )
+        assert "br/" in br_uri, f"Article URI {br_uri} does not contain expected OMID pattern 'br/'"
 
         # Should not have any saved identifiers
-        self.assertNotIn(
-            "id",
-            bindings[0],
-            "Found unexpected identifier when only temporary ID was provided",
-        )
+        assert "id" not in bindings[0], "Found unexpected identifier when only temporary ID was provided"
 
     def test_temporary_identifiers_deduplication(self):
         """Test that multiple rows with the same temporary identifier are correctly deduplicated"""
@@ -2200,9 +2140,7 @@ class test_ProcessTest(unittest.TestCase):
         articles = [
             str(result["br"]["value"]) for result in results["results"]["bindings"]
         ]
-        self.assertEqual(
-            len(articles), 1, "Should only be one article after deduplication"
-        )
+        assert len(articles) == 1, "Should only be one article after deduplication"
 
     def test_rdf_files_only(self):
         """Test that rdf_files_only generates RDF files without updating triplestores"""
@@ -2287,8 +2225,8 @@ class test_ProcessTest(unittest.TestCase):
         shutil.rmtree(input_dir)
         shutil.rmtree(output_dir)
 
-        self.assertTrue(rdf_files_exist, "RDF files should be generated")
-        self.assertTrue(triplestore_empty, "Triplestore should not be updated when rdf_files_only is True")
+        assert rdf_files_exist, "RDF files should be generated"
+        assert triplestore_empty, "Triplestore should not be updated when rdf_files_only is True"
 
 
     def test_parallel_collect_identifiers(self):
@@ -2390,9 +2328,8 @@ class test_ProcessTest(unittest.TestCase):
             normalize_row_ids(row)
         output = sorted(sorted(d.items()) for d in output)
         expected_output = sorted(sorted(d.items()) for d in expected_output)
-        self.maxDiff = None
         shutil.rmtree(output_folder)
-        self.assertEqual(output, expected_output)
+        assert output == expected_output
 
 
 def normalize_graph(graph):
@@ -2407,7 +2344,3 @@ def normalize_graph(graph):
         else:
             normalized_graph.add((subject, predicate, obj))
     return normalized_graph
-
-
-if __name__ == "__main__":  # pragma: no cover
-    unittest.main()

@@ -3,9 +3,9 @@
 # SPDX-License-Identifier: ISC
 
 import os
-import unittest
 
 import orjson
+import pytest
 from oc_meta.core.creator import Creator
 from oc_meta.lib.file_manager import get_csv_data
 from oc_meta.lib.finder import ResourceFinder
@@ -62,13 +62,14 @@ def prepare2test(name):
         new_graph += g
     return test_graph, new_graph
 
-class test_Creator(unittest.TestCase):
-    def setUp(self):
+
+class TestCreator:
+    @pytest.fixture(autouse=True)
+    def setup_method(self, request):
         reset_server()
         reset_redis_counters()
         self.counter_handler = get_counter_handler()
-
-    def tearDown(self):
+        yield
         reset_redis_counters()
 
     def test_vvi_action(self):
@@ -103,87 +104,84 @@ class test_Creator(unittest.TestCase):
         '''
         expected_graph = Graph()
         expected_graph = expected_graph.parse(data=expected_data, format="nt")
-        self.assertEqual(compare.isomorphic(output_graph, expected_graph), True)
+        assert compare.isomorphic(output_graph, expected_graph) == True
 
 
-class testcase_01(unittest.TestCase):
+class TestCase01:
     def test(self):
         # testcase1: 2 different issues of the same venue (no volume)
         name = "01"
         test_graph, new_graph = prepare2test(name)
-        self.assertEqual(compare.isomorphic(new_graph, test_graph), True)
+        assert compare.isomorphic(new_graph, test_graph) == True
 
 
-class testcase_02(unittest.TestCase):
+class TestCase02:
     def test(self):
         # testcase2: 2 different volumes of the same venue (no issue)
         name = "02"
         test_graph, new_graph = prepare2test(name)
-        self.assertEqual(compare.isomorphic(new_graph, test_graph), True)
+        assert compare.isomorphic(new_graph, test_graph) == True
 
 
-class testcase_03(unittest.TestCase):
+class TestCase03:
     def test(self):
         # testcase3: 2 different issues of the same volume
         name = "03"
         test_graph, new_graph = prepare2test(name)
-        self.assertEqual(compare.isomorphic(new_graph, test_graph), True)
+        assert compare.isomorphic(new_graph, test_graph) == True
 
 
-class testcase_04(unittest.TestCase):
+class TestCase04:
     def test(self):
         # testcase4: 2 new IDS and different date format (yyyy-mm and yyyy-mm-dd)
         name = "04"
         test_graph, new_graph = prepare2test(name)
-        self.assertEqual(compare.isomorphic(new_graph, test_graph), True)
+        assert compare.isomorphic(new_graph, test_graph) == True
 
 
-class testcase_05(unittest.TestCase):
+class TestCase05:
     def test(self):
         # testcase5: NO ID scenario
         name = "05"
         test_graph, new_graph = prepare2test(name)
-        self.assertEqual(compare.isomorphic(new_graph, test_graph), True)
+        assert compare.isomorphic(new_graph, test_graph) == True
 
-class testcase_06(unittest.TestCase):
+
+class TestCase06:
     def test(self):
         # testcase6: ALL types test
         name = "06"
         test_graph, new_graph = prepare2test(name)
-        self.assertEqual(compare.isomorphic(new_graph, test_graph), True)
+        assert compare.isomorphic(new_graph, test_graph) == True
 
 
-class testcase_07(unittest.TestCase):
+class TestCase07:
     def test(self):
         # testcase7: all journal related types with an editor
         name = "07"
         test_graph, new_graph = prepare2test(name)
-        self.assertEqual(compare.isomorphic(new_graph, test_graph), True)
+        assert compare.isomorphic(new_graph, test_graph) == True
 
 
-class testcase_08(unittest.TestCase):
+class TestCase08:
     def test(self):
         # testcase8: all book related types with an editor
         name = "08"
         test_graph, new_graph = prepare2test(name)
-        self.assertEqual(compare.isomorphic(new_graph, test_graph), True)
+        assert compare.isomorphic(new_graph, test_graph) == True
 
 
-class testcase_09(unittest.TestCase):
+class TestCase09:
     def test(self):
         # testcase9: all proceeding related types with an editor
         name = "09"
         test_graph, new_graph = prepare2test(name)
-        self.assertEqual(compare.isomorphic(new_graph, test_graph), True)
+        assert compare.isomorphic(new_graph, test_graph) == True
 
 
-class testcase_10(unittest.TestCase):
+class TestCase10:
     def test(self):
         # testcase10: a book inside a book series and a book inside a book set
         name = "10"
         test_graph, new_graph = prepare2test(name)
-        self.assertEqual(compare.isomorphic(new_graph, test_graph), True)
-
-
-if __name__ == '__main__': # pragma: no cover
-    unittest.main()
+        assert compare.isomorphic(new_graph, test_graph) == True

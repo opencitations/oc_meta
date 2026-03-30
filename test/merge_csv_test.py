@@ -8,8 +8,8 @@ import io
 import os
 import shutil
 import tempfile
-import unittest
 
+import pytest
 from oc_meta.lib.file_manager import get_csv_data
 from oc_meta.run.meta.merge_csv import (
     get_csv_files,
@@ -19,12 +19,12 @@ from oc_meta.run.meta.merge_csv import (
 )
 
 
-class TestMergeCsv(unittest.TestCase):
-    def setUp(self):
+class TestMergeCsv:
+    @pytest.fixture(autouse=True)
+    def setup_method(self, request):
         self.test_dir = tempfile.mkdtemp(dir=".")
         self.output_dir = tempfile.mkdtemp(dir=".")
-
-    def tearDown(self):
+        yield
         shutil.rmtree(self.test_dir)
         shutil.rmtree(self.output_dir)
 
@@ -39,38 +39,38 @@ class TestMergeCsv(unittest.TestCase):
 
         result = get_csv_files(self.test_dir)
 
-        self.assertEqual(len(result), 1)
-        self.assertTrue(result[0].endswith(".csv"))
+        assert len(result) == 1
+        assert result[0].endswith(".csv")
 
     def test_get_csv_files_invalid_dir(self):
-        with self.assertRaises(ValueError) as ctx:
+        with pytest.raises(ValueError) as ctx:
             get_csv_files("/nonexistent/path")
-        self.assertIn("not a directory", str(ctx.exception))
+        assert "not a directory" in str(ctx.value)
 
     def test_resolve_output_path_csv_file(self):
         output = os.path.join(self.output_dir, "result.csv")
         result = resolve_output_path(output)
-        self.assertEqual(result, output)
+        assert result == output
 
     def test_resolve_output_path_csv_file_nested(self):
         output = os.path.join(self.output_dir, "nested", "subdir", "result.csv")
         result = resolve_output_path(output)
-        self.assertEqual(result, output)
-        self.assertTrue(os.path.isdir(os.path.dirname(output)))
+        assert result == output
+        assert os.path.isdir(os.path.dirname(output))
 
     def test_resolve_output_path_folder(self):
         folder = os.path.join(self.output_dir, "output_folder")
         result = resolve_output_path(folder)
-        self.assertEqual(result, os.path.join(folder, "merged.csv"))
-        self.assertTrue(os.path.isdir(folder))
+        assert result == os.path.join(folder, "merged.csv")
+        assert os.path.isdir(folder)
 
     def test_merge_csv_files_empty_directory(self):
         total_rows, files_processed, fieldnames = merge_csv_files(
             self.test_dir, os.path.join(self.output_dir, "merged.csv")
         )
-        self.assertEqual(total_rows, 0)
-        self.assertEqual(files_processed, 0)
-        self.assertEqual(fieldnames, [])
+        assert total_rows == 0
+        assert files_processed == 0
+        assert fieldnames == []
 
     def test_merge_csv_files_single_file(self):
         csv_path = os.path.join(self.test_dir, "1.csv")
@@ -84,12 +84,12 @@ class TestMergeCsv(unittest.TestCase):
             self.test_dir, output_path
         )
 
-        self.assertEqual(total_rows, 2)
-        self.assertEqual(files_processed, 1)
-        self.assertEqual(fieldnames, ["id", "title"])
+        assert total_rows == 2
+        assert files_processed == 1
+        assert fieldnames == ["id", "title"]
 
         rows = get_csv_data(output_path, clean_data=False)
-        self.assertEqual(len(rows), 2)
+        assert len(rows) == 2
 
     def test_merge_csv_files_multiple_files(self):
         csv1 = os.path.join(self.test_dir, "1.csv")
@@ -108,11 +108,11 @@ class TestMergeCsv(unittest.TestCase):
             self.test_dir, output_path
         )
 
-        self.assertEqual(total_rows, 2)
-        self.assertEqual(files_processed, 2)
+        assert total_rows == 2
+        assert files_processed == 2
 
         rows = get_csv_data(output_path, clean_data=False)
-        self.assertEqual(len(rows), 2)
+        assert len(rows) == 2
 
     def test_merge_csv_files_with_long_fields(self):
         csv_path = os.path.join(self.test_dir, "1.csv")
@@ -125,11 +125,11 @@ class TestMergeCsv(unittest.TestCase):
         output_path = os.path.join(self.output_dir, "merged.csv")
         total_rows, files_processed, _ = merge_csv_files(self.test_dir, output_path)
 
-        self.assertEqual(total_rows, 1)
-        self.assertEqual(files_processed, 1)
+        assert total_rows == 1
+        assert files_processed == 1
 
         rows = get_csv_data(output_path, clean_data=False)
-        self.assertEqual(rows[0]["content"], long_value)
+        assert rows[0]["content"] == long_value
 
     def test_merge_csv_files_skips_empty_files(self):
         csv1 = os.path.join(self.test_dir, "1.csv")
@@ -147,9 +147,9 @@ class TestMergeCsv(unittest.TestCase):
             self.test_dir, output_path
         )
 
-        self.assertEqual(total_rows, 1)
-        self.assertEqual(files_processed, 2)
-        self.assertEqual(fieldnames, ["id", "title"])
+        assert total_rows == 1
+        assert files_processed == 2
+        assert fieldnames == ["id", "title"]
 
     def test_print_merge_report(self):
         from rich.console import Console
@@ -165,9 +165,5 @@ class TestMergeCsv(unittest.TestCase):
         module.console = original_console
 
         output = captured.getvalue()
-        self.assertIn("150", output)
-        self.assertIn("5", output)
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert "150" in output
+        assert "5" in output

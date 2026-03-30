@@ -5,8 +5,9 @@
 #
 # SPDX-License-Identifier: ISC
 
-import unittest
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from oc_meta.run.meta.check_results import (
     check_omids_existence,
@@ -17,14 +18,14 @@ from oc_meta.run.meta.check_results import (
 )
 
 
-class TestParseIdentifiers(unittest.TestCase):
+class TestParseIdentifiers:
     """Test cases for parse_identifiers function."""
 
     def test_parse_single_identifier(self):
         """Test parsing a single identifier."""
         result = parse_identifiers("doi:10.1234/test")
         expected = [{'schema': 'doi', 'value': '10.1234/test'}]
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_parse_multiple_identifiers(self):
         """Test parsing multiple space-separated identifiers."""
@@ -33,42 +34,42 @@ class TestParseIdentifiers(unittest.TestCase):
             {'schema': 'doi', 'value': '10.1234/test'},
             {'schema': 'isbn', 'value': '978-3-16-148410-0'}
         ]
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_parse_identifier_with_colon_in_value(self):
         """Test parsing identifier where value contains colons."""
         result = parse_identifiers("url:http://example.com:8080/path")
         expected = [{'schema': 'url', 'value': 'http://example.com:8080/path'}]
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_parse_empty_string(self):
         """Test parsing empty string returns empty list."""
         result = parse_identifiers("")
-        self.assertEqual(result, [])
+        assert result == []
 
     def test_parse_whitespace_only(self):
         """Test parsing whitespace-only string returns empty list."""
         result = parse_identifiers("   ")
-        self.assertEqual(result, [])
+        assert result == []
 
     def test_parse_none(self):
         """Test parsing None returns empty list."""
         result = parse_identifiers(None)
-        self.assertEqual(result, [])
+        assert result == []
 
     def test_parse_with_uppercase_schema(self):
         """Test that schema is converted to lowercase."""
         result = parse_identifiers("DOI:10.1234/test")
         expected = [{'schema': 'doi', 'value': '10.1234/test'}]
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_parse_malformed_identifier(self):
         """Test parsing identifier without colon."""
         result = parse_identifiers("malformed")
-        self.assertEqual(result, [])
+        assert result == []
 
 
-class TestFindFile(unittest.TestCase):
+class TestFindFile:
     """Test cases for find_file function."""
 
     def test_find_file_zip_format(self):
@@ -82,7 +83,7 @@ class TestFindFile(unittest.TestCase):
             zip_output_rdf=True
         )
         expected = "/base/rdf/br/060/10000/1000.zip"
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_find_file_json_format(self):
         """Test finding file path for JSON format."""
@@ -95,7 +96,7 @@ class TestFindFile(unittest.TestCase):
             zip_output_rdf=False
         )
         expected = "/base/rdf/br/060/10000/1000.json"
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_find_file_with_subfolder(self):
         """Test finding file path with subfolder prefix."""
@@ -108,7 +109,7 @@ class TestFindFile(unittest.TestCase):
             zip_output_rdf=True
         )
         expected = "/base/rdf/br/060/20000/13000.zip"
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_find_file_different_entity_type(self):
         """Test finding file for different entity types."""
@@ -121,7 +122,7 @@ class TestFindFile(unittest.TestCase):
             zip_output_rdf=True
         )
         expected = "/base/rdf/ra/060/10000/1000.zip"
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_find_file_invalid_uri(self):
         """Test that invalid URI returns None."""
@@ -133,7 +134,7 @@ class TestFindFile(unittest.TestCase):
             uri=uri,
             zip_output_rdf=True
         )
-        self.assertIsNone(result)
+        assert result is None
 
     def test_find_file_boundary_values(self):
         """Test file finding with boundary values."""
@@ -146,10 +147,10 @@ class TestFindFile(unittest.TestCase):
             zip_output_rdf=True
         )
         expected = "/base/rdf/br/060/10000/10000.zip"
-        self.assertEqual(result, expected)
+        assert result == expected
 
 
-class TestFindProvFile(unittest.TestCase):
+class TestFindProvFile:
     """Test cases for find_prov_file function."""
 
     def test_find_prov_file_exists(self):
@@ -159,7 +160,7 @@ class TestFindProvFile(unittest.TestCase):
         with patch('os.path.exists', return_value=True):
             result = find_prov_file(data_zip_path)
             expected = "/base/rdf/br/060/10000/1000/prov/se.zip"
-            self.assertEqual(result, expected)
+            assert result == expected
 
     def test_find_prov_file_not_exists(self):
         """Test finding provenance file when it doesn't exist."""
@@ -167,7 +168,7 @@ class TestFindProvFile(unittest.TestCase):
 
         with patch('os.path.exists', return_value=False):
             result = find_prov_file(data_zip_path)
-            self.assertIsNone(result)
+            assert result is None
 
     def test_find_prov_file_with_exception(self):
         """Test that exceptions in find_prov_file are handled gracefully."""
@@ -175,10 +176,10 @@ class TestFindProvFile(unittest.TestCase):
 
         with patch('os.path.dirname', side_effect=Exception("Test error")):
             result = find_prov_file(data_zip_path)
-            self.assertIsNone(result)
+            assert result is None
 
 
-class TestCheckOMIDsExistence(unittest.TestCase):
+class TestCheckOMIDsExistence:
     """Test cases for check_omids_existence function."""
 
     @patch('oc_meta.run.meta.check_results.SPARQLClient')
@@ -198,7 +199,7 @@ class TestCheckOMIDsExistence(unittest.TestCase):
         result = check_omids_existence(identifiers, "http://example.com/sparql")
 
         expected = {'doi:10.1234/test': {'https://w3id.org/oc/meta/br/0601'}}
-        self.assertEqual(result, expected)
+        assert result == expected
         mock_client.query.assert_called_once()
 
     @patch('oc_meta.run.meta.check_results.SPARQLClient')
@@ -212,7 +213,7 @@ class TestCheckOMIDsExistence(unittest.TestCase):
         result = check_omids_existence(identifiers, "http://example.com/sparql")
 
         expected = {'doi:10.9999/notfound': set()}
-        self.assertEqual(result, expected)
+        assert result == expected
 
     @patch('oc_meta.run.meta.check_results.SPARQLClient')
     def test_check_multiple_omids_for_identifier(self, mock_sparql_client):
@@ -237,12 +238,12 @@ class TestCheckOMIDsExistence(unittest.TestCase):
                 'https://w3id.org/oc/meta/br/0602'
             }
         }
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_check_empty_identifiers_list(self):
         """Test with empty identifiers list."""
         result = check_omids_existence([], "http://example.com/sparql")
-        self.assertEqual(result, {})
+        assert result == {}
 
     @patch('oc_meta.run.meta.check_results.time.sleep')
     @patch('oc_meta.run.meta.check_results.SPARQLClient')
@@ -257,11 +258,11 @@ class TestCheckOMIDsExistence(unittest.TestCase):
         identifiers = [{'schema': 'doi', 'value': '10.1234/test'}]
 
         # After MAX_RETRIES, the exception should be raised
-        with self.assertRaises(EndpointError):
+        with pytest.raises(EndpointError):
             check_omids_existence(identifiers, "http://example.com/sparql")
 
 
-class TestCheckProvenanceExistence(unittest.TestCase):
+class TestCheckProvenanceExistence:
     """Test cases for check_provenance_existence function."""
 
     @patch('oc_meta.run.meta.check_results.SPARQLClient')
@@ -275,7 +276,7 @@ class TestCheckProvenanceExistence(unittest.TestCase):
         result = check_provenance_existence(omids, "http://example.com/prov-sparql")
 
         expected = {"https://w3id.org/oc/meta/br/0601": True}
-        self.assertEqual(result, expected)
+        assert result == expected
         mock_client.ask.assert_called_once()
 
     @patch('oc_meta.run.meta.check_results.SPARQLClient')
@@ -289,7 +290,7 @@ class TestCheckProvenanceExistence(unittest.TestCase):
         result = check_provenance_existence(omids, "http://example.com/prov-sparql")
 
         expected = {"https://w3id.org/oc/meta/br/0601": False}
-        self.assertEqual(result, expected)
+        assert result == expected
 
     @patch('oc_meta.run.meta.check_results.SPARQLClient')
     def test_check_multiple_omids_mixed_results(self, mock_sparql_client):
@@ -305,14 +306,14 @@ class TestCheckProvenanceExistence(unittest.TestCase):
         ]
         result = check_provenance_existence(omids, "http://example.com/prov-sparql")
 
-        self.assertTrue(result["https://w3id.org/oc/meta/br/0601"])
-        self.assertFalse(result["https://w3id.org/oc/meta/br/0602"])
-        self.assertTrue(result["https://w3id.org/oc/meta/br/0603"])
+        assert result["https://w3id.org/oc/meta/br/0601"]
+        assert not result["https://w3id.org/oc/meta/br/0602"]
+        assert result["https://w3id.org/oc/meta/br/0603"]
 
     def test_check_empty_omids_list(self):
         """Test with empty OMIDs list."""
         result = check_provenance_existence([], "http://example.com/prov-sparql")
-        self.assertEqual(result, {})
+        assert result == {}
 
     @patch('oc_meta.run.meta.check_results.SPARQLClient')
     def test_check_provenance_individual_queries(self, mock_sparql_client):
@@ -326,10 +327,6 @@ class TestCheckProvenanceExistence(unittest.TestCase):
         result = check_provenance_existence(omids, "http://example.com/prov-sparql")
 
         # Should have made 5 individual ASK calls
-        self.assertEqual(mock_client.ask.call_count, 5)
-        self.assertEqual(len(result), 5)
-        self.assertTrue(all(not v for v in result.values()))
-
-
-if __name__ == '__main__':
-    unittest.main()
+        assert mock_client.ask.call_count == 5
+        assert len(result) == 5
+        assert all(not v for v in result.values())

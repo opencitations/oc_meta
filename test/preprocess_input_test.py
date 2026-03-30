@@ -9,8 +9,8 @@ import io
 import os
 import shutil
 import tempfile
-import unittest
 
+import pytest
 import redis
 
 from oc_meta.lib.file_manager import get_csv_data
@@ -26,8 +26,9 @@ from oc_meta.run.meta.preprocess_input import (
 )
 
 
-class TestPreprocessInput(unittest.TestCase):
-    def setUp(self):
+class TestPreprocessInput:
+    @pytest.fixture(autouse=True)
+    def setup_method(self, request):
         self.test_dir = tempfile.mkdtemp(dir=".")
         self.output_dir = tempfile.mkdtemp(dir=".")
 
@@ -38,8 +39,7 @@ class TestPreprocessInput(unittest.TestCase):
         self.redis_client.set("doi:10.1007/978-3-662-07918-8_3", "1")
         self.redis_client.set("doi:10.1016/0021-9991(73)90147-2", "1")
         self.redis_client.set("doi:10.1109/20.877674", "1")
-
-    def tearDown(self):
+        yield
         shutil.rmtree(self.test_dir)
         shutil.rmtree(self.output_dir)
         self.redis_client.flushdb()
@@ -49,7 +49,7 @@ class TestPreprocessInput(unittest.TestCase):
         client = create_redis_connection("localhost", 6381, db=5)
         client.set("test_key", "test_value")
         result = client.get("test_key")
-        self.assertEqual(result, "test_value")
+        assert result == "test_value"
         client.delete("test_key")
         client.close()
 
@@ -58,17 +58,17 @@ class TestPreprocessInput(unittest.TestCase):
             {"id": "doi:10.1007/978-3-662-07918-8_3 doi:10.1016/0021-9991(73)90147-2"}
         ]
         result = check_ids_existence_batch(rows, self.redis_client)
-        self.assertEqual(result, [True])
+        assert result == [True]
 
     def test_check_ids_existence_batch_some_missing(self):
         rows = [{"id": "doi:10.1007/978-3-662-07918-8_3 doi:10.INVALID/123"}]
         result = check_ids_existence_batch(rows, self.redis_client)
-        self.assertEqual(result, [False])
+        assert result == [False]
 
     def test_check_ids_existence_batch_empty_ids(self):
         rows = [{"id": ""}]
         result = check_ids_existence_batch(rows, self.redis_client)
-        self.assertEqual(result, [False])
+        assert result == [False]
 
     def test_check_ids_existence_batch_multiple_rows(self):
         rows = [
@@ -77,7 +77,7 @@ class TestPreprocessInput(unittest.TestCase):
             {"id": ""},
         ]
         result = check_ids_existence_batch(rows, self.redis_client)
-        self.assertEqual(result, [True, False, False])
+        assert result == [True, False, False]
 
     def test_get_csv_files(self):
         csv_path = os.path.join(self.test_dir, "test.csv")
@@ -88,10 +88,10 @@ class TestPreprocessInput(unittest.TestCase):
             f.write("not a csv")
 
         result = get_csv_files(self.test_dir)
-        self.assertEqual(result, [csv_path])
+        assert result == [csv_path]
 
     def test_get_csv_files_invalid_dir(self):
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             get_csv_files("/nonexistent/path")
 
     def test_filter_existing_ids_from_file_all_existing(self):
@@ -107,9 +107,9 @@ class TestPreprocessInput(unittest.TestCase):
 
         result = filter_existing_ids_from_file(real_data_path, "localhost", 6381, 5)
 
-        self.assertEqual(result.stats.total_rows, 3)
-        self.assertEqual(result.stats.existing_ids_rows, 3)
-        self.assertEqual(len(result.rows), 0)
+        assert result.stats.total_rows == 3
+        assert result.stats.existing_ids_rows == 3
+        assert len(result.rows) == 0
 
     def test_filter_existing_ids_from_file_mixed(self):
         mixed_data_path = os.path.join(self.test_dir, "mixed_metadata.csv")
@@ -124,9 +124,9 @@ class TestPreprocessInput(unittest.TestCase):
 
         result = filter_existing_ids_from_file(mixed_data_path, "localhost", 6381, 5)
 
-        self.assertEqual(result.stats.total_rows, 3)
-        self.assertEqual(result.stats.existing_ids_rows, 1)
-        self.assertEqual(len(result.rows), 2)
+        assert result.stats.total_rows == 3
+        assert result.stats.existing_ids_rows == 1
+        assert len(result.rows) == 2
 
     def test_deduplicate_and_write_with_duplicates(self):
         row1 = {"id": "doi:10.INVALID/123", "title": "Test Title"}
@@ -150,15 +150,15 @@ class TestPreprocessInput(unittest.TestCase):
 
         total_stats = deduplicate_and_write(results, self.output_dir, rows_per_file=10)
 
-        self.assertEqual(total_stats.total_rows, 3)
-        self.assertEqual(total_stats.duplicate_rows, 1)
-        self.assertEqual(total_stats.processed_rows, 2)
+        assert total_stats.total_rows == 3
+        assert total_stats.duplicate_rows == 1
+        assert total_stats.processed_rows == 2
 
         output_files = os.listdir(self.output_dir)
-        self.assertEqual(len(output_files), 1)
+        assert len(output_files) == 1
 
         rows = get_csv_data(os.path.join(self.output_dir, "0.csv"), clean_data=False)
-        self.assertEqual(len(rows), 2)
+        assert len(rows) == 2
 
     def test_deduplicate_and_write_file_splitting(self):
         rows_data = []
@@ -177,10 +177,10 @@ class TestPreprocessInput(unittest.TestCase):
 
         total_stats = deduplicate_and_write(results, self.output_dir, rows_per_file=3)
 
-        self.assertEqual(total_stats.processed_rows, 10)
+        assert total_stats.processed_rows == 10
 
         output_files = sorted(os.listdir(self.output_dir))
-        self.assertEqual(len(output_files), 4)
+        assert len(output_files) == 4
 
     def test_cross_file_deduplication(self):
         file1_path = os.path.join(self.test_dir, "data1.csv")
@@ -205,21 +205,18 @@ class TestPreprocessInput(unittest.TestCase):
             [result1, result2], self.output_dir, rows_per_file=10
         )
 
-        self.assertEqual(total_stats.total_rows, 4)
-        self.assertEqual(total_stats.duplicate_rows, 1)
-        self.assertEqual(total_stats.processed_rows, 3)
+        assert total_stats.total_rows == 4
+        assert total_stats.duplicate_rows == 1
+        assert total_stats.processed_rows == 3
 
         output_files = os.listdir(self.output_dir)
-        self.assertEqual(len(output_files), 1)
+        assert len(output_files) == 1
 
         rows = get_csv_data(os.path.join(self.output_dir, "0.csv"), clean_data=False)
-        self.assertEqual(len(rows), 3)
+        assert len(rows) == 3
 
         unique_ids = set(row["id"] for row in rows)
-        self.assertEqual(
-            unique_ids,
-            {"doi:10.INVALID/123", "doi:10.INVALID/456", "doi:10.INVALID/789"},
-        )
+        assert unique_ids == {"doi:10.INVALID/123", "doi:10.INVALID/456", "doi:10.INVALID/789"}
 
     def test_print_processing_report(self):
         from rich.console import Console
@@ -244,11 +241,7 @@ class TestPreprocessInput(unittest.TestCase):
         module.console = original_console
 
         output = captured.getvalue()
-        self.assertIn("100", output)
-        self.assertIn("10", output)
-        self.assertIn("20", output)
-        self.assertIn("70", output)
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert "100" in output
+        assert "10" in output
+        assert "20" in output
+        assert "70" in output
