@@ -107,7 +107,6 @@ def prepareCurator(data:list, server:str=SERVER) -> Curator:
 
 @pytest.fixture(scope="class")
 def setup_curator_class():
-    reset_server()
     add_data_ts()
     yield
 
@@ -514,7 +513,6 @@ class TestCurator:
 
 @pytest.fixture(scope="class")
 def id_worker_finder():
-    reset_server()
     add_data_ts(SERVER, os.path.abspath(os.path.join('test', 'testcases', 'ts', 'real_data.nt')).replace('\\', '/'))
     finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
     finder.get_everything_about_res(metavals={'omid:br/3309', 'omid:br/2438', 'omid:br/0601'}, identifiers={'doi:10.1001/2013.jamasurg.270', 'doi:10.1787/eco_outlook-v2011-2-graph138-en', 'orcid:0000-0001-6994-8412', 'doi:10.1001/archderm.104.1.106', 'pmid:29098884'}, vvis=set())

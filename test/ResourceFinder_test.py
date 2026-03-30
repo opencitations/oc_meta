@@ -23,7 +23,6 @@ def finder():
     REAL_DATA_FILE = os.path.join('test', 'testcases', 'ts', 'real_data.nt')
     local_g = Graph()
     finder = ResourceFinder(ENDPOINT, BASE_IRI, local_g)
-    reset_server(server=ENDPOINT)
     add_data_ts(server=ENDPOINT, data_path=REAL_DATA_FILE)
     finder.get_everything_about_res(metavals={'omid:br/2373', 'omid:br/2380', 'omid:br/2730', 'omid:br/2374', 'omid:br/4435', 'omid:br/4436', 'omid:br/4437', 'omid:br/4438', 'omid:br/0604750', 'omid:br/0605379', 'omid:br/0606696'}, identifiers={'doi:10.1001/.391', 'orcid:0000-0001-6994-8412'}, vvis=set())
     return finder

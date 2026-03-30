@@ -49,11 +49,11 @@ def _clear_all_meta_graphs(endpoint: str, max_retries: int = 3) -> None:
                     "SELECT DISTINCT ?g WHERE { GRAPH ?g { ?s ?p ?o } "
                     "FILTER(STRSTARTS(STR(?g), 'https://w3id.org/oc/meta/')) }"
                 )
-                graphs = [b["g"]["value"] for b in result["results"]["bindings"]]
-                for graph in GRAPHS_TO_CLEAR:
-                    client.update(f"CLEAR GRAPH <{graph}>")
-                for graph in graphs:
-                    client.update(f"CLEAR GRAPH <{graph}>")
+                graphs = {b["g"]["value"] for b in result["results"]["bindings"]}
+                all_graphs = GRAPHS_TO_CLEAR | graphs
+                if all_graphs:
+                    clear_query = "; ".join(f"CLEAR GRAPH <{g}>" for g in all_graphs)
+                    client.update(clear_query)
             return
         except Exception:
             if attempt == max_retries - 1:
@@ -122,6 +122,7 @@ def execute_sparql_construct(
 
 def wait_for_triplestore(server: str, max_wait: int = 60) -> bool:
     start_time = time.time()
+    delay = 0.1
     while time.time() - start_time < max_wait:
         try:
             with SPARQLClient(
@@ -130,7 +131,8 @@ def wait_for_triplestore(server: str, max_wait: int = 60) -> bool:
                 client.query("SELECT * WHERE { ?s ?p ?o } LIMIT 1")
             return True
         except Exception:
-            time.sleep(2)
+            time.sleep(delay)
+            delay = min(delay * 2, 1.0)
     return False
 
 
@@ -138,13 +140,15 @@ def wait_for_redis(
     host: str = REDIS_HOST, port: int = REDIS_PORT, max_wait: int = 10
 ) -> bool:
     start_time = time.time()
+    delay = 0.1
     while time.time() - start_time < max_wait:
         try:
             client = redis.Redis(host=host, port=port)
             client.ping()
             return True
         except Exception:
-            time.sleep(1)
+            time.sleep(delay)
+            delay = min(delay * 2, 1.0)
     return False
 
 
@@ -174,7 +178,7 @@ def add_data_ts(
     data_path: str = os.path.abspath(
         os.path.join("test", "testcases", "ts", "real_data.nt")
     ).replace("\\", "/"),
-    batch_size: int = 1000,
+    batch_size: int = 10000,
     default_graph_uri: URIRef = URIRef("http://default.graph/"),
 ) -> None:
     reset_triplestore(server)

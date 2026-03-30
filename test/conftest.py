@@ -20,6 +20,7 @@ QLEVER_ACCESS_TOKEN = "qlever_test_token"
 def _wait_for_endpoint(url: str, timeout: int = 60) -> None:
     separator = "&" if "?" in url else "?"
     start = time.time()
+    delay = 0.1
     while time.time() - start < timeout:
         try:
             req = Request(
@@ -29,19 +30,22 @@ def _wait_for_endpoint(url: str, timeout: int = 60) -> None:
             urlopen(req, timeout=2)
             return
         except (URLError, OSError):
-            time.sleep(1)
+            time.sleep(delay)
+            delay = min(delay * 2, 1.0)
     raise RuntimeError(f"Endpoint {url} not ready within {timeout}s")
 
 
 def _wait_for_redis(host: str, port: int, timeout: int = 30) -> None:
     start = time.time()
+    delay = 0.1
     while time.time() - start < timeout:
         try:
             client = redis.Redis(host=host, port=port)
             client.ping()
             return
         except redis.ConnectionError:
-            time.sleep(0.5)
+            time.sleep(delay)
+            delay = min(delay * 2, 0.5)
     raise RuntimeError(f"Redis {host}:{port} not ready within {timeout}s")
 
 

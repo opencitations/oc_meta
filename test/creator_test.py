@@ -37,9 +37,14 @@ def open_json(path):
     with open(path, "rb") as json_file:
         return orjson.loads(json_file.read())
 
+@pytest.fixture(scope="module", autouse=True)
+def reset_triplestore_once():
+    reset_server()
+    yield
+
+
 # creator executor
 def prepare2test(name):
-    reset_server()
     reset_redis_counters()
     data = get_csv_data("test/testcases/testcase_data/testcase_" + name + "_data.csv")
     testcase_id_br = get_csv_data("test/testcases/testcase_data/indices/" + name + "/index_id_br_" + name + ".csv")
@@ -66,7 +71,6 @@ def prepare2test(name):
 class TestCreator:
     @pytest.fixture(autouse=True)
     def setup_method(self, request):
-        reset_server()
         reset_redis_counters()
         self.counter_handler = get_counter_handler()
         yield
