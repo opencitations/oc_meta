@@ -143,7 +143,7 @@ class Creator(object):
             self.vvi_action(venue, vol, issue)
             self.title_action(title)
 
-            br_uri = URIRef(f"{self.url}br/{self.row_meta}")
+            br_uri = URIRef(f"{self.url}{self.row_meta}")
             br_is_preexisting = br_uri in self.finder.prebuilt_subgraphs
 
             skip_author = False
@@ -151,7 +151,6 @@ class Creator(object):
             skip_editor = False
 
             if br_is_preexisting:
-                br_uri = URIRef(f"{self.url}br/{self.row_meta}")
                 existing_roles = self._has_existing_roles(br_uri)
 
                 skip_author = "author" in self.silencer and existing_roles["author"]
@@ -224,7 +223,7 @@ class Creator(object):
                 identifier = identifier.replace("omid:", "")
                 url = URIRef(self.url + identifier)
                 preexisting_entity = url in self.finder.prebuilt_subgraphs
-                self.row_meta = identifier.replace("br/", "")
+                self.row_meta = identifier
                 preexisting_graph = (
                     self.finder.get_subgraph(url)
                     if preexisting_entity
@@ -259,7 +258,7 @@ class Creator(object):
                         identifier = str(identifier).replace("omid:", "")
                         url = URIRef(self.url + identifier)
                         preexisting_entity = url in self.finder.prebuilt_subgraphs
-                        aut_meta = identifier.replace("ra/", "")
+                        aut_meta = identifier
                         preexisting_graph = (
                             self.finder.get_subgraph(url)
                             if preexisting_entity
@@ -286,19 +285,18 @@ class Creator(object):
                 assert author_ra is not None
                 for identifier in aut_id_list:
                     self.id_creator(author_ra, identifier, ra=True)
-                AR = self.ar_index[self.row_meta]["author"][aut_meta]
-                ar_id = "ar/" + str(AR)
-                url_ar = URIRef(self.url + ar_id)
-                preexisting_entity = url_ar in self.finder.prebuilt_subgraphs
+                ar_meta = self.ar_index[self.row_meta]["author"][aut_meta]
+                ar_url = URIRef(self.url + ar_meta)
+                preexisting_entity = ar_url in self.finder.prebuilt_subgraphs
                 preexisting_graph = (
-                    self.finder.get_subgraph(url_ar)
+                    self.finder.get_subgraph(ar_url)
                     if preexisting_entity
                     else None
                 )
                 author_ra_role = self.setgraph.add_ar(
                     self.resp_agent,
                     source=self.src,
-                    res=url_ar,
+                    res=ar_url,
                     preexisting_graph=preexisting_graph,
                 )
                 author_ra_role.create_author()
@@ -330,7 +328,7 @@ class Creator(object):
             for identifier in venue_ids_list:
                 if "omid:" in identifier:
                     ven_id = str(identifier).replace("omid:", "")
-                    self.venue_meta = ven_id.replace("br/", "")
+                    self.venue_meta = ven_id
                     url = URIRef(self.url + ven_id)
                     preexisting_entity = url in self.finder.prebuilt_subgraphs
                     venue_title = venue_and_ids.group(1)
@@ -360,7 +358,6 @@ class Creator(object):
             if self.type in {"journal article", "journal volume", "journal issue"}:
                 if vol:
                     vol_meta = self.vi_index[self.venue_meta]["volume"][vol]["id"]
-                    vol_meta = "br/" + vol_meta
                     vol_url = URIRef(self.url + vol_meta)
                     preexisting_entity = vol_url in self.finder.prebuilt_subgraphs
                     preexisting_graph = (
@@ -385,7 +382,6 @@ class Creator(object):
                         issue_meta = self.vi_index[self.venue_meta]["issue"][issue][
                             "id"
                         ]
-                    issue_meta = "br/" + issue_meta
                     issue_url = URIRef(self.url + issue_meta)
                     preexisting_entity = issue_url in self.finder.prebuilt_subgraphs
                     preexisting_graph = (
@@ -464,19 +460,18 @@ class Creator(object):
 
     def page_action(self, page):
         if page:
-            res_em = self.re_index[self.row_meta]
-            re_id = "re/" + str(res_em)
-            url_re = URIRef(self.url + re_id)
-            preexisting_entity = url_re in self.finder.prebuilt_subgraphs
+            re_meta = self.re_index[self.row_meta]
+            re_url = URIRef(self.url + re_meta)
+            preexisting_entity = re_url in self.finder.prebuilt_subgraphs
             preexisting_graph = (
-                self.finder.get_subgraph(url_re)
+                self.finder.get_subgraph(re_url)
                 if preexisting_entity
                 else None
             )
             form = self.setgraph.add_re(
                 self.resp_agent,
                 source=self.src,
-                res=url_re,
+                res=re_url,
                 preexisting_graph=preexisting_graph,
             )
             form.has_starting_page(page)
@@ -541,7 +536,7 @@ class Creator(object):
                 for identifier in publ_id_list:
                     if "omid:" in identifier:
                         identifier = str(identifier).replace("omid:", "")
-                        pub_meta = identifier.replace("ra/", "")
+                        pub_meta = identifier
                         url = URIRef(self.url + identifier)
                         preexisting_entity = url in self.finder.prebuilt_subgraphs
                         publ_name = publ_and_ids.group(1)
@@ -560,15 +555,18 @@ class Creator(object):
                 assert publisher_ra is not None
                 for identifier in publ_id_list:
                     self.id_creator(publisher_ra, identifier, ra=True)
-                AR = self.ar_index[self.row_meta]["publisher"][pub_meta]
-                ar_id = "ar/" + str(AR)
-                url_ar = URIRef(self.url + ar_id)
-                preexisting_entity = url_ar in self.finder.prebuilt_subgraphs
-                preexisting_graph = self.finder.get_subgraph(url_ar)
+                ar_meta = self.ar_index[self.row_meta]["publisher"][pub_meta]
+                ar_url = URIRef(self.url + ar_meta)
+                preexisting_entity = ar_url in self.finder.prebuilt_subgraphs
+                preexisting_graph = (
+                    self.finder.get_subgraph(ar_url)
+                    if preexisting_entity
+                    else None
+                )
                 publ_role = self.setgraph.add_ar(
                     self.resp_agent,
                     source=self.src,
-                    res=url_ar,
+                    res=ar_url,
                     preexisting_graph=preexisting_graph,
                 )
                 publ_role.create_publisher()
@@ -592,7 +590,7 @@ class Creator(object):
                 for identifier in ed_id_list:
                     if "omid:" in identifier:
                         identifier = str(identifier).replace("omid:", "")
-                        ed_meta = identifier.replace("ra/", "")
+                        ed_meta = identifier
                         url = URIRef(self.url + identifier)
                         preexisting_entity = url in self.finder.prebuilt_subgraphs
                         preexisting_graph = (
@@ -622,19 +620,18 @@ class Creator(object):
                 for identifier in ed_id_list:
                     self.id_creator(editor_ra, identifier, ra=True)
                 br_key = get_edited_br_metaid(row, self.row_meta, self.venue_meta)
-                AR = self.ar_index[br_key]["editor"][ed_meta]
-                ar_id = "ar/" + str(AR)
-                url_ar = URIRef(self.url + ar_id)
-                preexisting_entity = url_ar in self.finder.prebuilt_subgraphs
+                ar_meta = self.ar_index[br_key]["editor"][ed_meta]
+                ar_url = URIRef(self.url + ar_meta)
+                preexisting_entity = ar_url in self.finder.prebuilt_subgraphs
                 preexisting_graph = (
-                    self.finder.get_subgraph(url_ar)
+                    self.finder.get_subgraph(ar_url)
                     if preexisting_entity
                     else None
                 )
                 editor_ra_role = self.setgraph.add_ar(
                     self.resp_agent,
                     source=self.src,
-                    res=url_ar,
+                    res=ar_url,
                     preexisting_graph=preexisting_graph,
                 )
                 editor_ra_role.create_editor()
@@ -652,7 +649,7 @@ class Creator(object):
 
     def __res_metaid(self, graph: BibliographicResource):
         if graph:
-            return graph.res.replace(f"{self.url}br/", "")
+            return graph.res.replace(self.url, "")
 
     def id_creator(self, graph: BibliographicEntity, identifier: str, ra: bool) -> None:
         new_id = None
@@ -665,7 +662,7 @@ class Creator(object):
                 if identifier.startswith(ra_id_schema):
                     identifier = identifier.replace(f"{ra_id_schema}:", "")
                     res = self.ra_index[ra_id_schema][identifier]
-                    url = URIRef(self.url + "id/" + res)
+                    url = URIRef(self.url + res)
                     preexisting_entity = url in self.finder.prebuilt_subgraphs
                     preexisting_graph = (
                         self.finder.get_subgraph(url)
@@ -684,7 +681,7 @@ class Creator(object):
                 if identifier.startswith(br_id_schema):
                     identifier = identifier.replace(f"{br_id_schema}:", "")
                     res = self.br_index[br_id_schema][identifier]
-                    url = URIRef(self.url + "id/" + res)
+                    url = URIRef(self.url + res)
                     preexisting_entity = url in self.finder.prebuilt_subgraphs
                     preexisting_graph = (
                         self.finder.get_subgraph(url)

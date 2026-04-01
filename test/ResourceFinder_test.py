@@ -7,7 +7,7 @@ import os
 import pytest
 from oc_meta.lib.finder import ResourceFinder
 from oc_ocdm.graph import GraphEntity
-from rdflib import Graph, Literal, URIRef
+from rdflib import Graph, Literal, URIRef, RDF, XSD
 from sparqlite import SPARQLClient
 from test.test_utils import add_data_ts, reset_triplestore
 
@@ -34,9 +34,9 @@ class TestResourceFinder:
         schema = 'doi'
         output = finder.retrieve_br_from_id(schema, value)
         expected_output = [(
-            '2373',
+            'br/2373',
             'Treatment Of Excessive Anticoagulation With Phytonadione (Vitamin K): A Meta-analysis',
-            [('2239', 'doi:10.1001/.391')]
+            [('id/2239', 'doi:10.1001/.391')]
         )]
         assert output == expected_output
 
@@ -45,48 +45,48 @@ class TestResourceFinder:
         schema = 'doi'
         output = finder.retrieve_br_from_id(schema, value)
         expected_output = [(
-            '2374',
+            'br/2374',
             "Neutropenia In Human Immunodeficiency Virus Infection: Data From The Women's Interagency HIV Study",
-            [('2240', 'doi:10.1001/.405'), ('5000', 'doi:10.1001/.406')]
+            [('id/2240', 'doi:10.1001/.405'), ('id/5000', 'doi:10.1001/.406')]
         )]
         assert output == expected_output
 
     def test_retrieve_br_from_meta(self, finder):
-        metaid = '2373'
+        metaid = 'br/2373'
         output = finder.retrieve_br_from_meta(metaid)
-        expected_output = ('Treatment Of Excessive Anticoagulation With Phytonadione (Vitamin K): A Meta-analysis', [('2239', 'doi:10.1001/.391')], True)
+        expected_output = ('Treatment Of Excessive Anticoagulation With Phytonadione (Vitamin K): A Meta-analysis', [('id/2239', 'doi:10.1001/.391')], True)
         assert output == expected_output
 
     def test_retrieve_br_from_meta_multiple_ids(self, finder):
-        metaid = '2374'
+        metaid = 'br/2374'
         output = finder.retrieve_br_from_meta(metaid)
         output = (output[0], set(output[1]))
-        expected_output = ("Neutropenia In Human Immunodeficiency Virus Infection: Data From The Women's Interagency HIV Study", {('2240', 'doi:10.1001/.405'), ('5000', 'doi:10.1001/.406')})
+        expected_output = ("Neutropenia In Human Immunodeficiency Virus Infection: Data From The Women's Interagency HIV Study", {('id/2240', 'doi:10.1001/.405'), ('id/5000', 'doi:10.1001/.406')})
         assert output == expected_output
 
     def test_retrieve_metaid_from_id(self, finder):
         schema = 'doi'
         value = '10.1001/.391'
         output = finder.retrieve_metaid_from_id(schema, value)
-        expected_output = '2239'
+        expected_output = 'id/2239'
         assert output == expected_output
 
     def test_retrieve_ra_from_meta(self, finder):
-        metaid = '3308'
+        metaid = 'ra/3308'
         output = finder.retrieve_ra_from_meta(metaid)
         expected_output = ('Dezee, K. J.', [], True)
         assert output == expected_output
 
     def test_retrieve_ra_from_meta_with_orcid(self, finder):
-        metaid = '4940'
+        metaid = 'ra/4940'
         output = finder.retrieve_ra_from_meta(metaid)
-        expected_output = ('Alarcon, Louis H.', [('4475', 'orcid:0000-0001-6994-8412')], True)
+        expected_output = ('Alarcon, Louis H.', [('id/4475', 'orcid:0000-0001-6994-8412')], True)
         assert output == expected_output
 
     def test_retrieve_ra_from_meta_if_publisher(self, finder):
-        metaid = '3309'
+        metaid = 'ra/3309'
         output = finder.retrieve_ra_from_meta(metaid)
-        expected_output = ('American Medical Association (ama)', [('4274', 'crossref:10')], True)
+        expected_output = ('American Medical Association (ama)', [('id/4274', 'crossref:10')], True)
         assert output == expected_output
 
     def test_retrieve_ra_from_id(self, finder):
@@ -94,8 +94,8 @@ class TestResourceFinder:
         value = '0000-0001-6994-8412'
         output = finder.retrieve_ra_from_id(schema, value)
         expected_output = [
-            ('1000000', 'Alarcon, Louis H.', [('4475', 'orcid:0000-0001-6994-8412')]),
-            ('4940', 'Alarcon, Louis H.', [('4475', 'orcid:0000-0001-6994-8412')])
+            ('ra/1000000', 'Alarcon, Louis H.', [('id/4475', 'orcid:0000-0001-6994-8412')]),
+            ('ra/4940', 'Alarcon, Louis H.', [('id/4475', 'orcid:0000-0001-6994-8412')])
         ]
         assert sorted(output) == expected_output
 
@@ -103,33 +103,33 @@ class TestResourceFinder:
         schema = 'crossref'
         value = '10'
         output = finder.retrieve_ra_from_id(schema, value)
-        expected_output = [('3309', 'American Medical Association (ama)', [('4274', 'crossref:10')])]
+        expected_output = [('ra/3309', 'American Medical Association (ama)', [('id/4274', 'crossref:10')])]
         assert output == expected_output
 
     def test_retrieve_ra_sequence_from_br_meta(self, finder):
-        metaid = '2380'
+        metaid = 'br/2380'
         output = finder.retrieve_ra_sequence_from_br_meta(metaid, 'author')
         expected_output = [
-            {'5343': ('Hodge, James G.', [], '3316')},
-            {'5344': ('Anderson, Evan D.', [], '3317')},
-            {'5345': ('Kirsch, Thomas D.', [], '3318')},
-            {'5346': ('Kelen, Gabor D.', [('4278', 'orcid:0000-0002-3236-8286')], '3319')}
+            {'ar/5343': ('Hodge, James G.', [], 'ra/3316')},
+            {'ar/5344': ('Anderson, Evan D.', [], 'ra/3317')},
+            {'ar/5345': ('Kirsch, Thomas D.', [], 'ra/3318')},
+            {'ar/5346': ('Kelen, Gabor D.', [('id/4278', 'orcid:0000-0002-3236-8286')], 'ra/3319')}
         ]
         assert output == expected_output
 
     def test_retrieve_re_from_br_meta(self, finder):
-        metaid = '2373'
+        metaid = 'br/2373'
         output = finder.retrieve_re_from_br_meta(metaid)
-        expected_output = ('2011', '391-397')
+        expected_output = ('re/2011', '391-397')
         assert output == expected_output
 
     def test_retrieve_br_info_from_meta(self, finder):
-        metaid = '2373'
+        metaid = 'br/2373'
         output = finder.retrieve_br_info_from_meta(metaid)
         expected_output = {
             'pub_date': '2006-02-27',
             'type': 'journal article',
-            'page': ('2011', '391-397'),
+            'page': ('re/2011', '391-397'),
             'issue': '4',
             'volume': '166',
             'venue': 'Archives Of Internal Medicine [omid:br/4387 issn:0003-9926]'
@@ -137,15 +137,20 @@ class TestResourceFinder:
         assert output == expected_output
 
     def test_retrieve_ra_sequence_with_loop(self, finder):
-        """Test that retrieve_ra_sequence_from_br_meta handles circular references without infinite loops"""
+        """Test that retrieve_ra_sequence_from_br_meta handles circular references without infinite loops.
+
+        In a circular loop, there's no natural start, so the algorithm picks the AR
+        with the lowest number as the starting point.
+        """
         base_iri = 'https://w3id.org/oc/meta'
         br_uri = URIRef(f'{base_iri}/br/9999')
-        ar1_uri = URIRef(f'{base_iri}/ar/9991')
-        ar2_uri = URIRef(f'{base_iri}/ar/9992')
+        # Use AR numbers where 9992 < 9991 to verify sorting works correctly
+        ar1_uri = URIRef(f'{base_iri}/ar/9992')
+        ar2_uri = URIRef(f'{base_iri}/ar/9991')
         ra1_uri = URIRef(f'{base_iri}/ra/9981')
         ra2_uri = URIRef(f'{base_iri}/ra/9982')
 
-        # Create a circular AR chain: AR1 -> AR2 -> AR1 (loop)
+        # Create a circular AR chain: AR1(9992) -> AR2(9991) -> AR1(9992) (loop)
         finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar1_uri))
         finder.local_g.add((ar1_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
         finder.local_g.add((ar1_uri, GraphEntity.iri_is_held_by, ra1_uri))
@@ -160,15 +165,12 @@ class TestResourceFinder:
         finder.local_g.add((ra2_uri, GraphEntity.iri_given_name, Literal('Jane')))
         finder.local_g.add((ra2_uri, GraphEntity.iri_family_name, Literal('Smith')))
 
-        # This should return only 2 ARs (breaking the loop) without hanging
-        result = finder.retrieve_ra_sequence_from_br_meta('9999', 'author')
+        result = finder.retrieve_ra_sequence_from_br_meta('br/9999', 'author')
 
-        # Should return exactly 2 ARs (not infinite loop)
         assert len(result) == 2
-        # Should contain both ARs
-        ar_ids = [list(item.keys())[0] for item in result]
-        assert '9991' in ar_ids
-        assert '9992' in ar_ids
+        # The AR with lowest number (9991) should be first
+        assert list(result[0].keys())[0] == 'ar/9991'
+        assert list(result[1].keys())[0] == 'ar/9992'
 
     def test_retrieve_ra_sequence_with_self_reference(self, finder):
         """Test that retrieve_ra_sequence_from_br_meta handles self-referencing AR"""
@@ -185,11 +187,11 @@ class TestResourceFinder:
         finder.local_g.add((ra1_uri, GraphEntity.iri_name, Literal('Test Publisher')))
 
         # This should return only 1 AR (ignoring self-reference)
-        result = finder.retrieve_ra_sequence_from_br_meta('9998', 'author')
+        result = finder.retrieve_ra_sequence_from_br_meta('br/9998', 'author')
 
         # Should return exactly 1 AR
         assert len(result) == 1
-        assert list(result[0].keys())[0] == '9981'
+        assert list(result[0].keys())[0] == 'ar/9981'
 
     def test_retrieve_ra_sequence_with_invalid_next(self, finder):
         """Test that retrieve_ra_sequence_from_br_meta handles invalid 'next' references"""
@@ -214,13 +216,13 @@ class TestResourceFinder:
         finder.local_g.add((ra2_uri, GraphEntity.iri_name, Literal('Author Two')))
 
         # Should return chain stopping at invalid reference
-        result = finder.retrieve_ra_sequence_from_br_meta('9997', 'author')
+        result = finder.retrieve_ra_sequence_from_br_meta('br/9997', 'author')
 
         # Should return at least AR1 (stops at invalid next)
         # The method will find 2 start candidates and pick the longest chain
         assert len(result) >= 1
         ar_ids = [list(item.keys())[0] for item in result]
-        assert '9971' in ar_ids
+        assert 'ar/9971' in ar_ids
 
     def test_retrieve_ra_sequence_with_missing_is_held_by(self, finder):
         """Test that retrieve_ra_sequence_from_br_meta handles AR without is_held_by gracefully"""
@@ -235,7 +237,7 @@ class TestResourceFinder:
 
         # Should handle gracefully without crash
         try:
-            result = finder.retrieve_ra_sequence_from_br_meta('9996', 'author')
+            result = finder.retrieve_ra_sequence_from_br_meta('br/9996', 'author')
             # If it doesn't crash, check result is reasonable (either empty or handles error)
             assert isinstance(result, list)
         except (KeyError, UnboundLocalError) as e:
@@ -271,7 +273,7 @@ class TestResourceFinder:
         finder.local_g.add((ra3_uri, GraphEntity.iri_name, Literal('Author Three')))
 
         # Should handle multiple next values consistently (last one wins in current implementation)
-        result = finder.retrieve_ra_sequence_from_br_meta('9995', 'author')
+        result = finder.retrieve_ra_sequence_from_br_meta('br/9995', 'author')
 
         # Should return a valid result without crashing
         assert isinstance(result, list)
@@ -291,7 +293,7 @@ class TestResourceFinder:
         finder.local_g.add((ra1_uri, GraphEntity.iri_name, Literal('Editor Name')))
 
         # Request author (should be empty)
-        result = finder.retrieve_ra_sequence_from_br_meta('9994', 'author')
+        result = finder.retrieve_ra_sequence_from_br_meta('br/9994', 'author')
 
         assert result == []
 
@@ -308,10 +310,10 @@ class TestResourceFinder:
         finder.local_g.add((ar1_uri, GraphEntity.iri_is_held_by, ra1_uri))
         finder.local_g.add((ra1_uri, GraphEntity.iri_name, Literal('Single Author')))
 
-        result = finder.retrieve_ra_sequence_from_br_meta('9993', 'author')
+        result = finder.retrieve_ra_sequence_from_br_meta('br/9993', 'author')
 
         assert len(result) == 1
-        assert list(result[0].keys())[0] == '9931'
+        assert list(result[0].keys())[0] == 'ar/9931'
 
     def test_retrieve_ra_sequence_two_independent_chains(self, finder):
         """Test that retrieve_ra_sequence_from_br_meta picks longest chain when multiple disconnected chains exist"""
@@ -344,13 +346,59 @@ class TestResourceFinder:
         finder.local_g.add((ar3_uri, GraphEntity.iri_is_held_by, ra3_uri))
         finder.local_g.add((ra3_uri, GraphEntity.iri_name, Literal('Author Three')))
 
-        result = finder.retrieve_ra_sequence_from_br_meta('9992', 'author')
+        result = finder.retrieve_ra_sequence_from_br_meta('br/9992', 'author')
 
         # Should return the longer chain (chain 1 with 2 elements)
         assert len(result) == 2
         ar_ids = [list(item.keys())[0] for item in result]
-        assert '9921' in ar_ids
-        assert '9922' in ar_ids
+        assert 'ar/9921' in ar_ids
+        assert 'ar/9922' in ar_ids
+
+    def test_retrieve_ra_sequence_equal_length_chains_tiebreaker(self, finder):
+        """Test that when multiple chains have equal length, the one starting with lowest AR number wins."""
+        base_iri = 'https://w3id.org/oc/meta'
+        br_uri = URIRef(f'{base_iri}/br/9986')
+
+        # Chain 1: AR 9935 -> AR 9936 (length 2, starts with higher number)
+        ar1_uri = URIRef(f'{base_iri}/ar/9935')
+        ar2_uri = URIRef(f'{base_iri}/ar/9936')
+        ra1_uri = URIRef(f'{base_iri}/ra/9925')
+        ra2_uri = URIRef(f'{base_iri}/ra/9926')
+
+        finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar1_uri))
+        finder.local_g.add((ar1_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
+        finder.local_g.add((ar1_uri, GraphEntity.iri_is_held_by, ra1_uri))
+        finder.local_g.add((ar1_uri, GraphEntity.iri_has_next, ar2_uri))
+        finder.local_g.add((ra1_uri, GraphEntity.iri_name, Literal('Author A')))
+
+        finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar2_uri))
+        finder.local_g.add((ar2_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
+        finder.local_g.add((ar2_uri, GraphEntity.iri_is_held_by, ra2_uri))
+        finder.local_g.add((ra2_uri, GraphEntity.iri_name, Literal('Author B')))
+
+        # Chain 2: AR 9933 -> AR 9934 (length 2, starts with lower number)
+        ar3_uri = URIRef(f'{base_iri}/ar/9933')
+        ar4_uri = URIRef(f'{base_iri}/ar/9934')
+        ra3_uri = URIRef(f'{base_iri}/ra/9923')
+        ra4_uri = URIRef(f'{base_iri}/ra/9924')
+
+        finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar3_uri))
+        finder.local_g.add((ar3_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
+        finder.local_g.add((ar3_uri, GraphEntity.iri_is_held_by, ra3_uri))
+        finder.local_g.add((ar3_uri, GraphEntity.iri_has_next, ar4_uri))
+        finder.local_g.add((ra3_uri, GraphEntity.iri_name, Literal('Author C')))
+
+        finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar4_uri))
+        finder.local_g.add((ar4_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
+        finder.local_g.add((ar4_uri, GraphEntity.iri_is_held_by, ra4_uri))
+        finder.local_g.add((ra4_uri, GraphEntity.iri_name, Literal('Author D')))
+
+        result = finder.retrieve_ra_sequence_from_br_meta('br/9986', 'author')
+
+        # Both chains have length 2, so the one starting with lowest AR number (9933) wins
+        assert len(result) == 2
+        assert list(result[0].keys())[0] == 'ar/9933'
+        assert list(result[1].keys())[0] == 'ar/9934'
 
     def test_retrieve_ra_sequence_editor_role(self, finder):
         """Test that retrieve_ra_sequence_from_br_meta works with editor role"""
@@ -364,10 +412,10 @@ class TestResourceFinder:
         finder.local_g.add((ar1_uri, GraphEntity.iri_is_held_by, ra1_uri))
         finder.local_g.add((ra1_uri, GraphEntity.iri_name, Literal('Editor Name')))
 
-        result = finder.retrieve_ra_sequence_from_br_meta('9991', 'editor')
+        result = finder.retrieve_ra_sequence_from_br_meta('br/9991', 'editor')
 
         assert len(result) == 1
-        assert list(result[0].keys())[0] == '9911'
+        assert list(result[0].keys())[0] == 'ar/9911'
 
     def test_retrieve_ra_sequence_publisher_role(self, finder):
         """Test that retrieve_ra_sequence_from_br_meta works with publisher role"""
@@ -381,10 +429,10 @@ class TestResourceFinder:
         finder.local_g.add((ar1_uri, GraphEntity.iri_is_held_by, ra1_uri))
         finder.local_g.add((ra1_uri, GraphEntity.iri_name, Literal('Publisher Name')))
 
-        result = finder.retrieve_ra_sequence_from_br_meta('9990', 'publisher')
+        result = finder.retrieve_ra_sequence_from_br_meta('br/9990', 'publisher')
 
         assert len(result) == 1
-        assert list(result[0].keys())[0] == '9901'
+        assert list(result[0].keys())[0] == 'ar/9901'
 
     def test_retrieve_ra_sequence_three_node_loop(self, finder):
         """Test that retrieve_ra_sequence_from_br_meta handles three-node circular loop"""
@@ -416,14 +464,14 @@ class TestResourceFinder:
         finder.local_g.add((ar3_uri, GraphEntity.iri_has_next, ar1_uri))
         finder.local_g.add((ra3_uri, GraphEntity.iri_name, Literal('Author Three')))
 
-        result = finder.retrieve_ra_sequence_from_br_meta('9989', 'author')
+        result = finder.retrieve_ra_sequence_from_br_meta('br/9989', 'author')
 
         # Should return exactly 3 ARs (breaking loop)
         assert len(result) == 3
         ar_ids = [list(item.keys())[0] for item in result]
-        assert '9891' in ar_ids
-        assert '9892' in ar_ids
-        assert '9893' in ar_ids
+        assert 'ar/9891' in ar_ids
+        assert 'ar/9892' in ar_ids
+        assert 'ar/9893' in ar_ids
 
     def test_retrieve_ra_sequence_duplicate_ra(self, finder):
         """Test that retrieve_ra_sequence_from_br_meta returns both ARs when they point to same RA"""
@@ -444,13 +492,45 @@ class TestResourceFinder:
         finder.local_g.add((ar2_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
         finder.local_g.add((ar2_uri, GraphEntity.iri_is_held_by, ra1_uri))
 
-        result = finder.retrieve_ra_sequence_from_br_meta('9988', 'author')
+        result = finder.retrieve_ra_sequence_from_br_meta('br/9988', 'author')
 
         # Should return both ARs even though they reference same RA
         assert len(result) == 2
-        # Both should reference RA 9871
-        assert result[0][list(result[0].keys())[0]][2] == '9871'
-        assert result[1][list(result[1].keys())[0]][2] == '9871'
+        # Both should reference RA ra/9871
+        assert result[0][list(result[0].keys())[0]][2] == 'ra/9871'
+        assert result[1][list(result[1].keys())[0]][2] == 'ra/9871'
+
+    def test_retrieve_venue_from_local_graph(self, finder):
+        """Test that retrieve_venue_from_local_graph correctly uses metaID with prefix."""
+        base_iri = 'https://w3id.org/oc/meta'
+        # Create a venue with a volume and an issue
+        venue_uri = URIRef(f'{base_iri}/br/8001')
+        volume_uri = URIRef(f'{base_iri}/br/8002')
+        issue_uri = URIRef(f'{base_iri}/br/8003')
+
+        # Venue
+        finder.local_g.add((venue_uri, GraphEntity.iri_has_sequence_identifier, Literal('Journal Test', datatype=XSD.string)))
+
+        # Volume 5 of the venue
+        finder.local_g.add((volume_uri, RDF.type, GraphEntity.iri_journal_volume))
+        finder.local_g.add((volume_uri, GraphEntity.iri_part_of, venue_uri))
+        finder.local_g.add((volume_uri, GraphEntity.iri_has_sequence_identifier, Literal('5', datatype=XSD.string)))
+
+        # Issue 3 of volume 5
+        finder.local_g.add((issue_uri, RDF.type, GraphEntity.iri_journal_issue))
+        finder.local_g.add((issue_uri, GraphEntity.iri_part_of, volume_uri))
+        finder.local_g.add((issue_uri, GraphEntity.iri_has_sequence_identifier, Literal('3', datatype=XSD.string)))
+
+        # Call with prefixed metaID
+        result = finder.retrieve_venue_from_local_graph('br/8001')
+
+        # Verify volume was found with correct prefixed ID
+        assert '5' in result['volume']
+        assert result['volume']['5']['id'] == 'br/8002'
+
+        # Verify issue was found under the volume with correct prefixed ID
+        assert '3' in result['volume']['5']['issue']
+        assert result['volume']['5']['issue']['3']['id'] == 'br/8003'
 
 
 @pytest.fixture(scope="class")
