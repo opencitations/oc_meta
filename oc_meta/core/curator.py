@@ -1019,9 +1019,9 @@ class Curator:
                                     )
                 if "wannabe" in venue_meta:
                     br_meta = self.entity_store.find(venue_meta)
-                    self.__merge_VolIss_with_vvi(br_meta, venue_meta)
+                    self._merge_VolIss_with_vvi(br_meta, venue_meta)
                 else:
-                    self.__merge_VolIss_with_vvi(venue_meta, venue_meta)
+                    self._merge_VolIss_with_vvi(venue_meta, venue_meta)
 
     def enrich(self, task_id=None):
         """
@@ -1153,7 +1153,7 @@ class Curator:
             data_file = os.path.join(path_csv, name)
             write_csv(data_file, self.data)
 
-    def __merge_VolIss_with_vvi(
+    def _merge_VolIss_with_vvi(
         self, VolIss_venue_meta: str, vvi_venue_meta: str
     ) -> None:
         if VolIss_venue_meta in self.VolIss:

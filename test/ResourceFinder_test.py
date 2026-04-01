@@ -612,3 +612,134 @@ class TestVVIQueryIsolation:
         volume_20_graph = finder.prebuilt_subgraphs[volume_20_uri]
         assert (volume_20_uri, GraphEntity.iri_part_of, venue_b_uri) in volume_20_graph, \
             "Volume 20 should be part of Venue B"
+
+
+FINDER_BASE_IRI = "https://w3id.org/oc/meta/"
+FINDER_SERVER = 'http://127.0.0.1:8805?access-token=qlever_test_token'
+
+
+class TestFinderConstructFullName:
+    def test_only_given_name(self):
+        finder = ResourceFinder(FINDER_SERVER, FINDER_BASE_IRI, Graph())
+        result = finder._construct_full_name("", "", "John")
+        assert result == ", John"
+
+
+class TestFinderRetrieveReFromBrMeta:
+    @pytest.fixture
+    def finder_with_re_data(self):
+        local_g = Graph()
+        base_iri = "https://w3id.org/oc/meta"
+        finder = ResourceFinder(FINDER_SERVER, base_iri + "/", local_g)
+
+        br1_uri = URIRef(f"{base_iri}/br/test1")
+        re1_uri = URIRef(f"{base_iri}/re/test1")
+        local_g.add((br1_uri, GraphEntity.iri_embodiment, re1_uri))
+        local_g.add((re1_uri, GraphEntity.iri_starting_page, Literal("100")))
+
+        br2_uri = URIRef(f"{base_iri}/br/test2")
+        re2_uri = URIRef(f"{base_iri}/re/test2")
+        local_g.add((br2_uri, GraphEntity.iri_embodiment, re2_uri))
+        local_g.add((re2_uri, GraphEntity.iri_ending_page, Literal("200")))
+
+        return finder
+
+    def test_only_starting_page(self, finder_with_re_data):
+        result = finder_with_re_data.retrieve_re_from_br_meta("br/test1")
+        assert result is not None
+        assert result[0] == "re/test1"
+        assert result[1] == "100-100"
+
+    def test_only_ending_page(self, finder_with_re_data):
+        result = finder_with_re_data.retrieve_re_from_br_meta("br/test2")
+        assert result is not None
+        assert result[0] == "re/test2"
+        assert result[1] == "200-200"
+
+
+class TestFinderGetSubgraph:
+    def test_get_subgraph_not_found(self):
+        finder = ResourceFinder(FINDER_SERVER, FINDER_BASE_IRI, Graph())
+        result = finder.get_subgraph(URIRef(f"{FINDER_BASE_IRI}br/nonexistent"))
+        assert result is None
+
+
+class TestFinderRetrieveVenueFromLocalGraphIssueDirectlyInVenue:
+    def test_issue_directly_in_venue(self):
+        base_iri = "https://w3id.org/oc/meta"
+        local_g = Graph()
+        finder = ResourceFinder(FINDER_SERVER, base_iri + "/", local_g)
+
+        venue_uri = URIRef(f"{base_iri}/br/venue1")
+        issue_uri = URIRef(f"{base_iri}/br/issue1")
+
+        local_g.add((issue_uri, RDF.type, GraphEntity.iri_journal_issue))
+        local_g.add((issue_uri, GraphEntity.iri_part_of, venue_uri))
+        local_g.add(
+            (issue_uri, GraphEntity.iri_has_sequence_identifier, Literal("5", datatype=XSD.string))
+        )
+
+        result = finder.retrieve_venue_from_local_graph("br/venue1")
+
+        assert "5" in result["issue"]
+        assert result["issue"]["5"]["id"] == "br/issue1"
+
+
+class TestFinderRetrievePublisherDeepNesting:
+    @pytest.fixture
+    def finder_with_publisher_data(self):
+        local_g = Graph()
+        base_iri = "https://w3id.org/oc/meta"
+        finder = ResourceFinder(FINDER_SERVER, base_iri + "/", local_g)
+
+        br_uri = URIRef(f"{base_iri}/br/deep1")
+        issue_uri = URIRef(f"{base_iri}/br/issue1")
+        vol_uri = URIRef(f"{base_iri}/br/vol1")
+        ar_uri = URIRef(f"{base_iri}/ar/pub1")
+        ra_uri = URIRef(f"{base_iri}/ra/publisher1")
+
+        local_g.add((br_uri, GraphEntity.iri_part_of, issue_uri))
+        local_g.add((issue_uri, GraphEntity.iri_part_of, vol_uri))
+        local_g.add((vol_uri, GraphEntity.iri_is_document_context_for, ar_uri))
+        local_g.add((ar_uri, GraphEntity.iri_with_role, GraphEntity.iri_publisher))
+        local_g.add((ar_uri, GraphEntity.iri_is_held_by, ra_uri))
+        local_g.add((ra_uri, GraphEntity.iri_name, Literal("Deep Publisher")))
+
+        return finder
+
+    def test_retrieve_publisher_two_levels_deep(self, finder_with_publisher_data):
+        result = finder_with_publisher_data.retrieve_publisher_from_br_metaid("br/deep1")
+        assert "Deep Publisher" in result
+
+
+class TestFinderRetrieveRaFromIdMultipleIds:
+    @pytest.fixture
+    def finder_with_ra_multiple_ids(self):
+        local_g = Graph()
+        base_iri = "https://w3id.org/oc/meta"
+        finder = ResourceFinder(FINDER_SERVER, base_iri + "/", local_g)
+
+        ra_uri = URIRef(f"{base_iri}/ra/multi1")
+        id1_uri = URIRef(f"{base_iri}/id/id1")
+        id2_uri = URIRef(f"{base_iri}/id/id2")
+
+        local_g.add((ra_uri, GraphEntity.iri_has_identifier, id1_uri))
+        local_g.add((id1_uri, GraphEntity.iri_uses_identifier_scheme, URIRef(GraphEntity.DATACITE + "orcid")))
+        local_g.add((id1_uri, GraphEntity.iri_has_literal_value, Literal("0000-0001-1234-5678", datatype=XSD.string)))
+
+        local_g.add((ra_uri, GraphEntity.iri_has_identifier, id2_uri))
+        local_g.add((id2_uri, GraphEntity.iri_uses_identifier_scheme, URIRef(GraphEntity.DATACITE + "viaf")))
+        local_g.add((id2_uri, GraphEntity.iri_has_literal_value, Literal("12345", datatype=XSD.string)))
+
+        local_g.add((ra_uri, GraphEntity.iri_name, Literal("Multi ID Author")))
+
+        return finder
+
+    def test_retrieve_ra_returns_all_ids(self, finder_with_ra_multiple_ids):
+        result = finder_with_ra_multiple_ids.retrieve_ra_from_id("orcid", "0000-0001-1234-5678")
+        assert len(result) == 1
+        assert result[0][1] == "Multi ID Author"
+        id_list = result[0][2]
+        id_literals = [id_tuple[1] for id_tuple in id_list]
+        assert "orcid:0000-0001-1234-5678" in id_literals
+        assert "viaf:12345" in id_literals

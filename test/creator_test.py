@@ -189,3 +189,31 @@ class TestCase10:
         name = "10"
         test_graph, new_graph = prepare2test(name)
         assert compare.isomorphic(new_graph, test_graph) == True
+
+
+class TestCreatorGetVenueType:
+    def test_reference_entry_with_issn_only(self):
+        result = Creator.get_venue_type("reference entry", ["omid:br/0601", "issn:1234-5678"])
+        assert result == "journal"
+
+    def test_reference_entry_with_isbn_only(self):
+        result = Creator.get_venue_type("reference entry", ["omid:br/0601", "isbn:978-0-123"])
+        assert result == "reference book"
+
+    def test_reference_entry_with_both_issn_and_isbn(self):
+        result = Creator.get_venue_type(
+            "reference entry", ["omid:br/0601", "issn:1234-5678", "isbn:978-0-123"]
+        )
+        assert result == ""
+
+    def test_report_series_type(self):
+        result = Creator.get_venue_type("report series", ["omid:br/0601"])
+        assert result == "report series"
+
+    def test_dataset_type(self):
+        result = Creator.get_venue_type("dataset", ["omid:br/0601"])
+        assert result == ""
+
+    def test_book_with_issn(self):
+        result = Creator.get_venue_type("proceedings article", ["omid:br/0601", "issn:1234-5678"])
+        assert result == ""

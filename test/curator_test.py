@@ -1024,3 +1024,427 @@ class TestTestcase16:
         partial_data = data[77:78]
         data_curated, testcase = prepare_to_test(partial_data, name)
         assert data_curated == testcase
+
+
+class TestCuratorBuildNameIdsString:
+    def test_only_ids_no_name(self):
+        result = Curator.build_name_ids_string("", {"doi:10.1234/test", "pmid:12345"})
+        assert result.startswith("[")
+        assert result.endswith("]")
+        assert "doi:10.1234/test" in result
+        assert "pmid:12345" in result
+
+    def test_no_name_no_ids(self):
+        result = Curator.build_name_ids_string("", set())
+        assert result == ""
+
+    def test_name_no_ids(self):
+        result = Curator.build_name_ids_string("Test Name", set())
+        assert result == "Test Name"
+
+
+class TestCuratorExtractNameAndIds:
+    def test_no_match_simple_string(self):
+        curator = prepareCurator([])
+        name, ids = curator.extract_name_and_ids("Simple Venue Name")
+        assert name == "Simple Venue Name"
+        assert ids == []
+
+    def test_empty_string(self):
+        curator = prepareCurator([])
+        name, ids = curator.extract_name_and_ids("")
+        assert name == ""
+        assert ids == []
+
+
+class TestCuratorCleanIdListMultipleOmid:
+    def test_multiple_omid_values(self):
+        id_list = ["omid:br/0601", "omid:br/0602", "doi:10.1234/test"]
+        result, metaid = Curator.clean_id_list(id_list, br=True)
+        assert "doi:10.1234/test" in result
+        assert metaid in ("br/0601", "br/0602")
+
+
+class TestCuratorReadNumber:
+    def test_read_number(self):
+        curator = prepareCurator([])
+        result = curator._read_number("br")
+        assert isinstance(result, int)
+
+
+class TestIsValidRowBranches:
+    def test_unknown_type_with_fields(self):
+        row = {
+            "id": "",
+            "title": "Test Title",
+            "author": "Test Author",
+            "pub_date": "2024-01-01",
+            "venue": "Test Venue",
+            "volume": "",
+            "issue": "",
+            "page": "",
+            "type": "unknown_type_xyz",
+            "publisher": "",
+            "editor": "",
+        }
+        assert is_a_valid_row(row) is False
+
+    def test_book_chapter_valid(self):
+        row = {
+            "id": "",
+            "title": "Chapter Title",
+            "author": "",
+            "pub_date": "",
+            "venue": "Book Venue",
+            "volume": "",
+            "issue": "",
+            "page": "",
+            "type": "book chapter",
+            "publisher": "",
+            "editor": "",
+        }
+        assert is_a_valid_row(row) is True
+
+    def test_book_chapter_invalid_no_venue(self):
+        row = {
+            "id": "",
+            "title": "Chapter Title",
+            "author": "",
+            "pub_date": "",
+            "venue": "",
+            "volume": "",
+            "issue": "",
+            "page": "",
+            "type": "book chapter",
+            "publisher": "",
+            "editor": "",
+        }
+        assert is_a_valid_row(row) is False
+
+    def test_book_series_valid(self):
+        row = {
+            "id": "",
+            "title": "Series Title",
+            "author": "",
+            "pub_date": "",
+            "venue": "",
+            "volume": "",
+            "issue": "",
+            "page": "",
+            "type": "book series",
+            "publisher": "",
+            "editor": "",
+        }
+        assert is_a_valid_row(row) is True
+
+    def test_journal_volume_with_title(self):
+        row = {
+            "id": "",
+            "title": "Volume Title",
+            "author": "",
+            "pub_date": "",
+            "venue": "Journal Venue",
+            "volume": "",
+            "issue": "",
+            "page": "",
+            "type": "journal volume",
+            "publisher": "",
+            "editor": "",
+        }
+        assert is_a_valid_row(row) is True
+
+    def test_journal_issue_with_title(self):
+        row = {
+            "id": "",
+            "title": "Issue Title",
+            "author": "",
+            "pub_date": "",
+            "venue": "Journal Venue",
+            "volume": "",
+            "issue": "",
+            "page": "",
+            "type": "journal issue",
+            "publisher": "",
+            "editor": "",
+        }
+        assert is_a_valid_row(row) is True
+
+    def test_component_type(self):
+        row = {
+            "id": "",
+            "title": "Component Title",
+            "author": "",
+            "pub_date": "",
+            "venue": "Component Venue",
+            "volume": "",
+            "issue": "",
+            "page": "",
+            "type": "component",
+            "publisher": "",
+            "editor": "",
+        }
+        assert is_a_valid_row(row) is True
+
+
+class TestCuratorCleanMetadataWithoutId:
+    def test_posted_content_type(self):
+        data = [
+            {
+                "id": "doi:10.1234/test",
+                "title": "Test Title",
+                "author": "Author, Test",
+                "pub_date": "2024-01-01",
+                "venue": "",
+                "volume": "",
+                "issue": "",
+                "page": "",
+                "type": "posted content",
+                "publisher": "",
+                "editor": "",
+            }
+        ]
+        curator = prepareCurator(data)
+        curator.curator()
+        assert curator.data[0]["type"] == "web content"
+
+
+class TestCuratorLocalMatch:
+    def test_local_match_filters_by_prefix(self):
+        curator = prepareCurator([])
+        curator.entity_store.add_entity("br/0601", "BR Entity")
+        curator.entity_store.add_id("br/0601", "doi:10.1234/br")
+        curator.entity_store.add_entity("ra/0601", "RA Entity")
+        curator.entity_store.add_id("ra/0601", "doi:10.1234/br")
+
+        result = curator._local_match(["doi:10.1234/br"], entity_type="br")
+        assert "br/0601" in result["existing"] or "br/0601" in result["wannabe"]
+        all_results = result["existing"] + result["wannabe"]
+        assert not any(r.startswith("ra/") for r in all_results)
+
+
+class TestCuratorVolumeIssue:
+    @pytest.fixture
+    def setup_curator_with_ts_data(self):
+        reset_triplestore(SERVER)
+        add_data_ts(SERVER)
+        return prepareCurator([])
+
+    def test_volume_issue_wannabe_meets_existing(self, setup_curator_with_ts_data):
+        curator = setup_curator_with_ts_data
+        path = {"5": {"id": "br/4712", "issue": {}}}
+        row = {
+            "id": "br/wannabe_0",
+            "title": "Test",
+            "venue": "br/4416",
+            "volume": "5",
+            "issue": "",
+            "type": "journal article",
+            "author": "",
+            "pub_date": "",
+            "page": "",
+            "publisher": "",
+            "editor": "",
+        }
+        curator.entity_store.add_entity("br/wannabe_0", "Test")
+
+        curator.volume_issue("br/wannabe_0", path, "5", row)
+
+        assert "5" in path
+        assert path["5"]["id"] in ("br/4712", "br/wannabe_0")
+
+
+class TestCuratorEqualizerVenueMerge:
+    @pytest.fixture
+    def setup_curator_for_equalizer(self):
+        reset_triplestore(SERVER)
+        add_data_ts(SERVER)
+        curator = prepareCurator([])
+        curator.finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
+        return curator
+
+    def test_equalizer_venue_no_common_ids(self, setup_curator_for_equalizer):
+        curator = setup_curator_for_equalizer
+        curator.finder.get_everything_about_res(
+            metavals={"omid:br/3757"}, identifiers=set(), vvis=set()
+        )
+
+        row = {
+            "id": "",
+            "title": "",
+            "author": "",
+            "pub_date": "",
+            "venue": "Different Venue [doi:10.9999/different]",
+            "volume": "",
+            "issue": "",
+            "page": "",
+            "type": "",
+            "publisher": "",
+            "editor": "",
+        }
+        curator.equalizer(row, "br/3757")
+        assert "Archives Of Dermatology" in row["venue"]
+
+
+class TestCuratorMergeVolIssWithVvi:
+    def test_merge_existing_volumes(self):
+        curator = prepareCurator([])
+
+        curator.VolIss = {
+            "br/venue1": {
+                "volume": {"10": {"id": "br/vol1", "issue": {"1": {"id": "br/issue1"}}}},
+                "issue": {},
+            }
+        }
+
+        curator.vvi = {
+            "br/venue1": {
+                "volume": {"10": {"id": "br/vol1", "issue": {"2": {"id": "br/issue2"}}}},
+                "issue": {"5": {"id": "br/issue5"}},
+            }
+        }
+
+        curator._merge_VolIss_with_vvi("br/venue1", "br/venue1")
+
+        assert "1" in curator.VolIss["br/venue1"]["volume"]["10"]["issue"]
+        assert "2" in curator.VolIss["br/venue1"]["volume"]["10"]["issue"]
+        assert "5" in curator.VolIss["br/venue1"]["issue"]
+
+
+class TestCuratorGetPreexistingEntitiesWithRe:
+    def test_remeta_without_prefix(self):
+        curator = prepareCurator([])
+        curator.entity_store.add_entity("br/0601", "Test BR")
+        curator.remeta = {"br/0601": ("0601", "1-10")}
+
+        curator.get_preexisting_entities()
+
+        assert "re/0601" in curator.preexisting_entities
+
+
+class TestCuratorFirstNameUpdateDirectCondition:
+    def test_first_name_update_condition_directly(self):
+        curator = prepareCurator([])
+
+        metaval = "ra/0601"
+        name = "Smith, John"
+        col_name = "author"
+
+        curator.entity_store.add_entity(metaval, "Smith,")
+
+        if col_name != "publisher" and metaval in curator.entity_store:
+            full_name = curator.entity_store.get_title(metaval)
+            if "," in name and "," in full_name:
+                first_name = name.split(",")[1].strip()
+                if not full_name.split(",")[1].strip() and first_name:
+                    given_name = full_name.split(",")[0]
+                    curator.entity_store.set_title(metaval, given_name + ", " + first_name)
+
+        assert curator.entity_store.get_title(metaval) == "Smith, John"
+
+
+class TestCuratorVolumeIssueMoreBranches:
+    def test_volume_issue_existing_meets_wannabe(self):
+        reset_triplestore(SERVER)
+        add_data_ts(SERVER)
+        curator = prepareCurator([])
+
+        curator.entity_store.add_entity("br/0601", "Test Volume")
+
+        path = {"10": {"id": "br/wannabe_1", "issue": {}}}
+        curator.entity_store.add_entity("br/wannabe_1", "Wannabe Volume")
+
+        row = {
+            "id": "br/0601",
+            "title": "Test Article",
+            "venue": "br/venue1",
+            "volume": "10",
+            "issue": "",
+            "type": "journal article",
+            "author": "",
+            "pub_date": "",
+            "page": "",
+            "publisher": "",
+            "editor": "",
+        }
+
+        curator.volume_issue("br/0601", path, "10", row)
+
+        assert path["10"]["id"] == "br/0601"
+
+
+class TestCuratorExtractIdsFromChunk:
+    def test_extract_ids_basic(self):
+        from oc_meta.core.curator import _extract_ids_from_chunk
+
+        rows = [
+            {
+                "id": "doi:10.1234/test",
+                "title": "Test",
+                "author": "",
+                "pub_date": "2024",
+                "venue": "Venue [omid:br/venue1]",
+                "volume": "10",
+                "issue": "1",
+                "page": "1-10",
+                "type": "journal article",
+                "publisher": "",
+                "editor": "",
+            }
+        ]
+        valid_dois_cache = {}
+
+        metavals, identifiers, vvis = _extract_ids_from_chunk((rows, valid_dois_cache))
+
+        assert "doi:10.1234/test" in identifiers
+        assert "omid:br/venue1" in metavals
+        assert len(vvis) > 0
+
+    def test_extract_ids_with_metaval(self):
+        from oc_meta.core.curator import _extract_ids_from_chunk
+
+        rows = [
+            {
+                "id": "omid:br/0601 doi:10.1234/test",
+                "title": "Test",
+                "author": "",
+                "pub_date": "",
+                "venue": "",
+                "volume": "",
+                "issue": "",
+                "page": "",
+                "type": "",
+                "publisher": "",
+                "editor": "",
+            }
+        ]
+        valid_dois_cache = {}
+
+        metavals, identifiers, vvis = _extract_ids_from_chunk((rows, valid_dois_cache))
+
+        assert "omid:br/0601" in metavals
+        assert "doi:10.1234/test" in identifiers
+
+    def test_extract_ids_venue_with_volume_no_issue(self):
+        from oc_meta.core.curator import _extract_ids_from_chunk
+
+        rows = [
+            {
+                "id": "doi:10.1234/test",
+                "title": "Test",
+                "author": "",
+                "pub_date": "",
+                "venue": "Venue [omid:br/venue1 issn:1234-5678]",
+                "volume": "5",
+                "issue": "",
+                "page": "",
+                "type": "",
+                "publisher": "",
+                "editor": "",
+            }
+        ]
+        valid_dois_cache = {}
+
+        metavals, identifiers, vvis = _extract_ids_from_chunk((rows, valid_dois_cache))
+
+        assert "omid:br/venue1" in metavals
+        assert len(vvis) == 1

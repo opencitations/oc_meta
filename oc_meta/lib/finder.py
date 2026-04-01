@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import multiprocessing
 from concurrent.futures import ProcessPoolExecutor
-from typing import TYPE_CHECKING, Dict, List, Tuple
+from typing import TYPE_CHECKING, Dict, List, Tuple, TypedDict
 
 import orjson
 
@@ -20,6 +20,20 @@ from oc_ocdm.support import get_resource_number, sparql_binding_to_term
 from rdflib import RDF, XSD, Graph, Literal, URIRef
 from sparqlite import SPARQLClient
 from time_agnostic_library.agnostic_entity import AgnosticEntity
+
+
+class IssueEntry(TypedDict):
+    id: str
+
+
+class VolumeEntry(TypedDict):
+    id: str
+    issue: Dict[str, IssueEntry]
+
+
+class VenueStructure(TypedDict):
+    issue: Dict[str, IssueEntry]
+    volume: Dict[str, VolumeEntry]
 
 
 def _execute_sparql_queries(args: tuple) -> list:
@@ -1001,15 +1015,15 @@ class ResourceFinder:
             return self.prebuilt_subgraphs[res]
         return None
 
-    def retrieve_venue_from_local_graph(self, meta_id: str) -> Dict[str, Dict[str, str]]:
+    def retrieve_venue_from_local_graph(self, meta_id: str) -> VenueStructure:
         """
         Retrieve venue VVI structure from local graph instead of querying triplestore.
-        
+
         :params meta_id: a MetaID
         :type meta_id: str
-        :returns: Dict[str, Dict[str, str]] -- the venue structure with volumes and issues
+        :returns: VenueStructure -- the venue structure with volumes and issues
         """
-        content = {
+        content: VenueStructure = {
             'issue': {},
             'volume': {}
         }

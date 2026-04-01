@@ -308,13 +308,7 @@ class Creator(object):
 
     def pub_date_action(self, pub_date):
         if pub_date:
-            datelist = list()
-            datesplit = pub_date.split("-")
-            if datesplit:
-                for x in datesplit:
-                    datelist.append(int(x))
-            else:
-                datelist.append(int(pub_date))
+            datelist: list[int | None] = [int(x) for x in pub_date.split("-")]
             str_date = create_date(datelist)
             if str_date:
                 self.br_graph.has_pub_date(str_date)
@@ -343,11 +337,7 @@ class Creator(object):
                         res=url,
                         preexisting_graph=preexisting_graph,
                     )
-                    try:
-                        venue_type = self.get_venue_type(self.type, venue_ids_list)
-                    except UnboundLocalError:
-                        error_message = f"[INFO:Creator] I found the venue {venue} for the resource of type {self.type}, but I don't know how to handle it"
-                        raise UnboundLocalError(error_message)
+                    venue_type = self.get_venue_type(self.type, venue_ids_list)
                     if venue_type:
                         venue_type = venue_type.replace(" ", "_")
                         getattr(self.venue_graph, f"create_{venue_type}")()
