@@ -17,7 +17,7 @@ dependencies = [
     "beautifulsoup4>=4.14.0",
     "filelock>=3.24.0",
     "numpy>=2.2.0",
-    "oc-ds-converter",
+    "oc-ds-converter==2.0.0",
     "oc-ocdm>=10,<11",
     "orjson>=3.11.0",
     "pandas>=2.2.3",
@@ -58,10 +58,3 @@ dev = [
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-[tool.uv.workspace]
-members = [
-    "oc_ds_converter",
-]
-
-[tool.uv.sources]
-oc-ds-converter = { workspace = true, editable = true }
