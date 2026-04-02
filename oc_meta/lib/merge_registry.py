@@ -90,26 +90,57 @@ class EntityStore:
         """
         Assign a final MetaID to a wannabe entity.
 
+        Copies all identifiers and title from wannabe to meta and registers the mapping.
         After this call, find(wannabe) and find() of any entity merged
         into wannabe will return meta.
         """
+        # Find the root of the Union-Find tree. If wannabe_0 was merged into wannabe_1
+        # which was merged into wannabe_2, the root is wannabe_2. If the wannabe was
+        # never merged, the root is itself.
         root = wannabe
         if wannabe in self._parent:
             root = wannabe
             while self._parent[root] != root:
                 root = self._parent[root]
 
+        # Register mapping for both: the root and the wannabe passed as argument.
+        # This way find() works starting from either.
         self._wannabe_to_meta[root] = meta
         self._wannabe_to_meta[wannabe] = meta
 
+        # Transfer merge structure from root to meta. If root had merged entities,
+        # move that set under key meta and add the root itself to the set.
+        # Otherwise create a new set containing just the wannabe (or empty if
+        # wannabe == meta, meaning the entity already existed in the triplestore).
         if root in self._merged:
             self._merged[meta] = self._merged.pop(root)
             self._merged[meta].add(root)
         else:
             self._merged[meta] = {wannabe} if wannabe != meta else set()
 
-        for merged_id in list(self._merged.get(meta, [])):
+        # Propagate mapping to all entities that were merged. This way calling
+        # find("br/wannabe_0") after wannabe_0 → wannabe_1 → wannabe_2 → meta
+        # still returns meta.
+        for merged_id in list(self._merged[meta]):
             self._wannabe_to_meta[merged_id] = meta
+
+        # Copy identifiers from wannabe to meta
+        ids = self._entity_ids[wannabe] if wannabe in self._entity_ids else set()
+        if meta not in self._entity_ids:
+            self._entity_ids[meta] = set()
+        self._entity_ids[meta].update(ids)
+
+        # Update reverse index: before "doi:10.1234/abc" → {"br/wannabe_0"},
+        # after "doi:10.1234/abc" → {"br/0601"}
+        for id_literal in ids:
+            if id_literal in self._id_to_entities:
+                self._id_to_entities[id_literal].discard(wannabe)
+                self._id_to_entities[id_literal].add(meta)
+
+        # Copy title from wannabe to meta, but only if meta doesn't already have one.
+        # If meta is a preexisting entity with a title from the triplestore, don't overwrite.
+        if meta not in self._entity_titles and wannabe in self._entity_titles:
+            self._entity_titles[meta] = self._entity_titles[wannabe]
 
     def add_entity(self, entity_key: str, title: str = "") -> None:
         """Create new entity with empty ids set and optional title."""

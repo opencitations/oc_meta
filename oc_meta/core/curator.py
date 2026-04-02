@@ -145,10 +145,6 @@ class Curator:
         self.entity_store = EntityStore()
         self.ardict = {}
         self.vvi = {}
-
-        self.brmeta = dict()
-        self.rameta = dict()
-        self.armeta = dict()
         self.remeta = dict()
         self.wnb_cnt = 0
         self.rowcnt = 0
@@ -841,12 +837,12 @@ class Curator:
 
     def ra_update(self, row: dict, br_key: str, col_name: str) -> None:
         if row[col_name]:
-            sequence = self.armeta[br_key][col_name]
+            sequence = self.ardict[br_key][col_name] if br_key in self.ardict else []
             ras_list = list()
             for _, ra_id in sequence:
-                ra_name = self.rameta[ra_id]["title"]
-                ra_ids = self.rameta[ra_id]["ids"]
-                ra = self.build_name_ids_string(ra_name, ra_ids)
+                ra_name = self.entity_store.get_title(ra_id)
+                ra_ids_with_omid = self.entity_store.get_ids(ra_id) | {f"omid:{ra_id}"}
+                ra = self.build_name_ids_string(ra_name, ra_ids_with_omid)
                 ras_list.append(ra)
             row[col_name] = "; ".join(ras_list)
 
@@ -882,22 +878,6 @@ class Curator:
                     else:
                         match_elem["existing"].append(entity_key)
         return match_elem
-
-    def __meta_ar(self, target_br_metaid: str, source_br_key: str, role_type: str) -> None:
-        """
-        Transfer agent role assignments from working dictionary to finalized dictionary.
-
-        Resolves any remaining placeholder ("wannabe") agent identifiers to their
-        final MetaIDs by looking up which finalized agent absorbed them.
-
-        Args:
-            target_br_metaid: The final, deduplicated bibliographic resource MetaID
-            source_br_key: The intermediate key in ardict (may contain "wannabe")
-            role_type: Type of role ("author", "editor", or "publisher")
-        """
-        for ar_metaid, agent_id in self.ardict[source_br_key][role_type]:
-            resolved_ra_metaid = self.entity_store.find(agent_id)
-            self.armeta[target_br_metaid][role_type].append((ar_metaid, resolved_ra_metaid))
 
     def __tree_traverse(self, tree: dict, key: str, values: List[Tuple]) -> None:
         for k, v in tree.items():
@@ -941,52 +921,30 @@ class Curator:
     def meta_maker(self):
         """
         Converts temporary wannabe identifiers to final MetaIDs.
-        For each entity in entity_store, the corresponding MetaID dictionary is created
-        (brmeta, armeta, rameta, and VolIss). Wannabe placeholders are replaced with
-        sequential MetaIDs from the counter handler.
+        Assigns final MetaIDs to wannabe entities and resolves ardict.
+        VolIss is also resolved from vvi.
         """
-        for identifier in self.entity_store:
-            if identifier.startswith("br/"):
-                if "wannabe" in identifier:
-                    count = self._add_number("br")
-                    target_meta = f"br/{self.prefix}{count}"
-                    self.brmeta[target_meta] = {
-                        "ids": self.entity_store.get_ids(identifier).copy(),
-                        "title": self.entity_store.get_title(identifier)
-                    }
-                    self.brmeta[target_meta]["ids"].add(f"omid:{target_meta}")
-                    self.entity_store.assign_meta(identifier, target_meta)
-                else:
-                    self.brmeta[identifier] = {
-                        "ids": self.entity_store.get_ids(identifier).copy(),
-                        "title": self.entity_store.get_title(identifier)
-                    }
-                    self.brmeta[identifier]["ids"].add(f"omid:{identifier}")
-            elif identifier.startswith("ra/"):
-                if "wannabe" in identifier:
-                    count = self._add_number("ra")
-                    target_meta = f"ra/{self.prefix}{count}"
-                    self.rameta[target_meta] = {
-                        "ids": self.entity_store.get_ids(identifier).copy(),
-                        "title": self.entity_store.get_title(identifier)
-                    }
-                    self.rameta[target_meta]["ids"].add(f"omid:{target_meta}")
-                    self.entity_store.assign_meta(identifier, target_meta)
-                else:
-                    self.rameta[identifier] = {
-                        "ids": self.entity_store.get_ids(identifier).copy(),
-                        "title": self.entity_store.get_title(identifier)
-                    }
-                    self.rameta[identifier]["ids"].add(f"omid:{identifier}")
+        for identifier in list(self.entity_store):
+            if identifier.startswith("br/") and "wannabe" in identifier:
+                count = self._add_number("br")
+                target_meta = f"br/{self.prefix}{count}"
+                self.entity_store.assign_meta(identifier, target_meta)
+            elif identifier.startswith("ra/") and "wannabe" in identifier:
+                count = self._add_number("ra")
+                target_meta = f"ra/{self.prefix}{count}"
+                self.entity_store.assign_meta(identifier, target_meta)
+
+        resolved_ardict: dict[str, dict[str, list]] = {}
         for ar_id in self.ardict:
             br_key = self.entity_store.find(ar_id)
-            self.armeta[br_key] = dict()
-            self.armeta[br_key]["author"] = list()
-            self.armeta[br_key]["editor"] = list()
-            self.armeta[br_key]["publisher"] = list()
-            self.__meta_ar(br_key, ar_id, "author")
-            self.__meta_ar(br_key, ar_id, "editor")
-            self.__meta_ar(br_key, ar_id, "publisher")
+            if br_key not in resolved_ardict:
+                resolved_ardict[br_key] = {"author": [], "editor": [], "publisher": []}
+            for role_type in ["author", "editor", "publisher"]:
+                for ar_metaid, agent_id in self.ardict[ar_id][role_type]:
+                    resolved_ra_metaid = self.entity_store.find(agent_id)
+                    resolved_ardict[br_key][role_type].append((ar_metaid, resolved_ra_metaid))
+        self.ardict = resolved_ardict
+
         self.VolIss = dict()
         if self.vvi:
             for venue_meta in self.vvi:
@@ -1044,8 +1002,9 @@ class Curator:
                     row["page"] = page
             elif metaid in self.remeta:
                 row["page"] = self.remeta[metaid][1]
-            row["id"] = " ".join(self.brmeta[metaid]["ids"])
-            row["title"] = self.brmeta[metaid]["title"]
+            ids_with_omid = self.entity_store.get_ids(metaid) | {f"omid:{metaid}"}
+            row["id"] = " ".join(ids_with_omid)
+            row["title"] = self.entity_store.get_title(metaid)
             venue_metaid = None
             if row["venue"]:
                 venue = row["venue"]
@@ -1053,8 +1012,9 @@ class Curator:
                     venue_metaid = self.entity_store.find(venue)
                 else:
                     venue_metaid = venue
+                venue_ids_with_omid = self.entity_store.get_ids(venue_metaid) | {f"omid:{venue_metaid}"}
                 row["venue"] = self.build_name_ids_string(
-                    self.brmeta[venue_metaid]["title"], self.brmeta[venue_metaid]["ids"]
+                    self.entity_store.get_title(venue_metaid), venue_ids_with_omid
                 )
             br_key_for_editor = get_edited_br_metaid(row, metaid, venue_metaid)
             self.ra_update(row, metaid, "author")
@@ -1097,7 +1057,7 @@ class Curator:
 
     def indexer(self, path_csv: str | None = None) -> None:
         """
-        Transform internal dicts (idra, idbr, armeta, remeta) to list-of-dicts format
+        Transform internal dicts (idra, idbr, ardict, remeta) to list-of-dicts format
         for Creator consumption. Optionally saves the enriched CSV file.
 
         :params path_csv: Directory path for the enriched CSV output (optional)
@@ -1119,13 +1079,13 @@ class Curator:
         if not self.index_id_ra:
             self.index_id_ra.append({"id": "", "meta": ""})
         self.ar_index = list()
-        if self.armeta:
-            for metaid in self.armeta:
+        if self.ardict:
+            for metaid in self.ardict:
                 index = dict()
                 index["meta"] = metaid
-                for role in self.armeta[metaid]:
+                for role in self.ardict[metaid]:
                     list_ar = list()
-                    for ar, ra in self.armeta[metaid][role]:
+                    for ar, ra in self.ardict[metaid][role]:
                         list_ar.append(str(ar) + ", " + str(ra))
                     index[role] = "; ".join(list_ar)
                 self.ar_index.append(index)

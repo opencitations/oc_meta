@@ -317,20 +317,17 @@ class TestCurator:
     def test_enricher(self):
         curator = prepareCurator(list())
         curator.data = [{'id': 'br/wannabe_0', 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China', 'author': '', 'pub_date': '2011-11-28', 'venue': 'br/wannabe_1', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': 'OECD [crossref:1963]', 'editor': ''}]
-        curator.brmeta = {
-            'br/0601': {'ids': {'doi:10.1787/eco_outlook-v2011-2-graph138-en', 'omid:br/0601'}, 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'},
-            'br/0602': {'ids': {'omid:br/0604'}, 'title': 'OECD Economic Outlook'}
-        }
-        curator.armeta = {'br/0601': {'author': [], 'editor': [], 'publisher': [('ar/0601', 'ra/0601')]}}
-        curator.rameta = {'ra/0601': {'ids': {'crossref:1963', 'omid:ra/0601'}, 'title': 'Oecd'}}
+        curator.entity_store.add_entity('br/wannabe_0', 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China')
+        curator.entity_store.add_id('br/wannabe_0', 'doi:10.1787/eco_outlook-v2011-2-graph138-en')
+        curator.entity_store.add_entity('br/wannabe_1', 'OECD Economic Outlook')
+        curator.entity_store.add_entity('ra/wannabe_2', 'Oecd')
+        curator.entity_store.add_id('ra/wannabe_2', 'crossref:1963')
+        curator.ardict = {'br/wannabe_0': {'author': [], 'editor': [], 'publisher': [('ar/0601', 'ra/wannabe_2')]}}
         curator.remeta = dict()
         curator.meta_maker()
-        curator.entity_store.assign_meta('br/wannabe_0', 'br/0601')
-        curator.entity_store.assign_meta('br/wannabe_1', 'br/0602')
-        curator.entity_store.assign_meta('ra/wannabe_2', 'ra/0601')
         curator.enrich()
         output = curator.data
-        expected_output = [{'id': 'doi:10.1787/eco_outlook-v2011-2-graph138-en omid:br/0601', 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China', 'author': '', 'pub_date': '2011-11-28', 'venue': 'OECD Economic Outlook [omid:br/0604]', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': 'Oecd [crossref:1963 omid:ra/0601]', 'editor': ''}]
+        expected_output = [{'id': 'doi:10.1787/eco_outlook-v2011-2-graph138-en omid:br/0601', 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China', 'author': '', 'pub_date': '2011-11-28', 'venue': 'OECD Economic Outlook [omid:br/0602]', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': 'Oecd [crossref:1963 omid:ra/0601]', 'editor': ''}]
         for row in output:
             normalize_row_ids(row)
         for row in expected_output:
@@ -379,12 +376,8 @@ class TestCurator:
         curator.entity_store.add_id('ra/0601', 'orcid:0000-0003-0530-4305')
         curator.entity_store.add_entity('ra/0602', '')
         curator.entity_store.add_id('ra/0602', 'viaf:12345')
-        curator.armeta = {'br/2585': {'author': [('ar/9445', 'ra/0602'), ('ar/0601', 'ra/0601')], 'editor': [], 'publisher': []}}
+        curator.ardict = {'br/2585': {'author': [('ar/9445', 'ra/0602'), ('ar/0601', 'ra/0601')], 'editor': [], 'publisher': []}}
         curator.remeta = dict()
-        curator.brmeta = {
-            'br/0601': {'ids': {'doi:10.1787/eco_outlook-v2011-2-graph138-en', 'omid:br/0601'}, 'title': 'Money Growth, Interest Rates, Inflation And Raw Materials Prices: China'},
-            'br/0602': {'ids': {'omid:br/0602'}, 'title': 'OECD Economic Outlook'}
-        }
         curator.VolIss = {
             'br/0602': {
                 'issue': {},
@@ -490,18 +483,16 @@ class TestCurator:
         curator.ardict = {'br/3757': {'author': [('ar/9445', 'ra/6033'), ('ar/0601', 'ra/wannabe_0')], 'editor': [], 'publisher': []}}
         curator.vvi = {'br/4416': {'issue': {}, 'volume': {'107': {'id': 'br/4733', 'issue': {'1': {'id': 'br/4734'}, '2': {'id': 'br/4735'}, '3': {'id': 'br/4736'}, '4': {'id': 'br/4737'}, '5': {'id': 'br/4738'}, '6': {'id': 'br/4739'}}}, '108': {'id': 'br/4740', 'issue': {'1': {'id': 'br/4741'}, '2': {'id': 'br/4742'}, '3': {'id': 'br/4743'}, '4': {'id': 'br/4744'}}}, '104': {'id': 'br/4712', 'issue': {'1': {'id': 'br/4713'}, '2': {'id': 'br/4714'}, '3': {'id': 'br/4715'}, '4': {'id': 'br/4716'}, '5': {'id': 'br/4717'}, '6': {'id': 'br/4718'}}}, '148': {'id': 'br/4417', 'issue': {'12': {'id': 'br/4418'}, '11': {'id': 'br/4419'}}}, '100': {'id': 'br/4684', 'issue': {'1': {'id': 'br/4685'}, '2': {'id': 'br/4686'}, '3': {'id': 'br/4687'}, '4': {'id': 'br/4688'}, '5': {'id': 'br/4689'}, '6': {'id': 'br/4690'}}}, '101': {'id': 'br/4691', 'issue': {'1': {'id': 'br/4692'}, '2': {'id': 'br/4693'}, '3': {'id': 'br/4694'}, '4': {'id': 'br/4695'}, '5': {'id': 'br/4696'}, '6': {'id': 'br/4697'}}}, '102': {'id': 'br/4698', 'issue': {'1': {'id': 'br/4699'}, '2': {'id': 'br/4700'}, '3': {'id': 'br/4701'}, '4': {'id': 'br/4702'}, '5': {'id': 'br/4703'}, '6': {'id': 'br/4704'}}}, '103': {'id': 'br/4705', 'issue': {'1': {'id': 'br/4706'}, '2': {'id': 'br/4707'}, '3': {'id': 'br/4708'}, '4': {'id': 'br/4709'}, '5': {'id': 'br/4710'}, '6': {'id': 'br/4711'}}}, '105': {'id': 'br/4719', 'issue': {'1': {'id': 'br/4720'}, '2': {'id': 'br/4721'}, '3': {'id': 'br/4722'}, '4': {'id': 'br/4723'}, '5': {'id': 'br/4724'}, '6': {'id': 'br/4725'}}}, '106': {'id': 'br/4726', 'issue': {'6': {'id': 'br/4732'}, '1': {'id': 'br/4727'}, '2': {'id': 'br/4728'}, '3': {'id': 'br/4729'}, '4': {'id': 'br/4730'}, '5': {'id': 'br/4731'}}}}}}
         curator.meta_maker()
-        expected_brmeta = {
-            'br/3757': {'ids': {'doi:10.1001/archderm.104.1.106', 'pmid:29098884', 'omid:br/3757'}, 'title': 'Multiple Keloids'},
-            'br/4416': {'ids': {'issn:0003-987X', 'omid:br/4416'}, 'title': 'Archives Of Dermatology'}
-        }
-        expected_rameta = {
-            'ra/6033': {'ids': {'omid:ra/6033'}, 'title': 'Curth, W.'},
-            'ra/0601': {'ids': {'orcid:0000-0003-0530-4305', 'schema:12345', 'omid:ra/0601'}, 'title': 'Mcsorley, J.'}
-        }
-        expected_armeta = {'br/3757': {'author': [('ar/9445', 'ra/6033'), ('ar/0601', 'ra/0601')], 'editor': [], 'publisher': []}}
-        assert curator.brmeta == expected_brmeta
-        assert curator.rameta == expected_rameta
-        assert curator.armeta == expected_armeta
+        assert curator.entity_store.get_ids('br/3757') == {'doi:10.1001/archderm.104.1.106', 'pmid:29098884'}
+        assert curator.entity_store.get_title('br/3757') == 'Multiple Keloids'
+        assert curator.entity_store.get_ids('br/4416') == {'issn:0003-987X'}
+        assert curator.entity_store.get_title('br/4416') == 'Archives Of Dermatology'
+        assert curator.entity_store.get_ids('ra/6033') == set()
+        assert curator.entity_store.get_title('ra/6033') == 'Curth, W.'
+        assert curator.entity_store.get_ids('ra/0601') == {'orcid:0000-0003-0530-4305', 'schema:12345'}
+        assert curator.entity_store.get_title('ra/0601') == 'Mcsorley, J.'
+        expected_ardict = {'br/3757': {'author': [('ar/9445', 'ra/6033'), ('ar/0601', 'ra/0601')], 'editor': [], 'publisher': []}}
+        assert curator.ardict == expected_ardict
 
 
 @pytest.fixture(scope="class")
