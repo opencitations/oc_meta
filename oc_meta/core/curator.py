@@ -305,39 +305,24 @@ class Curator:
                 self.progress.remove_task(task_merge)
             self.clean_metadata_without_id()
 
-        # Phase 4: Clean VVI (venue/volume/issue)
-        with self._timed("curation__clean_vvi"):
+        # Phase 4+5: Clean VVI and RA (venue/volume/issue + author/publisher/editor)
+        with self._timed("curation__clean_vvi_ra"):
             self.rowcnt = 0
-            task_vvi = None
+            task_vvi_ra = None
             if self.progress:
-                task_vvi = self.progress.add_task(
-                    "  [dim]Cleaning VVI[/dim]", total=total_rows
+                task_vvi_ra = self.progress.add_task(
+                    "  [dim]Cleaning VVI and RA[/dim]", total=total_rows
                 )
             for row in self.data:
                 self.clean_vvi(row)
-                self.rowcnt += 1
-                if self.progress and task_vvi is not None:
-                    self.progress.advance(task_vvi)
-            if self.progress and task_vvi is not None:
-                self.progress.remove_task(task_vvi)
-
-        # Phase 5: Clean RA (author + publisher + editor aggregated)
-        with self._timed("curation__clean_ra"):
-            self.rowcnt = 0
-            task_ra = None
-            if self.progress:
-                task_ra = self.progress.add_task(
-                    "  [dim]Cleaning RA[/dim]", total=total_rows
-                )
-            for row in self.data:
                 self.clean_ra(row, "author")
                 self.clean_ra(row, "publisher")
                 self.clean_ra(row, "editor")
                 self.rowcnt += 1
-                if self.progress and task_ra is not None:
-                    self.progress.advance(task_ra)
-            if self.progress and task_ra is not None:
-                self.progress.remove_task(task_ra)
+                if self.progress and task_vvi_ra is not None:
+                    self.progress.advance(task_vvi_ra)
+            if self.progress and task_vvi_ra is not None:
+                self.progress.remove_task(task_vvi_ra)
 
         # Phase 6: Finalize (preexisting + meta_maker + enrich + indexer)
         with self._timed("curation__finalize"):
