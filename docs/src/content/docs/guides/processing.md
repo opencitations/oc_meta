@@ -31,7 +31,7 @@ The [**Curator**](https://github.com/opencitations/oc_meta/blob/master/oc_meta/c
 - Parses identifiers from the `id` column and validates their syntax (DOI regex, ORCID checksum, ISSN checksum, etc.)
 - Normalizes metadata: title casing, date format standardization, author name parsing
 - Uses [**ResourceFinder**](https://github.com/opencitations/oc_meta/blob/master/oc_meta/lib/finder.py) to query the triplestore and check if entities already exist
-- Builds in-memory graphs (`everything_everywhere_allatonce`) with data from existing entities
+- Builds in-memory dict indexes with data from existing entities
 - Outputs a curated CSV file with normalized data and assigned OMIDs
 
 ### 3. Index building

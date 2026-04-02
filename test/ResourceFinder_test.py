@@ -21,8 +21,7 @@ def finder():
     ENDPOINT = 'http://127.0.0.1:8805?access-token=qlever_test_token'
     BASE_IRI = 'https://w3id.org/oc/meta/'
     REAL_DATA_FILE = os.path.join('test', 'testcases', 'ts', 'real_data.nt')
-    local_g = Graph()
-    finder = ResourceFinder(ENDPOINT, BASE_IRI, local_g)
+    finder = ResourceFinder(ENDPOINT, BASE_IRI)
     add_data_ts(server=ENDPOINT, data_path=REAL_DATA_FILE)
     finder.get_everything_about_res(metavals={'omid:br/2373', 'omid:br/2380', 'omid:br/2730', 'omid:br/2374', 'omid:br/4435', 'omid:br/4436', 'omid:br/4437', 'omid:br/4438', 'omid:br/0604750', 'omid:br/0605379', 'omid:br/0606696'}, identifiers={'doi:10.1001/.391', 'orcid:0000-0001-6994-8412'}, vvis=set())
     return finder
@@ -151,19 +150,19 @@ class TestResourceFinder:
         ra2_uri = URIRef(f'{base_iri}/ra/9982')
 
         # Create a circular AR chain: AR1(9992) -> AR2(9991) -> AR1(9992) (loop)
-        finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar1_uri))
-        finder.local_g.add((ar1_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
-        finder.local_g.add((ar1_uri, GraphEntity.iri_is_held_by, ra1_uri))
-        finder.local_g.add((ar1_uri, GraphEntity.iri_has_next, ar2_uri))
-        finder.local_g.add((ra1_uri, GraphEntity.iri_given_name, Literal('John')))
-        finder.local_g.add((ra1_uri, GraphEntity.iri_family_name, Literal('Doe')))
+        finder.add_triple(br_uri, GraphEntity.iri_is_document_context_for, ar1_uri)
+        finder.add_triple(ar1_uri, GraphEntity.iri_with_role, GraphEntity.iri_author)
+        finder.add_triple(ar1_uri, GraphEntity.iri_is_held_by, ra1_uri)
+        finder.add_triple(ar1_uri, GraphEntity.iri_has_next, ar2_uri)
+        finder.add_triple(ra1_uri, GraphEntity.iri_given_name, Literal('John'))
+        finder.add_triple(ra1_uri, GraphEntity.iri_family_name, Literal('Doe'))
 
-        finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar2_uri))
-        finder.local_g.add((ar2_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
-        finder.local_g.add((ar2_uri, GraphEntity.iri_is_held_by, ra2_uri))
-        finder.local_g.add((ar2_uri, GraphEntity.iri_has_next, ar1_uri))
-        finder.local_g.add((ra2_uri, GraphEntity.iri_given_name, Literal('Jane')))
-        finder.local_g.add((ra2_uri, GraphEntity.iri_family_name, Literal('Smith')))
+        finder.add_triple(br_uri, GraphEntity.iri_is_document_context_for, ar2_uri)
+        finder.add_triple(ar2_uri, GraphEntity.iri_with_role, GraphEntity.iri_author)
+        finder.add_triple(ar2_uri, GraphEntity.iri_is_held_by, ra2_uri)
+        finder.add_triple(ar2_uri, GraphEntity.iri_has_next, ar1_uri)
+        finder.add_triple(ra2_uri, GraphEntity.iri_given_name, Literal('Jane'))
+        finder.add_triple(ra2_uri, GraphEntity.iri_family_name, Literal('Smith'))
 
         result = finder.retrieve_ra_sequence_from_br_meta('br/9999', 'author')
 
@@ -180,11 +179,11 @@ class TestResourceFinder:
         ra1_uri = URIRef(f'{base_iri}/ra/9971')
 
         # Create AR that points to itself
-        finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar1_uri))
-        finder.local_g.add((ar1_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
-        finder.local_g.add((ar1_uri, GraphEntity.iri_is_held_by, ra1_uri))
-        finder.local_g.add((ar1_uri, GraphEntity.iri_has_next, ar1_uri))
-        finder.local_g.add((ra1_uri, GraphEntity.iri_name, Literal('Test Publisher')))
+        finder.add_triple(br_uri, GraphEntity.iri_is_document_context_for, ar1_uri)
+        finder.add_triple(ar1_uri, GraphEntity.iri_with_role, GraphEntity.iri_author)
+        finder.add_triple(ar1_uri, GraphEntity.iri_is_held_by, ra1_uri)
+        finder.add_triple(ar1_uri, GraphEntity.iri_has_next, ar1_uri)
+        finder.add_triple(ra1_uri, GraphEntity.iri_name, Literal('Test Publisher'))
 
         # This should return only 1 AR (ignoring self-reference)
         result = finder.retrieve_ra_sequence_from_br_meta('br/9998', 'author')
@@ -204,16 +203,16 @@ class TestResourceFinder:
         ra2_uri = URIRef(f'{base_iri}/ra/9962')
 
         # Create AR chain where AR1 -> AR_INVALID (doesn't exist) and AR2 is orphaned
-        finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar1_uri))
-        finder.local_g.add((ar1_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
-        finder.local_g.add((ar1_uri, GraphEntity.iri_is_held_by, ra1_uri))
-        finder.local_g.add((ar1_uri, GraphEntity.iri_has_next, ar_invalid_uri))
-        finder.local_g.add((ra1_uri, GraphEntity.iri_name, Literal('Author One')))
+        finder.add_triple(br_uri, GraphEntity.iri_is_document_context_for, ar1_uri)
+        finder.add_triple(ar1_uri, GraphEntity.iri_with_role, GraphEntity.iri_author)
+        finder.add_triple(ar1_uri, GraphEntity.iri_is_held_by, ra1_uri)
+        finder.add_triple(ar1_uri, GraphEntity.iri_has_next, ar_invalid_uri)
+        finder.add_triple(ra1_uri, GraphEntity.iri_name, Literal('Author One'))
 
-        finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar2_uri))
-        finder.local_g.add((ar2_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
-        finder.local_g.add((ar2_uri, GraphEntity.iri_is_held_by, ra2_uri))
-        finder.local_g.add((ra2_uri, GraphEntity.iri_name, Literal('Author Two')))
+        finder.add_triple(br_uri, GraphEntity.iri_is_document_context_for, ar2_uri)
+        finder.add_triple(ar2_uri, GraphEntity.iri_with_role, GraphEntity.iri_author)
+        finder.add_triple(ar2_uri, GraphEntity.iri_is_held_by, ra2_uri)
+        finder.add_triple(ra2_uri, GraphEntity.iri_name, Literal('Author Two'))
 
         # Should return chain stopping at invalid reference
         result = finder.retrieve_ra_sequence_from_br_meta('br/9997', 'author')
@@ -231,8 +230,8 @@ class TestResourceFinder:
         ar1_uri = URIRef(f'{base_iri}/ar/9961')
 
         # Create AR without is_held_by relationship (malformed data)
-        finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar1_uri))
-        finder.local_g.add((ar1_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
+        finder.add_triple(br_uri, GraphEntity.iri_is_document_context_for, ar1_uri)
+        finder.add_triple(ar1_uri, GraphEntity.iri_with_role, GraphEntity.iri_author)
         # Missing: ar1_uri iri_is_held_by ra_uri
 
         # Should handle gracefully without crash
@@ -255,22 +254,22 @@ class TestResourceFinder:
         ra3_uri = URIRef(f'{base_iri}/ra/9943')
 
         # Create AR1 with multiple 'next' relationships (data error)
-        finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar1_uri))
-        finder.local_g.add((ar1_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
-        finder.local_g.add((ar1_uri, GraphEntity.iri_is_held_by, ra1_uri))
-        finder.local_g.add((ar1_uri, GraphEntity.iri_has_next, ar2_uri))
-        finder.local_g.add((ar1_uri, GraphEntity.iri_has_next, ar3_uri))
-        finder.local_g.add((ra1_uri, GraphEntity.iri_name, Literal('Author One')))
+        finder.add_triple(br_uri, GraphEntity.iri_is_document_context_for, ar1_uri)
+        finder.add_triple(ar1_uri, GraphEntity.iri_with_role, GraphEntity.iri_author)
+        finder.add_triple(ar1_uri, GraphEntity.iri_is_held_by, ra1_uri)
+        finder.add_triple(ar1_uri, GraphEntity.iri_has_next, ar2_uri)
+        finder.add_triple(ar1_uri, GraphEntity.iri_has_next, ar3_uri)
+        finder.add_triple(ra1_uri, GraphEntity.iri_name, Literal('Author One'))
 
-        finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar2_uri))
-        finder.local_g.add((ar2_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
-        finder.local_g.add((ar2_uri, GraphEntity.iri_is_held_by, ra2_uri))
-        finder.local_g.add((ra2_uri, GraphEntity.iri_name, Literal('Author Two')))
+        finder.add_triple(br_uri, GraphEntity.iri_is_document_context_for, ar2_uri)
+        finder.add_triple(ar2_uri, GraphEntity.iri_with_role, GraphEntity.iri_author)
+        finder.add_triple(ar2_uri, GraphEntity.iri_is_held_by, ra2_uri)
+        finder.add_triple(ra2_uri, GraphEntity.iri_name, Literal('Author Two'))
 
-        finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar3_uri))
-        finder.local_g.add((ar3_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
-        finder.local_g.add((ar3_uri, GraphEntity.iri_is_held_by, ra3_uri))
-        finder.local_g.add((ra3_uri, GraphEntity.iri_name, Literal('Author Three')))
+        finder.add_triple(br_uri, GraphEntity.iri_is_document_context_for, ar3_uri)
+        finder.add_triple(ar3_uri, GraphEntity.iri_with_role, GraphEntity.iri_author)
+        finder.add_triple(ar3_uri, GraphEntity.iri_is_held_by, ra3_uri)
+        finder.add_triple(ra3_uri, GraphEntity.iri_name, Literal('Author Three'))
 
         # Should handle multiple next values consistently (last one wins in current implementation)
         result = finder.retrieve_ra_sequence_from_br_meta('br/9995', 'author')
@@ -287,10 +286,10 @@ class TestResourceFinder:
         ra1_uri = URIRef(f'{base_iri}/ra/9931')
 
         # Create BR with editor, but request author
-        finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar1_uri))
-        finder.local_g.add((ar1_uri, GraphEntity.iri_with_role, GraphEntity.iri_editor))
-        finder.local_g.add((ar1_uri, GraphEntity.iri_is_held_by, ra1_uri))
-        finder.local_g.add((ra1_uri, GraphEntity.iri_name, Literal('Editor Name')))
+        finder.add_triple(br_uri, GraphEntity.iri_is_document_context_for, ar1_uri)
+        finder.add_triple(ar1_uri, GraphEntity.iri_with_role, GraphEntity.iri_editor)
+        finder.add_triple(ar1_uri, GraphEntity.iri_is_held_by, ra1_uri)
+        finder.add_triple(ra1_uri, GraphEntity.iri_name, Literal('Editor Name'))
 
         # Request author (should be empty)
         result = finder.retrieve_ra_sequence_from_br_meta('br/9994', 'author')
@@ -305,10 +304,10 @@ class TestResourceFinder:
         ra1_uri = URIRef(f'{base_iri}/ra/9921')
 
         # Create single AR without next
-        finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar1_uri))
-        finder.local_g.add((ar1_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
-        finder.local_g.add((ar1_uri, GraphEntity.iri_is_held_by, ra1_uri))
-        finder.local_g.add((ra1_uri, GraphEntity.iri_name, Literal('Single Author')))
+        finder.add_triple(br_uri, GraphEntity.iri_is_document_context_for, ar1_uri)
+        finder.add_triple(ar1_uri, GraphEntity.iri_with_role, GraphEntity.iri_author)
+        finder.add_triple(ar1_uri, GraphEntity.iri_is_held_by, ra1_uri)
+        finder.add_triple(ra1_uri, GraphEntity.iri_name, Literal('Single Author'))
 
         result = finder.retrieve_ra_sequence_from_br_meta('br/9993', 'author')
 
@@ -326,25 +325,25 @@ class TestResourceFinder:
         ra1_uri = URIRef(f'{base_iri}/ra/9911')
         ra2_uri = URIRef(f'{base_iri}/ra/9912')
 
-        finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar1_uri))
-        finder.local_g.add((ar1_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
-        finder.local_g.add((ar1_uri, GraphEntity.iri_is_held_by, ra1_uri))
-        finder.local_g.add((ar1_uri, GraphEntity.iri_has_next, ar2_uri))
-        finder.local_g.add((ra1_uri, GraphEntity.iri_name, Literal('Author One')))
+        finder.add_triple(br_uri, GraphEntity.iri_is_document_context_for, ar1_uri)
+        finder.add_triple(ar1_uri, GraphEntity.iri_with_role, GraphEntity.iri_author)
+        finder.add_triple(ar1_uri, GraphEntity.iri_is_held_by, ra1_uri)
+        finder.add_triple(ar1_uri, GraphEntity.iri_has_next, ar2_uri)
+        finder.add_triple(ra1_uri, GraphEntity.iri_name, Literal('Author One'))
 
-        finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar2_uri))
-        finder.local_g.add((ar2_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
-        finder.local_g.add((ar2_uri, GraphEntity.iri_is_held_by, ra2_uri))
-        finder.local_g.add((ra2_uri, GraphEntity.iri_name, Literal('Author Two')))
+        finder.add_triple(br_uri, GraphEntity.iri_is_document_context_for, ar2_uri)
+        finder.add_triple(ar2_uri, GraphEntity.iri_with_role, GraphEntity.iri_author)
+        finder.add_triple(ar2_uri, GraphEntity.iri_is_held_by, ra2_uri)
+        finder.add_triple(ra2_uri, GraphEntity.iri_name, Literal('Author Two'))
 
         # Chain 2: AR3 (length 1, disconnected)
         ar3_uri = URIRef(f'{base_iri}/ar/9923')
         ra3_uri = URIRef(f'{base_iri}/ra/9913')
 
-        finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar3_uri))
-        finder.local_g.add((ar3_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
-        finder.local_g.add((ar3_uri, GraphEntity.iri_is_held_by, ra3_uri))
-        finder.local_g.add((ra3_uri, GraphEntity.iri_name, Literal('Author Three')))
+        finder.add_triple(br_uri, GraphEntity.iri_is_document_context_for, ar3_uri)
+        finder.add_triple(ar3_uri, GraphEntity.iri_with_role, GraphEntity.iri_author)
+        finder.add_triple(ar3_uri, GraphEntity.iri_is_held_by, ra3_uri)
+        finder.add_triple(ra3_uri, GraphEntity.iri_name, Literal('Author Three'))
 
         result = finder.retrieve_ra_sequence_from_br_meta('br/9992', 'author')
 
@@ -365,16 +364,16 @@ class TestResourceFinder:
         ra1_uri = URIRef(f'{base_iri}/ra/9925')
         ra2_uri = URIRef(f'{base_iri}/ra/9926')
 
-        finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar1_uri))
-        finder.local_g.add((ar1_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
-        finder.local_g.add((ar1_uri, GraphEntity.iri_is_held_by, ra1_uri))
-        finder.local_g.add((ar1_uri, GraphEntity.iri_has_next, ar2_uri))
-        finder.local_g.add((ra1_uri, GraphEntity.iri_name, Literal('Author A')))
+        finder.add_triple(br_uri, GraphEntity.iri_is_document_context_for, ar1_uri)
+        finder.add_triple(ar1_uri, GraphEntity.iri_with_role, GraphEntity.iri_author)
+        finder.add_triple(ar1_uri, GraphEntity.iri_is_held_by, ra1_uri)
+        finder.add_triple(ar1_uri, GraphEntity.iri_has_next, ar2_uri)
+        finder.add_triple(ra1_uri, GraphEntity.iri_name, Literal('Author A'))
 
-        finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar2_uri))
-        finder.local_g.add((ar2_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
-        finder.local_g.add((ar2_uri, GraphEntity.iri_is_held_by, ra2_uri))
-        finder.local_g.add((ra2_uri, GraphEntity.iri_name, Literal('Author B')))
+        finder.add_triple(br_uri, GraphEntity.iri_is_document_context_for, ar2_uri)
+        finder.add_triple(ar2_uri, GraphEntity.iri_with_role, GraphEntity.iri_author)
+        finder.add_triple(ar2_uri, GraphEntity.iri_is_held_by, ra2_uri)
+        finder.add_triple(ra2_uri, GraphEntity.iri_name, Literal('Author B'))
 
         # Chain 2: AR 9933 -> AR 9934 (length 2, starts with lower number)
         ar3_uri = URIRef(f'{base_iri}/ar/9933')
@@ -382,16 +381,16 @@ class TestResourceFinder:
         ra3_uri = URIRef(f'{base_iri}/ra/9923')
         ra4_uri = URIRef(f'{base_iri}/ra/9924')
 
-        finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar3_uri))
-        finder.local_g.add((ar3_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
-        finder.local_g.add((ar3_uri, GraphEntity.iri_is_held_by, ra3_uri))
-        finder.local_g.add((ar3_uri, GraphEntity.iri_has_next, ar4_uri))
-        finder.local_g.add((ra3_uri, GraphEntity.iri_name, Literal('Author C')))
+        finder.add_triple(br_uri, GraphEntity.iri_is_document_context_for, ar3_uri)
+        finder.add_triple(ar3_uri, GraphEntity.iri_with_role, GraphEntity.iri_author)
+        finder.add_triple(ar3_uri, GraphEntity.iri_is_held_by, ra3_uri)
+        finder.add_triple(ar3_uri, GraphEntity.iri_has_next, ar4_uri)
+        finder.add_triple(ra3_uri, GraphEntity.iri_name, Literal('Author C'))
 
-        finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar4_uri))
-        finder.local_g.add((ar4_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
-        finder.local_g.add((ar4_uri, GraphEntity.iri_is_held_by, ra4_uri))
-        finder.local_g.add((ra4_uri, GraphEntity.iri_name, Literal('Author D')))
+        finder.add_triple(br_uri, GraphEntity.iri_is_document_context_for, ar4_uri)
+        finder.add_triple(ar4_uri, GraphEntity.iri_with_role, GraphEntity.iri_author)
+        finder.add_triple(ar4_uri, GraphEntity.iri_is_held_by, ra4_uri)
+        finder.add_triple(ra4_uri, GraphEntity.iri_name, Literal('Author D'))
 
         result = finder.retrieve_ra_sequence_from_br_meta('br/9986', 'author')
 
@@ -407,10 +406,10 @@ class TestResourceFinder:
         ar1_uri = URIRef(f'{base_iri}/ar/9911')
         ra1_uri = URIRef(f'{base_iri}/ra/9901')
 
-        finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar1_uri))
-        finder.local_g.add((ar1_uri, GraphEntity.iri_with_role, GraphEntity.iri_editor))
-        finder.local_g.add((ar1_uri, GraphEntity.iri_is_held_by, ra1_uri))
-        finder.local_g.add((ra1_uri, GraphEntity.iri_name, Literal('Editor Name')))
+        finder.add_triple(br_uri, GraphEntity.iri_is_document_context_for, ar1_uri)
+        finder.add_triple(ar1_uri, GraphEntity.iri_with_role, GraphEntity.iri_editor)
+        finder.add_triple(ar1_uri, GraphEntity.iri_is_held_by, ra1_uri)
+        finder.add_triple(ra1_uri, GraphEntity.iri_name, Literal('Editor Name'))
 
         result = finder.retrieve_ra_sequence_from_br_meta('br/9991', 'editor')
 
@@ -424,10 +423,10 @@ class TestResourceFinder:
         ar1_uri = URIRef(f'{base_iri}/ar/9901')
         ra1_uri = URIRef(f'{base_iri}/ra/9891')
 
-        finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar1_uri))
-        finder.local_g.add((ar1_uri, GraphEntity.iri_with_role, GraphEntity.iri_publisher))
-        finder.local_g.add((ar1_uri, GraphEntity.iri_is_held_by, ra1_uri))
-        finder.local_g.add((ra1_uri, GraphEntity.iri_name, Literal('Publisher Name')))
+        finder.add_triple(br_uri, GraphEntity.iri_is_document_context_for, ar1_uri)
+        finder.add_triple(ar1_uri, GraphEntity.iri_with_role, GraphEntity.iri_publisher)
+        finder.add_triple(ar1_uri, GraphEntity.iri_is_held_by, ra1_uri)
+        finder.add_triple(ra1_uri, GraphEntity.iri_name, Literal('Publisher Name'))
 
         result = finder.retrieve_ra_sequence_from_br_meta('br/9990', 'publisher')
 
@@ -446,23 +445,23 @@ class TestResourceFinder:
         ra3_uri = URIRef(f'{base_iri}/ra/9883')
 
         # Create circular loop: AR1 -> AR2 -> AR3 -> AR1
-        finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar1_uri))
-        finder.local_g.add((ar1_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
-        finder.local_g.add((ar1_uri, GraphEntity.iri_is_held_by, ra1_uri))
-        finder.local_g.add((ar1_uri, GraphEntity.iri_has_next, ar2_uri))
-        finder.local_g.add((ra1_uri, GraphEntity.iri_name, Literal('Author One')))
+        finder.add_triple(br_uri, GraphEntity.iri_is_document_context_for, ar1_uri)
+        finder.add_triple(ar1_uri, GraphEntity.iri_with_role, GraphEntity.iri_author)
+        finder.add_triple(ar1_uri, GraphEntity.iri_is_held_by, ra1_uri)
+        finder.add_triple(ar1_uri, GraphEntity.iri_has_next, ar2_uri)
+        finder.add_triple(ra1_uri, GraphEntity.iri_name, Literal('Author One'))
 
-        finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar2_uri))
-        finder.local_g.add((ar2_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
-        finder.local_g.add((ar2_uri, GraphEntity.iri_is_held_by, ra2_uri))
-        finder.local_g.add((ar2_uri, GraphEntity.iri_has_next, ar3_uri))
-        finder.local_g.add((ra2_uri, GraphEntity.iri_name, Literal('Author Two')))
+        finder.add_triple(br_uri, GraphEntity.iri_is_document_context_for, ar2_uri)
+        finder.add_triple(ar2_uri, GraphEntity.iri_with_role, GraphEntity.iri_author)
+        finder.add_triple(ar2_uri, GraphEntity.iri_is_held_by, ra2_uri)
+        finder.add_triple(ar2_uri, GraphEntity.iri_has_next, ar3_uri)
+        finder.add_triple(ra2_uri, GraphEntity.iri_name, Literal('Author Two'))
 
-        finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar3_uri))
-        finder.local_g.add((ar3_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
-        finder.local_g.add((ar3_uri, GraphEntity.iri_is_held_by, ra3_uri))
-        finder.local_g.add((ar3_uri, GraphEntity.iri_has_next, ar1_uri))
-        finder.local_g.add((ra3_uri, GraphEntity.iri_name, Literal('Author Three')))
+        finder.add_triple(br_uri, GraphEntity.iri_is_document_context_for, ar3_uri)
+        finder.add_triple(ar3_uri, GraphEntity.iri_with_role, GraphEntity.iri_author)
+        finder.add_triple(ar3_uri, GraphEntity.iri_is_held_by, ra3_uri)
+        finder.add_triple(ar3_uri, GraphEntity.iri_has_next, ar1_uri)
+        finder.add_triple(ra3_uri, GraphEntity.iri_name, Literal('Author Three'))
 
         result = finder.retrieve_ra_sequence_from_br_meta('br/9989', 'author')
 
@@ -482,15 +481,15 @@ class TestResourceFinder:
         ra1_uri = URIRef(f'{base_iri}/ra/9871')
 
         # Two ARs pointing to same RA (duplicate author)
-        finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar1_uri))
-        finder.local_g.add((ar1_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
-        finder.local_g.add((ar1_uri, GraphEntity.iri_is_held_by, ra1_uri))
-        finder.local_g.add((ar1_uri, GraphEntity.iri_has_next, ar2_uri))
-        finder.local_g.add((ra1_uri, GraphEntity.iri_name, Literal('Same Author')))
+        finder.add_triple(br_uri, GraphEntity.iri_is_document_context_for, ar1_uri)
+        finder.add_triple(ar1_uri, GraphEntity.iri_with_role, GraphEntity.iri_author)
+        finder.add_triple(ar1_uri, GraphEntity.iri_is_held_by, ra1_uri)
+        finder.add_triple(ar1_uri, GraphEntity.iri_has_next, ar2_uri)
+        finder.add_triple(ra1_uri, GraphEntity.iri_name, Literal('Same Author'))
 
-        finder.local_g.add((br_uri, GraphEntity.iri_is_document_context_for, ar2_uri))
-        finder.local_g.add((ar2_uri, GraphEntity.iri_with_role, GraphEntity.iri_author))
-        finder.local_g.add((ar2_uri, GraphEntity.iri_is_held_by, ra1_uri))
+        finder.add_triple(br_uri, GraphEntity.iri_is_document_context_for, ar2_uri)
+        finder.add_triple(ar2_uri, GraphEntity.iri_with_role, GraphEntity.iri_author)
+        finder.add_triple(ar2_uri, GraphEntity.iri_is_held_by, ra1_uri)
 
         result = finder.retrieve_ra_sequence_from_br_meta('br/9988', 'author')
 
@@ -509,17 +508,17 @@ class TestResourceFinder:
         issue_uri = URIRef(f'{base_iri}/br/8003')
 
         # Venue
-        finder.local_g.add((venue_uri, GraphEntity.iri_has_sequence_identifier, Literal('Journal Test', datatype=XSD.string)))
+        finder.add_triple(venue_uri, GraphEntity.iri_has_sequence_identifier, Literal('Journal Test', datatype=XSD.string))
 
         # Volume 5 of the venue
-        finder.local_g.add((volume_uri, RDF.type, GraphEntity.iri_journal_volume))
-        finder.local_g.add((volume_uri, GraphEntity.iri_part_of, venue_uri))
-        finder.local_g.add((volume_uri, GraphEntity.iri_has_sequence_identifier, Literal('5', datatype=XSD.string)))
+        finder.add_triple(volume_uri, RDF.type, GraphEntity.iri_journal_volume)
+        finder.add_triple(volume_uri, GraphEntity.iri_part_of, venue_uri)
+        finder.add_triple(volume_uri, GraphEntity.iri_has_sequence_identifier, Literal('5', datatype=XSD.string))
 
         # Issue 3 of volume 5
-        finder.local_g.add((issue_uri, RDF.type, GraphEntity.iri_journal_issue))
-        finder.local_g.add((issue_uri, GraphEntity.iri_part_of, volume_uri))
-        finder.local_g.add((issue_uri, GraphEntity.iri_has_sequence_identifier, Literal('3', datatype=XSD.string)))
+        finder.add_triple(issue_uri, RDF.type, GraphEntity.iri_journal_issue)
+        finder.add_triple(issue_uri, GraphEntity.iri_part_of, volume_uri)
+        finder.add_triple(issue_uri, GraphEntity.iri_has_sequence_identifier, Literal('3', datatype=XSD.string))
 
         # Call with prefixed metaID
         result = finder.retrieve_venue_from_local_graph('br/8001')
@@ -583,9 +582,8 @@ class TestVVIQueryIsolation:
         also incorrectly search under venue with ISSN 1111-1111.
         """
         BASE_IRI = 'https://w3id.org/oc/meta/'
-        local_g = Graph()
         settings = {'virtuoso_full_text_search': False}
-        finder = ResourceFinder(vvi_endpoint, BASE_IRI, local_g, settings=settings)
+        finder = ResourceFinder(vvi_endpoint, BASE_IRI, settings=settings)
 
         # VVI tuples: each should only search under its corresponding venue
         vvis = {
@@ -602,15 +600,15 @@ class TestVVIQueryIsolation:
         venue_b_uri = URIRef('https://w3id.org/oc/meta/br/9003')
 
         # Check that volume 10 is in local graph and is part of venue A (not venue B)
-        assert volume_10_uri in finder.prebuilt_subgraphs
-        volume_10_graph = finder.prebuilt_subgraphs[volume_10_uri]
-        assert (volume_10_uri, GraphEntity.iri_part_of, venue_a_uri) in volume_10_graph, \
+        assert str(volume_10_uri) in finder._spo
+        volume_10_parents = finder._get_objects(str(volume_10_uri), str(GraphEntity.iri_part_of))
+        assert str(venue_a_uri) in volume_10_parents, \
             "Volume 10 should be part of Venue A"
 
         # Check that volume 20 is in local graph and is part of venue B (not venue A)
-        assert volume_20_uri in finder.prebuilt_subgraphs
-        volume_20_graph = finder.prebuilt_subgraphs[volume_20_uri]
-        assert (volume_20_uri, GraphEntity.iri_part_of, venue_b_uri) in volume_20_graph, \
+        assert str(volume_20_uri) in finder._spo
+        volume_20_parents = finder._get_objects(str(volume_20_uri), str(GraphEntity.iri_part_of))
+        assert str(venue_b_uri) in volume_20_parents, \
             "Volume 20 should be part of Venue B"
 
 
@@ -620,7 +618,7 @@ FINDER_SERVER = 'http://127.0.0.1:8805?access-token=qlever_test_token'
 
 class TestFinderConstructFullName:
     def test_only_given_name(self):
-        finder = ResourceFinder(FINDER_SERVER, FINDER_BASE_IRI, Graph())
+        finder = ResourceFinder(FINDER_SERVER, FINDER_BASE_IRI)
         result = finder._construct_full_name("", "", "John")
         assert result == ", John"
 
@@ -628,19 +626,18 @@ class TestFinderConstructFullName:
 class TestFinderRetrieveReFromBrMeta:
     @pytest.fixture
     def finder_with_re_data(self):
-        local_g = Graph()
         base_iri = "https://w3id.org/oc/meta"
-        finder = ResourceFinder(FINDER_SERVER, base_iri + "/", local_g)
+        finder = ResourceFinder(FINDER_SERVER, base_iri + "/")
 
         br1_uri = URIRef(f"{base_iri}/br/test1")
         re1_uri = URIRef(f"{base_iri}/re/test1")
-        local_g.add((br1_uri, GraphEntity.iri_embodiment, re1_uri))
-        local_g.add((re1_uri, GraphEntity.iri_starting_page, Literal("100")))
+        finder.add_triple(br1_uri, GraphEntity.iri_embodiment, re1_uri)
+        finder.add_triple(re1_uri, GraphEntity.iri_starting_page, Literal("100"))
 
         br2_uri = URIRef(f"{base_iri}/br/test2")
         re2_uri = URIRef(f"{base_iri}/re/test2")
-        local_g.add((br2_uri, GraphEntity.iri_embodiment, re2_uri))
-        local_g.add((re2_uri, GraphEntity.iri_ending_page, Literal("200")))
+        finder.add_triple(br2_uri, GraphEntity.iri_embodiment, re2_uri)
+        finder.add_triple(re2_uri, GraphEntity.iri_ending_page, Literal("200"))
 
         return finder
 
@@ -659,7 +656,7 @@ class TestFinderRetrieveReFromBrMeta:
 
 class TestFinderGetSubgraph:
     def test_get_subgraph_not_found(self):
-        finder = ResourceFinder(FINDER_SERVER, FINDER_BASE_IRI, Graph())
+        finder = ResourceFinder(FINDER_SERVER, FINDER_BASE_IRI)
         result = finder.get_subgraph(URIRef(f"{FINDER_BASE_IRI}br/nonexistent"))
         assert result is None
 
@@ -667,17 +664,14 @@ class TestFinderGetSubgraph:
 class TestFinderRetrieveVenueFromLocalGraphIssueDirectlyInVenue:
     def test_issue_directly_in_venue(self):
         base_iri = "https://w3id.org/oc/meta"
-        local_g = Graph()
-        finder = ResourceFinder(FINDER_SERVER, base_iri + "/", local_g)
+        finder = ResourceFinder(FINDER_SERVER, base_iri + "/")
 
         venue_uri = URIRef(f"{base_iri}/br/venue1")
         issue_uri = URIRef(f"{base_iri}/br/issue1")
 
-        local_g.add((issue_uri, RDF.type, GraphEntity.iri_journal_issue))
-        local_g.add((issue_uri, GraphEntity.iri_part_of, venue_uri))
-        local_g.add(
-            (issue_uri, GraphEntity.iri_has_sequence_identifier, Literal("5", datatype=XSD.string))
-        )
+        finder.add_triple(issue_uri, RDF.type, GraphEntity.iri_journal_issue)
+        finder.add_triple(issue_uri, GraphEntity.iri_part_of, venue_uri)
+        finder.add_triple(issue_uri, GraphEntity.iri_has_sequence_identifier, Literal("5", datatype=XSD.string))
 
         result = finder.retrieve_venue_from_local_graph("br/venue1")
 
@@ -688,9 +682,8 @@ class TestFinderRetrieveVenueFromLocalGraphIssueDirectlyInVenue:
 class TestFinderRetrievePublisherDeepNesting:
     @pytest.fixture
     def finder_with_publisher_data(self):
-        local_g = Graph()
         base_iri = "https://w3id.org/oc/meta"
-        finder = ResourceFinder(FINDER_SERVER, base_iri + "/", local_g)
+        finder = ResourceFinder(FINDER_SERVER, base_iri + "/")
 
         br_uri = URIRef(f"{base_iri}/br/deep1")
         issue_uri = URIRef(f"{base_iri}/br/issue1")
@@ -698,12 +691,12 @@ class TestFinderRetrievePublisherDeepNesting:
         ar_uri = URIRef(f"{base_iri}/ar/pub1")
         ra_uri = URIRef(f"{base_iri}/ra/publisher1")
 
-        local_g.add((br_uri, GraphEntity.iri_part_of, issue_uri))
-        local_g.add((issue_uri, GraphEntity.iri_part_of, vol_uri))
-        local_g.add((vol_uri, GraphEntity.iri_is_document_context_for, ar_uri))
-        local_g.add((ar_uri, GraphEntity.iri_with_role, GraphEntity.iri_publisher))
-        local_g.add((ar_uri, GraphEntity.iri_is_held_by, ra_uri))
-        local_g.add((ra_uri, GraphEntity.iri_name, Literal("Deep Publisher")))
+        finder.add_triple(br_uri, GraphEntity.iri_part_of, issue_uri)
+        finder.add_triple(issue_uri, GraphEntity.iri_part_of, vol_uri)
+        finder.add_triple(vol_uri, GraphEntity.iri_is_document_context_for, ar_uri)
+        finder.add_triple(ar_uri, GraphEntity.iri_with_role, GraphEntity.iri_publisher)
+        finder.add_triple(ar_uri, GraphEntity.iri_is_held_by, ra_uri)
+        finder.add_triple(ra_uri, GraphEntity.iri_name, Literal("Deep Publisher"))
 
         return finder
 
@@ -715,23 +708,22 @@ class TestFinderRetrievePublisherDeepNesting:
 class TestFinderRetrieveRaFromIdMultipleIds:
     @pytest.fixture
     def finder_with_ra_multiple_ids(self):
-        local_g = Graph()
         base_iri = "https://w3id.org/oc/meta"
-        finder = ResourceFinder(FINDER_SERVER, base_iri + "/", local_g)
+        finder = ResourceFinder(FINDER_SERVER, base_iri + "/")
 
         ra_uri = URIRef(f"{base_iri}/ra/multi1")
         id1_uri = URIRef(f"{base_iri}/id/id1")
         id2_uri = URIRef(f"{base_iri}/id/id2")
 
-        local_g.add((ra_uri, GraphEntity.iri_has_identifier, id1_uri))
-        local_g.add((id1_uri, GraphEntity.iri_uses_identifier_scheme, URIRef(GraphEntity.DATACITE + "orcid")))
-        local_g.add((id1_uri, GraphEntity.iri_has_literal_value, Literal("0000-0001-1234-5678", datatype=XSD.string)))
+        finder.add_triple(ra_uri, GraphEntity.iri_has_identifier, id1_uri)
+        finder.add_triple(id1_uri, GraphEntity.iri_uses_identifier_scheme, URIRef(GraphEntity.DATACITE + "orcid"))
+        finder.add_triple(id1_uri, GraphEntity.iri_has_literal_value, Literal("0000-0001-1234-5678", datatype=XSD.string))
 
-        local_g.add((ra_uri, GraphEntity.iri_has_identifier, id2_uri))
-        local_g.add((id2_uri, GraphEntity.iri_uses_identifier_scheme, URIRef(GraphEntity.DATACITE + "viaf")))
-        local_g.add((id2_uri, GraphEntity.iri_has_literal_value, Literal("12345", datatype=XSD.string)))
+        finder.add_triple(ra_uri, GraphEntity.iri_has_identifier, id2_uri)
+        finder.add_triple(id2_uri, GraphEntity.iri_uses_identifier_scheme, URIRef(GraphEntity.DATACITE + "viaf"))
+        finder.add_triple(id2_uri, GraphEntity.iri_has_literal_value, Literal("12345", datatype=XSD.string))
 
-        local_g.add((ra_uri, GraphEntity.iri_name, Literal("Multi ID Author")))
+        finder.add_triple(ra_uri, GraphEntity.iri_name, Literal("Multi ID Author"))
 
         return finder
 

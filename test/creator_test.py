@@ -55,7 +55,7 @@ def prepare2test(name):
     testcase_ttl = "test/testcases/testcase_" + name + ".ttl"
 
     counter_handler = get_counter_handler()
-    finder = ResourceFinder(ts_url=SERVER, base_iri="https://w3id.org/oc/meta/", local_g=Graph())
+    finder = ResourceFinder(ts_url=SERVER, base_iri="https://w3id.org/oc/meta/", )
     creator = Creator(data, finder, "https://w3id.org/oc/meta/", counter_handler, "060", 'https://orcid.org/0000-0002-8420-0696', testcase_id_ra, testcase_id_br,
                       testcase_re, testcase_ar, testcase_vi)
     creator_setgraph = creator.creator()
@@ -79,7 +79,7 @@ class TestCreator:
     def test_vvi_action(self):
         base_iri = 'https://w3id.org/oc/meta/'
         vvi = {'br/0602': {'issue': {}, 'volume': {'107': {'id': 'br/4733', 'issue': {'1': {'id': 'br/4734'}, '2': {'id': 'br/4735'}, '3': {'id': 'br/4736'}, '4': {'id': 'br/4737'}, '5': {'id': 'br/4738'}, '6': {'id': 'br/4739'}}}, '108': {'id': 'br/4740', 'issue': {'1': {'id': 'br/4741'}, '2': {'id': 'br/4742'}, '3': {'id': 'br/4743'}, '4': {'id': 'br/4744'}}}, '104': {'id': 'br/4712', 'issue': {'1': {'id': 'br/4713'}, '2': {'id': 'br/4714'}, '3': {'id': 'br/4715'}, '4': {'id': 'br/4716'}, '5': {'id': 'br/4717'}, '6': {'id': 'br/4718'}}}, '148': {'id': 'br/4417', 'issue': {'12': {'id': 'br/4418'}, '11': {'id': 'br/4419'}}}, '100': {'id': 'br/4684', 'issue': {'1': {'id': 'br/4685'}, '2': {'id': 'br/4686'}, '3': {'id': 'br/4687'}, '4': {'id': 'br/4688'}, '5': {'id': 'br/4689'}, '6': {'id': 'br/4690'}}}, '101': {'id': 'br/4691', 'issue': {'1': {'id': 'br/4692'}, '2': {'id': 'br/4693'}, '3': {'id': 'br/4694'}, '4': {'id': 'br/4695'}, '5': {'id': 'br/4696'}, '6': {'id': 'br/4697'}}}, '102': {'id': 'br/4698', 'issue': {'1': {'id': 'br/4699'}, '2': {'id': 'br/4700'}, '3': {'id': 'br/4701'}, '4': {'id': 'br/4702'}, '5': {'id': 'br/4703'}, '6': {'id': 'br/4704'}}}, '103': {'id': 'br/4705', 'issue': {'1': {'id': 'br/4706'}, '2': {'id': 'br/4707'}, '3': {'id': 'br/4708'}, '4': {'id': 'br/4709'}, '5': {'id': 'br/4710'}, '6': {'id': 'br/4711'}}}, '105': {'id': 'br/4719', 'issue': {'1': {'id': 'br/4720'}, '2': {'id': 'br/4721'}, '3': {'id': 'br/4722'}, '4': {'id': 'br/4723'}, '5': {'id': 'br/4724'}, '6': {'id': 'br/4725'}}}, '106': {'id': 'br/4726', 'issue': {'6': {'id': 'br/4732'}, '1': {'id': 'br/4727'}, '2': {'id': 'br/4728'}, '3': {'id': 'br/4729'}, '4': {'id': 'br/4730'}, '5': {'id': 'br/4731'}}}}}}
-        finder = ResourceFinder(ts_url=SERVER, base_iri=base_iri, local_g=Graph())
+        finder = ResourceFinder(ts_url=SERVER, base_iri=base_iri, )
         creator = Creator([], finder, base_iri, self.counter_handler, "060", 'https://orcid.org/0000-0002-8420-0696', [], [], [], [], vvi)
         creator.src = None
         creator.type = 'journal article'

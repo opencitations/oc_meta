@@ -119,11 +119,9 @@ class Curator:
         self.progress = progress
         self.settings = settings or {}
         self.workers = self.settings.get("workers", 1)
-        self.everything_everywhere_allatonce = Graph()
         self.finder = ResourceFinder(
             ts,
             base_iri,
-            self.everything_everywhere_allatonce,
             settings=self.settings,
             meta_config_path=meta_config_path,
             workers=self.workers,

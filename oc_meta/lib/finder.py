@@ -16,10 +16,36 @@ from dateutil import parser
 from oc_ocdm.graph import GraphEntity
 from oc_ocdm.graph.graph_entity import GraphEntity
 from oc_ocdm.prov.prov_entity import ProvEntity
-from oc_ocdm.support import get_resource_number, sparql_binding_to_term
+from oc_ocdm.support import get_resource_number
 from rdflib import RDF, XSD, Graph, Literal, URIRef
 from sparqlite import SPARQLClient
 from time_agnostic_library.agnostic_entity import AgnosticEntity
+
+_P_HAS_LITERAL_VALUE = str(GraphEntity.iri_has_literal_value)
+_P_USES_ID_SCHEME = str(GraphEntity.iri_uses_identifier_scheme)
+_P_HAS_IDENTIFIER = str(GraphEntity.iri_has_identifier)
+_P_TITLE = str(GraphEntity.iri_title)
+_P_NAME = str(GraphEntity.iri_name)
+_P_FAMILY_NAME = str(GraphEntity.iri_family_name)
+_P_GIVEN_NAME = str(GraphEntity.iri_given_name)
+_P_IS_DOC_CONTEXT_FOR = str(GraphEntity.iri_is_document_context_for)
+_P_HAS_NEXT = str(GraphEntity.iri_has_next)
+_P_IS_HELD_BY = str(GraphEntity.iri_is_held_by)
+_P_WITH_ROLE = str(GraphEntity.iri_with_role)
+_P_EMBODIMENT = str(GraphEntity.iri_embodiment)
+_P_STARTING_PAGE = str(GraphEntity.iri_starting_page)
+_P_ENDING_PAGE = str(GraphEntity.iri_ending_page)
+_P_PUB_DATE = str(GraphEntity.iri_has_publication_date)
+_P_SEQ_ID = str(GraphEntity.iri_has_sequence_identifier)
+_P_PART_OF = str(GraphEntity.iri_part_of)
+_P_TYPE = str(RDF.type)
+_DATACITE = str(GraphEntity.DATACITE)
+_T_JOURNAL_VOLUME = str(GraphEntity.iri_journal_volume)
+_T_JOURNAL_ISSUE = str(GraphEntity.iri_journal_issue)
+_T_EXPRESSION = str(GraphEntity.iri_expression)
+_R_AUTHOR = str(GraphEntity.iri_author)
+_R_EDITOR = str(GraphEntity.iri_editor)
+_R_PUBLISHER = str(GraphEntity.iri_publisher)
 
 
 class IssueEntry(TypedDict):
@@ -48,122 +74,116 @@ def _execute_sparql_queries(args: tuple) -> list:
 
 class ResourceFinder:
 
-    def __init__(self, ts_url: str, base_iri: str, local_g: Graph = Graph(), settings: dict = dict(), meta_config_path: str | None = None, workers: int = 1):
+    def __init__(self, ts_url: str, base_iri: str, settings: dict = dict(), meta_config_path: str | None = None, workers: int = 1):
         self.ts_url = ts_url
         self.base_iri = base_iri[:-1] if base_iri[-1] == '/' else base_iri
-        self.local_g = local_g
-        self.prebuilt_subgraphs = {}
-        self.ids_in_local_g = set()
+        self._spo: dict[str, dict[str, list[str]]] = {}
+        self._po_s: dict[tuple[str, str], set[str]] = {}
+        self._triple_count: int = 0
+        self._literal_datatypes: dict[str, str] = {}
         self.meta_config_path = meta_config_path
         self.meta_settings = settings
         self.virtuoso_full_text_search = settings['virtuoso_full_text_search'] if settings and 'virtuoso_full_text_search' in settings else False
         self.workers = workers
 
+    def _add_triple(self, s: str, p: str, o: str, o_datatype: str = '') -> None:
+        pred_dict = self._spo.get(s)
+        if pred_dict is None:
+            pred_dict = {}
+            self._spo[s] = pred_dict
+        obj_list = pred_dict.get(p)
+        if obj_list is None:
+            obj_list = []
+            pred_dict[p] = obj_list
+        obj_list.append(o)
+        key = (p, o)
+        subj_set = self._po_s.get(key)
+        if subj_set is None:
+            subj_set = set()
+            self._po_s[key] = subj_set
+        subj_set.add(s)
+        self._triple_count += 1
+        if o_datatype:
+            self._literal_datatypes[o] = o_datatype
+
+    def _get_objects(self, subject: str, predicate: str) -> list[str]:
+        pred_dict = self._spo.get(subject)
+        if pred_dict is None:
+            return []
+        return pred_dict.get(predicate, [])
+
+    def _get_all_po(self, subject: str) -> dict[str, list[str]]:
+        return self._spo.get(subject, {})
+
+    def _get_subjects(self, predicate: str, obj: str) -> set[str]:
+        return self._po_s.get((predicate, obj), set())
+
+    def triple_count(self) -> int:
+        return self._triple_count
+
+    def add_triple(self, s: URIRef, p: URIRef, o: URIRef | Literal) -> None:
+        o_datatype = ''
+        if isinstance(o, Literal) and o.datatype:
+            o_datatype = str(o.datatype)
+        self._add_triple(str(s), str(p), str(o), o_datatype=o_datatype)
+
     # _______________________________BR_________________________________ #
 
+    def _find_id_uri(self, schema: str, value: str) -> str | None:
+        schema_uri = _DATACITE + schema
+        for id_uri in self._get_subjects(_P_HAS_LITERAL_VALUE, value):
+            schemes = self._get_objects(id_uri, _P_USES_ID_SCHEME)
+            if schemes[0] == schema_uri:
+                return id_uri
+        return None
+
+    def _collect_entity_ids(self, entity_uri: str, exclude_id_uri: str | None = None) -> list[tuple[str, str]]:
+        result: list[tuple[str, str]] = []
+        for id_uri in self._get_objects(entity_uri, _P_HAS_IDENTIFIER):
+            if id_uri == exclude_id_uri:
+                continue
+            po = self._get_all_po(id_uri)
+            schemes = po.get(_P_USES_ID_SCHEME, [])
+            literals = po.get(_P_HAS_LITERAL_VALUE, [])
+            if not schemes or not literals:
+                raise ValueError(f"Identifier {id_uri} missing schema or literal value")
+            full_id = f'{schemes[0].replace(_DATACITE, "")}:{literals[0]}'
+            result.append((id_uri.replace(f'{self.base_iri}/', ''), full_id))
+        return result
+
     def retrieve_br_from_id(self, schema: str, value: str) -> List[Tuple[str, str, list]]:
-        '''
-        Given an identifier, it retrieves bibliographic resources associated with that identifier, related titles and other identifiers MetaIDs and literal values.
-
-        :params schema: an identifier schema
-        :type schema: str
-        :params value: an identifier literal value
-        :type value: str
-        :returns List[Tuple[str, str, list]]: -- it returns a list of three elements tuples. The first element is the MetaID of a resource associated with the input ID. The second element is a title of that resource, if present. The third element is a list of MetaID-ID tuples related to identifiers associated with that resource. 
-        '''
-        schema_uri = URIRef(GraphEntity.DATACITE + schema)
-        value = value.replace('\\', '\\\\')
+        id_uri = self._find_id_uri(schema, value)
+        if not id_uri:
+            return []
+        metaid_id_list = [(id_uri.replace(f'{self.base_iri}/', ''), f'{schema}:{value}')]
         result_list = []
-        identifier_uri = None
-
-        literal_value = Literal(value, datatype=XSD.string)
-        for starting_triple in self.local_g.triples((None, GraphEntity.iri_has_literal_value, literal_value)):
-            for known_id_triple in self.local_g.triples((starting_triple[0], None, None)):
-                if known_id_triple[1] == GraphEntity.iri_uses_identifier_scheme and known_id_triple[2] == schema_uri:
-                    identifier_uri = known_id_triple[0]
-            if identifier_uri:
-                break
-        if identifier_uri:
-            metaid_id_list = [(str(identifier_uri).replace(f'{self.base_iri}/', ''), f'{schema}:{value}')]
-            for triple in self.local_g.triples((None, GraphEntity.iri_has_identifier, identifier_uri)):
-                title = ''
-                res = triple[0]
-                for res_triple in self.local_g.triples((res, None, None)):
-                    if res_triple[1] == GraphEntity.iri_title:
-                        title = str(res_triple[2])
-                    elif res_triple[1] == GraphEntity.iri_has_identifier and res_triple[2] != identifier_uri:
-                        id_schema: str | None = None
-                        id_literal_value: str | None = None
-                        for id_triple in self.local_g.triples((res_triple[2], None, None)):
-                            if id_triple[1] == GraphEntity.iri_uses_identifier_scheme:
-                                id_schema = str(id_triple[2])
-                            elif id_triple[1] == GraphEntity.iri_has_literal_value:
-                                id_literal_value = str(id_triple[2])
-                        if id_schema is None or id_literal_value is None:
-                            raise ValueError(f"Identifier {res_triple[2]} missing schema or literal value")
-                        full_id = f'{id_schema.replace(GraphEntity.DATACITE, "")}:{id_literal_value}'
-                        metaid_id_tuple = (str(res_triple[2]).replace(f'{self.base_iri}/', ''), full_id)
-                        metaid_id_list.append(metaid_id_tuple)
-                result_list.append((str(res).replace(f'{self.base_iri}/', ''), title, metaid_id_list))
-
+        for entity_uri in self._get_subjects(_P_HAS_IDENTIFIER, id_uri):
+            title = ''
+            titles = self._get_objects(entity_uri, _P_TITLE)
+            if titles:
+                title = titles[0]
+            other_ids = self._collect_entity_ids(entity_uri, exclude_id_uri=id_uri)
+            result_list.append((entity_uri.replace(f'{self.base_iri}/', ''), title, metaid_id_list + other_ids))
         return result_list
         
     def retrieve_br_from_meta(self, metaid: str) -> Tuple[str, List[Tuple[str, str]], bool]:
-        '''
-        Given a MetaID, it retrieves the title of the bibliographic resource having that MetaID and other identifiers of that entity.
-
-        :params metaid: a MetaID
-        :type metaid: str
-        :returns Tuple[str, List[Tuple[str, str]], bool]: -- it returns a tuple of three elements. The first element is the resource's title associated with the input MetaID. The second element is a list of MetaID-ID tuples related to identifiers associated with that entity. The third element indicates whether the entity exists.
-        '''
         metaid_uri = f'{self.base_iri}/{metaid}'
-        title = ''
-        identifiers = []
-        it_exists = False
-
-        for triple in self.local_g.triples((URIRef(metaid_uri), None, None)):
-            it_exists = True
-            if triple[1] == GraphEntity.iri_title:
-                title = str(triple[2])
-            elif triple[1] == GraphEntity.iri_has_identifier:
-                id_scheme = ''
-                literal_value = ''
-                identifier = triple[2]
-                for triple_inner in self.local_g.triples((identifier, None, None)):
-                    if triple_inner[1] == GraphEntity.iri_uses_identifier_scheme:
-                        id_scheme = str(triple_inner[2]).replace(GraphEntity.DATACITE, '')
-                    elif triple_inner[1] == GraphEntity.iri_has_literal_value:
-                        literal_value = str(triple_inner[2])
-                if id_scheme and literal_value:  # Ensure both id_scheme and literal_value are found before appending
-                    full_id = f'{id_scheme}:{literal_value}'
-                    identifiers.append((str(identifier).replace(self.base_iri + '/', ''), full_id))
-
-        if not it_exists:
+        po = self._get_all_po(metaid_uri)
+        if not po:
             return "", [], False
-
+        title = ''
+        titles = po.get(_P_TITLE, [])
+        if titles:
+            title = titles[0]
+        identifiers = self._collect_entity_ids(metaid_uri)
         return title, identifiers, True
 
     # _______________________________ID_________________________________ #
 
     def retrieve_metaid_from_id(self, schema: str, value: str) -> str | None:
-        '''
-        Given the schema and value of an ID, it returns the MetaID associated with that identifier.
-
-        :params schema: an identifier schema
-        :type schema: str
-        :params value: an identifier literal value
-        :type value: str
-        :returns str | None: -- it returns the MetaID associated with the input ID, or None if not found.
-        '''
-        schema_uri = URIRef(GraphEntity.DATACITE + schema)
-        value = value.replace('\\', '\\\\')
-
-        literal_value = Literal(value, datatype=XSD.string)
-        for starting_triple in self.local_g.triples((None, GraphEntity.iri_has_literal_value, literal_value)):
-            for known_id_triple in self.local_g.triples((starting_triple[0], None, None)):
-                if known_id_triple[1] == GraphEntity.iri_uses_identifier_scheme and known_id_triple[2] == schema_uri:
-                    return str(known_id_triple[0]).replace(f'{self.base_iri}/', '')
-
+        id_uri = self._find_id_uri(schema, value)
+        if id_uri:
+            return id_uri.replace(f'{self.base_iri}/', '')
         return None
 
     def retrieve_metaid_from_merged_entity(self, metaid_uri: str, prov_config: str) -> str | None:
@@ -208,107 +228,39 @@ class ResourceFinder:
 
     # _______________________________RA_________________________________ #
     def retrieve_ra_from_meta(self, metaid: str) -> Tuple[str, List[Tuple[str, str]], bool]:
-        '''
-        Given a MetaID, it retrieves the name and id of the responsible agent associated with it, whether it is an author or a publisher.
-        The output has the following format:
-
-            ('NAME', [('METAID_OF_THE_IDENTIFIER', 'LITERAL_VALUE')], True)
-            ('American Medical Association (ama)', [('4274', 'crossref:10')], True)
-
-        :params metaid: a responsible agent's MetaID
-        :type metaid: str
-        :returns Tuple[str, List[Tuple[str, str]], bool]: -- it returns a tuple, where the first element is the responsible agent's name, the second element is a list containing its identifier's MetaID and literal value, and the third element indicates whether the entity exists
-        '''
         metaid_uri = f'{self.base_iri}/{metaid}'
-        family_name = ''
-        given_name = ''
-        name = ''
-        identifiers: List[Tuple[str, str]] = []
-        it_exists = False
-
-        for triple in self.local_g.triples((URIRef(metaid_uri), None, None)):
-            it_exists = True
-            if triple[1] == GraphEntity.iri_family_name:
-                family_name = str(triple[2])
-            elif triple[1] == GraphEntity.iri_given_name:
-                given_name = str(triple[2])
-            elif triple[1] == GraphEntity.iri_name:
-                name = str(triple[2])
-            elif triple[1] == GraphEntity.iri_has_identifier:
-                identifier = triple[2]
-                id_scheme = ''
-                literal_value = ''
-                for triple_inner in self.local_g.triples((identifier, None, None)):
-                    if triple_inner[1] == GraphEntity.iri_uses_identifier_scheme:
-                        id_scheme = str(triple_inner[2]).replace(GraphEntity.DATACITE, '')
-                    elif triple_inner[1] == GraphEntity.iri_has_literal_value:
-                        literal_value = str(triple_inner[2])
-                if id_scheme and literal_value:
-                    full_id = f'{id_scheme}:{literal_value}'
-                    identifiers.append((str(identifier).replace(self.base_iri + '/', ''), full_id))
-        
-        full_name = self._construct_full_name(name, family_name, given_name)
-            
-        return full_name, identifiers, it_exists
+        po = self._get_all_po(metaid_uri)
+        if not po:
+            return '', [], False
+        family_names = po.get(_P_FAMILY_NAME, [])
+        given_names = po.get(_P_GIVEN_NAME, [])
+        names = po.get(_P_NAME, [])
+        full_name = self._construct_full_name(
+            names[0] if names else '',
+            family_names[0] if family_names else '',
+            given_names[0] if given_names else '',
+        )
+        identifiers = self._collect_entity_ids(metaid_uri)
+        return full_name, identifiers, True
 
     def retrieve_ra_from_id(self, schema: str, value: str) -> List[Tuple[str, str, list]]:
-        '''
-        Given an identifier, it retrieves responsible agents associated with that identifier, related names and other identifiers MetaIDs and literal values.
-        The output has the following format: ::
-
-            [(METAID, NAME, [(METAID_OF_THE_IDENTIFIER, LITERAL_VALUE)])]
-            [('3309', 'American Medical Association (ama)', [('4274', 'crossref:10')])]
-
-        :params schema: an identifier schema
-        :type schema: str
-        :params value: an identifier literal value
-        :type value: str
-        :returns List[Tuple[str, str, list]]: -- it returns a list of three elements tuples. The first element is the MetaID of a responsible agent associated with the input ID. The second element is the name of that responsible agent, if present. The third element is a list of MetaID-ID tuples related to identifiers associated with that responsible agent. 
-        '''
-        schema_uri = URIRef(GraphEntity.DATACITE + schema)
-        value = value.replace('\\', '\\\\')
+        id_uri = self._find_id_uri(schema, value)
+        if not id_uri:
+            return []
+        metaid_id_list: List[Tuple[str, str]] = [(id_uri.replace(f'{self.base_iri}/', ''), f'{schema}:{value}')]
         result_list = []
-        identifier_uri = None
-
-        literal_value = Literal(value, datatype=XSD.string)
-        for starting_triple in self.local_g.triples((None, GraphEntity.iri_has_literal_value, literal_value)):
-            for known_id_triple in self.local_g.triples((starting_triple[0], None, None)):
-                if known_id_triple[1] == GraphEntity.iri_uses_identifier_scheme and known_id_triple[2] == schema_uri:
-                    identifier_uri = known_id_triple[0]
-                    break
-            if identifier_uri:
-                break
-        if identifier_uri:
-            metaid_id_list: List[Tuple[str, str]] = [(str(identifier_uri).replace(f'{self.base_iri}/', ''), f'{schema}:{value}')]
-            for triple in self.local_g.triples((None, GraphEntity.iri_has_identifier, identifier_uri)):
-                name = ''
-                family_name = ''
-                given_name = ''
-                res = triple[0]
-                for res_triple in self.local_g.triples((res, None, None)):
-                    if res_triple[1] == GraphEntity.iri_name:
-                        name = str(res_triple[2])
-                    elif res_triple[1] == GraphEntity.iri_family_name:
-                        family_name = str(res_triple[2])
-                    elif res_triple[1] == GraphEntity.iri_given_name:
-                        given_name = str(res_triple[2])
-                    elif res_triple[1] == GraphEntity.iri_has_identifier and res_triple[2] != identifier_uri:
-                        id_schema: str | None = None
-                        id_literal_value: str | None = None
-                        for id_triple in self.local_g.triples((res_triple[2], None, None)):
-                            if id_triple[1] == GraphEntity.iri_uses_identifier_scheme:
-                                id_schema = str(id_triple[2])
-                            elif id_triple[1] == GraphEntity.iri_has_literal_value:
-                                id_literal_value = str(id_triple[2])
-                        if id_schema is None or id_literal_value is None:
-                            raise ValueError(f"Identifier {res_triple[2]} missing schema or literal value")
-                        full_id = f'{id_schema.replace(GraphEntity.DATACITE, "")}:{id_literal_value}'
-                        metaid_id_tuple = (str(res_triple[2]).replace(f'{self.base_iri}/', ''), full_id)
-                        metaid_id_list.append(metaid_id_tuple)
-
-                full_name = self._construct_full_name(name, family_name, given_name)
-                result_list.append((str(res).replace(f'{self.base_iri}/', ''), full_name, metaid_id_list))
-
+        for entity_uri in self._get_subjects(_P_HAS_IDENTIFIER, id_uri):
+            po = self._get_all_po(entity_uri)
+            names = po.get(_P_NAME, [])
+            family_names = po.get(_P_FAMILY_NAME, [])
+            given_names = po.get(_P_GIVEN_NAME, [])
+            full_name = self._construct_full_name(
+                names[0] if names else '',
+                family_names[0] if family_names else '',
+                given_names[0] if given_names else '',
+            )
+            other_ids = self._collect_entity_ids(entity_uri, exclude_id_uri=id_uri)
+            result_list.append((entity_uri.replace(f'{self.base_iri}/', ''), full_name, metaid_id_list + other_ids))
         return result_list
 
     def _construct_full_name(self, name: str, family_name: str, given_name: str) -> str:
@@ -324,52 +276,28 @@ class ResourceFinder:
             return ''
 
     def retrieve_ra_sequence_from_br_meta(self, metaid: str, col_name: str) -> List[Dict[str, tuple]]:
-        '''
-        Given a bibliographic resource's MetaID and a field name, it returns its agent roles and responsible agents in the correct order according to the specified field.
-        The output has the following format: ::
-            [
-                {METAID_AR_1: (NAME_RA_1, [(METAID_ID_RA_1, LITERAL_VALUE_ID_RA_1)], METAID_RA_1)},
-                {METAID_AR_2: (NAME_RA_2, [(METAID_ID_RA_2, LITERAL_VALUE_ID_RA_2)], METAID_RA_2)},
-                {METAID_AR_N: (NAME_RA_N, [(METAID_ID_RA_N, LITERAL_VALUE_ID_RA_N)], METAID_RA_N)},
-            ]
-            [
-                {'5343': ('Hodge, James G.', [], '3316')},
-                {'5344': ('Anderson, Evan D.', [], '3317')},
-                {'5345': ('Kirsch, Thomas D.', [], '3318')},
-                {'5346': ('Kelen, Gabor D.', [('4278', 'orcid:0000-0002-3236-8286')], '3319')}
-            ]
-        :params metaid: a MetaID
-        :type meta_id: str
-        :params col_name: a MetaID
-        :type col_name: str
-        :returns: List[Dict[str, tuple]] -- the output is a list of three-elements tuples. Each tuple's first and third elements are the MetaIDs of an agent role and responsible agent related to the specified bibliographic resource. The second element is a two-elements tuple, where the first element is the MetaID of the identifier of the responsible agent. In contrast, the second one is the literal value of that id.
-        '''
         if col_name == 'author':
-            role = GraphEntity.iri_author
+            role_str = _R_AUTHOR
         elif col_name == 'editor':
-            role = GraphEntity.iri_editor
+            role_str = _R_EDITOR
         else:
-            role = GraphEntity.iri_publisher
+            role_str = _R_PUBLISHER
 
-        metaid_uri = URIRef(f'{self.base_iri}/{metaid}')
-        dict_ar = dict()
+        metaid_uri = f'{self.base_iri}/{metaid}'
+        dict_ar: dict[str, dict[str, str]] = {}
 
-        for triple in self.local_g.triples((metaid_uri, GraphEntity.iri_is_document_context_for, None)):
-            for ar_triple in self.local_g.triples((triple[2], None, None)):
-                if ar_triple[2] == role:
-                    role_value = str(triple[2]).replace(f'{self.base_iri}/', '')
-                    next_role = ''
-                    ra = None
-                    for relevant_ar_triple in self.local_g.triples((triple[2], None, None)):
-                        if relevant_ar_triple[1] == GraphEntity.iri_has_next:
-                            next_role = str(relevant_ar_triple[2]).replace(f'{self.base_iri}/', '')
-                        elif relevant_ar_triple[1] == GraphEntity.iri_is_held_by:
-                            ra = str(relevant_ar_triple[2]).replace(f'{self.base_iri}/', '')
-                    # Skip AR if it has no associated RA (malformed data)
-                    if ra is not None:
-                        dict_ar[role_value] = {'next': next_role, 'ra': ra}
+        for ar_uri in self._get_objects(metaid_uri, _P_IS_DOC_CONTEXT_FOR):
+            ar_po = self._get_all_po(ar_uri)
+            roles = ar_po.get(_P_WITH_ROLE, [])
+            if role_str in roles:
+                role_value = ar_uri.replace(f'{self.base_iri}/', '')
+                next_list = ar_po.get(_P_HAS_NEXT, [])
+                next_role = next_list[0].replace(f'{self.base_iri}/', '') if next_list else ''
+                held_by = ar_po.get(_P_IS_HELD_BY, [])
+                ra = held_by[0].replace(f'{self.base_iri}/', '') if held_by else None
+                if ra is not None:
+                    dict_ar[role_value] = {'next': next_role, 'ra': ra}
 
-        # Find the start_role by excluding all roles that are "next" for others from the set of all roles
         all_roles = set(dict_ar.keys())
         roles_with_next = set(details['next'] for details in dict_ar.values() if details['next'])
         start_role_candidates = all_roles - roles_with_next
@@ -379,18 +307,16 @@ class ResourceFinder:
         if len(all_roles) == 0:
             return []
 
-        # If no start candidates (circular loop), pick the AR with lowest number as arbitrary start
         if len(start_role_candidates) == 0:
             sorted_ars = sorted(all_roles, key=lambda ar: get_resource_number(URIRef(f'{self.base_iri}/{ar}')))
             start_role_candidates = {sorted_ars[0]}
 
         if len(start_role_candidates) != 1:
-            # If more than one start candidate exists or none exist, build all chains and return the best one
             chains = []
             for start_candidate in start_role_candidates:
                 current_role = start_candidate
-                chain = []
-                visited_roles = set()
+                chain: list[dict[str, tuple]] = []
+                visited_roles: set[str] = set()
                 iteration_count = 0
                 while current_role and current_role not in visited_roles and iteration_count < MAX_ITERATIONS:
                     visited_roles.add(current_role)
@@ -402,13 +328,10 @@ class ResourceFinder:
                     else:
                         break
                     iteration_count += 1
-
                 if iteration_count == MAX_ITERATIONS:
                     print(f"Warning: Possible infinite loop detected for BR: {metaid}, column: {col_name}")
                     return []
-
                 chains.append(chain)
-            # Sort chains by length, then by the lowest sequential number of the starting role
             chains.sort(key=lambda chain: (-len(chain), get_resource_number(URIRef(f'{self.base_iri}/{list(chain[0].keys())[0]}'))))
             try:
                 ordered_ar_list = chains[0]
@@ -422,10 +345,9 @@ class ResourceFinder:
                 return []
         else:
             start_role = start_role_candidates.pop()
-            # Follow the "next" chain from the start_role to construct an ordered list
-            ordered_ar_list = []
+            ordered_ar_list: list[dict[str, tuple]] = []
             current_role = start_role
-            visited_roles = set()
+            visited_roles: set[str] = set()
             iteration_count = 0
             while current_role and current_role not in visited_roles and iteration_count < MAX_ITERATIONS:
                 visited_roles.add(current_role)
@@ -437,7 +359,6 @@ class ResourceFinder:
                 else:
                     break
                 iteration_count += 1
-
             if iteration_count == MAX_ITERATIONS:
                 print(f"Warning: Possible infinite loop detected for BR: {metaid}, column: {col_name}")
                 return []
@@ -445,98 +366,63 @@ class ResourceFinder:
         return ordered_ar_list
 
     def retrieve_re_from_br_meta(self, metaid: str) -> Tuple[str, str] | None:
-        '''
-            Given a bibliographic resource's MetaID, it returns its resource embodiment's MetaID and pages.
-            The output has the following format: ::
-
-                (METAID, PAGES)
-                ('2011', '391-397')
-
-            :params metaid: a bibliographic resource's MetaID
-            :type meta_id: str
-            :returns: Tuple[str, str] | None -- the output is a two-elements tuple, where the first element is the MetaID of the resource embodiment, and the second is a pages' interval. Returns None if no embodiment exists.
-        '''
-        metaid_uri = URIRef(f'{self.base_iri}/{metaid}')
-        re_uri: str | None = None
-        starting_page: str | None = None
-        ending_page: str | None = None
-        for triple in self.local_g.triples((metaid_uri, GraphEntity.iri_embodiment, None)):
-            re_uri = str(triple[2]).replace(f'{self.base_iri}/', '')
-            for re_triple in self.local_g.triples((triple[2], None, None)):
-                if re_triple[1] == GraphEntity.iri_starting_page:
-                    starting_page = str(re_triple[2])
-                elif re_triple[1] == GraphEntity.iri_ending_page:
-                    ending_page = str(re_triple[2])
-        if re_uri:
-            pages = ''
-            if starting_page and ending_page:
-                pages = f'{starting_page}-{ending_page}'
-            elif starting_page and not ending_page:
-                pages = f'{starting_page}-{starting_page}'
-            elif not starting_page and ending_page:
-                pages = f'{ending_page}-{ending_page}'
-            return re_uri, pages
-        return None
+        metaid_uri = f'{self.base_iri}/{metaid}'
+        re_uris = self._get_objects(metaid_uri, _P_EMBODIMENT)
+        if not re_uris:
+            return None
+        re_full_uri = re_uris[0]
+        re_metaid = re_full_uri.replace(f'{self.base_iri}/', '')
+        re_po = self._get_all_po(re_full_uri)
+        starting_pages = re_po.get(_P_STARTING_PAGE, [])
+        ending_pages = re_po.get(_P_ENDING_PAGE, [])
+        starting_page = starting_pages[0] if starting_pages else None
+        ending_page = ending_pages[0] if ending_pages else None
+        pages = ''
+        if starting_page and ending_page:
+            pages = f'{starting_page}-{ending_page}'
+        elif starting_page:
+            pages = f'{starting_page}-{starting_page}'
+        elif ending_page:
+            pages = f'{ending_page}-{ending_page}'
+        return re_metaid, pages
 
     def retrieve_br_info_from_meta(self, metaid: str) -> dict:
-        '''
-        Given a bibliographic resource's MetaID, it returns all the information about that resource.
-        The output has the following format: ::
+        venue_type_strs = {
+            str(GraphEntity.iri_archival_document),
+            str(GraphEntity.iri_journal),
+            str(GraphEntity.iri_book),
+            str(GraphEntity.iri_book_series),
+            str(GraphEntity.iri_series),
+            str(GraphEntity.iri_academic_proceedings),
+            str(GraphEntity.iri_proceedings_series),
+            str(GraphEntity.iri_reference_book),
+            _T_EXPRESSION,
+        }
 
-            {
-                'pub_date': PUB_DATE, 
-                'type': TYPE, 
-                'page': (METAID, PAGES), 
-                'issue': ISSUE, 
-                'volume': VOLUME, 
-                'venue': VENUE
-            }
-            {
-                'pub_date': '2006-02-27', 
-                'type': 'journal article', 
-                'page': ('2011', '391-397'), 
-                'issue': '4', 
-                'volume': '166', 
-                'venue': 'Archives Of Internal Medicine [omid:br/4387]'
-            }
-
-        :param metaid: a bibliographic resource's MetaID
-        :type metaid: str
-        :returns: dict -- the output is a dictionary including the publication date, type, page, issue, volume, and venue of the specified bibliographic resource.
-        '''
-
-        venue_iris = [
-            GraphEntity.iri_archival_document,
-            GraphEntity.iri_journal,
-            GraphEntity.iri_book,
-            GraphEntity.iri_book_series,
-            GraphEntity.iri_series,
-            GraphEntity.iri_academic_proceedings,
-            GraphEntity.iri_proceedings_series,
-            GraphEntity.iri_reference_book,
-            GraphEntity.iri_series,
-
-            GraphEntity.iri_expression
-        ]
-
-        def extract_identifiers(entity_uri):
+        def extract_identifiers(entity_uri: str) -> list[str]:
             identifiers = [f"omid:{entity_uri.replace(f'{self.base_iri}/', '')}"]
-            for id_triple in self.local_g.triples((entity_uri, GraphEntity.iri_has_identifier, None)):
-                id_obj = id_triple[2]
-                scheme = value = None
-                for detail_triple in self.local_g.triples((id_obj, None, None)):
-                    if detail_triple[1] == GraphEntity.iri_uses_identifier_scheme:
-                        scheme = str(detail_triple[2])
-                    elif detail_triple[1] == GraphEntity.iri_has_literal_value:
-                        value = str(detail_triple[2])
-                if scheme and value:
-                    scheme = scheme.replace(GraphEntity.DATACITE, '')
-                    identifiers.append(f"{scheme}:{value}")
+            for id_uri in self._get_objects(entity_uri, _P_HAS_IDENTIFIER):
+                id_po = self._get_all_po(id_uri)
+                schemes = id_po.get(_P_USES_ID_SCHEME, [])
+                literals = id_po.get(_P_HAS_LITERAL_VALUE, [])
+                if schemes and literals:
+                    scheme = schemes[0].replace(_DATACITE, '')
+                    identifiers.append(f"{scheme}:{literals[0]}")
             return identifiers
 
+        def check_venue(entity_uri: str) -> str | None:
+            entity_types = self._get_objects(entity_uri, _P_TYPE)
+            if any(t in venue_type_strs for t in entity_types):
+                titles = self._get_objects(entity_uri, _P_TITLE)
+                if titles:
+                    venue_ids = extract_identifiers(entity_uri)
+                    return f"{titles[0]} [{' '.join(venue_ids)}]"
+            return None
+
         metaid = str(metaid)
-        metaid_uri = URIRef(f'{self.base_iri}/{metaid}') if self.base_iri not in metaid else URIRef(metaid)
-        res_dict = {
+        metaid_uri = f'{self.base_iri}/{metaid}' if self.base_iri not in metaid else metaid
+        po = self._get_all_po(metaid_uri)
+        res_dict: dict = {
             'pub_date': '',
             'type': '',
             'page': self.retrieve_re_from_br_meta(metaid),
@@ -545,58 +431,60 @@ class ResourceFinder:
             'venue': ''
         }
 
-        for triple in self.local_g.triples((metaid_uri, None, None)):
-            predicate, obj = triple[1], triple[2]
+        pub_dates = po.get(_P_PUB_DATE, [])
+        if pub_dates:
+            res_dict['pub_date'] = pub_dates[0]
 
-            if predicate == GraphEntity.iri_has_publication_date:
-                res_dict['pub_date'] = str(obj)
-            elif predicate == RDF.type and obj != GraphEntity.iri_expression and isinstance(obj, URIRef):
-                res_dict['type'] = self._type_it(obj)
-            elif predicate == GraphEntity.iri_has_sequence_identifier:
-                for inner_triple in self.local_g.triples((metaid_uri, None, None)):
-                    inner_obj = inner_triple[2]
-                    if inner_obj == GraphEntity.iri_journal_issue:
-                        res_dict['issue'] = str(triple[2])
-                    elif inner_obj == GraphEntity.iri_journal_volume:
-                        res_dict['volume'] = str(triple[2])
-            elif predicate == GraphEntity.iri_part_of:
-                for vvi_triple in self.local_g.triples((obj, None, None)):
-                    vvi_obj = vvi_triple[2]
-                    if vvi_obj == GraphEntity.iri_journal_issue:
-                        for inner_vvi_triple in self.local_g.triples((obj, None, None)):
-                            if inner_vvi_triple[1] == GraphEntity.iri_has_sequence_identifier:
-                                res_dict['issue'] = str(inner_vvi_triple[2])
-                    elif vvi_obj == GraphEntity.iri_journal_volume:
-                        for inner_vvi_triple in self.local_g.triples((obj, None, None)):
-                            if inner_vvi_triple[1] == GraphEntity.iri_has_sequence_identifier:
-                                res_dict['volume'] = str(inner_vvi_triple[2])
-                    elif vvi_obj in venue_iris:
-                        for inner_vvi_triple in self.local_g.triples((obj, None, None)):
-                            if inner_vvi_triple[1] == GraphEntity.iri_title:
-                                venue_title = str(inner_vvi_triple[2])
-                                venue_ids = extract_identifiers(obj)
-                                res_dict['venue'] = f"{venue_title} [{' '.join(venue_ids)}]"
+        types = po.get(_P_TYPE, [])
+        for t in types:
+            if t != _T_EXPRESSION and t.startswith('http'):
+                res_dict['type'] = self._type_it(URIRef(t))
+                break
 
-                    if vvi_triple[1] == GraphEntity.iri_part_of:
-                        for vi_triple in self.local_g.triples((vvi_obj, None, None)):
-                            vi_obj = vi_triple[2]
-                            if vi_obj == GraphEntity.iri_journal_volume:
-                                for inner_vvi_triple in self.local_g.triples((vvi_obj, None, None)):
-                                    if inner_vvi_triple[1] == GraphEntity.iri_has_sequence_identifier:
-                                        res_dict['volume'] = str(inner_vvi_triple[2])
-                            elif vi_obj in venue_iris:
-                                for inner_vvi_triple in self.local_g.triples((vvi_obj, None, None)):
-                                    if inner_vvi_triple[1] == GraphEntity.iri_title:
-                                        venue_title = str(inner_vvi_triple[2])
-                                        venue_ids = extract_identifiers(vvi_obj)
-                                        res_dict['venue'] = f"{venue_title} [{' '.join(venue_ids)}]"
+        seq_ids = po.get(_P_SEQ_ID, [])
+        if seq_ids:
+            entity_types = types
+            if _T_JOURNAL_ISSUE in entity_types:
+                res_dict['issue'] = seq_ids[0]
+            elif _T_JOURNAL_VOLUME in entity_types:
+                res_dict['volume'] = seq_ids[0]
 
-                            if vi_triple[1] == GraphEntity.iri_part_of:
-                                for venue_triple in self.local_g.triples((vi_obj, None, None)):
-                                    if venue_triple[1] == GraphEntity.iri_title:
-                                        venue_title = str(venue_triple[2])
-                                        venue_ids = extract_identifiers(vi_obj)
-                                        res_dict['venue'] = f"{venue_title} [{' '.join(venue_ids)}]"
+        for container_uri in po.get(_P_PART_OF, []):
+            container_po = self._get_all_po(container_uri)
+            container_types = container_po.get(_P_TYPE, [])
+
+            if _T_JOURNAL_ISSUE in container_types:
+                container_seqs = container_po.get(_P_SEQ_ID, [])
+                if container_seqs:
+                    res_dict['issue'] = container_seqs[0]
+            elif _T_JOURNAL_VOLUME in container_types:
+                container_seqs = container_po.get(_P_SEQ_ID, [])
+                if container_seqs:
+                    res_dict['volume'] = container_seqs[0]
+            else:
+                venue_str = check_venue(container_uri)
+                if venue_str:
+                    res_dict['venue'] = venue_str
+
+            for inner_uri in container_po.get(_P_PART_OF, []):
+                inner_po = self._get_all_po(inner_uri)
+                inner_types = inner_po.get(_P_TYPE, [])
+
+                if _T_JOURNAL_VOLUME in inner_types:
+                    inner_seqs = inner_po.get(_P_SEQ_ID, [])
+                    if inner_seqs:
+                        res_dict['volume'] = inner_seqs[0]
+                else:
+                    venue_str = check_venue(inner_uri)
+                    if venue_str:
+                        res_dict['venue'] = venue_str
+
+                for venue_uri in inner_po.get(_P_PART_OF, []):
+                    titles = self._get_objects(venue_uri, _P_TITLE)
+                    if titles:
+                        venue_ids = extract_identifiers(venue_uri)
+                        res_dict['venue'] = f"{titles[0]} [{' '.join(venue_ids)}]"
+
         return res_dict
 
     _IRI_TO_TYPE = {
@@ -626,48 +514,38 @@ class ResourceFinder:
     def _type_it(br_type: URIRef) -> str:
         return ResourceFinder._IRI_TO_TYPE.get(br_type, '')
     
-    def retrieve_publisher_from_br_metaid(self, metaid:str):
-        metaid_uri = URIRef(f'{self.base_iri}/{metaid}')
-        publishers = set()
-        for triple in self.local_g.triples((metaid_uri, None, None)):
-            if triple[1] == GraphEntity.iri_is_document_context_for:
-                for document_triple in self.local_g.triples((triple[2], None, None)):
-                    if document_triple[2] == GraphEntity.iri_publisher:
-                        publishers.add(triple[2])
-            elif triple[1] == GraphEntity.iri_part_of:
-                for inner_triple in self.local_g.triples((triple[2], None, None)):
-                    if inner_triple[1] == GraphEntity.iri_is_document_context_for:
-                        for document_triple in self.local_g.triples((inner_triple[2], None, None)):
-                            if document_triple[2] == GraphEntity.iri_publisher:
-                                publishers.add(inner_triple[2])
-                    elif inner_triple[1] == GraphEntity.iri_part_of:
-                        for inner_inner_triple in self.local_g.triples((inner_triple[2], None, None)):
-                            if inner_inner_triple[1] == GraphEntity.iri_is_document_context_for:
-                                for document_triple in self.local_g.triples((inner_inner_triple[2], None, None)):
-                                    if document_triple[2] == GraphEntity.iri_publisher:
-                                        publishers.add(inner_inner_triple[2])
+    def retrieve_publisher_from_br_metaid(self, metaid: str):
+        metaid_uri = f'{self.base_iri}/{metaid}'
+        publisher_ar_uris: set[str] = set()
+
+        def find_publisher_ars(entity_uri: str) -> None:
+            for ar_uri in self._get_objects(entity_uri, _P_IS_DOC_CONTEXT_FOR):
+                roles = self._get_objects(ar_uri, _P_WITH_ROLE)
+                if _R_PUBLISHER in roles:
+                    publisher_ar_uris.add(ar_uri)
+
+        find_publisher_ars(metaid_uri)
+        for parent_uri in self._get_objects(metaid_uri, _P_PART_OF):
+            find_publisher_ars(parent_uri)
+            for grandparent_uri in self._get_objects(parent_uri, _P_PART_OF):
+                find_publisher_ars(grandparent_uri)
+
         publishers_output = []
-        for publisher_uri in publishers:
+        for ar_uri in publisher_ar_uris:
             pub_identifiers: List[str] = []
             pub_name: str | None = None
-            for triple in self.local_g.triples((publisher_uri, None, None)):
-                if triple[1] == GraphEntity.iri_is_held_by:
-                    pub_metaid = str(triple[2]).replace(f'{self.base_iri}/', 'omid:')
-                    pub_identifiers.append(pub_metaid)
-                    for ra_triple in self.local_g.triples((triple[2], None, None)):
-                        pub_schema: str | None = None
-                        pub_literal: str | None = None
-                        if ra_triple[1] == GraphEntity.iri_name:
-                            pub_name = str(ra_triple[2])
-                        elif ra_triple[1] == GraphEntity.iri_has_identifier:
-                            for id_triple in self.local_g.triples((ra_triple[2], None, None)):
-                                if id_triple[1] == GraphEntity.iri_uses_identifier_scheme:
-                                    pub_schema = str(id_triple[2]).replace(str(GraphEntity.DATACITE), '')
-                                elif id_triple[1] == GraphEntity.iri_has_literal_value:
-                                    pub_literal = str(id_triple[2])
-                        if pub_schema is not None and pub_literal is not None:
-                            pub_id = f'{pub_schema}:{pub_literal}'
-                            pub_identifiers.append(pub_id)
+            for ra_uri in self._get_objects(ar_uri, _P_IS_HELD_BY):
+                pub_identifiers.append(ra_uri.replace(f'{self.base_iri}/', 'omid:'))
+                ra_po = self._get_all_po(ra_uri)
+                names = ra_po.get(_P_NAME, [])
+                if names:
+                    pub_name = names[0]
+                for id_uri in ra_po.get(_P_HAS_IDENTIFIER, []):
+                    id_po = self._get_all_po(id_uri)
+                    schemes = id_po.get(_P_USES_ID_SCHEME, [])
+                    literals = id_po.get(_P_HAS_LITERAL_VALUE, [])
+                    if schemes and literals:
+                        pub_identifiers.append(f'{schemes[0].replace(_DATACITE, "")}:{literals[0]}')
             if pub_name is not None:
                 pub_full = f'{pub_name} [{" ".join(pub_identifiers)}]'
             else:
@@ -747,17 +625,17 @@ class ResourceFinder:
             else:
                 results = _execute_sparql_queries((ts_url, batch_queries)) if batch_queries else []
 
+            _skip_preds = {_P_TYPE, _P_WITH_ROLE, _P_USES_ID_SCHEME}
             for result in results:
                 for row in result:
-                    s = sparql_binding_to_term(row['s'])
-                    p = sparql_binding_to_term(row['p'])
-                    o = sparql_binding_to_term(row['o'])
-                    self.local_g.add((s, p, o))
-                    if s not in self.prebuilt_subgraphs:
-                        self.prebuilt_subgraphs[s] = Graph()
-                    self.prebuilt_subgraphs[s].add((s, p, o))
-                    if isinstance(o, URIRef) and p not in {RDF.type, GraphEntity.iri_with_role, GraphEntity.iri_uses_identifier_scheme}:
-                        next_subjects.add(str(o))
+                    s_str = row['s']['value']
+                    p_str = row['p']['value']
+                    o_binding = row['o']
+                    o_str = o_binding['value']
+                    o_datatype = o_binding.get('datatype', '') if o_binding['type'] in ('literal', 'typed-literal') else ''
+                    self._add_triple(s_str, p_str, o_str, o_datatype=o_datatype)
+                    if o_binding['type'] == 'uri' and p_str not in _skip_preds:
+                        next_subjects.add(o_str)
 
             process_batch_parallel(next_subjects, cur_depth + 1, visited_subjects)
 
@@ -1010,65 +888,56 @@ class ResourceFinder:
         visited_subjects = set()
         process_batch_parallel(initial_subjects, 0, visited_subjects)
 
-    def get_subgraph(self, res: str) -> Graph|None:
-        if res in self.prebuilt_subgraphs:
-            return self.prebuilt_subgraphs[res]
-        return None
+    def get_subgraph(self, res) -> Graph | None:
+        res_str = str(res)
+        po = self._spo.get(res_str)
+        if po is None:
+            return None
+        g = Graph()
+        s = URIRef(res_str)
+        for p_str, objects in po.items():
+            p = URIRef(p_str)
+            for o_str in objects:
+                if o_str in self._literal_datatypes:
+                    o: URIRef | Literal = Literal(o_str, datatype=URIRef(self._literal_datatypes[o_str]))
+                elif o_str.startswith('http'):
+                    o = URIRef(o_str)
+                else:
+                    o = Literal(o_str, datatype=URIRef(str(XSD.string)))
+                g.add((s, p, o))
+        return g
 
     def retrieve_venue_from_local_graph(self, meta_id: str) -> VenueStructure:
-        """
-        Retrieve venue VVI structure from local graph instead of querying triplestore.
-
-        :params meta_id: a MetaID
-        :type meta_id: str
-        :returns: VenueStructure -- the venue structure with volumes and issues
-        """
         content: VenueStructure = {
             'issue': {},
             'volume': {}
         }
 
-        volumes = {}
-        venue_uri = URIRef(f'{self.base_iri}/{meta_id}')
-        
-        # Find all volumes directly part of this venue
-        for triple in self.local_g.triples((None, RDF.type, GraphEntity.iri_journal_volume)):
-            entity = triple[0]
-            # Check if this volume is part of our venue
-            for _part_triple in self.local_g.triples((entity, GraphEntity.iri_part_of, venue_uri)):
-                entity_id = str(entity).replace(f'{self.base_iri}/', '')
-                for seq_triple in self.local_g.triples((entity, GraphEntity.iri_has_sequence_identifier, None)):
-                    seq = str(seq_triple[2])
+        volumes: dict[str, str] = {}
+        venue_uri = f'{self.base_iri}/{meta_id}'
+
+        for entity_uri in self._get_subjects(_P_TYPE, _T_JOURNAL_VOLUME):
+            parents = self._get_objects(entity_uri, _P_PART_OF)
+            if venue_uri in parents:
+                entity_id = entity_uri.replace(f'{self.base_iri}/', '')
+                seqs = self._get_objects(entity_uri, _P_SEQ_ID)
+                for seq in seqs:
                     volumes[entity_id] = seq
-                    content['volume'][seq] = {
-                        'id': entity_id,
-                        'issue': {}
-                    }
+                    content['volume'][seq] = {'id': entity_id, 'issue': {}}
 
-        # Find all issues
-        for triple in self.local_g.triples((None, RDF.type, GraphEntity.iri_journal_issue)):
-            entity = triple[0]
-            entity_id = str(entity).replace(f'{self.base_iri}/', '')
-            seq = None
-            container = None
-            
-            # Get sequence identifier
-            for seq_triple in self.local_g.triples((entity, GraphEntity.iri_has_sequence_identifier, None)):
-                seq = str(seq_triple[2])
-            
-            # Get container (could be venue or volume)
-            for container_triple in self.local_g.triples((entity, GraphEntity.iri_part_of, None)):
-                container = str(container_triple[2])
+        for entity_uri in self._get_subjects(_P_TYPE, _T_JOURNAL_ISSUE):
+            entity_id = entity_uri.replace(f'{self.base_iri}/', '')
+            seqs = self._get_objects(entity_uri, _P_SEQ_ID)
+            seq = seqs[0] if seqs else None
+            containers = self._get_objects(entity_uri, _P_PART_OF)
+            container = containers[0] if containers else None
 
-            if seq:
-                if container:
-                    container_id = container.replace(f'{self.base_iri}/', '')
-                    # Check if container is a volume of our venue
-                    if container_id in volumes:
-                        volume_seq = volumes[container_id]
-                        content['volume'][volume_seq]['issue'][seq] = {'id': entity_id}
-                    # Check if container is directly our venue
-                    elif container == str(venue_uri):
-                        content['issue'][seq] = {'id': entity_id}
+            if seq and container:
+                container_id = container.replace(f'{self.base_iri}/', '')
+                if container_id in volumes:
+                    volume_seq = volumes[container_id]
+                    content['volume'][volume_seq]['issue'][seq] = {'id': entity_id}
+                elif container == venue_uri:
+                    content['issue'][seq] = {'id': entity_id}
 
         return content
