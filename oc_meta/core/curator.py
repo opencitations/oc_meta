@@ -39,6 +39,10 @@ if TYPE_CHECKING:
     from rich.progress import Progress
 
 
+def _omid(meta: str) -> str:
+    return f"omid:{meta}"
+
+
 def _extract_ids_from_chunk(args: tuple) -> Tuple[set, set, set]:
     rows, valid_dois_cache = args
     all_metavals = set()
@@ -56,7 +60,7 @@ def _extract_ids_from_chunk(args: tuple) -> Tuple[set, set, set]:
             id_list = RE_ONE_OR_MORE_SPACES.split(RE_COLON_AND_SPACES.sub(":", row["id"]))
             idslist, metaval = Curator.clean_id_list(id_list, br=True, valid_dois_cache=valid_dois_cache)
             if metaval:
-                metavals.add(f"omid:{metaval}")
+                metavals.add(_omid(metaval))
             if idslist:
                 identifiers.update(idslist)
 
@@ -69,7 +73,7 @@ def _extract_ids_from_chunk(args: tuple) -> Tuple[set, set, set]:
             br = field in ["venue", "volume", "issue"]
             field_idslist, field_metaval = Curator.clean_id_list(field_ids, br=br, valid_dois_cache=valid_dois_cache)
             if field_metaval:
-                field_metaval = f"omid:{field_metaval}"
+                field_metaval = _omid(field_metaval)
             else:
                 field_metaval = ""
             if field_metaval:
@@ -214,7 +218,7 @@ class Curator:
                 br=True,
                 valid_dois_cache=valid_dois_cache,
             )
-            id_metaval = f"omid:{metaval}" if metaval else ""
+            id_metaval = _omid(metaval) if metaval else ""
             if id_metaval:
                 metavals.add(id_metaval)
             if idslist:
@@ -231,7 +235,7 @@ class Curator:
                 field_ids, br=br, valid_dois_cache=valid_dois_cache
             )
             if field_metaval:
-                field_metaval = f"omid:{field_metaval}"
+                field_metaval = _omid(field_metaval)
             else:
                 field_metaval = ""
             if field_metaval:
@@ -379,7 +383,7 @@ class Curator:
             idslist, metaval = self.clean_id_list(
                 idslist, br=True, valid_dois_cache=self.valid_dois_cache
             )
-            id_metaval = f"omid:{metaval}" if metaval else ""
+            id_metaval = _omid(metaval) if metaval else ""
             metaval_ids_list.append((id_metaval, idslist))
         fields_with_an_id = [
             (field, match.group(2).split())
@@ -392,7 +396,7 @@ class Curator:
                 field_ids, br=br, valid_dois_cache=self.valid_dois_cache
             )
             if field_metaval:
-                field_metaval = f"omid:{field_metaval}"
+                field_metaval = _omid(field_metaval)
             else:
                 field_metaval = ""
             metaval_ids_list.append((field_metaval, field_idslist))
@@ -841,7 +845,7 @@ class Curator:
             ras_list = list()
             for _, ra_id in sequence:
                 ra_name = self.entity_store.get_title(ra_id)
-                ra_ids_with_omid = self.entity_store.get_ids(ra_id) | {f"omid:{ra_id}"}
+                ra_ids_with_omid = self.entity_store.get_ids(ra_id) | {_omid(ra_id)}
                 ra = self.build_name_ids_string(ra_name, ra_ids_with_omid)
                 ras_list.append(ra)
             row[col_name] = "; ".join(ras_list)
@@ -1002,7 +1006,7 @@ class Curator:
                     row["page"] = page
             elif metaid in self.remeta:
                 row["page"] = self.remeta[metaid][1]
-            ids_with_omid = self.entity_store.get_ids(metaid) | {f"omid:{metaid}"}
+            ids_with_omid = self.entity_store.get_ids(metaid) | {_omid(metaid)}
             row["id"] = " ".join(ids_with_omid)
             row["title"] = self.entity_store.get_title(metaid)
             venue_metaid = None
@@ -1012,7 +1016,7 @@ class Curator:
                     venue_metaid = self.entity_store.find(venue)
                 else:
                     venue_metaid = venue
-                venue_ids_with_omid = self.entity_store.get_ids(venue_metaid) | {f"omid:{venue_metaid}"}
+                venue_ids_with_omid = self.entity_store.get_ids(venue_metaid) | {_omid(venue_metaid)}
                 row["venue"] = self.build_name_ids_string(
                     self.entity_store.get_title(venue_metaid), venue_ids_with_omid
                 )
@@ -1148,9 +1152,7 @@ class Curator:
         old_meta: str,
         temporary_name: str,
     ) -> None:
-        target_ids = self.entity_store.get_ids(metaval)
-        source_ids = self.entity_store.get_ids(old_meta)
-        for sid in source_ids:
+        for sid in self.entity_store.get_ids(old_meta):
             self.entity_store.add_id(metaval, sid)
         if not self.entity_store.get_title(metaval):
             title = self.entity_store.get_title(old_meta) or temporary_name
@@ -1465,7 +1467,7 @@ class Curator:
             for item in resp_agents:
                 for _, resp_agent in item.items():
                     author_name = resp_agent[0]
-                    ids = [f"omid:{resp_agent[2]}"]
+                    ids = [_omid(resp_agent[2])]
                     ids.extend([id[1] for id in resp_agent[1]])
                     author_ids = "[" + " ".join(ids) + "]"
                     full_resp_agent = author_name + " " + author_ids

@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import bisect
 import csv
 import multiprocessing
 import os
@@ -176,7 +177,6 @@ class MetaProcess:
                 data = get_csv_data(filepath)
                 self.timer.record_metric("input_records", len(data))
 
-                self.info_dir = os.path.join(self.info_dir, self.supplier_prefix)
                 min_rows_parallel = settings.get("min_rows_parallel", 1000) if settings else 1000
                 curator_obj = Curator(
                     data=data,
@@ -470,12 +470,12 @@ def run_meta_process(
                     console.print(f"\n[cyan][{idx}/{len(files_to_be_processed)}][/cyan] Processing {filename}...")
 
                 file_timer = ProcessTimer(enabled=enable_timing, verbose=enable_timing)
-                meta_process = MetaProcess(settings=settings, meta_config_path=meta_config_path, timer=file_timer)
+                meta_process_setup.timer = file_timer
 
-                result = meta_process.curate_and_create(
+                result = meta_process_setup.curate_and_create(
                     filename,
-                    meta_process.cache_path,
-                    meta_process.errors_path,
+                    meta_process_setup.cache_path,
+                    meta_process_setup.errors_path,
                     settings=settings,
                     meta_config_path=meta_config_path,
                     progress=progress if enable_timing else None,
@@ -533,6 +533,10 @@ def run_meta_process(
             console.print(f"[green][Timing] Report saved to {timing_output}[/green]")
 
 
+def _cache_sort_key(filename: str) -> int:
+    return int(filename.replace(".csv", ""))
+
+
 def task_done(task_output: tuple) -> None:
     message, cache_path, errors_path, filename = task_output
     if message["message"] == "skip":
@@ -544,17 +548,13 @@ def task_done(task_output: tuple) -> None:
         else:
             with open(cache_path, "r", encoding="utf-8") as aux_file:
                 cache_data = aux_file.read().splitlines()
+            try:
+                bisect.insort(cache_data, filename, key=_cache_sort_key)
+            except ValueError:
+                # Non-numeric filename (e.g. "data.csv"): append without ordering
                 cache_data.append(filename)
-                try:
-                    data_sorted = sorted(
-                        cache_data,
-                        key=lambda filename: int(filename.replace(".csv", "")),
-                        reverse=False,
-                    )
-                except ValueError:
-                    data_sorted = cache_data
             with open(cache_path, "w", encoding="utf-8") as aux_file:
-                aux_file.write("\n".join(data_sorted))
+                aux_file.write("\n".join(cache_data))
     else:
         with open(errors_path, "a", encoding="utf-8") as aux_file:
             aux_file.write(f'{filename}: {message["message"]}' + "\n")

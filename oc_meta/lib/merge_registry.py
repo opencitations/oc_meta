@@ -158,7 +158,7 @@ class EntityStore:
 
     def get_ids(self, entity_key: str) -> set[str]:
         """Get all identifiers for entity."""
-        return self._entity_ids.get(entity_key, set()).copy()
+        return self._entity_ids.get(entity_key, set())
 
     def get_title(self, entity_key: str) -> str:
         """Get title for entity."""

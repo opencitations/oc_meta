@@ -207,11 +207,13 @@ class Creator(object):
             return dict()
 
     def indexer_id(self, csv_index):
-        index = {schema: {} for schema in self.schemas}
+        index = {}
         for row in csv_index:
             if row_id := row["id"]:
                 schema, value = row_id.split(":", 1)
-                if schema in index:
+                if schema in self.schemas:
+                    if schema not in index:
+                        index[schema] = {}
                     index[schema][value] = row["meta"]
         return index
 
