@@ -948,32 +948,34 @@ class ResourceFinder:
             'issue': {},
             'volume': {}
         }
-
-        volumes: dict[str, str] = {}
         venue_uri = f'{self.base_iri}/{meta_id}'
 
-        for entity_uri in self._get_subjects(_P_TYPE, _T_JOURNAL_VOLUME):
-            parents = self._get_objects(entity_uri, _P_PART_OF)
-            if venue_uri in parents:
-                entity_id = entity_uri.replace(f'{self.base_iri}/', '')
-                seqs = self._get_objects(entity_uri, _P_SEQ_ID)
+        venue_children = self._get_subjects(_P_PART_OF, venue_uri)
+        volumes: dict[str, str] = {}
+
+        for child_uri in venue_children:
+            types = self._get_objects(child_uri, _P_TYPE)
+            child_id = child_uri.replace(f'{self.base_iri}/', '')
+            if _T_JOURNAL_VOLUME in types:
+                seqs = self._get_objects(child_uri, _P_SEQ_ID)
                 for seq in seqs:
-                    volumes[entity_id] = seq
-                    content['volume'][seq] = {'id': entity_id, 'issue': {}}
+                    volumes[child_uri] = seq
+                    content['volume'][seq] = {'id': child_id, 'issue': {}}
+            elif _T_JOURNAL_ISSUE in types:
+                seqs = self._get_objects(child_uri, _P_SEQ_ID)
+                seq = seqs[0] if seqs else None
+                if seq:
+                    content['issue'][seq] = {'id': child_id}
 
-        for entity_uri in self._get_subjects(_P_TYPE, _T_JOURNAL_ISSUE):
-            entity_id = entity_uri.replace(f'{self.base_iri}/', '')
-            seqs = self._get_objects(entity_uri, _P_SEQ_ID)
-            seq = seqs[0] if seqs else None
-            containers = self._get_objects(entity_uri, _P_PART_OF)
-            container = containers[0] if containers else None
-
-            if seq and container:
-                container_id = container.replace(f'{self.base_iri}/', '')
-                if container_id in volumes:
-                    volume_seq = volumes[container_id]
-                    content['volume'][volume_seq]['issue'][seq] = {'id': entity_id}
-                elif container == venue_uri:
-                    content['issue'][seq] = {'id': entity_id}
+        for volume_uri, volume_seq in volumes.items():
+            volume_children = self._get_subjects(_P_PART_OF, volume_uri)
+            for child_uri in volume_children:
+                types = self._get_objects(child_uri, _P_TYPE)
+                if _T_JOURNAL_ISSUE in types:
+                    child_id = child_uri.replace(f'{self.base_iri}/', '')
+                    seqs = self._get_objects(child_uri, _P_SEQ_ID)
+                    seq = seqs[0] if seqs else None
+                    if seq:
+                        content['volume'][volume_seq]['issue'][seq] = {'id': child_id}
 
         return content
