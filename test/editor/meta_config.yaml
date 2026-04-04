@@ -7,7 +7,6 @@ context_path: https://w3id.org/oc/corpus/context.json
 default_dir: _
 dir_split_number: 10000
 fuseki_full_text_search: false
-rdf_files_only: false
 graphdb_connector_name: ''
 input_csv_dir: test/editor/input
 items_per_file: 1000
@@ -15,6 +14,7 @@ output_rdf_dir: test/editor/output
 provenance_endpoints:
 - http://127.0.0.1:8806?access-token=qlever_test_token
 provenance_triplestore_url: http://127.0.0.1:8806?access-token=qlever_test_token
+rdf_files_only: false
 rdf_output_in_chunks: false
 redis_cache_db: 2
 redis_db: 5

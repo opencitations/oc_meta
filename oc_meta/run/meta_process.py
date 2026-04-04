@@ -405,6 +405,13 @@ def _save_incremental_report(all_reports: List[Dict[str, Any]], meta_config_path
         f.write(orjson.dumps(aggregate_report, option=orjson.OPT_INDENT_2))
 
 
+def _get_file_peak_memory(report: Dict[str, Any]) -> float:
+    """Get peak memory (MB) across all phases in a file report."""
+    phases = report["report"]["phases"]
+    peaks = [p["peak_memory_mb"] for p in phases if p["peak_memory_mb"]]
+    return max(peaks) if peaks else 0
+
+
 def _compute_aggregate_metrics(all_reports: List[Dict[str, Any]]) -> Dict[str, Any]:
     """Compute aggregate statistics across all file reports."""
     if not all_reports:
@@ -417,7 +424,10 @@ def _compute_aggregate_metrics(all_reports: List[Dict[str, Any]]) -> Dict[str, A
     durations = [r["report"]["metrics"].get("total_duration_seconds", 0) for r in all_reports]
     throughputs = [r["report"]["metrics"].get("throughput_records_per_sec", 0) for r in all_reports]
 
-    return {
+    file_peaks = [_get_file_peak_memory(r) for r in all_reports]
+    non_zero_peaks = [p for p in file_peaks if p]
+
+    result: Dict[str, Any] = {
         "total_files": len(all_reports),
         "total_duration_seconds": round(total_duration, 3),
         "total_records_processed": total_records,
@@ -426,8 +436,12 @@ def _compute_aggregate_metrics(all_reports: List[Dict[str, Any]]) -> Dict[str, A
         "average_throughput": round(sum(throughputs) / len(throughputs), 2) if throughputs else 0,
         "min_time": round(min(durations), 3) if durations else 0,
         "max_time": round(max(durations), 3) if durations else 0,
-        "overall_throughput": round(total_records / total_duration, 2) if total_duration > 0 else 0
+        "overall_throughput": round(total_records / total_duration, 2) if total_duration > 0 else 0,
     }
+    if non_zero_peaks:
+        result["peak_memory_mb"] = round(max(non_zero_peaks), 1)
+        result["average_peak_memory_mb"] = round(sum(non_zero_peaks) / len(non_zero_peaks), 1)
+    return result
 
 
 def _print_aggregate_summary(all_reports: List[Dict[str, Any]]) -> None:
@@ -444,6 +458,9 @@ def _print_aggregate_summary(all_reports: List[Dict[str, Any]]) -> None:
     console.print(f"Average Time/File: {aggregate['average_time_per_file']}s")
     console.print(f"Min/Max Time: {aggregate['min_time']}s / {aggregate['max_time']}s")
     console.print(f"Overall Throughput: {aggregate['overall_throughput']} rec/s")
+    if "peak_memory_mb" in aggregate:
+        console.print(f"Peak Memory (RSS): {aggregate['peak_memory_mb']} MB")
+        console.print(f"Avg Peak Memory:   {aggregate['average_peak_memory_mb']} MB")
     console.print(f"{'='*60}\n")
 
 

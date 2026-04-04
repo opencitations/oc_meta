@@ -12,10 +12,37 @@ This module provides reusable timing infrastructure for both production
 processing and benchmarking, with optional activation to avoid overhead.
 """
 
+import threading
 import time
 from typing import Any, Dict, List, Optional
 
 import psutil
+
+
+class _MemorySampler:
+    """Background thread that samples RSS to capture true peak memory."""
+
+    def __init__(self, process: psutil.Process, interval: float = 0.1):
+        self._process = process
+        self._interval = interval
+        self._stop = threading.Event()
+        self._peak: int = 0
+        self._thread = threading.Thread(target=self._run, daemon=True)
+
+    def start(self):
+        self._thread.start()
+
+    def stop(self) -> int:
+        self._stop.set()
+        self._thread.join()
+        return self._peak
+
+    def _run(self):
+        while not self._stop.is_set():
+            rss = self._process.memory_info().rss
+            if rss > self._peak:
+                self._peak = rss
+            self._stop.wait(self._interval)
 
 
 class BenchmarkTimer:
@@ -30,11 +57,14 @@ class BenchmarkTimer:
         self.start_memory: Optional[int] = None
         self.end_memory: Optional[int] = None
         self.peak_memory: Optional[int] = None
+        self._sampler: Optional[_MemorySampler] = None
 
     def __enter__(self):
         self.start_time = time.time()
         process = psutil.Process()
         self.start_memory = process.memory_info().rss
+        self._sampler = _MemorySampler(process)
+        self._sampler.start()
         if self.verbose:
             print(f"  [{self.name}] Starting...")
         return self
@@ -44,7 +74,8 @@ class BenchmarkTimer:
         self.duration = self.end_time - self.start_time
         process = psutil.Process()
         self.end_memory = process.memory_info().rss
-        self.peak_memory = max(self.start_memory, self.end_memory)
+        sampled_peak = self._sampler.stop()
+        self.peak_memory = max(self.start_memory, self.end_memory, sampled_peak)
         if self.verbose:
             print(f"  [{self.name}] Completed in {self.duration:.2f}s")
 
@@ -160,7 +191,13 @@ class ProcessTimer:
                 continue
             name = phase["name"]
             duration = phase["duration_seconds"]
-            print(f"    {name:25s} {duration:8.2f}s")
+            peak = phase["peak_memory_mb"]
+            if peak:
+                delta = phase["end_memory_mb"] - phase["start_memory_mb"]
+                sign = "+" if delta >= 0 else ""
+                print(f"    {name:30s} {duration:10.2f}s    {peak:10.1f} MB peak    {sign}{delta:.1f} MB")
+            else:
+                print(f"    {name:30s} {duration:10.2f}s")
 
     def print_file_summary(self, filename: str):
         """Print complete summary for a single file with metrics and phases."""
@@ -175,9 +212,19 @@ class ProcessTimer:
         entities = metrics.get("entities_created", 0)
         throughput = metrics.get("throughput_records_per_sec", 0)
 
+        total_phase = next(
+            (p for p in report["phases"] if p["name"] == "total_processing"), None
+        )
+        peak_mb = total_phase["peak_memory_mb"] if total_phase else 0
+        delta_mb = (total_phase["end_memory_mb"] - total_phase["start_memory_mb"]) if total_phase else 0
+
         print(f"  ✓ Completed in {total_time:.2f}s")
         self.print_phase_breakdown()
         print(f"\n  Metrics:")
         print(f"    Records processed:    {records}")
         print(f"    Entities created:     {entities}")
         print(f"    Throughput:           {throughput:.2f} rec/s")
+        if peak_mb:
+            sign = "+" if delta_mb >= 0 else ""
+            print(f"    Peak memory (RSS):    {peak_mb:.1f} MB")
+            print(f"    Memory growth:        {sign}{delta_mb:.1f} MB")

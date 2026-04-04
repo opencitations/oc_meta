@@ -23,6 +23,7 @@ CURATION_COLLECT_IDS_COLOR = '#FF8C00'
 CURATION_REST_COLOR = '#FFE066'
 RDF_CREATION_COLOR = '#C73E1D'
 STORAGE_COLOR = '#6A994E'
+MEMORY_COLOR = '#7B2D8E'
 
 CURATION_REST_PHASES = [
     "curation__clean_id",
@@ -300,6 +301,12 @@ def _get_curation_rest_from_report(report: Dict[str, Any]) -> float:
     return sum(_get_phase_duration_from_report(report, p) for p in CURATION_REST_PHASES)
 
 
+def _get_peak_memory_from_report(report: Dict[str, Any]) -> float:
+    """Get peak memory (MB) across all phases in a report."""
+    peaks = [p["peak_memory_mb"] for p in report.get("phases", []) if p["peak_memory_mb"]]
+    return max(peaks) if peaks else 0.0
+
+
 def plot_incremental_progress(all_reports: List[Dict[str, Any]], output_path: str):
     """Generate incremental chart showing meta_process progress with sub-phase breakdown."""
     if not all_reports:
@@ -312,13 +319,15 @@ def plot_incremental_progress(all_reports: List[Dict[str, Any]], output_path: st
     rdf_times = [_get_phase_duration_from_report(r["report"], "rdf_creation") for r in all_reports]
     storage_times = [_get_phase_duration_from_report(r["report"], "storage") for r in all_reports]
     throughputs = [r["report"]["metrics"].get("throughput_records_per_sec", 0) for r in all_reports]
+    peak_memories = [_get_peak_memory_from_report(r["report"]) for r in all_reports]
 
     total_times = [c + cr + r + s for c, cr, r, s in zip(collect_ids_times, curation_rest_times, rdf_times, storage_times)]
 
     mean_duration = sum(total_times) / len(total_times) if total_times else 0
     mean_throughput = sum(throughputs) / len(throughputs) if throughputs else 0
+    mean_memory = sum(peak_memories) / len(peak_memories) if peak_memories else 0
 
-    _, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 12))
+    _, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(14, 16))
 
     x = np.arange(len(filenames))
     width = 0.6
@@ -343,13 +352,22 @@ def plot_incremental_progress(all_reports: List[Dict[str, Any]], output_path: st
 
     ax2.plot(x, throughputs, marker='o', linewidth=2, markersize=6, color='#2E86AB')
     ax2.axhline(y=mean_throughput, color='#A23B72', linestyle='--', linewidth=2, label=f'Mean ({mean_throughput:.1f} rec/s)')
-    ax2.set_xlabel('File index', fontsize=12, fontweight='bold')
     ax2.set_ylabel('Throughput (records/sec)', fontsize=12, fontweight='bold')
     ax2.set_title('Processing throughput', fontsize=14, fontweight='bold')
     ax2.grid(True, alpha=0.3)
     ax2.set_xticks(x)
     ax2.set_xticklabels(range(1, len(filenames) + 1), fontsize=8)
     ax2.legend(loc='upper right')
+
+    ax3.plot(x, peak_memories, marker='s', linewidth=2, markersize=6, color=MEMORY_COLOR)
+    ax3.axhline(y=mean_memory, color='#A23B72', linestyle='--', linewidth=2, label=f'Mean ({mean_memory:.1f} MB)')
+    ax3.set_xlabel('File index', fontsize=12, fontweight='bold')
+    ax3.set_ylabel('Peak memory RSS (MB)', fontsize=12, fontweight='bold')
+    ax3.set_title('Peak memory consumption', fontsize=14, fontweight='bold')
+    ax3.grid(True, alpha=0.3)
+    ax3.set_xticks(x)
+    ax3.set_xticklabels(range(1, len(filenames) + 1), fontsize=8)
+    ax3.legend(loc='upper right')
 
     plt.tight_layout()
     plt.savefig(output_path, dpi=100, bbox_inches='tight')
