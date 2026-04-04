@@ -27,8 +27,7 @@ STORAGE_COLOR = '#6A994E'
 CURATION_REST_PHASES = [
     "curation__clean_id",
     "curation__merge_duplicates",
-    "curation__clean_vvi",
-    "curation__clean_ra",
+    "curation__clean_vvi_ra",
     "curation__finalize"
 ]
 

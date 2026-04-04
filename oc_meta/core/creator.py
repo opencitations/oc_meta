@@ -642,8 +642,8 @@ class Creator(object):
 
         if ra:
             for ra_id_schema in self.ra_id_schemas:
-                if identifier.startswith(ra_id_schema):
-                    identifier = identifier.replace(f"{ra_id_schema}:", "")
+                if identifier.startswith(f"{ra_id_schema}:"):
+                    identifier = identifier.split(":", 1)[1]
                     res = self.ra_index[ra_id_schema][identifier]
                     url = URIRef(self.url + res)
                     preexisting_entity = str(url) in self.finder._spo
@@ -661,8 +661,8 @@ class Creator(object):
                     getattr(new_id, f"create_{ra_id_schema}")(identifier)
         else:
             for br_id_schema in self.br_id_schemas:
-                if identifier.startswith(br_id_schema):
-                    identifier = identifier.replace(f"{br_id_schema}:", "")
+                if identifier.startswith(f"{br_id_schema}:"):
+                    identifier = identifier.split(":", 1)[1]
                     res = self.br_index[br_id_schema][identifier]
                     url = URIRef(self.url + res)
                     preexisting_entity = str(url) in self.finder._spo
