@@ -64,7 +64,7 @@ class MetaEditor:
         self.dir_split = settings["dir_split_number"]
         self.n_file_item = settings["items_per_file"]
         self.zip_output_rdf = settings["zip_output_rdf"]
-        self.generate_rdf_files = settings.get("generate_rdf_files", True)
+        self.rdf_files_only = settings.get("rdf_files_only", False)
         self.reader = Reader()
         self.save_queries = save_queries
         self.update_queries = []
@@ -348,16 +348,16 @@ class MetaEditor:
             zip_output=self.zip_output_rdf,
         )
         
-        if self.generate_rdf_files:
-            graph_storer.store_all(self.base_dir, self.base_iri)
-            prov_storer.store_all(self.base_dir, self.base_iri)
+        graph_storer.store_all(self.base_dir, self.base_iri)
+        prov_storer.store_all(self.base_dir, self.base_iri)
 
-        graph_storer.upload_all(
-            self.endpoint, base_dir=self.data_hotfix_dir, save_queries=self.save_queries
-        )
-        prov_storer.upload_all(
-            self.provenance_endpoint, base_dir=self.prov_hotfix_dir, save_queries=self.save_queries
-        )
+        if not self.rdf_files_only:
+            graph_storer.upload_all(
+                self.endpoint, base_dir=self.data_hotfix_dir, save_queries=self.save_queries
+            )
+            prov_storer.upload_all(
+                self.provenance_endpoint, base_dir=self.prov_hotfix_dir, save_queries=self.save_queries
+            )
         g_set.commit_changes()
 
     def __get_supplier_prefix(self, uri: str) -> str:

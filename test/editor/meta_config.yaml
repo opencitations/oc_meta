@@ -7,7 +7,7 @@ context_path: https://w3id.org/oc/corpus/context.json
 default_dir: _
 dir_split_number: 10000
 fuseki_full_text_search: false
-generate_rdf_files: true
+rdf_files_only: false
 graphdb_connector_name: ''
 input_csv_dir: test/editor/input
 items_per_file: 1000

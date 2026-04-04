@@ -162,7 +162,7 @@ def process_csv_file(args: tuple, progress=None, task_id=None):
     Process a single CSV file and check its identifiers
     Returns statistics about processed rows and found/missing OMIDs
     """
-    csv_file, endpoint_url, prov_endpoint_url, rdf_dir, dir_split_number, items_per_file, zip_output_rdf, generate_rdf_files = args
+    csv_file, endpoint_url, prov_endpoint_url, rdf_dir, dir_split_number, items_per_file, zip_output_rdf = args
 
     def update_phase(phase: str):
         if progress and task_id is not None:
@@ -264,13 +264,12 @@ def process_csv_file(args: tuple, progress=None, task_id=None):
 
                 # Raggruppa OMID per file
                 for omid in omids:
-                    if omid not in omid_results_cache:  # Skip se già controllato
-                        if generate_rdf_files:
-                            zip_path = find_file(rdf_dir, dir_split_number, items_per_file, omid, zip_output_rdf)
-                            if zip_path and os.path.exists(zip_path):
-                                if zip_path not in omids_by_file:
-                                    omids_by_file[zip_path] = set()
-                                omids_by_file[zip_path].add(omid)
+                    if omid not in omid_results_cache:
+                        zip_path = find_file(rdf_dir, dir_split_number, items_per_file, omid, zip_output_rdf)
+                        if zip_path and os.path.exists(zip_path):
+                            if zip_path not in omids_by_file:
+                                omids_by_file[zip_path] = set()
+                            omids_by_file[zip_path].add(omid)
             else:
                 stats['identifiers_without_omids'] += 1
 
@@ -368,7 +367,7 @@ def write_header(f):
     f.flush()
 
 
-def write_file_report(f, csv_file: str, stats: dict, generate_rdf_files: bool):
+def write_file_report(f, csv_file: str, stats: dict):
     """Write report section for a single CSV file, including any problems found"""
     filename = os.path.basename(csv_file)
     f.write(f"--- File: {filename} ---\n")
@@ -381,9 +380,8 @@ def write_file_report(f, csv_file: str, stats: dict, generate_rdf_files: bool):
     if non_omid > 0:
         f.write(f"With OMID: {stats['identifiers_with_omids']}, Without OMID: {stats['identifiers_without_omids']}\n")
 
-    if generate_rdf_files:
-        f.write(f"Data graphs - Found: {stats['data_graphs_found']}, Missing: {stats['data_graphs_missing']}\n")
-        f.write(f"Prov graphs - Found: {stats['prov_graphs_found']}, Missing: {stats['prov_graphs_missing']}\n")
+    f.write(f"Data graphs - Found: {stats['data_graphs_found']}, Missing: {stats['data_graphs_missing']}\n")
+    f.write(f"Prov graphs - Found: {stats['prov_graphs_found']}, Missing: {stats['prov_graphs_missing']}\n")
 
     f.write(f"Provenance in DB - With: {stats['omids_with_provenance']}, Without: {stats['omids_without_provenance']}\n")
 
@@ -431,7 +429,6 @@ def write_aggregated_summary(
     total_omids_with_provenance: int,
     total_omids_without_provenance: int,
     problematic_identifiers: dict,
-    generate_rdf_files: bool
 ):
     """Write aggregated summary at the end of the report"""
     f.write("=" * 80 + "\n")
@@ -450,11 +447,8 @@ def write_aggregated_summary(
     else:
         f.write("No non-omid identifiers found to check for OMID associations.\n")
 
-    if generate_rdf_files:
-        f.write(f"\nData Graphs - Found: {total_data_graphs_found}, Missing: {total_data_graphs_missing}\n")
-        f.write(f"Provenance Graphs - Found: {total_prov_graphs_found}, Missing: {total_prov_graphs_missing}\n")
-    else:
-        f.write("\nRDF file generation is disabled. File checks were skipped.\n")
+    f.write(f"\nData Graphs - Found: {total_data_graphs_found}, Missing: {total_data_graphs_missing}\n")
+    f.write(f"Provenance Graphs - Found: {total_prov_graphs_found}, Missing: {total_prov_graphs_missing}\n")
 
     total_omids_checked = total_omids_with_provenance + total_omids_without_provenance
     if total_omids_checked > 0:
@@ -495,9 +489,7 @@ def main():
     output_rdf_dir = os.path.join(base_output_dir, 'rdf')
     endpoint_url = config['triplestore_url']
     prov_endpoint_url = config['provenance_triplestore_url']
-    generate_rdf_files = config.get('generate_rdf_files', True)
-    
-    if generate_rdf_files and not os.path.exists(output_rdf_dir):
+    if not os.path.exists(output_rdf_dir):
         print(f"RDF directory not found at {output_rdf_dir}")
         return
     
@@ -532,7 +524,7 @@ def main():
     with open(args.output, 'w', encoding='utf-8') as output_file:
         write_header(output_file)
 
-        process_args = [(f, endpoint_url, prov_endpoint_url, output_rdf_dir, config['dir_split_number'], config['items_per_file'], config['zip_output_rdf'], generate_rdf_files) for f in csv_files]
+        process_args = [(f, endpoint_url, prov_endpoint_url, output_rdf_dir, config['dir_split_number'], config['items_per_file'], config['zip_output_rdf']) for f in csv_files]
 
         with Progress(
             TextColumn("[progress.description]{task.description}"),
@@ -550,7 +542,7 @@ def main():
                 result = process_csv_file(proc_args, progress=progress, task_id=task)
 
                 # Write file report immediately
-                write_file_report(output_file, csv_files[idx], result, generate_rdf_files)
+                write_file_report(output_file, csv_files[idx], result)
 
                 # Accumulate for aggregation
                 total_rows += result['total_rows']
@@ -621,7 +613,6 @@ def main():
             total_omids_with_provenance=total_omids_with_provenance,
             total_omids_without_provenance=total_omids_without_provenance,
             problematic_identifiers=problematic_identifiers,
-            generate_rdf_files=generate_rdf_files
         )
 
     print(f"Results written to: {args.output}")

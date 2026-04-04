@@ -42,7 +42,7 @@ For each identifier, the script queries the triplestore to check:
 
 ### 3. Data graph verification
 
-If `generate_rdf_files: true` in your config:
+Since RDF files are always generated:
 
 - Verifies that RDF files exist for each entity
 - Reports missing data graphs

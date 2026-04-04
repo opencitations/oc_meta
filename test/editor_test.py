@@ -41,7 +41,7 @@ META_CONFIG = os.path.join(BASE, "meta_config.yaml")
 
 class TestEditor:
     counter_handler: RedisCounterHandler
-    original_generate_rdf_files: bool | None
+    original_rdf_files_only: bool | None
     temp_dir: str
     cache_file: str
     failed_file: str
@@ -53,7 +53,7 @@ class TestEditor:
     def setup_class(self, request: pytest.FixtureRequest) -> None:
         assert request.cls is not None
         request.cls.counter_handler = get_counter_handler()
-        request.cls.original_generate_rdf_files = None
+        request.cls.original_rdf_files_only = None
 
     @pytest.fixture(autouse=True)
     def setup_method(self, request):
@@ -105,13 +105,13 @@ class TestEditor:
             rmtree(self.temp_dir)
         reset_redis_counters()
 
-        if self.original_generate_rdf_files is not None:
+        if self.original_rdf_files_only is not None:
             with open(META_CONFIG, encoding="utf-8") as file:
                 settings = yaml.full_load(file)
-            settings["generate_rdf_files"] = self.original_generate_rdf_files
+            settings["rdf_files_only"] = self.original_rdf_files_only
             with open(META_CONFIG, "w", encoding="utf-8") as file:
                 yaml.dump(settings, file)
-            self.original_generate_rdf_files = None
+            self.original_rdf_files_only = None
 
     def test_update_property(self):
         editor = MetaEditor(META_CONFIG, "https://orcid.org/0000-0002-8420-0696")
@@ -797,13 +797,13 @@ class TestEditor:
                                 == "https://w3id.org/oc/meta/br/0605/prov/se/2"
                             )
 
-    def test_no_rdf_files_generation(self):
-        """Test that when generate_rdf_files is False, data is still updated in triplestore but not in files"""
+    def test_rdf_files_only(self):
+        """Test that when rdf_files_only is True, RDF files are written but triplestore is not updated"""
         with open(META_CONFIG, encoding="utf-8") as file:
             settings = yaml.full_load(file)
-        self.original_generate_rdf_files = settings.get("generate_rdf_files", True)
+        self.original_rdf_files_only = settings.get("rdf_files_only", False)
 
-        settings["generate_rdf_files"] = False
+        settings["rdf_files_only"] = True
         with open(META_CONFIG, "w", encoding="utf-8") as file:
             yaml.dump(settings, file)
 
@@ -811,7 +811,7 @@ class TestEditor:
 
         editor = MetaEditor(META_CONFIG, "https://orcid.org/0000-0002-8420-0696")
 
-        assert not editor.generate_rdf_files, "generate_rdf_files should be False"
+        assert editor.rdf_files_only
 
         g_set = GraphSet(base_iri="https://w3id.org/oc/meta/")
         br = g_set.add_br(res=URIRef("https://w3id.org/oc/meta/br/0603"), resp_agent="https://orcid.org/0000-0002-8420-0696")
@@ -825,54 +825,35 @@ class TestEditor:
         )
 
         with SPARQLClient(SERVER, timeout=60) as client:
-            debug_result = client.query("""
-            SELECT ?p ?o
+            result = client.query("""
+            SELECT ?o
             WHERE {
                 GRAPH ?g {
-                    <https://w3id.org/oc/meta/br/0603> ?p ?o .
+                    <https://w3id.org/oc/meta/br/0603> <http://purl.org/dc/terms/title> ?o .
                 }
             }
             """)
 
             title_found = False
-            if debug_result["results"]["bindings"]:
-                for binding in debug_result["results"]["bindings"]:
-                    predicate = binding.get('p', {}).get('value')
-                    obj = binding.get('o', {}).get('value')
-
-                    # Check if this is our title property with the expected value
-                    if predicate == "http://purl.org/dc/terms/title" and obj == "New Test Title":
-                        title_found = True
-            else:
-                print("No properties found for BR/0603")
-
-            assert title_found, "Title update not found in triplestore"
-
-        with SPARQLClient(PROV_SERVER, timeout=60) as client:
-            prov_result = client.query("""
-            ASK {
-                ?s <http://www.w3.org/ns/prov#specializationOf> <https://w3id.org/oc/meta/br/0603> .
-            }
-            """)
-            assert prov_result["boolean"], "Provenance for BR/0603 not found in triplestore"
+            for binding in result["results"]["bindings"]:
+                if binding["o"]["value"] == "New Test Title":
+                    title_found = True
+            assert not title_found, "Triplestore should not be updated when rdf_files_only is True"
 
         target_file = os.path.join(OUTPUT, "rdf", "br", "060", "10000", "1000.json")
-        if os.path.exists(target_file):
-            with open(target_file, "r", encoding="utf-8") as file:
-                try:
-                    data = orjson.loads(file.read())
-                    contains_update = False
-                    for graph in data:
-                        for entity in graph.get("@graph", []):
-                            if entity.get("@id") == "https://w3id.org/oc/meta/br/0603":
-                                titles = entity.get("http://purl.org/dc/terms/title", [])
-                                for title in titles:
-                                    if title.get("@value") == "New Test Title":
-                                        contains_update = True
-                                        break
-                    assert not contains_update, "RDF file should not contain the update"
-                except orjson.JSONDecodeError:
-                    pass
+        assert os.path.exists(target_file), "RDF file should be written when rdf_files_only is True"
+        with open(target_file, "r", encoding="utf-8") as file:
+            data = orjson.loads(file.read())
+            contains_update = False
+            for graph in data:
+                for entity in graph.get("@graph", []):
+                    if entity.get("@id") == "https://w3id.org/oc/meta/br/0603":
+                        titles = entity.get("http://purl.org/dc/terms/title", [])
+                        for title in titles:
+                            if title.get("@value") == "New Test Title":
+                                contains_update = True
+                                break
+            assert contains_update, "RDF file should contain the update"
 
     def test_merge_caches_entities(self):
         """Verifica che le entità vengano correttamente cachate durante merge successivi"""

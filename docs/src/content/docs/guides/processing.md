@@ -62,7 +62,7 @@ After entity creation, [**ProvSet**](https://github.com/opencitations/oc_ocdm/bl
 
 Meta runs four parallel processes using `multiprocessing`:
 
-1. **Data RDF storage**: Writes data entities to JSON-LD files (if `generate_rdf_files: true`)
+1. **Data RDF storage**: Writes data entities to JSON-LD files
 2. **Provenance RDF storage**: Writes provenance to JSON-LD files
 3. **Data SPARQL generation**: Generates SPARQL UPDATE queries for data triplestore
 4. **Provenance SPARQL generation**: Generates SPARQL UPDATE queries for provenance triplestore
@@ -107,7 +107,7 @@ If a file fails, Meta logs the error and continues with the next file. At the en
 
 ## Output files
 
-When `generate_rdf_files: true`:
+RDF files are always generated. When `rdf_files_only: false` (default), SPARQL queries are also produced:
 
 ```
 output/
