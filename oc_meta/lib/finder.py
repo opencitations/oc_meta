@@ -20,6 +20,7 @@ from oc_ocdm.support import get_resource_number
 from rdflib import RDF, XSD, Graph, Literal, URIRef
 from sparqlite import SPARQLClient
 from time_agnostic_library.agnostic_entity import AgnosticEntity
+from rich.console import Console
 
 _P_HAS_LITERAL_VALUE = str(GraphEntity.iri_has_literal_value)
 _P_USES_ID_SCHEME = str(GraphEntity.iri_uses_identifier_scheme)
@@ -582,14 +583,19 @@ class ResourceFinder:
                     "  [dim]Resolving VVI[/dim]", total=len(vvis)
                 )
 
+        max_depth_reached = 0
+
         def process_batch_parallel(subjects, cur_depth, visited_subjects):
-            """Process batches of subjects in parallel up to the specified depth."""
+            nonlocal max_depth_reached
             if not subjects or (max_depth and cur_depth > max_depth):
                 return
 
             new_subjects = subjects - visited_subjects
             if not new_subjects:
                 return
+
+            if cur_depth > max_depth_reached:
+                max_depth_reached = cur_depth
 
             visited_subjects.update(new_subjects)
 
@@ -746,11 +752,63 @@ class ResourceFinder:
 
             return subjects, id_to_subjects
 
+        def _build_values_queries(issue_vol_tuples, issue_no_vol_tuples, vol_only_tuples):
+            queries = []
+
+            for i in range(0, len(issue_vol_tuples), BATCH_SIZE):
+                chunk = issue_vol_tuples[i:i + BATCH_SIZE]
+                values_block = ' '.join(
+                    f'(<{venue}> "{vol_seq}"^^<{XSD.string}> "{issue_seq}"^^<{XSD.string}>)'
+                    for venue, vol_seq, issue_seq in chunk
+                )
+                queries.append(f'''
+                    SELECT ?s WHERE {{
+                        VALUES (?venueUri ?volSeq ?issSeq) {{ {values_block} }}
+                        ?volume a <{GraphEntity.iri_journal_volume}> ;
+                            <{GraphEntity.iri_part_of}> ?venueUri ;
+                            <{GraphEntity.iri_has_sequence_identifier}> ?volSeq .
+                        ?s a <{GraphEntity.iri_journal_issue}> ;
+                            <{GraphEntity.iri_part_of}> ?volume ;
+                            <{GraphEntity.iri_has_sequence_identifier}> ?issSeq .
+                    }}
+                ''')
+
+            for i in range(0, len(issue_no_vol_tuples), BATCH_SIZE):
+                chunk = issue_no_vol_tuples[i:i + BATCH_SIZE]
+                values_block = ' '.join(
+                    f'(<{venue}> "{issue_seq}"^^<{XSD.string}>)'
+                    for venue, issue_seq in chunk
+                )
+                queries.append(f'''
+                    SELECT ?s WHERE {{
+                        VALUES (?venueUri ?issSeq) {{ {values_block} }}
+                        ?s a <{GraphEntity.iri_journal_issue}> ;
+                            <{GraphEntity.iri_part_of}> ?venueUri ;
+                            <{GraphEntity.iri_has_sequence_identifier}> ?issSeq .
+                    }}
+                ''')
+
+            for i in range(0, len(vol_only_tuples), BATCH_SIZE):
+                chunk = vol_only_tuples[i:i + BATCH_SIZE]
+                values_block = ' '.join(
+                    f'(<{venue}> "{vol_seq}"^^<{XSD.string}>)'
+                    for venue, vol_seq in chunk
+                )
+                queries.append(f'''
+                    SELECT ?s WHERE {{
+                        VALUES (?venueUri ?volSeq) {{ {values_block} }}
+                        ?s a <{GraphEntity.iri_journal_volume}> ;
+                            <{GraphEntity.iri_part_of}> ?venueUri ;
+                            <{GraphEntity.iri_has_sequence_identifier}> ?volSeq .
+                    }}
+                ''')
+
+            return queries
+
         def get_initial_subjects_from_vvis(vvis, progress_task=None):
-            """Convert vvis to a set of subjects based on batch queries executed in parallel."""
+            """Convert vvis to a set of subjects based on batched VALUES queries."""
             subjects = set()
             ts_url = self.ts_url
-            vvi_queries = []
             venue_uris_to_add = set()
             vvis_list = list(vvis)
             total_vvis = len(vvis_list)
@@ -767,11 +825,13 @@ class ResourceFinder:
                 venue_id_subjects, venue_id_to_uris = get_initial_subjects_from_identifiers(all_venue_ids)
                 subjects.update(venue_id_subjects)
 
-            # Second pass: prepare VVI queries
-            vvi_to_query_count = {}
-            for idx, (volume, issue, venue_metaid, venue_ids_tuple) in enumerate(vvis_list):
+            # Second pass: collect tuples grouped by query pattern
+            issue_vol_tuples = []
+            issue_no_vol_tuples = []
+            vol_only_tuples = []
+
+            for volume, issue, venue_metaid, venue_ids_tuple in vvis_list:
                 venues_to_search = set()
-                query_count = 0
 
                 if venue_metaid:
                     venues_to_search.add(venue_metaid)
@@ -785,60 +845,32 @@ class ResourceFinder:
 
                 for venue_metaid_to_search in venues_to_search:
                     venue_uri = f"{self.base_iri}/{venue_metaid_to_search.replace('omid:', '')}"
-                    sequence_value = issue if issue else volume
-                    if not sequence_value:
+                    if not (issue or volume):
                         continue
-                    escaped_sequence = sequence_value.replace('\\', '\\\\').replace('"', '\\"')
+                    escaped_issue = issue.replace('\\', '\\\\').replace('"', '\\"') if issue else None
+                    escaped_volume = volume.replace('\\', '\\\\').replace('"', '\\"') if volume else None
 
                     if issue:
                         if volume:
-                            escaped_volume = volume.replace('\\', '\\\\').replace('"', '\\"')
-                            query = f'''
-                                SELECT ?s WHERE {{
-                                    ?volume a <{GraphEntity.iri_journal_volume}> ;
-                                        <{GraphEntity.iri_part_of}> <{venue_uri}> ;
-                                        <{GraphEntity.iri_has_sequence_identifier}> "{escaped_volume}"^^<{XSD.string}> .
-                                    ?s a <{GraphEntity.iri_journal_issue}> ;
-                                        <{GraphEntity.iri_part_of}> ?volume ;
-                                        <{GraphEntity.iri_has_sequence_identifier}> "{escaped_sequence}"^^<{XSD.string}> .
-                                }}
-                            '''
+                            issue_vol_tuples.append((venue_uri, escaped_volume, escaped_issue))
                         else:
-                            query = f'''
-                                SELECT ?s WHERE {{
-                                    ?s a <{GraphEntity.iri_journal_issue}> ;
-                                        <{GraphEntity.iri_part_of}> <{venue_uri}> ;
-                                        <{GraphEntity.iri_has_sequence_identifier}> "{escaped_sequence}"^^<{XSD.string}> .
-                                }}
-                            '''
+                            issue_no_vol_tuples.append((venue_uri, escaped_issue))
                     else:
-                        if volume:
-                            query = f'''
-                                SELECT ?s WHERE {{
-                                    ?s a <{GraphEntity.iri_journal_volume}> ;
-                                        <{GraphEntity.iri_part_of}> <{venue_uri}> ;
-                                        <{GraphEntity.iri_has_sequence_identifier}> "{escaped_sequence}"^^<{XSD.string}> .
-                                }}
-                            '''
-                        else:
-                            continue
+                        vol_only_tuples.append((venue_uri, escaped_volume))
 
-                    vvi_queries.append(query)
                     venue_uris_to_add.add(venue_uri)
-                    query_count += 1
 
-                vvi_to_query_count[idx] = query_count
+            vvi_queries = _build_values_queries(issue_vol_tuples, issue_no_vol_tuples, vol_only_tuples)
 
-            # Execute VVI queries in parallel
+            # Execute batched VVI queries in parallel
             if len(vvi_queries) > 1 and MAX_WORKERS > 1:
-                # Create smaller groups for more frequent progress updates
-                QUERIES_PER_GROUP = 100
                 grouped_queries = []
                 grouped_vvi_counts = []
-                for i in range(0, len(vvi_queries), QUERIES_PER_GROUP):
-                    group_size = min(QUERIES_PER_GROUP, len(vvi_queries) - i)
-                    grouped_queries.append((ts_url, vvi_queries[i:i + QUERIES_PER_GROUP]))
-                    vvi_count = int(total_vvis * group_size / len(vvi_queries)) if vvi_queries else 0
+                queries_per_group = max(1, len(vvi_queries) // MAX_WORKERS)
+                for i in range(0, len(vvi_queries), queries_per_group):
+                    group = vvi_queries[i:i + queries_per_group]
+                    grouped_queries.append((ts_url, group))
+                    vvi_count = int(total_vvis * len(group) / len(vvi_queries))
                     grouped_vvi_counts.append(max(1, vvi_count))
                 with ProcessPoolExecutor(
                     max_workers=MAX_WORKERS,
@@ -887,6 +919,10 @@ class ResourceFinder:
 
         visited_subjects = set()
         process_batch_parallel(initial_subjects, 0, visited_subjects)
+
+        console = Console()
+        style = "bold red" if max_depth_reached >= max_depth else "bold green"
+        console.print(f"  Max traversal depth reached: {max_depth_reached}/{max_depth}", style=style)
 
     def get_subgraph(self, res) -> Graph | None:
         res_str = str(res)
