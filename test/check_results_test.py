@@ -5,11 +5,17 @@
 #
 # SPDX-License-Identifier: ISC
 
+import csv
+import json
+import os
+import zipfile
 from unittest.mock import MagicMock, patch
 
 import pytest
+import yaml
 
 from oc_meta.run.meta.check_results import (
+    FileStats,
     check_omids_existence,
     check_provenance_existence,
     find_file,
@@ -330,3 +336,202 @@ class TestCheckProvenanceExistence:
         assert mock_client.ask.call_count == 5
         assert len(result) == 5
         assert all(not v for v in result.values())
+
+
+class TestFileStats:
+
+    def test_default_values(self):
+        stats = FileStats(file="test.csv")
+        assert stats.file == "test.csv"
+        assert stats.total_rows == 0
+        assert stats.identifiers_details == []
+        assert stats.processed_omids == {}
+
+    def test_increment(self):
+        stats = FileStats(file="test.csv")
+        stats.total_rows += 5
+        stats.identifiers_with_omids += 3
+        assert stats.total_rows == 5
+        assert stats.identifiers_with_omids == 3
+
+
+class TestMainJsonOutput:
+
+    def _create_csv(self, dir_path: str, filename: str, rows: list[dict]) -> str:
+        csv_path = os.path.join(dir_path, filename)
+        fieldnames = ['id', 'title', 'author', 'pub_date', 'venue', 'volume', 'issue', 'page', 'type', 'publisher', 'editor']
+        with open(csv_path, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            for row in rows:
+                full_row = {k: '' for k in fieldnames}
+                full_row.update(row)
+                writer.writerow(full_row)
+        return csv_path
+
+    def _create_rdf_zip(self, rdf_dir: str, entity_type: str, prefix: str, dir_split: int, file_split: int, content: str):
+        target_dir = os.path.join(rdf_dir, entity_type, prefix, str(dir_split))
+        os.makedirs(target_dir, exist_ok=True)
+        zip_path = os.path.join(target_dir, f"{file_split}.zip")
+        with zipfile.ZipFile(zip_path, 'w') as z:
+            z.writestr(f"{file_split}.json", content)
+        return zip_path
+
+    @patch('oc_meta.run.meta.check_results.check_provenance_existence')
+    @patch('oc_meta.run.meta.check_results.check_omids_existence')
+    def test_pass_status(self, mock_check_omids, mock_check_prov, tmp_path):
+        input_dir = tmp_path / "input"
+        input_dir.mkdir()
+        rdf_dir = tmp_path / "output" / "rdf"
+        rdf_dir.mkdir(parents=True)
+
+        self._create_csv(str(input_dir), "test.csv", [
+            {"id": "doi:10.1234/test", "title": "Test"}
+        ])
+
+        omid_uri = "https://w3id.org/oc/meta/id/0601"
+        mock_check_omids.return_value = {"doi:10.1234/test": {omid_uri}}
+        mock_check_prov.return_value = {omid_uri: True}
+
+        zip_path = self._create_rdf_zip(str(rdf_dir), "id", "060", 10000, 1000, f'{{"@id": "{omid_uri}"}}')
+
+        prov_dir = os.path.join(os.path.dirname(zip_path), "1000", "prov")
+        os.makedirs(prov_dir, exist_ok=True)
+        with zipfile.ZipFile(os.path.join(prov_dir, "se.zip"), 'w') as z:
+            z.writestr("se.json", f'{{"@id": "{omid_uri}/prov/se/1"}}')
+
+        config_path = tmp_path / "config.yaml"
+        config_path.write_text(yaml.dump({
+            "input_csv_dir": str(input_dir),
+            "output_rdf_dir": str(tmp_path / "output"),
+            "triplestore_url": "http://localhost:9999/sparql",
+            "provenance_triplestore_url": "http://localhost:9998/sparql",
+            "dir_split_number": 10000,
+            "items_per_file": 1000,
+            "zip_output_rdf": True,
+        }))
+
+        output_path = tmp_path / "report.json"
+
+        with patch('sys.argv', ['check_results', str(config_path), str(output_path)]):
+            from oc_meta.run.meta.check_results import main
+            main()
+
+        with open(output_path, 'r') as f:
+            report = json.load(f)
+
+        assert report["status"] == "PASS"
+        assert report["total_files_processed"] == 1
+        assert report["errors"] == []
+        assert len(report["files"]) == 1
+        assert report["files"][0]["file"] == "test.csv"
+        assert report["files"][0]["total_rows"] == 1
+        assert "identifiers_details" not in report["files"][0]
+        assert "processed_omids" not in report["files"][0]
+
+    @patch('oc_meta.run.meta.check_results.check_provenance_existence')
+    @patch('oc_meta.run.meta.check_results.check_omids_existence')
+    def test_fail_status_missing_omid(self, mock_check_omids, mock_check_prov, tmp_path):
+        input_dir = tmp_path / "input"
+        input_dir.mkdir()
+        rdf_dir = tmp_path / "output" / "rdf"
+        rdf_dir.mkdir(parents=True)
+
+        self._create_csv(str(input_dir), "test.csv", [
+            {"id": "doi:10.1234/missing", "title": "Missing"}
+        ])
+
+        mock_check_omids.return_value = {"doi:10.1234/missing": set()}
+        mock_check_prov.return_value = {}
+
+        config_path = tmp_path / "config.yaml"
+        config_path.write_text(yaml.dump({
+            "input_csv_dir": str(input_dir),
+            "output_rdf_dir": str(tmp_path / "output"),
+            "triplestore_url": "http://localhost:9999/sparql",
+            "provenance_triplestore_url": "http://localhost:9998/sparql",
+            "dir_split_number": 10000,
+            "items_per_file": 1000,
+            "zip_output_rdf": True,
+        }))
+
+        output_path = tmp_path / "report.json"
+
+        with patch('sys.argv', ['check_results', str(config_path), str(output_path)]):
+            from oc_meta.run.meta.check_results import main
+            with pytest.raises(SystemExit) as exc_info:
+                main()
+            assert exc_info.value.code == 1
+
+        with open(output_path, 'r') as f:
+            report = json.load(f)
+
+        assert report["status"] == "FAIL"
+        assert len(report["errors"]) == 1
+        assert report["errors"][0]["type"] == "missing_omid"
+        assert report["errors"][0]["schema"] == "doi"
+        assert report["errors"][0]["value"] == "10.1234/missing"
+        assert report["errors"][0]["row"] == 1
+        assert report["errors"][0]["column"] == "id"
+
+    @patch('oc_meta.run.meta.check_results.check_provenance_existence')
+    @patch('oc_meta.run.meta.check_results.check_omids_existence')
+    def test_warning_multiple_omids(self, mock_check_omids, mock_check_prov, tmp_path):
+        import csv
+        input_dir = tmp_path / "input"
+        input_dir.mkdir()
+        rdf_dir = tmp_path / "output" / "rdf"
+        rdf_dir.mkdir(parents=True)
+
+        self._create_csv(str(input_dir), "file1.csv", [
+            {"id": "doi:10.1234/dup", "title": "Dup1"}
+        ])
+        self._create_csv(str(input_dir), "file2.csv", [
+            {"id": "doi:10.1234/dup", "title": "Dup2"}
+        ])
+
+        omid1 = "https://w3id.org/oc/meta/id/0601"
+        omid2 = "https://w3id.org/oc/meta/id/0602"
+
+        mock_check_omids.side_effect = [
+            {"doi:10.1234/dup": {omid1}},
+            {"doi:10.1234/dup": {omid2}},
+        ]
+        mock_check_prov.side_effect = [
+            {omid1: True},
+            {omid2: True},
+        ]
+
+        for omid_uri, num in [(omid1, 1), (omid2, 2)]:
+            zip_path = self._create_rdf_zip(str(rdf_dir), "id", "060", 10000, 1000 * num, f'{{"@id": "{omid_uri}"}}')
+            prov_dir = os.path.join(os.path.dirname(zip_path), f"{1000 * num}", "prov")
+            os.makedirs(prov_dir, exist_ok=True)
+            with zipfile.ZipFile(os.path.join(prov_dir, "se.zip"), 'w') as z:
+                z.writestr("se.json", f'{{"@id": "{omid_uri}/prov/se/1"}}')
+
+        config_path = tmp_path / "config.yaml"
+        config_path.write_text(yaml.dump({
+            "input_csv_dir": str(input_dir),
+            "output_rdf_dir": str(tmp_path / "output"),
+            "triplestore_url": "http://localhost:9999/sparql",
+            "provenance_triplestore_url": "http://localhost:9998/sparql",
+            "dir_split_number": 10000,
+            "items_per_file": 1000,
+            "zip_output_rdf": True,
+        }))
+
+        output_path = tmp_path / "report.json"
+
+        with patch('sys.argv', ['check_results', str(config_path), str(output_path)]):
+            from oc_meta.run.meta.check_results import main
+            main()
+
+        with open(output_path, 'r') as f:
+            report = json.load(f)
+
+        assert report["status"] == "PASS"
+        assert len(report["warnings"]) == 1
+        assert report["warnings"][0]["type"] == "multiple_omids"
+        assert report["warnings"][0]["identifier"] == "doi:10.1234/dup"
+        assert report["warnings"][0]["omid_count"] == 2
+        assert len(report["warnings"][0]["omids"]) == 2

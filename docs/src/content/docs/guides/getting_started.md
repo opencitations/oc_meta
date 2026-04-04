@@ -124,7 +124,7 @@ uv run python -m oc_meta.run.meta_process -c meta_config.yaml
 Verify:
 
 ```bash
-uv run python -m oc_meta.run.meta.check_results meta_config.yaml --output report.txt
+uv run python -m oc_meta.run.meta.check_results meta_config.yaml report.json
 ```
 
 ## Next steps

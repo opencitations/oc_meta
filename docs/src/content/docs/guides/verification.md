@@ -18,8 +18,10 @@ uv run python -m oc_meta.run.meta.check_results <CONFIG_PATH> <OUTPUT_FILE>
 Example:
 
 ```bash
-uv run python -m oc_meta.run.meta.check_results meta_config.yaml report.txt
+uv run python -m oc_meta.run.meta.check_results meta_config.yaml report.json
 ```
+
+The script exits with code 0 if all checks pass, or 1 if any errors are found.
 
 ## What it checks
 
@@ -57,25 +59,64 @@ For each OMID found:
 
 ## Output format
 
-The script reports issues grouped by category:
+The script produces a JSON report with the following structure:
 
+```json
+{
+  "status": "PASS",
+  "timestamp": "2026-04-04T12:00:00",
+  "config_path": "/path/to/meta_config.yaml",
+  "total_files_processed": 3,
+  "files": [
+    {
+      "file": "input.csv",
+      "total_rows": 100,
+      "rows_with_ids": 95,
+      "total_identifiers": 200,
+      "identifiers_with_omids": 190,
+      "identifiers_without_omids": 10
+    }
+  ],
+  "summary": {
+    "total_rows": 100,
+    "total_identifiers": 200,
+    "identifiers_with_omids": 190,
+    "identifiers_without_omids": 10,
+    "omids_with_provenance": 185,
+    "omids_without_provenance": 5
+  },
+  "errors": [
+    {
+      "type": "missing_omid",
+      "schema": "doi",
+      "value": "10.1234/example",
+      "file": "input.csv",
+      "row": 5,
+      "column": "id"
+    }
+  ],
+  "warnings": [
+    {
+      "type": "multiple_omids",
+      "identifier": "doi:10.1234/duplicate",
+      "omid_count": 2,
+      "omids": ["https://w3id.org/oc/meta/br/0601", "https://w3id.org/oc/meta/br/0602"],
+      "occurrences": [{"file": "input.csv", "row": 10, "column": "id"}]
+    }
+  ]
+}
 ```
-=== Verification Report ===
 
-Identifiers without OMID:
-  doi:10.1234/missing-entity-1
-  doi:10.1234/missing-entity-2
+### Status semantics
 
-Identifiers with multiple OMIDs:
-  doi:10.1234/duplicate-entity -> omid:br/060/1, omid:br/060/2
+- **`status: "PASS"`**: all identifiers have OMIDs and all OMIDs have provenance. Exit code 0.
+- **`status: "FAIL"`**: at least one error found. Exit code 1.
 
-OMIDs without provenance:
-  omid:br/060/12345
+### Error types
 
-Summary:
-  Total identifiers: 50000
-  Identifiers with OMID: 49998
-  Identifiers without OMID: 2
-  OMIDs with provenance: 49995
-  OMIDs without provenance: 3
-```
+- **`missing_omid`**: an identifier from the input CSV has no corresponding OMID in the triplestore. Indicates a processing failure.
+- **`missing_provenance`**: an OMID exists in the triplestore but has no provenance record. Indicates incomplete ingestion.
+
+### Warning types
+
+- **`multiple_omids`**: an identifier is associated with more than one OMID across files. Indicates a disambiguation issue that should be resolved via the merge pipeline.
