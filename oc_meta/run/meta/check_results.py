@@ -60,7 +60,6 @@ def retry_on_error(func: Callable[[], T]) -> T:
                 raise
             wait_time = RETRY_BACKOFF ** attempt
             time.sleep(wait_time)
-    raise RuntimeError("Unreachable")
 
 
 def parse_identifiers(id_string: str | None) -> List[Dict[str, str]]:
@@ -167,7 +166,6 @@ def process_csv_file(args: tuple, progress=None, task_id=None) -> FileStats:
     stats = FileStats(file=os.path.basename(csv_file))
 
     identifier_cache = {}
-    omid_results_cache = {}
 
     unique_identifiers = set()
     row_identifiers = []
@@ -243,12 +241,11 @@ def process_csv_file(args: tuple, progress=None, task_id=None) -> FileStats:
                 all_omids.add(next(iter(omids)))
 
                 for omid in omids:
-                    if omid not in omid_results_cache:
-                        zip_path = find_file(rdf_dir, dir_split_number, items_per_file, omid, zip_output_rdf)
-                        if zip_path and os.path.exists(zip_path):
-                            if zip_path not in omids_by_file:
-                                omids_by_file[zip_path] = set()
-                            omids_by_file[zip_path].add(omid)
+                    zip_path = find_file(rdf_dir, dir_split_number, items_per_file, omid, zip_output_rdf)
+                    if zip_path and os.path.exists(zip_path):
+                        if zip_path not in omids_by_file:
+                            omids_by_file[zip_path] = set()
+                        omids_by_file[zip_path].add(omid)
             else:
                 stats.identifiers_without_omids += 1
 
@@ -280,17 +277,12 @@ def process_csv_file(args: tuple, progress=None, task_id=None) -> FileStats:
                         prov_content = f.read().decode('utf-8')
 
         for omid in omids:
-            if omid in omid_results_cache:
-                data_found, prov_found = omid_results_cache[omid]
+            data_found = data_content is not None and omid in data_content
+
+            if prov_content is not None:
+                prov_found = omid in prov_content
             else:
-                data_found = data_content is not None and omid in data_content
-
-                if prov_content is not None:
-                    prov_found = omid in prov_content
-                else:
-                    prov_found = False
-
-                omid_results_cache[omid] = (data_found, prov_found)
+                prov_found = False
 
             if data_found:
                 stats.data_graphs_found += 1
