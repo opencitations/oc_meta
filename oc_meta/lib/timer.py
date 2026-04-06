@@ -14,7 +14,7 @@ processing and benchmarking, with optional activation to avoid overhead.
 
 import threading
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 import psutil
 
@@ -48,7 +48,7 @@ class _MemorySampler:
 class BenchmarkTimer:
     """Context manager for timing code blocks and collecting memory metrics."""
 
-    def __init__(self, name: str, verbose: bool = False):
+    def __init__(self, name: str, verbose: bool = False, on_exit: Optional[Callable[[], None]] = None):
         self.name = name
         self.verbose = verbose
         self.start_time: Optional[float] = None
@@ -58,6 +58,7 @@ class BenchmarkTimer:
         self.end_memory: Optional[int] = None
         self.peak_memory: Optional[int] = None
         self._sampler: Optional[_MemorySampler] = None
+        self._on_exit: Optional[Callable[[], None]] = on_exit
 
     def __enter__(self):
         self.start_time = time.time()
@@ -70,14 +71,18 @@ class BenchmarkTimer:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        assert self.start_time is not None and self.start_memory is not None and self._sampler is not None
         self.end_time = time.time()
         self.duration = self.end_time - self.start_time
         process = psutil.Process()
-        self.end_memory = process.memory_info().rss
+        end_memory = process.memory_info().rss
+        self.end_memory = end_memory
         sampled_peak = self._sampler.stop()
-        self.peak_memory = max(self.start_memory, self.end_memory, sampled_peak)
+        self.peak_memory = max(self.start_memory, end_memory, sampled_peak)
         if self.verbose:
             print(f"  [{self.name}] Completed in {self.duration:.2f}s")
+        if self._on_exit:
+            self._on_exit()
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert timing data to dictionary."""
@@ -103,22 +108,27 @@ class DummyTimer:
 class ProcessTimer:
     """Optional timing wrapper for MetaProcess operations."""
 
-    def __init__(self, enabled: bool = False, verbose: bool = False):
+    def __init__(self, enabled: bool = False, verbose: bool = False, on_phase_complete: Optional[Callable[['ProcessTimer'], None]] = None):
         self.enabled = enabled
         self.verbose = verbose
         self.timers: List[BenchmarkTimer] = []
         self.metrics: Dict[str, Any] = {}
+        self._on_phase_complete: Optional[Callable[['ProcessTimer'], None]] = on_phase_complete
 
     def timer(self, name: str):
         """Create a timer context manager (or no-op if disabled)."""
         if self.enabled:
             # Don't show verbose for total_processing and sub-timers
             show_verbose = self.verbose and name not in ["total_processing", "creator_execution", "provenance_generation"]
-            timer = BenchmarkTimer(name, verbose=show_verbose)
+            timer = BenchmarkTimer(name, verbose=show_verbose, on_exit=self._notify_phase)
             self.timers.append(timer)
             return timer
         else:
             return DummyTimer()
+
+    def _notify_phase(self):
+        if self._on_phase_complete:
+            self._on_phase_complete(self)
 
     def record_metric(self, key: str, value: Any):
         """Record a metric."""
@@ -142,7 +152,7 @@ class ProcessTimer:
         if not self.enabled:
             return {}
 
-        total_time = next((t.duration for t in self.timers if t.name == "total_processing"), 0)
+        total_time = next((t.duration for t in self.timers if t.name == "total_processing"), None) or 0.0
         input_records = self.metrics.get("input_records", 0)
 
         return {

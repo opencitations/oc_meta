@@ -87,6 +87,8 @@ class ResourceFinder:
         self.virtuoso_full_text_search = settings['virtuoso_full_text_search'] if settings and 'virtuoso_full_text_search' in settings else False
         self.workers = workers
 
+    _PO_S_INDEXED_PREDICATES = {_P_HAS_LITERAL_VALUE, _P_HAS_IDENTIFIER, _P_PART_OF}
+
     def _add_triple(self, s: str, p: str, o: str, o_datatype: str = '') -> None:
         pred_dict = self._spo.get(s)
         if pred_dict is None:
@@ -97,12 +99,13 @@ class ResourceFinder:
             obj_list = []
             pred_dict[p] = obj_list
         obj_list.append(o)
-        key = (p, o)
-        subj_set = self._po_s.get(key)
-        if subj_set is None:
-            subj_set = set()
-            self._po_s[key] = subj_set
-        subj_set.add(s)
+        if p in self._PO_S_INDEXED_PREDICATES:
+            key = (p, o)
+            subj_set = self._po_s.get(key)
+            if subj_set is None:
+                subj_set = set()
+                self._po_s[key] = subj_set
+            subj_set.add(s)
         self._triple_count += 1
         if o_datatype:
             self._literal_datatypes[o] = o_datatype

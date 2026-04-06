@@ -205,9 +205,25 @@ class MetaProcess:
                     preexisting_count = len(curator_obj.preexisting_entities)
                     self.timer.record_metric("preexisting_entities_count", preexisting_count)
 
-                    with self.timer.timer("creator_execution"):
+                    RDF_BATCH_SIZE = 50_000
+                    data = curator_obj.data
+                    n_batches = (len(data) + RDF_BATCH_SIZE - 1) // RDF_BATCH_SIZE
+                    total_entities = 0
+                    total_modified = 0
+
+                    for batch_idx in range(n_batches):
+                        batch_start = batch_idx * RDF_BATCH_SIZE
+                        batch_end = min(batch_start + RDF_BATCH_SIZE, len(data))
+                        batch_data = data[batch_start:batch_end]
+
+                        if n_batches > 1:
+                            console.print(
+                                f"  [dim]Batch {batch_idx + 1}/{n_batches} "
+                                f"({len(batch_data)} records)[/dim]"
+                            )
+
                         creator_obj = Creator(
-                            data=curator_obj.data,
+                            data=batch_data,
                             finder=curator_obj.finder,
                             base_iri=self.base_iri,
                             counter_handler=self.counter_handler,
@@ -222,9 +238,8 @@ class MetaProcess:
                             progress=progress,
                         )
                         creator = creator_obj.creator(source=self.source)
-                        self.timer.record_metric("entities_created", len(creator.res_to_entity))
+                        total_entities += len(creator.res_to_entity)
 
-                    with self.timer.timer("provenance_generation"):
                         prov = ProvSet(
                             creator,
                             self.base_iri,
@@ -233,34 +248,38 @@ class MetaProcess:
                             custom_counter_handler=self.counter_handler,
                         )
                         modified_entities = prov.generate_provenance()
-                        self.timer.record_metric("modified_entities", len(modified_entities))
+                        total_modified += len(modified_entities)
 
-                repok = Reporter(print_sentences=False)
-                reperr = Reporter(print_sentences=True, prefix="[Storer: ERROR] ")
-                res_storer = Storer(
-                    abstract_set=creator,
-                    repok=repok,
-                    reperr=reperr,
-                    context_map={},
-                    dir_split=self.dir_split_number,
-                    n_file_item=self.items_per_file,
-                    default_dir=self.default_dir,
-                    output_format="json-ld",
-                    zip_output=self.zip_output_rdf,
-                    modified_entities=modified_entities,
-                )
-                prov_storer = Storer(
-                    abstract_set=prov,
-                    repok=repok,
-                    reperr=reperr,
-                    context_map={},
-                    dir_split=self.dir_split_number,
-                    n_file_item=self.items_per_file,
-                    output_format="json-ld",
-                    zip_output=self.zip_output_rdf,
-                    modified_entities=modified_entities,
-                )
-                self.store_data_and_prov(res_storer, prov_storer)
+                        repok = Reporter(print_sentences=False)
+                        reperr = Reporter(print_sentences=True, prefix="[Storer: ERROR] ")
+                        res_storer = Storer(
+                            abstract_set=creator,
+                            repok=repok,
+                            reperr=reperr,
+                            context_map={},
+                            dir_split=self.dir_split_number,
+                            n_file_item=self.items_per_file,
+                            default_dir=self.default_dir,
+                            output_format="json-ld",
+                            zip_output=self.zip_output_rdf,
+                            modified_entities=modified_entities,
+                        )
+                        prov_storer = Storer(
+                            abstract_set=prov,
+                            repok=repok,
+                            reperr=reperr,
+                            context_map={},
+                            dir_split=self.dir_split_number,
+                            n_file_item=self.items_per_file,
+                            output_format="json-ld",
+                            zip_output=self.zip_output_rdf,
+                            modified_entities=modified_entities,
+                        )
+                        self.store_data_and_prov(res_storer, prov_storer)
+                        del creator_obj, creator, prov, res_storer, prov_storer, modified_entities
+
+                    self.timer.record_metric("entities_created", total_entities)
+                    self.timer.record_metric("modified_entities", total_modified)
 
             return {"message": "success"}, cache_path, errors_path, filename
         except Exception as e:
@@ -486,7 +505,17 @@ def run_meta_process(
                 if enable_timing:
                     console.print(f"\n[cyan][{idx}/{len(files_to_be_processed)}][/cyan] Processing {filename}...")
 
-                file_timer = ProcessTimer(enabled=enable_timing, verbose=enable_timing)
+                on_phase_cb = None
+                if enable_timing and timing_output:
+                    _chart = timing_output.replace('.json', '_chart.png')
+                    _reports, _fn, _cfg, _out = all_reports, filename, meta_config_path, timing_output
+                    def _on_phase(timer: ProcessTimer) -> None:
+                        snapshot = _reports + [{"filename": _fn, "report": timer.get_report()}]
+                        _save_incremental_report(snapshot, _cfg, _out)
+                        plot_incremental_progress(snapshot, _chart)
+                    on_phase_cb = _on_phase
+
+                file_timer = ProcessTimer(enabled=enable_timing, verbose=enable_timing, on_phase_complete=on_phase_cb)
                 meta_process_setup.timer = file_timer
 
                 result = meta_process_setup.curate_and_create(
@@ -505,16 +534,7 @@ def run_meta_process(
                         "filename": filename,
                         "report": report
                     })
-
                     file_timer.print_file_summary(filename)
-
-                    if timing_output:
-                        _save_incremental_report(all_reports, meta_config_path, timing_output)
-                        console.print(f"\n  JSON updated: {timing_output}")
-
-                    chart_file = timing_output.replace('.json', '_chart.png') if timing_output else 'meta_process_timing_chart.png'
-                    plot_incremental_progress(all_reports, chart_file)
-                    console.print(f"  Chart updated: {chart_file}\n")
 
             except Exception as e:
                 traceback_str = traceback.format_exc()

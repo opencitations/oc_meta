@@ -1512,7 +1512,7 @@ requires-dist = [
     { name = "filelock", specifier = ">=3.24.0" },
     { name = "numpy", specifier = ">=2.2.0" },
     { name = "oc-ds-converter", specifier = "==2.0.0" },
-    { name = "oc-ocdm", specifier = ">=10,<11" },
+    { name = "oc-ocdm", specifier = "==10.0.1" },
     { name = "orjson", specifier = ">=3.11.0" },
     { name = "pandas", specifier = ">=2.2.3" },
     { name = "piccione", specifier = ">=3.0.0" },
@@ -1550,7 +1550,7 @@ dev = [
 
 [[package]]
 name = "oc-ocdm"
-version = "10.0.0"
+version = "10.0.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "filelock" },
@@ -1560,9 +1560,9 @@ dependencies = [
     { name = "sparqlite" },
     { name = "tqdm" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/3d/4e/47e737e84b1767c64b186eaeb6efd5969ebaf7fc6940e16b51a6cb9ead1e/oc_ocdm-10.0.0.tar.gz", hash = "sha256:0ff32291417c38d141f6540881c68d1fe2fe5c308ea05cf2c31b375037db23cf", size = 700238, upload-time = "2026-03-28T18:53:41.326Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d8/f1/9b5a1f21bb137c838b476367a2e6f82d0ce0e12374c754e2e0c6903aab8c/oc_ocdm-10.0.1.tar.gz", hash = "sha256:ce50eddb81ebec75f6bf74161dcebae3074be8e870e3b3d238d0ad571ef7a46f", size = 700297, upload-time = "2026-04-06T20:19:24.265Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/05/b2/8d9dc6fb9598fd369ecb7c9ccce1563df2f756275e05d8adb9e6a12eb44e/oc_ocdm-10.0.0-py3-none-any.whl", hash = "sha256:65d4b911b56f34dde3089036511abae3536be9f37b62f962f79435e923217528", size = 101484, upload-time = "2026-03-28T18:53:40.27Z" },
+    { url = "https://files.pythonhosted.org/packages/c7/16/ae4c1d656d00f929df192a6e748215d1adefdf87301db365e9ee222038a4/oc_ocdm-10.0.1-py3-none-any.whl", hash = "sha256:12c639274fad49fd88182922d2b464ba6a53d93b10b00a7c33f577a6a7f360b8", size = 101499, upload-time = "2026-04-06T20:19:25.487Z" },
 ]
 
 [[package]]

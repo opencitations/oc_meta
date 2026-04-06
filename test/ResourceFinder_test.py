@@ -660,6 +660,50 @@ class TestFinderGetSubgraph:
         result = finder.get_subgraph(URIRef(f"{FINDER_BASE_IRI}br/nonexistent"))
         assert result is None
 
+    def test_get_subgraph_reconstructs_uris(self):
+        finder = ResourceFinder(FINDER_SERVER, FINDER_BASE_IRI)
+        br = f"{FINDER_BASE_IRI}br/0601"
+        id_uri = f"{FINDER_BASE_IRI}id/0601"
+        finder._add_triple(br, str(RDF.type), str(GraphEntity.iri_expression))
+        finder._add_triple(br, str(GraphEntity.iri_has_identifier), id_uri)
+        g = finder.get_subgraph(URIRef(br))
+        assert g is not None
+        triples = set(g)
+        assert (URIRef(br), RDF.type, GraphEntity.iri_expression) in triples
+        assert (URIRef(br), GraphEntity.iri_has_identifier, URIRef(id_uri)) in triples
+        assert len(triples) == 2
+
+    def test_get_subgraph_reconstructs_typed_literals(self):
+        finder = ResourceFinder(FINDER_SERVER, FINDER_BASE_IRI)
+        br = f"{FINDER_BASE_IRI}br/0602"
+        title = "A Test Title"
+        date = "2025-01-15"
+        finder._add_triple(br, str(GraphEntity.iri_title), title, o_datatype=str(XSD.string))
+        finder._add_triple(br, str(GraphEntity.iri_has_publication_date), date, o_datatype=str(XSD.date))
+        g = finder.get_subgraph(URIRef(br))
+        assert g is not None
+        triples = set(g)
+        assert (URIRef(br), GraphEntity.iri_title, Literal(title, datatype=XSD.string)) in triples
+        assert (URIRef(br), GraphEntity.iri_has_publication_date, Literal(date, datatype=XSD.date)) in triples
+        assert len(triples) == 2
+
+    def test_get_subgraph_reconstructs_plain_literals(self):
+        finder = ResourceFinder(FINDER_SERVER, FINDER_BASE_IRI)
+        br = f"{FINDER_BASE_IRI}br/0603"
+        value = "some plain value"
+        finder._add_triple(br, str(GraphEntity.iri_title), value)
+        g = finder.get_subgraph(URIRef(br))
+        assert g is not None
+        triples = set(g)
+        assert (URIRef(br), GraphEntity.iri_title, Literal(value, datatype=XSD.string)) in triples
+
+    def test_get_subgraph_accepts_uriref(self):
+        finder = ResourceFinder(FINDER_SERVER, FINDER_BASE_IRI)
+        br = f"{FINDER_BASE_IRI}br/0604"
+        finder._add_triple(br, str(RDF.type), str(GraphEntity.iri_expression))
+        assert finder.get_subgraph(URIRef(br)) is not None
+        assert finder.get_subgraph(br) is not None
+
 
 class TestFinderRetrieveVenueFromLocalGraphIssueDirectlyInVenue:
     def test_issue_directly_in_venue(self):
