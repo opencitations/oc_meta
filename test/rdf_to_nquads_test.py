@@ -14,6 +14,16 @@ from rdflib import Dataset
 
 from oc_meta.run.migration.rdf_to_nquads import process_zip_file
 
+SAMPLE_JSONLD = """{
+  "@context": {"ex": "http://example.org/"},
+  "@graph": [
+    {"@id": "ex:s1", "ex:p1": {"@id": "ex:o1"}},
+    {"@id": "ex:s2", "ex:p2": "value"}
+  ]
+}"""
+
+INVALID_JSONLD = """not valid json at all"""
+
 
 class TestProcessZipFile:
     @pytest.fixture
