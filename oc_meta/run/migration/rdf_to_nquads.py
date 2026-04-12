@@ -18,21 +18,17 @@ from rdflib import Dataset
 from rich_argparse import RichHelpFormatter
 
 from oc_meta.lib.console import console, create_progress
-
-
-def convert_jsonld_to_nquads(jsonld_content: str) -> str:
-    graph = Dataset(default_union=True)
-    graph.parse(data=jsonld_content, format="json-ld")
-    return graph.serialize(format="nquads")
+from oc_meta.lib.file_manager import collect_zip_files
 
 
 def process_zip_file(zip_path: Path, output_dir: Path, input_dir_path: Path, compress: bool) -> None:
+    graph = Dataset(default_union=True)
     with zipfile.ZipFile(zip_path, "r") as zf:
-        json_files = [name for name in zf.namelist() if name.endswith(".json")]
-        json_filename = json_files[0]
-        jsonld_content = zf.read(json_filename).decode("utf-8")
+        json_file = next(name for name in zf.namelist() if name.endswith(".json"))
+        with zf.open(json_file) as f:
+            graph.parse(f, format="json-ld")
 
-    nquads_output = convert_jsonld_to_nquads(jsonld_content)
+    nquads_output = graph.serialize(format="nquads")
 
     relative_path = zip_path.relative_to(input_dir_path)
     output_filename = str(relative_path).replace(os.sep, "-")
@@ -47,15 +43,6 @@ def process_zip_file(zip_path: Path, output_dir: Path, input_dir_path: Path, com
         with py7zr.SevenZipFile(output_7z_path, "w") as archive:
             archive.write(output_nq_path, output_filename)
         output_nq_path.unlink()
-
-
-def find_zip_files(input_path: Path, mode: str) -> list[Path]:
-    if mode == "prov":
-        return list(input_path.rglob("se.zip"))
-    if mode == "data":
-        all_zips = input_path.rglob("*.zip")
-        return [z for z in all_zips if z.name != "se.zip" and "prov" not in z.parts]
-    return list(input_path.rglob("*.zip"))
 
 
 def main() -> None:  # pragma: no cover
@@ -77,7 +64,11 @@ def main() -> None:  # pragma: no cover
 
     output_path.mkdir(parents=True, exist_ok=True)
 
-    zip_files = find_zip_files(input_path, args.mode)
+    zip_files = collect_zip_files(
+        str(input_path),
+        only_data=args.mode == "data",
+        only_prov=args.mode == "prov",
+    )
     total_files = len(zip_files)
 
     mode_labels = {"all": "", "data": "data ", "prov": "provenance "}

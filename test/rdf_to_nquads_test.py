@@ -12,86 +12,7 @@ import py7zr
 import pytest
 from rdflib import Dataset
 
-from oc_meta.run.migration.rdf_to_nquads import convert_jsonld_to_nquads, find_zip_files, process_zip_file
-
-SAMPLE_JSONLD = """{
-  "@context": "https://schema.org",
-  "@id": "http://example.org/entity1",
-  "@type": "CreativeWork",
-  "name": "Test Entity"
-}"""
-
-INVALID_JSONLD = "not valid json at all {"
-
-
-class TestConvertJsonldToNquads:
-    def test_success(self) -> None:
-        nquads = convert_jsonld_to_nquads(SAMPLE_JSONLD)
-
-        assert isinstance(nquads, str)
-        assert "http://example.org/entity1" in nquads
-
-    def test_invalid_jsonld_raises(self) -> None:
-        with pytest.raises(Exception):
-            convert_jsonld_to_nquads(INVALID_JSONLD)
-
-
-class TestFindZipFiles:
-    @pytest.fixture
-    def temp_dirs(self):
-        test_dir = Path(tempfile.mkdtemp())
-        yield test_dir
-        shutil.rmtree(test_dir)
-
-    def test_prov_mode(self, temp_dirs: Path) -> None:
-        test_dir = temp_dirs
-        prov_dir = test_dir / "br" / "060" / "1000" / "prov"
-        prov_dir.mkdir(parents=True)
-        (prov_dir / "se.zip").touch()
-        (test_dir / "br" / "060" / "1000.zip").touch()
-
-        result = find_zip_files(test_dir, "prov")
-
-        assert len(result) == 1
-        assert result[0].name == "se.zip"
-
-    def test_data_mode(self, temp_dirs: Path) -> None:
-        test_dir = temp_dirs
-        prov_dir = test_dir / "br" / "060" / "1000" / "prov"
-        prov_dir.mkdir(parents=True)
-        (prov_dir / "se.zip").touch()
-        data_zip = test_dir / "br" / "060" / "1000.zip"
-        data_zip.touch()
-
-        result = find_zip_files(test_dir, "data")
-
-        assert len(result) == 1
-        assert result[0] == data_zip
-
-    def test_data_mode_excludes_prov_folder(self, temp_dirs: Path) -> None:
-        test_dir = temp_dirs
-        prov_dir = test_dir / "br" / "060" / "prov"
-        prov_dir.mkdir(parents=True)
-        (prov_dir / "other.zip").touch()
-        data_zip = test_dir / "br" / "060" / "1000.zip"
-        data_zip.touch()
-
-        result = find_zip_files(test_dir, "data")
-
-        assert len(result) == 1
-        assert result[0] == data_zip
-
-    def test_all_mode(self, temp_dirs: Path) -> None:
-        test_dir = temp_dirs
-        prov_dir = test_dir / "br" / "060" / "1000" / "prov"
-        prov_dir.mkdir(parents=True)
-        (prov_dir / "se.zip").touch()
-        data_zip = test_dir / "br" / "060" / "1000.zip"
-        data_zip.touch()
-
-        result = find_zip_files(test_dir, "all")
-
-        assert len(result) == 2
+from oc_meta.run.migration.rdf_to_nquads import process_zip_file
 
 
 class TestProcessZipFile:
@@ -142,13 +63,13 @@ class TestProcessZipFile:
         output_graph.parse(nquads_file, format="nquads")
         assert len(output_graph) == 2
 
-    def test_no_json_files_raises_index_error(self, temp_dirs: tuple[Path, Path, Path]) -> None:
+    def test_no_json_files_raises(self, temp_dirs: tuple[Path, Path, Path]) -> None:
         input_dir, output_dir, _ = temp_dirs
         zip_path = input_dir / "se.zip"
         with zipfile.ZipFile(zip_path, "w") as zf:
             zf.writestr("readme.txt", "no json here")
 
-        with pytest.raises(IndexError):
+        with pytest.raises(StopIteration):
             process_zip_file(zip_path, output_dir, input_dir, compress=False)
 
     def test_bad_zip_raises(self, temp_dirs: tuple[Path, Path, Path]) -> None:
