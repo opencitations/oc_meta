@@ -22,6 +22,8 @@ from sparqlite import SPARQLClient
 from time_agnostic_library.agnostic_entity import AgnosticEntity
 from rich.console import Console
 
+from oc_meta.constants import QLEVER_BATCH_SIZE, QLEVER_MAX_WORKERS, QLEVER_QUERIES_PER_GROUP
+
 _P_HAS_LITERAL_VALUE = str(GraphEntity.iri_has_literal_value)
 _P_USES_ID_SCHEME = str(GraphEntity.iri_uses_identifier_scheme)
 _P_HAS_IDENTIFIER = str(GraphEntity.iri_has_identifier)
@@ -558,8 +560,8 @@ class ResourceFinder:
         return '; '.join(publishers_output)
             
     def get_everything_about_res(self, metavals: set, identifiers: set, vvis: set, max_depth: int = 10, progress: Progress | None = None) -> None:
-        BATCH_SIZE = 30
-        MAX_WORKERS = min(self.workers, 24)  # Cap at 24 based on benchmark
+        BATCH_SIZE = QLEVER_BATCH_SIZE
+        MAX_WORKERS = min(self.workers, QLEVER_MAX_WORKERS)
 
         def batch_process(input_set, batch_size):
             """Generator to split input data into smaller batches if batch_size is not None."""
@@ -716,7 +718,7 @@ class ResourceFinder:
             if len(batch_queries) > 1 and MAX_WORKERS > 1:
                 # Create smaller groups for more frequent progress updates
                 # Target ~100 queries per group for responsive progress bar
-                QUERIES_PER_GROUP = 100
+                QUERIES_PER_GROUP = QLEVER_QUERIES_PER_GROUP
                 grouped_queries = []
                 grouped_batch_sizes = []
                 for i in range(0, len(batch_queries), QUERIES_PER_GROUP):

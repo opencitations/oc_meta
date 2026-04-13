@@ -9,6 +9,12 @@ from oc_ocdm.graph.graph_entity import GraphEntity
 
 
 FORBIDDEN_IDS = {'issn:0000-0000'}
+
+# QLever-optimized SPARQL query constants
+QLEVER_BATCH_SIZE = 30
+QLEVER_MAX_WORKERS = 24
+QLEVER_QUERIES_PER_GROUP = 100
+
 VENUES = {'archival-document', 'book', 'book-part', 'book-section', 'book-series', 'book-set', 'edited-book', 'journal', 'journal-volume', 'journal-issue', 'monograph', 'proceedings-series', 'proceedings', 'reference-book', 'report-series', 'standard-series'}
 CONTAINER_EDITOR_TYPES = {'book chapter', 'book part', 'book section', 'book track', 'component', 'proceedings article', 'reference entry'}
 VALID_ENTITY_TYPES = frozenset({

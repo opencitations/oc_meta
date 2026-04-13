@@ -3,33 +3,31 @@
 # SPDX-License-Identifier: ISC
 
 import argparse
-import csv
+import multiprocessing
 import os
 import re
 import sys
-import time
 import zipfile
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Callable, Dict, List, Set, TypeVar
+from typing import Callable, Dict, List, Set
 
 import orjson
 import yaml
 from rich.progress import BarColumn, Progress, TaskProgressColumn, TextColumn
 from rich_argparse import RichHelpFormatter
 from sparqlite import SPARQLClient
-from sparqlite.exceptions import EndpointError
 
+from oc_meta.constants import QLEVER_BATCH_SIZE, QLEVER_MAX_WORKERS, QLEVER_QUERIES_PER_GROUP
 from oc_meta.lib.cleaner import normalize_hyphens
 from oc_meta.lib.console import EMATimeRemainingColumn, console
-from oc_meta.lib.file_manager import collect_files
+from oc_meta.lib.file_manager import collect_files, get_csv_data
 from oc_meta.lib.master_of_regex import RE_NAME_AND_IDS, RE_SEMICOLON_IN_PEOPLE_FIELD
 
-T = TypeVar('T')
-
-BATCH_SIZE = 10
 MAX_RETRIES = 10
 RETRY_BACKOFF = 2
+DATACITE_PREFIX = "http://purl.org/spar/datacite/"
 
 
 @dataclass
@@ -51,15 +49,50 @@ class FileStats:
     processed_omids: dict = field(default_factory=dict)
 
 
-def retry_on_error(func: Callable[[], T]) -> T:
-    for attempt in range(MAX_RETRIES):
-        try:
-            return func()
-        except EndpointError:
-            if attempt == MAX_RETRIES - 1:
-                raise
-            wait_time = RETRY_BACKOFF ** attempt
-            time.sleep(wait_time)
+def _execute_sparql_queries(args: tuple) -> list:
+    ts_url, queries = args
+    results = []
+    with SPARQLClient(ts_url, max_retries=MAX_RETRIES, backoff_factor=RETRY_BACKOFF, timeout=3600) as client:
+        for query in queries:
+            result = client.query(query)
+            results.append(result['results']['bindings'] if result else [])
+    return results
+
+
+def _run_queries_parallel(
+    endpoint_url: str,
+    batch_queries: list[str],
+    batch_sizes: list[int],
+    workers: int = QLEVER_MAX_WORKERS,
+    progress_callback: Callable[[int], None] | None = None,
+) -> list[list]:
+    if not batch_queries:
+        return []
+
+    all_bindings: list[list] = []
+
+    if len(batch_queries) > 1 and workers > 1:
+        grouped_queries = []
+        grouped_sizes = []
+        for i in range(0, len(batch_queries), QLEVER_QUERIES_PER_GROUP):
+            grouped_queries.append((endpoint_url, batch_queries[i:i + QLEVER_QUERIES_PER_GROUP]))
+            grouped_sizes.append(sum(batch_sizes[i:i + QLEVER_QUERIES_PER_GROUP]))
+
+        with ProcessPoolExecutor(
+            max_workers=min(len(grouped_queries), workers),
+            mp_context=multiprocessing.get_context('forkserver')
+        ) as executor:
+            for idx, result in enumerate(executor.map(_execute_sparql_queries, grouped_queries)):
+                all_bindings.extend(result)
+                if progress_callback:
+                    progress_callback(grouped_sizes[idx])
+    else:
+        results = _execute_sparql_queries((endpoint_url, batch_queries))
+        all_bindings.extend(results)
+        if progress_callback:
+            progress_callback(sum(batch_sizes))
+
+    return all_bindings
 
 
 def parse_identifiers(id_string: str | None) -> List[Dict[str, str]]:
@@ -77,50 +110,79 @@ def parse_identifiers(id_string: str | None) -> List[Dict[str, str]]:
             })
     return identifiers
 
-def check_provenance_existence(omids: List[str], prov_endpoint_url: str) -> Dict[str, bool]:
+def check_provenance_existence(omids: List[str], prov_endpoint_url: str, workers: int = QLEVER_MAX_WORKERS, progress_callback: Callable[[int], None] | None = None) -> Dict[str, bool]:
     if not omids:
         return {}
 
     prov_results = {omid: False for omid in omids}
 
-    with SPARQLClient(prov_endpoint_url, max_retries=10, backoff_factor=2, timeout=3600) as client:
-        for omid in omids:
-            snapshot_uri = f"{omid}/prov/se/1"
-            query = f"ASK {{ <{snapshot_uri}> <http://www.w3.org/ns/prov#specializationOf> ?o }}"
-            prov_results[omid] = retry_on_error(lambda q=query: client.ask(q))
+    batch_queries = []
+    batch_sizes = []
+    for i in range(0, len(omids), QLEVER_BATCH_SIZE):
+        batch = omids[i:i + QLEVER_BATCH_SIZE]
+        values_entries = " ".join(f"<{omid}/prov/se/1>" for omid in batch)
+        query = f"""
+        SELECT ?snapshot WHERE {{
+            VALUES ?snapshot {{ {values_entries} }}
+            ?snapshot <http://www.w3.org/ns/prov#specializationOf> ?o .
+        }}
+        """
+        batch_queries.append(query)
+        batch_sizes.append(len(batch))
+
+    all_bindings = _run_queries_parallel(prov_endpoint_url, batch_queries, batch_sizes, workers, progress_callback)
+
+    for bindings in all_bindings:
+        for result in bindings:
+            snapshot_uri = result["snapshot"]["value"]
+            omid = snapshot_uri.rsplit("/prov/se/1", 1)[0]
+            prov_results[omid] = True
 
     return prov_results
 
-def check_omids_existence(identifiers: List[Dict[str, str]], endpoint_url: str) -> Dict[str, Set[str]]:
+def check_omids_existence(identifiers: List[Dict[str, str]], endpoint_url: str, workers: int = QLEVER_MAX_WORKERS, progress_callback: Callable[[int], None] | None = None) -> Dict[str, Set[str]]:
     if not identifiers:
         return {}
 
-    found_omids = {}
+    found_omids: Dict[str, Set[str]] = {}
 
-    with SPARQLClient(endpoint_url, max_retries=10, backoff_factor=2, timeout=3600) as client:
-        for identifier in identifiers:
-            id_key = f"{identifier['schema']}:{identifier['value']}"
+    batch_queries = []
+    batch_sizes = []
+    for i in range(0, len(identifiers), QLEVER_BATCH_SIZE):
+        batch = identifiers[i:i + QLEVER_BATCH_SIZE]
 
-            query = f"""
-            PREFIX datacite: <http://purl.org/spar/datacite/>
-            PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
-            PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+        values_entries = []
+        for identifier in batch:
+            escaped_value = identifier['value'].replace('\\', '\\\\').replace('"', '\\"')
+            values_entries.append(f'("{escaped_value}"^^xsd:string datacite:{identifier["schema"]})')
 
-            SELECT DISTINCT ?omid
-            WHERE {{
-                ?omid literal:hasLiteralValue "{identifier['value']}"^^xsd:string ;
-                      datacite:usesIdentifierScheme datacite:{identifier['schema']} .
-            }}
-            """
+        query = f"""
+        PREFIX datacite: <http://purl.org/spar/datacite/>
+        PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
+        PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
-            results = retry_on_error(lambda q=query: client.query(q))
-            omids = set()
+        SELECT ?val ?scheme ?omid
+        WHERE {{
+            VALUES (?val ?scheme) {{ {" ".join(values_entries)} }}
+            ?omid literal:hasLiteralValue ?val ;
+                  datacite:usesIdentifierScheme ?scheme .
+        }}
+        """
+        batch_queries.append(query)
+        batch_sizes.append(len(batch))
 
-            for result in results["results"]["bindings"]:
-                omid = result["omid"]["value"]
-                omids.add(omid)
+    all_bindings = _run_queries_parallel(endpoint_url, batch_queries, batch_sizes, workers, progress_callback)
 
-            found_omids[id_key] = omids
+    for bindings in all_bindings:
+        for result in bindings:
+            omid = result["omid"]["value"]
+            val = result["val"]["value"]
+            scheme_uri = result["scheme"]["value"]
+            scheme = scheme_uri[len(DATACITE_PREFIX):] if scheme_uri.startswith(DATACITE_PREFIX) else scheme_uri
+            id_key = f"{scheme}:{val}"
+            if id_key not in found_omids:
+                found_omids[id_key] = set()
+            found_omids[id_key].add(omid)
 
     return found_omids
 
@@ -156,7 +218,7 @@ def find_prov_file(data_zip_path: str) -> str|None:
     prov_file = os.path.join(prov_dir, 'se.zip')
     return prov_file if os.path.exists(prov_file) else None
 
-def process_csv_file(args: tuple, progress=None, task_id=None) -> FileStats:
+def process_csv_file(args: tuple, workers: int = QLEVER_MAX_WORKERS, progress=None, task_id=None) -> FileStats:
     csv_file, endpoint_url, prov_endpoint_url, rdf_dir, dir_split_number, items_per_file, zip_output_rdf = args
 
     def update_phase(phase: str):
@@ -171,42 +233,41 @@ def process_csv_file(args: tuple, progress=None, task_id=None) -> FileStats:
     row_identifiers = []
 
     update_phase("Phase 1/5: Reading CSV")
-    with open(csv_file, 'r', encoding='utf-8') as f:
-        reader = csv.DictReader(f)
-        for row_num, row in enumerate(reader, 1):
-            stats.total_rows += 1
-            row_has_ids = False
+    rows = get_csv_data(csv_file)
+    for row_num, row in enumerate(rows, 1):
+        stats.total_rows += 1
+        row_has_ids = False
 
-            id_columns = ['id', 'author', 'editor', 'publisher', 'venue']
+        id_columns = ['id', 'author', 'editor', 'publisher', 'venue']
 
-            for col in id_columns:
-                identifiers = []
+        for col in id_columns:
+            identifiers = []
 
-                if col == 'id':
-                    if row[col]:
-                        identifiers = parse_identifiers(row[col])
-                else:
-                    if row[col]:
-                        elements = RE_SEMICOLON_IN_PEOPLE_FIELD.split(row[col])
-                        for element in elements:
-                            match = RE_NAME_AND_IDS.search(element)
-                            if match and match.group(2):
-                                ids_str = match.group(2)
-                                identifiers.extend(parse_identifiers(ids_str))
+            if col == 'id':
+                if row[col]:
+                    identifiers = parse_identifiers(row[col])
+            else:
+                if row[col]:
+                    elements = RE_SEMICOLON_IN_PEOPLE_FIELD.split(row[col])
+                    for element in elements:
+                        match = RE_NAME_AND_IDS.search(element)
+                        if match and match.group(2):
+                            ids_str = match.group(2)
+                            identifiers.extend(parse_identifiers(ids_str))
 
-                if identifiers:
-                    row_has_ids = True
-                    stats.total_identifiers += len(identifiers)
-                    for identifier in identifiers:
-                        id_key = f"{identifier['schema']}:{identifier['value']}"
-                        if identifier['schema'].lower() != 'omid':
-                            unique_identifiers.add(id_key)
-                        else:
-                            stats.omid_schema_identifiers += 1
-                        row_identifiers.append((row_num, col, identifier))
+            if identifiers:
+                row_has_ids = True
+                stats.total_identifiers += len(identifiers)
+                for identifier in identifiers:
+                    id_key = f"{identifier['schema']}:{identifier['value']}"
+                    if identifier['schema'].lower() != 'omid':
+                        unique_identifiers.add(id_key)
+                    else:
+                        stats.omid_schema_identifiers += 1
+                    row_identifiers.append((row_num, col, identifier))
 
-            if row_has_ids:
-                stats.rows_with_ids += 1
+        if row_has_ids:
+            stats.rows_with_ids += 1
 
     all_identifiers = []
     for id_key in unique_identifiers:
@@ -217,11 +278,16 @@ def process_csv_file(args: tuple, progress=None, task_id=None) -> FileStats:
                 'value': parts[1]
             })
 
-    update_phase(f"Phase 2/5: Querying DB for {len(all_identifiers)} identifiers")
-    for i in range(0, len(all_identifiers), BATCH_SIZE):
-        batch = all_identifiers[i:i + BATCH_SIZE]
-        batch_results = check_omids_existence(batch, endpoint_url)
-        identifier_cache.update(batch_results)
+    total_ids = len(all_identifiers)
+    ids_processed = 0
+
+    def on_id_batch(batch_size: int):
+        nonlocal ids_processed
+        ids_processed += batch_size
+        update_phase(f"Phase 2/5: Querying DB [{ids_processed}/{total_ids} identifiers]")
+
+    update_phase(f"Phase 2/5: Querying DB [0/{total_ids} identifiers]")
+    identifier_cache = check_omids_existence(all_identifiers, endpoint_url, workers=workers, progress_callback=on_id_batch)
 
     update_phase("Phase 3/5: Mapping OMIDs to files")
     omids_by_file = {}
@@ -258,7 +324,9 @@ def process_csv_file(args: tuple, progress=None, task_id=None) -> FileStats:
             'file': csv_file
         })
 
-    update_phase(f"Phase 4/5: Checking {len(omids_by_file)} RDF files")
+    total_rdf_files = len(omids_by_file)
+    rdf_files_checked = 0
+    update_phase(f"Phase 4/5: Checking RDF files [0/{total_rdf_files}]")
     for zip_path, omids in omids_by_file.items():
         data_content = None
         with zipfile.ZipFile(zip_path, 'r') as z:
@@ -307,14 +375,25 @@ def process_csv_file(args: tuple, progress=None, task_id=None) -> FileStats:
                     }
                     break
 
+        rdf_files_checked += 1
+        update_phase(f"Phase 4/5: Checking RDF files [{rdf_files_checked}/{total_rdf_files}]")
+
     for row_num, col, identifier in row_identifiers:
         if identifier['schema'].lower() == 'omid':
             omid = identifier['value']
             if omid.startswith('http'):
                 all_omids.add(omid)
 
-    update_phase(f"Phase 5/5: Checking provenance for {len(all_omids)} OMIDs")
-    prov_results = check_provenance_existence(list(all_omids), prov_endpoint_url)
+    total_omids = len(all_omids)
+    omids_checked = 0
+
+    def on_prov_batch(batch_size: int):
+        nonlocal omids_checked
+        omids_checked += batch_size
+        update_phase(f"Phase 5/5: Checking provenance [{omids_checked}/{total_omids} OMIDs]")
+
+    update_phase(f"Phase 5/5: Checking provenance [0/{total_omids} OMIDs]")
+    prov_results = check_provenance_existence(list(all_omids), prov_endpoint_url, workers=workers, progress_callback=on_prov_batch)
 
     for omid, has_prov in prov_results.items():
         if has_prov:
@@ -335,6 +414,7 @@ def main():
     )
     parser.add_argument("meta_config", help="Path to meta_config.yaml file")
     parser.add_argument("output", help="Output file path for results (JSON)")
+    parser.add_argument("--workers", type=int, default=QLEVER_MAX_WORKERS, help=f"Max parallel SPARQL workers (default: {QLEVER_MAX_WORKERS})")
     args = parser.parse_args()
 
     with open(args.meta_config, 'r', encoding='utf-8') as f:
@@ -380,7 +460,7 @@ def main():
             current_file = os.path.basename(csv_files[idx])
             progress.update(task, current_file=f"[{idx+1}/{len(csv_files)}] {current_file}")
 
-            file_stats = process_csv_file(proc_args, progress=progress, task_id=task)
+            file_stats = process_csv_file(proc_args, workers=args.workers, progress=progress, task_id=task)
             all_file_stats.append(file_stats)
 
             all_identifiers_details.extend(file_stats.identifiers_details)
