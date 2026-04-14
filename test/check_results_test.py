@@ -14,10 +14,10 @@ import pytest
 import yaml
 
 from oc_meta.run.meta.check_results import (
+    _extract_id_pairs,
     check_omids_existence,
     check_provenance_existence,
     find_file,
-    parse_identifiers,
 )
 from test.test_utils import (
     PROV_SERVER,
@@ -33,38 +33,38 @@ PROV_FILE = os.path.abspath(
 )
 
 
-class TestParseIdentifiers:
+class TestExtractIdPairs:
 
-    def test_parse_single_identifier(self):
-        result = parse_identifiers("doi:10.1234/test")
-        assert result == [{'schema': 'doi', 'value': '10.1234/test'}]
+    def test_single_id(self):
+        assert _extract_id_pairs("doi:10.1234/test", "id") == [('doi', '10.1234/test')]
 
-    def test_parse_multiple_identifiers(self):
-        result = parse_identifiers("doi:10.1234/test isbn:978-3-16-148410-0")
-        assert result == [
-            {'schema': 'doi', 'value': '10.1234/test'},
-            {'schema': 'isbn', 'value': '978-3-16-148410-0'}
+    def test_multiple_ids(self):
+        assert _extract_id_pairs("doi:10.1234/test isbn:978-3-16-148410-0", "id") == [
+            ('doi', '10.1234/test'),
+            ('isbn', '978-3-16-148410-0'),
         ]
 
-    def test_parse_identifier_with_colon_in_value(self):
-        result = parse_identifiers("url:http://example.com:8080/path")
-        assert result == [{'schema': 'url', 'value': 'http://example.com:8080/path'}]
+    def test_colon_in_value(self):
+        assert _extract_id_pairs("url:http://example.com:8080/path", "id") == [
+            ('url', 'http://example.com:8080/path'),
+        ]
 
-    def test_parse_empty_string(self):
-        assert parse_identifiers("") == []
+    def test_empty_string(self):
+        assert _extract_id_pairs("", "id") == []
 
-    def test_parse_whitespace_only(self):
-        assert parse_identifiers("   ") == []
+    def test_whitespace_only(self):
+        assert _extract_id_pairs("   ", "id") == []
 
-    def test_parse_none(self):
-        assert parse_identifiers(None) == []
+    def test_uppercase_schema(self):
+        assert _extract_id_pairs("DOI:10.1234/test", "id") == [('doi', '10.1234/test')]
 
-    def test_parse_with_uppercase_schema(self):
-        result = parse_identifiers("DOI:10.1234/test")
-        assert result == [{'schema': 'doi', 'value': '10.1234/test'}]
+    def test_malformed(self):
+        assert _extract_id_pairs("malformed", "id") == []
 
-    def test_parse_malformed_identifier(self):
-        assert parse_identifiers("malformed") == []
+    def test_author_column(self):
+        assert _extract_id_pairs("Doe, John [orcid:0000-0001-2345-6789]", "author") == [
+            ('orcid', '0000-0001-2345-6789'),
+        ]
 
 
 class TestFindFile:
