@@ -63,8 +63,9 @@ def prepare2test(name):
     hack_dates()
     test_graph = test_graph.parse(testcase_ttl, format="ttl")
     new_graph = Graph()
-    for g in creator_setgraph.graphs():
-        new_graph += g
+    for lg in creator_setgraph.graphs():
+        for s, p, o, _ctx in lg.to_rdflib_quads():
+            new_graph.add((s, p, o))
     return test_graph, new_graph
 
 
@@ -85,12 +86,13 @@ class TestCreator:
         creator.type = 'journal article'
         creator.br_graph = creator.setgraph.add_br(
             resp_agent='https://orcid.org/0000-0002-8420-0696',
-            res=URIRef(f'{base_iri}br/0601'),
+            res=f'{base_iri}br/0601',
         )
         creator.vvi_action('OECD [omid:br/0602]', '107', '1')
         output_graph = Graph()
-        for g in creator.setgraph.graphs():
-            output_graph += g
+        for lg in creator.setgraph.graphs():
+            for s, p, o, _ctx in lg.to_rdflib_quads():
+                output_graph.add((s, p, o))
         expected_data = '''
             <https://w3id.org/oc/meta/br/0602> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression>.
             <https://w3id.org/oc/meta/br/0602> <http://purl.org/dc/terms/title> "OECD"^^<http://www.w3.org/2001/XMLSchema#string>.

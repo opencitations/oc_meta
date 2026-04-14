@@ -659,10 +659,10 @@ def apply_correction(editor: MetaEditor, correction: dict) -> None:
         enable_validation=False,
         batch_size=10,
     )
-    br_entity = g_set.get_entity(URIRef(br_uri))
+    br_entity = g_set.get_entity(br_uri)
     assert br_entity is not None
     for ar_uri in correction["delete_ars"]:
-        ar_entity = g_set.get_entity(URIRef(ar_uri))
+        ar_entity = g_set.get_entity(ar_uri)
         assert ar_entity is not None
         ar_entity.remove_next()  # type: ignore[attr-defined]
         br_entity.remove_contributor(ar_entity)  # type: ignore[attr-defined]

@@ -7,7 +7,8 @@ import os
 import pytest
 from oc_meta.lib.finder import ResourceFinder
 from oc_ocdm.graph import GraphEntity
-from rdflib import Graph, Literal, URIRef, RDF, XSD
+from oc_ocdm.light_graph import RDFTerm
+from rdflib import Literal, URIRef, RDF, XSD
 from sparqlite import SPARQLClient
 from test.test_utils import add_data_ts, reset_triplestore
 
@@ -657,7 +658,7 @@ class TestFinderRetrieveReFromBrMeta:
 class TestFinderGetSubgraph:
     def test_get_subgraph_not_found(self):
         finder = ResourceFinder(FINDER_SERVER, FINDER_BASE_IRI)
-        result = finder.get_subgraph(URIRef(f"{FINDER_BASE_IRI}br/nonexistent"))
+        result = finder.get_subgraph(f"{FINDER_BASE_IRI}br/nonexistent")
         assert result is None
 
     def test_get_subgraph_reconstructs_uris(self):
@@ -666,11 +667,11 @@ class TestFinderGetSubgraph:
         id_uri = f"{FINDER_BASE_IRI}id/0601"
         finder._add_triple(br, str(RDF.type), str(GraphEntity.iri_expression))
         finder._add_triple(br, str(GraphEntity.iri_has_identifier), id_uri)
-        g = finder.get_subgraph(URIRef(br))
+        g = finder.get_subgraph(br)
         assert g is not None
         triples = set(g)
-        assert (URIRef(br), RDF.type, GraphEntity.iri_expression) in triples
-        assert (URIRef(br), GraphEntity.iri_has_identifier, URIRef(id_uri)) in triples
+        assert (br, str(RDF.type), RDFTerm("uri", str(GraphEntity.iri_expression))) in triples
+        assert (br, str(GraphEntity.iri_has_identifier), RDFTerm("uri", id_uri)) in triples
         assert len(triples) == 2
 
     def test_get_subgraph_reconstructs_typed_literals(self):
@@ -680,11 +681,11 @@ class TestFinderGetSubgraph:
         date = "2025-01-15"
         finder._add_triple(br, str(GraphEntity.iri_title), title, o_datatype=str(XSD.string))
         finder._add_triple(br, str(GraphEntity.iri_has_publication_date), date, o_datatype=str(XSD.date))
-        g = finder.get_subgraph(URIRef(br))
+        g = finder.get_subgraph(br)
         assert g is not None
         triples = set(g)
-        assert (URIRef(br), GraphEntity.iri_title, Literal(title, datatype=XSD.string)) in triples
-        assert (URIRef(br), GraphEntity.iri_has_publication_date, Literal(date, datatype=XSD.date)) in triples
+        assert (br, str(GraphEntity.iri_title), RDFTerm("literal", title, str(XSD.string))) in triples
+        assert (br, str(GraphEntity.iri_has_publication_date), RDFTerm("literal", date, str(XSD.date))) in triples
         assert len(triples) == 2
 
     def test_get_subgraph_reconstructs_plain_literals(self):
@@ -692,10 +693,10 @@ class TestFinderGetSubgraph:
         br = f"{FINDER_BASE_IRI}br/0603"
         value = "some plain value"
         finder._add_triple(br, str(GraphEntity.iri_title), value)
-        g = finder.get_subgraph(URIRef(br))
+        g = finder.get_subgraph(br)
         assert g is not None
         triples = set(g)
-        assert (URIRef(br), GraphEntity.iri_title, Literal(value, datatype=XSD.string)) in triples
+        assert (br, str(GraphEntity.iri_title), RDFTerm("literal", value, str(XSD.string))) in triples
 
     def test_get_subgraph_accepts_uriref(self):
         finder = ResourceFinder(FINDER_SERVER, FINDER_BASE_IRI)

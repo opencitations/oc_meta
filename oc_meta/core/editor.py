@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import os
 import re
-from typing import Set
 
 import validators
 import yaml
@@ -17,27 +16,25 @@ from oc_ocdm import Storer
 from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
 from oc_ocdm.graph import GraphSet
 from oc_ocdm.graph.graph_entity import GraphEntity
+from oc_ocdm.light_graph import LightGraph, RDFTerm, rdflib_to_rdfterm
 from oc_ocdm.prov import ProvSet
 from oc_ocdm.reader import Reader
 from oc_ocdm.support.support import build_graph_from_results
-from rdflib import RDF, Graph, URIRef
+from rdflib import URIRef
 from sparqlite import SPARQLClient
 
 
 class EntityCache:
     def __init__(self):
-        self.cache: Set[URIRef] = set()
+        self.cache: set[str] = set()
 
-    def add(self, entity: URIRef) -> None:
-        """Add an entity to the cache"""
-        self.cache.add(entity)
+    def add(self, entity: str | URIRef) -> None:
+        self.cache.add(str(entity))
 
-    def is_cached(self, entity: URIRef) -> bool:
-        """Check if an entity is in the cache"""
-        return entity in self.cache
+    def is_cached(self, entity: str | URIRef) -> bool:
+        return str(entity) in self.cache
 
     def clear(self) -> None:
-        """Clear all cached entities"""
         self.cache.clear()
 
 
@@ -83,7 +80,8 @@ class MetaEditor:
     def update_property(
         self, res: URIRef, property: str, new_value: str | URIRef
     ) -> None:
-        supplier_prefix = self.__get_supplier_prefix(res)
+        res_str = str(res)
+        supplier_prefix = self.__get_supplier_prefix(res_str)
         g_set = GraphSet(
             self.base_iri,
             supplier_prefix=supplier_prefix,
@@ -93,21 +91,22 @@ class MetaEditor:
             g_set, self.endpoint, res, self.resp_agent, enable_validation=False
         )
         if validators.url(new_value):
-            new_value = URIRef(new_value)
+            new_value_uri = URIRef(new_value)
             self.reader.import_entity_from_triplestore(
                 g_set,
                 self.endpoint,
-                new_value,
+                new_value_uri,
                 self.resp_agent,
                 enable_validation=False,
             )
-            getattr(g_set.get_entity(res), property)(g_set.get_entity(new_value))
+            getattr(g_set.get_entity(res_str), property)(g_set.get_entity(str(new_value_uri)))
         else:
-            getattr(g_set.get_entity(res), property)(new_value)
+            getattr(g_set.get_entity(res_str), property)(new_value)
         self.save(g_set, supplier_prefix)
 
-    def delete(self, res: str, property: str = None, object: str = None) -> None:
-        supplier_prefix = self.__get_supplier_prefix(res)
+    def delete(self, res: str, property: str | None = None, object: str | None = None) -> None:
+        res_str = str(res)
+        supplier_prefix = self.__get_supplier_prefix(res_str)
         g_set = GraphSet(
             self.base_iri,
             supplier_prefix=supplier_prefix,
@@ -115,23 +114,23 @@ class MetaEditor:
         )
         try:
             self.reader.import_entity_from_triplestore(
-                g_set, self.endpoint, res, self.resp_agent, enable_validation=False
+                g_set, self.endpoint, URIRef(res_str), self.resp_agent, enable_validation=False
             )
         except ValueError as e:
-            print(f"ValueError for entity {res}: {e}")
-            inferred_type = self.infer_type_from_uri(res)
+            print(f"ValueError for entity {res_str}: {e}")
+            inferred_type = self.infer_type_from_uri(res_str)
             if inferred_type:
-                print(f"Inferred type {inferred_type} for entity {res}")
+                print(f"Inferred type {inferred_type} for entity {res_str}")
                 query: str = (
-                    f"SELECT ?s ?p ?o WHERE {{BIND (<{res}> AS ?s). ?s ?p ?o.}}"
+                    f"SELECT ?s ?p ?o WHERE {{BIND (<{res_str}> AS ?s). ?s ?p ?o.}}"
                 )
                 with SPARQLClient(self.endpoint, max_retries=3, backoff_factor=0.3, timeout=3600) as client:
                     result = client.query(query)["results"]["bindings"]
-                preexisting_graph: Graph = build_graph_from_results(result)
-                self.add_entity_with_type(g_set, res, inferred_type, preexisting_graph)
+                preexisting_graph = self._build_light_graph_from_results(result)
+                self.add_entity_with_type(g_set, res_str, inferred_type, preexisting_graph)
             else:
                 return
-        if not g_set.get_entity(URIRef(res)):
+        if not g_set.get_entity(res_str):
             return
         if property:
             remove_method = (
@@ -148,23 +147,19 @@ class MetaEditor:
                     self.reader.import_entity_from_triplestore(
                         g_set,
                         self.endpoint,
-                        object,
+                        URIRef(object),
                         self.resp_agent,
                         enable_validation=False,
                     )
-                    # try:
-                    getattr(g_set.get_entity(URIRef(res)), remove_method)(
-                        g_set.get_entity(URIRef(object))
+                    getattr(g_set.get_entity(res_str), remove_method)(
+                        g_set.get_entity(str(object))
                     )
-                    # TypeError: AgentRole.remove_is_held_by() takes 1 positional argument but 2 were given
-                    # except TypeError:
-                    #     getattr(g_set.get_entity(URIRef(res)), remove_method)()
                 else:
-                    getattr(g_set.get_entity(URIRef(res)), remove_method)(object)
+                    getattr(g_set.get_entity(res_str), remove_method)(object)
             else:
-                getattr(g_set.get_entity(URIRef(res)), remove_method)()
+                getattr(g_set.get_entity(res_str), remove_method)()
         else:
-            query = f"SELECT ?s WHERE {{?s ?p <{res}>.}}"
+            query = f"SELECT ?s WHERE {{?s ?p <{res_str}>.}}"
             with SPARQLClient(self.endpoint, max_retries=3, backoff_factor=0.3, timeout=3600) as client:
                 result = client.query(query)
             for entity in result["results"]["bindings"]:
@@ -175,7 +170,9 @@ class MetaEditor:
                     self.resp_agent,
                     enable_validation=False,
                 )
-            entity_to_purge = g_set.get_entity(URIRef(res))
+            entity_to_purge = g_set.get_entity(res_str)
+            if not entity_to_purge:
+                return
             entity_to_purge.mark_as_to_be_deleted()
         self.save(g_set, supplier_prefix)
 
@@ -266,11 +263,15 @@ class MetaEditor:
                 return
 
         # Perform the merge
-        res_as_entity = g_set.get_entity(res)
-        other_as_entity = g_set.get_entity(other)
+        res_as_entity = g_set.get_entity(str(res))
+        other_as_entity = g_set.get_entity(str(other))
+        if not res_as_entity or not other_as_entity:
+            raise ValueError(f"Entity not found in GraphSet: res={res}, other={other}")
 
+        expression_term = RDFTerm("uri", str(GraphEntity.iri_expression))
+        rdf_type = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
         is_both_expression = all(
-            GraphEntity.iri_expression in entity.g.objects(entity.res, RDF.type)
+            expression_term in entity.g.objects(entity.res, rdf_type)
             for entity in [res_as_entity, other_as_entity]
         )
 
@@ -279,7 +280,7 @@ class MetaEditor:
         else:
             res_as_entity.merge(other_as_entity)
 
-    def sync_rdf_with_triplestore(self, res: str, source_uri: str = None) -> bool:
+    def sync_rdf_with_triplestore(self, res: str, source_uri: str | None = None) -> bool:
         supplier_prefix = self.__get_supplier_prefix(res)
         g_set = GraphSet(
             self.base_iri,
@@ -288,19 +289,22 @@ class MetaEditor:
         )
         try:
             self.reader.import_entity_from_triplestore(
-                g_set, self.endpoint, res, self.resp_agent, enable_validation=False
+                g_set, self.endpoint, URIRef(res), self.resp_agent, enable_validation=False
             )
             self.save(g_set, supplier_prefix)
             return True
         except ValueError:
+            if not source_uri:
+                return False
             try:
                 self.reader.import_entity_from_triplestore(
                     g_set,
                     self.endpoint,
-                    source_uri,
+                    URIRef(source_uri),
                     self.resp_agent,
                     enable_validation=False,
                 )
+                return False
             except ValueError:
                 res_filepath = self.find_file(
                     self.base_dir,
@@ -312,14 +316,16 @@ class MetaEditor:
                 if not res_filepath:
                     return False
                 imported_graph = self.reader.load(res_filepath)
+                if not imported_graph:
+                    return False
                 self.reader.import_entities_from_graph(
                     g_set, imported_graph, self.resp_agent
                 )
-                res_entity = g_set.get_entity(URIRef(source_uri))
+                res_entity = g_set.get_entity(source_uri)
                 if res_entity:
-                    for res, entity in g_set.res_to_entity.items():
+                    for entity_res, entity in g_set.res_to_entity.items():
                         triples_list = list(
-                            entity.g.triples((URIRef(source_uri), None, None))
+                            entity.g.triples((source_uri, None, None))
                         )
                         for triple in triples_list:
                             entity.g.remove(triple)
@@ -361,15 +367,17 @@ class MetaEditor:
         g_set.commit_changes()
 
     def __get_supplier_prefix(self, uri: str) -> str:
-        entity_regex: str = r"^(.+)/([a-z][a-z])/(0[1-9]+0)?([1-9][0-9]*)$"
+        entity_regex: str = r"^(.+)/([a-z][a-z])/(0[1-9]+0)([1-9][0-9]*)$"
         entity_match = re.match(entity_regex, uri)
+        if not entity_match:
+            raise ValueError(f"Invalid entity URI: {uri}")
         return entity_match.group(3)
 
     def find_file(
         self,
         rdf_dir: str,
-        dir_split_number: str,
-        items_per_file: str,
+        dir_split_number: int,
+        items_per_file: int,
         uri: str,
         zip_output_rdf: bool,
     ) -> str | None:
@@ -398,7 +406,7 @@ class MetaEditor:
             cur_file_path = os.path.join(cur_dir_path, str(cur_file_split)) + extension
             return cur_file_path
 
-    def infer_type_from_uri(self, uri: str) -> str:
+    def infer_type_from_uri(self, uri: str) -> str | None:
         if os.path.join(self.base_iri, "br") in uri:
             return GraphEntity.iri_expression
         elif os.path.join(self.base_iri, "ar") in uri:
@@ -411,41 +419,48 @@ class MetaEditor:
             return GraphEntity.iri_identifier
         return None
 
+    @staticmethod
+    def _build_light_graph_from_results(results: list) -> LightGraph:
+        rdflib_graph = build_graph_from_results(results)
+        lg = LightGraph()
+        for s, p, o in rdflib_graph:
+            lg.add((str(s), str(p), rdflib_to_rdfterm(o)))
+        return lg
+
     def add_entity_with_type(
         self,
         g_set: GraphSet,
         res: str,
         entity_type: str,
-        preexisting_graph: Graph,
+        preexisting_graph: LightGraph,
     ):
-        subject = URIRef(res)
         if entity_type == GraphEntity.iri_expression:
             g_set.add_br(
                 resp_agent=self.resp_agent,
-                res=subject,
+                res=res,
                 preexisting_graph=preexisting_graph,
             )
         elif entity_type == GraphEntity.iri_role_in_time:
             g_set.add_ar(
                 resp_agent=self.resp_agent,
-                res=subject,
+                res=res,
                 preexisting_graph=preexisting_graph,
             )
         elif entity_type == GraphEntity.iri_agent:
             g_set.add_ra(
                 resp_agent=self.resp_agent,
-                res=subject,
+                res=res,
                 preexisting_graph=preexisting_graph,
             )
         elif entity_type == GraphEntity.iri_manifestation:
             g_set.add_re(
                 resp_agent=self.resp_agent,
-                res=subject,
+                res=res,
                 preexisting_graph=preexisting_graph,
             )
         elif entity_type == GraphEntity.iri_identifier:
             g_set.add_id(
                 resp_agent=self.resp_agent,
-                res=subject,
+                res=res,
                 preexisting_graph=preexisting_graph,
             )

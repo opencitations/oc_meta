@@ -17,7 +17,8 @@ from oc_ocdm.graph import GraphEntity
 from oc_ocdm.graph.graph_entity import GraphEntity
 from oc_ocdm.prov.prov_entity import ProvEntity
 from oc_ocdm.support import get_resource_number
-from rdflib import RDF, XSD, Graph, Literal, URIRef
+from oc_ocdm.light_graph import LightGraph, RDFTerm
+from rdflib import RDF, XSD, Literal, URIRef
 from sparqlite import SPARQLClient
 from time_agnostic_library.agnostic_entity import AgnosticEntity
 from rich.console import Console
@@ -127,7 +128,7 @@ class ResourceFinder:
     def triple_count(self) -> int:
         return self._triple_count
 
-    def add_triple(self, s: URIRef, p: URIRef, o: URIRef | Literal) -> None:
+    def add_triple(self, s: str | URIRef, p: str | URIRef, o: str | URIRef | Literal) -> None:
         o_datatype = ''
         if isinstance(o, Literal) and o.datatype:
             o_datatype = str(o.datatype)
@@ -444,7 +445,7 @@ class ResourceFinder:
         types = po.get(_P_TYPE, [])
         for t in types:
             if t != _T_EXPRESSION and t.startswith('http'):
-                res_dict['type'] = self._type_it(URIRef(t))
+                res_dict['type'] = self._type_it(t)
                 break
 
         seq_ids = po.get(_P_SEQ_ID, [])
@@ -517,7 +518,7 @@ class ResourceFinder:
     }
 
     @staticmethod
-    def _type_it(br_type: URIRef) -> str:
+    def _type_it(br_type: str) -> str:
         return ResourceFinder._IRI_TO_TYPE.get(br_type, '')
     
     def retrieve_publisher_from_br_metaid(self, metaid: str):
@@ -929,23 +930,21 @@ class ResourceFinder:
         style = "bold red" if max_depth_reached >= max_depth else "bold green"
         console.print(f"  Max traversal depth reached: {max_depth_reached}/{max_depth}", style=style)
 
-    def get_subgraph(self, res) -> Graph | None:
+    def get_subgraph(self, res) -> LightGraph | None:
         res_str = str(res)
         po = self._spo.get(res_str)
         if po is None:
             return None
-        g = Graph()
-        s = URIRef(res_str)
+        g = LightGraph()
         for p_str, objects in po.items():
-            p = URIRef(p_str)
             for o_str in objects:
                 if o_str in self._literal_datatypes:
-                    o: URIRef | Literal = Literal(o_str, datatype=URIRef(self._literal_datatypes[o_str]))
+                    o = RDFTerm("literal", o_str, self._literal_datatypes[o_str])
                 elif o_str.startswith('http'):
-                    o = URIRef(o_str)
+                    o = RDFTerm("uri", o_str)
                 else:
-                    o = Literal(o_str, datatype=URIRef(str(XSD.string)))
-                g.add((s, p, o))
+                    o = RDFTerm("literal", o_str, str(XSD.string))
+                g.add((res_str, p_str, o))
         return g
 
     def retrieve_venue_from_local_graph(self, meta_id: str) -> VenueStructure:
