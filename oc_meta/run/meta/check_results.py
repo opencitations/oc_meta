@@ -5,17 +5,16 @@
 import argparse
 import multiprocessing
 import os
-import re
 import sys
 import zipfile
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import Callable, Dict, List, Set
 
 import orjson
 import yaml
-from rich.progress import BarColumn, Progress, TaskProgressColumn, TextColumn
+from rich.progress import BarColumn, Progress, TaskProgressColumn, TextColumn, TimeElapsedColumn
 from rich_argparse import RichHelpFormatter
 from sparqlite import SPARQLClient
 
@@ -23,7 +22,7 @@ from oc_meta.constants import QLEVER_BATCH_SIZE, QLEVER_MAX_WORKERS, QLEVER_QUER
 from oc_meta.lib.cleaner import normalize_hyphens
 from oc_meta.lib.console import EMATimeRemainingColumn, console
 from oc_meta.lib.file_manager import collect_files, get_csv_data
-from oc_meta.lib.master_of_regex import RE_NAME_AND_IDS, RE_SEMICOLON_IN_PEOPLE_FIELD
+from oc_meta.lib.master_of_regex import RE_ENTITY_URI, RE_NAME_AND_IDS, RE_SEMICOLON_IN_PEOPLE_FIELD
 
 MAX_RETRIES = 10
 RETRY_BACKOFF = 2
@@ -82,10 +81,14 @@ def _run_queries_parallel(
             max_workers=min(len(grouped_queries), workers),
             mp_context=multiprocessing.get_context('forkserver')
         ) as executor:
-            for idx, result in enumerate(executor.map(_execute_sparql_queries, grouped_queries)):
-                all_bindings.extend(result)
+            future_to_size = {
+                executor.submit(_execute_sparql_queries, gq): gs
+                for gq, gs in zip(grouped_queries, grouped_sizes)
+            }
+            for future in as_completed(future_to_size):
+                all_bindings.extend(future.result())
                 if progress_callback:
-                    progress_callback(grouped_sizes[idx])
+                    progress_callback(future_to_size[future])
     else:
         results = _execute_sparql_queries((endpoint_url, batch_queries))
         all_bindings.extend(results)
@@ -109,6 +112,7 @@ def parse_identifiers(id_string: str | None) -> List[Dict[str, str]]:
                 'value': value
             })
     return identifiers
+
 
 def check_provenance_existence(omids: List[str], prov_endpoint_url: str, workers: int = QLEVER_MAX_WORKERS, progress_callback: Callable[[int], None] | None = None) -> Dict[str, bool]:
     if not omids:
@@ -139,6 +143,7 @@ def check_provenance_existence(omids: List[str], prov_endpoint_url: str, workers
             prov_results[omid] = True
 
     return prov_results
+
 
 def check_omids_existence(identifiers: List[Dict[str, str]], endpoint_url: str, workers: int = QLEVER_MAX_WORKERS, progress_callback: Callable[[int], None] | None = None) -> Dict[str, Set[str]]:
     if not identifiers:
@@ -186,9 +191,9 @@ def check_omids_existence(identifiers: List[Dict[str, str]], endpoint_url: str, 
 
     return found_omids
 
+
 def find_file(rdf_dir: str, dir_split_number: int, items_per_file: int, uri: str, zip_output_rdf: bool) -> str|None:
-    entity_regex: str = r'^(https:\/\/w3id\.org\/oc\/meta)\/([a-z][a-z])\/(0[1-9]+0)?([1-9][0-9]*)$'
-    entity_match = re.match(entity_regex, uri)
+    entity_match = RE_ENTITY_URI.match(uri)
     if entity_match:
         cur_number = int(entity_match.group(4))
         cur_file_split: int = 0
@@ -211,6 +216,7 @@ def find_file(rdf_dir: str, dir_split_number: int, items_per_file: int, uri: str
         return cur_file_path
     return None
 
+
 def find_prov_file(data_zip_path: str) -> str|None:
     base_dir = os.path.dirname(data_zip_path)
     file_name = os.path.splitext(os.path.basename(data_zip_path))[0]
@@ -218,12 +224,35 @@ def find_prov_file(data_zip_path: str) -> str|None:
     prov_file = os.path.join(prov_dir, 'se.zip')
     return prov_file if os.path.exists(prov_file) else None
 
+
+def _check_zip_file(args: tuple) -> tuple[str, dict[str, tuple[bool, bool]]]:
+    zip_path, omids = args
+    data_content = None
+    with zipfile.ZipFile(zip_path, 'r') as z:
+        json_files = [f for f in z.namelist() if f.endswith('.json')]
+        if json_files:
+            with z.open(json_files[0]) as f:
+                data_content = f.read().decode('utf-8')
+
+    prov_content = None
+    prov_path = find_prov_file(zip_path)
+    if prov_path:
+        with zipfile.ZipFile(prov_path, 'r') as z:
+            json_files = [f for f in z.namelist() if f.endswith('.json')]
+            if json_files:
+                with z.open(json_files[0]) as f:
+                    prov_content = f.read().decode('utf-8')
+
+    results: dict[str, tuple[bool, bool]] = {}
+    for omid in omids:
+        data_found = data_content is not None and omid in data_content
+        prov_found = prov_content is not None and omid in prov_content
+        results[omid] = (data_found, prov_found)
+    return zip_path, results
+
+
 def process_csv_file(args: tuple, workers: int = QLEVER_MAX_WORKERS, progress=None, task_id=None) -> FileStats:
     csv_file, endpoint_url, prov_endpoint_url, rdf_dir, dir_split_number, items_per_file, zip_output_rdf = args
-
-    def update_phase(phase: str):
-        if progress and task_id is not None:
-            progress.update(task_id, detail=phase)
 
     stats = FileStats(file=os.path.basename(csv_file))
 
@@ -232,7 +261,9 @@ def process_csv_file(args: tuple, workers: int = QLEVER_MAX_WORKERS, progress=No
     unique_identifiers = set()
     row_identifiers = []
 
-    update_phase("Phase 1/5: Reading CSV")
+    if progress and task_id is not None:
+        progress.update(task_id, detail="Phase 1/5: Reading CSV")
+
     rows = get_csv_data(csv_file)
     for row_num, row in enumerate(rows, 1):
         stats.total_rows += 1
@@ -279,104 +310,115 @@ def process_csv_file(args: tuple, workers: int = QLEVER_MAX_WORKERS, progress=No
             })
 
     total_ids = len(all_identifiers)
-    ids_processed = 0
+
+    phase2_task = None
+    if progress:
+        phase2_task = progress.add_task("  Phase 2/5: Querying DB", total=total_ids, detail="")
 
     def on_id_batch(batch_size: int):
-        nonlocal ids_processed
-        ids_processed += batch_size
-        update_phase(f"Phase 2/5: Querying DB [{ids_processed}/{total_ids} identifiers]")
+        if progress and phase2_task is not None:
+            progress.advance(phase2_task, batch_size)
 
-    update_phase(f"Phase 2/5: Querying DB [0/{total_ids} identifiers]")
     identifier_cache = check_omids_existence(all_identifiers, endpoint_url, workers=workers, progress_callback=on_id_batch)
 
-    update_phase("Phase 3/5: Mapping OMIDs to files")
-    omids_by_file = {}
-    all_omids = set()
+    if progress and phase2_task is not None:
+        progress.update(phase2_task, visible=False)
+
+    if progress and task_id is not None:
+        progress.update(task_id, detail="Phase 3/5: Mapping OMIDs to files")
+
+    omids_by_file: dict[str, set[str]] = {}
+    all_omids: set[str] = set()
+    path_exists_cache: dict[str, bool] = {}
+
+    for id_key, omids in identifier_cache.items():
+        all_omids.add(next(iter(omids)))
+        for omid in omids:
+            zip_path = find_file(rdf_dir, dir_split_number, items_per_file, omid, zip_output_rdf)
+            if zip_path:
+                if zip_path in omids_by_file:
+                    omids_by_file[zip_path].add(omid)
+                else:
+                    if zip_path not in path_exists_cache:
+                        path_exists_cache[zip_path] = os.path.exists(zip_path)
+                    if path_exists_cache[zip_path]:
+                        omids_by_file[zip_path] = {omid}
 
     for row_num, col, identifier in row_identifiers:
         id_key = f"{identifier['schema']}:{identifier['value']}"
-
-        omids: set = set()
-        if identifier['schema'].lower() == 'omid':
-            pass
-        else:
-            omids = identifier_cache.get(id_key, set())
-
-            if omids:
+        has_omid = identifier['schema'].lower() != 'omid' and id_key in identifier_cache
+        if identifier['schema'].lower() != 'omid':
+            if has_omid:
                 stats.identifiers_with_omids += 1
-                all_omids.add(next(iter(omids)))
-
-                for omid in omids:
-                    zip_path = find_file(rdf_dir, dir_split_number, items_per_file, omid, zip_output_rdf)
-                    if zip_path and os.path.exists(zip_path):
-                        if zip_path not in omids_by_file:
-                            omids_by_file[zip_path] = set()
-                        omids_by_file[zip_path].add(omid)
             else:
                 stats.identifiers_without_omids += 1
-
         stats.identifiers_details.append({
             'schema': identifier['schema'],
             'value': identifier['value'],
             'column': col,
-            'has_omid': bool(omids),
+            'has_omid': has_omid,
             'row_number': row_num,
             'file': csv_file
         })
 
     total_rdf_files = len(omids_by_file)
-    rdf_files_checked = 0
-    update_phase(f"Phase 4/5: Checking RDF files [0/{total_rdf_files}]")
-    for zip_path, omids in omids_by_file.items():
-        data_content = None
-        with zipfile.ZipFile(zip_path, 'r') as z:
-            json_files = [f for f in z.namelist() if f.endswith('.json')]
-            if json_files:
-                with z.open(json_files[0]) as f:
-                    data_content = f.read().decode('utf-8')
 
-        prov_content = None
-        prov_path = find_prov_file(zip_path)
-        if prov_path and os.path.exists(prov_path):
-            with zipfile.ZipFile(prov_path, 'r') as z:
-                json_files = [f for f in z.namelist() if f.endswith('.json')]
-                if json_files:
-                    with z.open(json_files[0]) as f:
-                        prov_content = f.read().decode('utf-8')
+    omid_to_row: dict[str, tuple[int, str, str]] = {}
+    for row_num, col, identifier in row_identifiers:
+        id_key = f"{identifier['schema']}:{identifier['value']}"
+        if identifier['schema'].lower() != 'omid':
+            for omid in identifier_cache.get(id_key, set()):
+                if omid not in omid_to_row:
+                    omid_to_row[omid] = (row_num, col, id_key)
 
-        for omid in omids:
-            data_found = data_content is not None and omid in data_content
+    phase4_task = None
+    if progress:
+        phase4_task = progress.add_task("  Phase 4/5: Checking RDF files", total=total_rdf_files, detail="")
 
-            if prov_content is not None:
-                prov_found = omid in prov_content
-            else:
-                prov_found = False
+    zip_args = [(zp, list(omids)) for zp, omids in omids_by_file.items()]
 
+    def _apply_zip_results(results: dict[str, tuple[bool, bool]]) -> None:
+        for omid, (data_found, prov_found) in results.items():
             if data_found:
                 stats.data_graphs_found += 1
             else:
                 stats.data_graphs_missing += 1
-
             if prov_found:
                 stats.prov_graphs_found += 1
             else:
                 stats.prov_graphs_missing += 1
+            if omid in omid_to_row:
+                row_num, col, id_key = omid_to_row[omid]
+                stats.processed_omids[omid] = {
+                    'row': row_num,
+                    'column': col,
+                    'identifier': id_key,
+                    'file': csv_file,
+                    'data_found': data_found,
+                    'prov_found': prov_found
+                }
 
-            for row_num, col, identifier in row_identifiers:
-                id_key = f"{identifier['schema']}:{identifier['value']}"
-                if omid in identifier_cache.get(id_key, set()):
-                    stats.processed_omids[omid] = {
-                        'row': row_num,
-                        'column': col,
-                        'identifier': id_key,
-                        'file': csv_file,
-                        'data_found': data_found,
-                        'prov_found': prov_found
-                    }
-                    break
+    if zip_args and workers > 1:
+        with ProcessPoolExecutor(
+            max_workers=min(len(zip_args), workers),
+            mp_context=multiprocessing.get_context('forkserver')
+        ) as executor:
+            for future in as_completed(
+                {executor.submit(_check_zip_file, a): a for a in zip_args}
+            ):
+                _zip_path, results = future.result()
+                _apply_zip_results(results)
+                if progress and phase4_task is not None:
+                    progress.advance(phase4_task)
+    else:
+        for a in zip_args:
+            _zip_path, results = _check_zip_file(a)
+            _apply_zip_results(results)
+            if progress and phase4_task is not None:
+                progress.advance(phase4_task)
 
-        rdf_files_checked += 1
-        update_phase(f"Phase 4/5: Checking RDF files [{rdf_files_checked}/{total_rdf_files}]")
+    if progress and phase4_task is not None:
+        progress.update(phase4_task, visible=False)
 
     for row_num, col, identifier in row_identifiers:
         if identifier['schema'].lower() == 'omid':
@@ -385,15 +427,19 @@ def process_csv_file(args: tuple, workers: int = QLEVER_MAX_WORKERS, progress=No
                 all_omids.add(omid)
 
     total_omids = len(all_omids)
-    omids_checked = 0
+
+    phase5_task = None
+    if progress:
+        phase5_task = progress.add_task("  Phase 5/5: Checking provenance", total=total_omids, detail="")
 
     def on_prov_batch(batch_size: int):
-        nonlocal omids_checked
-        omids_checked += batch_size
-        update_phase(f"Phase 5/5: Checking provenance [{omids_checked}/{total_omids} OMIDs]")
+        if progress and phase5_task is not None:
+            progress.advance(phase5_task, batch_size)
 
-    update_phase(f"Phase 5/5: Checking provenance [0/{total_omids} OMIDs]")
     prov_results = check_provenance_existence(list(all_omids), prov_endpoint_url, workers=workers, progress_callback=on_prov_batch)
+
+    if progress and phase5_task is not None:
+        progress.update(phase5_task, visible=False)
 
     for omid, has_prov in prov_results.items():
         if has_prov:
@@ -429,7 +475,7 @@ def main():
         console.print(f"RDF directory not found at {output_rdf_dir}")
         return
 
-    csv_files = sorted(collect_files(input_csv_dir, pattern="*.csv"))
+    csv_files = collect_files(input_csv_dir, pattern="*.csv")
 
     if not csv_files:
         console.print(f"No CSV files found in {input_csv_dir}")
@@ -450,15 +496,16 @@ def main():
     with Progress(
         TextColumn("[progress.description]{task.description}"),
         BarColumn(),
+        TextColumn("[cyan]{task.completed:.0f}/{task.total:.0f}"),
         TaskProgressColumn(),
+        TimeElapsedColumn(),
         EMATimeRemainingColumn(),
-        TextColumn("[cyan]{task.fields[current_file]}"),
-        TextColumn("[yellow]{task.fields[detail]}"),
+        TextColumn("[cyan]{task.fields[detail]}"),
     ) as progress:
-        task = progress.add_task("Processing CSV files", total=len(csv_files), current_file="", detail="")
+        task = progress.add_task("Processing CSV files", total=len(csv_files), detail="")
         for idx, proc_args in enumerate(process_args):
             current_file = os.path.basename(csv_files[idx])
-            progress.update(task, current_file=f"[{idx+1}/{len(csv_files)}] {current_file}")
+            progress.update(task, detail=f"[{idx+1}/{len(csv_files)}] {current_file}")
 
             file_stats = process_csv_file(proc_args, workers=args.workers, progress=progress, task_id=task)
             all_file_stats.append(file_stats)
@@ -503,7 +550,9 @@ def main():
     with Progress(
         TextColumn("[progress.description]{task.description}"),
         BarColumn(),
+        TextColumn("[cyan]{task.completed:.0f}/{task.total:.0f}"),
         TaskProgressColumn(),
+        TimeElapsedColumn(),
         EMATimeRemainingColumn(),
         TextColumn("[cyan]{task.fields[detail]}"),
     ) as progress:
