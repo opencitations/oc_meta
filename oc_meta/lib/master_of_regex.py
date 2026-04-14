@@ -28,7 +28,7 @@ comma_and_spaces = r'\s*,\s*'
 # It captures one or more spaces.
 one_or_more_spaces = r'\s+'
 
-RE_ENTITY_URI = re.compile(r'^(https://w3id\.org/oc/meta)/(br|ra|ar|re|id)/(06[1-9]*0)([1-9]\d*)$')
+RE_ENTITY_URI = re.compile(r'^(?P<base>https://w3id\.org/oc/meta)/(?P<short_name>br|ra|ar|re|id)/(?P<supplier_prefix>06[1-9]*0)(?P<entity_number>[1-9]\d*)$')
 RE_SEMICOLON_IN_PEOPLE_FIELD = re.compile(semicolon_in_people_field)
 RE_NAME_AND_IDS = re.compile(name_and_ids)
 RE_COLON_AND_SPACES = re.compile(colon_and_spaces)

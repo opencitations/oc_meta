@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: ISC
 
 import argparse
+import collections
 import multiprocessing
 import os
 import sys
@@ -27,6 +28,8 @@ from oc_meta.lib.master_of_regex import RE_ENTITY_URI, RE_NAME_AND_IDS, RE_SEMIC
 MAX_RETRIES = 10
 RETRY_BACKOFF = 2
 DATACITE_PREFIX = "http://purl.org/spar/datacite/"
+
+IdDetail = collections.namedtuple('IdDetail', ['schema', 'value', 'column', 'has_omid', 'row_number', 'file', 'id_key'])
 
 
 @dataclass
@@ -195,21 +198,11 @@ def check_omids_existence(identifiers: List[Dict[str, str]], endpoint_url: str, 
 def find_file(rdf_dir: str, dir_split_number: int, items_per_file: int, uri: str, zip_output_rdf: bool) -> str|None:
     entity_match = RE_ENTITY_URI.match(uri)
     if entity_match:
-        cur_number = int(entity_match.group(4))
-        cur_file_split: int = 0
-        while True:
-            if cur_number > cur_file_split:
-                cur_file_split += items_per_file
-            else:
-                break
-        cur_split: int = 0
-        while True:
-            if cur_number > cur_split:
-                cur_split += dir_split_number
-            else:
-                break
-        short_name = entity_match.group(2)
-        sub_folder = entity_match.group(3)
+        cur_number = int(entity_match.group('entity_number'))
+        cur_file_split = ((cur_number - 1) // items_per_file + 1) * items_per_file
+        cur_split = ((cur_number - 1) // dir_split_number + 1) * dir_split_number
+        short_name = entity_match.group('short_name')
+        sub_folder = entity_match.group('supplier_prefix')
         cur_dir_path = os.path.join(rdf_dir, short_name, sub_folder, str(cur_split))
         extension = '.zip' if zip_output_rdf else '.json'
         cur_file_path = os.path.join(cur_dir_path, str(cur_file_split)) + extension
@@ -225,29 +218,43 @@ def find_prov_file(data_zip_path: str) -> str|None:
     return prov_file if os.path.exists(prov_file) else None
 
 
+def _extract_ids_from_data(raw: bytes) -> set[str]:
+    parsed = orjson.loads(raw)
+    return {entity["@id"] for entity in parsed}
+
+
+def _extract_omids_from_prov(raw: bytes) -> set[str]:
+    parsed = orjson.loads(raw)
+    omids = set()
+    for graph_obj in parsed:
+        graph_id = graph_obj["@id"]
+        if graph_id.endswith("/prov/"):
+            omids.add(graph_id[:-6])
+    return omids
+
+
 def _check_zip_file(args: tuple) -> tuple[str, dict[str, tuple[bool, bool]]]:
     zip_path, omids = args
-    data_content = None
+
+    data_ids: set[str] = set()
     with zipfile.ZipFile(zip_path, 'r') as z:
         json_files = [f for f in z.namelist() if f.endswith('.json')]
         if json_files:
             with z.open(json_files[0]) as f:
-                data_content = f.read().decode('utf-8')
+                data_ids = _extract_ids_from_data(f.read())
 
-    prov_content = None
+    prov_omids: set[str] = set()
     prov_path = find_prov_file(zip_path)
     if prov_path:
         with zipfile.ZipFile(prov_path, 'r') as z:
             json_files = [f for f in z.namelist() if f.endswith('.json')]
             if json_files:
                 with z.open(json_files[0]) as f:
-                    prov_content = f.read().decode('utf-8')
+                    prov_omids = _extract_omids_from_prov(f.read())
 
     results: dict[str, tuple[bool, bool]] = {}
     for omid in omids:
-        data_found = data_content is not None and omid in data_content
-        prov_found = prov_content is not None and omid in prov_content
-        results[omid] = (data_found, prov_found)
+        results[omid] = (omid in data_ids, omid in prov_omids)
     return zip_path, results
 
 
@@ -325,7 +332,7 @@ def process_csv_file(args: tuple, workers: int = QLEVER_MAX_WORKERS, progress=No
         progress.update(phase2_task, visible=False)
 
     if progress and task_id is not None:
-        progress.update(task_id, detail="Phase 3/5: Mapping OMIDs to files")
+        progress.update(task_id, detail="Phase 3/5: Mapping OMIDs and building indexes")
 
     omids_by_file: dict[str, set[str]] = {}
     all_omids: set[str] = set()
@@ -344,32 +351,48 @@ def process_csv_file(args: tuple, workers: int = QLEVER_MAX_WORKERS, progress=No
                     if path_exists_cache[zip_path]:
                         omids_by_file[zip_path] = {omid}
 
-    for row_num, col, identifier in row_identifiers:
-        id_key = f"{identifier['schema']}:{identifier['value']}"
-        has_omid = identifier['schema'].lower() != 'omid' and id_key in identifier_cache
-        if identifier['schema'].lower() != 'omid':
-            if has_omid:
-                stats.identifiers_with_omids += 1
-            else:
-                stats.identifiers_without_omids += 1
-        stats.identifiers_details.append({
-            'schema': identifier['schema'],
-            'value': identifier['value'],
-            'column': col,
-            'has_omid': has_omid,
-            'row_number': row_num,
-            'file': csv_file
-        })
-
-    total_rdf_files = len(omids_by_file)
-
     omid_to_row: dict[str, tuple[int, str, str]] = {}
     for row_num, col, identifier in row_identifiers:
         id_key = f"{identifier['schema']}:{identifier['value']}"
-        if identifier['schema'].lower() != 'omid':
-            for omid in identifier_cache.get(id_key, set()):
-                if omid not in omid_to_row:
-                    omid_to_row[omid] = (row_num, col, id_key)
+        is_omid_schema = identifier['schema'].lower() == 'omid'
+
+        if is_omid_schema:
+            has_omid = False
+            if identifier['value'].startswith('http'):
+                all_omids.add(identifier['value'])
+        else:
+            has_omid = id_key in identifier_cache
+            if has_omid:
+                stats.identifiers_with_omids += 1
+                for omid in identifier_cache[id_key]:
+                    if omid not in omid_to_row:
+                        omid_to_row[omid] = (row_num, col, id_key)
+            else:
+                stats.identifiers_without_omids += 1
+
+        stats.identifiers_details.append(IdDetail(
+            schema=identifier['schema'],
+            value=identifier['value'],
+            column=col,
+            has_omid=has_omid,
+            row_number=row_num,
+            file=csv_file,
+            id_key=id_key,
+        ))
+
+    total_rdf_files = len(omids_by_file)
+    total_omids = len(all_omids)
+
+    prov_future = None
+    prov_executor = None
+    if total_omids > 0:
+        prov_executor = ProcessPoolExecutor(
+            max_workers=1,
+            mp_context=multiprocessing.get_context('forkserver')
+        )
+        prov_future = prov_executor.submit(
+            check_provenance_existence, list(all_omids), prov_endpoint_url, workers
+        )
 
     phase4_task = None
     if progress:
@@ -420,25 +443,17 @@ def process_csv_file(args: tuple, workers: int = QLEVER_MAX_WORKERS, progress=No
     if progress and phase4_task is not None:
         progress.update(phase4_task, visible=False)
 
-    for row_num, col, identifier in row_identifiers:
-        if identifier['schema'].lower() == 'omid':
-            omid = identifier['value']
-            if omid.startswith('http'):
-                all_omids.add(omid)
-
-    total_omids = len(all_omids)
-
     phase5_task = None
     if progress:
         phase5_task = progress.add_task("  Phase 5/5: Checking provenance", total=total_omids, detail="")
 
-    def on_prov_batch(batch_size: int):
-        if progress and phase5_task is not None:
-            progress.advance(phase5_task, batch_size)
-
-    prov_results = check_provenance_existence(list(all_omids), prov_endpoint_url, workers=workers, progress_callback=on_prov_batch)
+    prov_results: Dict[str, bool] = {}
+    if prov_future and prov_executor:
+        prov_results = prov_future.result()
+        prov_executor.shutdown(wait=False)
 
     if progress and phase5_task is not None:
+        progress.advance(phase5_task, total_omids)
         progress.update(phase5_task, visible=False)
 
     for omid, has_prov in prov_results.items():
@@ -487,7 +502,7 @@ def main():
     os.makedirs(output_dir, exist_ok=True)
 
     all_file_stats: list[FileStats] = []
-    all_identifiers_details: list[dict] = []
+    all_identifiers_details: list[IdDetail] = []
     all_processed_omids: dict[str, dict] = {}
     id_key_to_omids: dict[str, set[str]] = {}
 
@@ -526,14 +541,14 @@ def main():
     warnings: list[dict] = []
 
     for detail in all_identifiers_details:
-        if not detail['has_omid'] and detail['schema'].lower() != 'omid':
+        if not detail.has_omid and detail.schema.lower() != 'omid':
             errors.append({
                 "type": "missing_omid",
-                "schema": detail['schema'],
-                "value": detail['value'],
-                "file": os.path.basename(detail['file']),
-                "row": detail['row_number'],
-                "column": detail['column'],
+                "schema": detail.schema,
+                "value": detail.value,
+                "file": os.path.basename(detail.file),
+                "row": detail.row_number,
+                "column": detail.column,
             })
 
     for omid, details in all_processed_omids.items():
@@ -556,24 +571,25 @@ def main():
         EMATimeRemainingColumn(),
         TextColumn("[cyan]{task.fields[detail]}"),
     ) as progress:
+        problematic_keys = {k for k, v in id_key_to_omids.items() if len(v) > 1}
         problematic: dict[str, dict] = {}
         task = progress.add_task("Checking cross-file issues", total=len(all_identifiers_details), detail="")
-        for detail in all_identifiers_details:
-            id_key = f"{detail['schema']}:{detail['value']}"
-            omids = id_key_to_omids.get(id_key, set())
-
-            if len(omids) > 1:
-                if id_key not in problematic:
-                    problematic[id_key] = {
-                        'omids': omids,
-                        'occurrences': []
-                    }
-                problematic[id_key]['occurrences'].append({
-                    'file': os.path.basename(detail['file']),
-                    'row': detail['row_number'],
-                    'column': detail['column'],
-                })
-            progress.advance(task)
+        if problematic_keys:
+            for detail in all_identifiers_details:
+                if detail.id_key in problematic_keys:
+                    if detail.id_key not in problematic:
+                        problematic[detail.id_key] = {
+                            'omids': id_key_to_omids[detail.id_key],
+                            'occurrences': []
+                        }
+                    problematic[detail.id_key]['occurrences'].append({
+                        'file': os.path.basename(detail.file),
+                        'row': detail.row_number,
+                        'column': detail.column,
+                    })
+                progress.advance(task)
+        else:
+            progress.advance(task, len(all_identifiers_details))
         progress.update(task, detail=f"Found {len(problematic)} identifiers with multiple OMIDs")
 
     for id_key, details in problematic.items():
@@ -587,19 +603,26 @@ def main():
 
     # Aggregate summary
     summary = {
-        "total_rows": sum(fs.total_rows for fs in all_file_stats),
-        "rows_with_ids": sum(fs.rows_with_ids for fs in all_file_stats),
-        "total_identifiers": sum(fs.total_identifiers for fs in all_file_stats),
-        "omid_schema_identifiers": sum(fs.omid_schema_identifiers for fs in all_file_stats),
-        "identifiers_with_omids": sum(fs.identifiers_with_omids for fs in all_file_stats),
-        "identifiers_without_omids": sum(fs.identifiers_without_omids for fs in all_file_stats),
-        "data_graphs_found": sum(fs.data_graphs_found for fs in all_file_stats),
-        "data_graphs_missing": sum(fs.data_graphs_missing for fs in all_file_stats),
-        "prov_graphs_found": sum(fs.prov_graphs_found for fs in all_file_stats),
-        "prov_graphs_missing": sum(fs.prov_graphs_missing for fs in all_file_stats),
-        "omids_with_provenance": sum(fs.omids_with_provenance for fs in all_file_stats),
-        "omids_without_provenance": sum(fs.omids_without_provenance for fs in all_file_stats),
+        "total_rows": 0, "rows_with_ids": 0, "total_identifiers": 0,
+        "omid_schema_identifiers": 0, "identifiers_with_omids": 0,
+        "identifiers_without_omids": 0, "data_graphs_found": 0,
+        "data_graphs_missing": 0, "prov_graphs_found": 0,
+        "prov_graphs_missing": 0, "omids_with_provenance": 0,
+        "omids_without_provenance": 0,
     }
+    for fs in all_file_stats:
+        summary["total_rows"] += fs.total_rows
+        summary["rows_with_ids"] += fs.rows_with_ids
+        summary["total_identifiers"] += fs.total_identifiers
+        summary["omid_schema_identifiers"] += fs.omid_schema_identifiers
+        summary["identifiers_with_omids"] += fs.identifiers_with_omids
+        summary["identifiers_without_omids"] += fs.identifiers_without_omids
+        summary["data_graphs_found"] += fs.data_graphs_found
+        summary["data_graphs_missing"] += fs.data_graphs_missing
+        summary["prov_graphs_found"] += fs.prov_graphs_found
+        summary["prov_graphs_missing"] += fs.prov_graphs_missing
+        summary["omids_with_provenance"] += fs.omids_with_provenance
+        summary["omids_without_provenance"] += fs.omids_without_provenance
 
     status = "PASS" if not errors else "FAIL"
 

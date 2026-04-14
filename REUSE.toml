@@ -408,6 +408,14 @@ path = [
 SPDX-FileCopyrightText = "2024-2025 Arcangelo Massari <arcangelo.massari@unibo.it>"
 SPDX-License-Identifier = "ISC"
 
+[[annotations]]
+path = [
+    "test/testcases/ts/check_results_data.nt",
+    "test/testcases/ts/check_results_prov.nq",
+]
+SPDX-FileCopyrightText = "2026 Arcangelo Massari <arcangelo.massari@unibo.it>"
+SPDX-License-Identifier = "ISC"
+
 # Generated during tests
 [[annotations]]
 path = [

@@ -9,6 +9,7 @@ import json
 import os
 import zipfile
 
+import orjson
 import pytest
 import yaml
 
@@ -220,22 +221,29 @@ class TestMainIntegration:
         return csv_path
 
     @staticmethod
-    def _create_rdf_zip(rdf_dir: str, entity_type: str, prefix: str, dir_split: int, file_split: int, content: str):
+    def _create_rdf_zip(rdf_dir: str, entity_type: str, prefix: str, dir_split: int, file_split: int, *omid_uris: str):
         target_dir = os.path.join(rdf_dir, entity_type, prefix, str(dir_split))
         os.makedirs(target_dir, exist_ok=True)
         zip_path = os.path.join(target_dir, f"{file_split}.zip")
+
+        content = orjson.dumps([{"@id": uri} for uri in omid_uris])
         with zipfile.ZipFile(zip_path, 'w') as z:
             z.writestr(f"{file_split}.json", content)
         return zip_path
 
     @staticmethod
-    def _create_prov_zip(data_zip_path: str, omid_uri: str):
+    def _create_prov_zip(data_zip_path: str, *omid_uris: str):
+
         base_dir = os.path.dirname(data_zip_path)
         file_name = os.path.splitext(os.path.basename(data_zip_path))[0]
         prov_dir = os.path.join(base_dir, file_name, "prov")
         os.makedirs(prov_dir, exist_ok=True)
+        content = orjson.dumps([
+            {"@id": f"{uri}/prov/", "@graph": [{"@id": f"{uri}/prov/se/1"}]}
+            for uri in omid_uris
+        ])
         with zipfile.ZipFile(os.path.join(prov_dir, "se.zip"), 'w') as z:
-            z.writestr("se.json", f'{{"@id": "{omid_uri}/prov/se/1"}}')
+            z.writestr("se.json", content)
 
     @staticmethod
     def _write_config(tmp_path, input_dir, output_dir) -> str:
@@ -279,7 +287,7 @@ class TestMainIntegration:
         ])
 
         omid_uri = "https://w3id.org/oc/meta/id/0601"
-        zip_path = self._create_rdf_zip(str(rdf_dir), "id", "060", 10000, 1000, f'{{"@id": "{omid_uri}"}}')
+        zip_path = self._create_rdf_zip(str(rdf_dir), "id", "060", 10000, 1000, omid_uri)
         self._create_prov_zip(zip_path, omid_uri)
 
         config_path = self._write_config(tmp_path, input_dir, output_dir)
@@ -342,7 +350,7 @@ class TestMainIntegration:
         omid2 = "https://w3id.org/oc/meta/id/0603"
 
         for omid_uri, file_num in [(omid1, 1000), (omid2, 2000)]:
-            zip_path = self._create_rdf_zip(str(rdf_dir), "id", "060", 10000, file_num, f'{{"@id": "{omid_uri}"}}')
+            zip_path = self._create_rdf_zip(str(rdf_dir), "id", "060", 10000, file_num, omid_uri)
             self._create_prov_zip(zip_path, omid_uri)
 
         config_path = self._write_config(tmp_path, input_dir, output_dir)
@@ -405,14 +413,14 @@ class TestMainIntegration:
             }
         ])
 
-        for omid_uri in [
+        omid_uris = [
             "https://w3id.org/oc/meta/id/0601",
             "https://w3id.org/oc/meta/id/0604",
             "https://w3id.org/oc/meta/id/0605",
             "https://w3id.org/oc/meta/id/0606",
-        ]:
-            zip_path = self._create_rdf_zip(str(rdf_dir), "id", "060", 10000, 1000, f'{{"@id": "{omid_uri}"}}')
-            self._create_prov_zip(zip_path, omid_uri)
+        ]
+        zip_path = self._create_rdf_zip(str(rdf_dir), "id", "060", 10000, 1000, *omid_uris)
+        self._create_prov_zip(zip_path, *omid_uris)
 
         config_path = self._write_config(tmp_path, input_dir, output_dir)
         output_path = str(tmp_path / "report.json")
@@ -437,7 +445,7 @@ class TestMainIntegration:
         ])
 
         omid_uri = "https://w3id.org/oc/meta/id/0601"
-        zip_path = self._create_rdf_zip(str(rdf_dir), "id", "060", 10000, 1000, f'{{"@id": "{omid_uri}"}}')
+        zip_path = self._create_rdf_zip(str(rdf_dir), "id", "060", 10000, 1000, omid_uri)
         self._create_prov_zip(zip_path, omid_uri)
 
         config_path = self._write_config(tmp_path, input_dir, output_dir)
@@ -463,7 +471,7 @@ class TestMainIntegration:
         ])
 
         omid_uri = "https://w3id.org/oc/meta/id/0609"
-        zip_path = self._create_rdf_zip(str(rdf_dir), "id", "060", 10000, 1000, f'{{"@id": "{omid_uri}"}}')
+        zip_path = self._create_rdf_zip(str(rdf_dir), "id", "060", 10000, 1000, omid_uri)
         self._create_prov_zip(zip_path, omid_uri)
 
         config_path = self._write_config(tmp_path, input_dir, output_dir)
@@ -490,7 +498,7 @@ class TestMainIntegration:
         ])
 
         omid_uri = "https://w3id.org/oc/meta/id/0601"
-        self._create_rdf_zip(str(rdf_dir), "id", "060", 10000, 1000, f'{{"@id": "{omid_uri}"}}')
+        self._create_rdf_zip(str(rdf_dir), "id", "060", 10000, 1000, omid_uri)
         # No prov zip on disk
 
         config_path = self._write_config(tmp_path, input_dir, output_dir)
@@ -516,10 +524,7 @@ class TestMainIntegration:
 
         omid1 = "https://w3id.org/oc/meta/id/0607"
         omid2 = "https://w3id.org/oc/meta/id/0608"
-        zip_path = self._create_rdf_zip(
-            str(rdf_dir), "id", "060", 10000, 1000,
-            f'{{"@id": "{omid1}"}}{{"@id": "{omid2}"}}'
-        )
+        zip_path = self._create_rdf_zip(str(rdf_dir), "id", "060", 10000, 1000, omid1, omid2)
         self._create_prov_zip(zip_path, omid1)
 
         config_path = self._write_config(tmp_path, input_dir, output_dir)
