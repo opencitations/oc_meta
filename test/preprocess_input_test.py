@@ -18,11 +18,20 @@ from oc_meta.run.meta.preprocess_input import (
     FileResult,
     ProcessingStats,
     check_ids_existence_batch,
+    check_ids_sparql,
+    collect_rows_from_file,
     create_redis_connection,
     deduplicate_and_write,
+    filter_existing_ids_from_file,
+    filter_sparql_results,
     get_csv_files,
     print_processing_report,
-    filter_existing_ids_from_file,
+)
+from test.test_utils import SERVER, add_data_ts
+
+
+DATA_FILE = os.path.abspath(
+    os.path.join("test", "testcases", "ts", "check_results_data.nt")
 )
 
 
@@ -245,3 +254,366 @@ class TestPreprocessInput:
         assert "10" in output
         assert "20" in output
         assert "70" in output
+
+
+class TestCollectRowsFromFile:
+
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        self.test_dir = tempfile.mkdtemp(dir=".")
+        yield
+        shutil.rmtree(self.test_dir)
+
+    def test_collect_rows_basic(self):
+        csv_path = os.path.join(self.test_dir, "data.csv")
+        csv_data = '''id,title,author,pub_date,venue,volume,issue,page,type,publisher,editor
+"doi:10.1234/test","Test Title","Author 1","2024","Venue 1","1","1","1-10","journal article","Publisher 1",
+"doi:10.5678/other","Other Title","Author 2","2024","Venue 2","2","1","11-20","journal article","Publisher 2",'''
+
+        with open(csv_path, "w", encoding="utf-8") as f:
+            f.write(csv_data)
+
+        result = collect_rows_from_file(csv_path)
+
+        assert result.file_path == csv_path
+        assert result.stats.total_rows == 2
+        assert result.stats.existing_ids_rows == 0
+        assert len(result.rows) == 2
+
+    def test_collect_rows_empty_file(self):
+        csv_path = os.path.join(self.test_dir, "empty.csv")
+        with open(csv_path, "w", encoding="utf-8") as f:
+            f.write("id,title,author,pub_date,venue,volume,issue,page,type,publisher,editor\n")
+
+        result = collect_rows_from_file(csv_path)
+
+        assert result.stats.total_rows == 0
+        assert len(result.rows) == 0
+
+
+class TestCheckIdsSparql:
+
+    @pytest.fixture(autouse=True)
+    def _load_data(self):
+        add_data_ts(SERVER, DATA_FILE)
+
+    def test_single_found(self):
+        result = check_ids_sparql({"doi:10.1234/test"}, SERVER, workers=1)
+        assert result == {"doi:10.1234/test"}
+
+    def test_single_not_found(self):
+        result = check_ids_sparql({"doi:10.9999/notfound"}, SERVER, workers=1)
+        assert result == set()
+
+    def test_mixed_found_and_not_found(self):
+        ids = {"doi:10.1234/test", "doi:10.9999/notfound", "orcid:0000-0001-2345-6789"}
+        result = check_ids_sparql(ids, SERVER, workers=1)
+        assert result == {"doi:10.1234/test", "orcid:0000-0001-2345-6789"}
+
+    def test_multiple_schemas(self):
+        ids = {"doi:10.1234/test", "orcid:0000-0001-2345-6789", "viaf:123456789", "pmid:111"}
+        result = check_ids_sparql(ids, SERVER, workers=1)
+        assert result == {"doi:10.1234/test", "orcid:0000-0001-2345-6789", "viaf:123456789", "pmid:111"}
+
+    def test_empty_set(self):
+        result = check_ids_sparql(set(), SERVER, workers=1)
+        assert result == set()
+
+    def test_all_not_found(self):
+        ids = {"doi:10.9999/a", "doi:10.9999/b"}
+        result = check_ids_sparql(ids, SERVER, workers=1)
+        assert result == set()
+
+    def test_duplicate_identifier(self):
+        ids = {"doi:10.1234/duplicate"}
+        result = check_ids_sparql(ids, SERVER, workers=1)
+        assert result == {"doi:10.1234/duplicate"}
+
+    def test_progress_callback(self):
+        total = 0
+
+        def callback(batch_size: int) -> None:
+            nonlocal total
+            total += batch_size
+
+        ids = {"doi:10.1234/test", "orcid:0000-0001-2345-6789"}
+        check_ids_sparql(ids, SERVER, workers=1, progress_callback=callback)
+        assert total == 2
+
+
+class TestFilterSparqlResults:
+
+    def test_all_ids_found(self):
+        row = {"id": "doi:10.1234/test", "title": "Test"}
+        row_hash = tuple(sorted(row.items()))
+        results = [
+            FileResult(
+                file_path="file.csv",
+                rows=[(row_hash, row)],
+                stats=ProcessingStats(total_rows=1),
+            )
+        ]
+
+        filter_sparql_results(results, {"doi:10.1234/test"})
+
+        assert results[0].stats.existing_ids_rows == 1
+        assert len(results[0].rows) == 0
+
+    def test_no_ids_found(self):
+        row = {"id": "doi:10.9999/notfound", "title": "Test"}
+        row_hash = tuple(sorted(row.items()))
+        results = [
+            FileResult(
+                file_path="file.csv",
+                rows=[(row_hash, row)],
+                stats=ProcessingStats(total_rows=1),
+            )
+        ]
+
+        filter_sparql_results(results, set())
+
+        assert results[0].stats.existing_ids_rows == 0
+        assert len(results[0].rows) == 1
+
+    def test_partial_ids_found(self):
+        row = {"id": "doi:10.1234/test doi:10.9999/notfound", "title": "Test"}
+        row_hash = tuple(sorted(row.items()))
+        results = [
+            FileResult(
+                file_path="file.csv",
+                rows=[(row_hash, row)],
+                stats=ProcessingStats(total_rows=1),
+            )
+        ]
+
+        filter_sparql_results(results, {"doi:10.1234/test"})
+
+        assert results[0].stats.existing_ids_rows == 0
+        assert len(results[0].rows) == 1
+
+    def test_empty_id_field(self):
+        row = {"id": "", "title": "Test"}
+        row_hash = tuple(sorted(row.items()))
+        results = [
+            FileResult(
+                file_path="file.csv",
+                rows=[(row_hash, row)],
+                stats=ProcessingStats(total_rows=1),
+            )
+        ]
+
+        filter_sparql_results(results, {"doi:10.1234/test"})
+
+        assert results[0].stats.existing_ids_rows == 0
+        assert len(results[0].rows) == 1
+
+    def test_multiple_files_mixed(self):
+        row1 = {"id": "doi:10.1234/test", "title": "Exists"}
+        row2 = {"id": "doi:10.9999/new", "title": "New"}
+        row3 = {"id": "doi:10.1234/test doi:10.1234/a", "title": "Both exist"}
+        row1_hash = tuple(sorted(row1.items()))
+        row2_hash = tuple(sorted(row2.items()))
+        row3_hash = tuple(sorted(row3.items()))
+
+        results = [
+            FileResult(
+                file_path="file1.csv",
+                rows=[(row1_hash, row1), (row2_hash, row2)],
+                stats=ProcessingStats(total_rows=2),
+            ),
+            FileResult(
+                file_path="file2.csv",
+                rows=[(row3_hash, row3)],
+                stats=ProcessingStats(total_rows=1),
+            ),
+        ]
+
+        filter_sparql_results(results, {"doi:10.1234/test", "doi:10.1234/a"})
+
+        assert results[0].stats.existing_ids_rows == 1
+        assert len(results[0].rows) == 1
+        assert results[0].rows[0][1]["id"] == "doi:10.9999/new"
+
+        assert results[1].stats.existing_ids_rows == 1
+        assert len(results[1].rows) == 0
+
+
+class TestSparqlIntegration:
+
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        self.test_dir = tempfile.mkdtemp(dir=".")
+        self.output_dir = tempfile.mkdtemp(dir=".")
+        add_data_ts(SERVER, DATA_FILE)
+        yield
+        shutil.rmtree(self.test_dir)
+        shutil.rmtree(self.output_dir)
+
+    def test_full_sparql_pipeline(self):
+        csv_path = os.path.join(self.test_dir, "data.csv")
+        csv_data = '''id,title,author,pub_date,venue,volume,issue,page,type,publisher,editor
+"doi:10.1234/test","Existing Title","Author 1","2024","Venue 1","1","1","1-10","journal article","Publisher 1",
+"doi:10.9999/notfound","New Title","Author 2","2024","Venue 2","2","1","11-20","journal article","Publisher 2",
+"doi:10.1234/test doi:10.1234/a","Both Existing","Author 3","2024","Venue 3","3","1","21-30","journal article","Publisher 3",
+"doi:10.1234/test doi:10.9999/notfound","Partial","Author 4","2024","Venue 4","4","1","31-40","journal article","Publisher 4",'''
+
+        with open(csv_path, "w", encoding="utf-8") as f:
+            f.write(csv_data)
+
+        result = collect_rows_from_file(csv_path)
+        assert result.stats.total_rows == 4
+
+        all_ids: set[str] = set()
+        for _hash, row in result.rows:
+            ids_str = row["id"]
+            if ids_str:
+                all_ids.update(ids_str.split())
+
+        found_ids = check_ids_sparql(all_ids, SERVER, workers=1)
+
+        assert "doi:10.1234/test" in found_ids
+        assert "doi:10.1234/a" in found_ids
+        assert "doi:10.9999/notfound" not in found_ids
+
+        filter_sparql_results([result], found_ids)
+
+        assert result.stats.existing_ids_rows == 2
+        assert len(result.rows) == 2
+
+        remaining_ids = {row["id"] for _hash, row in result.rows}
+        assert remaining_ids == {
+            "doi:10.9999/notfound",
+            "doi:10.1234/test doi:10.9999/notfound",
+        }
+
+        total_stats = deduplicate_and_write([result], self.output_dir, rows_per_file=10)
+
+        assert total_stats.processed_rows == 2
+        assert total_stats.existing_ids_rows == 2
+
+        output_files = os.listdir(self.output_dir)
+        assert len(output_files) == 1
+
+        rows = get_csv_data(os.path.join(self.output_dir, "0.csv"), clean_data=False)
+        assert len(rows) == 2
+
+    def test_sparql_cross_file_deduplication(self):
+        file1_path = os.path.join(self.test_dir, "data1.csv")
+        file1_data = '''id,title,author,pub_date,venue,volume,issue,page,type,publisher,editor
+"doi:10.9999/new1","New Title 1","Author 1","2024","Venue","1","1","1-10","journal article","Publisher",
+"doi:10.1234/test","Existing","Author 2","2024","Venue","2","1","11-20","journal article","Publisher",'''
+
+        file2_path = os.path.join(self.test_dir, "data2.csv")
+        file2_data = '''id,title,author,pub_date,venue,volume,issue,page,type,publisher,editor
+"doi:10.9999/new1","New Title 1","Author 1","2024","Venue","1","1","1-10","journal article","Publisher",
+"doi:10.9999/new2","New Title 2","Author 3","2024","Venue","3","1","21-30","journal article","Publisher",'''
+
+        with open(file1_path, "w", encoding="utf-8") as f:
+            f.write(file1_data)
+        with open(file2_path, "w", encoding="utf-8") as f:
+            f.write(file2_data)
+
+        result1 = collect_rows_from_file(file1_path)
+        result2 = collect_rows_from_file(file2_path)
+        results = [result1, result2]
+
+        all_ids: set[str] = set()
+        for result in results:
+            for _hash, row in result.rows:
+                ids_str = row["id"]
+                if ids_str:
+                    all_ids.update(ids_str.split())
+
+        found_ids = check_ids_sparql(all_ids, SERVER, workers=1)
+        filter_sparql_results(results, found_ids)
+
+        total_stats = deduplicate_and_write(results, self.output_dir, rows_per_file=10)
+
+        assert total_stats.total_rows == 4
+        assert total_stats.existing_ids_rows == 1
+        assert total_stats.duplicate_rows == 1
+        assert total_stats.processed_rows == 2
+
+        rows = get_csv_data(os.path.join(self.output_dir, "0.csv"), clean_data=False)
+        assert len(rows) == 2
+        output_ids = {row["id"] for row in rows}
+        assert output_ids == {"doi:10.9999/new1", "doi:10.9999/new2"}
+
+
+class TestSingleFileOutput:
+
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        self.output_dir = tempfile.mkdtemp(dir=".")
+        yield
+        shutil.rmtree(self.output_dir)
+
+    def test_single_file_to_directory(self):
+        row1 = {"id": "doi:10.INVALID/1", "title": "Title 1"}
+        row2 = {"id": "doi:10.INVALID/2", "title": "Title 2"}
+        row1_hash = tuple(sorted(row1.items()))
+        row2_hash = tuple(sorted(row2.items()))
+
+        results = [
+            FileResult(
+                file_path="file.csv",
+                rows=[(row1_hash, row1), (row2_hash, row2)],
+                stats=ProcessingStats(total_rows=2),
+            )
+        ]
+
+        total_stats = deduplicate_and_write(results, self.output_dir)
+
+        assert total_stats.processed_rows == 2
+
+        merged_path = os.path.join(self.output_dir, "merged.csv")
+        assert os.path.exists(merged_path)
+
+        rows = get_csv_data(merged_path, clean_data=False)
+        assert len(rows) == 2
+
+    def test_single_file_to_csv_path(self):
+        row = {"id": "doi:10.INVALID/1", "title": "Title"}
+        row_hash = tuple(sorted(row.items()))
+
+        results = [
+            FileResult(
+                file_path="file.csv",
+                rows=[(row_hash, row)],
+                stats=ProcessingStats(total_rows=1),
+            )
+        ]
+
+        csv_path = os.path.join(self.output_dir, "output.csv")
+        total_stats = deduplicate_and_write(results, csv_path)
+
+        assert total_stats.processed_rows == 1
+        assert os.path.exists(csv_path)
+
+        rows = get_csv_data(csv_path, clean_data=False)
+        assert len(rows) == 1
+
+    def test_single_file_no_splitting(self):
+        rows_data = []
+        for i in range(20):
+            row = {"id": f"doi:10.INVALID/{i}", "title": f"Title {i}"}
+            row_hash = tuple(sorted(row.items()))
+            rows_data.append((row_hash, row))
+
+        results = [
+            FileResult(
+                file_path="file.csv",
+                rows=rows_data,
+                stats=ProcessingStats(total_rows=20),
+            )
+        ]
+
+        total_stats = deduplicate_and_write(results, self.output_dir)
+
+        assert total_stats.processed_rows == 20
+
+        output_files = os.listdir(self.output_dir)
+        assert len(output_files) == 1
+
+        rows = get_csv_data(os.path.join(self.output_dir, "merged.csv"), clean_data=False)
+        assert len(rows) == 20

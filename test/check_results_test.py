@@ -408,7 +408,7 @@ class TestMainIntegration:
         self._create_csv(str(input_dir), "test.csv", [
             {
                 "id": "doi:10.1234/test",
-                "author": "Doe, John [orcid:0000-0001-2345-6789]; Smith, Jane [orcid:0000-0002-3456-7890]",
+                "author": "Doe, John [orcid:0000-0001-2345-6789]; Smith, Jane [orcid:0000-0002-3456-7895]",
                 "editor": "Brown, Bob [viaf:123456789]",
             }
         ])

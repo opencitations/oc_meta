@@ -348,7 +348,8 @@ class MetaProcess:
         self, res_storer: Storer, prov_storer: Storer
     ) -> None:
         """Orchestrate storage and upload."""
-        self._setup_output_directories()
+        if not self.rdf_files_only:
+            self._setup_output_directories()
         self._store_and_upload(res_storer, prov_storer, self.timer)
 
     def _store_and_upload(

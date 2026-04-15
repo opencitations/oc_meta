@@ -17,13 +17,12 @@ import polars as pl
 import yaml
 from rich.progress import BarColumn, Progress, TaskProgressColumn, TextColumn, TimeElapsedColumn
 from rich_argparse import RichHelpFormatter
-from sparqlite import SPARQLClient
-
-from oc_meta.constants import QLEVER_BATCH_SIZE, QLEVER_MAX_WORKERS, QLEVER_QUERIES_PER_GROUP
+from oc_meta.constants import QLEVER_BATCH_SIZE, QLEVER_MAX_WORKERS
 from oc_meta.lib.cleaner import normalize_hyphens, normalize_id
 from oc_meta.lib.console import EMATimeRemainingColumn, console
 from oc_meta.lib.file_manager import collect_files
 from oc_meta.lib.master_of_regex import RE_ENTITY_URI, RE_NAME_AND_IDS, RE_SEMICOLON_IN_PEOPLE_FIELD
+from oc_meta.lib.sparql import run_queries_parallel
 
 MAX_RETRIES = 10
 RETRY_BACKOFF = 2
@@ -61,54 +60,6 @@ class FileResult:
     id_key_locations: dict = field(default_factory=dict)
 
 
-def _execute_sparql_queries(args: tuple) -> list:
-    ts_url, queries = args
-    results = []
-    with SPARQLClient(ts_url, max_retries=MAX_RETRIES, backoff_factor=RETRY_BACKOFF, timeout=3600) as client:
-        for query in queries:
-            result = client.query(query)
-            results.append(result['results']['bindings'] if result else [])
-    return results
-
-
-def _run_queries_parallel(
-    endpoint_url: str,
-    batch_queries: list[str],
-    batch_sizes: list[int],
-    workers: int = QLEVER_MAX_WORKERS,
-    progress_callback: Callable[[int], None] | None = None,
-) -> list[list]:
-    if not batch_queries:
-        return []
-
-    all_bindings: list[list] = []
-
-    if len(batch_queries) > 1 and workers > 1:
-        grouped_queries = []
-        grouped_sizes = []
-        for i in range(0, len(batch_queries), QLEVER_QUERIES_PER_GROUP):
-            grouped_queries.append((endpoint_url, batch_queries[i:i + QLEVER_QUERIES_PER_GROUP]))
-            grouped_sizes.append(sum(batch_sizes[i:i + QLEVER_QUERIES_PER_GROUP]))
-
-        with ProcessPoolExecutor(
-            max_workers=min(len(grouped_queries), workers),
-            mp_context=multiprocessing.get_context('forkserver')
-        ) as executor:
-            future_to_size = {
-                executor.submit(_execute_sparql_queries, gq): gs
-                for gq, gs in zip(grouped_queries, grouped_sizes)
-            }
-            for future in as_completed(future_to_size):
-                all_bindings.extend(future.result())
-                if progress_callback:
-                    progress_callback(future_to_size[future])
-    else:
-        results = _execute_sparql_queries((endpoint_url, batch_queries))
-        all_bindings.extend(results)
-        if progress_callback:
-            progress_callback(sum(batch_sizes))
-
-    return all_bindings
 
 
 def check_provenance_existence(omids: List[str], prov_endpoint_url: str, workers: int = QLEVER_MAX_WORKERS, progress_callback: Callable[[int], None] | None = None) -> Dict[str, bool]:
@@ -131,7 +82,7 @@ def check_provenance_existence(omids: List[str], prov_endpoint_url: str, workers
         batch_queries.append(query)
         batch_sizes.append(len(batch))
 
-    all_bindings = _run_queries_parallel(prov_endpoint_url, batch_queries, batch_sizes, workers, progress_callback)
+    all_bindings = run_queries_parallel(prov_endpoint_url, batch_queries, batch_sizes, workers, progress_callback, max_retries=MAX_RETRIES, backoff_factor=RETRY_BACKOFF)
 
     for bindings in all_bindings:
         for result in bindings:
@@ -173,7 +124,7 @@ def check_omids_existence(identifiers: List[Dict[str, str]], endpoint_url: str, 
         batch_queries.append(query)
         batch_sizes.append(len(batch))
 
-    all_bindings = _run_queries_parallel(endpoint_url, batch_queries, batch_sizes, workers, progress_callback)
+    all_bindings = run_queries_parallel(endpoint_url, batch_queries, batch_sizes, workers, progress_callback, max_retries=MAX_RETRIES, backoff_factor=RETRY_BACKOFF)
 
     for bindings in all_bindings:
         for result in bindings:

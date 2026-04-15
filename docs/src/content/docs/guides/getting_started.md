@@ -112,7 +112,7 @@ A production workflow usually follows these steps:
 Preprocess (optional but recommended):
 
 ```bash
-uv run python -m oc_meta.run.meta.preprocess_input input/ preprocessed/ --storage-type redis
+uv run python -m oc_meta.run.meta.preprocess_input input/ preprocessed/ --redis-port 6379
 ```
 
 Process:

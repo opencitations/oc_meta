@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import multiprocessing
 from concurrent.futures import ProcessPoolExecutor
+from functools import partial
 from typing import TYPE_CHECKING, Dict, List, Tuple, TypedDict
 
 import orjson
@@ -24,6 +25,7 @@ from time_agnostic_library.agnostic_entity import AgnosticEntity
 from rich.console import Console
 
 from oc_meta.constants import QLEVER_BATCH_SIZE, QLEVER_MAX_WORKERS, QLEVER_QUERIES_PER_GROUP
+from oc_meta.lib.sparql import execute_sparql_queries
 
 _P_HAS_LITERAL_VALUE = str(GraphEntity.iri_has_literal_value)
 _P_USES_ID_SCHEME = str(GraphEntity.iri_uses_identifier_scheme)
@@ -64,16 +66,6 @@ class VolumeEntry(TypedDict):
 class VenueStructure(TypedDict):
     issue: Dict[str, IssueEntry]
     volume: Dict[str, VolumeEntry]
-
-
-def _execute_sparql_queries(args: tuple) -> list:
-    ts_url, queries = args
-    results = []
-    with SPARQLClient(ts_url, max_retries=5, backoff_factor=5, timeout=3600) as client:
-        for query in queries:
-            result = client.query(query)
-            results.append(result['results']['bindings'] if result else [])
-    return results
 
 
 class ResourceFinder:
@@ -622,20 +614,19 @@ class ResourceFinder:
             next_subjects = set()
             if len(batch_queries) > 1 and MAX_WORKERS > 1:
                 queries_per_worker = max(1, len(batch_queries) // MAX_WORKERS)
-                grouped_queries = []
-                for i in range(0, len(batch_queries), queries_per_worker):
-                    grouped_queries.append((ts_url, batch_queries[i:i + queries_per_worker]))
-                # Use forkserver to avoid deadlocks when forking from a multi-threaded process.
-                # Libraries like Redis and rdflib create background threads, and fork() would
-                # copy locked mutexes into the child process, causing hangs.
+                query_groups = [
+                    batch_queries[i:i + queries_per_worker]
+                    for i in range(0, len(batch_queries), queries_per_worker)
+                ]
+                worker = partial(execute_sparql_queries, ts_url)
                 with ProcessPoolExecutor(
-                    max_workers=min(len(grouped_queries), MAX_WORKERS),
+                    max_workers=min(len(query_groups), MAX_WORKERS),
                     mp_context=multiprocessing.get_context('forkserver')
                 ) as executor:
-                    grouped_results = list(executor.map(_execute_sparql_queries, grouped_queries))
+                    grouped_results = list(executor.map(worker, query_groups))
                 results = [item for sublist in grouped_results for item in sublist]
             else:
-                results = _execute_sparql_queries((ts_url, batch_queries)) if batch_queries else []
+                results = execute_sparql_queries(endpoint_url=ts_url, queries=batch_queries) if batch_queries else []
 
             _skip_preds = {_P_TYPE, _P_WITH_ROLE, _P_USES_ID_SCHEME}
             for result in results:
@@ -717,25 +708,23 @@ class ResourceFinder:
                     batch_queries.append(query)
 
             if len(batch_queries) > 1 and MAX_WORKERS > 1:
-                # Create smaller groups for more frequent progress updates
-                # Target ~100 queries per group for responsive progress bar
-                QUERIES_PER_GROUP = QLEVER_QUERIES_PER_GROUP
-                grouped_queries = []
+                query_groups = []
                 grouped_batch_sizes = []
-                for i in range(0, len(batch_queries), QUERIES_PER_GROUP):
-                    grouped_queries.append((ts_url, batch_queries[i:i + QUERIES_PER_GROUP]))
-                    grouped_batch_sizes.append(sum(batch_sizes[i:i + QUERIES_PER_GROUP]))
+                for i in range(0, len(batch_queries), QLEVER_QUERIES_PER_GROUP):
+                    query_groups.append(batch_queries[i:i + QLEVER_QUERIES_PER_GROUP])
+                    grouped_batch_sizes.append(sum(batch_sizes[i:i + QLEVER_QUERIES_PER_GROUP]))
+                worker = partial(execute_sparql_queries, ts_url)
                 with ProcessPoolExecutor(
                     max_workers=MAX_WORKERS,
                     mp_context=multiprocessing.get_context('forkserver')
                 ) as executor:
                     results = []
-                    for idx, grouped_result in enumerate(executor.map(_execute_sparql_queries, grouped_queries)):
+                    for idx, grouped_result in enumerate(executor.map(worker, query_groups)):
                         results.extend(grouped_result)
                         if progress and progress_task is not None:
                             progress.advance(progress_task, grouped_batch_sizes[idx])
             elif batch_queries:
-                results = _execute_sparql_queries((ts_url, batch_queries))
+                results = execute_sparql_queries(endpoint_url=ts_url, queries=batch_queries)
                 if progress and progress_task is not None:
                     progress.advance(progress_task, sum(batch_sizes))
             else:
@@ -870,25 +859,26 @@ class ResourceFinder:
 
             # Execute batched VVI queries in parallel
             if len(vvi_queries) > 1 and MAX_WORKERS > 1:
-                grouped_queries = []
+                query_groups = []
                 grouped_vvi_counts = []
                 queries_per_group = max(1, len(vvi_queries) // MAX_WORKERS)
                 for i in range(0, len(vvi_queries), queries_per_group):
                     group = vvi_queries[i:i + queries_per_group]
-                    grouped_queries.append((ts_url, group))
+                    query_groups.append(group)
                     vvi_count = int(total_vvis * len(group) / len(vvi_queries))
                     grouped_vvi_counts.append(max(1, vvi_count))
+                worker = partial(execute_sparql_queries, ts_url)
                 with ProcessPoolExecutor(
                     max_workers=MAX_WORKERS,
                     mp_context=multiprocessing.get_context('forkserver')
                 ) as executor:
                     results = []
-                    for idx, grouped_result in enumerate(executor.map(_execute_sparql_queries, grouped_queries)):
+                    for idx, grouped_result in enumerate(executor.map(worker, query_groups)):
                         results.extend(grouped_result)
                         if progress and progress_task is not None:
                             progress.advance(progress_task, grouped_vvi_counts[idx])
             elif vvi_queries:
-                results = _execute_sparql_queries((ts_url, vvi_queries))
+                results = execute_sparql_queries(endpoint_url=ts_url, queries=vvi_queries)
                 if progress and progress_task is not None:
                     progress.advance(progress_task, total_vvis)
             else:
