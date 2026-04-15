@@ -20,7 +20,7 @@ from rich_argparse import RichHelpFormatter
 from sparqlite import SPARQLClient
 
 from oc_meta.constants import QLEVER_BATCH_SIZE, QLEVER_MAX_WORKERS, QLEVER_QUERIES_PER_GROUP
-from oc_meta.lib.cleaner import normalize_hyphens
+from oc_meta.lib.cleaner import normalize_hyphens, normalize_id
 from oc_meta.lib.console import EMATimeRemainingColumn, console
 from oc_meta.lib.file_manager import collect_files
 from oc_meta.lib.master_of_regex import RE_ENTITY_URI, RE_NAME_AND_IDS, RE_SEMICOLON_IN_PEOPLE_FIELD
@@ -33,6 +33,7 @@ _SPACE_PATTERN = '[\t\xa0\u200b\u202f\u2003\u2005\u2009]'
 _ID_COLUMNS = ['id', 'author', 'editor', 'publisher', 'venue']
 _STAT_FIELDS = (
     'total_rows', 'rows_with_ids', 'total_identifiers', 'omid_schema_identifiers',
+    'identifiers_skipped_invalid',
     'identifiers_with_omids', 'identifiers_without_omids', 'data_graphs_found',
     'data_graphs_missing', 'prov_graphs_found', 'prov_graphs_missing',
     'omids_with_provenance', 'omids_without_provenance',
@@ -46,6 +47,7 @@ class FileResult:
     rows_with_ids: int = 0
     total_identifiers: int = 0
     omid_schema_identifiers: int = 0
+    identifiers_skipped_invalid: int = 0
     identifiers_with_omids: int = 0
     identifiers_without_omids: int = 0
     data_graphs_found: int = 0
@@ -281,6 +283,10 @@ def process_csv_file(args: tuple, workers: int = QLEVER_MAX_WORKERS, progress=No
     id_key_occurrences: dict[str, list[tuple[int, str]]] = {}
     omid_values: list[str] = []
 
+    phase1_task = None
+    if progress:
+        phase1_task = progress.add_task("  Phase 1/5: Extracting identifiers", total=result.total_rows, detail="")
+
     for row_idx in range(result.total_rows):
         row_has_ids = False
         for col in _ID_COLUMNS:
@@ -297,21 +303,31 @@ def process_csv_file(args: tuple, workers: int = QLEVER_MAX_WORKERS, progress=No
             result.total_identifiers += len(pairs)
 
             for schema, value in pairs:
-                id_key = f"{schema}:{value}"
                 if schema == 'omid':
                     result.omid_schema_identifiers += 1
                     if value.startswith('http'):
                         omid_values.append(value)
-                else:
-                    unique_id_keys.add(id_key)
-                    if id_key not in id_key_meta:
-                        id_key_meta[id_key] = (schema, value)
-                    if id_key not in id_key_occurrences:
-                        id_key_occurrences[id_key] = []
-                    id_key_occurrences[id_key].append((row_num, col))
+                    continue
+                normalized = normalize_id(f"{schema}:{value}")
+                if not normalized:
+                    result.identifiers_skipped_invalid += 1
+                    continue
+                norm_schema, norm_value = normalized.split(':', 1)
+                id_key = normalized
+                unique_id_keys.add(id_key)
+                if id_key not in id_key_meta:
+                    id_key_meta[id_key] = (norm_schema, norm_value)
+                if id_key not in id_key_occurrences:
+                    id_key_occurrences[id_key] = []
+                id_key_occurrences[id_key].append((row_num, col))
 
         if row_has_ids:
             result.rows_with_ids += 1
+        if progress and phase1_task is not None:
+            progress.advance(phase1_task)
+
+    if progress and phase1_task is not None:
+        progress.update(phase1_task, visible=False)
 
     del col_lists
 
@@ -331,14 +347,15 @@ def process_csv_file(args: tuple, workers: int = QLEVER_MAX_WORKERS, progress=No
     if progress and phase2_task is not None:
         progress.update(phase2_task, visible=False)
 
-    if progress and task_id is not None:
-        progress.update(task_id, detail="Phase 3/5: Mapping OMIDs and building indexes")
-
     omids_by_file: dict[str, set[str]] = {}
     all_omids: set[str] = set()
     omid_to_id_info: dict[str, tuple[int, str, str]] = {}
     path_exists_cache: dict[str, bool] = {}
     csv_basename = os.path.basename(csv_file)
+
+    phase3_task = None
+    if progress:
+        phase3_task = progress.add_task("  Phase 3/5: Mapping OMIDs", total=len(unique_id_keys), detail="")
 
     for id_key in unique_id_keys:
         occurrences = id_key_occurrences[id_key]
@@ -375,6 +392,11 @@ def process_csv_file(args: tuple, workers: int = QLEVER_MAX_WORKERS, progress=No
                     "row": row_num,
                     "column": col,
                 })
+        if progress and phase3_task is not None:
+            progress.advance(phase3_task)
+
+    if progress and phase3_task is not None:
+        progress.update(phase3_task, visible=False)
 
     for omid_uri in omid_values:
         all_omids.add(omid_uri)
