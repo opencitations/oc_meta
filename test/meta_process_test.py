@@ -19,19 +19,20 @@ import yaml
 from oc_meta.lib.file_manager import get_csv_data, write_csv
 from oc_meta.run.meta_process import run_meta_process
 from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
-from oc_ocdm.support import sparql_binding_to_term
+from oc_ocdm.support import sparql_binding_to_rdfterm
 from rdflib import Dataset, Graph, Literal, URIRef
+from triplelite import RDFTerm
 from sparqlite import SPARQLClient
 
 BASE_DIR = os.path.join("test", "meta_process")
 
 
-def _term_to_jsonld(term: URIRef | Literal) -> dict:
-    if isinstance(term, URIRef):
-        return {"@id": str(term)}
-    if term.language:
-        return {"@value": str(term), "@language": term.language}
-    return {"@value": str(term), "@type": str(term.datatype)}
+def _term_to_jsonld(term: RDFTerm) -> dict:
+    if term.type == "uri":
+        return {"@id": term.value}
+    if term.lang:
+        return {"@value": term.value, "@language": term.lang}
+    return {"@value": term.value, "@type": term.datatype}
 
 
 class TestProcessTest:
@@ -262,7 +263,7 @@ class TestProcessTest:
                 else:
                     if p_str not in entities[s_str]:
                         entities[s_str][p_str] = []
-                    term = sparql_binding_to_term(o_data)
+                    term = sparql_binding_to_rdfterm(o_data)
                     entities[s_str][p_str].append(_term_to_jsonld(term))
 
             # Group entities by their parent entity (e.g., br/0601/prov/se/1 -> br/0601)
@@ -546,7 +547,7 @@ class TestProcessTest:
                 else:
                     if p_str not in entities[s_str]:
                         entities[s_str][p_str] = []
-                    term = sparql_binding_to_term(o_data)
+                    term = sparql_binding_to_rdfterm(o_data)
                     entities[s_str][p_str].append(_term_to_jsonld(term))
 
             entity_list = list(entities.values())

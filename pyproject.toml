@@ -18,7 +18,7 @@ dependencies = [
     "filelock>=3.24.0",
     "numpy>=2.2.0",
     "oc-ds-converter==2.0.0",
-    "oc-ocdm>=11.0.3",
+    "oc-ocdm>=11.0.4",
     "orjson>=3.11.0",
     "pandas>=2.2.3",
     "piccione>=3.0.0",
@@ -34,7 +34,7 @@ dependencies = [
     "scandir-rs>=2.9.5",
     "time-agnostic-library>=7,<8",
     "tqdm>=4.67.3",
-    "triplelite==1.1.0",
+    "triplelite>=1.2.0",
     "virtuoso-utilities>=1.10.0",
 ]
 

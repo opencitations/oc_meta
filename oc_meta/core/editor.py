@@ -16,11 +16,10 @@ from oc_ocdm import Storer
 from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
 from oc_ocdm.graph import GraphSet
 from oc_ocdm.graph.graph_entity import GraphEntity
-from triplelite import RDFTerm, TripleLite, from_rdflib
+from triplelite import RDFTerm, SubgraphView
 from oc_ocdm.prov import ProvSet
 from oc_ocdm.reader import Reader
 from oc_ocdm.support.support import build_graph_from_results
-from rdflib import URIRef
 from sparqlite import SPARQLClient
 
 
@@ -87,13 +86,13 @@ class MetaEditor:
             custom_counter_handler=self.counter_handler,
         )
         self.reader.import_entity_from_triplestore(
-            g_set, self.endpoint, URIRef(res), self.resp_agent, enable_validation=False
+            g_set, self.endpoint, res, self.resp_agent, enable_validation=False
         )
         if validators.url(new_value):
             self.reader.import_entity_from_triplestore(
                 g_set,
                 self.endpoint,
-                URIRef(new_value),
+                new_value,
                 self.resp_agent,
                 enable_validation=False,
             )
@@ -112,7 +111,7 @@ class MetaEditor:
         )
         try:
             self.reader.import_entity_from_triplestore(
-                g_set, self.endpoint, URIRef(res_str), self.resp_agent, enable_validation=False
+                g_set, self.endpoint, res_str, self.resp_agent, enable_validation=False
             )
         except ValueError as e:
             print(f"ValueError for entity {res_str}: {e}")
@@ -124,7 +123,8 @@ class MetaEditor:
                 )
                 with SPARQLClient(self.endpoint, max_retries=3, backoff_factor=0.3, timeout=3600) as client:
                     result = client.query(query)["results"]["bindings"]
-                preexisting_graph = from_rdflib(build_graph_from_results(result))[0]
+                graph = build_graph_from_results(result)
+                preexisting_graph = graph.subgraph(res_str)
                 self.add_entity_with_type(g_set, res_str, inferred_type, preexisting_graph)
             else:
                 return
@@ -145,7 +145,7 @@ class MetaEditor:
                     self.reader.import_entity_from_triplestore(
                         g_set,
                         self.endpoint,
-                        URIRef(object),
+                        object,
                         self.resp_agent,
                         enable_validation=False,
                     )
@@ -164,7 +164,7 @@ class MetaEditor:
                 self.reader.import_entity_from_triplestore(
                     g_set,
                     self.endpoint,
-                    URIRef(entity["s"]["value"]),
+                    entity["s"]["value"],
                     self.resp_agent,
                     enable_validation=False,
                 )
@@ -235,7 +235,7 @@ class MetaEditor:
                 self.reader.import_entities_from_triplestore(
                     g_set=g_set,
                     ts_url=self.endpoint,
-                    entities=[URIRef(e) for e in entities_to_import],
+                    entities=list(entities_to_import),
                     resp_agent=self.resp_agent,
                     enable_validation=False,
                     batch_size=10,
@@ -274,7 +274,7 @@ class MetaEditor:
         )
         try:
             self.reader.import_entity_from_triplestore(
-                g_set, self.endpoint, URIRef(res), self.resp_agent, enable_validation=False
+                g_set, self.endpoint, res, self.resp_agent, enable_validation=False
             )
             self.save(g_set, supplier_prefix)
             return True
@@ -285,7 +285,7 @@ class MetaEditor:
                 self.reader.import_entity_from_triplestore(
                     g_set,
                     self.endpoint,
-                    URIRef(source_uri),
+                    source_uri,
                     self.resp_agent,
                     enable_validation=False,
                 )
@@ -409,7 +409,7 @@ class MetaEditor:
         g_set: GraphSet,
         res: str,
         entity_type: str,
-        preexisting_graph: TripleLite,
+        preexisting_graph: SubgraphView | None,
     ):
         if entity_type == GraphEntity.iri_expression:
             g_set.add_br(

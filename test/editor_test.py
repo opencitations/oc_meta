@@ -30,7 +30,6 @@ from oc_ocdm.graph import GraphSet
 from oc_ocdm.graph.entities.identifier import Identifier
 from oc_ocdm.prov import ProvSet
 from oc_ocdm.reader import Reader
-from rdflib import URIRef
 from sparqlite import SPARQLClient
 from typing import cast
 
@@ -362,7 +361,7 @@ class TestEditor:
 
         # Create entities  testing
         ra = g_set.add_ra(
-            resp_agent=resp_agent, res=URIRef("https://w3id.org/oc/meta/ra/06010")
+            resp_agent=resp_agent, res="https://w3id.org/oc/meta/ra/06010"
         )
         ra.has_name("Wiley")
 
@@ -370,7 +369,7 @@ class TestEditor:
         id_0605 = reader.import_entity_from_triplestore(
             g_set,
             endpoint,
-            URIRef("https://w3id.org/oc/meta/id/0605"),
+            "https://w3id.org/oc/meta/id/0605",
             resp_agent,
             enable_validation=False,
         )
@@ -814,7 +813,7 @@ class TestEditor:
         assert editor.rdf_files_only
 
         g_set = GraphSet(base_iri="https://w3id.org/oc/meta/")
-        br = g_set.add_br(res=URIRef("https://w3id.org/oc/meta/br/0603"), resp_agent="https://orcid.org/0000-0002-8420-0696")
+        br = g_set.add_br(res="https://w3id.org/oc/meta/br/0603", resp_agent="https://orcid.org/0000-0002-8420-0696")
         br.has_title("Original Title")
         editor.save(g_set)
 
@@ -869,7 +868,7 @@ class TestEditor:
 
         # Prepara le entità di test
         ra = g_set.add_ra(
-            resp_agent=resp_agent, res=URIRef("https://w3id.org/oc/meta/ra/06010")
+            resp_agent=resp_agent, res="https://w3id.org/oc/meta/ra/06010"
         )
         ra.has_name("Wiley")
 
@@ -877,7 +876,7 @@ class TestEditor:
         id_0605 = reader.import_entity_from_triplestore(
             g_set,
             endpoint,
-            URIRef("https://w3id.org/oc/meta/id/0605"),
+            "https://w3id.org/oc/meta/id/0605",
             resp_agent,
             enable_validation=False,
         )

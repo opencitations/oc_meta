@@ -1514,7 +1514,7 @@ requires-dist = [
     { name = "filelock", specifier = ">=3.24.0" },
     { name = "numpy", specifier = ">=2.2.0" },
     { name = "oc-ds-converter", specifier = "==2.0.0" },
-    { name = "oc-ocdm", specifier = ">=11.0.3" },
+    { name = "oc-ocdm", specifier = ">=11.0.4" },
     { name = "orjson", specifier = ">=3.11.0" },
     { name = "pandas", specifier = ">=2.2.3" },
     { name = "piccione", specifier = ">=3.0.0" },
@@ -1530,7 +1530,7 @@ requires-dist = [
     { name = "scandir-rs", specifier = ">=2.9.5" },
     { name = "time-agnostic-library", specifier = ">=7,<8" },
     { name = "tqdm", specifier = ">=4.67.3" },
-    { name = "triplelite", specifier = "==1.1.0" },
+    { name = "triplelite", specifier = ">=1.2.0" },
     { name = "virtuoso-utilities", specifier = ">=1.10.0" },
 ]
 
@@ -1554,7 +1554,7 @@ dev = [
 
 [[package]]
 name = "oc-ocdm"
-version = "11.0.3"
+version = "11.0.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "filelock" },
@@ -1565,9 +1565,9 @@ dependencies = [
     { name = "tqdm" },
     { name = "triplelite" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/57/aa/5edbccaef50db443d5254b53e5e06015d2c95b09c8044611643aa81e1fb5/oc_ocdm-11.0.3.tar.gz", hash = "sha256:4906a46947cc424b054124d7a7b70c6d48849be1bb85b9db9902ea60998beaeb", size = 702151, upload-time = "2026-04-16T08:59:39.366Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c7/0f/24ed40e0a69bf5f3d6fe565f1b66da1c64e1b5eb76c7724caa84ab173352/oc_ocdm-11.0.4.tar.gz", hash = "sha256:a4fc5483ea79eda090eccedd0a5a6ac3f9fe975b125454a37e6f446df7719ca9", size = 701817, upload-time = "2026-04-16T11:37:44.188Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/22/0a/48421ec7cbaa669e566b41832afbd31935352e8a209a4c3d75a3687311f7/oc_ocdm-11.0.3-py3-none-any.whl", hash = "sha256:8de28d623b12154d8f0c8b0721981bdb58cde1c2d6b738e77d190d85d6fa1744", size = 101357, upload-time = "2026-04-16T08:59:37.642Z" },
+    { url = "https://files.pythonhosted.org/packages/04/e8/d38f56665614ab08f5423592712357826269425feecb235e7580ed4a5368/oc_ocdm-11.0.4-py3-none-any.whl", hash = "sha256:19491a3233a902545407666a6c58b081a46788799e795af008c16d927edef53a", size = 101132, upload-time = "2026-04-16T11:37:43.059Z" },
 ]
 
 [[package]]
@@ -2688,11 +2688,11 @@ wheels = [
 
 [[package]]
 name = "triplelite"
-version = "1.1.0"
+version = "1.2.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/af/5b/39136e74f0f3e231317e65b16842a6c8c4f0cbe3029e7874c0ec42c87bfd/triplelite-1.1.0.tar.gz", hash = "sha256:66e8de4f296d16d45b6e7a292dfc8ae41ed4f15d15aa0d1e8ae675c3a2407aa0", size = 110683, upload-time = "2026-04-16T08:51:33.504Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/7e/0c/3ae66dbac6dbcd3bbf7eccbe8e4ae71621af9040220aef029b6b75fc7242/triplelite-1.2.0.tar.gz", hash = "sha256:e9989cb165d93cbd96cb3c2680dbf8ca7d8d34571f3320063351a52a493658ee", size = 111499, upload-time = "2026-04-16T10:53:38.969Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/20/fd/0e523499b6de22c7e99c1bb8886c6cff3501f250e1105ed8c7821e61442a/triplelite-1.1.0-py3-none-any.whl", hash = "sha256:1b43bf3f523f0d07f4e87cc9dba080732f05f17bf4d025cd83653777c53ab08e", size = 6671, upload-time = "2026-04-16T08:51:32.528Z" },
+    { url = "https://files.pythonhosted.org/packages/77/ac/256e0f3576d61399df665abf8ba0dc472942b282e8a3aa38472db8daefef/triplelite-1.2.0-py3-none-any.whl", hash = "sha256:a571e6c3ed92faad76eeb57e1a50876a33e5d8e0d3ad402a264f32e9a05de9d2", size = 6966, upload-time = "2026-04-16T10:53:37.777Z" },
 ]
 
 [[package]]
