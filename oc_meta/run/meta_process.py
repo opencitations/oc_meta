@@ -16,7 +16,7 @@ import traceback
 from argparse import ArgumentParser
 from datetime import datetime
 from sys import executable, platform
-from typing import Any, Dict, Iterator, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import orjson
 import yaml
@@ -193,81 +193,60 @@ class MetaProcess:
                     preexisting_count = len(curator_obj.preexisting_entities)
                     self.timer.record_metric("preexisting_entities_count", preexisting_count)
 
-                    RDF_BATCH_SIZE = 50_000
-                    data = curator_obj.data
-                    n_batches = (len(data) + RDF_BATCH_SIZE - 1) // RDF_BATCH_SIZE
-                    total_entities = 0
-                    total_modified = 0
+                    creator_obj = Creator(
+                        data=curator_obj.data,
+                        finder=curator_obj.finder,
+                        base_iri=self.base_iri,
+                        counter_handler=self.counter_handler,
+                        supplier_prefix=self.supplier_prefix,
+                        resp_agent=self.resp_agent,
+                        ra_index=curator_obj.index_id_ra,
+                        br_index=curator_obj.index_id_br,
+                        re_index_csv=curator_obj.re_index,
+                        ar_index_csv=curator_obj.ar_index,
+                        vi_index=curator_obj.VolIss,
+                        silencer=self.silencer,
+                        progress=progress,
+                    )
+                    creator = creator_obj.creator(source=self.source)
+                    self.timer.record_metric("entities_created", len(creator.res_to_entity))
 
-                    for batch_idx in range(n_batches):
-                        batch_start = batch_idx * RDF_BATCH_SIZE
-                        batch_end = min(batch_start + RDF_BATCH_SIZE, len(data))
-                        batch_data = data[batch_start:batch_end]
+                    prov = ProvSet(
+                        creator,
+                        self.base_iri,
+                        wanted_label=False,
+                        supplier_prefix=self.supplier_prefix,
+                        custom_counter_handler=self.counter_handler,
+                    )
+                    modified_entities = prov.generate_provenance()
+                    self.timer.record_metric("modified_entities", len(modified_entities))
 
-                        if n_batches > 1:
-                            console.print(
-                                f"  [dim]Batch {batch_idx + 1}/{n_batches} "
-                                f"({len(batch_data)} records)[/dim]"
-                            )
-
-                        creator_obj = Creator(
-                            data=batch_data,
-                            finder=curator_obj.finder,
-                            base_iri=self.base_iri,
-                            counter_handler=self.counter_handler,
-                            supplier_prefix=self.supplier_prefix,
-                            resp_agent=self.resp_agent,
-                            ra_index=curator_obj.index_id_ra,
-                            br_index=curator_obj.index_id_br,
-                            re_index_csv=curator_obj.re_index,
-                            ar_index_csv=curator_obj.ar_index,
-                            vi_index=curator_obj.VolIss,
-                            silencer=self.silencer,
-                            progress=progress,
-                        )
-                        creator = creator_obj.creator(source=self.source)
-                        total_entities += len(creator.res_to_entity)
-
-                        prov = ProvSet(
-                            creator,
-                            self.base_iri,
-                            wanted_label=False,
-                            supplier_prefix=self.supplier_prefix,
-                            custom_counter_handler=self.counter_handler,
-                        )
-                        modified_entities = prov.generate_provenance()
-                        total_modified += len(modified_entities)
-
-                        repok = Reporter(print_sentences=False)
-                        reperr = Reporter(print_sentences=True, prefix="[Storer: ERROR] ")
-                        res_storer = Storer(
-                            abstract_set=creator,
-                            repok=repok,
-                            reperr=reperr,
-                            context_map={},
-                            dir_split=self.dir_split_number,
-                            n_file_item=self.items_per_file,
-                            default_dir=self.default_dir,
-                            output_format="json-ld",
-                            zip_output=self.zip_output_rdf,
-                            modified_entities=modified_entities,
-                        )
-                        prov_storer = Storer(
-                            abstract_set=prov,
-                            repok=repok,
-                            reperr=reperr,
-                            context_map={},
-                            dir_split=self.dir_split_number,
-                            n_file_item=self.items_per_file,
-                            output_format="json-ld",
-                            zip_output=self.zip_output_rdf,
-                            modified_entities=modified_entities,
-                        )
-                        self.store_data_and_prov(res_storer, prov_storer)
-                        del creator_obj, creator, prov, res_storer, prov_storer, modified_entities
-
-                    self.timer.record_metric("entities_created", total_entities)
-                    self.timer.record_metric("modified_entities", total_modified)
+                    repok = Reporter(print_sentences=False)
+                    reperr = Reporter(print_sentences=True, prefix="[Storer: ERROR] ")
+                    res_storer = Storer(
+                        abstract_set=creator,
+                        repok=repok,
+                        reperr=reperr,
+                        context_map={},
+                        dir_split=self.dir_split_number,
+                        n_file_item=self.items_per_file,
+                        default_dir=self.default_dir,
+                        output_format="json-ld",
+                        zip_output=self.zip_output_rdf,
+                        modified_entities=modified_entities,
+                    )
+                    prov_storer = Storer(
+                        abstract_set=prov,
+                        repok=repok,
+                        reperr=reperr,
+                        context_map={},
+                        dir_split=self.dir_split_number,
+                        n_file_item=self.items_per_file,
+                        output_format="json-ld",
+                        zip_output=self.zip_output_rdf,
+                        modified_entities=modified_entities,
+                    )
+                    self.store_data_and_prov(res_storer, prov_storer)
 
             return {"message": "success"}, cache_path, errors_path, filename
         except Exception as e:
@@ -584,12 +563,6 @@ def task_done(task_output: tuple) -> None:
     else:
         with open(errors_path, "a", encoding="utf-8") as aux_file:
             aux_file.write(f'{filename}: {message["message"]}' + "\n")
-
-
-def chunks(lst: list, n: int) -> Iterator[list]:
-    """Yield successive n-sized chunks from lst."""
-    for i in range(0, len(lst), n):
-        yield lst[i : i + n]
 
 
 def delete_lock_files(base_dir: str) -> None:
