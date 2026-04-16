@@ -1,8 +1,6 @@
 base_iri: https://w3id.org/oc/meta/
 base_output_dir: test/editor/output
 blazegraph_full_text_search: false
-cache_endpoint: ''
-cache_update_endpoint: ''
 context_path: https://w3id.org/oc/corpus/context.json
 default_dir: _
 dir_split_number: 10000
@@ -15,7 +13,6 @@ provenance_endpoints:
 - http://127.0.0.1:8806?access-token=qlever_test_token
 provenance_triplestore_url: http://127.0.0.1:8806?access-token=qlever_test_token
 rdf_files_only: false
-rdf_output_in_chunks: false
 redis_cache_db: 2
 redis_db: 5
 redis_host: localhost
@@ -28,6 +25,5 @@ silencer:
 source: https://api.crossref.org/
 supplier_prefix: '060'
 triplestore_url: http://127.0.0.1:8805?access-token=qlever_test_token
-use_doi_api_service: false
 virtuoso_full_text_search: false
 zip_output_rdf: false

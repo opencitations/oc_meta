@@ -57,7 +57,7 @@ class TestCollectIdentifiers:
 
     def test_collect_identifiers_structure(self):
         """Test that collect_identifiers returns the expected 3-tuple structure."""
-        result = self.curator.collect_identifiers(valid_dois_cache={})
+        result = self.curator.collect_identifiers()
 
         assert len(result) == 3, "collect_identifiers should return 3 values"
 
@@ -69,7 +69,7 @@ class TestCollectIdentifiers:
 
     def test_identifiers_extraction(self):
         """Test that DOI, ISSN, ORCID, and Crossref identifiers are correctly extracted."""
-        metavals, identifiers, vvis = self.curator.collect_identifiers(valid_dois_cache={})
+        metavals, identifiers, vvis = self.curator.collect_identifiers()
 
         expected_dois = [
             'doi:10.17759/chp.2024200411',

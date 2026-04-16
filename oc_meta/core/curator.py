@@ -43,8 +43,7 @@ def _omid(meta: str) -> str:
     return f"omid:{meta}"
 
 
-def _extract_ids_from_chunk(args: tuple) -> Tuple[set, set, set]:
-    rows, valid_dois_cache = args
+def _extract_ids_from_chunk(rows: list) -> Tuple[set, set, set]:
     all_metavals = set()
     all_identifiers = set()
     all_vvis = set()
@@ -58,7 +57,7 @@ def _extract_ids_from_chunk(args: tuple) -> Tuple[set, set, set]:
 
         if row["id"]:
             id_list = RE_ONE_OR_MORE_SPACES.split(RE_COLON_AND_SPACES.sub(":", row["id"]))
-            idslist, metaval = Curator.clean_id_list(id_list, br=True, valid_dois_cache=valid_dois_cache)
+            idslist, metaval = Curator.clean_id_list(id_list, br=True)
             if metaval:
                 metavals.add(_omid(metaval))
             if idslist:
@@ -71,7 +70,7 @@ def _extract_ids_from_chunk(args: tuple) -> Tuple[set, set, set]:
         ]
         for field, field_ids in fields_with_an_id:
             br = field in ["venue", "volume", "issue"]
-            field_idslist, field_metaval = Curator.clean_id_list(field_ids, br=br, valid_dois_cache=valid_dois_cache)
+            field_idslist, field_metaval = Curator.clean_id_list(field_ids, br=br)
             if field_metaval:
                 field_metaval = _omid(field_metaval)
             else:
@@ -107,7 +106,6 @@ class Curator:
         counter_handler: RedisCounterHandler,
         base_iri: str = "https://w3id.org/oc/meta",
         prefix: str = "060",
-        valid_dois_cache: dict = dict(),
         settings: dict | None = None,
         silencer: list = [],
         meta_config_path: str | None = None,
@@ -150,7 +148,6 @@ class Curator:
         self.remeta = dict()
         self.wnb_cnt = 0
         self.rowcnt = 0
-        self.valid_dois_cache = valid_dois_cache
         self.preexisting_entities = set()
         self.silencer = silencer
         self.min_rows_parallel = min_rows_parallel
@@ -161,10 +158,10 @@ class Curator:
             return self.timer.timer(name)
         return nullcontext()
 
-    def collect_identifiers(self, valid_dois_cache):
-        return self._collect_identifiers_with_progress(valid_dois_cache, task_id=None)
+    def collect_identifiers(self):
+        return self._collect_identifiers_with_progress(task_id=None)
 
-    def _collect_identifiers_with_progress(self, valid_dois_cache, task_id=None):
+    def _collect_identifiers_with_progress(self, task_id=None):
         all_metavals = set()
         all_idslist = set()
         all_vvis = set()
@@ -176,7 +173,7 @@ class Curator:
         if total_rows > self.min_rows_parallel and self.workers > 1:
             chunks = []
             for i in range(0, total_rows, self.min_rows_parallel):
-                chunks.append((self.data[i:i + self.min_rows_parallel], valid_dois_cache))
+                chunks.append(self.data[i:i + self.min_rows_parallel])
 
             with ProcessPoolExecutor(
                 max_workers=self.workers,
@@ -190,9 +187,7 @@ class Curator:
                         self.progress.advance(task_id, min(self.min_rows_parallel, total_rows))
         else:
             for row in self.data:
-                metavals, idslist, vvis = self.extract_identifiers_and_metavals(
-                    row, valid_dois_cache=valid_dois_cache
-                )
+                metavals, idslist, vvis = self.extract_identifiers_and_metavals(row)
                 all_metavals.update(metavals)
                 all_idslist.update(idslist)
                 all_vvis.update(vvis)
@@ -202,7 +197,7 @@ class Curator:
         return all_metavals, all_idslist, all_vvis
 
     def extract_identifiers_and_metavals(
-        self, row, valid_dois_cache
+        self, row
     ) -> Tuple[set, set, set]:
         metavals = set()
         identifiers = set()
@@ -214,7 +209,6 @@ class Curator:
             idslist, metaval = self.clean_id_list(
                 self.split_identifiers(row["id"]),
                 br=True,
-                valid_dois_cache=valid_dois_cache,
             )
             id_metaval = _omid(metaval) if metaval else ""
             if id_metaval:
@@ -229,9 +223,7 @@ class Curator:
         ]
         for field, field_ids in fields_with_an_id:
             br = field in ["venue", "volume", "issue"]
-            field_idslist, field_metaval = self.clean_id_list(
-                field_ids, br=br, valid_dois_cache=valid_dois_cache
-            )
+            field_idslist, field_metaval = self.clean_id_list(field_ids, br=br)
             if field_metaval:
                 field_metaval = _omid(field_metaval)
             else:
@@ -266,7 +258,6 @@ class Curator:
                     "  [dim]Collecting identifiers[/dim]", total=total_rows
                 )
             metavals, identifiers, vvis = self._collect_identifiers_with_progress(
-                valid_dois_cache=self.valid_dois_cache,
                 task_id=task_collect,
             )
             if self.progress and task_collect is not None:
@@ -364,8 +355,7 @@ class Curator:
         if row["id"]:
             idslist = RE_ONE_OR_MORE_SPACES.split(RE_COLON_AND_SPACES.sub(":", row["id"]))
             idslist, metaval = self.clean_id_list(
-                idslist, br=True, valid_dois_cache=self.valid_dois_cache
-            )
+                idslist, br=True)
             id_metaval = _omid(metaval) if metaval else ""
             metaval_ids_list.append((id_metaval, idslist))
         fields_with_an_id = [
@@ -376,8 +366,7 @@ class Curator:
         for field, field_ids in fields_with_an_id:
             br = field in ["venue", "volume", "issue"]
             field_idslist, field_metaval = self.clean_id_list(
-                field_ids, br=br, valid_dois_cache=self.valid_dois_cache
-            )
+                field_ids, br=br)
             if field_metaval:
                 field_metaval = _omid(field_metaval)
             else:
@@ -489,8 +478,7 @@ class Curator:
                 venue_id = venue_id.group(2)
                 idslist = RE_ONE_OR_MORE_SPACES.split(RE_COLON_AND_SPACES.sub(":", venue_id))
                 idslist, metaval = self.clean_id_list(
-                    idslist, br=True, valid_dois_cache=self.valid_dois_cache
-                )
+                    idslist, br=True)
 
                 metaval = self.id_worker(
                     "venue",
@@ -702,8 +690,7 @@ class Curator:
                                     ra_id_list.append("omid:" + ar_ra)
                 if col_name == "publisher":
                     ra_id_list, metaval = self.clean_id_list(
-                        ra_id_list, br=False, valid_dois_cache=self.valid_dois_cache
-                    )
+                        ra_id_list, br=False)
                     metaval = self.id_worker(
                         "publisher",
                         name,
@@ -716,8 +703,7 @@ class Curator:
                     )
                 else:
                     ra_id_list, metaval = self.clean_id_list(
-                        ra_id_list, br=False, valid_dois_cache=self.valid_dois_cache
-                    )
+                        ra_id_list, br=False)
                     metaval = self.id_worker(
                         col_name,
                         name,
@@ -747,7 +733,7 @@ class Curator:
 
     @staticmethod
     def clean_id_list(
-        id_list: List[str], br: bool, valid_dois_cache: dict = dict()
+        id_list: List[str], br: bool
     ) -> Tuple[list, str]:
         """
         Clean IDs in the input list and check if there is a MetaID.
@@ -775,7 +761,7 @@ class Curator:
             if schema == "omid":
                 metaid = value
             else:
-                normalized_id = normalize_id(elem, valid_dois_cache=valid_dois_cache)
+                normalized_id = normalize_id(elem)
                 if normalized_id:
                     clean_list.append(normalized_id)
 

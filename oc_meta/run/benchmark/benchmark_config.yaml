@@ -39,22 +39,15 @@ items_per_file: 1000
 default_dir: _
 # A prefix for the sequential number in entities' URIs
 supplier_prefix: '060'
-# Save graphs in chunks
-rdf_output_in_chunks: False
 # Zip output RDF files
 zip_output_rdf: True
 # Data source URL
 source: https://api.crossref.org/
-# Use DOI API service for validation
-use_doi_api_service: False
 # Triplestore full-text search settings
 blazegraph_full_text_search: False
 fuseki_full_text_search: False
 virtuoso_full_text_search: True
 graphdb_connector_name: ''
-# Cache endpoint for faster provenance queries
-cache_endpoint: ''
-cache_update_endpoint: ''
 # Silencer list (testing high-author bottleneck with silenced fields)
 silencer: ["author", "editor", "publisher"]
 

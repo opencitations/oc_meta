@@ -174,7 +174,7 @@ class TestCurator:
         row = {'id': 'doi:10.1001/archderm.104.1.106', 'title': 'Multiple Keloids', 'author': 'Curth, W.; McSorley, J. [orcid:0000-0003-0530-4305 schema:12345]', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [omid:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}
         curator = prepareCurator(list())
         curator.finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
-        metavals, identifiers, vvis = curator.extract_identifiers_and_metavals(row, valid_dois_cache=set())
+        metavals, identifiers, vvis = curator.extract_identifiers_and_metavals(row)
         curator.finder.get_everything_about_res(metavals=metavals, identifiers=identifiers, vvis=vvis)
         curator.clean_id(row)
         resolved_metaval = row['id']
@@ -213,7 +213,7 @@ class TestCurator:
         row = {'id': 'doi:10.1001/archderm.104.1.106', 'title': 'Multiple Keloids', 'author': 'Bernacki, Edward J. [    ]', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [omid:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}
         curator = prepareCurator(list())
         curator.finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
-        metavals, identifiers, vvis = curator.extract_identifiers_and_metavals(row, valid_dois_cache=set())
+        metavals, identifiers, vvis = curator.extract_identifiers_and_metavals(row)
         curator.finder.get_everything_about_res(metavals=metavals, identifiers=identifiers, vvis=vvis)
         curator.clean_id(row)
         resolved_metaval = row['id']
@@ -235,7 +235,7 @@ class TestCurator:
         row = {'id': 'doi:10.1001/archderm.104.1.106', 'title': 'Multiple Keloids', 'author': '', 'pub_date': '1971-07-01', 'venue': 'Archives Of Dermatology [omid:br/4416]', 'volume': '104', 'issue': '1', 'page': '106-107', 'type': 'journal article', 'publisher': '', 'editor': ''}
         curator = prepareCurator(list())
         curator.finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
-        metavals, identifiers, vvis = curator.extract_identifiers_and_metavals(row, valid_dois_cache=set())
+        metavals, identifiers, vvis = curator.extract_identifiers_and_metavals(row)
         curator.finder.get_everything_about_res(metavals=metavals, identifiers=identifiers, vvis=vvis)
         curator.clean_id(row)
         curator.clean_vvi(row)
@@ -285,7 +285,7 @@ class TestCurator:
         row = {'id': '', 'title': '', 'author': '', 'pub_date': '', 'venue': 'Archives Of Surgery [omid:br/4480]', 'volume': '147', 'issue': '11', 'page': '', 'type': 'journal article', 'publisher': '', 'editor': ''}
         curator = prepareCurator(list())
         curator.finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
-        metavals, identifiers, vvis = curator.extract_identifiers_and_metavals(row, valid_dois_cache=set())
+        metavals, identifiers, vvis = curator.extract_identifiers_and_metavals(row)
         curator.finder.get_everything_about_res(metavals=metavals, identifiers=identifiers, vvis=vvis)
         curator.clean_id(row)
         curator.clean_vvi(row)
@@ -339,7 +339,7 @@ class TestCurator:
         row = {'id': 'doi:10.1001/archderm.104.1.106', 'title': '', 'author': '', 'pub_date': '1972-12-01', 'venue': '', 'volume': '', 'issue': '', 'page': '', 'type': '', 'publisher': '', 'editor': ''}
         curator = prepareCurator(list())
         curator.finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
-        metavals, identifiers, vvis = curator.extract_identifiers_and_metavals(row, valid_dois_cache=set())
+        metavals, identifiers, vvis = curator.extract_identifiers_and_metavals(row)
         curator.finder.get_everything_about_res(metavals=metavals, identifiers=identifiers, vvis=vvis)
         curator.clean_id(row)
         extracted_metaval = row['id']
@@ -439,7 +439,7 @@ class TestCurator:
         all_identifiers = set()
         all_vvis = set()
         for row in data:
-            metavals, identifiers, vvis = curator.extract_identifiers_and_metavals(row, valid_dois_cache=set())
+            metavals, identifiers, vvis = curator.extract_identifiers_and_metavals(row)
             all_metavals.update(metavals)
             all_identifiers.update(identifiers)
             all_vvis.update(vvis)
@@ -1382,9 +1382,7 @@ class TestCuratorExtractIdsFromChunk:
                 "editor": "",
             }
         ]
-        valid_dois_cache = {}
-
-        metavals, identifiers, vvis = _extract_ids_from_chunk((rows, valid_dois_cache))
+        metavals, identifiers, vvis = _extract_ids_from_chunk(rows)
 
         assert "doi:10.1234/test" in identifiers
         assert "omid:br/venue1" in metavals
@@ -1408,9 +1406,7 @@ class TestCuratorExtractIdsFromChunk:
                 "editor": "",
             }
         ]
-        valid_dois_cache = {}
-
-        metavals, identifiers, vvis = _extract_ids_from_chunk((rows, valid_dois_cache))
+        metavals, identifiers, vvis = _extract_ids_from_chunk(rows)
 
         assert "omid:br/0601" in metavals
         assert "doi:10.1234/test" in identifiers
@@ -1433,9 +1429,7 @@ class TestCuratorExtractIdsFromChunk:
                 "editor": "",
             }
         ]
-        valid_dois_cache = {}
-
-        metavals, identifiers, vvis = _extract_ids_from_chunk((rows, valid_dois_cache))
+        metavals, identifiers, vvis = _extract_ids_from_chunk(rows)
 
         assert "omid:br/venue1" in metavals
         assert len(vvis) == 1

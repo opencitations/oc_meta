@@ -45,7 +45,6 @@ zip_output_rdf: true
 # Processing options
 silencer: ["author", "editor", "publisher"]
 normalize_titles: true
-use_doi_api_service: false
 ```
 
 ## Option reference
@@ -137,7 +136,6 @@ output_rdf_dir/
 |--------|------|---------|-------------|
 | `silencer` | list | [] | Fields to skip during updates |
 | `normalize_titles` | bool | true | Normalize title casing |
-| `use_doi_api_service` | bool | false | Query DOI API for metadata |
 
 The `silencer` option accepts a list of field names: `author`, `editor`, and `publisher`. Meta always works in addition mode (it never overwrites existing data). The silencer prevents adding new elements to an existing sequence. For example, if `silencer: ["author"]` is set and a resource already has authors, new authors from the CSV will not be added to the existing author chain.
 

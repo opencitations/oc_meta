@@ -352,7 +352,7 @@ def clean_ra_list(ra_list: list) -> list:
     return new_ra_list
 
 
-def normalize_id(string: str, valid_dois_cache: dict = dict()) -> Union[str, None]:
+def normalize_id(string: str) -> Union[str, None]:
     '''
     This function verifies and normalizes identifiers whose schema corresponds to a DOI, an ISSN, an ISBN or an ORCID.
 

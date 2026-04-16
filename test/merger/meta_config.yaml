@@ -1,8 +1,6 @@
 base_iri: https://w3id.org/oc/meta/
 base_output_dir: test/merger/output/
 blazegraph_full_text_search: false
-cache_endpoint: ''
-cache_update_endpoint: ''
 context_path: https://w3id.org/oc/corpus/context.json
 data_update_dir: test/temp_entity_merger_test/to_be_uploaded_data
 default_dir: _
@@ -16,7 +14,6 @@ prov_update_dir: test/temp_entity_merger_test/to_be_uploaded_prov
 provenance_endpoints:
 - http://127.0.0.1:8806?access-token=qlever_test_token
 provenance_triplestore_url: http://127.0.0.1:8806?access-token=qlever_test_token
-rdf_output_in_chunks: false
 redis_cache_db: 2
 redis_db: 5
 redis_host: localhost
@@ -32,6 +29,5 @@ triplestore_url: http://127.0.0.1:8805?access-token=qlever_test_token
 ts_failed_queries: test/temp_entity_merger_test/failed_queries.txt
 ts_stop_file: test/temp_entity_merger_test/.stop_upload
 ts_upload_cache: test/temp_entity_merger_test/ts_upload_cache.json
-use_doi_api_service: false
 virtuoso_full_text_search: false
 zip_output_rdf: false

@@ -19,7 +19,6 @@ from sys import executable, platform
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 import orjson
-import redis
 import yaml
 from oc_ocdm import Storer
 from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
@@ -82,7 +81,6 @@ class MetaProcess:
         self.input_csv_dir = normalize_path(settings["input_csv_dir"])
         self.base_output_dir = normalize_path(settings["base_output_dir"])
         self.resp_agent = settings["resp_agent"]
-        self.info_dir = os.path.join(self.base_output_dir, "info_dir")
         self.output_csv_dir = os.path.join(self.base_output_dir, "csv")
         self.output_rdf_dir = (
             normalize_path(settings["output_rdf_dir"]) + os.sep + "rdf" + os.sep
@@ -92,16 +90,12 @@ class MetaProcess:
         self.timer = timer or ProcessTimer(enabled=False)
         # Optional settings
         self.base_iri = settings["base_iri"]
-        self.normalize_titles = settings.get("normalize_titles", True)
         self.context_path = settings["context_path"]
         self.dir_split_number = settings["dir_split_number"]
         self.items_per_file = settings["items_per_file"]
         self.default_dir = settings["default_dir"]
         self.zip_output_rdf = settings["zip_output_rdf"]
         self.source = settings["source"]
-        self.valid_dois_cache: dict[str, str] = (
-            dict() if settings["use_doi_api_service"] else {}
-        )
         supplier_prefix: str = settings["supplier_prefix"]
         self.supplier_prefix = (
             supplier_prefix if supplier_prefix.endswith("0") else f"{supplier_prefix}0"
@@ -130,11 +124,6 @@ class MetaProcess:
         self.redis_port = settings.get("redis_port", 6379)
         self.redis_db = settings.get("redis_db", 5)
         self.redis_cache_db = settings.get("redis_cache_db", 2)
-        self.redis_client = redis.Redis(
-            host=self.redis_host, port=self.redis_port, db=self.redis_db
-        )
-
-        self.workers = settings.get("workers", 1)
 
         self.counter_handler = RedisCounterHandler(
             host=self.redis_host, port=self.redis_port, db=self.redis_db
@@ -185,7 +174,6 @@ class MetaProcess:
                     counter_handler=self.counter_handler,
                     base_iri=self.base_iri,
                     prefix=self.supplier_prefix,
-                    valid_dois_cache=self.valid_dois_cache,
                     settings=settings,
                     silencer=self.silencer,
                     meta_config_path=meta_config_path,
