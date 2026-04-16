@@ -70,8 +70,9 @@ class TestDatabaseUnavailability:
         print("[DEBUG] tearDown: done")
 
     @patch("oc_meta.lib.finder.SPARQLClient", side_effect=short_timeout_sparql_client)
+    @patch("oc_meta.lib.sparql.SPARQLClient", side_effect=short_timeout_sparql_client)
     @patch("sparqlite.SPARQLClient", side_effect=short_timeout_sparql_client)
-    def test_triplestore_unavailable_prevents_cache_update(self, mock_sparqlite, mock_finder):
+    def test_triplestore_unavailable_prevents_cache_update(self, mock_sparqlite, mock_sparql, mock_finder):
         """When triplestore is offline, processing fails and file is NOT cached."""
         print("[DEBUG] test: loading config...")
         meta_config_path = os.path.join(BASE_DIR, "meta_config_3.yaml")

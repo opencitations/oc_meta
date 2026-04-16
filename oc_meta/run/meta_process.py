@@ -200,7 +200,7 @@ class MetaProcess:
                 self.timer.record_metric("curated_records", len(curator_obj.data))
 
                 with self.timer.timer("rdf_creation"):
-                    local_g_size = curator_obj.finder.triple_count()
+                    local_g_size = len(curator_obj.finder.graph)
                     self.timer.record_metric("local_g_triples", local_g_size)
                     preexisting_count = len(curator_obj.preexisting_entities)
                     self.timer.record_metric("preexisting_entities_count", preexisting_count)

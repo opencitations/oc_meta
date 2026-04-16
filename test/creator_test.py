@@ -9,7 +9,7 @@ import pytest
 from oc_meta.core.creator import Creator
 from oc_meta.lib.file_manager import get_csv_data
 from oc_meta.lib.finder import ResourceFinder
-from rdflib import XSD, Graph, URIRef, compare
+from rdflib import XSD, Dataset, Graph, compare
 from rdflib.term import _toPythonMapping
 from test.test_utils import (
     SERVER,
@@ -63,9 +63,13 @@ def prepare2test(name):
     hack_dates()
     test_graph = test_graph.parse(testcase_ttl, format="ttl")
     new_graph = Graph()
-    for lg in creator_setgraph.graphs():
-        for s, p, o, _ctx in lg.to_rdflib_quads():
-            new_graph.add((s, p, o))
+    for tl in creator_setgraph.graphs():
+        rdflib_g = tl.to_rdflib()
+        if isinstance(rdflib_g, Dataset):
+            for s, p, o, _ctx in rdflib_g.quads():
+                new_graph.add((s, p, o))
+        else:
+            new_graph += rdflib_g
     return test_graph, new_graph
 
 
@@ -90,9 +94,13 @@ class TestCreator:
         )
         creator.vvi_action('OECD [omid:br/0602]', '107', '1')
         output_graph = Graph()
-        for lg in creator.setgraph.graphs():
-            for s, p, o, _ctx in lg.to_rdflib_quads():
-                output_graph.add((s, p, o))
+        for tl in creator.setgraph.graphs():
+            rdflib_g = tl.to_rdflib()
+            if isinstance(rdflib_g, Dataset):
+                for s, p, o, _ctx in rdflib_g.quads():
+                    output_graph.add((s, p, o))
+            else:
+                output_graph += rdflib_g
         expected_data = '''
             <https://w3id.org/oc/meta/br/0602> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression>.
             <https://w3id.org/oc/meta/br/0602> <http://purl.org/dc/terms/title> "OECD"^^<http://www.w3.org/2001/XMLSchema#string>.

@@ -133,7 +133,7 @@ class Creator(object):
             self.title_action(title)
 
             br_uri = f"{self.url}{self.row_meta}"
-            br_is_preexisting = br_uri in self.finder._spo
+            br_is_preexisting = br_uri in self.finder
 
             skip_author = False
             skip_publisher = False
@@ -213,10 +213,10 @@ class Creator(object):
             if "omid:" in identifier:
                 identifier = identifier.replace("omid:", "")
                 url = self.url + identifier
-                preexisting_entity = url in self.finder._spo
+                preexisting_entity = url in self.finder
                 self.row_meta = identifier
                 preexisting_graph = (
-                    self.finder.get_subgraph(url)
+                    self.finder.graph.subgraph(url)
                     if preexisting_entity
                     else None
                 )
@@ -248,10 +248,10 @@ class Creator(object):
                     if "omid:" in identifier:
                         identifier = str(identifier).replace("omid:", "")
                         url = self.url + identifier
-                        preexisting_entity = url in self.finder._spo
+                        preexisting_entity = url in self.finder
                         aut_meta = identifier
                         preexisting_graph = (
-                            self.finder.get_subgraph(url)
+                            self.finder.graph.subgraph(url)
                             if preexisting_entity
                             else None
                         )
@@ -278,9 +278,9 @@ class Creator(object):
                     self.id_creator(author_ra, identifier, ra=True)
                 ar_meta = self.ar_index[self.row_meta]["author"][aut_meta]
                 ar_url = self.url + ar_meta
-                preexisting_entity = ar_url in self.finder._spo
+                preexisting_entity = ar_url in self.finder
                 preexisting_graph = (
-                    self.finder.get_subgraph(ar_url)
+                    self.finder.graph.subgraph(ar_url)
                     if preexisting_entity
                     else None
                 )
@@ -315,10 +315,10 @@ class Creator(object):
                     ven_id = str(identifier).replace("omid:", "")
                     self.venue_meta = ven_id
                     url = self.url + ven_id
-                    preexisting_entity = url in self.finder._spo
+                    preexisting_entity = url in self.finder
                     venue_title = venue_and_ids.group(1)
                     preexisting_graph = (
-                        self.finder.get_subgraph(url)
+                        self.finder.graph.subgraph(url)
                         if preexisting_entity
                         else None
                     )
@@ -340,9 +340,9 @@ class Creator(object):
                 if vol:
                     vol_meta = self.vi_index[self.venue_meta]["volume"][vol]["id"]
                     vol_url = self.url + vol_meta
-                    preexisting_entity = vol_url in self.finder._spo
+                    preexisting_entity = vol_url in self.finder
                     preexisting_graph = (
-                        self.finder.get_subgraph(vol_url)
+                        self.finder.graph.subgraph(vol_url)
                         if preexisting_entity
                         else None
                     )
@@ -364,9 +364,9 @@ class Creator(object):
                             "id"
                         ]
                     issue_url = self.url + issue_meta
-                    preexisting_entity = issue_url in self.finder._spo
+                    preexisting_entity = issue_url in self.finder
                     preexisting_graph = (
-                        self.finder.get_subgraph(issue_url)
+                        self.finder.graph.subgraph(issue_url)
                         if preexisting_entity
                         else None
                     )
@@ -443,9 +443,9 @@ class Creator(object):
         if page:
             re_meta = self.re_index[self.row_meta]
             re_url = self.url + re_meta
-            preexisting_entity = re_url in self.finder._spo
+            preexisting_entity = re_url in self.finder
             preexisting_graph = (
-                self.finder.get_subgraph(re_url)
+                self.finder.graph.subgraph(re_url)
                 if preexisting_entity
                 else None
             )
@@ -519,10 +519,10 @@ class Creator(object):
                         identifier = str(identifier).replace("omid:", "")
                         pub_meta = identifier
                         url = self.url + identifier
-                        preexisting_entity = url in self.finder._spo
+                        preexisting_entity = url in self.finder
                         publ_name = publ_and_ids.group(1)
                         preexisting_graph = (
-                            self.finder.get_subgraph(url)
+                            self.finder.graph.subgraph(url)
                             if preexisting_entity
                             else None
                         )
@@ -538,9 +538,9 @@ class Creator(object):
                     self.id_creator(publisher_ra, identifier, ra=True)
                 ar_meta = self.ar_index[self.row_meta]["publisher"][pub_meta]
                 ar_url = self.url + ar_meta
-                preexisting_entity = ar_url in self.finder._spo
+                preexisting_entity = ar_url in self.finder
                 preexisting_graph = (
-                    self.finder.get_subgraph(ar_url)
+                    self.finder.graph.subgraph(ar_url)
                     if preexisting_entity
                     else None
                 )
@@ -573,9 +573,9 @@ class Creator(object):
                         identifier = str(identifier).replace("omid:", "")
                         ed_meta = identifier
                         url = self.url + identifier
-                        preexisting_entity = url in self.finder._spo
+                        preexisting_entity = url in self.finder
                         preexisting_graph = (
-                            self.finder.get_subgraph(url)
+                            self.finder.graph.subgraph(url)
                             if preexisting_entity
                             else None
                         )
@@ -603,9 +603,9 @@ class Creator(object):
                 br_key = get_edited_br_metaid(row, self.row_meta, self.venue_meta)
                 ar_meta = self.ar_index[br_key]["editor"][ed_meta]
                 ar_url = self.url + ar_meta
-                preexisting_entity = ar_url in self.finder._spo
+                preexisting_entity = ar_url in self.finder
                 preexisting_graph = (
-                    self.finder.get_subgraph(ar_url)
+                    self.finder.graph.subgraph(ar_url)
                     if preexisting_entity
                     else None
                 )
@@ -644,9 +644,9 @@ class Creator(object):
                     identifier = identifier.split(":", 1)[1]
                     res = self.ra_index[ra_id_schema][identifier]
                     url = self.url + res
-                    preexisting_entity = url in self.finder._spo
+                    preexisting_entity = url in self.finder
                     preexisting_graph = (
-                        self.finder.get_subgraph(url)
+                        self.finder.graph.subgraph(url)
                         if preexisting_entity
                         else None
                     )
@@ -663,9 +663,9 @@ class Creator(object):
                     identifier = identifier.split(":", 1)[1]
                     res = self.br_index[br_id_schema][identifier]
                     url = self.url + res
-                    preexisting_entity = url in self.finder._spo
+                    preexisting_entity = url in self.finder
                     preexisting_graph = (
-                        self.finder.get_subgraph(url)
+                        self.finder.graph.subgraph(url)
                         if preexisting_entity
                         else None
                     )

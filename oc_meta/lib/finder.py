@@ -14,12 +14,10 @@ import orjson
 if TYPE_CHECKING:
     from rich.progress import Progress
 from dateutil import parser
-from oc_ocdm.graph import GraphEntity
 from oc_ocdm.graph.graph_entity import GraphEntity
 from oc_ocdm.prov.prov_entity import ProvEntity
 from oc_ocdm.support import get_resource_number
-from oc_ocdm.light_graph import LightGraph, RDFTerm
-from rdflib import RDF, XSD, Literal, URIRef
+from triplelite import RDFTerm, TripleLite
 from sparqlite import SPARQLClient
 from time_agnostic_library.agnostic_entity import AgnosticEntity
 from rich.console import Console
@@ -27,31 +25,34 @@ from rich.console import Console
 from oc_meta.constants import QLEVER_BATCH_SIZE, QLEVER_MAX_WORKERS, QLEVER_QUERIES_PER_GROUP
 from oc_meta.lib.sparql import execute_sparql_queries
 
-_P_HAS_LITERAL_VALUE = str(GraphEntity.iri_has_literal_value)
-_P_USES_ID_SCHEME = str(GraphEntity.iri_uses_identifier_scheme)
-_P_HAS_IDENTIFIER = str(GraphEntity.iri_has_identifier)
-_P_TITLE = str(GraphEntity.iri_title)
-_P_NAME = str(GraphEntity.iri_name)
-_P_FAMILY_NAME = str(GraphEntity.iri_family_name)
-_P_GIVEN_NAME = str(GraphEntity.iri_given_name)
-_P_IS_DOC_CONTEXT_FOR = str(GraphEntity.iri_is_document_context_for)
-_P_HAS_NEXT = str(GraphEntity.iri_has_next)
-_P_IS_HELD_BY = str(GraphEntity.iri_is_held_by)
-_P_WITH_ROLE = str(GraphEntity.iri_with_role)
-_P_EMBODIMENT = str(GraphEntity.iri_embodiment)
-_P_STARTING_PAGE = str(GraphEntity.iri_starting_page)
-_P_ENDING_PAGE = str(GraphEntity.iri_ending_page)
-_P_PUB_DATE = str(GraphEntity.iri_has_publication_date)
-_P_SEQ_ID = str(GraphEntity.iri_has_sequence_identifier)
-_P_PART_OF = str(GraphEntity.iri_part_of)
-_P_TYPE = str(RDF.type)
-_DATACITE = str(GraphEntity.DATACITE)
-_T_JOURNAL_VOLUME = str(GraphEntity.iri_journal_volume)
-_T_JOURNAL_ISSUE = str(GraphEntity.iri_journal_issue)
-_T_EXPRESSION = str(GraphEntity.iri_expression)
-_R_AUTHOR = str(GraphEntity.iri_author)
-_R_EDITOR = str(GraphEntity.iri_editor)
-_R_PUBLISHER = str(GraphEntity.iri_publisher)
+_XSD_STRING = "http://www.w3.org/2001/XMLSchema#string"
+_RDF_TYPE = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+_DATACITE = "http://purl.org/spar/datacite/"
+
+_P_HAS_LITERAL_VALUE = GraphEntity.iri_has_literal_value
+_P_USES_ID_SCHEME = GraphEntity.iri_uses_identifier_scheme
+_P_HAS_IDENTIFIER = GraphEntity.iri_has_identifier
+_P_TITLE = GraphEntity.iri_title
+_P_NAME = GraphEntity.iri_name
+_P_FAMILY_NAME = GraphEntity.iri_family_name
+_P_GIVEN_NAME = GraphEntity.iri_given_name
+_P_IS_DOC_CONTEXT_FOR = GraphEntity.iri_is_document_context_for
+_P_HAS_NEXT = GraphEntity.iri_has_next
+_P_IS_HELD_BY = GraphEntity.iri_is_held_by
+_P_WITH_ROLE = GraphEntity.iri_with_role
+_P_EMBODIMENT = GraphEntity.iri_embodiment
+_P_STARTING_PAGE = GraphEntity.iri_starting_page
+_P_ENDING_PAGE = GraphEntity.iri_ending_page
+_P_PUB_DATE = GraphEntity.iri_has_publication_date
+_P_SEQ_ID = GraphEntity.iri_has_sequence_identifier
+_P_PART_OF = GraphEntity.iri_part_of
+_P_TYPE = _RDF_TYPE
+_T_JOURNAL_VOLUME = GraphEntity.iri_journal_volume
+_T_JOURNAL_ISSUE = GraphEntity.iri_journal_issue
+_T_EXPRESSION = GraphEntity.iri_expression
+_R_AUTHOR = GraphEntity.iri_author
+_R_EDITOR = GraphEntity.iri_editor
+_R_PUBLISHER = GraphEntity.iri_publisher
 
 
 class IssueEntry(TypedDict):
@@ -73,10 +74,9 @@ class ResourceFinder:
     def __init__(self, ts_url: str, base_iri: str, settings: dict = dict(), meta_config_path: str | None = None, workers: int = 1):
         self.ts_url = ts_url
         self.base_iri = base_iri[:-1] if base_iri[-1] == '/' else base_iri
-        self._spo: dict[str, dict[str, list[str]]] = {}
-        self._po_s: dict[tuple[str, str], set[str]] = {}
-        self._triple_count: int = 0
-        self._literal_datatypes: dict[str, str] = {}
+        self.graph = TripleLite(
+            reverse_index_predicates=frozenset(self._PO_S_INDEXED_PREDICATES)
+        )
         self.meta_config_path = meta_config_path
         self.meta_settings = settings
         self.virtuoso_full_text_search = settings['virtuoso_full_text_search'] if settings and 'virtuoso_full_text_search' in settings else False
@@ -84,47 +84,33 @@ class ResourceFinder:
 
     _PO_S_INDEXED_PREDICATES = {_P_HAS_LITERAL_VALUE, _P_HAS_IDENTIFIER, _P_PART_OF}
 
-    def _add_triple(self, s: str, p: str, o: str, o_datatype: str = '') -> None:
-        pred_dict = self._spo.get(s)
-        if pred_dict is None:
-            pred_dict = {}
-            self._spo[s] = pred_dict
-        obj_list = pred_dict.get(p)
-        if obj_list is None:
-            obj_list = []
-            pred_dict[p] = obj_list
-        obj_list.append(o)
-        if p in self._PO_S_INDEXED_PREDICATES:
-            key = (p, o)
-            subj_set = self._po_s.get(key)
-            if subj_set is None:
-                subj_set = set()
-                self._po_s[key] = subj_set
-            subj_set.add(s)
-        self._triple_count += 1
+    def add_triple(self, s: str, p: str, o: str, o_datatype: str = '') -> None:
         if o_datatype:
-            self._literal_datatypes[o] = o_datatype
+            term = RDFTerm("literal", o, o_datatype)
+        elif o.startswith('http'):
+            term = RDFTerm("uri", o)
+        else:
+            term = RDFTerm("literal", o, _XSD_STRING)
+        self.graph.add((s, p, term))
+
+    def __contains__(self, uri: str) -> bool:
+        return self.graph.has_subject(uri)
 
     def _get_objects(self, subject: str, predicate: str) -> list[str]:
-        pred_dict = self._spo.get(subject)
-        if pred_dict is None:
-            return []
-        return pred_dict.get(predicate, [])
+        return [t.value for t in self.graph.objects(subject, predicate)]
 
     def _get_all_po(self, subject: str) -> dict[str, list[str]]:
-        return self._spo.get(subject, {})
+        result: dict[str, list[str]] = {}
+        for p, o in self.graph.predicate_objects(subject):
+            result.setdefault(p, []).append(o.value)
+        return result
 
     def _get_subjects(self, predicate: str, obj: str) -> set[str]:
-        return self._po_s.get((predicate, obj), set())
-
-    def triple_count(self) -> int:
-        return self._triple_count
-
-    def add_triple(self, s: str | URIRef, p: str | URIRef, o: str | URIRef | Literal) -> None:
-        o_datatype = ''
-        if isinstance(o, Literal) and o.datatype:
-            o_datatype = str(o.datatype)
-        self._add_triple(str(s), str(p), str(o), o_datatype=o_datatype)
+        if predicate == _P_HAS_LITERAL_VALUE:
+            term = RDFTerm("literal", obj, _XSD_STRING)
+        else:
+            term = RDFTerm("uri", obj)
+        return set(self.graph.subjects(predicate, term))
 
     # _______________________________BR_________________________________ #
 
@@ -307,7 +293,7 @@ class ResourceFinder:
             return []
 
         if len(start_role_candidates) == 0:
-            sorted_ars = sorted(all_roles, key=lambda ar: get_resource_number(URIRef(f'{self.base_iri}/{ar}')))
+            sorted_ars = sorted(all_roles, key=lambda ar: get_resource_number(f'{self.base_iri}/{ar}'))
             start_role_candidates = {sorted_ars[0]}
 
         if len(start_role_candidates) != 1:
@@ -331,7 +317,7 @@ class ResourceFinder:
                     print(f"Warning: Possible infinite loop detected for BR: {metaid}, column: {col_name}")
                     return []
                 chains.append(chain)
-            chains.sort(key=lambda chain: (-len(chain), get_resource_number(URIRef(f'{self.base_iri}/{list(chain[0].keys())[0]}'))))
+            chains.sort(key=lambda chain: (-len(chain), get_resource_number(f'{self.base_iri}/{list(chain[0].keys())[0]}')))
             try:
                 ordered_ar_list = chains[0]
             except Exception as e:
@@ -387,14 +373,14 @@ class ResourceFinder:
 
     def retrieve_br_info_from_meta(self, metaid: str) -> dict:
         venue_type_strs = {
-            str(GraphEntity.iri_archival_document),
-            str(GraphEntity.iri_journal),
-            str(GraphEntity.iri_book),
-            str(GraphEntity.iri_book_series),
-            str(GraphEntity.iri_series),
-            str(GraphEntity.iri_academic_proceedings),
-            str(GraphEntity.iri_proceedings_series),
-            str(GraphEntity.iri_reference_book),
+            GraphEntity.iri_archival_document,
+            GraphEntity.iri_journal,
+            GraphEntity.iri_book,
+            GraphEntity.iri_book_series,
+            GraphEntity.iri_series,
+            GraphEntity.iri_academic_proceedings,
+            GraphEntity.iri_proceedings_series,
+            GraphEntity.iri_reference_book,
             _T_EXPRESSION,
         }
 
@@ -418,7 +404,6 @@ class ResourceFinder:
                     return f"{titles[0]} [{' '.join(venue_ids)}]"
             return None
 
-        metaid = str(metaid)
         metaid_uri = f'{self.base_iri}/{metaid}' if self.base_iri not in metaid else metaid
         po = self._get_all_po(metaid_uri)
         res_dict: dict = {
@@ -636,7 +621,7 @@ class ResourceFinder:
                     o_binding = row['o']
                     o_str = o_binding['value']
                     o_datatype = o_binding.get('datatype', '') if o_binding['type'] in ('literal', 'typed-literal') else ''
-                    self._add_triple(s_str, p_str, o_str, o_datatype=o_datatype)
+                    self.add_triple(s_str, p_str, o_str, o_datatype=o_datatype)
                     if o_binding['type'] == 'uri' and p_str not in _skip_preds:
                         next_subjects.add(o_str)
 
@@ -676,9 +661,9 @@ class ResourceFinder:
                         escaped_literal = literal.replace('\\', '\\\\').replace('"', '\\"')
                         union_blocks.append(f"""
                             {{
-                                ?id <{GraphEntity.iri_has_literal_value}> "{escaped_literal}"^^<{XSD.string}> .
-                                ?id <{GraphEntity.iri_uses_identifier_scheme}> <{GraphEntity.DATACITE + scheme}> .
-                                ?s <{GraphEntity.iri_has_identifier}> ?id .
+                                ?id <{_P_HAS_LITERAL_VALUE}> "{escaped_literal}"^^<{_XSD_STRING}> .
+                                ?id <{_P_USES_ID_SCHEME}> <{_DATACITE}{scheme}> .
+                                ?s <{_P_HAS_IDENTIFIER}> ?id .
                                 BIND("{scheme}" AS ?schemeLabel)
                                 BIND("{escaped_literal}" AS ?literalLabel)
                             }}
@@ -695,14 +680,14 @@ class ResourceFinder:
                     for identifier in batch:
                         scheme, literal = identifier.split(':', maxsplit=1)[0], identifier.split(':', maxsplit=1)[1]
                         escaped_literal = literal.replace('\\', '\\\\').replace('"', '\\"')
-                        identifiers_values.append(f'(<{GraphEntity.DATACITE + scheme}> "{escaped_literal}"^^<{XSD.string}>)')
+                        identifiers_values.append(f'(<{_DATACITE}{scheme}> "{escaped_literal}"^^<{_XSD_STRING}>)')
                     identifiers_values_str = " ".join(identifiers_values)
                     query = f'''
                         SELECT DISTINCT ?s ?scheme ?literal WHERE {{
                             VALUES (?scheme ?literal) {{ {identifiers_values_str} }}
-                            ?id <{GraphEntity.iri_uses_identifier_scheme}> ?scheme .
-                            ?id <{GraphEntity.iri_has_literal_value}> ?literal .
-                            ?s <{GraphEntity.iri_has_identifier}> ?id .
+                            ?id <{_P_USES_ID_SCHEME}> ?scheme .
+                            ?id <{_P_HAS_LITERAL_VALUE}> ?literal .
+                            ?s <{_P_HAS_IDENTIFIER}> ?id .
                         }}
                     '''
                     batch_queries.append(query)
@@ -738,7 +723,7 @@ class ResourceFinder:
                         scheme = str(row['schemeLabel']['value'])
                         literal = str(row['literalLabel']['value'])
                     else:
-                        scheme = str(row['scheme']['value']).replace(str(GraphEntity.DATACITE), '')
+                        scheme = str(row['scheme']['value']).replace(_DATACITE, '')
                         literal = str(row['literal']['value'])
                     identifier = f"{scheme}:{literal}"
                     if identifier not in id_to_subjects:
@@ -753,48 +738,48 @@ class ResourceFinder:
             for i in range(0, len(issue_vol_tuples), BATCH_SIZE):
                 chunk = issue_vol_tuples[i:i + BATCH_SIZE]
                 values_block = ' '.join(
-                    f'(<{venue}> "{vol_seq}"^^<{XSD.string}> "{issue_seq}"^^<{XSD.string}>)'
+                    f'(<{venue}> "{vol_seq}"^^<{_XSD_STRING}> "{issue_seq}"^^<{_XSD_STRING}>)'
                     for venue, vol_seq, issue_seq in chunk
                 )
                 queries.append(f'''
                     SELECT ?s WHERE {{
                         VALUES (?venueUri ?volSeq ?issSeq) {{ {values_block} }}
-                        ?volume a <{GraphEntity.iri_journal_volume}> ;
-                            <{GraphEntity.iri_part_of}> ?venueUri ;
-                            <{GraphEntity.iri_has_sequence_identifier}> ?volSeq .
-                        ?s a <{GraphEntity.iri_journal_issue}> ;
-                            <{GraphEntity.iri_part_of}> ?volume ;
-                            <{GraphEntity.iri_has_sequence_identifier}> ?issSeq .
+                        ?volume a <{_T_JOURNAL_VOLUME}> ;
+                            <{_P_PART_OF}> ?venueUri ;
+                            <{_P_SEQ_ID}> ?volSeq .
+                        ?s a <{_T_JOURNAL_ISSUE}> ;
+                            <{_P_PART_OF}> ?volume ;
+                            <{_P_SEQ_ID}> ?issSeq .
                     }}
                 ''')
 
             for i in range(0, len(issue_no_vol_tuples), BATCH_SIZE):
                 chunk = issue_no_vol_tuples[i:i + BATCH_SIZE]
                 values_block = ' '.join(
-                    f'(<{venue}> "{issue_seq}"^^<{XSD.string}>)'
+                    f'(<{venue}> "{issue_seq}"^^<{_XSD_STRING}>)'
                     for venue, issue_seq in chunk
                 )
                 queries.append(f'''
                     SELECT ?s WHERE {{
                         VALUES (?venueUri ?issSeq) {{ {values_block} }}
-                        ?s a <{GraphEntity.iri_journal_issue}> ;
-                            <{GraphEntity.iri_part_of}> ?venueUri ;
-                            <{GraphEntity.iri_has_sequence_identifier}> ?issSeq .
+                        ?s a <{_T_JOURNAL_ISSUE}> ;
+                            <{_P_PART_OF}> ?venueUri ;
+                            <{_P_SEQ_ID}> ?issSeq .
                     }}
                 ''')
 
             for i in range(0, len(vol_only_tuples), BATCH_SIZE):
                 chunk = vol_only_tuples[i:i + BATCH_SIZE]
                 values_block = ' '.join(
-                    f'(<{venue}> "{vol_seq}"^^<{XSD.string}>)'
+                    f'(<{venue}> "{vol_seq}"^^<{_XSD_STRING}>)'
                     for venue, vol_seq in chunk
                 )
                 queries.append(f'''
                     SELECT ?s WHERE {{
                         VALUES (?venueUri ?volSeq) {{ {values_block} }}
-                        ?s a <{GraphEntity.iri_journal_volume}> ;
-                            <{GraphEntity.iri_part_of}> ?venueUri ;
-                            <{GraphEntity.iri_has_sequence_identifier}> ?volSeq .
+                        ?s a <{_T_JOURNAL_VOLUME}> ;
+                            <{_P_PART_OF}> ?venueUri ;
+                            <{_P_SEQ_ID}> ?volSeq .
                     }}
                 ''')
 
@@ -919,23 +904,6 @@ class ResourceFinder:
         console = Console()
         style = "bold red" if max_depth_reached >= max_depth else "bold green"
         console.print(f"  Max traversal depth reached: {max_depth_reached}/{max_depth}", style=style)
-
-    def get_subgraph(self, res) -> LightGraph | None:
-        res_str = str(res)
-        po = self._spo.get(res_str)
-        if po is None:
-            return None
-        g = LightGraph()
-        for p_str, objects in po.items():
-            for o_str in objects:
-                if o_str in self._literal_datatypes:
-                    o = RDFTerm("literal", o_str, self._literal_datatypes[o_str])
-                elif o_str.startswith('http'):
-                    o = RDFTerm("uri", o_str)
-                else:
-                    o = RDFTerm("literal", o_str, str(XSD.string))
-                g.add((res_str, p_str, o))
-        return g
 
     def retrieve_venue_from_local_graph(self, meta_id: str) -> VenueStructure:
         content: VenueStructure = {

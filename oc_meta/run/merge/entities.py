@@ -269,13 +269,12 @@ class EntityMerger:
         processed_count = 0
         for surviving_entity, merged_entities in rows_to_process:
             logger.info(f"Processing row - surviving entity: {surviving_entity}")
-            surviving_uri = URIRef(surviving_entity)
             for merged_entity in merged_entities:
                 logger.info(
                     f"  Attempting to merge {merged_entity} into {surviving_entity}"
                 )
                 try:
-                    meta_editor.merge(g_set, surviving_uri, URIRef(merged_entity))
+                    meta_editor.merge(g_set, surviving_entity, merged_entity)
                     modified = True
                     processed_count += 1
                     logger.info(f"  Successfully merged {merged_entity}")

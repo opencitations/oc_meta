@@ -116,24 +116,24 @@ class TestEditor:
     def test_update_property(self):
         editor = MetaEditor(META_CONFIG, "https://orcid.org/0000-0002-8420-0696")
         editor.update_property(
-            URIRef("https://w3id.org/oc/meta/ar/0601"),
+            "https://w3id.org/oc/meta/ar/0601",
             "has_next",
-            URIRef("https://w3id.org/oc/meta/ar/0604"),
+            "https://w3id.org/oc/meta/ar/0604",
         )
         editor.update_property(
-            URIRef("https://w3id.org/oc/meta/ar/0604"),
+            "https://w3id.org/oc/meta/ar/0604",
             "has_next",
-            URIRef("https://w3id.org/oc/meta/ar/0603"),
+            "https://w3id.org/oc/meta/ar/0603",
         )
         editor.update_property(
-            URIRef("https://w3id.org/oc/meta/ar/0603"),
+            "https://w3id.org/oc/meta/ar/0603",
             "has_next",
-            URIRef("https://w3id.org/oc/meta/ar/0602"),
+            "https://w3id.org/oc/meta/ar/0602",
         )
         editor.update_property(
-            URIRef("https://w3id.org/oc/meta/ar/0602"),
+            "https://w3id.org/oc/meta/ar/0602",
             "has_next",
-            URIRef("https://w3id.org/oc/meta/ar/0605"),
+            "https://w3id.org/oc/meta/ar/0605",
         )
 
         with SPARQLClient(SERVER, timeout=60) as client:
@@ -253,7 +253,7 @@ class TestEditor:
 
     def test_delete_property(self):
         editor = MetaEditor(META_CONFIG, "https://orcid.org/0000-0002-8420-0696")
-        editor.delete(URIRef("https://w3id.org/oc/meta/br/0601"), "has_title")
+        editor.delete("https://w3id.org/oc/meta/br/0601", "has_title")
         with open(
             os.path.join(OUTPUT, "rdf", "br", "060", "10000", "1000.json"),
             "r",
@@ -285,7 +285,7 @@ class TestEditor:
 
     def test_delete_entity(self):
         editor = MetaEditor(META_CONFIG, "https://orcid.org/0000-0002-8420-0696")
-        editor.delete(URIRef("https://w3id.org/oc/meta/id/0601"))
+        editor.delete("https://w3id.org/oc/meta/id/0601")
         with open(
             os.path.join(OUTPUT, "rdf", "id", "060", "10000", "1000.json"),
             "r",
@@ -408,8 +408,8 @@ class TestEditor:
         editor = MetaEditor(META_CONFIG, "https://orcid.org/0000-0002-8420-0696")
         editor.merge(
             g_set,
-            URIRef("https://w3id.org/oc/meta/ra/0607"),
-            URIRef("https://w3id.org/oc/meta/ra/06010"),
+            "https://w3id.org/oc/meta/ra/0607",
+            "https://w3id.org/oc/meta/ra/06010",
         )
         editor.save(g_set)
 
@@ -561,7 +561,7 @@ class TestEditor:
             assert len(result["results"]["bindings"]) == 1
 
         # Perform deletion
-        editor.delete(URIRef("https://w3id.org/oc/meta/br/0605"))
+        editor.delete("https://w3id.org/oc/meta/br/0605")
 
         # Ensure the entity is deleted
         with SPARQLClient(SERVER, timeout=60) as client:
@@ -682,7 +682,7 @@ class TestEditor:
             client.update(sparql_update_query)
 
         # Perform deletion again
-        editor.delete(URIRef("https://w3id.org/oc/meta/br/0605"))
+        editor.delete("https://w3id.org/oc/meta/br/0605")
 
         # Verify and print the provenance graph for the entity
         prov_path = os.path.join(
@@ -819,7 +819,7 @@ class TestEditor:
         editor.save(g_set)
 
         editor.update_property(
-            URIRef("https://w3id.org/oc/meta/br/0603"),
+            "https://w3id.org/oc/meta/br/0603",
             "has_title",
             "New Test Title",
         )
@@ -917,16 +917,16 @@ class TestEditor:
         # Prima fusione
         editor.merge(
             g_set,
-            URIRef("https://w3id.org/oc/meta/ra/0607"),
-            URIRef("https://w3id.org/oc/meta/ra/06010"),
+            "https://w3id.org/oc/meta/ra/0607",
+            "https://w3id.org/oc/meta/ra/06010",
         )
 
         # Verifica che le entità principali siano in cache
         assert (
-            editor.entity_cache.is_cached(URIRef("https://w3id.org/oc/meta/ra/0607"))
+            editor.entity_cache.is_cached("https://w3id.org/oc/meta/ra/0607")
         )
         assert (
-            editor.entity_cache.is_cached(URIRef("https://w3id.org/oc/meta/ra/06010"))
+            editor.entity_cache.is_cached("https://w3id.org/oc/meta/ra/06010")
         )
 
         # Verifica che le entità correlate siano in cache
@@ -942,7 +942,7 @@ class TestEntityCache:
     @pytest.fixture(autouse=True)
     def setup_method(self, request):
         self.cache = EntityCache()
-        self.entity = URIRef("https://w3id.org/oc/meta/ra/0607")
+        self.entity = "https://w3id.org/oc/meta/ra/0607"
 
     def test_add_and_is_cached(self):
         assert not self.cache.is_cached(self.entity)

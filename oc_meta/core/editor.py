@@ -16,7 +16,7 @@ from oc_ocdm import Storer
 from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
 from oc_ocdm.graph import GraphSet
 from oc_ocdm.graph.graph_entity import GraphEntity
-from oc_ocdm.light_graph import LightGraph, RDFTerm, rdflib_to_rdfterm
+from triplelite import RDFTerm, TripleLite, from_rdflib
 from oc_ocdm.prov import ProvSet
 from oc_ocdm.reader import Reader
 from oc_ocdm.support.support import build_graph_from_results
@@ -28,11 +28,11 @@ class EntityCache:
     def __init__(self):
         self.cache: set[str] = set()
 
-    def add(self, entity: str | URIRef) -> None:
-        self.cache.add(str(entity))
+    def add(self, entity: str) -> None:
+        self.cache.add(entity)
 
-    def is_cached(self, entity: str | URIRef) -> bool:
-        return str(entity) in self.cache
+    def is_cached(self, entity: str) -> bool:
+        return entity in self.cache
 
     def clear(self) -> None:
         self.cache.clear()
@@ -78,30 +78,28 @@ class MetaEditor:
         self.relationship_cache = {}
 
     def update_property(
-        self, res: URIRef, property: str, new_value: str | URIRef
+        self, res: str, property: str, new_value: str
     ) -> None:
-        res_str = str(res)
-        supplier_prefix = self.__get_supplier_prefix(res_str)
+        supplier_prefix = self.__get_supplier_prefix(res)
         g_set = GraphSet(
             self.base_iri,
             supplier_prefix=supplier_prefix,
             custom_counter_handler=self.counter_handler,
         )
         self.reader.import_entity_from_triplestore(
-            g_set, self.endpoint, res, self.resp_agent, enable_validation=False
+            g_set, self.endpoint, URIRef(res), self.resp_agent, enable_validation=False
         )
         if validators.url(new_value):
-            new_value_uri = URIRef(new_value)
             self.reader.import_entity_from_triplestore(
                 g_set,
                 self.endpoint,
-                new_value_uri,
+                URIRef(new_value),
                 self.resp_agent,
                 enable_validation=False,
             )
-            getattr(g_set.get_entity(res_str), property)(g_set.get_entity(str(new_value_uri)))
+            getattr(g_set.get_entity(res), property)(g_set.get_entity(new_value))
         else:
-            getattr(g_set.get_entity(res_str), property)(new_value)
+            getattr(g_set.get_entity(res), property)(new_value)
         self.save(g_set, supplier_prefix)
 
     def delete(self, res: str, property: str | None = None, object: str | None = None) -> None:
@@ -126,7 +124,7 @@ class MetaEditor:
                 )
                 with SPARQLClient(self.endpoint, max_retries=3, backoff_factor=0.3, timeout=3600) as client:
                     result = client.query(query)["results"]["bindings"]
-                preexisting_graph = self._build_light_graph_from_results(result)
+                preexisting_graph = from_rdflib(build_graph_from_results(result))[0]
                 self.add_entity_with_type(g_set, res_str, inferred_type, preexisting_graph)
             else:
                 return
@@ -152,7 +150,7 @@ class MetaEditor:
                         enable_validation=False,
                     )
                     getattr(g_set.get_entity(res_str), remove_method)(
-                        g_set.get_entity(str(object))
+                        g_set.get_entity(object)
                     )
                 else:
                     getattr(g_set.get_entity(res_str), remove_method)(object)
@@ -176,17 +174,8 @@ class MetaEditor:
             entity_to_purge.mark_as_to_be_deleted()
         self.save(g_set, supplier_prefix)
 
-    def merge(self, g_set: GraphSet, res: URIRef, other: URIRef) -> None:
-        """
-        Merge two entities and their related entities using batch import with caching.
-
-        Args:
-            g_set: The GraphSet containing the entities
-            res: The main entity that will absorb the other
-            other: The entity to be merged into the main one
-        """
-        # First get all related entities with a single SPARQL query
-        related_entities = set()
+    def merge(self, g_set: GraphSet, res: str, other: str) -> None:
+        related_entities: set[str] = set()
         with SPARQLClient(self.endpoint, max_retries=5, backoff_factor=0.3, timeout=3600) as client:
             if other in self.relationship_cache:
                 related_entities.update(self.relationship_cache[other])
@@ -205,7 +194,7 @@ class MetaEditor:
 
                 data = client.query(query)
                 other_related = {
-                    URIRef(result["entity"]["value"])
+                    result["entity"]["value"]
                     for result in data["results"]["bindings"]
                     if result["entity"]["type"] == "uri"
                 }
@@ -215,7 +204,6 @@ class MetaEditor:
             if res in self.relationship_cache:
                 related_entities.update(self.relationship_cache[res])
             else:
-                # Query only for objects of the surviving entity if not in cache
                 query = f"""
                     PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
                     PREFIX datacite: <http://purl.org/spar/datacite/>
@@ -229,7 +217,7 @@ class MetaEditor:
 
                 data = client.query(query)
                 res_related = {
-                    URIRef(result["entity"]["value"])
+                    result["entity"]["value"]
                     for result in data["results"]["bindings"]
                     if result["entity"]["type"] == "uri"
                 }
@@ -237,24 +225,22 @@ class MetaEditor:
                 self.relationship_cache[res] = res_related
                 related_entities.update(res_related)
 
-        entities_to_import = set([res, other])
+        entities_to_import = {res, other}
         entities_to_import.update(related_entities)
         entities_to_import = {
             e for e in entities_to_import if not self.entity_cache.is_cached(e)
         }
-        # Import only non-cached entities if there are any
         if entities_to_import:
             try:
                 self.reader.import_entities_from_triplestore(
                     g_set=g_set,
                     ts_url=self.endpoint,
-                    entities=list(entities_to_import),
+                    entities=[URIRef(e) for e in entities_to_import],
                     resp_agent=self.resp_agent,
                     enable_validation=False,
                     batch_size=10,
                 )
 
-                # Add newly imported entities to cache
                 for entity in entities_to_import:
                     self.entity_cache.add(entity)
 
@@ -262,13 +248,12 @@ class MetaEditor:
                 print(f"Error importing entities: {e}")
                 return
 
-        # Perform the merge
-        res_as_entity = g_set.get_entity(str(res))
-        other_as_entity = g_set.get_entity(str(other))
+        res_as_entity = g_set.get_entity(res)
+        other_as_entity = g_set.get_entity(other)
         if not res_as_entity or not other_as_entity:
             raise ValueError(f"Entity not found in GraphSet: res={res}, other={other}")
 
-        expression_term = RDFTerm("uri", str(GraphEntity.iri_expression))
+        expression_term = RDFTerm("uri", GraphEntity.iri_expression)
         rdf_type = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
         is_both_expression = all(
             expression_term in entity.g.objects(entity.res, rdf_type)
@@ -419,20 +404,12 @@ class MetaEditor:
             return GraphEntity.iri_identifier
         return None
 
-    @staticmethod
-    def _build_light_graph_from_results(results: list) -> LightGraph:
-        rdflib_graph = build_graph_from_results(results)
-        lg = LightGraph()
-        for s, p, o in rdflib_graph:
-            lg.add((str(s), str(p), rdflib_to_rdfterm(o)))
-        return lg
-
     def add_entity_with_type(
         self,
         g_set: GraphSet,
         res: str,
         entity_type: str,
-        preexisting_graph: LightGraph,
+        preexisting_graph: TripleLite,
     ):
         if entity_type == GraphEntity.iri_expression:
             g_set.add_br(
