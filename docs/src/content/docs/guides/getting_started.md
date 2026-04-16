@@ -59,7 +59,6 @@ docker run -d --name virtuoso-prov -p 8891:8890 -p 1112:1111 openlink/virtuoso-o
 triplestore_url: "http://127.0.0.1:8890/sparql"
 provenance_triplestore_url: "http://127.0.0.1:8891/sparql"
 base_iri: "https://w3id.org/oc/meta/"
-context_path: "https://w3id.org/oc/corpus/context.json"
 resp_agent: "https://w3id.org/oc/meta/prov/pa/1"
 source: "https://api.crossref.org/"
 

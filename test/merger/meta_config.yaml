@@ -1,7 +1,6 @@
 base_iri: https://w3id.org/oc/meta/
 base_output_dir: test/merger/output/
 blazegraph_full_text_search: false
-context_path: https://w3id.org/oc/corpus/context.json
 data_update_dir: test/temp_entity_merger_test/to_be_uploaded_data
 default_dir: _
 dir_split_number: 10000

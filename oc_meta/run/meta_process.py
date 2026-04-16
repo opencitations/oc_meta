@@ -64,11 +64,10 @@ def _generate_queries_worker(storer: Storer, triplestore_url: str, base_dir: str
     )
 
 
-def _store_rdf_worker(storer: Storer, base_dir, base_iri, context_path):
+def _store_rdf_worker(storer: Storer, base_dir, base_iri):
     storer.store_all(
         base_dir=base_dir,
         base_iri=base_iri,
-        context_path=context_path
     )
 
 
@@ -90,7 +89,6 @@ class MetaProcess:
         self.timer = timer or ProcessTimer(enabled=False)
         # Optional settings
         self.base_iri = settings["base_iri"]
-        self.context_path = settings["context_path"]
         self.dir_split_number = settings["dir_split_number"]
         self.items_per_file = settings["items_per_file"]
         self.default_dir = settings["default_dir"]
@@ -227,7 +225,6 @@ class MetaProcess:
                         abstract_set=creator,
                         repok=repok,
                         reperr=reperr,
-                        context_map={},
                         dir_split=self.dir_split_number,
                         n_file_item=self.items_per_file,
                         default_dir=self.default_dir,
@@ -239,7 +236,6 @@ class MetaProcess:
                         abstract_set=prov,
                         repok=repok,
                         reperr=reperr,
-                        context_map={},
                         dir_split=self.dir_split_number,
                         n_file_item=self.items_per_file,
                         output_format="json-ld",
@@ -331,11 +327,11 @@ class MetaProcess:
 
             data_store_process = ctx.Process(
                 target=_store_rdf_worker,
-                args=(res_storer, self.output_rdf_dir, self.base_iri, self.context_path)
+                args=(res_storer, self.output_rdf_dir, self.base_iri)
             )
             prov_store_process = ctx.Process(
                 target=_store_rdf_worker,
-                args=(prov_storer, self.output_rdf_dir, self.base_iri, self.context_path)
+                args=(prov_storer, self.output_rdf_dir, self.base_iri)
             )
             rdf_store_processes = [data_store_process, prov_store_process]
             for p in rdf_store_processes:

@@ -18,7 +18,7 @@ dependencies = [
     "filelock>=3.24.0",
     "numpy>=2.2.0",
     "oc-ds-converter==2.0.0",
-    "oc-ocdm>=11.0.4",
+    "oc-ocdm>=11.0.5",
     "orjson>=3.11.0",
     "pandas>=2.2.3",
     "piccione>=3.0.0",

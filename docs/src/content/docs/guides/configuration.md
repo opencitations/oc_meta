@@ -18,7 +18,6 @@ provenance_triplestore_url: "http://127.0.0.1:8891/sparql"
 
 # RDF settings
 base_iri: "https://w3id.org/oc/meta/"
-context_path: "https://w3id.org/oc/corpus/context.json"
 
 # Provenance
 resp_agent: "https://w3id.org/oc/meta/prov/pa/1"
@@ -61,9 +60,6 @@ normalize_titles: true
 | Option | Type | Description |
 |--------|------|-------------|
 | `base_iri` | string | Base IRI for generated entity URIs |
-| `context_path` | string | JSON-LD context URL referenced in output files |
-
-The `context_path` URL is embedded in output JSON-LD files as `"@context": "https://w3id.org/oc/corpus/context.json"`. This keeps output files small (they reference the context instead of embedding it). The context defines namespace prefixes (e.g., `fabio:`, `datacite:`, `prism:`) that map to the OpenCitations Data Model vocabularies.
 
 ### Provenance
 

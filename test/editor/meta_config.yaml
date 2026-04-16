@@ -1,7 +1,6 @@
 base_iri: https://w3id.org/oc/meta/
 base_output_dir: test/editor/output
 blazegraph_full_text_search: false
-context_path: https://w3id.org/oc/corpus/context.json
 default_dir: _
 dir_split_number: 10000
 fuseki_full_text_search: false
