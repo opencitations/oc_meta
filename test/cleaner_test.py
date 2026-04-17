@@ -14,6 +14,7 @@ from oc_meta.lib.cleaner import (
     normalize_spaces,
     remove_ascii,
 )
+from oc_meta.lib.master_of_regex import split_name_and_ids
 
 
 class TestCleaner:
@@ -102,6 +103,12 @@ class TestCleaner:
         names = ['Peroni, Silvio [orcid:0000-0003-0530-4305]', '[orcid:0000-0003-0530-4305 viaf:1]', '[orcid:0000-0003-0530-4306]']
         output = clean_ra_list(names)
         expected_output = ['Peroni, Silvio', '[viaf:1]', '[orcid:0000-0003-0530-4306]']
+        assert output == expected_output
+
+    def test_clean_ra_list_strips_stray_brackets_in_bare_name(self):
+        names = ['[Labour Party[', '[[foo]]', 'Acme ]Inc[']
+        output = clean_ra_list(names)
+        expected_output = ['Labour Party', 'foo', 'Acme Inc']
         assert output == expected_output
 
     def test_normalize_spaces(self):
@@ -255,3 +262,38 @@ class TestCleaner:
             clean_strings.append(remove_ascii(string))
         expected_output = ['5 6']
         assert clean_strings == expected_output
+
+
+class TestNameAndIdsRegex:
+    """Regex-level regression coverage for ``split_name_and_ids``."""
+
+    def test_stray_bracket_before_ids_not_captured(self):
+        # Regression: JaLC row `doi:10.11501/13834445` produced curated publisher
+        # `[Labour Party[ [omid:ra/06047190147]`. The greedy id pattern used to
+        # absorb the stray '[' giving ids = '[omid:ra/06047190147', which the
+        # Creator then appended to base_iri -> invalid RA URI and crash.
+        name, ids = split_name_and_ids('[Labour Party[ [omid:ra/06047190147]')
+        assert name == '[Labour Party['
+        assert ids == 'omid:ra/06047190147'
+
+    def test_bare_name_without_brackets(self):
+        assert split_name_and_ids('Peroni, Silvio') == ('Peroni, Silvio', '')
+
+    def test_empty_string(self):
+        assert split_name_and_ids('') == ('', '')
+
+    def test_name_with_ids(self):
+        assert split_name_and_ids('Peroni, Silvio [orcid:0000-0003-0530-4305]') == (
+            'Peroni, Silvio',
+            'orcid:0000-0003-0530-4305',
+        )
+
+    def test_multi_ra_returns_first_ids_block(self):
+        _, ids = split_name_and_ids('A1 [orcid:111]; A2 [orcid:222]')
+        assert ids == 'orcid:111'
+
+    def test_ids_only(self):
+        assert split_name_and_ids('[orcid:0000-0003-0530-4305 viaf:1]') == (
+            '',
+            'orcid:0000-0003-0530-4305 viaf:1',
+        )

@@ -19,23 +19,27 @@ from sparqlite import SPARQLClient
 
 from oc_meta.lib.console import create_progress
 from oc_meta.lib.file_manager import get_csv_data
-from oc_meta.lib.master_of_regex import RE_NAME_AND_IDS
+from oc_meta.lib.master_of_regex import split_name_and_ids
 
 
 def _count_venues_in_file(filepath: str) -> Set[str]:
     csv_data = get_csv_data(filepath)
     venues = set()
     for row in csv_data:
-        if row['venue']:
-            ven_name_and_ids = RE_NAME_AND_IDS.search(row['venue'])
-            if ven_name_and_ids:
-                venue_name = ven_name_and_ids.group(1).lower()
-                venue_ids = set(ven_name_and_ids.group(2).split())
-                venue_metaid = [identifier for identifier in venue_ids if identifier.split(':', maxsplit=1)[0] == 'omid'][0]
-                if not venue_ids.difference({venue_metaid}):
-                    venues.add(venue_name)
-                else:
-                    venues.add(venue_metaid)
+        if not row['venue']:
+            continue
+        venue_name, venue_ids_str = split_name_and_ids(row['venue'])
+        if not venue_ids_str:
+            continue
+        venue_ids = set(venue_ids_str.split())
+        venue_metaid = next(
+            identifier for identifier in venue_ids
+            if identifier.split(':', maxsplit=1)[0] == 'omid'
+        )
+        if not venue_ids.difference({venue_metaid}):
+            venues.add(venue_name.lower())
+        else:
+            venues.add(venue_metaid)
     return venues
 
 

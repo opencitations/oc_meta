@@ -19,8 +19,8 @@ from oc_meta.lib.master_of_regex import (
     RE_COMMA_AND_SPACES,
     RE_INVALID_VI_PATTERNS,
     RE_ISSUES_VALID_PATTERNS,
-    RE_NAME_AND_IDS,
     RE_VOLUMES_VALID_PATTERNS,
+    split_name_and_ids,
 )
 
 _HYPHEN_TRANS = str.maketrans({
@@ -282,74 +282,86 @@ def clean_agent_name(string: str) -> str:
     return clean_string
 
 
+def _normalize_ra_name(raw_name: str) -> str:
+    """Normalize a RA name into one of: '', 'Full Name', 'Last, First', 'Last, '.
+
+    Returns '' when the name is absent, literally 'Not Available', or a
+    comma-separated pair whose surname is missing. Bare names are run
+    through :func:`clean_agent_name` to drop bracket / punctuation junk.
+    """
+    name = raw_name.strip()
+    if not name:
+        return ''
+    if ',' in name:
+        last, _, first = name.partition(',')
+        last = last.strip()
+        first = first.strip()
+        if last.lower() == 'not available':
+            last = ''
+        if first.lower() == 'not available':
+            first = ''
+        if not last:
+            return ''
+        return f'{last}, {first}' if first else f'{last}, '
+    cleaned = clean_agent_name(name)
+    if cleaned.lower() == 'not available':
+        return ''
+    return cleaned
+
+
 def clean_ra_list(ra_list: list) -> list:
     '''
-    This function removes responsible agents reported as 'Not Available', duplicates with the same name and at least one matching identifier, and common identifiers among different names.
+    Clean a list of responsible agents: normalize names, drop 'Not Available'
+    entries, remove duplicates that share a name and at least one id, and
+    strip identifiers that appear under more than one agent.
 
     :returns: list -- The cleaned responsible agents' list
     '''
 
-    # Step 1: Collect all identifiers for each unique name
-    agents_ids = OrderedDict()
+    # Phase 1: parse each entry into (key, name, ids). The key groups entries
+    # that belong to the same id bucket: named entries by their normalized
+    # name, nameless (ids-only) entries by the raw input so each stays
+    # distinct.
+    parsed: list[tuple[str, str, list[str]]] = []
+    agents_ids: OrderedDict[str, OrderedDict[str, None]] = OrderedDict()
     for ra in ra_list:
-        if ra.lower().strip() == 'not available':
+        raw_name, ids_str = split_name_and_ids(ra)
+        name = _normalize_ra_name(raw_name)
+        ids = ids_str.split()
+        if not name and not ids:
             continue
-        match = RE_NAME_AND_IDS.match(ra)
-        if match:
-            name, ids = match.groups()
-            if name:
-                cleaned_name = clean_agent_name(name)
-                agents_ids.setdefault(cleaned_name, OrderedDict()).update(
-                    OrderedDict.fromkeys(ids.split()))
-            else:  # If there are only IDs, treat the whole string as an identifier
-                agents_ids.setdefault(ra, OrderedDict()).update(
-                    OrderedDict.fromkeys(ids.split()))
-    # Step 2: Find identifiers that are shared between different names
-    # Count how many different names each ID belongs to (O(n) instead of O(n²))
-    id_name_count: dict[str, int] = {}
-    for ids in agents_ids.values():
-        for id_key in ids:
-            id_name_count[id_key] = id_name_count.get(id_key, 0) + 1
-    # IDs appearing in more than one name's set are shared
-    shared_ids = {id_key for id_key, count in id_name_count.items() if count > 1}
+        key = name or ra
+        parsed.append((key, name, ids))
+        if ids:
+            agents_ids.setdefault(key, OrderedDict()).update(
+                OrderedDict.fromkeys(ids)
+            )
 
-    # Step 3: Remove shared identifiers from the responsible agents
-    for name, ids in agents_ids.items():
-        agents_ids[name] = OrderedDict((id_key, None) for id_key in ids if id_key not in shared_ids)
+    # Phase 2: identifiers bucketed under more than one key are shared and
+    # must be dropped — they cannot unambiguously identify a single agent.
+    id_occurrences: dict[str, int] = {}
+    for bucket in agents_ids.values():
+        for identifier in bucket:
+            id_occurrences[identifier] = id_occurrences.get(identifier, 0) + 1
+    shared_ids = {i for i, count in id_occurrences.items() if count > 1}
 
-    # Step 4: Clean the list from 'Not Available', duplicates, and shared identifiers
-    new_ra_list = []
-    seen_agents = OrderedDict()
-    for ra in ra_list:
-        if ra.lower().strip() == 'not available':
+    # Phase 3: emit cleaned entries in input order, dropping later duplicates
+    # that share at least one surviving id with a previous entry of the same
+    # name.
+    output: list[str] = []
+    seen_ids_by_name: OrderedDict[str, set[str]] = OrderedDict()
+    for _, name, ids in parsed:
+        kept_ids = [i for i in ids if i not in shared_ids]
+        kept_ids_str = ' '.join(kept_ids)
+        if not name:
+            output.append(f'[{kept_ids_str}]')
             continue
-        if ',' in ra:
-            split_name = RE_COMMA_AND_SPACES.split(ra)
-            first_name = split_name[1].strip() if split_name[1].strip().lower() != 'not available' else ''
-            last_name = split_name[0].strip() if split_name[0].strip().lower() != 'not available' else ''
-            if not last_name:
-                continue
-            ra_cleaned_name = f'{last_name}, {first_name}' if first_name else f'{last_name}, '
-        else:
-            ra_cleaned_name = ra
-        match = RE_NAME_AND_IDS.match(ra)
-        if match:
-            name, ids = match.groups()
-            if name:
-                cleaned_name = clean_agent_name(name)
-                cleaned_ids = ' '.join(agents_ids.get(cleaned_name, []))
-                cleaned_ids_set = set(cleaned_ids.split())
-                ra_cleaned = f'{cleaned_name} [{cleaned_ids}]' if cleaned_ids else cleaned_name
-                if cleaned_name in seen_agents and seen_agents[cleaned_name] & cleaned_ids_set:
-                    continue  # Skip adding this ra since it's a duplicate with a matching identifier
-                seen_agents.setdefault(cleaned_name, set()).update(cleaned_ids_set)
-            else:
-                cleaned_ids = [identifier for identifier in ids.split() if identifier not in shared_ids]
-                ra_cleaned = f"[{' '.join(cleaned_ids)}]"
-            new_ra_list.append(ra_cleaned)
-        else:
-            new_ra_list.append(ra_cleaned_name)
-    return new_ra_list
+        kept_set = set(kept_ids)
+        if name in seen_ids_by_name and seen_ids_by_name[name] & kept_set:
+            continue
+        seen_ids_by_name.setdefault(name, set()).update(kept_set)
+        output.append(f'{name} [{kept_ids_str}]' if kept_ids else name)
+    return output
 
 
 def normalize_id(string: str) -> Union[str, None]:

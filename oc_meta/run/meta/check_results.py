@@ -21,7 +21,7 @@ from oc_meta.constants import QLEVER_BATCH_SIZE, QLEVER_MAX_WORKERS
 from oc_meta.lib.cleaner import normalize_hyphens, normalize_id
 from oc_meta.lib.console import EMATimeRemainingColumn, console
 from oc_meta.lib.file_manager import collect_files
-from oc_meta.lib.master_of_regex import RE_ENTITY_URI, RE_NAME_AND_IDS, RE_SEMICOLON_IN_PEOPLE_FIELD
+from oc_meta.lib.master_of_regex import RE_ENTITY_URI, RE_SEMICOLON_IN_PEOPLE_FIELD, split_name_and_ids
 from oc_meta.lib.sparql import run_queries_parallel
 
 MAX_RETRIES = 10
@@ -198,9 +198,9 @@ def _extract_id_pairs(cell: str, col: str) -> list[tuple[str, str]]:
                 pairs.append((token[:colon_pos].lower(), normalize_hyphens(token[colon_pos + 1:])))
     else:
         for element in RE_SEMICOLON_IN_PEOPLE_FIELD.split(cell):
-            match = RE_NAME_AND_IDS.search(element)
-            if match and match.group(2):
-                for token in match.group(2).strip().split():
+            _, ids_str = split_name_and_ids(element)
+            if ids_str:
+                for token in ids_str.strip().split():
                     colon_pos = token.find(':')
                     if colon_pos > 0:
                         pairs.append((token[:colon_pos].lower(), normalize_hyphens(token[colon_pos + 1:])))

@@ -7,17 +7,10 @@ import re
 # Split by ';' outside '[]' (any spaces before and after ';').
 semicolon_in_people_field = r'\s*;\s*(?=[^\]]*(?:\[|$))'
 
-# It gets string inside '[]' ignoring any space between (ex: [ TARGET  ] --> TARGET).
-# An id schema must be present, followed by a colon.
-# Before the colon, there must be any character that is not a square bracket
-# to prevent that in strings like 'Boezaart, Andr[eacute] [omid:123]' the id captured is '[eacute] [omid:123]'.
-# Alternatively, empty square brackets containing one or more spaces also represent a valid match.
-ids_inside_square_brackets = r'\[\s*((?:[^\s]+:[^\s]+)?(?:\s+[^\s]+:[^\s]+)*)\s*\]'
-
-# It gets the name and ids in two capturing groups.
-# As for ids, it gets the string inside '[]' ignoring any space between (ex: [ TARGET  ] --> TARGET).
-# An id schema must be present, followed by a colon.
-name_and_ids = fr'\s*(.*?)\s*{ids_inside_square_brackets}'
+# A single id token "schema:value". Square brackets are excluded from both
+# sides of the colon so a stray '[' that leaks into the name (e.g.
+# '[Labour Party[ [omid:ra/123]') cannot be absorbed into the captured id.
+_ID_TOKEN = r'[^\s\[\]]+:[^\s\[\]]+'
 
 # It captures a colon preceded and followed by zero or more spaces.
 colon_and_spaces = r'\s*:\s*'
@@ -30,7 +23,44 @@ one_or_more_spaces = r'\s+'
 
 RE_ENTITY_URI = re.compile(r'^(?P<base>https://w3id\.org/oc/meta)/(?P<short_name>br|ra|ar|re|id)/(?P<supplier_prefix>06[1-9]*0)(?P<entity_number>[1-9]\d*)$')
 RE_SEMICOLON_IN_PEOPLE_FIELD = re.compile(semicolon_in_people_field)
-RE_NAME_AND_IDS = re.compile(name_and_ids)
+
+# Parses a responsible-agent / venue cell into a name and an optional list of
+# ids inside square brackets. Always matches any input: when the '[ids]' block
+# is present the engine captures it (preferring the first occurrence in a
+# multi-RA string), otherwise the whole (trimmed) cell lands in 'name' and
+# 'ids' is None. Downstream code can therefore rely on .groups() always
+# succeeding; a regex failure indicates a real bug and should crash.
+RE_NAME_AND_IDS = re.compile(
+    rf'''
+    \s*
+    (?P<name> .*? )                     # name, possibly empty, possibly with junk
+    (?:
+          \s* \[ \s*
+          (?P<ids>
+              (?: {_ID_TOKEN} )?        # optional first id ...
+              (?: \s+ {_ID_TOKEN} )*    # ... followed by any number of space-separated ids
+          )
+          \s* \]
+        | \s* \Z                        # or no '[ids]' block at all
+    )
+    ''',
+    re.VERBOSE,
+)
+
+
+def split_name_and_ids(text: str) -> tuple[str, str]:
+    """Parse a responsible-agent / venue cell into ``(name, ids_str)``.
+
+    ``RE_NAME_AND_IDS`` is built to match any input, so a ``None`` here
+    signals a regression in the pattern itself and must be raised loudly
+    rather than silently fallen back to.
+    """
+    match = RE_NAME_AND_IDS.match(text)
+    if match is None:
+        raise RuntimeError(f"RE_NAME_AND_IDS failed to match {text!r}")
+    return match["name"], match["ids"] or ""
+
+
 RE_COLON_AND_SPACES = re.compile(colon_and_spaces)
 RE_COMMA_AND_SPACES = re.compile(comma_and_spaces)
 RE_ONE_OR_MORE_SPACES = re.compile(one_or_more_spaces)

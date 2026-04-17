@@ -29,9 +29,9 @@ from oc_meta.lib.merge_registry import EntityStore
 from oc_meta.lib.master_of_regex import (
     RE_COLON_AND_SPACES,
     RE_MULTIPLE_SPACES,
-    RE_NAME_AND_IDS,
     RE_ONE_OR_MORE_SPACES,
-    RE_SEMICOLON_IN_PEOPLE_FIELD
+    RE_SEMICOLON_IN_PEOPLE_FIELD,
+    split_name_and_ids,
 )
 from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
 
@@ -63,11 +63,11 @@ def _extract_ids_from_chunk(rows: list) -> Tuple[set, set, set]:
             if idslist:
                 identifiers.update(idslist)
 
-        fields_with_an_id = [
-            (field, match.group(2).split())
-            for field in ["author", "editor", "publisher", "venue", "volume", "issue"]
-            if (match := RE_NAME_AND_IDS.search(row[field]))
-        ]
+        fields_with_an_id = []
+        for field in ["author", "editor", "publisher", "venue", "volume", "issue"]:
+            _, ids_str = split_name_and_ids(row[field])
+            if ids_str:
+                fields_with_an_id.append((field, ids_str.split()))
         for field, field_ids in fields_with_an_id:
             br = field in ["venue", "volume", "issue"]
             field_idslist, field_metaval = Curator.clean_id_list(field_ids, br=br)
@@ -216,11 +216,11 @@ class Curator:
             if idslist:
                 identifiers.update(idslist)
 
-        fields_with_an_id = [
-            (field, match.group(2).split())
-            for field in ["author", "editor", "publisher", "venue", "volume", "issue"]
-            if (match := RE_NAME_AND_IDS.search(row[field]))
-        ]
+        fields_with_an_id = []
+        for field in ["author", "editor", "publisher", "venue", "volume", "issue"]:
+            _, ids_str = split_name_and_ids(row[field])
+            if ids_str:
+                fields_with_an_id.append((field, ids_str.split()))
         for field, field_ids in fields_with_an_id:
             br = field in ["venue", "volume", "issue"]
             field_idslist, field_metaval = self.clean_id_list(field_ids, br=br)
@@ -282,8 +282,8 @@ class Curator:
             if self.progress and task_clean_id is not None:
                 self.progress.remove_task(task_clean_id)
 
-        # Phase 3: Merge duplicate entities
-        with self._timed("curation__merge_duplicates"):
+        # Phase 3: Merge duplicates + clean VVI/RA
+        with self._timed("curation__clean_vvi_ra"):
             task_merge = None
             if self.progress:
                 task_merge = self.progress.add_task(
@@ -294,8 +294,6 @@ class Curator:
                 self.progress.remove_task(task_merge)
             self.clean_metadata_without_id()
 
-        # Phase 4+5: Clean VVI and RA (venue/volume/issue + author/publisher/editor)
-        with self._timed("curation__clean_vvi_ra"):
             self.rowcnt = 0
             task_vvi_ra = None
             if self.progress:
@@ -313,20 +311,22 @@ class Curator:
             if self.progress and task_vvi_ra is not None:
                 self.progress.remove_task(task_vvi_ra)
 
-        # Phase 6: Finalize (preexisting + meta_maker + enrich + indexer)
-        with self._timed("curation__finalize"):
-            task_finalize = None
+        # Phase 4: Metamaker (preexisting + meta_maker + enrich + dedupe)
+        with self._timed("curation__metamaker"):
+            task_metamaker = None
             if self.progress:
-                task_finalize = self.progress.add_task(
-                    "  [dim]Finalizing[/dim]", total=total_rows
+                task_metamaker = self.progress.add_task(
+                    "  [dim]Metamaker[/dim]", total=total_rows
                 )
             self.get_preexisting_entities()
             self.meta_maker()
-            self.enrich(task_id=task_finalize)
-            if self.progress and task_finalize is not None:
-                self.progress.remove_task(task_finalize)
-            # Remove duplicates
+            self.enrich(task_id=task_metamaker)
+            if self.progress and task_metamaker is not None:
+                self.progress.remove_task(task_metamaker)
             self.data = list({v["id"]: v for v in self.data}.values())
+
+        # Phase 5: CSV output (curated CSV indexer)
+        with self._timed("curation__csv_out"):
             self.filename = filename
             self.indexer(path_csv=path_csv)
 
@@ -358,11 +358,11 @@ class Curator:
                 idslist, br=True)
             id_metaval = _omid(metaval) if metaval else ""
             metaval_ids_list.append((id_metaval, idslist))
-        fields_with_an_id = [
-            (field, match.group(2).split())
-            for field in ["author", "editor", "publisher", "venue", "volume", "issue"]
-            if (match := RE_NAME_AND_IDS.search(row[field]))
-        ]
+        fields_with_an_id = []
+        for field in ["author", "editor", "publisher", "venue", "volume", "issue"]:
+            _, ids_str = split_name_and_ids(row[field])
+            if ids_str:
+                fields_with_an_id.append((field, ids_str.split()))
         for field, field_ids in fields_with_an_id:
             br = field in ["venue", "volume", "issue"]
             field_idslist, field_metaval = self.clean_id_list(
@@ -470,13 +470,12 @@ class Curator:
                 row["venue"] = ""
                 row["volume"] = ""
                 row["issue"] = ""
-            venue_id = RE_NAME_AND_IDS.search(venue)
-            if venue_id:
+            venue_name, venue_ids_str = split_name_and_ids(venue)
+            if venue_ids_str:
                 name = clean_title(
-                    venue_id.group(1), bool(self.settings.get("normalize_titles", False))
+                    venue_name, bool(self.settings.get("normalize_titles", False))
                 )
-                venue_id = venue_id.group(2)
-                idslist = RE_ONE_OR_MORE_SPACES.split(RE_COLON_AND_SPACES.sub(":", venue_id))
+                idslist = RE_ONE_OR_MORE_SPACES.split(RE_COLON_AND_SPACES.sub(":", venue_ids_str))
                 idslist, metaval = self.clean_id_list(
                     idslist, br=True)
 
@@ -501,7 +500,10 @@ class Curator:
                     elif ts_vvi:
                         self.vvi[metaval] = ts_vvi
             else:
-                name = clean_title(venue, bool(self.settings.get("normalize_titles", False)))
+                name = clean_title(
+                    venue_name or venue,
+                    bool(self.settings.get("normalize_titles", False)),
+                )
                 metaval = self.new_entity(name, "br")
                 self.vvi[metaval] = dict()
                 self.vvi[metaval]["volume"] = dict()
@@ -623,12 +625,8 @@ class Curator:
 
         def process_individual_ra(ra, sequence):
             new_elem_seq = True
-            ra_id = None
-            ra_id_match = RE_NAME_AND_IDS.search(ra)
-            raw_name = ra_id_match.group(1) if ra_id_match else ra
+            raw_name, ra_id = split_name_and_ids(ra)
             name = clean_name(raw_name)
-            if ra_id_match:
-                ra_id = ra_id_match.group(2)
             if not ra_id and sequence:
                 for _, ra_metaid in sequence:
                     if self.entity_store.get_title(ra_metaid) == name:
@@ -1370,14 +1368,8 @@ class Curator:
         :type venue_str: str
         :returns: Tuple[str, List[str]] -- the name and list of IDs extracted from the venue string
         """
-        match = RE_NAME_AND_IDS.search(venue_str)
-        if match:
-            name = match.group(1).strip()
-            ids = match.group(2).strip().split()
-        else:
-            name = venue_str.strip()
-            ids = []
-        return name, ids
+        name, ids_str = split_name_and_ids(venue_str)
+        return name.strip(), ids_str.split()
 
     def equalizer(self, row: Dict[str, str], metaval: str) -> None:
         """

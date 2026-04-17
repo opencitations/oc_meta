@@ -13,9 +13,9 @@ from oc_meta.core.curator import get_edited_br_metaid
 from oc_meta.lib.finder import ResourceFinder
 from oc_meta.lib.master_of_regex import (
     RE_COMMA_AND_SPACES,
-    RE_NAME_AND_IDS,
     RE_ONE_OR_MORE_SPACES,
     RE_SEMICOLON_IN_PEOPLE_FIELD,
+    split_name_and_ids,
 )
 from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
 from oc_ocdm.graph import GraphSet
@@ -238,9 +238,7 @@ class Creator(object):
             authorslist = RE_SEMICOLON_IN_PEOPLE_FIELD.split(authors)
             aut_role_list = list()
             for aut in authorslist:
-                aut_and_ids = RE_NAME_AND_IDS.search(aut)
-                assert aut_and_ids is not None
-                aut_id = aut_and_ids.group(2)
+                author_name, aut_id = split_name_and_ids(aut)
                 aut_id_list = aut_id.split(" ")
                 author_ra = None
                 aut_meta = ""
@@ -261,7 +259,6 @@ class Creator(object):
                             res=url,
                             preexisting_graph=preexisting_graph,
                         )
-                        author_name = aut_and_ids.group(1)
                         if "," in author_name:
                             author_name_splitted = RE_COMMA_AND_SPACES.split(
                                 author_name
@@ -306,9 +303,7 @@ class Creator(object):
 
     def vvi_action(self, venue, vol, issue):
         if venue:
-            venue_and_ids = RE_NAME_AND_IDS.search(venue)
-            assert venue_and_ids is not None
-            venue_ids = venue_and_ids.group(2)
+            venue_title, venue_ids = split_name_and_ids(venue)
             venue_ids_list = venue_ids.split()
             for identifier in venue_ids_list:
                 if "omid:" in identifier:
@@ -316,7 +311,6 @@ class Creator(object):
                     self.venue_meta = ven_id
                     url = self.url + ven_id
                     preexisting_entity = url in self.finder
-                    venue_title = venue_and_ids.group(1)
                     preexisting_graph = (
                         self.finder.graph.subgraph(url)
                         if preexisting_entity
@@ -508,9 +502,7 @@ class Creator(object):
             publishers_list = RE_SEMICOLON_IN_PEOPLE_FIELD.split(publisher)
             pub_role_list = list()
             for pub in publishers_list:
-                publ_and_ids = RE_NAME_AND_IDS.search(pub)
-                assert publ_and_ids is not None
-                publ_id = publ_and_ids.group(2)
+                publ_name, publ_id = split_name_and_ids(pub)
                 publ_id_list = publ_id.split()
                 publisher_ra = None
                 pub_meta = ""
@@ -520,7 +512,6 @@ class Creator(object):
                         pub_meta = identifier
                         url = self.url + identifier
                         preexisting_entity = url in self.finder
-                        publ_name = publ_and_ids.group(1)
                         preexisting_graph = (
                             self.finder.graph.subgraph(url)
                             if preexisting_entity
@@ -562,9 +553,7 @@ class Creator(object):
             editorslist = RE_SEMICOLON_IN_PEOPLE_FIELD.split(editor)
             edit_role_list = list()
             for ed in editorslist:
-                ed_and_ids = RE_NAME_AND_IDS.search(ed)
-                assert ed_and_ids is not None
-                ed_id = ed_and_ids.group(2)
+                editor_name, ed_id = split_name_and_ids(ed)
                 ed_id_list = ed_id.split(" ")
                 editor_ra = None
                 ed_meta = ""
@@ -585,7 +574,6 @@ class Creator(object):
                             res=url,
                             preexisting_graph=preexisting_graph,
                         )
-                        editor_name = ed_and_ids.group(1)
                         if "," in editor_name:
                             editor_name_splitted = RE_COMMA_AND_SPACES.split(
                                 editor_name

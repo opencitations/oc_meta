@@ -20,16 +20,28 @@ from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle
 
 CURATION_COLLECT_IDS_COLOR = '#FF8C00'
+CURATION_CLEAN_ID_COLOR = '#FFB347'
+CURATION_VVI_RA_COLOR = '#FFE066'
+CURATION_METAMAKER_COLOR = '#F4C430'
+CURATION_CSV_OUT_COLOR = '#E6A817'
 CURATION_REST_COLOR = '#FFE066'
 RDF_CREATION_COLOR = '#C73E1D'
 STORAGE_COLOR = '#6A994E'
 MEMORY_COLOR = '#7B2D8E'
 
+CURATION_PHASES = [
+    ("curation__collect_identifiers", "Collect IDs", CURATION_COLLECT_IDS_COLOR),
+    ("curation__clean_id", "Clean ID", CURATION_CLEAN_ID_COLOR),
+    ("curation__clean_vvi_ra", "Clean VVI/RA", CURATION_VVI_RA_COLOR),
+    ("curation__metamaker", "Metamaker", CURATION_METAMAKER_COLOR),
+    ("curation__csv_out", "CSV out", CURATION_CSV_OUT_COLOR),
+]
+
 CURATION_REST_PHASES = [
     "curation__clean_id",
-    "curation__merge_duplicates",
     "curation__clean_vvi_ra",
-    "curation__finalize"
+    "curation__metamaker",
+    "curation__csv_out",
 ]
 
 
@@ -296,11 +308,6 @@ def _get_phase_duration_from_report(report: Dict[str, Any], phase_name: str) -> 
     return 0.0
 
 
-def _get_curation_rest_from_report(report: Dict[str, Any]) -> float:
-    """Get curation rest time (excluding collect_identifiers) from report."""
-    return sum(_get_phase_duration_from_report(report, p) for p in CURATION_REST_PHASES)
-
-
 def _get_peak_memory_from_report(report: Dict[str, Any]) -> float:
     """Get peak memory (MB) across all phases in a report."""
     peaks = [p["peak_memory_mb"] for p in report.get("phases", []) if p["peak_memory_mb"]]
@@ -314,14 +321,17 @@ def plot_incremental_progress(all_reports: List[Dict[str, Any]], output_path: st
 
     filenames = [r["filename"] for r in all_reports]
 
-    collect_ids_times = [_get_phase_duration_from_report(r["report"], "curation__collect_identifiers") for r in all_reports]
-    curation_rest_times = [_get_curation_rest_from_report(r["report"]) for r in all_reports]
+    curation_phase_times = {
+        phase_name: [_get_phase_duration_from_report(r["report"], phase_name) for r in all_reports]
+        for phase_name, _, _ in CURATION_PHASES
+    }
     rdf_times = [_get_phase_duration_from_report(r["report"], "rdf_creation") for r in all_reports]
     storage_times = [_get_phase_duration_from_report(r["report"], "storage") for r in all_reports]
     throughputs = [r["report"]["metrics"].get("throughput_records_per_sec", 0) for r in all_reports]
     peak_memories = [_get_peak_memory_from_report(r["report"]) for r in all_reports]
 
-    total_times = [c + cr + r + s for c, cr, r, s in zip(collect_ids_times, curation_rest_times, rdf_times, storage_times)]
+    curation_totals = [sum(curation_phase_times[p][i] for p, _, _ in CURATION_PHASES) for i in range(len(filenames))]
+    total_times = [c + r + s for c, r, s in zip(curation_totals, rdf_times, storage_times)]
 
     mean_duration = sum(total_times) / len(total_times) if total_times else 0
     mean_throughput = sum(throughputs) / len(throughputs) if throughputs else 0
@@ -333,10 +343,10 @@ def plot_incremental_progress(all_reports: List[Dict[str, Any]], output_path: st
     width = 0.6
 
     bottom = np.zeros(len(filenames))
-    ax1.bar(x, collect_ids_times, width, bottom=bottom, label='Collect IDs', color=CURATION_COLLECT_IDS_COLOR, edgecolor='black', linewidth=0.3)
-    bottom += np.array(collect_ids_times)
-    ax1.bar(x, curation_rest_times, width, bottom=bottom, label='Curation rest', color=CURATION_REST_COLOR, edgecolor='black', linewidth=0.3)
-    bottom += np.array(curation_rest_times)
+    for phase_name, label, color in CURATION_PHASES:
+        values = curation_phase_times[phase_name]
+        ax1.bar(x, values, width, bottom=bottom, label=label, color=color, edgecolor='black', linewidth=0.3)
+        bottom += np.array(values)
     ax1.bar(x, rdf_times, width, bottom=bottom, label='RDF creation', color=RDF_CREATION_COLOR, edgecolor='black', linewidth=0.3)
     bottom += np.array(rdf_times)
     ax1.bar(x, storage_times, width, bottom=bottom, label='Storage', color=STORAGE_COLOR, edgecolor='black', linewidth=0.3)
