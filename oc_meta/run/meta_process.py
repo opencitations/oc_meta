@@ -185,39 +185,57 @@ class MetaProcess:
                 )
                 self.timer.record_metric("curated_records", len(curator_obj.data))
 
-                with self.timer.timer("rdf_creation"):
-                    local_g_size = len(curator_obj.finder.graph)
-                    self.timer.record_metric("local_g_triples", local_g_size)
-                    preexisting_count = len(curator_obj.preexisting_entities)
-                    self.timer.record_metric("preexisting_entities_count", preexisting_count)
+                local_g_size = len(curator_obj.finder.graph)
+                self.timer.record_metric("local_g_triples", local_g_size)
+                preexisting_count = len(curator_obj.preexisting_entities)
+                self.timer.record_metric("preexisting_entities_count", preexisting_count)
 
-                    creator_obj = Creator(
-                        data=curator_obj.data,
-                        finder=curator_obj.finder,
-                        base_iri=self.base_iri,
-                        counter_handler=self.counter_handler,
-                        supplier_prefix=self.supplier_prefix,
-                        resp_agent=self.resp_agent,
-                        ra_index=curator_obj.index_id_ra,
-                        br_index=curator_obj.index_id_br,
-                        re_index_csv=curator_obj.re_index,
-                        ar_index_csv=curator_obj.ar_index,
-                        vi_index=curator_obj.VolIss,
-                        silencer=self.silencer,
-                        progress=progress,
-                    )
-                    creator = creator_obj.creator(source=self.source)
-                    self.timer.record_metric("entities_created", len(creator.res_to_entity))
+                RDF_BATCH_SIZE = 100_000
+                data = curator_obj.data
+                n_batches = (len(data) + RDF_BATCH_SIZE - 1) // RDF_BATCH_SIZE
+                total_entities = 0
+                total_modified = 0
 
-                    prov = ProvSet(
-                        creator,
-                        self.base_iri,
-                        wanted_label=False,
-                        supplier_prefix=self.supplier_prefix,
-                        custom_counter_handler=self.counter_handler,
+                batch_task_id = None
+                if progress is not None and n_batches > 1:
+                    batch_task_id = progress.add_task(
+                        f"  [cyan]RDF batches[/cyan] ({filename})",
+                        total=n_batches,
                     )
-                    modified_entities = prov.generate_provenance()
-                    self.timer.record_metric("modified_entities", len(modified_entities))
+
+                for batch_idx in range(n_batches):
+                    batch_start = batch_idx * RDF_BATCH_SIZE
+                    batch_end = min(batch_start + RDF_BATCH_SIZE, len(data))
+                    batch_data = data[batch_start:batch_end]
+
+                    with self.timer.timer("rdf_creation"):
+                        creator_obj = Creator(
+                            data=batch_data,
+                            finder=curator_obj.finder,
+                            base_iri=self.base_iri,
+                            counter_handler=self.counter_handler,
+                            supplier_prefix=self.supplier_prefix,
+                            resp_agent=self.resp_agent,
+                            ra_index=curator_obj.index_id_ra,
+                            br_index=curator_obj.index_id_br,
+                            re_index_csv=curator_obj.re_index,
+                            ar_index_csv=curator_obj.ar_index,
+                            vi_index=curator_obj.VolIss,
+                            silencer=self.silencer,
+                            progress=progress,
+                        )
+                        creator = creator_obj.creator(source=self.source)
+                        total_entities += len(creator.res_to_entity)
+
+                        prov = ProvSet(
+                            creator,
+                            self.base_iri,
+                            wanted_label=False,
+                            supplier_prefix=self.supplier_prefix,
+                            custom_counter_handler=self.counter_handler,
+                        )
+                        modified_entities = prov.generate_provenance()
+                        total_modified += len(modified_entities)
 
                     repok = Reporter(print_sentences=False)
                     reperr = Reporter(print_sentences=True, prefix="[Storer: ERROR] ")
@@ -243,6 +261,16 @@ class MetaProcess:
                         modified_entities=modified_entities,
                     )
                     self.store_data_and_prov(res_storer, prov_storer)
+                    del creator_obj, creator, prov, res_storer, prov_storer, modified_entities
+
+                    if progress is not None and batch_task_id is not None:
+                        progress.update(batch_task_id, advance=1)
+
+                if progress is not None and batch_task_id is not None:
+                    progress.remove_task(batch_task_id)
+
+                self.timer.record_metric("entities_created", total_entities)
+                self.timer.record_metric("modified_entities", total_modified)
 
             return {"message": "success"}, cache_path, errors_path, filename
         except Exception as e:
@@ -473,10 +501,11 @@ def run_meta_process(
                 if enable_timing and timing_output:
                     _chart = timing_output.replace('.json', '_chart.png')
                     _reports, _fn, _cfg, _out = all_reports, filename, meta_config_path, timing_output
+                    _include_storage = not settings.get("rdf_files_only", False)
                     def _on_phase(timer: ProcessTimer) -> None:
                         snapshot = _reports + [{"filename": _fn, "report": timer.get_report()}]
                         _save_incremental_report(snapshot, _cfg, _out)
-                        plot_incremental_progress(snapshot, _chart)
+                        plot_incremental_progress(snapshot, _chart, include_storage=_include_storage)
                     on_phase_cb = _on_phase
 
                 file_timer = ProcessTimer(enabled=enable_timing, verbose=enable_timing, on_phase_complete=on_phase_cb)
@@ -488,7 +517,7 @@ def run_meta_process(
                     meta_process_setup.errors_path,
                     settings=settings,
                     meta_config_path=meta_config_path,
-                    progress=progress if enable_timing else None,
+                    progress=progress,
                 )
                 task_done(result)
 

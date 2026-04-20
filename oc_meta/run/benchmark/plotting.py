@@ -46,11 +46,13 @@ CURATION_REST_PHASES = [
 
 
 def get_phase_duration_by_name(run: Dict[str, Any], phase_name: str) -> float:
-    """Get phase duration by name instead of index."""
-    for phase in run["phases"]:
-        if phase["name"] == phase_name:
-            return phase["duration_seconds"] or 0
-    return 0
+    """Sum durations of all phases matching the given name.
+
+    The same phase name can appear multiple times in a report (e.g. `rdf_creation`
+    and `storage` are timed once per batch). Returning only the first match would
+    under-count multi-batch runs.
+    """
+    return sum((phase["duration_seconds"] or 0) for phase in run["phases"] if phase["name"] == phase_name)
 
 
 def get_curation_total(run: Dict[str, Any]) -> float:
@@ -301,11 +303,8 @@ def plot_single_run_results(run: Dict[str, Any], output_path: str):
 
 
 def _get_phase_duration_from_report(report: Dict[str, Any], phase_name: str) -> float:
-    """Get phase duration from a report dict by phase name."""
-    for phase in report.get("phases", []):
-        if phase["name"] == phase_name:
-            return phase["duration_seconds"] or 0.0
-    return 0.0
+    """Sum durations of all phases matching the given name in a report."""
+    return sum((phase["duration_seconds"] or 0.0) for phase in report["phases"] if phase["name"] == phase_name)
 
 
 def _get_peak_memory_from_report(report: Dict[str, Any]) -> float:
@@ -314,7 +313,11 @@ def _get_peak_memory_from_report(report: Dict[str, Any]) -> float:
     return max(peaks) if peaks else 0.0
 
 
-def plot_incremental_progress(all_reports: List[Dict[str, Any]], output_path: str):
+def plot_incremental_progress(
+    all_reports: List[Dict[str, Any]],
+    output_path: str,
+    include_storage: bool = True,
+):
     """Generate incremental chart showing meta_process progress with sub-phase breakdown."""
     if not all_reports:
         return
@@ -326,7 +329,11 @@ def plot_incremental_progress(all_reports: List[Dict[str, Any]], output_path: st
         for phase_name, _, _ in CURATION_PHASES
     }
     rdf_times = [_get_phase_duration_from_report(r["report"], "rdf_creation") for r in all_reports]
-    storage_times = [_get_phase_duration_from_report(r["report"], "storage") for r in all_reports]
+    storage_times = (
+        [_get_phase_duration_from_report(r["report"], "storage") for r in all_reports]
+        if include_storage
+        else [0.0] * len(filenames)
+    )
     throughputs = [r["report"]["metrics"].get("throughput_records_per_sec", 0) for r in all_reports]
     peak_memories = [_get_peak_memory_from_report(r["report"]) for r in all_reports]
 
@@ -349,7 +356,8 @@ def plot_incremental_progress(all_reports: List[Dict[str, Any]], output_path: st
         bottom += np.array(values)
     ax1.bar(x, rdf_times, width, bottom=bottom, label='RDF creation', color=RDF_CREATION_COLOR, edgecolor='black', linewidth=0.3)
     bottom += np.array(rdf_times)
-    ax1.bar(x, storage_times, width, bottom=bottom, label='Storage', color=STORAGE_COLOR, edgecolor='black', linewidth=0.3)
+    if include_storage:
+        ax1.bar(x, storage_times, width, bottom=bottom, label='Storage', color=STORAGE_COLOR, edgecolor='black', linewidth=0.3)
 
     ax1.axhline(y=mean_duration, color='#A23B72', linestyle='--', linewidth=2, label=f'Mean ({mean_duration:.1f}s)')
 
