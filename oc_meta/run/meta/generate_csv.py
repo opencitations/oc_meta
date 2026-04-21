@@ -76,8 +76,8 @@ URI_TYPE_DICT = {
     "http://purl.org/spar/fabio/WebContent": "web content",
 }
 
-_worker_redis: redis.Redis = None
-_worker_config: Tuple[str, int, int] = None
+_worker_redis: Optional[redis.Redis] = None
+_worker_config: Optional[Tuple[str, int, int]] = None
 
 
 def _init_worker(
@@ -89,6 +89,7 @@ def _init_worker(
 
 
 def _process_file_worker(filepath: str) -> Tuple[str, List[Dict[str, str]]]:
+    assert _worker_redis is not None and _worker_config is not None
     input_dir, dir_split_number, items_per_file = _worker_config
     results = []
     data = load_json_from_file(filepath)
@@ -120,14 +121,11 @@ def init_redis_connection(
 
 
 def is_omid_processed(omid: str, redis_client: redis.Redis) -> bool:
-    return redis_client.sismember("processed_omids", omid)
+    return bool(redis_client.sismember("processed_omids", omid))
 
 
 def load_processed_omids_to_redis(output_dir: str, redis_client: redis.Redis) -> int:
-    existing_count = redis_client.scard("processed_omids")
-    if existing_count > 0:
-        print(f"Redis already has {existing_count} OMIDs, skipping rebuild")
-        return existing_count
+    redis_client.delete("processed_omids")
 
     if not os.path.exists(output_dir):
         return 0
