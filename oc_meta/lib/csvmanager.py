@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
-# Copyright (C) 2019 Silvio Peroni <essepuntato@gmail.com>
-# Copyright (C) 2022-2026 Arcangelo Massari <arcangelo.massari@unibo.it>
+# SPDX-FileCopyrightText: 2019 Silvio Peroni <essepuntato@gmail.com>
 # SPDX-FileCopyrightText: 2022-2026 Arcangelo Massari <arcangelo.massari@unibo.it>
 #
 # SPDX-License-Identifier: ISC

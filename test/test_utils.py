@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# Copyright (C) 2022-2025 OpenCitations
+# SPDX-FileCopyrightText: 2022-2025 OpenCitations
 # SPDX-FileCopyrightText: 2025-2026 Arcangelo Massari <arcangelo.massari@unibo.it>
 #
 # SPDX-License-Identifier: ISC

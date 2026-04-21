@@ -18,12 +18,16 @@ from oc_meta.lib.file_manager import collect_zip_files
 
 
 def convert_zip_to_nquads(zip_path: str) -> bytes:
-    with zipfile.ZipFile(zip_path, "r") as zf:
-        json_file = next(n for n in zf.namelist() if n.endswith(".json"))
-        graph = Dataset(default_union=True)
-        with zf.open(json_file) as f:
-            graph.parse(f, format="json-ld")
-    return graph.serialize(format="nquads").encode("utf-8")
+    try:
+        with zipfile.ZipFile(zip_path, "r") as zf:
+            json_file = next(n for n in zf.namelist() if n.endswith(".json"))
+            graph = Dataset(default_union=True)
+            with zf.open(json_file) as f:
+                graph.parse(f, format="json-ld")
+        return graph.serialize(format="nquads").encode("utf-8")
+    except Exception:
+        print(f"Failed to convert: {zip_path}", file=sys.stderr, flush=True)
+        raise
 
 
 def main() -> None:  # pragma: no cover
@@ -49,9 +53,9 @@ def main() -> None:  # pragma: no cover
     stdout = sys.stdout.buffer
     ctx = multiprocessing.get_context("forkserver")
     with ctx.Pool(processes=num_workers) as pool:
-        for result in pool.imap_unordered(convert_zip_to_nquads, zip_files, chunksize=200):
+        for result in pool.imap_unordered(convert_zip_to_nquads, zip_files, chunksize=10):
             stdout.write(result)
-    stdout.flush()
+            stdout.flush()
 
 
 if __name__ == "__main__":  # pragma: no cover
