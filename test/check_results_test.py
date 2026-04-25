@@ -263,6 +263,7 @@ class TestMainIntegration:
             "output_rdf_dir": str(output_dir),
             "triplestore_url": SERVER,
             "provenance_triplestore_url": PROV_SERVER,
+            "base_iri": "https://w3id.org/oc/meta/",
             "dir_split_number": 10000,
             "items_per_file": 1000,
             "zip_output_rdf": True,

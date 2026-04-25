@@ -6,10 +6,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import multiprocessing
 import os
 import re
 import signal
 from collections import defaultdict
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from zipfile import ZipFile
 
 import orjson
@@ -34,7 +36,13 @@ CONTAINER_EDITOR_TYPE_IRIS = frozenset(
     if label in CONTAINER_EDITOR_TYPES
 )
 
+BATCH_SIZE = 100
+
 _stop_requested = False
+
+
+def _worker_init() -> None:
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
 
 
 def _handle_signal(_signum: int, _frame: object) -> None:
@@ -49,11 +57,7 @@ def _get_supplier_prefix(uri: str) -> str:
     return match.group(3)
 
 
-def _iter_entities(data_dir: str, zip_output: bool):
-    if zip_output:
-        files = collect_zip_files(data_dir, only_data=True)
-    else:
-        files = collect_files(data_dir, "*.json", lambda p: "prov" not in p)
+def _iter_entities(files: list, zip_output: bool):
     for fpath in files:
         if zip_output:
             with ZipFile(fpath, "r") as zf:
@@ -66,14 +70,13 @@ def _iter_entities(data_dir: str, zip_output: bool):
                 yield entity
 
 
-def find_misplaced_editor_ars(base_dir: str, zip_output: bool) -> list[dict]:
-    br_dir = os.path.join(base_dir, "br")
-    ar_dir = os.path.join(base_dir, "ar")
-
+def _scan_br_batch(
+    files: list[str], zip_output: bool
+) -> tuple[dict[str, str], dict[str, set[str]], list[str]]:
     frbr_part_of: dict[str, str] = {}
     br_ars: dict[str, set[str]] = {}
-
-    for entity in _iter_entities(br_dir, zip_output):
+    warnings: list[str] = []
+    for entity in _iter_entities(files, zip_output):
         eid = entity["@id"]
         if IS_DOC_CONTEXT_FOR in entity:
             br_ars[eid] = {x["@id"] for x in entity[IS_DOC_CONTEXT_FOR]}
@@ -82,14 +85,78 @@ def find_misplaced_editor_ars(base_dir: str, zip_output: bool) -> list[dict]:
             parents = entity[FRBR_PART_OF]
             if len(parents) > 1:
                 parent_ids = [p["@id"] for p in parents]
-                console.print(f"[yellow]Warning:[/yellow] {eid} has {len(parents)} frbr:partOf values {parent_ids}; using first only")
+                warnings.append(
+                    f"{eid} has {len(parents)} frbr:partOf values {parent_ids}; using first only"
+                )
             frbr_part_of[eid] = parents[0]["@id"]
+    return frbr_part_of, br_ars, warnings
 
+
+def _scan_ar_batch(files: list[str], zip_output: bool) -> dict[str, str]:
     ar_role: dict[str, str] = {}
-    for entity in _iter_entities(ar_dir, zip_output):
+    for entity in _iter_entities(files, zip_output):
         eid = entity["@id"]
         if WITH_ROLE in entity:
             ar_role[eid] = entity[WITH_ROLE][0]["@id"]
+    return ar_role
+
+
+def find_misplaced_editor_ars(
+    base_dir: str, zip_output: bool, workers: int = 4, batch_size: int = BATCH_SIZE
+) -> list[dict]:
+    br_dir = os.path.join(base_dir, "br")
+    ar_dir = os.path.join(base_dir, "ar")
+
+    if zip_output:
+        br_files = collect_zip_files(br_dir, only_data=True)
+        ar_files = collect_zip_files(ar_dir, only_data=True)
+    else:
+        br_files = collect_files(br_dir, "*.json", lambda p: "prov" not in p)
+        ar_files = collect_files(ar_dir, "*.json", lambda p: "prov" not in p)
+
+    br_batches = [br_files[i:i + batch_size] for i in range(0, len(br_files), batch_size)]
+    ar_batches = [ar_files[i:i + batch_size] for i in range(0, len(ar_files), batch_size)]
+
+    frbr_part_of: dict[str, str] = {}
+    br_ars: dict[str, set[str]] = {}
+    ar_role: dict[str, str] = {}
+
+    ctx = multiprocessing.get_context("forkserver")
+
+    with create_progress() as progress:
+        br_task = progress.add_task("Scanning BR files", total=len(br_files))
+        executor = ProcessPoolExecutor(
+            max_workers=workers, initializer=_worker_init, mp_context=ctx
+        )
+        try:
+            futures = {
+                executor.submit(_scan_br_batch, batch, zip_output): batch
+                for batch in br_batches
+            }
+            for future in as_completed(futures):
+                partial_frbr, partial_br_ars, warnings = future.result()
+                frbr_part_of.update(partial_frbr)
+                br_ars.update(partial_br_ars)
+                for w in warnings:
+                    console.print(f"[yellow]Warning:[/yellow] {w}")
+                progress.advance(br_task, len(futures[future]))
+        finally:
+            executor.shutdown(wait=True)
+
+        ar_task = progress.add_task("Scanning AR files", total=len(ar_files))
+        executor = ProcessPoolExecutor(
+            max_workers=workers, initializer=_worker_init, mp_context=ctx
+        )
+        try:
+            futures = {
+                executor.submit(_scan_ar_batch, batch, zip_output): batch
+                for batch in ar_batches
+            }
+            for future in as_completed(futures):
+                ar_role.update(future.result())
+                progress.advance(ar_task, len(futures[future]))
+        finally:
+            executor.shutdown(wait=True)
 
     results = []
     for chapter, book in frbr_part_of.items():
@@ -165,6 +232,12 @@ def main() -> None:  # pragma: no cover
     parser.add_argument("-r", "--resp-agent", help="Responsible agent URI (required without --dry-run)")
     parser.add_argument("--dry-run", action="store_true", help="Report cases without modifying")
     parser.add_argument(
+        "-w", "--workers", type=int, default=4, help="Number of parallel workers for scanning"
+    )
+    parser.add_argument(
+        "-b", "--batch-size", type=int, default=BATCH_SIZE, help="Files per batch for scanning"
+    )
+    parser.add_argument(
         "--progress-file",
         default="fix_misplaced_editor_ars_progress.json",
         help=(
@@ -185,7 +258,7 @@ def main() -> None:  # pragma: no cover
     zip_output = config.get("zip_output_rdf", False)
 
     console.print("Scanning RDF files for misplaced editor ARs...")
-    cases = find_misplaced_editor_ars(rdf_dir, zip_output)
+    cases = find_misplaced_editor_ars(rdf_dir, zip_output, args.workers, args.batch_size)
 
     groups: dict[tuple[str, str], list[str]] = defaultdict(list)
     for case in cases:

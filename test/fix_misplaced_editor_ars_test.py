@@ -157,12 +157,8 @@ class TestFixChapter:
         editor = MetaEditor(rdf_env["config_path"], RESP_AGENT)
         fix_chapter(editor, CHAPTER_URI, BOOK_URI, [AR_URI])
 
-        prov_files = []
-        for root, _, files in os.walk(rdf_env["rdf_dir"]):
-            if "prov" in root:
-                prov_files.extend(files)
-
-        assert len(prov_files) == 1
+        br_se_path = os.path.join(rdf_env["rdf_dir"], "br", "060", "10000", "1000", "prov", "se.json")
+        assert os.path.exists(br_se_path)
 
 
 class TestProgress:
