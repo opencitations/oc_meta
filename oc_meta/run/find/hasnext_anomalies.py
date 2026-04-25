@@ -53,7 +53,7 @@ def load_ar_data(
         return None
     data = load_json_from_file(ar_file)
     for graph in data:
-        for entity in graph.get("@graph", []):
+        for entity in graph["@graph"]:
             if entity["@id"] == ar_uri:
                 role_uri = ""
                 if WITH_ROLE in entity:
@@ -232,7 +232,7 @@ def _detect_anomalies_in_file(filepath: str) -> Tuple[str, int, List[dict]]:
     br_count = 0
     data = load_json_from_file(filepath)
     for graph in data:
-        for entity in graph.get("@graph", []):
+        for entity in graph["@graph"]:
             if IS_DOC_CONTEXT_FOR not in entity:
                 continue
             br_count += 1

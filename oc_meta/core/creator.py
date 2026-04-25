@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, List
 
+from oc_meta.constants import BR_ID_SCHEMAS, RA_ID_SCHEMAS
 from oc_meta.core.curator import get_edited_br_metaid
 from oc_meta.lib.finder import ResourceFinder
 from oc_meta.lib.master_of_regex import (
@@ -55,21 +56,9 @@ class Creator(object):
         self.resp_agent = resp_agent
         self.finder = finder
 
-        self.ra_id_schemas = {"crossref", "orcid", "viaf", "wikidata", "ror"}
-        self.br_id_schemas = {
-            "arxiv",
-            "doi",
-            "issn",
-            "isbn",
-            "jid",
-            "openalex",
-            "pmid",
-            "pmcid",
-            "url",
-            "wikidata",
-            "wikipedia",
-        }
-        self.schemas = self.ra_id_schemas.union(self.br_id_schemas)
+        self.ra_id_schemas = RA_ID_SCHEMAS
+        self.br_id_schemas = BR_ID_SCHEMAS
+        self.schemas = RA_ID_SCHEMAS | BR_ID_SCHEMAS
 
         self.ra_index = self.indexer_id(ra_index)
         self.br_index = self.indexer_id(br_index)
@@ -617,8 +606,7 @@ class Creator(object):
                     edit_role_list[-2].has_next(editor_ra_role)
 
     def __res_metaid(self, graph: BibliographicResource):
-        if graph:
-            return graph.res.replace(self.url, "")
+        return graph.res.replace(self.url, "")
 
     def id_creator(self, graph: BibliographicEntity, identifier: str, ra: bool) -> None:
         new_id = None

@@ -44,7 +44,7 @@ def process_prov_file(prov_file: str) -> list[tuple[str, str]]:
         return results
 
     for graph in data:
-        for entity in graph.get("@graph", []):
+        for entity in graph["@graph"]:
             derived_from = entity.get(PROV_DERIVED_FROM, [])
             if len(derived_from) < 2:
                 continue

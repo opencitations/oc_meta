@@ -17,7 +17,7 @@ import polars as pl
 import yaml
 from rich.progress import BarColumn, Progress, TaskProgressColumn, TextColumn, TimeElapsedColumn
 from rich_argparse import RichHelpFormatter
-from oc_meta.constants import QLEVER_BATCH_SIZE, QLEVER_MAX_WORKERS
+from oc_meta.constants import BR_ID_SCHEMAS, QLEVER_BATCH_SIZE, QLEVER_MAX_WORKERS, RA_ID_SCHEMAS
 from oc_meta.lib.cleaner import normalize_hyphens, normalize_id
 from oc_meta.lib.console import EMATimeRemainingColumn, console
 from oc_meta.lib.file_manager import collect_files
@@ -27,14 +27,15 @@ from oc_meta.lib.sparql import run_queries_parallel
 MAX_RETRIES = 10
 RETRY_BACKOFF = 2
 DATACITE_PREFIX = "http://purl.org/spar/datacite/"
+RECOGNIZED_SCHEMAS = BR_ID_SCHEMAS | RA_ID_SCHEMAS
 
 _SPACE_PATTERN = '[\t\xa0\u200b\u202f\u2003\u2005\u2009]'
 _ID_COLUMNS = ['id', 'author', 'editor', 'publisher', 'venue']
 _STAT_FIELDS = (
     'total_rows', 'rows_with_ids', 'total_identifiers', 'omid_schema_identifiers',
-    'identifiers_skipped_invalid',
-    'identifiers_with_omids', 'identifiers_without_omids', 'data_graphs_found',
-    'data_graphs_missing', 'prov_graphs_found', 'prov_graphs_missing',
+    'identifiers_skipped_invalid', 'identifiers_skipped_unverifiable',
+    'identifiers_with_omids', 'identifiers_without_omids', 'identifiers_with_omid_mismatch',
+    'data_graphs_found', 'data_graphs_missing', 'prov_graphs_found', 'prov_graphs_missing',
     'omids_with_provenance', 'omids_without_provenance',
 )
 
@@ -47,8 +48,10 @@ class FileResult:
     total_identifiers: int = 0
     omid_schema_identifiers: int = 0
     identifiers_skipped_invalid: int = 0
+    identifiers_skipped_unverifiable: int = 0
     identifiers_with_omids: int = 0
     identifiers_without_omids: int = 0
+    identifiers_with_omid_mismatch: int = 0
     data_graphs_found: int = 0
     data_graphs_missing: int = 0
     prov_graphs_found: int = 0
@@ -58,8 +61,6 @@ class FileResult:
     errors: list = field(default_factory=list)
     id_key_to_omids: dict = field(default_factory=dict)
     id_key_locations: dict = field(default_factory=dict)
-
-
 
 
 def check_provenance_existence(omids: List[str], prov_endpoint_url: str, workers: int = QLEVER_MAX_WORKERS, progress_callback: Callable[[int], None] | None = None) -> Dict[str, bool]:
@@ -114,11 +115,12 @@ def check_omids_existence(identifiers: List[Dict[str, str]], endpoint_url: str, 
         PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
         PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
-        SELECT ?val ?scheme ?omid
+        SELECT ?val ?scheme ?entity
         WHERE {{
             VALUES (?val ?scheme) {{ {" ".join(values_entries)} }}
-            ?omid literal:hasLiteralValue ?val ;
-                  datacite:usesIdentifierScheme ?scheme .
+            ?id_entity literal:hasLiteralValue ?val ;
+                       datacite:usesIdentifierScheme ?scheme .
+            ?entity datacite:hasIdentifier ?id_entity .
         }}
         """
         batch_queries.append(query)
@@ -128,14 +130,14 @@ def check_omids_existence(identifiers: List[Dict[str, str]], endpoint_url: str, 
 
     for bindings in all_bindings:
         for result in bindings:
-            omid = result["omid"]["value"]
+            entity = result["entity"]["value"]
             val = result["val"]["value"]
             scheme_uri = result["scheme"]["value"]
             scheme = scheme_uri[len(DATACITE_PREFIX):] if scheme_uri.startswith(DATACITE_PREFIX) else scheme_uri
             id_key = f"{scheme}:{val}"
             if id_key not in found_omids:
                 found_omids[id_key] = set()
-            found_omids[id_key].add(omid)
+            found_omids[id_key].add(entity)
 
     return found_omids
 
@@ -189,26 +191,42 @@ def _check_zip_file(args: tuple) -> tuple[str, dict[str, tuple[bool, bool]]]:
     return zip_path, results
 
 
-def _extract_id_pairs(cell: str, col: str) -> list[tuple[str, str]]:
-    pairs: list[tuple[str, str]] = []
-    if col == 'id':
-        for token in cell.strip().split():
+def _extract_entity_groups(cell: str, col: str, base_iri: str) -> list[dict]:
+    base = base_iri.rstrip('/')
+
+    def parse_tokens(token_str: str) -> dict:
+        group: dict = {'omid_uri': None, 'recognized': [], 'unverifiable': []}
+        for token in token_str.strip().split():
             colon_pos = token.find(':')
-            if colon_pos > 0:
-                pairs.append((token[:colon_pos].lower(), normalize_hyphens(token[colon_pos + 1:])))
-    else:
-        for element in RE_SEMICOLON_IN_PEOPLE_FIELD.split(cell):
-            _, ids_str = split_name_and_ids(element)
-            if ids_str:
-                for token in ids_str.strip().split():
-                    colon_pos = token.find(':')
-                    if colon_pos > 0:
-                        pairs.append((token[:colon_pos].lower(), normalize_hyphens(token[colon_pos + 1:])))
-    return pairs
+            if colon_pos <= 0:
+                continue
+            schema = token[:colon_pos].lower()
+            value = normalize_hyphens(token[colon_pos + 1:])
+            if schema == 'omid':
+                group['omid_uri'] = f"{base}/{value}"
+            elif schema in RECOGNIZED_SCHEMAS:
+                group['recognized'].append((schema, value))
+            else:
+                group['unverifiable'].append((schema, value))
+        return group
+
+    if col == 'id':
+        return [parse_tokens(cell)]
+
+    groups = []
+    for element in RE_SEMICOLON_IN_PEOPLE_FIELD.split(cell):
+        element = element.strip()
+        if not element:
+            continue
+        _, ids_str = split_name_and_ids(element)
+        if not ids_str:
+            continue
+        groups.append(parse_tokens(ids_str))
+    return groups
 
 
 def process_csv_file(args: tuple, workers: int = QLEVER_MAX_WORKERS, progress=None, task_id=None) -> FileResult:
-    csv_file, endpoint_url, prov_endpoint_url, rdf_dir, dir_split_number, items_per_file, zip_output_rdf = args
+    csv_file, endpoint_url, prov_endpoint_url, rdf_dir, dir_split_number, items_per_file, zip_output_rdf, base_iri = args
 
     result = FileResult(file=os.path.basename(csv_file))
 
@@ -229,10 +247,16 @@ def process_csv_file(args: tuple, workers: int = QLEVER_MAX_WORKERS, progress=No
     col_lists = {col: df[col].to_list() for col in _ID_COLUMNS}
     del df
 
-    unique_id_keys: set[str] = set()
-    id_key_meta: dict[str, tuple[str, str]] = {}
-    id_key_occurrences: dict[str, list[tuple[int, str]]] = {}
-    omid_values: list[str] = []
+    # entity URIs from CSV OMID tokens — used for data graph + prov verification
+    all_entity_uris: set[str] = set()
+    entity_uri_to_info: dict[str, tuple[int, str]] = {}  # uri → (row_num, col)
+
+    # recognized IDs for SPARQL lookup
+    recognized_ids: list[dict] = []
+    recognized_id_set: set[str] = set()
+    recognized_id_to_csv_omid: dict[str, str | None] = {}
+    recognized_id_occurrences: dict[str, list[tuple[int, str]]] = {}
+    recognized_id_meta: dict[str, tuple[str, str]] = {}
 
     phase1_task = None
     if progress:
@@ -240,40 +264,48 @@ def process_csv_file(args: tuple, workers: int = QLEVER_MAX_WORKERS, progress=No
 
     for row_idx in range(result.total_rows):
         row_has_ids = False
+        row_num = row_idx + 1
+
         for col in _ID_COLUMNS:
             cell = col_lists[col][row_idx]
             if not cell:
                 continue
 
-            pairs = _extract_id_pairs(cell, col)
-            if not pairs:
-                continue
+            groups = _extract_entity_groups(cell, col, base_iri)
+            for group in groups:
+                n_tokens = (1 if group['omid_uri'] else 0) + len(group['recognized']) + len(group['unverifiable'])
+                if n_tokens == 0:
+                    continue
 
-            row_has_ids = True
-            row_num = row_idx + 1
-            result.total_identifiers += len(pairs)
+                row_has_ids = True
+                result.total_identifiers += n_tokens
 
-            for schema, value in pairs:
-                if schema == 'omid':
+                if group['omid_uri']:
                     result.omid_schema_identifiers += 1
-                    if value.startswith('http'):
-                        omid_values.append(value)
-                    continue
-                normalized = normalize_id(f"{schema}:{value}")
-                if not normalized:
-                    result.identifiers_skipped_invalid += 1
-                    continue
-                norm_schema, norm_value = normalized.split(':', 1)
-                id_key = normalized
-                unique_id_keys.add(id_key)
-                if id_key not in id_key_meta:
-                    id_key_meta[id_key] = (norm_schema, norm_value)
-                if id_key not in id_key_occurrences:
-                    id_key_occurrences[id_key] = []
-                id_key_occurrences[id_key].append((row_num, col))
+                    all_entity_uris.add(group['omid_uri'])
+                    if group['omid_uri'] not in entity_uri_to_info:
+                        entity_uri_to_info[group['omid_uri']] = (row_num, col)
+
+                result.identifiers_skipped_unverifiable += len(group['unverifiable'])
+
+                for schema, value in group['recognized']:
+                    normalized = normalize_id(f"{schema}:{value}")
+                    if not normalized:
+                        result.identifiers_skipped_invalid += 1
+                        continue
+                    norm_schema, norm_value = normalized.split(':', 1)
+                    id_key = normalized
+                    if id_key not in recognized_id_set:
+                        recognized_id_set.add(id_key)
+                        recognized_ids.append({'schema': norm_schema, 'value': norm_value})
+                        recognized_id_to_csv_omid[id_key] = group['omid_uri']
+                        recognized_id_meta[id_key] = (norm_schema, norm_value)
+                        recognized_id_occurrences[id_key] = []
+                    recognized_id_occurrences[id_key].append((row_num, col))
 
         if row_has_ids:
             result.rows_with_ids += 1
+
         if progress and phase1_task is not None:
             progress.advance(phase1_task)
 
@@ -282,78 +314,92 @@ def process_csv_file(args: tuple, workers: int = QLEVER_MAX_WORKERS, progress=No
 
     del col_lists
 
-    all_identifiers = [{'schema': sv[0], 'value': sv[1]} for sv in id_key_meta.values()]
-    total_ids = len(all_identifiers)
-
     phase2_task = None
     if progress:
-        phase2_task = progress.add_task("  Phase 2/5: Querying DB", total=total_ids, detail="")
+        phase2_task = progress.add_task("  Phase 2/5: Querying DB", total=len(recognized_ids), detail="")
 
     def on_id_batch(batch_size: int):
         if progress and phase2_task is not None:
             progress.advance(phase2_task, batch_size)
 
-    identifier_cache = check_omids_existence(all_identifiers, endpoint_url, workers=workers, progress_callback=on_id_batch)
+    identifier_cache = check_omids_existence(recognized_ids, endpoint_url, workers=workers, progress_callback=on_id_batch)
 
     if progress and phase2_task is not None:
         progress.update(phase2_task, visible=False)
 
     omids_by_file: dict[str, set[str]] = {}
-    all_omids: set[str] = set()
-    omid_to_id_info: dict[str, tuple[int, str, str]] = {}
     path_exists_cache: dict[str, bool] = {}
+    omid_to_id_info: dict[str, tuple[int, str, str]] = {}
     csv_basename = os.path.basename(csv_file)
 
     phase3_task = None
     if progress:
-        phase3_task = progress.add_task("  Phase 3/5: Mapping OMIDs", total=len(unique_id_keys), detail="")
+        phase3_task = progress.add_task("  Phase 3/5: Mapping OMIDs", total=len(recognized_id_set), detail="")
 
-    for id_key in unique_id_keys:
-        occurrences = id_key_occurrences[id_key]
+    for id_key in recognized_id_set:
+        occurrences = recognized_id_occurrences[id_key]
+        expected_omid = recognized_id_to_csv_omid[id_key]
+        schema, value = recognized_id_meta[id_key]
+
         if id_key in identifier_cache:
-            result.identifiers_with_omids += len(occurrences)
-            omids = identifier_cache[id_key]
-            result.id_key_to_omids[id_key] = omids
+            entity_uris = identifier_cache[id_key]
+            result.id_key_to_omids[id_key] = entity_uris
             result.id_key_locations[id_key] = [
                 {'file': csv_basename, 'row': r, 'column': c}
                 for r, c in occurrences
             ]
-            all_omids.add(next(iter(omids)))
-            for omid in omids:
-                if omid not in omid_to_id_info:
-                    omid_to_id_info[omid] = (occurrences[0][0], occurrences[0][1], id_key)
-                zip_path = find_file(rdf_dir, dir_split_number, items_per_file, omid, zip_output_rdf)
-                if zip_path:
-                    if zip_path in omids_by_file:
-                        omids_by_file[zip_path].add(omid)
-                    else:
-                        if zip_path not in path_exists_cache:
-                            path_exists_cache[zip_path] = os.path.exists(zip_path)
-                        if path_exists_cache[zip_path]:
-                            omids_by_file[zip_path] = {omid}
+
+            if expected_omid and expected_omid not in entity_uris:
+                result.identifiers_with_omid_mismatch += len(occurrences)
+                for row_num, col in occurrences:
+                    result.errors.append({
+                        "type": "omid_mismatch",
+                        "schema": schema,
+                        "value": value,
+                        "expected_omid": expected_omid,
+                        "found_omids": sorted(entity_uris),
+                        "file": csv_basename,
+                        "row": row_num,
+                        "column": col,
+                    })
+            else:
+                result.identifiers_with_omids += len(occurrences)
         else:
             result.identifiers_without_omids += len(occurrences)
-            schema, value = id_key_meta[id_key]
             for row_num, col in occurrences:
                 result.errors.append({
-                    "type": "missing_omid",
+                    "type": "identifier_not_in_triplestore",
                     "schema": schema,
                     "value": value,
                     "file": csv_basename,
                     "row": row_num,
                     "column": col,
                 })
+
         if progress and phase3_task is not None:
             progress.advance(phase3_task)
 
     if progress and phase3_task is not None:
         progress.update(phase3_task, visible=False)
 
-    for omid_uri in omid_values:
-        all_omids.add(omid_uri)
+    # Build file map from all entity URIs collected from CSV OMIDs
+    for entity_uri in all_entity_uris:
+        if entity_uri not in omid_to_id_info:
+            if entity_uri in entity_uri_to_info:
+                row_num, col = entity_uri_to_info[entity_uri]
+                omid_to_id_info[entity_uri] = (row_num, col, entity_uri)
+        zip_path = find_file(rdf_dir, dir_split_number, items_per_file, entity_uri, zip_output_rdf)
+        if zip_path:
+            if zip_path not in path_exists_cache:
+                path_exists_cache[zip_path] = os.path.exists(zip_path)
+            if path_exists_cache[zip_path]:
+                if zip_path in omids_by_file:
+                    omids_by_file[zip_path].add(entity_uri)
+                else:
+                    omids_by_file[zip_path] = {entity_uri}
 
     total_rdf_files = len(omids_by_file)
-    total_omids = len(all_omids)
+    total_omids = len(all_entity_uris)
 
     prov_future = None
     prov_executor = None
@@ -363,7 +409,7 @@ def process_csv_file(args: tuple, workers: int = QLEVER_MAX_WORKERS, progress=No
             mp_context=multiprocessing.get_context('forkserver')
         )
         prov_future = prov_executor.submit(
-            check_provenance_existence, list(all_omids), prov_endpoint_url, workers
+            check_provenance_existence, list(all_entity_uris), prov_endpoint_url, workers
         )
 
     phase4_task = None
@@ -373,7 +419,7 @@ def process_csv_file(args: tuple, workers: int = QLEVER_MAX_WORKERS, progress=No
     zip_args = [(zp, list(omids)) for zp, omids in omids_by_file.items()]
 
     def _apply_zip_results(zip_results: dict[str, tuple[bool, bool]]) -> None:
-        for omid, (data_found, prov_found) in zip_results.items():
+        for _, (data_found, prov_found) in zip_results.items():
             if data_found:
                 result.data_graphs_found += 1
             else:
@@ -438,30 +484,45 @@ def process_csv_file(args: tuple, workers: int = QLEVER_MAX_WORKERS, progress=No
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Check MetaProcess results by verifying input CSV identifiers",
+        description="Check MetaProcess results by verifying output CSV identifiers against the triplestore",
         formatter_class=RichHelpFormatter,
     )
     parser.add_argument("meta_config", help="Path to meta_config.yaml file")
     parser.add_argument("output", help="Output file path for results (JSON)")
+    parser.add_argument(
+        "--csv",
+        help="Path to a single output CSV file or directory of output CSVs. "
+             "Defaults to {base_output_dir}/csv/ from meta_config.",
+        default=None,
+    )
     parser.add_argument("--workers", type=int, default=QLEVER_MAX_WORKERS, help=f"Max parallel SPARQL workers (default: {QLEVER_MAX_WORKERS})")
     args = parser.parse_args()
 
     with open(args.meta_config, 'r', encoding='utf-8') as f:
         config = yaml.safe_load(f)
 
-    input_csv_dir = config['input_csv_dir']
-    base_output_dir = config['output_rdf_dir']
+    if args.csv:
+        csv_source = args.csv
+        if os.path.isfile(csv_source):
+            csv_files = [csv_source]
+        else:
+            csv_files = collect_files(csv_source, pattern="*.csv")
+    else:
+        output_csv_dir = os.path.join(config['base_output_dir'], 'csv')
+        csv_files = collect_files(output_csv_dir, pattern="*.csv")
+
+    base_output_dir = config['base_output_dir']
     output_rdf_dir = os.path.join(base_output_dir, 'rdf')
     endpoint_url = config['triplestore_url']
     prov_endpoint_url = config['provenance_triplestore_url']
+    base_iri = config['base_iri'].rstrip('/') + '/'
+
     if not os.path.exists(output_rdf_dir):
         console.print(f"RDF directory not found at {output_rdf_dir}")
         return
 
-    csv_files = collect_files(input_csv_dir, pattern="*.csv")
-
     if not csv_files:
-        console.print(f"No CSV files found in {input_csv_dir}")
+        console.print("No CSV files found")
         return
 
     console.print(f"Found {len(csv_files)} CSV files to process")
@@ -471,7 +532,11 @@ def main():
 
     all_file_results: list[FileResult] = []
 
-    process_args = [(f, endpoint_url, prov_endpoint_url, output_rdf_dir, config['dir_split_number'], config['items_per_file'], config['zip_output_rdf']) for f in csv_files]
+    process_args = [
+        (f, endpoint_url, prov_endpoint_url, output_rdf_dir,
+         config['dir_split_number'], config['items_per_file'], config['zip_output_rdf'], base_iri)
+        for f in csv_files
+    ]
 
     with Progress(
         TextColumn("[progress.description]{task.description}"),

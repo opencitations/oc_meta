@@ -93,7 +93,7 @@ def get_zip_files(folder_path: str) -> list[str]:
 
 def analyze_json(data, resources, zip_path, zip_file, expected_type):
     for graph in data:
-        for entity in graph.get("@graph", []):
+        for entity in graph["@graph"]:
             try:
                 entity_id = entity["@id"]
                 entity_type = get_entity_type(entity)

@@ -30,7 +30,7 @@ from test.test_utils import SERVER, add_data_ts
 
 
 DATA_FILE = os.path.abspath(
-    os.path.join("test", "testcases", "ts", "check_results_data.nt")
+    os.path.join("test", "testcases", "ts", "synthetic_data.nt")
 )
 
 

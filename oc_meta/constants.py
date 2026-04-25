@@ -9,6 +9,14 @@ from oc_ocdm.graph.graph_entity import GraphEntity
 
 FORBIDDEN_IDS = {'issn:0000-0000'}
 
+BR_ID_SCHEMAS = frozenset({
+    "arxiv", "doi", "issn", "isbn", "jid", "openalex",
+    "pmid", "pmcid", "url", "wikidata", "wikipedia",
+})
+RA_ID_SCHEMAS = frozenset({
+    "crossref", "orcid", "viaf", "wikidata", "ror",
+})
+
 # QLever-optimized SPARQL query constants
 QLEVER_BATCH_SIZE = 30
 QLEVER_MAX_WORKERS = 24
