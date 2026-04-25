@@ -133,7 +133,15 @@ class Creator(object):
 
                 skip_author = "author" in self.silencer and existing_roles["author"]
                 skip_publisher = "publisher" in self.silencer and existing_roles["publisher"]
-                skip_editor = "editor" in self.silencer and existing_roles["editor"]
+
+                editor_br_key = get_edited_br_metaid(row, self.row_meta, self.venue_meta)
+                editor_br_uri = f"{self.url}{editor_br_key}"
+                editor_existing_roles = (
+                    existing_roles
+                    if editor_br_uri == br_uri
+                    else self._has_existing_roles(editor_br_uri)
+                )
+                skip_editor = "editor" in self.silencer and editor_existing_roles["editor"]
 
             if not skip_author:
                 self.author_action(authors)
