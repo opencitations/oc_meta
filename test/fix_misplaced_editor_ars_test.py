@@ -103,7 +103,7 @@ def _load_entities(rdf_dir: str) -> dict[str, dict]:
 
 class TestFindMisplacedEditorArs:
     def test_detects_misplaced_ar(self, rdf_env):
-        cases = find_misplaced_editor_ars(
+        cases, _ = find_misplaced_editor_ars(
             rdf_env["rdf_dir"], zip_output=False,
             dir_split=DIR_SPLIT, items_per_file=ITEMS_PER_FILE,
         )
@@ -137,7 +137,7 @@ class TestFindMisplacedEditorArs:
         storer.store_all(rdf_dir, BASE_IRI)
         g_set.commit_changes()
 
-        cases = find_misplaced_editor_ars(
+        cases, _ = find_misplaced_editor_ars(
             rdf_dir, zip_output=False,
             dir_split=DIR_SPLIT, items_per_file=ITEMS_PER_FILE,
         )
@@ -146,9 +146,9 @@ class TestFindMisplacedEditorArs:
 
     def test_returns_empty_after_fix(self, rdf_env):
         editor = MetaEditor(rdf_env["config_path"], RESP_AGENT)
-        fix_container(editor, BOOK_URI, [(CHAPTER_URI, [AR_URI], [])])
+        fix_container(editor, BOOK_URI, [(CHAPTER_URI, [AR_URI], [])], set())
 
-        cases = find_misplaced_editor_ars(
+        cases, _ = find_misplaced_editor_ars(
             rdf_env["rdf_dir"], zip_output=False,
             dir_split=DIR_SPLIT, items_per_file=ITEMS_PER_FILE,
         )
@@ -159,7 +159,7 @@ class TestFindMisplacedEditorArs:
 class TestFixContainer:
     def test_ar_moved_from_chapter_to_book(self, rdf_env):
         editor = MetaEditor(rdf_env["config_path"], RESP_AGENT)
-        fix_container(editor, BOOK_URI, [(CHAPTER_URI, [AR_URI], [])])
+        fix_container(editor, BOOK_URI, [(CHAPTER_URI, [AR_URI], [])], set())
 
         entities = _load_entities(rdf_env["rdf_dir"])
         chapter_ar_ids = [x["@id"] for x in entities[CHAPTER_URI].get(PRO_IS_DOC_CONTEXT_FOR, [])]
@@ -170,7 +170,7 @@ class TestFixContainer:
 
     def test_skip_ar_deleted(self, rdf_env):
         editor = MetaEditor(rdf_env["config_path"], RESP_AGENT)
-        fix_container(editor, BOOK_URI, [(CHAPTER_URI, [], [AR_URI])])
+        fix_container(editor, BOOK_URI, [(CHAPTER_URI, [], [AR_URI])], set())
 
         entities = _load_entities(rdf_env["rdf_dir"])
         chapter_ar_ids = [x["@id"] for x in entities[CHAPTER_URI].get(PRO_IS_DOC_CONTEXT_FOR, [])]
@@ -182,7 +182,7 @@ class TestFixContainer:
 
     def test_preserves_frbr_part_of(self, rdf_env):
         editor = MetaEditor(rdf_env["config_path"], RESP_AGENT)
-        fix_container(editor, BOOK_URI, [(CHAPTER_URI, [AR_URI], [])])
+        fix_container(editor, BOOK_URI, [(CHAPTER_URI, [AR_URI], [])], set())
 
         entities = _load_entities(rdf_env["rdf_dir"])
         part_of_ids = [x["@id"] for x in entities[CHAPTER_URI].get(FRBR_PART_OF, [])]
@@ -191,7 +191,7 @@ class TestFixContainer:
 
     def test_generates_provenance_files(self, rdf_env):
         editor = MetaEditor(rdf_env["config_path"], RESP_AGENT)
-        fix_container(editor, BOOK_URI, [(CHAPTER_URI, [AR_URI], [])])
+        fix_container(editor, BOOK_URI, [(CHAPTER_URI, [AR_URI], [])], set())
 
         br_se_path = os.path.join(rdf_env["rdf_dir"], "br", "060", "10000", "1000", "prov", "se.json")
         assert os.path.exists(br_se_path)
@@ -223,7 +223,7 @@ class TestFixContainer:
         fix_container(editor, BOOK_URI, [
             (CHAPTER_URI, [AR_URI], []),
             (chapter2_uri, [ar2_uri], []),
-        ])
+        ], set())
 
         entities = _load_entities(rdf_dir)
         book_ar_ids = [x["@id"] for x in entities[BOOK_URI].get(PRO_IS_DOC_CONTEXT_FOR, [])]
@@ -257,7 +257,7 @@ class TestFixContainer:
         g_set.commit_changes()
 
         editor = MetaEditor(rdf_env["config_path"], RESP_AGENT)
-        fix_container(editor, BOOK_URI, [(CHAPTER_URI, [AR_URI], [ar2_uri])])
+        fix_container(editor, BOOK_URI, [(CHAPTER_URI, [AR_URI], [ar2_uri])], set())
 
         entities = _load_entities(rdf_dir)
         ar1_data = entities[AR_URI]
@@ -265,6 +265,39 @@ class TestFixContainer:
 
         assert has_next_pred not in ar1_data
         assert ar2_uri not in entities
+
+
+    def test_moved_ars_appended_to_existing_chain(self, rdf_env):
+        rdf_dir = rdf_env["rdf_dir"]
+        g_set = GraphSet(BASE_IRI, supplier_prefix=SUPPLIER_PREFIX, wanted_label=False)
+
+        existing_ar_uri = "https://w3id.org/oc/meta/ar/0603"
+        existing_ra_uri = "https://w3id.org/oc/meta/ra/0603"
+
+        existing_ra = g_set.add_ra(RESP_AGENT, res=existing_ra_uri)
+        existing_ar = g_set.add_ar(RESP_AGENT, res=existing_ar_uri)
+        existing_ar.create_editor()
+        existing_ar.is_held_by(existing_ra)
+
+        book = g_set.add_br(RESP_AGENT, res=BOOK_URI)
+        book.has_contributor(existing_ar)
+
+        storer = Storer(g_set, dir_split=DIR_SPLIT, n_file_item=ITEMS_PER_FILE, zip_output=False)
+        storer.store_all(rdf_dir, BASE_IRI)
+        g_set.commit_changes()
+
+        editor = MetaEditor(rdf_env["config_path"], RESP_AGENT)
+        fix_container(
+            editor, BOOK_URI,
+            [(CHAPTER_URI, [AR_URI], [])],
+            {existing_ar_uri},
+        )
+
+        entities = _load_entities(rdf_dir)
+        has_next_pred = "https://w3id.org/oc/ontology/hasNext"
+
+        assert AR_URI in [x["@id"] for x in entities[BOOK_URI][PRO_IS_DOC_CONTEXT_FOR]]
+        assert entities[existing_ar_uri][has_next_pred][0]["@id"] == AR_URI
 
 
 class TestClassifyActions:

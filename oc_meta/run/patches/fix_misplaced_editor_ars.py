@@ -271,7 +271,7 @@ def find_misplaced_editor_ars(
     items_per_file: int,
     workers: int = 4,
     batch_size: int = BATCH_SIZE,
-) -> list[dict]:
+) -> tuple[list[dict], dict[str, set[str]]]:
     br_dir = os.path.join(base_dir, "br")
     ar_dir = os.path.join(base_dir, "ar")
 
@@ -340,7 +340,6 @@ def find_misplaced_editor_ars(
         f"entities in [cyan]{len(container_uris)}[/cyan] containers"
     )
 
-    # Phase 3: targeted container AR scan
     container_file_targets = _group_by_file(
         container_uris, base_dir, dir_split, items_per_file, zip_output
     )
@@ -372,7 +371,7 @@ def find_misplaced_editor_ars(
         f"already have editor ARs"
     )
 
-    # Phase 4: determine which containers need dedup and collect RA identifiers
+    # Determine which containers need dedup and collect RA identifiers
     containers_needing_dedup: set[str] = set()
     for container, contents in container_to_contents.items():
         if (
@@ -455,13 +454,14 @@ def find_misplaced_editor_ars(
     return _classify_actions(
         dict(container_to_contents), content_editor_ars,
         editor_ar_to_ra, ra_identifiers, ra_names, container_editor_ars,
-    )
+    ), container_editor_ars
 
 
 def fix_container(
     editor: MetaEditor,
     container_uri: str,
     content_actions: list[tuple[str, list[str], list[str]]],
+    existing_ars: set[str],
 ) -> None:
     supplier_prefix = get_prefix(container_uri)
     g_set = GraphSet(
@@ -477,6 +477,7 @@ def fix_container(
         all_uris.append(content_uri)
         all_uris.extend(move_ars)
         all_uris.extend(skip_ars)
+    all_uris.extend(existing_ars)
 
     for uri in all_uris:
         fp = find_rdf_file(uri, editor.base_dir, editor.dir_split, editor.n_file_item, editor.zip_output_rdf)
@@ -504,12 +505,22 @@ def fix_container(
 
         for ar_uri in skip_ars:
             ar_entity = g_set.get_entity(ar_uri)
-            ar_entity.mark_as_to_be_deleted()  # type: ignore[attr-defined]
+            if ar_uri not in existing_ars:
+                ar_entity.mark_as_to_be_deleted()  # type: ignore[attr-defined]
 
         for ar_uri in move_ars:
             ar_entity = g_set.get_entity(ar_uri)
             container_entity.has_contributor(ar_entity)  # type: ignore[attr-defined]
             all_move_entities.append(ar_entity)
+
+    if existing_ars and all_move_entities:
+        for ar_uri in sorted(existing_ars):
+            ar_entity = g_set.get_entity(ar_uri)
+            if ar_entity is not None and not list(
+                ar_entity.g.triples((ar_entity.res, GraphEntity.iri_has_next, None))
+            ):
+                ar_entity.has_next(all_move_entities[0])  # type: ignore[attr-defined]
+                break
 
     for i in range(len(all_move_entities) - 1):
         all_move_entities[i].has_next(all_move_entities[i + 1])  # type: ignore[attr-defined]
@@ -573,7 +584,7 @@ def main() -> None:  # pragma: no cover
     items_per_file = config["items_per_file"]
 
     console.print("Scanning RDF files for misplaced editor ARs...")
-    cases = find_misplaced_editor_ars(
+    cases, container_editor_ars = find_misplaced_editor_ars(
         rdf_dir, zip_output, dir_split, items_per_file,
         args.workers, args.batch_size,
     )
@@ -669,7 +680,7 @@ def main() -> None:  # pragma: no cover
                     (content_uri, moves, skips)
                     for content_uri, (moves, skips) in sorted(per_content.items())
                 ]
-                fix_container(editor, container, content_actions)
+                fix_container(editor, container, content_actions, container_editor_ars.get(container, set()))
                 completed.add(container)
                 _save_progress(args.progress_file, completed)
                 succeeded += 1
