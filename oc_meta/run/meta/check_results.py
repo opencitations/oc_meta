@@ -20,8 +20,8 @@ from rich_argparse import RichHelpFormatter
 from oc_meta.constants import BR_ID_SCHEMAS, QLEVER_BATCH_SIZE, QLEVER_MAX_WORKERS, RA_ID_SCHEMAS
 from oc_meta.lib.cleaner import normalize_hyphens, normalize_id
 from oc_meta.lib.console import EMATimeRemainingColumn, console
-from oc_meta.lib.file_manager import collect_files
-from oc_meta.lib.master_of_regex import RE_ENTITY_URI, RE_SEMICOLON_IN_PEOPLE_FIELD, split_name_and_ids
+from oc_meta.lib.file_manager import collect_files, find_rdf_file
+from oc_meta.lib.master_of_regex import RE_SEMICOLON_IN_PEOPLE_FIELD, split_name_and_ids
 from oc_meta.lib.sparql import run_queries_parallel
 
 MAX_RETRIES = 10
@@ -142,19 +142,6 @@ def check_omids_existence(identifiers: List[Dict[str, str]], endpoint_url: str, 
     return found_omids
 
 
-def find_file(rdf_dir: str, dir_split_number: int, items_per_file: int, uri: str, zip_output_rdf: bool) -> str|None:
-    entity_match = RE_ENTITY_URI.match(uri)
-    if entity_match:
-        cur_number = int(entity_match.group('entity_number'))
-        cur_file_split = ((cur_number - 1) // items_per_file + 1) * items_per_file
-        cur_split = ((cur_number - 1) // dir_split_number + 1) * dir_split_number
-        short_name = entity_match.group('short_name')
-        sub_folder = entity_match.group('supplier_prefix')
-        cur_dir_path = os.path.join(rdf_dir, short_name, sub_folder, str(cur_split))
-        extension = '.zip' if zip_output_rdf else '.json'
-        cur_file_path = os.path.join(cur_dir_path, str(cur_file_split)) + extension
-        return cur_file_path
-    return None
 
 
 def find_prov_file(data_zip_path: str) -> str|None:
@@ -388,15 +375,14 @@ def process_csv_file(args: tuple, workers: int = QLEVER_MAX_WORKERS, progress=No
             if entity_uri in entity_uri_to_info:
                 row_num, col = entity_uri_to_info[entity_uri]
                 omid_to_id_info[entity_uri] = (row_num, col, entity_uri)
-        zip_path = find_file(rdf_dir, dir_split_number, items_per_file, entity_uri, zip_output_rdf)
-        if zip_path:
-            if zip_path not in path_exists_cache:
-                path_exists_cache[zip_path] = os.path.exists(zip_path)
-            if path_exists_cache[zip_path]:
-                if zip_path in omids_by_file:
-                    omids_by_file[zip_path].add(entity_uri)
-                else:
-                    omids_by_file[zip_path] = {entity_uri}
+        zip_path = find_rdf_file(entity_uri, rdf_dir, dir_split_number, items_per_file, zip_output_rdf)
+        if zip_path not in path_exists_cache:
+            path_exists_cache[zip_path] = os.path.exists(zip_path)
+        if path_exists_cache[zip_path]:
+            if zip_path in omids_by_file:
+                omids_by_file[zip_path].add(entity_uri)
+            else:
+                omids_by_file[zip_path] = {entity_uri}
 
     total_rdf_files = len(omids_by_file)
     total_omids = len(all_entity_uris)

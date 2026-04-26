@@ -19,12 +19,12 @@ import orjson
 import requests
 import yaml
 from oc_ocdm.graph import GraphSet
-from rdflib import URIRef
 from rich_argparse import RichHelpFormatter
 
 from oc_meta.core.editor import MetaEditor
 from oc_meta.lib.console import create_progress
-from oc_meta.run.meta.generate_csv import find_file, load_json_from_file
+from oc_meta.lib.file_manager import find_rdf_file
+from oc_meta.run.meta.generate_csv import load_json_from_file
 
 HAS_IDENTIFIER = "http://purl.org/spar/datacite/hasIdentifier"
 USES_ID_SCHEME = "http://purl.org/spar/datacite/usesIdentifierScheme"
@@ -92,8 +92,8 @@ def normalize_orcid(orcid: str) -> str:
 def find_entity_in_file(
     uri: str, rdf_dir: str, dir_split: int, items_per_file: int
 ) -> Optional[dict]:
-    filepath = find_file(rdf_dir, dir_split, items_per_file, uri)
-    if not filepath:
+    filepath = find_rdf_file(uri, rdf_dir, dir_split, items_per_file, zip_output=True)
+    if not os.path.exists(filepath):
         return None
     data = load_json_from_file(filepath)
     for graph in data:
@@ -648,9 +648,9 @@ def apply_correction(editor: MetaEditor, correction: dict) -> None:
         supplier_prefix=supplier_prefix,
         custom_counter_handler=editor.counter_handler,
     )
-    entities_to_import = [URIRef(br_uri)]
+    entities_to_import: list[str] = [br_uri]
     for ar_info in correction["current_ars"]:
-        entities_to_import.append(URIRef(ar_info["ar"]))
+        entities_to_import.append(ar_info["ar"])
     editor.reader.import_entities_from_triplestore(
         g_set=g_set,
         ts_url=editor.endpoint,

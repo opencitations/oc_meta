@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import csv
 import os
-import re
 from argparse import ArgumentParser
 from functools import lru_cache
 import multiprocessing
@@ -20,7 +19,7 @@ import redis
 import yaml
 
 from oc_meta.lib.console import create_progress
-from oc_meta.lib.file_manager import collect_zip_files
+from oc_meta.lib.file_manager import collect_zip_files, find_rdf_file
 
 csv.field_size_limit(2**31 - 1)
 
@@ -182,31 +181,6 @@ def mark_file_processed(checkpoint_file: str, filepath: str) -> None:
         f.write(filepath + "\n")
 
 
-def find_file(
-    rdf_dir: str, dir_split_number: int, items_per_file: int, uri: str
-) -> Optional[str]:
-    entity_regex: str = (
-        r"^(https:\/\/w3id\.org\/oc\/meta)\/([a-z][a-z])\/(0[1-9]+0)?([1-9][0-9]*)$"
-    )
-    entity_match = re.match(entity_regex, uri)
-    if entity_match:
-        cur_number = int(entity_match.group(4))
-        cur_file_split = (
-            (cur_number - 1) // items_per_file
-        ) * items_per_file + items_per_file
-        cur_split = (
-            (cur_number - 1) // dir_split_number
-        ) * dir_split_number + dir_split_number
-
-        short_name = entity_match.group(2)
-        sub_folder = entity_match.group(3) or ""
-        cur_dir_path = os.path.join(rdf_dir, short_name, sub_folder, str(cur_split))
-        cur_file_path = os.path.join(cur_dir_path, str(cur_file_split)) + ".zip"
-
-        return cur_file_path if os.path.exists(cur_file_path) else None
-    return None
-
-
 @lru_cache(maxsize=2000)
 def load_json_from_file(filepath: str) -> list:
     with ZipFile(filepath, "r") as zip_file:
@@ -260,8 +234,8 @@ def process_responsible_agent(
         if "http://purl.org/spar/datacite/hasIdentifier" in ra_data:
             for identifier in ra_data["http://purl.org/spar/datacite/hasIdentifier"]:
                 id_uri = identifier["@id"]
-                id_file = find_file(rdf_dir, dir_split_number, items_per_file, id_uri)
-                if id_file:
+                id_file = find_rdf_file(id_uri, rdf_dir, dir_split_number, items_per_file, zip_output=True)
+                if os.path.exists(id_file):
                     id_data = load_json_from_file(id_file)
                     for graph in id_data:
                         for entity in graph.get("@graph", []):
@@ -296,8 +270,8 @@ def process_venue_title(
     if "http://purl.org/spar/datacite/hasIdentifier" in venue_data:
         for identifier in venue_data["http://purl.org/spar/datacite/hasIdentifier"]:
             id_uri = identifier["@id"]
-            id_file = find_file(rdf_dir, dir_split_number, items_per_file, id_uri)
-            if id_file:
+            id_file = find_rdf_file(id_uri, rdf_dir, dir_split_number, items_per_file, zip_output=True)
+            if os.path.exists(id_file):
                 id_data = load_json_from_file(id_file)
                 for graph in id_data:
                     for entity in graph.get("@graph", []):
@@ -346,8 +320,8 @@ def process_hierarchical_venue(
 
     if "http://purl.org/vocab/frbr/core#partOf" in entity:
         parent_uri = entity["http://purl.org/vocab/frbr/core#partOf"][0]["@id"]
-        parent_file = find_file(rdf_dir, dir_split_number, items_per_file, parent_uri)
-        if parent_file:
+        parent_file = find_rdf_file(parent_uri, rdf_dir, dir_split_number, items_per_file, zip_output=True)
+        if os.path.exists(parent_file):
             parent_data = load_json_from_file(parent_file)
             for graph in parent_data:
                 for parent_entity in graph.get("@graph", []):
@@ -424,8 +398,8 @@ def process_bibliographic_resource(
         if "http://purl.org/spar/datacite/hasIdentifier" in br_data:
             for identifier in br_data["http://purl.org/spar/datacite/hasIdentifier"]:
                 id_uri = identifier["@id"]
-                id_file = find_file(rdf_dir, dir_split_number, items_per_file, id_uri)
-                if id_file:
+                id_file = find_rdf_file(id_uri, rdf_dir, dir_split_number, items_per_file, zip_output=True)
+                if os.path.exists(id_file):
                     id_data = load_json_from_file(id_file)
                     for graph in id_data:
                         for entity in graph.get("@graph", []):
@@ -444,8 +418,8 @@ def process_bibliographic_resource(
         if "http://purl.org/spar/pro/isDocumentContextFor" in br_data:
             for ar_data in br_data["http://purl.org/spar/pro/isDocumentContextFor"]:
                 ar_uri = ar_data["@id"]
-                ar_file = find_file(rdf_dir, dir_split_number, items_per_file, ar_uri)
-                if ar_file:
+                ar_file = find_rdf_file(ar_uri, rdf_dir, dir_split_number, items_per_file, zip_output=True)
+                if os.path.exists(ar_file):
                     ar_data = load_json_from_file(ar_file)
                     for graph in ar_data:
                         for entity in graph.get("@graph", []):
@@ -491,10 +465,8 @@ def process_bibliographic_resource(
                             ra_uri = entity["http://purl.org/spar/pro/isHeldBy"][0][
                                 "@id"
                             ]
-                            ra_file = find_file(
-                                rdf_dir, dir_split_number, items_per_file, ra_uri
-                            )
-                            if ra_file:
+                            ra_file = find_rdf_file(ra_uri, rdf_dir, dir_split_number, items_per_file, zip_output=True)
+                            if os.path.exists(ra_file):
                                 ra_data = load_json_from_file(ra_file)
                                 for ra_graph in ra_data:
                                     for ra_entity in ra_graph.get("@graph", []):
@@ -517,8 +489,8 @@ def process_bibliographic_resource(
 
         if "http://purl.org/vocab/frbr/core#partOf" in br_data:
             venue_uri = br_data["http://purl.org/vocab/frbr/core#partOf"][0]["@id"]
-            venue_file = find_file(rdf_dir, dir_split_number, items_per_file, venue_uri)
-            if venue_file:
+            venue_file = find_rdf_file(venue_uri, rdf_dir, dir_split_number, items_per_file, zip_output=True)
+            if os.path.exists(venue_file):
                 venue_data = load_json_from_file(venue_file)
                 for graph in venue_data:
                     for entity in graph.get("@graph", []):
@@ -530,8 +502,8 @@ def process_bibliographic_resource(
 
         if "http://purl.org/vocab/frbr/core#embodiment" in br_data:
             page_uri = br_data["http://purl.org/vocab/frbr/core#embodiment"][0]["@id"]
-            page_file = find_file(rdf_dir, dir_split_number, items_per_file, page_uri)
-            if page_file:
+            page_file = find_rdf_file(page_uri, rdf_dir, dir_split_number, items_per_file, zip_output=True)
+            if os.path.exists(page_file):
                 page_data = load_json_from_file(page_file)
                 for graph in page_data:
                     for entity in graph.get("@graph", []):

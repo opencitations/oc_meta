@@ -7,7 +7,6 @@
 from __future__ import annotations
 
 import os
-import re
 
 import validators
 import yaml
@@ -18,7 +17,10 @@ from oc_ocdm.graph.graph_entity import GraphEntity
 from triplelite import RDFTerm, SubgraphView
 from oc_ocdm.prov import ProvSet
 from oc_ocdm.reader import Reader
+from oc_ocdm.support import get_prefix
 from oc_ocdm.support.support import build_graph_from_results
+
+from oc_meta.lib.file_manager import find_rdf_file
 from sparqlite import SPARQLClient
 
 
@@ -78,7 +80,7 @@ class MetaEditor:
     def update_property(
         self, res: str, property: str, new_value: str
     ) -> None:
-        supplier_prefix = self.__get_supplier_prefix(res)
+        supplier_prefix = get_prefix(res)
         g_set = GraphSet(
             self.base_iri,
             supplier_prefix=supplier_prefix,
@@ -102,7 +104,7 @@ class MetaEditor:
 
     def delete(self, res: str, property: str | None = None, object: str | None = None) -> None:
         res_str = str(res)
-        supplier_prefix = self.__get_supplier_prefix(res_str)
+        supplier_prefix = get_prefix(res_str)
         g_set = GraphSet(
             self.base_iri,
             supplier_prefix=supplier_prefix,
@@ -265,7 +267,7 @@ class MetaEditor:
             res_as_entity.merge(other_as_entity)
 
     def sync_rdf_with_triplestore(self, res: str, source_uri: str | None = None) -> bool:
-        supplier_prefix = self.__get_supplier_prefix(res)
+        supplier_prefix = get_prefix(res)
         g_set = GraphSet(
             self.base_iri,
             supplier_prefix=supplier_prefix,
@@ -290,12 +292,8 @@ class MetaEditor:
                 )
                 return False
             except ValueError:
-                res_filepath = self.find_file(
-                    self.base_dir,
-                    self.dir_split,
-                    self.n_file_item,
-                    source_uri,
-                    self.zip_output_rdf,
+                res_filepath = find_rdf_file(
+                    source_uri, self.base_dir, self.dir_split, self.n_file_item, self.zip_output_rdf
                 )
                 if not res_filepath:
                     return False
@@ -349,46 +347,6 @@ class MetaEditor:
                 self.provenance_endpoint, base_dir=self.prov_hotfix_dir, save_queries=self.save_queries
             )
         g_set.commit_changes()
-
-    def __get_supplier_prefix(self, uri: str) -> str:
-        entity_regex: str = r"^(.+)/([a-z][a-z])/(0[1-9]+0)([1-9][0-9]*)$"
-        entity_match = re.match(entity_regex, uri)
-        if not entity_match:
-            raise ValueError(f"Invalid entity URI: {uri}")
-        return entity_match.group(3)
-
-    def find_file(
-        self,
-        rdf_dir: str,
-        dir_split_number: int,
-        items_per_file: int,
-        uri: str,
-        zip_output_rdf: bool,
-    ) -> str | None:
-        entity_regex: str = (
-            r"^(https:\/\/w3id\.org\/oc\/meta)\/([a-z][a-z])\/(0[1-9]+0)?([1-9][0-9]*)$"
-        )
-        entity_match = re.match(entity_regex, uri)
-        if entity_match:
-            cur_number = int(entity_match.group(4))
-            cur_file_split: int = 0
-            while True:
-                if cur_number > cur_file_split:
-                    cur_file_split += items_per_file
-                else:
-                    break
-            cur_split: int = 0
-            while True:
-                if cur_number > cur_split:
-                    cur_split += dir_split_number
-                else:
-                    break
-            short_name = entity_match.group(2)
-            sub_folder = entity_match.group(3)
-            cur_dir_path = os.path.join(rdf_dir, short_name, sub_folder, str(cur_split))
-            extension = ".zip" if zip_output_rdf else ".json"
-            cur_file_path = os.path.join(cur_dir_path, str(cur_file_split)) + extension
-            return cur_file_path
 
     def infer_type_from_uri(self, uri: str) -> str | None:
         if os.path.join(self.base_iri, "br") in uri:

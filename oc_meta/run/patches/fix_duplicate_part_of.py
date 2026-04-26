@@ -8,7 +8,6 @@ import argparse
 import json
 import multiprocessing
 import os
-import re
 import signal
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -18,11 +17,12 @@ from zipfile import ZipFile
 import orjson
 import yaml
 from oc_ocdm.graph import GraphSet
+from oc_ocdm.support import get_prefix
 from rich_argparse import RichHelpFormatter
 
 from oc_meta.core.editor import MetaEditor
 from oc_meta.lib.console import console, create_progress
-from oc_meta.lib.file_manager import collect_files, collect_zip_files
+from oc_meta.lib.file_manager import collect_files, collect_zip_files, find_rdf_file
 
 FRBR_PART_OF = "http://purl.org/vocab/frbr/core#partOf"
 HAS_IDENTIFIER = "http://purl.org/spar/datacite/hasIdentifier"
@@ -48,40 +48,6 @@ def _handle_signal(_signum: int, _frame: object) -> None:
     console.print("[yellow]Interrupt received, finishing current entity...[/yellow]")
 
 
-def _get_supplier_prefix(uri: str) -> str:
-    match = re.match(r"^(.+)/([a-z][a-z])/(0[1-9]+0)([1-9][0-9]*)$", uri)
-    assert match is not None, f"Cannot extract supplier prefix from: {uri}"
-    return match.group(3)
-
-
-_ENTITY_RE = re.compile(
-    r"^(https://w3id\.org/oc/meta)/([a-z][a-z])/(0[1-9]+0)?([1-9][0-9]*)$"
-)
-
-
-def _find_file(
-    rdf_dir: str,
-    dir_split: int,
-    items_per_file: int,
-    uri: str,
-    zip_output: bool,
-) -> str | None:
-    m = _ENTITY_RE.match(uri)
-    if not m:
-        return None
-    cur_number = int(m.group(4))
-    cur_file_split = 0
-    while cur_number > cur_file_split:
-        cur_file_split += items_per_file
-    cur_split = 0
-    while cur_number > cur_split:
-        cur_split += dir_split
-    ext = ".zip" if zip_output else ".json"
-    return os.path.join(
-        rdf_dir, m.group(2), m.group(3), str(cur_split), str(cur_file_split)
-    ) + ext
-
-
 def _iter_entities(files: list, zip_output: bool):
     for fpath in files:
         if zip_output:
@@ -102,8 +68,8 @@ def _read_entity(
     items_per_file: int,
     zip_output: bool,
 ) -> dict | None:
-    fpath = _find_file(rdf_dir, dir_split, items_per_file, uri, zip_output)
-    if fpath is None or not os.path.exists(fpath):
+    fpath = find_rdf_file(uri, rdf_dir, dir_split, items_per_file, zip_output)
+    if not os.path.exists(fpath):
         return None
     if zip_output:
         with ZipFile(fpath, "r") as zf:
@@ -217,9 +183,8 @@ def build_chain_map(
             depth += 1
             file_to_uris: dict[str, set[str]] = defaultdict(set)
             for uri in needed:
-                fpath = _find_file(rdf_dir, dir_split, items_per_file, uri, zip_output)
-                if fpath:
-                    file_to_uris[fpath].add(uri)
+                fpath = find_rdf_file(uri, rdf_dir, dir_split, items_per_file, zip_output)
+                file_to_uris[fpath].add(uri)
 
             next_needed: set[str] = set()
             for fpath, uris in file_to_uris.items():
@@ -353,9 +318,7 @@ def _batch_read_entities(
 ) -> dict[str, dict]:
     file_to_uris: dict[str, set[str]] = defaultdict(set)
     for uri in uris:
-        fpath = _find_file(rdf_dir, dir_split, items_per_file, uri, zip_output)
-        if fpath:
-            file_to_uris[fpath].add(uri)
+        file_to_uris[find_rdf_file(uri, rdf_dir, dir_split, items_per_file, zip_output)].add(uri)
 
     result: dict[str, dict] = {}
     for fpath, target_uris in file_to_uris.items():
@@ -437,7 +400,7 @@ def fix_br_part_of(
     correct_part_of_uri: str,
     incorrect_part_of_uris: list[str],
 ) -> None:
-    supplier_prefix = _get_supplier_prefix(br_uri)
+    supplier_prefix = get_prefix(br_uri)
     g_set = GraphSet(
         editor.base_iri,
         supplier_prefix=supplier_prefix,
@@ -447,15 +410,7 @@ def fix_br_part_of(
 
     file_paths: set[str] = set()
     for uri in [br_uri, correct_part_of_uri] + incorrect_part_of_uris:
-        fp = editor.find_file(
-            editor.base_dir,
-            editor.dir_split,
-            editor.n_file_item,
-            uri,
-            editor.zip_output_rdf,
-        )
-        if fp is not None:
-            file_paths.add(fp)
+        file_paths.add(find_rdf_file(uri, editor.base_dir, editor.dir_split, editor.n_file_item, editor.zip_output_rdf))
 
     for fp in file_paths:
         imported = editor.reader.load(fp)

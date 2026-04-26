@@ -17,6 +17,7 @@ from sparqlite import SPARQLClient
 from tqdm import tqdm
 
 from oc_meta.core.editor import MetaEditor
+from oc_meta.lib.file_manager import find_rdf_file
 
 DATACITE = "http://purl.org/spar/datacite/"
 LITERAL_REIFICATION = "http://www.essepuntato.it/2010/06/literalreification/"
@@ -231,7 +232,7 @@ def process_csv(args, csv_file):
         all_entities = [surviving_entity] + merged_entities
 
         for entity in all_entities:
-            file_path = meta_editor.find_file(rdf_dir, meta_editor.dir_split, meta_editor.n_file_item, entity, True)
+            file_path = find_rdf_file(entity, rdf_dir, meta_editor.dir_split, meta_editor.n_file_item, zip_output=True)
             tasks.append((entity, entity == surviving_entity, file_path, rdf_dir, meta_config_path, sparql_endpoint, query_output_dir, surviving_entity))
 
     return tasks

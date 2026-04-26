@@ -10,10 +10,10 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 import pandas as pd
+from oc_meta.lib.file_manager import find_rdf_file
 from oc_meta.run.merge.group_entities import (
     UnionFind,
     get_all_related_entities,
-    get_file_path,
     group_entities,
     optimize_groups,
     save_grouped_entities,
@@ -311,49 +311,41 @@ class TestOptimizeGroups:
 
 
 class TestGetFilePath:
-    """Test get_file_path function"""
 
     def test_get_file_path_basic(self):
-        """Test basic file path calculation"""
         uri = "https://w3id.org/oc/meta/br/060100"
-        result = get_file_path(uri, dir_split=10000, items_per_file=1000, zip_output=True)
+        result = find_rdf_file(uri, "", 10000, 1000, zip_output=True)
         assert result == "br/060/10000/1000.zip"
 
     def test_get_file_path_different_number(self):
-        """Test file path for different entity number"""
         uri = "https://w3id.org/oc/meta/id/0605500"
-        result = get_file_path(uri, dir_split=10000, items_per_file=1000, zip_output=True)
+        result = find_rdf_file(uri, "", 10000, 1000, zip_output=True)
         assert result == "id/060/10000/6000.zip"
 
     def test_get_file_path_json_output(self):
-        """Test file path with JSON output (not zipped)"""
         uri = "https://w3id.org/oc/meta/br/060100"
-        result = get_file_path(uri, dir_split=10000, items_per_file=1000, zip_output=False)
+        result = find_rdf_file(uri, "", 10000, 1000, zip_output=False)
         assert result == "br/060/10000/1000.json"
 
     def test_get_file_path_different_supplier(self):
-        """Test file path with different supplier prefix"""
         uri = "https://w3id.org/oc/meta/ra/070250"
-        result = get_file_path(uri, dir_split=10000, items_per_file=1000, zip_output=True)
+        result = find_rdf_file(uri, "", 10000, 1000, zip_output=True)
         assert result == "ra/070/10000/1000.zip"
 
     def test_get_file_path_large_number(self):
-        """Test file path for large entity number"""
         uri = "https://w3id.org/oc/meta/br/06025000"
-        result = get_file_path(uri, dir_split=10000, items_per_file=1000, zip_output=True)
+        result = find_rdf_file(uri, "", 10000, 1000, zip_output=True)
         assert result == "br/060/30000/25000.zip"
 
     def test_get_file_path_invalid_uri(self):
-        """Test that invalid URI returns None"""
         uri = "https://invalid.uri.com/test"
-        result = get_file_path(uri, dir_split=10000, items_per_file=1000, zip_output=True)
-        assert result is None
+        result = find_rdf_file(uri, "", 10000, 1000, zip_output=True)
+        assert result == "https://invalid.uri.com/tes/index.zip"
 
     def test_get_file_path_no_supplier_prefix(self):
-        """Test that URI without supplier prefix returns None"""
         uri = "https://w3id.org/oc/meta/br/100"
-        result = get_file_path(uri, dir_split=10000, items_per_file=1000, zip_output=True)
-        assert result is None
+        result = find_rdf_file(uri, "", 10000, 1000, zip_output=True)
+        assert result == "br/_/10000/1000.zip"
 
 
 class TestGroupEntities:

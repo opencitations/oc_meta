@@ -5,13 +5,14 @@
 import argparse
 import csv
 import os
-import re
 
 import pandas as pd
 import yaml
 from rich_argparse import RichHelpFormatter
 from sparqlite import SPARQLClient
 from tqdm import tqdm
+
+from oc_meta.lib.file_manager import find_rdf_file
 
 
 class UnionFind:
@@ -122,47 +123,6 @@ def get_all_related_entities(endpoint, uris, batch_size=10):
     return related_entities
 
 
-def get_file_path(uri, dir_split, items_per_file, zip_output=True):
-    """
-    Calculate RDF file path for an entity URI (same logic as MetaEditor.find_file).
-
-    Args:
-        uri: Entity URI (e.g., https://w3id.org/oc/meta/br/060100)
-        dir_split: Directory split number
-        items_per_file: Items per file
-        zip_output: Whether files are zipped (default: True)
-
-    Returns:
-        File path (e.g., br/060/10000/1000.zip) or None if invalid URI
-    """
-    entity_regex = r"^.+/([a-z][a-z])/(0[1-9]+0)([1-9][0-9]*)$"
-    entity_match = re.match(entity_regex, uri)
-
-    if not entity_match:
-        return None
-
-    short_name = entity_match.group(1)
-    supplier_prefix = entity_match.group(2)
-    cur_number = int(entity_match.group(3))
-
-    cur_file_split = 0
-    while True:
-        if cur_number > cur_file_split:
-            cur_file_split += items_per_file
-        else:
-            break
-
-    cur_split = 0
-    while True:
-        if cur_number > cur_split:
-            cur_split += dir_split
-        else:
-            break
-
-    extension = ".zip" if zip_output else ".json"
-    return f"{short_name}/{supplier_prefix}/{cur_split}/{cur_file_split}{extension}"
-
-
 def group_entities(df, endpoint, dir_split=10000, items_per_file=1000, zip_output=True):
     """
     Group entities based on RDF connections and file range conflicts.
@@ -193,10 +153,8 @@ def group_entities(df, endpoint, dir_split=10000, items_per_file=1000, zip_outpu
 
         # Union for file range conflicts (only for IDs being merged, not related entities)
         for entity in all_entities:
-            entity_file = get_file_path(entity, dir_split, items_per_file, zip_output)
-            if entity_file:
-                # Use file path as virtual entity in union-find
-                uf.union(surviving_entity, f"FILE:{entity_file}")
+            entity_file = find_rdf_file(entity, "", dir_split, items_per_file, zip_output)
+            uf.union(surviving_entity, f"FILE:{entity_file}")
 
         rows_list.append(row)
 

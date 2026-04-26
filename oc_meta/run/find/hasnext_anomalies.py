@@ -17,7 +17,8 @@ from rich_argparse import RichHelpFormatter
 
 from oc_meta.lib.console import create_progress
 from oc_meta.lib.file_manager import collect_zip_files
-from oc_meta.run.meta.generate_csv import find_file, load_json_from_file
+from oc_meta.lib.file_manager import find_rdf_file
+from oc_meta.run.meta.generate_csv import load_json_from_file
 
 ROLE_MAP = {
     "http://purl.org/spar/pro/author": "author",
@@ -48,8 +49,8 @@ def _ar_summary(ar_uri: str, info: dict) -> dict:
 def load_ar_data(
     ar_uri: str, rdf_dir: str, dir_split_number: int, items_per_file: int
 ) -> Optional[dict]:
-    ar_file = find_file(rdf_dir, dir_split_number, items_per_file, ar_uri)
-    if not ar_file:
+    ar_file = find_rdf_file(ar_uri, rdf_dir, dir_split_number, items_per_file, zip_output=True)
+    if not os.path.exists(ar_file):
         return None
     data = load_json_from_file(ar_file)
     for graph in data:

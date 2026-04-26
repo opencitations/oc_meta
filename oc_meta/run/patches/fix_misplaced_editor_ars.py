@@ -6,10 +6,8 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
 import multiprocessing
 import os
-import re
 import signal
 from collections import defaultdict
 from collections.abc import Callable
@@ -20,13 +18,14 @@ import orjson
 import yaml
 from oc_ocdm.graph import GraphSet
 from oc_ocdm.graph.graph_entity import GraphEntity
+from oc_ocdm.support import get_prefix
 from rich.progress import Progress, TaskID
 from rich_argparse import RichHelpFormatter
 
 from oc_meta.constants import CONTAINER_EDITOR_TYPES
 from oc_meta.core.editor import MetaEditor
 from oc_meta.lib.console import console, create_progress
-from oc_meta.lib.file_manager import collect_files, collect_zip_files
+from oc_meta.lib.file_manager import collect_files, collect_zip_files, find_rdf_file
 from oc_meta.lib.finder import ResourceFinder
 
 FRBR_PART_OF = "http://purl.org/vocab/frbr/core#partOf"
@@ -49,8 +48,6 @@ CONTAINER_EDITOR_TYPE_IRIS = frozenset(
 )
 _EXPRESSION_ONLY = frozenset({str(GraphEntity.iri_expression)})
 
-_URI_RE = re.compile(r"^.+/([a-z]{2})/(0[1-9]+0)([1-9][0-9]*)$")
-
 BATCH_SIZE = 100
 
 _stop_requested = False
@@ -67,31 +64,12 @@ def _handle_signal(_signum: int, _frame: object) -> None:
     console.print("[yellow]Interrupt received, finishing current entity...[/yellow]")
 
 
-def _get_supplier_prefix(uri: str) -> str:
-    match = re.match(r"^(.+)/([a-z][a-z])/(0[1-9]+0)([1-9][0-9]*)$", uri)
-    assert match is not None, f"Cannot extract supplier prefix from: {uri}"
-    return match.group(3)
-
-
-def _uri_to_file_path(
-    rdf_dir: str, uri: str, dir_split: int, items_per_file: int, zip_output: bool
-) -> str:
-    m = _URI_RE.match(uri)
-    assert m, f"Cannot parse URI: {uri}"
-    entity_type, prefix = m.group(1), m.group(2)
-    number = int(m.group(3))
-    cur_split = math.ceil(number / dir_split) * dir_split
-    cur_file = math.ceil(number / items_per_file) * items_per_file
-    ext = ".zip" if zip_output else ".json"
-    return os.path.join(rdf_dir, entity_type, prefix, str(cur_split), str(cur_file) + ext)
-
-
 def _group_by_file(
     uris: set[str], rdf_dir: str, dir_split: int, items_per_file: int, zip_output: bool
 ) -> dict[str, set[str]]:
     file_to_uris: dict[str, set[str]] = defaultdict(set)
     for uri in uris:
-        fpath = _uri_to_file_path(rdf_dir, uri, dir_split, items_per_file, zip_output)
+        fpath = find_rdf_file(uri, rdf_dir, dir_split, items_per_file, zip_output)
         file_to_uris[fpath].add(uri)
     return dict(file_to_uris)
 
@@ -485,7 +463,7 @@ def fix_container(
     container_uri: str,
     content_actions: list[tuple[str, list[str], list[str]]],
 ) -> None:
-    supplier_prefix = _get_supplier_prefix(container_uri)
+    supplier_prefix = get_prefix(container_uri)
     g_set = GraphSet(
         editor.base_iri,
         supplier_prefix=supplier_prefix,
@@ -501,11 +479,8 @@ def fix_container(
         all_uris.extend(skip_ars)
 
     for uri in all_uris:
-        fp = editor.find_file(
-            editor.base_dir, editor.dir_split, editor.n_file_item, uri, editor.zip_output_rdf
-        )
-        if fp is not None:
-            file_paths.add(fp)
+        fp = find_rdf_file(uri, editor.base_dir, editor.dir_split, editor.n_file_item, editor.zip_output_rdf)
+        file_paths.add(fp)
 
     for fp in file_paths:
         imported_graph = editor.reader.load(fp)

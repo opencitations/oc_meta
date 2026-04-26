@@ -13,11 +13,11 @@ import orjson
 import pytest
 import yaml
 
+from oc_meta.lib.file_manager import find_rdf_file
 from oc_meta.run.meta.check_results import (
     _extract_entity_groups,
     check_omids_existence,
     check_provenance_existence,
-    find_file,
     process_csv_file,
 )
 from test.test_utils import (
@@ -85,30 +85,31 @@ class TestFindFile:
 
     def test_find_file_zip_format(self):
         uri = "https://w3id.org/oc/meta/br/0605"
-        result = find_file("/base/rdf", 10000, 1000, uri, True)
+        result = find_rdf_file(uri, "/base/rdf", 10000, 1000, zip_output=True)
         assert result == "/base/rdf/br/060/10000/1000.zip"
 
     def test_find_file_json_format(self):
         uri = "https://w3id.org/oc/meta/br/0605"
-        result = find_file("/base/rdf", 10000, 1000, uri, False)
+        result = find_rdf_file(uri, "/base/rdf", 10000, 1000, zip_output=False)
         assert result == "/base/rdf/br/060/10000/1000.json"
 
     def test_find_file_with_subfolder(self):
         uri = "https://w3id.org/oc/meta/br/06012345"
-        result = find_file("/base/rdf", 10000, 1000, uri, True)
+        result = find_rdf_file(uri, "/base/rdf", 10000, 1000, zip_output=True)
         assert result == "/base/rdf/br/060/20000/13000.zip"
 
     def test_find_file_different_entity_type(self):
         uri = "https://w3id.org/oc/meta/ra/0605"
-        result = find_file("/base/rdf", 10000, 1000, uri, True)
+        result = find_rdf_file(uri, "/base/rdf", 10000, 1000, zip_output=True)
         assert result == "/base/rdf/ra/060/10000/1000.zip"
 
     def test_find_file_invalid_uri(self):
-        assert find_file("/base/rdf", 10000, 1000, "invalid-uri", True) is None
+        result = find_rdf_file("invalid-uri", "/base/rdf", 10000, 1000, zip_output=True)
+        assert result == "/base/rdf/invalid-ur/index.zip"
 
     def test_find_file_boundary_values(self):
         uri = "https://w3id.org/oc/meta/br/06010000"
-        result = find_file("/base/rdf", 10000, 1000, uri, True)
+        result = find_rdf_file(uri, "/base/rdf", 10000, 1000, zip_output=True)
         assert result == "/base/rdf/br/060/10000/10000.zip"
 
 

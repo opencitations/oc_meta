@@ -12,11 +12,11 @@ from oc_ocdm import Storer
 from oc_ocdm.graph import GraphSet
 
 from oc_meta.core.editor import MetaEditor
+from oc_meta.lib.file_manager import find_rdf_file
 from oc_meta.run.patches.fix_duplicate_part_of import (
     FRBR_PART_OF,
     ResolvedCase,
     _build_report,
-    _find_file,
     _follow_to_venue,
     _load_progress,
     _read_entity,
@@ -332,25 +332,25 @@ def _load_entities(rdf_dir: str) -> dict[str, dict]:
 
 class TestFindFile:
     def test_br_entity(self):
-        result = _find_file("/data/rdf/", 10000, 1000, BR1_URI, False)
+        result = find_rdf_file(BR1_URI, "/data/rdf/", 10000, 1000, False)
         assert result == "/data/rdf/br/060/10000/1000.json"
 
     def test_id_entity(self):
-        result = _find_file("/data/rdf/", 10000, 1000, ID1_URI, False)
+        result = find_rdf_file(ID1_URI, "/data/rdf/", 10000, 1000, False)
         assert result == "/data/rdf/id/060/10000/1000.json"
 
     def test_zip_extension(self):
-        result = _find_file("/data/rdf/", 10000, 1000, BR1_URI, True)
+        result = find_rdf_file(BR1_URI, "/data/rdf/", 10000, 1000, True)
         assert result == "/data/rdf/br/060/10000/1000.zip"
 
     def test_higher_number(self):
         uri = "https://w3id.org/oc/meta/br/0601500"
-        result = _find_file("/data/rdf/", 10000, 1000, uri, False)
+        result = find_rdf_file(uri, "/data/rdf/", 10000, 1000, False)
         assert result == "/data/rdf/br/060/10000/2000.json"
 
     def test_invalid_uri(self):
-        result = _find_file("/data/rdf/", 10000, 1000, "not-a-uri", False)
-        assert result is None
+        result = find_rdf_file("not-a-uri", "/data/rdf/", 10000, 1000, False)
+        assert result == "/data/rdf/not-a-ur/index.json"
 
 
 class TestScanBrBatch:

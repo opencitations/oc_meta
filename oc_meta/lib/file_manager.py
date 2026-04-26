@@ -23,7 +23,19 @@ from requests import ReadTimeout, get
 from requests.exceptions import ConnectionError
 from scandir_rs import Walk  # type: ignore[import-untyped]
 
+from oc_ocdm.support.support import find_paths, parse_uri
+
 from oc_meta.lib.cleaner import normalize_spaces
+
+
+def find_rdf_file(uri: str, base_dir: str, dir_split: int, items_per_file: int, zip_output: bool = False) -> str:
+    if base_dir and not base_dir.endswith(os.sep):
+        base_dir += os.sep
+    base_iri = parse_uri(uri).base_iri
+    _, file_path = find_paths(uri, base_dir, base_iri, "", dir_split, items_per_file)
+    if zip_output:
+        file_path = os.path.splitext(file_path)[0] + ".zip"
+    return file_path
 
 
 def collect_files(
