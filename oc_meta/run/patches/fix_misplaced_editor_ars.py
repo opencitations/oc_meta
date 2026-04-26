@@ -46,7 +46,6 @@ CONTAINER_EDITOR_TYPE_IRIS = frozenset(
     iri for iri, label in ResourceFinder._IRI_TO_TYPE.items()
     if label in CONTAINER_EDITOR_TYPES
 )
-_EXPRESSION_ONLY = frozenset({str(GraphEntity.iri_expression)})
 
 BATCH_SIZE = 100
 
@@ -98,24 +97,17 @@ def _iter_entities(files: list, zip_output: bool):
 
 def _scan_br_content_batch(
     files: list[str], zip_output: bool
-) -> tuple[dict[str, str], dict[str, set[str]], list[str]]:
-    frbr_part_of: dict[str, str] = {}
+) -> tuple[dict[str, list[str]], dict[str, set[str]]]:
+    frbr_part_of: dict[str, list[str]] = {}
     content_ars: dict[str, set[str]] = {}
-    warnings: list[str] = []
     for entity in _iter_entities(files, zip_output):
         eid = entity["@id"]
         entity_types = frozenset(entity.get("@type", []))
-        if (entity_types & CONTAINER_EDITOR_TYPE_IRIS or entity_types == _EXPRESSION_ONLY) and FRBR_PART_OF in entity:
-            parents = entity[FRBR_PART_OF]
-            if len(parents) > 1:
-                parent_ids = [p["@id"] for p in parents]
-                warnings.append(
-                    f"{eid} has {len(parents)} frbr:partOf values {parent_ids}; using first only"
-                )
-            frbr_part_of[eid] = parents[0]["@id"]
+        if entity_types & CONTAINER_EDITOR_TYPE_IRIS and FRBR_PART_OF in entity:
+            frbr_part_of[eid] = [p["@id"] for p in entity[FRBR_PART_OF]]
             if IS_DOC_CONTEXT_FOR in entity:
                 content_ars[eid] = {x["@id"] for x in entity[IS_DOC_CONTEXT_FOR]}
-    return frbr_part_of, content_ars, warnings
+    return frbr_part_of, content_ars
 
 
 def _scan_ar_editors_batch(
@@ -285,7 +277,7 @@ def find_misplaced_editor_ars(
     br_batches = [br_files[i:i + batch_size] for i in range(0, len(br_files), batch_size)]
     ar_batches = [ar_files[i:i + batch_size] for i in range(0, len(ar_files), batch_size)]
 
-    frbr_part_of: dict[str, str] = {}
+    frbr_part_of: dict[str, list[str]] = {}
     content_ars: dict[str, set[str]] = {}
 
     ctx = multiprocessing.get_context("forkserver")
@@ -295,13 +287,11 @@ def find_misplaced_editor_ars(
         executor = ProcessPoolExecutor(
             max_workers=workers, initializer=_worker_init, mp_context=ctx
         )
-        for partial_frbr, partial_content_ars, warnings in _run_parallel(
+        for partial_frbr, partial_content_ars in _run_parallel(
             executor, _scan_br_content_batch, br_batches, zip_output, progress, br_task
         ):
             frbr_part_of.update(partial_frbr)
             content_ars.update(partial_content_ars)
-            for w in warnings:
-                console.print(f"[yellow]Warning:[/yellow] {w}")
 
         console.print(
             f"BR scan complete: [cyan]{len(frbr_part_of)}[/cyan] content entities, "
@@ -331,7 +321,8 @@ def find_misplaced_editor_ars(
 
     container_to_contents: dict[str, list[str]] = defaultdict(list)
     for content in content_editor_ars:
-        container_to_contents[frbr_part_of[content]].append(content)
+        for container in frbr_part_of[content]:
+            container_to_contents[container].append(content)
 
     container_uris = set(container_to_contents.keys())
     console.print(
@@ -460,7 +451,7 @@ def find_misplaced_editor_ars(
 def fix_container(
     editor: MetaEditor,
     container_uri: str,
-    content_actions: list[tuple[str, list[str], list[str]]],
+    content_actions: list[tuple[str, list[tuple[str, str]], list[tuple[str, str]]]],
     existing_ars: set[str],
 ) -> None:
     supplier_prefix = get_prefix(container_uri)
@@ -475,8 +466,9 @@ def fix_container(
     all_uris = [container_uri]
     for content_uri, move_ars, skip_ars in content_actions:
         all_uris.append(content_uri)
-        all_uris.extend(move_ars)
-        all_uris.extend(skip_ars)
+        for ar_uri, ra_uri in move_ars + skip_ars:
+            all_uris.append(ar_uri)
+            all_uris.append(ra_uri)
     all_uris.extend(existing_ars)
 
     for uri in all_uris:
@@ -497,21 +489,43 @@ def fix_container(
         content_entity = g_set.get_entity(content_uri)
         assert content_entity is not None, f"content not found: {content_uri}"
 
-        for ar_uri in move_ars + skip_ars:
-            ar_entity = g_set.get_entity(ar_uri)
-            assert ar_entity is not None, f"AR not found: {ar_uri}"
-            content_entity.remove_contributor(ar_entity)  # type: ignore[attr-defined]
-            ar_entity.remove_next()  # type: ignore[attr-defined]
+        contributor_uris = {
+            o.value
+            for _, _, o in content_entity.g.triples((
+                content_entity.res,
+                GraphEntity.iri_is_document_context_for,
+                None,
+            ))
+        }
+        ars_on_content = {
+            ar_uri for ar_uri, _ in move_ars + skip_ars
+            if ar_uri in contributor_uris
+        }
 
-        for ar_uri in skip_ars:
-            ar_entity = g_set.get_entity(ar_uri)
-            if ar_uri not in existing_ars:
+        for ar_uri, ra_uri in move_ars + skip_ars:
+            if ar_uri in ars_on_content:
+                ar_entity = g_set.get_entity(ar_uri)
+                content_entity.remove_contributor(ar_entity)  # type: ignore[attr-defined]
+                ar_entity.remove_next()  # type: ignore[attr-defined]
+
+        for ar_uri, ra_uri in skip_ars:
+            if ar_uri in ars_on_content and ar_uri not in existing_ars:
+                ar_entity = g_set.get_entity(ar_uri)
                 ar_entity.mark_as_to_be_deleted()  # type: ignore[attr-defined]
 
-        for ar_uri in move_ars:
-            ar_entity = g_set.get_entity(ar_uri)
-            container_entity.has_contributor(ar_entity)  # type: ignore[attr-defined]
-            all_move_entities.append(ar_entity)
+        for ar_uri, ra_uri in move_ars:
+            if ar_uri in ars_on_content:
+                ar_entity = g_set.get_entity(ar_uri)
+                container_entity.has_contributor(ar_entity)  # type: ignore[attr-defined]
+                all_move_entities.append(ar_entity)
+            else:
+                ra_entity = g_set.get_entity(ra_uri)
+                assert ra_entity is not None, f"RA not found: {ra_uri}"
+                new_ar = g_set.add_ar(editor.resp_agent)
+                new_ar.create_editor()  # type: ignore[attr-defined]
+                new_ar.is_held_by(ra_entity)  # type: ignore[attr-defined]
+                container_entity.has_contributor(new_ar)  # type: ignore[attr-defined]
+                all_move_entities.append(new_ar)
 
     if existing_ars and all_move_entities:
         for ar_uri in sorted(existing_ars):
@@ -667,15 +681,15 @@ def main() -> None:  # pragma: no cover
                 progress.advance(task)
                 continue
             try:
-                per_content: dict[str, tuple[list[str], list[str]]] = defaultdict(
+                per_content: dict[str, tuple[list[tuple[str, str]], list[tuple[str, str]]]] = defaultdict(
                     lambda: ([], [])
                 )
                 for a in ar_actions:
                     move_list, skip_list = per_content[a["content"]]
                     if a["action"] == "move":
-                        move_list.append(a["ar"])
+                        move_list.append((a["ar"], a["ra"]))
                     else:
-                        skip_list.append(a["ar"])
+                        skip_list.append((a["ar"], a["ra"]))
                 content_actions = [
                     (content_uri, moves, skips)
                     for content_uri, (moves, skips) in sorted(per_content.items())
