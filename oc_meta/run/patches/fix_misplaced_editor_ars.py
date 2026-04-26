@@ -19,6 +19,7 @@ from zipfile import ZipFile
 import orjson
 import yaml
 from oc_ocdm.graph import GraphSet
+from oc_ocdm.graph.graph_entity import GraphEntity
 from rich.progress import Progress, TaskID
 from rich_argparse import RichHelpFormatter
 
@@ -46,6 +47,7 @@ CONTAINER_EDITOR_TYPE_IRIS = frozenset(
     iri for iri, label in ResourceFinder._IRI_TO_TYPE.items()
     if label in CONTAINER_EDITOR_TYPES
 )
+_EXPRESSION_ONLY = frozenset({str(GraphEntity.iri_expression)})
 
 _URI_RE = re.compile(r"^.+/([a-z]{2})/(0[1-9]+0)([1-9][0-9]*)$")
 
@@ -124,8 +126,8 @@ def _scan_br_content_batch(
     warnings: list[str] = []
     for entity in _iter_entities(files, zip_output):
         eid = entity["@id"]
-        entity_types = set(entity.get("@type", []))
-        if entity_types & CONTAINER_EDITOR_TYPE_IRIS and FRBR_PART_OF in entity:
+        entity_types = frozenset(entity.get("@type", []))
+        if (entity_types & CONTAINER_EDITOR_TYPE_IRIS or entity_types == _EXPRESSION_ONLY) and FRBR_PART_OF in entity:
             parents = entity[FRBR_PART_OF]
             if len(parents) > 1:
                 parent_ids = [p["@id"] for p in parents]
@@ -311,7 +313,6 @@ def find_misplaced_editor_ars(
     ctx = multiprocessing.get_context("forkserver")
 
     with create_progress() as progress:
-        # Phase 1: BR scan
         br_task = progress.add_task("Scanning BR files", total=len(br_files))
         executor = ProcessPoolExecutor(
             max_workers=workers, initializer=_worker_init, mp_context=ctx
@@ -329,7 +330,6 @@ def find_misplaced_editor_ars(
             f"[cyan]{sum(len(v) for v in content_ars.values())}[/cyan] content ARs"
         )
 
-        # Phase 2: AR scan (returns ar→ra mapping)
         ar_task = progress.add_task("Scanning AR files", total=len(ar_files))
         executor = ProcessPoolExecutor(
             max_workers=workers, initializer=_worker_init, mp_context=ctx
@@ -480,14 +480,12 @@ def find_misplaced_editor_ars(
     )
 
 
-def fix_content(
+def fix_container(
     editor: MetaEditor,
-    content_uri: str,
     container_uri: str,
-    move_ar_uris: list[str],
-    skip_ar_uris: list[str],
+    content_actions: list[tuple[str, list[str], list[str]]],
 ) -> None:
-    supplier_prefix = _get_supplier_prefix(content_uri)
+    supplier_prefix = _get_supplier_prefix(container_uri)
     g_set = GraphSet(
         editor.base_iri,
         supplier_prefix=supplier_prefix,
@@ -496,8 +494,13 @@ def fix_content(
     )
 
     file_paths: set[str] = set()
-    all_ar_uris = move_ar_uris + skip_ar_uris
-    for uri in [content_uri, container_uri] + all_ar_uris:
+    all_uris = [container_uri]
+    for content_uri, move_ars, skip_ars in content_actions:
+        all_uris.append(content_uri)
+        all_uris.extend(move_ars)
+        all_uris.extend(skip_ars)
+
+    for uri in all_uris:
         fp = editor.find_file(
             editor.base_dir, editor.dir_split, editor.n_file_item, uri, editor.zip_output_rdf
         )
@@ -509,26 +512,32 @@ def fix_content(
         if imported_graph is not None:
             editor.reader.import_entities_from_graph(g_set, imported_graph, editor.resp_agent)
 
-    content_entity = g_set.get_entity(content_uri)
     container_entity = g_set.get_entity(container_uri)
-    assert content_entity is not None, f"content not found: {content_uri}"
     assert container_entity is not None, f"container not found: {container_uri}"
 
-    for ar_uri in all_ar_uris:
-        ar_entity = g_set.get_entity(ar_uri)
-        assert ar_entity is not None, f"AR not found: {ar_uri}"
-        content_entity.remove_contributor(ar_entity)  # type: ignore[attr-defined]
-        ar_entity.remove_next()  # type: ignore[attr-defined]
+    all_move_entities = []
 
-    if move_ar_uris:
-        move_entities = []
-        for ar_uri in move_ar_uris:
+    for content_uri, move_ars, skip_ars in content_actions:
+        content_entity = g_set.get_entity(content_uri)
+        assert content_entity is not None, f"content not found: {content_uri}"
+
+        for ar_uri in move_ars + skip_ars:
+            ar_entity = g_set.get_entity(ar_uri)
+            assert ar_entity is not None, f"AR not found: {ar_uri}"
+            content_entity.remove_contributor(ar_entity)  # type: ignore[attr-defined]
+            ar_entity.remove_next()  # type: ignore[attr-defined]
+
+        for ar_uri in skip_ars:
+            ar_entity = g_set.get_entity(ar_uri)
+            ar_entity.mark_as_to_be_deleted()  # type: ignore[attr-defined]
+
+        for ar_uri in move_ars:
             ar_entity = g_set.get_entity(ar_uri)
             container_entity.has_contributor(ar_entity)  # type: ignore[attr-defined]
-            move_entities.append(ar_entity)
+            all_move_entities.append(ar_entity)
 
-        for i in range(len(move_entities) - 1):
-            move_entities[i].has_next(move_entities[i + 1])  # type: ignore[attr-defined]
+    for i in range(len(all_move_entities) - 1):
+        all_move_entities[i].has_next(all_move_entities[i + 1])  # type: ignore[attr-defined]
 
     editor.save(g_set, supplier_prefix)
 
@@ -594,9 +603,13 @@ def main() -> None:  # pragma: no cover
         args.workers, args.batch_size,
     )
 
-    groups: dict[tuple[str, str], list[dict]] = defaultdict(list)
+    content_groups: dict[tuple[str, str], list[dict]] = defaultdict(list)
     for case in cases:
-        groups[(case["content"], case["container"])].append(case)
+        content_groups[(case["content"], case["container"])].append(case)
+
+    container_groups: dict[str, list[dict]] = defaultdict(list)
+    for case in cases:
+        container_groups[case["container"]].append(case)
 
     total_ars = len(cases)
     move_count = sum(1 for c in cases if c["action"] == "move")
@@ -606,7 +619,8 @@ def main() -> None:  # pragma: no cover
 
     console.print(
         f"\n[bold]Found [green]{total_ars}[/green] misplaced editor ARs "
-        f"across [green]{len(groups)}[/green] content entities[/bold]\n"
+        f"across [green]{len(content_groups)}[/green] content entities "
+        f"in [green]{len(container_groups)}[/green] containers[/bold]\n"
         f"  [green]{move_count}[/green] to move, "
         f"[yellow]{skip_ra_count}[/yellow] skip (same RA), "
         f"[yellow]{skip_id_count}[/yellow] skip (same identifier), "
@@ -614,12 +628,11 @@ def main() -> None:  # pragma: no cover
     )
 
     if args.dry_run:
-        unique_containers = {c["container"] for c in cases}
         report = {
             "summary": {
                 "total_misplaced_ars": total_ars,
-                "affected_content_entities": len(groups),
-                "unique_containers": len(unique_containers),
+                "affected_content_entities": len(content_groups),
+                "unique_containers": len(container_groups),
                 "ars_to_move": move_count,
                 "ars_skipped_duplicate_ra": skip_ra_count,
                 "ars_skipped_duplicate_id": skip_id_count,
@@ -640,7 +653,7 @@ def main() -> None:  # pragma: no cover
                         for a in actions
                     ],
                 }
-                for (content, container), actions in sorted(groups.items())
+                for (content, container), actions in sorted(content_groups.items())
             ],
         }
         with open(args.report_file, "w") as f:
@@ -650,7 +663,7 @@ def main() -> None:  # pragma: no cover
 
     completed = _load_progress(args.progress_file)
     if completed:
-        console.print(f"Resuming: {len(completed)} content entities already processed")
+        console.print(f"Resuming: {len(completed)} containers already processed")
 
     signal.signal(signal.SIGINT, _handle_signal)
     signal.signal(signal.SIGTERM, _handle_signal)
@@ -659,23 +672,34 @@ def main() -> None:  # pragma: no cover
     succeeded = failed = skipped = 0
 
     with create_progress() as progress:
-        task = progress.add_task("Fixing misplaced editor ARs", total=len(groups))
-        for (content, container), ar_actions in groups.items():
+        task = progress.add_task("Fixing misplaced editor ARs", total=len(container_groups))
+        for container, ar_actions in container_groups.items():
             if _stop_requested:
                 break
-            if content in completed:
+            if container in completed:
                 skipped += 1
                 progress.advance(task)
                 continue
             try:
-                move_ars = [a["ar"] for a in ar_actions if a["action"] == "move"]
-                skip_ars = [a["ar"] for a in ar_actions if a["action"].startswith("skip")]
-                fix_content(editor, content, container, move_ars, skip_ars)
-                completed.add(content)
+                per_content: dict[str, tuple[list[str], list[str]]] = defaultdict(
+                    lambda: ([], [])
+                )
+                for a in ar_actions:
+                    move_list, skip_list = per_content[a["content"]]
+                    if a["action"] == "move":
+                        move_list.append(a["ar"])
+                    else:
+                        skip_list.append(a["ar"])
+                content_actions = [
+                    (content_uri, moves, skips)
+                    for content_uri, (moves, skips) in sorted(per_content.items())
+                ]
+                fix_container(editor, container, content_actions)
+                completed.add(container)
                 _save_progress(args.progress_file, completed)
                 succeeded += 1
             except Exception as e:
-                console.print(f"  [red]Error[/red] {content.split('/')[-1]}: {e}")
+                console.print(f"  [red]Error[/red] {container.split('/')[-1]}: {e}")
                 failed += 1
             progress.advance(task)
 
