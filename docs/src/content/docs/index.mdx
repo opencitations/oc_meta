@@ -19,50 +19,6 @@ hero:
       icon: external
 ---
 
-import { Card, CardGrid } from '@astrojs/starlight/components';
-
-## Core pipeline
-
-<CardGrid stagger>
-	<Card title="Data curation" icon="pencil">
-		Validates, normalizes, and cleans bibliographic metadata from CSV files. Handles identifier validation, duplicate detection, and data normalization.
-	</Card>
-	<Card title="RDF generation" icon="document">
-		Converts curated data into RDF following the [OpenCitations Data Model](https://figshare.com/articles/Metadata_for_the_OpenCitations_Corpus/3443876). Creates bibliographic resources, responsible agents, and identifiers with provenance tracking.
-	</Card>
-</CardGrid>
-
-## Entity management
-
-<CardGrid stagger>
-	<Card title="Duplicate detection" icon="magnifier">
-		Identifies duplicate entities across the dataset by analyzing identifiers in RDF files. Groups related entities for batch processing.
-	</Card>
-	<Card title="Entity merging" icon="puzzle">
-		Merges duplicate entities using Union-Find algorithm. Handles bibliographic resources, responsible agents, and identifiers with parallel processing.
-	</Card>
-	<Card title="Entity editing" icon="setting">
-		Modifies existing RDF entities: add, update, or delete triples. Generates provenance snapshots for each modification.
-	</Card>
-</CardGrid>
-
-## Utilities
-
-<CardGrid stagger>
-	<Card title="CSV generation" icon="list-format">
-		Generates CSV dumps from RDF data. Extracts bibliographic metadata back to tabular format for analysis or migration.
-	</Card>
-	<Card title="Info dir management" icon="information">
-		Manages Redis counters for entity numbering. Rebuilds counters from RDF files after system recovery or data import.
-	</Card>
-	<Card title="Migration tools" icon="rocket">
-		Imports RDF from external sources, extracts subsets from triplestores, and converts provenance formats.
-	</Card>
-	<Card title="Benchmarks" icon="approve-check">
-		Measures processing performance with synthetic data. Supports scalability analysis across dataset sizes.
-	</Card>
-</CardGrid>
-
 ## Quick start
 
 Install:
@@ -96,3 +52,15 @@ Meta expects CSV files with these columns:
 | `editor` | Same format as `author` |
 
 See the [CSV format reference](/oc_meta/reference/csv_format/) for the complete specification.
+
+## Documentation
+
+- [Configuration](/oc_meta/guides/configuration/) — YAML config file setup
+- [Preprocessing](/oc_meta/guides/preprocessing/) — Filter and prepare input data
+- [Processing](/oc_meta/guides/processing/) — Run the main pipeline
+- [Verification](/oc_meta/guides/verification/) — Validate output
+- [Editing entities](/oc_meta/guides/meta_editor/) — Modify existing RDF
+- [Merge](/oc_meta/merge/overview/) — Detect and merge duplicates
+- [Info dir](/oc_meta/infodir/overview/) — Filesystem counter management
+- [Benchmark](/oc_meta/benchmark/running/) — Performance measurement
+- [Testing](/oc_meta/reference/testing/) — Test infrastructure and fixtures

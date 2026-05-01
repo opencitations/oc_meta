@@ -8,13 +8,9 @@ import os
 from shutil import rmtree
 from test.test_utils import (
     PROV_SERVER,
-    REDIS_CACHE_DB,
-    REDIS_DB,
-    REDIS_HOST,
-    REDIS_PORT,
     SERVER,
+    SUPPLIER_PREFIX,
     get_counter_handler,
-    reset_redis_counters,
     reset_server,
 )
 
@@ -24,7 +20,7 @@ import yaml
 from oc_meta.core.editor import EntityCache, MetaEditor
 from oc_meta.run.meta_process import run_meta_process
 from oc_ocdm import Storer
-from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
+from oc_ocdm.counter_handler.filesystem_counter_handler import FilesystemCounterHandler
 from oc_ocdm.graph import GraphSet
 from oc_ocdm.graph.entities.identifier import Identifier
 from oc_ocdm.prov import ProvSet
@@ -38,7 +34,7 @@ META_CONFIG = os.path.join(BASE, "meta_config.yaml")
 
 
 class TestEditor:
-    counter_handler: RedisCounterHandler
+    counter_handler: FilesystemCounterHandler
     original_rdf_files_only: bool | None
     temp_dir: str
     cache_file: str
@@ -50,15 +46,14 @@ class TestEditor:
     @pytest.fixture(scope="class", autouse=True)
     def setup_class(self, request: pytest.FixtureRequest) -> None:
         assert request.cls is not None
-        request.cls.counter_handler = get_counter_handler()
         request.cls.original_rdf_files_only = None
 
     @pytest.fixture(autouse=True)
     def setup_method(self, request):
         reset_server()
-        reset_redis_counters()
         if os.path.exists(OUTPUT):
             rmtree(OUTPUT)
+        self.counter_handler = get_counter_handler(info_dir=os.path.join(OUTPUT, "info_dir"))
 
         # Create temporary directory for cache files
         self.temp_dir = os.path.join("test", "temp_editor_test")
@@ -79,20 +74,17 @@ class TestEditor:
 
         with open(META_CONFIG, encoding="utf-8") as file:
             settings = yaml.full_load(file)
-        # Update settings to use Redis and cache files
         settings.update(
             {
-                "redis_host": REDIS_HOST,
-                "redis_port": REDIS_PORT,
-                "redis_db": REDIS_DB,
-                "redis_cache_db": REDIS_CACHE_DB,
                 "ts_upload_cache": self.cache_file,
                 "ts_failed_queries": self.failed_file,
                 "ts_stop_file": self.stop_file,
                 "triplestore_url": SERVER,
                 "provenance_triplestore_url": PROV_SERVER,
+                "base_output_dir": OUTPUT,
+                "supplier_prefix": "060",
                 "data_update_dir": self.data_update_dir,
-                "prov_update_dir": self.prov_update_dir
+                "prov_update_dir": self.prov_update_dir,
             }
         )
         run_meta_process(settings=settings, meta_config_path=META_CONFIG)
@@ -101,7 +93,6 @@ class TestEditor:
             rmtree(OUTPUT)
         if os.path.exists(self.temp_dir):
             rmtree(self.temp_dir)
-        reset_redis_counters()
 
         if self.original_rdf_files_only is not None:
             with open(META_CONFIG, encoding="utf-8") as file:
@@ -411,46 +402,45 @@ class TestEditor:
         )
         editor.save(g_set)
 
-        # Check Redis counters
         assert (
             self.counter_handler.read_counter(
-                "ra", prov_short_name="se", identifier=1, supplier_prefix="060"
+                "ra", prov_short_name="se", identifier=1, supplier_prefix=SUPPLIER_PREFIX
             )
             == 1
         )
         assert (
             self.counter_handler.read_counter(
-                "ra", prov_short_name="se", identifier=2, supplier_prefix="060"
+                "ra", prov_short_name="se", identifier=2, supplier_prefix=SUPPLIER_PREFIX
             )
             == 1
         )
         assert (
             self.counter_handler.read_counter(
-                "ra", prov_short_name="se", identifier=3, supplier_prefix="060"
+                "ra", prov_short_name="se", identifier=3, supplier_prefix=SUPPLIER_PREFIX
             )
             == 1
         )
         assert (
             self.counter_handler.read_counter(
-                "ra", prov_short_name="se", identifier=4, supplier_prefix="060"
+                "ra", prov_short_name="se", identifier=4, supplier_prefix=SUPPLIER_PREFIX
             )
             == 1
         )
         assert (
             self.counter_handler.read_counter(
-                "ra", prov_short_name="se", identifier=5, supplier_prefix="060"
+                "ra", prov_short_name="se", identifier=5, supplier_prefix=SUPPLIER_PREFIX
             )
             == 1
         )
         assert (
             self.counter_handler.read_counter(
-                "ra", prov_short_name="se", identifier=6, supplier_prefix="060"
+                "ra", prov_short_name="se", identifier=6, supplier_prefix=SUPPLIER_PREFIX
             )
             == 1
         )
         assert (
             self.counter_handler.read_counter(
-                "ra", prov_short_name="se", identifier=7, supplier_prefix="060"
+                "ra", prov_short_name="se", identifier=7, supplier_prefix=SUPPLIER_PREFIX
             )
             == 2
         )

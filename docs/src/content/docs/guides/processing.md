@@ -20,7 +20,7 @@ uv run python -m oc_meta.run.meta_process -c meta_config.yaml
 ### 1. Preparation
 
 - Creates output directories (`info_dir`, `output_csv_dir`, `output_rdf_dir`)
-- Initializes Redis connection for OMID counter handling
+- Initializes filesystem-based counter handling via `FilesystemCounterHandler` (counters stored in `info_dir`)
 - Generates `time_agnostic_library_config.json` for provenance queries (if it doesn't exist)
 - Loads list of already processed files from cache to skip them
 

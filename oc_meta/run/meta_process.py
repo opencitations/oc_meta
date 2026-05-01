@@ -21,7 +21,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import orjson
 import yaml
 from oc_ocdm import Storer
-from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
+from oc_ocdm.counter_handler.filesystem_counter_handler import FilesystemCounterHandler
 from oc_ocdm.prov import ProvSet
 from oc_ocdm.support.reporter import Reporter
 from piccione.upload.on_triplestore import upload_sparql_updates
@@ -117,15 +117,14 @@ class MetaProcess:
                 graphdb_connector_name=settings["graphdb_connector_name"],
             )
 
-        # Redis settings
-        self.redis_host = settings.get("redis_host", "localhost")
-        self.redis_port = settings.get("redis_port", 6379)
-        self.redis_db = settings.get("redis_db", 5)
-        self.redis_cache_db = settings.get("redis_cache_db", 2)
-
-        self.counter_handler = RedisCounterHandler(
-            host=self.redis_host, port=self.redis_port, db=self.redis_db
+        info_dir = os.path.join(self.base_output_dir, "info_dir", self.supplier_prefix) + os.sep
+        self.counter_handler = FilesystemCounterHandler(
+            info_dir=info_dir, supplier_prefix=self.supplier_prefix
         )
+
+        self.redis_host = settings.get("redis_host")
+        self.redis_port = settings.get("redis_port")
+        self.redis_cache_db = settings.get("redis_cache_db")
 
         # Triplestore upload settings
         self.ts_failed_queries = settings.get("ts_failed_queries", "failed_queries.txt")
@@ -349,7 +348,7 @@ class MetaProcess:
         """Store RDF files and upload queries to triplestore with parallel execution."""
         with timer.timer("storage"):
             # Use forkserver to avoid deadlocks when forking from a multi-threaded process.
-            # Libraries like Redis and rdflib create background threads, and fork() would
+            # Libraries like rdflib create background threads, and fork() would
             # copy locked mutexes into the child process, causing hangs.
             ctx = multiprocessing.get_context('forkserver')
 

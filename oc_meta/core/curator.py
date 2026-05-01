@@ -33,7 +33,7 @@ from oc_meta.lib.master_of_regex import (
     RE_SEMICOLON_IN_PEOPLE_FIELD,
     split_name_and_ids,
 )
-from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
+from oc_ocdm.counter_handler.counter_handler import CounterHandler
 
 if TYPE_CHECKING:
     from rich.progress import Progress
@@ -103,7 +103,7 @@ class Curator:
         data: List[dict],
         ts: str,
         prov_config: str,
-        counter_handler: RedisCounterHandler,
+        counter_handler: CounterHandler,
         base_iri: str = "https://w3id.org/oc/meta",
         prefix: str = "060",
         settings: dict | None = None,

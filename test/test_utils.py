@@ -9,9 +9,10 @@ import os
 import time
 from concurrent.futures import ThreadPoolExecutor
 
-import redis
 import re
-from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
+import tempfile
+
+from oc_ocdm.counter_handler.filesystem_counter_handler import FilesystemCounterHandler
 from rdflib import Dataset, Graph, URIRef
 from rdflib.term import Node
 from sparqlite import SPARQLClient
@@ -23,10 +24,7 @@ PROV_SERVER = f"http://127.0.0.1:8806?access-token={QLEVER_ACCESS_TOKEN}"
 QLEVER_CONTAINER = "oc-meta-test-qlever"
 QLEVER_PROV_CONTAINER = "oc-meta-test-qlever-prov"
 
-REDIS_HOST = "localhost"
-REDIS_PORT = 6381
-REDIS_DB = 5
-REDIS_CACHE_DB = 2
+SUPPLIER_PREFIX = "060"
 
 BASE_IRI = "https://w3id.org/oc/meta/"
 
@@ -73,17 +71,11 @@ def reset_triplestore(server: str = SERVER) -> None:
     _clear_all_meta_graphs(server)
 
 
-def reset_redis_counters() -> None:
-    redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
-    redis_cache_client = redis.Redis(
-        host=REDIS_HOST, port=REDIS_PORT, db=REDIS_CACHE_DB
-    )
-    redis_client.flushdb()
-    redis_cache_client.flushdb()
-
-
-def get_counter_handler() -> RedisCounterHandler:
-    return RedisCounterHandler(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
+def get_counter_handler(info_dir: str | None = None, supplier_prefix: str = SUPPLIER_PREFIX) -> FilesystemCounterHandler:
+    if info_dir is None:
+        info_dir = tempfile.mkdtemp()
+    info_dir_with_prefix = os.path.join(info_dir, supplier_prefix) + os.sep
+    return FilesystemCounterHandler(info_dir=info_dir_with_prefix, supplier_prefix=supplier_prefix)
 
 
 def execute_sparql_query(
@@ -129,22 +121,6 @@ def wait_for_triplestore(server: str, max_wait: int = 60) -> bool:
                 server, max_retries=1, backoff_factor=1, timeout=60
             ) as client:
                 client.query("SELECT * WHERE { ?s ?p ?o } LIMIT 1")
-            return True
-        except Exception:
-            time.sleep(delay)
-            delay = min(delay * 2, 1.0)
-    return False
-
-
-def wait_for_redis(
-    host: str = REDIS_HOST, port: int = REDIS_PORT, max_wait: int = 10
-) -> bool:
-    start_time = time.time()
-    delay = 0.1
-    while time.time() - start_time < max_wait:
-        try:
-            client = redis.Redis(host=host, port=port)
-            client.ping()
             return True
         except Exception:
             time.sleep(delay)

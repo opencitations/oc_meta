@@ -23,12 +23,6 @@ base_iri: "https://w3id.org/oc/meta/"
 resp_agent: "https://w3id.org/oc/meta/prov/pa/1"
 source: "https://api.crossref.org/"
 
-# Redis
-redis_host: "localhost"
-redis_port: 6379
-redis_db: 0
-redis_cache_db: 1
-
 # File organization
 supplier_prefix: "060"
 dir_split_number: 10000
@@ -68,20 +62,19 @@ normalize_titles: true
 | `resp_agent` | string | URI of the responsible agent for provenance |
 | `source` | string | Primary source URI for provenance tracking |
 
-### Redis
+### Counters
+
+OMID counters are stored on the filesystem in an `info_dir` directory (derived from `base_output_dir/info_dir/<supplier_prefix>/`). Each entity type (br, ra, id, ar, re) has its own counter file that tracks the last assigned number, producing URIs like `https://w3id.org/oc/meta/br/060/1`, `br/060/2`, etc. Counter files include `info_file_br.txt`, `info_file_ar.txt`, `prov_file_br.txt`, and similar. Managed by [`oc_ocdm.FilesystemCounterHandler`](https://github.com/opencitations/oc_ocdm/blob/master/oc_ocdm/counter_handler/filesystem_counter_handler.py).
+
+### Redis cache (optional)
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `redis_host` | string | localhost | Redis server hostname |
 | `redis_port` | int | 6379 | Redis server port |
-| `redis_db` | int | 0 | Database for OMID counters |
-| `redis_cache_db` | int | 1 | Database for identifier cache |
+| `redis_cache_db` | int | 1 | Database for upload cache |
 
-Meta uses Redis for two purposes:
-
-- **OMID counters** (`redis_db`): Stores sequential counters for generating unique entity URIs. Each entity type (br, ra, id, ar, re) has its own counter that increments to produce URIs like `https://w3id.org/oc/meta/br/060/1`, `br/060/2`, etc. Managed by [`oc_ocdm.RedisCounterHandler`](https://github.com/opencitations/oc_ocdm/blob/master/oc_ocdm/counter_handler/redis_counter_handler.py).
-
-- **Upload cache** (`redis_cache_db`): Tracks which SPARQL files have already been uploaded to the triplestore. When uploading is interrupted and resumed, Meta skips files already in the cache. Managed by [`piccione.CacheManager`](https://github.com/opencitations/piccione/blob/main/src/piccione/upload/cache_manager.py).
+Redis is only needed when `rdf_files_only: false` and SPARQL upload caching is desired. The **upload cache** (`redis_cache_db`) tracks which SPARQL files have already been uploaded to the triplestore. When uploading is interrupted and resumed, Meta skips files already in the cache. Managed by [`piccione.CacheManager`](https://github.com/opencitations/piccione/blob/main/src/piccione/upload/cache_manager.py).
 
 ### File organization
 

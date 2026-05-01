@@ -34,7 +34,7 @@ PRO_IS_DOC_CONTEXT_FOR = "http://purl.org/spar/pro/isDocumentContextFor"
 FRBR_PART_OF = "http://purl.org/vocab/frbr/core#partOf"
 
 
-def _make_config(tmp_path, redis_service):
+def _make_config(tmp_path):
     config = {
         "base_iri": BASE_IRI,
         "base_output_dir": str(tmp_path),
@@ -44,9 +44,7 @@ def _make_config(tmp_path, redis_service):
         "items_per_file": ITEMS_PER_FILE,
         "zip_output_rdf": False,
         "rdf_files_only": True,
-        "redis_host": redis_service["host"],
-        "redis_port": redis_service["port"],
-        "redis_db": 0,
+        "supplier_prefix": SUPPLIER_PREFIX,
     }
     config_path = str(tmp_path / "meta_config.yaml")
     with open(config_path, "w") as f:
@@ -55,7 +53,7 @@ def _make_config(tmp_path, redis_service):
 
 
 @pytest.fixture
-def rdf_env(tmp_path, redis_service):
+def rdf_env(tmp_path):
     rdf_dir = str(tmp_path / "rdf") + os.sep
 
     g_set = GraphSet(BASE_IRI, supplier_prefix=SUPPLIER_PREFIX, wanted_label=False)
@@ -79,7 +77,7 @@ def rdf_env(tmp_path, redis_service):
     g_set.commit_changes()
 
     return {
-        "config_path": _make_config(tmp_path, redis_service),
+        "config_path": _make_config(tmp_path),
         "rdf_dir": rdf_dir,
         "tmp_path": str(tmp_path),
     }
@@ -299,7 +297,7 @@ class TestFixContainer:
         assert AR_URI in [x["@id"] for x in entities[BOOK_URI][PRO_IS_DOC_CONTEXT_FOR]]
         assert entities[existing_ar_uri][has_next_pred][0]["@id"] == AR_URI
 
-    def test_multiple_part_of_gets_editor_on_both_containers(self, tmp_path, redis_service):
+    def test_multiple_part_of_gets_editor_on_both_containers(self, tmp_path):
         rdf_dir = str(tmp_path / "rdf") + os.sep
         book2_uri = "https://w3id.org/oc/meta/br/0604"
 
@@ -322,7 +320,7 @@ class TestFixContainer:
         storer.store_all(rdf_dir, BASE_IRI)
         g_set.commit_changes()
 
-        config_path = _make_config(tmp_path, redis_service)
+        config_path = _make_config(tmp_path)
         editor = MetaEditor(config_path, RESP_AGENT)
 
         fix_container(editor, BOOK_URI, [(CHAPTER_URI, [(AR_URI, RA_URI)], [])], set())

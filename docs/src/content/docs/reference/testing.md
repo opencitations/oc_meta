@@ -9,7 +9,7 @@ description: Running tests and CI/CD setup
 
 ## Running tests locally
 
-Tests require Docker. Redis and QLever containers are managed automatically by pytest fixtures in `test/conftest.py`.
+Tests require Docker. QLever containers are managed automatically by pytest fixtures in `test/conftest.py`. Counter handling uses temporary directories with `FilesystemCounterHandler` (no Redis needed for counters).
 
 ### 1. Install dependencies
 
@@ -27,9 +27,9 @@ Docker containers start automatically at the beginning of the test session and s
 
 Test infrastructure:
 
-- Redis on port 6381 (databases 0 and 5)
 - QLever data triplestore on port 8805
 - QLever provenance triplestore on port 8806
+- Temporary directories for filesystem-based counters
 
 View coverage report:
 
@@ -119,18 +119,16 @@ Use pytest fixtures for common setup:
 
 ```python
 @pytest.fixture
-def redis_handler():
-    return RedisCounterHandler(
-        host="localhost",
-        port=6381,
-        db=5,
+def counter_handler(tmp_path):
+    return FilesystemCounterHandler(
+        info_dir=str(tmp_path / "info_dir"),
         supplier_prefix="060"
     )
 
-def test_counter_increment(redis_handler):
-    initial = redis_handler.read_counter("br")
-    redis_handler.increment_counter("br")
-    assert redis_handler.read_counter("br") == initial + 1
+def test_counter_increment(counter_handler):
+    initial = counter_handler.read_counter("br")
+    counter_handler.increment_counter("br")
+    assert counter_handler.read_counter("br") == initial + 1
 ```
 
 ### Triplestore tests
@@ -150,12 +148,12 @@ def test_sparql_query():
 Tests should clean up after themselves:
 
 ```python
-def test_with_cleanup(redis_handler):
+def test_with_cleanup(counter_handler):
     try:
         # Test code...
     finally:
-        # Cleanup
-        redis_handler.delete_counter("br")
+        # Cleanup handled automatically via tmp_path fixture
+        pass
 ```
 
 Or use fixtures with cleanup:

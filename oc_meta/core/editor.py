@@ -11,7 +11,7 @@ import os
 import validators
 import yaml
 from oc_ocdm import Storer
-from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
+from oc_ocdm.counter_handler.filesystem_counter_handler import FilesystemCounterHandler
 from oc_ocdm.graph import GraphSet
 from oc_ocdm.graph.graph_entity import GraphEntity
 from triplelite import RDFTerm, SubgraphView
@@ -66,12 +66,12 @@ class MetaEditor:
         self.save_queries = save_queries
         self.update_queries = []
 
-        # Redis configuration
-        self.redis_host = settings.get("redis_host", "localhost")
-        self.redis_port = settings.get("redis_port", 6379)
-        self.redis_db = settings.get("redis_db", 5)
-        self.counter_handler = RedisCounterHandler(
-            host=self.redis_host, port=self.redis_port, db=self.redis_db
+        supplier_prefix = settings.get("supplier_prefix", "060")
+        if not supplier_prefix.endswith("0"):
+            supplier_prefix = f"{supplier_prefix}0"
+        info_dir = os.path.join(output_dir, "info_dir", supplier_prefix) + os.sep
+        self.counter_handler = FilesystemCounterHandler(
+            info_dir=info_dir, supplier_prefix=supplier_prefix
         )
 
         self.entity_cache = EntityCache()

@@ -12,20 +12,15 @@ import orjson
 import yaml
 from oc_meta.run.merge.entities import EntityMerger
 from oc_meta.run.meta_editor import MetaEditor
-from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
+from oc_ocdm.counter_handler.filesystem_counter_handler import FilesystemCounterHandler
 from oc_ocdm.graph import GraphSet
 from oc_ocdm.prov.prov_set import ProvSet
 from oc_ocdm.storer import Storer
 from rdflib import URIRef
 from test.test_utils import (
     PROV_SERVER,
-    REDIS_CACHE_DB,
-    REDIS_DB,
-    REDIS_HOST,
-    REDIS_PORT,
     SERVER,
     get_counter_handler,
-    reset_redis_counters,
     reset_server as reset_triplestore,
 )
 
@@ -35,11 +30,7 @@ META_CONFIG = os.path.join("test", "merger", "meta_config.yaml")
 
 
 class TestEntityMerger:
-    counter_handler: RedisCounterHandler
-
-    @pytest.fixture(scope="class", autouse=True)
-    def setup_class(self, request):
-        request.cls.counter_handler = get_counter_handler()
+    counter_handler: FilesystemCounterHandler
 
     @pytest.fixture(autouse=True)
     def setup_method(self, request):
@@ -48,7 +39,10 @@ class TestEntityMerger:
             rmtree(OUTPUT)
         os.makedirs(os.path.join(BASE, "csv"), exist_ok=True)
         reset_triplestore()
-        reset_redis_counters()
+
+        self.counter_handler = get_counter_handler(
+            info_dir=os.path.join(OUTPUT, "info_dir")
+        )
 
         # Create temporary directory for cache files
         self.temp_dir = os.path.join("test", "temp_entity_merger_test")
@@ -67,15 +61,10 @@ class TestEntityMerger:
         os.makedirs(self.data_update_dir, exist_ok=True)
         os.makedirs(self.prov_update_dir, exist_ok=True)
 
-        # Update config with Redis and cache settings
         with open(META_CONFIG, encoding="utf-8") as file:
             settings = yaml.full_load(file)
         settings.update(
             {
-                "redis_host": REDIS_HOST,
-                "redis_port": REDIS_PORT,
-                "redis_db": REDIS_DB,
-                "redis_cache_db": REDIS_CACHE_DB,
                 "ts_upload_cache": self.cache_file,
                 "ts_failed_queries": self.failed_file,
                 "ts_stop_file": self.stop_file,
@@ -111,7 +100,6 @@ class TestEntityMerger:
         if os.path.exists(self.temp_dir):
             rmtree(self.temp_dir)
         reset_triplestore()
-        reset_redis_counters()
 
     def setup_test_data(self):
         """Create initial test data in triplestore"""
@@ -1448,20 +1436,13 @@ class TestEntityMerger:
             )
 
             expected_related = {
-                URIRef(
-                    f"https://w3id.org/oc/meta/id/060{valid_numbers[0]}"
-                ),  # ID della merged
-                URIRef(
-                    f"https://w3id.org/oc/meta/ar/060{valid_numbers[0]}"
-                ),  # AR della merged
-                URIRef(
-                    f"https://w3id.org/oc/meta/id/060{valid_numbers[1]}"
-                ),  # AR della surviving
+                f"https://w3id.org/oc/meta/id/060{valid_numbers[0]}",
+                f"https://w3id.org/oc/meta/ar/060{valid_numbers[0]}",
+                f"https://w3id.org/oc/meta/id/060{valid_numbers[1]}",
             }
 
             assert related == expected_related
 
-            # Test con multiple entità
             merged_entities = [
                 f"https://w3id.org/oc/meta/ra/060{i}" for i in valid_numbers[:3]
             ]
@@ -1477,11 +1458,11 @@ class TestEntityMerger:
             )
 
             expected_related = set()
-            for i in valid_numbers[:3]:  # Entità merged
-                expected_related.add(URIRef(f"https://w3id.org/oc/meta/id/060{i}"))
-                expected_related.add(URIRef(f"https://w3id.org/oc/meta/ar/060{i}"))
+            for i in valid_numbers[:3]:
+                expected_related.add(f"https://w3id.org/oc/meta/id/060{i}")
+                expected_related.add(f"https://w3id.org/oc/meta/ar/060{i}")
             expected_related.add(
-                URIRef(f"https://w3id.org/oc/meta/id/060{valid_numbers[3]}")
+                f"https://w3id.org/oc/meta/id/060{valid_numbers[3]}"
             )
 
             assert related == expected_related

@@ -18,9 +18,7 @@ import yaml
 from sparqlite import SPARQLClient as OriginalSPARQLClient
 from test.test_utils import (
     QLEVER_CONTAINER,
-    REDIS_CACHE_DB,
     SERVER,
-    reset_redis_counters,
     reset_server,
     wait_for_triplestore,
 )
@@ -57,12 +55,9 @@ class TestDatabaseUnavailability:
         self.temp_dir = tempfile.mkdtemp()
         print("[DEBUG] setUp: resetting server...")
         reset_server()
-        print("[DEBUG] setUp: resetting redis...")
-        reset_redis_counters()
         print("[DEBUG] setUp: done")
         yield
         print("[DEBUG] tearDown: start")
-        reset_redis_counters()
         if hasattr(self, "temp_dir") and os.path.exists(self.temp_dir):
             shutil.rmtree(self.temp_dir)
         subprocess.run(["docker", "start", QLEVER_CONTAINER], capture_output=True, check=False)
@@ -80,7 +75,6 @@ class TestDatabaseUnavailability:
             settings = yaml.full_load(f)
 
         settings.update({
-            "redis_cache_db": REDIS_CACHE_DB,
             "ts_upload_cache": os.path.join(self.temp_dir, "cache.json"),
             "ts_failed_queries": os.path.join(self.temp_dir, "failed.txt"),
             "ts_stop_file": os.path.join(self.temp_dir, ".stop"),

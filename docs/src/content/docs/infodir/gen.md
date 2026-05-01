@@ -4,40 +4,37 @@
 # SPDX-License-Identifier: ISC
 
 title: Generate info dir
-description: Build Redis counters from RDF files
+description: Build filesystem counters from RDF files
 ---
 
-Scans the RDF directory structure and populates Redis with the correct counter values based on existing entities.
+Scans the RDF directory structure and generates filesystem counter files with the correct values based on existing entities.
 
 ## Usage
 
 ```bash
-uv run python -m oc_meta.run.infodir.gen <directory> [options]
+uv run python -m oc_meta.run.infodir.gen <rdf_directory> <info_dir>
 ```
 
 ## Parameters
 
-| Parameter | Required | Default | Description |
-|-----------|----------|---------|-------------|
-| `directory` | Yes | - | Path to the RDF directory (containing `br/`, `ra/`, etc.) |
-| `--redis-host` | No | localhost | Redis server host |
-| `--redis-port` | No | 6379 | Redis server port |
-| `--redis-db` | No | 6 | Redis database number |
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `rdf_directory` | Yes | Path to the RDF directory (containing `br/`, `ra/`, etc.) |
+| `info_dir` | Yes | Base path for the info_dir where counter files will be written |
+
+The supplier prefix "060" is hardcoded.
 
 ## Process
 
 1. For each entity type (`br`, `ra`, `ar`, `re`, `id`), the script finds the highest numbered entity in each supplier prefix folder
-2. Sets the main counter for each entity type and prefix
+2. Writes the main counter for each entity type and prefix to the corresponding counter file
 3. Scans all provenance files in parallel to find the highest snapshot number for each entity
-4. Updates the provenance counters in batch
+4. Updates the provenance counter files in batch
 
 ## Example
 
 ```bash
-uv run python -m oc_meta.run.infodir.gen /srv/oc_meta/rdf \
-    --redis-host localhost \
-    --redis-port 6379 \
-    --redis-db 5
+uv run python -m oc_meta.run.infodir.gen /srv/oc_meta/rdf /srv/oc_meta/info_dir
 ```
 
-This reads all RDF files under `/srv/oc_meta/rdf` and populates Redis database 5 with the counter values.
+This reads all RDF files under `/srv/oc_meta/rdf` and writes the counter files to `/srv/oc_meta/info_dir`.

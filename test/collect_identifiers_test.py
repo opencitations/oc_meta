@@ -17,7 +17,7 @@ import os
 import pytest
 
 from oc_meta.core.curator import Curator
-from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
+from test.test_utils import get_counter_handler
 
 
 class TestCollectIdentifiers:
@@ -40,11 +40,7 @@ class TestCollectIdentifiers:
         ts_url = "http://localhost:9999/sparql"
         prov_config = "test_prov_config.yaml"
 
-        counter_handler = RedisCounterHandler(
-            host="localhost",
-            port=6381,
-            db=0
-        )
+        counter_handler = get_counter_handler()
 
         request.cls.curator = Curator(
             data=test_data,

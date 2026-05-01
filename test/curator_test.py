@@ -17,7 +17,6 @@ from test.test_utils import (
     get_counter_handler,
     get_path,
     normalize_row_ids,
-    reset_redis_counters,
     reset_triplestore,
 )
 
@@ -56,8 +55,6 @@ def store_curated_data(curator_obj: Curator, server: str) -> None:
     res_storer.upload_all(server)
 
 def prepare_to_test(data, name):
-    reset_redis_counters()
-
     reset_server(SERVER)
     if float(name) > 12:
         add_data_ts(SERVER, os.path.abspath(os.path.join('test', 'testcases', 'ts', 'testcase_ts-13.ttl')).replace('\\', '/'))
@@ -99,7 +96,6 @@ def prepare_to_test(data, name):
 
 def prepareCurator(data:list, server:str=SERVER) -> Curator:
     settings = {'normalize_titles': True}
-    reset_redis_counters()
     counter_handler = get_counter_handler()
     curator = Curator(data, server, prov_config=PROV_CONFIG, counter_handler=counter_handler, settings=settings)
     return curator
@@ -109,13 +105,6 @@ def prepareCurator(data:list, server:str=SERVER) -> Curator:
 def setup_curator_class():
     add_data_ts()
     yield
-
-
-@pytest.fixture(autouse=True)
-def reset_redis():
-    reset_redis_counters()
-    yield
-    reset_redis_counters()
 
 
 class TestCurator:

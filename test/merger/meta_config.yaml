@@ -13,10 +13,6 @@ prov_update_dir: test/temp_entity_merger_test/to_be_uploaded_prov
 provenance_endpoints:
 - http://127.0.0.1:8806?access-token=qlever_test_token
 provenance_triplestore_url: http://127.0.0.1:8806?access-token=qlever_test_token
-redis_cache_db: 2
-redis_db: 5
-redis_host: localhost
-redis_port: 6381
 resp_agent: https://w3id.org/oc/meta/prov/pa/1
 silencer:
 - author

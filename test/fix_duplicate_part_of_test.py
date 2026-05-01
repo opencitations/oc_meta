@@ -254,7 +254,7 @@ def rdf_dir_single_part_of(tmp_path):
 
 
 @pytest.fixture
-def rdf_env(tmp_path, redis_service):
+def rdf_env(tmp_path):
     rdf_dir = str(tmp_path / "rdf") + os.sep
 
     g_set = GraphSet(BASE_IRI, supplier_prefix=SUPPLIER_PREFIX, wanted_label=False)
@@ -303,9 +303,7 @@ def rdf_env(tmp_path, redis_service):
         "items_per_file": ITEMS_PER_FILE,
         "zip_output_rdf": False,
         "rdf_files_only": True,
-        "redis_host": redis_service["host"],
-        "redis_port": redis_service["port"],
-        "redis_db": 0,
+        "supplier_prefix": SUPPLIER_PREFIX,
     }
     config_path = str(tmp_path / "meta_config.yaml")
     with open(config_path, "w") as f:

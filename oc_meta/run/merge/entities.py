@@ -12,7 +12,6 @@ import traceback
 from typing import Dict, List, Set
 
 from oc_ocdm.graph import GraphSet
-from rdflib import URIRef
 from rich_argparse import RichHelpFormatter
 from sparqlite import SPARQLClient
 from tqdm import tqdm
@@ -84,20 +83,8 @@ class EntityMerger:
         merged_entities: List[str],
         surviving_entities: List[str],
         batch_size: int = 10,
-    ) -> Set[URIRef]:
-        """
-        Fetch all related entities in batches and populate the relationship cache.
-
-        Args:
-            meta_editor: MetaEditor instance
-            merged_entities: List of entities to be merged
-            surviving_entities: List of surviving entities
-            batch_size: Maximum number of entities to process in a single SPARQL query
-
-        Returns:
-            Set of all related entities
-        """
-        all_related_entities = set()
+    ) -> Set[str]:
+        all_related_entities: Set[str] = set()
 
         with SPARQLClient(meta_editor.endpoint, max_retries=5, backoff_factor=0.3, timeout=3600) as client:
             for i in range(0, len(merged_entities), batch_size):
@@ -129,14 +116,13 @@ class EntityMerger:
                     results = client.query(query)
                     for result in results["results"]["bindings"]:
                         if result["entity"]["type"] == "uri":
-                            related_uri = URIRef(result["entity"]["value"])
-                            all_related_entities.add(related_uri)
+                            related = result["entity"]["value"]
+                            all_related_entities.add(related)
 
                             for entity in batch_merged:
-                                entity_uri = URIRef(entity)
-                                if entity_uri not in meta_editor.relationship_cache:
-                                    meta_editor.relationship_cache[entity_uri] = set()
-                                meta_editor.relationship_cache[entity_uri].add(related_uri)
+                                if entity not in meta_editor.relationship_cache:
+                                    meta_editor.relationship_cache[entity] = set()
+                                meta_editor.relationship_cache[entity].add(related)
 
                 except Exception as e:
                     print(
@@ -170,14 +156,13 @@ class EntityMerger:
                     results = client.query(query)
                     for result in results["results"]["bindings"]:
                         if result["entity"]["type"] == "uri":
-                            related_uri = URIRef(result["entity"]["value"])
-                            all_related_entities.add(related_uri)
+                            related = result["entity"]["value"]
+                            all_related_entities.add(related)
 
                             for entity in batch_surviving:
-                                entity_uri = URIRef(entity)
-                                if entity_uri not in meta_editor.relationship_cache:
-                                    meta_editor.relationship_cache[entity_uri] = set()
-                                meta_editor.relationship_cache[entity_uri].add(related_uri)
+                                if entity not in meta_editor.relationship_cache:
+                                    meta_editor.relationship_cache[entity] = set()
+                                meta_editor.relationship_cache[entity].add(related)
 
                 except Exception as e:
                     print(
@@ -239,8 +224,8 @@ class EntityMerger:
         logger.info(f"Found {len(all_related_entities)} related entities")
 
         entities_to_import = all_related_entities.copy()
-        entities_to_import.update(URIRef(e) for e in batch_surviving_entities)
-        entities_to_import.update(URIRef(e) for e in batch_merged_entities)
+        entities_to_import.update(batch_surviving_entities)
+        entities_to_import.update(batch_merged_entities)
 
         entities_to_import = {
             e for e in entities_to_import if not meta_editor.entity_cache.is_cached(e)

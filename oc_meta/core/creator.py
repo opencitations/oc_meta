@@ -18,7 +18,7 @@ from oc_meta.lib.master_of_regex import (
     RE_SEMICOLON_IN_PEOPLE_FIELD,
     split_name_and_ids,
 )
-from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
+from oc_ocdm.counter_handler.counter_handler import CounterHandler
 from oc_ocdm.graph import GraphSet
 from oc_ocdm.graph.entities.bibliographic import BibliographicResource
 from oc_ocdm.graph.entities.bibliographic_entity import BibliographicEntity
@@ -34,7 +34,7 @@ class Creator(object):
         data: list,
         finder: ResourceFinder,
         base_iri: str,
-        counter_handler: RedisCounterHandler,
+        counter_handler: CounterHandler,
         supplier_prefix: str,
         resp_agent: str,
         ra_index: list,

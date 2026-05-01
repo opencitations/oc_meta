@@ -14,7 +14,6 @@ from rdflib.term import _toPythonMapping
 from test.test_utils import (
     SERVER,
     get_counter_handler,
-    reset_redis_counters,
     reset_triplestore,
 )
 
@@ -45,7 +44,6 @@ def reset_triplestore_once():
 
 # creator executor
 def prepare2test(name):
-    reset_redis_counters()
     data = get_csv_data("test/testcases/testcase_data/testcase_" + name + "_data.csv")
     testcase_id_br = get_csv_data("test/testcases/testcase_data/indices/" + name + "/index_id_br_" + name + ".csv")
     testcase_id_ra = get_csv_data("test/testcases/testcase_data/indices/" + name + "/index_id_ra_" + name + ".csv")
@@ -76,10 +74,8 @@ def prepare2test(name):
 class TestCreator:
     @pytest.fixture(autouse=True)
     def setup_method(self, request):
-        reset_redis_counters()
         self.counter_handler = get_counter_handler()
         yield
-        reset_redis_counters()
 
     def test_vvi_action(self):
         base_iri = 'https://w3id.org/oc/meta/'

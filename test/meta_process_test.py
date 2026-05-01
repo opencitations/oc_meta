@@ -12,13 +12,13 @@ import tempfile
 import pytest
 from test.test_utils import (PROV_SERVER, SERVER, execute_sparql_construct,
                              execute_sparql_query, normalize_row_ids,
-                             reset_redis_counters, reset_server,
+                             reset_server,
                              wait_for_triplestore)
 
 import yaml
 from oc_meta.lib.file_manager import get_csv_data, write_csv
 from oc_meta.run.meta_process import run_meta_process
-from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
+from oc_ocdm.counter_handler.filesystem_counter_handler import FilesystemCounterHandler
 from oc_ocdm.support import sparql_binding_to_rdfterm
 from rdflib import Dataset, Graph, Literal, URIRef
 from triplelite import RDFTerm
@@ -50,11 +50,9 @@ class TestProcessTest:
         self.stop_file = os.path.join(self.temp_dir, ".stop_upload")
 
         reset_server()
-        reset_redis_counters()
 
         yield
 
-        reset_redis_counters()
         # Remove temporary directory and its contents
         if hasattr(self, "temp_dir") and os.path.exists(self.temp_dir):
             shutil.rmtree(self.temp_dir)
@@ -70,10 +68,8 @@ class TestProcessTest:
         with open(meta_config_path, encoding="utf-8") as file:
             settings = yaml.full_load(file)
 
-        # Update settings with temporary files and Redis cache DB
         settings.update(
             {
-                "redis_cache_db": 2,
                 "ts_upload_cache": self.cache_file,
                 "ts_failed_queries": self.failed_file,
                 "ts_stop_file": self.stop_file,
@@ -167,10 +163,8 @@ class TestProcessTest:
         with open(meta_config_path, encoding="utf-8") as file:
             settings = yaml.full_load(file)
 
-        # Update settings with temporary files and Redis cache DB
         settings.update(
             {
-                "redis_cache_db": 2,
                 "ts_upload_cache": self.cache_file,
                 "ts_failed_queries": self.failed_file,
                 "ts_stop_file": self.stop_file,
@@ -215,10 +209,8 @@ class TestProcessTest:
         with open(meta_config_path, encoding="utf-8") as file:
             settings = yaml.full_load(file)
 
-        # Update settings with temporary files and Redis cache DB
         settings.update(
             {
-                "redis_cache_db": 2,
                 "ts_upload_cache": self.cache_file,
                 "ts_failed_queries": self.failed_file,
                 "ts_stop_file": self.stop_file,
@@ -922,10 +914,8 @@ class TestProcessTest:
         with open(meta_config_path, encoding="utf-8") as file:
             settings = yaml.full_load(file)
 
-        # Update settings with temporary files and Redis cache DB
         settings.update(
             {
-                "redis_cache_db": 2,
                 "ts_upload_cache": self.cache_file,
                 "ts_failed_queries": self.failed_file,
                 "ts_stop_file": self.stop_file,
@@ -969,10 +959,8 @@ class TestProcessTest:
         with open(meta_config_path, encoding="utf-8") as file:
             settings = yaml.full_load(file)
 
-        # Update settings with temporary files and Redis cache DB
         settings.update(
             {
-                "redis_cache_db": 2,
                 "ts_upload_cache": self.cache_file,
                 "ts_failed_queries": self.failed_file,
                 "ts_stop_file": self.stop_file,
@@ -1031,9 +1019,7 @@ class TestProcessTest:
         with open(meta_config_path_with_openalex, encoding="utf-8") as file:
             settings_with_openalex = yaml.full_load(file)
 
-        # Update settings with temporary files and Redis cache DB
         cache_settings = {
-            "redis_cache_db": 2,
             "ts_upload_cache": self.cache_file,
             "ts_failed_queries": self.failed_file,
             "ts_stop_file": self.stop_file,
@@ -1100,10 +1086,8 @@ class TestProcessTest:
         with open(meta_config_path, encoding="utf-8") as file:
             settings = yaml.full_load(file)
 
-        # Update settings with temporary files and Redis cache DB
         settings.update(
             {
-                "redis_cache_db": 2,
                 "ts_upload_cache": self.cache_file,
                 "ts_failed_queries": self.failed_file,
                 "ts_stop_file": self.stop_file,
@@ -1157,10 +1141,6 @@ class TestProcessTest:
             "fuseki_full_text_search": False,
             "graphdb_connector_name": None,
             "silencer": [],
-            "redis_host": "localhost",
-            "redis_port": 6381,
-            "redis_db": 5,
-            "redis_cache_db": 2,
             "ts_upload_cache": self.cache_file,
             "ts_failed_queries": self.failed_file,
             "ts_stop_file": self.stop_file,
@@ -1224,14 +1204,10 @@ class TestProcessTest:
             """
             )
 
-        # Update Redis counters to match the inserted data
-        redis_handler = RedisCounterHandler(port=6381, db=5)  # Use test db
-        redis_handler.set_counter(
-            2, "br", supplier_prefix="060"
-        )  # BR counter for two BRs
-        redis_handler.set_counter(
-            2, "id", supplier_prefix="060"
-        )  # ID counter for two IDs
+        info_dir = os.path.join(output_folder, "info_dir", "060") + os.sep
+        counter_handler = FilesystemCounterHandler(info_dir=info_dir, supplier_prefix="060")
+        counter_handler.set_counter(2, "br", supplier_prefix="060")
+        counter_handler.set_counter(2, "id", supplier_prefix="060")
 
         # Run the process
         run_meta_process(settings=settings, meta_config_path=meta_config_path)
@@ -1373,15 +1349,6 @@ class TestProcessTest:
         """
             )
 
-        # Update Redis counters for the pre-existing entities
-        redis_handler = RedisCounterHandler(port=6381, db=5)
-        redis_handler.set_counter(
-            6, "br", supplier_prefix="060"
-        )  # Updated to account for 6 entities (2 venues + 4 volumes)
-        redis_handler.set_counter(
-            3, "id", supplier_prefix="060"
-        )  # Corretto: 3 IDs (1756-1833, 0959-8138, 0267-0623)
-
         # Create test settings
         settings = {
             "triplestore_url": SERVER,
@@ -1402,14 +1369,15 @@ class TestProcessTest:
             "fuseki_full_text_search": False,
             "graphdb_connector_name": None,
             "silencer": [],
-            "redis_host": "localhost",
-            "redis_port": 6381,
-            "redis_db": 5,
-            "redis_cache_db": 2,
             "ts_upload_cache": self.cache_file,
             "ts_failed_queries": self.failed_file,
             "ts_stop_file": self.stop_file,
         }
+
+        info_dir = os.path.join(output_folder, "info_dir", "060") + os.sep
+        counter_handler = FilesystemCounterHandler(info_dir=info_dir, supplier_prefix="060")
+        counter_handler.set_counter(6, "br", supplier_prefix="060")
+        counter_handler.set_counter(3, "id", supplier_prefix="060")
 
         with open(meta_config_path, "w") as f:
             yaml.dump(settings, f)
@@ -1513,10 +1481,6 @@ class TestProcessTest:
             "fuseki_full_text_search": False,
             "graphdb_connector_name": None,
             "silencer": [],
-            "redis_host": "localhost",
-            "redis_port": 6381,
-            "redis_db": 5,
-            "redis_cache_db": 2,
             "ts_upload_cache": self.cache_file,
             "ts_failed_queries": self.failed_file,
             "ts_stop_file": self.stop_file,
@@ -1524,7 +1488,6 @@ class TestProcessTest:
 
         with open(meta_config_path, "w") as f:
             yaml.dump(settings, f)
-
 
         # Run the process
         run_meta_process(settings=settings, meta_config_path=meta_config_path)
@@ -1631,10 +1594,6 @@ class TestProcessTest:
             "fuseki_full_text_search": False,
             "graphdb_connector_name": None,
             "silencer": [],
-            "redis_host": "localhost",
-            "redis_port": 6381,
-            "redis_db": 5,
-            "redis_cache_db": 2,
             "ts_upload_cache": self.cache_file,
             "ts_failed_queries": self.failed_file,
             "ts_stop_file": self.stop_file,
@@ -1741,15 +1700,6 @@ class TestProcessTest:
         """
             )
 
-        # Update Redis counters for pre-existing entities
-        redis_handler = RedisCounterHandler(port=6381, db=5)
-        redis_handler.set_counter(
-            5, "br", supplier_prefix="060"
-        )  # 5 entities: venue, 2 volumes, 2 issues
-        redis_handler.set_counter(
-            1, "id", supplier_prefix="060"
-        )  # 1 identifier for venue
-
         # Create test data - article that should use existing volume and issue
         os.makedirs(os.path.join(BASE_DIR, "input_vvi_triplestore"), exist_ok=True)
         with open(
@@ -1809,14 +1759,15 @@ class TestProcessTest:
             "fuseki_full_text_search": False,
             "graphdb_connector_name": None,
             "silencer": [],
-            "redis_host": "localhost",
-            "redis_port": 6381,
-            "redis_db": 5,
-            "redis_cache_db": 2,
             "ts_upload_cache": self.cache_file,
             "ts_failed_queries": self.failed_file,
             "ts_stop_file": self.stop_file,
         }
+
+        info_dir = os.path.join(output_folder, "info_dir", "060") + os.sep
+        counter_handler = FilesystemCounterHandler(info_dir=info_dir, supplier_prefix="060")
+        counter_handler.set_counter(5, "br", supplier_prefix="060")
+        counter_handler.set_counter(1, "id", supplier_prefix="060")
 
         with open(meta_config_path, "w") as f:
             yaml.dump(settings, f)
@@ -1957,10 +1908,6 @@ class TestProcessTest:
             "fuseki_full_text_search": False,
             "graphdb_connector_name": None,
             "silencer": [],
-            "redis_host": "localhost",
-            "redis_port": 6381,
-            "redis_db": 5,
-            "redis_cache_db": 2,
             "ts_upload_cache": self.cache_file,
             "ts_failed_queries": self.failed_file,
             "ts_stop_file": self.stop_file,
@@ -1968,7 +1915,6 @@ class TestProcessTest:
 
         with open(meta_config_path, "w") as f:
             yaml.dump(settings, f)
-
 
         # Run the process
         run_meta_process(settings=settings, meta_config_path=meta_config_path)
@@ -2066,10 +2012,6 @@ class TestProcessTest:
             "zip_output_rdf": False,
             "source": None,
             "silencer": [],
-            "redis_host": "localhost",
-            "redis_port": 6381,
-            "redis_db": 5,
-            "redis_cache_db": 2,
             "ts_upload_cache": self.cache_file,
             "ts_failed_queries": self.failed_file,
             "ts_stop_file": self.stop_file,
@@ -2148,10 +2090,6 @@ class TestProcessTest:
             "zip_output_rdf": False,
             "source": None,
             "silencer": [],
-            "redis_host": "localhost",
-            "redis_port": 6381,
-            "redis_db": 5,
-            "redis_cache_db": 2,
             "ts_upload_cache": self.cache_file,
             "ts_failed_queries": self.failed_file,
             "ts_stop_file": self.stop_file,
@@ -2201,7 +2139,6 @@ class TestProcessTest:
         settings.update({
             "base_output_dir": output_folder,
             "output_rdf_dir": output_folder,
-            "redis_cache_db": 2,
             "ts_upload_cache": self.cache_file,
             "ts_failed_queries": self.failed_file,
             "ts_stop_file": self.stop_file,

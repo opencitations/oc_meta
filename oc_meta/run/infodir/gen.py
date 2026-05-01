@@ -13,7 +13,7 @@ import zipfile
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
 import orjson
-from oc_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
+from oc_ocdm.counter_handler.filesystem_counter_handler import FilesystemCounterHandler
 from oc_ocdm.support import get_prefix, get_resource_number, get_short_name
 from rich_argparse import RichHelpFormatter
 from tqdm import tqdm
@@ -22,9 +22,6 @@ from oc_meta.lib.file_manager import collect_zip_files
 
 
 def find_max_numbered_folder(path):
-    """
-    Trova la sottocartella con il numero più elevato in una data cartella.
-    """
     max_number = -1
     for folder in os.listdir(path):
         if folder.isdigit():
@@ -32,9 +29,6 @@ def find_max_numbered_folder(path):
     return max_number
 
 def find_max_numbered_zip_file(folder_path: str) -> str | None:
-    """
-    Trova il file zippato con il numero più elevato prima di ".zip" all'interno di una cartella.
-    """
     max_number = -1
     max_zip_file: str | None = None
 
@@ -76,12 +70,13 @@ def process_zip_file(zip_file_path):
                             batch_updates[supplier_prefix][batch_key][resource_number], counter_value)
     return batch_updates
 
-def explore_directories(root_path, redis_host, redis_port, redis_db):
-    """
-    Esplora le directory e associa a ciascun supplier prefix il numero maggiore.
-    """
+SUPPLIER_PREFIX = "060"
+
+
+def explore_directories(root_path, info_dir):
     main_folders = ["ar", "br", "ra", "re", "id"]
-    counter_handler = RedisCounterHandler(host=redis_host, port=redis_port, db=redis_db)
+    info_dir_with_prefix = os.path.join(info_dir, SUPPLIER_PREFIX) + os.sep
+    counter_handler = FilesystemCounterHandler(info_dir=info_dir_with_prefix, supplier_prefix=SUPPLIER_PREFIX)
 
     for main_folder in main_folders:
         main_folder_path = os.path.join(root_path, main_folder)
@@ -142,20 +137,19 @@ def explore_directories(root_path, redis_host, redis_port, redis_db):
                             final_batch_updates[supplier_prefix][batch_key] = inner_value
             pbar.update(1)
 
-    counter_handler.batch_update_counters(final_batch_updates)
+    for prefix, updates in final_batch_updates.items():
+        counter_handler.set_counters_batch(updates, prefix)
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Esplora le directory e trova i numeri massimi.",
+        description="Scan RDF directories and populate filesystem counter files.",
         formatter_class=RichHelpFormatter,
     )
-    parser.add_argument("directory", type=str, help="Il percorso della directory da esplorare")
-    parser.add_argument("--redis-host", type=str, default="localhost", help="L'host del server Redis")
-    parser.add_argument("--redis-port", type=int, default=6379, help="La porta del server Redis")
-    parser.add_argument("--redis-db", type=int, default=6, help="Il numero del database Redis da utilizzare")
+    parser.add_argument("directory", type=str, help="Path to the RDF directory to scan")
+    parser.add_argument("info_dir", type=str, help="Base directory for counter files")
     args = parser.parse_args()
 
-    explore_directories(args.directory, args.redis_host, args.redis_port, args.redis_db)
+    explore_directories(args.directory, args.info_dir)
 
 if __name__ == "__main__":
     main()

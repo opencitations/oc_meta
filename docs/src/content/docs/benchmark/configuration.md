@@ -25,11 +25,6 @@ input_csv_dir: oc_meta/run/benchmark/input
 base_output_dir: oc_meta/run/benchmark/output
 output_rdf_dir: oc_meta/run/benchmark/output/
 
-# Test Redis (separate from production)
-redis_host: localhost
-redis_port: 6381
-redis_db: 10
-cache_db: 11
 ```
 
 ## Test databases
@@ -43,13 +38,12 @@ Start the test databases before running benchmarks:
 This starts:
 - Virtuoso (data): port 8805
 - Virtuoso (provenance): port 8806
-- Redis: port 6381
 
 ## Cleanup
 
 By default, the benchmark resets all test databases after each run:
 - Virtuoso: `RDF_GLOBAL_RESET()` via Docker exec
-- Redis: `FLUSHDB` on counter and cache databases
+- Counter files: deleted from temporary info_dir
 - Output files: deleted
 
 Use `--no-cleanup` to preserve data for inspection.

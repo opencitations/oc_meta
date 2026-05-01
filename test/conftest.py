@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: ISC
 
+import socket
 import subprocess
 import tempfile
 import time
@@ -10,11 +11,25 @@ from urllib.error import URLError
 from urllib.request import Request, urlopen
 
 import pytest
-import redis
 
 
 QLEVER_IMAGE = "adfreiburg/qlever:commit-5c6a72a"
 QLEVER_ACCESS_TOKEN = "qlever_test_token"
+REDIS_IMAGE = "redis:7-alpine"
+REDIS_PORT = 6381
+
+
+def _wait_for_tcp(host: str, port: int, timeout: int = 30) -> None:
+    start = time.time()
+    delay = 0.1
+    while time.time() - start < timeout:
+        try:
+            with socket.create_connection((host, port), timeout=2):
+                return
+        except OSError:
+            time.sleep(delay)
+            delay = min(delay * 2, 1.0)
+    raise RuntimeError(f"{host}:{port} not ready within {timeout}s")
 
 
 def _wait_for_endpoint(url: str, timeout: int = 60) -> None:
@@ -35,50 +50,12 @@ def _wait_for_endpoint(url: str, timeout: int = 60) -> None:
     raise RuntimeError(f"Endpoint {url} not ready within {timeout}s")
 
 
-def _wait_for_redis(host: str, port: int, timeout: int = 30) -> None:
-    start = time.time()
-    delay = 0.1
-    while time.time() - start < timeout:
-        try:
-            client = redis.Redis(host=host, port=port)
-            client.ping()
-            return
-        except redis.ConnectionError:
-            time.sleep(delay)
-            delay = min(delay * 2, 0.5)
-    raise RuntimeError(f"Redis {host}:{port} not ready within {timeout}s")
-
-
 def _remove_container(name: str) -> None:
     subprocess.run(
         ["docker", "rm", "-f", name],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
-
-
-@pytest.fixture(scope="session")
-def redis_service():
-    container_name = "oc-meta-test-redis"
-    host_port = 6381
-
-    _remove_container(container_name)
-
-    subprocess.run(
-        [
-            "docker", "run", "-d",
-            "--name", container_name,
-            "-p", f"{host_port}:6379",
-            "redis:7-alpine",
-        ],
-        check=True,
-        capture_output=True,
-    )
-
-    _wait_for_redis("localhost", host_port)
-    yield {"host": "localhost", "port": host_port}
-
-    _remove_container(container_name)
 
 
 @pytest.fixture(scope="session")
@@ -189,10 +166,33 @@ def qlever_prov_endpoint():
         _remove_container(container_name)
 
 
+@pytest.fixture(scope="session")
+def redis_server():
+    container_name = "oc-meta-test-redis"
+
+    _remove_container(container_name)
+
+    subprocess.run(
+        [
+            "docker", "run", "-d",
+            "--name", container_name,
+            "-p", f"{REDIS_PORT}:6379",
+            REDIS_IMAGE,
+        ],
+        check=True,
+        capture_output=True,
+    )
+
+    _wait_for_tcp("localhost", REDIS_PORT)
+    yield REDIS_PORT
+
+    _remove_container(container_name)
+
+
 @pytest.fixture(scope="session", autouse=True)
-def test_databases(redis_service, qlever_data_endpoint, qlever_prov_endpoint):
+def test_databases(qlever_data_endpoint, qlever_prov_endpoint, redis_server):
     return {
-        "redis": redis_service,
         "data_endpoint": qlever_data_endpoint,
         "prov_endpoint": qlever_prov_endpoint,
+        "redis_port": redis_server,
     }
