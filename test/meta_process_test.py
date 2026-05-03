@@ -2229,6 +2229,169 @@ class TestProcessTest:
         shutil.rmtree(output_folder)
         assert output == expected_output
 
+    def test_id_only_alignment_preserves_existing_data(self):
+        output_folder = os.path.join(BASE_DIR, "output_10")
+        if os.path.exists(output_folder):
+            shutil.rmtree(output_folder)
+        meta_config_path = os.path.join(BASE_DIR, "meta_config_3.yaml")
+        with open(meta_config_path, encoding="utf-8") as file:
+            settings = yaml.full_load(file)
+        settings.update({
+            "ts_upload_cache": self.cache_file,
+            "ts_failed_queries": self.failed_file,
+            "ts_stop_file": self.stop_file,
+            "base_output_dir": output_folder,
+            "output_rdf_dir": output_folder,
+            "silencer": [],
+        })
+
+        # Pass 1: create entities with full metadata
+        input_dir_1 = tempfile.mkdtemp()
+        write_csv(os.path.join(input_dir_1, "0.csv"), [
+            {
+                "id": "doi:10.1234/test.one",
+                "title": "First Article Title",
+                "author": "Smith, John [orcid:0000-0001-1234-5678]",
+                "pub_date": "2020-01-15",
+                "venue": "Test Journal [issn:1234-5678]",
+                "volume": "10",
+                "issue": "2",
+                "page": "100-110",
+                "type": "journal article",
+                "publisher": "Test Publisher [crossref:999]",
+                "editor": "",
+            },
+            {
+                "id": "doi:10.1234/test.two",
+                "title": "Second Article Title",
+                "author": "Doe, Jane [orcid:0000-0002-9876-5432]",
+                "pub_date": "2021-06-01",
+                "venue": "Test Journal [issn:1234-5678]",
+                "volume": "11",
+                "issue": "1",
+                "page": "200-220",
+                "type": "journal article",
+                "publisher": "Test Publisher [crossref:999]",
+                "editor": "",
+            },
+        ])
+        settings["input_csv_dir"] = input_dir_1
+        run_meta_process(settings=settings, meta_config_path=meta_config_path)
+
+        # Verify both entities exist with DOIs
+        result = execute_sparql_query(SERVER, """
+            SELECT ?br ?doi WHERE {
+                ?br <http://purl.org/spar/datacite/hasIdentifier> ?id .
+                ?id <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/doi> .
+                ?id <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> ?doi .
+            } ORDER BY ?doi
+        """)
+        dois_before = [b["doi"]["value"] for b in result["results"]["bindings"]]
+        assert "10.1234/test.one" in dois_before
+        assert "10.1234/test.two" in dois_before
+        br1_uri = next(b["br"]["value"] for b in result["results"]["bindings"] if b["doi"]["value"] == "10.1234/test.one")
+        br2_uri = next(b["br"]["value"] for b in result["results"]["bindings"] if b["doi"]["value"] == "10.1234/test.two")
+
+        # Verify existing metadata (title, author) before id-only pass
+        result = execute_sparql_query(SERVER, f"""
+            SELECT ?title WHERE {{
+                <{br1_uri}> <http://purl.org/dc/terms/title> ?title .
+            }}
+        """)
+        assert result["results"]["bindings"][0]["title"]["value"] == "First Article Title"
+
+        result = execute_sparql_query(SERVER, f"""
+            SELECT ?ar WHERE {{
+                <{br1_uri}> <http://purl.org/spar/pro/isDocumentContextFor> ?ar .
+            }}
+        """)
+        ar_count_before = len(result["results"]["bindings"])
+        assert ar_count_before >= 1
+
+        # Pass 2: id-only alignment (add openalex IDs to existing entities)
+        br1_meta = br1_uri.replace("https://w3id.org/oc/meta/", "")
+        br2_meta = br2_uri.replace("https://w3id.org/oc/meta/", "")
+        input_dir_2 = tempfile.mkdtemp()
+        write_csv(os.path.join(input_dir_2, "0.csv"), [
+            {
+                "id": f"omid:{br1_meta} openalex:W111111111",
+                "title": "",
+                "author": "",
+                "pub_date": "",
+                "venue": "",
+                "volume": "",
+                "issue": "",
+                "page": "",
+                "type": "",
+                "publisher": "",
+                "editor": "",
+            },
+            {
+                "id": f"omid:{br2_meta} openalex:W222222222",
+                "title": "",
+                "author": "",
+                "pub_date": "",
+                "venue": "",
+                "volume": "",
+                "issue": "",
+                "page": "",
+                "type": "",
+                "publisher": "",
+                "editor": "",
+            },
+        ])
+        settings["input_csv_dir"] = input_dir_2
+        run_meta_process(settings=settings, meta_config_path=meta_config_path)
+
+        # Verify new openalex identifiers were added
+        result = execute_sparql_query(SERVER, """
+            SELECT ?br ?val WHERE {
+                ?br <http://purl.org/spar/datacite/hasIdentifier> ?id .
+                ?id <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/openalex> .
+                ?id <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> ?val .
+            } ORDER BY ?val
+        """)
+        openalex_ids = {b["val"]["value"]: b["br"]["value"] for b in result["results"]["bindings"]}
+        assert openalex_ids == {"W111111111": br1_uri, "W222222222": br2_uri}
+
+        # Verify existing DOIs are still there (not deleted)
+        result = execute_sparql_query(SERVER, f"""
+            SELECT ?doi WHERE {{
+                <{br1_uri}> <http://purl.org/spar/datacite/hasIdentifier> ?id .
+                ?id <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/doi> .
+                ?id <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> ?doi .
+            }}
+        """)
+        assert result["results"]["bindings"][0]["doi"]["value"] == "10.1234/test.one"
+
+        # Verify existing title preserved
+        result = execute_sparql_query(SERVER, f"""
+            SELECT ?title WHERE {{
+                <{br1_uri}> <http://purl.org/dc/terms/title> ?title .
+            }}
+        """)
+        assert result["results"]["bindings"][0]["title"]["value"] == "First Article Title"
+
+        # Verify existing authors preserved
+        result = execute_sparql_query(SERVER, f"""
+            SELECT ?ar WHERE {{
+                <{br1_uri}> <http://purl.org/spar/pro/isDocumentContextFor> ?ar .
+            }}
+        """)
+        assert len(result["results"]["bindings"]) == ar_count_before
+
+        # Verify existing venue relationship preserved
+        result = execute_sparql_query(SERVER, f"""
+            SELECT ?venue WHERE {{
+                <{br1_uri}> <http://purl.org/vocab/frbr/core#partOf> ?venue .
+            }}
+        """)
+        assert len(result["results"]["bindings"]) == 1
+
+        shutil.rmtree(input_dir_1)
+        shutil.rmtree(input_dir_2)
+        shutil.rmtree(output_folder)
+
 
 def normalize_graph(graph):
     """

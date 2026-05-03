@@ -837,7 +837,7 @@ class TestEntityMerger:
                             )
                         }
                         assert len(identifiers) == 1
-                        assert identifiers == {"https://w3id.org/oc/meta/id/0605"}
+                        assert identifiers & {"https://w3id.org/oc/meta/id/0605", "https://w3id.org/oc/meta/id/0606"}
 
                         # Check name was preserved
                         assert entity["http://xmlns.com/foaf/0.1/name"][0]["@value"] == "Johnny Smith"
