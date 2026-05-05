@@ -11,6 +11,7 @@ import os
 import validators
 import yaml
 from oc_ocdm import Storer
+from oc_ocdm.counter_handler.counter_handler import CounterHandler
 from oc_ocdm.counter_handler.filesystem_counter_handler import FilesystemCounterHandler
 from oc_ocdm.graph import GraphSet
 from oc_ocdm.graph.graph_entity import GraphEntity
@@ -47,7 +48,7 @@ class MetaEditor:
         "https://w3id.org/oc/ontology/hasNext": "remove_next",
     }
 
-    def __init__(self, meta_config: str, resp_agent: str, save_queries: bool = False):
+    def __init__(self, meta_config: str, resp_agent: str, save_queries: bool = False, counter_handler: CounterHandler | None = None):
         with open(meta_config, encoding="utf-8") as file:
             settings = yaml.full_load(file)
         self.endpoint = settings["triplestore_url"]
@@ -66,13 +67,16 @@ class MetaEditor:
         self.save_queries = save_queries
         self.update_queries = []
 
-        supplier_prefix = settings.get("supplier_prefix", "060")
-        if not supplier_prefix.endswith("0"):
-            supplier_prefix = f"{supplier_prefix}0"
-        info_dir = os.path.join(output_dir, "info_dir", supplier_prefix) + os.sep
-        self.counter_handler = FilesystemCounterHandler(
-            info_dir=info_dir, supplier_prefix=supplier_prefix
-        )
+        if counter_handler is not None:
+            self.counter_handler = counter_handler
+        else:
+            supplier_prefix = settings.get("supplier_prefix", "060")
+            if not supplier_prefix.endswith("0"):
+                supplier_prefix = f"{supplier_prefix}0"
+            info_dir = os.path.join(output_dir, "info_dir", supplier_prefix) + os.sep
+            self.counter_handler = FilesystemCounterHandler(
+                info_dir=info_dir, supplier_prefix=supplier_prefix
+            )
 
         self.entity_cache = EntityCache()
         self.relationship_cache = {}

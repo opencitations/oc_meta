@@ -78,6 +78,7 @@ class TestEntityMerger:
 
         # Initialize test data
         self.setup_test_data()
+        self.counter_handler.flush()
 
         # Create merger instance
         self.merger = EntityMerger(
@@ -556,6 +557,9 @@ class TestEntityMerger:
             save_queries=False,
         )
 
+        # Remove setup CSV to avoid parallel conflict
+        os.remove(os.path.join(BASE, "csv", "merge_test.csv"))
+
         # Create merge data
         merge_data = [
             {
@@ -567,6 +571,7 @@ class TestEntityMerger:
         self.write_csv("multiple_merge.csv", merge_data)
 
         # Process the merge
+        self.counter_handler.flush()
         csv_folder = os.path.join(BASE, "csv")
         self.merger.process_folder(csv_folder)
 
@@ -639,67 +644,34 @@ class TestEntityMerger:
                         ):
                             surviving_snapshots.append(entity)
 
-            # Should have 2 merge snapshots (one partial, one final)
-            assert len(surviving_snapshots) == 2, "Should have exactly 2 merge snapshots"
+            assert len(surviving_snapshots) == 1, "Should have exactly 1 merge snapshot"
 
-            # Verify partial merge (0601 with 0602)
-            partial_merge = next(
-                s
-                for s in surviving_snapshots
-                if "0602" in s["http://purl.org/dc/terms/description"][0]["@value"]
-                and "0603" not in s["http://purl.org/dc/terms/description"][0]["@value"]
-            )
+            merge_snapshot = surviving_snapshots[0]
 
-            # Check partial merge metadata
-            assert "http://www.w3.org/ns/prov#generatedAtTime" in partial_merge
-            assert "http://www.w3.org/ns/prov#wasAttributedTo" in partial_merge
-            assert partial_merge["http://www.w3.org/ns/prov#wasAttributedTo"][0]["@id"] == "https://orcid.org/0000-0002-8420-0696"
+            # All merged entities should be mentioned in the description
+            descriptions = [d["@value"] for d in merge_snapshot["http://purl.org/dc/terms/description"]]
+            desc_text = " ".join(descriptions)
+            assert "0602" in desc_text
+            assert "0603" in desc_text
+            assert "0604" in desc_text
 
-            # Check partial merge query content
-            partial_query = partial_merge[
-                "https://w3id.org/oc/ontology/hasUpdateQuery"
-            ][0]["@value"]
-            expected_partial = {
+            assert "http://www.w3.org/ns/prov#generatedAtTime" in merge_snapshot
+            assert "http://www.w3.org/ns/prov#wasAttributedTo" in merge_snapshot
+            assert merge_snapshot["http://www.w3.org/ns/prov#wasAttributedTo"][0]["@id"] == "https://orcid.org/0000-0002-8420-0696"
+
+            merge_query = merge_snapshot["https://w3id.org/oc/ontology/hasUpdateQuery"][0]["@value"]
+            expected_merge = {
                 "delete": [
                     '<https://w3id.org/oc/meta/ra/0601> <http://xmlns.com/foaf/0.1/name> "John Smith"'
                 ],
                 "insert": [
                     "<https://w3id.org/oc/meta/ra/0601> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0602>",
-                    '<https://w3id.org/oc/meta/ra/0601> <http://xmlns.com/foaf/0.1/name> "J. Smith"',
-                ],
-            }
-            self.check_sparql_query_content(partial_query, expected_partial)
-
-            # Verify final merge (0601 with 0602, 0603, 0604)
-            final_merge = next(
-                s
-                for s in surviving_snapshots
-                if "0602" in s["http://purl.org/dc/terms/description"][0]["@value"]
-                and "0603" in s["http://purl.org/dc/terms/description"][0]["@value"]
-                and "0604" in s["http://purl.org/dc/terms/description"][0]["@value"]
-            )
-
-            # Check final merge metadata
-            assert "http://www.w3.org/ns/prov#generatedAtTime" in final_merge
-            assert "http://www.w3.org/ns/prov#wasAttributedTo" in final_merge
-            assert final_merge["http://www.w3.org/ns/prov#wasAttributedTo"][0]["@id"] == "https://orcid.org/0000-0002-8420-0696"
-
-            # Check final merge query content
-            final_query = final_merge["https://w3id.org/oc/ontology/hasUpdateQuery"][0][
-                "@value"
-            ]
-            expected_final = {
-                "delete": [
-                    '<https://w3id.org/oc/meta/ra/0601> <http://xmlns.com/foaf/0.1/name> "John Smith"'
-                ],
-                "insert": [
                     "<https://w3id.org/oc/meta/ra/0601> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0603>",
                     "<https://w3id.org/oc/meta/ra/0601> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0604>",
                     '<https://w3id.org/oc/meta/ra/0601> <http://xmlns.com/foaf/0.1/name> "J A Smith"',
-                    "<https://w3id.org/oc/meta/ra/0601> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0602>",
                 ],
             }
-            self.check_sparql_query_content(final_query, expected_final)
+            self.check_sparql_query_content(merge_query, expected_merge)
 
             # Verify deletion snapshots exist for merged entities
             merged_ids = ["0602", "0603", "0604"]
@@ -816,6 +788,7 @@ class TestEntityMerger:
         self.write_csv("conflicting_merge.csv", merge_data)
 
         # Process the merge
+        self.counter_handler.flush()
         csv_folder = os.path.join(BASE, "csv")
         self.merger.process_folder(csv_folder)
 
@@ -1071,6 +1044,7 @@ class TestEntityMerger:
         self.write_csv("br_merge.csv", merge_data)
 
         # Process the merge
+        self.counter_handler.flush()
         csv_folder = os.path.join(BASE, "csv")
         self.merger.process_folder(csv_folder)
 
@@ -1578,6 +1552,7 @@ class TestEntityMerger:
         self.write_csv("br_dois_merge.csv", merge_data)
 
         # # Process the merge
+        self.counter_handler.flush()
         self.merger.process_folder(os.path.join(BASE, "csv"))
 
         # # Verify the results

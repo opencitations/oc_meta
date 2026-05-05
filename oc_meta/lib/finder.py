@@ -582,6 +582,12 @@ class ResourceFinder:
 
             visited_subjects.update(new_subjects)
 
+            if progress and task_traversal is not None:
+                progress.update(
+                    task_traversal,
+                    description=f"  [dim]Graph traversal (depth {cur_depth}/{max_depth}, {len(visited_subjects):,} subjects)[/dim]",
+                )
+
             subject_list = list(new_subjects)
             batches = list(batch_process(subject_list, BATCH_SIZE))
             batch_queries = []
@@ -898,8 +904,17 @@ class ResourceFinder:
             if progress and task_vvis is not None:
                 progress.remove_task(task_vvis)
 
+        task_traversal = None
+        if progress and initial_subjects:
+            task_traversal = progress.add_task(
+                "  [dim]Graph traversal[/dim]", total=None
+            )
+
         visited_subjects = set()
         process_batch_parallel(initial_subjects, 0, visited_subjects)
+
+        if progress and task_traversal is not None:
+            progress.remove_task(task_traversal)
 
         console = Console()
         style = "bold red" if max_depth_reached >= max_depth else "bold green"

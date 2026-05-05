@@ -53,7 +53,6 @@ class TestEditor:
         reset_server()
         if os.path.exists(OUTPUT):
             rmtree(OUTPUT)
-        self.counter_handler = get_counter_handler(info_dir=os.path.join(OUTPUT, "info_dir"))
 
         # Create temporary directory for cache files
         self.temp_dir = os.path.join("test", "temp_editor_test")
@@ -88,6 +87,7 @@ class TestEditor:
             }
         )
         run_meta_process(settings=settings, meta_config_path=META_CONFIG)
+        self.counter_handler = get_counter_handler(info_dir=os.path.join(OUTPUT, "info_dir"))
         yield
         if os.path.exists(OUTPUT):
             rmtree(OUTPUT)
@@ -394,7 +394,7 @@ class TestEditor:
         g_set.commit_changes()
 
         # Perform merge
-        editor = MetaEditor(META_CONFIG, "https://orcid.org/0000-0002-8420-0696")
+        editor = MetaEditor(META_CONFIG, "https://orcid.org/0000-0002-8420-0696", counter_handler=self.counter_handler)
         editor.merge(
             g_set,
             "https://w3id.org/oc/meta/ra/0607",

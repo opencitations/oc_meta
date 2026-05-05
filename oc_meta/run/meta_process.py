@@ -491,6 +491,7 @@ def run_meta_process(
             try:
                 if os.path.exists(os.path.join(meta_process_setup.base_output_dir, ".stop")):
                     console.print("\n[yellow]Stop file detected. Halting processing.[/yellow]")
+                    meta_process_setup.counter_handler.flush()
                     break
 
                 if enable_timing:
@@ -519,6 +520,7 @@ def run_meta_process(
                     progress=progress,
                 )
                 task_done(result)
+                meta_process_setup.counter_handler.flush()
 
                 if enable_timing:
                     report = file_timer.get_report()
@@ -535,6 +537,8 @@ def run_meta_process(
                 )
             finally:
                 progress.advance(task_id)
+
+    meta_process_setup.counter_handler.flush()
 
     if not os.path.exists(os.path.join(meta_process_setup.base_output_dir, ".stop")):
         if os.path.exists(meta_process_setup.cache_path):
