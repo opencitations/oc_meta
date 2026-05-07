@@ -2341,6 +2341,7 @@ class TestProcessTest:
             },
         ])
         settings["input_csv_dir"] = input_dir_2
+        settings["identifiers_only"] = True
         run_meta_process(settings=settings, meta_config_path=meta_config_path)
 
         # Verify new openalex identifiers were added

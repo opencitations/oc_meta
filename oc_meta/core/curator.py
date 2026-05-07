@@ -151,6 +151,7 @@ class Curator:
         self.preexisting_entities = set()
         self.silencer = silencer
         self.min_rows_parallel = min_rows_parallel
+        self.identifiers_only = self.settings.get("identifiers_only", False)
 
 
     def _timed(self, name: str):
@@ -264,6 +265,7 @@ class Curator:
                 self.progress.remove_task(task_collect)
             self.finder.get_everything_about_res(
                 metavals=metavals, identifiers=identifiers, vvis=vvis,
+                max_depth=1 if self.identifiers_only else 10,
                 progress=self.progress
             )
 
@@ -294,22 +296,23 @@ class Curator:
                 self.progress.remove_task(task_merge)
             self.clean_metadata_without_id()
 
-            self.rowcnt = 0
-            task_vvi_ra = None
-            if self.progress:
-                task_vvi_ra = self.progress.add_task(
-                    "  [dim]Cleaning VVI and RA[/dim]", total=total_rows
-                )
-            for row in self.data:
-                self.clean_vvi(row)
-                self.clean_ra(row, "author")
-                self.clean_ra(row, "publisher")
-                self.clean_ra(row, "editor")
-                self.rowcnt += 1
+            if not self.identifiers_only:
+                self.rowcnt = 0
+                task_vvi_ra = None
+                if self.progress:
+                    task_vvi_ra = self.progress.add_task(
+                        "  [dim]Cleaning VVI and RA[/dim]", total=total_rows
+                    )
+                for row in self.data:
+                    self.clean_vvi(row)
+                    self.clean_ra(row, "author")
+                    self.clean_ra(row, "publisher")
+                    self.clean_ra(row, "editor")
+                    self.rowcnt += 1
+                    if self.progress and task_vvi_ra is not None:
+                        self.progress.advance(task_vvi_ra)
                 if self.progress and task_vvi_ra is not None:
-                    self.progress.advance(task_vvi_ra)
-            if self.progress and task_vvi_ra is not None:
-                self.progress.remove_task(task_vvi_ra)
+                    self.progress.remove_task(task_vvi_ra)
 
         # Phase 4: Metamaker (preexisting + meta_maker + enrich + dedupe)
         with self._timed("curation__metamaker"):
@@ -1343,7 +1346,8 @@ class Curator:
         for row in self.data:
             row_id = row["id"]
             if "wannabe" not in row_id:
-                self.equalizer(row, row_id)
+                if not self.identifiers_only:
+                    self.equalizer(row, row_id)
                 related_indices: set[int] = set()
                 if row_id in id_to_indices:
                     related_indices.update(id_to_indices[row_id])
