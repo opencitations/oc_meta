@@ -1205,6 +1205,7 @@ class TestProcessTest:
         counter_handler = FilesystemCounterHandler(info_dir=info_dir, supplier_prefix="060")
         counter_handler.set_counter(2, "br", supplier_prefix="060")
         counter_handler.set_counter(2, "id", supplier_prefix="060")
+        counter_handler.flush()
 
         # Run the process
         run_meta_process(settings=settings, meta_config_path=meta_config_path)
@@ -1372,6 +1373,7 @@ class TestProcessTest:
         counter_handler = FilesystemCounterHandler(info_dir=info_dir, supplier_prefix="060")
         counter_handler.set_counter(6, "br", supplier_prefix="060")
         counter_handler.set_counter(3, "id", supplier_prefix="060")
+        counter_handler.flush()
 
         with open(meta_config_path, "w") as f:
             yaml.dump(settings, f)
@@ -1759,6 +1761,7 @@ class TestProcessTest:
         counter_handler = FilesystemCounterHandler(info_dir=info_dir, supplier_prefix="060")
         counter_handler.set_counter(5, "br", supplier_prefix="060")
         counter_handler.set_counter(1, "id", supplier_prefix="060")
+        counter_handler.flush()
 
         with open(meta_config_path, "w") as f:
             yaml.dump(settings, f)

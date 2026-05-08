@@ -1514,7 +1514,7 @@ requires-dist = [
     { name = "filelock", specifier = ">=3.24.0" },
     { name = "numpy", specifier = ">=2.2.0" },
     { name = "oc-ds-converter", specifier = "==2.0.1" },
-    { name = "oc-ocdm", specifier = "==11.0.12" },
+    { name = "oc-ocdm", specifier = "==11.0.14" },
     { name = "orjson", specifier = ">=3.11.0" },
     { name = "pandas", specifier = ">=2.2.3" },
     { name = "piccione", specifier = ">=3.0.0" },
@@ -1554,7 +1554,7 @@ dev = [
 
 [[package]]
 name = "oc-ocdm"
-version = "11.0.12"
+version = "11.0.14"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "filelock" },
@@ -1562,13 +1562,13 @@ dependencies = [
     { name = "pyshacl" },
     { name = "rdflib" },
     { name = "redis" },
-    { name = "sparqlite" },
+    { name = "sparqlwrapper" },
     { name = "tqdm" },
     { name = "triplelite" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/de/f4/5b3ad5856d7af4010b270af129bad806e182b704ce707a5d50216c8d6df8/oc_ocdm-11.0.12.tar.gz", hash = "sha256:b49d94c97c4b947e1e9597d4490ce9f17a0e3f38d6a15a050d3932a0079686d7", size = 714230, upload-time = "2026-05-07T16:01:41.476Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/1d/1d/c142f409e5af6492b6d0300a182b1d2747625e38487b3536cb06bc22b93b/oc_ocdm-11.0.14.tar.gz", hash = "sha256:1f2cb4d5f9e538cf973ee415733eb71c57324b2011160b492b314f2c857713a5", size = 762503, upload-time = "2026-05-08T20:25:48.869Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/0d/fd/2cc6e100ab7076904b77351dfbfba8414bee14c2085510ff5ba84eb57a66/oc_ocdm-11.0.12-py3-none-any.whl", hash = "sha256:7316acbcb99938c0e988147e38c358b431821d495c4d46b5d3f357d774747d62", size = 103403, upload-time = "2026-05-07T16:01:40.078Z" },
+    { url = "https://files.pythonhosted.org/packages/cc/1f/90777696d398e1809ffa8acd6e6f91547f0bfc877c5c78306fa0dd58cf93/oc_ocdm-11.0.14-py3-none-any.whl", hash = "sha256:0b32318dbaca725ae21730facfcb5ec4143bc683f8816e0cc576479d90b87ede", size = 102819, upload-time = "2026-05-08T20:25:47.545Z" },
 ]
 
 [[package]]

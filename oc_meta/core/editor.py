@@ -118,11 +118,9 @@ class MetaEditor:
             self.reader.import_entity_from_triplestore(
                 g_set, self.endpoint, res_str, self.resp_agent, enable_validation=False
             )
-        except ValueError as e:
-            print(f"ValueError for entity {res_str}: {e}")
+        except ValueError:
             inferred_type = self.infer_type_from_uri(res_str)
             if inferred_type:
-                print(f"Inferred type {inferred_type} for entity {res_str}")
                 query: str = (
                     f"SELECT ?s ?p ?o WHERE {{BIND (<{res_str}> AS ?s). ?s ?p ?o.}}"
                 )
@@ -246,8 +244,7 @@ class MetaEditor:
                 for entity in entities_to_import:
                     self.entity_cache.add(entity)
 
-            except ValueError as e:
-                print(f"Error importing entities: {e}")
+            except ValueError:
                 return
 
         res_as_entity = g_set.get_entity(res)
@@ -315,7 +312,7 @@ class MetaEditor:
                     self.save(g_set, supplier_prefix)
                 return False
 
-    def save(self, g_set: GraphSet, supplier_prefix: str = "") -> None:        
+    def save(self, g_set: GraphSet, supplier_prefix: str = "") -> None:
         provset = ProvSet(
             g_set,
             self.base_iri,
@@ -348,6 +345,7 @@ class MetaEditor:
                 self.provenance_endpoint, base_dir=self.prov_hotfix_dir, save_queries=self.save_queries
             )
         g_set.commit_changes()
+        self.counter_handler.flush()
 
     def infer_type_from_uri(self, uri: str) -> str | None:
         if os.path.join(self.base_iri, "br") in uri:

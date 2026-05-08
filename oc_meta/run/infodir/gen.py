@@ -139,6 +139,7 @@ def explore_directories(root_path, info_dir):
 
     for prefix, updates in final_batch_updates.items():
         counter_handler.set_counters_batch(updates, prefix)
+    counter_handler.flush()
 
 def main():
     parser = argparse.ArgumentParser(
