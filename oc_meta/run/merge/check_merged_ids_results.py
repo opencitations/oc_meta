@@ -13,7 +13,7 @@ from functools import partial
 import yaml
 from rdflib import RDF, Dataset, Literal, Namespace, URIRef
 from rich_argparse import RichHelpFormatter
-from sparqlite import SPARQLClient
+from oc_meta.lib.sparql import execute_sparql
 from tqdm import tqdm
 
 from oc_meta.core.editor import MetaEditor
@@ -143,16 +143,15 @@ def check_entity_file(file_path, entity_uri, is_surviving):
     prov_file_path = file_path.replace('.zip', '') + '/prov/se.zip'
     check_provenance(prov_file_path, entity_uri, is_surviving)
 
-def check_entity_sparql(client, entity_uri, is_surviving):
+def check_entity_sparql(endpoint: str, entity_uri, is_surviving):
     has_issues = False
 
-    # Query to check if the entity exists
     exists_query = f"""
     ASK {{
         <{entity_uri}> ?p ?o .
     }}
     """
-    exists_results = client.query(exists_query)
+    exists_results = execute_sparql(endpoint, exists_query, max_retries=3, backoff_factor=1)
 
     if exists_results['boolean']:
         if not is_surviving:
@@ -170,19 +169,18 @@ def check_entity_sparql(client, entity_uri, is_surviving):
             ?s ?p <{entity_uri}> .
         }}
         """
-        referenced_results = client.query(referenced_query)
+        referenced_results = execute_sparql(endpoint, referenced_query, max_retries=3, backoff_factor=1)
 
         if referenced_results['boolean']:
             tqdm.write(f"Error in SPARQL: Merged entity {entity_uri} is still referenced by other entities")
             has_issues = True
 
-    # Query to get entity types
     types_query = f"""
     SELECT ?type WHERE {{
         <{entity_uri}> a ?type .
     }}
     """
-    types_results = client.query(types_query)
+    types_results = execute_sparql(endpoint, types_query, max_retries=3, backoff_factor=1)
 
     types = [result['type']['value'] for result in types_results['results']['bindings']]
     if not types:
@@ -190,14 +188,13 @@ def check_entity_sparql(client, entity_uri, is_surviving):
         has_issues = True
 
     if DATACITE + "Identifier" in types:
-        # Query for identifier scheme and literal value
         identifier_query = f"""
         SELECT ?scheme ?value WHERE {{
             <{entity_uri}> <{DATACITE}usesIdentifierScheme> ?scheme .
             <{entity_uri}> <{LITERAL_REIFICATION}hasLiteralValue> ?value .
         }}
         """
-        identifier_results = client.query(identifier_query)
+        identifier_results = execute_sparql(endpoint, identifier_query, max_retries=3, backoff_factor=1)
 
         schemes = [result['scheme']['value'] for result in identifier_results['results']['bindings']]
         values = [result['value']['value'] for result in identifier_results['results']['bindings']]
@@ -237,7 +234,7 @@ def process_csv(args, csv_file):
 
     return tasks
 
-def get_entity_triples(client, entity_uri):
+def get_entity_triples(endpoint: str, entity_uri):
     query = f"""
     SELECT ?g ?s ?p ?o
     WHERE {{
@@ -254,7 +251,7 @@ def get_entity_triples(client, entity_uri):
         }}
     }}
     """
-    results = client.query(query)
+    results = execute_sparql(endpoint, query, max_retries=3, backoff_factor=1)
 
     triples = []
     for result in results["results"]["bindings"]:
@@ -298,16 +295,15 @@ def process_entity(args):
     else:
         check_entity_file(file_path, entity, is_surviving)
 
-    with SPARQLClient(sparql_endpoint, max_retries=3, backoff_factor=1, timeout=3600) as client:
-        has_issues = check_entity_sparql(client, entity, is_surviving)
+    has_issues = check_entity_sparql(sparql_endpoint, entity, is_surviving)
 
-        if has_issues and not is_surviving:
-            triples = get_entity_triples(client, entity)
-            combined_query = generate_update_query(entity, surviving_entity, triples)
+    if has_issues and not is_surviving:
+        triples = get_entity_triples(sparql_endpoint, entity)
+        combined_query = generate_update_query(entity, surviving_entity, triples)
 
-            query_file_path = os.path.join(query_output_dir, f"update_{entity.split('/')[-1]}.sparql")
-            with open(query_file_path, 'w') as f:
-                f.write(combined_query)
+        query_file_path = os.path.join(query_output_dir, f"update_{entity.split('/')[-1]}.sparql")
+        with open(query_file_path, 'w') as f:
+            f.write(combined_query)
 
 def main():
     parser = argparse.ArgumentParser(

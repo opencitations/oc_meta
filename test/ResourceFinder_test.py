@@ -8,7 +8,7 @@ import pytest
 from oc_meta.lib.finder import ResourceFinder, _RDF_TYPE, _XSD_STRING
 from oc_ocdm.graph import GraphEntity
 from triplelite import RDFTerm
-from sparqlite import SPARQLClient
+from oc_meta.lib.sparql import execute_sparql_update
 from test.test_utils import add_data_ts, reset_triplestore
 
 
@@ -544,10 +544,9 @@ def vvi_endpoint():
         '<https://w3id.org/oc/meta/br/9004> <http://purl.org/spar/fabio/hasSequenceIdentifier> "20"^^<http://www.w3.org/2001/XMLSchema#string> .',
     ]
 
-    with SPARQLClient(ENDPOINT, timeout=60) as client:
-        for triple in test_triples:
-            query = f"INSERT DATA {{ GRAPH <https://w3id.org/oc/meta/br/> {{ {triple} }} }}"
-            client.update(query)
+    for triple in test_triples:
+        query = f"INSERT DATA {{ GRAPH <https://w3id.org/oc/meta/br/> {{ {triple} }} }}"
+        execute_sparql_update(ENDPOINT, query)
 
     return ENDPOINT
 

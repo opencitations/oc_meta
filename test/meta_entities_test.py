@@ -10,8 +10,8 @@ import tempfile
 
 import pytest
 from rdflib import Graph
-from sparqlite import SPARQLClient
 
+from oc_meta.lib.sparql import execute_sparql_update
 from oc_meta.run.count.meta_entities import OCMetaStatistics, _count_venues_in_file
 from test.test_utils import SERVER, reset_triplestore
 
@@ -56,15 +56,14 @@ def load_test_data(server: str = SERVER) -> None:
     g = Graph()
     g.parse(data=TEST_DATA, format='ttl')
 
-    with SPARQLClient(server, timeout=60) as client:
-        for s, p, o in g:
-            client.update(f'''
-                INSERT DATA {{
-                    GRAPH <https://w3id.org/oc/meta/> {{
-                        {s.n3()} {p.n3()} {o.n3()} .
-                    }}
+    for s, p, o in g:
+        execute_sparql_update(server, f'''
+            INSERT DATA {{
+                GRAPH <https://w3id.org/oc/meta/> {{
+                    {s.n3()} {p.n3()} {o.n3()} .
                 }}
-            ''')
+            }}
+        ''')
 
 
 class TestOCMetaStatistics:

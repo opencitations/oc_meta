@@ -15,7 +15,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from typing import Dict, Set
 
 from rich_argparse import RichHelpFormatter
-from sparqlite import SPARQLClient
+from oc_meta.lib.sparql import execute_sparql
 
 from oc_meta.lib.console import create_progress
 from oc_meta.lib.file_manager import get_csv_data
@@ -49,11 +49,10 @@ class OCMetaStatistics:
         self.csv_dump_path = csv_dump_path
         self.max_retries = max_retries
         self.retry_delay = retry_delay
-        self.client = SPARQLClient(sparql_endpoint, max_retries=max_retries, backoff_factor=retry_delay, timeout=3600)
 
     def _execute_sparql_query(self, query: str) -> Dict:
         try:
-            return self.client.query(query)
+            return execute_sparql(self.sparql_endpoint, query, max_retries=self.max_retries, backoff_factor=self.retry_delay)
         except Exception as e:
             print(f"Query failed after {self.max_retries} retries.", file=sys.stderr)
             raise Exception("SPARQL query failed after multiple retries.") from e
@@ -62,11 +61,7 @@ class OCMetaStatistics:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.close()
         return False
-
-    def close(self):
-        self.client.close()
 
     def count_expressions(self) -> int:
         query = """

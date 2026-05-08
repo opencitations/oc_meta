@@ -9,7 +9,7 @@ import os
 import pandas as pd
 import yaml
 from rich_argparse import RichHelpFormatter
-from sparqlite import SPARQLClient
+from oc_meta.lib.sparql import execute_sparql
 from tqdm import tqdm
 
 from oc_meta.lib.file_manager import find_rdf_file
@@ -70,37 +70,36 @@ def query_sparql_batch(endpoint, uris, batch_size=10):
     """
     related_entities = set()
 
-    with SPARQLClient(endpoint, max_retries=5, backoff_factor=5, timeout=3600) as client:
-        for i in range(0, len(uris), batch_size):
-            batch_uris = uris[i:i + batch_size]
+    for i in range(0, len(uris), batch_size):
+        batch_uris = uris[i:i + batch_size]
 
-            subject_clauses = []
-            object_clauses = []
+        subject_clauses = []
+        object_clauses = []
 
-            for uri in batch_uris:
-                subject_clauses.append(f"{{?entity ?p <{uri}>}}")
-                object_clauses.append(f"{{<{uri}> ?p ?entity}}")
+        for uri in batch_uris:
+            subject_clauses.append(f"{{?entity ?p <{uri}>}}")
+            object_clauses.append(f"{{<{uri}> ?p ?entity}}")
 
-            query = f"""
-                PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-                PREFIX datacite: <http://purl.org/spar/datacite/>
-                PREFIX pro: <http://purl.org/spar/pro/>
-                SELECT DISTINCT ?entity WHERE {{
-                    {{
-                        {' UNION '.join(subject_clauses + object_clauses)}
-                    }}
-                    ?entity ?p2 ?o2 .
-                    FILTER (?p != rdf:type)
-                    FILTER (?p != datacite:usesIdentifierScheme)
-                    FILTER (?p != pro:withRole)
+        query = f"""
+            PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+            PREFIX datacite: <http://purl.org/spar/datacite/>
+            PREFIX pro: <http://purl.org/spar/pro/>
+            SELECT DISTINCT ?entity WHERE {{
+                {{
+                    {' UNION '.join(subject_clauses + object_clauses)}
                 }}
-            """
+                ?entity ?p2 ?o2 .
+                FILTER (?p != rdf:type)
+                FILTER (?p != datacite:usesIdentifierScheme)
+                FILTER (?p != pro:withRole)
+            }}
+        """
 
-            results = client.query(query)
+        results = execute_sparql(endpoint, query, max_retries=5, backoff_factor=5)
 
-            for result in results['results']['bindings']:
-                if result['entity']['type'] == 'uri':
-                    related_entities.add(result['entity']['value'])
+        for result in results['results']['bindings']:
+            if result['entity']['type'] == 'uri':
+                related_entities.add(result['entity']['value'])
 
     return related_entities
 

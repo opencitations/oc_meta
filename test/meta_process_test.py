@@ -22,7 +22,7 @@ from oc_ocdm.counter_handler.filesystem_counter_handler import FilesystemCounter
 from oc_ocdm.support import sparql_binding_to_rdfterm
 from rdflib import Dataset, Graph, Literal, URIRef
 from triplelite import RDFTerm
-from sparqlite import SPARQLClient
+from oc_meta.lib.sparql import execute_sparql_update
 
 BASE_DIR = os.path.join("test", "meta_process")
 
@@ -1184,9 +1184,7 @@ class TestProcessTest:
             )
 
         # Setup: Insert pre-existing identifiers and BRs in triplestore
-        with SPARQLClient(SERVER, timeout=60) as client:
-            client.update(
-                """
+        execute_sparql_update(SERVER, """
             INSERT DATA {
                 GRAPH <https://w3id.org/oc/meta/br/> {
                     <https://w3id.org/oc/meta/br/0601> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0601> ;
@@ -1201,8 +1199,7 @@ class TestProcessTest:
                                                    <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/issn> .
                 }
             }
-            """
-            )
+            """)
 
         info_dir = os.path.join(output_folder, "info_dir", "060") + os.sep
         counter_handler = FilesystemCounterHandler(info_dir=info_dir, supplier_prefix="060")
@@ -1313,9 +1310,7 @@ class TestProcessTest:
             )
 
         # Setup: Insert pre-existing data - aggiungiamo gli identificatori iniziali
-        with SPARQLClient(SERVER, timeout=60) as client:
-            client.update(
-                """
+        execute_sparql_update(SERVER, """
         INSERT DATA {
             GRAPH <https://w3id.org/oc/meta/br/> {
                 # First venue - BMJ with initial ISSNs
@@ -1346,8 +1341,7 @@ class TestProcessTest:
                     <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/issn> .
             }
         }
-        """
-            )
+        """)
 
         # Create test settings
         settings = {
@@ -1651,9 +1645,7 @@ class TestProcessTest:
         meta_config_path = os.path.join(BASE_DIR, "meta_config_vvi_triplestore.yaml")
 
         # Setup: Insert pre-existing venue with duplicate volumes and issues (with/without datatype)
-        with SPARQLClient(SERVER, timeout=60) as client:
-            client.update(
-                """
+        execute_sparql_update(SERVER, """
         INSERT DATA {
             GRAPH <https://w3id.org/oc/meta/br/> {
                 # Venue
@@ -1697,8 +1689,7 @@ class TestProcessTest:
                     <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/issn> .
             }
         }
-        """
-            )
+        """)
 
         # Create test data - article that should use existing volume and issue
         os.makedirs(os.path.join(BASE_DIR, "input_vvi_triplestore"), exist_ok=True)

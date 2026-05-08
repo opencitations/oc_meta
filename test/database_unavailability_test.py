@@ -11,11 +11,11 @@ import os
 import shutil
 import subprocess
 import tempfile
+from functools import partial
 from unittest.mock import patch
 
 import pytest
 import yaml
-from sparqlite import SPARQLClient as OriginalSPARQLClient
 from test.test_utils import (
     QLEVER_CONTAINER,
     SERVER,
@@ -23,20 +23,12 @@ from test.test_utils import (
     wait_for_triplestore,
 )
 
+from oc_meta.lib.sparql import execute_sparql_queries
 from oc_meta.run.meta_process import MetaProcess
 
 BASE_DIR = os.path.join("test", "meta_process")
-SHORT_TIMEOUT = 3
-SHORT_MAX_RETRIES = 1
-SHORT_BACKOFF = 0.1
 
-
-def short_timeout_sparql_client(*args, **kwargs):
-    """Wrapper that forces short timeout and minimal retries for SPARQLClient."""
-    kwargs["timeout"] = SHORT_TIMEOUT
-    kwargs["max_retries"] = SHORT_MAX_RETRIES
-    kwargs["backoff_factor"] = SHORT_BACKOFF
-    return OriginalSPARQLClient(*args, **kwargs)
+_short_retry_execute = partial(execute_sparql_queries, max_retries=1, backoff_factor=0.1)
 
 
 class TestDatabaseUnavailability:
@@ -64,10 +56,9 @@ class TestDatabaseUnavailability:
         wait_for_triplestore(SERVER, max_wait=30)
         print("[DEBUG] tearDown: done")
 
-    @patch("oc_meta.lib.finder.SPARQLClient", side_effect=short_timeout_sparql_client)
-    @patch("oc_meta.lib.sparql.SPARQLClient", side_effect=short_timeout_sparql_client)
-    @patch("sparqlite.SPARQLClient", side_effect=short_timeout_sparql_client)
-    def test_triplestore_unavailable_prevents_cache_update(self, mock_sparqlite, mock_sparql, mock_finder):
+    @patch("oc_meta.lib.finder.execute_sparql_queries", _short_retry_execute)
+    @patch("oc_meta.lib.sparql.execute_sparql_queries", _short_retry_execute)
+    def test_triplestore_unavailable_prevents_cache_update(self):
         """When triplestore is offline, processing fails and file is NOT cached."""
         print("[DEBUG] test: loading config...")
         meta_config_path = os.path.join(BASE_DIR, "meta_config_3.yaml")

@@ -14,12 +14,12 @@ from urllib.parse import urlparse
 import rdflib
 from rdflib.term import Node
 from rich_argparse import RichHelpFormatter
-from sparqlite import SPARQLClient
+from oc_meta.lib.sparql import execute_sparql
 
 CHUNK_SIZE = 20
 
 
-def get_subjects_of_class(client: SPARQLClient, class_uri: str, limit: int) -> list[str]:
+def get_subjects_of_class(endpoint: str, class_uri: str, limit: int) -> list[str]:
     query = f"""
     SELECT ?s
     WHERE {{
@@ -27,7 +27,7 @@ def get_subjects_of_class(client: SPARQLClient, class_uri: str, limit: int) -> l
     }}
     LIMIT {limit}
     """
-    results = client.query(query)
+    results = execute_sparql(endpoint, query)
     return [result["s"]["value"] for result in results["results"]["bindings"]]
 
 
@@ -51,7 +51,7 @@ def parse_object(result: dict[str, dict[str, str]]) -> rdflib.URIRef | rdflib.BN
 
 
 def get_triples_for_entities(
-    client: SPARQLClient,
+    endpoint: str,
     entity_uris: list[str],
     use_graphs: bool,
 ) -> list[tuple[rdflib.URIRef, rdflib.URIRef, Node, rdflib.URIRef | None]]:
@@ -80,7 +80,7 @@ def get_triples_for_entities(
             }}
             """
 
-        results = client.query(query)
+        results = execute_sparql(endpoint, query)
         for result in results["results"]["bindings"]:
             s_term = rdflib.URIRef(result["s"]["value"])
             p_term = rdflib.URIRef(result["p"]["value"])
@@ -101,44 +101,43 @@ def extract_subset(
     entities_file: str | None = None,
     use_graphs: bool = True,
 ) -> tuple[int, str]:
-    with SPARQLClient(endpoint, max_retries=max_retries, backoff_factor=2, timeout=3600) as client:
-        if entities_file:
-            subjects = load_entities_from_file(entities_file)
-        else:
-            assert class_uri is not None
-            subjects = get_subjects_of_class(client, class_uri, limit)
+    if entities_file:
+        subjects = load_entities_from_file(entities_file)
+    else:
+        assert class_uri is not None
+        subjects = get_subjects_of_class(endpoint, class_uri, limit)
 
-        processed_entities: set[str] = set()
-        pending_entities = set(subjects)
+    processed_entities: set[str] = set()
+    pending_entities = set(subjects)
 
-        dataset: rdflib.Dataset | None = None
-        graph: rdflib.Graph | None = None
-        if use_graphs:
-            dataset = rdflib.Dataset()
-        else:
-            graph = rdflib.Graph()
+    dataset: rdflib.Dataset | None = None
+    graph: rdflib.Graph | None = None
+    if use_graphs:
+        dataset = rdflib.Dataset()
+    else:
+        graph = rdflib.Graph()
 
-        while pending_entities:
-            batch = sorted(pending_entities - processed_entities)
-            if not batch:
-                break  # pragma: no cover
+    while pending_entities:
+        batch = sorted(pending_entities - processed_entities)
+        if not batch:
+            break  # pragma: no cover
 
-            processed_entities.update(batch)
-            pending_entities.clear()
+        processed_entities.update(batch)
+        pending_entities.clear()
 
-            quads = get_triples_for_entities(client, batch, use_graphs)
+        quads = get_triples_for_entities(endpoint, batch, use_graphs)
 
-            for s_term, p_term, o_term, g_term in quads:
-                if dataset is not None:
-                    named_graph = dataset.graph(g_term)
-                    named_graph.add((s_term, p_term, o_term))
-                elif graph is not None:
-                    graph.add((s_term, p_term, o_term))
+        for s_term, p_term, o_term, g_term in quads:
+            if dataset is not None:
+                named_graph = dataset.graph(g_term)
+                named_graph.add((s_term, p_term, o_term))
+            elif graph is not None:
+                graph.add((s_term, p_term, o_term))
 
-                if isinstance(o_term, rdflib.URIRef):
-                    o_str = str(o_term)
-                    if o_str not in processed_entities:
-                        pending_entities.add(o_str)
+            if isinstance(o_term, rdflib.URIRef):
+                o_str = str(o_term)
+                if o_str not in processed_entities:
+                    pending_entities.add(o_str)
 
     store = dataset if dataset is not None else graph
     assert store is not None

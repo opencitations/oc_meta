@@ -32,6 +32,7 @@ dependencies = [
     "rich>=14.3.0",
     "rich-argparse>=1.7.2",
     "scandir-rs>=2.9.5",
+    "sparqlwrapper>=2.0.0",
     "time-agnostic-library>=7,<8",
     "tqdm>=4.67.3",
     "triplelite>=1.4.0",

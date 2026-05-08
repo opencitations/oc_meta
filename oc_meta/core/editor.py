@@ -22,7 +22,7 @@ from oc_ocdm.support import get_prefix
 from oc_ocdm.support.support import build_graph_from_results
 
 from oc_meta.lib.file_manager import find_rdf_file
-from sparqlite import SPARQLClient
+from oc_meta.lib.sparql import execute_sparql
 
 
 class EntityCache:
@@ -126,8 +126,7 @@ class MetaEditor:
                 query: str = (
                     f"SELECT ?s ?p ?o WHERE {{BIND (<{res_str}> AS ?s). ?s ?p ?o.}}"
                 )
-                with SPARQLClient(self.endpoint, max_retries=3, backoff_factor=0.3, timeout=3600) as client:
-                    result = client.query(query)["results"]["bindings"]
+                result = execute_sparql(self.endpoint, query, max_retries=3, backoff_factor=0.3)["results"]["bindings"]
                 graph = build_graph_from_results(result)
                 preexisting_graph = graph.subgraph(res_str)
                 self.add_entity_with_type(g_set, res_str, inferred_type, preexisting_graph)
@@ -163,8 +162,7 @@ class MetaEditor:
                 getattr(g_set.get_entity(res_str), remove_method)()
         else:
             query = f"SELECT ?s WHERE {{?s ?p <{res_str}>.}}"
-            with SPARQLClient(self.endpoint, max_retries=3, backoff_factor=0.3, timeout=3600) as client:
-                result = client.query(query)
+            result = execute_sparql(self.endpoint, query, max_retries=3, backoff_factor=0.3)
             for entity in result["results"]["bindings"]:
                 self.reader.import_entity_from_triplestore(
                     g_set,
@@ -181,54 +179,53 @@ class MetaEditor:
 
     def merge(self, g_set: GraphSet, res: str, other: str) -> None:
         related_entities: set[str] = set()
-        with SPARQLClient(self.endpoint, max_retries=5, backoff_factor=0.3, timeout=3600) as client:
-            if other in self.relationship_cache:
-                related_entities.update(self.relationship_cache[other])
-            else:
-                query = f"""
-                    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-                    PREFIX datacite: <http://purl.org/spar/datacite/>
-                    PREFIX pro: <http://purl.org/spar/pro/>
-                    SELECT DISTINCT ?entity WHERE {{
-                        {{?entity ?p <{other}>}} UNION
-                        {{<{other}> ?p ?entity}}
-                        FILTER (?p != rdf:type)
-                        FILTER (?p != datacite:usesIdentifierScheme)
-                        FILTER (?p != pro:withRole)
-                    }}"""
+        if other in self.relationship_cache:
+            related_entities.update(self.relationship_cache[other])
+        else:
+            query = f"""
+                PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+                PREFIX datacite: <http://purl.org/spar/datacite/>
+                PREFIX pro: <http://purl.org/spar/pro/>
+                SELECT DISTINCT ?entity WHERE {{
+                    {{?entity ?p <{other}>}} UNION
+                    {{<{other}> ?p ?entity}}
+                    FILTER (?p != rdf:type)
+                    FILTER (?p != datacite:usesIdentifierScheme)
+                    FILTER (?p != pro:withRole)
+                }}"""
 
-                data = client.query(query)
-                other_related = {
-                    result["entity"]["value"]
-                    for result in data["results"]["bindings"]
-                    if result["entity"]["type"] == "uri"
-                }
+            data = execute_sparql(self.endpoint, query, max_retries=5, backoff_factor=0.3)
+            other_related = {
+                result["entity"]["value"]
+                for result in data["results"]["bindings"]
+                if result["entity"]["type"] == "uri"
+            }
 
-                self.relationship_cache[other] = other_related
-                related_entities.update(other_related)
-            if res in self.relationship_cache:
-                related_entities.update(self.relationship_cache[res])
-            else:
-                query = f"""
-                    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-                    PREFIX datacite: <http://purl.org/spar/datacite/>
-                    PREFIX pro: <http://purl.org/spar/pro/>
-                    SELECT DISTINCT ?entity WHERE {{
-                        <{res}> ?p ?entity
-                        FILTER (?p != rdf:type)
-                        FILTER (?p != datacite:usesIdentifierScheme)
-                        FILTER (?p != pro:withRole)
-                    }}"""
+            self.relationship_cache[other] = other_related
+            related_entities.update(other_related)
+        if res in self.relationship_cache:
+            related_entities.update(self.relationship_cache[res])
+        else:
+            query = f"""
+                PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+                PREFIX datacite: <http://purl.org/spar/datacite/>
+                PREFIX pro: <http://purl.org/spar/pro/>
+                SELECT DISTINCT ?entity WHERE {{
+                    <{res}> ?p ?entity
+                    FILTER (?p != rdf:type)
+                    FILTER (?p != datacite:usesIdentifierScheme)
+                    FILTER (?p != pro:withRole)
+                }}"""
 
-                data = client.query(query)
-                res_related = {
-                    result["entity"]["value"]
-                    for result in data["results"]["bindings"]
-                    if result["entity"]["type"] == "uri"
-                }
+            data = execute_sparql(self.endpoint, query, max_retries=5, backoff_factor=0.3)
+            res_related = {
+                result["entity"]["value"]
+                for result in data["results"]["bindings"]
+                if result["entity"]["type"] == "uri"
+            }
 
-                self.relationship_cache[res] = res_related
-                related_entities.update(res_related)
+            self.relationship_cache[res] = res_related
+            related_entities.update(res_related)
 
         entities_to_import = {res, other}
         entities_to_import.update(related_entities)

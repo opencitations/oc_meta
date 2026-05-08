@@ -8,9 +8,9 @@ import tempfile
 
 import pytest
 from oc_ocdm.prov.prov_entity import ProvEntity
-from sparqlite import SPARQLClient
 
 from oc_meta.lib.finder import ResourceFinder
+from oc_meta.lib.sparql import execute_sparql_update
 from test.test_utils import PROV_SERVER, SERVER, reset_server
 
 
@@ -43,9 +43,8 @@ def prov_config_file():
 
 
 def _insert_data(triples: list[str], graph_uri: str) -> None:
-    with SPARQLClient(SERVER, timeout=60) as client:
-        for triple in triples:
-            client.update(f"INSERT DATA {{ GRAPH <{graph_uri}> {{ {triple} }} }}")
+    for triple in triples:
+        execute_sparql_update(SERVER, f"INSERT DATA {{ GRAPH <{graph_uri}> {{ {triple} }} }}")
 
 
 class TestTimeAgnosticLibraryIntegration:
@@ -97,9 +96,8 @@ class TestTimeAgnosticLibraryIntegration:
             f'GRAPH <{target_prov_graph}> {{ <{target_se2}> <{ProvEntity.iri_description}> "The entity has been merged." }}',
         ]
 
-        with SPARQLClient(PROV_SERVER, timeout=60) as client:
-            for triple in source_prov + target_prov:
-                client.update(f"INSERT DATA {{ {triple} }}")
+        for triple in source_prov + target_prov:
+            execute_sparql_update(PROV_SERVER, f"INSERT DATA {{ {triple} }}")
 
         finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
         result = finder.retrieve_metaid_from_merged_entity(

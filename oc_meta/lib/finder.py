@@ -18,7 +18,6 @@ from oc_ocdm.graph.graph_entity import GraphEntity
 from oc_ocdm.prov.prov_entity import ProvEntity
 from oc_ocdm.support import get_resource_number
 from triplelite import RDFTerm, TripleLite
-from sparqlite import SPARQLClient
 from time_agnostic_library.agnostic_entity import AgnosticEntity
 from rich.console import Console
 
@@ -202,8 +201,7 @@ class ResourceFinder:
                 }}
             '''
             prov_endpoint = prov_config_dict['provenance']['triplestore_urls'][0]
-            with SPARQLClient(prov_endpoint, max_retries=5, backoff_factor=5, timeout=3600) as client:
-                results = client.query(query_if_it_was_merged)['results']['bindings']
+            results = execute_sparql_queries(prov_endpoint, [query_if_it_was_merged])[0]
             merged_entities = [se for se in results if metaid_uri not in se['se']['value']]
             if merged_entities:
                 merged_entity_uri = merged_entities[0]['se']['value']

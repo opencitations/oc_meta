@@ -13,7 +13,7 @@ import multiprocessing
 import yaml
 from rdflib import RDF, Dataset, Literal, Namespace, URIRef
 from rich_argparse import RichHelpFormatter
-from sparqlite import SPARQLClient
+from oc_meta.lib.sparql import execute_sparql
 from tqdm import tqdm
 
 from oc_meta.core.editor import MetaEditor
@@ -77,16 +77,15 @@ def check_br_constraints(g: Dataset, entity):
         
     return issues
 
-def check_entity_sparql(client, entity_uri, is_surviving):
+def check_entity_sparql(endpoint: str, entity_uri, is_surviving):
     has_issues = False
 
-    # Query to check if the entity exists
     exists_query = f"""
     ASK {{
         <{entity_uri}> ?p ?o .
     }}
     """
-    exists_results = client.query(exists_query)
+    exists_results = execute_sparql(endpoint, exists_query, max_retries=3, backoff_factor=1)
 
     if exists_results['boolean']:
         if not is_surviving:
@@ -104,19 +103,18 @@ def check_entity_sparql(client, entity_uri, is_surviving):
             ?s ?p <{entity_uri}> .
         }}
         """
-        referenced_results = client.query(referenced_query)
+        referenced_results = execute_sparql(endpoint, referenced_query, max_retries=3, backoff_factor=1)
 
         if referenced_results['boolean']:
             tqdm.write(f"Error in SPARQL: Merged entity {entity_uri} is still referenced by other entities")
             has_issues = True
 
-    # Query to get entity types
     types_query = f"""
     SELECT ?type WHERE {{
         <{entity_uri}> a ?type .
     }}
     """
-    types_results = client.query(types_query)
+    types_results = execute_sparql(endpoint, types_query, max_retries=3, backoff_factor=1)
 
     types = [result['type']['value'] for result in types_results['results']['bindings']]
     if not types:
@@ -129,13 +127,12 @@ def check_entity_sparql(client, entity_uri, is_surviving):
         tqdm.write(f"Error in SPARQL: Entity {entity_uri} is not a fabio:Expression")
         has_issues = True
 
-    # Query for identifiers
     identifiers_query = f"""
     SELECT ?identifier WHERE {{
         <{entity_uri}> <{DATACITE}hasIdentifier> ?identifier .
     }}
     """
-    identifiers_results = client.query(identifiers_query)
+    identifiers_results = execute_sparql(endpoint, identifiers_query, max_retries=3, backoff_factor=1)
 
     identifiers = [result['identifier']['value'] for result in identifiers_results['results']['bindings']]
     if not identifiers:
@@ -144,7 +141,7 @@ def check_entity_sparql(client, entity_uri, is_surviving):
 
     return has_issues
 
-def get_entity_triples(client, entity_uri):
+def get_entity_triples(endpoint: str, entity_uri):
     query = f"""
     SELECT ?g ?s ?p ?o
     WHERE {{
@@ -161,7 +158,7 @@ def get_entity_triples(client, entity_uri):
         }}
     }}
     """
-    results = client.query(query)
+    results = execute_sparql(endpoint, query, max_retries=3, backoff_factor=1)
 
     triples = []
     for result in results["results"]["bindings"]:
@@ -220,99 +217,78 @@ def process_csv(args, csv_file):
     return tasks
 
 def process_file_group(args):
-    """
-    Process a group of entities that all belong to the same file,
-    opening and parsing the file only once.
-    """
     file_path, entities, sparql_endpoint, query_output_dir = args
 
-    with SPARQLClient(sparql_endpoint, max_retries=3, backoff_factor=1, timeout=3600) as client:
-        if file_path is None:
-            for entity, is_surviving, surviving_entity in entities:
-                tqdm.write(f"Error: Could not find file for entity {entity}")
-                # Still do the SPARQL check
-                has_issues = check_entity_sparql(client, entity, is_surviving)
-                if has_issues and not is_surviving:
-                    triples = get_entity_triples(client, entity)
-                    combined_query = generate_update_query(entity, surviving_entity, triples)
-                    query_file_path = os.path.join(query_output_dir, f"update_{entity.split('/')[-1]}.sparql")
-                    with open(query_file_path, 'w') as f:
-                        f.write(combined_query)
-            return
-
-        # Open RDF zip and parse
-        try:
-            with zipfile.ZipFile(file_path, 'r') as zip_ref:
-                # Parse the RDF content
-                g = Dataset(default_union=True)
-                for filename in zip_ref.namelist():
-                    with zip_ref.open(filename) as file:
-                        g.parse(file, format='json-ld')
-        except FileNotFoundError:
-            for entity, is_surviving, surviving_entity in entities:
-                tqdm.write(f"Error: File not found for entity {entity}")
-                # SPARQL check only
-                has_issues = check_entity_sparql(client, entity, is_surviving)
-                if has_issues and not is_surviving:
-                    triples = get_entity_triples(client, entity)
-                    combined_query = generate_update_query(entity, surviving_entity, triples)
-                    query_file_path = os.path.join(query_output_dir, f"update_{entity.split('/')[-1]}.sparql")
-                    with open(query_file_path, 'w') as f:
-                        f.write(combined_query)
-            return
-
-        # We have now one big RDF graph g with all data in file_path
-        # Similarly, handle provenance
-        prov_file_path = file_path.replace('.zip', '') + '/prov/se.zip'
-        # Parse provenance once
-        prov_graph = None
-        try:
-            with zipfile.ZipFile(prov_file_path, 'r') as zip_ref:
-                prov_graph = Dataset(default_union=True)
-                for filename in zip_ref.namelist():
-                    with zip_ref.open(filename) as file:
-                        prov_graph.parse(file, format='json-ld')
-        except FileNotFoundError:
-            # If provenance not found, we'll report error for each entity
-            prov_graph = None
-        except zipfile.BadZipFile:
-            # If provenance is bad, also report error
-            prov_graph = "badzip"
-
-        # Now check each entity
+    if file_path is None:
         for entity, is_surviving, surviving_entity in entities:
-            # Check if entity is in graph
-            if (URIRef(entity), None, None) not in g:
-                if is_surviving:
-                    tqdm.write(f"Error in file {file_path}: Surviving entity {entity} does not exist")
-            else:
-                if not is_surviving:
-                    tqdm.write(f"Error in file {file_path}: Merged entity {entity} still exists")
-                else:
-                    # Check BR constraints
-                    br_issues = check_br_constraints(g, URIRef(entity))
-                    for issue in br_issues:
-                        tqdm.write(f"Error in file {file_path}: {issue}")
-
-            # Check provenance if possible
-            if prov_graph is None:
-                tqdm.write(f"Error: Provenance file not found for entity {entity}")
-            elif prov_graph == "badzip":
-                tqdm.write(f"Error: Invalid zip file for provenance of entity {entity}")
-            else:
-                # Check provenance
-                check_entity_provenance(URIRef(entity), is_surviving, prov_graph, prov_file_path)
-
-            # SPARQL checks
-            has_issues = check_entity_sparql(client, entity, is_surviving)
-
-            # If we have issues and entity is merged (not surviving), we do the triple extraction and query generation
+            tqdm.write(f"Error: Could not find file for entity {entity}")
+            has_issues = check_entity_sparql(sparql_endpoint, entity, is_surviving)
             if has_issues and not is_surviving:
-                triples = get_entity_triples(client, entity)
+                triples = get_entity_triples(sparql_endpoint, entity)
                 combined_query = generate_update_query(entity, surviving_entity, triples)
                 query_file_path = os.path.join(query_output_dir, f"update_{entity.split('/')[-1]}.sparql")
                 with open(query_file_path, 'w') as f:
                     f.write(combined_query)
+        return
+
+    try:
+        with zipfile.ZipFile(file_path, 'r') as zip_ref:
+            g = Dataset(default_union=True)
+            for filename in zip_ref.namelist():
+                with zip_ref.open(filename) as file:
+                    g.parse(file, format='json-ld')
+    except FileNotFoundError:
+        for entity, is_surviving, surviving_entity in entities:
+            tqdm.write(f"Error: File not found for entity {entity}")
+            has_issues = check_entity_sparql(sparql_endpoint, entity, is_surviving)
+            if has_issues and not is_surviving:
+                triples = get_entity_triples(sparql_endpoint, entity)
+                combined_query = generate_update_query(entity, surviving_entity, triples)
+                query_file_path = os.path.join(query_output_dir, f"update_{entity.split('/')[-1]}.sparql")
+                with open(query_file_path, 'w') as f:
+                    f.write(combined_query)
+        return
+
+    prov_file_path = file_path.replace('.zip', '') + '/prov/se.zip'
+    prov_graph = None
+    try:
+        with zipfile.ZipFile(prov_file_path, 'r') as zip_ref:
+            prov_graph = Dataset(default_union=True)
+            for filename in zip_ref.namelist():
+                with zip_ref.open(filename) as file:
+                    prov_graph.parse(file, format='json-ld')
+    except FileNotFoundError:
+        prov_graph = None
+    except zipfile.BadZipFile:
+        prov_graph = "badzip"
+
+    for entity, is_surviving, surviving_entity in entities:
+        if (URIRef(entity), None, None) not in g:
+            if is_surviving:
+                tqdm.write(f"Error in file {file_path}: Surviving entity {entity} does not exist")
+        else:
+            if not is_surviving:
+                tqdm.write(f"Error in file {file_path}: Merged entity {entity} still exists")
+            else:
+                br_issues = check_br_constraints(g, URIRef(entity))
+                for issue in br_issues:
+                    tqdm.write(f"Error in file {file_path}: {issue}")
+
+        if prov_graph is None:
+            tqdm.write(f"Error: Provenance file not found for entity {entity}")
+        elif prov_graph == "badzip":
+            tqdm.write(f"Error: Invalid zip file for provenance of entity {entity}")
+        else:
+            check_entity_provenance(URIRef(entity), is_surviving, prov_graph, prov_file_path)
+
+        has_issues = check_entity_sparql(sparql_endpoint, entity, is_surviving)
+
+        if has_issues and not is_surviving:
+            triples = get_entity_triples(sparql_endpoint, entity)
+            combined_query = generate_update_query(entity, surviving_entity, triples)
+            query_file_path = os.path.join(query_output_dir, f"update_{entity.split('/')[-1]}.sparql")
+            with open(query_file_path, 'w') as f:
+                f.write(combined_query)
 
 def check_entity_provenance(entity_uri, is_surviving, prov_graph, prov_file_path):
     def extract_snapshot_number(snapshot_uri):

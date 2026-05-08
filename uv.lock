@@ -1483,6 +1483,7 @@ dependencies = [
     { name = "rich" },
     { name = "rich-argparse" },
     { name = "scandir-rs" },
+    { name = "sparqlwrapper" },
     { name = "time-agnostic-library" },
     { name = "tqdm" },
     { name = "triplelite" },
@@ -1527,6 +1528,7 @@ requires-dist = [
     { name = "rich", specifier = ">=14.3.0" },
     { name = "rich-argparse", specifier = ">=1.7.2" },
     { name = "scandir-rs", specifier = ">=2.9.5" },
+    { name = "sparqlwrapper", specifier = ">=2.0.0" },
     { name = "time-agnostic-library", specifier = ">=7,<8" },
     { name = "tqdm", specifier = ">=4.67.3" },
     { name = "triplelite", specifier = ">=1.4.0" },
@@ -2604,6 +2606,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/83/d4/f7a4a45a5d123dc6a3b8cbd0f72f3a0feee70eb7391ce57ef9229755b298/sparqlite-1.2.1.tar.gz", hash = "sha256:dc3dd259c621e1750dbc22fc2ad1c551c88464e80c48061ce1165bc8e954b4dd", size = 691201, upload-time = "2026-03-12T21:27:11.343Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a2/7e/c4d3c731c73ffd5825e059bad348770a191682517052a58697eddcc9fd5f/sparqlite-1.2.1-py3-none-any.whl", hash = "sha256:e637dc3fea38900cdaad8b07b23fd4f786b7bd0819694ad13d5244ca061035d2", size = 4661, upload-time = "2026-03-12T21:27:12.303Z" },
+]
+
+[[package]]
+name = "sparqlwrapper"
+version = "2.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "rdflib" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/4e/cc/453752fffa759ef41a3ceadb3f167e13dae1a74c1db057d9f6a7affa9240/SPARQLWrapper-2.0.0.tar.gz", hash = "sha256:3fed3ebcc77617a4a74d2644b86fd88e0f32e7f7003ac7b2b334c026201731f1", size = 98429, upload-time = "2022-03-13T23:14:00.671Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/31/89/176e3db96e31e795d7dfd91dd67749d3d1f0316bb30c6931a6140e1a0477/SPARQLWrapper-2.0.0-py3-none-any.whl", hash = "sha256:c99a7204fff676ee28e6acef327dc1ff8451c6f7217dcd8d49e8872f324a8a20", size = 28620, upload-time = "2022-03-13T23:13:58.969Z" },
 ]
 
 [[package]]

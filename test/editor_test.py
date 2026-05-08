@@ -25,7 +25,7 @@ from oc_ocdm.graph import GraphSet
 from oc_ocdm.graph.entities.identifier import Identifier
 from oc_ocdm.prov import ProvSet
 from oc_ocdm.reader import Reader
-from sparqlite import SPARQLClient
+from oc_meta.lib.sparql import execute_sparql, execute_sparql_update
 from typing import cast
 
 BASE = os.path.join("test", "editor")
@@ -125,51 +125,49 @@ class TestEditor:
             "https://w3id.org/oc/meta/ar/0605",
         )
 
-        with SPARQLClient(SERVER, timeout=60) as client:
-            result = client.query("""
+        result = execute_sparql(SERVER, """
             ASK {
                 GRAPH <https://w3id.org/oc/meta/ar/> {
                     <https://w3id.org/oc/meta/ar/0601> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/0604> .
                 }
             }
             """)
-            assert result["boolean"], "AR/0601 → AR/0604 relationship not found in triplestore"
+        assert result["boolean"], "AR/0601 → AR/0604 relationship not found in triplestore"
 
-            result = client.query("""
+        result = execute_sparql(SERVER, """
             ASK {
                 GRAPH <https://w3id.org/oc/meta/ar/> {
                     <https://w3id.org/oc/meta/ar/0604> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/0603> .
                 }
             }
             """)
-            assert result["boolean"], "AR/0604 → AR/0603 relationship not found in triplestore"
+        assert result["boolean"], "AR/0604 → AR/0603 relationship not found in triplestore"
 
-            result = client.query("""
+        result = execute_sparql(SERVER, """
             ASK {
                 GRAPH <https://w3id.org/oc/meta/ar/> {
                     <https://w3id.org/oc/meta/ar/0603> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/0602> .
                 }
             }
             """)
-            assert result["boolean"], "AR/0603 → AR/0602 relationship not found in triplestore"
+        assert result["boolean"], "AR/0603 → AR/0602 relationship not found in triplestore"
 
-            result = client.query("""
+        result = execute_sparql(SERVER, """
             ASK {
                 GRAPH <https://w3id.org/oc/meta/ar/> {
                     <https://w3id.org/oc/meta/ar/0602> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/0605> .
                 }
             }
             """)
-            assert result["boolean"], "AR/0602 → AR/0605 relationship not found in triplestore"
+        assert result["boolean"], "AR/0602 → AR/0605 relationship not found in triplestore"
 
-        with SPARQLClient(PROV_SERVER, timeout=60) as client:
-            prov_result = client.query("""
+        prov_result = execute_sparql(PROV_SERVER, """
             ASK {
                 ?s <http://www.w3.org/ns/prov#specializationOf> <https://w3id.org/oc/meta/ar/0601> ;
                    <http://www.w3.org/ns/prov#generatedAtTime> ?time .
             }
             """)
-            assert prov_result["boolean"], "Provenance for AR/0601 not found in triplestore"
+        assert prov_result["boolean"], "Provenance for AR/0601 not found in triplestore"
 
         with open(
             os.path.join(OUTPUT, "rdf", "ar", "060", "10000", "1000.json"),
@@ -521,9 +519,7 @@ class TestEditor:
     def test_delete_entity_with_inferred_type(self):
         editor = MetaEditor(META_CONFIG, "https://orcid.org/0000-0002-8420-0696")
 
-        with SPARQLClient(SERVER, timeout=60) as client:
-            # Remove the type from the entity
-            delete_type_query = """
+        delete_type_query = """
             DELETE {
                 GRAPH <https://w3id.org/oc/meta/br/> {
                     <https://w3id.org/oc/meta/br/0605> a <http://purl.org/spar/fabio/Expression> .
@@ -535,26 +531,24 @@ class TestEditor:
                 }
             }
             """
-            client.update(delete_type_query)
+        execute_sparql_update(SERVER, delete_type_query)
 
-            # Ensure the entity exists before deletion
-            select_query = """
+        select_query = """
             SELECT ?s WHERE {
                 GRAPH <https://w3id.org/oc/meta/br/> {
                     ?s <http://prismstandard.org/namespaces/basic/2.0/publicationDate> "2024-04-14"^^<http://www.w3.org/2001/XMLSchema#date> .
                 }
             }
             """
-            result = client.query(select_query)
-            assert len(result["results"]["bindings"]) == 1
+        result = execute_sparql(SERVER, select_query)
+        assert len(result["results"]["bindings"]) == 1
 
         # Perform deletion
         editor.delete("https://w3id.org/oc/meta/br/0605")
 
         # Ensure the entity is deleted
-        with SPARQLClient(SERVER, timeout=60) as client:
-            result = client.query(select_query)
-            assert len(result["results"]["bindings"]) == 0
+        result = execute_sparql(SERVER, select_query)
+        assert len(result["results"]["bindings"]) == 0
 
         # Verify provenance information
         prov_path = os.path.join(
@@ -666,8 +660,7 @@ class TestEditor:
             }
         }
         """
-        with SPARQLClient(SERVER, timeout=60) as client:
-            client.update(sparql_update_query)
+        execute_sparql_update(SERVER, sparql_update_query)
 
         # Perform deletion again
         editor.delete("https://w3id.org/oc/meta/br/0605")
@@ -812,8 +805,7 @@ class TestEditor:
             "New Test Title",
         )
 
-        with SPARQLClient(SERVER, timeout=60) as client:
-            result = client.query("""
+        result = execute_sparql(SERVER, """
             SELECT ?o
             WHERE {
                 GRAPH ?g {
@@ -822,11 +814,11 @@ class TestEditor:
             }
             """)
 
-            title_found = False
-            for binding in result["results"]["bindings"]:
-                if binding["o"]["value"] == "New Test Title":
-                    title_found = True
-            assert not title_found, "Triplestore should not be updated when rdf_files_only is True"
+        title_found = False
+        for binding in result["results"]["bindings"]:
+            if binding["o"]["value"] == "New Test Title":
+                title_found = True
+        assert not title_found, "Triplestore should not be updated when rdf_files_only is True"
 
         target_file = os.path.join(OUTPUT, "rdf", "br", "060", "10000", "1000.json")
         assert os.path.exists(target_file), "RDF file should be written when rdf_files_only is True"

@@ -102,12 +102,10 @@ class TestUnionFind:
 class TestQuerySPARQL:
     """Test SPARQL query functions"""
 
-    @patch('oc_meta.run.merge.group_entities.SPARQLClient')
-    def test_query_sparql_batch(self, mock_sparql_client):
+    @patch('oc_meta.run.merge.group_entities.execute_sparql')
+    def test_query_sparql_batch(self, mock_execute_sparql):
         """Test batch querying for related entities"""
-        mock_client = MagicMock()
-        mock_sparql_client.return_value.__enter__.return_value = mock_client
-        mock_client.query.return_value = {
+        mock_execute_sparql.return_value = {
             'results': {
                 'bindings': [
                     {'entity': {'value': 'https://example.org/related1', 'type': 'uri'}},
@@ -123,36 +121,30 @@ class TestQuerySPARQL:
         assert 'https://example.org/related1' in result
         assert 'https://example.org/related2' in result
 
-    @patch('oc_meta.run.merge.group_entities.SPARQLClient')
-    def test_query_sparql_batch_large_input(self, mock_sparql_client):
+    @patch('oc_meta.run.merge.group_entities.execute_sparql')
+    def test_query_sparql_batch_large_input(self, mock_execute_sparql):
         """Test batch processing with large input (multiple batches)"""
-        mock_client = MagicMock()
-        mock_sparql_client.return_value.__enter__.return_value = mock_client
-        mock_client.query.return_value = {'results': {'bindings': []}}
+        mock_execute_sparql.return_value = {'results': {'bindings': []}}
 
         from oc_meta.run.merge.group_entities import query_sparql_batch
         uris = [f"https://example.org/entity{i}" for i in range(25)]
         query_sparql_batch("http://endpoint", uris, batch_size=10)
 
-        assert mock_client.query.call_count == 3
+        assert mock_execute_sparql.call_count == 3
 
-    @patch('oc_meta.run.merge.group_entities.SPARQLClient')
-    def test_query_sparql_batch_empty_results(self, mock_sparql_client):
+    @patch('oc_meta.run.merge.group_entities.execute_sparql')
+    def test_query_sparql_batch_empty_results(self, mock_execute_sparql):
         """Test handling of empty results"""
-        mock_client = MagicMock()
-        mock_sparql_client.return_value.__enter__.return_value = mock_client
-        mock_client.query.return_value = {'results': {'bindings': []}}
+        mock_execute_sparql.return_value = {'results': {'bindings': []}}
 
         from oc_meta.run.merge.group_entities import query_sparql_batch
         result = query_sparql_batch("http://endpoint", ["https://example.org/test"])
         assert len(result) == 0
 
-    @patch('oc_meta.run.merge.group_entities.SPARQLClient')
-    def test_query_sparql_batch_filters_literals(self, mock_sparql_client):
+    @patch('oc_meta.run.merge.group_entities.execute_sparql')
+    def test_query_sparql_batch_filters_literals(self, mock_execute_sparql):
         """Test that literal values are filtered out (only URIs)"""
-        mock_client = MagicMock()
-        mock_sparql_client.return_value.__enter__.return_value = mock_client
-        mock_client.query.return_value = {
+        mock_execute_sparql.return_value = {
             'results': {
                 'bindings': [
                     {'entity': {'value': 'https://example.org/uri1', 'type': 'uri'}},

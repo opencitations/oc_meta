@@ -6,16 +6,20 @@
 # SPDX-License-Identifier: ISC
 
 import os
-import time
-from concurrent.futures import ThreadPoolExecutor
-
 import re
 import tempfile
+import time
+from concurrent.futures import ThreadPoolExecutor
+from urllib.error import URLError
+from urllib.parse import parse_qs, urlparse
 
 from oc_ocdm.counter_handler.filesystem_counter_handler import FilesystemCounterHandler
 from rdflib import Dataset, Graph, URIRef
 from rdflib.term import Node
-from sparqlite import SPARQLClient
+from SPARQLWrapper import N3, SPARQLWrapper
+from SPARQLWrapper.SPARQLExceptions import EndPointInternalError, QueryBadFormed
+
+from oc_meta.lib.sparql import execute_sparql, execute_sparql_update
 
 
 QLEVER_ACCESS_TOKEN = "qlever_test_token"
@@ -42,16 +46,12 @@ GRAPHS_TO_CLEAR = {
 def _clear_all_meta_graphs(endpoint: str, max_retries: int = 3) -> None:
     for attempt in range(max_retries):
         try:
-            with SPARQLClient(endpoint, timeout=60) as client:
-                result = client.query(
-                    "SELECT DISTINCT ?g WHERE { GRAPH ?g { ?s ?p ?o } "
-                    "FILTER(STRSTARTS(STR(?g), 'https://w3id.org/oc/meta/')) }"
-                )
-                graphs = {b["g"]["value"] for b in result["results"]["bindings"]}
-                all_graphs = GRAPHS_TO_CLEAR | graphs
-                if all_graphs:
-                    clear_query = "; ".join(f"CLEAR GRAPH <{g}>" for g in all_graphs)
-                    client.update(clear_query)
+            result = execute_sparql(endpoint, "SELECT DISTINCT ?g WHERE { GRAPH ?g { ?s ?p ?o } FILTER(STRSTARTS(STR(?g), 'https://w3id.org/oc/meta/')) }", max_retries=1, backoff_factor=0.5)
+            graphs = {b["g"]["value"] for b in result["results"]["bindings"]}
+            all_graphs = GRAPHS_TO_CLEAR | graphs
+            if all_graphs:
+                clear_query = "; ".join(f"CLEAR GRAPH <{g}>" for g in all_graphs)
+                execute_sparql_update(endpoint, clear_query, max_retries=1, backoff_factor=0.5)
             return
         except Exception:
             if attempt == max_retries - 1:
@@ -81,35 +81,34 @@ def get_counter_handler(info_dir: str | None = None, supplier_prefix: str = SUPP
 def execute_sparql_query(
     endpoint: str, query: str, max_retries: int = 3, delay: int = 5
 ) -> dict:
-    try:
-        with SPARQLClient(
-            endpoint, max_retries=max_retries, backoff_factor=delay, timeout=60
-        ) as client:
-            return client.query(query)
-    except Exception as e:
-        from urllib.error import URLError
-
-        raise URLError(
-            f"Failed to connect to SPARQL endpoint after {max_retries} attempts: {str(e)}"
-        )
+    return execute_sparql(endpoint, query, max_retries=max_retries, backoff_factor=delay)
 
 
 def execute_sparql_construct(
     endpoint: str, query: str, max_retries: int = 3, delay: int = 5
 ) -> Graph:
-    try:
-        with SPARQLClient(
-            endpoint, max_retries=max_retries, backoff_factor=delay, timeout=60
-        ) as client:
+    parsed = urlparse(endpoint)
+    base_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
+    sparql = SPARQLWrapper(base_url)
+    for key, values in parse_qs(parsed.query).items():
+        sparql.addParameter(key, values[0])
+    sparql.setReturnFormat(N3)
+    sparql.setTimeout(60)
+    sparql.setQuery(query)
+    last_error: Exception | None = None
+    for attempt in range(max_retries + 1):
+        if attempt > 0:
+            time.sleep(delay * (2 ** attempt))
+        try:
+            result: bytes = sparql.query().convert()  # type: ignore[assignment]
             g = Graph()
-            g.parse(data=client.construct(query), format="nt")
+            g.parse(data=result, format="n3")
             return g
-    except Exception as e:
-        from urllib.error import URLError
-
-        raise URLError(
-            f"Failed to connect to SPARQL endpoint after {max_retries} attempts: {str(e)}"
-        )
+        except QueryBadFormed:
+            raise
+        except (EndPointInternalError, URLError) as e:
+            last_error = e
+    raise last_error  # type: ignore[misc]
 
 
 def wait_for_triplestore(server: str, max_wait: int = 60) -> bool:
@@ -117,10 +116,7 @@ def wait_for_triplestore(server: str, max_wait: int = 60) -> bool:
     delay = 0.1
     while time.time() - start_time < max_wait:
         try:
-            with SPARQLClient(
-                server, max_retries=1, backoff_factor=1, timeout=60
-            ) as client:
-                client.query("SELECT * WHERE { ?s ?p ?o } LIMIT 1")
+            execute_sparql(server, "SELECT * WHERE { ?s ?p ?o } LIMIT 1", max_retries=1, backoff_factor=1)
             return True
         except Exception:
             time.sleep(delay)
@@ -183,16 +179,15 @@ def add_data_ts(
         for subj, pred, obj, ctx in g.quads():
             triples_list.append((subj, pred, obj, ctx))
 
-    with SPARQLClient(server, timeout=60) as client:
-        for i in range(0, len(triples_list), batch_size):
-            batch_triples = triples_list[i : i + batch_size]
+    for i in range(0, len(triples_list), batch_size):
+        batch_triples = triples_list[i : i + batch_size]
 
-            triples_str = ""
-            for subj, pred, obj, ctx in batch_triples:
-                if ctx:
-                    triples_str += f"GRAPH {ctx.n3().replace('[', '').replace(']', '')} {{ {subj.n3()} {pred.n3()} {obj.n3()} }} "
-                else:
-                    triples_str += f"{subj.n3()} {pred.n3()} {obj.n3()} . "
+        triples_str = ""
+        for subj, pred, obj, ctx in batch_triples:
+            if ctx:
+                triples_str += f"GRAPH {ctx.n3().replace('[', '').replace(']', '')} {{ {subj.n3()} {pred.n3()} {obj.n3()} }} "
+            else:
+                triples_str += f"{subj.n3()} {pred.n3()} {obj.n3()} . "
 
-            query = f"INSERT DATA {{ {triples_str} }}"
-            client.update(query)
+        query = f"INSERT DATA {{ {triples_str} }}"
+        execute_sparql_update(server, query, max_retries=3, backoff_factor=0.5)
