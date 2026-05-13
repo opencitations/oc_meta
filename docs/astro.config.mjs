@@ -30,6 +30,7 @@ export default defineConfig({
 						{ label: 'Configuration', slug: 'guides/configuration' },
 						{ label: 'Preprocessing', slug: 'guides/preprocessing' },
 						{ label: 'Processing', slug: 'guides/processing' },
+						{ label: 'Convert citations', slug: 'guides/convert_citations' },
 						{ label: 'Verification', slug: 'guides/verification' },
 						{ label: 'Generate CSV', slug: 'guides/generate_csv' },
 					],
