@@ -179,7 +179,7 @@ class ProcessTimer:
         print(f"Throughput: {metrics.get('throughput_records_per_sec', 0)} records/sec")
         print(f"Input Records: {metrics.get('input_records', 0)}")
         print(f"Curated Records: {metrics.get('curated_records', 0)}")
-        print(f"Entities Created: {metrics.get('entities_created', 0)}")
+        print(f"New Entities: {metrics.get('new_entities', 0)}")
         print(f"Modified Entities: {metrics.get('modified_entities', 0)}")
         print(f"\nPhase Breakdown:")
         for phase in report["phases"]:
@@ -219,7 +219,7 @@ class ProcessTimer:
 
         total_time = metrics.get("total_duration_seconds", 0)
         records = metrics.get("input_records", 0)
-        entities = metrics.get("entities_created", 0)
+        entities = metrics.get("new_entities", 0)
         throughput = metrics.get("throughput_records_per_sec", 0)
 
         total_phase = next(
@@ -232,7 +232,7 @@ class ProcessTimer:
         self.print_phase_breakdown()
         print(f"\n  Metrics:")
         print(f"    Records processed:    {records}")
-        print(f"    Entities created:     {entities}")
+        print(f"    New entities:         {entities}")
         print(f"    Throughput:           {throughput:.2f} rec/s")
         if peak_mb:
             sign = "+" if delta_mb >= 0 else ""

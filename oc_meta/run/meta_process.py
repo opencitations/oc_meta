@@ -224,7 +224,7 @@ class MetaProcess:
                             progress=progress,
                         )
                         creator = creator_obj.creator(source=self.source)
-                        total_entities += len(creator.res_to_entity)
+                        total_entities += sum(1 for e in creator.res_to_entity.values() if not e._preexisting_triples)
 
                         prov = ProvSet(
                             creator,
@@ -268,7 +268,7 @@ class MetaProcess:
                 if progress is not None and batch_task_id is not None:
                     progress.remove_task(batch_task_id)
 
-                self.timer.record_metric("entities_created", total_entities)
+                self.timer.record_metric("new_entities", total_entities)
                 self.timer.record_metric("modified_entities", total_modified)
 
             return {"message": "success"}, cache_path, errors_path, filename
@@ -429,7 +429,7 @@ def _compute_aggregate_metrics(all_reports: List[Dict[str, Any]]) -> Dict[str, A
 
     total_duration = sum(r["report"]["metrics"].get("total_duration_seconds", 0) for r in all_reports)
     total_records = sum(r["report"]["metrics"].get("input_records", 0) for r in all_reports)
-    total_entities = sum(r["report"]["metrics"].get("entities_created", 0) for r in all_reports)
+    total_entities = sum(r["report"]["metrics"].get("new_entities", 0) for r in all_reports)
 
     durations = [r["report"]["metrics"].get("total_duration_seconds", 0) for r in all_reports]
     throughputs = [r["report"]["metrics"].get("throughput_records_per_sec", 0) for r in all_reports]
@@ -441,7 +441,7 @@ def _compute_aggregate_metrics(all_reports: List[Dict[str, Any]]) -> Dict[str, A
         "total_files": len(all_reports),
         "total_duration_seconds": round(total_duration, 3),
         "total_records_processed": total_records,
-        "total_entities_created": total_entities,
+        "total_new_entities": total_entities,
         "average_time_per_file": round(total_duration / len(all_reports), 3) if all_reports else 0,
         "average_throughput": round(sum(throughputs) / len(throughputs), 2) if throughputs else 0,
         "min_time": round(min(durations), 3) if durations else 0,
@@ -464,7 +464,7 @@ def _print_aggregate_summary(all_reports: List[Dict[str, Any]]) -> None:
     console.print(f"Total Files: {aggregate['total_files']}")
     console.print(f"Total Duration: {aggregate['total_duration_seconds']}s")
     console.print(f"Total Records: {aggregate['total_records_processed']}")
-    console.print(f"Total Entities: {aggregate['total_entities_created']}")
+    console.print(f"Total New Entities: {aggregate['total_new_entities']}")
     console.print(f"Average Time/File: {aggregate['average_time_per_file']}s")
     console.print(f"Min/Max Time: {aggregate['min_time']}s / {aggregate['max_time']}s")
     console.print(f"Overall Throughput: {aggregate['overall_throughput']} rec/s")
