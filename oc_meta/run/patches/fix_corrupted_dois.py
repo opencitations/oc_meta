@@ -18,7 +18,6 @@ from urllib.parse import quote
 import yaml
 from oc_ds_converter.oc_idmanager.support import call_api
 from oc_ocdm.graph import GraphSet
-from oc_ocdm.graph.entities.identifier import Identifier
 from oc_ocdm.support import get_prefix
 from rapidfuzz.distance import Levenshtein
 from rich_argparse import RichHelpFormatter
@@ -432,12 +431,10 @@ def build_report(cases: list[CorrectionCase]) -> dict:
         "summary": {
             "total": len(cases),
             "auto_merge": len(actions.get("merge", [])),
-            "auto_update_literal": len(actions.get("update_literal", [])),
             "manual_review": len(actions.get("manual_review", [])),
             "entities_removed": entities_removed,
         },
         "merge": actions.get("merge", []),
-        "update_literal": actions.get("update_literal", []),
         "manual_review": actions.get("manual_review", []),
     }
 
@@ -475,37 +472,13 @@ def _execute_merge(editor: MetaEditor, case: CorrectionCase) -> None:
         editor.delete(case.duplicate_id_entity)
 
 
-def _execute_update_literal(
-    editor: MetaEditor, case: CorrectionCase
-) -> None:
-    assert case.duplicate_id_entity is not None
-    assert case.candidate_doi is not None
-    supplier_prefix = get_prefix(case.duplicate_id_entity)
-    g_set = GraphSet(
-        editor.base_iri,
-        supplier_prefix=supplier_prefix,
-        custom_counter_handler=editor.counter_handler,
-    )
-    editor.reader.import_entity_from_triplestore(
-        g_set,
-        editor.endpoint,
-        case.duplicate_id_entity,
-        editor.resp_agent,
-        enable_validation=False,
-    )
-    id_entity = g_set.get_entity(case.duplicate_id_entity)
-    assert isinstance(id_entity, Identifier)
-    id_entity.create_doi(case.candidate_doi)
-    editor.save(g_set, supplier_prefix)
-
-
 def execute_actions(
     cases: list[CorrectionCase],
     config_path: str,
     resp_agent: str,
     progress_file: str,
 ) -> tuple[int, int]:
-    actionable = [c for c in cases if c.action in ("merge", "update_literal")]
+    actionable = [c for c in cases if c.action == "merge"]
     if not actionable:
         console.print("[green]No actions to execute.[/green]")
         return 0, 0
@@ -536,10 +509,7 @@ def execute_actions(
                 continue
 
             try:
-                if case.action == "merge":
-                    _execute_merge(editor, case)
-                else:
-                    _execute_update_literal(editor, case)
+                _execute_merge(editor, case)
 
                 completed.add(case_key)
                 _save_progress(progress_file, completed)
@@ -574,16 +544,17 @@ def main() -> None:  # pragma: no cover
         help="Path to check_results.json",
     )
     parser.add_argument("-r", "--resp-agent", help="Responsible agent URI")
-    parser.add_argument(
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument(
         "--dry-run",
         action="store_true",
-        default=True,
-        help="Report only, no modifications (default)",
-    )
-    parser.add_argument(
-        "--no-dry-run",
-        action="store_false",
         dest="dry_run",
+        help="Report only, no modifications",
+    )
+    mode.add_argument(
+        "--no-dry-run",
+        action="store_true",
+        dest="no_dry_run",
         help="Apply corrections to triplestore and RDF files",
     )
     parser.add_argument(
@@ -597,6 +568,7 @@ def main() -> None:  # pragma: no cover
         help="Progress tracking file for resumability",
     )
     args = parser.parse_args()
+    args.dry_run = not args.no_dry_run
 
     if not args.dry_run and not args.resp_agent:
         parser.error("--resp-agent is required when using --no-dry-run")
@@ -639,7 +611,6 @@ def main() -> None:  # pragma: no cover
     console.print("\n[bold]Summary:[/bold]")
     console.print(f"  Total cases: {summary['total']}")
     console.print(f"  Auto merge: {summary['auto_merge']}")
-    console.print(f"  Auto update literal: {summary['auto_update_literal']}")
     console.print(f"  Manual review: {summary['manual_review']}")
     console.print(f"  Entities to be removed: {summary['entities_removed']}")
     console.print(f"\nReport: {args.report_file}")
@@ -650,9 +621,7 @@ def main() -> None:  # pragma: no cover
             cases, args.config, args.resp_agent, args.progress_file
         )
     else:
-        actionable = sum(
-            1 for c in cases if c.action in ("merge", "update_literal")
-        )
+        actionable = sum(1 for c in cases if c.action == "merge")
         console.print(
             f"\n[dim]Dry run complete. {actionable} corrections pending."
             f" Use --no-dry-run to apply.[/dim]"
