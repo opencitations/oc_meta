@@ -410,11 +410,14 @@ SPDX-License-Identifier = "ISC"
 
 [[annotations]]
 path = [
+    "test/testcases/crossref/qss_a_00292.json",
+    "test/testcases/crossref/s11192-022-04367-w.json",
+    "test/testcases/ts/massari_publications.nt",
     "test/testcases/ts/synthetic_data.nt",
     "test/testcases/ts/synthetic_prov.nq",
 ]
-SPDX-FileCopyrightText = "2026 Arcangelo Massari <arcangelo.massari@unibo.it>"
-SPDX-License-Identifier = "ISC"
+SPDX-FileCopyrightText = "NONE"
+SPDX-License-Identifier = "CC0-1.0"
 
 # Generated during tests
 [[annotations]]

@@ -1,0 +1,231 @@
+{
+  "status": "ok",
+  "message-type": "work",
+  "message-version": "1.0.0",
+  "message": {
+    "indexed": {
+      "date-parts": [
+        [
+          2026,
+          2,
+          27
+        ]
+      ],
+      "date-time": "2026-02-27T04:01:34Z",
+      "timestamp": 1772164894314,
+      "version": "3.50.1"
+    },
+    "reference-count": 61,
+    "publisher": "MIT Press",
+    "issue": "1",
+    "short-container-title": [],
+    "published-print": {
+      "date-parts": [
+        [
+          2024,
+          3,
+          1
+        ]
+      ]
+    },
+    "DOI": "10.1162/qss_a_00292",
+    "type": "journal-article",
+    "created": {
+      "date-parts": [
+        [
+          2024,
+          3,
+          19
+        ]
+      ],
+      "date-time": "2024-03-19T15:25:00Z",
+      "timestamp": 1710861900000
+    },
+    "page": "50-75",
+    "source": "Crossref",
+    "is-referenced-by-count": 6,
+    "title": [
+      "OpenCitations Meta"
+    ],
+    "prefix": "10.1162",
+    "volume": "5",
+    "author": [
+      {
+        "ORCID": "https://orcid.org/0000-0002-8420-0696",
+        "authenticated-orcid": true,
+        "given": "Arcangelo",
+        "family": "Massari",
+        "sequence": "first",
+        "affiliation": [
+          {
+            "name": "Research Centre for Open Scholarly Metadata, Department of Classical Philology and Italian Studies, University of Bologna, Bologna, Italy"
+          },
+          {
+            "name": "Digital Humanities Advanced Research Centre (/DH.arc), Department of Classical Philology and Italian Studies, University of Bologna, Bologna, Italy"
+          }
+        ],
+        "role": [
+          {
+            "role": "author",
+            "vocabulary": "crossref"
+          }
+        ]
+      },
+      {
+        "ORCID": "https://orcid.org/0000-0002-7382-0187",
+        "authenticated-orcid": true,
+        "given": "Fabio",
+        "family": "Mariani",
+        "sequence": "additional",
+        "affiliation": [
+          {
+            "name": "Institute of Philosophy and Sciences of Art, Leuphana University, Lüneburg, Germany"
+          }
+        ],
+        "role": [
+          {
+            "role": "author",
+            "vocabulary": "crossref"
+          }
+        ]
+      },
+      {
+        "ORCID": "https://orcid.org/0000-0001-5366-5194",
+        "authenticated-orcid": true,
+        "given": "Ivan",
+        "family": "Heibi",
+        "sequence": "additional",
+        "affiliation": [
+          {
+            "name": "Research Centre for Open Scholarly Metadata, Department of Classical Philology and Italian Studies, University of Bologna, Bologna, Italy"
+          },
+          {
+            "name": "Digital Humanities Advanced Research Centre (/DH.arc), Department of Classical Philology and Italian Studies, University of Bologna, Bologna, Italy"
+          }
+        ],
+        "role": [
+          {
+            "role": "author",
+            "vocabulary": "crossref"
+          }
+        ]
+      },
+      {
+        "ORCID": "https://orcid.org/0000-0003-0530-4305",
+        "authenticated-orcid": true,
+        "given": "Silvio",
+        "family": "Peroni",
+        "sequence": "additional",
+        "affiliation": [
+          {
+            "name": "Research Centre for Open Scholarly Metadata, Department of Classical Philology and Italian Studies, University of Bologna, Bologna, Italy"
+          },
+          {
+            "name": "Digital Humanities Advanced Research Centre (/DH.arc), Department of Classical Philology and Italian Studies, University of Bologna, Bologna, Italy"
+          }
+        ],
+        "role": [
+          {
+            "role": "author",
+            "vocabulary": "crossref"
+          }
+        ]
+      },
+      {
+        "ORCID": "https://orcid.org/0000-0001-5506-523X",
+        "authenticated-orcid": true,
+        "given": "David",
+        "family": "Shotton",
+        "sequence": "additional",
+        "affiliation": [
+          {
+            "name": "Research Centre for Open Scholarly Metadata, Department of Classical Philology and Italian Studies, University of Bologna, Bologna, Italy"
+          },
+          {
+            "name": "Oxford e-Research Centre, University of Oxford, Oxford, UK"
+          }
+        ],
+        "role": [
+          {
+            "role": "author",
+            "vocabulary": "crossref"
+          }
+        ]
+      }
+    ],
+    "member": "281",
+    "published-online": {
+      "date-parts": [
+        [
+          2024,
+          3,
+          1
+        ]
+      ]
+    },
+    "container-title": [
+      "Quantitative Science Studies"
+    ],
+    "original-title": [],
+    "language": "en",
+    "deposited": {
+      "date-parts": [
+        [
+          2024,
+          5,
+          21
+        ]
+      ],
+      "date-time": "2024-05-21T11:17:03Z",
+      "timestamp": 1716290223000
+    },
+    "score": 1,
+    "subtitle": [],
+    "short-title": [],
+    "issued": {
+      "date-parts": [
+        [
+          2024
+        ]
+      ]
+    },
+    "references-count": 61,
+    "journal-issue": {
+      "issue": "1",
+      "published-print": {
+        "date-parts": [
+          [
+            2024,
+            3,
+            1
+          ]
+        ]
+      }
+    },
+    "URL": "https://doi.org/10.1162/qss_a_00292",
+    "ISSN": [
+      "2641-3337"
+    ],
+    "issn-type": [
+      {
+        "value": "2641-3337",
+        "type": "electronic"
+      }
+    ],
+    "subject": [],
+    "published-other": {
+      "date-parts": [
+        [
+          2024
+        ]
+      ]
+    },
+    "published": {
+      "date-parts": [
+        [
+          2024
+        ]
+      ]
+    }
+  }
+}

@@ -55,9 +55,6 @@ DATACITE_BASE = "https://api.datacite.org/dois/"
 PUBMED_BASE = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
 
 SESSION = requests.Session()
-SESSION.headers.update(
-    {"User-Agent": "oc_meta_fixer/1.0 (mailto:arcangelo.massari@unibo.it)"}
-)
 
 
 def get_supplier_prefix(uri: str) -> str | None:
@@ -728,7 +725,16 @@ def main() -> None:
     parser.add_argument(
         "-r", "--resp-agent", help="Responsible agent URI (for execute mode)"
     )
+    parser.add_argument(
+        "--mailto",
+        required=True,
+        help="Email for the Crossref / DataCite polite pool User-Agent",
+    )
     args = parser.parse_args()
+
+    SESSION.headers.update(
+        {"User-Agent": f"oc_meta_fixer/1.0 (mailto:{args.mailto})"}
+    )
 
     if args.dry_run:
         if not args.anomalies or not args.output:

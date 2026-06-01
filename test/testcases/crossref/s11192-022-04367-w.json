@@ -1,0 +1,230 @@
+{
+  "status": "ok",
+  "message-type": "work",
+  "message-version": "1.0.0",
+  "message": {
+    "indexed": {
+      "date-parts": [
+        [
+          2026,
+          2,
+          14
+        ]
+      ],
+      "date-time": "2026-02-14T10:35:51Z",
+      "timestamp": 1771065351463,
+      "version": "3.50.1"
+    },
+    "reference-count": 34,
+    "publisher": "Springer Science and Business Media LLC",
+    "issue": "6",
+    "short-container-title": [
+      "Scientometrics"
+    ],
+    "published-print": {
+      "date-parts": [
+        [
+          2022,
+          6
+        ]
+      ]
+    },
+    "DOI": "10.1007/s11192-022-04367-w",
+    "type": "journal-article",
+    "created": {
+      "date-parts": [
+        [
+          2022,
+          6,
+          9
+        ]
+      ],
+      "date-time": "2022-06-09T12:03:49Z",
+      "timestamp": 1654776229000
+    },
+    "page": "3593-3612",
+    "source": "Crossref",
+    "is-referenced-by-count": 7,
+    "title": [
+      "Identifying and correcting invalid citations due to DOI errors in Crossref data"
+    ],
+    "prefix": "10.1007",
+    "volume": "127",
+    "author": [
+      {
+        "ORCID": "https://orcid.org/0000-0002-9812-4065",
+        "authenticated-orcid": false,
+        "given": "Alessia",
+        "family": "Cioffi",
+        "sequence": "first",
+        "affiliation": [],
+        "role": [
+          {
+            "role": "author",
+            "vocabulary": "crossref"
+          }
+        ]
+      },
+      {
+        "ORCID": "https://orcid.org/0000-0002-6279-3830",
+        "authenticated-orcid": false,
+        "given": "Sara",
+        "family": "Coppini",
+        "sequence": "additional",
+        "affiliation": [],
+        "role": [
+          {
+            "role": "author",
+            "vocabulary": "crossref"
+          }
+        ]
+      },
+      {
+        "ORCID": "https://orcid.org/0000-0002-8420-0696",
+        "authenticated-orcid": false,
+        "given": "Arcangelo",
+        "family": "Massari",
+        "sequence": "additional",
+        "affiliation": [],
+        "role": [
+          {
+            "role": "author",
+            "vocabulary": "crossref"
+          }
+        ]
+      },
+      {
+        "ORCID": "https://orcid.org/0000-0001-5486-7070",
+        "authenticated-orcid": false,
+        "given": "Arianna",
+        "family": "Moretti",
+        "sequence": "additional",
+        "affiliation": [],
+        "role": [
+          {
+            "role": "author",
+            "vocabulary": "crossref"
+          }
+        ]
+      },
+      {
+        "ORCID": "https://orcid.org/0000-0003-0530-4305",
+        "authenticated-orcid": false,
+        "given": "Silvio",
+        "family": "Peroni",
+        "sequence": "additional",
+        "affiliation": [],
+        "role": [
+          {
+            "role": "author",
+            "vocabulary": "crossref"
+          }
+        ]
+      },
+      {
+        "ORCID": "https://orcid.org/0000-0001-7363-6737",
+        "authenticated-orcid": false,
+        "given": "Cristian",
+        "family": "Santini",
+        "sequence": "additional",
+        "affiliation": [],
+        "role": [
+          {
+            "role": "author",
+            "vocabulary": "crossref"
+          }
+        ]
+      },
+      {
+        "ORCID": "https://orcid.org/0000-0003-4114-074X",
+        "authenticated-orcid": false,
+        "given": "Nooshin",
+        "family": "Shahidzadeh Asadi",
+        "sequence": "additional",
+        "affiliation": [],
+        "role": [
+          {
+            "role": "author",
+            "vocabulary": "crossref"
+          }
+        ]
+      }
+    ],
+    "member": "297",
+    "published-online": {
+      "date-parts": [
+        [
+          2022,
+          6,
+          9
+        ]
+      ]
+    },
+    "container-title": [
+      "Scientometrics"
+    ],
+    "original-title": [],
+    "language": "en",
+    "deposited": {
+      "date-parts": [
+        [
+          2023,
+          11,
+          22
+        ]
+      ],
+      "date-time": "2023-11-22T21:54:15Z",
+      "timestamp": 1700690055000
+    },
+    "score": 1,
+    "subtitle": [],
+    "short-title": [],
+    "issued": {
+      "date-parts": [
+        [
+          2022,
+          6
+        ]
+      ]
+    },
+    "references-count": 34,
+    "journal-issue": {
+      "issue": "6",
+      "published-print": {
+        "date-parts": [
+          [
+            2022,
+            6
+          ]
+        ]
+      }
+    },
+    "alternative-id": [
+      "4367"
+    ],
+    "URL": "https://doi.org/10.1007/s11192-022-04367-w",
+    "ISSN": [
+      "0138-9130",
+      "1588-2861"
+    ],
+    "issn-type": [
+      {
+        "value": "0138-9130",
+        "type": "print"
+      },
+      {
+        "value": "1588-2861",
+        "type": "electronic"
+      }
+    ],
+    "subject": [],
+    "published": {
+      "date-parts": [
+        [
+          2022,
+          6
+        ]
+      ]
+    }
+  }
+}
