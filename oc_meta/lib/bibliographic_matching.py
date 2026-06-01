@@ -38,7 +38,6 @@ OCO_HAS_NEXT = GraphEntity.iri_has_next
 CROSSREF_API = "https://api.crossref.org/works/"
 CROSSREF_RATE_LIMIT = 50
 MATCHING_THRESHOLD = 25.0
-SPARSE_MATCHING_THRESHOLD = 10.0
 
 
 def crossref_headers(mailto: str) -> dict[str, str]:
@@ -248,11 +247,3 @@ def _score_other(meta_a: dict, meta_b: dict) -> float:
     if meta_a["end_page"] and meta_b["end_page"] and meta_a["end_page"] == meta_b["end_page"]:
         score += 0.3
     return score
-
-
-def is_sparse(meta: dict) -> bool:
-    return (
-        not meta["first_author_family"]
-        and not meta["venue"]
-        and not meta["issn"]
-    )

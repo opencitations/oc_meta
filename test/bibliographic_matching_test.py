@@ -9,11 +9,9 @@ from unittest.mock import patch
 
 from oc_meta.lib.bibliographic_matching import (
     MATCHING_THRESHOLD,
-    SPARSE_MATCHING_THRESHOLD,
     compute_matching_score,
     fetch_crossref_metadata,
     fetch_triplestore_metadata,
-    is_sparse,
 )
 from test.test_utils import SERVER, add_data_ts, wait_for_triplestore
 
@@ -78,30 +76,6 @@ class TestBibliographicMatching(unittest.TestCase):
         assert cr_meta is not None
         score = compute_matching_score(ts_meta, cr_meta)
         self.assertEqual(score, 7.8925858951175405)
-        self.assertLess(score, MATCHING_THRESHOLD)
-
-    def test_is_sparse_and_threshold(self):
-        self.assertEqual(MATCHING_THRESHOLD, 25.0)
-        self.assertEqual(SPARSE_MATCHING_THRESHOLD, 10.0)
-        self.assertFalse(is_sparse(QSS_META))
-
-        sparse_meta = {
-            "title": "",
-            "first_author_family": "",
-            "first_author_given": "",
-            "year": "2024",
-            "venue": "",
-            "issn": "",
-            "volume": "5",
-            "issue": "1",
-            "start_page": "50",
-            "end_page": "75",
-        }
-        self.assertTrue(is_sparse(sparse_meta))
-
-        score = compute_matching_score(sparse_meta, sparse_meta)
-        self.assertEqual(score, 14.0)
-        self.assertGreaterEqual(score, SPARSE_MATCHING_THRESHOLD)
         self.assertLess(score, MATCHING_THRESHOLD)
 
 

@@ -30,11 +30,9 @@ from oc_meta.lib.bibliographic_matching import (
     DATACITE_USES_SCHEME,
     LITERAL_HAS_VALUE,
     MATCHING_THRESHOLD,
-    SPARSE_MATCHING_THRESHOLD,
     compute_matching_score,
     fetch_crossref_metadata,
     fetch_triplestore_metadata,
-    is_sparse,
 )
 from oc_meta.lib.console import console, create_progress
 from oc_meta.lib.sparql import execute_sparql
@@ -352,6 +350,11 @@ def validate_cases(
                         )
                         case.validation = f"venue_title_mismatch:{sim:.2f}"
                 else:
+                    case.action = "manual_review"
+                    case.reason += (
+                        " [HELD: no venue titles to confirm the two"
+                        " entities are the same journal]"
+                    )
                     case.validation = "doi_resolved_no_metadata"
             else:
                 cr_meta = fetch_crossref_metadata(
@@ -359,7 +362,6 @@ def validate_cases(
                 )
                 if cr_meta:
                     best_score = 0.0
-                    best_threshold = MATCHING_THRESHOLD
                     any_ts_meta = False
                     entities_to_check = [
                         *case.duplicate_entities, case.surviving_entity
@@ -372,19 +374,17 @@ def validate_cases(
                             continue
                         any_ts_meta = True
                         score = compute_matching_score(ts_meta, cr_meta)
-                        threshold = (
-                            SPARSE_MATCHING_THRESHOLD
-                            if is_sparse(ts_meta)
-                            or is_sparse(cr_meta)
-                            else MATCHING_THRESHOLD
-                        )
                         if score > best_score:
                             best_score = score
-                            best_threshold = threshold
 
                     if not any_ts_meta:
+                        case.action = "manual_review"
+                        case.reason += (
+                            " [HELD: no triplestore metadata to confirm"
+                            " the two entities are the same work]"
+                        )
                         case.validation = "doi_resolved_no_ts_metadata"
-                    elif best_score >= best_threshold:
+                    elif best_score >= MATCHING_THRESHOLD:
                         case.validation = (
                             f"crossref_match:{best_score:.1f}"
                         )
@@ -392,12 +392,17 @@ def validate_cases(
                         case.action = "manual_review"
                         case.reason += (
                             f" [VALIDATION FAILED: best score"
-                            f" {best_score:.1f} < {best_threshold}]"
+                            f" {best_score:.1f} < {MATCHING_THRESHOLD}]"
                         )
                         case.validation = (
                             f"crossref_mismatch:{best_score:.1f}"
                         )
                 else:
+                    case.action = "manual_review"
+                    case.reason += (
+                        " [HELD: DOI not found on Crossref, cannot"
+                        " confirm the two entities are the same work]"
+                    )
                     case.validation = "doi_resolved_not_on_crossref"
 
             progress.advance(task)
