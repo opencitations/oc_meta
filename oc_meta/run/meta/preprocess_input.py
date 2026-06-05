@@ -14,12 +14,13 @@ from dataclasses import dataclass
 from typing import Callable, List
 
 import redis
+import yaml
 from rich.table import Table
 from rich_argparse import RichHelpFormatter
 
 from oc_meta.constants import QLEVER_BATCH_SIZE, QLEVER_MAX_WORKERS
 from oc_meta.lib.console import console, create_progress
-from oc_meta.lib.file_manager import get_csv_data, write_csv
+from oc_meta.lib.file_manager import get_csv_data, normalize_path, write_csv
 from oc_meta.lib.sparql import run_queries_parallel
 from oc_meta.run.meta.merge_csv import resolve_output_path
 
@@ -194,7 +195,13 @@ def deduplicate_and_write(
     results: list[FileResult],
     output_path: str,
     rows_per_file: int | None = None,
+    subfolders: bool = False,
 ) -> ProcessingStats:
+    def chunk_file(num: int) -> str:
+        if subfolders:
+            return os.path.join(output_path, str(num), "{}.csv".format(num))
+        return os.path.join(output_path, "{}.csv".format(num))
+
     seen_rows: set[tuple[tuple[str, str], ...]] = set()
     rows_to_write: list[dict[str, str]] = []
     file_num = 0
@@ -218,18 +225,14 @@ def deduplicate_and_write(
                 rows_to_write.append(row)
 
                 if rows_per_file and len(rows_to_write) >= rows_per_file:
-                    output_file = os.path.join(output_path, "{}.csv".format(file_num))
-                    write_csv(output_file, rows_to_write)
+                    write_csv(chunk_file(file_num), rows_to_write)
                     file_num += 1
                     rows_to_write = []
 
             progress.advance(task)
 
     if rows_to_write:
-        if rows_per_file:
-            output_file = os.path.join(output_path, "{}.csv".format(file_num))
-        else:
-            output_file = resolve_output_path(output_path)
+        output_file = chunk_file(file_num) if rows_per_file else resolve_output_path(output_path)
         write_csv(output_file, rows_to_write)
 
     return total_stats
@@ -261,14 +264,21 @@ def print_processing_report(stats: ProcessingStats, num_files: int) -> None:
 
 def main():  # pragma: no cover
     parser = argparse.ArgumentParser(
-        description="Process CSV files and check IDs against Redis or SPARQL endpoint",
+        description=(
+            "Split the input CSVs declared in a meta_config.yaml into chunks. "
+            "Input directory and SPARQL endpoint are read from the config; the worker "
+            "count is set with --workers. "
+            "When rdf_files_only is True each chunk is written to its own subfolder "
+            "(<output>/<n>/<n>.csv), so it can be processed and re-indexed one at a time "
+            "(meta_process does not upload, so cross-chunk de-duplication needs the "
+            "triplestore refreshed between chunks). When rdf_files_only is False all chunks "
+            "share one folder, since meta_process uploads inline and resolves cross-chunk "
+            "duplicates within a single run."
+        ),
         formatter_class=RichHelpFormatter,
     )
-    parser.add_argument("input_dir", help="Directory containing input CSV files")
-    parser.add_argument(
-        "output",
-        help="Output path: directory for split files, or path ending in .csv for single file",
-    )
+    parser.add_argument("config", help="Path to meta_config.yaml")
+    parser.add_argument("output", help="Directory where chunk files are written")
 
     output_group = parser.add_mutually_exclusive_group()
     output_group.add_argument(
@@ -283,32 +293,34 @@ def main():  # pragma: no cover
         help="Write all output rows to a single CSV file",
     )
 
+    filter_group = parser.add_mutually_exclusive_group()
+    filter_group.add_argument(
+        "--sparql",
+        action="store_true",
+        help="Drop rows whose IDs all already exist on Meta, queried via the config triplestore_url",
+    )
+    filter_group.add_argument(
+        "--redis-port",
+        type=int,
+        help="Drop rows whose IDs all already exist, checked against Redis on this port",
+    )
     parser.add_argument(
         "--redis-host", default="localhost", help="Redis host (default: localhost)"
     )
     parser.add_argument(
-        "--redis-port", type=int, help="Redis port (required for Redis mode)"
+        "--redis-db", type=int, default=10, help="Redis database number (default: 10)"
     )
     parser.add_argument(
-        "--redis-db",
-        type=int,
-        default=10,
-        help="Redis database number (default: 10)",
-    )
-    parser.add_argument(
-        "--sparql-endpoint",
-        help="SPARQL endpoint URL for ID existence checking (alternative to Redis)",
-    )
-    parser.add_argument(
-        "--workers",
-        type=int,
-        default=4,
-        help="Number of parallel workers (default: 4)",
+        "--workers", type=int, default=4, help="Number of parallel workers (default: 4)"
     )
     args = parser.parse_args()
 
-    if not args.sparql_endpoint and args.redis_port is None:
-        parser.error("either --redis-port or --sparql-endpoint is required")
+    with open(args.config, encoding="utf-8") as f:
+        settings = yaml.full_load(f)
+
+    input_dir = normalize_path(settings["input_csv_dir"])
+    sparql_endpoint = settings["triplestore_url"]
+    rdf_files_only = settings["rdf_files_only"]
 
     if args.single_file:
         rows_per_file = None
@@ -320,67 +332,32 @@ def main():  # pragma: no cover
     if rows_per_file:
         os.makedirs(args.output, exist_ok=True)
 
-    csv_files = get_csv_files(args.input_dir)
+    csv_files = get_csv_files(input_dir)
     if not csv_files:
         console.print(
-            "[red]No CSV files found in directory: {}[/red]".format(args.input_dir)
+            "[red]No CSV files found in directory: {}[/red]".format(input_dir)
         )
         return 1
 
-    use_sparql = args.sparql_endpoint is not None
+    subfolders = rows_per_file is not None and rdf_files_only
+    layout = "one subfolder per chunk" if subfolders else "single folder"
+    if args.redis_port is not None:
+        mode = "redis"
+    elif args.sparql:
+        mode = "sparql"
+    else:
+        mode = "split-only"
 
     console.print(
-        "Found [green]{}[/green] CSV files to process with [green]{}[/green] workers ({})".format(
-            len(csv_files), args.workers, "SPARQL" if use_sparql else "Redis"
+        "Found [green]{}[/green] CSV files; [green]{}[/green] workers; mode [green]{}[/green]; layout [green]{}[/green]".format(
+            len(csv_files), args.workers, mode, layout
         )
     )
 
     file_order = {f: i for i, f in enumerate(csv_files)}
 
-    if use_sparql:
+    if args.redis_port is not None:
         results: list[FileResult] = []
-        with create_progress() as progress:
-            task = progress.add_task("Reading CSV files", total=len(csv_files))
-            with ProcessPoolExecutor(
-                max_workers=args.workers,
-                mp_context=multiprocessing.get_context('forkserver')
-            ) as executor:
-                futures = {
-                    executor.submit(collect_rows_from_file, f): f
-                    for f in csv_files
-                }
-                for future in as_completed(futures):
-                    results.append(future.result())
-                    progress.advance(task)
-
-        results.sort(key=lambda r: file_order[r.file_path])
-
-        all_ids: set[str] = set()
-        for result in results:
-            for _hash, row in result.rows:
-                ids_str = row["id"]
-                if ids_str:
-                    all_ids.update(ids_str.split())
-
-        if all_ids:
-            console.print(
-                "Checking [green]{}[/green] unique identifiers against SPARQL endpoint".format(len(all_ids))
-            )
-            with create_progress() as progress:
-                task = progress.add_task("Querying SPARQL", total=len(all_ids))
-
-                def on_batch(batch_size: int) -> None:
-                    progress.advance(task, batch_size)
-
-                found_ids = check_ids_sparql(
-                    all_ids, args.sparql_endpoint, args.workers, on_batch
-                )
-        else:
-            found_ids = set()
-
-        filter_sparql_results(results, found_ids)
-    else:
-        results = []
         with create_progress() as progress:
             task = progress.add_task("Filtering existing IDs", total=len(csv_files))
             with ProcessPoolExecutor(
@@ -400,10 +377,53 @@ def main():  # pragma: no cover
                 for future in as_completed(futures):
                     results.append(future.result())
                     progress.advance(task)
+    else:
+        results = []
+        with create_progress() as progress:
+            task = progress.add_task("Reading CSV files", total=len(csv_files))
+            with ProcessPoolExecutor(
+                max_workers=args.workers,
+                mp_context=multiprocessing.get_context('forkserver')
+            ) as executor:
+                futures = {
+                    executor.submit(collect_rows_from_file, f): f
+                    for f in csv_files
+                }
+                for future in as_completed(futures):
+                    results.append(future.result())
+                    progress.advance(task)
 
-        results.sort(key=lambda r: file_order[r.file_path])
+    results.sort(key=lambda r: file_order[r.file_path])
 
-    total_stats = deduplicate_and_write(results, args.output, rows_per_file)
+    if args.sparql:
+        all_ids: set[str] = set()
+        for result in results:
+            for _hash, row in result.rows:
+                ids_str = row["id"]
+                if ids_str:
+                    all_ids.update(ids_str.split())
+
+        if all_ids:
+            console.print(
+                "Checking [green]{}[/green] unique identifiers against SPARQL endpoint".format(len(all_ids))
+            )
+            with create_progress() as progress:
+                task = progress.add_task("Querying SPARQL", total=len(all_ids))
+
+                def on_batch(batch_size: int) -> None:
+                    progress.advance(task, batch_size)
+
+                found_ids = check_ids_sparql(
+                    all_ids, sparql_endpoint, args.workers, on_batch
+                )
+        else:
+            found_ids = set()
+
+        filter_sparql_results(results, found_ids)
+
+    total_stats = deduplicate_and_write(
+        results, args.output, rows_per_file, subfolders=subfolders
+    )
 
     print_processing_report(total_stats, len(csv_files))
 
