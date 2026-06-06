@@ -13,7 +13,6 @@ from oc_meta.lib.file_manager import collect_zip_files
 from oc_meta.run.patches.fix_literal_datatypes import (
     PUBLICATION_DATE_PREDICATE,
     PUBLICATION_DATE_PREDICATE_STR,
-    VALID_DATE_TYPES_STR,
     _has_invalid_date_type,
     _has_untyped_literal,
     _worker_init,

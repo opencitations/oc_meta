@@ -111,22 +111,16 @@ class EntityMerger:
                 }}
             """
 
-            try:
-                results = execute_sparql(meta_editor.endpoint, query, max_retries=5, backoff_factor=0.3)
-                for result in results["results"]["bindings"]:
-                    if result["entity"]["type"] == "uri":
-                        related = result["entity"]["value"]
-                        all_related_entities.add(related)
+            results = execute_sparql(meta_editor.endpoint, query, max_retries=5, backoff_factor=0.3)
+            for result in results["results"]["bindings"]:
+                if result["entity"]["type"] == "uri":
+                    related = result["entity"]["value"]
+                    all_related_entities.add(related)
 
-                        for entity in batch_merged:
-                            if entity not in meta_editor.relationship_cache:
-                                meta_editor.relationship_cache[entity] = set()
-                            meta_editor.relationship_cache[entity].add(related)
-
-            except Exception as e:
-                print(
-                    f"Error fetching related entities for merged batch {i}-{i+batch_size}: {e}"
-                )
+                    for entity in batch_merged:
+                        if entity not in meta_editor.relationship_cache:
+                            meta_editor.relationship_cache[entity] = set()
+                        meta_editor.relationship_cache[entity].add(related)
 
         for i in range(0, len(surviving_entities), batch_size):
             batch_surviving = surviving_entities[i : i + batch_size]
@@ -151,22 +145,16 @@ class EntityMerger:
                 }}
             """
 
-            try:
-                results = execute_sparql(meta_editor.endpoint, query, max_retries=5, backoff_factor=0.3)
-                for result in results["results"]["bindings"]:
-                    if result["entity"]["type"] == "uri":
-                        related = result["entity"]["value"]
-                        all_related_entities.add(related)
+            results = execute_sparql(meta_editor.endpoint, query, max_retries=5, backoff_factor=0.3)
+            for result in results["results"]["bindings"]:
+                if result["entity"]["type"] == "uri":
+                    related = result["entity"]["value"]
+                    all_related_entities.add(related)
 
-                        for entity in batch_surviving:
-                            if entity not in meta_editor.relationship_cache:
-                                meta_editor.relationship_cache[entity] = set()
-                            meta_editor.relationship_cache[entity].add(related)
-
-            except Exception as e:
-                print(
-                    f"Error fetching related entities for surviving batch {i}-{i+batch_size}: {e}"
-                )
+                    for entity in batch_surviving:
+                        if entity not in meta_editor.relationship_cache:
+                            meta_editor.relationship_cache[entity] = set()
+                        meta_editor.relationship_cache[entity].add(related)
 
         return all_related_entities
 
@@ -232,23 +220,17 @@ class EntityMerger:
 
         if entities_to_import:
             logger.info(f"Importing {len(entities_to_import)} new entities")
-            try:
-                meta_editor.reader.import_entities_from_triplestore(
-                    g_set=g_set,
-                    ts_url=meta_editor.endpoint,
-                    entities=list(entities_to_import),
-                    resp_agent=meta_editor.resp_agent,
-                    enable_validation=False,
-                    batch_size=self.batch_size,
-                )
-
-                for entity in entities_to_import:
-                    meta_editor.entity_cache.add(entity)
-                logger.info("Entity import completed successfully")
-
-            except ValueError as e:
-                logger.error(f"Error importing entities: {e}")
-                modified = True
+            meta_editor.reader.import_entities_from_triplestore(
+                g_set=g_set,
+                ts_url=meta_editor.endpoint,
+                entities=list(entities_to_import),
+                resp_agent=meta_editor.resp_agent,
+                enable_validation=False,
+                batch_size=self.batch_size,
+            )
+            for entity in entities_to_import:
+                meta_editor.entity_cache.add(entity)
+            logger.info("Entity import completed successfully")
 
         processed_count = 0
         for surviving_entity, merged_entities in rows_to_process:
@@ -257,16 +239,10 @@ class EntityMerger:
                 logger.info(
                     f"  Attempting to merge {merged_entity} into {surviving_entity}"
                 )
-                try:
-                    meta_editor.merge(g_set, surviving_entity, merged_entity)
-                    modified = True
-                    processed_count += 1
-                    logger.info(f"  Successfully merged {merged_entity}")
-                except ValueError as e:
-                    logger.error(
-                        f"Error merging {merged_entity} into {surviving_entity}: {e}"
-                    )
-                    continue
+                meta_editor.merge(g_set, surviving_entity, merged_entity)
+                modified = True
+                processed_count += 1
+                logger.info(f"  Successfully merged {merged_entity}")
             logger.info(
                 f"Completed processing row with surviving entity: {surviving_entity}"
             )

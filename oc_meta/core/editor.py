@@ -231,21 +231,16 @@ class MetaEditor:
             e for e in entities_to_import if not self.entity_cache.is_cached(e)
         }
         if entities_to_import:
-            try:
-                self.reader.import_entities_from_triplestore(
-                    g_set=g_set,
-                    ts_url=self.endpoint,
-                    entities=list(entities_to_import),
-                    resp_agent=self.resp_agent,
-                    enable_validation=False,
-                    batch_size=10,
-                )
-
-                for entity in entities_to_import:
-                    self.entity_cache.add(entity)
-
-            except ValueError:
-                return
+            self.reader.import_entities_from_triplestore(
+                g_set=g_set,
+                ts_url=self.endpoint,
+                entities=list(entities_to_import),
+                resp_agent=self.resp_agent,
+                enable_validation=False,
+                batch_size=10,
+            )
+            for entity in entities_to_import:
+                self.entity_cache.add(entity)
 
         res_as_entity = g_set.get_entity(res)
         other_as_entity = g_set.get_entity(other)
@@ -345,7 +340,8 @@ class MetaEditor:
                 self.provenance_endpoint, base_dir=self.prov_hotfix_dir, save_queries=self.save_queries
             )
         g_set.commit_changes()
-        self.counter_handler.flush()
+        if isinstance(self.counter_handler, FilesystemCounterHandler):
+            self.counter_handler.flush()
 
     def infer_type_from_uri(self, uri: str) -> str | None:
         if os.path.join(self.base_iri, "br") in uri:

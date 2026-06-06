@@ -181,7 +181,7 @@ class ProcessTimer:
         print(f"Curated Records: {metrics.get('curated_records', 0)}")
         print(f"New Entities: {metrics.get('new_entities', 0)}")
         print(f"Modified Entities: {metrics.get('modified_entities', 0)}")
-        print(f"\nPhase Breakdown:")
+        print("\nPhase Breakdown:")
         for phase in report["phases"]:
             if phase["name"] not in ["total_processing", "creator_execution", "provenance_generation"]:
                 print(f"  {phase['name']}: {phase['duration_seconds']}s")
@@ -195,7 +195,7 @@ class ProcessTimer:
         report = self.get_report()
         phases = report["phases"]
 
-        print(f"\n  Phase Breakdown:")
+        print("\n  Phase Breakdown:")
         for phase in phases:
             if phase["name"] == "total_processing":
                 continue
@@ -230,7 +230,7 @@ class ProcessTimer:
 
         print(f"  ✓ Completed in {total_time:.2f}s")
         self.print_phase_breakdown()
-        print(f"\n  Metrics:")
+        print("\n  Metrics:")
         print(f"    Records processed:    {records}")
         print(f"    New entities:         {entities}")
         print(f"    Throughput:           {throughput:.2f} rec/s")

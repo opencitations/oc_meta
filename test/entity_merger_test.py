@@ -447,8 +447,7 @@ class TestEntityMerger:
         assert data[0]["Done"] == "False"
 
     def test_merge_with_nonexistent_entities(self):
-        """Test merging when one or both entities don't exist"""
-        # Create test data with nonexistent entities
+        """Test that merging nonexistent entities fails fast instead of being silently skipped"""
         nonexistent_data = [
             {
                 "surviving_entity": "https://w3id.org/oc/meta/ra/9999",
@@ -458,9 +457,10 @@ class TestEntityMerger:
         ]
         test_file = os.path.join(BASE, "csv", "nonexistent.csv")
         self.write_csv("nonexistent.csv", nonexistent_data)
-        self.merger.process_file(test_file)
+        with pytest.raises(ValueError, match="not found in the triplestore"):
+            self.merger.process_file(test_file)
         data = EntityMerger.read_csv(test_file)
-        assert data[0]["Done"] == "True"
+        assert data[0]["Done"] == "False"
 
     def test_merge_multiple_entities(self):
         """Test merging multiple entities into one surviving entity"""

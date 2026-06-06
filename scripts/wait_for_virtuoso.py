@@ -5,10 +5,10 @@
 # SPDX-License-Identifier: ISC
 
 import logging
-import socket
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from typing import Optional, Tuple

@@ -23,8 +23,8 @@ from oc_meta.lib.cleaner import (
     normalize_hyphens,
     normalize_id,
 )
-from oc_meta.lib.file_manager import *
-from oc_meta.lib.finder import *
+from oc_meta.lib.file_manager import write_csv
+from oc_meta.lib.finder import ResourceFinder
 from oc_meta.lib.merge_registry import EntityStore
 from oc_meta.lib.master_of_regex import (
     RE_COLON_AND_SPACES,
@@ -653,7 +653,6 @@ class Curator:
 
         ra_list = parse_ra_list(row)
         new_sequence = list()
-        change_order = False
 
         for pos, ra in enumerate(ra_list):
             ra_id, name, new_elem_seq = process_individual_ra(ra, sequence)
@@ -661,12 +660,10 @@ class Curator:
                 ra_id_list = RE_ONE_OR_MORE_SPACES.split(RE_COLON_AND_SPACES.sub(":", ra_id))
                 if sequence:
                     ar_ra = None
-                    for ps, el in enumerate(sequence):
+                    for el in sequence:
                         ra_metaid = el[1]
                         for literal in ra_id_list:
                             if literal in self.entity_store.get_ids(ra_metaid):
-                                if ps != pos:
-                                    change_order = True
                                 new_elem_seq = False
                                 if "wannabe" not in ra_metaid:
                                     ar_ra = ra_metaid

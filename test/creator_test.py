@@ -114,7 +114,7 @@ class TestCreator:
         '''
         expected_graph = Graph()
         expected_graph = expected_graph.parse(data=expected_data, format="nt")
-        assert compare.isomorphic(output_graph, expected_graph) == True
+        assert compare.isomorphic(output_graph, expected_graph)
 
 
 class TestCase01:
@@ -122,7 +122,7 @@ class TestCase01:
         # testcase1: 2 different issues of the same venue (no volume)
         name = "01"
         test_graph, new_graph = prepare2test(name)
-        assert compare.isomorphic(new_graph, test_graph) == True
+        assert compare.isomorphic(new_graph, test_graph)
 
 
 class TestCase02:
@@ -130,7 +130,7 @@ class TestCase02:
         # testcase2: 2 different volumes of the same venue (no issue)
         name = "02"
         test_graph, new_graph = prepare2test(name)
-        assert compare.isomorphic(new_graph, test_graph) == True
+        assert compare.isomorphic(new_graph, test_graph)
 
 
 class TestCase03:
@@ -138,7 +138,7 @@ class TestCase03:
         # testcase3: 2 different issues of the same volume
         name = "03"
         test_graph, new_graph = prepare2test(name)
-        assert compare.isomorphic(new_graph, test_graph) == True
+        assert compare.isomorphic(new_graph, test_graph)
 
 
 class TestCase04:
@@ -146,7 +146,7 @@ class TestCase04:
         # testcase4: 2 new IDS and different date format (yyyy-mm and yyyy-mm-dd)
         name = "04"
         test_graph, new_graph = prepare2test(name)
-        assert compare.isomorphic(new_graph, test_graph) == True
+        assert compare.isomorphic(new_graph, test_graph)
 
 
 class TestCase05:
@@ -154,7 +154,7 @@ class TestCase05:
         # testcase5: NO ID scenario
         name = "05"
         test_graph, new_graph = prepare2test(name)
-        assert compare.isomorphic(new_graph, test_graph) == True
+        assert compare.isomorphic(new_graph, test_graph)
 
 
 class TestCase06:
@@ -162,7 +162,7 @@ class TestCase06:
         # testcase6: ALL types test
         name = "06"
         test_graph, new_graph = prepare2test(name)
-        assert compare.isomorphic(new_graph, test_graph) == True
+        assert compare.isomorphic(new_graph, test_graph)
 
 
 class TestCase07:
@@ -170,7 +170,7 @@ class TestCase07:
         # testcase7: all journal related types with an editor
         name = "07"
         test_graph, new_graph = prepare2test(name)
-        assert compare.isomorphic(new_graph, test_graph) == True
+        assert compare.isomorphic(new_graph, test_graph)
 
 
 class TestCase08:
@@ -178,7 +178,7 @@ class TestCase08:
         # testcase8: all book related types with an editor
         name = "08"
         test_graph, new_graph = prepare2test(name)
-        assert compare.isomorphic(new_graph, test_graph) == True
+        assert compare.isomorphic(new_graph, test_graph)
 
 
 class TestCase09:
@@ -186,7 +186,7 @@ class TestCase09:
         # testcase9: all proceeding related types with an editor
         name = "09"
         test_graph, new_graph = prepare2test(name)
-        assert compare.isomorphic(new_graph, test_graph) == True
+        assert compare.isomorphic(new_graph, test_graph)
 
 
 class TestCase10:
@@ -194,7 +194,7 @@ class TestCase10:
         # testcase10: a book inside a book series and a book inside a book set
         name = "10"
         test_graph, new_graph = prepare2test(name)
-        assert compare.isomorphic(new_graph, test_graph) == True
+        assert compare.isomorphic(new_graph, test_graph)
 
 
 class TestCreatorGetVenueType:

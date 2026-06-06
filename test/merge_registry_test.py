@@ -2,7 +2,6 @@
 #
 # SPDX-License-Identifier: ISC
 
-import pytest
 
 from oc_meta.lib.merge_registry import EntityStore
 

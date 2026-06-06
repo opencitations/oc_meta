@@ -109,7 +109,7 @@ def convert_citations(
             total_unresolved_citing += unresolved_citing
             total_unresolved_cited += unresolved_cited
 
-    console.print(f"\n[bold]Results:[/bold]")
+    console.print("\n[bold]Results:[/bold]")
     console.print(f"  Total citations:     {total_cit_rows}")
     console.print(f"  Resolved:            {total_resolved}")
     console.print(f"  Invalid IDs:         {total_invalid}")

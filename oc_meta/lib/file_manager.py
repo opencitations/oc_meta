@@ -82,13 +82,11 @@ def collect_zip_files(
     if only_data and only_prov:
         return []
 
-    path_filter: Callable[[str], bool] | None = None
-    if only_data:
-        path_filter = lambda p: "prov" not in p
-    elif only_prov:
-        path_filter = lambda p: "prov" in p
+    def path_filter(p: str) -> bool:
+        return ("prov" not in p) if only_data else ("prov" in p)
 
-    files = collect_files(root, "*.zip", path_filter)
+    active_filter = path_filter if only_data or only_prov else None
+    files = collect_files(root, "*.zip", active_filter)
     return sorted(files)
 
 
