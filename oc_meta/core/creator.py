@@ -234,6 +234,7 @@ class Creator(object):
         if authors:
             authorslist = RE_SEMICOLON_IN_PEOPLE_FIELD.split(authors)
             aut_role_list = list()
+            seen_ar = set()
             for aut in authorslist:
                 author_name, aut_id = split_name_and_ids(aut)
                 aut_id_list = aut_id.split(" ")
@@ -271,6 +272,9 @@ class Creator(object):
                 for identifier in aut_id_list:
                     self.id_creator(author_ra, identifier, ra=True)
                 ar_meta = self.ar_index[self.row_meta]["author"][aut_meta]
+                if ar_meta in seen_ar:
+                    continue
+                seen_ar.add(ar_meta)
                 ar_url = self.url + ar_meta
                 preexisting_entity = ar_url in self.finder
                 preexisting_graph = (
@@ -498,6 +502,7 @@ class Creator(object):
         if publisher:
             publishers_list = RE_SEMICOLON_IN_PEOPLE_FIELD.split(publisher)
             pub_role_list = list()
+            seen_ar = set()
             for pub in publishers_list:
                 publ_name, publ_id = split_name_and_ids(pub)
                 publ_id_list = publ_id.split()
@@ -525,6 +530,9 @@ class Creator(object):
                 for identifier in publ_id_list:
                     self.id_creator(publisher_ra, identifier, ra=True)
                 ar_meta = self.ar_index[self.row_meta]["publisher"][pub_meta]
+                if ar_meta in seen_ar:
+                    continue
+                seen_ar.add(ar_meta)
                 ar_url = self.url + ar_meta
                 preexisting_entity = ar_url in self.finder
                 preexisting_graph = (
@@ -549,6 +557,7 @@ class Creator(object):
         if editor:
             editorslist = RE_SEMICOLON_IN_PEOPLE_FIELD.split(editor)
             edit_role_list = list()
+            seen_ar = set()
             for ed in editorslist:
                 editor_name, ed_id = split_name_and_ids(ed)
                 ed_id_list = ed_id.split(" ")
@@ -587,6 +596,9 @@ class Creator(object):
                     self.id_creator(editor_ra, identifier, ra=True)
                 br_key = get_edited_br_metaid(row, self.row_meta, self.venue_meta)
                 ar_meta = self.ar_index[br_key]["editor"][ed_meta]
+                if ar_meta in seen_ar:
+                    continue
+                seen_ar.add(ar_meta)
                 ar_url = self.url + ar_meta
                 preexisting_entity = ar_url in self.finder
                 preexisting_graph = (

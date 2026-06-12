@@ -9,7 +9,7 @@ import pytest
 from oc_meta.core.creator import Creator
 from oc_meta.lib.file_manager import get_csv_data
 from oc_meta.lib.finder import ResourceFinder
-from rdflib import XSD, Dataset, Graph, compare
+from rdflib import XSD, Dataset, Graph, URIRef, compare
 from rdflib.term import _toPythonMapping
 from test.test_utils import (
     SERVER,
@@ -115,6 +115,77 @@ class TestCreator:
         expected_graph = Graph()
         expected_graph = expected_graph.parse(data=expected_data, format="nt")
         assert compare.isomorphic(output_graph, expected_graph)
+
+    @staticmethod
+    def _author_action_graph(counter_handler, ar_index, authors):
+        base_iri = 'https://w3id.org/oc/meta/'
+        finder = ResourceFinder(ts_url=SERVER, base_iri=base_iri)
+        creator = Creator([], finder, base_iri, counter_handler, "060",
+                          'https://orcid.org/0000-0002-8420-0696', [], [], [], ar_index, {})
+        creator.src = None
+        creator.row_meta = "br/0601"
+        creator.br_graph = creator.setgraph.add_br(
+            resp_agent='https://orcid.org/0000-0002-8420-0696',
+            res=f'{base_iri}br/0601',
+        )
+        creator.author_action(authors)
+        output_graph = Graph()
+        for tl in creator.setgraph.graphs():
+            rdflib_g = tl.to_rdflib()
+            if isinstance(rdflib_g, Dataset):
+                for s, p, o, _ctx in rdflib_g.quads():
+                    output_graph.add((s, p, o))
+            else:
+                output_graph += rdflib_g
+        return output_graph
+
+    def test_author_action_duplicate_ra_no_cycle(self):
+        # Two co-authors collapse to one RA OMID (corrupt over-merged RA carrying
+        # both ORCIDs): ar_index maps both positions to the same AR, so the same AR
+        # object would be linked twice. The chain must stay linear, never cyclic.
+        base_iri = 'https://w3id.org/oc/meta/'
+        ar_index = [{
+            "meta": "br/0601",
+            "author": "ar/0601, ra/0605; ar/0602, ra/0606",
+            "editor": "",
+            "publisher": "",
+        }]
+        output_graph = self._author_action_graph(
+            self.counter_handler, ar_index,
+            'Smith, John [omid:ra/0605]; Doe, Jane [omid:ra/0606]; Smith, J. [omid:ra/0605]',
+        )
+        has_next = URIRef('https://w3id.org/oc/ontology/hasNext')
+        is_held_by = URIRef('http://purl.org/spar/pro/isHeldBy')
+        ar0601 = URIRef(f'{base_iri}ar/0601')
+        ar0602 = URIRef(f'{base_iri}ar/0602')
+        assert set(output_graph.triples((None, has_next, None))) == {
+            (ar0601, has_next, ar0602),
+        }
+        assert set(output_graph.triples((None, is_held_by, None))) == {
+            (ar0601, is_held_by, URIRef(f'{base_iri}ra/0605')),
+            (ar0602, is_held_by, URIRef(f'{base_iri}ra/0606')),
+        }
+
+    def test_author_action_distinct_ras_linear_chain(self):
+        base_iri = 'https://w3id.org/oc/meta/'
+        ar_index = [{
+            "meta": "br/0601",
+            "author": "ar/0601, ra/0605; ar/0602, ra/0606; ar/0603, ra/0607",
+            "editor": "",
+            "publisher": "",
+        }]
+        output_graph = self._author_action_graph(
+            self.counter_handler, ar_index,
+            'Smith, John [omid:ra/0605]; Doe, Jane [omid:ra/0606]; Roe, Max [omid:ra/0607]',
+        )
+        has_next = URIRef('https://w3id.org/oc/ontology/hasNext')
+        ar0601 = URIRef(f'{base_iri}ar/0601')
+        ar0602 = URIRef(f'{base_iri}ar/0602')
+        ar0603 = URIRef(f'{base_iri}ar/0603')
+        assert set(output_graph.triples((None, has_next, None))) == {
+            (ar0601, has_next, ar0602),
+            (ar0602, has_next, ar0603),
+        }
 
 
 class TestCase01:

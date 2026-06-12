@@ -13,18 +13,27 @@ import unicodedata
 import xml.etree.ElementTree as ET
 from collections import defaultdict
 from datetime import datetime, timezone
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, cast
 
 import orjson
+import redis
 import requests
 import yaml
 from oc_ocdm.graph import GraphSet
 from rich_argparse import RichHelpFormatter
 
+from oc_ds_converter.crossref.crossref_processing import CrossrefProcessing
+from oc_ds_converter.datacite.datacite_processing import DataciteProcessing
+from oc_ds_converter.pubmed.pubmed_processing import PubmedProcessing
+from oc_ds_converter.oc_idmanager.oc_data_storage.in_memory_manager import (
+    InMemoryStorageManager,
+)
+from oc_ds_converter.ra_processor import RaProcessor
+
 from oc_meta.core.editor import MetaEditor
 from oc_meta.lib.console import create_progress
 from oc_meta.lib.file_manager import find_rdf_file
-from oc_meta.run.meta.generate_csv import load_json_from_file
+from oc_meta.run.meta.generate_csv import URI_TYPE_DICT, load_json_from_file
 
 HAS_IDENTIFIER = "http://purl.org/spar/datacite/hasIdentifier"
 USES_ID_SCHEME = "http://purl.org/spar/datacite/usesIdentifierScheme"
@@ -38,6 +47,8 @@ HAS_NEXT = "https://w3id.org/oc/ontology/hasNext"
 FAMILY_NAME = "http://xmlns.com/foaf/0.1/familyName"
 GIVEN_NAME = "http://xmlns.com/foaf/0.1/givenName"
 FOAF_NAME = "http://xmlns.com/foaf/0.1/name"
+DC_TITLE = "http://purl.org/dc/terms/title"
+FABIO_EXPRESSION = "http://purl.org/spar/fabio/Expression"
 
 ROLE_MAP = {
     "http://purl.org/spar/pro/author": "author",
@@ -46,8 +57,17 @@ ROLE_MAP = {
 }
 
 CSV_COLUMNS = [
-    "id", "title", "author", "pub_date", "venue",
-    "volume", "issue", "page", "type", "publisher", "editor",
+    "id",
+    "title",
+    "author",
+    "pub_date",
+    "venue",
+    "volume",
+    "issue",
+    "page",
+    "type",
+    "publisher",
+    "editor",
 ]
 
 CROSSREF_BASE = "https://api.crossref.org/works/"
@@ -55,6 +75,72 @@ DATACITE_BASE = "https://api.datacite.org/dois/"
 PUBMED_BASE = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
 
 SESSION = requests.Session()
+
+
+class RedisOrcidIndex:
+    def __init__(self, host: str, port: int, db: int) -> None:
+        self._r = redis.Redis(host=host, port=port, db=db, decode_responses=True)
+
+    @staticmethod
+    def _key(doi: str) -> str:
+        return doi if doi.startswith("doi:") else f"doi:{doi}"
+
+    def get_value(self, doi: str) -> Optional[set[str]]:
+        members = cast("set[str]", self._r.smembers(self._key(doi)))
+        return members or None
+
+    def get_values_batch(self, dois: List[str]) -> Dict[str, set[str]]:
+        if not dois:
+            return {}
+        pipe = self._r.pipeline()
+        for doi in dois:
+            pipe.smembers(self._key(doi))
+        results = cast("list[set[str]]", pipe.execute())
+        return {doi: members for doi, members in zip(dois, results) if members}
+
+
+_SHARED_STORAGE: Optional[InMemoryStorageManager] = None
+_ORCID_INDEX: Optional[RedisOrcidIndex] = None
+_PROCESSORS: Dict[str, RaProcessor] = {}
+
+
+def _shared_storage() -> InMemoryStorageManager:
+    global _SHARED_STORAGE
+    if _SHARED_STORAGE is None:
+        _SHARED_STORAGE = InMemoryStorageManager()
+    return _SHARED_STORAGE
+
+
+def setup_orcid_index(host: str, port: int, db: int) -> None:
+    global _ORCID_INDEX
+    _ORCID_INDEX = RedisOrcidIndex(host, port, db)
+
+
+def get_processor(source: str) -> RaProcessor:
+    if source not in _PROCESSORS:
+        index = cast("str", _ORCID_INDEX)
+        if source == "crossref":
+            _PROCESSORS[source] = CrossrefProcessing(
+                orcid_index=index,
+                storage_manager=_shared_storage(),
+                testing=False,
+                use_orcid_api=False,
+                use_redis_orcid_index=False,
+                use_redis_publishers=False,
+            )
+        elif source == "datacite":
+            _PROCESSORS[source] = DataciteProcessing(
+                orcid_index=index,
+                storage_manager=_shared_storage(),
+                testing=False,
+                use_orcid_api=False,
+                use_ror_api=False,
+                use_viaf_api=False,
+                use_wikidata_api=False,
+            )
+        elif source == "pubmed":
+            _PROCESSORS[source] = PubmedProcessing(orcid_index=index)
+    return _PROCESSORS[source]
 
 
 def get_supplier_prefix(uri: str) -> str | None:
@@ -121,6 +207,27 @@ def load_br_identifiers(
     return result
 
 
+def load_br_core(
+    br_uri: str, rdf_dir: str, dir_split: int, items_per_file: int
+) -> Dict[str, str]:
+    br_entity = find_entity_in_file(br_uri, rdf_dir, dir_split, items_per_file)
+    if not br_entity:
+        return {"type": "", "title": ""}
+    title = ""
+    if DC_TITLE in br_entity:
+        title = br_entity[DC_TITLE][0]["@value"]
+    br_type = ""
+    if "@type" in br_entity:
+        for t in br_entity["@type"]:
+            if t == FABIO_EXPRESSION:
+                continue
+            mapped = URI_TYPE_DICT.get(t, "")
+            if mapped:
+                br_type = mapped
+                break
+    return {"type": br_type, "title": title}
+
+
 def load_ra_info(
     ra_uri: str, rdf_dir: str, dir_split: int, items_per_file: int
 ) -> dict:
@@ -184,25 +291,24 @@ def load_all_ars_for_br_role(
             ra_name = f"{parts[0]}, {parts[1]}"
         elif ra_info["name"]:
             ra_name = ra_info["name"]
-        result.append({
-            "ar": ar_uri,
-            "ra": ra_uri,
-            "ra_name": ra_name,
-            "ra_family": ra_info["family_name"],
-            "ra_given": ra_info["given_name"],
-            "ra_orcid": ra_info["orcid"],
-            "has_next": has_next,
-        })
+        result.append(
+            {
+                "ar": ar_uri,
+                "ra": ra_uri,
+                "ra_name": ra_name,
+                "ra_family": ra_info["family_name"],
+                "ra_given": ra_info["given_name"],
+                "ra_orcid": ra_info["orcid"],
+                "has_next": has_next,
+            }
+        )
     return result
 
 
 def _strip_orcid_url(orcid: str) -> str:
     if not orcid:
         return orcid
-    return (
-        orcid.replace("https://orcid.org/", "")
-        .replace("http://orcid.org/", "")
-    )
+    return orcid.replace("https://orcid.org/", "").replace("http://orcid.org/", "")
 
 
 def fetch_crossref(doi: str) -> Optional[dict]:
@@ -213,20 +319,26 @@ def fetch_crossref(doi: str) -> Optional[dict]:
     msg = resp.json()["message"]
     authors = []
     for i, a in enumerate(msg.get("author", [])):
-        authors.append({
-            "family": a.get("family", ""),
-            "given": a.get("given", ""),
-            "orcid": _strip_orcid_url(a.get("ORCID")),
-            "position": i,
-        })
+        authors.append(
+            {
+                "family": a.get("family", ""),
+                "given": a.get("given", ""),
+                "name": a.get("name", ""),
+                "orcid": _strip_orcid_url(a.get("ORCID")),
+                "position": i,
+            }
+        )
     editors = []
     for i, e in enumerate(msg.get("editor", [])):
-        editors.append({
-            "family": e.get("family", ""),
-            "given": e.get("given", ""),
-            "orcid": _strip_orcid_url(e.get("ORCID")),
-            "position": i,
-        })
+        editors.append(
+            {
+                "family": e.get("family", ""),
+                "given": e.get("given", ""),
+                "name": e.get("name", ""),
+                "orcid": _strip_orcid_url(e.get("ORCID")),
+                "position": i,
+            }
+        )
     return {
         "author": authors,
         "editor": editors,
@@ -249,12 +361,15 @@ def fetch_datacite(doi: str) -> Optional[dict]:
             if ni.get("nameIdentifierScheme", "").upper() == "ORCID":
                 orcid = _strip_orcid_url(ni["nameIdentifier"])
                 break
-        authors.append({
-            "family": c.get("familyName", ""),
-            "given": c.get("givenName", ""),
-            "orcid": orcid,
-            "position": i,
-        })
+        authors.append(
+            {
+                "family": c.get("familyName", ""),
+                "given": c.get("givenName", ""),
+                "name": c.get("name", ""),
+                "orcid": orcid,
+                "position": i,
+            }
+        )
     editors = []
     editor_idx = 0
     for c in attrs.get("contributors", []):
@@ -265,12 +380,15 @@ def fetch_datacite(doi: str) -> Optional[dict]:
             if ni.get("nameIdentifierScheme", "").upper() == "ORCID":
                 orcid = _strip_orcid_url(ni["nameIdentifier"])
                 break
-        editors.append({
-            "family": c.get("familyName", ""),
-            "given": c.get("givenName", ""),
-            "orcid": orcid,
-            "position": editor_idx,
-        })
+        editors.append(
+            {
+                "family": c.get("familyName", ""),
+                "given": c.get("givenName", ""),
+                "name": c.get("name", ""),
+                "orcid": orcid,
+                "position": editor_idx,
+            }
+        )
         editor_idx += 1
     publisher = attrs.get("publisher", "")
     if isinstance(publisher, dict):
@@ -301,12 +419,15 @@ def fetch_pubmed(pmid: str) -> Optional[dict]:
                 if ident.get("Source") == "ORCID" and ident.text is not None:
                     orcid = _strip_orcid_url(ident.text)
                     break
-            authors.append({
-                "family": author_elem.findtext("LastName", ""),
-                "given": author_elem.findtext("ForeName", ""),
-                "orcid": orcid,
-                "position": i,
-            })
+            authors.append(
+                {
+                    "family": author_elem.findtext("LastName", ""),
+                    "given": author_elem.findtext("ForeName", ""),
+                    "name": author_elem.findtext("CollectiveName", ""),
+                    "orcid": orcid,
+                    "position": i,
+                }
+            )
     return {
         "author": authors,
         "editor": [],
@@ -343,9 +464,7 @@ def fetch_api_data(identifiers: Dict[str, str]) -> Tuple[Optional[dict], str]:
     return None, ""
 
 
-def match_ars_to_api(
-    ar_infos: List[dict], api_entries: List[dict]
-) -> List[str]:
+def match_ars_to_api(ar_infos: List[dict], api_entries: List[dict]) -> List[str]:
     if not api_entries:
         return []
     orcid_to_pos = {}
@@ -382,9 +501,7 @@ def match_ars_to_api(
     return [uri for uri, _ in ordered]
 
 
-def match_publisher_ars(
-    ar_infos: List[dict], api_publisher: str
-) -> List[str]:
+def match_publisher_ars(ar_infos: List[dict], api_publisher: str) -> List[str]:
     if not api_publisher:
         return []
     norm_api = normalize_name(api_publisher)
@@ -394,32 +511,35 @@ def match_publisher_ars(
     return []
 
 
-def format_person_for_csv(entry: dict) -> str:
-    family = entry["family"]
-    given = entry["given"]
-    if family and given:
-        name_str = f"{family}, {given}"
-    elif family:
-        name_str = family
-    elif given:
-        name_str = given
-    else:
-        name_str = ""
-    if entry["orcid"]:
-        name_str += f" [orcid:{entry['orcid']}]"
-    return name_str
+def _agents_list(api_data: dict) -> List[dict]:
+    agents: List[dict] = []
+    for role in ("author", "editor"):
+        for entry in api_data[role]:
+            agents.append(
+                {
+                    "family": entry["family"],
+                    "given": entry["given"],
+                    "name": entry["name"],
+                    "orcid": entry["orcid"],
+                    "role": role,
+                }
+            )
+    return agents
 
 
-def build_csv_row(identifier: str, role_type: str, api_data: dict) -> dict:
-    row = {"id": identifier}
-    if role_type == "author":
-        row["author"] = "; ".join(
-            format_person_for_csv(e) for e in api_data["author"]
+def build_csv_row(
+    identifier: str, role_type: str, api_data: dict, br_core: Dict[str, str]
+) -> dict:
+    row = {"id": identifier, "type": br_core["type"], "title": br_core["title"]}
+    if role_type in ("author", "editor"):
+        bare_id = identifier.split(":", 1)[1] if ":" in identifier else identifier
+        processor = get_processor(api_data["source"])
+        if api_data["source"] == "crossref":
+            processor.prefetch_doi_orcid_index([bare_id])  # type: ignore[attr-defined]
+        authors, editors = processor.get_agents_strings_list(
+            bare_id, _agents_list(api_data)
         )
-    elif role_type == "editor":
-        row["editor"] = "; ".join(
-            format_person_for_csv(e) for e in api_data["editor"]
-        )
+        row[role_type] = "; ".join(authors if role_type == "author" else editors)
     elif role_type == "publisher":
         publisher_name = api_data["publisher"]
         crossref_id = api_data["publisher_crossref_id"]
@@ -465,8 +585,15 @@ def _ar_summary(ar: dict) -> dict:
 
 
 def dry_run(
-    config_path: str, anomaly_path: str, output_path: str, csv_output: Optional[str]
+    config_path: str,
+    anomaly_path: str,
+    output_path: str,
+    csv_output: Optional[str],
+    orcid_redis_host: str,
+    orcid_redis_port: int,
+    orcid_redis_db: int,
 ) -> None:
+    setup_orcid_index(orcid_redis_host, orcid_redis_port, orcid_redis_db)
     with open(config_path, encoding="utf-8") as f:
         settings = yaml.safe_load(f)
     rdf_dir = os.path.join(settings["output_rdf_dir"], "rdf")
@@ -502,18 +629,20 @@ def dry_run(
 
             if role_type == "unknown":
                 summary["manual_review_needed"] += 1
-                corrections.append({
-                    "br": br_uri,
-                    "role_type": role_type,
-                    "anomalies": anomaly_types,
-                    "source": None,
-                    "identifier": None,
-                    "current_ars": ar_summaries,
-                    "csv_row": {},
-                    "delete_ars": [],
-                    "operations": [],
-                    "status": "manual_review",
-                })
+                corrections.append(
+                    {
+                        "br": br_uri,
+                        "role_type": role_type,
+                        "anomalies": anomaly_types,
+                        "source": None,
+                        "identifier": None,
+                        "current_ars": ar_summaries,
+                        "csv_row": {},
+                        "delete_ars": [],
+                        "operations": [],
+                        "status": "manual_review",
+                    }
+                )
                 progress.update(task, advance=1)
                 continue
 
@@ -523,18 +652,20 @@ def dry_run(
 
             if not identifiers:
                 summary["no_identifiers"] += 1
-                corrections.append({
-                    "br": br_uri,
-                    "role_type": role_type,
-                    "anomalies": anomaly_types,
-                    "source": None,
-                    "identifier": None,
-                    "current_ars": ar_summaries,
-                    "csv_row": {},
-                    "delete_ars": [],
-                    "operations": [],
-                    "status": "no_identifiers",
-                })
+                corrections.append(
+                    {
+                        "br": br_uri,
+                        "role_type": role_type,
+                        "anomalies": anomaly_types,
+                        "source": None,
+                        "identifier": None,
+                        "current_ars": ar_summaries,
+                        "csv_row": {},
+                        "delete_ars": [],
+                        "operations": [],
+                        "status": "no_identifiers",
+                    }
+                )
                 progress.update(task, advance=1)
                 continue
 
@@ -542,21 +673,21 @@ def dry_run(
 
             if not api_data:
                 summary["api_error"] += 1
-                id_str = next(
-                    (f"{k}:{v}" for k, v in identifiers.items()), None
+                id_str = next((f"{k}:{v}" for k, v in identifiers.items()), None)
+                corrections.append(
+                    {
+                        "br": br_uri,
+                        "role_type": role_type,
+                        "anomalies": anomaly_types,
+                        "source": None,
+                        "identifier": id_str,
+                        "current_ars": ar_summaries,
+                        "csv_row": {},
+                        "delete_ars": [],
+                        "operations": [],
+                        "status": "api_error",
+                    }
                 )
-                corrections.append({
-                    "br": br_uri,
-                    "role_type": role_type,
-                    "anomalies": anomaly_types,
-                    "source": None,
-                    "identifier": id_str,
-                    "current_ars": ar_summaries,
-                    "csv_row": {},
-                    "delete_ars": [],
-                    "operations": [],
-                    "status": "api_error",
-                })
                 progress.update(task, advance=1)
                 continue
 
@@ -590,11 +721,11 @@ def dry_run(
                         {"action": "delete_ar", "ar": ar_uri, "br": br_uri}
                     )
 
-            csv_row = (
-                build_csv_row(identifier_str, role_type, api_data)
-                if status == "ready"
-                else {}
-            )
+            if status == "ready":
+                br_core = load_br_core(br_uri, rdf_dir, dir_split, items_per_file)
+                csv_row = build_csv_row(identifier_str, role_type, api_data, br_core)
+            else:
+                csv_row = {}
 
             correction = {
                 "br": br_uri,
@@ -636,29 +767,33 @@ def dry_run(
         generate_csv(corrections, csv_output)
 
 
-def apply_correction(editor: MetaEditor, correction: dict) -> None:
-    br_uri = correction["br"]
+def apply_corrections_for_br(
+    editor: MetaEditor, br_uri: str, corrections: List[dict]
+) -> None:
     supplier_prefix = get_supplier_prefix(br_uri)
     assert supplier_prefix is not None
     g_set = GraphSet(
         editor.base_iri,
         supplier_prefix=supplier_prefix,
         custom_counter_handler=editor.counter_handler,
+        wanted_label=False,
     )
     entities_to_import: list[str] = [br_uri]
-    for ar_info in correction["current_ars"]:
-        entities_to_import.append(ar_info["ar"])
+    for correction in corrections:
+        for ar_info in correction["current_ars"]:
+            entities_to_import.append(ar_info["ar"])
     editor.reader.import_entities_from_triplestore(
         g_set=g_set,
         ts_url=editor.endpoint,
-        entities=entities_to_import,
+        entities=list(dict.fromkeys(entities_to_import)),
         resp_agent=editor.resp_agent,
         enable_validation=False,
         batch_size=10,
     )
     br_entity = g_set.get_entity(br_uri)
     assert br_entity is not None
-    for ar_uri in correction["delete_ars"]:
+    delete_ars = [ar for c in corrections for ar in c["delete_ars"]]
+    for ar_uri in dict.fromkeys(delete_ars):
         ar_entity = g_set.get_entity(ar_uri)
         assert ar_entity is not None
         ar_entity.remove_next()  # type: ignore[attr-defined]
@@ -674,23 +809,25 @@ def execute(config_path: str, plan_path: str, resp_agent: str) -> None:
     editor = MetaEditor(config_path, resp_agent)
     ready_corrections = [c for c in plan["corrections"] if c["status"] == "ready"]
 
-    print(f"Executing {len(ready_corrections)} corrections...")
+    corrections_by_br: Dict[str, List[dict]] = defaultdict(list)
+    for correction in ready_corrections:
+        corrections_by_br[correction["br"]].append(correction)
+
+    print(
+        f"Executing {len(ready_corrections)} corrections"
+        f" across {len(corrections_by_br)} bibliographic resources..."
+    )
 
     succeeded = 0
     failed = 0
     with create_progress() as progress:
-        task = progress.add_task(
-            "Applying corrections", total=len(ready_corrections)
-        )
-        for correction in ready_corrections:
+        task = progress.add_task("Applying corrections", total=len(corrections_by_br))
+        for br_uri, corrections in corrections_by_br.items():
             try:
-                apply_correction(editor, correction)
+                apply_corrections_for_br(editor, br_uri, corrections)
                 succeeded += 1
             except Exception as e:
-                print(
-                    f"  Error fixing {correction['br']}"
-                    f" ({correction['role_type']}): {e}"
-                )
+                print(f"  Error fixing {br_uri}: {e}")
                 failed += 1
             progress.update(task, advance=1)
 
@@ -730,16 +867,39 @@ def main() -> None:
         required=True,
         help="Email for the Crossref / DataCite polite pool User-Agent",
     )
+    parser.add_argument(
+        "--orcid-redis-host",
+        default="localhost",
+        help="Host of the Redis holding the DOI->ORCID index (default: localhost)",
+    )
+    parser.add_argument(
+        "--orcid-redis-port",
+        type=int,
+        default=6991,
+        help="Port of the DOI->ORCID index Redis (default: 6991)",
+    )
+    parser.add_argument(
+        "--orcid-redis-db",
+        type=int,
+        default=14,
+        help="Redis db number of the DOI->ORCID index (default: 14)",
+    )
     args = parser.parse_args()
 
-    SESSION.headers.update(
-        {"User-Agent": f"oc_meta_fixer/1.0 (mailto:{args.mailto})"}
-    )
+    SESSION.headers.update({"User-Agent": f"oc_meta_fixer/1.0 (mailto:{args.mailto})"})
 
     if args.dry_run:
         if not args.anomalies or not args.output:
             parser.error("--dry-run requires -a/--anomalies and -o/--output")
-        dry_run(args.config, args.anomalies, args.output, args.csv_output)
+        dry_run(
+            args.config,
+            args.anomalies,
+            args.output,
+            args.csv_output,
+            args.orcid_redis_host,
+            args.orcid_redis_port,
+            args.orcid_redis_db,
+        )
     elif args.execute:
         if not args.resp_agent:
             parser.error("--execute requires -r/--resp-agent")

@@ -305,7 +305,6 @@ def main() -> None:
     total_brs = 0
     all_anomalies: List[dict] = []
 
-    # Use forkserver to avoid deadlocks when forking in a multi-threaded environment
     ctx = multiprocessing.get_context('forkserver')
     with ctx.Pool(
         args.workers,
