@@ -1,0 +1,39 @@
+# SPDX-FileCopyrightText: 2026 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
+title: "OpenCitations Meta"
+author: Arcangelo Massari
+copyright: "2026"
+
+exclude_patterns:
+  - _build
+  - node_modules
+
+execute:
+  execute_notebooks: "off"
+
+sphinx:
+  config:
+    myst_heading_anchors: 3
+
+repository:
+  url: https://github.com/opencitations/oc_meta
+  branch: master
+
+html:
+  use_issues_button: true
+  use_repository_button: true
+  baseurl: https://opencitations.github.io/oc_meta
+  extra_footer: |
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        var links = document.querySelectorAll('a[href^="http"]');
+        links.forEach(function(link) {
+          if (link.hostname !== window.location.hostname) {
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', 'noopener noreferrer');
+          }
+        });
+      });
+    </script>

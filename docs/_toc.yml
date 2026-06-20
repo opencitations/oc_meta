@@ -1,0 +1,69 @@
+# SPDX-FileCopyrightText: 2026 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
+format: jb-book
+root: intro
+parts:
+  - caption: Guides
+    numbered: false
+    chapters:
+      - file: 01-getting-started
+  - caption: Core
+    numbered: false
+    chapters:
+      - file: 02-configuration
+      - file: 03-preprocessing
+      - file: 04-processing
+      - file: 05-convert-citations
+      - file: 06-verification
+      - file: 07-generate-csv
+  - caption: Patches
+    numbered: false
+    chapters:
+      - file: 08-editing-entities
+      - file: 09-hasnext-fixer
+  - caption: External data
+    numbered: false
+    chapters:
+      - file: 10-orcid-doi-index
+  - caption: Merge
+    numbered: false
+    chapters:
+      - file: 11-merge-overview
+      - file: 12-find-duplicates
+      - file: 13-group-entities
+      - file: 14-merge-entities
+      - file: 15-verify-merge
+      - file: 16-compact-csv
+      - file: 17-merge-history
+  - caption: Count
+    numbered: false
+    chapters:
+      - file: 18-count-meta-entities
+      - file: 19-count-triples
+  - caption: Info dir
+    numbered: false
+    chapters:
+      - file: 20-infodir-overview
+      - file: 21-infodir-generate
+      - file: 22-infodir-check
+  - caption: Migration
+    numbered: false
+    chapters:
+      - file: 23-extract-subset
+      - file: 24-rdf-from-export
+      - file: 25-rdf-to-nquads
+      - file: 26-stream-nquads
+  - caption: Benchmark
+    numbered: false
+    chapters:
+      - file: 27-running-benchmarks
+      - file: 28-generating-test-data
+      - file: 29-benchmark-configuration
+  - caption: Reference
+    numbered: false
+    chapters:
+      - file: 30-csv-format
+      - file: 31-testing
+      - file: 32-contributing

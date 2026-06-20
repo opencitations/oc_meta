@@ -34,7 +34,7 @@ pip install oc_meta
 uv run python -m oc_meta.run.meta_process -c meta_config.yaml
 ```
 
-See the [getting started guide](https://opencitations.github.io/oc_meta/guides/getting_started/) for configuration details.
+See the [getting started guide](https://opencitations.github.io/oc_meta/01-getting-started.html) for configuration details.
 
 ## Development
 

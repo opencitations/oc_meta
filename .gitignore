@@ -1,6 +1,7 @@
 .idea/
 env/
 dist/
+docs/_build/
 .vscode/
 *.pyc
 meta_input/
