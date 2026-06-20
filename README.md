@@ -7,6 +7,8 @@ SPDX-License-Identifier: ISC
 
 [<img src="https://img.shields.io/badge/powered%20by-OpenCitations-%239931FC?labelColor=2D22DE" />](http://opencitations.net)
 [![Run tests](https://github.com/opencitations/oc_meta/actions/workflows/run_tests.yml/badge.svg)](https://github.com/opencitations/oc_meta/actions/workflows/run_tests.yml)
+[![Ruff](https://github.com/opencitations/oc_meta/actions/workflows/ruff.yml/badge.svg)](https://github.com/opencitations/oc_meta/actions/workflows/ruff.yml)
+[![Pyright](https://github.com/opencitations/oc_meta/actions/workflows/pyright.yml/badge.svg)](https://github.com/opencitations/oc_meta/actions/workflows/pyright.yml)
 [![Coverage](https://opencitations.github.io/oc_meta/coverage/coverage-badge.svg)](https://opencitations.github.io/oc_meta/coverage/)
 ![PyPI](https://img.shields.io/pypi/pyversions/oc_meta?logo=python&logoColor=white&label=python&color=blue)
 ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/opencitations/oc_meta)
