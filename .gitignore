@@ -24,3 +24,9 @@ test/editor/output/
 test/meta_process/output_*/info_dir/
 gently_run.sh
 gently_stop.sh
+anomalies.json
+plan.json
+sample_check.json
+timing.json
+timing_chart.png
+hasnext_correction_input/
