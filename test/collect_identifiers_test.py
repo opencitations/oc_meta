@@ -29,10 +29,12 @@ class TestCollectIdentifiers:
     def setup_class(self, request: pytest.FixtureRequest) -> None:
         """Set up test fixtures with real CSV data."""
         assert request.cls is not None
-        csv_path = os.path.join(os.path.dirname(__file__), 'test_data_collect_identifiers.csv')
+        csv_path = os.path.join(
+            os.path.dirname(__file__), "test_data_collect_identifiers.csv"
+        )
         test_data = []
 
-        with open(csv_path, 'r', encoding='utf-8') as csvfile:
+        with open(csv_path, "r", encoding="utf-8") as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
                 test_data.append(row)
@@ -48,7 +50,7 @@ class TestCollectIdentifiers:
             prov_config=prov_config,
             counter_handler=counter_handler,
             base_iri="https://w3id.org/oc/meta",
-            prefix="060"
+            prefix="060",
         )
 
     def test_collect_identifiers_structure(self):
@@ -68,40 +70,44 @@ class TestCollectIdentifiers:
         metavals, identifiers, vvis = self.curator.collect_identifiers()
 
         expected_dois = [
-            'doi:10.17759/chp.2024200411',
-            'doi:10.1016/j.molliq.2024.126787'
+            "doi:10.17759/chp.2024200411",
+            "doi:10.1016/j.molliq.2024.126787",
         ]
 
         for doi in expected_dois:
             assert doi in identifiers, f"DOI {doi} should be in identifiers"
 
-        expected_orcid = 'orcid:0000-0002-7915-1367'
-        assert expected_orcid in identifiers, f"ORCID {expected_orcid} should be in identifiers"
+        expected_orcid = "orcid:0000-0002-7915-1367"
+        assert expected_orcid in identifiers, (
+            f"ORCID {expected_orcid} should be in identifiers"
+        )
 
-        expected_crossrefs = ['crossref:7555', 'crossref:78', 'crossref:3434']
+        expected_crossrefs = ["crossref:7555", "crossref:78", "crossref:3434"]
         for crossref in expected_crossrefs:
-            assert crossref in identifiers, f"Crossref {crossref} should be in identifiers"
+            assert crossref in identifiers, (
+                f"Crossref {crossref} should be in identifiers"
+            )
 
         # Verify exact VVI values based on test data
         expected_vvis = {
             # Cultural-Historical Psychology volume 20, issue 4
-            ('20', '4', '', ('issn:1816-5435', 'issn:2224-8935')),
+            ("20", "4", "", ("issn:1816-5435", "issn:2224-8935")),
             # Marmara University volume 30, issue 2
-            ('30', '2', '', ('issn:2146-0590',)),
+            ("30", "2", "", ("issn:2146-0590",)),
             # Journal of Environmental Chemical Engineering volume 13, issue 1
-            ('13', '1', '', ('issn:2213-3437',)),
+            ("13", "1", "", ("issn:2213-3437",)),
             # Radiology Case Reports volume 20, issue 3
-            ('20', '3', '', ('issn:1930-0433',)),
+            ("20", "3", "", ("issn:1930-0433",)),
             # Journal of Atmospheric volume 267, no issue
-            ('267', '', '', ('issn:1364-6826',)),
+            ("267", "", "", ("issn:1364-6826",)),
             # Engineering Failure Analysis volume 169, no issue
-            ('169', '', '', ('issn:1350-6307',)),
+            ("169", "", "", ("issn:1350-6307",)),
             # Construction and Building Materials volume 458, no issue
-            ('458', '', '', ('issn:0950-0618',)),
+            ("458", "", "", ("issn:0950-0618",)),
             # Materials Science volume 188, no issue
-            ('188', '', '', ('issn:1369-8001',)),
+            ("188", "", "", ("issn:1369-8001",)),
             # Journal of Molecular Liquids volume 419, no issue
-            ('419', '', '', ('issn:0167-7322',))
+            ("419", "", "", ("issn:0167-7322",)),
         }
 
         assert isinstance(vvis, set), "VVIs should be a set"
@@ -112,19 +118,36 @@ class TestCollectIdentifiers:
 
             assert isinstance(volume, str), f"Volume should be string: {volume}"
             assert isinstance(issue, str), f"Issue should be string: {issue}"
-            assert isinstance(venue_metaid, (str, type(None))), f"Venue metaid should be string or None: {venue_metaid}"
-            assert isinstance(venue_ids_tuple, tuple), f"Venue IDs should be tuple: {venue_ids_tuple}"
+            assert isinstance(venue_metaid, (str, type(None))), (
+                f"Venue metaid should be string or None: {venue_metaid}"
+            )
+            assert isinstance(venue_ids_tuple, tuple), (
+                f"Venue IDs should be tuple: {venue_ids_tuple}"
+            )
 
-        assert len(vvis) == len(expected_vvis), f"Expected {len(expected_vvis)} VVIs, got {len(vvis)}"
+        assert len(vvis) == len(expected_vvis), (
+            f"Expected {len(expected_vvis)} VVIs, got {len(vvis)}"
+        )
 
         for expected_vvi in expected_vvis:
-            assert expected_vvi in vvis, f"Expected VVI {expected_vvi} should be present in collected VVIs"
+            assert expected_vvi in vvis, (
+                f"Expected VVI {expected_vvi} should be present in collected VVIs"
+            )
 
         venue_identifiers = [
-            'issn:1816-5435', 'issn:2224-8935', 'issn:2146-0590',
-            'issn:2213-3437', 'issn:1930-0433', 'issn:1364-6826',
-            'issn:1350-6307', 'issn:0950-0618', 'issn:1369-8001', 'issn:0167-7322'
+            "issn:1816-5435",
+            "issn:2224-8935",
+            "issn:2146-0590",
+            "issn:2213-3437",
+            "issn:1930-0433",
+            "issn:1364-6826",
+            "issn:1350-6307",
+            "issn:0950-0618",
+            "issn:1369-8001",
+            "issn:0167-7322",
         ]
 
         for venue_id in venue_identifiers:
-            assert venue_id not in identifiers, f"Venue ID {venue_id} should not be in main identifiers"
+            assert venue_id not in identifiers, (
+                f"Venue ID {venue_id} should not be in main identifiers"
+            )

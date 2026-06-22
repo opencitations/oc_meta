@@ -28,7 +28,9 @@ from oc_meta.run.meta_process import MetaProcess
 
 BASE_DIR = os.path.join("test", "meta_process")
 
-_short_retry_execute = partial(execute_sparql_queries, max_retries=1, backoff_factor=0.1)
+_short_retry_execute = partial(
+    execute_sparql_queries, max_retries=1, backoff_factor=0.1
+)
 
 
 class TestDatabaseUnavailability:
@@ -52,7 +54,9 @@ class TestDatabaseUnavailability:
         print("[DEBUG] tearDown: start")
         if hasattr(self, "temp_dir") and os.path.exists(self.temp_dir):
             shutil.rmtree(self.temp_dir)
-        subprocess.run(["docker", "start", QLEVER_CONTAINER], capture_output=True, check=False)
+        subprocess.run(
+            ["docker", "start", QLEVER_CONTAINER], capture_output=True, check=False
+        )
         wait_for_triplestore(SERVER, max_wait=30)
         print("[DEBUG] tearDown: done")
 
@@ -65,11 +69,13 @@ class TestDatabaseUnavailability:
         with open(meta_config_path, encoding="utf-8") as f:
             settings = yaml.full_load(f)
 
-        settings.update({
-            "ts_upload_cache": os.path.join(self.temp_dir, "cache.json"),
-            "ts_failed_queries": os.path.join(self.temp_dir, "failed.txt"),
-            "ts_stop_file": os.path.join(self.temp_dir, ".stop"),
-        })
+        settings.update(
+            {
+                "ts_upload_cache": os.path.join(self.temp_dir, "cache.json"),
+                "ts_failed_queries": os.path.join(self.temp_dir, "failed.txt"),
+                "ts_stop_file": os.path.join(self.temp_dir, ".stop"),
+            }
+        )
 
         print("[DEBUG] test: creating MetaProcess...")
         meta_process = MetaProcess(settings=settings, meta_config_path=meta_config_path)
@@ -81,7 +87,9 @@ class TestDatabaseUnavailability:
         print(f"[DEBUG] test: file to process: {filename}")
 
         print("[DEBUG] test: stopping QLever...")
-        subprocess.run(["docker", "stop", QLEVER_CONTAINER], capture_output=True, check=True)
+        subprocess.run(
+            ["docker", "stop", QLEVER_CONTAINER], capture_output=True, check=True
+        )
         print("[DEBUG] test: QLever stopped")
 
         try:
@@ -95,14 +103,20 @@ class TestDatabaseUnavailability:
             )
             print(f"[DEBUG] test: result = {result}")
 
-            assert result[0]["message"] != "success", "Should fail when database unavailable"
+            assert result[0]["message"] != "success", (
+                "Should fail when database unavailable"
+            )
 
             if os.path.exists(meta_process.cache_path):
                 with open(meta_process.cache_path) as f:
-                    assert filename not in f.read(), "File should NOT be cached when upload fails"
+                    assert filename not in f.read(), (
+                        "File should NOT be cached when upload fails"
+                    )
 
         finally:
             print("[DEBUG] test: restarting QLever...")
-            subprocess.run(["docker", "start", QLEVER_CONTAINER], capture_output=True, check=True)
+            subprocess.run(
+                ["docker", "start", QLEVER_CONTAINER], capture_output=True, check=True
+            )
             wait_for_triplestore(SERVER, max_wait=30)
             print("[DEBUG] test: done")

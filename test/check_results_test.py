@@ -26,45 +26,90 @@ from test.test_utils import (
     add_data_ts,
 )
 
-SYNTHETIC_DATA_FILE = os.path.abspath(os.path.join("test", "testcases", "ts", "synthetic_data.nt"))
-SYNTHETIC_PROV_FILE = os.path.abspath(os.path.join("test", "testcases", "ts", "synthetic_prov.nq"))
-REAL_DATA_FILE = os.path.abspath(os.path.join("test", "testcases", "ts", "real_data.nt"))
+SYNTHETIC_DATA_FILE = os.path.abspath(
+    os.path.join("test", "testcases", "ts", "synthetic_data.nt")
+)
+SYNTHETIC_PROV_FILE = os.path.abspath(
+    os.path.join("test", "testcases", "ts", "synthetic_prov.nq")
+)
+REAL_DATA_FILE = os.path.abspath(
+    os.path.join("test", "testcases", "ts", "real_data.nt")
+)
 BASE_IRI = "https://w3id.org/oc/meta"
 
 
 class TestExtractEntityGroups:
-
     def test_single_doi(self):
         result = _extract_entity_groups("doi:10.1234/test", "id", BASE_IRI)
-        assert result == [{'omid_uri': None, 'recognized': [('doi', '10.1234/test')], 'unverifiable': []}]
+        assert result == [
+            {
+                "omid_uri": None,
+                "recognized": [("doi", "10.1234/test")],
+                "unverifiable": [],
+            }
+        ]
 
     def test_multiple_ids(self):
-        result = _extract_entity_groups("doi:10.1234/test isbn:978-3-16-148410-0", "id", BASE_IRI)
-        assert result == [{'omid_uri': None, 'recognized': [('doi', '10.1234/test'), ('isbn', '978-3-16-148410-0')], 'unverifiable': []}]
+        result = _extract_entity_groups(
+            "doi:10.1234/test isbn:978-3-16-148410-0", "id", BASE_IRI
+        )
+        assert result == [
+            {
+                "omid_uri": None,
+                "recognized": [("doi", "10.1234/test"), ("isbn", "978-3-16-148410-0")],
+                "unverifiable": [],
+            }
+        ]
 
     def test_omid_prefix(self):
         result = _extract_entity_groups("omid:br/0601 doi:10.1234/test", "id", BASE_IRI)
-        assert result == [{'omid_uri': 'https://w3id.org/oc/meta/br/0601', 'recognized': [('doi', '10.1234/test')], 'unverifiable': []}]
+        assert result == [
+            {
+                "omid_uri": "https://w3id.org/oc/meta/br/0601",
+                "recognized": [("doi", "10.1234/test")],
+                "unverifiable": [],
+            }
+        ]
 
     def test_unverifiable_schema(self):
         result = _extract_entity_groups("unknown:abc123", "id", BASE_IRI)
-        assert result == [{'omid_uri': None, 'recognized': [], 'unverifiable': [('unknown', 'abc123')]}]
+        assert result == [
+            {
+                "omid_uri": None,
+                "recognized": [],
+                "unverifiable": [("unknown", "abc123")],
+            }
+        ]
 
     def test_empty_string_id_col(self):
         result = _extract_entity_groups("", "id", BASE_IRI)
-        assert result == [{'omid_uri': None, 'recognized': [], 'unverifiable': []}]
+        assert result == [{"omid_uri": None, "recognized": [], "unverifiable": []}]
 
     def test_uppercase_schema(self):
         result = _extract_entity_groups("DOI:10.1234/test", "id", BASE_IRI)
-        assert result == [{'omid_uri': None, 'recognized': [('doi', '10.1234/test')], 'unverifiable': []}]
+        assert result == [
+            {
+                "omid_uri": None,
+                "recognized": [("doi", "10.1234/test")],
+                "unverifiable": [],
+            }
+        ]
 
     def test_malformed_no_colon(self):
         result = _extract_entity_groups("malformed", "id", BASE_IRI)
-        assert result == [{'omid_uri': None, 'recognized': [], 'unverifiable': []}]
+        assert result == [{"omid_uri": None, "recognized": [], "unverifiable": []}]
 
     def test_author_column_single(self):
-        result = _extract_entity_groups("Doe, John [orcid:0000-0001-2345-6789]", "author", BASE_IRI)
-        assert result == [{'omid_uri': None, 'recognized': [('orcid', '0000-0001-2345-6789')], 'unverifiable': []}]
+        result = _extract_entity_groups(
+            "Doe, John [orcid:0000-0001-2345-6789]", "author", BASE_IRI
+        )
+        assert result == [
+            {
+                "omid_uri": None,
+                "recognized": [("orcid", "0000-0001-2345-6789")],
+                "unverifiable": [],
+            }
+        ]
 
     def test_author_column_empty(self):
         result = _extract_entity_groups("", "author", BASE_IRI)
@@ -77,12 +122,19 @@ class TestExtractEntityGroups:
             BASE_IRI,
         )
         assert len(result) == 2
-        assert result[0] == {'omid_uri': None, 'recognized': [('orcid', '0000-0001-2345-6789')], 'unverifiable': []}
-        assert result[1] == {'omid_uri': None, 'recognized': [('orcid', '0000-0002-3456-7895')], 'unverifiable': []}
+        assert result[0] == {
+            "omid_uri": None,
+            "recognized": [("orcid", "0000-0001-2345-6789")],
+            "unverifiable": [],
+        }
+        assert result[1] == {
+            "omid_uri": None,
+            "recognized": [("orcid", "0000-0002-3456-7895")],
+            "unverifiable": [],
+        }
 
 
 class TestFindFile:
-
     def test_find_file_zip_format(self):
         uri = "https://w3id.org/oc/meta/br/0605"
         result = find_rdf_file(uri, "/base/rdf", 10000, 1000, zip_output=True)
@@ -114,28 +166,27 @@ class TestFindFile:
 
 
 class TestCheckOMIDsExistence:
-
     @pytest.fixture(autouse=True)
     def _load_data(self):
         add_data_ts(SERVER, SYNTHETIC_DATA_FILE)
 
     def test_single_identifier_found(self):
-        identifiers = [{'schema': 'doi', 'value': '10.1234/test'}]
+        identifiers = [{"schema": "doi", "value": "10.1234/test"}]
         result = check_omids_existence(identifiers, SERVER, workers=1)
-        assert result == {'doi:10.1234/test': {'https://w3id.org/oc/meta/br/0601'}}
+        assert result == {"doi:10.1234/test": {"https://w3id.org/oc/meta/br/0601"}}
 
     def test_identifier_not_found(self):
-        identifiers = [{'schema': 'doi', 'value': '10.9999/notfound'}]
+        identifiers = [{"schema": "doi", "value": "10.9999/notfound"}]
         result = check_omids_existence(identifiers, SERVER, workers=1)
         assert result == {}
 
     def test_multiple_omids_for_identifier(self):
-        identifiers = [{'schema': 'doi', 'value': '10.1234/duplicate'}]
+        identifiers = [{"schema": "doi", "value": "10.1234/duplicate"}]
         result = check_omids_existence(identifiers, SERVER, workers=1)
         assert result == {
-            'doi:10.1234/duplicate': {
-                'https://w3id.org/oc/meta/br/0602',
-                'https://w3id.org/oc/meta/br/0603',
+            "doi:10.1234/duplicate": {
+                "https://w3id.org/oc/meta/br/0602",
+                "https://w3id.org/oc/meta/br/0603",
             }
         }
 
@@ -144,28 +195,27 @@ class TestCheckOMIDsExistence:
 
     def test_multiple_schemas(self):
         identifiers = [
-            {'schema': 'doi', 'value': '10.1234/test'},
-            {'schema': 'orcid', 'value': '0000-0001-2345-6789'},
-            {'schema': 'viaf', 'value': '123456789'},
+            {"schema": "doi", "value": "10.1234/test"},
+            {"schema": "orcid", "value": "0000-0001-2345-6789"},
+            {"schema": "viaf", "value": "123456789"},
         ]
         result = check_omids_existence(identifiers, SERVER, workers=1)
         assert result == {
-            'doi:10.1234/test': {'https://w3id.org/oc/meta/br/0601'},
-            'orcid:0000-0001-2345-6789': {'https://w3id.org/oc/meta/ra/0604'},
-            'viaf:123456789': {'https://w3id.org/oc/meta/ra/0606'},
+            "doi:10.1234/test": {"https://w3id.org/oc/meta/br/0601"},
+            "orcid:0000-0001-2345-6789": {"https://w3id.org/oc/meta/ra/0604"},
+            "viaf:123456789": {"https://w3id.org/oc/meta/ra/0606"},
         }
 
     def test_mix_found_and_not_found(self):
         identifiers = [
-            {'schema': 'doi', 'value': '10.1234/test'},
-            {'schema': 'doi', 'value': '10.9999/notfound'},
+            {"schema": "doi", "value": "10.1234/test"},
+            {"schema": "doi", "value": "10.9999/notfound"},
         ]
         result = check_omids_existence(identifiers, SERVER, workers=1)
-        assert result == {'doi:10.1234/test': {'https://w3id.org/oc/meta/br/0601'}}
+        assert result == {"doi:10.1234/test": {"https://w3id.org/oc/meta/br/0601"}}
 
 
 class TestCheckProvenanceExistence:
-
     @pytest.fixture(autouse=True)
     def _load_prov(self):
         add_data_ts(PROV_SERVER, SYNTHETIC_PROV_FILE)
@@ -214,7 +264,6 @@ class TestCheckProvenanceExistence:
 
 
 class TestMainIntegration:
-
     @pytest.fixture(autouse=True)
     def _load_stores(self):
         add_data_ts(SERVER, SYNTHETIC_DATA_FILE)
@@ -223,23 +272,42 @@ class TestMainIntegration:
     @staticmethod
     def _create_csv(dir_path: str, filename: str, rows: list[dict]) -> str:
         csv_path = os.path.join(dir_path, filename)
-        fieldnames = ['id', 'title', 'author', 'pub_date', 'venue', 'volume', 'issue', 'page', 'type', 'publisher', 'editor']
-        with open(csv_path, 'w', newline='', encoding='utf-8') as f:
+        fieldnames = [
+            "id",
+            "title",
+            "author",
+            "pub_date",
+            "venue",
+            "volume",
+            "issue",
+            "page",
+            "type",
+            "publisher",
+            "editor",
+        ]
+        with open(csv_path, "w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
             for row in rows:
-                full_row = {k: '' for k in fieldnames}
+                full_row = {k: "" for k in fieldnames}
                 full_row.update(row)
                 writer.writerow(full_row)
         return csv_path
 
     @staticmethod
-    def _create_rdf_zip(rdf_dir: str, entity_type: str, prefix: str, dir_split: int, file_split: int, *omid_uris: str) -> str:
+    def _create_rdf_zip(
+        rdf_dir: str,
+        entity_type: str,
+        prefix: str,
+        dir_split: int,
+        file_split: int,
+        *omid_uris: str,
+    ) -> str:
         target_dir = os.path.join(rdf_dir, entity_type, prefix, str(dir_split))
         os.makedirs(target_dir, exist_ok=True)
         zip_path = os.path.join(target_dir, f"{file_split}.zip")
         content = orjson.dumps([{"@id": uri} for uri in omid_uris])
-        with zipfile.ZipFile(zip_path, 'w') as z:
+        with zipfile.ZipFile(zip_path, "w") as z:
             z.writestr(f"{file_split}.json", content)
         return zip_path
 
@@ -249,46 +317,60 @@ class TestMainIntegration:
         file_name = os.path.splitext(os.path.basename(data_zip_path))[0]
         prov_dir = os.path.join(base_dir, file_name, "prov")
         os.makedirs(prov_dir, exist_ok=True)
-        content = orjson.dumps([
-            {"@id": f"{uri}/prov/", "@graph": [{"@id": f"{uri}/prov/se/1"}]}
-            for uri in omid_uris
-        ])
-        with zipfile.ZipFile(os.path.join(prov_dir, "se.zip"), 'w') as z:
+        content = orjson.dumps(
+            [
+                {"@id": f"{uri}/prov/", "@graph": [{"@id": f"{uri}/prov/se/1"}]}
+                for uri in omid_uris
+            ]
+        )
+        with zipfile.ZipFile(os.path.join(prov_dir, "se.zip"), "w") as z:
             z.writestr("se.json", content)
 
     @staticmethod
     def _write_config(tmp_path, output_dir) -> str:
         config_path = tmp_path / "config.yaml"
-        config_path.write_text(yaml.dump({
-            "base_output_dir": str(output_dir),
-            "output_rdf_dir": str(output_dir),
-            "triplestore_url": SERVER,
-            "provenance_triplestore_url": PROV_SERVER,
-            "base_iri": "https://w3id.org/oc/meta/",
-            "dir_split_number": 10000,
-            "items_per_file": 1000,
-            "zip_output_rdf": True,
-        }))
+        config_path.write_text(
+            yaml.dump(
+                {
+                    "base_output_dir": str(output_dir),
+                    "output_rdf_dir": str(output_dir),
+                    "triplestore_url": SERVER,
+                    "provenance_triplestore_url": PROV_SERVER,
+                    "base_iri": "https://w3id.org/oc/meta/",
+                    "dir_split_number": 10000,
+                    "items_per_file": 1000,
+                    "zip_output_rdf": True,
+                }
+            )
+        )
         return str(config_path)
 
     @staticmethod
-    def _run_main(config_path: str, output_path: str, csv_dir: str | None = None) -> None:
+    def _run_main(
+        config_path: str, output_path: str, csv_dir: str | None = None
+    ) -> None:
         from unittest.mock import patch
-        argv = ['check_results', config_path, output_path]
+
+        argv = ["check_results", config_path, output_path]
         if csv_dir:
-            argv += ['--csv', csv_dir]
-        with patch('sys.argv', argv):
+            argv += ["--csv", csv_dir]
+        with patch("sys.argv", argv):
             from oc_meta.run.meta.check_results import main
+
             main()
 
     @staticmethod
-    def _run_main_expect_fail(config_path: str, output_path: str, csv_dir: str | None = None) -> None:
+    def _run_main_expect_fail(
+        config_path: str, output_path: str, csv_dir: str | None = None
+    ) -> None:
         from unittest.mock import patch
-        argv = ['check_results', config_path, output_path]
+
+        argv = ["check_results", config_path, output_path]
         if csv_dir:
-            argv += ['--csv', csv_dir]
-        with patch('sys.argv', argv):
+            argv += ["--csv", csv_dir]
+        with patch("sys.argv", argv):
             from oc_meta.run.meta.check_results import main
+
             with pytest.raises(SystemExit) as exc_info:
                 main()
             assert exc_info.value.code == 1
@@ -300,9 +382,11 @@ class TestMainIntegration:
         rdf_dir = output_dir / "rdf"
         rdf_dir.mkdir(parents=True)
 
-        self._create_csv(str(input_dir), "test.csv", [
-            {"id": "omid:br/0601 doi:10.1234/test", "title": "Test"}
-        ])
+        self._create_csv(
+            str(input_dir),
+            "test.csv",
+            [{"id": "omid:br/0601 doi:10.1234/test", "title": "Test"}],
+        )
 
         br_uri = "https://w3id.org/oc/meta/br/0601"
         zip_path = self._create_rdf_zip(str(rdf_dir), "br", "060", 10000, 1000, br_uri)
@@ -329,9 +413,11 @@ class TestMainIntegration:
         rdf_dir = output_dir / "rdf"
         rdf_dir.mkdir(parents=True)
 
-        self._create_csv(str(input_dir), "test.csv", [
-            {"id": "doi:10.1234/missing", "title": "Missing"}
-        ])
+        self._create_csv(
+            str(input_dir),
+            "test.csv",
+            [{"id": "doi:10.1234/missing", "title": "Missing"}],
+        )
 
         config_path = self._write_config(tmp_path, output_dir)
         output_path = str(tmp_path / "report.json")
@@ -355,12 +441,16 @@ class TestMainIntegration:
         rdf_dir = output_dir / "rdf"
         rdf_dir.mkdir(parents=True)
 
-        self._create_csv(str(input_dir), "file1.csv", [
-            {"id": "doi:10.1234/duplicate", "title": "Dup1"}
-        ])
-        self._create_csv(str(input_dir), "file2.csv", [
-            {"id": "doi:10.1234/duplicate", "title": "Dup2"}
-        ])
+        self._create_csv(
+            str(input_dir),
+            "file1.csv",
+            [{"id": "doi:10.1234/duplicate", "title": "Dup1"}],
+        )
+        self._create_csv(
+            str(input_dir),
+            "file2.csv",
+            [{"id": "doi:10.1234/duplicate", "title": "Dup2"}],
+        )
 
         config_path = self._write_config(tmp_path, output_dir)
         output_path = str(tmp_path / "report.json")
@@ -407,13 +497,17 @@ class TestMainIntegration:
         rdf_dir = output_dir / "rdf"
         rdf_dir.mkdir(parents=True)
 
-        self._create_csv(str(input_dir), "test.csv", [
-            {
-                "id": "doi:10.1234/test",
-                "author": "Doe, John [orcid:0000-0001-2345-6789]; Smith, Jane [orcid:0000-0002-3456-7895]",
-                "editor": "Brown, Bob [viaf:123456789]",
-            }
-        ])
+        self._create_csv(
+            str(input_dir),
+            "test.csv",
+            [
+                {
+                    "id": "doi:10.1234/test",
+                    "author": "Doe, John [orcid:0000-0001-2345-6789]; Smith, Jane [orcid:0000-0002-3456-7895]",
+                    "editor": "Brown, Bob [viaf:123456789]",
+                }
+            ],
+        )
 
         config_path = self._write_config(tmp_path, output_dir)
         output_path = str(tmp_path / "report.json")
@@ -433,9 +527,11 @@ class TestMainIntegration:
         rdf_dir = output_dir / "rdf"
         rdf_dir.mkdir(parents=True)
 
-        self._create_csv(str(input_dir), "test.csv", [
-            {"id": "omid:br/0601 doi:10.1234/test", "title": "Test"}
-        ])
+        self._create_csv(
+            str(input_dir),
+            "test.csv",
+            [{"id": "omid:br/0601 doi:10.1234/test", "title": "Test"}],
+        )
 
         br_uri = "https://w3id.org/oc/meta/br/0601"
         zip_path = self._create_rdf_zip(str(rdf_dir), "br", "060", 10000, 1000, br_uri)
@@ -459,9 +555,11 @@ class TestMainIntegration:
         rdf_dir = output_dir / "rdf"
         rdf_dir.mkdir(parents=True)
 
-        self._create_csv(str(input_dir), "test.csv", [
-            {"id": "omid:br/0609 doi:10.1234/noprov", "title": "Test"}
-        ])
+        self._create_csv(
+            str(input_dir),
+            "test.csv",
+            [{"id": "omid:br/0609 doi:10.1234/noprov", "title": "Test"}],
+        )
 
         br_uri = "https://w3id.org/oc/meta/br/0609"
         zip_path = self._create_rdf_zip(str(rdf_dir), "br", "060", 10000, 1000, br_uri)
@@ -486,9 +584,11 @@ class TestMainIntegration:
         rdf_dir = output_dir / "rdf"
         rdf_dir.mkdir(parents=True)
 
-        self._create_csv(str(input_dir), "test.csv", [
-            {"id": "omid:br/0601 doi:10.1234/test", "title": "Test"}
-        ])
+        self._create_csv(
+            str(input_dir),
+            "test.csv",
+            [{"id": "omid:br/0601 doi:10.1234/test", "title": "Test"}],
+        )
 
         br_uri = "https://w3id.org/oc/meta/br/0601"
         self._create_rdf_zip(str(rdf_dir), "br", "060", 10000, 1000, br_uri)
@@ -510,14 +610,20 @@ class TestMainIntegration:
         rdf_dir = output_dir / "rdf"
         rdf_dir.mkdir(parents=True)
 
-        self._create_csv(str(input_dir), "test.csv", [
-            {"id": "omid:br/0607 doi:10.1234/a", "title": "BR 607"},
-            {"id": "omid:br/0608 pmid:111", "title": "BR 608"},
-        ])
+        self._create_csv(
+            str(input_dir),
+            "test.csv",
+            [
+                {"id": "omid:br/0607 doi:10.1234/a", "title": "BR 607"},
+                {"id": "omid:br/0608 pmid:111", "title": "BR 608"},
+            ],
+        )
 
         br1 = "https://w3id.org/oc/meta/br/0607"
         br2 = "https://w3id.org/oc/meta/br/0608"
-        zip_path = self._create_rdf_zip(str(rdf_dir), "br", "060", 10000, 1000, br1, br2)
+        zip_path = self._create_rdf_zip(
+            str(rdf_dir), "br", "060", 10000, 1000, br1, br2
+        )
         self._create_prov_zip(zip_path, br1, br2)
 
         config_path = self._write_config(tmp_path, output_dir)
@@ -534,7 +640,6 @@ class TestMainIntegration:
 
 
 class TestRealDataIntegration:
-
     REAL_DOIS = [
         ("doi", "10.1001/2013.jamasurg.270", "https://w3id.org/oc/meta/br/2719"),
         ("doi", "10.1001/archderm.104.1.106", "https://w3id.org/oc/meta/br/3757"),
@@ -546,7 +651,9 @@ class TestRealDataIntegration:
         add_data_ts(SERVER, REAL_DATA_FILE)
 
     def test_real_dois_found_in_triplestore(self):
-        identifiers = [{'schema': schema, 'value': value} for schema, value, _ in self.REAL_DOIS]
+        identifiers = [
+            {"schema": schema, "value": value} for schema, value, _ in self.REAL_DOIS
+        ]
         result = check_omids_existence(identifiers, SERVER, workers=1)
         for schema, value, expected_uri in self.REAL_DOIS:
             id_key = f"{schema}:{value}"
@@ -555,12 +662,28 @@ class TestRealDataIntegration:
 
     def test_process_csv_with_real_dois(self, tmp_path):
         csv_path = tmp_path / "real_input.csv"
-        fieldnames = ['id', 'title', 'author', 'pub_date', 'venue', 'volume', 'issue', 'page', 'type', 'publisher', 'editor']
+        fieldnames = [
+            "id",
+            "title",
+            "author",
+            "pub_date",
+            "venue",
+            "volume",
+            "issue",
+            "page",
+            "type",
+            "publisher",
+            "editor",
+        ]
         rows = [
-            {**{k: '' for k in fieldnames}, 'id': f"doi:{doi}", 'title': f"Real article {i}"}
+            {
+                **{k: "" for k in fieldnames},
+                "id": f"doi:{doi}",
+                "title": f"Real article {i}",
+            }
             for i, (_, doi, _) in enumerate(self.REAL_DOIS)
         ]
-        with open(csv_path, 'w', newline='', encoding='utf-8') as f:
+        with open(csv_path, "w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(rows)
@@ -569,8 +692,14 @@ class TestRealDataIntegration:
         rdf_dir.mkdir()
 
         proc_args = (
-            str(csv_path), SERVER, PROV_SERVER, str(rdf_dir),
-            10000, 1000, True, "https://w3id.org/oc/meta"
+            str(csv_path),
+            SERVER,
+            PROV_SERVER,
+            str(rdf_dir),
+            10000,
+            1000,
+            True,
+            "https://w3id.org/oc/meta",
         )
         file_result = process_csv_file(proc_args, workers=1)
 

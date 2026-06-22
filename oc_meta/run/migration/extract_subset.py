@@ -32,20 +32,22 @@ def get_subjects_of_class(endpoint: str, class_uri: str, limit: int) -> list[str
 
 
 def load_entities_from_file(entities_file: str) -> list[str]:
-    with open(entities_file, 'r') as f:
+    with open(entities_file, "r") as f:
         return [line.strip() for line in f if line.strip()]
 
 
-def parse_object(result: dict[str, dict[str, str]]) -> rdflib.URIRef | rdflib.BNode | rdflib.Literal:
+def parse_object(
+    result: dict[str, dict[str, str]],
+) -> rdflib.URIRef | rdflib.BNode | rdflib.Literal:
     o_value = result["o"]["value"]
     o_type = result["o"]["type"]
-    if o_type == 'uri':
+    if o_type == "uri":
         return rdflib.URIRef(o_value)
-    if o_type == 'bnode':
+    if o_type == "bnode":
         return rdflib.BNode(o_value)
-    if 'datatype' in result["o"]:
+    if "datatype" in result["o"]:
         return rdflib.Literal(o_value, datatype=result["o"]["datatype"])
-    if 'xml:lang' in result["o"]:
+    if "xml:lang" in result["o"]:
         return rdflib.Literal(o_value, lang=result["o"]["xml:lang"])
     return rdflib.Literal(o_value)
 
@@ -58,7 +60,7 @@ def get_triples_for_entities(
     quads: list[tuple[rdflib.URIRef, rdflib.URIRef, Node, rdflib.URIRef | None]] = []
 
     for i in range(0, len(entity_uris), CHUNK_SIZE):
-        chunk = entity_uris[i:i + CHUNK_SIZE]
+        chunk = entity_uris[i : i + CHUNK_SIZE]
         values = " ".join(f"<{uri}>" for uri in chunk)
 
         if use_graphs:
@@ -143,9 +145,9 @@ def extract_subset(
     assert store is not None
     output_format = "nquads" if use_graphs else "nt"
     if compress:
-        if not output_file.endswith('.gz'):
-            output_file = output_file + '.gz'
-        with gzip.open(output_file, 'wb') as f:
+        if not output_file.endswith(".gz"):
+            output_file = output_file + ".gz"
+        with gzip.open(output_file, "wb") as f:
             store.serialize(destination=f, format=output_format)  # type: ignore[arg-type]
     else:
         store.serialize(destination=output_file, format=output_format)
@@ -155,33 +157,55 @@ def extract_subset(
 
 def main():  # pragma: no cover
     parser = argparse.ArgumentParser(
-        description='Extract a subset of data from a SPARQL endpoint',
+        description="Extract a subset of data from a SPARQL endpoint",
         formatter_class=RichHelpFormatter,
     )
-    parser.add_argument('--endpoint', default='http://localhost:8890/sparql',
-                        help='SPARQL endpoint URL (default: http://localhost:8890/sparql)')
+    parser.add_argument(
+        "--endpoint",
+        default="http://localhost:8890/sparql",
+        help="SPARQL endpoint URL (default: http://localhost:8890/sparql)",
+    )
 
     discovery = parser.add_mutually_exclusive_group()
-    discovery.add_argument('--class', dest='class_uri',
-                           help='Class URI to extract instances of (default: fabio:Expression)')
-    discovery.add_argument('--entities-file', dest='entities_file',
-                           help='File with entity URIs to extract (one per line)')
+    discovery.add_argument(
+        "--class",
+        dest="class_uri",
+        help="Class URI to extract instances of (default: fabio:Expression)",
+    )
+    discovery.add_argument(
+        "--entities-file",
+        dest="entities_file",
+        help="File with entity URIs to extract (one per line)",
+    )
 
-    parser.add_argument('--limit', type=int, default=1000,
-                        help='Maximum number of initial entities to process (default: 1000)')
-    parser.add_argument('--output', default='output.nq',
-                        help='Output file name (default: output.nq)')
-    parser.add_argument('--compress', action='store_true',
-                        help='Compress output file using gzip')
-    parser.add_argument('--retries', type=int, default=5,
-                        help='Maximum number of retries for failed queries (default: 5)')
-    parser.add_argument('--no-graphs', action='store_true',
-                        help='Disable named graph queries and output N-Triples instead of N-Quads')
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=1000,
+        help="Maximum number of initial entities to process (default: 1000)",
+    )
+    parser.add_argument(
+        "--output", default="output.nq", help="Output file name (default: output.nq)"
+    )
+    parser.add_argument(
+        "--compress", action="store_true", help="Compress output file using gzip"
+    )
+    parser.add_argument(
+        "--retries",
+        type=int,
+        default=5,
+        help="Maximum number of retries for failed queries (default: 5)",
+    )
+    parser.add_argument(
+        "--no-graphs",
+        action="store_true",
+        help="Disable named graph queries and output N-Triples instead of N-Quads",
+    )
 
     args = parser.parse_args()
 
     if not args.class_uri and not args.entities_file:
-        args.class_uri = 'http://purl.org/spar/fabio/Expression'
+        args.class_uri = "http://purl.org/spar/fabio/Expression"
 
     try:
         parsed_url = urlparse(args.endpoint)

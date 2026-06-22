@@ -79,7 +79,9 @@ class BenchmarkDataGenerator:
         "book chapter",
     ]
 
-    def __init__(self, size: int, output_path: str, seed: int = 42, partial_data: bool = False):
+    def __init__(
+        self, size: int, output_path: str, seed: int = 42, partial_data: bool = False
+    ):
         self.size = size
         self.output_path = output_path
         self.partial_data = partial_data
@@ -149,11 +151,20 @@ class BenchmarkDataGenerator:
         records = [self._generate_record(i) for i in range(self.size)]
 
         fieldnames = [
-            "id", "title", "author", "pub_date", "venue",
-            "volume", "issue", "page", "type", "publisher", "editor"
+            "id",
+            "title",
+            "author",
+            "pub_date",
+            "venue",
+            "volume",
+            "issue",
+            "page",
+            "type",
+            "publisher",
+            "editor",
         ]
 
-        with open(output_file, 'w', newline='', encoding='utf-8') as f:
+        with open(output_file, "w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(records)
@@ -168,29 +179,24 @@ def main():
         formatter_class=RichHelpFormatter,
     )
     parser.add_argument(
-        "-s", "--size",
+        "-s",
+        "--size",
         type=int,
         default=100,
-        help="Number of records to generate (default: 100)"
+        help="Number of records to generate (default: 100)",
     )
-    parser.add_argument(
-        "-o", "--output",
-        required=True,
-        help="Output CSV file path"
-    )
+    parser.add_argument("-o", "--output", required=True, help="Output CSV file path")
     parser.add_argument(
         "--seed",
         type=int,
         default=42,
-        help="Random seed for reproducible data generation (default: 42)"
+        help="Random seed for reproducible data generation (default: 42)",
     )
 
     args = parser.parse_args()
 
     generator = BenchmarkDataGenerator(
-        size=args.size,
-        output_path=args.output,
-        seed=args.seed
+        size=args.size, output_path=args.output, seed=args.seed
     )
     generator.generate()
 

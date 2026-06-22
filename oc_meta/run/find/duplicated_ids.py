@@ -21,21 +21,29 @@ from oc_meta.lib.file_manager import collect_files
 
 def process_zip_file(zip_path: str) -> Dict[tuple, Set[str]]:
     entity_info = defaultdict(set)
-    datacite_uses_identifier_scheme = URIRef("http://purl.org/spar/datacite/usesIdentifierScheme")
-    literal_reification_has_literal_value = URIRef("http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue")
+    datacite_uses_identifier_scheme = URIRef(
+        "http://purl.org/spar/datacite/usesIdentifierScheme"
+    )
+    literal_reification_has_literal_value = URIRef(
+        "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue"
+    )
 
     try:
-        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+        with zipfile.ZipFile(zip_path, "r") as zip_ref:
             for zip_file in zip_ref.namelist():
                 try:
                     with zip_ref.open(zip_file) as rdf_file:
                         g = Dataset(default_union=True)
                         g.parse(data=rdf_file.read(), format="json-ld")
-                        
-                        for s, _, o in g.triples((None, datacite_uses_identifier_scheme, None)):
+
+                        for s, _, o in g.triples(
+                            (None, datacite_uses_identifier_scheme, None)
+                        ):
                             entity_id = str(s)
                             identifier_scheme = str(o)
-                            literal_value = g.value(s, literal_reification_has_literal_value)
+                            literal_value = g.value(
+                                s, literal_reification_has_literal_value
+                            )
                             if identifier_scheme and literal_value:
                                 key = (str(identifier_scheme), str(literal_value))
                                 entity_info[key].add(entity_id)
@@ -48,26 +56,29 @@ def process_zip_file(zip_path: str) -> Dict[tuple, Set[str]]:
 
     return entity_info
 
+
 def save_chunk_to_temp_csv(entity_info: Dict[tuple, Set[str]], temp_file_path: str):
-    with open(temp_file_path, mode='w', newline='', encoding='utf-8') as csv_file:
+    with open(temp_file_path, mode="w", newline="", encoding="utf-8") as csv_file:
         csv_writer = csv.writer(csv_file)
-        csv_writer.writerow(['identifier_scheme', 'literal_value', 'entity_ids'])
+        csv_writer.writerow(["identifier_scheme", "literal_value", "entity_ids"])
         for (scheme, value), ids in entity_info.items():
-            csv_writer.writerow([scheme, value, ';'.join(ids)])
+            csv_writer.writerow([scheme, value, ";".join(ids)])
+
 
 def load_and_merge_temp_csv(temp_file_path: str, entity_info: Dict[tuple, Set[str]]):
-    with open(temp_file_path, mode='r', encoding='utf-8') as csv_file:
+    with open(temp_file_path, mode="r", encoding="utf-8") as csv_file:
         csv_reader = csv.DictReader(csv_file)
         for row in csv_reader:
-            key = (row['identifier_scheme'], row['literal_value'])
-            ids = set(row['entity_ids'].split(';'))
+            key = (row["identifier_scheme"], row["literal_value"])
+            ids = set(row["entity_ids"].split(";"))
             entity_info[key].update(ids)
+
 
 def process_chunk(zip_files_chunk: List[str], temp_dir: str, chunk_index: int) -> str:
     entity_info = defaultdict(set)
 
     # Use forkserver to avoid deadlocks when forking in a multi-threaded environment
-    ctx = mp.get_context('forkserver')
+    ctx = mp.get_context("forkserver")
     with ctx.Pool(processes=mp.cpu_count()) as pool:
         results = pool.map(process_zip_file, zip_files_chunk)
 
@@ -75,34 +86,43 @@ def process_chunk(zip_files_chunk: List[str], temp_dir: str, chunk_index: int) -
         for key, value in result.items():
             entity_info[key].update(value)
 
-    temp_file_path = os.path.join(temp_dir, f'chunk_{chunk_index}.csv')
+    temp_file_path = os.path.join(temp_dir, f"chunk_{chunk_index}.csv")
     save_chunk_to_temp_csv(entity_info, temp_file_path)
 
     return temp_file_path
 
-def read_and_analyze_zip_files(folder_path: str, csv_path: str, chunk_size: int = 5000, temp_dir: str | None = None):
-    id_folder_path = os.path.join(folder_path, 'id')
+
+def read_and_analyze_zip_files(
+    folder_path: str, csv_path: str, chunk_size: int = 5000, temp_dir: str | None = None
+):
+    id_folder_path = os.path.join(folder_path, "id")
 
     if not os.path.exists(id_folder_path):
         print(f"Error: The 'id' subfolder does not exist in path: {folder_path}")
         return
 
-    zip_files = sorted(collect_files(
-        id_folder_path,
-        pattern="*.zip",
-        path_filter=lambda p: os.path.basename(p) != "se.zip",
-    ))
+    zip_files = sorted(
+        collect_files(
+            id_folder_path,
+            pattern="*.zip",
+            path_filter=lambda p: os.path.basename(p) != "se.zip",
+        )
+    )
 
     if temp_dir is None:
-        temp_dir = tempfile.mkdtemp(prefix='oc_meta_duplicates_')
+        temp_dir = tempfile.mkdtemp(prefix="oc_meta_duplicates_")
     else:
         os.makedirs(temp_dir, exist_ok=True)
 
     try:
-        chunks = [zip_files[i:i + chunk_size] for i in range(0, len(zip_files), chunk_size)]
+        chunks = [
+            zip_files[i : i + chunk_size] for i in range(0, len(zip_files), chunk_size)
+        ]
         temp_files = []
 
-        print(f"Processing {len(zip_files)} ZIP files in {len(chunks)} chunks of max {chunk_size} files each")
+        print(
+            f"Processing {len(zip_files)} ZIP files in {len(chunks)} chunks of max {chunk_size} files each"
+        )
         print(f"Temporary files will be stored in: {temp_dir}")
 
         for chunk_index, chunk in enumerate(tqdm(chunks, desc="Processing chunks")):
@@ -120,33 +140,50 @@ def read_and_analyze_zip_files(folder_path: str, csv_path: str, chunk_size: int 
         if temp_dir.startswith(tempfile.gettempdir()):
             shutil.rmtree(temp_dir, ignore_errors=True)
 
+
 def save_duplicates_to_csv(entity_info: Dict[tuple, Set[str]], csv_path: str):
     try:
-        with open(csv_path, mode='w', newline='', encoding='utf-8') as csv_file:
+        with open(csv_path, mode="w", newline="", encoding="utf-8") as csv_file:
             csv_writer = csv.writer(csv_file)
-            csv_writer.writerow(['surviving_entity', 'merged_entities'])
+            csv_writer.writerow(["surviving_entity", "merged_entities"])
 
             for ids in tqdm(entity_info.values(), desc="Writing CSV"):
                 if len(ids) > 1:
                     ids_list = list(ids)
-                    csv_writer.writerow([ids_list[0], '; '.join(ids_list[1:])])
+                    csv_writer.writerow([ids_list[0], "; ".join(ids_list[1:])])
     except Exception as e:
         print(f"Error saving CSV file {csv_path}: {str(e)}")
+
 
 def main():
     parser = argparse.ArgumentParser(
         description="Find duplicate identifiers by reading RDF files inside ZIP archives in an 'id' subfolder.",
         formatter_class=RichHelpFormatter,
     )
-    parser.add_argument("folder_path", type=str, help="Path to the folder containing the 'id' subfolder")
-    parser.add_argument("csv_path", type=str, help="Path to the CSV file to save duplicates")
-    parser.add_argument("--chunk-size", type=int, default=5000,
-                        help="Number of ZIP files to process per chunk (default: 5000)")
-    parser.add_argument("--temp-dir", type=str, default=None,
-                        help="Directory for temporary files (default: system temp directory)")
+    parser.add_argument(
+        "folder_path", type=str, help="Path to the folder containing the 'id' subfolder"
+    )
+    parser.add_argument(
+        "csv_path", type=str, help="Path to the CSV file to save duplicates"
+    )
+    parser.add_argument(
+        "--chunk-size",
+        type=int,
+        default=5000,
+        help="Number of ZIP files to process per chunk (default: 5000)",
+    )
+    parser.add_argument(
+        "--temp-dir",
+        type=str,
+        default=None,
+        help="Directory for temporary files (default: system temp directory)",
+    )
     args = parser.parse_args()
 
-    read_and_analyze_zip_files(args.folder_path, args.csv_path, args.chunk_size, args.temp_dir)
+    read_and_analyze_zip_files(
+        args.folder_path, args.csv_path, args.chunk_size, args.temp_dir
+    )
+
 
 if __name__ == "__main__":
     main()

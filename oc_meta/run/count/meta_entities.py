@@ -26,15 +26,16 @@ def _count_venues_in_file(filepath: str) -> Set[str]:
     csv_data = get_csv_data(filepath)
     venues = set()
     for row in csv_data:
-        if not row['venue']:
+        if not row["venue"]:
             continue
-        venue_name, venue_ids_str = split_name_and_ids(row['venue'])
+        venue_name, venue_ids_str = split_name_and_ids(row["venue"])
         if not venue_ids_str:
             continue
         venue_ids = set(venue_ids_str.split())
         venue_metaid = next(
-            identifier for identifier in venue_ids
-            if identifier.split(':', maxsplit=1)[0] == 'omid'
+            identifier
+            for identifier in venue_ids
+            if identifier.split(":", maxsplit=1)[0] == "omid"
         )
         if not venue_ids.difference({venue_metaid}):
             venues.add(venue_name.lower())
@@ -44,7 +45,13 @@ def _count_venues_in_file(filepath: str) -> Set[str]:
 
 
 class OCMetaStatistics:
-    def __init__(self, sparql_endpoint: str, csv_dump_path: str | None = None, max_retries: int = 3, retry_delay: int = 5):
+    def __init__(
+        self,
+        sparql_endpoint: str,
+        csv_dump_path: str | None = None,
+        max_retries: int = 3,
+        retry_delay: int = 5,
+    ):
         self.sparql_endpoint = sparql_endpoint
         self.csv_dump_path = csv_dump_path
         self.max_retries = max_retries
@@ -52,7 +59,12 @@ class OCMetaStatistics:
 
     def _execute_sparql_query(self, query: str) -> Dict:
         try:
-            return execute_sparql(self.sparql_endpoint, query, max_retries=self.max_retries, backoff_factor=self.retry_delay)
+            return execute_sparql(
+                self.sparql_endpoint,
+                query,
+                max_retries=self.max_retries,
+                backoff_factor=self.retry_delay,
+            )
         except Exception as e:
             print(f"Query failed after {self.max_retries} retries.", file=sys.stderr)
             raise Exception("SPARQL query failed after multiple retries.") from e
@@ -88,22 +100,18 @@ class OCMetaStatistics:
         """
         results = self._execute_sparql_query(query)
 
-        role_counts = {
-            'pro:author': 0,
-            'pro:publisher': 0,
-            'pro:editor': 0
-        }
+        role_counts = {"pro:author": 0, "pro:publisher": 0, "pro:editor": 0}
 
         for binding in results["results"]["bindings"]:
             role_uri = binding["role"]["value"]
             count = int(binding["count"]["value"])
 
             if role_uri == "http://purl.org/spar/pro/author":
-                role_counts['pro:author'] = count
+                role_counts["pro:author"] = count
             elif role_uri == "http://purl.org/spar/pro/publisher":
-                role_counts['pro:publisher'] = count
+                role_counts["pro:publisher"] = count
             elif role_uri == "http://purl.org/spar/pro/editor":
-                role_counts['pro:editor'] = count
+                role_counts["pro:editor"] = count
 
         return role_counts
 
@@ -112,16 +120,24 @@ class OCMetaStatistics:
             raise ValueError("CSV dump path is required to count venues")
 
         filenames = sorted(os.listdir(self.csv_dump_path))
-        filepaths = [os.path.join(self.csv_dump_path, f) for f in filenames if f.endswith('.csv')]
+        filepaths = [
+            os.path.join(self.csv_dump_path, f) for f in filenames if f.endswith(".csv")
+        ]
 
         all_venues: Set[str] = set()
 
         with create_progress() as progress:
-            task = progress.add_task("Counting venues from CSV files...", total=len(filepaths))
+            task = progress.add_task(
+                "Counting venues from CSV files...", total=len(filepaths)
+            )
 
             # Use forkserver to avoid deadlocks when forking in a multi-threaded environment
-            with ProcessPoolExecutor(mp_context=multiprocessing.get_context('forkserver')) as executor:
-                futures = {executor.submit(_count_venues_in_file, fp): fp for fp in filepaths}
+            with ProcessPoolExecutor(
+                mp_context=multiprocessing.get_context("forkserver")
+            ) as executor:
+                futures = {
+                    executor.submit(_count_venues_in_file, fp): fp for fp in filepaths
+                }
                 for future in as_completed(futures):
                     venues = future.result()
                     all_venues.update(venues)
@@ -129,7 +145,9 @@ class OCMetaStatistics:
 
         return len(all_venues)
 
-    def run_selected_analyses(self, analyze_br: bool, analyze_ar: bool, analyze_venues: bool) -> Dict:
+    def run_selected_analyses(
+        self, analyze_br: bool, analyze_ar: bool, analyze_venues: bool
+    ) -> Dict:
         print("Starting dataset statistics...")
         print(f"Connected to endpoint: {self.sparql_endpoint}")
         if self.csv_dump_path:
@@ -142,51 +160,53 @@ class OCMetaStatistics:
             print("1. Counting fabio:Expression entities...")
             try:
                 expressions_count = self.count_expressions()
-                results['fabio_expressions'] = expressions_count
+                results["fabio_expressions"] = expressions_count
                 print(f"   Found {expressions_count:,} fabio:Expression entities")
             except Exception as e:
                 print(f"   Error: {e}")
-                results['fabio_expressions'] = None
+                results["fabio_expressions"] = None
             print()
 
         if analyze_ar:
             print("2. Counting pro:author, pro:publisher and pro:editor roles...")
             try:
                 role_counts = self.count_role_entities()
-                results['roles'] = role_counts
+                results["roles"] = role_counts
                 print(f"   Found {role_counts['pro:author']:,} pro:author roles")
                 print(f"   Found {role_counts['pro:publisher']:,} pro:publisher roles")
                 print(f"   Found {role_counts['pro:editor']:,} pro:editor roles")
             except Exception as e:
                 print(f"   Error: {e}")
-                results['roles'] = None
+                results["roles"] = None
             print()
 
         if analyze_venues:
             print("3. Counting venues from CSV dump...")
             if not self.csv_dump_path:
                 print("   Error: CSV dump path is required for venue counting")
-                results['venues'] = None
+                results["venues"] = None
             else:
                 try:
                     venues_count = self.count_venues_from_csv()
-                    results['venues'] = venues_count
+                    results["venues"] = venues_count
                     print(f"   Found {venues_count:,} distinct venues")
                 except Exception as e:
                     print(f"   Error: {e}")
-                    results['venues'] = None
+                    results["venues"] = None
             print()
 
         print("Statistics completed!")
         return results
 
     def run_all_analyses(self) -> Dict:
-        return self.run_selected_analyses(analyze_br=True, analyze_ar=True, analyze_venues=True)
+        return self.run_selected_analyses(
+            analyze_br=True, analyze_ar=True, analyze_venues=True
+        )
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Compute OpenCitations Meta dataset statistics',
+        description="Compute OpenCitations Meta dataset statistics",
         formatter_class=RichHelpFormatter,
         epilog="""
 Examples:
@@ -208,36 +228,31 @@ Statistics computed:
   --venues: Count distinct venues with disambiguation (via CSV dump)
 
 If no specific options are provided, all statistics will be computed.
-        """
+        """,
+    )
+
+    parser.add_argument("sparql_endpoint", help="SPARQL endpoint URL")
+
+    parser.add_argument(
+        "--csv",
+        dest="csv_dump_path",
+        help="Path to CSV dump directory (required for venue counting)",
     )
 
     parser.add_argument(
-        'sparql_endpoint',
-        help='SPARQL endpoint URL'
+        "--br",
+        action="store_true",
+        help="Count bibliographic resources (fabio:Expression entities)",
     )
 
     parser.add_argument(
-        '--csv',
-        dest='csv_dump_path',
-        help='Path to CSV dump directory (required for venue counting)'
+        "--ar",
+        action="store_true",
+        help="Count roles (pro:author, pro:publisher, pro:editor)",
     )
 
     parser.add_argument(
-        '--br',
-        action='store_true',
-        help='Count bibliographic resources (fabio:Expression entities)'
-    )
-
-    parser.add_argument(
-        '--ar',
-        action='store_true',
-        help='Count roles (pro:author, pro:publisher, pro:editor)'
-    )
-
-    parser.add_argument(
-        '--venues',
-        action='store_true',
-        help='Count distinct venues (requires --csv)'
+        "--venues", action="store_true", help="Count distinct venues (requires --csv)"
     )
 
     args = parser.parse_args()
@@ -252,21 +267,23 @@ If no specific options are provided, all statistics will be computed.
 
     try:
         with OCMetaStatistics(args.sparql_endpoint, args.csv_dump_path) as stats:
-            results = stats.run_selected_analyses(analyze_br, analyze_ar, analyze_venues)
+            results = stats.run_selected_analyses(
+                analyze_br, analyze_ar, analyze_venues
+            )
 
-            print("\n" + "="*50)
+            print("\n" + "=" * 50)
             print("SUMMARY")
-            print("="*50)
+            print("=" * 50)
 
-            if results.get('fabio_expressions') is not None:
+            if results.get("fabio_expressions") is not None:
                 print(f"fabio:Expression entities: {results['fabio_expressions']:,}")
 
-            if results.get('roles'):
+            if results.get("roles"):
                 print(f"pro:author roles: {results['roles']['pro:author']:,}")
                 print(f"pro:publisher roles: {results['roles']['pro:publisher']:,}")
                 print(f"pro:editor roles: {results['roles']['pro:editor']:,}")
 
-            if results.get('venues') is not None:
+            if results.get("venues") is not None:
                 print(f"Distinct venues: {results['venues']:,}")
 
             return results

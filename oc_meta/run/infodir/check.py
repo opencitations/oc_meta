@@ -19,7 +19,9 @@ from oc_meta.lib.file_manager import collect_files, collect_zip_files
 _worker_prov_counters: dict[str, dict[str, list[int]]] = {}
 
 
-def load_counters(info_dir: str) -> tuple[dict[str, dict[str, int]], dict[str, dict[str, list[int]]]]:
+def load_counters(
+    info_dir: str,
+) -> tuple[dict[str, dict[str, int]], dict[str, dict[str, list[int]]]]:
     entity_counters: dict[str, dict[str, int]] = {}
     prov_counters: dict[str, dict[str, list[int]]] = {}
     counter_files = collect_files(info_dir, "*.txt")
@@ -40,7 +42,9 @@ def load_counters(info_dir: str) -> tuple[dict[str, dict[str, int]], dict[str, d
                 short_name = filename.removeprefix("info_file_").removesuffix(".txt")
                 with open(file_path, "r") as f:
                     first_line = f.readline().strip()
-                entity_counters.setdefault(prefix, {})[short_name] = int(first_line) if first_line else 0
+                entity_counters.setdefault(prefix, {})[short_name] = (
+                    int(first_line) if first_line else 0
+                )
             advance_progress(progress, task_id)
     return entity_counters, prov_counters
 
@@ -70,7 +74,10 @@ def process_zip_file(zip_file: str) -> dict:
                     parts = prov_entity_uri.split("/prov/se/")
                     entity_uri = parts[0]
                     snapshot_number = int(parts[1])
-                    if entity_uri not in entities or snapshot_number > entities[entity_uri]:
+                    if (
+                        entity_uri not in entities
+                        or snapshot_number > entities[entity_uri]
+                    ):
                         entities[entity_uri] = snapshot_number
 
     mismatched_prov: list[dict] = []
@@ -83,17 +90,22 @@ def process_zip_file(zip_file: str) -> dict:
 
         if prefix not in max_resource_numbers:
             max_resource_numbers[prefix] = {}
-        if short_name not in max_resource_numbers[prefix] or resource_number > max_resource_numbers[prefix][short_name]:
+        if (
+            short_name not in max_resource_numbers[prefix]
+            or resource_number > max_resource_numbers[prefix][short_name]
+        ):
             max_resource_numbers[prefix][short_name] = resource_number
 
         prov_counter = lookup_prov_counter(prefix, short_name, resource_number)
         if prov_counter != max_snapshot:
-            mismatched_prov.append({
-                "entity_uri": entity_uri,
-                "expected": max_snapshot,
-                "actual": prov_counter,
-                "zip_file": zip_file,
-            })
+            mismatched_prov.append(
+                {
+                    "entity_uri": entity_uri,
+                    "expected": max_snapshot,
+                    "actual": prov_counter,
+                    "zip_file": zip_file,
+                }
+            )
 
     return {
         "mismatched_prov_counters": mismatched_prov,
@@ -117,11 +129,15 @@ def explore_provenance_files(root_path: str, info_dir: str, output_path: str) ->
     _worker_prov_counters = prov_counters
 
     chunk_size = 10000
-    with ProcessPoolExecutor(mp_context=multiprocessing.get_context("fork")) as executor:
+    with ProcessPoolExecutor(
+        mp_context=multiprocessing.get_context("fork")
+    ) as executor:
         with create_progress() as progress:
-            task_id = progress.add_task("Checking provenance entities", total=len(prov_zip_files))
+            task_id = progress.add_task(
+                "Checking provenance entities", total=len(prov_zip_files)
+            )
             for i in range(0, len(prov_zip_files), chunk_size):
-                chunk = prov_zip_files[i:i + chunk_size]
+                chunk = prov_zip_files[i : i + chunk_size]
                 futures = {executor.submit(process_zip_file, f): f for f in chunk}
                 for future in as_completed(futures):
                     result = future.result()
@@ -130,8 +146,14 @@ def explore_provenance_files(root_path: str, info_dir: str, output_path: str) ->
                         if prefix not in global_max_resource:
                             global_max_resource[prefix] = {}
                         for short_name, resource_number in by_short.items():
-                            if short_name not in global_max_resource[prefix] or resource_number > global_max_resource[prefix][short_name]:
-                                global_max_resource[prefix][short_name] = resource_number
+                            if (
+                                short_name not in global_max_resource[prefix]
+                                or resource_number
+                                > global_max_resource[prefix][short_name]
+                            ):
+                                global_max_resource[prefix][short_name] = (
+                                    resource_number
+                                )
                     advance_progress(progress, task_id)
 
     mismatched_entity: list[dict] = []
@@ -140,12 +162,14 @@ def explore_provenance_files(root_path: str, info_dir: str, output_path: str) ->
         for short_name, max_resource in by_short.items():
             entity_counter = prefix_counters.get(short_name, 0)
             if entity_counter < max_resource:
-                mismatched_entity.append({
-                    "prefix": prefix,
-                    "short_name": short_name,
-                    "expected_min": max_resource,
-                    "actual": entity_counter,
-                })
+                mismatched_entity.append(
+                    {
+                        "prefix": prefix,
+                        "short_name": short_name,
+                        "expected_min": max_resource,
+                        "actual": entity_counter,
+                    }
+                )
 
     report = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -176,7 +200,8 @@ def main():  # pragma: no cover
     parser.add_argument("directory", type=str, help="Path to the RDF directory to scan")
     parser.add_argument("info_dir", type=str, help="Base directory for counter files")
     parser.add_argument(
-        "-o", "--output",
+        "-o",
+        "--output",
         type=str,
         default="check_info_dir_report.json",
         help="Output JSON report path (default: check_info_dir_report.json)",

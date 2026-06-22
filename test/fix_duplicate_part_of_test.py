@@ -353,9 +353,7 @@ class TestFindFile:
 
 class TestScanBrBatch:
     def test_detects_duplicate_part_of(self, rdf_dir_same_venue):
-        br_file = os.path.join(
-            rdf_dir_same_venue, "br", "060", "10000", "1000.json"
-        )
+        br_file = os.path.join(rdf_dir_same_venue, "br", "060", "10000", "1000.json")
         results = _scan_br_batch([br_file], zip_output=False)
 
         assert len(results) == 1
@@ -513,18 +511,14 @@ class TestResolveCases:
 class TestFixBrPartOf:
     def test_removes_duplicate_part_of(self, rdf_env):
         entities = _load_entities(rdf_env["rdf_dir"])
-        part_of_before = [
-            x["@id"] for x in entities[BR1_URI].get(FRBR_PART_OF, [])
-        ]
+        part_of_before = [x["@id"] for x in entities[BR1_URI].get(FRBR_PART_OF, [])]
         assert len(part_of_before) == 2
 
         editor = MetaEditor(rdf_env["config_path"], RESP_AGENT)
         fix_br_part_of(editor, BR1_URI, ISSUE_A_URI, [ISSUE_B_URI])
 
         entities = _load_entities(rdf_env["rdf_dir"])
-        part_of_after = [
-            x["@id"] for x in entities[BR1_URI].get(FRBR_PART_OF, [])
-        ]
+        part_of_after = [x["@id"] for x in entities[BR1_URI].get(FRBR_PART_OF, [])]
         assert part_of_after == [ISSUE_A_URI]
 
     def test_generates_provenance(self, rdf_env):

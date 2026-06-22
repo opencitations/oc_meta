@@ -21,7 +21,9 @@ import yaml
 from oc_meta.run.meta_process import run_meta_process
 
 
-def generate_atlas_paper_csv(output_path: str, num_authors: int = 2869, seed: int = 42) -> None:
+def generate_atlas_paper_csv(
+    output_path: str, num_authors: int = 2869, seed: int = 42
+) -> None:
     """
     Generate CSV file with a single BR having many authors (simulating ATLAS paper).
 
@@ -30,13 +32,13 @@ def generate_atlas_paper_csv(output_path: str, num_authors: int = 2869, seed: in
         num_authors: Number of authors to generate (default: 2869, matching real ATLAS paper)
         seed: Random seed for reproducible ORCID generation
     """
-    
+
     random.seed(seed)
 
     authors = []
     for i in range(num_authors):
         orcid = f"0000-000{i // 10000:1d}-{(i % 10000):04d}-{random.randint(1000, 9999):04d}X"
-        author_name = f"Author_{i+1:04d}, Test"
+        author_name = f"Author_{i + 1:04d}, Test"
         authors.append(f"{author_name} [orcid:{orcid}]")
 
     author_field = "; ".join(authors)
@@ -54,9 +56,9 @@ def generate_atlas_paper_csv(output_path: str, num_authors: int = 2869, seed: in
     )
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    with open(output_path, 'w', encoding='utf-8') as f:
-        f.write(header + '\n')
-        f.write(row + '\n')
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(header + "\n")
+        f.write(row + "\n")
 
     print(f"Generated CSV with {num_authors} authors: {output_path}")
 
@@ -81,9 +83,9 @@ def generate_atlas_update_csv(output_path: str) -> None:
     )
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    with open(output_path, 'w', encoding='utf-8') as f:
-        f.write(header + '\n')
-        f.write(row + '\n')
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(header + "\n")
+        f.write(row + "\n")
 
     print(f"Generated update CSV: {output_path}")
 
@@ -99,12 +101,12 @@ def preload_data(config_path: str, csv_path: str) -> dict:
     Returns:
         Dictionary with preload metrics (duration and memory usage)
     """
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("Preloading High-Author Test Data")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print(f"Config: {config_path}")
     print(f"CSV: {csv_path}")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     with open(config_path) as f:
         settings = yaml.safe_load(f)
@@ -114,7 +116,7 @@ def preload_data(config_path: str, csv_path: str) -> dict:
     settings["input_csv_dir"] = test_input_dir
 
     temp_config_path = os.path.join(test_input_dir, "_temp_preload_config.yaml")
-    with open(temp_config_path, 'w') as f:
+    with open(temp_config_path, "w") as f:
         yaml.dump(settings, f)
 
     try:
@@ -135,22 +137,24 @@ def preload_data(config_path: str, csv_path: str) -> dict:
         start_memory_mb = round(start_memory / 1024 / 1024, 2)
         end_memory_mb = round(end_memory / 1024 / 1024, 2)
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("Preload Complete")
         print(f"Duration: {duration:.2f}s")
         print(f"Memory: {start_memory_mb:.2f} MB -> {end_memory_mb:.2f} MB")
-        print(f"{'='*60}\n")
+        print(f"{'=' * 60}\n")
 
         return {
             "duration_seconds": round(duration, 3),
             "start_memory_mb": start_memory_mb,
-            "end_memory_mb": end_memory_mb
+            "end_memory_mb": end_memory_mb,
         }
 
     finally:
         os.remove(temp_config_path)
 
-        time_agnostic_config = os.path.join(test_input_dir, "time_agnostic_library_config.json")
+        time_agnostic_config = os.path.join(
+            test_input_dir, "time_agnostic_library_config.json"
+        )
         os.remove(time_agnostic_config)
 
         settings["input_csv_dir"] = original_input_dir

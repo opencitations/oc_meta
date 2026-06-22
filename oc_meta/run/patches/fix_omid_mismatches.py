@@ -118,7 +118,8 @@ def load_errors(check_results_path: str) -> list[dict]:
     with open(check_results_path) as f:
         data = json.load(f)
     return [
-        e for e in data["errors"]
+        e
+        for e in data["errors"]
         if e["type"] == "omid_mismatch" and e["schema"] == "doi"
     ]
 
@@ -159,24 +160,19 @@ def classify_and_resolve(
                 _classify_asce(case, endpoint)
             elif case.expected_doi.endswith("<"):
                 _classify_angle_bracket(case, endpoint)
-            elif (case.expected_doi.endswith(";")
-                  and not case.found_doi.endswith(";")):
+            elif case.expected_doi.endswith(";") and not case.found_doi.endswith(";"):
                 case.category = "false_positive"
                 case.action = "false_positive"
-                case.reason = (
-                    f"Semicolon is part of DOI '{case.expected_doi}'"
-                )
-            elif ("#" in case.expected_doi
-                  and "#" not in case.found_doi):
+                case.reason = f"Semicolon is part of DOI '{case.expected_doi}'"
+            elif "#" in case.expected_doi and "#" not in case.found_doi:
                 case.category = "false_positive"
                 case.action = "false_positive"
-                case.reason = (
-                    f"Fragment is part of DOI '{case.expected_doi}'"
-                )
-            elif (case.expected_doi == case.doi_value + "."
-                  or case.expected_doi == case.doi_value + "..."
-                  or case.expected_doi.rstrip(".")
-                  == case.doi_value.rstrip(".")):
+                case.reason = f"Fragment is part of DOI '{case.expected_doi}'"
+            elif (
+                case.expected_doi == case.doi_value + "."
+                or case.expected_doi == case.doi_value + "..."
+                or case.expected_doi.rstrip(".") == case.doi_value.rstrip(".")
+            ):
                 _classify_trailing_period(case, endpoint)
             else:
                 case.category = "manual_review"
@@ -191,16 +187,12 @@ def classify_and_resolve(
     return cases
 
 
-def _classify_trailing_period(
-    case: MismatchCase, endpoint: str
-) -> None:
+def _classify_trailing_period(case: MismatchCase, endpoint: str) -> None:
     case.category = "trailing_period"
     case.surviving_entity = case.expected_entity
     case.duplicate_entities = [case.found_entity]
 
-    found_id = _find_id_entity(
-        endpoint, case.found_entity, case.found_doi
-    )
+    found_id = _find_id_entity(endpoint, case.found_entity, case.found_doi)
     case.duplicate_id_entities = [found_id] if found_id else []
     case.action = "merge"
     case.reason = (
@@ -220,23 +212,15 @@ def _classify_bjc(case: MismatchCase, endpoint: str) -> None:
 
     if not correct_entity:
         case.action = "manual_review"
-        case.reason = (
-            f"Correct entity for '{correct_doi}' not found in triplestore"
-        )
+        case.reason = f"Correct entity for '{correct_doi}' not found in triplestore"
         return
 
     case.surviving_entity = correct_entity
     case.duplicate_entities = [case.expected_entity, case.found_entity]
 
-    exp_id = _find_id_entity(
-        endpoint, case.expected_entity, case.expected_doi
-    )
-    found_id = _find_id_entity(
-        endpoint, case.found_entity, case.found_doi
-    )
-    case.duplicate_id_entities = [
-        x for x in [exp_id, found_id] if x
-    ]
+    exp_id = _find_id_entity(endpoint, case.expected_entity, case.expected_doi)
+    found_id = _find_id_entity(endpoint, case.found_entity, case.found_doi)
+    case.duplicate_id_entities = [x for x in [exp_id, found_id] if x]
     case.action = "merge"
     case.reason = (
         f"BJC: merge corrupted entities into correct entity "
@@ -249,9 +233,7 @@ def _classify_asce(case: MismatchCase, endpoint: str) -> None:
     case.surviving_entity = case.expected_entity
     case.duplicate_entities = [case.found_entity]
 
-    found_id = _find_id_entity(
-        endpoint, case.found_entity, case.found_doi
-    )
+    found_id = _find_id_entity(endpoint, case.found_entity, case.found_doi)
     case.duplicate_id_entities = [found_id] if found_id else []
     case.action = "merge"
     case.reason = (
@@ -260,21 +242,16 @@ def _classify_asce(case: MismatchCase, endpoint: str) -> None:
     )
 
 
-def _classify_angle_bracket(
-    case: MismatchCase, endpoint: str
-) -> None:
+def _classify_angle_bracket(case: MismatchCase, endpoint: str) -> None:
     case.category = "angle_bracket"
     case.surviving_entity = case.expected_entity
     case.duplicate_entities = [case.found_entity]
 
-    found_id = _find_id_entity(
-        endpoint, case.found_entity, case.found_doi
-    )
+    found_id = _find_id_entity(endpoint, case.found_entity, case.found_doi)
     case.duplicate_id_entities = [found_id] if found_id else []
     case.action = "merge"
     case.reason = (
-        f"'<' is part of DOI '{case.expected_doi}'; "
-        f"'{case.found_doi}' is truncated"
+        f"'<' is part of DOI '{case.expected_doi}'; '{case.found_doi}' is truncated"
     )
 
 
@@ -310,9 +287,7 @@ def validate_cases(
 
             surviving_doi = ""
             if case.category == "bjc":
-                surviving_doi = case.doi_value.replace(
-                    "sj....bjc", "sj.bjc"
-                )
+                surviving_doi = case.doi_value.replace("sj....bjc", "sj.bjc")
             else:
                 surviving_doi = case.expected_doi
 
@@ -327,26 +302,19 @@ def validate_cases(
                 continue
 
             if case.column == "venue":
-                ts_surv = fetch_triplestore_metadata(
-                    endpoint, case.surviving_entity
-                )
+                ts_surv = fetch_triplestore_metadata(endpoint, case.surviving_entity)
                 dup_entity = case.duplicate_entities[0]
                 ts_dup = fetch_triplestore_metadata(endpoint, dup_entity)
                 if ts_surv and ts_dup and ts_surv["title"] and ts_dup["title"]:
-                    max_len = max(
-                        len(ts_surv["title"]), len(ts_dup["title"])
-                    )
-                    dist = Levenshtein.distance(
-                        ts_surv["title"], ts_dup["title"]
-                    )
+                    max_len = max(len(ts_surv["title"]), len(ts_dup["title"]))
+                    dist = Levenshtein.distance(ts_surv["title"], ts_dup["title"])
                     sim = 1.0 - dist / max_len
                     if sim >= VENUE_TITLE_THRESHOLD:
                         case.validation = f"venue_title_match:{sim:.2f}"
                     else:
                         case.action = "manual_review"
                         case.reason += (
-                            f" [VALIDATION FAILED: venue title"
-                            f" similarity {sim:.2f}]"
+                            f" [VALIDATION FAILED: venue title similarity {sim:.2f}]"
                         )
                         case.validation = f"venue_title_mismatch:{sim:.2f}"
                 else:
@@ -357,19 +325,16 @@ def validate_cases(
                     )
                     case.validation = "doi_resolved_no_metadata"
             else:
-                cr_meta = fetch_crossref_metadata(
-                    surviving_doi, crossref_cache, mailto
-                )
+                cr_meta = fetch_crossref_metadata(surviving_doi, crossref_cache, mailto)
                 if cr_meta:
                     best_score = 0.0
                     any_ts_meta = False
                     entities_to_check = [
-                        *case.duplicate_entities, case.surviving_entity
+                        *case.duplicate_entities,
+                        case.surviving_entity,
                     ]
                     for ent in entities_to_check:
-                        ts_meta = fetch_triplestore_metadata(
-                            endpoint, ent
-                        )
+                        ts_meta = fetch_triplestore_metadata(endpoint, ent)
                         if not ts_meta or not ts_meta["title"]:
                             continue
                         any_ts_meta = True
@@ -385,18 +350,14 @@ def validate_cases(
                         )
                         case.validation = "doi_resolved_no_ts_metadata"
                     elif best_score >= MATCHING_THRESHOLD:
-                        case.validation = (
-                            f"crossref_match:{best_score:.1f}"
-                        )
+                        case.validation = f"crossref_match:{best_score:.1f}"
                     else:
                         case.action = "manual_review"
                         case.reason += (
                             f" [VALIDATION FAILED: best score"
                             f" {best_score:.1f} < {MATCHING_THRESHOLD}]"
                         )
-                        case.validation = (
-                            f"crossref_mismatch:{best_score:.1f}"
-                        )
+                        case.validation = f"crossref_mismatch:{best_score:.1f}"
                 else:
                     case.action = "manual_review"
                     case.reason += (
@@ -506,18 +467,14 @@ def execute_merges(
                 editor.save(g_set, supplier_prefix)
 
                 for id_ent in case.duplicate_id_entities:
-                    editor.delete(
-                        case.surviving_entity, DATACITE_HAS_ID, id_ent
-                    )
+                    editor.delete(case.surviving_entity, DATACITE_HAS_ID, id_ent)
                     editor.delete(id_ent)
 
                 completed.add(case_key)
                 _save_progress(progress_file, completed)
                 fixed += 1
             except Exception as e:
-                console.print(
-                    f"[red]Error on {case.surviving_entity}: {e}[/red]"
-                )
+                console.print(f"[red]Error on {case.surviving_entity}: {e}[/red]")
                 failed += 1
 
             progress.advance(task)
@@ -548,11 +505,15 @@ def main() -> None:  # pragma: no cover
     )
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument(
-        "--dry-run", action="store_true", dest="dry_run",
+        "--dry-run",
+        action="store_true",
+        dest="dry_run",
         help="Report only, no modifications",
     )
     mode.add_argument(
-        "--no-dry-run", action="store_true", dest="no_dry_run",
+        "--no-dry-run",
+        action="store_true",
+        dest="no_dry_run",
         help="Apply corrections",
     )
     parser.add_argument(
@@ -613,9 +574,7 @@ def main() -> None:  # pragma: no cover
     if not args.dry_run:
         if summary["merge"]:
             console.print("\n[bold]Applying merges...[/bold]")
-            execute_merges(
-                cases, args.config, args.resp_agent, args.progress_file
-            )
+            execute_merges(cases, args.config, args.resp_agent, args.progress_file)
     else:
         console.print(
             f"\n[dim]Dry run complete. {summary['merge']} merges pending."

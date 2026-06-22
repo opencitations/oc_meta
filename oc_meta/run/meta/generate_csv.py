@@ -80,10 +80,17 @@ _worker_config: Optional[Tuple[str, int, int]] = None
 
 
 def _init_worker(
-    redis_host: str, redis_port: int, redis_db: int, input_dir: str, dir_split_number: int, items_per_file: int
+    redis_host: str,
+    redis_port: int,
+    redis_db: int,
+    input_dir: str,
+    dir_split_number: int,
+    items_per_file: int,
 ) -> None:
     global _worker_redis, _worker_config
-    _worker_redis = redis.Redis(host=redis_host, port=redis_port, db=redis_db, decode_responses=True)
+    _worker_redis = redis.Redis(
+        host=redis_host, port=redis_port, db=redis_db, decode_responses=True
+    )
     _worker_config = (input_dir, dir_split_number, items_per_file)
 
 
@@ -105,7 +112,9 @@ def _process_file_worker(filepath: str) -> Tuple[str, List[Dict[str, str]]]:
                 omid = f"omid:br/{entity_id.split('/')[-1]}"
                 if _worker_redis.sismember("processed_omids", omid):
                     continue
-            br_data = process_bibliographic_resource(entity, input_dir, dir_split_number, items_per_file)
+            br_data = process_bibliographic_resource(
+                entity, input_dir, dir_split_number, items_per_file
+            )
             if br_data:
                 results.append(br_data)
     return (filepath, results)
@@ -234,7 +243,9 @@ def process_responsible_agent(
         if "http://purl.org/spar/datacite/hasIdentifier" in ra_data:
             for identifier in ra_data["http://purl.org/spar/datacite/hasIdentifier"]:
                 id_uri = identifier["@id"]
-                id_file = find_rdf_file(id_uri, rdf_dir, dir_split_number, items_per_file, zip_output=True)
+                id_file = find_rdf_file(
+                    id_uri, rdf_dir, dir_split_number, items_per_file, zip_output=True
+                )
                 if os.path.exists(id_file):
                     id_data = load_json_from_file(id_file)
                     for graph in id_data:
@@ -270,7 +281,9 @@ def process_venue_title(
     if "http://purl.org/spar/datacite/hasIdentifier" in venue_data:
         for identifier in venue_data["http://purl.org/spar/datacite/hasIdentifier"]:
             id_uri = identifier["@id"]
-            id_file = find_rdf_file(id_uri, rdf_dir, dir_split_number, items_per_file, zip_output=True)
+            id_file = find_rdf_file(
+                id_uri, rdf_dir, dir_split_number, items_per_file, zip_output=True
+            )
             if os.path.exists(id_file):
                 id_data = load_json_from_file(id_file)
                 for graph in id_data:
@@ -320,7 +333,9 @@ def process_hierarchical_venue(
 
     if "http://purl.org/vocab/frbr/core#partOf" in entity:
         parent_uri = entity["http://purl.org/vocab/frbr/core#partOf"][0]["@id"]
-        parent_file = find_rdf_file(parent_uri, rdf_dir, dir_split_number, items_per_file, zip_output=True)
+        parent_file = find_rdf_file(
+            parent_uri, rdf_dir, dir_split_number, items_per_file, zip_output=True
+        )
         if os.path.exists(parent_file):
             parent_data = load_json_from_file(parent_file)
             for graph in parent_data:
@@ -379,7 +394,7 @@ def process_bibliographic_resource(
 
     try:
         entity_id = br_data.get("@id", "")
-        identifiers = [f'omid:br/{entity_id.split("/")[-1]}'] if entity_id else []
+        identifiers = [f"omid:br/{entity_id.split('/')[-1]}"] if entity_id else []
 
         output["title"] = br_data.get("http://purl.org/dc/terms/title", [{}])[0].get(
             "@value", ""
@@ -398,7 +413,9 @@ def process_bibliographic_resource(
         if "http://purl.org/spar/datacite/hasIdentifier" in br_data:
             for identifier in br_data["http://purl.org/spar/datacite/hasIdentifier"]:
                 id_uri = identifier["@id"]
-                id_file = find_rdf_file(id_uri, rdf_dir, dir_split_number, items_per_file, zip_output=True)
+                id_file = find_rdf_file(
+                    id_uri, rdf_dir, dir_split_number, items_per_file, zip_output=True
+                )
                 if os.path.exists(id_file):
                     id_data = load_json_from_file(id_file)
                     for graph in id_data:
@@ -418,7 +435,9 @@ def process_bibliographic_resource(
         if "http://purl.org/spar/pro/isDocumentContextFor" in br_data:
             for ar_data in br_data["http://purl.org/spar/pro/isDocumentContextFor"]:
                 ar_uri = ar_data["@id"]
-                ar_file = find_rdf_file(ar_uri, rdf_dir, dir_split_number, items_per_file, zip_output=True)
+                ar_file = find_rdf_file(
+                    ar_uri, rdf_dir, dir_split_number, items_per_file, zip_output=True
+                )
                 if os.path.exists(ar_file):
                     ar_data = load_json_from_file(ar_file)
                     for graph in ar_data:
@@ -465,7 +484,13 @@ def process_bibliographic_resource(
                             ra_uri = entity["http://purl.org/spar/pro/isHeldBy"][0][
                                 "@id"
                             ]
-                            ra_file = find_rdf_file(ra_uri, rdf_dir, dir_split_number, items_per_file, zip_output=True)
+                            ra_file = find_rdf_file(
+                                ra_uri,
+                                rdf_dir,
+                                dir_split_number,
+                                items_per_file,
+                                zip_output=True,
+                            )
                             if os.path.exists(ra_file):
                                 ra_data = load_json_from_file(ra_file)
                                 for ra_graph in ra_data:
@@ -489,7 +514,9 @@ def process_bibliographic_resource(
 
         if "http://purl.org/vocab/frbr/core#partOf" in br_data:
             venue_uri = br_data["http://purl.org/vocab/frbr/core#partOf"][0]["@id"]
-            venue_file = find_rdf_file(venue_uri, rdf_dir, dir_split_number, items_per_file, zip_output=True)
+            venue_file = find_rdf_file(
+                venue_uri, rdf_dir, dir_split_number, items_per_file, zip_output=True
+            )
             if os.path.exists(venue_file):
                 venue_data = load_json_from_file(venue_file)
                 for graph in venue_data:
@@ -502,7 +529,9 @@ def process_bibliographic_resource(
 
         if "http://purl.org/vocab/frbr/core#embodiment" in br_data:
             page_uri = br_data["http://purl.org/vocab/frbr/core#embodiment"][0]["@id"]
-            page_file = find_rdf_file(page_uri, rdf_dir, dir_split_number, items_per_file, zip_output=True)
+            page_file = find_rdf_file(
+                page_uri, rdf_dir, dir_split_number, items_per_file, zip_output=True
+            )
             if os.path.exists(page_file):
                 page_data = load_json_from_file(page_file)
                 for graph in page_data:
@@ -600,12 +629,14 @@ def generate_csv(
         return
 
     print(f"Skipping {len(processed_br_files)} already processed files")
-    print(f"Processing {len(files_to_process)} remaining files with {workers} workers...")
+    print(
+        f"Processing {len(files_to_process)} remaining files with {workers} workers..."
+    )
 
     result_buffer = ResultBuffer(output_dir)
 
     # Use forkserver to avoid deadlocks when forking in a multi-threaded environment
-    ctx = multiprocessing.get_context('forkserver')
+    ctx = multiprocessing.get_context("forkserver")
     with ctx.Pool(
         workers,
         _init_worker,
@@ -614,7 +645,9 @@ def generate_csv(
         with create_progress() as progress:
             task = progress.add_task("Processing files", total=len(files_to_process))
 
-            for filepath, results in pool.imap_unordered(_process_file_worker, files_to_process):
+            for filepath, results in pool.imap_unordered(
+                _process_file_worker, files_to_process
+            ):
                 if results:
                     result_buffer.add_results(results)
                 mark_file_processed(checkpoint_file, filepath)
@@ -631,41 +664,58 @@ def write_csv(filepath: str, data: List[Dict[str, str]]) -> None:
         writer.writerows(data)
 
 
-if __name__ == '__main__':
-    parser = ArgumentParser('generate_csv.py',
-                          description='Generate CSV files from OpenCitations Meta RDF dump')
-    parser.add_argument('-c', '--config', required=True,
-                       help='OpenCitations Meta configuration file location')
-    parser.add_argument('-o', '--output_dir', required=True,
-                       help='Directory where CSV files will be stored')
-    parser.add_argument('--redis-host', default='localhost',
-                       help='Redis host (default: localhost)')
-    parser.add_argument('--redis-port', type=int, default=6379,
-                       help='Redis port (default: 6379)')
-    parser.add_argument('--redis-db', type=int, default=2,
-                       help='Redis database number (default: 2)')
-    parser.add_argument('--workers', type=int, default=4,
-                       help='Number of parallel workers (default: 4)')
-    parser.add_argument('--clean', action='store_true',
-                       help='Clear checkpoint file and Redis cache before starting')
+if __name__ == "__main__":
+    parser = ArgumentParser(
+        "generate_csv.py",
+        description="Generate CSV files from OpenCitations Meta RDF dump",
+    )
+    parser.add_argument(
+        "-c",
+        "--config",
+        required=True,
+        help="OpenCitations Meta configuration file location",
+    )
+    parser.add_argument(
+        "-o",
+        "--output_dir",
+        required=True,
+        help="Directory where CSV files will be stored",
+    )
+    parser.add_argument(
+        "--redis-host", default="localhost", help="Redis host (default: localhost)"
+    )
+    parser.add_argument(
+        "--redis-port", type=int, default=6379, help="Redis port (default: 6379)"
+    )
+    parser.add_argument(
+        "--redis-db", type=int, default=2, help="Redis database number (default: 2)"
+    )
+    parser.add_argument(
+        "--workers", type=int, default=4, help="Number of parallel workers (default: 4)"
+    )
+    parser.add_argument(
+        "--clean",
+        action="store_true",
+        help="Clear checkpoint file and Redis cache before starting",
+    )
     args = parser.parse_args()
 
-    with open(args.config, encoding='utf-8') as f:
+    with open(args.config, encoding="utf-8") as f:
         settings = yaml.full_load(f)
 
-    rdf_dir = os.path.join(settings['output_rdf_dir'], 'rdf')
-    dir_split_number = settings['dir_split_number']
-    items_per_file = settings['items_per_file']
+    rdf_dir = os.path.join(settings["output_rdf_dir"], "rdf")
+    dir_split_number = settings["dir_split_number"]
+    items_per_file = settings["items_per_file"]
 
     if args.clean:
-        checkpoint_file = 'processed_br_files.txt'
+        checkpoint_file = "processed_br_files.txt"
         if os.path.exists(checkpoint_file):
             os.remove(checkpoint_file)
             print(f"Removed checkpoint file: {checkpoint_file}")
         redis_client = redis.Redis(
             host=args.redis_host, port=args.redis_port, db=args.redis_db
         )
-        deleted = redis_client.delete('processed_omids')
+        deleted = redis_client.delete("processed_omids")
         if deleted:
             print("Cleared Redis processed_omids cache")
 

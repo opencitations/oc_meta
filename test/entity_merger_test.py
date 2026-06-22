@@ -70,7 +70,7 @@ class TestEntityMerger:
                 "ts_stop_file": self.stop_file,
                 "provenance_triplestore_url": PROV_SERVER,
                 "data_update_dir": self.data_update_dir,
-                "prov_update_dir": self.prov_update_dir
+                "prov_update_dir": self.prov_update_dir,
             }
         )
         with open(META_CONFIG, "w", encoding="utf-8") as file:
@@ -240,12 +240,16 @@ class TestEntityMerger:
         # Check DELETE patterns
         if "delete" in expected_triples:
             for triple in expected_triples["delete"]:
-                assert triple in delete_section.strip(), f"Expected triple not found in DELETE section: {triple}"
+                assert triple in delete_section.strip(), (
+                    f"Expected triple not found in DELETE section: {triple}"
+                )
 
         # Check INSERT patterns
         if "insert" in expected_triples:
             for triple in expected_triples["insert"]:
-                assert triple in insert_section.strip(), f"Expected triple not found in INSERT section: {triple}"
+                assert triple in insert_section.strip(), (
+                    f"Expected triple not found in INSERT section: {triple}"
+                )
 
     def test_get_entity_type(self):
         """Test the static method get_entity_type"""
@@ -351,7 +355,9 @@ class TestEntityMerger:
 
         # Verify files structure
         rdf_path = os.path.join(OUTPUT)
-        assert os.path.exists(os.path.join(rdf_path, "rdf", "ra", "060", "10000", "1000"))
+        assert os.path.exists(
+            os.path.join(rdf_path, "rdf", "ra", "060", "10000", "1000")
+        )
         assert os.path.exists(
             os.path.join(rdf_path, "rdf", "ra", "060", "10000", "1000", "prov")
         )
@@ -375,7 +381,10 @@ class TestEntityMerger:
                         assert "https://w3id.org/oc/meta/id/0602" in identifiers
 
                         # Check name
-                        assert entity["http://xmlns.com/foaf/0.1/name"][0]["@value"] == "J. Smith"
+                        assert (
+                            entity["http://xmlns.com/foaf/0.1/name"][0]["@value"]
+                            == "J. Smith"
+                        )
 
                     # Check merged entity no longer exists
                     if entity["@id"] == "https://w3id.org/oc/meta/ra/0602":
@@ -388,7 +397,9 @@ class TestEntityMerger:
             for graph in data:
                 for entity in graph.get("@graph", []):
                     agent = entity["http://purl.org/spar/pro/isHeldBy"][0]["@id"]
-                    assert agent == "https://w3id.org/oc/meta/ra/0601", "All roles should point to surviving entity"
+                    assert agent == "https://w3id.org/oc/meta/ra/0601", (
+                        "All roles should point to surviving entity"
+                    )
 
         # Check provenance
         prov_file = os.path.join(
@@ -602,7 +613,10 @@ class TestEntityMerger:
                         assert identifiers == expected_ids
 
                         # Check name (should take the last merged name)
-                        assert entity["http://xmlns.com/foaf/0.1/name"][0]["@value"] == "J A Smith"
+                        assert (
+                            entity["http://xmlns.com/foaf/0.1/name"][0]["@value"]
+                            == "J A Smith"
+                        )
 
                     # Check merged entities no longer exist
                     assert entity["@id"] not in [
@@ -619,7 +633,9 @@ class TestEntityMerger:
                 for entity in graph.get("@graph", []):
                     if "http://purl.org/spar/pro/isHeldBy" in entity:
                         agent = entity["http://purl.org/spar/pro/isHeldBy"][0]["@id"]
-                        assert agent == "https://w3id.org/oc/meta/ra/0601", "All roles should point to surviving entity"
+                        assert agent == "https://w3id.org/oc/meta/ra/0601", (
+                            "All roles should point to surviving entity"
+                        )
 
         # 3. Check provenance
         prov_file = os.path.join(
@@ -649,7 +665,10 @@ class TestEntityMerger:
             merge_snapshot = surviving_snapshots[0]
 
             # All merged entities should be mentioned in the description
-            descriptions = [d["@value"] for d in merge_snapshot["http://purl.org/dc/terms/description"]]
+            descriptions = [
+                d["@value"]
+                for d in merge_snapshot["http://purl.org/dc/terms/description"]
+            ]
             desc_text = " ".join(descriptions)
             assert "0602" in desc_text
             assert "0603" in desc_text
@@ -657,9 +676,14 @@ class TestEntityMerger:
 
             assert "http://www.w3.org/ns/prov#generatedAtTime" in merge_snapshot
             assert "http://www.w3.org/ns/prov#wasAttributedTo" in merge_snapshot
-            assert merge_snapshot["http://www.w3.org/ns/prov#wasAttributedTo"][0]["@id"] == "https://orcid.org/0000-0002-8420-0696"
+            assert (
+                merge_snapshot["http://www.w3.org/ns/prov#wasAttributedTo"][0]["@id"]
+                == "https://orcid.org/0000-0002-8420-0696"
+            )
 
-            merge_query = merge_snapshot["https://w3id.org/oc/ontology/hasUpdateQuery"][0]["@value"]
+            merge_query = merge_snapshot["https://w3id.org/oc/ontology/hasUpdateQuery"][
+                0
+            ]["@value"]
             expected_merge = {
                 "delete": [
                     '<https://w3id.org/oc/meta/ra/0601> <http://xmlns.com/foaf/0.1/name> "John Smith"'
@@ -690,7 +714,9 @@ class TestEntityMerger:
                             ):
                                 merged_snapshots.append(entity)
 
-                assert len(merged_snapshots) > 0, f"No deletion snapshot found for ra/{merged_id}"
+                assert len(merged_snapshots) > 0, (
+                    f"No deletion snapshot found for ra/{merged_id}"
+                )
 
                 # Verify deletion queries
                 for snapshot in merged_snapshots:
@@ -810,12 +836,24 @@ class TestEntityMerger:
                             )
                         }
                         assert len(identifiers) == 1
-                        assert identifiers & {"https://w3id.org/oc/meta/id/0605", "https://w3id.org/oc/meta/id/0606"}
+                        assert identifiers & {
+                            "https://w3id.org/oc/meta/id/0605",
+                            "https://w3id.org/oc/meta/id/0606",
+                        }
 
                         # Check name was preserved
-                        assert entity["http://xmlns.com/foaf/0.1/name"][0]["@value"] == "Johnny Smith"
-                        assert entity["http://xmlns.com/foaf/0.1/givenName"][0]["@value"] == "Johnny"
-                        assert entity["http://xmlns.com/foaf/0.1/familyName"][0]["@value"] == "Smith"
+                        assert (
+                            entity["http://xmlns.com/foaf/0.1/name"][0]["@value"]
+                            == "Johnny Smith"
+                        )
+                        assert (
+                            entity["http://xmlns.com/foaf/0.1/givenName"][0]["@value"]
+                            == "Johnny"
+                        )
+                        assert (
+                            entity["http://xmlns.com/foaf/0.1/familyName"][0]["@value"]
+                            == "Smith"
+                        )
 
                     # Check merged entity does not exist in output
                     assert entity["@id"] != "https://w3id.org/oc/meta/ra/0606"
@@ -881,7 +919,9 @@ class TestEntityMerger:
                             delete_snapshot = entity
                             break
 
-            assert delete_snapshot is not None, "No deletion snapshot found for merged entity"
+            assert delete_snapshot is not None, (
+                "No deletion snapshot found for merged entity"
+            )
 
             # Verify deletion query
             delete_query = delete_snapshot[
@@ -1059,9 +1099,22 @@ class TestEntityMerger:
                 for entity in graph.get("@graph", []):
                     if entity["@id"] == "https://w3id.org/oc/meta/br/0603":
                         # Check basic metadata
-                        assert entity["http://purl.org/dc/terms/title"][0]["@value"] == "Data Integration Methods"
-                        assert entity["http://purl.org/spar/fabio/hasSubtitle"][0]["@value"] == "A Comprehensive Review"
-                        assert entity["http://prismstandard.org/namespaces/basic/2.0/publicationDate"][0]["@value"] == "2023"
+                        assert (
+                            entity["http://purl.org/dc/terms/title"][0]["@value"]
+                            == "Data Integration Methods"
+                        )
+                        assert (
+                            entity["http://purl.org/spar/fabio/hasSubtitle"][0][
+                                "@value"
+                            ]
+                            == "A Comprehensive Review"
+                        )
+                        assert (
+                            entity[
+                                "http://prismstandard.org/namespaces/basic/2.0/publicationDate"
+                            ][0]["@value"]
+                            == "2023"
+                        )
 
                         # Check part relationships
                         parts = {
@@ -1094,13 +1147,28 @@ class TestEntityMerger:
 
                     # Check issue metadata
                     elif entity["@id"] == "https://w3id.org/oc/meta/br/0605":
-                        assert "http://purl.org/spar/fabio/JournalIssue" in entity["@type"]
-                        assert entity["http://purl.org/spar/fabio/hasSequenceIdentifier"][0]["@value"] == "4"
+                        assert (
+                            "http://purl.org/spar/fabio/JournalIssue" in entity["@type"]
+                        )
+                        assert (
+                            entity["http://purl.org/spar/fabio/hasSequenceIdentifier"][
+                                0
+                            ]["@value"]
+                            == "4"
+                        )
 
                     # Check volume metadata
                     elif entity["@id"] == "https://w3id.org/oc/meta/br/0606":
-                        assert "http://purl.org/spar/fabio/JournalVolume" in entity["@type"]
-                        assert entity["http://purl.org/spar/fabio/hasSequenceIdentifier"][0]["@value"] == "15"
+                        assert (
+                            "http://purl.org/spar/fabio/JournalVolume"
+                            in entity["@type"]
+                        )
+                        assert (
+                            entity["http://purl.org/spar/fabio/hasSequenceIdentifier"][
+                                0
+                            ]["@value"]
+                            == "15"
+                        )
 
                     # Check merged entity no longer exists
                     assert entity["@id"] != "https://w3id.org/oc/meta/br/0604"
@@ -1139,7 +1207,10 @@ class TestEntityMerger:
                 for entity in graph.get("@graph", []):
                     if entity["@id"] == "https://w3id.org/oc/meta/ar/0605":
                         assert "http://purl.org/spar/pro/withRole" in entity
-                        assert entity["http://purl.org/spar/pro/withRole"][0]["@id"] == "http://purl.org/spar/pro/author"
+                        assert (
+                            entity["http://purl.org/spar/pro/withRole"][0]["@id"]
+                            == "http://purl.org/spar/pro/author"
+                        )
                         holder = entity["http://purl.org/spar/pro/isHeldBy"][0]["@id"]
                         assert holder == "https://w3id.org/oc/meta/ra/0605"
 
@@ -1199,7 +1270,9 @@ class TestEntityMerger:
                             delete_snapshot = entity
                             break
 
-                    assert delete_snapshot is not None, "No deletion snapshot found for merged entity"
+                    assert delete_snapshot is not None, (
+                        "No deletion snapshot found for merged entity"
+                    )
 
                     # Verify deletion query
                     delete_query = delete_snapshot[
@@ -1235,9 +1308,17 @@ class TestEntityMerger:
                                     .lower()
                                 ):
                                     found_volume_creation = True
-                                    assert "http://www.w3.org/ns/prov#generatedAtTime" in entity
-                                    assert "http://www.w3.org/ns/prov#wasAttributedTo" in entity
-                            assert found_volume_creation, "No creation provenance found for volume"
+                                    assert (
+                                        "http://www.w3.org/ns/prov#generatedAtTime"
+                                        in entity
+                                    )
+                                    assert (
+                                        "http://www.w3.org/ns/prov#wasAttributedTo"
+                                        in entity
+                                    )
+                            assert found_volume_creation, (
+                                "No creation provenance found for volume"
+                            )
 
                         # Check resource embodiment provenance
                         if graph["@id"] == "https://w3id.org/oc/meta/re/0604/prov/":
@@ -1252,9 +1333,17 @@ class TestEntityMerger:
                                     .lower()
                                 ):
                                     found_re_creation = True
-                                    assert "http://www.w3.org/ns/prov#generatedAtTime" in entity
-                                    assert "http://www.w3.org/ns/prov#wasAttributedTo" in entity
-                            assert found_re_creation, "No creation provenance found for resource embodiment"
+                                    assert (
+                                        "http://www.w3.org/ns/prov#generatedAtTime"
+                                        in entity
+                                    )
+                                    assert (
+                                        "http://www.w3.org/ns/prov#wasAttributedTo"
+                                        in entity
+                                    )
+                            assert found_re_creation, (
+                                "No creation provenance found for resource embodiment"
+                            )
 
                     # Verify all metadata inheritance
                     # We expect the surviving entity to inherit all identifiers
@@ -1279,7 +1368,9 @@ class TestEntityMerger:
                                     merge_timestamps.append(timestamp)
 
                     # Check timestamps are in correct order
-                    assert len(merge_timestamps) == 1, "Should have exactly one merge operation"
+                    assert len(merge_timestamps) == 1, (
+                        "Should have exactly one merge operation"
+                    )
 
                     br_file = os.path.join(rdf_path, "br", "060", "10000", "1000.json")
                     with open(br_file) as f:
@@ -1291,7 +1382,10 @@ class TestEntityMerger:
                                     entity["@id"] == "https://w3id.org/oc/meta/br/0606"
                                 ):  # Volume
                                     volume_found = True
-                                    assert "http://purl.org/spar/fabio/JournalVolume" in entity["@type"]
+                                    assert (
+                                        "http://purl.org/spar/fabio/JournalVolume"
+                                        in entity["@type"]
+                                    )
 
                         assert volume_found, "Volume should still exist after merge"
 
@@ -1305,9 +1399,16 @@ class TestEntityMerger:
                                     entity["@id"] == "https://w3id.org/oc/meta/re/0604"
                                 ):  # RE from merged entity
                                     re_found = True
-                                    assert entity["http://prismstandard.org/namespaces/basic/2.0/startingPage"][0]["@value"] == "100"
+                                    assert (
+                                        entity[
+                                            "http://prismstandard.org/namespaces/basic/2.0/startingPage"
+                                        ][0]["@value"]
+                                        == "100"
+                                    )
 
-                        assert re_found, "Resource embodiment should still exist after merge"
+                        assert re_found, (
+                            "Resource embodiment should still exist after merge"
+                        )
 
     def test_fetch_related_entities_batch(self):
         """Test batch fetching of related entities"""
@@ -1398,9 +1499,7 @@ class TestEntityMerger:
         for batch_size in batch_sizes:
             # Test con una singola entità
             merged_entities = [f"https://w3id.org/oc/meta/ra/060{valid_numbers[0]}"]
-            surviving_entities = [
-                f"https://w3id.org/oc/meta/ra/060{valid_numbers[1]}"
-            ]
+            surviving_entities = [f"https://w3id.org/oc/meta/ra/060{valid_numbers[1]}"]
 
             related = self.merger.fetch_related_entities_batch(
                 meta_editor=meta_editor,
@@ -1420,9 +1519,7 @@ class TestEntityMerger:
             merged_entities = [
                 f"https://w3id.org/oc/meta/ra/060{i}" for i in valid_numbers[:3]
             ]
-            surviving_entities = [
-                f"https://w3id.org/oc/meta/ra/060{valid_numbers[3]}"
-            ]
+            surviving_entities = [f"https://w3id.org/oc/meta/ra/060{valid_numbers[3]}"]
 
             related = self.merger.fetch_related_entities_batch(
                 meta_editor=meta_editor,
@@ -1435,9 +1532,7 @@ class TestEntityMerger:
             for i in valid_numbers[:3]:
                 expected_related.add(f"https://w3id.org/oc/meta/id/060{i}")
                 expected_related.add(f"https://w3id.org/oc/meta/ar/060{i}")
-            expected_related.add(
-                f"https://w3id.org/oc/meta/id/060{valid_numbers[3]}"
-            )
+            expected_related.add(f"https://w3id.org/oc/meta/id/060{valid_numbers[3]}")
 
             assert related == expected_related
 
@@ -1476,7 +1571,7 @@ class TestEntityMerger:
         for i in range(4):
             role = g_set.add_ar(
                 resp_agent="https://orcid.org/0000-0002-8420-0696",
-                res=URIRef(f"https://w3id.org/oc/meta/ar/0650842286{7+i}"),
+                res=URIRef(f"https://w3id.org/oc/meta/ar/0650842286{7 + i}"),
             )
             role.create_author()
             pub1.has_contributor(role)
@@ -1501,7 +1596,7 @@ class TestEntityMerger:
         for i in range(4):
             role = g_set.add_ar(
                 resp_agent="https://orcid.org/0000-0002-8420-0696",
-                res=URIRef(f"https://w3id.org/oc/meta/ar/0680174860{1+i}"),
+                res=URIRef(f"https://w3id.org/oc/meta/ar/0680174860{1 + i}"),
             )
             role.create_author()
             pub2.has_contributor(role)
@@ -1583,11 +1678,22 @@ class TestEntityMerger:
                         assert identifiers == expected_ids
 
                         # Check other metadata preserved
-                        assert entity["http://purl.org/dc/terms/title"][0]["@value"] == "Higgsing The Stringy Higher Spin Symmetry"
-                        assert entity["http://prismstandard.org/namespaces/basic/2.0/publicationDate"][0]["@value"] == "2015-10-01"  # Should keep original date format
+                        assert (
+                            entity["http://purl.org/dc/terms/title"][0]["@value"]
+                            == "Higgsing The Stringy Higher Spin Symmetry"
+                        )
+                        assert (
+                            entity[
+                                "http://prismstandard.org/namespaces/basic/2.0/publicationDate"
+                            ][0]["@value"]
+                            == "2015-10-01"
+                        )  # Should keep original date format
 
                         # Check part of relationship preserved
-                        assert entity["http://purl.org/vocab/frbr/core#partOf"][0]["@id"] == "https://w3id.org/oc/meta/br/06501844297"
+                        assert (
+                            entity["http://purl.org/vocab/frbr/core#partOf"][0]["@id"]
+                            == "https://w3id.org/oc/meta/br/06501844297"
+                        )
 
                     # Verify merged entity doesn't exist
                     assert entity["@id"] != "https://w3id.org/oc/meta/br/06804303923"

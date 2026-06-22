@@ -38,7 +38,7 @@ def execute_sparql(
     last_error: Exception | None = None
     for attempt in range(max_retries + 1):
         if attempt > 0:
-            time.sleep(backoff_factor * (2 ** attempt))
+            time.sleep(backoff_factor * (2**attempt))
         try:
             sparql.setQuery(query)
             return sparql.queryAndConvert()  # type: ignore[return-value]
@@ -60,7 +60,7 @@ def execute_sparql_update(
     last_error: Exception | None = None
     for attempt in range(max_retries + 1):
         if attempt > 0:
-            time.sleep(backoff_factor * (2 ** attempt))
+            time.sleep(backoff_factor * (2**attempt))
         try:
             sparql.setQuery(query)
             sparql.query()
@@ -84,11 +84,13 @@ def execute_sparql_queries(
         last_error: Exception | None = None
         for attempt in range(max_retries + 1):
             if attempt > 0:
-                time.sleep(backoff_factor * (2 ** attempt))
+                time.sleep(backoff_factor * (2**attempt))
             try:
                 sparql.setQuery(query)
-                result: dict[str, dict[str, list[dict[str, dict[str, str]]]]] = sparql.queryAndConvert()  # type: ignore[assignment]
-                results.append(result['results']['bindings'])
+                result: dict[str, dict[str, list[dict[str, dict[str, str]]]]] = (
+                    sparql.queryAndConvert()
+                )  # type: ignore[assignment]
+                results.append(result["results"]["bindings"])
                 break
             except QueryBadFormed:
                 raise
@@ -117,12 +119,12 @@ def run_queries_parallel(
         query_groups: list[list[str]] = []
         grouped_sizes: list[int] = []
         for i in range(0, len(batch_queries), QLEVER_QUERIES_PER_GROUP):
-            query_groups.append(batch_queries[i:i + QLEVER_QUERIES_PER_GROUP])
-            grouped_sizes.append(sum(batch_sizes[i:i + QLEVER_QUERIES_PER_GROUP]))
+            query_groups.append(batch_queries[i : i + QLEVER_QUERIES_PER_GROUP])
+            grouped_sizes.append(sum(batch_sizes[i : i + QLEVER_QUERIES_PER_GROUP]))
 
         with ProcessPoolExecutor(
             max_workers=min(len(query_groups), workers),
-            mp_context=multiprocessing.get_context('forkserver')
+            mp_context=multiprocessing.get_context("forkserver"),
         ) as executor:
             future_to_size = {
                 executor.submit(

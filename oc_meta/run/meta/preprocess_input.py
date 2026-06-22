@@ -91,11 +91,11 @@ def check_ids_sparql(
     batch_sizes: list[int] = []
 
     for i in range(0, len(id_list), QLEVER_BATCH_SIZE):
-        batch = id_list[i:i + QLEVER_BATCH_SIZE]
+        batch = id_list[i : i + QLEVER_BATCH_SIZE]
         values_entries = []
         for id_str in batch:
             schema, value = id_str.split(":", 1)
-            escaped_value = value.replace('\\', '\\\\').replace('"', '\\"')
+            escaped_value = value.replace("\\", "\\\\").replace('"', '\\"')
             values_entries.append(
                 '("{}"^^xsd:string datacite:{})'.format(escaped_value, schema)
             )
@@ -122,7 +122,11 @@ def check_ids_sparql(
         for result in bindings:
             val = result["val"]["value"]
             scheme_uri = result["scheme"]["value"]
-            scheme = scheme_uri[len(DATACITE_PREFIX):] if scheme_uri.startswith(DATACITE_PREFIX) else scheme_uri
+            scheme = (
+                scheme_uri[len(DATACITE_PREFIX) :]
+                if scheme_uri.startswith(DATACITE_PREFIX)
+                else scheme_uri
+            )
             found.add("{}:{}".format(scheme, val))
 
     return found
@@ -130,9 +134,7 @@ def check_ids_sparql(
 
 def get_csv_files(directory: str) -> List[str]:
     if not os.path.isdir(directory):
-        raise ValueError(
-            "The specified path '{}' is not a directory".format(directory)
-        )
+        raise ValueError("The specified path '{}' is not a directory".format(directory))
 
     return [
         os.path.join(directory, f)
@@ -232,7 +234,9 @@ def deduplicate_and_write(
             progress.advance(task)
 
     if rows_to_write:
-        output_file = chunk_file(file_num) if rows_per_file else resolve_output_path(output_path)
+        output_file = (
+            chunk_file(file_num) if rows_per_file else resolve_output_path(output_path)
+        )
         write_csv(output_file, rows_to_write)
 
     return total_stats
@@ -362,7 +366,7 @@ def main():  # pragma: no cover
             task = progress.add_task("Filtering existing IDs", total=len(csv_files))
             with ProcessPoolExecutor(
                 max_workers=args.workers,
-                mp_context=multiprocessing.get_context('forkserver')
+                mp_context=multiprocessing.get_context("forkserver"),
             ) as executor:
                 futures = {
                     executor.submit(
@@ -383,11 +387,10 @@ def main():  # pragma: no cover
             task = progress.add_task("Reading CSV files", total=len(csv_files))
             with ProcessPoolExecutor(
                 max_workers=args.workers,
-                mp_context=multiprocessing.get_context('forkserver')
+                mp_context=multiprocessing.get_context("forkserver"),
             ) as executor:
                 futures = {
-                    executor.submit(collect_rows_from_file, f): f
-                    for f in csv_files
+                    executor.submit(collect_rows_from_file, f): f for f in csv_files
                 }
                 for future in as_completed(futures):
                     results.append(future.result())
@@ -405,7 +408,9 @@ def main():  # pragma: no cover
 
         if all_ids:
             console.print(
-                "Checking [green]{}[/green] unique identifiers against SPARQL endpoint".format(len(all_ids))
+                "Checking [green]{}[/green] unique identifiers against SPARQL endpoint".format(
+                    len(all_ids)
+                )
             )
             with create_progress() as progress:
                 task = progress.add_task("Querying SPARQL", total=len(all_ids))

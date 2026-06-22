@@ -46,12 +46,19 @@ GRAPHS_TO_CLEAR = {
 def _clear_all_meta_graphs(endpoint: str, max_retries: int = 3) -> None:
     for attempt in range(max_retries):
         try:
-            result = execute_sparql(endpoint, "SELECT DISTINCT ?g WHERE { GRAPH ?g { ?s ?p ?o } FILTER(STRSTARTS(STR(?g), 'https://w3id.org/oc/meta/')) }", max_retries=1, backoff_factor=0.5)
+            result = execute_sparql(
+                endpoint,
+                "SELECT DISTINCT ?g WHERE { GRAPH ?g { ?s ?p ?o } FILTER(STRSTARTS(STR(?g), 'https://w3id.org/oc/meta/')) }",
+                max_retries=1,
+                backoff_factor=0.5,
+            )
             graphs = {b["g"]["value"] for b in result["results"]["bindings"]}
             all_graphs = GRAPHS_TO_CLEAR | graphs
             if all_graphs:
                 clear_query = "; ".join(f"CLEAR GRAPH <{g}>" for g in all_graphs)
-                execute_sparql_update(endpoint, clear_query, max_retries=1, backoff_factor=0.5)
+                execute_sparql_update(
+                    endpoint, clear_query, max_retries=1, backoff_factor=0.5
+                )
             return
         except Exception:
             if attempt == max_retries - 1:
@@ -71,17 +78,23 @@ def reset_triplestore(server: str = SERVER) -> None:
     _clear_all_meta_graphs(server)
 
 
-def get_counter_handler(info_dir: str | None = None, supplier_prefix: str = SUPPLIER_PREFIX) -> FilesystemCounterHandler:
+def get_counter_handler(
+    info_dir: str | None = None, supplier_prefix: str = SUPPLIER_PREFIX
+) -> FilesystemCounterHandler:
     if info_dir is None:
         info_dir = tempfile.mkdtemp()
     info_dir_with_prefix = os.path.join(info_dir, supplier_prefix) + os.sep
-    return FilesystemCounterHandler(info_dir=info_dir_with_prefix, supplier_prefix=supplier_prefix)
+    return FilesystemCounterHandler(
+        info_dir=info_dir_with_prefix, supplier_prefix=supplier_prefix
+    )
 
 
 def execute_sparql_query(
     endpoint: str, query: str, max_retries: int = 3, delay: int = 5
 ) -> dict:
-    return execute_sparql(endpoint, query, max_retries=max_retries, backoff_factor=delay)
+    return execute_sparql(
+        endpoint, query, max_retries=max_retries, backoff_factor=delay
+    )
 
 
 def execute_sparql_construct(
@@ -98,7 +111,7 @@ def execute_sparql_construct(
     last_error: Exception | None = None
     for attempt in range(max_retries + 1):
         if attempt > 0:
-            time.sleep(delay * (2 ** attempt))
+            time.sleep(delay * (2**attempt))
         try:
             result: bytes = sparql.query().convert()  # type: ignore[assignment]
             g = Graph()
@@ -116,7 +129,12 @@ def wait_for_triplestore(server: str, max_wait: int = 60) -> bool:
     delay = 0.1
     while time.time() - start_time < max_wait:
         try:
-            execute_sparql(server, "SELECT * WHERE { ?s ?p ?o } LIMIT 1", max_retries=1, backoff_factor=1)
+            execute_sparql(
+                server,
+                "SELECT * WHERE { ?s ?p ?o } LIMIT 1",
+                max_retries=1,
+                backoff_factor=1,
+            )
             return True
         except Exception:
             time.sleep(delay)
@@ -130,17 +148,19 @@ def get_path(path: str) -> str:
 
 def normalize_ids_in_brackets(s: str) -> str:
     """Sort IDs inside square brackets to make comparison order-independent."""
+
     def sort_ids(match):
         ids = match.group(1).split()
         return f"[{' '.join(sorted(ids))}]"
-    return re.sub(r'\[([^\]]+)\]', sort_ids, s)
+
+    return re.sub(r"\[([^\]]+)\]", sort_ids, s)
 
 
 def normalize_row_ids(row: dict) -> None:
     """Normalize ID ordering in all fields that may contain IDs."""
-    if row.get('id') and isinstance(row['id'], str):
-        row['id'] = ' '.join(sorted(row['id'].split()))
-    for field in ['author', 'venue', 'publisher', 'editor']:
+    if row.get("id") and isinstance(row["id"], str):
+        row["id"] = " ".join(sorted(row["id"].split()))
+    for field in ["author", "venue", "publisher", "editor"]:
         if row.get(field):
             row[field] = normalize_ids_in_brackets(row[field])
 

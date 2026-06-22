@@ -61,7 +61,8 @@ class CorrectionCase:
 
 def extract_sici_mismatch_errors(errors: list[dict]) -> list[dict]:
     return [
-        e for e in errors
+        e
+        for e in errors
         if e["type"] == "omid_mismatch"
         and e["schema"] == "doi"
         and e["value"].lower().endswith("co;2-")
@@ -85,13 +86,10 @@ def build_sici_cases(errors: list[dict]) -> list[CorrectionCase]:
                 surviving_entity=first["expected_omid"],
                 is_1_to_n=len(group) > 1,
                 all_expected_omids=all_expected,
-                reason=f"{len(group)} expected_omid(s)"
-                if len(group) > 1
-                else "",
+                reason=f"{len(group)} expected_omid(s)" if len(group) > 1 else "",
             )
         )
     return cases
-
 
 
 def _find_id_entity(endpoint: str, br_uri: str, doi_value: str) -> str | None:
@@ -180,9 +178,7 @@ def build_report(cases: list[CorrectionCase]) -> dict:
         actions[case.action].append(entry)
 
     merge_cases = [c for c in cases if c.action == "merge"]
-    entities_removed = sum(
-        1 + len(c.all_expected_omids[1:]) for c in merge_cases
-    )
+    entities_removed = sum(1 + len(c.all_expected_omids[1:]) for c in merge_cases)
 
     return {
         "summary": {
@@ -255,9 +251,7 @@ def execute_actions(
         task = progress.add_task("Applying corrections", total=len(actionable))
         for case in actionable:
             if _stop_requested:
-                console.print(
-                    "[yellow]Interrupted, saving progress...[/yellow]"
-                )
+                console.print("[yellow]Interrupted, saving progress...[/yellow]")
                 break
 
             case_key = f"{case.action}:{case.duplicate_entity}"
@@ -379,9 +373,7 @@ def main() -> None:  # pragma: no cover
 
     if not args.dry_run:
         console.print("\n[bold]Applying corrections...[/bold]")
-        execute_actions(
-            cases, args.config, args.resp_agent, args.progress_file
-        )
+        execute_actions(cases, args.config, args.resp_agent, args.progress_file)
     else:
         actionable = sum(1 for c in cases if c.action == "merge")
         console.print(

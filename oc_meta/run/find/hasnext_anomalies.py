@@ -49,7 +49,9 @@ def _ar_summary(ar_uri: str, info: dict) -> dict:
 def load_ar_data(
     ar_uri: str, rdf_dir: str, dir_split_number: int, items_per_file: int
 ) -> Optional[dict]:
-    ar_file = find_rdf_file(ar_uri, rdf_dir, dir_split_number, items_per_file, zip_output=True)
+    ar_file = find_rdf_file(
+        ar_uri, rdf_dir, dir_split_number, items_per_file, zip_output=True
+    )
     if not os.path.exists(ar_file):
         return None
     data = load_json_from_file(ar_file)
@@ -80,9 +82,7 @@ def load_ar_data(
 def detect_cycles(ar_data: Dict[str, dict], ar_uris_in_group: set) -> List[List[str]]:
     adj: Dict[str, List[str]] = {}
     for ar_uri, info in ar_data.items():
-        targets = [
-            t for t in info["has_next"] if t in ar_uris_in_group and t != ar_uri
-        ]
+        targets = [t for t in info["has_next"] if t in ar_uris_in_group and t != ar_uri]
         if targets:
             adj[ar_uri] = targets
 
@@ -127,49 +127,53 @@ def detect_cycles(ar_data: Dict[str, dict], ar_uris_in_group: set) -> List[List[
     return cycles
 
 
-def find_anomalies(
-    br_uri: str, role_type: str, ar_data: Dict[str, dict]
-) -> List[dict]:
+def find_anomalies(br_uri: str, role_type: str, ar_data: Dict[str, dict]) -> List[dict]:
     anomalies: List[dict] = []
     ar_uris_in_group = set(ar_data.keys())
 
     for ar_uri, info in ar_data.items():
         if ar_uri in info["has_next"]:
-            anomalies.append({
-                "anomaly_type": "self_loop",
-                "br": br_uri,
-                "role_type": role_type,
-                "ars_involved": [_ar_summary(ar_uri, info)],
-                "details": f"AR {ar_uri.split('/')[-1]} hasNext points to itself",
-            })
+            anomalies.append(
+                {
+                    "anomaly_type": "self_loop",
+                    "br": br_uri,
+                    "role_type": role_type,
+                    "ars_involved": [_ar_summary(ar_uri, info)],
+                    "details": f"AR {ar_uri.split('/')[-1]} hasNext points to itself",
+                }
+            )
 
     for ar_uri, info in ar_data.items():
         if len(info["has_next"]) > 1:
-            anomalies.append({
-                "anomaly_type": "multiple_has_next",
-                "br": br_uri,
-                "role_type": role_type,
-                "ars_involved": [_ar_summary(ar_uri, info)],
-                "details": (
-                    f"AR {ar_uri.split('/')[-1]} has"
-                    f" {len(info['has_next'])} hasNext targets"
-                ),
-            })
-
-    for ar_uri, info in ar_data.items():
-        for target in info["has_next"]:
-            if target not in ar_uris_in_group:
-                anomalies.append({
-                    "anomaly_type": "dangling_has_next",
+            anomalies.append(
+                {
+                    "anomaly_type": "multiple_has_next",
                     "br": br_uri,
                     "role_type": role_type,
                     "ars_involved": [_ar_summary(ar_uri, info)],
                     "details": (
-                        f"AR {ar_uri.split('/')[-1]} hasNext points to"
-                        f" {target.split('/')[-1]} which is not in this"
-                        " BR/role group"
+                        f"AR {ar_uri.split('/')[-1]} has"
+                        f" {len(info['has_next'])} hasNext targets"
                     ),
-                })
+                }
+            )
+
+    for ar_uri, info in ar_data.items():
+        for target in info["has_next"]:
+            if target not in ar_uris_in_group:
+                anomalies.append(
+                    {
+                        "anomaly_type": "dangling_has_next",
+                        "br": br_uri,
+                        "role_type": role_type,
+                        "ars_involved": [_ar_summary(ar_uri, info)],
+                        "details": (
+                            f"AR {ar_uri.split('/')[-1]} hasNext points to"
+                            f" {target.split('/')[-1]} which is not in this"
+                            " BR/role group"
+                        ),
+                    }
+                )
 
     referenced_ars = set()
     for info in ar_data.values():
@@ -181,47 +185,53 @@ def find_anomalies(
 
     if len(ar_data) > 1:
         if len(start_nodes) == 0:
-            anomalies.append({
-                "anomaly_type": "no_start_node",
-                "br": br_uri,
-                "role_type": role_type,
-                "ars_involved": [
-                    _ar_summary(ar_uri, ar_data[ar_uri]) for ar_uri in ar_data
-                ],
-                "details": (
-                    f"All {len(ar_data)} ARs are targets of hasNext"
-                    " (fully circular)"
-                ),
-            })
+            anomalies.append(
+                {
+                    "anomaly_type": "no_start_node",
+                    "br": br_uri,
+                    "role_type": role_type,
+                    "ars_involved": [
+                        _ar_summary(ar_uri, ar_data[ar_uri]) for ar_uri in ar_data
+                    ],
+                    "details": (
+                        f"All {len(ar_data)} ARs are targets of hasNext"
+                        " (fully circular)"
+                    ),
+                }
+            )
         elif len(start_nodes) > 1:
-            anomalies.append({
-                "anomaly_type": "multiple_start_nodes",
-                "br": br_uri,
-                "role_type": role_type,
-                "ars_involved": [
-                    _ar_summary(ar_uri, ar_data[ar_uri]) for ar_uri in start_nodes
-                ],
-                "details": (
-                    f"{len(start_nodes)} ARs have no incoming hasNext"
-                    " (disconnected fragments)"
-                ),
-            })
+            anomalies.append(
+                {
+                    "anomaly_type": "multiple_start_nodes",
+                    "br": br_uri,
+                    "role_type": role_type,
+                    "ars_involved": [
+                        _ar_summary(ar_uri, ar_data[ar_uri]) for ar_uri in start_nodes
+                    ],
+                    "details": (
+                        f"{len(start_nodes)} ARs have no incoming hasNext"
+                        " (disconnected fragments)"
+                    ),
+                }
+            )
 
     cycles = detect_cycles(ar_data, ar_uris_in_group)
     for cycle in cycles:
         cycle_ids = [uri.split("/")[-1] for uri in cycle]
-        anomalies.append({
-            "anomaly_type": "cycle",
-            "br": br_uri,
-            "role_type": role_type,
-            "ars_involved": [
-                _ar_summary(ar_uri, ar_data[ar_uri]) for ar_uri in cycle
-            ],
-            "details": (
-                f"{len(cycle)}-node cycle:"
-                f" {' -> '.join(cycle_ids)} -> {cycle_ids[0]}"
-            ),
-        })
+        anomalies.append(
+            {
+                "anomaly_type": "cycle",
+                "br": br_uri,
+                "role_type": role_type,
+                "ars_involved": [
+                    _ar_summary(ar_uri, ar_data[ar_uri]) for ar_uri in cycle
+                ],
+                "details": (
+                    f"{len(cycle)}-node cycle:"
+                    f" {' -> '.join(cycle_ids)} -> {cycle_ids[0]}"
+                ),
+            }
+        )
 
     return anomalies
 
@@ -242,9 +252,7 @@ def _detect_anomalies_in_file(filepath: str) -> Tuple[str, int, List[dict]]:
             ar_uris = [ar["@id"] for ar in entity[IS_DOC_CONTEXT_FOR]]
             ar_data: Dict[str, dict] = {}
             for ar_uri in ar_uris:
-                info = load_ar_data(
-                    ar_uri, rdf_dir, dir_split_number, items_per_file
-                )
+                info = load_ar_data(ar_uri, rdf_dir, dir_split_number, items_per_file)
                 if info:
                     ar_data[ar_uri] = info
 
@@ -269,9 +277,7 @@ def main() -> None:
     parser.add_argument(
         "-c", "--config", required=True, help="Meta config YAML file path"
     )
-    parser.add_argument(
-        "-o", "--output", required=True, help="Output JSON report path"
-    )
+    parser.add_argument("-o", "--output", required=True, help="Output JSON report path")
     parser.add_argument(
         "--workers",
         type=int,
@@ -298,23 +304,19 @@ def main() -> None:
         print("No BR zip files found")
         return
 
-    print(
-        f"Processing {len(all_files)} BR files with {args.workers} workers..."
-    )
+    print(f"Processing {len(all_files)} BR files with {args.workers} workers...")
 
     total_brs = 0
     all_anomalies: List[dict] = []
 
-    ctx = multiprocessing.get_context('forkserver')
+    ctx = multiprocessing.get_context("forkserver")
     with ctx.Pool(
         args.workers,
         _init_worker,
         (rdf_dir, dir_split_number, items_per_file),
     ) as pool:
         with create_progress() as progress:
-            task = progress.add_task(
-                "Scanning for anomalies", total=len(all_files)
-            )
+            task = progress.add_task("Scanning for anomalies", total=len(all_files))
             for filepath, br_count, anomalies in pool.imap_unordered(
                 _detect_anomalies_in_file, all_files
             ):
@@ -322,9 +324,7 @@ def main() -> None:
                 all_anomalies.extend(anomalies)
                 progress.update(task, advance=1)
 
-    anomalies_by_type = dict(
-        Counter(a["anomaly_type"] for a in all_anomalies)
-    )
+    anomalies_by_type = dict(Counter(a["anomaly_type"] for a in all_anomalies))
 
     report = {
         "config": os.path.abspath(args.config),

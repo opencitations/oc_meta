@@ -16,19 +16,22 @@ from oc_ocdm.support import get_count
 
 
 class TestGenInfoDir:
-
     @pytest.fixture(autouse=True)
     def setup_method(self, request):
-        self.root_dir = os.path.join('test', 'gen_info_dir', 'rdf')
+        self.root_dir = os.path.join("test", "gen_info_dir", "rdf")
         self.info_dir = tempfile.mkdtemp()
         self.supplier_prefix = "0670"
         yield
 
     def test_explore_directories(self):
-        info_dir_with_prefix = os.path.join(self.info_dir, self.supplier_prefix) + os.sep
+        info_dir_with_prefix = (
+            os.path.join(self.info_dir, self.supplier_prefix) + os.sep
+        )
         explore_directories(self.root_dir, self.info_dir)
 
-        counter_handler = FilesystemCounterHandler(info_dir=info_dir_with_prefix, supplier_prefix=self.supplier_prefix)
+        counter_handler = FilesystemCounterHandler(
+            info_dir=info_dir_with_prefix, supplier_prefix=self.supplier_prefix
+        )
         br_counter = counter_handler.read_counter("br", supplier_prefix="0670")
         assert br_counter == 386000
 
@@ -48,7 +51,9 @@ class TestGenInfoDir:
         assert prov_counter_3 == 1
 
 
-def _write_counter_file(info_dir: str, prefix: str, filename: str, values: dict[int, int]) -> None:
+def _write_counter_file(
+    info_dir: str, prefix: str, filename: str, values: dict[int, int]
+) -> None:
     prefix_dir = os.path.join(info_dir, prefix)
     os.makedirs(prefix_dir, exist_ok=True)
     max_line = max(values) if values else 0
@@ -61,7 +66,6 @@ def _write_counter_file(info_dir: str, prefix: str, filename: str, values: dict[
 
 
 class TestCheckInfoDir:
-
     @pytest.fixture(autouse=True)
     def setup(self, tmp_path):
         self.root_dir = os.path.join("test", "gen_info_dir", "rdf")
@@ -100,7 +104,10 @@ class TestCheckInfoDir:
             report = orjson.loads(f.read())
         assert report["total_mismatched_entity_counters"] == 0
         assert report["total_mismatched_prov_counters"] == 1
-        assert report["mismatched_prov_counters"][0]["entity_uri"] == "https://w3id.org/oc/meta/br/0670101"
+        assert (
+            report["mismatched_prov_counters"][0]["entity_uri"]
+            == "https://w3id.org/oc/meta/br/0670101"
+        )
         assert report["mismatched_prov_counters"][0]["expected"] == 2
         assert report["mismatched_prov_counters"][0]["actual"] == 1
 

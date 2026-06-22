@@ -35,10 +35,24 @@ def main() -> None:  # pragma: no cover
         description="Streams N-Quads from JSON-LD ZIP archives to stdout.",
         formatter_class=RichHelpFormatter,
     )
-    parser.add_argument("rdf_dir", type=str, help="Root directory containing RDF ZIP archives")
-    parser.add_argument("-m", "--mode", type=str, choices=["all", "data", "prov"], default="all",
-                        help="Mode: 'all' for all ZIP files (default), 'data' for entity data only, 'prov' for provenance only")
-    parser.add_argument("-w", "--workers", type=int, default=None, help="Number of worker processes (defaults to min(8, CPU count))")
+    parser.add_argument(
+        "rdf_dir", type=str, help="Root directory containing RDF ZIP archives"
+    )
+    parser.add_argument(
+        "-m",
+        "--mode",
+        type=str,
+        choices=["all", "data", "prov"],
+        default="all",
+        help="Mode: 'all' for all ZIP files (default), 'data' for entity data only, 'prov' for provenance only",
+    )
+    parser.add_argument(
+        "-w",
+        "--workers",
+        type=int,
+        default=None,
+        help="Number of worker processes (defaults to min(8, CPU count))",
+    )
     args = parser.parse_args()
 
     rdf_path = Path(args.rdf_dir).resolve()
@@ -53,7 +67,9 @@ def main() -> None:  # pragma: no cover
     stdout = sys.stdout.buffer
     ctx = multiprocessing.get_context("forkserver")
     with ctx.Pool(processes=num_workers) as pool:
-        for result in pool.imap_unordered(convert_zip_to_nquads, zip_files, chunksize=10):
+        for result in pool.imap_unordered(
+            convert_zip_to_nquads, zip_files, chunksize=10
+        ):
             stdout.write(result)
             stdout.flush()
 

@@ -46,7 +46,9 @@ def _has_untyped_literal(data: object) -> bool:
         if "@value" in data and "@type" not in data and "@language" not in data:
             return True
         return any(
-            _has_untyped_literal(v) for v in data.values() if isinstance(v, (dict, list))
+            _has_untyped_literal(v)
+            for v in data.values()
+            if isinstance(v, (dict, list))
         )
     return False
 
@@ -87,7 +89,11 @@ def process_dataset(ds: Dataset, is_prov: bool) -> dict[str, int]:
         if not isinstance(o, Literal):
             continue
 
-        if not is_prov and p == PUBLICATION_DATE_PREDICATE and o.datatype not in VALID_DATE_TYPES:
+        if (
+            not is_prov
+            and p == PUBLICATION_DATE_PREDICATE
+            and o.datatype not in VALID_DATE_TYPES
+        ):
             date_value = str(o)
             correct_datatype, normalized_value = get_datatype_from_iso_8601(date_value)
             quads_to_remove.append((s, p, o, g))
@@ -189,7 +195,11 @@ def main() -> None:  # pragma: no cover
     ]
 
     # Use forkserver to avoid deadlocks when forking in a multi-threaded environment
-    executor = ProcessPoolExecutor(max_workers=args.workers, initializer=_worker_init, mp_context=multiprocessing.get_context('forkserver'))
+    executor = ProcessPoolExecutor(
+        max_workers=args.workers,
+        initializer=_worker_init,
+        mp_context=multiprocessing.get_context("forkserver"),
+    )
     try:
         with create_progress() as progress:
             task = progress.add_task("Processing files", total=len(zip_files))
@@ -231,9 +241,7 @@ def main() -> None:  # pragma: no cover
             sorted_mods = sorted(untyped_mods.items(), key=lambda x: x[1], reverse=True)
             for prop, count in sorted_mods:
                 console.print(f"  {prop}: {count}")
-            console.print(
-                f"  [bold]Total: {sum(untyped_mods.values())}[/bold]"
-            )
+            console.print(f"  [bold]Total: {sum(untyped_mods.values())}[/bold]")
 
         if date_mods:
             console.print("\n[bold]Date datatypes fixed (by target type):[/bold]")

@@ -28,7 +28,13 @@ from oc_ocdm.support.support import find_paths, parse_uri
 from oc_meta.lib.cleaner import normalize_spaces
 
 
-def find_rdf_file(uri: str, base_dir: str, dir_split: int, items_per_file: int, zip_output: bool = False) -> str:
+def find_rdf_file(
+    uri: str,
+    base_dir: str,
+    dir_split: int,
+    items_per_file: int,
+    zip_output: bool = False,
+) -> str:
     if base_dir and not base_dir.endswith(os.sep):
         base_dir += os.sep
     base_iri = parse_uri(uri).base_iri
@@ -100,9 +106,7 @@ def get_csv_data(filepath: str, clean_data: bool = True) -> List[Dict[str, str]]
         try:
             with open(filepath, "r", encoding="utf8") as f:
                 if clean_data:
-                    lines = (
-                        normalize_spaces(line.replace("\0", "")) for line in f
-                    )
+                    lines = (normalize_spaces(line.replace("\0", "")) for line in f)
                     data = list(csv.DictReader(lines, delimiter=","))
                 else:
                     data = list(csv.DictReader(f, delimiter=","))
@@ -115,69 +119,101 @@ def get_csv_data(filepath: str, clean_data: bool = True) -> List[Dict[str, str]]
         csv.field_size_limit(128)
     return data
 
+
 def pathoo(path):
     if not os.path.isdir(os.path.dirname(path)):
         os.makedirs(os.path.dirname(path))
 
-def write_csv(path:str, datalist:List[dict], fieldnames:list|dict_keys|None=None, method:str='w') -> None:
+
+def write_csv(
+    path: str,
+    datalist: List[dict],
+    fieldnames: list | dict_keys | None = None,
+    method: str = "w",
+) -> None:
     if datalist:
         fieldnames = datalist[0].keys() if fieldnames is None else fieldnames
         pathoo(path)
         file_exists = os.path.isfile(path)
-        with open(path, method, newline='', encoding='utf-8') as output_file:
-            dict_writer = csv.DictWriter(f=output_file, fieldnames=fieldnames, delimiter=',', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
-            if method == 'w' or (method == 'a' and not file_exists):
+        with open(path, method, newline="", encoding="utf-8") as output_file:
+            dict_writer = csv.DictWriter(
+                f=output_file,
+                fieldnames=fieldnames,
+                delimiter=",",
+                quotechar='"',
+                quoting=csv.QUOTE_NONNUMERIC,
+            )
+            if method == "w" or (method == "a" and not file_exists):
                 dict_writer.writeheader()
             dict_writer.writerows(datalist)
 
-def normalize_path(path:str) -> str:
-    normal_path = path.replace('\\', '/').replace('/', os.sep)
+
+def normalize_path(path: str) -> str:
+    normal_path = path.replace("\\", "/").replace("/", os.sep)
     return normal_path
 
-def init_cache(cache_filepath:str|None) -> Set[str]:
+
+def init_cache(cache_filepath: str | None) -> Set[str]:
     completed = set()
     if cache_filepath:
         if not os.path.exists(cache_filepath):
             pathoo(cache_filepath)
         else:
-            with open(cache_filepath, 'r', encoding='utf-8') as cache_file:
-                completed = {line.rstrip('\n') for line in cache_file}
+            with open(cache_filepath, "r", encoding="utf-8") as cache_file:
+                completed = {line.rstrip("\n") for line in cache_file}
     return completed
+
 
 @contextmanager
 def suppress_stdout():
-    with open(os.devnull, 'w') as devnull: #pragma: no cover
+    with open(os.devnull, "w") as devnull:  # pragma: no cover
         old_stdout = sys.stdout
         sys.stdout = devnull
-        try:  
+        try:
             yield
         finally:
             sys.stdout = old_stdout
 
-def sort_files(files_to_be_processed:list) -> list:
-    if all(filename.replace('.csv', '').isdigit() for filename in files_to_be_processed):
-        files_to_be_processed = sorted(files_to_be_processed, key=lambda filename: int(filename.replace('.csv', '')))
-    elif all(filename.split('_')[-1].replace('.csv', '').isdigit() for filename in files_to_be_processed):
-        files_to_be_processed = sorted(files_to_be_processed, key=lambda filename: int(filename.split('_')[-1].replace('.csv', '')))
+
+def sort_files(files_to_be_processed: list) -> list:
+    if all(
+        filename.replace(".csv", "").isdigit() for filename in files_to_be_processed
+    ):
+        files_to_be_processed = sorted(
+            files_to_be_processed,
+            key=lambda filename: int(filename.replace(".csv", "")),
+        )
+    elif all(
+        filename.split("_")[-1].replace(".csv", "").isdigit()
+        for filename in files_to_be_processed
+    ):
+        files_to_be_processed = sorted(
+            files_to_be_processed,
+            key=lambda filename: int(filename.split("_")[-1].replace(".csv", "")),
+        )
     return files_to_be_processed
+
 
 def zipdir(path, ziph):
     for root, _, files in os.walk(path):
         for file in files:
-            ziph.write(os.path.join(root, file),
-                       os.path.relpath(os.path.join(root, file),
-                                       os.path.join(path, '..')))
+            ziph.write(
+                os.path.join(root, file),
+                os.path.relpath(os.path.join(root, file), os.path.join(path, "..")),
+            )
 
-def zipit(dir_list:list, zip_name:str) -> None:
-    zipf = ZipFile(file=zip_name, mode='w', compression=ZIP_DEFLATED, allowZip64=True)
+
+def zipit(dir_list: list, zip_name: str) -> None:
+    zipf = ZipFile(file=zip_name, mode="w", compression=ZIP_DEFLATED, allowZip64=True)
     for dir in dir_list:
         zipdir(dir, zipf)
     zipf.close()
 
-def zip_files_in_dir(src_dir:str, dst_dir:str, replace_files:bool=False) -> None:
-    '''
-    This method zips files individually in all directories starting from a specified root directory. 
-    In other words, this function does not zip the entire folder but individual files 
+
+def zip_files_in_dir(src_dir: str, dst_dir: str, replace_files: bool = False) -> None:
+    """
+    This method zips files individually in all directories starting from a specified root directory.
+    In other words, this function does not zip the entire folder but individual files
     while maintaining the folder hierarchy in the specified output directory.
 
     :params src_dir: the source directory
@@ -187,27 +223,29 @@ def zip_files_in_dir(src_dir:str, dst_dir:str, replace_files:bool=False) -> None
     :params replace_files: True if you want to replace the original unzipped files with their zipped versions. The dafult value is False
     :type replace_files: bool
     :returns: None
-    '''
+    """
     for dirpath, _, filenames in os.walk(src_dir):
         for filename in filenames:
             src_path = os.path.join(dirpath, filename)
             dst_path = os.path.join(
-                dst_dir, 
-                str(Path(src_path).parent)
-                    .replace(f'{src_dir}{os.sep}', ''))
+                dst_dir, str(Path(src_path).parent).replace(f"{src_dir}{os.sep}", "")
+            )
             if not os.path.exists(dst_path):
                 os.makedirs(dst_path)
             _, ext = os.path.splitext(filename)
-            zip_path = os.path.join(dst_path, filename).replace(ext, '.zip')
-            with ZipFile(file=zip_path, mode='w', compression=ZIP_DEFLATED, allowZip64=True) as zipf:
+            zip_path = os.path.join(dst_path, filename).replace(ext, ".zip")
+            with ZipFile(
+                file=zip_path, mode="w", compression=ZIP_DEFLATED, allowZip64=True
+            ) as zipf:
                 zipf.write(src_path, arcname=filename)
             if replace_files:
                 os.remove(src_path)
 
-def unzip_files_in_dir(src_dir:str, dst_dir:str, replace_files:bool=False) -> None:
-    '''
-    This method unzips zipped files individually in all directories starting from a specified root directory. 
-    In other words, this function does not unzip the entire folder but individual files 
+
+def unzip_files_in_dir(src_dir: str, dst_dir: str, replace_files: bool = False) -> None:
+    """
+    This method unzips zipped files individually in all directories starting from a specified root directory.
+    In other words, this function does not unzip the entire folder but individual files
     while maintaining the folder hierarchy in the specified output directory.
 
     :params src_dir: the source directory
@@ -217,38 +255,42 @@ def unzip_files_in_dir(src_dir:str, dst_dir:str, replace_files:bool=False) -> No
     :params replace_files: True if you want to replace the original zipped files with their unzipped versions, defaults to [False]
     :type replace_files: bool
     :returns: None
-    '''
+    """
     for dirpath, _, filenames in os.walk(src_dir):
         for filename in filenames:
-            if os.path.splitext(filename)[1] == '.zip':
+            if os.path.splitext(filename)[1] == ".zip":
                 src_path = os.path.join(dirpath, filename)
                 dst_path = os.path.join(
-                    dst_dir, 
-                    str(Path(src_path).parent)
-                        .replace(f'{src_dir}{os.sep}', ''))
+                    dst_dir,
+                    str(Path(src_path).parent).replace(f"{src_dir}{os.sep}", ""),
+                )
                 if not os.path.exists(dst_path):
                     os.makedirs(dst_path)
-                with ZipFile(file=os.path.join(dst_path, filename), mode='r') as zipf:
+                with ZipFile(file=os.path.join(dst_path, filename), mode="r") as zipf:
                     zipf.extractall(dst_path)
                 if replace_files:
                     os.remove(src_path)
 
-def read_zipped_json(filepath:str) -> dict|None:
-    '''
+
+def read_zipped_json(filepath: str) -> dict | None:
+    """
     This method reads a zipped json file.
 
     :params filepath: the zipped json file path
     :type src_dir: str
     :returns: dict -- It returns the json file as a dictionary
-    '''
-    with ZipFile(filepath, 'r') as zipf:
-        for filename in zipf.namelist(): 
+    """
+    with ZipFile(filepath, "r") as zipf:
+        for filename in zipf.namelist():
             with zipf.open(filename) as f:
                 json_data = f.read()
                 json_dict = orjson.loads(json_data)
                 return json_dict
 
-def call_api(url: str, headers: dict[str, str], r_format: str = "json") -> dict | BeautifulSoup | None:
+
+def call_api(
+    url: str, headers: dict[str, str], r_format: str = "json"
+) -> dict | BeautifulSoup | None:
     tentative = 3
     while tentative:
         tentative -= 1
@@ -266,4 +308,3 @@ def call_api(url: str, headers: dict[str, str], r_format: str = "json") -> dict 
         except ConnectionError:
             sleep(5)
     return None
-

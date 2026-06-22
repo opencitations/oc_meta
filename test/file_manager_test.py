@@ -10,12 +10,17 @@ import tempfile
 from shutil import rmtree
 
 import orjson
-from oc_meta.lib.file_manager import (get_csv_data, read_zipped_json, unzip_files_in_dir, zip_files_in_dir)
+from oc_meta.lib.file_manager import (
+    get_csv_data,
+    read_zipped_json,
+    unzip_files_in_dir,
+    zip_files_in_dir,
+)
 
-BASE = os.path.join('test', 'file_manager')
-UNZIPPED_DIR = os.path.join(BASE, 'unzipped_dir')
-OUTPUT_DIR = os.path.join(BASE, 'output')
-OUTPUT_DIR_1 = os.path.join(BASE, 'output_1')
+BASE = os.path.join("test", "file_manager")
+UNZIPPED_DIR = os.path.join(BASE, "unzipped_dir")
+OUTPUT_DIR = os.path.join(BASE, "output")
+OUTPUT_DIR_1 = os.path.join(BASE, "output_1")
 
 
 class TestJsonArchiveManager:
@@ -25,9 +30,11 @@ class TestJsonArchiveManager:
             for filename in filenames:
                 json_data = read_zipped_json(os.path.join(dirpath, filename))
                 original_path = os.path.join(
-                    UNZIPPED_DIR,
-                    dirpath.replace(f'{OUTPUT_DIR}{os.sep}', ''))
-                with open(os.path.join(original_path, filename.replace('.zip', '.json')), 'rb') as original_f:
+                    UNZIPPED_DIR, dirpath.replace(f"{OUTPUT_DIR}{os.sep}", "")
+                )
+                with open(
+                    os.path.join(original_path, filename.replace(".zip", ".json")), "rb"
+                ) as original_f:
                     original_json = orjson.loads(original_f.read())
                     assert json_data == original_json
         rmtree(OUTPUT_DIR)
@@ -38,16 +45,18 @@ class TestJsonArchiveManager:
         for dirpath, _, filenames in os.walk(OUTPUT_DIR_1):
             for filename in filenames:
                 if os.path.splitext(filename)[1] == ".json":
-                    with open(os.path.join(dirpath, filename), 'rb') as f:
+                    with open(os.path.join(dirpath, filename), "rb") as f:
                         json_data = orjson.loads(f.read())
-                    original_zip = read_zipped_json(os.path.join(dirpath, filename.replace('.json', '.zip')))
+                    original_zip = read_zipped_json(
+                        os.path.join(dirpath, filename.replace(".json", ".zip"))
+                    )
                     assert json_data == original_zip
         rmtree(OUTPUT_DIR_1)
 
 
 class TestGetCsvData:
     def test_get_csv_data_header_only(self):
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
             f.write("id,title\n")
             path = f.name
         try:
@@ -57,7 +66,7 @@ class TestGetCsvData:
             os.unlink(path)
 
     def test_get_csv_data_with_data(self):
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
             f.write("id,title\n")
             f.write('"doi:10.1234/test","Test Title"\n')
             path = f.name

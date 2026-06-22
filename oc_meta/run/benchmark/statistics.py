@@ -12,7 +12,9 @@ class BenchmarkStatistics:
     """Statistical analysis for benchmark results across multiple runs."""
 
     @staticmethod
-    def calculate_statistics(runs: List[Dict[str, Any]], metrics_to_analyze: Optional[List[str]] = None) -> Dict[str, Dict[str, float]]:
+    def calculate_statistics(
+        runs: List[Dict[str, Any]], metrics_to_analyze: Optional[List[str]] = None
+    ) -> Dict[str, Dict[str, float]]:
         """Calculate comprehensive statistics for all numeric metrics across runs.
 
         Args:
@@ -40,14 +42,18 @@ class BenchmarkStatistics:
         all_metrics = BenchmarkStatistics._extract_numeric_metrics(runs)
 
         if metrics_to_analyze:
-            all_metrics = {k: v for k, v in all_metrics.items() if k in metrics_to_analyze}
+            all_metrics = {
+                k: v for k, v in all_metrics.items() if k in metrics_to_analyze
+            }
 
         stats = {}
         for metric_name, values in all_metrics.items():
             if len(values) < 2:
                 continue
 
-            stats[metric_name] = BenchmarkStatistics._calculate_metric_statistics(values)
+            stats[metric_name] = BenchmarkStatistics._calculate_metric_statistics(
+                values
+            )
 
         return stats
 
@@ -74,7 +80,11 @@ class BenchmarkStatistics:
                             metrics[duration_key] = []
                         metrics[duration_key].append(float(phase["duration_seconds"]))
 
-                    for mem_key in ["start_memory_mb", "end_memory_mb", "peak_memory_mb"]:
+                    for mem_key in [
+                        "start_memory_mb",
+                        "end_memory_mb",
+                        "peak_memory_mb",
+                    ]:
                         if mem_key in phase:
                             full_key = f"{phase_name}_{mem_key}"
                             if full_key not in metrics:
@@ -94,7 +104,9 @@ class BenchmarkStatistics:
         min_val = min(values)
         max_val = max(values)
 
-        ci_lower, ci_upper = BenchmarkStatistics.calculate_confidence_interval(values, confidence=0.95)
+        ci_lower, ci_upper = BenchmarkStatistics.calculate_confidence_interval(
+            values, confidence=0.95
+        )
 
         outlier_indices = BenchmarkStatistics.detect_outliers(values)
 
@@ -107,11 +119,13 @@ class BenchmarkStatistics:
             "ci_95_lower": ci_lower,
             "ci_95_upper": ci_upper,
             "outlier_indices": outlier_indices,
-            "n": n
+            "n": n,
         }
 
     @staticmethod
-    def calculate_confidence_interval(values: List[float], confidence: float = 0.95) -> Tuple[float, float]:
+    def calculate_confidence_interval(
+        values: List[float], confidence: float = 0.95
+    ) -> Tuple[float, float]:
         """Calculate confidence interval for a list of values using t-distribution.
 
         Args:
@@ -130,7 +144,7 @@ class BenchmarkStatistics:
         std_val = statistics.stdev(values)
 
         t_critical = scipy.stats.t.ppf((1 + confidence) / 2, n - 1)
-        margin_error = t_critical * (std_val / (n ** 0.5))
+        margin_error = t_critical * (std_val / (n**0.5))
 
         return (mean_val - margin_error, mean_val + margin_error)
 
@@ -162,7 +176,9 @@ class BenchmarkStatistics:
         return outlier_indices
 
     @staticmethod
-    def format_statistics_report(stats: Dict[str, Dict[str, Any]], indent: int = 2) -> str:
+    def format_statistics_report(
+        stats: Dict[str, Dict[str, Any]], indent: int = 2
+    ) -> str:
         """Format statistics dictionary into human-readable string.
 
         Args:
@@ -185,10 +201,14 @@ class BenchmarkStatistics:
             lines.append(f"{indent_str}Std:    {metric_stats['std']:.4f}")
             lines.append(f"{indent_str}Min:    {metric_stats['min']:.4f}")
             lines.append(f"{indent_str}Max:    {metric_stats['max']:.4f}")
-            lines.append(f"{indent_str}95% CI: [{metric_stats['ci_95_lower']:.4f}, {metric_stats['ci_95_upper']:.4f}]")
+            lines.append(
+                f"{indent_str}95% CI: [{metric_stats['ci_95_lower']:.4f}, {metric_stats['ci_95_upper']:.4f}]"
+            )
 
             if metric_stats["outlier_indices"]:
-                outliers_str = ", ".join(f"#{i}" for i in metric_stats["outlier_indices"])
+                outliers_str = ", ".join(
+                    f"#{i}" for i in metric_stats["outlier_indices"]
+                )
                 lines.append(f"{indent_str}Outliers: {outliers_str}")
 
         return "\n".join(lines)

@@ -87,7 +87,9 @@ class TestEditor:
             }
         )
         run_meta_process(settings=settings, meta_config_path=META_CONFIG)
-        self.counter_handler = get_counter_handler(info_dir=os.path.join(OUTPUT, "info_dir"))
+        self.counter_handler = get_counter_handler(
+            info_dir=os.path.join(OUTPUT, "info_dir")
+        )
         yield
         if os.path.exists(OUTPUT):
             rmtree(OUTPUT)
@@ -125,48 +127,71 @@ class TestEditor:
             "https://w3id.org/oc/meta/ar/0605",
         )
 
-        result = execute_sparql(SERVER, """
+        result = execute_sparql(
+            SERVER,
+            """
             ASK {
                 GRAPH <https://w3id.org/oc/meta/ar/> {
                     <https://w3id.org/oc/meta/ar/0601> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/0604> .
                 }
             }
-            """)
-        assert result["boolean"], "AR/0601 → AR/0604 relationship not found in triplestore"
+            """,
+        )
+        assert result["boolean"], (
+            "AR/0601 → AR/0604 relationship not found in triplestore"
+        )
 
-        result = execute_sparql(SERVER, """
+        result = execute_sparql(
+            SERVER,
+            """
             ASK {
                 GRAPH <https://w3id.org/oc/meta/ar/> {
                     <https://w3id.org/oc/meta/ar/0604> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/0603> .
                 }
             }
-            """)
-        assert result["boolean"], "AR/0604 → AR/0603 relationship not found in triplestore"
+            """,
+        )
+        assert result["boolean"], (
+            "AR/0604 → AR/0603 relationship not found in triplestore"
+        )
 
-        result = execute_sparql(SERVER, """
+        result = execute_sparql(
+            SERVER,
+            """
             ASK {
                 GRAPH <https://w3id.org/oc/meta/ar/> {
                     <https://w3id.org/oc/meta/ar/0603> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/0602> .
                 }
             }
-            """)
-        assert result["boolean"], "AR/0603 → AR/0602 relationship not found in triplestore"
+            """,
+        )
+        assert result["boolean"], (
+            "AR/0603 → AR/0602 relationship not found in triplestore"
+        )
 
-        result = execute_sparql(SERVER, """
+        result = execute_sparql(
+            SERVER,
+            """
             ASK {
                 GRAPH <https://w3id.org/oc/meta/ar/> {
                     <https://w3id.org/oc/meta/ar/0602> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/ar/0605> .
                 }
             }
-            """)
-        assert result["boolean"], "AR/0602 → AR/0605 relationship not found in triplestore"
+            """,
+        )
+        assert result["boolean"], (
+            "AR/0602 → AR/0605 relationship not found in triplestore"
+        )
 
-        prov_result = execute_sparql(PROV_SERVER, """
+        prov_result = execute_sparql(
+            PROV_SERVER,
+            """
             ASK {
                 ?s <http://www.w3.org/ns/prov#specializationOf> <https://w3id.org/oc/meta/ar/0601> ;
                    <http://www.w3.org/ns/prov#generatedAtTime> ?time .
             }
-            """)
+            """,
+        )
         assert prov_result["boolean"], "Provenance for AR/0601 not found in triplestore"
 
         with open(
@@ -392,7 +417,11 @@ class TestEditor:
         g_set.commit_changes()
 
         # Perform merge
-        editor = MetaEditor(META_CONFIG, "https://orcid.org/0000-0002-8420-0696", counter_handler=self.counter_handler)
+        editor = MetaEditor(
+            META_CONFIG,
+            "https://orcid.org/0000-0002-8420-0696",
+            counter_handler=self.counter_handler,
+        )
         editor.merge(
             g_set,
             "https://w3id.org/oc/meta/ra/0607",
@@ -402,43 +431,64 @@ class TestEditor:
 
         assert (
             self.counter_handler.read_counter(
-                "ra", prov_short_name="se", identifier=1, supplier_prefix=SUPPLIER_PREFIX
+                "ra",
+                prov_short_name="se",
+                identifier=1,
+                supplier_prefix=SUPPLIER_PREFIX,
             )
             == 1
         )
         assert (
             self.counter_handler.read_counter(
-                "ra", prov_short_name="se", identifier=2, supplier_prefix=SUPPLIER_PREFIX
+                "ra",
+                prov_short_name="se",
+                identifier=2,
+                supplier_prefix=SUPPLIER_PREFIX,
             )
             == 1
         )
         assert (
             self.counter_handler.read_counter(
-                "ra", prov_short_name="se", identifier=3, supplier_prefix=SUPPLIER_PREFIX
+                "ra",
+                prov_short_name="se",
+                identifier=3,
+                supplier_prefix=SUPPLIER_PREFIX,
             )
             == 1
         )
         assert (
             self.counter_handler.read_counter(
-                "ra", prov_short_name="se", identifier=4, supplier_prefix=SUPPLIER_PREFIX
+                "ra",
+                prov_short_name="se",
+                identifier=4,
+                supplier_prefix=SUPPLIER_PREFIX,
             )
             == 1
         )
         assert (
             self.counter_handler.read_counter(
-                "ra", prov_short_name="se", identifier=5, supplier_prefix=SUPPLIER_PREFIX
+                "ra",
+                prov_short_name="se",
+                identifier=5,
+                supplier_prefix=SUPPLIER_PREFIX,
             )
             == 1
         )
         assert (
             self.counter_handler.read_counter(
-                "ra", prov_short_name="se", identifier=6, supplier_prefix=SUPPLIER_PREFIX
+                "ra",
+                prov_short_name="se",
+                identifier=6,
+                supplier_prefix=SUPPLIER_PREFIX,
             )
             == 1
         )
         assert (
             self.counter_handler.read_counter(
-                "ra", prov_short_name="se", identifier=7, supplier_prefix=SUPPLIER_PREFIX
+                "ra",
+                prov_short_name="se",
+                identifier=7,
+                supplier_prefix=SUPPLIER_PREFIX,
             )
             == 2
         )
@@ -571,9 +621,7 @@ class TestEditor:
                 br_0605_prov_se_2["http://purl.org/dc/terms/description"][0]["@value"]
                 == "The entity 'https://w3id.org/oc/meta/br/0605' has been deleted."
             )
-            assert (
-                br_0605_prov_se_2["@type"][0] == "http://www.w3.org/ns/prov#Entity"
-            )
+            assert br_0605_prov_se_2["@type"][0] == "http://www.w3.org/ns/prov#Entity"
             assert (
                 br_0605_prov_se_2["http://www.w3.org/ns/prov#specializationOf"][0][
                     "@id"
@@ -581,23 +629,15 @@ class TestEditor:
                 == "https://w3id.org/oc/meta/br/0605"
             )
             assert (
-                br_0605_prov_se_2["http://www.w3.org/ns/prov#wasAttributedTo"][0][
-                    "@id"
-                ]
+                br_0605_prov_se_2["http://www.w3.org/ns/prov#wasAttributedTo"][0]["@id"]
                 == "https://orcid.org/0000-0002-8420-0696"
             )
-            assert (
-                "http://www.w3.org/ns/prov#invalidatedAtTime" in br_0605_prov_se_2
-            )
-            assert (
-                "http://www.w3.org/ns/prov#generatedAtTime" in br_0605_prov_se_2
-            )
+            assert "http://www.w3.org/ns/prov#invalidatedAtTime" in br_0605_prov_se_2
+            assert "http://www.w3.org/ns/prov#generatedAtTime" in br_0605_prov_se_2
             assert (
                 len(br_0605_prov_se_1["http://www.w3.org/ns/prov#generatedAtTime"]) == 1
             )
-            assert (
-                "https://w3id.org/oc/ontology/hasUpdateQuery" in br_0605_prov_se_2
-            )
+            assert "https://w3id.org/oc/ontology/hasUpdateQuery" in br_0605_prov_se_2
             update_query_value = br_0605_prov_se_2[
                 "https://w3id.org/oc/ontology/hasUpdateQuery"
             ][0]["@value"]
@@ -623,9 +663,7 @@ class TestEditor:
                 br_0605_prov_se_1["http://purl.org/dc/terms/description"][0]["@value"]
                 == "The entity 'https://w3id.org/oc/meta/br/0605' has been created."
             )
-            assert (
-                br_0605_prov_se_1["@type"][0] == "http://www.w3.org/ns/prov#Entity"
-            )
+            assert br_0605_prov_se_1["@type"][0] == "http://www.w3.org/ns/prov#Entity"
             assert (
                 br_0605_prov_se_1["http://www.w3.org/ns/prov#specializationOf"][0][
                     "@id"
@@ -633,14 +671,10 @@ class TestEditor:
                 == "https://w3id.org/oc/meta/br/0605"
             )
             assert (
-                br_0605_prov_se_1["http://www.w3.org/ns/prov#wasAttributedTo"][0][
-                    "@id"
-                ]
+                br_0605_prov_se_1["http://www.w3.org/ns/prov#wasAttributedTo"][0]["@id"]
                 == "https://w3id.org/oc/meta/prov/pa/1"
             )
-            assert (
-                "http://www.w3.org/ns/prov#generatedAtTime" in br_0605_prov_se_1
-            )
+            assert "http://www.w3.org/ns/prov#generatedAtTime" in br_0605_prov_se_1
             assert (
                 len(br_0605_prov_se_1["http://www.w3.org/ns/prov#generatedAtTime"]) == 1
             )
@@ -648,9 +682,7 @@ class TestEditor:
                 len(br_0605_prov_se_2["http://www.w3.org/ns/prov#invalidatedAtTime"])
                 == 1
             )
-            assert (
-                "http://www.w3.org/ns/prov#hadPrimarySource" in br_0605_prov_se_1
-            )
+            assert "http://www.w3.org/ns/prov#hadPrimarySource" in br_0605_prov_se_1
 
         # Reinsert the publication date
         sparql_update_query = """
@@ -679,9 +711,7 @@ class TestEditor:
                             == "https://w3id.org/oc/meta/br/0605/prov/se/1"
                         ):
                             assert (
-                                len(
-                                    entity["http://www.w3.org/ns/prov#generatedAtTime"]
-                                )
+                                len(entity["http://www.w3.org/ns/prov#generatedAtTime"])
                                 == 1
                             )
                             assert (
@@ -697,9 +727,7 @@ class TestEditor:
                             == "https://w3id.org/oc/meta/br/0605/prov/se/2"
                         ):
                             assert (
-                                len(
-                                    entity["http://www.w3.org/ns/prov#generatedAtTime"]
-                                )
+                                len(entity["http://www.w3.org/ns/prov#generatedAtTime"])
                                 == 1
                             )
                             # assert len(entity['http://www.w3.org/ns/prov#invalidatedAtTime']) == 2
@@ -754,13 +782,9 @@ class TestEditor:
                             assert (
                                 "http://www.w3.org/ns/prov#invalidatedAtTime" in entity
                             )
+                            assert "http://www.w3.org/ns/prov#generatedAtTime" in entity
                             assert (
-                                "http://www.w3.org/ns/prov#generatedAtTime" in entity
-                            )
-                            assert (
-                                len(
-                                    entity["http://www.w3.org/ns/prov#generatedAtTime"]
-                                )
+                                len(entity["http://www.w3.org/ns/prov#generatedAtTime"])
                                 == 1
                             )
                             assert (
@@ -795,7 +819,10 @@ class TestEditor:
         assert editor.rdf_files_only
 
         g_set = GraphSet(base_iri="https://w3id.org/oc/meta/")
-        br = g_set.add_br(res="https://w3id.org/oc/meta/br/0603", resp_agent="https://orcid.org/0000-0002-8420-0696")
+        br = g_set.add_br(
+            res="https://w3id.org/oc/meta/br/0603",
+            resp_agent="https://orcid.org/0000-0002-8420-0696",
+        )
         br.has_title("Original Title")
         editor.save(g_set)
 
@@ -805,23 +832,30 @@ class TestEditor:
             "New Test Title",
         )
 
-        result = execute_sparql(SERVER, """
+        result = execute_sparql(
+            SERVER,
+            """
             SELECT ?o
             WHERE {
                 GRAPH ?g {
                     <https://w3id.org/oc/meta/br/0603> <http://purl.org/dc/terms/title> ?o .
                 }
             }
-            """)
+            """,
+        )
 
         title_found = False
         for binding in result["results"]["bindings"]:
             if binding["o"]["value"] == "New Test Title":
                 title_found = True
-        assert not title_found, "Triplestore should not be updated when rdf_files_only is True"
+        assert not title_found, (
+            "Triplestore should not be updated when rdf_files_only is True"
+        )
 
         target_file = os.path.join(OUTPUT, "rdf", "br", "060", "10000", "1000.json")
-        assert os.path.exists(target_file), "RDF file should be written when rdf_files_only is True"
+        assert os.path.exists(target_file), (
+            "RDF file should be written when rdf_files_only is True"
+        )
         with open(target_file, "r", encoding="utf-8") as file:
             data = orjson.loads(file.read())
             contains_update = False
@@ -902,20 +936,12 @@ class TestEditor:
         )
 
         # Verifica che le entità principali siano in cache
-        assert (
-            editor.entity_cache.is_cached("https://w3id.org/oc/meta/ra/0607")
-        )
-        assert (
-            editor.entity_cache.is_cached("https://w3id.org/oc/meta/ra/06010")
-        )
+        assert editor.entity_cache.is_cached("https://w3id.org/oc/meta/ra/0607")
+        assert editor.entity_cache.is_cached("https://w3id.org/oc/meta/ra/06010")
 
         # Verifica che le entità correlate siano in cache
-        assert (
-            editor.entity_cache.is_cached(id_0609.res)
-        )
-        assert (
-            editor.entity_cache.is_cached(id_0605.res)
-        )
+        assert editor.entity_cache.is_cached(id_0609.res)
+        assert editor.entity_cache.is_cached(id_0605.res)
 
 
 class TestEntityCache:

@@ -105,10 +105,10 @@ class TestPreprocessInput:
     def test_filter_existing_ids_from_file_all_existing(self):
         real_data_path = os.path.join(self.test_dir, "real_metadata.csv")
 
-        real_metadata = '''id,title,author,pub_date,venue,volume,issue,page,type,publisher,editor
+        real_metadata = """id,title,author,pub_date,venue,volume,issue,page,type,publisher,editor
 "doi:10.1007/978-3-662-07918-8_3","Influence of Dielectric Properties, State, and Electrodes on Electric Strength","Ushakov, Vasily Y.","2004","Insulation of High-Voltage Equipment [isbn:9783642058530 isbn:9783662079188]",,,"27-82","book chapter","Springer Science and Business Media LLC [crossref:297]",
 "doi:10.1016/0021-9991(73)90147-2","Flux-corrected transport. I. SHASTA, a fluid transport algorithm that works","Boris, Jay P; Book, David L","1973-01","Journal of Computational Physics [issn:0021-9991]","11","1","38-69","journal article","Elsevier BV [crossref:78]",
-"doi:10.1109/20.877674","An investigation of FEM-FCT method for streamer corona simulation","Woong-Gee Min, ; Hyeong-Seok Kim, ; Seok-Hyun Lee, ; Song-Yop Hahn, ","2000-07","IEEE Transactions on Magnetics [issn:0018-9464]","36","4","1280-1284","journal article","Institute of Electrical and Electronics Engineers (IEEE) [crossref:263]",'''
+"doi:10.1109/20.877674","An investigation of FEM-FCT method for streamer corona simulation","Woong-Gee Min, ; Hyeong-Seok Kim, ; Seok-Hyun Lee, ; Song-Yop Hahn, ","2000-07","IEEE Transactions on Magnetics [issn:0018-9464]","36","4","1280-1284","journal article","Institute of Electrical and Electronics Engineers (IEEE) [crossref:263]","""
 
         with open(real_data_path, "w", encoding="utf-8") as f:
             f.write(real_metadata)
@@ -122,10 +122,10 @@ class TestPreprocessInput:
     def test_filter_existing_ids_from_file_mixed(self):
         mixed_data_path = os.path.join(self.test_dir, "mixed_metadata.csv")
 
-        mixed_metadata = '''id,title,author,pub_date,venue,volume,issue,page,type,publisher,editor
+        mixed_metadata = """id,title,author,pub_date,venue,volume,issue,page,type,publisher,editor
 "doi:10.1007/978-3-662-07918-8_3","Influence of Dielectric Properties","Author 1","2004","Venue 1",,,"27-82","book chapter","Publisher 1",
 "","Spatial Distribution of Ion Current","Author 2","2012-01","Venue 2","27","1","380-390","journal article","Publisher 2",
-"doi:10.INVALID/123456789","Invalid DOI","Author 3","1980-01-14","Venue 3","13","1","3-6","journal article","Publisher 3",'''
+"doi:10.INVALID/123456789","Invalid DOI","Author 3","1980-01-14","Venue 3","13","1","3-6","journal article","Publisher 3","""
 
         with open(mixed_data_path, "w", encoding="utf-8") as f:
             f.write(mixed_metadata)
@@ -192,14 +192,14 @@ class TestPreprocessInput:
 
     def test_cross_file_deduplication(self):
         file1_path = os.path.join(self.test_dir, "data1.csv")
-        file1_data = '''id,title,author,pub_date,venue,volume,issue,page,type,publisher,editor
+        file1_data = """id,title,author,pub_date,venue,volume,issue,page,type,publisher,editor
 "doi:10.INVALID/123","Test Title","Test Author","2024","Test Venue","1","1","1-10","journal article","Test Publisher",
-"doi:10.INVALID/456","Different Title","Other Author","2024","Test Venue","1","1","11-20","journal article","Test Publisher",'''
+"doi:10.INVALID/456","Different Title","Other Author","2024","Test Venue","1","1","11-20","journal article","Test Publisher","""
 
         file2_path = os.path.join(self.test_dir, "data2.csv")
-        file2_data = '''id,title,author,pub_date,venue,volume,issue,page,type,publisher,editor
+        file2_data = """id,title,author,pub_date,venue,volume,issue,page,type,publisher,editor
 "doi:10.INVALID/123","Test Title","Test Author","2024","Test Venue","1","1","1-10","journal article","Test Publisher",
-"doi:10.INVALID/789","New Title","New Author","2024","Test Venue","1","1","21-30","journal article","Test Publisher",'''
+"doi:10.INVALID/789","New Title","New Author","2024","Test Venue","1","1","21-30","journal article","Test Publisher","""
 
         with open(file1_path, "w", encoding="utf-8") as f:
             f.write(file1_data)
@@ -224,7 +224,11 @@ class TestPreprocessInput:
         assert len(rows) == 3
 
         unique_ids = set(row["id"] for row in rows)
-        assert unique_ids == {"doi:10.INVALID/123", "doi:10.INVALID/456", "doi:10.INVALID/789"}
+        assert unique_ids == {
+            "doi:10.INVALID/123",
+            "doi:10.INVALID/456",
+            "doi:10.INVALID/789",
+        }
 
     def test_print_processing_report(self):
         from rich.console import Console
@@ -256,7 +260,6 @@ class TestPreprocessInput:
 
 
 class TestCollectRowsFromFile:
-
     @pytest.fixture(autouse=True)
     def setup(self):
         self.test_dir = tempfile.mkdtemp(dir=".")
@@ -265,9 +268,9 @@ class TestCollectRowsFromFile:
 
     def test_collect_rows_basic(self):
         csv_path = os.path.join(self.test_dir, "data.csv")
-        csv_data = '''id,title,author,pub_date,venue,volume,issue,page,type,publisher,editor
+        csv_data = """id,title,author,pub_date,venue,volume,issue,page,type,publisher,editor
 "doi:10.1234/test","Test Title","Author 1","2024","Venue 1","1","1","1-10","journal article","Publisher 1",
-"doi:10.5678/other","Other Title","Author 2","2024","Venue 2","2","1","11-20","journal article","Publisher 2",'''
+"doi:10.5678/other","Other Title","Author 2","2024","Venue 2","2","1","11-20","journal article","Publisher 2","""
 
         with open(csv_path, "w", encoding="utf-8") as f:
             f.write(csv_data)
@@ -282,7 +285,9 @@ class TestCollectRowsFromFile:
     def test_collect_rows_empty_file(self):
         csv_path = os.path.join(self.test_dir, "empty.csv")
         with open(csv_path, "w", encoding="utf-8") as f:
-            f.write("id,title,author,pub_date,venue,volume,issue,page,type,publisher,editor\n")
+            f.write(
+                "id,title,author,pub_date,venue,volume,issue,page,type,publisher,editor\n"
+            )
 
         result = collect_rows_from_file(csv_path)
 
@@ -291,7 +296,6 @@ class TestCollectRowsFromFile:
 
 
 class TestCheckIdsSparql:
-
     @pytest.fixture(autouse=True)
     def _load_data(self):
         add_data_ts(SERVER, DATA_FILE)
@@ -310,9 +314,19 @@ class TestCheckIdsSparql:
         assert result == {"doi:10.1234/test", "orcid:0000-0001-2345-6789"}
 
     def test_multiple_schemas(self):
-        ids = {"doi:10.1234/test", "orcid:0000-0001-2345-6789", "viaf:123456789", "pmid:111"}
+        ids = {
+            "doi:10.1234/test",
+            "orcid:0000-0001-2345-6789",
+            "viaf:123456789",
+            "pmid:111",
+        }
         result = check_ids_sparql(ids, SERVER, workers=1)
-        assert result == {"doi:10.1234/test", "orcid:0000-0001-2345-6789", "viaf:123456789", "pmid:111"}
+        assert result == {
+            "doi:10.1234/test",
+            "orcid:0000-0001-2345-6789",
+            "viaf:123456789",
+            "pmid:111",
+        }
 
     def test_empty_set(self):
         result = check_ids_sparql(set(), SERVER, workers=1)
@@ -341,7 +355,6 @@ class TestCheckIdsSparql:
 
 
 class TestFilterSparqlResults:
-
     def test_all_ids_found(self):
         row = {"id": "doi:10.1234/test", "title": "Test"}
         row_hash = tuple(sorted(row.items()))
@@ -438,7 +451,6 @@ class TestFilterSparqlResults:
 
 
 class TestSparqlIntegration:
-
     @pytest.fixture(autouse=True)
     def setup(self):
         self.test_dir = tempfile.mkdtemp(dir=".")
@@ -450,11 +462,11 @@ class TestSparqlIntegration:
 
     def test_full_sparql_pipeline(self):
         csv_path = os.path.join(self.test_dir, "data.csv")
-        csv_data = '''id,title,author,pub_date,venue,volume,issue,page,type,publisher,editor
+        csv_data = """id,title,author,pub_date,venue,volume,issue,page,type,publisher,editor
 "doi:10.1234/test","Existing Title","Author 1","2024","Venue 1","1","1","1-10","journal article","Publisher 1",
 "doi:10.9999/notfound","New Title","Author 2","2024","Venue 2","2","1","11-20","journal article","Publisher 2",
 "doi:10.1234/test doi:10.1234/a","Both Existing","Author 3","2024","Venue 3","3","1","21-30","journal article","Publisher 3",
-"doi:10.1234/test doi:10.9999/notfound","Partial","Author 4","2024","Venue 4","4","1","31-40","journal article","Publisher 4",'''
+"doi:10.1234/test doi:10.9999/notfound","Partial","Author 4","2024","Venue 4","4","1","31-40","journal article","Publisher 4","""
 
         with open(csv_path, "w", encoding="utf-8") as f:
             f.write(csv_data)
@@ -498,14 +510,14 @@ class TestSparqlIntegration:
 
     def test_sparql_cross_file_deduplication(self):
         file1_path = os.path.join(self.test_dir, "data1.csv")
-        file1_data = '''id,title,author,pub_date,venue,volume,issue,page,type,publisher,editor
+        file1_data = """id,title,author,pub_date,venue,volume,issue,page,type,publisher,editor
 "doi:10.9999/new1","New Title 1","Author 1","2024","Venue","1","1","1-10","journal article","Publisher",
-"doi:10.1234/test","Existing","Author 2","2024","Venue","2","1","11-20","journal article","Publisher",'''
+"doi:10.1234/test","Existing","Author 2","2024","Venue","2","1","11-20","journal article","Publisher","""
 
         file2_path = os.path.join(self.test_dir, "data2.csv")
-        file2_data = '''id,title,author,pub_date,venue,volume,issue,page,type,publisher,editor
+        file2_data = """id,title,author,pub_date,venue,volume,issue,page,type,publisher,editor
 "doi:10.9999/new1","New Title 1","Author 1","2024","Venue","1","1","1-10","journal article","Publisher",
-"doi:10.9999/new2","New Title 2","Author 3","2024","Venue","3","1","21-30","journal article","Publisher",'''
+"doi:10.9999/new2","New Title 2","Author 3","2024","Venue","3","1","21-30","journal article","Publisher","""
 
         with open(file1_path, "w", encoding="utf-8") as f:
             f.write(file1_data)
@@ -540,7 +552,6 @@ class TestSparqlIntegration:
 
 
 class TestSingleFileOutput:
-
     @pytest.fixture(autouse=True)
     def setup(self):
         self.output_dir = tempfile.mkdtemp(dir=".")
@@ -614,5 +625,7 @@ class TestSingleFileOutput:
         output_files = os.listdir(self.output_dir)
         assert len(output_files) == 1
 
-        rows = get_csv_data(os.path.join(self.output_dir, "merged.csv"), clean_data=False)
+        rows = get_csv_data(
+            os.path.join(self.output_dir, "merged.csv"), clean_data=False
+        )
         assert len(rows) == 20

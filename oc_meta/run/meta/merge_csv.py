@@ -19,13 +19,9 @@ from oc_meta.lib.file_manager import get_csv_data, write_csv
 
 def get_csv_files(directory: str) -> List[str]:
     if not os.path.isdir(directory):
-        raise ValueError(
-            "The specified path '{}' is not a directory".format(directory)
-        )
+        raise ValueError("The specified path '{}' is not a directory".format(directory))
     return [
-        os.path.join(directory, f)
-        for f in os.listdir(directory)
-        if f.endswith(".csv")
+        os.path.join(directory, f) for f in os.listdir(directory) if f.endswith(".csv")
     ]
 
 
@@ -39,9 +35,7 @@ def resolve_output_path(output: str) -> str:
     return os.path.join(output, "merged.csv")
 
 
-def merge_csv_files(
-    input_dir: str, output_path: str
-) -> tuple[int, int, List[str]]:
+def merge_csv_files(input_dir: str, output_path: str) -> tuple[int, int, List[str]]:
     csv_files = get_csv_files(input_dir)
     if not csv_files:
         return 0, 0, []
@@ -66,9 +60,7 @@ def merge_csv_files(
     return len(all_rows), len(csv_files), fieldnames
 
 
-def print_merge_report(
-    total_rows: int, files_processed: int, output_path: str
-) -> None:
+def print_merge_report(total_rows: int, files_processed: int, output_path: str) -> None:
     table = Table(title="Merge report")
     table.add_column("Metric", style="cyan")
     table.add_column("Value", style="green")
@@ -107,9 +99,7 @@ def main() -> int:  # pragma: no cover
         )
         return 1
 
-    console.print(
-        "Found [green]{}[/green] CSV files to merge".format(len(csv_files))
-    )
+    console.print("Found [green]{}[/green] CSV files to merge".format(len(csv_files)))
 
     total_rows, files_processed, _ = merge_csv_files(args.input_dir, output_path)
 

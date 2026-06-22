@@ -127,9 +127,7 @@ def _find(
     with open(entities_path, "w", encoding="utf-8") as ent_out:
         with ctx.Pool(workers) as pool:
             with create_progress() as progress:
-                task = progress.add_task(
-                    "Checking provenance", total=len(all_files)
-                )
+                task = progress.add_task("Checking provenance", total=len(all_files))
                 for data_zip, _count, missing, prov_absent in pool.imap_unordered(
                     _check_file, all_files, chunksize=200
                 ):
@@ -160,9 +158,14 @@ def main() -> None:
         "-r", "--resp-agent", help="Responsible agent URI (default: config resp_agent)"
     )
     mode = parser.add_mutually_exclusive_group(required=True)
-    mode.add_argument("--dry-run", action="store_true", dest="dry_run", help="Report only")
     mode.add_argument(
-        "--no-dry-run", action="store_true", dest="no_dry_run", help="Apply the backfill"
+        "--dry-run", action="store_true", dest="dry_run", help="Report only"
+    )
+    mode.add_argument(
+        "--no-dry-run",
+        action="store_true",
+        dest="no_dry_run",
+        help="Apply the backfill",
     )
     args = parser.parse_args()
     args.dry_run = not args.no_dry_run
@@ -211,9 +214,17 @@ def main() -> None:
             for data_file in affected:
                 try:
                     created_total += _backfill_file(
-                        data_file, base_iri, base_dir, info_dir_root, dir_split,
-                        items_per_file, zip_output, resp_agent, prov_endpoint,
-                        hotfix_dir, upload,
+                        data_file,
+                        base_iri,
+                        base_dir,
+                        info_dir_root,
+                        dir_split,
+                        items_per_file,
+                        zip_output,
+                        resp_agent,
+                        prov_endpoint,
+                        hotfix_dir,
+                        upload,
                     )
                     fixed_files += 1
                 except Exception as e:  # noqa: BLE001 - record per-file and continue

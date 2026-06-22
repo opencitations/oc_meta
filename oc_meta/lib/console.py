@@ -98,7 +98,9 @@ class EMATimeRemainingColumn(ProgressColumn):
         elapsed = current_time - self._start_time[task_id]
         if elapsed > 0 and current_processed > 0:
             overall_speed = current_processed / elapsed
-            speed = self._EMA_WEIGHT * ema_speed + (1 - self._EMA_WEIGHT) * overall_speed
+            speed = (
+                self._EMA_WEIGHT * ema_speed + (1 - self._EMA_WEIGHT) * overall_speed
+            )
         else:
             speed = ema_speed
 

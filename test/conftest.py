@@ -73,14 +73,22 @@ def qlever_data_endpoint():
 
         subprocess.run(
             [
-                "docker", "run", "--rm",
-                "--user", "root",
-                "-v", f"{data_dir}:/data",
-                "--entrypoint", "qlever-index",
+                "docker",
+                "run",
+                "--rm",
+                "--user",
+                "root",
+                "-v",
+                f"{data_dir}:/data",
+                "--entrypoint",
+                "qlever-index",
                 QLEVER_IMAGE,
-                "-i", "/data/index",
-                "-f", "/data/input.nt",
-                "-F", "nt",
+                "-i",
+                "/data/index",
+                "-f",
+                "/data/input.nt",
+                "-F",
+                "nt",
             ],
             check=True,
             capture_output=True,
@@ -88,25 +96,39 @@ def qlever_data_endpoint():
 
         subprocess.run(
             [
-                "docker", "run", "-d",
-                "--name", container_name,
-                "--user", "root",
-                "-p", f"{http_port}:7001",
-                "-v", f"{data_dir}:/data",
-                "--entrypoint", "qlever-server",
+                "docker",
+                "run",
+                "-d",
+                "--name",
+                container_name,
+                "--user",
+                "root",
+                "-p",
+                f"{http_port}:7001",
+                "-v",
+                f"{data_dir}:/data",
+                "--entrypoint",
+                "qlever-server",
                 QLEVER_IMAGE,
-                "-i", "/data/index",
-                "-j", "2",
-                "-p", "7001",
-                "-m", "1G",
-                "-a", QLEVER_ACCESS_TOKEN,
+                "-i",
+                "/data/index",
+                "-j",
+                "2",
+                "-p",
+                "7001",
+                "-m",
+                "1G",
+                "-a",
+                QLEVER_ACCESS_TOKEN,
                 "-n",
             ],
             check=True,
             capture_output=True,
         )
 
-        _wait_for_endpoint(f"http://localhost:{http_port}?access-token={QLEVER_ACCESS_TOKEN}")
+        _wait_for_endpoint(
+            f"http://localhost:{http_port}?access-token={QLEVER_ACCESS_TOKEN}"
+        )
         yield f"http://127.0.0.1:{http_port}?access-token={QLEVER_ACCESS_TOKEN}"
 
         _remove_container(container_name)
@@ -127,14 +149,22 @@ def qlever_prov_endpoint():
 
         subprocess.run(
             [
-                "docker", "run", "--rm",
-                "--user", "root",
-                "-v", f"{data_dir}:/data",
-                "--entrypoint", "qlever-index",
+                "docker",
+                "run",
+                "--rm",
+                "--user",
+                "root",
+                "-v",
+                f"{data_dir}:/data",
+                "--entrypoint",
+                "qlever-index",
                 QLEVER_IMAGE,
-                "-i", "/data/index",
-                "-f", "/data/input.nt",
-                "-F", "nt",
+                "-i",
+                "/data/index",
+                "-f",
+                "/data/input.nt",
+                "-F",
+                "nt",
             ],
             check=True,
             capture_output=True,
@@ -142,25 +172,39 @@ def qlever_prov_endpoint():
 
         subprocess.run(
             [
-                "docker", "run", "-d",
-                "--name", container_name,
-                "--user", "root",
-                "-p", f"{http_port}:7001",
-                "-v", f"{data_dir}:/data",
-                "--entrypoint", "qlever-server",
+                "docker",
+                "run",
+                "-d",
+                "--name",
+                container_name,
+                "--user",
+                "root",
+                "-p",
+                f"{http_port}:7001",
+                "-v",
+                f"{data_dir}:/data",
+                "--entrypoint",
+                "qlever-server",
                 QLEVER_IMAGE,
-                "-i", "/data/index",
-                "-j", "2",
-                "-p", "7001",
-                "-m", "1G",
-                "-a", QLEVER_ACCESS_TOKEN,
+                "-i",
+                "/data/index",
+                "-j",
+                "2",
+                "-p",
+                "7001",
+                "-m",
+                "1G",
+                "-a",
+                QLEVER_ACCESS_TOKEN,
                 "-n",
             ],
             check=True,
             capture_output=True,
         )
 
-        _wait_for_endpoint(f"http://localhost:{http_port}?access-token={QLEVER_ACCESS_TOKEN}")
+        _wait_for_endpoint(
+            f"http://localhost:{http_port}?access-token={QLEVER_ACCESS_TOKEN}"
+        )
         yield f"http://127.0.0.1:{http_port}?access-token={QLEVER_ACCESS_TOKEN}"
 
         _remove_container(container_name)
@@ -174,9 +218,13 @@ def redis_server():
 
     subprocess.run(
         [
-            "docker", "run", "-d",
-            "--name", container_name,
-            "-p", f"{REDIS_PORT}:6379",
+            "docker",
+            "run",
+            "-d",
+            "--name",
+            container_name,
+            "-p",
+            f"{REDIS_PORT}:6379",
             REDIS_IMAGE,
         ],
         check=True,

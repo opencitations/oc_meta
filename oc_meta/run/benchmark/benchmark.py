@@ -30,12 +30,16 @@ from rich_argparse import RichHelpFormatter
 
 from oc_meta.lib import file_manager
 from oc_meta.lib.timer import ProcessTimer
-from oc_meta.run.benchmark.generate_benchmark_data import \
-    BenchmarkDataGenerator
-from oc_meta.run.benchmark.plotting import (plot_benchmark_results,
-                                            plot_single_run_results)
+from oc_meta.run.benchmark.generate_benchmark_data import BenchmarkDataGenerator
+from oc_meta.run.benchmark.plotting import (
+    plot_benchmark_results,
+    plot_single_run_results,
+)
 from oc_meta.run.benchmark.preload_high_author_data import (
-    generate_atlas_paper_csv, generate_atlas_update_csv, preload_data)
+    generate_atlas_paper_csv,
+    generate_atlas_update_csv,
+    preload_data,
+)
 from oc_meta.run.benchmark.statistics import BenchmarkStatistics
 from oc_meta.run.meta_process import MetaProcess
 
@@ -98,36 +102,59 @@ class MetaBenchmark:
         max_attempts = 3
         for attempt in range(max_attempts):
             try:
-                subprocess.run([
-                    "docker", "exec", container_name,
-                    "isql", "1111", "dba", "dba",
-                    "exec=RDF_GLOBAL_RESET();"
-                ], check=True, capture_output=True, text=True, timeout=30)
+                subprocess.run(
+                    [
+                        "docker",
+                        "exec",
+                        container_name,
+                        "isql",
+                        "1111",
+                        "dba",
+                        "dba",
+                        "exec=RDF_GLOBAL_RESET();",
+                    ],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                )
                 print(f"  - Reset Virtuoso ({container_name})")
                 return
             except subprocess.CalledProcessError as e:
                 if attempt < max_attempts - 1:
-                    wait_time = 2 ** attempt
-                    print(f"  - Warning: Failed to reset {container_name} (attempt {attempt + 1}/{max_attempts}), retrying in {wait_time}s...")
+                    wait_time = 2**attempt
+                    print(
+                        f"  - Warning: Failed to reset {container_name} (attempt {attempt + 1}/{max_attempts}), retrying in {wait_time}s..."
+                    )
                     time.sleep(wait_time)
                 else:
-                    print(f"  - Warning: Failed to reset {container_name} after {max_attempts} attempts: {e}")
+                    print(
+                        f"  - Warning: Failed to reset {container_name} after {max_attempts} attempts: {e}"
+                    )
             except subprocess.TimeoutExpired:
                 if attempt < max_attempts - 1:
-                    wait_time = 2 ** attempt
-                    print(f"  - Warning: Timeout resetting {container_name} (attempt {attempt + 1}/{max_attempts}), retrying in {wait_time}s...")
+                    wait_time = 2**attempt
+                    print(
+                        f"  - Warning: Timeout resetting {container_name} (attempt {attempt + 1}/{max_attempts}), retrying in {wait_time}s..."
+                    )
                     time.sleep(wait_time)
                 else:
-                    print(f"  - Warning: Timeout resetting {container_name} after {max_attempts} attempts")
+                    print(
+                        f"  - Warning: Timeout resetting {container_name} after {max_attempts} attempts"
+                    )
 
     def _flush_redis(self):
         """Flush Redis databases used for counters and cache."""
         try:
-            r = redis.Redis(host=self.redis_host, port=self.redis_port, db=self.redis_db)
+            r = redis.Redis(
+                host=self.redis_host, port=self.redis_port, db=self.redis_db
+            )
             r.flushdb()
             print(f"  - Flushed Redis db={self.redis_db} (counters)")
 
-            r_cache = redis.Redis(host=self.redis_host, port=self.redis_port, db=self.cache_db)
+            r_cache = redis.Redis(
+                host=self.redis_host, port=self.redis_port, db=self.cache_db
+            )
             r_cache.flushdb()
             print(f"  - Flushed Redis db={self.cache_db} (cache)")
         except Exception as e:
@@ -163,12 +190,16 @@ class MetaBenchmark:
     def _delete_time_agnostic_config(self):
         """Delete auto-generated time_agnostic_library_config.json file."""
         config_dir = os.path.dirname(self.config_path)
-        time_agnostic_config = os.path.join(config_dir, "time_agnostic_library_config.json")
+        time_agnostic_config = os.path.join(
+            config_dir, "time_agnostic_library_config.json"
+        )
         if os.path.exists(time_agnostic_config):
             os.remove(time_agnostic_config)
             print("  - Deleted time_agnostic_library_config.json")
 
-    def _execute_single_run(self, input_csv: str, run_number: Optional[int] = None) -> Dict[str, Any]:
+    def _execute_single_run(
+        self, input_csv: str, run_number: Optional[int] = None
+    ) -> Dict[str, Any]:
         """
         Execute a single benchmark run on the given CSV file.
 
@@ -184,9 +215,7 @@ class MetaBenchmark:
         try:
             timer = ProcessTimer(enabled=True)
             meta_process = MetaProcess(
-                settings=self.config,
-                meta_config_path=self.config_path,
-                timer=timer
+                settings=self.config, meta_config_path=self.config_path, timer=timer
             )
 
             filename = os.path.basename(input_csv)
@@ -195,7 +224,7 @@ class MetaBenchmark:
                 cache_path=os.path.join(self.output_dir, "benchmark_cache.txt"),
                 errors_path=os.path.join(self.output_dir, "benchmark_errors.txt"),
                 settings=self.config,
-                meta_config_path=self.config_path
+                meta_config_path=self.config_path,
             )
 
             if result[0]["message"] != "success":
@@ -206,7 +235,9 @@ class MetaBenchmark:
             report["config_path"] = self.config_path
 
             if run_number is not None:
-                print(f"{run_prefix}Completed in {report['metrics']['total_duration_seconds']:.2f}s")
+                print(
+                    f"{run_prefix}Completed in {report['metrics']['total_duration_seconds']:.2f}s"
+                )
 
             return report
 
@@ -219,7 +250,7 @@ class MetaBenchmark:
         sizes: Optional[Union[int, List[int]]] = None,
         seed: int = 42,
         runs: int = 1,
-        fresh_data: bool = False
+        fresh_data: bool = False,
     ) -> Dict[str, Any]:
         """
         Run complete benchmark on CSV files with optional multiple runs and statistical analysis.
@@ -234,15 +265,15 @@ class MetaBenchmark:
             Dictionary with benchmark results. If runs > 1, includes statistical analysis.
             If multiple sizes provided, returns scalability analysis across sizes.
         """
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("OpenCitations Meta Benchmark")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(f"Input directory: {self.input_dir}")
         print(f"Config: {self.config_path}")
         print(f"Timestamp: {datetime.now().isoformat()}")
         print(f"Runs: {runs}")
         print(f"Fresh data per run: {fresh_data}")
-        print(f"{'='*60}\n")
+        print(f"{'=' * 60}\n")
 
         if isinstance(sizes, list):
             return self._run_multi_size_benchmark(sizes, seed, runs, fresh_data)
@@ -250,37 +281,35 @@ class MetaBenchmark:
             return self._run_single_size_benchmark(sizes, seed, runs, fresh_data)
 
     def _run_multi_size_benchmark(
-        self,
-        sizes: List[int],
-        seed: int,
-        runs: int,
-        fresh_data: bool
+        self, sizes: List[int], seed: int, runs: int, fresh_data: bool
     ) -> Dict[str, Any]:
         """Run benchmark for multiple sizes and generate scalability analysis."""
         print(f"Scalability analysis across {len(sizes)} sizes: {sizes}")
-        print(f"{'='*60}\n")
+        print(f"{'=' * 60}\n")
 
         per_size_results = []
 
         for size_idx, size in enumerate(sizes):
-            print(f"\n{'#'*60}")
+            print(f"\n{'#' * 60}")
             print(f"Size {size_idx + 1}/{len(sizes)}: {size} records")
-            print(f"{'#'*60}\n")
+            print(f"{'#' * 60}\n")
 
             size_result = self._run_single_size_benchmark(size, seed, runs, fresh_data)
 
-            per_size_results.append({
-                "size": size,
-                "runs": size_result.get("runs", [size_result]),
-                "statistics": size_result.get("statistics", {})
-            })
+            per_size_results.append(
+                {
+                    "size": size,
+                    "runs": size_result.get("runs", [size_result]),
+                    "statistics": size_result.get("statistics", {}),
+                }
+            )
 
             if size_idx < len(sizes) - 1:
                 self.cleanup_databases()
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("Scalability Analysis Summary")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
 
         scalability_metrics = self._compute_scalability_metrics(per_size_results)
 
@@ -288,14 +317,18 @@ class MetaBenchmark:
             size = size_data["size"]
             if size_data["statistics"]:
                 mean_time = size_data["statistics"]["total_duration_seconds"]["mean"]
-                mean_throughput = size_data["statistics"]["throughput_records_per_sec"]["mean"]
+                mean_throughput = size_data["statistics"]["throughput_records_per_sec"][
+                    "mean"
+                ]
             else:
                 mean_time = size_data["runs"][0]["metrics"]["total_duration_seconds"]
-                mean_throughput = size_data["runs"][0]["metrics"]["throughput_records_per_sec"]
+                mean_throughput = size_data["runs"][0]["metrics"][
+                    "throughput_records_per_sec"
+                ]
 
             print(f"Size {size:>4}: {mean_time:>6.2f}s | {mean_throughput:>6.2f} rec/s")
 
-        print(f"{'='*60}\n")
+        print(f"{'=' * 60}\n")
 
         return {
             "timestamp": datetime.now().isoformat(),
@@ -304,13 +337,15 @@ class MetaBenchmark:
                 "sizes": sizes,
                 "runs": runs,
                 "fresh_data": fresh_data,
-                "seed": seed
+                "seed": seed,
             },
             "per_size_results": per_size_results,
-            "scalability": scalability_metrics
+            "scalability": scalability_metrics,
         }
 
-    def _compute_scalability_metrics(self, per_size_results: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def _compute_scalability_metrics(
+        self, per_size_results: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
         """Compute aggregate scalability metrics across sizes."""
         mean_duration_by_size = {}
         throughput_by_size = {}
@@ -318,23 +353,27 @@ class MetaBenchmark:
         for size_data in per_size_results:
             size = size_data["size"]
             if size_data["statistics"]:
-                mean_duration_by_size[size] = size_data["statistics"]["total_duration_seconds"]["mean"]
-                throughput_by_size[size] = size_data["statistics"]["throughput_records_per_sec"]["mean"]
+                mean_duration_by_size[size] = size_data["statistics"][
+                    "total_duration_seconds"
+                ]["mean"]
+                throughput_by_size[size] = size_data["statistics"][
+                    "throughput_records_per_sec"
+                ]["mean"]
             else:
-                mean_duration_by_size[size] = size_data["runs"][0]["metrics"]["total_duration_seconds"]
-                throughput_by_size[size] = size_data["runs"][0]["metrics"]["throughput_records_per_sec"]
+                mean_duration_by_size[size] = size_data["runs"][0]["metrics"][
+                    "total_duration_seconds"
+                ]
+                throughput_by_size[size] = size_data["runs"][0]["metrics"][
+                    "throughput_records_per_sec"
+                ]
 
         return {
             "mean_duration_by_size": mean_duration_by_size,
-            "throughput_by_size": throughput_by_size
+            "throughput_by_size": throughput_by_size,
         }
 
     def _run_single_size_benchmark(
-        self,
-        sizes: Optional[int],
-        seed: int,
-        runs: int,
-        fresh_data: bool
+        self, sizes: Optional[int], seed: int, runs: int, fresh_data: bool
     ) -> Dict[str, Any]:
         """Run benchmark for a single size with multiple runs and statistical analysis."""
         all_runs = []
@@ -343,37 +382,48 @@ class MetaBenchmark:
             run_number = run_idx + 1
 
             if runs > 1:
-                print(f"\n{'='*60}")
+                print(f"\n{'=' * 60}")
                 print(f"Run {run_number}/{runs}")
-                print(f"{'='*60}\n")
+                print(f"{'=' * 60}\n")
 
             current_seed = seed + run_number if fresh_data else seed
-            input_csv = self._prepare_input_csv(sizes, current_seed, run_number if fresh_data else None)
+            input_csv = self._prepare_input_csv(
+                sizes, current_seed, run_number if fresh_data else None
+            )
 
-            report = self._execute_single_run(input_csv, run_number if runs > 1 else None)
+            report = self._execute_single_run(
+                input_csv, run_number if runs > 1 else None
+            )
             all_runs.append(report)
 
             if fresh_data and run_idx < runs - 1:
                 self.cleanup_databases()
 
             if runs > 1 and run_number > 1:
-                current_times = [r["metrics"]["total_duration_seconds"] for r in all_runs]
+                current_times = [
+                    r["metrics"]["total_duration_seconds"] for r in all_runs
+                ]
                 mean_time = sum(current_times) / len(current_times)
                 import statistics
-                std_time = statistics.stdev(current_times) if len(current_times) > 1 else 0
-                print(f"Progress: Mean time so far: {mean_time:.2f}s ± {std_time:.2f}s\n")
+
+                std_time = (
+                    statistics.stdev(current_times) if len(current_times) > 1 else 0
+                )
+                print(
+                    f"Progress: Mean time so far: {mean_time:.2f}s ± {std_time:.2f}s\n"
+                )
 
         if runs == 1:
             return all_runs[0]
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("Statistical Analysis")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
 
         stats = BenchmarkStatistics.calculate_statistics(all_runs)
 
         print(BenchmarkStatistics.format_statistics_report(stats))
-        print(f"{'='*60}\n")
+        print(f"{'=' * 60}\n")
 
         return {
             "timestamp": datetime.now().isoformat(),
@@ -382,10 +432,10 @@ class MetaBenchmark:
                 "runs": runs,
                 "fresh_data": fresh_data,
                 "seed": seed,
-                "size": sizes
+                "size": sizes,
             },
             "runs": all_runs,
-            "statistics": stats
+            "statistics": stats,
         }
 
     def _prepare_input_csv(
@@ -393,7 +443,7 @@ class MetaBenchmark:
         size: Optional[int],
         seed: int,
         run_number: Optional[int] = None,
-        partial_data: bool = False
+        partial_data: bool = False,
     ) -> str:
         """
         Prepare input CSV file (generate or use existing).
@@ -430,7 +480,7 @@ class MetaBenchmark:
             print(f"Processing generated file: {csv_filename}\n")
             return csv_path
         else:
-            csv_files = [f for f in os.listdir(self.input_dir) if f.endswith('.csv')]
+            csv_files = [f for f in os.listdir(self.input_dir) if f.endswith(".csv")]
             if not csv_files:
                 raise ValueError(f"No CSV files found in {self.input_dir}")
 
@@ -445,7 +495,9 @@ class MetaBenchmark:
         os.makedirs(reports_dir, exist_ok=True)
         return reports_dir
 
-    def save_report(self, report: Dict[str, Any], prefix: str, size: Optional[int] = None):
+    def save_report(
+        self, report: Dict[str, Any], prefix: str, size: Optional[int] = None
+    ):
         """Save benchmark report (JSON and PNG) in reports directory."""
         reports_dir = self._get_reports_dir()
         if size is not None:
@@ -454,7 +506,7 @@ class MetaBenchmark:
             base_filename = prefix
 
         json_path = os.path.join(reports_dir, f"{base_filename}.json")
-        with open(json_path, 'wb') as f:
+        with open(json_path, "wb") as f:
             f.write(orjson.dumps(report, option=orjson.OPT_INDENT_2))
         print(f"[Report] Saved to {json_path}")
 
@@ -471,14 +523,15 @@ class MetaBenchmark:
     def _clear_processing_cache(self):
         """Clear the processing cache file to allow reprocessing of same records."""
         cache_file = os.path.join(
-            file_manager.normalize_path(self.config["base_output_dir"]),
-            "cache.txt"
+            file_manager.normalize_path(self.config["base_output_dir"]), "cache.txt"
         )
         if os.path.exists(cache_file):
             os.remove(cache_file)
             print("[Update Scenario] Cleared processing cache")
 
-    def run_update_scenario(self, size: int, seed: int = 42, runs: int = 1) -> Dict[str, Any]:
+    def run_update_scenario(
+        self, size: int, seed: int = 42, runs: int = 1
+    ) -> Dict[str, Any]:
         """
         Run update scenario benchmark to test graph diff performance.
 
@@ -497,14 +550,14 @@ class MetaBenchmark:
         Returns:
             Dictionary with preload and update timing reports
         """
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("Update Scenario Benchmark (Graph Diff Performance)")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(f"Records: {size}")
         print(f"Seed: {seed}")
         print(f"Runs: {runs}")
         print(f"Timestamp: {datetime.now().isoformat()}")
-        print(f"{'='*60}\n")
+        print(f"{'=' * 60}\n")
 
         all_update_runs = []
         preload_report: dict = {}
@@ -513,13 +566,13 @@ class MetaBenchmark:
             run_number = run_idx + 1
 
             if runs > 1:
-                print(f"\n{'#'*60}")
+                print(f"\n{'#' * 60}")
                 print(f"Run {run_number}/{runs}")
-                print(f"{'#'*60}\n")
+                print(f"{'#' * 60}\n")
 
-            print(f"{'='*60}")
+            print(f"{'=' * 60}")
             print("Phase 1: Generating and processing PARTIAL data")
-            print(f"{'='*60}\n")
+            print(f"{'=' * 60}\n")
 
             partial_csv = self._prepare_input_csv(
                 size=size, seed=seed, partial_data=True
@@ -528,9 +581,9 @@ class MetaBenchmark:
 
             self._clear_processing_cache()
 
-            print(f"\n{'='*60}")
+            print(f"\n{'=' * 60}")
             print("Phase 2: Generating and processing COMPLETE data")
-            print(f"{'='*60}\n")
+            print(f"{'=' * 60}\n")
 
             complete_csv = self._prepare_input_csv(
                 size=size, seed=seed, partial_data=False
@@ -542,9 +595,9 @@ class MetaBenchmark:
             if run_idx < runs - 1:
                 self.cleanup_databases()
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("Update Scenario Results Summary")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
 
         last_update = all_update_runs[-1]
         preload_prep = self._get_phase_duration(preload_report, "storage__write_files")
@@ -555,25 +608,29 @@ class MetaBenchmark:
 
         print("\nPhase 1 - Partial data (initial load):")
         print(f"  Total: {preload_total:.2f}s")
-        print(f"  storage__write_files: {preload_prep:.2f}s ({100*preload_prep/preload_total:.1f}%)")
+        print(
+            f"  storage__write_files: {preload_prep:.2f}s ({100 * preload_prep / preload_total:.1f}%)"
+        )
 
         print("\nPhase 2 - Complete data (with graph diff):")
         print(f"  Total: {update_total:.2f}s")
-        print(f"  storage__write_files: {update_prep:.2f}s ({100*update_prep/update_total:.1f}%)")
+        print(
+            f"  storage__write_files: {update_prep:.2f}s ({100 * update_prep / update_total:.1f}%)"
+        )
 
         if preload_prep > 0:
             slowdown = update_prep / preload_prep
             print(f"\nGraph diff overhead: {slowdown:.1f}x slower preparation phase")
 
-        print(f"{'='*60}\n")
+        print(f"{'=' * 60}\n")
 
         if runs > 1:
-            print(f"\n{'='*60}")
+            print(f"\n{'=' * 60}")
             print("Statistical Analysis (Update Phase)")
-            print(f"{'='*60}")
+            print(f"{'=' * 60}")
             stats = BenchmarkStatistics.calculate_statistics(all_update_runs)
             print(BenchmarkStatistics.format_statistics_report(stats))
-            print(f"{'='*60}\n")
+            print(f"{'=' * 60}\n")
         else:
             stats = {}
 
@@ -581,11 +638,7 @@ class MetaBenchmark:
             "timestamp": datetime.now().isoformat(),
             "config_path": self.config_path,
             "scenario": "update",
-            "config": {
-                "size": size,
-                "seed": seed,
-                "runs": runs
-            },
+            "config": {"size": size, "seed": seed, "runs": runs},
             "preload": preload_report,
             "update": last_update,
             "runs": all_update_runs,
@@ -595,8 +648,10 @@ class MetaBenchmark:
                 "preload_preparation_seconds": preload_prep,
                 "update_total_seconds": update_total,
                 "update_preparation_seconds": update_prep,
-                "preparation_slowdown_factor": update_prep / preload_prep if preload_prep > 0 else None
-            }
+                "preparation_slowdown_factor": update_prep / preload_prep
+                if preload_prep > 0
+                else None,
+            },
         }
 
         return result
@@ -615,55 +670,56 @@ def main():
         formatter_class=RichHelpFormatter,
     )
     parser.add_argument(
-        "-c", "--config",
+        "-c",
+        "--config",
         required=True,
-        help="Path to benchmark configuration file (YAML)"
+        help="Path to benchmark configuration file (YAML)",
     )
     parser.add_argument(
         "--sizes",
         type=int,
-        nargs='+',
+        nargs="+",
         default=None,
-        help="Generate test data with N records. Can specify multiple sizes for scalability analysis (e.g., --sizes 10 50 100). If not specified, use existing CSV files"
+        help="Generate test data with N records. Can specify multiple sizes for scalability analysis (e.g., --sizes 10 50 100). If not specified, use existing CSV files",
     )
     parser.add_argument(
         "--runs",
         type=int,
         default=1,
-        help="Number of times to execute the benchmark (default: 1). Multiple runs enable statistical analysis"
+        help="Number of times to execute the benchmark (default: 1). Multiple runs enable statistical analysis",
     )
     parser.add_argument(
         "--fresh-data",
         action="store_true",
-        help="Generate new data file for each run (with different seeds). Default: reuse same data to test cache effects"
+        help="Generate new data file for each run (with different seeds). Default: reuse same data to test cache effects",
     )
     parser.add_argument(
         "--seed",
         type=int,
         default=42,
-        help="Random seed for reproducible data generation (default: 42)"
+        help="Random seed for reproducible data generation (default: 42)",
     )
     parser.add_argument(
         "--no-cleanup",
         action="store_true",
-        help="Skip automatic database cleanup after benchmark"
+        help="Skip automatic database cleanup after benchmark",
     )
     parser.add_argument(
         "--preload-high-authors",
         type=int,
         default=None,
-        help="Preload a BR with N authors before benchmark (e.g., 2869 for ATLAS paper)"
+        help="Preload a BR with N authors before benchmark (e.g., 2869 for ATLAS paper)",
     )
     parser.add_argument(
         "--preload-seed",
         type=int,
         default=42,
-        help="Random seed for preload data generation (default: 42)"
+        help="Random seed for preload data generation (default: 42)",
     )
     parser.add_argument(
         "--update-scenario",
         action="store_true",
-        help="Run update scenario: preload partial data, then process complete data to trigger graph diff"
+        help="Run update scenario: preload partial data, then process complete data to trigger graph diff",
     )
 
     args = parser.parse_args()
@@ -675,32 +731,44 @@ def main():
             if not args.sizes or len(args.sizes) != 1:
                 raise ValueError("--update-scenario requires exactly one --sizes value")
             size = args.sizes[0]
-            report = benchmark.run_update_scenario(size=size, seed=args.seed, runs=args.runs)
+            report = benchmark.run_update_scenario(
+                size=size, seed=args.seed, runs=args.runs
+            )
             benchmark.save_report(report, prefix="update", size=size)
 
         elif args.preload_high_authors:
-            print(f"\n{'='*60}")
+            print(f"\n{'=' * 60}")
             print(f"Preloading BR with {args.preload_high_authors} authors")
-            print(f"{'='*60}\n")
+            print(f"{'=' * 60}\n")
 
             preload_csv = os.path.join(benchmark.input_dir, "atlas_preload.csv")
-            generate_atlas_paper_csv(preload_csv, args.preload_high_authors, args.preload_seed)
+            generate_atlas_paper_csv(
+                preload_csv, args.preload_high_authors, args.preload_seed
+            )
 
             preload_metrics = preload_data(args.config, preload_csv)
 
-            print("\n[Preload] Complete - triplestore now contains BR with many authors")
+            print(
+                "\n[Preload] Complete - triplestore now contains BR with many authors"
+            )
 
             update_csv = os.path.join(benchmark.input_dir, "atlas_update.csv")
             generate_atlas_update_csv(update_csv)
 
             print("[Preload] Generated update CSV for benchmark")
-            print("[Preload] Next benchmark run will process this BR (update scenario)\n")
+            print(
+                "[Preload] Next benchmark run will process this BR (update scenario)\n"
+            )
 
             benchmark._generated_csvs.extend([preload_csv, update_csv])
 
-            report = benchmark.run_benchmark(sizes=None, seed=args.seed, runs=args.runs, fresh_data=args.fresh_data)
+            report = benchmark.run_benchmark(
+                sizes=None, seed=args.seed, runs=args.runs, fresh_data=args.fresh_data
+            )
             report["preload_metrics"] = preload_metrics
-            benchmark.save_report(report, prefix="atlas", size=args.preload_high_authors)
+            benchmark.save_report(
+                report, prefix="atlas", size=args.preload_high_authors
+            )
 
         else:
             sizes_arg = args.sizes
@@ -711,7 +779,7 @@ def main():
                 sizes=sizes_arg,
                 seed=args.seed,
                 runs=args.runs,
-                fresh_data=args.fresh_data
+                fresh_data=args.fresh_data,
             )
             size = sizes_arg if isinstance(sizes_arg, int) else None
             benchmark.save_report(report, prefix="benchmark", size=size)

@@ -43,7 +43,8 @@ FOAF_GIVEN_NAME = "http://xmlns.com/foaf/0.1/givenName"
 FOAF_NAME = "http://xmlns.com/foaf/0.1/name"
 
 CONTAINER_EDITOR_TYPE_IRIS = frozenset(
-    iri for iri, label in ResourceFinder._IRI_TO_TYPE.items()
+    iri
+    for iri, label in ResourceFinder._IRI_TO_TYPE.items()
     if label in CONTAINER_EDITOR_TYPES
 )
 
@@ -77,7 +78,7 @@ def _make_targeted_batches(
     file_targets: dict[str, set[str]], batch_size: int
 ) -> list[list[tuple[str, frozenset[str]]]]:
     items = [(fpath, frozenset(uris)) for fpath, uris in file_targets.items()]
-    return [items[i:i + batch_size] for i in range(0, len(items), batch_size)]
+    return [items[i : i + batch_size] for i in range(0, len(items), batch_size)]
 
 
 def _read_file(fpath: str, zip_output: bool) -> list:
@@ -110,9 +111,7 @@ def _scan_br_content_batch(
     return frbr_part_of, content_ars
 
 
-def _scan_ar_editors_batch(
-    files: list[str], zip_output: bool
-) -> dict[str, str]:
+def _scan_ar_editors_batch(files: list[str], zip_output: bool) -> dict[str, str]:
     editors: dict[str, str] = {}
     for entity in _iter_entities(files, zip_output):
         if WITH_ROLE in entity and entity[WITH_ROLE][0]["@id"] == EDITOR_ROLE:
@@ -149,7 +148,11 @@ def _scan_ra_info_batch(
                 family = entity.get(FOAF_FAMILY_NAME, [{}])[0].get("@value", "")
                 given = entity.get(FOAF_GIVEN_NAME, [{}])[0].get("@value", "")
                 if family:
-                    name = f"{family.lower()}, {given.lower()}" if given else family.lower()
+                    name = (
+                        f"{family.lower()}, {given.lower()}"
+                        if given
+                        else family.lower()
+                    )
                 else:
                     full = entity.get(FOAF_NAME, [{}])[0].get("@value", "")
                     name = full.lower() if full else ""
@@ -182,10 +185,7 @@ def _run_parallel(
     progress: Progress,
     task_id: TaskID,
 ) -> list:
-    futures = {
-        executor.submit(scan_fn, batch, zip_output): batch
-        for batch in batches
-    }
+    futures = {executor.submit(scan_fn, batch, zip_output): batch for batch in batches}
     results = []
     try:
         for future in as_completed(futures):
@@ -244,15 +244,17 @@ def _classify_actions(
                     if name:
                         known_names.add(name)
 
-                results.append({
-                    "content": content,
-                    "container": container,
-                    "ar": ar,
-                    "ra": ra,
-                    "identifiers": sorted(ids),
-                    "action": action,
-                    "match_reason": match_reason,
-                })
+                results.append(
+                    {
+                        "content": content,
+                        "container": container,
+                        "ar": ar,
+                        "ra": ra,
+                        "identifiers": sorted(ids),
+                        "action": action,
+                        "match_reason": match_reason,
+                    }
+                )
     return results
 
 
@@ -274,8 +276,12 @@ def find_misplaced_editor_ars(
         br_files = collect_files(br_dir, "*.json", lambda p: "prov" not in p)
         ar_files = collect_files(ar_dir, "*.json", lambda p: "prov" not in p)
 
-    br_batches = [br_files[i:i + batch_size] for i in range(0, len(br_files), batch_size)]
-    ar_batches = [ar_files[i:i + batch_size] for i in range(0, len(ar_files), batch_size)]
+    br_batches = [
+        br_files[i : i + batch_size] for i in range(0, len(br_files), batch_size)
+    ]
+    ar_batches = [
+        ar_files[i : i + batch_size] for i in range(0, len(ar_files), batch_size)
+    ]
 
     frbr_part_of: dict[str, list[str]] = {}
     content_ars: dict[str, set[str]] = {}
@@ -347,8 +353,12 @@ def find_misplaced_editor_ars(
             max_workers=workers, initializer=_worker_init, mp_context=ctx
         )
         for partial in _run_parallel(
-            executor, _scan_container_ars_batch, container_batches,
-            zip_output, progress, ct_task
+            executor,
+            _scan_container_ars_batch,
+            container_batches,
+            zip_output,
+            progress,
+            ct_task,
         ):
             container_ars.update(partial)
 
@@ -402,8 +412,7 @@ def find_misplaced_editor_ars(
                 max_workers=workers, initializer=_worker_init, mp_context=ctx
             )
             for partial_ids, partial_names in _run_parallel(
-                executor, _scan_ra_info_batch, ra_batches,
-                zip_output, progress, ra_task
+                executor, _scan_ra_info_batch, ra_batches, zip_output, progress, ra_task
             ):
                 ra_to_id_uris.update(partial_ids)
                 ra_names.update(partial_names)
@@ -427,13 +436,19 @@ def find_misplaced_editor_ars(
                     max_workers=workers, initializer=_worker_init, mp_context=ctx
                 )
                 for partial in _run_parallel(
-                    executor, _scan_id_values_batch, id_batches,
-                    zip_output, progress, id_task
+                    executor,
+                    _scan_id_values_batch,
+                    id_batches,
+                    zip_output,
+                    progress,
+                    id_task,
                 ):
                     id_to_value.update(partial)
 
             for ra, id_uris in ra_to_id_uris.items():
-                ids = {id_to_value[id_uri] for id_uri in id_uris if id_uri in id_to_value}
+                ids = {
+                    id_to_value[id_uri] for id_uri in id_uris if id_uri in id_to_value
+                }
                 if ids:
                     ra_identifiers[ra] = ids
 
@@ -443,8 +458,12 @@ def find_misplaced_editor_ars(
         )
 
     return _classify_actions(
-        dict(container_to_contents), content_editor_ars,
-        editor_ar_to_ra, ra_identifiers, ra_names, container_editor_ars,
+        dict(container_to_contents),
+        content_editor_ars,
+        editor_ar_to_ra,
+        ra_identifiers,
+        ra_names,
+        container_editor_ars,
     ), container_editor_ars
 
 
@@ -472,13 +491,21 @@ def fix_container(
     all_uris.extend(existing_ars)
 
     for uri in all_uris:
-        fp = find_rdf_file(uri, editor.base_dir, editor.dir_split, editor.n_file_item, editor.zip_output_rdf)
+        fp = find_rdf_file(
+            uri,
+            editor.base_dir,
+            editor.dir_split,
+            editor.n_file_item,
+            editor.zip_output_rdf,
+        )
         file_paths.add(fp)
 
     for fp in file_paths:
         imported_graph = editor.reader.load(fp)
         if imported_graph is not None:
-            editor.reader.import_entities_from_graph(g_set, imported_graph, editor.resp_agent)
+            editor.reader.import_entities_from_graph(
+                g_set, imported_graph, editor.resp_agent
+            )
 
     container_entity = g_set.get_entity(container_uri)
     assert container_entity is not None, f"container not found: {container_uri}"
@@ -491,15 +518,16 @@ def fix_container(
 
         contributor_uris = {
             o.value
-            for _, _, o in content_entity.g.triples((
-                content_entity.res,
-                GraphEntity.iri_is_document_context_for,
-                None,
-            ))
+            for _, _, o in content_entity.g.triples(
+                (
+                    content_entity.res,
+                    GraphEntity.iri_is_document_context_for,
+                    None,
+                )
+            )
         }
         ars_on_content = {
-            ar_uri for ar_uri, _ in move_ars + skip_ars
-            if ar_uri in contributor_uris
+            ar_uri for ar_uri, _ in move_ars + skip_ars if ar_uri in contributor_uris
         }
 
         for ar_uri, ra_uri in move_ars + skip_ars:
@@ -562,14 +590,28 @@ def main() -> None:  # pragma: no cover
         ),
         formatter_class=RichHelpFormatter,
     )
-    parser.add_argument("-c", "--config", required=True, help="Path to meta_config.yaml")
-    parser.add_argument("-r", "--resp-agent", help="Responsible agent URI (required without --dry-run)")
-    parser.add_argument("--dry-run", action="store_true", help="Report cases without modifying")
     parser.add_argument(
-        "-w", "--workers", type=int, default=4, help="Number of parallel workers for scanning"
+        "-c", "--config", required=True, help="Path to meta_config.yaml"
     )
     parser.add_argument(
-        "-b", "--batch-size", type=int, default=BATCH_SIZE, help="Files per batch for scanning"
+        "-r", "--resp-agent", help="Responsible agent URI (required without --dry-run)"
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Report cases without modifying"
+    )
+    parser.add_argument(
+        "-w",
+        "--workers",
+        type=int,
+        default=4,
+        help="Number of parallel workers for scanning",
+    )
+    parser.add_argument(
+        "-b",
+        "--batch-size",
+        type=int,
+        default=BATCH_SIZE,
+        help="Files per batch for scanning",
     )
     parser.add_argument(
         "--progress-file",
@@ -599,8 +641,12 @@ def main() -> None:  # pragma: no cover
 
     console.print("Scanning RDF files for misplaced editor ARs...")
     cases, container_editor_ars = find_misplaced_editor_ars(
-        rdf_dir, zip_output, dir_split, items_per_file,
-        args.workers, args.batch_size,
+        rdf_dir,
+        zip_output,
+        dir_split,
+        items_per_file,
+        args.workers,
+        args.batch_size,
     )
 
     content_groups: dict[tuple[str, str], list[dict]] = defaultdict(list)
@@ -672,7 +718,9 @@ def main() -> None:  # pragma: no cover
     succeeded = failed = skipped = 0
 
     with create_progress() as progress:
-        task = progress.add_task("Fixing misplaced editor ARs", total=len(container_groups))
+        task = progress.add_task(
+            "Fixing misplaced editor ARs", total=len(container_groups)
+        )
         for container, ar_actions in container_groups.items():
             if _stop_requested:
                 break
@@ -681,9 +729,9 @@ def main() -> None:  # pragma: no cover
                 progress.advance(task)
                 continue
             try:
-                per_content: dict[str, tuple[list[tuple[str, str]], list[tuple[str, str]]]] = defaultdict(
-                    lambda: ([], [])
-                )
+                per_content: dict[
+                    str, tuple[list[tuple[str, str]], list[tuple[str, str]]]
+                ] = defaultdict(lambda: ([], []))
                 for a in ar_actions:
                     move_list, skip_list = per_content[a["content"]]
                     if a["action"] == "move":
@@ -694,7 +742,12 @@ def main() -> None:  # pragma: no cover
                     (content_uri, moves, skips)
                     for content_uri, (moves, skips) in sorted(per_content.items())
                 ]
-                fix_container(editor, container, content_actions, container_editor_ars.get(container, set()))
+                fix_container(
+                    editor,
+                    container,
+                    content_actions,
+                    container_editor_ars.get(container, set()),
+                )
                 completed.add(container)
                 _save_progress(args.progress_file, completed)
                 succeeded += 1

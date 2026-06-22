@@ -154,7 +154,9 @@ def fetch_triplestore_metadata(endpoint: str, br_uri: str) -> dict:
     if ar_to_family:
         pointed_to = set(ar_to_next.values())
         first_ar_candidates = [ar for ar in ar_to_family if ar not in pointed_to]
-        first_ar = first_ar_candidates[0] if first_ar_candidates else next(iter(ar_to_family))
+        first_ar = (
+            first_ar_candidates[0] if first_ar_candidates else next(iter(ar_to_family))
+        )
         first_author_family = ar_to_family[first_ar].lower().strip()
         first_author_given = ar_to_given.get(first_ar, "").strip()
 
@@ -189,8 +191,10 @@ def compute_matching_score(meta_a: dict, meta_b: dict) -> float:
     )
     m_title = _score_title(meta_a["title"], meta_b["title"])
     m_source = _score_source(
-        meta_a["venue"], meta_b["venue"],
-        meta_a["issn"], meta_b["issn"],
+        meta_a["venue"],
+        meta_b["venue"],
+        meta_a["issn"],
+        meta_b["issn"],
     )
     m_other = _score_other(meta_a, meta_b)
     return 7 * m_first_author + 14 * m_title + 5 * m_source + 14 * m_other
@@ -218,9 +222,7 @@ def _score_title(title_a: str, title_b: str) -> float:
     return 1.0 - dist / max_len
 
 
-def _score_source(
-    venue_a: str, venue_b: str, issn_a: str, issn_b: str
-) -> float:
+def _score_source(venue_a: str, venue_b: str, issn_a: str, issn_b: str) -> float:
     if issn_a and issn_b and issn_a == issn_b:
         return 1.0
     if not venue_a or not venue_b:
@@ -242,8 +244,16 @@ def _score_other(meta_a: dict, meta_b: dict) -> float:
         score += 0.2
     if meta_a["issue"] and meta_b["issue"] and meta_a["issue"] == meta_b["issue"]:
         score += 0.1
-    if meta_a["start_page"] and meta_b["start_page"] and meta_a["start_page"] == meta_b["start_page"]:
+    if (
+        meta_a["start_page"]
+        and meta_b["start_page"]
+        and meta_a["start_page"] == meta_b["start_page"]
+    ):
         score += 0.3
-    if meta_a["end_page"] and meta_b["end_page"] and meta_a["end_page"] == meta_b["end_page"]:
+    if (
+        meta_a["end_page"]
+        and meta_b["end_page"]
+        and meta_a["end_page"] == meta_b["end_page"]
+    ):
         score += 0.3
     return score

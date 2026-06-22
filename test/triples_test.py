@@ -180,9 +180,7 @@ class TestProcessFiles:
 
     def test_show_per_file(self, sample_files: Path, capsys) -> None:
         files = [sample_files / "data" / "data.nq"]
-        total, _ = triples.process_files(
-            files, "nquads", 1, True, False, "quads"
-        )
+        total, _ = triples.process_files(files, "nquads", 1, True, False, "quads")
         assert total == 2
         captured = capsys.readouterr()
         assert "data.nq" in captured.out
@@ -194,9 +192,7 @@ class TestProcessFiles:
         valid = temp_dir / "valid.nq"
         valid.write_text(SAMPLE_NQUADS)
         files = [corrupt, valid]
-        _, failures = triples.process_files(
-            files, "nquads", 1, False, False, "quads"
-        )
+        _, failures = triples.process_files(files, "nquads", 1, False, False, "quads")
         assert len(failures) == 1
 
     def test_keep_going_true(self, temp_dir: Path) -> None:
@@ -213,14 +209,14 @@ class TestProcessFiles:
 
     def test_workers_none_uses_cpu_count(self, sample_files: Path) -> None:
         files = [sample_files / "data" / "data.nq"]
-        total, _ = triples.process_files(
-            files, "nquads", None, False, False, "quads"
-        )
+        total, _ = triples.process_files(files, "nquads", None, False, False, "quads")
         assert total == 2
 
     def test_workers_zero_defaults_to_one(self, sample_files: Path) -> None:
         files = [sample_files / "data" / "data.nq"]
-        with patch("oc_meta.run.count.triples.multiprocessing.cpu_count", return_value=0):
+        with patch(
+            "oc_meta.run.count.triples.multiprocessing.cpu_count", return_value=0
+        ):
             total, _ = triples.process_files(
                 files, "nquads", None, False, False, "quads"
             )
@@ -255,9 +251,7 @@ class TestJsonLdCounting:
         assert triples._count_jsonld_triples(data) == 3
 
     def test_nested_blank_node(self) -> None:
-        data = {
-            "@graph": [{"@id": "ex:s1", "ex:p1": {"ex:nested_p": "nested_value"}}]
-        }
+        data = {"@graph": [{"@id": "ex:s1", "ex:p1": {"ex:nested_p": "nested_value"}}]}
         assert triples._count_jsonld_triples(data) == 2
 
     def test_value_object(self) -> None:
@@ -286,15 +280,11 @@ class TestJsonLdCounting:
     def test_top_level_array_with_graphs(self) -> None:
         data = [
             {
-                "@graph": [
-                    {"@id": "ex:s1", "@type": ["ex:Type1"], "ex:p1": "v1"}
-                ],
+                "@graph": [{"@id": "ex:s1", "@type": ["ex:Type1"], "ex:p1": "v1"}],
                 "@id": "ex:graph1",
             },
             {
-                "@graph": [
-                    {"@id": "ex:s2", "ex:p2": {"@id": "ex:o2"}, "ex:p3": "v3"}
-                ],
+                "@graph": [{"@id": "ex:s2", "ex:p2": {"@id": "ex:o2"}, "ex:p3": "v3"}],
                 "@id": "ex:graph2",
             },
         ]

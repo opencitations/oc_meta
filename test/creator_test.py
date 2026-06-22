@@ -21,9 +21,11 @@ from test.test_utils import (
 def reset_server(server: str = SERVER) -> None:
     reset_triplestore(server)
 
+
 # The following function has been added for handling gYear and gYearMonth correctly.
 # Source: https://github.com/opencitations/script/blob/master/ocdm/storer.py
 # More info at https://github.com/RDFLib/rdflib/issues/806.
+
 
 def hack_dates():
     if XSD.gYear in _toPythonMapping:
@@ -31,10 +33,12 @@ def hack_dates():
     if XSD.gYearMonth in _toPythonMapping:
         _toPythonMapping.pop(XSD.gYearMonth)
 
+
 def open_json(path):
     path = os.path.abspath(path)
     with open(path, "rb") as json_file:
         return orjson.loads(json_file.read())
+
 
 @pytest.fixture(scope="module", autouse=True)
 def reset_triplestore_once():
@@ -45,17 +49,41 @@ def reset_triplestore_once():
 # creator executor
 def prepare2test(name):
     data = get_csv_data("test/testcases/testcase_data/testcase_" + name + "_data.csv")
-    testcase_id_br = get_csv_data("test/testcases/testcase_data/indices/" + name + "/index_id_br_" + name + ".csv")
-    testcase_id_ra = get_csv_data("test/testcases/testcase_data/indices/" + name + "/index_id_ra_" + name + ".csv")
-    testcase_ar = get_csv_data("test/testcases/testcase_data/indices/" + name + "/index_ar_" + name + ".csv")
-    testcase_re = get_csv_data("test/testcases/testcase_data/indices/" + name + "/index_re_" + name + ".csv")
-    testcase_vi = open_json("test/testcases/testcase_data/indices/" + name + "/index_vi_" + name + ".json")
+    testcase_id_br = get_csv_data(
+        "test/testcases/testcase_data/indices/" + name + "/index_id_br_" + name + ".csv"
+    )
+    testcase_id_ra = get_csv_data(
+        "test/testcases/testcase_data/indices/" + name + "/index_id_ra_" + name + ".csv"
+    )
+    testcase_ar = get_csv_data(
+        "test/testcases/testcase_data/indices/" + name + "/index_ar_" + name + ".csv"
+    )
+    testcase_re = get_csv_data(
+        "test/testcases/testcase_data/indices/" + name + "/index_re_" + name + ".csv"
+    )
+    testcase_vi = open_json(
+        "test/testcases/testcase_data/indices/" + name + "/index_vi_" + name + ".json"
+    )
     testcase_ttl = "test/testcases/testcase_" + name + ".ttl"
 
     counter_handler = get_counter_handler()
-    finder = ResourceFinder(ts_url=SERVER, base_iri="https://w3id.org/oc/meta/", )
-    creator = Creator(data, finder, "https://w3id.org/oc/meta/", counter_handler, "060", 'https://orcid.org/0000-0002-8420-0696', testcase_id_ra, testcase_id_br,
-                      testcase_re, testcase_ar, testcase_vi)
+    finder = ResourceFinder(
+        ts_url=SERVER,
+        base_iri="https://w3id.org/oc/meta/",
+    )
+    creator = Creator(
+        data,
+        finder,
+        "https://w3id.org/oc/meta/",
+        counter_handler,
+        "060",
+        "https://orcid.org/0000-0002-8420-0696",
+        testcase_id_ra,
+        testcase_id_br,
+        testcase_re,
+        testcase_ar,
+        testcase_vi,
+    )
     creator_setgraph = creator.creator()
     test_graph = Graph()
     hack_dates()
@@ -78,17 +106,139 @@ class TestCreator:
         yield
 
     def test_vvi_action(self):
-        base_iri = 'https://w3id.org/oc/meta/'
-        vvi = {'br/0602': {'issue': {}, 'volume': {'107': {'id': 'br/4733', 'issue': {'1': {'id': 'br/4734'}, '2': {'id': 'br/4735'}, '3': {'id': 'br/4736'}, '4': {'id': 'br/4737'}, '5': {'id': 'br/4738'}, '6': {'id': 'br/4739'}}}, '108': {'id': 'br/4740', 'issue': {'1': {'id': 'br/4741'}, '2': {'id': 'br/4742'}, '3': {'id': 'br/4743'}, '4': {'id': 'br/4744'}}}, '104': {'id': 'br/4712', 'issue': {'1': {'id': 'br/4713'}, '2': {'id': 'br/4714'}, '3': {'id': 'br/4715'}, '4': {'id': 'br/4716'}, '5': {'id': 'br/4717'}, '6': {'id': 'br/4718'}}}, '148': {'id': 'br/4417', 'issue': {'12': {'id': 'br/4418'}, '11': {'id': 'br/4419'}}}, '100': {'id': 'br/4684', 'issue': {'1': {'id': 'br/4685'}, '2': {'id': 'br/4686'}, '3': {'id': 'br/4687'}, '4': {'id': 'br/4688'}, '5': {'id': 'br/4689'}, '6': {'id': 'br/4690'}}}, '101': {'id': 'br/4691', 'issue': {'1': {'id': 'br/4692'}, '2': {'id': 'br/4693'}, '3': {'id': 'br/4694'}, '4': {'id': 'br/4695'}, '5': {'id': 'br/4696'}, '6': {'id': 'br/4697'}}}, '102': {'id': 'br/4698', 'issue': {'1': {'id': 'br/4699'}, '2': {'id': 'br/4700'}, '3': {'id': 'br/4701'}, '4': {'id': 'br/4702'}, '5': {'id': 'br/4703'}, '6': {'id': 'br/4704'}}}, '103': {'id': 'br/4705', 'issue': {'1': {'id': 'br/4706'}, '2': {'id': 'br/4707'}, '3': {'id': 'br/4708'}, '4': {'id': 'br/4709'}, '5': {'id': 'br/4710'}, '6': {'id': 'br/4711'}}}, '105': {'id': 'br/4719', 'issue': {'1': {'id': 'br/4720'}, '2': {'id': 'br/4721'}, '3': {'id': 'br/4722'}, '4': {'id': 'br/4723'}, '5': {'id': 'br/4724'}, '6': {'id': 'br/4725'}}}, '106': {'id': 'br/4726', 'issue': {'6': {'id': 'br/4732'}, '1': {'id': 'br/4727'}, '2': {'id': 'br/4728'}, '3': {'id': 'br/4729'}, '4': {'id': 'br/4730'}, '5': {'id': 'br/4731'}}}}}}
-        finder = ResourceFinder(ts_url=SERVER, base_iri=base_iri, )
-        creator = Creator([], finder, base_iri, self.counter_handler, "060", 'https://orcid.org/0000-0002-8420-0696', [], [], [], [], vvi)
-        creator.src = None
-        creator.type = 'journal article'
-        creator.br_graph = creator.setgraph.add_br(
-            resp_agent='https://orcid.org/0000-0002-8420-0696',
-            res=f'{base_iri}br/0601',
+        base_iri = "https://w3id.org/oc/meta/"
+        vvi = {
+            "br/0602": {
+                "issue": {},
+                "volume": {
+                    "107": {
+                        "id": "br/4733",
+                        "issue": {
+                            "1": {"id": "br/4734"},
+                            "2": {"id": "br/4735"},
+                            "3": {"id": "br/4736"},
+                            "4": {"id": "br/4737"},
+                            "5": {"id": "br/4738"},
+                            "6": {"id": "br/4739"},
+                        },
+                    },
+                    "108": {
+                        "id": "br/4740",
+                        "issue": {
+                            "1": {"id": "br/4741"},
+                            "2": {"id": "br/4742"},
+                            "3": {"id": "br/4743"},
+                            "4": {"id": "br/4744"},
+                        },
+                    },
+                    "104": {
+                        "id": "br/4712",
+                        "issue": {
+                            "1": {"id": "br/4713"},
+                            "2": {"id": "br/4714"},
+                            "3": {"id": "br/4715"},
+                            "4": {"id": "br/4716"},
+                            "5": {"id": "br/4717"},
+                            "6": {"id": "br/4718"},
+                        },
+                    },
+                    "148": {
+                        "id": "br/4417",
+                        "issue": {"12": {"id": "br/4418"}, "11": {"id": "br/4419"}},
+                    },
+                    "100": {
+                        "id": "br/4684",
+                        "issue": {
+                            "1": {"id": "br/4685"},
+                            "2": {"id": "br/4686"},
+                            "3": {"id": "br/4687"},
+                            "4": {"id": "br/4688"},
+                            "5": {"id": "br/4689"},
+                            "6": {"id": "br/4690"},
+                        },
+                    },
+                    "101": {
+                        "id": "br/4691",
+                        "issue": {
+                            "1": {"id": "br/4692"},
+                            "2": {"id": "br/4693"},
+                            "3": {"id": "br/4694"},
+                            "4": {"id": "br/4695"},
+                            "5": {"id": "br/4696"},
+                            "6": {"id": "br/4697"},
+                        },
+                    },
+                    "102": {
+                        "id": "br/4698",
+                        "issue": {
+                            "1": {"id": "br/4699"},
+                            "2": {"id": "br/4700"},
+                            "3": {"id": "br/4701"},
+                            "4": {"id": "br/4702"},
+                            "5": {"id": "br/4703"},
+                            "6": {"id": "br/4704"},
+                        },
+                    },
+                    "103": {
+                        "id": "br/4705",
+                        "issue": {
+                            "1": {"id": "br/4706"},
+                            "2": {"id": "br/4707"},
+                            "3": {"id": "br/4708"},
+                            "4": {"id": "br/4709"},
+                            "5": {"id": "br/4710"},
+                            "6": {"id": "br/4711"},
+                        },
+                    },
+                    "105": {
+                        "id": "br/4719",
+                        "issue": {
+                            "1": {"id": "br/4720"},
+                            "2": {"id": "br/4721"},
+                            "3": {"id": "br/4722"},
+                            "4": {"id": "br/4723"},
+                            "5": {"id": "br/4724"},
+                            "6": {"id": "br/4725"},
+                        },
+                    },
+                    "106": {
+                        "id": "br/4726",
+                        "issue": {
+                            "6": {"id": "br/4732"},
+                            "1": {"id": "br/4727"},
+                            "2": {"id": "br/4728"},
+                            "3": {"id": "br/4729"},
+                            "4": {"id": "br/4730"},
+                            "5": {"id": "br/4731"},
+                        },
+                    },
+                },
+            }
+        }
+        finder = ResourceFinder(
+            ts_url=SERVER,
+            base_iri=base_iri,
         )
-        creator.vvi_action('OECD [omid:br/0602]', '107', '1')
+        creator = Creator(
+            [],
+            finder,
+            base_iri,
+            self.counter_handler,
+            "060",
+            "https://orcid.org/0000-0002-8420-0696",
+            [],
+            [],
+            [],
+            [],
+            vvi,
+        )
+        creator.src = None
+        creator.type = "journal article"
+        creator.br_graph = creator.setgraph.add_br(
+            resp_agent="https://orcid.org/0000-0002-8420-0696",
+            res=f"{base_iri}br/0601",
+        )
+        creator.vvi_action("OECD [omid:br/0602]", "107", "1")
         output_graph = Graph()
         for tl in creator.setgraph.graphs():
             rdflib_g = tl.to_rdflib()
@@ -97,7 +247,7 @@ class TestCreator:
                     output_graph.add((s, p, o))
             else:
                 output_graph += rdflib_g
-        expected_data = '''
+        expected_data = """
             <https://w3id.org/oc/meta/br/0602> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression>.
             <https://w3id.org/oc/meta/br/0602> <http://purl.org/dc/terms/title> "OECD"^^<http://www.w3.org/2001/XMLSchema#string>.
             <https://w3id.org/oc/meta/br/0602> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Journal>.
@@ -111,22 +261,33 @@ class TestCreator:
             <https://w3id.org/oc/meta/br/4734> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression>.
             <https://w3id.org/oc/meta/br/0601> <http://purl.org/vocab/frbr/core#partOf> <https://w3id.org/oc/meta/br/4734>.
             <https://w3id.org/oc/meta/br/0601> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression>.
-        '''
+        """
         expected_graph = Graph()
         expected_graph = expected_graph.parse(data=expected_data, format="nt")
         assert compare.isomorphic(output_graph, expected_graph)
 
     @staticmethod
     def _author_action_graph(counter_handler, ar_index, authors):
-        base_iri = 'https://w3id.org/oc/meta/'
+        base_iri = "https://w3id.org/oc/meta/"
         finder = ResourceFinder(ts_url=SERVER, base_iri=base_iri)
-        creator = Creator([], finder, base_iri, counter_handler, "060",
-                          'https://orcid.org/0000-0002-8420-0696', [], [], [], ar_index, {})
+        creator = Creator(
+            [],
+            finder,
+            base_iri,
+            counter_handler,
+            "060",
+            "https://orcid.org/0000-0002-8420-0696",
+            [],
+            [],
+            [],
+            ar_index,
+            {},
+        )
         creator.src = None
         creator.row_meta = "br/0601"
         creator.br_graph = creator.setgraph.add_br(
-            resp_agent='https://orcid.org/0000-0002-8420-0696',
-            res=f'{base_iri}br/0601',
+            resp_agent="https://orcid.org/0000-0002-8420-0696",
+            res=f"{base_iri}br/0601",
         )
         creator.author_action(authors)
         output_graph = Graph()
@@ -143,45 +304,51 @@ class TestCreator:
         # Two co-authors collapse to one RA OMID (corrupt over-merged RA carrying
         # both ORCIDs): ar_index maps both positions to the same AR, so the same AR
         # object would be linked twice. The chain must stay linear, never cyclic.
-        base_iri = 'https://w3id.org/oc/meta/'
-        ar_index = [{
-            "meta": "br/0601",
-            "author": "ar/0601, ra/0605; ar/0602, ra/0606",
-            "editor": "",
-            "publisher": "",
-        }]
+        base_iri = "https://w3id.org/oc/meta/"
+        ar_index = [
+            {
+                "meta": "br/0601",
+                "author": "ar/0601, ra/0605; ar/0602, ra/0606",
+                "editor": "",
+                "publisher": "",
+            }
+        ]
         output_graph = self._author_action_graph(
-            self.counter_handler, ar_index,
-            'Smith, John [omid:ra/0605]; Doe, Jane [omid:ra/0606]; Smith, J. [omid:ra/0605]',
+            self.counter_handler,
+            ar_index,
+            "Smith, John [omid:ra/0605]; Doe, Jane [omid:ra/0606]; Smith, J. [omid:ra/0605]",
         )
-        has_next = URIRef('https://w3id.org/oc/ontology/hasNext')
-        is_held_by = URIRef('http://purl.org/spar/pro/isHeldBy')
-        ar0601 = URIRef(f'{base_iri}ar/0601')
-        ar0602 = URIRef(f'{base_iri}ar/0602')
+        has_next = URIRef("https://w3id.org/oc/ontology/hasNext")
+        is_held_by = URIRef("http://purl.org/spar/pro/isHeldBy")
+        ar0601 = URIRef(f"{base_iri}ar/0601")
+        ar0602 = URIRef(f"{base_iri}ar/0602")
         assert set(output_graph.triples((None, has_next, None))) == {
             (ar0601, has_next, ar0602),
         }
         assert set(output_graph.triples((None, is_held_by, None))) == {
-            (ar0601, is_held_by, URIRef(f'{base_iri}ra/0605')),
-            (ar0602, is_held_by, URIRef(f'{base_iri}ra/0606')),
+            (ar0601, is_held_by, URIRef(f"{base_iri}ra/0605")),
+            (ar0602, is_held_by, URIRef(f"{base_iri}ra/0606")),
         }
 
     def test_author_action_distinct_ras_linear_chain(self):
-        base_iri = 'https://w3id.org/oc/meta/'
-        ar_index = [{
-            "meta": "br/0601",
-            "author": "ar/0601, ra/0605; ar/0602, ra/0606; ar/0603, ra/0607",
-            "editor": "",
-            "publisher": "",
-        }]
+        base_iri = "https://w3id.org/oc/meta/"
+        ar_index = [
+            {
+                "meta": "br/0601",
+                "author": "ar/0601, ra/0605; ar/0602, ra/0606; ar/0603, ra/0607",
+                "editor": "",
+                "publisher": "",
+            }
+        ]
         output_graph = self._author_action_graph(
-            self.counter_handler, ar_index,
-            'Smith, John [omid:ra/0605]; Doe, Jane [omid:ra/0606]; Roe, Max [omid:ra/0607]',
+            self.counter_handler,
+            ar_index,
+            "Smith, John [omid:ra/0605]; Doe, Jane [omid:ra/0606]; Roe, Max [omid:ra/0607]",
         )
-        has_next = URIRef('https://w3id.org/oc/ontology/hasNext')
-        ar0601 = URIRef(f'{base_iri}ar/0601')
-        ar0602 = URIRef(f'{base_iri}ar/0602')
-        ar0603 = URIRef(f'{base_iri}ar/0603')
+        has_next = URIRef("https://w3id.org/oc/ontology/hasNext")
+        ar0601 = URIRef(f"{base_iri}ar/0601")
+        ar0602 = URIRef(f"{base_iri}ar/0602")
+        ar0603 = URIRef(f"{base_iri}ar/0603")
         assert set(output_graph.triples((None, has_next, None))) == {
             (ar0601, has_next, ar0602),
             (ar0602, has_next, ar0603),
@@ -270,11 +437,15 @@ class TestCase10:
 
 class TestCreatorGetVenueType:
     def test_reference_entry_with_issn_only(self):
-        result = Creator.get_venue_type("reference entry", ["omid:br/0601", "issn:1234-5678"])
+        result = Creator.get_venue_type(
+            "reference entry", ["omid:br/0601", "issn:1234-5678"]
+        )
         assert result == "journal"
 
     def test_reference_entry_with_isbn_only(self):
-        result = Creator.get_venue_type("reference entry", ["omid:br/0601", "isbn:978-0-123"])
+        result = Creator.get_venue_type(
+            "reference entry", ["omid:br/0601", "isbn:978-0-123"]
+        )
         assert result == "reference book"
 
     def test_reference_entry_with_both_issn_and_isbn(self):
@@ -292,5 +463,7 @@ class TestCreatorGetVenueType:
         assert result == ""
 
     def test_book_with_issn(self):
-        result = Creator.get_venue_type("proceedings article", ["omid:br/0601", "issn:1234-5678"])
+        result = Creator.get_venue_type(
+            "proceedings article", ["omid:br/0601", "issn:1234-5678"]
+        )
         assert result == ""

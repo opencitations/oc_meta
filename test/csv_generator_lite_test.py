@@ -225,7 +225,9 @@ class TestCSVGeneratorLite:
             redis_db=5,
         )
 
-        assert is_omid_processed("omid:br/0601", self.redis_client), "Redis cache should be retained after a failed run"
+        assert is_omid_processed("omid:br/0601", self.redis_client), (
+            "Redis cache should be retained after a failed run"
+        )
 
     def test_redis_error_handling(self):
         with pytest.raises(redis.ConnectionError):
@@ -253,9 +255,9 @@ class TestCSVGeneratorLite:
         for i in range(0, 100, 10):  # Create 10 files with 10 entries each
             file_data = [{"@graph": test_data[i : i + 10]}]
             with ZipFile(
-                os.path.join(self.br_dir, "060", "10000", f"{i+1000}.zip"), "w"
+                os.path.join(self.br_dir, "060", "10000", f"{i + 1000}.zip"), "w"
             ) as zip_file:
-                zip_file.writestr(f"{i+1000}.json", orjson.dumps(file_data))
+                zip_file.writestr(f"{i + 1000}.json", orjson.dumps(file_data))
 
         generate_csv(
             input_dir=self.rdf_dir,
@@ -283,9 +285,9 @@ class TestCSVGeneratorLite:
         for i in range(0, 100, 10):
             file_data = [{"@graph": more_test_data[i : i + 10]}]
             with ZipFile(
-                os.path.join(self.br_dir, "060", "10000", f"{i+2000}.zip"), "w"
+                os.path.join(self.br_dir, "060", "10000", f"{i + 2000}.zip"), "w"
             ) as zip_file:
-                zip_file.writestr(f"{i+2000}.json", orjson.dumps(file_data))
+                zip_file.writestr(f"{i + 2000}.json", orjson.dumps(file_data))
 
         generate_csv(
             input_dir=self.rdf_dir,
@@ -1412,8 +1414,7 @@ class TestCSVGeneratorLite:
         assert len(authors) > 0
 
         assert any(
-            f"First Author [omid:ra/{supplier_prefix}1]" in author
-            for author in authors
+            f"First Author [omid:ra/{supplier_prefix}1]" in author for author in authors
         )
         assert any(
             f"Second Author [omid:ra/{supplier_prefix}2]" in author
@@ -1421,14 +1422,18 @@ class TestCSVGeneratorLite:
         )
 
         author_set = set(authors)
-        assert len(authors) == len(author_set), "Found duplicate authors in output: each author should appear exactly once"
+        assert len(authors) == len(author_set), (
+            "Found duplicate authors in output: each author should appear exactly once"
+        )
 
         expected_authors = [
             f"First Author [omid:ra/{supplier_prefix}1]",
             f"Second Author [omid:ra/{supplier_prefix}2]",
             f"Third Author [omid:ra/{supplier_prefix}3]",
         ]
-        assert authors == expected_authors, "Authors should be in correct order and each should appear exactly once"
+        assert authors == expected_authors, (
+            "Authors should be in correct order and each should appear exactly once"
+        )
 
     def test_multiple_input_files(self):
         supplier_prefix = "060"
@@ -1572,7 +1577,9 @@ class TestCSVGeneratorLite:
             redis_db=5,
         )
 
-        output_files = sorted(f for f in os.listdir(self.output_dir) if f.endswith(".csv"))
+        output_files = sorted(
+            f for f in os.listdir(self.output_dir) if f.endswith(".csv")
+        )
         assert len(output_files) > 0
 
         # Collect all output data
@@ -1667,10 +1674,14 @@ class TestCSVGeneratorLite:
             redis_db=5,
         )
 
-        output_files = sorted(f for f in os.listdir(self.output_dir) if f.endswith(".csv"))
+        output_files = sorted(
+            f for f in os.listdir(self.output_dir) if f.endswith(".csv")
+        )
 
         # We expect at least 2 files: 3500 entries should create 2 files (3000 + 500)
-        assert len(output_files) >= 2, "Should have at least 2 output files for 3500 entries"
+        assert len(output_files) >= 2, (
+            "Should have at least 2 output files for 3500 entries"
+        )
 
         # Collect all entries from all output files
         all_entries = []
@@ -1678,17 +1689,25 @@ class TestCSVGeneratorLite:
             entries = get_csv_data(os.path.join(self.output_dir, output_file))
 
             # Verify each file has at most 3000 rows
-            assert len(entries) <= 3000, f"File {output_file} has more than 3000 rows: {len(entries)}"
+            assert len(entries) <= 3000, (
+                f"File {output_file} has more than 3000 rows: {len(entries)}"
+            )
 
             all_entries.extend(entries)
 
-        assert len(all_entries) == 3500, f"Expected 3500 total entries, got {len(all_entries)}"
+        assert len(all_entries) == 3500, (
+            f"Expected 3500 total entries, got {len(all_entries)}"
+        )
 
         unique_ids = {entry["id"] for entry in all_entries}
-        assert len(unique_ids) == 3500, f"Expected 3500 unique entries, got {len(unique_ids)}"
+        assert len(unique_ids) == 3500, (
+            f"Expected 3500 unique entries, got {len(unique_ids)}"
+        )
 
         expected_ids = {f"omid:br/{supplier_prefix}{i}" for i in range(1, 3501)}
-        assert unique_ids == expected_ids, "Some entries are missing or unexpected entries are present"
+        assert unique_ids == expected_ids, (
+            "Some entries are missing or unexpected entries are present"
+        )
 
         for i in range(1, 3501):
             entry = next(
@@ -1880,7 +1899,10 @@ class TestCSVGeneratorLite:
         output_data = get_csv_data(os.path.join(self.output_dir, "output_0.csv"))
         assert len(output_data) == 1
         article = output_data[0]
-        assert article["title"] == "OpenCitations, An Infrastructure Organization For Open Scholarship"
+        assert (
+            article["title"]
+            == "OpenCitations, An Infrastructure Organization For Open Scholarship"
+        )
         assert article["pub_date"] == "2020-02"
         assert article["type"] == "journal article"
         assert article["id"] == "omid:br/062501777134"
@@ -2019,12 +2041,19 @@ class TestCSVGeneratorLite:
         article = output_data[0]
         authors = article["author"].split("; ")
 
-        assert len(authors) == 2, "Should have exactly two authors (first author and connected one)"
+        assert len(authors) == 2, (
+            "Should have exactly two authors (first author and connected one)"
+        )
 
         expected_authors = [
             f"First Potential Author [omid:ra/{supplier_prefix}1]",
             f"Connected Author [omid:ra/{supplier_prefix}3]",
         ]
-        assert authors == expected_authors, "Should have first author and connected author in correct order"
+        assert authors == expected_authors, (
+            "Should have first author and connected author in correct order"
+        )
 
-        assert f"Second Potential Author [omid:ra/{supplier_prefix}2]" not in article["author"], "Second potential author should not be in the output"
+        assert (
+            f"Second Potential Author [omid:ra/{supplier_prefix}2]"
+            not in article["author"]
+        ), "Second potential author should not be in the output"

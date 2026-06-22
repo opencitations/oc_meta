@@ -48,7 +48,12 @@ class _MemorySampler:
 class BenchmarkTimer:
     """Context manager for timing code blocks and collecting memory metrics."""
 
-    def __init__(self, name: str, verbose: bool = False, on_exit: Optional[Callable[[], None]] = None):
+    def __init__(
+        self,
+        name: str,
+        verbose: bool = False,
+        on_exit: Optional[Callable[[], None]] = None,
+    ):
         self.name = name
         self.verbose = verbose
         self.start_time: Optional[float] = None
@@ -71,7 +76,11 @@ class BenchmarkTimer:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        assert self.start_time is not None and self.start_memory is not None and self._sampler is not None
+        assert (
+            self.start_time is not None
+            and self.start_memory is not None
+            and self._sampler is not None
+        )
         self.end_time = time.time()
         self.duration = self.end_time - self.start_time
         process = psutil.Process()
@@ -89,9 +98,15 @@ class BenchmarkTimer:
         return {
             "name": self.name,
             "duration_seconds": round(self.duration, 3) if self.duration else None,
-            "start_memory_mb": round(self.start_memory / 1024 / 1024, 2) if self.start_memory else None,
-            "end_memory_mb": round(self.end_memory / 1024 / 1024, 2) if self.end_memory else None,
-            "peak_memory_mb": round(self.peak_memory / 1024 / 1024, 2) if self.peak_memory else None,
+            "start_memory_mb": round(self.start_memory / 1024 / 1024, 2)
+            if self.start_memory
+            else None,
+            "end_memory_mb": round(self.end_memory / 1024 / 1024, 2)
+            if self.end_memory
+            else None,
+            "peak_memory_mb": round(self.peak_memory / 1024 / 1024, 2)
+            if self.peak_memory
+            else None,
         }
 
 
@@ -108,19 +123,32 @@ class DummyTimer:
 class ProcessTimer:
     """Optional timing wrapper for MetaProcess operations."""
 
-    def __init__(self, enabled: bool = False, verbose: bool = False, on_phase_complete: Optional[Callable[['ProcessTimer'], None]] = None):
+    def __init__(
+        self,
+        enabled: bool = False,
+        verbose: bool = False,
+        on_phase_complete: Optional[Callable[["ProcessTimer"], None]] = None,
+    ):
         self.enabled = enabled
         self.verbose = verbose
         self.timers: List[BenchmarkTimer] = []
         self.metrics: Dict[str, Any] = {}
-        self._on_phase_complete: Optional[Callable[['ProcessTimer'], None]] = on_phase_complete
+        self._on_phase_complete: Optional[Callable[["ProcessTimer"], None]] = (
+            on_phase_complete
+        )
 
     def timer(self, name: str):
         """Create a timer context manager (or no-op if disabled)."""
         if self.enabled:
             # Don't show verbose for total_processing and sub-timers
-            show_verbose = self.verbose and name not in ["total_processing", "creator_execution", "provenance_generation"]
-            timer = BenchmarkTimer(name, verbose=show_verbose, on_exit=self._notify_phase)
+            show_verbose = self.verbose and name not in [
+                "total_processing",
+                "creator_execution",
+                "provenance_generation",
+            ]
+            timer = BenchmarkTimer(
+                name, verbose=show_verbose, on_exit=self._notify_phase
+            )
             self.timers.append(timer)
             return timer
         else:
@@ -152,14 +180,21 @@ class ProcessTimer:
         if not self.enabled:
             return {}
 
-        total_time = next((t.duration for t in self.timers if t.name == "total_processing"), None) or 0.0
+        total_time = (
+            next(
+                (t.duration for t in self.timers if t.name == "total_processing"), None
+            )
+            or 0.0
+        )
         input_records = self.metrics.get("input_records", 0)
 
         return {
             "metrics": {
                 **self.metrics,
                 "total_duration_seconds": round(total_time, 3),
-                "throughput_records_per_sec": round(input_records / total_time, 2) if total_time > 0 else 0
+                "throughput_records_per_sec": round(input_records / total_time, 2)
+                if total_time > 0
+                else 0,
             },
             "phases": [t.to_dict() for t in self.timers],
         }
@@ -172,9 +207,9 @@ class ProcessTimer:
         report = self.get_report()
         metrics = report["metrics"]
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("Timing Summary")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(f"Total Duration: {metrics.get('total_duration_seconds', 0)}s")
         print(f"Throughput: {metrics.get('throughput_records_per_sec', 0)} records/sec")
         print(f"Input Records: {metrics.get('input_records', 0)}")
@@ -183,9 +218,13 @@ class ProcessTimer:
         print(f"Modified Entities: {metrics.get('modified_entities', 0)}")
         print("\nPhase Breakdown:")
         for phase in report["phases"]:
-            if phase["name"] not in ["total_processing", "creator_execution", "provenance_generation"]:
+            if phase["name"] not in [
+                "total_processing",
+                "creator_execution",
+                "provenance_generation",
+            ]:
                 print(f"  {phase['name']}: {phase['duration_seconds']}s")
-        print(f"{'='*60}\n")
+        print(f"{'=' * 60}\n")
 
     def print_phase_breakdown(self):
         """Print detailed phase breakdown for a single file."""
@@ -205,7 +244,9 @@ class ProcessTimer:
             if peak:
                 delta = phase["end_memory_mb"] - phase["start_memory_mb"]
                 sign = "+" if delta >= 0 else ""
-                print(f"    {name:30s} {duration:10.2f}s    {peak:10.1f} MB peak    {sign}{delta:.1f} MB")
+                print(
+                    f"    {name:30s} {duration:10.2f}s    {peak:10.1f} MB peak    {sign}{delta:.1f} MB"
+                )
             else:
                 print(f"    {name:30s} {duration:10.2f}s")
 
@@ -226,7 +267,11 @@ class ProcessTimer:
             (p for p in report["phases"] if p["name"] == "total_processing"), None
         )
         peak_mb = total_phase["peak_memory_mb"] if total_phase else 0
-        delta_mb = (total_phase["end_memory_mb"] - total_phase["start_memory_mb"]) if total_phase else 0
+        delta_mb = (
+            (total_phase["end_memory_mb"] - total_phase["start_memory_mb"])
+            if total_phase
+            else 0
+        )
 
         print(f"  ✓ Completed in {total_time:.2f}s")
         self.print_phase_breakdown()

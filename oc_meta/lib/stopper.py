@@ -5,7 +5,7 @@
 #
 # SPDX-License-Identifier: ISC
 
-__author__ = 'essepuntato'
+__author__ = "essepuntato"
 import argparse
 import os
 
@@ -32,13 +32,30 @@ class Stopper(object):
 
 
 if __name__ == "__main__":
-    arg_parser = argparse.ArgumentParser("stopper.py", formatter_class=RichHelpFormatter)
-    arg_parser.add_argument("-t", "--target-dir", dest="target_dir", required=True,
-                            help="The configuration file to access the ORCID API.")
-    arg_parser.add_argument("--add", dest="add", default=True, action="store_true",
-                            help="It will add a stop marker to the target directory.")
-    arg_parser.add_argument("--remove", dest="remove", default=False, action="store_true",
-                            help="It will remove the block marker from the target directory.")
+    arg_parser = argparse.ArgumentParser(
+        "stopper.py", formatter_class=RichHelpFormatter
+    )
+    arg_parser.add_argument(
+        "-t",
+        "--target-dir",
+        dest="target_dir",
+        required=True,
+        help="The configuration file to access the ORCID API.",
+    )
+    arg_parser.add_argument(
+        "--add",
+        dest="add",
+        default=True,
+        action="store_true",
+        help="It will add a stop marker to the target directory.",
+    )
+    arg_parser.add_argument(
+        "--remove",
+        dest="remove",
+        default=False,
+        action="store_true",
+        help="It will remove the block marker from the target directory.",
+    )
     args = arg_parser.parse_args()
 
     stopper = Stopper(args.target_dir)

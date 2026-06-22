@@ -10,10 +10,15 @@ import subprocess
 import sys
 import tempfile
 import pytest
-from test.test_utils import (PROV_SERVER, SERVER, execute_sparql_construct,
-                             execute_sparql_query, normalize_row_ids,
-                             reset_server,
-                             wait_for_triplestore)
+from test.test_utils import (
+    PROV_SERVER,
+    SERVER,
+    execute_sparql_construct,
+    execute_sparql_query,
+    normalize_row_ids,
+    reset_server,
+    wait_for_triplestore,
+)
 
 import yaml
 from oc_meta.lib.file_manager import get_csv_data, write_csv
@@ -218,7 +223,7 @@ class TestProcessTest:
         )
 
         reset_server()
-        
+
         settings["input_csv_dir"] = os.path.join(BASE_DIR, "input")
         run_meta_process(settings=settings, meta_config_path=meta_config_path)
         settings["input_csv_dir"] = os.path.join(BASE_DIR, "input_2")
@@ -227,9 +232,9 @@ class TestProcessTest:
         run_meta_process(settings=settings, meta_config_path=meta_config_path)
 
         output = dict()
-        
-        entity_types = ['ar', 'br', 'id', 'ra', 're']
-        
+
+        entity_types = ["ar", "br", "id", "ra", "re"]
+
         for entity_type in entity_types:
             query = f"""
             SELECT ?s ?p ?o
@@ -242,16 +247,16 @@ class TestProcessTest:
             result = execute_sparql_query(PROV_SERVER, query)
 
             entities = {}
-            for binding in result['results']['bindings']:
-                s_str = binding['s']['value']
-                p_str = binding['p']['value']
-                o_data = binding['o']
+            for binding in result["results"]["bindings"]:
+                s_str = binding["s"]["value"]
+                p_str = binding["p"]["value"]
+                o_data = binding["o"]
 
                 if s_str not in entities:
-                    entities[s_str] = {'@id': s_str, '@type': []}
+                    entities[s_str] = {"@id": s_str, "@type": []}
 
-                if p_str == 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type':
-                    entities[s_str]['@type'].append(o_data['value'])
+                if p_str == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type":
+                    entities[s_str]["@type"].append(o_data["value"])
                 else:
                     if p_str not in entities[s_str]:
                         entities[s_str][p_str] = []
@@ -262,33 +267,35 @@ class TestProcessTest:
             grouped_entities = {}
             for entity_id, entity_data in entities.items():
                 # Extract the parent entity ID from the provenance entity ID
-                match = re.match(r'https://w3id.org/oc/meta/([^/]+/[0-9]+)', entity_id)
+                match = re.match(r"https://w3id.org/oc/meta/([^/]+/[0-9]+)", entity_id)
                 assert match is not None
                 parent_id = match.group(0)
-                
+
                 if parent_id not in grouped_entities:
                     grouped_entities[parent_id] = []
-                
+
                 # Filter out properties we don't need for comparison
                 filtered_entity_data = {
-                    '@id': entity_data['@id'],
+                    "@id": entity_data["@id"],
                 }
-                
+
                 # Keep the required properties for comparison
                 properties_to_keep = [
-                    'http://www.w3.org/ns/prov#specializationOf',
-                    'http://www.w3.org/ns/prov#wasDerivedFrom'
+                    "http://www.w3.org/ns/prov#specializationOf",
+                    "http://www.w3.org/ns/prov#wasDerivedFrom",
                 ]
-                
+
                 for prop in properties_to_keep:
                     if prop in entity_data:
                         filtered_entity_data[prop] = entity_data[prop]
-                
+
                 # Handle hasUpdateQuery specially
-                if 'https://w3id.org/oc/ontology/hasUpdateQuery' in entity_data:
+                if "https://w3id.org/oc/ontology/hasUpdateQuery" in entity_data:
                     # Extract the value from the hasUpdateQuery property
-                    update_query_value = entity_data['https://w3id.org/oc/ontology/hasUpdateQuery'][0].get('@value', '')
-                    
+                    update_query_value = entity_data[
+                        "https://w3id.org/oc/ontology/hasUpdateQuery"
+                    ][0].get("@value", "")
+
                     # Split the query into individual statements
                     if update_query_value:
                         # Extract the part between the INSERT DATA { GRAPH <...> { and } }
@@ -296,27 +303,32 @@ class TestProcessTest:
                             query_content = update_query_value.split(
                                 "INSERT DATA { GRAPH <https://w3id.org/oc/meta/br/> { "
                             )[1].split(" } }")[0]
-                            
+
                             # Split by dot and space to get individual statements
                             statements = set(query_content.split(" ."))
-                            
+
                             # Add to filtered entity data
-                            filtered_entity_data['https://w3id.org/oc/ontology/hasUpdateQuery'] = statements
+                            filtered_entity_data[
+                                "https://w3id.org/oc/ontology/hasUpdateQuery"
+                            ] = statements
                         except IndexError:
                             # If the format is different, just use the original value
-                            filtered_entity_data['https://w3id.org/oc/ontology/hasUpdateQuery'] = \
-                                entity_data['https://w3id.org/oc/ontology/hasUpdateQuery']
-                
+                            filtered_entity_data[
+                                "https://w3id.org/oc/ontology/hasUpdateQuery"
+                            ] = entity_data[
+                                "https://w3id.org/oc/ontology/hasUpdateQuery"
+                            ]
+
                 # Add this filtered entity to its parent's group
                 grouped_entities[parent_id].append(filtered_entity_data)
-            
+
             # Format the output to match the expected structure
             entity_list = []
             for parent_id, entities_list in sorted(grouped_entities.items()):
-                entity_list.append({
-                    '@graph': sorted(entities_list, key=lambda x: x['@id'])
-                })
-            
+                entity_list.append(
+                    {"@graph": sorted(entities_list, key=lambda x: x["@id"])}
+                )
+
             output[entity_type] = entity_list
         expected_output = {
             "ar": [
@@ -509,11 +521,11 @@ class TestProcessTest:
             capture_output=True,
             text=True,
         )
-        
+
         output = dict()
-        
-        entity_types = ['ar', 'br', 'id', 'ra', 're']
-        
+
+        entity_types = ["ar", "br", "id", "ra", "re"]
+
         for entity_type in entity_types:
             query = f"""
             SELECT ?s ?p ?o
@@ -526,16 +538,16 @@ class TestProcessTest:
             result = execute_sparql_query(SERVER, query)
 
             entities = {}
-            for binding in result['results']['bindings']:
-                s_str = binding['s']['value']
-                p_str = binding['p']['value']
-                o_data = binding['o']
+            for binding in result["results"]["bindings"]:
+                s_str = binding["s"]["value"]
+                p_str = binding["p"]["value"]
+                o_data = binding["o"]
 
                 if s_str not in entities:
-                    entities[s_str] = {'@id': s_str, '@type': []}
+                    entities[s_str] = {"@id": s_str, "@type": []}
 
-                if p_str == 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type':
-                    entities[s_str]['@type'].append(o_data['value'])
+                if p_str == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type":
+                    entities[s_str]["@type"].append(o_data["value"])
                 else:
                     if p_str not in entities[s_str]:
                         entities[s_str][p_str] = []
@@ -543,14 +555,14 @@ class TestProcessTest:
                     entities[s_str][p_str].append(_term_to_jsonld(term))
 
             entity_list = list(entities.values())
-            
+
             output[entity_type] = [
                 {
-                    '@graph': entity_list,
-                    '@id': f"https://w3id.org/oc/meta/{entity_type}/"
+                    "@graph": entity_list,
+                    "@id": f"https://w3id.org/oc/meta/{entity_type}/",
                 }
             ]
-        
+
         expected_output = {
             "ar": [
                 {
@@ -633,7 +645,7 @@ class TestProcessTest:
                             "http://purl.org/dc/terms/title": [
                                 {
                                     "@value": "Nonthermal Sterilization And Shelf-life Extension Of Seafood Products By Intense Pulsed Light Treatment",
-                                    "@type": "http://www.w3.org/2001/XMLSchema#string"
+                                    "@type": "http://www.w3.org/2001/XMLSchema#string",
                                 }
                             ],
                             "http://purl.org/spar/datacite/hasIdentifier": [
@@ -660,7 +672,10 @@ class TestProcessTest:
                                 "http://purl.org/spar/fabio/Expression",
                             ],
                             "http://purl.org/spar/fabio/hasSequenceIdentifier": [
-                                {"@value": "1", "@type": "http://www.w3.org/2001/XMLSchema#string"}
+                                {
+                                    "@value": "1",
+                                    "@type": "http://www.w3.org/2001/XMLSchema#string",
+                                }
                             ],
                             "http://purl.org/vocab/frbr/core#partOf": [
                                 {"@id": "https://w3id.org/oc/meta/br/0603"}
@@ -673,7 +688,10 @@ class TestProcessTest:
                                 "http://purl.org/spar/fabio/Journal",
                             ],
                             "http://purl.org/dc/terms/title": [
-                                {"@value": "The Korean Journal Of Food And Nutrition", "@type": "http://www.w3.org/2001/XMLSchema#string"}
+                                {
+                                    "@value": "The Korean Journal Of Food And Nutrition",
+                                    "@type": "http://www.w3.org/2001/XMLSchema#string",
+                                }
                             ],
                             "http://purl.org/spar/datacite/hasIdentifier": [
                                 {"@id": "https://w3id.org/oc/meta/id/0602"}
@@ -686,7 +704,10 @@ class TestProcessTest:
                                 "http://purl.org/spar/fabio/JournalVolume",
                             ],
                             "http://purl.org/spar/fabio/hasSequenceIdentifier": [
-                                {"@value": "25", "@type": "http://www.w3.org/2001/XMLSchema#string"}
+                                {
+                                    "@value": "25",
+                                    "@type": "http://www.w3.org/2001/XMLSchema#string",
+                                }
                             ],
                             "http://purl.org/vocab/frbr/core#partOf": [
                                 {"@id": "https://w3id.org/oc/meta/br/0602"}
@@ -706,7 +727,10 @@ class TestProcessTest:
                                 {"@id": "http://purl.org/spar/datacite/orcid"}
                             ],
                             "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
-                                {"@value": "0000-0002-9666-2513", "@type": "http://www.w3.org/2001/XMLSchema#string"}
+                                {
+                                    "@value": "0000-0002-9666-2513",
+                                    "@type": "http://www.w3.org/2001/XMLSchema#string",
+                                }
                             ],
                         },
                         {
@@ -716,7 +740,10 @@ class TestProcessTest:
                                 {"@id": "http://purl.org/spar/datacite/doi"}
                             ],
                             "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
-                                {"@value": "10.9799/ksfan.2012.25.1.069", "@type": "http://www.w3.org/2001/XMLSchema#string"}
+                                {
+                                    "@value": "10.9799/ksfan.2012.25.1.069",
+                                    "@type": "http://www.w3.org/2001/XMLSchema#string",
+                                }
                             ],
                         },
                         {
@@ -726,7 +753,10 @@ class TestProcessTest:
                                 {"@id": "http://purl.org/spar/datacite/orcid"}
                             ],
                             "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
-                                {"@value": "0000-0003-2542-5788", "@type": "http://www.w3.org/2001/XMLSchema#string"}
+                                {
+                                    "@value": "0000-0003-2542-5788",
+                                    "@type": "http://www.w3.org/2001/XMLSchema#string",
+                                }
                             ],
                         },
                         {
@@ -736,7 +766,10 @@ class TestProcessTest:
                                 {"@id": "http://purl.org/spar/datacite/crossref"}
                             ],
                             "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
-                                {"@value": "4768", "@type": "http://www.w3.org/2001/XMLSchema#string"}
+                                {
+                                    "@value": "4768",
+                                    "@type": "http://www.w3.org/2001/XMLSchema#string",
+                                }
                             ],
                         },
                         {
@@ -746,7 +779,10 @@ class TestProcessTest:
                                 {"@id": "http://purl.org/spar/datacite/issn"}
                             ],
                             "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
-                                {"@value": "1225-4339", "@type": "http://www.w3.org/2001/XMLSchema#string"}
+                                {
+                                    "@value": "1225-4339",
+                                    "@type": "http://www.w3.org/2001/XMLSchema#string",
+                                }
                             ],
                         },
                     ],
@@ -763,18 +799,32 @@ class TestProcessTest:
                                 {"@id": "https://w3id.org/oc/meta/id/0605"}
                             ],
                             "http://xmlns.com/foaf/0.1/familyName": [
-                                {"@value": "Chung", "@type": "http://www.w3.org/2001/XMLSchema#string"}
+                                {
+                                    "@value": "Chung",
+                                    "@type": "http://www.w3.org/2001/XMLSchema#string",
+                                }
                             ],
                             "http://xmlns.com/foaf/0.1/givenName": [
-                                {"@value": "Myong-Soo", "@type": "http://www.w3.org/2001/XMLSchema#string"}
+                                {
+                                    "@value": "Myong-Soo",
+                                    "@type": "http://www.w3.org/2001/XMLSchema#string",
+                                }
                             ],
                         },
                         {
                             "@id": "https://w3id.org/oc/meta/ra/0602",
                             "@type": ["http://xmlns.com/foaf/0.1/Agent"],
-                            "http://xmlns.com/foaf/0.1/familyName": [{"@value": "Mun", "@type": "http://www.w3.org/2001/XMLSchema#string"}],
+                            "http://xmlns.com/foaf/0.1/familyName": [
+                                {
+                                    "@value": "Mun",
+                                    "@type": "http://www.w3.org/2001/XMLSchema#string",
+                                }
+                            ],
                             "http://xmlns.com/foaf/0.1/givenName": [
-                                {"@value": "Ji-Hye", "@type": "http://www.w3.org/2001/XMLSchema#string"}
+                                {
+                                    "@value": "Ji-Hye",
+                                    "@type": "http://www.w3.org/2001/XMLSchema#string",
+                                }
                             ],
                         },
                         {
@@ -784,17 +834,26 @@ class TestProcessTest:
                                 {"@id": "https://w3id.org/oc/meta/id/0604"}
                             ],
                             "http://xmlns.com/foaf/0.1/name": [
-                                {"@value": "The Korean Society Of Food And Nutrition", "@type": "http://www.w3.org/2001/XMLSchema#string"}
+                                {
+                                    "@value": "The Korean Society Of Food And Nutrition",
+                                    "@type": "http://www.w3.org/2001/XMLSchema#string",
+                                }
                             ],
                         },
                         {
                             "@id": "https://w3id.org/oc/meta/ra/0603",
                             "@type": ["http://xmlns.com/foaf/0.1/Agent"],
                             "http://xmlns.com/foaf/0.1/familyName": [
-                                {"@value": "Chung", "@type": "http://www.w3.org/2001/XMLSchema#string"}
+                                {
+                                    "@value": "Chung",
+                                    "@type": "http://www.w3.org/2001/XMLSchema#string",
+                                }
                             ],
                             "http://xmlns.com/foaf/0.1/givenName": [
-                                {"@value": "Myong-Soo", "@type": "http://www.w3.org/2001/XMLSchema#string"}
+                                {
+                                    "@value": "Myong-Soo",
+                                    "@type": "http://www.w3.org/2001/XMLSchema#string",
+                                }
                             ],
                         },
                         {
@@ -804,10 +863,16 @@ class TestProcessTest:
                                 {"@id": "https://w3id.org/oc/meta/id/0603"}
                             ],
                             "http://xmlns.com/foaf/0.1/familyName": [
-                                {"@value": "Cheigh", "@type": "http://www.w3.org/2001/XMLSchema#string"}
+                                {
+                                    "@value": "Cheigh",
+                                    "@type": "http://www.w3.org/2001/XMLSchema#string",
+                                }
                             ],
                             "http://xmlns.com/foaf/0.1/givenName": [
-                                {"@value": "Chan-Ick", "@type": "http://www.w3.org/2001/XMLSchema#string"}
+                                {
+                                    "@value": "Chan-Ick",
+                                    "@type": "http://www.w3.org/2001/XMLSchema#string",
+                                }
                             ],
                         },
                     ],
@@ -821,10 +886,16 @@ class TestProcessTest:
                             "@id": "https://w3id.org/oc/meta/re/0601",
                             "@type": ["http://purl.org/spar/fabio/Manifestation"],
                             "http://prismstandard.org/namespaces/basic/2.0/endingPage": [
-                                {"@value": "76", "@type": "http://www.w3.org/2001/XMLSchema#string"}
+                                {
+                                    "@value": "76",
+                                    "@type": "http://www.w3.org/2001/XMLSchema#string",
+                                }
                             ],
                             "http://prismstandard.org/namespaces/basic/2.0/startingPage": [
-                                {"@value": "69", "@type": "http://www.w3.org/2001/XMLSchema#string"}
+                                {
+                                    "@value": "69",
+                                    "@type": "http://www.w3.org/2001/XMLSchema#string",
+                                }
                             ],
                         }
                     ],
@@ -832,65 +903,72 @@ class TestProcessTest:
                 }
             ],
         }
-        
+
         processed_output = {}
         for entity_type, entity_data in output.items():
             processed_output[entity_type] = []
             for graph_container in entity_data:
                 filtered_graph = []
-                for entity in graph_container['@graph']:
-                    filtered_entity = {
-                        '@id': entity['@id']
-                    }
+                for entity in graph_container["@graph"]:
+                    filtered_entity = {"@id": entity["@id"]}
                     for pred, obj in entity.items():
-                        if pred != '@id':  # Only exclude @id since we already added it
+                        if pred != "@id":  # Only exclude @id since we already added it
                             filtered_entity[pred] = obj
-                    
-                    if len(filtered_entity) > 1:  # Only include if it has predicates beyond @id
+
+                    if (
+                        len(filtered_entity) > 1
+                    ):  # Only include if it has predicates beyond @id
                         filtered_graph.append(filtered_entity)
-                
+
                 # Sort the graph by @id
-                filtered_graph = sorted(filtered_graph, key=lambda x: x['@id'])
-                
-                processed_output[entity_type].append({
-                    '@graph': filtered_graph,
-                    '@id': graph_container['@id']
-                })
+                filtered_graph = sorted(filtered_graph, key=lambda x: x["@id"])
+
+                processed_output[entity_type].append(
+                    {"@graph": filtered_graph, "@id": graph_container["@id"]}
+                )
         # For each entity type in the expected output, verify that all expected entities exist
         # with their expected properties in the actual output from the triplestore
         for entity_type, expected_graphs in expected_output.items():
-            assert entity_type in processed_output, f"Entity type {entity_type} missing from triplestore output"
-            
+            assert entity_type in processed_output, (
+                f"Entity type {entity_type} missing from triplestore output"
+            )
+
             for expected_graph in expected_graphs:
-                expected_entities = expected_graph['@graph']
-                
+                expected_entities = expected_graph["@graph"]
+
                 # Find the corresponding graph in the processed output
                 actual_graph = None
                 for graph in processed_output[entity_type]:
-                    if graph['@id'] == expected_graph['@id']:
+                    if graph["@id"] == expected_graph["@id"]:
                         actual_graph = graph
                         break
-                
-                assert actual_graph is not None, f"Graph {expected_graph['@id']} not found in triplestore output"
+
+                assert actual_graph is not None, (
+                    f"Graph {expected_graph['@id']} not found in triplestore output"
+                )
 
                 # For each expected entity, verify it exists with all expected properties
                 for expected_entity in expected_entities:
-                    entity_id = expected_entity['@id']
+                    entity_id = expected_entity["@id"]
 
                     # Find the entity in the actual graph
                     actual_entity = None
-                    for entity in actual_graph['@graph']:
-                        if entity['@id'] == entity_id:
+                    for entity in actual_graph["@graph"]:
+                        if entity["@id"] == entity_id:
                             actual_entity = entity
                             break
 
-                    assert actual_entity is not None, f"Entity {entity_id} not found in triplestore output"
+                    assert actual_entity is not None, (
+                        f"Entity {entity_id} not found in triplestore output"
+                    )
 
                     # Check that all expected predicates and objects exist
                     for pred, expected_objects in expected_entity.items():
-                        if pred != '@id':
-                            assert pred in actual_entity, f"Predicate {pred} missing for entity {entity_id}"
-                            
+                        if pred != "@id":
+                            assert pred in actual_entity, (
+                                f"Predicate {pred} missing for entity {entity_id}"
+                            )
+
                             # For each expected object, verify it exists in the actual objects
                             for expected_obj in expected_objects:
                                 found = False
@@ -899,12 +977,13 @@ class TestProcessTest:
                                         found = True
                                         break
 
-                                assert found, f"Object {expected_obj} not found for predicate {pred} of entity {entity_id}\nActual values: {actual_entity[pred]}"
-                                
-        
+                                assert found, (
+                                    f"Object {expected_obj} not found for predicate {pred} of entity {entity_id}\nActual values: {actual_entity[pred]}"
+                                )
+
         if os.path.exists(output_folder):
             shutil.rmtree(output_folder)
-        
+
         assert not ("Reader: ERROR" in proc.stdout or "Storer: ERROR" in proc.stdout)
         assert not ("Reader: ERROR" in proc.stdout or "Storer: ERROR" in proc.stdout)
 
@@ -1184,7 +1263,9 @@ class TestProcessTest:
             )
 
         # Setup: Insert pre-existing identifiers and BRs in triplestore
-        execute_sparql_update(SERVER, """
+        execute_sparql_update(
+            SERVER,
+            """
             INSERT DATA {
                 GRAPH <https://w3id.org/oc/meta/br/> {
                     <https://w3id.org/oc/meta/br/0601> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0601> ;
@@ -1199,10 +1280,13 @@ class TestProcessTest:
                                                    <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/issn> .
                 }
             }
-            """)
+            """,
+        )
 
         info_dir = os.path.join(output_folder, "info_dir", "060") + os.sep
-        counter_handler = FilesystemCounterHandler(info_dir=info_dir, supplier_prefix="060")
+        counter_handler = FilesystemCounterHandler(
+            info_dir=info_dir, supplier_prefix="060"
+        )
         counter_handler.set_counter(2, "br", supplier_prefix="060")
         counter_handler.set_counter(2, "id", supplier_prefix="060")
         counter_handler.flush()
@@ -1249,7 +1333,9 @@ class TestProcessTest:
         for issn_value, ids in ids_by_value.items():
             assert len(ids) == 1, f"Found multiple IDs for ISSN {issn_value}: {ids}"
 
-        assert len(ids_by_value) == 2, f"Expected 2 ISSNs, found {len(ids_by_value)}: {list(ids_by_value.keys())}"
+        assert len(ids_by_value) == 2, (
+            f"Expected 2 ISSNs, found {len(ids_by_value)}: {list(ids_by_value.keys())}"
+        )
 
     def test_duplicate_omids_with_venue_datatype(self):
         """Test to verify that identifiers are not duplicated when merging previously unconnected venues"""
@@ -1311,7 +1397,9 @@ class TestProcessTest:
             )
 
         # Setup: Insert pre-existing data - aggiungiamo gli identificatori iniziali
-        execute_sparql_update(SERVER, """
+        execute_sparql_update(
+            SERVER,
+            """
         INSERT DATA {
             GRAPH <https://w3id.org/oc/meta/br/> {
                 # First venue - BMJ with initial ISSNs
@@ -1342,7 +1430,8 @@ class TestProcessTest:
                     <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/issn> .
             }
         }
-        """)
+        """,
+        )
 
         # Create test settings
         settings = {
@@ -1370,7 +1459,9 @@ class TestProcessTest:
         }
 
         info_dir = os.path.join(output_folder, "info_dir", "060") + os.sep
-        counter_handler = FilesystemCounterHandler(info_dir=info_dir, supplier_prefix="060")
+        counter_handler = FilesystemCounterHandler(
+            info_dir=info_dir, supplier_prefix="060"
+        )
         counter_handler.set_counter(6, "br", supplier_prefix="060")
         counter_handler.set_counter(3, "id", supplier_prefix="060")
         counter_handler.flush()
@@ -1410,10 +1501,14 @@ class TestProcessTest:
 
         # Check that we don't have duplicate IDs for any ISSN
         for issn_value, ids in ids_by_value.items():
-            assert len(ids) == 1, f"Found multiple IDs for ISSN {issn_value} in venue: {ids}"
+            assert len(ids) == 1, (
+                f"Found multiple IDs for ISSN {issn_value} in venue: {ids}"
+            )
 
         # Verify that pre-existing IDs were reused
-        assert any("0601" in id for ids in ids_by_value.values() for id in ids) and any("0602" in id for ids in ids_by_value.values() for id in ids), "Pre-existing IDs were not reused"
+        assert any("0601" in id for ids in ids_by_value.values() for id in ids) and any(
+            "0602" in id for ids in ids_by_value.values() for id in ids
+        ), "Pre-existing IDs were not reused"
 
     def test_doi_with_multiple_slashes(self):
         """Test handling of DOIs containing multiple forward slashes"""
@@ -1506,10 +1601,14 @@ class TestProcessTest:
             os.remove(meta_config_path)
 
         # Verify results
-        assert len(result["results"]["bindings"]) > 0, "DOI with multiple slashes was not processed correctly"
+        assert len(result["results"]["bindings"]) > 0, (
+            "DOI with multiple slashes was not processed correctly"
+        )
 
         # Check that we got exactly one result
-        assert len(result["results"]["bindings"]) == 1, f"Expected 1 result, got {len(result['results']['bindings'])}"
+        assert len(result["results"]["bindings"]) == 1, (
+            f"Expected 1 result, got {len(result['results']['bindings'])}"
+        )
 
     def test_volume_issue_deduplication(self):
         """Test to verify that volumes and issues are properly deduplicated"""
@@ -1638,8 +1737,12 @@ class TestProcessTest:
         first_issue = bindings[0]["issue"]["value"]
 
         for binding in bindings[1:]:
-            assert binding["volume"]["value"] == first_volume, "Articles reference different volumes"
-            assert binding["issue"]["value"] == first_issue, "Articles reference different issues"
+            assert binding["volume"]["value"] == first_volume, (
+                "Articles reference different volumes"
+            )
+            assert binding["issue"]["value"] == first_issue, (
+                "Articles reference different issues"
+            )
 
     def test_volume_issue_deduplication_with_triplestore(self):
         """Test that volumes and issues are properly deduplicated when they already exist in the triplestore"""
@@ -1647,7 +1750,9 @@ class TestProcessTest:
         meta_config_path = os.path.join(BASE_DIR, "meta_config_vvi_triplestore.yaml")
 
         # Setup: Insert pre-existing venue with duplicate volumes and issues (with/without datatype)
-        execute_sparql_update(SERVER, """
+        execute_sparql_update(
+            SERVER,
+            """
         INSERT DATA {
             GRAPH <https://w3id.org/oc/meta/br/> {
                 # Venue
@@ -1691,7 +1796,8 @@ class TestProcessTest:
                     <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/issn> .
             }
         }
-        """)
+        """,
+        )
 
         # Create test data - article that should use existing volume and issue
         os.makedirs(os.path.join(BASE_DIR, "input_vvi_triplestore"), exist_ok=True)
@@ -1758,7 +1864,9 @@ class TestProcessTest:
         }
 
         info_dir = os.path.join(output_folder, "info_dir", "060") + os.sep
-        counter_handler = FilesystemCounterHandler(info_dir=info_dir, supplier_prefix="060")
+        counter_handler = FilesystemCounterHandler(
+            info_dir=info_dir, supplier_prefix="060"
+        )
         counter_handler.set_counter(5, "br", supplier_prefix="060")
         counter_handler.set_counter(1, "id", supplier_prefix="060")
         counter_handler.flush()
@@ -1826,19 +1934,33 @@ class TestProcessTest:
         issn = bindings[0]["issn"]["value"]
 
         # Check if venue was deduplicated (should use existing venue)
-        assert venue_uri == "https://w3id.org/oc/meta/br/0601", "Venue was not deduplicated correctly"
+        assert venue_uri == "https://w3id.org/oc/meta/br/0601", (
+            "Venue was not deduplicated correctly"
+        )
 
         # Check if volume was deduplicated - either version is valid
-        assert volume_uri in ["https://w3id.org/oc/meta/br/0602", "https://w3id.org/oc/meta/br/0604"], "Volume was not deduplicated correctly - should use one of the existing volumes"
+        assert volume_uri in [
+            "https://w3id.org/oc/meta/br/0602",
+            "https://w3id.org/oc/meta/br/0604",
+        ], (
+            "Volume was not deduplicated correctly - should use one of the existing volumes"
+        )
 
         # Check if issue was deduplicated - either version is valid
-        assert issue_uri in ["https://w3id.org/oc/meta/br/0603", "https://w3id.org/oc/meta/br/0605"], "Issue was not deduplicated correctly - should use one of the existing issues"
+        assert issue_uri in [
+            "https://w3id.org/oc/meta/br/0603",
+            "https://w3id.org/oc/meta/br/0605",
+        ], (
+            "Issue was not deduplicated correctly - should use one of the existing issues"
+        )
 
         # Check ISSN
         assert issn == "1756-1833", "ISSN does not match"
 
         # Verify no new volumes/issues were created
-        assert not new_entities_created, "New volumes/issues were created when they should have been deduplicated"
+        assert not new_entities_created, (
+            "New volumes/issues were created when they should have been deduplicated"
+        )
 
     def test_temporary_identifiers(self):
         """Test that temporary identifiers are used for deduplication but not saved, and an OMID is generated"""
@@ -1945,10 +2067,14 @@ class TestProcessTest:
 
         # The article should have a br/ URI (OMID)
         br_uri = bindings[0]["br"]["value"]
-        assert "br/" in br_uri, f"Article URI {br_uri} does not contain expected OMID pattern 'br/'"
+        assert "br/" in br_uri, (
+            f"Article URI {br_uri} does not contain expected OMID pattern 'br/'"
+        )
 
         # Should not have any saved identifiers
-        assert "id" not in bindings[0], "Found unexpected identifier when only temporary ID was provided"
+        assert "id" not in bindings[0], (
+            "Found unexpected identifier when only temporary ID was provided"
+        )
 
     def test_temporary_identifiers_deduplication(self):
         """Test that multiple rows with the same temporary identifier are correctly deduplicated"""
@@ -2119,8 +2245,9 @@ class TestProcessTest:
         shutil.rmtree(output_dir)
 
         assert rdf_files_exist, "RDF files should be generated"
-        assert triplestore_empty, "Triplestore should not be updated when rdf_files_only is True"
-
+        assert triplestore_empty, (
+            "Triplestore should not be updated when rdf_files_only is True"
+        )
 
     def test_parallel_collect_identifiers(self):
         """Test that parallel identifier collection produces identical results to sequential."""
@@ -2130,14 +2257,16 @@ class TestProcessTest:
         with open(meta_config_path, encoding="utf-8") as file:
             settings = yaml.full_load(file)
 
-        settings.update({
-            "base_output_dir": output_folder,
-            "output_rdf_dir": output_folder,
-            "ts_upload_cache": self.cache_file,
-            "ts_failed_queries": self.failed_file,
-            "ts_stop_file": self.stop_file,
-            "min_rows_parallel": 2,
-        })
+        settings.update(
+            {
+                "base_output_dir": output_folder,
+                "output_rdf_dir": output_folder,
+                "ts_upload_cache": self.cache_file,
+                "ts_failed_queries": self.failed_file,
+                "ts_stop_file": self.stop_file,
+                "min_rows_parallel": 2,
+            }
+        )
 
         run_meta_process(settings=settings, meta_config_path=meta_config_path)
 
@@ -2230,75 +2359,99 @@ class TestProcessTest:
         meta_config_path = os.path.join(BASE_DIR, "meta_config_3.yaml")
         with open(meta_config_path, encoding="utf-8") as file:
             settings = yaml.full_load(file)
-        settings.update({
-            "ts_upload_cache": self.cache_file,
-            "ts_failed_queries": self.failed_file,
-            "ts_stop_file": self.stop_file,
-            "base_output_dir": output_folder,
-            "output_rdf_dir": output_folder,
-            "silencer": [],
-        })
+        settings.update(
+            {
+                "ts_upload_cache": self.cache_file,
+                "ts_failed_queries": self.failed_file,
+                "ts_stop_file": self.stop_file,
+                "base_output_dir": output_folder,
+                "output_rdf_dir": output_folder,
+                "silencer": [],
+            }
+        )
 
         # Pass 1: create entities with full metadata
         input_dir_1 = tempfile.mkdtemp()
-        write_csv(os.path.join(input_dir_1, "0.csv"), [
-            {
-                "id": "doi:10.1234/test.one",
-                "title": "First Article Title",
-                "author": "Smith, John [orcid:0000-0001-1234-5678]",
-                "pub_date": "2020-01-15",
-                "venue": "Test Journal [issn:1234-5678]",
-                "volume": "10",
-                "issue": "2",
-                "page": "100-110",
-                "type": "journal article",
-                "publisher": "Test Publisher [crossref:999]",
-                "editor": "",
-            },
-            {
-                "id": "doi:10.1234/test.two",
-                "title": "Second Article Title",
-                "author": "Doe, Jane [orcid:0000-0002-9876-5432]",
-                "pub_date": "2021-06-01",
-                "venue": "Test Journal [issn:1234-5678]",
-                "volume": "11",
-                "issue": "1",
-                "page": "200-220",
-                "type": "journal article",
-                "publisher": "Test Publisher [crossref:999]",
-                "editor": "",
-            },
-        ])
+        write_csv(
+            os.path.join(input_dir_1, "0.csv"),
+            [
+                {
+                    "id": "doi:10.1234/test.one",
+                    "title": "First Article Title",
+                    "author": "Smith, John [orcid:0000-0001-1234-5678]",
+                    "pub_date": "2020-01-15",
+                    "venue": "Test Journal [issn:1234-5678]",
+                    "volume": "10",
+                    "issue": "2",
+                    "page": "100-110",
+                    "type": "journal article",
+                    "publisher": "Test Publisher [crossref:999]",
+                    "editor": "",
+                },
+                {
+                    "id": "doi:10.1234/test.two",
+                    "title": "Second Article Title",
+                    "author": "Doe, Jane [orcid:0000-0002-9876-5432]",
+                    "pub_date": "2021-06-01",
+                    "venue": "Test Journal [issn:1234-5678]",
+                    "volume": "11",
+                    "issue": "1",
+                    "page": "200-220",
+                    "type": "journal article",
+                    "publisher": "Test Publisher [crossref:999]",
+                    "editor": "",
+                },
+            ],
+        )
         settings["input_csv_dir"] = input_dir_1
         run_meta_process(settings=settings, meta_config_path=meta_config_path)
 
         # Verify both entities exist with DOIs
-        result = execute_sparql_query(SERVER, """
+        result = execute_sparql_query(
+            SERVER,
+            """
             SELECT ?br ?doi WHERE {
                 ?br <http://purl.org/spar/datacite/hasIdentifier> ?id .
                 ?id <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/doi> .
                 ?id <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> ?doi .
             } ORDER BY ?doi
-        """)
+        """,
+        )
         dois_before = [b["doi"]["value"] for b in result["results"]["bindings"]]
         assert "10.1234/test.one" in dois_before
         assert "10.1234/test.two" in dois_before
-        br1_uri = next(b["br"]["value"] for b in result["results"]["bindings"] if b["doi"]["value"] == "10.1234/test.one")
-        br2_uri = next(b["br"]["value"] for b in result["results"]["bindings"] if b["doi"]["value"] == "10.1234/test.two")
+        br1_uri = next(
+            b["br"]["value"]
+            for b in result["results"]["bindings"]
+            if b["doi"]["value"] == "10.1234/test.one"
+        )
+        br2_uri = next(
+            b["br"]["value"]
+            for b in result["results"]["bindings"]
+            if b["doi"]["value"] == "10.1234/test.two"
+        )
 
         # Verify existing metadata (title, author) before id-only pass
-        result = execute_sparql_query(SERVER, f"""
+        result = execute_sparql_query(
+            SERVER,
+            f"""
             SELECT ?title WHERE {{
                 <{br1_uri}> <http://purl.org/dc/terms/title> ?title .
             }}
-        """)
-        assert result["results"]["bindings"][0]["title"]["value"] == "First Article Title"
+        """,
+        )
+        assert (
+            result["results"]["bindings"][0]["title"]["value"] == "First Article Title"
+        )
 
-        result = execute_sparql_query(SERVER, f"""
+        result = execute_sparql_query(
+            SERVER,
+            f"""
             SELECT ?ar WHERE {{
                 <{br1_uri}> <http://purl.org/spar/pro/isDocumentContextFor> ?ar .
             }}
-        """)
+        """,
+        )
         ar_count_before = len(result["results"]["bindings"])
         assert ar_count_before >= 1
 
@@ -2306,81 +2459,103 @@ class TestProcessTest:
         br1_meta = br1_uri.replace("https://w3id.org/oc/meta/", "")
         br2_meta = br2_uri.replace("https://w3id.org/oc/meta/", "")
         input_dir_2 = tempfile.mkdtemp()
-        write_csv(os.path.join(input_dir_2, "0.csv"), [
-            {
-                "id": f"omid:{br1_meta} openalex:W111111111",
-                "title": "",
-                "author": "",
-                "pub_date": "",
-                "venue": "",
-                "volume": "",
-                "issue": "",
-                "page": "",
-                "type": "",
-                "publisher": "",
-                "editor": "",
-            },
-            {
-                "id": f"omid:{br2_meta} openalex:W222222222",
-                "title": "",
-                "author": "",
-                "pub_date": "",
-                "venue": "",
-                "volume": "",
-                "issue": "",
-                "page": "",
-                "type": "",
-                "publisher": "",
-                "editor": "",
-            },
-        ])
+        write_csv(
+            os.path.join(input_dir_2, "0.csv"),
+            [
+                {
+                    "id": f"omid:{br1_meta} openalex:W111111111",
+                    "title": "",
+                    "author": "",
+                    "pub_date": "",
+                    "venue": "",
+                    "volume": "",
+                    "issue": "",
+                    "page": "",
+                    "type": "",
+                    "publisher": "",
+                    "editor": "",
+                },
+                {
+                    "id": f"omid:{br2_meta} openalex:W222222222",
+                    "title": "",
+                    "author": "",
+                    "pub_date": "",
+                    "venue": "",
+                    "volume": "",
+                    "issue": "",
+                    "page": "",
+                    "type": "",
+                    "publisher": "",
+                    "editor": "",
+                },
+            ],
+        )
         settings["input_csv_dir"] = input_dir_2
         settings["identifiers_only"] = True
         run_meta_process(settings=settings, meta_config_path=meta_config_path)
 
         # Verify new openalex identifiers were added
-        result = execute_sparql_query(SERVER, """
+        result = execute_sparql_query(
+            SERVER,
+            """
             SELECT ?br ?val WHERE {
                 ?br <http://purl.org/spar/datacite/hasIdentifier> ?id .
                 ?id <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/openalex> .
                 ?id <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> ?val .
             } ORDER BY ?val
-        """)
-        openalex_ids = {b["val"]["value"]: b["br"]["value"] for b in result["results"]["bindings"]}
+        """,
+        )
+        openalex_ids = {
+            b["val"]["value"]: b["br"]["value"] for b in result["results"]["bindings"]
+        }
         assert openalex_ids == {"W111111111": br1_uri, "W222222222": br2_uri}
 
         # Verify existing DOIs are still there (not deleted)
-        result = execute_sparql_query(SERVER, f"""
+        result = execute_sparql_query(
+            SERVER,
+            f"""
             SELECT ?doi WHERE {{
                 <{br1_uri}> <http://purl.org/spar/datacite/hasIdentifier> ?id .
                 ?id <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/doi> .
                 ?id <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> ?doi .
             }}
-        """)
+        """,
+        )
         assert result["results"]["bindings"][0]["doi"]["value"] == "10.1234/test.one"
 
         # Verify existing title preserved
-        result = execute_sparql_query(SERVER, f"""
+        result = execute_sparql_query(
+            SERVER,
+            f"""
             SELECT ?title WHERE {{
                 <{br1_uri}> <http://purl.org/dc/terms/title> ?title .
             }}
-        """)
-        assert result["results"]["bindings"][0]["title"]["value"] == "First Article Title"
+        """,
+        )
+        assert (
+            result["results"]["bindings"][0]["title"]["value"] == "First Article Title"
+        )
 
         # Verify existing authors preserved
-        result = execute_sparql_query(SERVER, f"""
+        result = execute_sparql_query(
+            SERVER,
+            f"""
             SELECT ?ar WHERE {{
                 <{br1_uri}> <http://purl.org/spar/pro/isDocumentContextFor> ?ar .
             }}
-        """)
+        """,
+        )
         assert len(result["results"]["bindings"]) == ar_count_before
 
         # Verify existing venue relationship preserved
-        result = execute_sparql_query(SERVER, f"""
+        result = execute_sparql_query(
+            SERVER,
+            f"""
             SELECT ?venue WHERE {{
                 <{br1_uri}> <http://purl.org/vocab/frbr/core#partOf> ?venue .
             }}
-        """)
+        """,
+        )
         assert len(result["results"]["bindings"]) == 1
 
         shutil.rmtree(input_dir_1)

@@ -21,7 +21,9 @@ from oc_meta.lib.console import console, create_progress
 from oc_meta.lib.file_manager import collect_zip_files
 
 
-def process_zip_file(zip_path: Path, output_dir: Path, input_dir_path: Path, compress: bool) -> None:
+def process_zip_file(
+    zip_path: Path, output_dir: Path, input_dir_path: Path, compress: bool
+) -> None:
     graph = Dataset(default_union=True)
     with zipfile.ZipFile(zip_path, "r") as zf:
         json_file = next(name for name in zf.namelist() if name.endswith(".json"))
@@ -48,14 +50,37 @@ def process_zip_file(zip_path: Path, output_dir: Path, input_dir_path: Path, com
 def main() -> None:  # pragma: no cover
     parser = argparse.ArgumentParser(
         description="Converts JSON-LD files from ZIP archives to N-Quads format.",
-        formatter_class=RichHelpFormatter
+        formatter_class=RichHelpFormatter,
     )
-    parser.add_argument("input_dir", type=str, help="Input directory containing ZIP files (recursive search)")
-    parser.add_argument("output_dir", type=str, help="Output directory for the converted .nq files")
-    parser.add_argument("-m", "--mode", type=str, choices=["all", "data", "prov"], default="all",
-                        help="Mode: 'all' for all ZIP files (default), 'data' for entity data only, 'prov' for provenance only")
-    parser.add_argument("-w", "--workers", type=int, default=None, help="Number of worker processes (defaults to CPU count)")
-    parser.add_argument("-c", "--compress", action="store_true", help="Compress output files using 7z format")
+    parser.add_argument(
+        "input_dir",
+        type=str,
+        help="Input directory containing ZIP files (recursive search)",
+    )
+    parser.add_argument(
+        "output_dir", type=str, help="Output directory for the converted .nq files"
+    )
+    parser.add_argument(
+        "-m",
+        "--mode",
+        type=str,
+        choices=["all", "data", "prov"],
+        default="all",
+        help="Mode: 'all' for all ZIP files (default), 'data' for entity data only, 'prov' for provenance only",
+    )
+    parser.add_argument(
+        "-w",
+        "--workers",
+        type=int,
+        default=None,
+        help="Number of worker processes (defaults to CPU count)",
+    )
+    parser.add_argument(
+        "-c",
+        "--compress",
+        action="store_true",
+        help="Compress output files using 7z format",
+    )
     args = parser.parse_args()
 
     input_path = Path(args.input_dir).resolve()
@@ -72,16 +97,23 @@ def main() -> None:  # pragma: no cover
     total_files = len(zip_files)
 
     mode_labels = {"all": "", "data": "data ", "prov": "provenance "}
-    console.print(f"Found {total_files} {mode_labels[args.mode]}ZIP files in {input_path}")
+    console.print(
+        f"Found {total_files} {mode_labels[args.mode]}ZIP files in {input_path}"
+    )
     console.print(f"Output directory: {output_path}")
     console.print(f"Workers: {num_workers}")
     console.print(f"Compression: {'7z' if args.compress else 'none'}")
 
     fail_count = 0
-    task_func = partial(process_zip_file, output_dir=output_path, input_dir_path=input_path, compress=args.compress)
+    task_func = partial(
+        process_zip_file,
+        output_dir=output_path,
+        input_dir_path=input_path,
+        compress=args.compress,
+    )
 
     # Use forkserver to avoid deadlocks when forking in a multi-threaded environment
-    ctx = multiprocessing.get_context('forkserver')
+    ctx = multiprocessing.get_context("forkserver")
     with ProcessPoolExecutor(max_workers=num_workers, mp_context=ctx) as executor:
         iterator = executor.map(task_func, zip_files)
 

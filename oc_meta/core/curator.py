@@ -56,7 +56,9 @@ def _extract_ids_from_chunk(rows: list) -> Tuple[set, set, set]:
         venue_metaid = None
 
         if row["id"]:
-            id_list = RE_ONE_OR_MORE_SPACES.split(RE_COLON_AND_SPACES.sub(":", row["id"]))
+            id_list = RE_ONE_OR_MORE_SPACES.split(
+                RE_COLON_AND_SPACES.sub(":", row["id"])
+            )
             idslist, metaval = Curator.clean_id_list(id_list, br=True)
             if metaval:
                 metavals.add(_omid(metaval))
@@ -97,7 +99,6 @@ def _extract_ids_from_chunk(rows: list) -> Tuple[set, set, set]:
 
 
 class Curator:
-
     def __init__(
         self,
         data: List[dict],
@@ -153,7 +154,6 @@ class Curator:
         self.min_rows_parallel = min_rows_parallel
         self.identifiers_only = self.settings.get("identifiers_only", False)
 
-
     def _timed(self, name: str):
         if self.timer:
             return self.timer.timer(name)
@@ -174,18 +174,22 @@ class Curator:
         if total_rows > self.min_rows_parallel and self.workers > 1:
             chunks = []
             for i in range(0, total_rows, self.min_rows_parallel):
-                chunks.append(self.data[i:i + self.min_rows_parallel])
+                chunks.append(self.data[i : i + self.min_rows_parallel])
 
             with ProcessPoolExecutor(
                 max_workers=self.workers,
-                mp_context=multiprocessing.get_context('forkserver')
+                mp_context=multiprocessing.get_context("forkserver"),
             ) as executor:
-                for chunk_metavals, chunk_ids, chunk_vvis in executor.map(_extract_ids_from_chunk, chunks):
+                for chunk_metavals, chunk_ids, chunk_vvis in executor.map(
+                    _extract_ids_from_chunk, chunks
+                ):
                     all_metavals.update(chunk_metavals)
                     all_idslist.update(chunk_ids)
                     all_vvis.update(chunk_vvis)
                     if self.progress and task_id is not None:
-                        self.progress.advance(task_id, min(self.min_rows_parallel, total_rows))
+                        self.progress.advance(
+                            task_id, min(self.min_rows_parallel, total_rows)
+                        )
         else:
             for row in self.data:
                 metavals, idslist, vvis = self.extract_identifiers_and_metavals(row)
@@ -197,9 +201,7 @@ class Curator:
 
         return all_metavals, all_idslist, all_vvis
 
-    def extract_identifiers_and_metavals(
-        self, row
-    ) -> Tuple[set, set, set]:
+    def extract_identifiers_and_metavals(self, row) -> Tuple[set, set, set]:
         metavals = set()
         identifiers = set()
         vvis = set()
@@ -264,9 +266,11 @@ class Curator:
             if self.progress and task_collect is not None:
                 self.progress.remove_task(task_collect)
             self.finder.get_everything_about_res(
-                metavals=metavals, identifiers=identifiers, vvis=vvis,
+                metavals=metavals,
+                identifiers=identifiers,
+                vvis=vvis,
                 max_depth=1 if self.identifiers_only else 10,
-                progress=self.progress
+                progress=self.progress,
             )
 
         # Phase 2: Clean ID (loop over all rows)
@@ -356,9 +360,10 @@ class Curator:
         idslist: list = []
         metaval = ""
         if row["id"]:
-            idslist = RE_ONE_OR_MORE_SPACES.split(RE_COLON_AND_SPACES.sub(":", row["id"]))
-            idslist, metaval = self.clean_id_list(
-                idslist, br=True)
+            idslist = RE_ONE_OR_MORE_SPACES.split(
+                RE_COLON_AND_SPACES.sub(":", row["id"])
+            )
+            idslist, metaval = self.clean_id_list(idslist, br=True)
             id_metaval = _omid(metaval) if metaval else ""
             metaval_ids_list.append((id_metaval, idslist))
         fields_with_an_id = []
@@ -368,8 +373,7 @@ class Curator:
                 fields_with_an_id.append((field, ids_str.split()))
         for field, field_ids in fields_with_an_id:
             br = field in ["venue", "volume", "issue"]
-            field_idslist, field_metaval = self.clean_id_list(
-                field_ids, br=br)
+            field_idslist, field_metaval = self.clean_id_list(field_ids, br=br)
             if field_metaval:
                 field_metaval = _omid(field_metaval)
             else:
@@ -478,9 +482,10 @@ class Curator:
                 name = clean_title(
                     venue_name, bool(self.settings.get("normalize_titles", False))
                 )
-                idslist = RE_ONE_OR_MORE_SPACES.split(RE_COLON_AND_SPACES.sub(":", venue_ids_str))
-                idslist, metaval = self.clean_id_list(
-                    idslist, br=True)
+                idslist = RE_ONE_OR_MORE_SPACES.split(
+                    RE_COLON_AND_SPACES.sub(":", venue_ids_str)
+                )
+                idslist, metaval = self.clean_id_list(idslist, br=True)
 
                 metaval = self.id_worker(
                     "venue",
@@ -540,9 +545,9 @@ class Curator:
                     if issue not in self.vvi[metaval]["volume"][volume]["issue"]:
                         issue_meta = self.new_entity("", "br")
                         self.vvi[metaval]["volume"][volume]["issue"][issue] = dict()
-                        self.vvi[metaval]["volume"][volume]["issue"][issue][
-                            "id"
-                        ] = issue_meta
+                        self.vvi[metaval]["volume"][volume]["issue"][issue]["id"] = (
+                            issue_meta
+                        )
                 else:
                     if issue not in self.vvi[metaval]["issue"]:
                         issue_meta = self.new_entity("", "br")
@@ -585,7 +590,10 @@ class Curator:
                 return row["id"]
 
         def get_br_metaval(br_metaval_to_check):
-            if br_metaval_to_check in self.entity_store or br_metaval_to_check in self.vvi:
+            if (
+                br_metaval_to_check in self.entity_store
+                or br_metaval_to_check in self.vvi
+            ):
                 return br_metaval_to_check
             return self.entity_store.find(br_metaval_to_check)
 
@@ -608,7 +616,9 @@ class Curator:
                             ra_metaid = agent[ar_metaid][2]
                             sequence.append(tuple((ar_metaid, ra_metaid)))
                             if ra_metaid not in self.entity_store:
-                                self.entity_store.add_entity(ra_metaid, agent[ar_metaid][0])
+                                self.entity_store.add_entity(
+                                    ra_metaid, agent[ar_metaid][0]
+                                )
                             for identifier in agent[ar_metaid][1]:
                                 id_metaid = identifier[0]
                                 literal = identifier[1]
@@ -657,7 +667,9 @@ class Curator:
         for pos, ra in enumerate(ra_list):
             ra_id, name, new_elem_seq = process_individual_ra(ra, sequence)
             if ra_id:
-                ra_id_list = RE_ONE_OR_MORE_SPACES.split(RE_COLON_AND_SPACES.sub(":", ra_id))
+                ra_id_list = RE_ONE_OR_MORE_SPACES.split(
+                    RE_COLON_AND_SPACES.sub(":", ra_id)
+                )
                 if sequence:
                     ar_ra = None
                     for el in sequence:
@@ -687,8 +699,7 @@ class Curator:
                                     ra_id_list = list(filter(None, ra_id_list))
                                     ra_id_list.append("omid:" + ar_ra)
                 if col_name == "publisher":
-                    ra_id_list, metaval = self.clean_id_list(
-                        ra_id_list, br=False)
+                    ra_id_list, metaval = self.clean_id_list(ra_id_list, br=False)
                     metaval = self.id_worker(
                         "publisher",
                         name,
@@ -700,8 +711,7 @@ class Curator:
                         publ_entity=True,
                     )
                 else:
-                    ra_id_list, metaval = self.clean_id_list(
-                        ra_id_list, br=False)
+                    ra_id_list, metaval = self.clean_id_list(ra_id_list, br=False)
                     metaval = self.id_worker(
                         col_name,
                         name,
@@ -720,7 +730,9 @@ class Curator:
                             not full_name.split(",")[1].strip() and first_name
                         ):  # first name found!
                             given_name = full_name.split(",")[0]
-                            self.entity_store.set_title(metaval, given_name + ", " + first_name)
+                            self.entity_store.set_title(
+                                metaval, given_name + ", " + first_name
+                            )
             else:
                 metaval = self.new_entity(name, "ra")
             if new_elem_seq:
@@ -730,9 +742,7 @@ class Curator:
         self.ardict[br_metaval][col_name] = sequence
 
     @staticmethod
-    def clean_id_list(
-        id_list: List[str], br: bool
-    ) -> Tuple[list, str]:
+    def clean_id_list(id_list: List[str], br: bool) -> Tuple[list, str]:
         """
         Clean IDs in the input list and check if there is a MetaID.
 
@@ -864,7 +874,9 @@ class Curator:
             if "wannabe" not in entity_metaid:
                 self.preexisting_entities.add(entity_metaid)
                 for entity_id_literal in self.entity_store.get_ids(entity_metaid):
-                    preexisting_entity_id_metaid = self.entity_store.get_id_metaid(entity_id_literal)
+                    preexisting_entity_id_metaid = self.entity_store.get_id_metaid(
+                        entity_id_literal
+                    )
                     if preexisting_entity_id_metaid:
                         self.preexisting_entities.add(preexisting_entity_id_metaid)
         for _, roles in self.ardict.items():
@@ -913,7 +925,9 @@ class Curator:
             for role_type in ["author", "editor", "publisher"]:
                 for ar_metaid, agent_id in self.ardict[ar_id][role_type]:
                     resolved_ra_metaid = self.entity_store.find(agent_id)
-                    resolved_ardict[br_key][role_type].append((ar_metaid, resolved_ra_metaid))
+                    resolved_ardict[br_key][role_type].append(
+                        (ar_metaid, resolved_ra_metaid)
+                    )
         self.ardict = resolved_ardict
 
         self.VolIss = dict()
@@ -941,9 +955,9 @@ class Curator:
                             for issue in volume_issue:
                                 volume_issue_id = volume_issue[issue]["id"]
                                 if "wannabe" in volume_issue_id:
-                                    self.vvi[venue_meta]["volume"][volume][
-                                        "issue"
-                                    ][issue]["id"] = str(
+                                    self.vvi[venue_meta]["volume"][volume]["issue"][
+                                        issue
+                                    ]["id"] = str(
                                         self.entity_store.find(volume_issue_id)
                                     )
                 if "wannabe" in venue_meta:
@@ -983,7 +997,9 @@ class Curator:
                     venue_metaid = self.entity_store.find(venue)
                 else:
                     venue_metaid = venue
-                venue_ids_with_omid = self.entity_store.get_ids(venue_metaid) | {_omid(venue_metaid)}
+                venue_ids_with_omid = self.entity_store.get_ids(venue_metaid) | {
+                    _omid(venue_metaid)
+                }
                 row["venue"] = self.build_name_ids_string(
                     self.entity_store.get_title(venue_metaid), venue_ids_with_omid
                 )
@@ -1148,7 +1164,6 @@ class Curator:
         if not self.entity_store.get_title(metaval) and name:
             self.entity_store.set_title(metaval, name)
 
-
     def id_worker(
         self,
         col_name,
@@ -1171,7 +1186,11 @@ class Curator:
                 elif br_ent:
                     found_meta_ts = self.finder.retrieve_br_from_meta(metaval)
                 if found_meta_ts[2]:
-                    title = self.name_check(found_meta_ts[0], name) if col_name in ("author", "editor") else found_meta_ts[0]
+                    title = (
+                        self.name_check(found_meta_ts[0], name)
+                        if col_name in ("author", "editor")
+                        else found_meta_ts[0]
+                    )
                     self.entity_store.add_entity(metaval, title)
                     existing_ids = found_meta_ts[1]
                     self.__update_id_and_entity_store(existing_ids, metaval)
@@ -1181,7 +1200,9 @@ class Curator:
                     merged_metaval = self.finder.retrieve_metaid_from_merged_entity(
                         metaid_uri=metaid_uri, prov_config=self.prov_config
                     )
-                    metaval = f"{entity_type}/{merged_metaval}" if merged_metaval else ""
+                    metaval = (
+                        f"{entity_type}/{merged_metaval}" if merged_metaval else ""
+                    )
         if idslist and not metaval:
             local_match = self._local_match(idslist, entity_type)
             if local_match["existing"]:
@@ -1259,7 +1280,11 @@ class Curator:
                     # 3 CONFLICT beteen MetaIDs. MetaID specified in EntityA inside CSV has precedence.
                     # elif len(new_sparql_match) == 1:
                     metaval = sparql_match[0][0]
-                    title = self.name_check(sparql_match[0][1], name) if col_name in ("author", "editor") else sparql_match[0][1]
+                    title = (
+                        self.name_check(sparql_match[0][1], name)
+                        if col_name in ("author", "editor")
+                        else sparql_match[0][1]
+                    )
                     self.entity_store.add_entity(metaval, title or name)
                     self.__update_id_and_entity_store(existing_ids, metaval)
                 else:
@@ -1312,7 +1337,9 @@ class Curator:
                     old_meta = path[value]["id"]
                     if "wannabe" not in old_meta and old_meta not in self.entity_store:
                         br4dict = self.finder.retrieve_br_from_meta(old_meta)
-                        self.entity_store.add_entity(old_meta, br4dict[0] if br4dict else "")
+                        self.entity_store.add_entity(
+                            old_meta, br4dict[0] if br4dict else ""
+                        )
                         if br4dict:
                             for x in br4dict[1]:
                                 identifier = x[1]
@@ -1509,6 +1536,11 @@ def is_a_valid_row(row: Dict[str, str]) -> bool:
 
 
 def get_edited_br_metaid(row: dict, metaid: str, venue_metaid: str | None) -> str:
-    if row["author"] and row["venue"] and row["type"] in CONTAINER_EDITOR_TYPES and venue_metaid:
+    if (
+        row["author"]
+        and row["venue"]
+        and row["type"] in CONTAINER_EDITOR_TYPES
+        and venue_metaid
+    ):
         return venue_metaid
     return metaid

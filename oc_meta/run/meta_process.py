@@ -31,13 +31,27 @@ from time_agnostic_library.support import generate_config_file
 from oc_meta.core.creator import Creator
 from oc_meta.core.curator import Curator
 from oc_meta.lib.console import console, create_progress
-from oc_meta.lib.file_manager import (get_csv_data, init_cache, normalize_path,
-                                      pathoo, sort_files)
+from oc_meta.lib.file_manager import (
+    get_csv_data,
+    init_cache,
+    normalize_path,
+    pathoo,
+    sort_files,
+)
 from oc_meta.lib.timer import ProcessTimer
 from oc_meta.run.benchmark.plotting import plot_incremental_progress
 
 
-def _upload_to_triplestore(endpoint: str, folder: str, redis_host: str, redis_port: int, redis_db: int, failed_file: str, stop_file: str, description: str = "Processing files") -> None:
+def _upload_to_triplestore(
+    endpoint: str,
+    folder: str,
+    redis_host: str,
+    redis_port: int,
+    redis_db: int,
+    failed_file: str,
+    stop_file: str,
+    description: str = "Processing files",
+) -> None:
     """Upload SPARQL queries from folder to triplestore endpoint."""
     try:
         upload_sparql_updates(
@@ -56,7 +70,9 @@ def _upload_to_triplestore(endpoint: str, folder: str, redis_host: str, redis_po
         sys.exit(1)
 
 
-def _generate_queries_worker(storer: Storer, triplestore_url: str, base_dir: str) -> None:
+def _generate_queries_worker(
+    storer: Storer, triplestore_url: str, base_dir: str
+) -> None:
     storer.upload_all(
         triplestore_url=triplestore_url,
         base_dir=base_dir,
@@ -72,11 +88,18 @@ def _store_rdf_worker(storer: Storer, base_dir, base_iri):
 
 
 class MetaProcess:
-    def __init__(self, settings: dict, meta_config_path: str, timer: Optional[ProcessTimer] = None):
+    def __init__(
+        self,
+        settings: dict,
+        meta_config_path: str,
+        timer: Optional[ProcessTimer] = None,
+    ):
         self.settings = settings
         # Mandatory settings
         self.triplestore_url = settings["triplestore_url"]  # Main triplestore for data
-        self.provenance_triplestore_url = settings["provenance_triplestore_url"]  # Separate triplestore for provenance
+        self.provenance_triplestore_url = settings[
+            "provenance_triplestore_url"
+        ]  # Separate triplestore for provenance
         self.input_csv_dir = normalize_path(settings["input_csv_dir"])
         self.base_output_dir = normalize_path(settings["base_output_dir"])
         self.resp_agent = settings["resp_agent"]
@@ -109,7 +132,10 @@ class MetaProcess:
                 config_path=self.time_agnostic_library_config,
                 dataset_urls=[self.triplestore_url],
                 dataset_dirs=list(),
-                provenance_urls=[self.provenance_triplestore_url] if self.provenance_triplestore_url not in settings["provenance_endpoints"] else settings["provenance_endpoints"],
+                provenance_urls=[self.provenance_triplestore_url]
+                if self.provenance_triplestore_url
+                not in settings["provenance_endpoints"]
+                else settings["provenance_endpoints"],
                 provenance_dirs=list(),
                 blazegraph_full_text_search=settings["blazegraph_full_text_search"],
                 fuseki_full_text_search=settings["fuseki_full_text_search"],
@@ -117,7 +143,10 @@ class MetaProcess:
                 graphdb_connector_name=settings["graphdb_connector_name"],
             )
 
-        info_dir = os.path.join(self.base_output_dir, "info_dir", self.supplier_prefix) + os.sep
+        info_dir = (
+            os.path.join(self.base_output_dir, "info_dir", self.supplier_prefix)
+            + os.sep
+        )
         self.counter_handler = FilesystemCounterHandler(
             info_dir=info_dir, supplier_prefix=self.supplier_prefix
         )
@@ -163,7 +192,9 @@ class MetaProcess:
                 data = get_csv_data(filepath)
                 self.timer.record_metric("input_records", len(data))
 
-                min_rows_parallel = settings.get("min_rows_parallel", 1000) if settings else 1000
+                min_rows_parallel = (
+                    settings.get("min_rows_parallel", 1000) if settings else 1000
+                )
                 curator_obj = Curator(
                     data=data,
                     ts=self.triplestore_url,
@@ -179,15 +210,15 @@ class MetaProcess:
                     min_rows_parallel=min_rows_parallel,
                 )
                 name = f"{filename.replace('.csv', '')}_{datetime.now().strftime('%Y-%m-%dT%H-%M-%S')}"
-                curator_obj.curator(
-                    filename=name, path_csv=self.output_csv_dir
-                )
+                curator_obj.curator(filename=name, path_csv=self.output_csv_dir)
                 self.timer.record_metric("curated_records", len(curator_obj.data))
 
                 local_g_size = len(curator_obj.finder.graph)
                 self.timer.record_metric("local_g_triples", local_g_size)
                 preexisting_count = len(curator_obj.preexisting_entities)
-                self.timer.record_metric("preexisting_entities_count", preexisting_count)
+                self.timer.record_metric(
+                    "preexisting_entities_count", preexisting_count
+                )
 
                 RDF_BATCH_SIZE = 100_000
                 data = curator_obj.data
@@ -224,7 +255,11 @@ class MetaProcess:
                             progress=progress,
                         )
                         creator = creator_obj.creator(source=self.source)
-                        total_entities += sum(1 for e in creator.res_to_entity.values() if not e._preexisting_triples)
+                        total_entities += sum(
+                            1
+                            for e in creator.res_to_entity.values()
+                            if not e._preexisting_triples
+                        )
 
                         prov = ProvSet(
                             creator,
@@ -260,7 +295,14 @@ class MetaProcess:
                         modified_entities=modified_entities,
                     )
                     self.store_data_and_prov(res_storer, prov_storer)
-                    del creator_obj, creator, prov, res_storer, prov_storer, modified_entities
+                    del (
+                        creator_obj,
+                        creator,
+                        prov,
+                        res_storer,
+                        prov_storer,
+                        modified_entities,
+                    )
 
                     if progress is not None and batch_task_id is not None:
                         progress.update(batch_task_id, advance=1)
@@ -293,7 +335,7 @@ class MetaProcess:
         # Use forkserver to avoid deadlocks when forking from a multi-threaded process.
         # Libraries like Redis and rdflib create background threads, and fork() would
         # copy locked mutexes into the child process, causing hangs.
-        ctx = multiprocessing.get_context('forkserver')
+        ctx = multiprocessing.get_context("forkserver")
 
         data_process = ctx.Process(
             target=_upload_to_triplestore,
@@ -305,8 +347,8 @@ class MetaProcess:
                 self.redis_cache_db,
                 self.ts_failed_queries,
                 self.ts_stop_file,
-                "Uploading data SPARQL"
-            )
+                "Uploading data SPARQL",
+            ),
         )
 
         prov_process = ctx.Process(
@@ -319,8 +361,8 @@ class MetaProcess:
                 self.redis_cache_db,
                 self.ts_failed_queries,
                 self.ts_stop_file,
-                "Uploading prov SPARQL"
-            )
+                "Uploading prov SPARQL",
+            ),
         )
 
         data_process.start()
@@ -330,13 +372,15 @@ class MetaProcess:
         prov_process.join()
 
         if data_process.exitcode != 0:
-            raise RuntimeError(f"Data upload failed with exit code {data_process.exitcode}")
+            raise RuntimeError(
+                f"Data upload failed with exit code {data_process.exitcode}"
+            )
         if prov_process.exitcode != 0:
-            raise RuntimeError(f"Provenance upload failed with exit code {prov_process.exitcode}")
+            raise RuntimeError(
+                f"Provenance upload failed with exit code {prov_process.exitcode}"
+            )
 
-    def store_data_and_prov(
-        self, res_storer: Storer, prov_storer: Storer
-    ) -> None:
+    def store_data_and_prov(self, res_storer: Storer, prov_storer: Storer) -> None:
         """Orchestrate storage and upload."""
         if not self.rdf_files_only:
             self._setup_output_directories()
@@ -350,15 +394,15 @@ class MetaProcess:
             # Use forkserver to avoid deadlocks when forking from a multi-threaded process.
             # Libraries like rdflib create background threads, and fork() would
             # copy locked mutexes into the child process, causing hangs.
-            ctx = multiprocessing.get_context('forkserver')
+            ctx = multiprocessing.get_context("forkserver")
 
             data_store_process = ctx.Process(
                 target=_store_rdf_worker,
-                args=(res_storer, self.output_rdf_dir, self.base_iri)
+                args=(res_storer, self.output_rdf_dir, self.base_iri),
             )
             prov_store_process = ctx.Process(
                 target=_store_rdf_worker,
-                args=(prov_storer, self.output_rdf_dir, self.base_iri)
+                args=(prov_storer, self.output_rdf_dir, self.base_iri),
             )
             rdf_store_processes = [data_store_process, prov_store_process]
             for p in rdf_store_processes:
@@ -367,11 +411,15 @@ class MetaProcess:
             if not self.rdf_files_only:
                 data_query_process = ctx.Process(
                     target=_generate_queries_worker,
-                    args=(res_storer, self.triplestore_url, self.data_update_dir)
+                    args=(res_storer, self.triplestore_url, self.data_update_dir),
                 )
                 prov_query_process = ctx.Process(
                     target=_generate_queries_worker,
-                    args=(prov_storer, self.provenance_triplestore_url, self.prov_update_dir)
+                    args=(
+                        prov_storer,
+                        self.provenance_triplestore_url,
+                        self.prov_update_dir,
+                    ),
                 )
                 data_query_process.start()
                 prov_query_process.start()
@@ -379,16 +427,22 @@ class MetaProcess:
                 prov_query_process.join()
 
                 if data_query_process.exitcode != 0:
-                    raise RuntimeError(f"Data query generation failed with exit code {data_query_process.exitcode}")
+                    raise RuntimeError(
+                        f"Data query generation failed with exit code {data_query_process.exitcode}"
+                    )
                 if prov_query_process.exitcode != 0:
-                    raise RuntimeError(f"Prov query generation failed with exit code {prov_query_process.exitcode}")
+                    raise RuntimeError(
+                        f"Prov query generation failed with exit code {prov_query_process.exitcode}"
+                    )
 
                 self._upload_sparql_queries()
 
             for p in rdf_store_processes:
                 p.join()
                 if p.exitcode != 0:
-                    raise RuntimeError(f"RDF storage failed with exit code {p.exitcode}")
+                    raise RuntimeError(
+                        f"RDF storage failed with exit code {p.exitcode}"
+                    )
 
     def run_sparql_updates(self, endpoint: str, folder: str):
         upload_sparql_updates(
@@ -402,16 +456,18 @@ class MetaProcess:
         )
 
 
-def _save_incremental_report(all_reports: List[Dict[str, Any]], meta_config_path: str, output_path: str) -> None:
+def _save_incremental_report(
+    all_reports: List[Dict[str, Any]], meta_config_path: str, output_path: str
+) -> None:
     """Save incremental timing report to JSON file."""
     aggregate_report = {
         "timestamp": datetime.now().isoformat(),
         "config_path": meta_config_path,
         "total_files_processed": len(all_reports),
         "files": all_reports,
-        "aggregate": _compute_aggregate_metrics(all_reports)
+        "aggregate": _compute_aggregate_metrics(all_reports),
     }
-    with open(output_path, 'wb') as f:
+    with open(output_path, "wb") as f:
         f.write(orjson.dumps(aggregate_report, option=orjson.OPT_INDENT_2))
 
 
@@ -427,12 +483,22 @@ def _compute_aggregate_metrics(all_reports: List[Dict[str, Any]]) -> Dict[str, A
     if not all_reports:
         return {}
 
-    total_duration = sum(r["report"]["metrics"].get("total_duration_seconds", 0) for r in all_reports)
-    total_records = sum(r["report"]["metrics"].get("input_records", 0) for r in all_reports)
-    total_entities = sum(r["report"]["metrics"].get("new_entities", 0) for r in all_reports)
+    total_duration = sum(
+        r["report"]["metrics"].get("total_duration_seconds", 0) for r in all_reports
+    )
+    total_records = sum(
+        r["report"]["metrics"].get("input_records", 0) for r in all_reports
+    )
+    total_entities = sum(
+        r["report"]["metrics"].get("new_entities", 0) for r in all_reports
+    )
 
-    durations = [r["report"]["metrics"].get("total_duration_seconds", 0) for r in all_reports]
-    throughputs = [r["report"]["metrics"].get("throughput_records_per_sec", 0) for r in all_reports]
+    durations = [
+        r["report"]["metrics"].get("total_duration_seconds", 0) for r in all_reports
+    ]
+    throughputs = [
+        r["report"]["metrics"].get("throughput_records_per_sec", 0) for r in all_reports
+    ]
 
     file_peaks = [_get_file_peak_memory(r) for r in all_reports]
     non_zero_peaks = [p for p in file_peaks if p]
@@ -442,15 +508,23 @@ def _compute_aggregate_metrics(all_reports: List[Dict[str, Any]]) -> Dict[str, A
         "total_duration_seconds": round(total_duration, 3),
         "total_records_processed": total_records,
         "total_new_entities": total_entities,
-        "average_time_per_file": round(total_duration / len(all_reports), 3) if all_reports else 0,
-        "average_throughput": round(sum(throughputs) / len(throughputs), 2) if throughputs else 0,
+        "average_time_per_file": round(total_duration / len(all_reports), 3)
+        if all_reports
+        else 0,
+        "average_throughput": round(sum(throughputs) / len(throughputs), 2)
+        if throughputs
+        else 0,
         "min_time": round(min(durations), 3) if durations else 0,
         "max_time": round(max(durations), 3) if durations else 0,
-        "overall_throughput": round(total_records / total_duration, 2) if total_duration > 0 else 0,
+        "overall_throughput": round(total_records / total_duration, 2)
+        if total_duration > 0
+        else 0,
     }
     if non_zero_peaks:
         result["peak_memory_mb"] = round(max(non_zero_peaks), 1)
-        result["average_peak_memory_mb"] = round(sum(non_zero_peaks) / len(non_zero_peaks), 1)
+        result["average_peak_memory_mb"] = round(
+            sum(non_zero_peaks) / len(non_zero_peaks), 1
+        )
     return result
 
 
@@ -458,9 +532,9 @@ def _print_aggregate_summary(all_reports: List[Dict[str, Any]]) -> None:
     """Print aggregate summary of all processed files."""
     aggregate = _compute_aggregate_metrics(all_reports)
 
-    console.print(f"\n{'='*60}")
+    console.print(f"\n{'=' * 60}")
     console.print("[bold]Aggregate Timing Summary[/bold]")
-    console.print(f"{'='*60}")
+    console.print(f"{'=' * 60}")
     console.print(f"Total Files: {aggregate['total_files']}")
     console.print(f"Total Duration: {aggregate['total_duration_seconds']}s")
     console.print(f"Total Records: {aggregate['total_records_processed']}")
@@ -471,44 +545,74 @@ def _print_aggregate_summary(all_reports: List[Dict[str, Any]]) -> None:
     if "peak_memory_mb" in aggregate:
         console.print(f"Peak Memory (RSS): {aggregate['peak_memory_mb']} MB")
         console.print(f"Avg Peak Memory:   {aggregate['average_peak_memory_mb']} MB")
-    console.print(f"{'='*60}\n")
+    console.print(f"{'=' * 60}\n")
 
 
 def run_meta_process(
-    settings: dict, meta_config_path: str, enable_timing: bool = False, timing_output: Optional[str] = None
+    settings: dict,
+    meta_config_path: str,
+    enable_timing: bool = False,
+    timing_output: Optional[str] = None,
 ) -> None:
     is_unix = platform in {"linux", "linux2", "darwin"}
     all_reports = []
 
-    meta_process_setup = MetaProcess(settings=settings, meta_config_path=meta_config_path)
+    meta_process_setup = MetaProcess(
+        settings=settings, meta_config_path=meta_config_path
+    )
     files_to_be_processed = meta_process_setup.prepare_folders()
 
-    generate_gentle_buttons(meta_process_setup.base_output_dir, meta_config_path, is_unix)
+    generate_gentle_buttons(
+        meta_process_setup.base_output_dir, meta_config_path, is_unix
+    )
 
     with create_progress() as progress:
-        task_id = progress.add_task("Processing files", total=len(files_to_be_processed))
+        task_id = progress.add_task(
+            "Processing files", total=len(files_to_be_processed)
+        )
         for idx, filename in enumerate(files_to_be_processed, 1):
             try:
-                if os.path.exists(os.path.join(meta_process_setup.base_output_dir, ".stop")):
-                    console.print("\n[yellow]Stop file detected. Halting processing.[/yellow]")
+                if os.path.exists(
+                    os.path.join(meta_process_setup.base_output_dir, ".stop")
+                ):
+                    console.print(
+                        "\n[yellow]Stop file detected. Halting processing.[/yellow]"
+                    )
                     meta_process_setup.counter_handler.flush()
                     break
 
                 if enable_timing:
-                    console.print(f"\n[cyan][{idx}/{len(files_to_be_processed)}][/cyan] Processing {filename}...")
+                    console.print(
+                        f"\n[cyan][{idx}/{len(files_to_be_processed)}][/cyan] Processing {filename}..."
+                    )
 
                 on_phase_cb = None
                 if enable_timing and timing_output:
-                    _chart = timing_output.replace('.json', '_chart.png')
-                    _reports, _fn, _cfg, _out = all_reports, filename, meta_config_path, timing_output
+                    _chart = timing_output.replace(".json", "_chart.png")
+                    _reports, _fn, _cfg, _out = (
+                        all_reports,
+                        filename,
+                        meta_config_path,
+                        timing_output,
+                    )
                     _include_storage = not settings.get("rdf_files_only", False)
+
                     def _on_phase(timer: ProcessTimer) -> None:
-                        snapshot = _reports + [{"filename": _fn, "report": timer.get_report()}]
+                        snapshot = _reports + [
+                            {"filename": _fn, "report": timer.get_report()}
+                        ]
                         _save_incremental_report(snapshot, _cfg, _out)
-                        plot_incremental_progress(snapshot, _chart, include_storage=_include_storage)
+                        plot_incremental_progress(
+                            snapshot, _chart, include_storage=_include_storage
+                        )
+
                     on_phase_cb = _on_phase
 
-                file_timer = ProcessTimer(enabled=enable_timing, verbose=enable_timing, on_phase_complete=on_phase_cb)
+                file_timer = ProcessTimer(
+                    enabled=enable_timing,
+                    verbose=enable_timing,
+                    on_phase_complete=on_phase_cb,
+                )
                 meta_process_setup.timer = file_timer
 
                 result = meta_process_setup.curate_and_create(
@@ -524,10 +628,7 @@ def run_meta_process(
 
                 if enable_timing:
                     report = file_timer.get_report()
-                    all_reports.append({
-                        "filename": filename,
-                        "report": report
-                    })
+                    all_reports.append({"filename": filename, "report": report})
                     file_timer.print_file_summary(filename)
 
             except Exception as e:
@@ -545,7 +646,7 @@ def run_meta_process(
             os.rename(
                 meta_process_setup.cache_path,
                 meta_process_setup.cache_path.replace(
-                    ".txt", f'_{datetime.now().strftime("%Y-%m-%dT%H_%M_%S_%f")}.txt'
+                    ".txt", f"_{datetime.now().strftime('%Y-%m-%dT%H_%M_%S_%f')}.txt"
                 ),
             )
         if is_unix:
@@ -559,9 +660,9 @@ def run_meta_process(
                 "config_path": meta_config_path,
                 "total_files": len(all_reports),
                 "files": all_reports,
-                "aggregate": _compute_aggregate_metrics(all_reports)
+                "aggregate": _compute_aggregate_metrics(all_reports),
             }
-            with open(timing_output, 'wb') as f:
+            with open(timing_output, "wb") as f:
                 f.write(orjson.dumps(aggregate_report, option=orjson.OPT_INDENT_2))
             console.print(f"[green][Timing] Report saved to {timing_output}[/green]")
 
@@ -590,7 +691,7 @@ def task_done(task_output: tuple) -> None:
                 aux_file.write("\n".join(cache_data))
     else:
         with open(errors_path, "a", encoding="utf-8") as aux_file:
-            aux_file.write(f'{filename}: {message["message"]}' + "\n")
+            aux_file.write(f"{filename}: {message['message']}" + "\n")
 
 
 def delete_lock_files(base_dir: str) -> None:
@@ -643,5 +744,5 @@ if __name__ == "__main__":  # pragma: no cover
         settings=settings,
         meta_config_path=args.config,
         enable_timing=args.timing,
-        timing_output=args.timing_output
+        timing_output=args.timing_output,
     )

@@ -110,9 +110,7 @@ def main():
     parser.add_argument(
         "-c", "--config", required=True, help="Path to meta configuration YAML file"
     )
-    parser.add_argument(
-        "-o", "--output", required=True, help="Output CSV file path"
-    )
+    parser.add_argument("-o", "--output", required=True, help="Output CSV file path")
     parser.add_argument(
         "--entity-type",
         choices=["br", "ra", "id", "ar", "re"],
@@ -139,10 +137,14 @@ def main():
     all_results: list[tuple[str, str]] = []
 
     # Use forkserver to avoid deadlocks when forking in a multi-threaded environment
-    with ProcessPoolExecutor(max_workers=args.workers, mp_context=multiprocessing.get_context('forkserver')) as executor:
+    with ProcessPoolExecutor(
+        max_workers=args.workers, mp_context=multiprocessing.get_context("forkserver")
+    ) as executor:
         futures = {executor.submit(process_prov_file, f): f for f in prov_files}
 
-        for future in tqdm(as_completed(futures), total=len(futures), desc="Processing files"):
+        for future in tqdm(
+            as_completed(futures), total=len(futures), desc="Processing files"
+        ):
             results = future.result()
             all_results.extend(results)
 
@@ -158,10 +160,12 @@ def main():
         writer = csv.DictWriter(f, fieldnames=["surviving_entity", "merged_entities"])
         writer.writeheader()
         for surviving, merged_list in final_to_merged.items():
-            writer.writerow({
-                "surviving_entity": surviving,
-                "merged_entities": "; ".join(merged_list),
-            })
+            writer.writerow(
+                {
+                    "surviving_entity": surviving,
+                    "merged_entities": "; ".join(merged_list),
+                }
+            )
 
     console.print(f"Output written to: {args.output}")
 

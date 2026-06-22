@@ -76,7 +76,9 @@ def check_entity_sparql(endpoint: str, entity_uri, is_surviving):
         <{entity_uri}> ?p ?o .
     }}
     """
-    exists_results = execute_sparql(endpoint, exists_query, max_retries=3, backoff_factor=1)
+    exists_results = execute_sparql(
+        endpoint, exists_query, max_retries=3, backoff_factor=1
+    )
 
     if exists_results["boolean"]:
         if not is_surviving:
@@ -93,7 +95,9 @@ def check_entity_sparql(endpoint: str, entity_uri, is_surviving):
         <{entity_uri}> a ?type .
     }}
     """
-    types_results = execute_sparql(endpoint, types_query, max_retries=3, backoff_factor=1)
+    types_results = execute_sparql(
+        endpoint, types_query, max_retries=3, backoff_factor=1
+    )
 
     types = [result["type"]["value"] for result in types_results["results"]["bindings"]]
     if not types:
@@ -113,7 +117,9 @@ def check_entity_sparql(endpoint: str, entity_uri, is_surviving):
         OPTIONAL {{ <{entity_uri}> <{FOAF}familyName> ?familyName }}
     }}
     """
-    names_results = execute_sparql(endpoint, names_query, max_retries=3, backoff_factor=1)
+    names_results = execute_sparql(
+        endpoint, names_query, max_retries=3, backoff_factor=1
+    )
 
     has_name = False
     for result in names_results["results"]["bindings"]:
@@ -130,7 +136,9 @@ def check_entity_sparql(endpoint: str, entity_uri, is_surviving):
         <{entity_uri}> <{DATACITE}hasIdentifier> ?identifier .
     }}
     """
-    identifiers_results = execute_sparql(endpoint, identifiers_query, max_retries=3, backoff_factor=1)
+    identifiers_results = execute_sparql(
+        endpoint, identifiers_query, max_retries=3, backoff_factor=1
+    )
 
     identifiers = [
         result["identifier"]["value"]
@@ -419,7 +427,13 @@ def process_csv(args, csv_file):
         all_entities = [surviving_entity] + merged_entities
 
         for entity in all_entities:
-            file_path = find_rdf_file(entity, rdf_dir, meta_editor.dir_split, meta_editor.n_file_item, zip_output=True)
+            file_path = find_rdf_file(
+                entity,
+                rdf_dir,
+                meta_editor.dir_split,
+                meta_editor.n_file_item,
+                zip_output=True,
+            )
             tasks.append(
                 (
                     entity,
@@ -464,7 +478,7 @@ def main():
     csv_files = [f for f in os.listdir(args.csv_folder) if f.endswith(".csv")]
 
     # Use forkserver to avoid deadlocks when forking in a multi-threaded environment
-    ctx = multiprocessing.get_context('forkserver')
+    ctx = multiprocessing.get_context("forkserver")
 
     # Process CSV files to gather tasks
     with ctx.Pool(processes=multiprocessing.cpu_count()) as pool:

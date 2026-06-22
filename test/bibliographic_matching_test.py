@@ -57,9 +57,7 @@ class TestBibliographicMatching(unittest.TestCase):
     def test_compute_matching_score_match(self):
         ts_meta = fetch_triplestore_metadata(SERVER, ARTICLE_URI)
         fixture = _load_crossref_fixture("qss_a_00292.json")
-        with patch(
-            "oc_meta.lib.bibliographic_matching.call_api", return_value=fixture
-        ):
+        with patch("oc_meta.lib.bibliographic_matching.call_api", return_value=fixture):
             cr_meta = fetch_crossref_metadata("10.1162/qss_a_00292", {}, MAILTO)
         assert cr_meta is not None
         score = compute_matching_score(ts_meta, cr_meta)
@@ -69,9 +67,7 @@ class TestBibliographicMatching(unittest.TestCase):
     def test_compute_matching_score_mismatch(self):
         ts_meta = fetch_triplestore_metadata(SERVER, ARTICLE_URI)
         fixture = _load_crossref_fixture("s11192-022-04367-w.json")
-        with patch(
-            "oc_meta.lib.bibliographic_matching.call_api", return_value=fixture
-        ):
+        with patch("oc_meta.lib.bibliographic_matching.call_api", return_value=fixture):
             cr_meta = fetch_crossref_metadata("10.1007/s11192-022-04367-w", {}, MAILTO)
         assert cr_meta is not None
         score = compute_matching_score(ts_meta, cr_meta)

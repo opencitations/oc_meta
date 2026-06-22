@@ -203,7 +203,10 @@ class EntityStore:
         Returns: {entity_key: {"ids": set, "title": str}}
         """
         return {
-            key: {"ids": self._entity_ids[key].copy(), "title": self._entity_titles.get(key, "")}
+            key: {
+                "ids": self._entity_ids[key].copy(),
+                "title": self._entity_titles.get(key, ""),
+            }
             for key in self._entity_ids
         }
 

@@ -60,7 +60,10 @@ class TestProcessMergeCSV:
 
         # Check second result with multiple merged entities
         assert results["valid_entries"][1][0] == "https://w3id.org/oc/meta/id/5"
-        assert results["valid_entries"][1][1] == "https://w3id.org/oc/meta/id/6; https://w3id.org/oc/meta/id/7"
+        assert (
+            results["valid_entries"][1][1]
+            == "https://w3id.org/oc/meta/id/6; https://w3id.org/oc/meta/id/7"
+        )
 
     def test_process_merge_directory(self):
         # Create a second test file

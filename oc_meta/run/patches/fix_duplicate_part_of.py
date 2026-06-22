@@ -96,9 +96,7 @@ class ResolvedCase:
 # ── Phase 1: Scan ──
 
 
-def _scan_br_batch(
-    files: list[str], zip_output: bool
-) -> list[tuple[str, list[str]]]:
+def _scan_br_batch(files: list[str], zip_output: bool) -> list[tuple[str, list[str]]]:
     results: list[tuple[str, list[str]]] = []
     for entity in _iter_entities(files, zip_output):
         if FRBR_PART_OF in entity:
@@ -183,7 +181,9 @@ def build_chain_map(
             depth += 1
             file_to_uris: dict[str, set[str]] = defaultdict(set)
             for uri in needed:
-                fpath = find_rdf_file(uri, rdf_dir, dir_split, items_per_file, zip_output)
+                fpath = find_rdf_file(
+                    uri, rdf_dir, dir_split, items_per_file, zip_output
+                )
                 file_to_uris[fpath].add(uri)
 
             next_needed: set[str] = set()
@@ -285,9 +285,7 @@ def resolve_cases(
             for v_uri in sorted(venue_set):
                 if v_uri in entity_meta:
                     title, types = entity_meta[v_uri]
-                    venue_descs.append(
-                        f"'{title}' ({_type_label(types)})"
-                    )
+                    venue_descs.append(f"'{title}' ({_type_label(types)})")
                 else:
                     venue_descs.append(v_uri)
             resolved.append(
@@ -297,8 +295,7 @@ def resolve_cases(
                     to_remove=[],
                     method="manual_review",
                     reason=(
-                        f"Chains reach different venues: "
-                        f"{' vs '.join(venue_descs)}"
+                        f"Chains reach different venues: {' vs '.join(venue_descs)}"
                     ),
                 )
             )
@@ -306,7 +303,6 @@ def resolve_cases(
 
 
 # ── Enrich manual review cases ──
-
 
 
 def _batch_read_entities(
@@ -318,7 +314,9 @@ def _batch_read_entities(
 ) -> dict[str, dict]:
     file_to_uris: dict[str, set[str]] = defaultdict(set)
     for uri in uris:
-        file_to_uris[find_rdf_file(uri, rdf_dir, dir_split, items_per_file, zip_output)].add(uri)
+        file_to_uris[
+            find_rdf_file(uri, rdf_dir, dir_split, items_per_file, zip_output)
+        ].add(uri)
 
     result: dict[str, dict] = {}
     for fpath, target_uris in file_to_uris.items():
@@ -410,14 +408,20 @@ def fix_br_part_of(
 
     file_paths: set[str] = set()
     for uri in [br_uri, correct_part_of_uri] + incorrect_part_of_uris:
-        file_paths.add(find_rdf_file(uri, editor.base_dir, editor.dir_split, editor.n_file_item, editor.zip_output_rdf))
+        file_paths.add(
+            find_rdf_file(
+                uri,
+                editor.base_dir,
+                editor.dir_split,
+                editor.n_file_item,
+                editor.zip_output_rdf,
+            )
+        )
 
     for fp in file_paths:
         imported = editor.reader.load(fp)
         if imported is not None:
-            editor.reader.import_entities_from_graph(
-                g_set, imported, editor.resp_agent
-            )
+            editor.reader.import_entities_from_graph(g_set, imported, editor.resp_agent)
 
     br_entity = g_set.get_entity(br_uri)
     correct_container = g_set.get_entity(correct_part_of_uri)
@@ -564,9 +568,7 @@ def main() -> None:  # pragma: no cover
     parser.add_argument(
         "--progress-file", default="fix_duplicate_part_of_progress.json"
     )
-    parser.add_argument(
-        "--report-file", default="fix_duplicate_part_of_report.json"
-    )
+    parser.add_argument("--report-file", default="fix_duplicate_part_of_report.json")
     args = parser.parse_args()
 
     if not args.dry_run and not args.resp_agent:
@@ -592,9 +594,7 @@ def main() -> None:  # pragma: no cover
         return
 
     # Phase 2: Build chain map
-    all_container_uris = {
-        uri for _, containers in raw_cases for uri in containers
-    }
+    all_container_uris = {uri for _, containers in raw_cases for uri in containers}
     console.print(
         f"[bold]Building chain map for {len(all_container_uris)} containers...[/bold]"
     )
@@ -611,8 +611,13 @@ def main() -> None:  # pragma: no cover
     # Enrich manual review cases for report
     raw_case_map = {br: containers for br, containers in raw_cases}
     manual_enriched = enrich_manual_review(
-        manual, raw_case_map, entity_meta,
-        rdf_dir, dir_split, items_per_file, zip_output,
+        manual,
+        raw_case_map,
+        entity_meta,
+        rdf_dir,
+        dir_split,
+        items_per_file,
+        zip_output,
     )
 
     if args.dry_run:
@@ -647,9 +652,7 @@ def main() -> None:  # pragma: no cover
                 continue
             try:
                 assert res.correct_part_of is not None
-                fix_br_part_of(
-                    editor, res.br_uri, res.correct_part_of, res.to_remove
-                )
+                fix_br_part_of(editor, res.br_uri, res.correct_part_of, res.to_remove)
                 completed.add(res.br_uri)
                 _save_progress(args.progress_file, completed)
                 fixed_count += 1

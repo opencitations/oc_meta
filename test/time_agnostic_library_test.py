@@ -44,7 +44,9 @@ def prov_config_file():
 
 def _insert_data(triples: list[str], graph_uri: str) -> None:
     for triple in triples:
-        execute_sparql_update(SERVER, f"INSERT DATA {{ GRAPH <{graph_uri}> {{ {triple} }} }}")
+        execute_sparql_update(
+            SERVER, f"INSERT DATA {{ GRAPH <{graph_uri}> {{ {triple} }} }}"
+        )
 
 
 class TestTimeAgnosticLibraryIntegration:
@@ -62,37 +64,37 @@ class TestTimeAgnosticLibraryIntegration:
         target_se2 = f"{target_prov_graph}se/2"
 
         target_triples = [
-            f'<{target_entity_uri}> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression> .',
+            f"<{target_entity_uri}> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression> .",
             f'<{target_entity_uri}> <http://purl.org/dc/terms/title> "Merged Article" .',
         ]
         _insert_data(target_triples, f"{BASE_IRI}br/")
 
         source_prov = [
-            f'GRAPH <{source_prov_graph}> {{ <{source_se1}> a <{ProvEntity.iri_entity}> }}',
-            f'GRAPH <{source_prov_graph}> {{ <{source_se1}> <{ProvEntity.iri_specialization_of}> <{source_entity_uri}> }}',
+            f"GRAPH <{source_prov_graph}> {{ <{source_se1}> a <{ProvEntity.iri_entity}> }}",
+            f"GRAPH <{source_prov_graph}> {{ <{source_se1}> <{ProvEntity.iri_specialization_of}> <{source_entity_uri}> }}",
             f'GRAPH <{source_prov_graph}> {{ <{source_se1}> <{ProvEntity.iri_generated_at_time}> "2024-01-01T00:00:00+00:00"^^<http://www.w3.org/2001/XMLSchema#dateTime> }}',
-            f'GRAPH <{source_prov_graph}> {{ <{source_se1}> <{ProvEntity.iri_was_attributed_to}> <https://w3id.org/oc/meta/prov/pa/1> }}',
+            f"GRAPH <{source_prov_graph}> {{ <{source_se1}> <{ProvEntity.iri_was_attributed_to}> <https://w3id.org/oc/meta/prov/pa/1> }}",
             f'GRAPH <{source_prov_graph}> {{ <{source_se1}> <{ProvEntity.iri_description}> "The entity has been created." }}',
-            f'GRAPH <{source_prov_graph}> {{ <{source_se2}> a <{ProvEntity.iri_entity}> }}',
-            f'GRAPH <{source_prov_graph}> {{ <{source_se2}> <{ProvEntity.iri_specialization_of}> <{source_entity_uri}> }}',
+            f"GRAPH <{source_prov_graph}> {{ <{source_se2}> a <{ProvEntity.iri_entity}> }}",
+            f"GRAPH <{source_prov_graph}> {{ <{source_se2}> <{ProvEntity.iri_specialization_of}> <{source_entity_uri}> }}",
             f'GRAPH <{source_prov_graph}> {{ <{source_se2}> <{ProvEntity.iri_generated_at_time}> "2024-02-01T00:00:00+00:00"^^<http://www.w3.org/2001/XMLSchema#dateTime> }}',
-            f'GRAPH <{source_prov_graph}> {{ <{source_se2}> <{ProvEntity.iri_was_attributed_to}> <https://w3id.org/oc/meta/prov/pa/1> }}',
-            f'GRAPH <{source_prov_graph}> {{ <{source_se2}> <{ProvEntity.iri_was_derived_from}> <{source_se1}> }}',
+            f"GRAPH <{source_prov_graph}> {{ <{source_se2}> <{ProvEntity.iri_was_attributed_to}> <https://w3id.org/oc/meta/prov/pa/1> }}",
+            f"GRAPH <{source_prov_graph}> {{ <{source_se2}> <{ProvEntity.iri_was_derived_from}> <{source_se1}> }}",
             f'GRAPH <{source_prov_graph}> {{ <{source_se2}> <{ProvEntity.iri_description}> "The entity has been deleted." }}',
         ]
 
         target_prov = [
-            f'GRAPH <{target_prov_graph}> {{ <{target_se1}> a <{ProvEntity.iri_entity}> }}',
-            f'GRAPH <{target_prov_graph}> {{ <{target_se1}> <{ProvEntity.iri_specialization_of}> <{target_entity_uri}> }}',
+            f"GRAPH <{target_prov_graph}> {{ <{target_se1}> a <{ProvEntity.iri_entity}> }}",
+            f"GRAPH <{target_prov_graph}> {{ <{target_se1}> <{ProvEntity.iri_specialization_of}> <{target_entity_uri}> }}",
             f'GRAPH <{target_prov_graph}> {{ <{target_se1}> <{ProvEntity.iri_generated_at_time}> "2024-01-01T00:00:00+00:00"^^<http://www.w3.org/2001/XMLSchema#dateTime> }}',
-            f'GRAPH <{target_prov_graph}> {{ <{target_se1}> <{ProvEntity.iri_was_attributed_to}> <https://w3id.org/oc/meta/prov/pa/1> }}',
+            f"GRAPH <{target_prov_graph}> {{ <{target_se1}> <{ProvEntity.iri_was_attributed_to}> <https://w3id.org/oc/meta/prov/pa/1> }}",
             f'GRAPH <{target_prov_graph}> {{ <{target_se1}> <{ProvEntity.iri_description}> "The entity has been created." }}',
-            f'GRAPH <{target_prov_graph}> {{ <{target_se2}> a <{ProvEntity.iri_entity}> }}',
-            f'GRAPH <{target_prov_graph}> {{ <{target_se2}> <{ProvEntity.iri_specialization_of}> <{target_entity_uri}> }}',
+            f"GRAPH <{target_prov_graph}> {{ <{target_se2}> a <{ProvEntity.iri_entity}> }}",
+            f"GRAPH <{target_prov_graph}> {{ <{target_se2}> <{ProvEntity.iri_specialization_of}> <{target_entity_uri}> }}",
             f'GRAPH <{target_prov_graph}> {{ <{target_se2}> <{ProvEntity.iri_generated_at_time}> "2024-02-01T00:00:00+00:00"^^<http://www.w3.org/2001/XMLSchema#dateTime> }}',
-            f'GRAPH <{target_prov_graph}> {{ <{target_se2}> <{ProvEntity.iri_was_attributed_to}> <https://w3id.org/oc/meta/prov/pa/1> }}',
-            f'GRAPH <{target_prov_graph}> {{ <{target_se2}> <{ProvEntity.iri_was_derived_from}> <{target_se1}> }}',
-            f'GRAPH <{target_prov_graph}> {{ <{target_se2}> <{ProvEntity.iri_was_derived_from}> <{source_se1}> }}',
+            f"GRAPH <{target_prov_graph}> {{ <{target_se2}> <{ProvEntity.iri_was_attributed_to}> <https://w3id.org/oc/meta/prov/pa/1> }}",
+            f"GRAPH <{target_prov_graph}> {{ <{target_se2}> <{ProvEntity.iri_was_derived_from}> <{target_se1}> }}",
+            f"GRAPH <{target_prov_graph}> {{ <{target_se2}> <{ProvEntity.iri_was_derived_from}> <{source_se1}> }}",
             f'GRAPH <{target_prov_graph}> {{ <{target_se2}> <{ProvEntity.iri_description}> "The entity has been merged." }}',
         ]
 

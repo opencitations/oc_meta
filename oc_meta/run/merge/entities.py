@@ -103,7 +103,7 @@ class EntityMerger:
                 PREFIX pro: <http://purl.org/spar/pro/>
                 SELECT DISTINCT ?entity WHERE {{
                     {{
-                        {' UNION '.join(merged_clauses)}
+                        {" UNION ".join(merged_clauses)}
                     }}
                     FILTER (?p != rdf:type)
                     FILTER (?p != datacite:usesIdentifierScheme)
@@ -111,7 +111,9 @@ class EntityMerger:
                 }}
             """
 
-            results = execute_sparql(meta_editor.endpoint, query, max_retries=5, backoff_factor=0.3)
+            results = execute_sparql(
+                meta_editor.endpoint, query, max_retries=5, backoff_factor=0.3
+            )
             for result in results["results"]["bindings"]:
                 if result["entity"]["type"] == "uri":
                     related = result["entity"]["value"]
@@ -137,7 +139,7 @@ class EntityMerger:
                 PREFIX pro: <http://purl.org/spar/pro/>
                 SELECT DISTINCT ?entity WHERE {{
                     {{
-                        {' UNION '.join(surviving_clauses)}
+                        {" UNION ".join(surviving_clauses)}
                     }}
                     FILTER (?p != rdf:type)
                     FILTER (?p != datacite:usesIdentifierScheme)
@@ -145,7 +147,9 @@ class EntityMerger:
                 }}
             """
 
-            results = execute_sparql(meta_editor.endpoint, query, max_retries=5, backoff_factor=0.3)
+            results = execute_sparql(
+                meta_editor.endpoint, query, max_retries=5, backoff_factor=0.3
+            )
             for result in results["results"]["bindings"]:
                 if result["entity"]["type"] == "uri":
                     related = result["entity"]["value"]
@@ -285,7 +289,7 @@ class EntityMerger:
         # Use forkserver to avoid deadlocks when forking in a multi-threaded environment
         with concurrent.futures.ProcessPoolExecutor(
             max_workers=self.workers,
-            mp_context=multiprocessing.get_context('forkserver')
+            mp_context=multiprocessing.get_context("forkserver"),
         ) as executor:
             futures = {}
             for csv_file in csv_files:

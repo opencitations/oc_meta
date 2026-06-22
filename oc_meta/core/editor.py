@@ -48,7 +48,13 @@ class MetaEditor:
         "https://w3id.org/oc/ontology/hasNext": "remove_next",
     }
 
-    def __init__(self, meta_config: str, resp_agent: str, save_queries: bool = False, counter_handler: CounterHandler | None = None):
+    def __init__(
+        self,
+        meta_config: str,
+        resp_agent: str,
+        save_queries: bool = False,
+        counter_handler: CounterHandler | None = None,
+    ):
         with open(meta_config, encoding="utf-8") as file:
             settings = yaml.full_load(file)
         self.endpoint = settings["triplestore_url"]
@@ -81,9 +87,7 @@ class MetaEditor:
         self.entity_cache = EntityCache()
         self.relationship_cache = {}
 
-    def update_property(
-        self, res: str, property: str, new_value: str
-    ) -> None:
+    def update_property(self, res: str, property: str, new_value: str) -> None:
         supplier_prefix = get_prefix(res)
         g_set = GraphSet(
             self.base_iri,
@@ -106,7 +110,9 @@ class MetaEditor:
             getattr(g_set.get_entity(res), property)(new_value)
         self.save(g_set, supplier_prefix)
 
-    def delete(self, res: str, property: str | None = None, object: str | None = None) -> None:
+    def delete(
+        self, res: str, property: str | None = None, object: str | None = None
+    ) -> None:
         res_str = str(res)
         supplier_prefix = get_prefix(res_str)
         g_set = GraphSet(
@@ -124,10 +130,14 @@ class MetaEditor:
                 query: str = (
                     f"SELECT ?s ?p ?o WHERE {{BIND (<{res_str}> AS ?s). ?s ?p ?o.}}"
                 )
-                result = execute_sparql(self.endpoint, query, max_retries=3, backoff_factor=0.3)["results"]["bindings"]
+                result = execute_sparql(
+                    self.endpoint, query, max_retries=3, backoff_factor=0.3
+                )["results"]["bindings"]
                 graph = build_graph_from_results(result)
                 preexisting_graph = graph.subgraph(res_str)
-                self.add_entity_with_type(g_set, res_str, inferred_type, preexisting_graph)
+                self.add_entity_with_type(
+                    g_set, res_str, inferred_type, preexisting_graph
+                )
             else:
                 return
         if not g_set.get_entity(res_str):
@@ -160,7 +170,9 @@ class MetaEditor:
                 getattr(g_set.get_entity(res_str), remove_method)()
         else:
             query = f"SELECT ?s WHERE {{?s ?p <{res_str}>.}}"
-            result = execute_sparql(self.endpoint, query, max_retries=3, backoff_factor=0.3)
+            result = execute_sparql(
+                self.endpoint, query, max_retries=3, backoff_factor=0.3
+            )
             for entity in result["results"]["bindings"]:
                 self.reader.import_entity_from_triplestore(
                     g_set,
@@ -192,7 +204,9 @@ class MetaEditor:
                     FILTER (?p != pro:withRole)
                 }}"""
 
-            data = execute_sparql(self.endpoint, query, max_retries=5, backoff_factor=0.3)
+            data = execute_sparql(
+                self.endpoint, query, max_retries=5, backoff_factor=0.3
+            )
             other_related = {
                 result["entity"]["value"]
                 for result in data["results"]["bindings"]
@@ -215,7 +229,9 @@ class MetaEditor:
                     FILTER (?p != pro:withRole)
                 }}"""
 
-            data = execute_sparql(self.endpoint, query, max_retries=5, backoff_factor=0.3)
+            data = execute_sparql(
+                self.endpoint, query, max_retries=5, backoff_factor=0.3
+            )
             res_related = {
                 result["entity"]["value"]
                 for result in data["results"]["bindings"]
@@ -259,7 +275,9 @@ class MetaEditor:
         else:
             res_as_entity.merge(other_as_entity)
 
-    def sync_rdf_with_triplestore(self, res: str, source_uri: str | None = None) -> bool:
+    def sync_rdf_with_triplestore(
+        self, res: str, source_uri: str | None = None
+    ) -> bool:
         supplier_prefix = get_prefix(res)
         g_set = GraphSet(
             self.base_iri,
@@ -286,7 +304,11 @@ class MetaEditor:
                 return False
             except ValueError:
                 res_filepath = find_rdf_file(
-                    source_uri, self.base_dir, self.dir_split, self.n_file_item, self.zip_output_rdf
+                    source_uri,
+                    self.base_dir,
+                    self.dir_split,
+                    self.n_file_item,
+                    self.zip_output_rdf,
                 )
                 if not res_filepath:
                     return False
@@ -299,9 +321,7 @@ class MetaEditor:
                 res_entity = g_set.get_entity(source_uri)
                 if res_entity:
                     for entity_res, entity in g_set.res_to_entity.items():
-                        triples_list = list(
-                            entity.g.triples((source_uri, None, None))
-                        )
+                        triples_list = list(entity.g.triples((source_uri, None, None)))
                         for triple in triples_list:
                             entity.g.remove(triple)
                     self.save(g_set, supplier_prefix)
@@ -328,16 +348,20 @@ class MetaEditor:
             n_file_item=self.n_file_item,
             zip_output=self.zip_output_rdf,
         )
-        
+
         graph_storer.store_all(self.base_dir, self.base_iri)
         prov_storer.store_all(self.base_dir, self.base_iri)
 
         if not self.rdf_files_only:
             graph_storer.upload_all(
-                self.endpoint, base_dir=self.data_hotfix_dir, save_queries=self.save_queries
+                self.endpoint,
+                base_dir=self.data_hotfix_dir,
+                save_queries=self.save_queries,
             )
             prov_storer.upload_all(
-                self.provenance_endpoint, base_dir=self.prov_hotfix_dir, save_queries=self.save_queries
+                self.provenance_endpoint,
+                base_dir=self.prov_hotfix_dir,
+                save_queries=self.save_queries,
             )
         g_set.commit_changes()
         if isinstance(self.counter_handler, FilesystemCounterHandler):

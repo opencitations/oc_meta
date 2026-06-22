@@ -12,69 +12,85 @@ from rdflib import Dataset
 
 from oc_meta.run.migration.stream_nquads import convert_zip_to_nquads
 
-SAMPLE_DATA_JSONLD = json.dumps([
-    {
-        "@graph": [
-            {
-                "@id": "https://w3id.org/oc/meta/br/06790727",
-                "@type": [
-                    "http://purl.org/spar/fabio/JournalIssue",
-                    "http://purl.org/spar/fabio/Expression",
-                ],
-                "http://purl.org/spar/fabio/hasSequenceIdentifier": [
-                    {"@type": "http://www.w3.org/2001/XMLSchema#string", "@value": "7322"}
-                ],
-                "http://purl.org/vocab/frbr/core#partOf": [
-                    {"@id": "https://w3id.org/oc/meta/br/062203516555"}
-                ],
-            },
-            {
-                "@id": "https://w3id.org/oc/meta/br/06790671",
-                "@type": ["http://purl.org/spar/fabio/Expression"],
-                "http://purl.org/spar/fabio/hasSequenceIdentifier": [
-                    {"@type": "http://www.w3.org/2001/XMLSchema#string", "@value": "6"}
-                ],
-            },
-        ],
-        "@id": "https://w3id.org/oc/meta/br/",
-    }
-])
+SAMPLE_DATA_JSONLD = json.dumps(
+    [
+        {
+            "@graph": [
+                {
+                    "@id": "https://w3id.org/oc/meta/br/06790727",
+                    "@type": [
+                        "http://purl.org/spar/fabio/JournalIssue",
+                        "http://purl.org/spar/fabio/Expression",
+                    ],
+                    "http://purl.org/spar/fabio/hasSequenceIdentifier": [
+                        {
+                            "@type": "http://www.w3.org/2001/XMLSchema#string",
+                            "@value": "7322",
+                        }
+                    ],
+                    "http://purl.org/vocab/frbr/core#partOf": [
+                        {"@id": "https://w3id.org/oc/meta/br/062203516555"}
+                    ],
+                },
+                {
+                    "@id": "https://w3id.org/oc/meta/br/06790671",
+                    "@type": ["http://purl.org/spar/fabio/Expression"],
+                    "http://purl.org/spar/fabio/hasSequenceIdentifier": [
+                        {
+                            "@type": "http://www.w3.org/2001/XMLSchema#string",
+                            "@value": "6",
+                        }
+                    ],
+                },
+            ],
+            "@id": "https://w3id.org/oc/meta/br/",
+        }
+    ]
+)
 
-SAMPLE_PROV_JSONLD = json.dumps([
-    {
-        "@graph": [
-            {
-                "@id": "https://w3id.org/oc/meta/br/06790181/prov/se/1",
-                "@type": ["http://www.w3.org/ns/prov#Entity"],
-                "http://purl.org/dc/terms/description": [
-                    {"@type": "http://www.w3.org/2001/XMLSchema#string",
-                     "@value": "The entity 'https://w3id.org/oc/meta/br/06790181' has been created."}
-                ],
-                "http://www.w3.org/ns/prov#generatedAtTime": [
-                    {"@type": "http://www.w3.org/2001/XMLSchema#dateTime",
-                     "@value": "2024-03-27T17:31:42+00:00"}
-                ],
-                "http://www.w3.org/ns/prov#specializationOf": [
-                    {"@id": "https://w3id.org/oc/meta/br/06790181"}
-                ],
-            }
-        ],
-        "@id": "https://w3id.org/oc/meta/br/06790181/prov/",
-    },
-    {
-        "@graph": [
-            {
-                "@id": "https://w3id.org/oc/meta/br/06790575/prov/se/1",
-                "@type": ["http://www.w3.org/ns/prov#Entity"],
-                "http://purl.org/dc/terms/description": [
-                    {"@type": "http://www.w3.org/2001/XMLSchema#string",
-                     "@value": "The entity 'https://w3id.org/oc/meta/br/06790575' has been created."}
-                ],
-            }
-        ],
-        "@id": "https://w3id.org/oc/meta/br/06790575/prov/",
-    },
-])
+SAMPLE_PROV_JSONLD = json.dumps(
+    [
+        {
+            "@graph": [
+                {
+                    "@id": "https://w3id.org/oc/meta/br/06790181/prov/se/1",
+                    "@type": ["http://www.w3.org/ns/prov#Entity"],
+                    "http://purl.org/dc/terms/description": [
+                        {
+                            "@type": "http://www.w3.org/2001/XMLSchema#string",
+                            "@value": "The entity 'https://w3id.org/oc/meta/br/06790181' has been created.",
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#generatedAtTime": [
+                        {
+                            "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+                            "@value": "2024-03-27T17:31:42+00:00",
+                        }
+                    ],
+                    "http://www.w3.org/ns/prov#specializationOf": [
+                        {"@id": "https://w3id.org/oc/meta/br/06790181"}
+                    ],
+                }
+            ],
+            "@id": "https://w3id.org/oc/meta/br/06790181/prov/",
+        },
+        {
+            "@graph": [
+                {
+                    "@id": "https://w3id.org/oc/meta/br/06790575/prov/se/1",
+                    "@type": ["http://www.w3.org/ns/prov#Entity"],
+                    "http://purl.org/dc/terms/description": [
+                        {
+                            "@type": "http://www.w3.org/2001/XMLSchema#string",
+                            "@value": "The entity 'https://w3id.org/oc/meta/br/06790575' has been created.",
+                        }
+                    ],
+                }
+            ],
+            "@id": "https://w3id.org/oc/meta/br/06790575/prov/",
+        },
+    ]
+)
 
 
 def _make_zip(tmp_path: Path, filename: str, content: str) -> str:

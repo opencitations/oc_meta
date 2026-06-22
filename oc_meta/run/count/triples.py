@@ -25,7 +25,15 @@ from oc_meta.lib.file_manager import collect_files
 
 QUAD_FORMATS = {"nquads"}
 LINE_BASED_FORMATS = {"nquads", "nt"}
-JSONLD_SPECIAL_KEYS = {"@id", "@context", "@graph", "@list", "@set", "@language", "@value"}
+JSONLD_SPECIAL_KEYS = {
+    "@id",
+    "@context",
+    "@graph",
+    "@list",
+    "@set",
+    "@language",
+    "@value",
+}
 
 
 def _count_jsonld_value(value: object) -> int:
@@ -205,9 +213,7 @@ def _count_lines_text(file_obj: TextIO) -> int:
     return count
 
 
-def count_in_file(
-    file_path: Path, rdf_format: str
-) -> tuple[str, int, str | None]:
+def count_in_file(file_path: Path, rdf_format: str) -> tuple[str, int, str | None]:
     try:
         suffix = file_path.suffix.lower()
         use_line_count = rdf_format in LINE_BASED_FORMATS
@@ -262,7 +268,7 @@ def process_files(
         task = progress.add_task(f"Counting {unit_name}", total=len(files))
 
         # Use forkserver to avoid deadlocks when forking in a multi-threaded environment
-        ctx = multiprocessing.get_context('forkserver')
+        ctx = multiprocessing.get_context("forkserver")
         with ctx.Pool(processes=workers) as pool:
             for file_path, count, error in pool.imap_unordered(
                 worker_fn, files, chunksize=chunksize

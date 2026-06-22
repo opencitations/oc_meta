@@ -15,15 +15,20 @@ import pytest
 
 import orjson
 from oc_meta.run.find.duplicated_ids import (
-    load_and_merge_temp_csv, process_chunk, process_zip_file,
-    read_and_analyze_zip_files, save_chunk_to_temp_csv, save_duplicates_to_csv)
+    load_and_merge_temp_csv,
+    process_chunk,
+    process_zip_file,
+    read_and_analyze_zip_files,
+    save_chunk_to_temp_csv,
+    save_duplicates_to_csv,
+)
 
 
 class TestDuplicatedIds:
     @pytest.fixture(autouse=True)
     def setup_method(self, request):
         self.test_dir = tempfile.mkdtemp()
-        self.id_dir = os.path.join(self.test_dir, 'id')
+        self.id_dir = os.path.join(self.test_dir, "id")
         os.makedirs(self.id_dir)
         self.temp_dir = tempfile.mkdtemp()
 
@@ -46,7 +51,7 @@ class TestDuplicatedIds:
                         },
                         "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": {
                             "@value": "10.1234/test1"
-                        }
+                        },
                     }
                 ]
             },
@@ -59,7 +64,7 @@ class TestDuplicatedIds:
                         },
                         "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": {
                             "@value": "10.1234/test1"
-                        }
+                        },
                     }
                 ]
             },
@@ -72,7 +77,7 @@ class TestDuplicatedIds:
                         },
                         "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": {
                             "@value": "10.1234/test2"
-                        }
+                        },
                     }
                 ]
             },
@@ -85,7 +90,7 @@ class TestDuplicatedIds:
                         },
                         "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": {
                             "@value": "0000-0001-2345-6789"
-                        }
+                        },
                     }
                 ]
             },
@@ -98,7 +103,7 @@ class TestDuplicatedIds:
                         },
                         "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": {
                             "@value": "0000-0001-2345-6789"
-                        }
+                        },
                     }
                 ]
             },
@@ -111,8 +116,8 @@ class TestDuplicatedIds:
                         },
                         "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": {
                             "@value": "10.1234/test3",
-                            "@type": "http://www.w3.org/2001/XMLSchema#string"
-                        }
+                            "@type": "http://www.w3.org/2001/XMLSchema#string",
+                        },
                     }
                 ]
             },
@@ -125,23 +130,23 @@ class TestDuplicatedIds:
                         },
                         "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": {
                             "@value": "10.1234/test3"
-                        }
+                        },
                     }
                 ]
-            }
+            },
         ]
         return rdf_data
 
     def _create_test_zip_files(self):
         zip_paths = []
         for i in range(4):
-            zip_path = os.path.join(self.id_dir, f'test_{i}.zip')
-            with zipfile.ZipFile(zip_path, 'w') as zf:
+            zip_path = os.path.join(self.id_dir, f"test_{i}.zip")
+            with zipfile.ZipFile(zip_path, "w") as zf:
                 start_idx = i * 2
                 end_idx = min(start_idx + 2, len(self.test_rdf_with_duplicates))
                 for j in range(start_idx, end_idx):
                     rdf_content = orjson.dumps(self.test_rdf_with_duplicates[j])
-                    zf.writestr(f'rdf_{j}.json', rdf_content)
+                    zf.writestr(f"rdf_{j}.json", rdf_content)
             zip_paths.append(zip_path)
         return zip_paths
 
@@ -159,13 +164,13 @@ class TestDuplicatedIds:
         entity_info = defaultdict(set)
         entity_info[("http://purl.org/spar/datacite/doi", "10.1234/test1")] = {
             "https://w3id.org/oc/meta/id/1",
-            "https://w3id.org/oc/meta/id/2"
+            "https://w3id.org/oc/meta/id/2",
         }
         entity_info[("http://purl.org/spar/datacite/doi", "10.1234/test2")] = {
             "https://w3id.org/oc/meta/id/3"
         }
 
-        temp_file = os.path.join(self.temp_dir, 'test_chunk.csv')
+        temp_file = os.path.join(self.temp_dir, "test_chunk.csv")
         save_chunk_to_temp_csv(entity_info, temp_file)
 
         assert os.path.exists(temp_file)
@@ -184,7 +189,7 @@ class TestDuplicatedIds:
 
         assert os.path.exists(temp_file)
 
-        with open(temp_file, 'r', encoding='utf-8') as f:
+        with open(temp_file, "r", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             rows = list(reader)
             assert len(rows) > 0
@@ -194,78 +199,84 @@ class TestDuplicatedIds:
         entity_info[("http://purl.org/spar/datacite/doi", "10.1234/test1")] = {
             "https://w3id.org/oc/meta/id/1",
             "https://w3id.org/oc/meta/id/2",
-            "https://w3id.org/oc/meta/id/3"
+            "https://w3id.org/oc/meta/id/3",
         }
         entity_info[("http://purl.org/spar/datacite/doi", "10.1234/test2")] = {
             "https://w3id.org/oc/meta/id/4"
         }
 
-        output_file = os.path.join(self.temp_dir, 'duplicates.csv')
+        output_file = os.path.join(self.temp_dir, "duplicates.csv")
         save_duplicates_to_csv(entity_info, output_file)
 
         assert os.path.exists(output_file)
 
-        with open(output_file, 'r', encoding='utf-8') as f:
+        with open(output_file, "r", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             rows = list(reader)
 
             assert len(rows) == 1
 
-            assert rows[0]['surviving_entity'] in {
+            assert rows[0]["surviving_entity"] in {
                 "https://w3id.org/oc/meta/id/1",
                 "https://w3id.org/oc/meta/id/2",
-                "https://w3id.org/oc/meta/id/3"
+                "https://w3id.org/oc/meta/id/3",
             }
 
-            merged_entities = rows[0]['merged_entities'].split('; ')
+            merged_entities = rows[0]["merged_entities"].split("; ")
             assert len(merged_entities) == 2
 
     def test_read_and_analyze_zip_files(self):
-        output_csv = os.path.join(self.temp_dir, 'output.csv')
+        output_csv = os.path.join(self.temp_dir, "output.csv")
 
         read_and_analyze_zip_files(self.test_dir, output_csv, chunk_size=2)
 
         assert os.path.exists(output_csv)
 
-        with open(output_csv, 'r', encoding='utf-8') as f:
+        with open(output_csv, "r", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             rows = list(reader)
 
             assert len(rows) > 0
 
     def test_chunking_behavior(self):
-        output_csv = os.path.join(self.temp_dir, 'output_chunked.csv')
+        output_csv = os.path.join(self.temp_dir, "output_chunked.csv")
 
         read_and_analyze_zip_files(self.test_dir, output_csv, chunk_size=1)
 
         assert os.path.exists(output_csv)
 
-        with open(output_csv, 'r', encoding='utf-8') as f:
+        with open(output_csv, "r", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             rows = list(reader)
 
             for row in rows:
-                assert 'surviving_entity' in row
-                assert 'merged_entities' in row
+                assert "surviving_entity" in row
+                assert "merged_entities" in row
 
     def test_datatype_normalization(self):
-        output_csv = os.path.join(self.temp_dir, 'output_datatype.csv')
+        output_csv = os.path.join(self.temp_dir, "output_datatype.csv")
 
         read_and_analyze_zip_files(self.test_dir, output_csv, chunk_size=2)
 
         assert os.path.exists(output_csv)
 
-        with open(output_csv, 'r', encoding='utf-8') as f:
+        with open(output_csv, "r", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             rows = list(reader)
 
             id6_and_id7_merged = False
             for row in rows:
-                all_entities = {row['surviving_entity']} | set(row['merged_entities'].split('; '))
+                all_entities = {row["surviving_entity"]} | set(
+                    row["merged_entities"].split("; ")
+                )
 
-                if ('https://w3id.org/oc/meta/id/6' in all_entities and
-                    'https://w3id.org/oc/meta/id/7' in all_entities):
+                if (
+                    "https://w3id.org/oc/meta/id/6" in all_entities
+                    and "https://w3id.org/oc/meta/id/7" in all_entities
+                ):
                     id6_and_id7_merged = True
                     break
 
-            assert id6_and_id7_merged, "ID 6 (with xsd:string datatype) and ID 7 (without datatype) should be merged as duplicates"
+            assert id6_and_id7_merged, (
+                "ID 6 (with xsd:string datatype) and ID 7 (without datatype) should be merged as duplicates"
+            )

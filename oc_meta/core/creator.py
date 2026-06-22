@@ -76,11 +76,7 @@ class Creator(object):
     _PRO_PUBLISHER = "http://purl.org/spar/pro/publisher"
 
     def _has_existing_roles(self, br_uri: str) -> dict:
-        has_roles = {
-            "author": False,
-            "editor": False,
-            "publisher": False
-        }
+        has_roles = {"author": False, "editor": False, "publisher": False}
 
         for ar_uri in self.finder._get_objects(br_uri, self._PRO_IS_DOC_CONTEXT_FOR):
             for role in self.finder._get_objects(ar_uri, self._PRO_WITH_ROLE):
@@ -132,16 +128,22 @@ class Creator(object):
                 existing_roles = self._has_existing_roles(br_uri)
 
                 skip_author = "author" in self.silencer and existing_roles["author"]
-                skip_publisher = "publisher" in self.silencer and existing_roles["publisher"]
+                skip_publisher = (
+                    "publisher" in self.silencer and existing_roles["publisher"]
+                )
 
-                editor_br_key = get_edited_br_metaid(row, self.row_meta, self.venue_meta)
+                editor_br_key = get_edited_br_metaid(
+                    row, self.row_meta, self.venue_meta
+                )
                 editor_br_uri = f"{self.url}{editor_br_key}"
                 editor_existing_roles = (
                     existing_roles
                     if editor_br_uri == br_uri
                     else self._has_existing_roles(editor_br_uri)
                 )
-                skip_editor = "editor" in self.silencer and editor_existing_roles["editor"]
+                skip_editor = (
+                    "editor" in self.silencer and editor_existing_roles["editor"]
+                )
 
             if not skip_author:
                 self.author_action(authors)
@@ -213,9 +215,7 @@ class Creator(object):
                 preexisting_entity = url in self.finder
                 self.row_meta = identifier
                 preexisting_graph = (
-                    self.finder.graph.subgraph(url)
-                    if preexisting_entity
-                    else None
+                    self.finder.graph.subgraph(url) if preexisting_entity else None
                 )
                 self.br_graph = self.setgraph.add_br(
                     self.resp_agent,
@@ -278,9 +278,7 @@ class Creator(object):
                 ar_url = self.url + ar_meta
                 preexisting_entity = ar_url in self.finder
                 preexisting_graph = (
-                    self.finder.graph.subgraph(ar_url)
-                    if preexisting_entity
-                    else None
+                    self.finder.graph.subgraph(ar_url) if preexisting_entity else None
                 )
                 author_ra_role = self.setgraph.add_ar(
                     self.resp_agent,
@@ -313,9 +311,7 @@ class Creator(object):
                     url = self.url + ven_id
                     preexisting_entity = url in self.finder
                     preexisting_graph = (
-                        self.finder.graph.subgraph(url)
-                        if preexisting_entity
-                        else None
+                        self.finder.graph.subgraph(url) if preexisting_entity else None
                     )
                     self.venue_graph = self.setgraph.add_br(
                         self.resp_agent,
@@ -440,9 +436,7 @@ class Creator(object):
             re_url = self.url + re_meta
             preexisting_entity = re_url in self.finder
             preexisting_graph = (
-                self.finder.graph.subgraph(re_url)
-                if preexisting_entity
-                else None
+                self.finder.graph.subgraph(re_url) if preexisting_entity else None
             )
             form = self.setgraph.add_re(
                 self.resp_agent,
@@ -536,9 +530,7 @@ class Creator(object):
                 ar_url = self.url + ar_meta
                 preexisting_entity = ar_url in self.finder
                 preexisting_graph = (
-                    self.finder.graph.subgraph(ar_url)
-                    if preexisting_entity
-                    else None
+                    self.finder.graph.subgraph(ar_url) if preexisting_entity else None
                 )
                 publ_role = self.setgraph.add_ar(
                     self.resp_agent,
@@ -602,9 +594,7 @@ class Creator(object):
                 ar_url = self.url + ar_meta
                 preexisting_entity = ar_url in self.finder
                 preexisting_graph = (
-                    self.finder.graph.subgraph(ar_url)
-                    if preexisting_entity
-                    else None
+                    self.finder.graph.subgraph(ar_url) if preexisting_entity else None
                 )
                 editor_ra_role = self.setgraph.add_ar(
                     self.resp_agent,
@@ -614,7 +604,13 @@ class Creator(object):
                 )
                 editor_ra_role.create_editor()
                 br_graphs: List[BibliographicResource] = [
-                    g for g in [self.br_graph, self.issue_graph, self.vol_graph, self.venue_graph]
+                    g
+                    for g in [
+                        self.br_graph,
+                        self.issue_graph,
+                        self.vol_graph,
+                        self.venue_graph,
+                    ]
                     if g is not None
                 ]
                 for graph in br_graphs:
@@ -642,9 +638,7 @@ class Creator(object):
                     url = self.url + res
                     preexisting_entity = url in self.finder
                     preexisting_graph = (
-                        self.finder.graph.subgraph(url)
-                        if preexisting_entity
-                        else None
+                        self.finder.graph.subgraph(url) if preexisting_entity else None
                     )
                     new_id = self.setgraph.add_id(
                         self.resp_agent,
@@ -661,9 +655,7 @@ class Creator(object):
                     url = self.url + res
                     preexisting_entity = url in self.finder
                     preexisting_graph = (
-                        self.finder.graph.subgraph(url)
-                        if preexisting_entity
-                        else None
+                        self.finder.graph.subgraph(url) if preexisting_entity else None
                     )
                     new_id = self.setgraph.add_id(
                         self.resp_agent,
