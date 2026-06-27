@@ -13,8 +13,11 @@ from rdflib import Dataset
 
 from oc_meta.run.migration.stream_nquads import (
     convert_zip_to_nquads,
+    convert_zip_to_nquads_file,
     create_progress,
+    read_nquads_file_groups,
     write_nquads_chunks,
+    write_nquads_line_groups,
 )
 
 SAMPLE_DATA_JSONLD = json.dumps(
@@ -277,3 +280,40 @@ class TestWriteNquadsChunks:
         )
 
         assert progress.tasks[0].completed == 2
+
+    def test_file_chunks_remove_sources(self, tmp_path: Path) -> None:
+        first_source = tmp_path / "first.nq"
+        second_source = tmp_path / "second.nq"
+        output_dir = tmp_path / "chunks"
+        first_source.write_bytes(b"<s1> <p> <o> <g> .\n<s2> <p> <o> <g> .\n")
+        second_source.write_bytes(b"<s3> <p> <o> <g> .\n")
+
+        write_nquads_line_groups(
+            read_nquads_file_groups([str(first_source), str(second_source)]),
+            output_dir,
+            "meta-data",
+            2,
+            False,
+        )
+
+        files = sorted(path.name for path in output_dir.iterdir())
+        assert files == ["meta-data.000000.nq", "meta-data.000001.nq"]
+        assert (output_dir / "meta-data.000000.nq").read_bytes() == (
+            b"<s1> <p> <o> <g> .\n<s2> <p> <o> <g> .\n"
+        )
+        assert (output_dir / "meta-data.000001.nq").read_bytes() == (
+            b"<s3> <p> <o> <g> .\n"
+        )
+        assert first_source.exists() is False
+        assert second_source.exists() is False
+
+    def test_convert_zip_to_nquads_file(self, tmp_path: Path) -> None:
+        zip_path = _make_zip(tmp_path, "1000.zip", SAMPLE_DATA_JSONLD)
+        output_path = tmp_path / "result.nq"
+
+        result_path = convert_zip_to_nquads_file((zip_path, str(output_path)))
+
+        assert result_path == str(output_path)
+        assert _extract_quads(output_path.read_bytes()) == _extract_quads(
+            convert_zip_to_nquads(zip_path)
+        )

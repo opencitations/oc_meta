@@ -10,8 +10,9 @@ import gzip
 import multiprocessing
 import sys
 import zipfile
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import IO
 
 from rdflib import Dataset
@@ -46,6 +47,12 @@ def convert_zip_to_nquads(zip_path: str) -> bytes:
         raise
 
 
+def convert_zip_to_nquads_file(task: tuple[str, str]) -> str:
+    zip_path, output_path = task
+    Path(output_path).write_bytes(convert_zip_to_nquads(zip_path))
+    return output_path
+
+
 def open_output_file(
     output_dir: Path, prefix: str, file_index: int, compress: bool
 ) -> gzip.GzipFile | IO[bytes]:
@@ -56,8 +63,21 @@ def open_output_file(
     return output_path.open("wb")
 
 
-def write_nquads_chunks(
-    results: Iterable[bytes],
+def split_nquads_results(results: Iterable[bytes]) -> Iterator[list[bytes]]:
+    for result in results:
+        yield result.splitlines(keepends=True)
+
+
+def read_nquads_file_groups(result_paths: Iterable[str]) -> Iterator[Iterator[bytes]]:
+    for result_path in result_paths:
+        path = Path(result_path)
+        with path.open("rb") as file:
+            yield iter(file.readline, b"")
+        path.unlink()
+
+
+def write_nquads_line_groups(
+    line_groups: Iterable[Iterable[bytes]],
     output_dir: Path,
     prefix: str,
     lines_per_file: int,
@@ -70,21 +90,44 @@ def write_nquads_chunks(
     line_count = 0
     output_file: gzip.GzipFile | IO[bytes] | None = None
 
-    for result in results:
-        for line in result.splitlines(keepends=True):
-            if output_file is None or line_count == lines_per_file:
-                if output_file is not None:
-                    output_file.close()
-                output_file = open_output_file(output_dir, prefix, file_index, compress)
-                file_index += 1
-                line_count = 0
-            output_file.write(line)
-            line_count += 1
-        if progress is not None and task_id is not None:
-            progress.advance(task_id)
+    try:
+        for lines in line_groups:
+            for line in lines:
+                if output_file is None or line_count == lines_per_file:
+                    if output_file is not None:
+                        output_file.close()
+                    output_file = open_output_file(
+                        output_dir, prefix, file_index, compress
+                    )
+                    file_index += 1
+                    line_count = 0
+                output_file.write(line)
+                line_count += 1
+            if progress is not None and task_id is not None:
+                progress.advance(task_id)
+    finally:
+        if output_file is not None:
+            output_file.close()
 
-    if output_file is not None:
-        output_file.close()
+
+def write_nquads_chunks(
+    results: Iterable[bytes],
+    output_dir: Path,
+    prefix: str,
+    lines_per_file: int,
+    compress: bool,
+    progress: Progress | None = None,
+    task_id: TaskID | None = None,
+) -> None:
+    write_nquads_line_groups(
+        split_nquads_results(results),
+        output_dir,
+        prefix,
+        lines_per_file,
+        compress,
+        progress,
+        task_id,
+    )
 
 
 def write_nquads_stdout(results: Iterable[bytes]) -> None:
@@ -167,22 +210,36 @@ def main() -> None:  # pragma: no cover
 
     ctx = multiprocessing.get_context("forkserver")
     with ctx.Pool(processes=num_workers) as pool:
-        results = pool.imap_unordered(convert_zip_to_nquads, zip_files, chunksize=10)
         if output_dir:
+            output_dir.mkdir(parents=True, exist_ok=True)
             with create_progress() as progress:
                 task_id = progress.add_task(
                     "Writing N-Quads files", total=len(zip_files)
                 )
-                write_nquads_chunks(
-                    results,
-                    output_dir,
-                    args.prefix,
-                    args.lines_per_file,
-                    args.gzip,
-                    progress,
-                    task_id,
-                )
+                with TemporaryDirectory(
+                    prefix=f".{args.prefix}.", dir=output_dir
+                ) as temp_dir:
+                    temp_path = Path(temp_dir)
+                    conversion_tasks = (
+                        (zip_path, str(temp_path / f"{index:06d}.nq"))
+                        for index, zip_path in enumerate(zip_files)
+                    )
+                    result_paths = pool.imap_unordered(
+                        convert_zip_to_nquads_file, conversion_tasks, chunksize=10
+                    )
+                    write_nquads_line_groups(
+                        read_nquads_file_groups(result_paths),
+                        output_dir,
+                        args.prefix,
+                        args.lines_per_file,
+                        args.gzip,
+                        progress,
+                        task_id,
+                    )
         else:
+            results = pool.imap_unordered(
+                convert_zip_to_nquads, zip_files, chunksize=10
+            )
             write_nquads_stdout(results)
 
 
