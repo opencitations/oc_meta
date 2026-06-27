@@ -45,15 +45,31 @@ from oc_meta.run.benchmark.plotting import plot_incremental_progress
 def _upload_to_triplestore(
     endpoint: str,
     folder: str,
-    redis_host: str,
-    redis_port: int,
-    redis_db: int,
+    redis_host: str | None,
+    redis_port: int | None,
+    redis_db: int | None,
     failed_file: str,
     stop_file: str,
     description: str = "Processing files",
+    show_progress: bool = False,
 ) -> None:
-    """Upload SPARQL queries from folder to triplestore endpoint."""
     try:
+        if redis_host is None:
+            upload_sparql_updates(
+                endpoint=endpoint,
+                folder=folder,
+                failed_file=failed_file,
+                stop_file=stop_file,
+                description=description,
+                show_progress=show_progress,
+            )
+            return
+
+        if redis_port is None or redis_db is None:
+            raise ValueError(
+                "redis_port and redis_cache_db are required when redis_host is set"
+            )
+
         upload_sparql_updates(
             endpoint=endpoint,
             folder=folder,
@@ -63,7 +79,7 @@ def _upload_to_triplestore(
             redis_port=redis_port,
             redis_db=redis_db,
             description=description,
-            show_progress=False,
+            show_progress=show_progress,
         )
     except Exception as e:
         console.print(f"[red]Upload to {endpoint} failed: {e}[/red]")
@@ -445,14 +461,16 @@ class MetaProcess:
                     )
 
     def run_sparql_updates(self, endpoint: str, folder: str):
-        upload_sparql_updates(
-            endpoint=endpoint,
-            folder=folder,
-            failed_file=self.ts_failed_queries,
-            stop_file=self.ts_stop_file,
-            redis_host=self.redis_host,
-            redis_port=self.redis_port,
-            redis_db=self.redis_cache_db,
+        _upload_to_triplestore(
+            endpoint,
+            folder,
+            self.redis_host,
+            self.redis_port,
+            self.redis_cache_db,
+            self.ts_failed_queries,
+            self.ts_stop_file,
+            "Processing files",
+            True,
         )
 
 

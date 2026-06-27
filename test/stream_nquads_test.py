@@ -3,6 +3,7 @@
 #
 # SPDX-License-Identifier: ISC
 
+import gzip
 import json
 import zipfile
 from pathlib import Path
@@ -10,7 +11,11 @@ from pathlib import Path
 import pytest
 from rdflib import Dataset
 
-from oc_meta.run.migration.stream_nquads import convert_zip_to_nquads
+from oc_meta.run.migration.stream_nquads import (
+    convert_zip_to_nquads,
+    create_progress,
+    write_nquads_chunks,
+)
 
 SAMPLE_DATA_JSONLD = json.dumps(
     [
@@ -213,3 +218,62 @@ class TestConvertZipToNquads:
 
         with pytest.raises(json.JSONDecodeError):
             convert_zip_to_nquads(str(zip_path))
+
+
+class TestWriteNquadsChunks:
+    def test_plain_chunks(self, tmp_path: Path) -> None:
+        output_dir = tmp_path / "chunks"
+
+        write_nquads_chunks(
+            [b"<s1> <p> <o> <g> .\n<s2> <p> <o> <g> .\n", b"<s3> <p> <o> <g> .\n"],
+            output_dir,
+            "meta-data",
+            2,
+            False,
+        )
+
+        files = sorted(path.name for path in output_dir.iterdir())
+        assert files == ["meta-data.000000.nq", "meta-data.000001.nq"]
+        assert (output_dir / "meta-data.000000.nq").read_bytes() == (
+            b"<s1> <p> <o> <g> .\n<s2> <p> <o> <g> .\n"
+        )
+        assert (output_dir / "meta-data.000001.nq").read_bytes() == (
+            b"<s3> <p> <o> <g> .\n"
+        )
+
+    def test_gzip_chunks(self, tmp_path: Path) -> None:
+        output_dir = tmp_path / "chunks"
+
+        write_nquads_chunks(
+            [b"<s1> <p> <o> <g> .\n<s2> <p> <o> <g> .\n<s3> <p> <o> <g> .\n"],
+            output_dir,
+            "meta-data",
+            2,
+            True,
+        )
+
+        files = sorted(path.name for path in output_dir.iterdir())
+        assert files == ["meta-data.000000.nq.gz", "meta-data.000001.nq.gz"]
+        with gzip.open(output_dir / "meta-data.000000.nq.gz", "rb") as file:
+            first_chunk = file.read()
+        with gzip.open(output_dir / "meta-data.000001.nq.gz", "rb") as file:
+            second_chunk = file.read()
+        assert first_chunk == b"<s1> <p> <o> <g> .\n<s2> <p> <o> <g> .\n"
+        assert second_chunk == b"<s3> <p> <o> <g> .\n"
+
+    def test_progress_counts_results(self, tmp_path: Path) -> None:
+        output_dir = tmp_path / "chunks"
+        progress = create_progress()
+        task_id = progress.add_task("Writing N-Quads files", total=2)
+
+        write_nquads_chunks(
+            [b"<s1> <p> <o> <g> .\n", b"<s2> <p> <o> <g> .\n"],
+            output_dir,
+            "meta-data",
+            10,
+            False,
+            progress,
+            task_id,
+        )
+
+        assert progress.tasks[0].completed == 2

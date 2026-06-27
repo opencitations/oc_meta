@@ -6,7 +6,7 @@ SPDX-License-Identifier: ISC
 
 # Stream N-Quads
 
-Converts JSON-LD ZIP archives to N-Quads using rdflib and writes the output to stdout. Designed to pipe directly into QLever's indexer, eliminating the need for intermediate files on disk.
+Converts JSON-LD ZIP archives to N-Quads using rdflib. By default it writes to stdout for pipe-based tools such as QLever. It can also write chunked `.nq` or `.nq.gz` files for loaders such as Virtuoso.
 
 ## Usage
 
@@ -21,6 +21,10 @@ uv run python -m oc_meta.run.migration.stream_nquads <rdf_dir> [options]
 | `rdf_dir` | Yes | - | Root directory containing RDF ZIP archives |
 | `-m`, `--mode` | No | `all` | Mode: `all` for all ZIP files, `data` for entity data only, `prov` for provenance only |
 | `-w`, `--workers` | No | min(8, CPU count) | Number of worker processes |
+| `-o`, `--output-dir` | No | - | Directory where chunked N-Quads files are written instead of stdout |
+| `--lines-per-file` | No | `10000000` | Number of N-Quads lines per output file when `--output-dir` is used |
+| `--gzip` | No | disabled | Compress chunked output files with gzip when `--output-dir` is used |
+| `--prefix` | No | `output` | Output file prefix when `--output-dir` is used |
 
 ## Modes
 
@@ -64,11 +68,25 @@ uv run python -m oc_meta.run.migration.stream_nquads /srv/oc_meta/rdf --mode dat
 
 See the `index.sh` scripts in the QLever data directories for ready-to-use examples.
 
-## Output format
+## Writing chunked files for Virtuoso
 
-Each line is a valid N-Quads statement. Named graphs come from the `@id` field at the top level of the JSON-LD array:
+Virtuoso's bulk loader reads RDF files from a directory registered with `ld_dir` or `ld_dir_all`. Use `--output-dir` with `--gzip` to write chunked files that can be loaded directly by Virtuoso:
 
-- Data files produce triples in shared graphs like `<https://w3id.org/oc/meta/br/>`
-- Provenance files produce triples in per-entity graphs like `<https://w3id.org/oc/meta/br/06790181/prov/>`
+```bash
+uv run python -m oc_meta.run.migration.stream_nquads /srv/oc_meta/rdf \
+  --mode data \
+  --workers 12 \
+  --output-dir /srv/virtuoso/bulk_load \
+  --lines-per-file 10000000 \
+  --gzip \
+  --prefix meta-data
+```
 
-The N-Quads stream is written to stdout with no other output, so it can be piped directly into other tools.
+This writes files such as:
+
+```text
+/srv/virtuoso/bulk_load/meta-data.000000.nq.gz
+/srv/virtuoso/bulk_load/meta-data.000001.nq.gz
+```
+
+The same options work for provenance by using `--mode prov` and a different prefix.
