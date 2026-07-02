@@ -17,14 +17,14 @@ from SPARQLWrapper.SPARQLExceptions import EndPointInternalError, QueryBadFormed
 from oc_meta.constants import QLEVER_MAX_WORKERS, QLEVER_QUERIES_PER_GROUP
 
 
-def _make_sparql_client(endpoint_url: str) -> SPARQLWrapper:
+def _make_sparql_client(endpoint_url: str, timeout: int = 3600) -> SPARQLWrapper:
     parsed = urlparse(endpoint_url)
     base_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
     sparql = SPARQLWrapper(base_url)
     for key, values in parse_qs(parsed.query).items():
         sparql.addParameter(key, values[0])
     sparql.setReturnFormat(JSON)
-    sparql.setTimeout(3600)
+    sparql.setTimeout(timeout)
     return sparql
 
 
@@ -33,8 +33,9 @@ def execute_sparql(
     query: str,
     max_retries: int = 5,
     backoff_factor: float = 5,
+    timeout: int = 3600,
 ) -> dict:
-    sparql = _make_sparql_client(endpoint_url)
+    sparql = _make_sparql_client(endpoint_url, timeout)
     last_error: Exception | None = None
     for attempt in range(max_retries + 1):
         if attempt > 0:
@@ -54,8 +55,9 @@ def execute_sparql_update(
     query: str,
     max_retries: int = 5,
     backoff_factor: float = 5,
+    timeout: int = 3600,
 ) -> None:
-    sparql = _make_sparql_client(endpoint_url)
+    sparql = _make_sparql_client(endpoint_url, timeout)
     sparql.setMethod(POST)
     last_error: Exception | None = None
     for attempt in range(max_retries + 1):
@@ -77,9 +79,10 @@ def execute_sparql_queries(
     queries: list[str],
     max_retries: int = 5,
     backoff_factor: float = 5,
+    timeout: int = 3600,
 ) -> list[list[dict[str, dict[str, str]]]]:
     results: list[list[dict[str, dict[str, str]]]] = []
-    sparql = _make_sparql_client(endpoint_url)
+    sparql = _make_sparql_client(endpoint_url, timeout)
     for query in queries:
         last_error: Exception | None = None
         for attempt in range(max_retries + 1):
@@ -109,6 +112,7 @@ def run_queries_parallel(
     progress_callback: Callable[[int], None] | None = None,
     max_retries: int = 5,
     backoff_factor: int = 5,
+    timeout: int = 3600,
 ) -> list[list]:
     if not batch_queries:
         return []
@@ -133,6 +137,7 @@ def run_queries_parallel(
                     queries=group,
                     max_retries=max_retries,
                     backoff_factor=backoff_factor,
+                    timeout=timeout,
                 ): size
                 for group, size in zip(query_groups, grouped_sizes)
             }
@@ -146,6 +151,7 @@ def run_queries_parallel(
             queries=batch_queries,
             max_retries=max_retries,
             backoff_factor=backoff_factor,
+            timeout=timeout,
         )
         all_bindings.extend(results)
         if progress_callback:
