@@ -25,7 +25,7 @@ PROV = Namespace("http://www.w3.org/ns/prov#")
 PRO = Namespace("http://purl.org/spar/pro/")
 DCTERMS = Namespace("http://purl.org/dc/terms/")
 FRBR = Namespace("http://purl.org/vocab/frbr/core#")
-PRISM = Namespace("http://prismstandard.org/namespaces/basic/2.1/")
+PRISM = Namespace("http://prismstandard.org/namespaces/basic/2.0/")
 
 
 def read_csv(csv_file):
@@ -68,7 +68,7 @@ def check_br_constraints(g: Dataset, entity):
         issues.append(f"Entity {entity} has multiple partOf relations")
 
     # Check publication date (zero or one)
-    pub_dates = list(g.objects(entity, PRISM.hasPublicationDate, unique=True))
+    pub_dates = list(g.objects(entity, PRISM.publicationDate, unique=True))
     if len(pub_dates) > 1:
         issues.append(f"Entity {entity} has multiple publication dates")
 

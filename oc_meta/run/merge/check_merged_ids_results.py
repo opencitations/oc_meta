@@ -119,7 +119,7 @@ def check_provenance(prov_file_path, entity_uri, is_surviving):
             if not is_surviving:
                 # Check if the last snapshot is invalidated for merged entities
                 last_snapshot = snapshots[-1]
-                if (None, PROV.invalidated, last_snapshot) not in g:
+                if g.value(last_snapshot, PROV.invalidatedAtTime) is None:
                     tqdm.write(
                         f"Error in provenance file {prov_file_path}: Last snapshot {last_snapshot} of merged entity {entity_uri} is not invalidated"
                     )

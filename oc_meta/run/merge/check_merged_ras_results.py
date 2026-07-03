@@ -23,6 +23,7 @@ from oc_meta.lib.sparql import execute_sparql
 DATACITE = "http://purl.org/spar/datacite/"
 FOAF = Namespace("http://xmlns.com/foaf/0.1/")
 PROV = Namespace("http://www.w3.org/ns/prov#")
+PRO = Namespace("http://purl.org/spar/pro/")
 DCTERMS = Namespace("http://purl.org/dc/terms/")
 
 
@@ -68,6 +69,10 @@ def check_agent_constraints(g: Dataset, entity):
     return issues
 
 
+def agent_roles_held_by(g: Dataset, entity):
+    return sorted(g.subjects(PRO.isHeldBy, entity, unique=True), key=str)
+
+
 def check_entity_sparql(endpoint: str, entity_uri, is_surviving):
     has_issues = False
 
@@ -80,14 +85,33 @@ def check_entity_sparql(endpoint: str, entity_uri, is_surviving):
         endpoint, exists_query, max_retries=3, backoff_factor=1
     )
 
-    if exists_results["boolean"]:
+    exists = exists_results["boolean"]
+    if exists:
         if not is_surviving:
             tqdm.write(f"Error in SPARQL: Merged entity {entity_uri} still exists")
             has_issues = True
-    else:
-        if is_surviving:
-            tqdm.write(f"Error in SPARQL: Surviving entity {entity_uri} does not exist")
+    elif is_surviving:
+        tqdm.write(f"Error in SPARQL: Surviving entity {entity_uri} does not exist")
+        return True
+
+    if not is_surviving:
+        referenced_query = f"""
+        ASK {{
+            ?agent_role <{PRO.isHeldBy}> <{entity_uri}> .
+        }}
+        """
+        referenced_results = execute_sparql(
+            endpoint, referenced_query, max_retries=3, backoff_factor=1
+        )
+        if referenced_results["boolean"]:
+            tqdm.write(
+                f"Error in SPARQL: Merged responsible agent {entity_uri} is still referenced by agent roles"
+            )
             has_issues = True
+        if not exists:
+            return has_issues
+
+    if not exists:
         return has_issues
 
     types_query = f"""
@@ -349,6 +373,12 @@ def process_file_group(args):
                                 )
                                 for issue in agent_issues:
                                     tqdm.write(f"Error in file {file_path}: {issue}")
+
+                        if not is_surviving:
+                            for agent_role in agent_roles_held_by(g, URIRef(entity)):
+                                tqdm.write(
+                                    f"Error in file {file_path}: Merged responsible agent {entity} is still held by agent role {agent_role}"
+                                )
 
                         if prov_graph is None:
                             tqdm.write(
