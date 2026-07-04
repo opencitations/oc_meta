@@ -2065,7 +2065,7 @@ wheels = [
 
 [[package]]
 name = "oc-graphenricher"
-version = "1.0.1"
+version = "2.1.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "levenshtein" },
@@ -2077,9 +2077,9 @@ dependencies = [
     { name = "requests-cache" },
     { name = "tqdm" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d6/f0/f275bf22558354c0b9edd6b281e502770d1ecd838e3ea7189f940e6bdcdb/oc_graphenricher-1.0.1.tar.gz", hash = "sha256:d7613b28333eafada0813080a06d104cfa6082ba888f2a1d91c5d7facf3414f4", size = 18768, upload-time = "2026-07-03T15:08:26.212Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/9b/a6/f0846464000e706546650ac26dd9805fc98173da6c02e81f9f97986cad15/oc_graphenricher-2.1.1.tar.gz", hash = "sha256:03da11b58ac0b253bf96ea0c5eebcf7f3f60b0493fb025030c3cf3992b1d4d7f", size = 20556, upload-time = "2026-07-04T14:58:24.41Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e9/59/d7feec4a1b9cfc24af64cd053de43abc393412eb360fc4c21346fa9a27a9/oc_graphenricher-1.0.1-py3-none-any.whl", hash = "sha256:f85672e2011b42d27f2f071e906423e12a23894802fcd7277976bcb832135c78", size = 22163, upload-time = "2026-07-03T15:08:25.321Z" },
+    { url = "https://files.pythonhosted.org/packages/96/99/4252294b2ead508815b82c7a61259057aee92cd717aa0b8b4280457fac90/oc_graphenricher-2.1.1-py3-none-any.whl", hash = "sha256:61af107a1ed4114c7f9458dd702c6fdd2a5590e0522d5934f2e4c0efa3a047c8", size = 23824, upload-time = "2026-07-04T14:58:23.509Z" },
 ]
 
 [[package]]
@@ -2141,8 +2141,8 @@ requires-dist = [
     { name = "filelock", specifier = ">=3.24.0" },
     { name = "numpy", specifier = ">=2.2.0" },
     { name = "oc-ds-converter", specifier = ">=2.0.3" },
-    { name = "oc-graphenricher", specifier = ">=1.0.1" },
-    { name = "oc-ocdm", specifier = ">=11.0.18" },
+    { name = "oc-graphenricher", specifier = ">=2.1.1" },
+    { name = "oc-ocdm", specifier = ">=11.0.19" },
     { name = "orjson", specifier = ">=3.11.0" },
     { name = "pandas", specifier = ">=2.2.3" },
     { name = "piccione", specifier = ">=3.1.2" },
@@ -2185,7 +2185,7 @@ dev = [
 
 [[package]]
 name = "oc-ocdm"
-version = "11.0.18"
+version = "11.0.19"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "filelock" },
@@ -2197,9 +2197,9 @@ dependencies = [
     { name = "tqdm" },
     { name = "triplelite" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/58/dc/728104b511fccd64c0ecad884d1752302ce2bfc236bc0f0183f7c41b5239/oc_ocdm-11.0.18.tar.gz", hash = "sha256:16c5030d0815e0724f624d188569ecaed381b0c3eef4b48104ac13cb8bcdd3a9", size = 763712, upload-time = "2026-07-03T16:34:35.768Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/aa/30/e91ffc301d9fda5e5d32feb19e2d8aeba92e272a945fe46357f463751eb8/oc_ocdm-11.0.19.tar.gz", hash = "sha256:967657b678680791f4718c268f49752f7e43c3b46c561de8327860a0dc89bc5b", size = 764132, upload-time = "2026-07-04T14:24:13.931Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/14/e8/16b0b5d56f52ea3e0b6083ae627caccb5f0c07260219b6e1f80de6eacb28/oc_ocdm-11.0.18-py3-none-any.whl", hash = "sha256:9055eaf1df89335ec521e5f7ad5a1af592748b0995f81082412aedce54560535", size = 104414, upload-time = "2026-07-03T16:34:34.439Z" },
+    { url = "https://files.pythonhosted.org/packages/c1/50/f871070da424f3f4cdc1905367d25f3ccc97b1f7ad6318b329105bcdff21/oc_ocdm-11.0.19-py3-none-any.whl", hash = "sha256:e7532c1ffaa9670e5d4937858e474bd1b3a6f169a0f5ed4bd2c4b438a8d0bc01", size = 104470, upload-time = "2026-07-04T14:24:12.841Z" },
 ]
 
 [[package]]

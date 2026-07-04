@@ -11,6 +11,9 @@ import os
 import traceback
 from typing import Dict, List, Set
 
+from oc_graphenricher.deduplication import GraphDeduplicator
+from oc_graphenricher.storage import DirectoryStorage, directory_storage
+from oc_ocdm.counter_handler.filesystem_counter_handler import FilesystemCounterHandler
 from oc_ocdm.graph import GraphSet
 from rich_argparse import RichHelpFormatter
 from oc_meta.lib.sparql import execute_sparql
@@ -76,6 +79,39 @@ class EntityMerger:
     def count_csv_rows(csv_file: str) -> int:
         with open(csv_file, "r", encoding="utf-8") as f:
             return sum(1 for _ in f) - 1
+
+    @staticmethod
+    def build_merge_clusters(
+        rows_to_process: List[tuple[str, List[str]]],
+    ) -> Dict[str, List[str]]:
+        clusters: Dict[str, List[str]] = {}
+        for surviving_entity, merged_entities in rows_to_process:
+            if surviving_entity not in clusters:
+                clusters[surviving_entity] = []
+            clusters[surviving_entity].extend(merged_entities)
+        return clusters
+
+    @staticmethod
+    def create_storage(meta_editor: MetaEditor, g_set: GraphSet) -> DirectoryStorage:
+        return directory_storage(
+            meta_editor.base_dir,
+            items_per_directory=meta_editor.dir_split,
+            items_per_file=meta_editor.n_file_item,
+            supplier_prefix="",
+            zip_output=meta_editor.zip_output_rdf,
+            modified_entities=set(g_set.res_to_entity.keys()),
+            wanted_label=False,
+            counter_handler=meta_editor.counter_handler,
+        )
+
+    @staticmethod
+    def merge_clusters_and_save(
+        g_set: GraphSet,
+        storage: DirectoryStorage,
+        clusters: Dict[str, List[str]],
+    ) -> None:
+        deduplicator = GraphDeduplicator(g_set, storage=storage)
+        deduplicator.merge_clusters_and_save(clusters)
 
     def fetch_related_entities_batch(
         self,
@@ -236,20 +272,21 @@ class EntityMerger:
                 meta_editor.entity_cache.add(entity)
             logger.info("Entity import completed successfully")
 
-        processed_count = 0
-        for surviving_entity, merged_entities in rows_to_process:
-            logger.info(f"Processing row - surviving entity: {surviving_entity}")
-            for merged_entity in merged_entities:
-                logger.info(
-                    f"  Attempting to merge {merged_entity} into {surviving_entity}"
-                )
-                meta_editor.merge(g_set, surviving_entity, merged_entity)
-                modified = True
-                processed_count += 1
-                logger.info(f"  Successfully merged {merged_entity}")
-            logger.info(
-                f"Completed processing row with surviving entity: {surviving_entity}"
-            )
+        clusters = self.build_merge_clusters(rows_to_process)
+        processed_count = sum(
+            len(merged_entities) for _, merged_entities in rows_to_process
+        )
+        logger.info(
+            f"Merging {processed_count} entities in {len(clusters)} survivor clusters"
+        )
+        self.merge_clusters_and_save(
+            g_set,
+            self.create_storage(meta_editor, g_set),
+            clusters,
+        )
+        if isinstance(meta_editor.counter_handler, FilesystemCounterHandler):
+            meta_editor.counter_handler.flush()
+        modified = True
 
         logger.info(f"Successfully processed {processed_count} merges")
 
@@ -265,7 +302,6 @@ class EntityMerger:
                     marked_done += 1
 
             logger.info(f"Marked {marked_done} rows as done")
-            meta_editor.save(g_set)
             self.write_csv(csv_file, data)
             logger.info(f"Saved changes to {csv_file}")
 

@@ -1131,8 +1131,10 @@ class TestEntityMerger:
                                 "http://purl.org/vocab/frbr/core#embodiment"
                             ]
                         }
-                        assert len(formats) == 1
-                        assert "https://w3id.org/oc/meta/re/0603" in formats
+                        assert formats == {
+                            "https://w3id.org/oc/meta/re/0603",
+                            "https://w3id.org/oc/meta/re/0604",
+                        }
 
                         # Check identifiers
                         identifiers = {
@@ -1250,6 +1252,7 @@ class TestEntityMerger:
                 "insert": [
                     "<https://w3id.org/oc/meta/br/0603> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0604>",
                     "<https://w3id.org/oc/meta/br/0603> <http://purl.org/vocab/frbr/core#partOf> <https://w3id.org/oc/meta/br/0606>",
+                    "<https://w3id.org/oc/meta/br/0603> <http://purl.org/vocab/frbr/core#embodiment> <https://w3id.org/oc/meta/re/0604>",
                 ],
             }
             self.check_sparql_query_content(merge_query, expected_triples)
@@ -1346,8 +1349,8 @@ class TestEntityMerger:
                             )
 
                     # Verify all metadata inheritance
-                    # We expect the surviving entity to inherit all identifiers
-                    # while maintaining its original metadata (title, subtitle, resource embodiment, issue, contributors)
+                    # We expect the surviving entity to inherit identifiers and resource embodiments
+                    # while keeping its original title, subtitle, issue, and contributors.
 
                     # Check if provenance shows correct sequence of operations
                     merge_timestamps = []
