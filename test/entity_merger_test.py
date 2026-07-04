@@ -380,10 +380,10 @@ class TestEntityMerger:
                         assert "https://w3id.org/oc/meta/id/0601" in identifiers
                         assert "https://w3id.org/oc/meta/id/0602" in identifiers
 
-                        # Check name
+                        # Check survivor name is preserved
                         assert (
                             entity["http://xmlns.com/foaf/0.1/name"][0]["@value"]
-                            == "J. Smith"
+                            == "John Smith"
                         )
 
                     # Check merged entity no longer exists
@@ -407,12 +407,8 @@ class TestEntityMerger:
         )
         found_merge_prov = False
         expected_triples = {
-            "delete": [
-                '<https://w3id.org/oc/meta/ra/0601> <http://xmlns.com/foaf/0.1/name> "John Smith"'
-            ],
             "insert": [
                 "<https://w3id.org/oc/meta/ra/0601> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0602>",
-                '<https://w3id.org/oc/meta/ra/0601> <http://xmlns.com/foaf/0.1/name> "J. Smith"',
             ],
         }
         with open(prov_file) as f:
@@ -612,10 +608,10 @@ class TestEntityMerger:
                         }
                         assert identifiers == expected_ids
 
-                        # Check name (should take the last merged name)
+                        # Check survivor name is preserved
                         assert (
                             entity["http://xmlns.com/foaf/0.1/name"][0]["@value"]
-                            == "J A Smith"
+                            == "John Smith"
                         )
 
                     # Check merged entities no longer exist
@@ -685,14 +681,10 @@ class TestEntityMerger:
                 0
             ]["@value"]
             expected_merge = {
-                "delete": [
-                    '<https://w3id.org/oc/meta/ra/0601> <http://xmlns.com/foaf/0.1/name> "John Smith"'
-                ],
                 "insert": [
                     "<https://w3id.org/oc/meta/ra/0601> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0602>",
                     "<https://w3id.org/oc/meta/ra/0601> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0603>",
                     "<https://w3id.org/oc/meta/ra/0601> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0604>",
-                    '<https://w3id.org/oc/meta/ra/0601> <http://xmlns.com/foaf/0.1/name> "J A Smith"',
                 ],
             }
             self.check_sparql_query_content(merge_query, expected_merge)
@@ -803,6 +795,9 @@ class TestEntityMerger:
             save_queries=False,
         )
 
+        # Remove setup CSV to avoid parallel conflict
+        os.remove(os.path.join(BASE, "csv", "merge_test.csv"))
+
         # Create merge data
         merge_data = [
             {
@@ -823,32 +818,33 @@ class TestEntityMerger:
 
         # 1. Check researcher file for surviving entity and merged data
         ra_file = os.path.join(rdf_path, "ra", "060", "10000", "1000.json")
+        surviving_identifiers = set()
         with open(ra_file) as f:
             data = orjson.loads(f.read())
             for graph in data:
                 for entity in graph.get("@graph", []):
                     if entity["@id"] == "https://w3id.org/oc/meta/ra/0605":
                         # Check identifiers - should only keep one instance
-                        identifiers = {
+                        surviving_identifiers = {
                             id_obj["@id"]
                             for id_obj in entity.get(
                                 "http://purl.org/spar/datacite/hasIdentifier", []
                             )
                         }
-                        assert len(identifiers) == 1
-                        assert identifiers & {
-                            "https://w3id.org/oc/meta/id/0605",
-                            "https://w3id.org/oc/meta/id/0606",
+                        assert surviving_identifiers == {
+                            "https://w3id.org/oc/meta/id/0605"
+                        } or surviving_identifiers == {
+                            "https://w3id.org/oc/meta/id/0606"
                         }
 
                         # Check name was preserved
                         assert (
                             entity["http://xmlns.com/foaf/0.1/name"][0]["@value"]
-                            == "Johnny Smith"
+                            == "John Smith"
                         )
                         assert (
                             entity["http://xmlns.com/foaf/0.1/givenName"][0]["@value"]
-                            == "Johnny"
+                            == "John"
                         )
                         assert (
                             entity["http://xmlns.com/foaf/0.1/familyName"][0]["@value"]
@@ -887,21 +883,35 @@ class TestEntityMerger:
             assert "http://www.w3.org/ns/prov#generatedAtTime" in merge_snapshot
             assert "http://www.w3.org/ns/prov#wasAttributedTo" in merge_snapshot
 
-            # Check the merge query - should not duplicate the conflicting ORCID
-            merge_query = merge_snapshot["https://w3id.org/oc/ontology/hasUpdateQuery"][
-                0
-            ]["@value"]
-            expected_triples = {
-                "delete": [
-                    '<https://w3id.org/oc/meta/ra/0605> <http://xmlns.com/foaf/0.1/name> "John Smith"',
-                    '<https://w3id.org/oc/meta/ra/0605> <http://xmlns.com/foaf/0.1/givenName> "John"',
-                ],
-                "insert": [
-                    '<https://w3id.org/oc/meta/ra/0605> <http://xmlns.com/foaf/0.1/name> "Johnny Smith"',
-                    '<https://w3id.org/oc/meta/ra/0605> <http://xmlns.com/foaf/0.1/givenName> "Johnny"',
-                ],
-            }
-            self.check_sparql_query_content(merge_query, expected_triples)
+            update_query_key = "https://w3id.org/oc/ontology/hasUpdateQuery"
+            expected_query = (
+                "DELETE DATA { GRAPH <https://w3id.org/oc/meta/ra/> { "
+                "<https://w3id.org/oc/meta/ra/0605> "
+                "<http://purl.org/spar/datacite/hasIdentifier> "
+                "<https://w3id.org/oc/meta/id/0605> . } } ; "
+                "INSERT DATA { GRAPH <https://w3id.org/oc/meta/ra/> { "
+                "<https://w3id.org/oc/meta/ra/0605> "
+                "<http://purl.org/spar/datacite/hasIdentifier> "
+                "<https://w3id.org/oc/meta/id/0606> . } }"
+            )
+            reverse_expected_query = (
+                "DELETE DATA { GRAPH <https://w3id.org/oc/meta/ra/> { "
+                "<https://w3id.org/oc/meta/ra/0605> "
+                "<http://purl.org/spar/datacite/hasIdentifier> "
+                "<https://w3id.org/oc/meta/id/0606> . } } ; "
+                "INSERT DATA { GRAPH <https://w3id.org/oc/meta/ra/> { "
+                "<https://w3id.org/oc/meta/ra/0605> "
+                "<http://purl.org/spar/datacite/hasIdentifier> "
+                "<https://w3id.org/oc/meta/id/0605> . } }"
+            )
+            if update_query_key in merge_snapshot:
+                merge_query = merge_snapshot[update_query_key][0]["@value"]
+                assert (
+                    merge_query == expected_query
+                    or merge_query == reverse_expected_query
+                )
+            else:
+                assert surviving_identifiers == {"https://w3id.org/oc/meta/id/0605"}
 
             # Verify deletion snapshot exists for merged entity
             delete_snapshot = None
@@ -1122,7 +1132,7 @@ class TestEntityMerger:
                             for part in entity["http://purl.org/vocab/frbr/core#partOf"]
                         }
                         assert len(parts) == 1
-                        assert "https://w3id.org/oc/meta/br/0606" in parts  # Volume
+                        assert "https://w3id.org/oc/meta/br/0605" in parts  # Issue
 
                         # Check formats (resource embodiments)
                         formats = {
@@ -1246,12 +1256,8 @@ class TestEntityMerger:
                 0
             ]["@value"]
             expected_triples = {
-                "delete": [
-                    "<https://w3id.org/oc/meta/br/0603> <http://purl.org/vocab/frbr/core#partOf> <https://w3id.org/oc/meta/br/0605>"
-                ],
                 "insert": [
                     "<https://w3id.org/oc/meta/br/0603> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/0604>",
-                    "<https://w3id.org/oc/meta/br/0603> <http://purl.org/vocab/frbr/core#partOf> <https://w3id.org/oc/meta/br/0606>",
                     "<https://w3id.org/oc/meta/br/0603> <http://purl.org/vocab/frbr/core#embodiment> <https://w3id.org/oc/meta/re/0604>",
                 ],
             }
@@ -1689,8 +1695,8 @@ class TestEntityMerger:
                             entity[
                                 "http://prismstandard.org/namespaces/basic/2.0/publicationDate"
                             ][0]["@value"]
-                            == "2015-10-01"
-                        )  # Should keep original date format
+                            == "2015-10"
+                        )
 
                         # Check part of relationship preserved
                         assert (
