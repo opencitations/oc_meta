@@ -70,8 +70,8 @@ def check_agent_constraints(g: Dataset, entity):
     return issues
 
 
-def agent_roles_held_by(g: Dataset, entity):
-    return sorted(g.subjects(PRO.isHeldBy, entity, unique=True), key=str)
+def entities_referencing(g: Dataset, entity):
+    return sorted(g.subjects(None, entity, unique=True), key=str)
 
 
 def check_entity_sparql(endpoint: str, entity_uri, is_surviving):
@@ -98,7 +98,7 @@ def check_entity_sparql(endpoint: str, entity_uri, is_surviving):
     if not is_surviving:
         referenced_query = f"""
         ASK {{
-            ?agent_role <{PRO.isHeldBy}> <{entity_uri}> .
+            ?s ?p <{entity_uri}> .
         }}
         """
         referenced_results = execute_sparql(
@@ -106,7 +106,7 @@ def check_entity_sparql(endpoint: str, entity_uri, is_surviving):
         )
         if referenced_results["boolean"]:
             tqdm.write(
-                f"Error in SPARQL: Merged responsible agent {entity_uri} is still referenced by agent roles"
+                f"Error in SPARQL: Merged responsible agent {entity_uri} is still referenced by other entities"
             )
             has_issues = True
         if not exists:
@@ -376,9 +376,11 @@ def process_file_group(args):
                                     tqdm.write(f"Error in file {file_path}: {issue}")
 
                         if not is_surviving:
-                            for agent_role in agent_roles_held_by(g, URIRef(entity)):
+                            for referencing_entity in entities_referencing(
+                                g, URIRef(entity)
+                            ):
                                 tqdm.write(
-                                    f"Error in file {file_path}: Merged responsible agent {entity} is still held by agent role {agent_role}"
+                                    f"Error in file {file_path}: Merged responsible agent {entity} is still referenced by {referencing_entity}"
                                 )
 
                         if prov_graph is None:

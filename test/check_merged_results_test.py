@@ -144,24 +144,32 @@ def test_br_sparql_check_reports_reference_when_removed_br_is_missing(
     ]
 
 
-def test_ra_checker_finds_agent_roles_held_by_removed_ra() -> None:
+def test_ra_checker_finds_entities_referencing_removed_ra() -> None:
     graph = Dataset(default_union=True)
     responsible_agent = URIRef("https://w3id.org/oc/meta/ra/1")
-    first_agent_role = URIRef("https://w3id.org/oc/meta/ar/2")
-    second_agent_role = URIRef("https://w3id.org/oc/meta/ar/1")
-    graph.add((first_agent_role, ra_checker.PRO.isHeldBy, responsible_agent))
-    graph.add((second_agent_role, ra_checker.PRO.isHeldBy, responsible_agent))
+    agent_role = URIRef("https://w3id.org/oc/meta/ar/2")
+    other_entity = URIRef("https://w3id.org/oc/meta/br/1")
+    graph.add((agent_role, ra_checker.PRO.isHeldBy, responsible_agent))
+    graph.add(
+        (
+            other_entity,
+            URIRef("https://example.org/hasResponsibleAgent"),
+            responsible_agent,
+        )
+    )
 
     assert [
-        str(agent_role)
-        for agent_role in ra_checker.agent_roles_held_by(graph, responsible_agent)
+        str(referencing_entity)
+        for referencing_entity in ra_checker.entities_referencing(
+            graph, responsible_agent
+        )
     ] == [
-        "https://w3id.org/oc/meta/ar/1",
         "https://w3id.org/oc/meta/ar/2",
+        "https://w3id.org/oc/meta/br/1",
     ]
 
 
-def test_ra_sparql_check_reports_agent_role_reference_for_removed_ra(
+def test_ra_sparql_check_reports_reference_for_removed_ra(
     monkeypatch,
 ) -> None:
     entity = "https://w3id.org/oc/meta/ra/1"
@@ -171,7 +179,7 @@ def test_ra_sparql_check_reports_agent_role_reference_for_removed_ra(
         assert backoff_factor == 1
         if "?p ?o" in query:
             return {"boolean": False}
-        if "pro/isHeldBy" in query:
+        if "?s ?p" in query and "pro/isHeldBy" not in query:
             return {"boolean": True}
         raise AssertionError(query)
 
@@ -184,7 +192,7 @@ def test_ra_sparql_check_reports_agent_role_reference_for_removed_ra(
         is True
     )
     assert messages == [
-        "Error in SPARQL: Merged responsible agent https://w3id.org/oc/meta/ra/1 is still referenced by agent roles"
+        "Error in SPARQL: Merged responsible agent https://w3id.org/oc/meta/ra/1 is still referenced by other entities"
     ]
 
 
