@@ -566,6 +566,102 @@ class TestEditor:
                                 "<https://w3id.org/oc/meta/ra/06010> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent>",
                             }
 
+    def test_merge_bibliographic_resources_discards_merged_author_editor_roles(self):
+        base_iri = "https://w3id.org/oc/meta/"
+        resp_agent = "https://orcid.org/0000-0002-8420-0696"
+        surviving_br_uri = "https://w3id.org/oc/meta/br/060990"
+        merged_br_uri = "https://w3id.org/oc/meta/br/060991"
+        surviving_role_uri = "https://w3id.org/oc/meta/ar/060990"
+        merged_role_uri = "https://w3id.org/oc/meta/ar/060991"
+
+        g_set = GraphSet(
+            base_iri,
+            supplier_prefix="060",
+            wanted_label=False,
+            custom_counter_handler=self.counter_handler,
+        )
+        surviving_br = g_set.add_br(resp_agent=resp_agent, res=surviving_br_uri)
+        surviving_br.has_title("Surviving article")
+        merged_br = g_set.add_br(resp_agent=resp_agent, res=merged_br_uri)
+        merged_br.has_title("Merged article")
+
+        surviving_author = g_set.add_ra(
+            resp_agent=resp_agent, res="https://w3id.org/oc/meta/ra/060990"
+        )
+        surviving_author.has_name("Surviving Author")
+        surviving_role = g_set.add_ar(resp_agent=resp_agent, res=surviving_role_uri)
+        surviving_role.create_author()
+        surviving_role.is_held_by(surviving_author)
+        surviving_br.has_contributor(surviving_role)
+
+        merged_editor = g_set.add_ra(
+            resp_agent=resp_agent, res="https://w3id.org/oc/meta/ra/060991"
+        )
+        merged_editor.has_name("Merged Editor")
+        merged_role = g_set.add_ar(resp_agent=resp_agent, res=merged_role_uri)
+        merged_role.create_editor()
+        merged_role.is_held_by(merged_editor)
+        merged_br.has_contributor(merged_role)
+
+        provset = ProvSet(
+            g_set,
+            base_iri,
+            wanted_label=False,
+            supplier_prefix="060",
+            custom_counter_handler=self.counter_handler,
+        )
+        provset.generate_provenance()
+
+        rdf_dir = os.path.join(OUTPUT, "rdf") + os.sep
+        graph_storer = Storer(
+            g_set, dir_split=10000, n_file_item=1000, zip_output=False
+        )
+        prov_storer = Storer(
+            provset, dir_split=10000, n_file_item=1000, zip_output=False
+        )
+        graph_storer.store_all(rdf_dir, base_iri)
+        prov_storer.store_all(rdf_dir, base_iri)
+        graph_storer.upload_all(SERVER)
+        g_set.commit_changes()
+
+        editor = MetaEditor(
+            META_CONFIG,
+            resp_agent,
+            counter_handler=self.counter_handler,
+        )
+        editor.merge(g_set, surviving_br_uri, merged_br_uri)
+        editor.save(g_set)
+
+        br_contributors = set()
+        with open(
+            os.path.join(OUTPUT, "rdf", "br", "060", "10000", "1000.json"),
+            "r",
+            encoding="utf8",
+        ) as f:
+            for graph in orjson.loads(f.read()):
+                for entity in graph["@graph"]:
+                    if entity["@id"] == surviving_br_uri:
+                        br_contributors = {
+                            contributor["@id"]
+                            for contributor in entity[
+                                "http://purl.org/spar/pro/isDocumentContextFor"
+                            ]
+                        }
+                    assert entity["@id"] != merged_br_uri
+        assert br_contributors == {surviving_role_uri}
+
+        target_agent_roles = set()
+        with open(
+            os.path.join(OUTPUT, "rdf", "ar", "060", "10000", "1000.json"),
+            "r",
+            encoding="utf8",
+        ) as f:
+            for graph in orjson.loads(f.read()):
+                for entity in graph["@graph"]:
+                    if entity["@id"] in {surviving_role_uri, merged_role_uri}:
+                        target_agent_roles.add(entity["@id"])
+        assert target_agent_roles == {surviving_role_uri}
+
     def test_delete_entity_with_inferred_type(self):
         editor = MetaEditor(META_CONFIG, "https://orcid.org/0000-0002-8420-0696")
 

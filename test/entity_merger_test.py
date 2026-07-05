@@ -1173,6 +1173,14 @@ class TestEntityMerger:
                         assert "https://w3id.org/oc/meta/id/0603" in identifiers
                         assert "https://w3id.org/oc/meta/id/0604" in identifiers
 
+                        contributors = {
+                            contributor["@id"]
+                            for contributor in entity[
+                                "http://purl.org/spar/pro/isDocumentContextFor"
+                            ]
+                        }
+                        assert contributors == {"https://w3id.org/oc/meta/ar/0605"}
+
                     # Check issue metadata
                     elif entity["@id"] == "https://w3id.org/oc/meta/br/0605":
                         assert (
@@ -1231,8 +1239,14 @@ class TestEntityMerger:
         ar_file = os.path.join(rdf_path, "ar", "060", "10000", "1000.json")
         with open(ar_file) as f:
             data = orjson.loads(f.read())
+            target_agent_roles = set()
             for graph in data:
                 for entity in graph.get("@graph", []):
+                    if entity["@id"] in {
+                        "https://w3id.org/oc/meta/ar/0605",
+                        "https://w3id.org/oc/meta/ar/0606",
+                    }:
+                        target_agent_roles.add(entity["@id"])
                     if entity["@id"] == "https://w3id.org/oc/meta/ar/0605":
                         assert "http://purl.org/spar/pro/withRole" in entity
                         assert (
@@ -1241,6 +1255,7 @@ class TestEntityMerger:
                         )
                         holder = entity["http://purl.org/spar/pro/isHeldBy"][0]["@id"]
                         assert holder == "https://w3id.org/oc/meta/ra/0605"
+            assert target_agent_roles == {"https://w3id.org/oc/meta/ar/0605"}
 
         # 4. Check provenance
         prov_file = os.path.join(
@@ -1278,6 +1293,11 @@ class TestEntityMerger:
                 ],
             }
             self.check_sparql_query_content(merge_query, expected_triples)
+            assert (
+                "<https://w3id.org/oc/meta/br/0603> "
+                "<http://purl.org/spar/pro/isDocumentContextFor> "
+                "<https://w3id.org/oc/meta/ar/0606>" not in merge_query
+            )
 
             # Verify deletion snapshot exists for merged entity
             delete_snapshot = None

@@ -22,6 +22,7 @@ from oc_ocdm.support import get_prefix
 from oc_ocdm.support.support import build_graph_from_results
 
 from oc_meta.lib.file_manager import find_rdf_file
+from oc_meta.lib.merge_roles import discard_merged_br_author_editor_roles
 from oc_meta.lib.sparql import execute_sparql
 
 
@@ -271,6 +272,7 @@ class MetaEditor:
         )
 
         if is_both_expression:
+            discard_merged_br_author_editor_roles(g_set, [other])
             res_as_entity.merge(other_as_entity, prefer_self=True)
         else:
             res_as_entity.merge(other_as_entity)

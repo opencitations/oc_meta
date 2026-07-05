@@ -20,6 +20,7 @@ from oc_meta.lib.sparql import execute_sparql
 from tqdm import tqdm
 
 from oc_meta.core.editor import MetaEditor
+from oc_meta.lib.merge_roles import discard_merged_br_author_editor_roles
 from oc_meta.run.merge.csv_utils import parse_merged_entities
 
 logging.basicConfig(
@@ -113,6 +114,9 @@ class EntityMerger:
         storage: DirectoryStorage,
         clusters: Dict[str, List[str]],
     ) -> None:
+        for surviving_entity, merged_entities in clusters.items():
+            if EntityMerger.get_entity_type(surviving_entity) == "br":
+                discard_merged_br_author_editor_roles(g_set, merged_entities)
         deduplicator = GraphDeduplicator(g_set, storage=storage)
         deduplicator.merge_clusters_and_save(clusters)
 
