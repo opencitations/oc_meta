@@ -177,6 +177,24 @@ class TestQuerySPARQL:
         assert "https://example.org/uri2" in result
         assert "Some Literal" not in result
 
+    @patch("oc_meta.run.merge.group_entities.execute_sparql")
+    def test_query_sparql_batch_includes_ra_bibliographic_context(
+        self, mock_execute_sparql
+    ):
+        """Test that RA grouping includes BRs connected through agent roles"""
+        mock_execute_sparql.return_value = {"results": {"bindings": []}}
+
+        from oc_meta.run.merge.group_entities import query_sparql_batch
+
+        query_sparql_batch(
+            "http://endpoint",
+            ["https://w3id.org/oc/meta/ra/0601"],
+        )
+
+        query = mock_execute_sparql.call_args.args[1]
+        assert "pro:isHeldBy <https://w3id.org/oc/meta/ra/0601>" in query
+        assert "pro:isDocumentContextFor ?agent_role" in query
+
 
 class TestGetAllRelatedEntities:
     """Test get_all_related_entities function"""

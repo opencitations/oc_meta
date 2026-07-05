@@ -320,32 +320,30 @@ class TestEntityMerger:
             data = EntityMerger.read_csv(os.path.join(csv_folder, filename))
             assert data[0]["Done"] == "True"
 
-    def test_process_folder_with_worker_limit(self):
+    def test_process_folder_with_many_workers_keeps_large_files_visible(self):
         """Test processing folder with worker count > 4"""
         self.merger.workers = 5
         csv_folder = os.path.join(BASE, "csv")
 
-        # Create a large file
         large_data = [
             {
                 "surviving_entity": f"https://w3id.org/oc/meta/ra/0610{i}",
                 "merged_entities": f"https://w3id.org/oc/meta/ra/0620{i}",
-                "Done": "False",
+                "Done": "True",
             }
             for i in range(15000)
-        ]  # Create more than 10000 rows
+        ]
         self.write_csv("large.csv", large_data)
 
         self.merger.process_folder(csv_folder)
 
-        # Verify only small files were processed
         large_file_data = EntityMerger.read_csv(os.path.join(csv_folder, "large.csv"))
-        assert large_file_data[0]["Done"] == "False"  # Large file should be skipped
+        assert large_file_data[0]["Done"] == "True"
 
         small_file_data = EntityMerger.read_csv(
             os.path.join(csv_folder, "merge_test.csv")
         )
-        assert small_file_data[0]["Done"] == "True"  # Small file should be processed
+        assert small_file_data[0]["Done"] == "True"
 
     def test_merge_authors_with_real_data(self):
         """Test merging two author entities with real data"""
@@ -467,6 +465,24 @@ class TestEntityMerger:
         with pytest.raises(ValueError, match="not found in the triplestore"):
             self.merger.process_file(test_file)
         data = EntityMerger.read_csv(test_file)
+        assert data[0]["Done"] == "False"
+
+    def test_process_folder_raises_worker_errors(self):
+        """Test that worker errors fail the folder processing command"""
+        os.remove(os.path.join(BASE, "csv", "merge_test.csv"))
+        nonexistent_data = [
+            {
+                "surviving_entity": "https://w3id.org/oc/meta/ra/9999",
+                "merged_entities": "https://w3id.org/oc/meta/ra/9998",
+                "Done": "False",
+            }
+        ]
+        self.write_csv("nonexistent.csv", nonexistent_data)
+
+        with pytest.raises(RuntimeError, match="Failed to process merge file"):
+            self.merger.process_folder(os.path.join(BASE, "csv"))
+
+        data = EntityMerger.read_csv(os.path.join(BASE, "csv", "nonexistent.csv"))
         assert data[0]["Done"] == "False"
 
     def test_merge_multiple_entities(self):
@@ -1520,7 +1536,10 @@ class TestEntityMerger:
             expected_related = {
                 f"https://w3id.org/oc/meta/id/060{valid_numbers[0]}",
                 f"https://w3id.org/oc/meta/ar/060{valid_numbers[0]}",
+                f"https://w3id.org/oc/meta/br/060{valid_numbers[0]}",
                 f"https://w3id.org/oc/meta/id/060{valid_numbers[1]}",
+                f"https://w3id.org/oc/meta/ar/060{valid_numbers[1]}",
+                f"https://w3id.org/oc/meta/br/060{valid_numbers[1]}",
             }
 
             assert related == expected_related
@@ -1541,7 +1560,10 @@ class TestEntityMerger:
             for i in valid_numbers[:3]:
                 expected_related.add(f"https://w3id.org/oc/meta/id/060{i}")
                 expected_related.add(f"https://w3id.org/oc/meta/ar/060{i}")
+                expected_related.add(f"https://w3id.org/oc/meta/br/060{i}")
             expected_related.add(f"https://w3id.org/oc/meta/id/060{valid_numbers[3]}")
+            expected_related.add(f"https://w3id.org/oc/meta/ar/060{valid_numbers[3]}")
+            expected_related.add(f"https://w3id.org/oc/meta/br/060{valid_numbers[3]}")
 
             assert related == expected_related
 

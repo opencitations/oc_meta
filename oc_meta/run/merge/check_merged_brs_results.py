@@ -18,6 +18,7 @@ from tqdm import tqdm
 
 from oc_meta.core.editor import MetaEditor
 from oc_meta.lib.file_manager import find_rdf_file
+from oc_meta.run.merge.csv_utils import parse_merged_entities
 
 DATACITE = "http://purl.org/spar/datacite/"
 FABIO = "http://purl.org/spar/fabio/"
@@ -98,14 +99,14 @@ def check_entity_sparql(endpoint: str, entity_uri, is_surviving):
         endpoint, exists_query, max_retries=3, backoff_factor=1
     )
 
-    if exists_results["boolean"]:
+    exists = exists_results["boolean"]
+    if exists:
         if not is_surviving:
             tqdm.write(f"Error in SPARQL: Merged entity {entity_uri} still exists")
             has_issues = True
-    else:
-        if is_surviving:
-            tqdm.write(f"Error in SPARQL: Surviving entity {entity_uri} does not exist")
-            has_issues = True
+    elif is_surviving:
+        tqdm.write(f"Error in SPARQL: Surviving entity {entity_uri} does not exist")
+        has_issues = True
         return has_issues
 
     if not is_surviving:
@@ -123,6 +124,12 @@ def check_entity_sparql(endpoint: str, entity_uri, is_surviving):
                 f"Error in SPARQL: Merged entity {entity_uri} is still referenced by other entities"
             )
             has_issues = True
+
+        if not exists:
+            return has_issues
+
+    if not exists:
+        return has_issues
 
     types_query = f"""
     SELECT ?type WHERE {{
@@ -240,7 +247,7 @@ def process_csv(args, csv_file):
             continue
 
         surviving_entity = row["surviving_entity"]
-        merged_entities = row["merged_entities"].split("; ")
+        merged_entities = parse_merged_entities(row["merged_entities"])
         all_entities = [surviving_entity] + merged_entities
 
         for entity in all_entities:

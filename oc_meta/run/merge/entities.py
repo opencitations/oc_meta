@@ -20,6 +20,7 @@ from oc_meta.lib.sparql import execute_sparql
 from tqdm import tqdm
 
 from oc_meta.core.editor import MetaEditor
+from oc_meta.run.merge.csv_utils import parse_merged_entities
 
 logging.basicConfig(
     level=logging.INFO,
@@ -88,7 +89,9 @@ class EntityMerger:
         for surviving_entity, merged_entities in rows_to_process:
             if surviving_entity not in clusters:
                 clusters[surviving_entity] = []
-            clusters[surviving_entity].extend(merged_entities)
+            for merged_entity in merged_entities:
+                if merged_entity not in clusters[surviving_entity]:
+                    clusters[surviving_entity].append(merged_entity)
         return clusters
 
     @staticmethod
@@ -196,6 +199,41 @@ class EntityMerger:
                             meta_editor.relationship_cache[entity] = set()
                         meta_editor.relationship_cache[entity].add(related)
 
+        candidate_responsible_agents = merged_entities + surviving_entities
+        for i in range(0, len(candidate_responsible_agents), batch_size):
+            batch_responsible_agents = candidate_responsible_agents[i : i + batch_size]
+            agent_context_clauses = []
+            for entity in batch_responsible_agents:
+                agent_context_clauses.extend(
+                    [
+                        f"{{?entity pro:isHeldBy <{entity}>}}",
+                        f"{{?agent_role pro:isHeldBy <{entity}> . ?entity pro:isDocumentContextFor ?agent_role}}",
+                    ]
+                )
+
+            if not agent_context_clauses:
+                continue
+
+            query = f"""
+                PREFIX pro: <http://purl.org/spar/pro/>
+                SELECT DISTINCT ?entity WHERE {{
+                    {" UNION ".join(agent_context_clauses)}
+                }}
+            """
+
+            results = execute_sparql(
+                meta_editor.endpoint, query, max_retries=5, backoff_factor=0.3
+            )
+            for result in results["results"]["bindings"]:
+                if result["entity"]["type"] == "uri":
+                    related = result["entity"]["value"]
+                    all_related_entities.add(related)
+
+                    for entity in batch_responsible_agents:
+                        if entity not in meta_editor.relationship_cache:
+                            meta_editor.relationship_cache[entity] = set()
+                        meta_editor.relationship_cache[entity].add(related)
+
         return all_related_entities
 
     def should_stop_processing(self) -> bool:
@@ -228,7 +266,7 @@ class EntityMerger:
             entity_type = self.get_entity_type(row["surviving_entity"])
             if entity_type in self.entity_types:
                 surviving_entity = row["surviving_entity"]
-                merged_entities = row["merged_entities"].split("; ")
+                merged_entities = parse_merged_entities(row["merged_entities"])
                 batch_surviving_entities.append(surviving_entity)
                 batch_merged_entities.extend(merged_entities)
                 rows_to_process.append((surviving_entity, merged_entities))
@@ -317,11 +355,6 @@ class EntityMerger:
             if file.endswith(".csv")
         ]
 
-        if self.workers > 4:
-            csv_files = [
-                file for file in csv_files if self.count_csv_rows(file) <= 10000
-            ]
-
         # Use forkserver to avoid deadlocks when forking in a multi-threaded environment
         with concurrent.futures.ProcessPoolExecutor(
             max_workers=self.workers,
@@ -353,6 +386,9 @@ class EntityMerger:
                         Suggestion: This is an unexpected error. Please check the traceback for more details.
                     """
                     )
+                    raise RuntimeError(
+                        f"Failed to process merge file {csv_file}"
+                    ) from e
 
 
 def main():

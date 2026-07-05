@@ -11,6 +11,16 @@ from rdflib.namespace import XSD
 from oc_meta.run.merge import check_merged_brs_results as br_checker
 from oc_meta.run.merge import check_merged_ids_results as id_checker
 from oc_meta.run.merge import check_merged_ras_results as ra_checker
+from oc_meta.run.merge.csv_utils import parse_merged_entities
+
+
+def test_parse_merged_entities_accepts_semicolon_with_or_without_space() -> None:
+    assert parse_merged_entities("id/1;id/2; id/3 ;  id/4") == [
+        "id/1",
+        "id/2",
+        "id/3",
+        "id/4",
+    ]
 
 
 def test_br_checker_reads_ocdm_publication_date_predicate() -> None:
@@ -78,6 +88,60 @@ def test_id_provenance_accepts_invalidated_at_time_for_merged_entity(
     id_checker.check_provenance(prov_file_path, str(entity), False)
 
     assert messages == []
+
+
+def test_id_sparql_check_reports_reference_when_removed_id_is_missing(
+    monkeypatch,
+) -> None:
+    entity = "https://w3id.org/oc/meta/id/1"
+
+    def execute_sparql(_endpoint, query, max_retries, backoff_factor):
+        assert max_retries == 3
+        assert backoff_factor == 1
+        if "?p ?o" in query:
+            return {"boolean": False}
+        if "?s ?p" in query:
+            return {"boolean": True}
+        raise AssertionError(query)
+
+    messages = []
+    monkeypatch.setattr(id_checker, "execute_sparql", execute_sparql)
+    monkeypatch.setattr(id_checker.tqdm, "write", messages.append)
+
+    assert (
+        id_checker.check_entity_sparql("https://example.test/sparql", entity, False)
+        is True
+    )
+    assert messages == [
+        "Error in SPARQL: Merged entity https://w3id.org/oc/meta/id/1 is still referenced by other entities"
+    ]
+
+
+def test_br_sparql_check_reports_reference_when_removed_br_is_missing(
+    monkeypatch,
+) -> None:
+    entity = "https://w3id.org/oc/meta/br/1"
+
+    def execute_sparql(_endpoint, query, max_retries, backoff_factor):
+        assert max_retries == 3
+        assert backoff_factor == 1
+        if "?p ?o" in query:
+            return {"boolean": False}
+        if "?s ?p" in query:
+            return {"boolean": True}
+        raise AssertionError(query)
+
+    messages = []
+    monkeypatch.setattr(br_checker, "execute_sparql", execute_sparql)
+    monkeypatch.setattr(br_checker.tqdm, "write", messages.append)
+
+    assert (
+        br_checker.check_entity_sparql("https://example.test/sparql", entity, False)
+        is True
+    )
+    assert messages == [
+        "Error in SPARQL: Merged entity https://w3id.org/oc/meta/br/1 is still referenced by other entities"
+    ]
 
 
 def test_ra_checker_finds_agent_roles_held_by_removed_ra() -> None:

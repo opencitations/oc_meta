@@ -43,7 +43,7 @@ surviving_entity,merged_entities
 https://w3id.org/oc/meta/id/0601,https://w3id.org/oc/meta/id/0602; https://w3id.org/oc/meta/id/0603
 ```
 
-The surviving entity is arbitrarily selected from the duplicate set.
+For duplicate identifiers, the surviving entity is the first URI in sorted order.
 
 ## Find duplicate entities
 
@@ -84,7 +84,7 @@ surviving_entity,merged_entities
 https://w3id.org/oc/meta/br/0601,https://w3id.org/oc/meta/br/0602; https://w3id.org/oc/meta/br/0603
 ```
 
-The surviving entity is arbitrarily selected from the duplicate set.
+For duplicate BR and RA entities, the surviving entity is selected by functional metadata, the more the better. Ties use URI order.
 
 ## How duplicates are detected
 

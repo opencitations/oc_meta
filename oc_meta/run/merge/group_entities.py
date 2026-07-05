@@ -13,6 +13,7 @@ from oc_meta.lib.sparql import execute_sparql
 from tqdm import tqdm
 
 from oc_meta.lib.file_manager import find_rdf_file
+from oc_meta.run.merge.csv_utils import parse_merged_entities
 
 
 class UnionFind:
@@ -75,10 +76,14 @@ def query_sparql_batch(endpoint, uris, batch_size=10):
 
         subject_clauses = []
         object_clauses = []
+        responsible_agent_context_clauses = []
 
         for uri in batch_uris:
             subject_clauses.append(f"{{?entity ?p <{uri}>}}")
             object_clauses.append(f"{{<{uri}> ?p ?entity}}")
+            responsible_agent_context_clauses.append(
+                f"{{?agent_role pro:isHeldBy <{uri}> . ?entity pro:isDocumentContextFor ?agent_role}}"
+            )
 
         query = f"""
             PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
@@ -86,12 +91,18 @@ def query_sparql_batch(endpoint, uris, batch_size=10):
             PREFIX pro: <http://purl.org/spar/pro/>
             SELECT DISTINCT ?entity WHERE {{
                 {{
-                    {" UNION ".join(subject_clauses + object_clauses)}
+                    {{
+                        {" UNION ".join(subject_clauses + object_clauses)}
+                    }}
+                    FILTER (?p != rdf:type)
+                    FILTER (?p != datacite:usesIdentifierScheme)
+                    FILTER (?p != pro:withRole)
+                }}
+                UNION
+                {{
+                    {" UNION ".join(responsible_agent_context_clauses)}
                 }}
                 ?entity ?p2 ?o2 .
-                FILTER (?p != rdf:type)
-                FILTER (?p != datacite:usesIdentifierScheme)
-                FILTER (?p != pro:withRole)
             }}
         """
 
@@ -141,7 +152,7 @@ def group_entities(df, endpoint, dir_split=10000, items_per_file=1000, zip_outpu
 
     for _, row in tqdm(df.iterrows(), total=df.shape[0], desc="Processing rows"):
         surviving_entity = row["surviving_entity"]
-        merged_entities = row["merged_entities"].split("; ")
+        merged_entities = parse_merged_entities(row["merged_entities"])
 
         all_entities = [surviving_entity] + merged_entities
 

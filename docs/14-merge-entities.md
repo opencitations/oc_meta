@@ -63,8 +63,10 @@ Each CSV file should have:
 
 ```text
 surviving_entity,merged_entities
-https://w3id.org/oc/meta/br/060/1,https://w3id.org/oc/meta/br/060/2;https://w3id.org/oc/meta/br/060/3
+https://w3id.org/oc/meta/br/060/1,https://w3id.org/oc/meta/br/060/2; https://w3id.org/oc/meta/br/060/3
 ```
+
+`merged_entities` accepts semicolon-separated values with or without spaces around the semicolon.
 
 Use output from [find duplicates](12-find-duplicates.md) or [group entities](13-group-entities.md).
 
@@ -101,9 +103,13 @@ The script will:
 
 To resume, run the same command again. Already-processed files are skipped.
 
+## Worker errors
+
+If a worker fails while processing a CSV file, the command raises an error and exits unsuccessfully. Rows from the failed file remain `Done=False`, so rerunning the command retries them after the cause is fixed.
+
 ## Progress tracking
 
-The script tracks processed files in memory. If interrupted and resumed, it re-processes from the beginning of the current file but skips completed files.
+The script stores progress in the CSV `Done` column. If interrupted and resumed, it re-processes from the beginning of the current file but skips rows already marked as done.
 
 For very long-running merges, monitor output for progress:
 

@@ -19,6 +19,7 @@ from tqdm import tqdm
 from oc_meta.core.editor import MetaEditor
 from oc_meta.lib.file_manager import find_rdf_file
 from oc_meta.lib.sparql import execute_sparql
+from oc_meta.run.merge.csv_utils import parse_merged_entities
 
 DATACITE = "http://purl.org/spar/datacite/"
 FOAF = Namespace("http://xmlns.com/foaf/0.1/")
@@ -453,7 +454,7 @@ def process_csv(args, csv_file):
             continue
 
         surviving_entity = row["surviving_entity"]
-        merged_entities = row["merged_entities"].split("; ")
+        merged_entities = parse_merged_entities(row["merged_entities"])
         all_entities = [surviving_entity] + merged_entities
 
         for entity in all_entities:

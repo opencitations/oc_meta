@@ -149,7 +149,7 @@ def save_duplicates_to_csv(entity_info: Dict[tuple, Set[str]], csv_path: str):
 
             for ids in tqdm(entity_info.values(), desc="Writing CSV"):
                 if len(ids) > 1:
-                    ids_list = list(ids)
+                    ids_list = sorted(ids)
                     csv_writer.writerow([ids_list[0], "; ".join(ids_list[1:])])
     except Exception as e:
         print(f"Error saving CSV file {csv_path}: {str(e)}")
