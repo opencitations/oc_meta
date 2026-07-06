@@ -2065,7 +2065,7 @@ wheels = [
 
 [[package]]
 name = "oc-graphenricher"
-version = "2.1.5"
+version = "2.1.7"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "levenshtein" },
@@ -2077,9 +2077,9 @@ dependencies = [
     { name = "requests-cache" },
     { name = "tqdm" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/1e/cf/35cd426143d8e106a4a451f9e5f282cbfe8167ea6fa1b0bf71657e95465d/oc_graphenricher-2.1.5.tar.gz", hash = "sha256:e0524849e66a55598584c7a17f24668dc7f92c2d914a8d927fed1690d0e767aa", size = 22239, upload-time = "2026-07-06T09:47:31.22Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/cd/a7/1f750700a1ea1acaaeab7dcd3813b137549940ef233755bb52f107e6e252/oc_graphenricher-2.1.7.tar.gz", hash = "sha256:4ea6b0d6eb20fb2b488e8e467b83c5ded3742c6e26acb6a11f0c60280a8799b3", size = 23115, upload-time = "2026-07-06T14:03:10.875Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f4/bb/61cae9acbb51de7448e3db71ffb516718d09aa92dda49c5654d8ed8779d3/oc_graphenricher-2.1.5-py3-none-any.whl", hash = "sha256:3b55ec5e3bb669b657553146c1e55c1692a55aae55f05d6142a2bae39ae7fa27", size = 25145, upload-time = "2026-07-06T09:47:30.12Z" },
+    { url = "https://files.pythonhosted.org/packages/44/6b/bffa59026f0177380a806ea56b6c05bc01c2b39c6c37b4a8071b03b0daf4/oc_graphenricher-2.1.7-py3-none-any.whl", hash = "sha256:e662c7b433f64d507d3f880b4f50e7844af5b220706d0c30b97fd83edceca085", size = 26008, upload-time = "2026-07-06T14:03:09.89Z" },
 ]
 
 [[package]]
@@ -2141,7 +2141,7 @@ requires-dist = [
     { name = "filelock", specifier = ">=3.24.0" },
     { name = "numpy", specifier = ">=2.2.0" },
     { name = "oc-ds-converter", specifier = ">=2.0.3" },
-    { name = "oc-graphenricher", specifier = ">=2.1.5" },
+    { name = "oc-graphenricher", specifier = ">=2.1.7" },
     { name = "oc-ocdm", specifier = ">=11.0.20" },
     { name = "orjson", specifier = ">=3.11.0" },
     { name = "pandas", specifier = ">=2.2.3" },

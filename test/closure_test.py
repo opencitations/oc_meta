@@ -7,8 +7,13 @@ from unittest.mock import patch
 from oc_meta.run.merge.closure import (
     _one_hop_neighbours,
     _partof_ancestors,
+    _publisher_agents,
     compute_related_closure,
 )
+
+
+def _normalize_sparql(query):
+    return " ".join(query.split())
 
 
 def _bindings(*uris):
@@ -150,13 +155,15 @@ class TestComputeRelatedClosure:
         assert result == set()
         assert mock_execute_sparql.call_count == 0
 
+    @patch("oc_meta.run.merge.closure._publisher_agents")
     @patch("oc_meta.run.merge.closure._one_hop_neighbours")
     @patch("oc_meta.run.merge.closure._partof_ancestors")
     def test_combines_seeds_ancestors_and_neighbours(
-        self, mock_ancestors, mock_neighbours
+        self, mock_ancestors, mock_neighbours, mock_publisher_agents
     ):
         mock_ancestors.return_value = {"https://example.org/journal"}
         mock_neighbours.return_value = {"https://example.org/sibling"}
+        mock_publisher_agents.return_value = {"https://example.org/publisher"}
 
         result = compute_related_closure(
             "http://endpoint",
@@ -168,9 +175,92 @@ class TestComputeRelatedClosure:
             "https://example.org/duplicate",
             "https://example.org/journal",
             "https://example.org/sibling",
+            "https://example.org/publisher",
         }
         assert mock_neighbours.call_args.args[1] == {
             "https://example.org/article",
             "https://example.org/duplicate",
             "https://example.org/journal",
         }
+        assert mock_publisher_agents.call_args.args[1] == {
+            "https://example.org/article",
+            "https://example.org/duplicate",
+            "https://example.org/journal",
+            "https://example.org/sibling",
+        }
+
+
+def _agent_bindings(*rows):
+    bindings = []
+    for row in rows:
+        binding = {"agent": {"value": row[0], "type": "uri"}}
+        if len(row) > 1:
+            binding["identifier"] = {"value": row[1], "type": "uri"}
+        bindings.append(binding)
+    return {"results": {"bindings": bindings}}
+
+
+class TestPublisherAgents:
+    @patch("oc_meta.run.merge.closure.execute_sparql")
+    def test_returns_agents_and_their_identifiers(self, mock_execute_sparql):
+        mock_execute_sparql.return_value = _agent_bindings(
+            (
+                "https://w3id.org/oc/meta/ra/0601",
+                "https://w3id.org/oc/meta/id/0601",
+            ),
+        )
+
+        result = _publisher_agents(
+            "http://endpoint", {"https://w3id.org/oc/meta/ar/0601"}, 10
+        )
+
+        assert result == {
+            "https://w3id.org/oc/meta/ra/0601",
+            "https://w3id.org/oc/meta/id/0601",
+        }
+
+    @patch("oc_meta.run.merge.closure.execute_sparql")
+    def test_agent_without_identifier(self, mock_execute_sparql):
+        mock_execute_sparql.return_value = _agent_bindings(
+            ("https://w3id.org/oc/meta/ra/0601",),
+        )
+
+        result = _publisher_agents(
+            "http://endpoint", {"https://w3id.org/oc/meta/ar/0601"}, 10
+        )
+
+        assert result == {"https://w3id.org/oc/meta/ra/0601"}
+
+    @patch("oc_meta.run.merge.closure.execute_sparql")
+    def test_query_filters_publisher_roles(self, mock_execute_sparql):
+        mock_execute_sparql.return_value = {"results": {"bindings": []}}
+
+        _publisher_agents("http://endpoint", {"https://w3id.org/oc/meta/ar/0601"}, 10)
+
+        query = mock_execute_sparql.call_args.args[1]
+        expected_query = """
+            SELECT DISTINCT ?agent ?identifier WHERE {
+                { {<https://w3id.org/oc/meta/ar/0601> <http://purl.org/spar/pro/withRole> <http://purl.org/spar/pro/publisher> . <https://w3id.org/oc/meta/ar/0601> <http://purl.org/spar/pro/isHeldBy> ?agent} }
+                OPTIONAL { ?agent <http://purl.org/spar/datacite/hasIdentifier> ?identifier }
+            }
+        """
+        assert _normalize_sparql(query) == _normalize_sparql(expected_query)
+
+    @patch("oc_meta.run.merge.closure.execute_sparql")
+    def test_batches_large_input(self, mock_execute_sparql):
+        mock_execute_sparql.return_value = {"results": {"bindings": []}}
+
+        _publisher_agents(
+            "http://endpoint",
+            {f"https://w3id.org/oc/meta/ar/060{i}" for i in range(25)},
+            10,
+        )
+
+        assert mock_execute_sparql.call_count == 3
+
+    @patch("oc_meta.run.merge.closure.execute_sparql")
+    def test_empty_input_makes_no_queries(self, mock_execute_sparql):
+        result = _publisher_agents("http://endpoint", set(), 10)
+
+        assert result == set()
+        assert mock_execute_sparql.call_count == 0

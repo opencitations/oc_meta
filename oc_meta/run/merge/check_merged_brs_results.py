@@ -170,6 +170,38 @@ def check_entity_sparql(endpoint: str, entity_uri, is_surviving):
         )
         has_issues = True
 
+    if is_surviving and check_duplicate_contributor_roles(endpoint, entity_uri):
+        has_issues = True
+
+    return has_issues
+
+
+def check_duplicate_contributor_roles(endpoint: str, entity_uri):
+    query = f"""
+    PREFIX pro: <{PRO}>
+    PREFIX frbr: <{FRBR}>
+    SELECT ?container ?roleType ?agent (COUNT(DISTINCT ?ar) AS ?count) WHERE {{
+        {{ BIND(<{entity_uri}> AS ?container) }}
+        UNION
+        {{ <{entity_uri}> frbr:partOf+ ?container }}
+        ?container pro:isDocumentContextFor ?ar .
+        ?ar pro:withRole ?roleType .
+        ?ar pro:isHeldBy ?agent .
+    }}
+    GROUP BY ?container ?roleType ?agent
+    HAVING (COUNT(DISTINCT ?ar) > 1)
+    """
+    results = execute_sparql(endpoint, query, max_retries=3, backoff_factor=1)
+
+    has_issues = False
+    for result in results["results"]["bindings"]:
+        has_issues = True
+        role_type = result["roleType"]["value"].split("/")[-1]
+        tqdm.write(
+            f"Error in SPARQL: Entity {result['container']['value']} has "
+            f"{result['count']['value']} duplicate {role_type} roles held by "
+            f"{result['agent']['value']}"
+        )
     return has_issues
 
 

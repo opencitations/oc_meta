@@ -28,6 +28,10 @@ from typing import Iterable, List, Set
 from oc_meta.lib.sparql import execute_sparql
 
 FRBR_PART_OF = "http://purl.org/vocab/frbr/core#partOf"
+PRO_IS_HELD_BY = "http://purl.org/spar/pro/isHeldBy"
+PRO_WITH_ROLE = "http://purl.org/spar/pro/withRole"
+PRO_PUBLISHER = "http://purl.org/spar/pro/publisher"
+DATACITE_HAS_IDENTIFIER = "http://purl.org/spar/datacite/hasIdentifier"
 
 
 def _batched(items: List[str], batch_size: int) -> Iterable[List[str]]:
@@ -96,16 +100,44 @@ def _one_hop_neighbours(endpoint: str, entities: Set[str], batch_size: int) -> S
     return neighbours
 
 
+def _publisher_agents(endpoint: str, entities: Set[str], batch_size: int) -> Set[str]:
+    agents: Set[str] = set()
+    ordered = list(entities)
+    for batch in _batched(ordered, batch_size):
+        role_clauses = " UNION ".join(
+            f"{{<{uri}> <{PRO_WITH_ROLE}> <{PRO_PUBLISHER}> . <{uri}> <{PRO_IS_HELD_BY}> ?agent}}"
+            for uri in batch
+        )
+        query = f"""
+            SELECT DISTINCT ?agent ?identifier WHERE {{
+                {{ {role_clauses} }}
+                OPTIONAL {{ ?agent <{DATACITE_HAS_IDENTIFIER}> ?identifier }}
+            }}
+        """
+        results = execute_sparql(endpoint, query, max_retries=5, backoff_factor=0.3)
+        for result in results["results"]["bindings"]:
+            if result["agent"]["type"] == "uri":
+                agents.add(result["agent"]["value"])
+            if "identifier" in result and result["identifier"]["type"] == "uri":
+                agents.add(result["identifier"]["value"])
+    return agents
+
+
 def compute_related_closure(
     endpoint: str, entities: Iterable[str], batch_size: int = 10
 ) -> Set[str]:
     """Return every entity touched by merging ``entities`` (seeds included).
 
-    The result is the seeds, their ``frbr:partOf`` ancestors and the one-hop
-    neighbourhood of that set. It bounds the cascade: ancestors are followed only
-    through ``frbr:partOf`` (issue -> volume -> journal), and the neighbourhood
-    is expanded a single time, so citation chains are not traversed.
+    The result is the seeds, their ``frbr:partOf`` ancestors, the one-hop
+    neighbourhood of that set, and the responsible agents (with their
+    identifiers) behind any publisher role in that neighbourhood. It bounds the
+    cascade: ancestors are followed only through ``frbr:partOf`` (issue -> volume
+    -> journal), the neighbourhood is expanded a single time, so citation chains
+    are not traversed, and only publisher agents are pulled one further hop so
+    the deduplicator can compare publisher identity by identifier or name when a
+    container cascade merges two containers.
     """
     seeds = set(entities)
     core = seeds | _partof_ancestors(endpoint, seeds, batch_size)
-    return core | _one_hop_neighbours(endpoint, core, batch_size)
+    related = core | _one_hop_neighbours(endpoint, core, batch_size)
+    return related | _publisher_agents(endpoint, related, batch_size)

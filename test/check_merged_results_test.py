@@ -14,6 +14,10 @@ from oc_meta.run.merge import check_merged_ras_results as ra_checker
 from oc_meta.run.merge.csv_utils import parse_merged_entities
 
 
+def _normalize_sparql(query):
+    return " ".join(query.split())
+
+
 def test_parse_merged_entities_accepts_semicolon_with_or_without_space() -> None:
     assert parse_merged_entities("id/1;id/2; id/3 ;  id/4") == [
         "id/1",
@@ -142,6 +146,84 @@ def test_br_sparql_check_reports_reference_when_removed_br_is_missing(
     assert messages == [
         "Error in SPARQL: Merged entity https://w3id.org/oc/meta/br/1 is still referenced by other entities"
     ]
+
+
+def test_br_checker_flags_duplicate_roles_on_cascaded_containers(monkeypatch) -> None:
+    entity = "https://w3id.org/oc/meta/br/1"
+
+    def execute_sparql(_endpoint, query, max_retries, backoff_factor):
+        assert max_retries == 3
+        assert backoff_factor == 1
+        expected_query = f"""
+    PREFIX pro: <{br_checker.PRO}>
+    PREFIX frbr: <{br_checker.FRBR}>
+    SELECT ?container ?roleType ?agent (COUNT(DISTINCT ?ar) AS ?count) WHERE {{
+        {{ BIND(<{entity}> AS ?container) }}
+        UNION
+        {{ <{entity}> frbr:partOf+ ?container }}
+        ?container pro:isDocumentContextFor ?ar .
+        ?ar pro:withRole ?roleType .
+        ?ar pro:isHeldBy ?agent .
+    }}
+    GROUP BY ?container ?roleType ?agent
+    HAVING (COUNT(DISTINCT ?ar) > 1)
+    """
+        assert _normalize_sparql(query) == _normalize_sparql(expected_query)
+        return {
+            "results": {
+                "bindings": [
+                    {
+                        "container": {
+                            "value": "https://w3id.org/oc/meta/br/10",
+                            "type": "uri",
+                        },
+                        "roleType": {
+                            "value": "http://purl.org/spar/pro/publisher",
+                            "type": "uri",
+                        },
+                        "agent": {
+                            "value": "https://w3id.org/oc/meta/ra/5",
+                            "type": "uri",
+                        },
+                        "count": {"value": "2", "type": "literal"},
+                    }
+                ]
+            }
+        }
+
+    messages = []
+    monkeypatch.setattr(br_checker, "execute_sparql", execute_sparql)
+    monkeypatch.setattr(br_checker.tqdm, "write", messages.append)
+
+    assert (
+        br_checker.check_duplicate_contributor_roles(
+            "https://example.test/sparql", entity
+        )
+        is True
+    )
+    assert messages == [
+        "Error in SPARQL: Entity https://w3id.org/oc/meta/br/10 has 2 duplicate "
+        "publisher roles held by https://w3id.org/oc/meta/ra/5"
+    ]
+
+
+def test_br_checker_accepts_container_chain_without_duplicate_roles(
+    monkeypatch,
+) -> None:
+    def execute_sparql(_endpoint, _query, max_retries, backoff_factor):
+        return {"results": {"bindings": []}}
+
+    messages = []
+    monkeypatch.setattr(br_checker, "execute_sparql", execute_sparql)
+    monkeypatch.setattr(br_checker.tqdm, "write", messages.append)
+
+    assert (
+        br_checker.check_duplicate_contributor_roles(
+            "https://example.test/sparql", "https://w3id.org/oc/meta/br/1"
+        )
+        is False
+    )
+    assert messages == []
 
 
 def test_ra_checker_finds_entities_referencing_removed_ra() -> None:
