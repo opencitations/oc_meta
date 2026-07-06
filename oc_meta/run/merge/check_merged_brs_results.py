@@ -173,6 +173,34 @@ def check_entity_sparql(endpoint: str, entity_uri, is_surviving):
     if is_surviving and check_duplicate_contributor_roles(endpoint, entity_uri):
         has_issues = True
 
+    if is_surviving and check_duplicate_identifiers(endpoint, entity_uri):
+        has_issues = True
+
+    return has_issues
+
+
+def check_duplicate_identifiers(endpoint: str, entity_uri):
+    query = f"""
+    PREFIX datacite: <{DATACITE}>
+    PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
+    SELECT ?scheme ?value (COUNT(DISTINCT ?identifier) AS ?count) WHERE {{
+        <{entity_uri}> datacite:hasIdentifier ?identifier .
+        ?identifier datacite:usesIdentifierScheme ?scheme .
+        ?identifier literal:hasLiteralValue ?value .
+    }}
+    GROUP BY ?scheme ?value
+    HAVING (COUNT(DISTINCT ?identifier) > 1)
+    """
+    results = execute_sparql(endpoint, query, max_retries=3, backoff_factor=1)
+
+    has_issues = False
+    for result in results["results"]["bindings"]:
+        has_issues = True
+        scheme = result["scheme"]["value"].split("/")[-1]
+        tqdm.write(
+            f"Error in SPARQL: Entity {entity_uri} has {result['count']['value']} "
+            f"duplicate identifiers with scheme {scheme} and value {result['value']['value']}"
+        )
     return has_issues
 
 
@@ -404,7 +432,9 @@ def check_entity_provenance(entity_uri, is_surviving, prov_graph, prov_file_path
             return int(match.group(1))
         return 0
 
-    snapshots = list(prov_graph.subjects(PROV.specializationOf, entity_uri))
+    snapshots = list(
+        prov_graph.subjects(PROV.specializationOf, entity_uri, unique=True)
+    )
     if len(snapshots) <= 1:
         tqdm.write(
             f"Error in provenance file {prov_file_path}: Less than two snapshots found for entity {entity_uri}"

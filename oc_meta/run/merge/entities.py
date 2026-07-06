@@ -8,6 +8,7 @@ import csv
 import logging
 import multiprocessing
 import os
+import tempfile
 import traceback
 from typing import Dict, List
 
@@ -71,11 +72,16 @@ class EntityMerger:
     @staticmethod
     def write_csv(csv_file: str, data: List[Dict]):
         fieldnames = data[0].keys()
-        with open(csv_file, mode="w", newline="", encoding="utf-8") as file:
+        directory = os.path.dirname(os.path.abspath(csv_file))
+        with tempfile.NamedTemporaryFile(
+            mode="w", newline="", encoding="utf-8", dir=directory, delete=False
+        ) as file:
             writer = csv.DictWriter(file, fieldnames=fieldnames)
             writer.writeheader()
             for row in data:
                 writer.writerow(row)
+            tmp_path = file.name
+        os.replace(tmp_path, csv_file)
 
     @staticmethod
     def count_csv_rows(csv_file: str) -> int:

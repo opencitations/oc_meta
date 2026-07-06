@@ -566,6 +566,44 @@ class TestEditor:
                                 "<https://w3id.org/oc/meta/ra/06010> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent>",
                             }
 
+    def test_merge_preserves_surviving_responsible_agent_name(self):
+        base_iri = "https://w3id.org/oc/meta/"
+        resp_agent = "https://orcid.org/0000-0002-8420-0696"
+        g_set = GraphSet(
+            base_iri,
+            supplier_prefix="060",
+            wanted_label=False,
+            custom_counter_handler=self.counter_handler,
+        )
+        endpoint = SERVER
+
+        survivor = g_set.add_ra(
+            resp_agent=resp_agent, res="https://w3id.org/oc/meta/ra/06020"
+        )
+        survivor.has_name("Surviving Name")
+        merged = g_set.add_ra(
+            resp_agent=resp_agent, res="https://w3id.org/oc/meta/ra/06021"
+        )
+        merged.has_name("Merged Name")
+
+        graph_storer = Storer(
+            g_set, dir_split=10000, n_file_item=1000, zip_output=False
+        )
+        graph_storer.store_all(os.path.join(OUTPUT, "rdf") + os.sep, base_iri)
+        graph_storer.upload_all(endpoint)
+        g_set.commit_changes()
+
+        editor = MetaEditor(
+            META_CONFIG,
+            resp_agent,
+            counter_handler=self.counter_handler,
+        )
+        editor.merge(g_set, str(survivor.res), str(merged.res))
+
+        merged_survivor = g_set.get_entity(survivor.res)
+        assert merged_survivor is not None
+        assert merged_survivor.get_name() == "Surviving Name"
+
     def test_merge_bibliographic_resources_discards_merged_author_editor_roles(self):
         base_iri = "https://w3id.org/oc/meta/"
         resp_agent = "https://orcid.org/0000-0002-8420-0696"

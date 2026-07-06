@@ -226,6 +226,70 @@ def test_br_checker_accepts_container_chain_without_duplicate_roles(
     assert messages == []
 
 
+def test_br_checker_flags_duplicate_identifiers(monkeypatch) -> None:
+    entity = "https://w3id.org/oc/meta/br/1"
+
+    def execute_sparql(_endpoint, query, max_retries, backoff_factor):
+        assert max_retries == 3
+        assert backoff_factor == 1
+        expected_query = f"""
+    PREFIX datacite: <{br_checker.DATACITE}>
+    PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
+    SELECT ?scheme ?value (COUNT(DISTINCT ?identifier) AS ?count) WHERE {{
+        <{entity}> datacite:hasIdentifier ?identifier .
+        ?identifier datacite:usesIdentifierScheme ?scheme .
+        ?identifier literal:hasLiteralValue ?value .
+    }}
+    GROUP BY ?scheme ?value
+    HAVING (COUNT(DISTINCT ?identifier) > 1)
+    """
+        assert _normalize_sparql(query) == _normalize_sparql(expected_query)
+        return {
+            "results": {
+                "bindings": [
+                    {
+                        "scheme": {
+                            "value": "http://purl.org/spar/datacite/doi",
+                            "type": "uri",
+                        },
+                        "value": {"value": "10.1234/example", "type": "literal"},
+                        "count": {"value": "2", "type": "literal"},
+                    }
+                ]
+            }
+        }
+
+    messages = []
+    monkeypatch.setattr(br_checker, "execute_sparql", execute_sparql)
+    monkeypatch.setattr(br_checker.tqdm, "write", messages.append)
+
+    assert (
+        br_checker.check_duplicate_identifiers("https://example.test/sparql", entity)
+        is True
+    )
+    assert messages == [
+        "Error in SPARQL: Entity https://w3id.org/oc/meta/br/1 has 2 "
+        "duplicate identifiers with scheme doi and value 10.1234/example"
+    ]
+
+
+def test_br_checker_accepts_unique_identifiers(monkeypatch) -> None:
+    def execute_sparql(_endpoint, _query, max_retries, backoff_factor):
+        return {"results": {"bindings": []}}
+
+    messages = []
+    monkeypatch.setattr(br_checker, "execute_sparql", execute_sparql)
+    monkeypatch.setattr(br_checker.tqdm, "write", messages.append)
+
+    assert (
+        br_checker.check_duplicate_identifiers(
+            "https://example.test/sparql", "https://w3id.org/oc/meta/br/1"
+        )
+        is False
+    )
+    assert messages == []
+
+
 def test_ra_checker_finds_entities_referencing_removed_ra() -> None:
     graph = Dataset(default_union=True)
     responsible_agent = URIRef("https://w3id.org/oc/meta/ra/1")

@@ -273,9 +273,7 @@ class MetaEditor:
 
         if is_both_expression:
             discard_merged_br_author_editor_roles(g_set, [other])
-            res_as_entity.merge(other_as_entity, prefer_self=True)
-        else:
-            res_as_entity.merge(other_as_entity)
+        res_as_entity.merge(other_as_entity, prefer_self=True)
 
     def sync_rdf_with_triplestore(
         self, res: str, source_uri: str | None = None
