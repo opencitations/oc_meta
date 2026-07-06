@@ -9,10 +9,10 @@ import os
 import pandas as pd
 import yaml
 from rich_argparse import RichHelpFormatter
-from oc_meta.lib.sparql import execute_sparql
 from tqdm import tqdm
 
 from oc_meta.lib.file_manager import find_rdf_file
+from oc_meta.run.merge.closure import compute_related_closure
 from oc_meta.run.merge.csv_utils import parse_merged_entities
 
 
@@ -57,82 +57,6 @@ def load_csv(file_path):
     return df
 
 
-def query_sparql_batch(endpoint, uris, batch_size=10):
-    """
-    Query SPARQL for related entities in batches.
-
-    Args:
-        endpoint: SPARQL endpoint URL
-        uris: List of URIs to query
-        batch_size: Number of URIs to process in a single query
-
-    Returns:
-        Set of all related entities
-    """
-    related_entities = set()
-
-    for i in range(0, len(uris), batch_size):
-        batch_uris = uris[i : i + batch_size]
-
-        subject_clauses = []
-        object_clauses = []
-        responsible_agent_context_clauses = []
-
-        for uri in batch_uris:
-            subject_clauses.append(f"{{?entity ?p <{uri}>}}")
-            object_clauses.append(f"{{<{uri}> ?p ?entity}}")
-            responsible_agent_context_clauses.append(
-                f"{{?agent_role pro:isHeldBy <{uri}> . ?entity pro:isDocumentContextFor ?agent_role}}"
-            )
-
-        query = f"""
-            PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-            PREFIX datacite: <http://purl.org/spar/datacite/>
-            PREFIX pro: <http://purl.org/spar/pro/>
-            SELECT DISTINCT ?entity WHERE {{
-                {{
-                    {{
-                        {" UNION ".join(subject_clauses + object_clauses)}
-                    }}
-                    FILTER (?p != rdf:type)
-                    FILTER (?p != datacite:usesIdentifierScheme)
-                    FILTER (?p != pro:withRole)
-                }}
-                UNION
-                {{
-                    {" UNION ".join(responsible_agent_context_clauses)}
-                }}
-                ?entity ?p2 ?o2 .
-            }}
-        """
-
-        results = execute_sparql(endpoint, query, max_retries=5, backoff_factor=5)
-
-        for result in results["results"]["bindings"]:
-            if result["entity"]["type"] == "uri":
-                related_entities.add(result["entity"]["value"])
-
-    return related_entities
-
-
-def get_all_related_entities(endpoint, uris, batch_size=10):
-    """
-    Get all related entities for a list of URIs using batch queries.
-
-    Args:
-        endpoint: SPARQL endpoint URL
-        uris: List of URIs to query
-        batch_size: Number of URIs to process in a single query
-
-    Returns:
-        Set of all related entities including input URIs
-    """
-    related_entities = set(uris)
-    batch_results = query_sparql_batch(endpoint, uris, batch_size)
-    related_entities.update(batch_results)
-    return related_entities
-
-
 def group_entities(df, endpoint, dir_split=10000, items_per_file=1000, zip_output=True):
     """
     Group entities based on RDF connections and file range conflicts.
@@ -156,8 +80,9 @@ def group_entities(df, endpoint, dir_split=10000, items_per_file=1000, zip_outpu
 
         all_entities = [surviving_entity] + merged_entities
 
-        # Union for RDF connections
-        all_related_entities = get_all_related_entities(endpoint, all_entities)
+        # Union over the full merge closure so that merges touching a shared
+        # entity (including cascaded containers) land in the same group.
+        all_related_entities = compute_related_closure(endpoint, all_entities)
         for entity in all_related_entities:
             uf.union(surviving_entity, entity)
 

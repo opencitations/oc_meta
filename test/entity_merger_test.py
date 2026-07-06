@@ -11,7 +11,6 @@ from shutil import rmtree
 import orjson
 import yaml
 from oc_meta.run.merge.entities import EntityMerger
-from oc_meta.run.meta_editor import MetaEditor
 from oc_ocdm.counter_handler.filesystem_counter_handler import FilesystemCounterHandler
 from oc_ocdm.graph import GraphSet
 from oc_ocdm.prov.prov_set import ProvSet
@@ -1455,56 +1454,41 @@ class TestEntityMerger:
                             "Resource embodiment should still exist after merge"
                         )
 
-    def test_fetch_related_entities_batch(self):
-        """Test batch fetching of related entities"""
-        meta_editor = MetaEditor(
-            META_CONFIG, "https://orcid.org/0000-0002-8420-0696", save_queries=False
-        )
-
+    def test_merge_redirects_container_siblings_across_the_closure(self):
+        """Merging two articles in equivalent issues must redirect a sibling that
+        is not part of the merge, instead of leaving it pointing at a deleted issue."""
         g_set = GraphSet(
             "https://w3id.org/oc/meta/",
             supplier_prefix="060",
             custom_counter_handler=self.counter_handler,
         )
+        resp = "https://orcid.org/0000-0002-8420-0696"
 
-        # Utilizziamo un insieme più piccolo di numeri validi per il test
-        valid_numbers = [11, 12, 13, 14, 15]
-        entities = {}
+        surviving = g_set.add_br(resp, res=URIRef("https://w3id.org/oc/meta/br/0603"))
+        surviving.create_journal_article()
+        surviving.has_title("Duplicated article")
+        merged = g_set.add_br(resp, res=URIRef("https://w3id.org/oc/meta/br/0604"))
+        merged.create_journal_article()
+        merged.has_title("Duplicated article")
 
-        # Creiamo gli autori e li memorizziamo in un dizionario per facile accesso
-        for i in valid_numbers:
-            ra = g_set.add_ra(
-                resp_agent="https://orcid.org/0000-0002-8420-0696",
-                res=URIRef(f"https://w3id.org/oc/meta/ra/060{i}"),
-            )
-            ra.has_name(f"Author {i}")
-            entities[i] = ra
+        surviving_issue = g_set.add_br(
+            resp, res=URIRef("https://w3id.org/oc/meta/br/0605")
+        )
+        surviving_issue.create_issue()
+        surviving_issue.has_number("3")
+        merged_issue = g_set.add_br(
+            resp, res=URIRef("https://w3id.org/oc/meta/br/0606")
+        )
+        merged_issue.create_issue()
+        merged_issue.has_number("3")
 
-        # Creiamo le entità correlate per ogni autore
-        for i in valid_numbers:
-            # Creiamo l'identificatore
-            identifier = g_set.add_id(
-                resp_agent="https://orcid.org/0000-0002-8420-0696",
-                res=URIRef(f"https://w3id.org/oc/meta/id/060{i}"),
-            )
-            identifier.create_orcid(f"0000-0001-{i:04d}-1111")
-            entities[i].has_identifier(identifier)
+        bystander = g_set.add_br(resp, res=URIRef("https://w3id.org/oc/meta/br/0607"))
+        bystander.create_journal_article()
+        bystander.has_title("Bystander in the merged issue")
 
-            # Creiamo il ruolo
-            role = g_set.add_ar(
-                resp_agent="https://orcid.org/0000-0002-8420-0696",
-                res=URIRef(f"https://w3id.org/oc/meta/ar/060{i}"),
-            )
-            role.create_author()
-            role.is_held_by(entities[i])
-
-            # Creiamo la pubblicazione
-            pub = g_set.add_br(
-                resp_agent="https://orcid.org/0000-0002-8420-0696",
-                res=URIRef(f"https://w3id.org/oc/meta/br/060{i}"),
-            )
-            pub.has_title(f"Publication {i}")
-            pub.has_contributor(role)
+        surviving.is_part_of(surviving_issue)
+        merged.is_part_of(merged_issue)
+        bystander.is_part_of(merged_issue)
 
         prov = ProvSet(
             g_set,
@@ -1515,7 +1499,6 @@ class TestEntityMerger:
         prov.generate_provenance()
 
         rdf_output = os.path.join(OUTPUT, "rdf") + os.sep
-
         res_storer = Storer(
             abstract_set=g_set,
             dir_split=10000,
@@ -1530,7 +1513,6 @@ class TestEntityMerger:
             output_format="json-ld",
             zip_output=False,
         )
-
         res_storer.store_all(base_dir=rdf_output, base_iri="https://w3id.org/oc/meta/")
         prov_storer.store_all(base_dir=rdf_output, base_iri="https://w3id.org/oc/meta/")
         res_storer.upload_all(
@@ -1540,52 +1522,41 @@ class TestEntityMerger:
             save_queries=False,
         )
 
-        batch_sizes = [1, 5, 11, 25]
-        for batch_size in batch_sizes:
-            # Test con una singola entità
-            merged_entities = [f"https://w3id.org/oc/meta/ra/060{valid_numbers[0]}"]
-            surviving_entities = [f"https://w3id.org/oc/meta/ra/060{valid_numbers[1]}"]
+        self.write_csv(
+            "sibling_merge.csv",
+            [
+                {
+                    "surviving_entity": "https://w3id.org/oc/meta/br/0603",
+                    "merged_entities": "https://w3id.org/oc/meta/br/0604",
+                    "Done": "False",
+                }
+            ],
+        )
 
-            related = self.merger.fetch_related_entities_batch(
-                meta_editor=meta_editor,
-                merged_entities=merged_entities,
-                surviving_entities=surviving_entities,
-                batch_size=batch_size,
-            )
+        self.counter_handler.flush()
+        self.merger.process_folder(os.path.join(BASE, "csv"))
 
-            expected_related = {
-                f"https://w3id.org/oc/meta/id/060{valid_numbers[0]}",
-                f"https://w3id.org/oc/meta/ar/060{valid_numbers[0]}",
-                f"https://w3id.org/oc/meta/br/060{valid_numbers[0]}",
-                f"https://w3id.org/oc/meta/id/060{valid_numbers[1]}",
-                f"https://w3id.org/oc/meta/ar/060{valid_numbers[1]}",
-                f"https://w3id.org/oc/meta/br/060{valid_numbers[1]}",
+        br_file = os.path.join(OUTPUT, "rdf", "br", "060", "10000", "1000.json")
+        with open(br_file) as f:
+            entities = {
+                entity["@id"]: entity
+                for graph in orjson.loads(f.read())
+                for entity in graph.get("@graph", [])
             }
 
-            assert related == expected_related
-
-            merged_entities = [
-                f"https://w3id.org/oc/meta/ra/060{i}" for i in valid_numbers[:3]
-            ]
-            surviving_entities = [f"https://w3id.org/oc/meta/ra/060{valid_numbers[3]}"]
-
-            related = self.merger.fetch_related_entities_batch(
-                meta_editor=meta_editor,
-                merged_entities=merged_entities,
-                surviving_entities=surviving_entities,
-                batch_size=batch_size,
-            )
-
-            expected_related = set()
-            for i in valid_numbers[:3]:
-                expected_related.add(f"https://w3id.org/oc/meta/id/060{i}")
-                expected_related.add(f"https://w3id.org/oc/meta/ar/060{i}")
-                expected_related.add(f"https://w3id.org/oc/meta/br/060{i}")
-            expected_related.add(f"https://w3id.org/oc/meta/id/060{valid_numbers[3]}")
-            expected_related.add(f"https://w3id.org/oc/meta/ar/060{valid_numbers[3]}")
-            expected_related.add(f"https://w3id.org/oc/meta/br/060{valid_numbers[3]}")
-
-            assert related == expected_related
+        part_of = "http://purl.org/vocab/frbr/core#partOf"
+        # the merged article and its equivalent issue are gone
+        assert "https://w3id.org/oc/meta/br/0604" not in entities
+        assert "https://w3id.org/oc/meta/br/0606" not in entities
+        # the surviving issue stays and the survivor still points to it
+        assert "https://w3id.org/oc/meta/br/0605" in entities
+        assert entities["https://w3id.org/oc/meta/br/0603"][part_of] == [
+            {"@id": "https://w3id.org/oc/meta/br/0605"}
+        ]
+        # the bystander, never named in the merge, is redirected instead of dangling
+        assert entities["https://w3id.org/oc/meta/br/0607"][part_of] == [
+            {"@id": "https://w3id.org/oc/meta/br/0605"}
+        ]
 
     def test_merge_bibliographic_resources_with_multiple_identifiers(self):
         """Test merging two bibliographic resources with different identifiers"""

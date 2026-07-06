@@ -13,7 +13,6 @@ import pandas as pd
 from oc_meta.lib.file_manager import find_rdf_file
 from oc_meta.run.merge.group_entities import (
     UnionFind,
-    get_all_related_entities,
     group_entities,
     optimize_groups,
     save_grouped_entities,
@@ -97,155 +96,6 @@ class TestUnionFind:
         self.uf.parent["entity1"] = "entity1"
         result = self.uf.find("entity1")
         assert result == "entity1"
-
-
-class TestQuerySPARQL:
-    """Test SPARQL query functions"""
-
-    @patch("oc_meta.run.merge.group_entities.execute_sparql")
-    def test_query_sparql_batch(self, mock_execute_sparql):
-        """Test batch querying for related entities"""
-        mock_execute_sparql.return_value = {
-            "results": {
-                "bindings": [
-                    {
-                        "entity": {
-                            "value": "https://example.org/related1",
-                            "type": "uri",
-                        }
-                    },
-                    {
-                        "entity": {
-                            "value": "https://example.org/related2",
-                            "type": "uri",
-                        }
-                    },
-                ]
-            }
-        }
-
-        from oc_meta.run.merge.group_entities import query_sparql_batch
-
-        result = query_sparql_batch(
-            "http://endpoint",
-            ["https://example.org/test1", "https://example.org/test2"],
-        )
-        assert len(result) == 2
-        assert "https://example.org/related1" in result
-        assert "https://example.org/related2" in result
-
-    @patch("oc_meta.run.merge.group_entities.execute_sparql")
-    def test_query_sparql_batch_large_input(self, mock_execute_sparql):
-        """Test batch processing with large input (multiple batches)"""
-        mock_execute_sparql.return_value = {"results": {"bindings": []}}
-
-        from oc_meta.run.merge.group_entities import query_sparql_batch
-
-        uris = [f"https://example.org/entity{i}" for i in range(25)]
-        query_sparql_batch("http://endpoint", uris, batch_size=10)
-
-        assert mock_execute_sparql.call_count == 3
-
-    @patch("oc_meta.run.merge.group_entities.execute_sparql")
-    def test_query_sparql_batch_empty_results(self, mock_execute_sparql):
-        """Test handling of empty results"""
-        mock_execute_sparql.return_value = {"results": {"bindings": []}}
-
-        from oc_meta.run.merge.group_entities import query_sparql_batch
-
-        result = query_sparql_batch("http://endpoint", ["https://example.org/test"])
-        assert len(result) == 0
-
-    @patch("oc_meta.run.merge.group_entities.execute_sparql")
-    def test_query_sparql_batch_filters_literals(self, mock_execute_sparql):
-        """Test that literal values are filtered out (only URIs)"""
-        mock_execute_sparql.return_value = {
-            "results": {
-                "bindings": [
-                    {"entity": {"value": "https://example.org/uri1", "type": "uri"}},
-                    {"entity": {"value": "Some Literal", "type": "literal"}},
-                    {"entity": {"value": "https://example.org/uri2", "type": "uri"}},
-                ]
-            }
-        }
-
-        from oc_meta.run.merge.group_entities import query_sparql_batch
-
-        result = query_sparql_batch("http://endpoint", ["https://example.org/test"])
-        assert len(result) == 2
-        assert "https://example.org/uri1" in result
-        assert "https://example.org/uri2" in result
-        assert "Some Literal" not in result
-
-    @patch("oc_meta.run.merge.group_entities.execute_sparql")
-    def test_query_sparql_batch_includes_ra_bibliographic_context(
-        self, mock_execute_sparql
-    ):
-        """Test that RA grouping includes BRs connected through agent roles"""
-        mock_execute_sparql.return_value = {"results": {"bindings": []}}
-
-        from oc_meta.run.merge.group_entities import query_sparql_batch
-
-        query_sparql_batch(
-            "http://endpoint",
-            ["https://w3id.org/oc/meta/ra/0601"],
-        )
-
-        query = mock_execute_sparql.call_args.args[1]
-        assert "pro:isHeldBy <https://w3id.org/oc/meta/ra/0601>" in query
-        assert "pro:isDocumentContextFor ?agent_role" in query
-
-
-class TestGetAllRelatedEntities:
-    """Test get_all_related_entities function"""
-
-    @patch("oc_meta.run.merge.group_entities.query_sparql_batch")
-    def test_get_all_related_entities_performance_fixed(self, mock_query_batch):
-        """Test that batch querying is used (performance fix)"""
-        mock_query_batch.return_value = set()
-
-        uris = [f"https://example.org/entity{i}" for i in range(10)]
-        get_all_related_entities("http://endpoint", uris)
-
-        assert mock_query_batch.call_count == 1
-
-    @patch("oc_meta.run.merge.group_entities.query_sparql_batch")
-    def test_get_all_related_entities_performance_large_batch(self, mock_query_batch):
-        """Test performance with 100 URIs (should be ~10 queries with batch_size=10)"""
-        mock_query_batch.return_value = set()
-
-        uris = [f"https://example.org/entity{i}" for i in range(100)]
-        get_all_related_entities("http://endpoint", uris, batch_size=10)
-
-        assert mock_query_batch.call_count == 1
-
-    @patch("oc_meta.run.merge.group_entities.query_sparql_batch")
-    def test_get_all_related_entities_includes_input_uris(self, mock_query_batch):
-        """Test that input URIs are included in results"""
-        mock_query_batch.return_value = set()
-
-        uris = ["https://example.org/entity1", "https://example.org/entity2"]
-        result = get_all_related_entities("http://endpoint", uris)
-
-        assert "https://example.org/entity1" in result
-        assert "https://example.org/entity2" in result
-
-    @patch("oc_meta.run.merge.group_entities.query_sparql_batch")
-    def test_get_all_related_entities_combines_results(self, mock_query_batch):
-        """Test that batch results are combined with input URIs"""
-        mock_query_batch.return_value = {
-            "https://example.org/related1",
-            "https://example.org/related2",
-        }
-
-        result = get_all_related_entities(
-            "http://endpoint", ["https://example.org/entity1"]
-        )
-
-        assert "https://example.org/entity1" in result
-        assert "https://example.org/related1" in result
-        assert "https://example.org/related2" in result
-        assert len(result) == 3
 
 
 class TestOptimizeGroups:
@@ -394,7 +244,7 @@ class TestGetFilePath:
 class TestGroupEntities:
     """Test group_entities function"""
 
-    @patch("oc_meta.run.merge.group_entities.get_all_related_entities")
+    @patch("oc_meta.run.merge.group_entities.compute_related_closure")
     def test_group_entities_creates_groups(self, mock_get_related):
         """Test that group_entities creates correct groups"""
         mock_get_related.return_value = set()
@@ -416,7 +266,7 @@ class TestGroupEntities:
 
         assert len(result) > 0
 
-    @patch("oc_meta.run.merge.group_entities.get_all_related_entities")
+    @patch("oc_meta.run.merge.group_entities.compute_related_closure")
     def test_group_entities_handles_multiple_merged_entities(self, mock_get_related):
         """Test handling of multiple merged entities (semicolon-separated)"""
         mock_get_related.return_value = set()
@@ -434,7 +284,7 @@ class TestGroupEntities:
 
         assert len(result) > 0
 
-    @patch("oc_meta.run.merge.group_entities.get_all_related_entities")
+    @patch("oc_meta.run.merge.group_entities.compute_related_closure")
     def test_group_entities_single_iteration(self, mock_get_related):
         """Test that single iteration is used (performance fix)"""
         mock_get_related.return_value = set()
@@ -454,7 +304,7 @@ class TestGroupEntities:
         assert mock_get_related.call_count == 10
         assert len(result) > 0
 
-    @patch("oc_meta.run.merge.group_entities.get_all_related_entities")
+    @patch("oc_meta.run.merge.group_entities.compute_related_closure")
     def test_group_entities_no_double_iteration(self, mock_get_related):
         """Test that DataFrame is iterated only once (not twice)"""
         mock_get_related.return_value = set()
@@ -490,7 +340,7 @@ class TestGroupEntities:
             "DataFrame.iterrows() should be called only once"
         )
 
-    @patch("oc_meta.run.merge.group_entities.get_all_related_entities")
+    @patch("oc_meta.run.merge.group_entities.compute_related_closure")
     def test_group_entities_file_range_grouping(self, mock_get_related):
         """Test that entities in same file range are grouped together"""
         mock_get_related.return_value = set()
@@ -514,7 +364,7 @@ class TestGroupEntities:
 
         assert len(result) == 1, "All entities in same file should be in same group"
 
-    @patch("oc_meta.run.merge.group_entities.get_all_related_entities")
+    @patch("oc_meta.run.merge.group_entities.compute_related_closure")
     def test_group_entities_different_files_separate_groups(self, mock_get_related):
         """Test that entities in different files are in separate groups"""
         mock_get_related.return_value = set()
@@ -539,6 +389,45 @@ class TestGroupEntities:
         assert len(result) == 2, (
             "Entities in different files should be in different groups"
         )
+
+    @patch("oc_meta.run.merge.group_entities.compute_related_closure")
+    def test_group_entities_groups_merges_sharing_a_closure_entity(
+        self, mock_get_related
+    ):
+        """Merges in different files that share a cascaded container (e.g. the same
+        journal) must land in the same group so parallel workers never collide."""
+        shared_journal = "https://w3id.org/oc/meta/br/060999"
+        mock_get_related.side_effect = [
+            {
+                "https://w3id.org/oc/meta/br/060100",
+                "https://w3id.org/oc/meta/br/060200",
+                shared_journal,
+            },
+            {
+                "https://w3id.org/oc/meta/br/0601500",
+                "https://w3id.org/oc/meta/br/0601600",
+                shared_journal,
+            },
+        ]
+
+        df = pd.DataFrame(
+            [
+                {
+                    "surviving_entity": "https://w3id.org/oc/meta/br/060100",
+                    "merged_entities": "https://w3id.org/oc/meta/br/060200",
+                },
+                {
+                    "surviving_entity": "https://w3id.org/oc/meta/br/0601500",
+                    "merged_entities": "https://w3id.org/oc/meta/br/0601600",
+                },
+            ]
+        )
+
+        result = group_entities(
+            df, "http://endpoint", dir_split=10000, items_per_file=1000
+        )
+
+        assert len(result) == 1
 
 
 class TestSaveGroupedEntities:
@@ -653,7 +542,7 @@ class TestIntegration:
 
         assert "missing required columns" in str(context.value)
 
-    @patch("oc_meta.run.merge.group_entities.get_all_related_entities")
+    @patch("oc_meta.run.merge.group_entities.compute_related_closure")
     def test_complete_workflow(self, mock_get_related):
         """Test complete workflow from CSV to grouped output"""
         mock_get_related.return_value = set()

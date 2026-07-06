@@ -74,15 +74,21 @@ Use output from [find duplicates](12-find-duplicates.md) or [group entities](13-
 
 For each row, the script:
 
-1. **Loads entities** from RDF files
-2. **Copies identifiers** from merged entities to surviving entity
+1. **Loads the merge closure** from the triplestore: the entities named in the row, their `frbr:partOf` container chain (issue, volume, journal), and every entity that refers to any of these. Loading the entities that refer to a container that may be deleted is what keeps the merge from leaving dangling references.
+2. **Copies identifiers** from merged entities to the surviving entity
 3. **Fills metadata gaps** (title, date, etc.) from merged entities
-4. **Updates references** in other entities pointing to merged entities
-5. **Keeps author/editor chains** from surviving entity (merged entity's chains are discarded)
-6. **Records provenance** for the merge operation
-7. **Invalidates merged entities** marking them as merged
-8. **Writes updated RDF** back to files
-9. **Uploads changes** to triplestore
+4. **Merges matching containers**: an issue, volume or journal of a merged entity is merged into the survivor's container of the same type only when the two are equivalent (they share an identifier, or have the same sequence number, or the same title). Containers that disagree are kept distinct, and a level is merged only if its parent level was merged. The publisher role follows the same rule, keyed on the responsible agent behind it.
+5. **Updates references** in other entities pointing to any merged entity or merged container
+6. **Keeps author/editor chains** from the surviving entity (merged entity's chains are discarded)
+7. **Records provenance** for the merge operation
+8. **Marks merged entities as merged**
+9. **Writes updated RDF** back to files
+
+The script does not upload to the triplestore. It processes a batch of merges against a single triplestore snapshot held in memory and writes the result to files; the triplestore is re-indexed from those files afterwards.
+
+## Grouping and concurrency
+
+Workers process one CSV file each in parallel. A merge mutates every entity in its closure, so two merges that touch a shared entity (for example the same journal reached through the container cascade) must run in the same worker. [Group entities](13-group-entities.md) uses the same closure to place such merges in the same file. Merges under one journal are therefore serialised, while merges under disjoint journals stay parallel.
 
 ## File locking
 

@@ -9,18 +9,18 @@ import logging
 import multiprocessing
 import os
 import traceback
-from typing import Dict, List, Set
+from typing import Dict, List
 
 from oc_graphenricher.deduplication import GraphDeduplicator
 from oc_graphenricher.storage import DirectoryStorage, directory_storage
 from oc_ocdm.counter_handler.filesystem_counter_handler import FilesystemCounterHandler
 from oc_ocdm.graph import GraphSet
 from rich_argparse import RichHelpFormatter
-from oc_meta.lib.sparql import execute_sparql
 from tqdm import tqdm
 
 from oc_meta.core.editor import MetaEditor
 from oc_meta.lib.merge_roles import discard_merged_br_author_editor_roles
+from oc_meta.run.merge.closure import compute_related_closure
 from oc_meta.run.merge.csv_utils import parse_merged_entities
 
 logging.basicConfig(
@@ -120,126 +120,6 @@ class EntityMerger:
         deduplicator = GraphDeduplicator(g_set, storage=storage)
         deduplicator.merge_clusters_and_save(clusters)
 
-    def fetch_related_entities_batch(
-        self,
-        meta_editor: MetaEditor,
-        merged_entities: List[str],
-        surviving_entities: List[str],
-        batch_size: int = 10,
-    ) -> Set[str]:
-        all_related_entities: Set[str] = set()
-
-        for i in range(0, len(merged_entities), batch_size):
-            batch_merged = merged_entities[i : i + batch_size]
-            merged_clauses = []
-            for entity in batch_merged:
-                merged_clauses.extend(
-                    [f"{{?entity ?p <{entity}>}}", f"{{<{entity}> ?p ?entity}}"]
-                )
-
-            if not merged_clauses:
-                continue
-
-            query = f"""
-                PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-                PREFIX datacite: <http://purl.org/spar/datacite/>
-                PREFIX pro: <http://purl.org/spar/pro/>
-                SELECT DISTINCT ?entity WHERE {{
-                    {{
-                        {" UNION ".join(merged_clauses)}
-                    }}
-                    FILTER (?p != rdf:type)
-                    FILTER (?p != datacite:usesIdentifierScheme)
-                    FILTER (?p != pro:withRole)
-                }}
-            """
-
-            results = execute_sparql(
-                meta_editor.endpoint, query, max_retries=5, backoff_factor=0.3
-            )
-            for result in results["results"]["bindings"]:
-                if result["entity"]["type"] == "uri":
-                    related = result["entity"]["value"]
-                    all_related_entities.add(related)
-
-                    for entity in batch_merged:
-                        if entity not in meta_editor.relationship_cache:
-                            meta_editor.relationship_cache[entity] = set()
-                        meta_editor.relationship_cache[entity].add(related)
-
-        for i in range(0, len(surviving_entities), batch_size):
-            batch_surviving = surviving_entities[i : i + batch_size]
-            surviving_clauses = []
-            for entity in batch_surviving:
-                surviving_clauses.append(f"{{<{entity}> ?p ?entity}}")
-
-            if not surviving_clauses:
-                continue
-
-            query = f"""
-                PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-                PREFIX datacite: <http://purl.org/spar/datacite/>
-                PREFIX pro: <http://purl.org/spar/pro/>
-                SELECT DISTINCT ?entity WHERE {{
-                    {{
-                        {" UNION ".join(surviving_clauses)}
-                    }}
-                    FILTER (?p != rdf:type)
-                    FILTER (?p != datacite:usesIdentifierScheme)
-                    FILTER (?p != pro:withRole)
-                }}
-            """
-
-            results = execute_sparql(
-                meta_editor.endpoint, query, max_retries=5, backoff_factor=0.3
-            )
-            for result in results["results"]["bindings"]:
-                if result["entity"]["type"] == "uri":
-                    related = result["entity"]["value"]
-                    all_related_entities.add(related)
-
-                    for entity in batch_surviving:
-                        if entity not in meta_editor.relationship_cache:
-                            meta_editor.relationship_cache[entity] = set()
-                        meta_editor.relationship_cache[entity].add(related)
-
-        candidate_responsible_agents = merged_entities + surviving_entities
-        for i in range(0, len(candidate_responsible_agents), batch_size):
-            batch_responsible_agents = candidate_responsible_agents[i : i + batch_size]
-            agent_context_clauses = []
-            for entity in batch_responsible_agents:
-                agent_context_clauses.extend(
-                    [
-                        f"{{?entity pro:isHeldBy <{entity}>}}",
-                        f"{{?agent_role pro:isHeldBy <{entity}> . ?entity pro:isDocumentContextFor ?agent_role}}",
-                    ]
-                )
-
-            if not agent_context_clauses:
-                continue
-
-            query = f"""
-                PREFIX pro: <http://purl.org/spar/pro/>
-                SELECT DISTINCT ?entity WHERE {{
-                    {" UNION ".join(agent_context_clauses)}
-                }}
-            """
-
-            results = execute_sparql(
-                meta_editor.endpoint, query, max_retries=5, backoff_factor=0.3
-            )
-            for result in results["results"]["bindings"]:
-                if result["entity"]["type"] == "uri":
-                    related = result["entity"]["value"]
-                    all_related_entities.add(related)
-
-                    for entity in batch_responsible_agents:
-                        if entity not in meta_editor.relationship_cache:
-                            meta_editor.relationship_cache[entity] = set()
-                        meta_editor.relationship_cache[entity].add(related)
-
-        return all_related_entities
-
     def should_stop_processing(self) -> bool:
         return os.path.exists(self.stop_file_path)
 
@@ -281,23 +161,18 @@ class EntityMerger:
 
         logger.info(f"Found {len(rows_to_process)} rows to process in {csv_file}")
         logger.info(
-            f"Fetching related entities for {len(batch_merged_entities)} merged entities and {len(batch_surviving_entities)} surviving entities"
+            f"Computing merge closure for {len(batch_merged_entities)} merged entities and {len(batch_surviving_entities)} surviving entities"
         )
 
-        all_related_entities = self.fetch_related_entities_batch(
-            meta_editor,
-            batch_merged_entities,
-            batch_surviving_entities,
+        closure = compute_related_closure(
+            meta_editor.endpoint,
+            set(batch_surviving_entities) | set(batch_merged_entities),
             self.batch_size,
         )
-        logger.info(f"Found {len(all_related_entities)} related entities")
-
-        entities_to_import = all_related_entities.copy()
-        entities_to_import.update(batch_surviving_entities)
-        entities_to_import.update(batch_merged_entities)
+        logger.info(f"Merge closure contains {len(closure)} entities")
 
         entities_to_import = {
-            e for e in entities_to_import if not meta_editor.entity_cache.is_cached(e)
+            e for e in closure if not meta_editor.entity_cache.is_cached(e)
         }
 
         if entities_to_import:
