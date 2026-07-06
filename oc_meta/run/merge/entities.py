@@ -122,7 +122,9 @@ class EntityMerger:
     ) -> None:
         for surviving_entity, merged_entities in clusters.items():
             if EntityMerger.get_entity_type(surviving_entity) == "br":
-                discard_merged_br_author_editor_roles(g_set, merged_entities)
+                discard_merged_br_author_editor_roles(
+                    g_set, surviving_entity, merged_entities
+                )
         deduplicator = GraphDeduplicator(g_set, storage=storage)
         deduplicator.merge_clusters_and_save(clusters)
 

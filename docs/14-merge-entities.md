@@ -79,7 +79,7 @@ For each row, the script:
 3. **Fills metadata gaps** (title, date, etc.) from merged entities
 4. **Merges matching containers**: an issue, volume or journal of a merged entity is merged into the survivor's container of the same type only when the two are equivalent (they share an identifier, or have the same sequence number, or the same title). Containers that disagree are kept distinct, and a level is merged only if its parent level was merged. The publisher role follows the same rule, keyed on the responsible agent behind it.
 5. **Updates references** in other entities pointing to any merged entity or merged container
-6. **Keeps author/editor chains** from the surviving entity (merged entity's chains are discarded)
+6. **Keeps a single author/editor chain** per role type: the surviving entity's chain wins and the merged entities' chains of that type are discarded. When the survivor has no chain of a role type, the merged entity with the most roles of that type donates its chain, so the survivor never ends up with two parallel chains nor loses the only one available. Duplicate publisher roles held by the same responsible agent are collapsed as well.
 7. **Records provenance** for the merge operation
 8. **Marks merged entities as merged**
 9. **Writes updated RDF** back to files
