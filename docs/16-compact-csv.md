@@ -22,7 +22,7 @@ uv run python -m oc_meta.run.merge.compact_output_csv <INPUT_DIR> <OUTPUT_FILE>
 ## Example
 
 ```bash
-uv run python -m oc_meta.run.merge.compact_output_csv groups/ completed_merges.csv
+uv run python -m oc_meta.run.merge.compact_output_csv merges/ completed_merges.csv
 ```
 
 ## Output format

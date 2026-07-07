@@ -3,14 +3,11 @@
 # SPDX-License-Identifier: ISC
 
 import argparse
-import concurrent.futures
 import csv
 import logging
-import multiprocessing
 import os
 import tempfile
-import traceback
-from typing import Dict, List
+from typing import Dict, List, Sequence, TypedDict
 
 from oc_graphenricher.deduplication import GraphDeduplicator
 from oc_graphenricher.storage import DirectoryStorage, directory_storage
@@ -32,20 +29,23 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+class MergeRow(TypedDict):
+    surviving_entity: str
+    merged_entities: list[str]
+
+
 class EntityMerger:
     def __init__(
         self,
         meta_config: str,
         resp_agent: str,
-        entity_types: List[str],
-        stop_file_path: str,
-        workers: int,
+        entity_types: Sequence[str] = ("ra", "br", "id"),
+        stop_file_path: str = "stop.out",
     ):
         self.meta_config = meta_config
         self.resp_agent = resp_agent
         self.entity_types = entity_types
         self.stop_file_path = stop_file_path
-        self.workers = workers
         self.batch_size = 10
 
     @staticmethod
@@ -131,50 +131,22 @@ class EntityMerger:
     def should_stop_processing(self) -> bool:
         return os.path.exists(self.stop_file_path)
 
-    def process_file(self, csv_file: str) -> str:
-        """Process a single CSV file with cross-row batch processing"""
-        logger.info(f"Starting to process file: {csv_file}")
-        data = self.read_csv(csv_file)
-        logger.info(f"Read {len(data)} rows from {csv_file}")
+    def process_rows(self, rows: List[MergeRow]) -> None:
+        """Merge the given rows in one batch against a single triplestore snapshot"""
         meta_editor = MetaEditor(self.meta_config, self.resp_agent, save_queries=True)
-        modified = False
-
-        if self.should_stop_processing():
-            logger.info("Stop file detected, halting processing")
-            return csv_file
-
         g_set = GraphSet(
             meta_editor.base_iri, custom_counter_handler=meta_editor.counter_handler
         )
 
-        batch_merged_entities = []
-        batch_surviving_entities = []
-        rows_to_process = []
-
-        for row in data:
-            if row.get("Done") == "True":
-                continue
-
-            entity_type = self.get_entity_type(row["surviving_entity"])
-            if entity_type in self.entity_types:
-                surviving_entity = row["surviving_entity"]
-                merged_entities = parse_merged_entities(row["merged_entities"])
-                batch_surviving_entities.append(surviving_entity)
-                batch_merged_entities.extend(merged_entities)
-                rows_to_process.append((surviving_entity, merged_entities))
-
-        if not rows_to_process:
-            logger.info(f"No rows to process in {csv_file}")
-            return csv_file
-
-        logger.info(f"Found {len(rows_to_process)} rows to process in {csv_file}")
+        surviving_entities = [row["surviving_entity"] for row in rows]
+        merged_entities = [merged for row in rows for merged in row["merged_entities"]]
         logger.info(
-            f"Computing merge closure for {len(batch_merged_entities)} merged entities and {len(batch_surviving_entities)} surviving entities"
+            f"Computing merge closure for {len(merged_entities)} merged entities and {len(surviving_entities)} surviving entities"
         )
 
         closure = compute_related_closure(
             meta_editor.endpoint,
-            set(batch_surviving_entities) | set(batch_merged_entities),
+            set(surviving_entities) | set(merged_entities),
             self.batch_size,
         )
         logger.info(f"Merge closure contains {len(closure)} entities")
@@ -197,12 +169,11 @@ class EntityMerger:
                 meta_editor.entity_cache.add(entity)
             logger.info("Entity import completed successfully")
 
-        clusters = self.build_merge_clusters(rows_to_process)
-        processed_count = sum(
-            len(merged_entities) for _, merged_entities in rows_to_process
+        clusters = self.build_merge_clusters(
+            [(row["surviving_entity"], row["merged_entities"]) for row in rows]
         )
         logger.info(
-            f"Merging {processed_count} entities in {len(clusters)} survivor clusters"
+            f"Merging {len(merged_entities)} entities in {len(clusters)} survivor clusters"
         )
         self.merge_clusters_and_save(
             g_set,
@@ -211,24 +182,48 @@ class EntityMerger:
         )
         if isinstance(meta_editor.counter_handler, FilesystemCounterHandler):
             meta_editor.counter_handler.flush()
-        modified = True
 
-        logger.info(f"Successfully processed {processed_count} merges")
+        logger.info(f"Successfully processed {len(merged_entities)} merges")
 
-        if modified:
-            marked_done = 0
-            for row in data:
-                if (
-                    row.get("Done") != "True"
-                    and self.get_entity_type(row["surviving_entity"])
-                    in self.entity_types
-                ):
-                    row["Done"] = "True"
-                    marked_done += 1
+    def process_file(self, csv_file: str) -> str:
+        """Process a single CSV file of merge instructions"""
+        logger.info(f"Starting to process file: {csv_file}")
+        data = self.read_csv(csv_file)
+        logger.info(f"Read {len(data)} rows from {csv_file}")
 
-            logger.info(f"Marked {marked_done} rows as done")
-            self.write_csv(csv_file, data)
-            logger.info(f"Saved changes to {csv_file}")
+        if self.should_stop_processing():
+            logger.info("Stop file detected, halting processing")
+            return csv_file
+
+        rows: List[MergeRow] = [
+            {
+                "surviving_entity": row["surviving_entity"],
+                "merged_entities": parse_merged_entities(row["merged_entities"]),
+            }
+            for row in data
+            if row["Done"] != "True"
+            and self.get_entity_type(row["surviving_entity"]) in self.entity_types
+        ]
+
+        if not rows:
+            logger.info(f"No rows to process in {csv_file}")
+            return csv_file
+
+        logger.info(f"Found {len(rows)} rows to process in {csv_file}")
+        self.process_rows(rows)
+
+        marked_done = 0
+        for row in data:
+            if (
+                row["Done"] != "True"
+                and self.get_entity_type(row["surviving_entity"]) in self.entity_types
+            ):
+                row["Done"] = "True"
+                marked_done += 1
+
+        logger.info(f"Marked {marked_done} rows as done")
+        self.write_csv(csv_file, data)
+        logger.info(f"Saved changes to {csv_file}")
 
         return csv_file
 
@@ -236,46 +231,16 @@ class EntityMerger:
         if os.path.exists(self.stop_file_path):
             os.remove(self.stop_file_path)
 
-        csv_files = [
+        csv_files = sorted(
             os.path.join(csv_folder, file)
             for file in os.listdir(csv_folder)
             if file.endswith(".csv")
-        ]
+        )
 
-        # Use forkserver to avoid deadlocks when forking in a multi-threaded environment
-        with concurrent.futures.ProcessPoolExecutor(
-            max_workers=self.workers,
-            mp_context=multiprocessing.get_context("forkserver"),
-        ) as executor:
-            futures = {}
-            for csv_file in csv_files:
-                if self.should_stop_processing():
-                    break
-                futures[executor.submit(self.process_file, csv_file)] = csv_file
-
-            for future in tqdm(
-                concurrent.futures.as_completed(futures),
-                total=len(futures),
-                desc="Overall Progress",
-            ):
-                csv_file = futures[future]
-                try:
-                    future.result()
-                except Exception as e:
-                    error_trace = traceback.format_exc()
-                    print(
-                        f"""
-                        Error processing file {csv_file}:
-                        Type: {type(e).__name__}
-                        Details: {str(e)}
-                        Full Traceback:
-                        {error_trace}
-                        Suggestion: This is an unexpected error. Please check the traceback for more details.
-                    """
-                    )
-                    raise RuntimeError(
-                        f"Failed to process merge file {csv_file}"
-                    ) from e
+        for csv_file in tqdm(csv_files, desc="Overall Progress"):
+            if self.should_stop_processing():
+                break
+            self.process_file(csv_file)
 
 
 def main():
@@ -297,9 +262,6 @@ def main():
     parser.add_argument(
         "--stop_file", type=str, default="stop.out", help="Path to the stop file"
     )
-    parser.add_argument(
-        "--workers", type=int, default=4, help="Number of parallel workers"
-    )
 
     args = parser.parse_args()
 
@@ -308,7 +270,6 @@ def main():
         resp_agent=args.resp_agent,
         entity_types=args.entity_types,
         stop_file_path=args.stop_file,
-        workers=args.workers,
     )
 
     merger.process_folder(args.csv_folder)

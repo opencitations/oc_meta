@@ -15,14 +15,13 @@ from oc_ocdm.counter_handler.counter_handler import CounterHandler
 from oc_ocdm.counter_handler.filesystem_counter_handler import FilesystemCounterHandler
 from oc_ocdm.graph import GraphSet
 from oc_ocdm.graph.graph_entity import GraphEntity
-from triplelite import RDFTerm, SubgraphView
+from triplelite import SubgraphView
 from oc_ocdm.prov import ProvSet
 from oc_ocdm.reader import Reader
 from oc_ocdm.support import get_prefix
 from oc_ocdm.support.support import build_graph_from_results
 
 from oc_meta.lib.file_manager import find_rdf_file
-from oc_meta.lib.merge_roles import discard_merged_br_author_editor_roles
 from oc_meta.lib.sparql import execute_sparql
 
 
@@ -86,7 +85,6 @@ class MetaEditor:
             )
 
         self.entity_cache = EntityCache()
-        self.relationship_cache = {}
 
     def update_property(self, res: str, property: str, new_value: str) -> None:
         supplier_prefix = get_prefix(res)
@@ -187,93 +185,6 @@ class MetaEditor:
                 return
             entity_to_purge.mark_as_to_be_deleted()
         self.save(g_set, supplier_prefix)
-
-    def merge(self, g_set: GraphSet, res: str, other: str) -> None:
-        related_entities: set[str] = set()
-        if other in self.relationship_cache:
-            related_entities.update(self.relationship_cache[other])
-        else:
-            query = f"""
-                PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-                PREFIX datacite: <http://purl.org/spar/datacite/>
-                PREFIX pro: <http://purl.org/spar/pro/>
-                SELECT DISTINCT ?entity WHERE {{
-                    {{?entity ?p <{other}>}} UNION
-                    {{<{other}> ?p ?entity}}
-                    FILTER (?p != rdf:type)
-                    FILTER (?p != datacite:usesIdentifierScheme)
-                    FILTER (?p != pro:withRole)
-                }}"""
-
-            data = execute_sparql(
-                self.endpoint, query, max_retries=5, backoff_factor=0.3
-            )
-            other_related = {
-                result["entity"]["value"]
-                for result in data["results"]["bindings"]
-                if result["entity"]["type"] == "uri"
-            }
-
-            self.relationship_cache[other] = other_related
-            related_entities.update(other_related)
-        if res in self.relationship_cache:
-            related_entities.update(self.relationship_cache[res])
-        else:
-            query = f"""
-                PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-                PREFIX datacite: <http://purl.org/spar/datacite/>
-                PREFIX pro: <http://purl.org/spar/pro/>
-                SELECT DISTINCT ?entity WHERE {{
-                    <{res}> ?p ?entity
-                    FILTER (?p != rdf:type)
-                    FILTER (?p != datacite:usesIdentifierScheme)
-                    FILTER (?p != pro:withRole)
-                }}"""
-
-            data = execute_sparql(
-                self.endpoint, query, max_retries=5, backoff_factor=0.3
-            )
-            res_related = {
-                result["entity"]["value"]
-                for result in data["results"]["bindings"]
-                if result["entity"]["type"] == "uri"
-            }
-
-            self.relationship_cache[res] = res_related
-            related_entities.update(res_related)
-
-        entities_to_import = {res, other}
-        entities_to_import.update(related_entities)
-        entities_to_import = {
-            e for e in entities_to_import if not self.entity_cache.is_cached(e)
-        }
-        if entities_to_import:
-            self.reader.import_entities_from_triplestore(
-                g_set=g_set,
-                ts_url=self.endpoint,
-                entities=list(entities_to_import),
-                resp_agent=self.resp_agent,
-                enable_validation=False,
-                batch_size=10,
-            )
-            for entity in entities_to_import:
-                self.entity_cache.add(entity)
-
-        res_as_entity = g_set.get_entity(res)
-        other_as_entity = g_set.get_entity(other)
-        if not res_as_entity or not other_as_entity:
-            raise ValueError(f"Entity not found in GraphSet: res={res}, other={other}")
-
-        expression_term = RDFTerm("uri", GraphEntity.iri_expression)
-        rdf_type = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
-        is_both_expression = all(
-            expression_term in entity.g.objects(entity.res, rdf_type)
-            for entity in [res_as_entity, other_as_entity]
-        )
-
-        if is_both_expression:
-            discard_merged_br_author_editor_roles(g_set, [other])
-        res_as_entity.merge(other_as_entity, prefer_self=True)
 
     def sync_rdf_with_triplestore(
         self, res: str, source_uri: str | None = None

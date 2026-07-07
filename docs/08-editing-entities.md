@@ -6,7 +6,7 @@ SPDX-License-Identifier: ISC
 
 # Editing entities
 
-The `meta_editor.py` script allows you to edit entities directly in the triplestore. Changes are propagated to both the RDF files and the provenance.
+The `meta_editor.py` script allows you to edit entities. For `update`, `delete` and `sync`, changes are applied to the triplestore and propagated to the RDF files and the provenance. The `merge` operation instead runs the [merge pipeline](14-merge-entities.md), which writes RDF and provenance files only: re-index the triplestore from the files afterwards.
 
 ## Usage
 
@@ -98,4 +98,4 @@ uv run python -m oc_meta.run.meta_editor \
     -r "https://orcid.org/0000-0002-8420-0696"
 ```
 
-The entity specified with `-ot` is merged into the entity specified with `-s`. All references to the merged entity are updated, and the merged entity is marked as deleted.
+The entity specified with `-ot` is merged into the entity specified with `-s` through the same pipeline used for batch merges (closure import, container cascade, role-chain handling; see [Merge entities](14-merge-entities.md)). The result is written to the RDF and provenance files only; the triplestore must be re-indexed from the files afterwards.

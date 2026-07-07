@@ -35,7 +35,7 @@ uv run python -m oc_meta.run.merge.check_merged_brs_results <CSV_FOLDER> <RDF_DI
 
 ```bash
 uv run python -m oc_meta.run.merge.check_merged_brs_results \
-  groups/ \
+  merges/ \
   /data/rdf \
   --meta_config meta_config.yaml \
   --query_output fix_queries/

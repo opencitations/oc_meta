@@ -11,26 +11,19 @@ The merge tools find duplicate entities and consolidate them, combining their da
 ## Workflow
 
 1. **Find duplicates** - Scan RDF files to find entities sharing identifiers
-2. **Group entities** - Prepare for parallel processing
-3. **Execute merge** - Consolidate entities with provenance tracking
-4. **Track history** - Reconstruct what was merged (optional)
+2. **Execute merge** - Consolidate entities sequentially with provenance tracking
+3. **Track history** - Reconstruct what was merged (optional)
 
 Find duplicates:
 
 ```bash
-uv run python -m oc_meta.run.find.duplicated_entities /data/rdf duplicates.csv br
-```
-
-Group for parallel processing:
-
-```bash
-uv run python -m oc_meta.run.merge.group_entities duplicates.csv groups/ meta_config.yaml
+uv run python -m oc_meta.run.find.duplicated_entities /data/rdf merges/duplicates.csv br
 ```
 
 Merge:
 
 ```bash
-uv run python -m oc_meta.run.merge.entities groups/ meta_config.yaml https://w3id.org/oc/meta/prov/pa/1
+uv run python -m oc_meta.run.merge.entities merges/ meta_config.yaml https://w3id.org/oc/meta/prov/pa/1
 ```
 
 Optional - see what was merged:
@@ -44,7 +37,6 @@ uv run python -m oc_meta.run.find.merged_entities -c meta_config.yaml -o merged.
 | Tool | Purpose |
 |------|---------|
 | [Find duplicates](12-find-duplicates.md) | Scan RDF files for duplicate identifiers and entities |
-| [Group entities](13-group-entities.md) | Prepare duplicates for parallel merging |
 | [Merge entities](14-merge-entities.md) | Execute merge operations |
 | [Verify merge](15-verify-merge.md) | Check merge results and generate fix queries |
 | [Compact CSV](16-compact-csv.md) | Extract completed merges into a single file |
@@ -57,7 +49,7 @@ When entity B is merged into entity A:
 1. **Identifiers** from B are added to A
 2. **Metadata** from B fills gaps in A (titles, dates, etc.)
 3. **Relationships** pointing to B are redirected to A
-4. **Author/editor chains** from A are kept (B's chains are discarded)                                                           
+4. **Author/editor chains** from A are kept; when A has none of a role type, the richest chain from B is adopted
 5. **Provenance** records the merge operation
 6. **Entity B** is marked as merged and invalidated
 

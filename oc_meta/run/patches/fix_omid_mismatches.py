@@ -17,12 +17,11 @@ from urllib.parse import quote
 
 import requests
 import yaml
-from oc_ocdm.graph import GraphSet
-from oc_ocdm.support import get_prefix
 from rapidfuzz.distance import Levenshtein
 from rich_argparse import RichHelpFormatter
 
 from oc_meta.core.editor import MetaEditor
+from oc_meta.run.merge.entities import EntityMerger, MergeRow
 from oc_meta.lib.bibliographic_matching import (
     CROSSREF_RATE_LIMIT,
     DATACITE_DOI,
@@ -425,12 +424,41 @@ def execute_merges(
     cases: list[MismatchCase],
     config_path: str,
     resp_agent: str,
-    progress_file: str,
-) -> tuple[int, int]:
+) -> None:
     actionable = [c for c in cases if c.action == "merge"]
     if not actionable:
         console.print("[green]No merges to execute.[/green]")
-        return 0, 0
+        return
+
+    rows: list[MergeRow] = [
+        {
+            "surviving_entity": case.surviving_entity,
+            "merged_entities": list(case.duplicate_entities),
+        }
+        for case in actionable
+    ]
+    EntityMerger(config_path, resp_agent).process_rows(rows)
+
+    console.print(f"Merged: {len(actionable)} cases")
+    console.print(
+        "[bold]The merge wrote RDF files only. Re-index the triplestore from the "
+        "files, then rerun with --cleanup to remove the duplicate identifiers.[/bold]"
+    )
+
+
+def execute_cleanup(
+    report_file: str,
+    config_path: str,
+    resp_agent: str,
+    progress_file: str,
+) -> None:
+    with open(report_file) as f:
+        report = json.load(f)
+
+    entries = [e for e in report["merge"] if e["duplicate_id_entities"]]
+    if not entries:
+        console.print("[green]No identifiers to clean up.[/green]")
+        return
 
     editor = MetaEditor(config_path, resp_agent)
     signal.signal(signal.SIGINT, _handle_signal)
@@ -440,50 +468,30 @@ def execute_merges(
     if completed:
         console.print(f"Resuming: {len(completed)} already processed")
 
-    fixed = 0
-    failed = 0
-
     with create_progress() as progress:
-        task = progress.add_task("Applying merges", total=len(actionable))
-        for case in actionable:
+        task = progress.add_task("Removing duplicate identifiers", total=len(entries))
+        for entry in entries:
             if _stop_requested:
                 console.print("[yellow]Interrupted, saving progress...[/yellow]")
                 break
 
-            case_key = f"{case.surviving_entity}|{','.join(case.duplicate_entities)}"
-            if case_key in completed:
+            entry_key = (
+                f"{entry['surviving_entity']}|{','.join(entry['duplicate_entities'])}"
+            )
+            if entry_key in completed:
                 progress.advance(task)
                 continue
 
-            try:
-                supplier_prefix = get_prefix(case.surviving_entity)
-                g_set = GraphSet(
-                    editor.base_iri,
-                    supplier_prefix=supplier_prefix,
-                    custom_counter_handler=editor.counter_handler,
-                )
-                for dup in case.duplicate_entities:
-                    editor.merge(g_set, case.surviving_entity, dup)
-                editor.save(g_set, supplier_prefix)
+            for id_ent in entry["duplicate_id_entities"]:
+                editor.delete(entry["surviving_entity"], DATACITE_HAS_ID, id_ent)
+                editor.delete(id_ent)
 
-                for id_ent in case.duplicate_id_entities:
-                    editor.delete(case.surviving_entity, DATACITE_HAS_ID, id_ent)
-                    editor.delete(id_ent)
-
-                completed.add(case_key)
-                _save_progress(progress_file, completed)
-                fixed += 1
-            except Exception as e:
-                console.print(f"[red]Error on {case.surviving_entity}: {e}[/red]")
-                failed += 1
-
+            completed.add(entry_key)
+            _save_progress(progress_file, completed)
             progress.advance(task)
 
-    console.print(f"Fixed: {fixed}, Failed: {failed}")
-    if not _stop_requested and failed == 0 and os.path.exists(progress_file):
+    if not _stop_requested and os.path.exists(progress_file):
         os.remove(progress_file)
-
-    return fixed, failed
 
 
 def main() -> None:  # pragma: no cover
@@ -494,13 +502,10 @@ def main() -> None:  # pragma: no cover
     parser.add_argument(
         "-c", "--config", required=True, help="Path to meta_config.yaml"
     )
-    parser.add_argument(
-        "--check-results", required=True, help="Path to check_results.json"
-    )
+    parser.add_argument("--check-results", help="Path to check_results.json")
     parser.add_argument("-r", "--resp-agent", help="Responsible agent URI")
     parser.add_argument(
         "--mailto",
-        required=True,
         help="Email for the Crossref / doi.org polite pool User-Agent",
     )
     mode = parser.add_mutually_exclusive_group(required=True)
@@ -514,7 +519,13 @@ def main() -> None:  # pragma: no cover
         "--no-dry-run",
         action="store_true",
         dest="no_dry_run",
-        help="Apply corrections",
+        help="Merge the duplicates into the RDF files",
+    )
+    mode.add_argument(
+        "--cleanup",
+        action="store_true",
+        help="Remove the duplicate identifiers listed in the report "
+        "(run after re-indexing the triplestore from the merged files)",
     )
     parser.add_argument(
         "--report-file",
@@ -527,19 +538,23 @@ def main() -> None:  # pragma: no cover
         help="Progress tracking file",
     )
     args = parser.parse_args()
-    args.dry_run = not args.no_dry_run
 
-    if not args.dry_run and not args.resp_agent:
-        parser.error("--resp-agent is required when using --no-dry-run")
+    if (args.no_dry_run or args.cleanup) and not args.resp_agent:
+        parser.error("--resp-agent is required with --no-dry-run and --cleanup")
+
+    if args.cleanup:
+        execute_cleanup(
+            args.report_file, args.config, args.resp_agent, args.progress_file
+        )
+        return
+
+    if not args.check_results or not args.mailto:
+        parser.error(
+            "--check-results and --mailto are required with --dry-run and --no-dry-run"
+        )
 
     with open(args.config) as f:
         settings = yaml.safe_load(f)
-
-    if not args.dry_run and settings.get("rdf_files_only", False):
-        raise ValueError(
-            "rdf_files_only must be False: this script must update "
-            "the triplestore directly."
-        )
 
     endpoint = settings["triplestore_url"]
 
@@ -571,10 +586,10 @@ def main() -> None:  # pragma: no cover
     console.print(f"  By category: {summary['by_category']}")
     console.print(f"\nReport: {args.report_file}")
 
-    if not args.dry_run:
+    if args.no_dry_run:
         if summary["merge"]:
             console.print("\n[bold]Applying merges...[/bold]")
-            execute_merges(cases, args.config, args.resp_agent, args.progress_file)
+            execute_merges(cases, args.config, args.resp_agent)
     else:
         console.print(
             f"\n[dim]Dry run complete. {summary['merge']} merges pending."

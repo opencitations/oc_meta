@@ -24,7 +24,6 @@ uv run python -m oc_meta.run.merge.entities <CSV_FOLDER> <META_CONFIG> <RESP_AGE
 |--------|---------|-------------|
 | `--entity_types` | ra br id | Entity types to merge (space-separated) |
 | `--stop_file` | stop.out | File to trigger graceful stop |
-| `--workers` | 4 | Parallel workers |
 
 ## Examples
 
@@ -32,26 +31,16 @@ Basic merge:
 
 ```bash
 uv run python -m oc_meta.run.merge.entities \
-  groups/ \
+  merges/ \
   meta_config.yaml \
   https://w3id.org/oc/meta/prov/pa/1
-```
-
-With more workers:
-
-```bash
-uv run python -m oc_meta.run.merge.entities \
-  groups/ \
-  meta_config.yaml \
-  https://w3id.org/oc/meta/prov/pa/1 \
-  --workers 8
 ```
 
 Merge only bibliographic resources:
 
 ```bash
 uv run python -m oc_meta.run.merge.entities \
-  groups/ \
+  merges/ \
   meta_config.yaml \
   https://w3id.org/oc/meta/prov/pa/1 \
   --entity_types br
@@ -63,12 +52,12 @@ Each CSV file should have:
 
 ```text
 surviving_entity,merged_entities
-https://w3id.org/oc/meta/br/060/1,https://w3id.org/oc/meta/br/060/2; https://w3id.org/oc/meta/br/060/3
+https://w3id.org/oc/meta/br/0601,https://w3id.org/oc/meta/br/0602; https://w3id.org/oc/meta/br/0603
 ```
 
 `merged_entities` accepts semicolon-separated values with or without spaces around the semicolon.
 
-Use output from [find duplicates](12-find-duplicates.md) or [group entities](13-group-entities.md).
+Use output from [find duplicates](12-find-duplicates.md).
 
 ## What the merge does
 
@@ -86,13 +75,29 @@ For each row, the script:
 
 The script does not upload to the triplestore. It processes a batch of merges against a single triplestore snapshot held in memory and writes the result to files; the triplestore is re-indexed from those files afterwards.
 
-## Grouping and concurrency
+## Sequential processing
 
-Workers process one CSV file each in parallel. A merge mutates every entity in its closure, so two merges that touch a shared entity (for example the same journal reached through the container cascade) must run in the same worker. [Group entities](13-group-entities.md) uses the same closure to place such merges in the same file. Merges under one journal are therefore serialised, while merges under disjoint journals stay parallel.
+Files are processed one at a time, in alphabetical order, and each file is merged as a single batch: one triplestore snapshot is loaded into one in-memory graph, so merges that touch a shared entity (for example the same journal reached through the container cascade) see each other's changes. Nothing runs in parallel.
 
-## File locking
+## Programmatic use
 
-The script uses `FileLock` from [`oc_ocdm.Storer`](https://github.com/opencitations/oc_ocdm/blob/main/oc_ocdm/storer.py) to prevent concurrent writes to the same file. Even with proper grouping, locks provide a safety net.
+Merge instructions can also be passed in memory, without CSV files:
+
+```python
+from oc_meta.run.merge.entities import EntityMerger
+
+merger = EntityMerger("meta_config.yaml", "https://w3id.org/oc/meta/prov/pa/1")
+merger.process_rows(
+    [
+        {
+            "surviving_entity": "https://w3id.org/oc/meta/br/0601",
+            "merged_entities": ["https://w3id.org/oc/meta/br/0602"],
+        }
+    ]
+)
+```
+
+`process_rows` merges the whole list as one batch and writes the RDF files, without any CSV bookkeeping.
 
 ## Graceful interruption
 
@@ -109,18 +114,12 @@ The script will:
 
 To resume, run the same command again. Already-processed files are skipped.
 
-## Worker errors
+## Errors
 
-If a worker fails while processing a CSV file, the command raises an error and exits unsuccessfully. Rows from the failed file remain `Done=False`, so rerunning the command retries them after the cause is fixed.
+If processing a CSV file fails, the command raises the error and exits unsuccessfully. Rows from the failed file remain `Done=False`, so rerunning the command retries them after the cause is fixed.
 
 ## Progress tracking
 
-The script stores progress in the CSV `Done` column. If interrupted and resumed, it re-processes from the beginning of the current file but skips rows already marked as done.
+The script stores progress in the CSV `Done` column. Each file is merged as a single batch: its rows are all marked done together once the batch is written. If interrupted and resumed, files already marked as done are skipped.
 
-For very long-running merges, monitor output for progress:
-
-```
-Processing group_0001.csv: 45/100 entities
-Processing group_0001.csv: 46/100 entities
-...
-```
+For long-running merges, the log reports each phase per file (closure size, entities imported, merges applied) and a progress bar tracks the files.

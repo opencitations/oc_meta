@@ -32,7 +32,6 @@ parts:
     chapters:
       - file: 11-merge-overview
       - file: 12-find-duplicates
-      - file: 13-group-entities
       - file: 14-merge-entities
       - file: 15-verify-merge
       - file: 16-compact-csv

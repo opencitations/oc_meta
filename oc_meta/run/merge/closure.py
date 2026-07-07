@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: ISC
 
-"""Shared definition of the set of entities a merge touches.
+"""Definition of the set of entities a merge touches.
 
 Merging bibliographic resources cascades onto their ``frbr:partOf`` containers
 (issue, volume, journal). When a container is merged it is deleted and every
@@ -15,10 +15,8 @@ graph keep pointing at a deleted resource. The closure therefore contains:
   context) of that set, which brings in the siblings and children that refer to
   any container that could be deleted.
 
-The merge (:mod:`oc_meta.run.merge.entities`) uses it to decide what to import;
-the grouping (:mod:`oc_meta.run.merge.group_entities`) uses it to keep merges
-that touch a shared entity in the same file, so parallel workers never mutate
-the same resource.
+The merge (:mod:`oc_meta.run.merge.entities`) uses it to decide what a batch
+must import so that every entity it mutates is in memory.
 """
 
 from __future__ import annotations

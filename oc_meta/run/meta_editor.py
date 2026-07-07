@@ -4,9 +4,8 @@
 
 from argparse import ArgumentParser
 
-from oc_ocdm.graph import GraphSet
-
 from oc_meta.core.editor import MetaEditor
+from oc_meta.run.merge.entities import EntityMerger
 
 if __name__ == "__main__":
     arg_parser = ArgumentParser(
@@ -56,8 +55,7 @@ if __name__ == "__main__":
     elif args.operation == "sync":
         meta_editor.sync_rdf_with_triplestore(args.res)
     elif args.operation == "merge":
-        g_set = GraphSet(
-            meta_editor.base_iri, custom_counter_handler=meta_editor.counter_handler
+        merger = EntityMerger(args.config, args.resp_agent)
+        merger.process_rows(
+            [{"surviving_entity": args.res, "merged_entities": [args.other]}]
         )
-        meta_editor.merge(g_set, args.res, args.other)
-        meta_editor.save(g_set)

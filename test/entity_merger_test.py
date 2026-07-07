@@ -85,7 +85,6 @@ class TestEntityMerger:
             resp_agent="https://orcid.org/0000-0002-8420-0696",
             entity_types=["ra", "br", "id"],
             stop_file_path="stop.out",
-            workers=4,
         )
 
         yield
@@ -319,9 +318,8 @@ class TestEntityMerger:
             data = EntityMerger.read_csv(os.path.join(csv_folder, filename))
             assert data[0]["Done"] == "True"
 
-    def test_process_folder_with_many_workers_keeps_large_files_visible(self):
-        """Test processing folder with worker count > 4"""
-        self.merger.workers = 5
+    def test_process_folder_processes_all_csv_files(self):
+        """Test that every CSV file in the folder is processed sequentially"""
         csv_folder = os.path.join(BASE, "csv")
 
         large_data = [
@@ -434,6 +432,69 @@ class TestEntityMerger:
 
         assert found_merge_prov, "No merge provenance found"
 
+    def test_process_rows_merges_authors(self):
+        """Test merging author entities passed in memory, without CSV files"""
+        self.merger.process_rows(
+            [
+                {
+                    "surviving_entity": "https://w3id.org/oc/meta/ra/0601",
+                    "merged_entities": ["https://w3id.org/oc/meta/ra/0602"],
+                }
+            ]
+        )
+
+        ra_file = os.path.join(OUTPUT, "rdf", "ra", "060", "10000", "1000.json")
+        surviving_found = False
+        with open(ra_file) as f:
+            data = orjson.loads(f.read())
+            for graph in data:
+                for entity in graph.get("@graph", []):
+                    if entity["@id"] == "https://w3id.org/oc/meta/ra/0601":
+                        surviving_found = True
+                        identifiers = {
+                            id_obj["@id"]
+                            for id_obj in entity[
+                                "http://purl.org/spar/datacite/hasIdentifier"
+                            ]
+                        }
+                        assert identifiers == {
+                            "https://w3id.org/oc/meta/id/0601",
+                            "https://w3id.org/oc/meta/id/0602",
+                        }
+                        assert (
+                            entity["http://xmlns.com/foaf/0.1/name"][0]["@value"]
+                            == "John Smith"
+                        )
+                    if entity["@id"] == "https://w3id.org/oc/meta/ra/0602":
+                        pytest.fail("Merged entity should not exist")
+        assert surviving_found
+
+        ar_file = os.path.join(OUTPUT, "rdf", "ar", "060", "10000", "1000.json")
+        with open(ar_file) as f:
+            data = orjson.loads(f.read())
+            for graph in data:
+                for entity in graph.get("@graph", []):
+                    agent = entity["http://purl.org/spar/pro/isHeldBy"][0]["@id"]
+                    assert agent == "https://w3id.org/oc/meta/ra/0601", (
+                        "All roles should point to surviving entity"
+                    )
+
+        # The in-memory path must not touch the CSV bookkeeping
+        csv_data = EntityMerger.read_csv(os.path.join(BASE, "csv", "merge_test.csv"))
+        assert csv_data[0]["Done"] == "False"
+
+    def test_process_rows_with_nonexistent_entities_raises(self):
+        """Test that in-memory merges of missing entities fail fast"""
+        with pytest.raises(ValueError, match="not found in the triplestore"):
+            self.merger.process_rows(
+                [
+                    {
+                        "surviving_entity": "https://w3id.org/oc/meta/ra/9999",
+                        "merged_entities": ["https://w3id.org/oc/meta/ra/9998"],
+                    }
+                ]
+            )
+
     def test_merge_with_invalid_entity_type(self):
         """Test merging with an invalid entity type"""
         # Create test data with invalid entity type
@@ -466,8 +527,8 @@ class TestEntityMerger:
         data = EntityMerger.read_csv(test_file)
         assert data[0]["Done"] == "False"
 
-    def test_process_folder_raises_worker_errors(self):
-        """Test that worker errors fail the folder processing command"""
+    def test_process_folder_propagates_merge_errors(self):
+        """Test that a failing file aborts the folder processing command"""
         os.remove(os.path.join(BASE, "csv", "merge_test.csv"))
         nonexistent_data = [
             {
@@ -478,7 +539,7 @@ class TestEntityMerger:
         ]
         self.write_csv("nonexistent.csv", nonexistent_data)
 
-        with pytest.raises(RuntimeError, match="Failed to process merge file"):
+        with pytest.raises(ValueError, match="not found in the triplestore"):
             self.merger.process_folder(os.path.join(BASE, "csv"))
 
         data = EntityMerger.read_csv(os.path.join(BASE, "csv", "nonexistent.csv"))

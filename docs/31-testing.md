@@ -67,7 +67,6 @@ Tests are in the `test/` directory:
 | `meta_process_test.py` | End-to-end pipeline |
 | `editor_test.py` | Post-processing modifications |
 | `finder_test.py` | Entity lookup |
-| `group_entities_test.py` | Merge grouping algorithm |
 
 Test fixtures use minimal datasets in `test/` subdirectories.
 

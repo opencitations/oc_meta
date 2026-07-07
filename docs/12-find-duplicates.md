@@ -116,7 +116,4 @@ The `duplicated_entities` script uses Union-Find to handle transitive relationsh
 
 ## Next steps
 
-Use the output CSV with:
-
-1. [Group entities](13-group-entities.md) - Prepare for parallel merging
-2. [Merge entities](14-merge-entities.md) - Execute the merge
+Place the output CSV in a folder and run [Merge entities](14-merge-entities.md) on it.
