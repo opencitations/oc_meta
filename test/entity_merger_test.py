@@ -535,6 +535,127 @@ class TestEntityMerger:
 
         assert found_merge_prov, "No merge provenance found"
 
+    def test_merge_responsible_agents_preserves_unrelated_contributors_on_same_br(self):
+        g_set = GraphSet(
+            "https://w3id.org/oc/meta/",
+            supplier_prefix="060",
+            custom_counter_handler=self.counter_handler,
+        )
+        resp = "https://orcid.org/0000-0002-8420-0696"
+
+        surviving_agent = g_set.add_ra(
+            resp, res=URIRef("https://w3id.org/oc/meta/ra/0608")
+        )
+        surviving_agent.has_name("Merge Survivor")
+        merged_agent = g_set.add_ra(
+            resp, res=URIRef("https://w3id.org/oc/meta/ra/0609")
+        )
+        merged_agent.has_name("Merge Duplicate")
+        unrelated_agent = g_set.add_ra(
+            resp, res=URIRef("https://w3id.org/oc/meta/ra/06010")
+        )
+        unrelated_agent.has_name("Unrelated Contributor")
+
+        br = g_set.add_br(resp, res=URIRef("https://w3id.org/oc/meta/br/0608"))
+        br.create_journal_article()
+        br.has_title("Article with unrelated contributor")
+
+        first_role = g_set.add_ar(resp, res=URIRef("https://w3id.org/oc/meta/ar/0608"))
+        first_role.create_author()
+        first_role.is_held_by(surviving_agent)
+        second_role = g_set.add_ar(resp, res=URIRef("https://w3id.org/oc/meta/ar/0609"))
+        second_role.create_author()
+        second_role.is_held_by(merged_agent)
+        third_role = g_set.add_ar(resp, res=URIRef("https://w3id.org/oc/meta/ar/06010"))
+        third_role.create_author()
+        third_role.is_held_by(unrelated_agent)
+        first_role.has_next(second_role)
+        second_role.has_next(third_role)
+        br.has_contributor(first_role)
+        br.has_contributor(second_role)
+        br.has_contributor(third_role)
+
+        prov = ProvSet(
+            g_set,
+            "https://w3id.org/oc/meta/",
+            wanted_label=False,
+            custom_counter_handler=self.counter_handler,
+        )
+        prov.generate_provenance()
+
+        rdf_output = os.path.join(OUTPUT, "rdf") + os.sep
+        res_storer = Storer(
+            abstract_set=g_set,
+            dir_split=10000,
+            n_file_item=1000,
+            output_format="json-ld",
+            zip_output=False,
+        )
+        prov_storer = Storer(
+            abstract_set=prov,
+            dir_split=10000,
+            n_file_item=1000,
+            output_format="json-ld",
+            zip_output=False,
+        )
+        res_storer.store_all(base_dir=rdf_output, base_iri="https://w3id.org/oc/meta/")
+        prov_storer.store_all(base_dir=rdf_output, base_iri="https://w3id.org/oc/meta/")
+        res_storer.upload_all(
+            triplestore_url=SERVER,
+            base_dir=rdf_output,
+            batch_size=10,
+            save_queries=False,
+        )
+
+        os.remove(os.path.join(BASE, "csv", "merge_test.csv"))
+        self.write_csv(
+            "ra_same_br.csv",
+            [
+                {
+                    "surviving_entity": "https://w3id.org/oc/meta/ra/0608",
+                    "merged_entities": "https://w3id.org/oc/meta/ra/0609",
+                    "Done": "False",
+                }
+            ],
+        )
+
+        self.counter_handler.flush()
+        self.merger.process_folder(os.path.join(BASE, "csv"))
+
+        ar_file = os.path.join(OUTPUT, "rdf", "ar", "060", "10000", "1000.json")
+        with open(ar_file) as f:
+            agent_roles = {
+                entity["@id"]: entity
+                for graph in orjson.loads(f.read())
+                for entity in graph.get("@graph", [])
+            }
+
+        assert "https://w3id.org/oc/meta/ar/0609" not in agent_roles
+        assert agent_roles["https://w3id.org/oc/meta/ar/0608"][
+            "http://purl.org/spar/pro/isHeldBy"
+        ] == [{"@id": "https://w3id.org/oc/meta/ra/0608"}]
+        assert agent_roles["https://w3id.org/oc/meta/ar/0608"][
+            "https://w3id.org/oc/ontology/hasNext"
+        ] == [{"@id": "https://w3id.org/oc/meta/ar/06010"}]
+        assert agent_roles["https://w3id.org/oc/meta/ar/06010"][
+            "http://purl.org/spar/pro/isHeldBy"
+        ] == [{"@id": "https://w3id.org/oc/meta/ra/06010"}]
+
+        br_file = os.path.join(OUTPUT, "rdf", "br", "060", "10000", "1000.json")
+        with open(br_file) as f:
+            bibliographic_resources = {
+                entity["@id"]: entity
+                for graph in orjson.loads(f.read())
+                for entity in graph.get("@graph", [])
+            }
+        contributors = bibliographic_resources["https://w3id.org/oc/meta/br/0608"][
+            "http://purl.org/spar/pro/isDocumentContextFor"
+        ]
+        assert sorted(contributors, key=lambda contributor: contributor["@id"]) == [
+            {"@id": "https://w3id.org/oc/meta/ar/06010"},
+            {"@id": "https://w3id.org/oc/meta/ar/0608"},
+        ]
+
     def test_process_rows_merges_authors(self):
         """Test merging author entities passed in memory, without CSV files"""
         self.merger.process_rows(

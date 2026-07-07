@@ -408,7 +408,7 @@ def test_id_checker_flags_entity_that_is_not_an_identifier() -> None:
     ]
 
 
-def _has_next_execute_sparql(cycle=(), forks=(), shared=()):
+def _has_next_execute_sparql(cycle=(), forks=(), shared=(), heads=()):
     def execute_sparql(_endpoint, query, max_retries, backoff_factor):
         assert max_retries == 3
         assert backoff_factor == 1
@@ -442,12 +442,27 @@ def _has_next_execute_sparql(cycle=(), forks=(), shared=()):
                     ]
                 }
             }
+        if "GROUP BY ?br ?roleType" in query:
+            return {
+                "results": {
+                    "bindings": [
+                        {
+                            "br": {"value": br, "type": "uri"},
+                            "roleType": {"value": role_type, "type": "uri"},
+                            "count": {"value": str(count), "type": "literal"},
+                        }
+                        for br, role_type, count in heads
+                    ]
+                }
+            }
         raise AssertionError(query)
 
     return execute_sparql
 
 
-def test_has_next_chain_issues_flags_cycle_fork_and_shared_next(monkeypatch) -> None:
+def test_has_next_chain_issues_flags_cycle_fork_shared_next_and_heads(
+    monkeypatch,
+) -> None:
     monkeypatch.setattr(
         check_utils,
         "execute_sparql",
@@ -455,6 +470,13 @@ def test_has_next_chain_issues_flags_cycle_fork_and_shared_next(monkeypatch) -> 
             cycle=["https://w3id.org/oc/meta/ar/1"],
             forks=[("https://w3id.org/oc/meta/ar/2", 2)],
             shared=[("https://w3id.org/oc/meta/ar/3", 2)],
+            heads=[
+                (
+                    "https://w3id.org/oc/meta/br/1",
+                    "http://purl.org/spar/pro/author",
+                    2,
+                )
+            ],
         ),
     )
 
@@ -464,6 +486,7 @@ def test_has_next_chain_issues_flags_cycle_fork_and_shared_next(monkeypatch) -> 
         "Agent role https://w3id.org/oc/meta/ar/1 is part of an oco:hasNext cycle",
         "Agent role https://w3id.org/oc/meta/ar/2 has 2 oco:hasNext successors",
         "Agent role https://w3id.org/oc/meta/ar/3 has 2 oco:hasNext predecessors",
+        "Bibliographic resource https://w3id.org/oc/meta/br/1 has 2 disconnected author chains",
     ]
 
 

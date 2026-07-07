@@ -5,6 +5,7 @@
 from unittest.mock import patch
 
 from oc_meta.run.merge.closure import (
+    _br_role_context,
     _one_hop_neighbours,
     _partof_ancestors,
     _publisher_agents,
@@ -156,13 +157,18 @@ class TestComputeRelatedClosure:
         assert mock_execute_sparql.call_count == 0
 
     @patch("oc_meta.run.merge.closure._publisher_agents")
+    @patch("oc_meta.run.merge.closure._br_role_context")
     @patch("oc_meta.run.merge.closure._one_hop_neighbours")
     @patch("oc_meta.run.merge.closure._partof_ancestors")
     def test_combines_seeds_ancestors_and_neighbours(
-        self, mock_ancestors, mock_neighbours, mock_publisher_agents
+        self, mock_ancestors, mock_neighbours, mock_role_context, mock_publisher_agents
     ):
         mock_ancestors.return_value = {"https://example.org/journal"}
         mock_neighbours.return_value = {"https://example.org/sibling"}
+        mock_role_context.return_value = {
+            "https://example.org/role",
+            "https://example.org/role-agent",
+        }
         mock_publisher_agents.return_value = {"https://example.org/publisher"}
 
         result = compute_related_closure(
@@ -175,6 +181,8 @@ class TestComputeRelatedClosure:
             "https://example.org/duplicate",
             "https://example.org/journal",
             "https://example.org/sibling",
+            "https://example.org/role",
+            "https://example.org/role-agent",
             "https://example.org/publisher",
         }
         assert mock_neighbours.call_args.args[1] == {
@@ -182,12 +190,72 @@ class TestComputeRelatedClosure:
             "https://example.org/duplicate",
             "https://example.org/journal",
         }
-        assert mock_publisher_agents.call_args.args[1] == {
+        related = {
             "https://example.org/article",
             "https://example.org/duplicate",
             "https://example.org/journal",
             "https://example.org/sibling",
         }
+        assert mock_role_context.call_args.args[1] == related
+        assert mock_publisher_agents.call_args.args[1] == {
+            "https://example.org/article",
+            "https://example.org/duplicate",
+            "https://example.org/journal",
+            "https://example.org/sibling",
+            "https://example.org/role",
+            "https://example.org/role-agent",
+        }
+
+
+class TestBrRoleContext:
+    @patch("oc_meta.run.merge.closure.execute_sparql")
+    def test_returns_roles_agents_and_agent_identifiers(self, mock_execute_sparql):
+        mock_execute_sparql.return_value = _bindings(
+            "https://w3id.org/oc/meta/ar/0601",
+            "https://w3id.org/oc/meta/ra/0601",
+            "https://w3id.org/oc/meta/id/0601",
+        )
+
+        result = _br_role_context(
+            "http://endpoint", {"https://w3id.org/oc/meta/br/0601"}, 10
+        )
+
+        assert result == {
+            "https://w3id.org/oc/meta/ar/0601",
+            "https://w3id.org/oc/meta/ra/0601",
+            "https://w3id.org/oc/meta/id/0601",
+        }
+
+    @patch("oc_meta.run.merge.closure.execute_sparql")
+    def test_query_walks_from_br_to_roles_agents_and_identifiers(
+        self, mock_execute_sparql
+    ):
+        mock_execute_sparql.return_value = {"results": {"bindings": []}}
+
+        _br_role_context("http://endpoint", {"https://w3id.org/oc/meta/br/0601"}, 10)
+
+        query = mock_execute_sparql.call_args.args[1]
+        expected_query = """
+            SELECT DISTINCT ?entity WHERE {
+                {
+                    {<https://w3id.org/oc/meta/br/0601> <http://purl.org/spar/pro/isDocumentContextFor> ?role}
+                    BIND(?role AS ?entity)
+                }
+                UNION
+                {
+                    {<https://w3id.org/oc/meta/br/0601> <http://purl.org/spar/pro/isDocumentContextFor> ?role}
+                    ?role <http://purl.org/spar/pro/isHeldBy> ?entity .
+                }
+                UNION
+                {
+                    {<https://w3id.org/oc/meta/br/0601> <http://purl.org/spar/pro/isDocumentContextFor> ?role}
+                    ?role <http://purl.org/spar/pro/isHeldBy> ?agent .
+                    ?agent <http://purl.org/spar/datacite/hasIdentifier> ?entity .
+                }
+                ?entity ?p ?o .
+            }
+        """
+        assert _normalize_sparql(query) == _normalize_sparql(expected_query)
 
 
 def _agent_bindings(*rows):

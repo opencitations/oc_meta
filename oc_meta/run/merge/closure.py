@@ -13,7 +13,9 @@ graph keep pointing at a deleted resource. The closure therefore contains:
 - their full ``frbr:partOf`` ancestor chain;
 - the one-hop neighbourhood (both directions, plus responsible-agent role
   context) of that set, which brings in the siblings and children that refer to
-  any container that could be deleted.
+  any container that could be deleted;
+- every agent role attached to the bibliographic resources in the closure,
+  together with the responsible agent and its identifiers.
 
 The merge (:mod:`oc_meta.run.merge.entities`) uses it to decide what a batch
 must import so that every entity it mutates is in memory.
@@ -27,6 +29,7 @@ from oc_meta.lib.sparql import execute_sparql
 
 FRBR_PART_OF = "http://purl.org/vocab/frbr/core#partOf"
 PRO_IS_HELD_BY = "http://purl.org/spar/pro/isHeldBy"
+PRO_IS_DOCUMENT_CONTEXT_FOR = "http://purl.org/spar/pro/isDocumentContextFor"
 PRO_WITH_ROLE = "http://purl.org/spar/pro/withRole"
 PRO_PUBLISHER = "http://purl.org/spar/pro/publisher"
 DATACITE_HAS_IDENTIFIER = "http://purl.org/spar/datacite/hasIdentifier"
@@ -121,21 +124,58 @@ def _publisher_agents(endpoint: str, entities: Set[str], batch_size: int) -> Set
     return agents
 
 
+def _br_role_context(endpoint: str, entities: Set[str], batch_size: int) -> Set[str]:
+    context: Set[str] = set()
+    ordered = list(entities)
+    for batch in _batched(ordered, batch_size):
+        role_clauses = " UNION ".join(
+            f"{{<{uri}> <{PRO_IS_DOCUMENT_CONTEXT_FOR}> ?role}}" for uri in batch
+        )
+        query = f"""
+            SELECT DISTINCT ?entity WHERE {{
+                {{
+                    {role_clauses}
+                    BIND(?role AS ?entity)
+                }}
+                UNION
+                {{
+                    {role_clauses}
+                    ?role <{PRO_IS_HELD_BY}> ?entity .
+                }}
+                UNION
+                {{
+                    {role_clauses}
+                    ?role <{PRO_IS_HELD_BY}> ?agent .
+                    ?agent <{DATACITE_HAS_IDENTIFIER}> ?entity .
+                }}
+                ?entity ?p ?o .
+            }}
+        """
+        results = execute_sparql(endpoint, query, max_retries=5, backoff_factor=0.3)
+        for result in results["results"]["bindings"]:
+            if result["entity"]["type"] == "uri":
+                context.add(result["entity"]["value"])
+    return context
+
+
 def compute_related_closure(
     endpoint: str, entities: Iterable[str], batch_size: int = 10
 ) -> Set[str]:
     """Return every entity touched by merging ``entities`` (seeds included).
 
     The result is the seeds, their ``frbr:partOf`` ancestors, the one-hop
-    neighbourhood of that set, and the responsible agents (with their
-    identifiers) behind any publisher role in that neighbourhood. It bounds the
-    cascade: ancestors are followed only through ``frbr:partOf`` (issue -> volume
-    -> journal), the neighbourhood is expanded a single time, so citation chains
-    are not traversed, and only publisher agents are pulled one further hop so
-    the deduplicator can compare publisher identity by identifier or name when a
-    container cascade merges two containers.
+    neighbourhood of that set, every role attached to loaded bibliographic
+    resources, and the responsible agents (with their identifiers) behind those
+    roles. It bounds the cascade: ancestors are followed only through
+    ``frbr:partOf`` (issue -> volume -> journal), the neighbourhood is expanded
+    a single time, so citation chains are not traversed.
     """
     seeds = set(entities)
     core = seeds | _partof_ancestors(endpoint, seeds, batch_size)
     related = core | _one_hop_neighbours(endpoint, core, batch_size)
-    return related | _publisher_agents(endpoint, related, batch_size)
+    role_context = _br_role_context(endpoint, related, batch_size)
+    return (
+        related
+        | role_context
+        | _publisher_agents(endpoint, related | role_context, batch_size)
+    )
