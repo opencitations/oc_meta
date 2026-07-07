@@ -11,6 +11,7 @@ from rdflib.namespace import XSD
 from oc_meta.run.merge import check_merged_brs_results as br_checker
 from oc_meta.run.merge import check_merged_ids_results as id_checker
 from oc_meta.run.merge import check_merged_ras_results as ra_checker
+from oc_meta.run.merge import check_utils
 from oc_meta.run.merge.csv_utils import parse_merged_entities
 
 
@@ -290,31 +291,6 @@ def test_br_checker_accepts_unique_identifiers(monkeypatch) -> None:
     assert messages == []
 
 
-def test_ra_checker_finds_entities_referencing_removed_ra() -> None:
-    graph = Dataset(default_union=True)
-    responsible_agent = URIRef("https://w3id.org/oc/meta/ra/1")
-    agent_role = URIRef("https://w3id.org/oc/meta/ar/2")
-    other_entity = URIRef("https://w3id.org/oc/meta/br/1")
-    graph.add((agent_role, ra_checker.PRO.isHeldBy, responsible_agent))
-    graph.add(
-        (
-            other_entity,
-            URIRef("https://example.org/hasResponsibleAgent"),
-            responsible_agent,
-        )
-    )
-
-    assert [
-        str(referencing_entity)
-        for referencing_entity in ra_checker.entities_referencing(
-            graph, responsible_agent
-        )
-    ] == [
-        "https://w3id.org/oc/meta/ar/2",
-        "https://w3id.org/oc/meta/br/1",
-    ]
-
-
 def test_ra_sparql_check_reports_reference_for_removed_ra(
     monkeypatch,
 ) -> None:
@@ -342,6 +318,199 @@ def test_ra_sparql_check_reports_reference_for_removed_ra(
     ]
 
 
+def test_id_checker_reads_all_zip_members(tmp_path: Path, monkeypatch) -> None:
+    entity = URIRef("https://w3id.org/oc/meta/id/1")
+    unrelated_graph = Dataset(default_union=True)
+    unrelated_graph.add(
+        (
+            URIRef("https://w3id.org/oc/meta/id/2"),
+            RDF.type,
+            URIRef(id_checker.DATACITE + "Identifier"),
+        )
+    )
+    entity_graph = Dataset(default_union=True)
+    entity_graph.add((entity, RDF.type, URIRef(id_checker.DATACITE + "Identifier")))
+    entity_graph.add(
+        (
+            entity,
+            URIRef(id_checker.DATACITE + "usesIdentifierScheme"),
+            URIRef(id_checker.DATACITE + "doi"),
+        )
+    )
+    entity_graph.add(
+        (
+            entity,
+            URIRef(id_checker.LITERAL_REIFICATION + "hasLiteralValue"),
+            Literal("10.1234/example"),
+        )
+    )
+    file_path = tmp_path / "1000.zip"
+    with zipfile.ZipFile(file_path, "w") as zip_file:
+        zip_file.writestr("part1.json", unrelated_graph.serialize(format="json-ld"))
+        zip_file.writestr("part2.json", entity_graph.serialize(format="json-ld"))
+    _write_survivor_provenance_zip(tmp_path, entity)
+
+    messages = []
+    monkeypatch.setattr(id_checker.tqdm, "write", messages.append)
+
+    id_checker.check_entity_file(str(file_path), str(entity), True)
+
+    assert messages == []
+
+
+def test_id_checker_reports_missing_file(monkeypatch) -> None:
+    messages = []
+    monkeypatch.setattr(id_checker.tqdm, "write", messages.append)
+
+    id_checker.check_entity_file(
+        "does/not/exist.zip", "https://w3id.org/oc/meta/id/1", True
+    )
+
+    assert messages == [
+        "Error: File not found for entity https://w3id.org/oc/meta/id/1"
+    ]
+
+
+def test_id_checker_deduplicates_triples_across_contexts() -> None:
+    entity = URIRef("https://w3id.org/oc/meta/id/1")
+    graph = Dataset(default_union=True)
+    first_context = graph.graph(URIRef("https://w3id.org/oc/meta/id/"))
+    second_context = graph.graph(URIRef("https://example.org/other"))
+    for context in (first_context, second_context):
+        context.add((entity, RDF.type, URIRef(id_checker.DATACITE + "Identifier")))
+        context.add(
+            (
+                entity,
+                URIRef(id_checker.DATACITE + "usesIdentifierScheme"),
+                URIRef(id_checker.DATACITE + "doi"),
+            )
+        )
+        context.add(
+            (
+                entity,
+                URIRef(id_checker.LITERAL_REIFICATION + "hasLiteralValue"),
+                Literal("10.1234/example"),
+            )
+        )
+
+    assert id_checker.check_identifier_constraints(graph, entity) == []
+
+
+def test_id_checker_flags_entity_that_is_not_an_identifier() -> None:
+    entity = URIRef("https://w3id.org/oc/meta/id/1")
+    graph = Dataset(default_union=True)
+    graph.add((entity, RDF.type, URIRef("http://purl.org/spar/fabio/Expression")))
+
+    assert id_checker.check_identifier_constraints(graph, entity) == [
+        f"Entity {entity} is not a datacite:Identifier",
+        f"Entity {entity} should have exactly one usesIdentifierScheme, found 0",
+        f"Entity {entity} should have exactly one hasLiteralValue, found 0",
+    ]
+
+
+def _has_next_execute_sparql(cycle=(), forks=(), shared=()):
+    def execute_sparql(_endpoint, query, max_retries, backoff_factor):
+        assert max_retries == 3
+        assert backoff_factor == 1
+        if "oco:hasNext+" in query:
+            return {
+                "results": {
+                    "bindings": [{"ar": {"value": ar, "type": "uri"}} for ar in cycle]
+                }
+            }
+        if "GROUP BY ?ar" in query:
+            return {
+                "results": {
+                    "bindings": [
+                        {
+                            "ar": {"value": ar, "type": "uri"},
+                            "count": {"value": str(count), "type": "literal"},
+                        }
+                        for ar, count in forks
+                    ]
+                }
+            }
+        if "GROUP BY ?next" in query:
+            return {
+                "results": {
+                    "bindings": [
+                        {
+                            "next": {"value": ar, "type": "uri"},
+                            "count": {"value": str(count), "type": "literal"},
+                        }
+                        for ar, count in shared
+                    ]
+                }
+            }
+        raise AssertionError(query)
+
+    return execute_sparql
+
+
+def test_has_next_chain_issues_flags_cycle_fork_and_shared_next(monkeypatch) -> None:
+    monkeypatch.setattr(
+        check_utils,
+        "execute_sparql",
+        _has_next_execute_sparql(
+            cycle=["https://w3id.org/oc/meta/ar/1"],
+            forks=[("https://w3id.org/oc/meta/ar/2", 2)],
+            shared=[("https://w3id.org/oc/meta/ar/3", 2)],
+        ),
+    )
+
+    assert check_utils.has_next_chain_issues(
+        "https://example.test/sparql", "BIND(<https://w3id.org/oc/meta/br/1> AS ?br)"
+    ) == [
+        "Agent role https://w3id.org/oc/meta/ar/1 is part of an oco:hasNext cycle",
+        "Agent role https://w3id.org/oc/meta/ar/2 has 2 oco:hasNext successors",
+        "Agent role https://w3id.org/oc/meta/ar/3 has 2 oco:hasNext predecessors",
+    ]
+
+
+def test_br_checker_reports_has_next_cycle_for_survivor(monkeypatch) -> None:
+    entity = "https://w3id.org/oc/meta/br/1"
+
+    def execute_sparql(_endpoint, query, max_retries, backoff_factor):
+        assert f"BIND(<{entity}> AS ?br)" in query
+        return _has_next_execute_sparql(cycle=["https://w3id.org/oc/meta/ar/1"])(
+            _endpoint, query, max_retries, backoff_factor
+        )
+
+    messages = []
+    monkeypatch.setattr(check_utils, "execute_sparql", execute_sparql)
+    monkeypatch.setattr(br_checker.tqdm, "write", messages.append)
+
+    assert (
+        br_checker.check_has_next_integrity("https://example.test/sparql", entity)
+        is True
+    )
+    assert messages == [
+        "Error in SPARQL: Agent role https://w3id.org/oc/meta/ar/1 is part of an oco:hasNext cycle"
+    ]
+
+
+def test_ra_checker_reports_has_next_cycle_for_survivor(monkeypatch) -> None:
+    entity = "https://w3id.org/oc/meta/ra/1"
+
+    def execute_sparql(_endpoint, query, max_retries, backoff_factor):
+        assert f"?held_role pro:isHeldBy <{entity}>" in query
+        return _has_next_execute_sparql(cycle=["https://w3id.org/oc/meta/ar/1"])(
+            _endpoint, query, max_retries, backoff_factor
+        )
+
+    messages = []
+    monkeypatch.setattr(check_utils, "execute_sparql", execute_sparql)
+    monkeypatch.setattr(ra_checker.tqdm, "write", messages.append)
+
+    assert (
+        ra_checker.check_has_next_integrity("https://example.test/sparql", entity)
+        is True
+    )
+    assert messages == [
+        "Error in SPARQL: Agent role https://w3id.org/oc/meta/ar/1 is part of an oco:hasNext cycle"
+    ]
+
+
 def _date_time(value: str) -> Literal:
     return Literal(value, datatype=XSD.dateTime)
 
@@ -349,3 +518,36 @@ def _date_time(value: str) -> Literal:
 def _write_jsonld_zip(path: Path, graph: Dataset) -> None:
     with zipfile.ZipFile(path, "w") as zip_file:
         zip_file.writestr("se.json", graph.serialize(format="json-ld"))
+
+
+def _write_survivor_provenance_zip(tmp_path: Path, entity: URIRef) -> None:
+    first_snapshot = URIRef(f"{entity}/prov/se/1")
+    second_snapshot = URIRef(f"{entity}/prov/se/2")
+    graph = Dataset(default_union=True)
+    graph.add((first_snapshot, id_checker.PROV.specializationOf, entity))
+    graph.add(
+        (
+            first_snapshot,
+            id_checker.PROV.generatedAtTime,
+            _date_time("2024-01-01T00:00:00Z"),
+        )
+    )
+    graph.add(
+        (
+            first_snapshot,
+            id_checker.PROV.invalidatedAtTime,
+            _date_time("2024-01-02T00:00:00Z"),
+        )
+    )
+    graph.add((second_snapshot, id_checker.PROV.specializationOf, entity))
+    graph.add(
+        (
+            second_snapshot,
+            id_checker.PROV.generatedAtTime,
+            _date_time("2024-01-02T00:00:00Z"),
+        )
+    )
+    graph.add((second_snapshot, id_checker.PROV.wasDerivedFrom, first_snapshot))
+    prov_dir = tmp_path / "1000" / "prov"
+    prov_dir.mkdir(parents=True)
+    _write_jsonld_zip(prov_dir / "se.zip", graph)

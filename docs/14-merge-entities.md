@@ -6,7 +6,7 @@ SPDX-License-Identifier: ISC
 
 # Merge entities
 
-The merge script processes CSV files with merge instructions and consolidates duplicate entities.
+The merge script processes CSV files with merge instructions and consolidates duplicate entities. Each run merges one CSV file against one triplestore snapshot; the triplestore must be re-indexed from the RDF files before the next run.
 
 ## Usage
 
@@ -73,11 +73,22 @@ For each row, the script:
 8. **Marks merged entities as merged**
 9. **Writes updated RDF** back to files
 
+Within a batch, clusters are merged in a fixed order regardless of the CSV row order: identifier rows first, then responsible agents, then bibliographic resources from the top of the container hierarchy down (journal, volume, issue, article). A merge can delete entities other rows name (a BR or RA merge deduplicates identifiers with the same scheme and literal, and the container cascade deletes merged containers), so every cluster runs before anything can delete its entities. If a cluster still names a deleted entity, the batch fails before writing anything.
+
 The script does not upload to the triplestore. It processes a batch of merges against a single triplestore snapshot held in memory and writes the result to files; the triplestore is re-indexed from those files afterwards.
 
-## Sequential processing
+## One file per run
 
-Files are processed one at a time, in alphabetical order, and each file is merged as a single batch: one triplestore snapshot is loaded into one in-memory graph, so merges that touch a shared entity (for example the same journal reached through the container cascade) see each other's changes. Nothing runs in parallel.
+A run merges the first CSV file with pending rows and then stops: applying a second file without re-indexing would read triplestore state the first file already changed, resurrecting deleted entities in the RDF files and losing merged metadata. To make the biggest possible batch, put as many rows as possible in a single CSV file.
+
+After a file is merged the script writes a `reindex_required.out` sentinel next to the CSV files, and the next invocation refuses to start while the sentinel exists. The cycle is:
+
+1. Run the merge command: the first pending CSV file is merged and the sentinel is created.
+2. Re-index the triplestore from the RDF files.
+3. Delete `reindex_required.out`.
+4. Run the command again for the next file.
+
+Each file is merged as a single batch: one triplestore snapshot is loaded into one in-memory graph, so merges that touch a shared entity (for example the same journal reached through the container cascade) see each other's changes. Nothing runs in parallel.
 
 ## Programmatic use
 
@@ -116,10 +127,10 @@ To resume, run the same command again. Already-processed files are skipped.
 
 ## Errors
 
-If processing a CSV file fails, the command raises the error and exits unsuccessfully. Rows from the failed file remain `Done=False`, so rerunning the command retries them after the cause is fixed.
+If processing a CSV file fails, the command raises the error and exits unsuccessfully. Rows from the failed file remain `Done=False` and no sentinel is written, so rerunning the command retries them after the cause is fixed.
 
 ## Progress tracking
 
-The script stores progress in the CSV `Done` column. Each file is merged as a single batch: its rows are all marked done together once the batch is written. If interrupted and resumed, files already marked as done are skipped.
+The script stores progress in the CSV `Done` column. Each file is merged as a single batch: its rows are all marked done together once the batch is written. Files whose rows are all done are skipped, so after re-indexing and removing the sentinel the next run picks up the next pending file.
 
-For long-running merges, the log reports each phase per file (closure size, entities imported, merges applied) and a progress bar tracks the files.
+For long-running merges, the log reports each phase (closure size, entities imported, merges applied).

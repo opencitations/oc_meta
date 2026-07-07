@@ -19,6 +19,7 @@ from tqdm import tqdm
 from oc_meta.core.editor import MetaEditor
 from oc_meta.lib.file_manager import find_rdf_file
 from oc_meta.lib.sparql import execute_sparql
+from oc_meta.run.merge.check_utils import has_next_chain_issues
 from oc_meta.run.merge.csv_utils import parse_merged_entities
 
 DATACITE = "http://purl.org/spar/datacite/"
@@ -70,8 +71,16 @@ def check_agent_constraints(g: Dataset, entity):
     return issues
 
 
-def entities_referencing(g: Dataset, entity):
-    return sorted(g.subjects(None, entity, unique=True), key=str)
+def check_has_next_integrity(endpoint: str, entity_uri):
+    # The roles the agent holds live in other resources' files, so the
+    # oco:hasNext chains touched by an agent merge are only visible to SPARQL.
+    issues = has_next_chain_issues(
+        endpoint,
+        f"?held_role pro:isHeldBy <{entity_uri}> . ?br pro:isDocumentContextFor ?held_role .",
+    )
+    for issue in issues:
+        tqdm.write(f"Error in SPARQL: {issue}")
+    return bool(issues)
 
 
 def check_entity_sparql(endpoint: str, entity_uri, is_surviving):
@@ -173,6 +182,9 @@ def check_entity_sparql(endpoint: str, entity_uri, is_surviving):
         tqdm.write(
             f"Error in SPARQL: Entity {entity_uri} has no datacite:hasIdentifier"
         )
+        has_issues = True
+
+    if is_surviving and check_has_next_integrity(endpoint, entity_uri):
         has_issues = True
 
     return has_issues
@@ -374,14 +386,6 @@ def process_file_group(args):
                                 )
                                 for issue in agent_issues:
                                     tqdm.write(f"Error in file {file_path}: {issue}")
-
-                        if not is_surviving:
-                            for referencing_entity in entities_referencing(
-                                g, URIRef(entity)
-                            ):
-                                tqdm.write(
-                                    f"Error in file {file_path}: Merged responsible agent {entity} is still referenced by {referencing_entity}"
-                                )
 
                         if prov_graph is None:
                             tqdm.write(

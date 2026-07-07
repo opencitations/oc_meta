@@ -18,6 +18,7 @@ from tqdm import tqdm
 
 from oc_meta.core.editor import MetaEditor
 from oc_meta.lib.file_manager import find_rdf_file
+from oc_meta.run.merge.check_utils import has_next_chain_issues
 from oc_meta.run.merge.csv_utils import parse_merged_entities
 
 DATACITE = "http://purl.org/spar/datacite/"
@@ -176,6 +177,9 @@ def check_entity_sparql(endpoint: str, entity_uri, is_surviving):
     if is_surviving and check_duplicate_identifiers(endpoint, entity_uri):
         has_issues = True
 
+    if is_surviving and check_has_next_integrity(endpoint, entity_uri):
+        has_issues = True
+
     return has_issues
 
 
@@ -231,6 +235,13 @@ def check_duplicate_contributor_roles(endpoint: str, entity_uri):
             f"{result['agent']['value']}"
         )
     return has_issues
+
+
+def check_has_next_integrity(endpoint: str, entity_uri):
+    issues = has_next_chain_issues(endpoint, f"BIND(<{entity_uri}> AS ?br)")
+    for issue in issues:
+        tqdm.write(f"Error in SPARQL: {issue}")
+    return bool(issues)
 
 
 def get_entity_triples(endpoint: str, entity_uri):

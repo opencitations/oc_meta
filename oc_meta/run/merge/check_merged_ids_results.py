@@ -53,7 +53,7 @@ def check_provenance(prov_file_path, entity_uri, is_surviving):
                     g.parse(file, format="json-ld")
 
             entity = URIRef(entity_uri)
-            snapshots = list(g.subjects(PROV.specializationOf, entity))
+            snapshots = list(g.subjects(PROV.specializationOf, entity, unique=True))
 
             if len(snapshots) <= 1:
                 tqdm.write(
@@ -92,7 +92,9 @@ def check_provenance(prov_file_path, entity_uri, is_surviving):
                     )
 
                 # Check prov:wasDerivedFrom
-                derived_from = list(g.objects(snapshot, PROV.wasDerivedFrom))
+                derived_from = list(
+                    g.objects(snapshot, PROV.wasDerivedFrom, unique=True)
+                )
                 if i == 0:  # First snapshot
                     if derived_from:
                         tqdm.write(
@@ -131,60 +133,72 @@ def check_provenance(prov_file_path, entity_uri, is_surviving):
         tqdm.write(f"Error: Invalid zip file for provenance of entity {entity_uri}")
 
 
+def check_identifier_constraints(g: Dataset, entity):
+    issues = []
+
+    types = list(g.objects(entity, RDF.type, unique=True))
+    if not types:
+        issues.append(f"Entity {entity} has no type")
+    elif len(types) > 1:
+        issues.append(f"Entity {entity} has multiple types")
+    elif URIRef(DATACITE + "Identifier") not in types:
+        issues.append(f"Entity {entity} is not a datacite:Identifier")
+
+    identifier_scheme = list(
+        g.objects(entity, URIRef(DATACITE + "usesIdentifierScheme"), unique=True)
+    )
+    literal_value = list(
+        g.objects(entity, URIRef(LITERAL_REIFICATION + "hasLiteralValue"), unique=True)
+    )
+
+    if len(identifier_scheme) != 1:
+        issues.append(
+            f"Entity {entity} should have exactly one usesIdentifierScheme, found {len(identifier_scheme)}"
+        )
+    elif not isinstance(identifier_scheme[0], URIRef):
+        issues.append(
+            f"Entity {entity}'s usesIdentifierScheme should be a URIRef, found {type(identifier_scheme[0])}"
+        )
+
+    if len(literal_value) != 1:
+        issues.append(
+            f"Entity {entity} should have exactly one hasLiteralValue, found {len(literal_value)}"
+        )
+    elif not isinstance(literal_value[0], Literal):
+        issues.append(
+            f"Entity {entity}'s hasLiteralValue should be a Literal, found {type(literal_value[0])}"
+        )
+
+    return issues
+
+
 def check_entity_file(file_path, entity_uri, is_surviving):
-    with zipfile.ZipFile(file_path, "r") as zip_ref:
-        for filename in zip_ref.namelist():
-            with zip_ref.open(filename) as file:
-                g = Dataset(default_union=True)
-                g.parse(file, format="json-ld")
-                entity = URIRef(entity_uri)
+    try:
+        with zipfile.ZipFile(file_path, "r") as zip_ref:
+            g = Dataset(default_union=True)
+            for filename in zip_ref.namelist():
+                with zip_ref.open(filename) as file:
+                    g.parse(file, format="json-ld")
+    except FileNotFoundError:
+        tqdm.write(f"Error: File not found for entity {entity_uri}")
+        return
+    except zipfile.BadZipFile:
+        tqdm.write(f"Error: Invalid zip file for entity {entity_uri}")
+        return
 
-                if (entity, None, None) not in g:
-                    if is_surviving:
-                        tqdm.write(
-                            f"Error in file {file_path}: Surviving entity {entity_uri} does not exist"
-                        )
-                    return
-
-                if not is_surviving:
-                    tqdm.write(
-                        f"Error in file {file_path}: Merged entity {entity_uri} still exists"
-                    )
-                    return
-
-                types = list(g.objects(entity, RDF.type))
-                if not types:
-                    tqdm.write(
-                        f"Error in file {file_path}: Entity {entity_uri} has no type"
-                    )
-
-                if URIRef(DATACITE + "Identifier") in types:
-                    identifier_scheme = list(
-                        g.objects(entity, URIRef(DATACITE + "usesIdentifierScheme"))
-                    )
-                    literal_value = list(
-                        g.objects(
-                            entity, URIRef(LITERAL_REIFICATION + "hasLiteralValue")
-                        )
-                    )
-
-                    if len(identifier_scheme) != 1:
-                        tqdm.write(
-                            f"Error in file {file_path}: Entity {entity_uri} should have exactly one usesIdentifierScheme, found {len(identifier_scheme)}"
-                        )
-                    elif not isinstance(identifier_scheme[0], URIRef):
-                        tqdm.write(
-                            f"Error in file {file_path}: Entity {entity_uri}'s usesIdentifierScheme should be a URIRef, found {type(identifier_scheme[0])}"
-                        )
-
-                    if len(literal_value) != 1:
-                        tqdm.write(
-                            f"Error in file {file_path}: Entity {entity_uri} should have exactly one hasLiteralValue, found {len(literal_value)}"
-                        )
-                    elif not isinstance(literal_value[0], Literal):
-                        tqdm.write(
-                            f"Error in file {file_path}: Entity {entity_uri}'s hasLiteralValue should be a Literal, found {type(literal_value[0])}"
-                        )
+    entity = URIRef(entity_uri)
+    if (entity, None, None) not in g:
+        if is_surviving:
+            tqdm.write(
+                f"Error in file {file_path}: Surviving entity {entity_uri} does not exist"
+            )
+    elif not is_surviving:
+        tqdm.write(
+            f"Error in file {file_path}: Merged entity {entity_uri} still exists"
+        )
+    else:
+        for issue in check_identifier_constraints(g, entity):
+            tqdm.write(f"Error in file {file_path}: {issue}")
 
     # Check provenance
     prov_file_path = file_path.replace(".zip", "") + "/prov/se.zip"
@@ -248,43 +262,54 @@ def check_entity_sparql(endpoint: str, entity_uri, is_surviving):
     if not types:
         tqdm.write(f"Error in SPARQL: Entity {entity_uri} has no type")
         has_issues = True
+    elif len(types) > 1:
+        tqdm.write(f"Error in SPARQL: Entity {entity_uri} has multiple types")
+        has_issues = True
+    elif DATACITE + "Identifier" not in types:
+        tqdm.write(f"Error in SPARQL: Entity {entity_uri} is not a datacite:Identifier")
+        has_issues = True
 
-    if DATACITE + "Identifier" in types:
-        identifier_query = f"""
-        SELECT ?scheme ?value WHERE {{
-            <{entity_uri}> <{DATACITE}usesIdentifierScheme> ?scheme .
-            <{entity_uri}> <{LITERAL_REIFICATION}hasLiteralValue> ?value .
-        }}
-        """
-        identifier_results = execute_sparql(
-            endpoint, identifier_query, max_retries=3, backoff_factor=1
-        )
+    identifier_query = f"""
+    SELECT DISTINCT ?scheme ?value WHERE {{
+        OPTIONAL {{ <{entity_uri}> <{DATACITE}usesIdentifierScheme> ?scheme }}
+        OPTIONAL {{ <{entity_uri}> <{LITERAL_REIFICATION}hasLiteralValue> ?value }}
+    }}
+    """
+    identifier_results = execute_sparql(
+        endpoint, identifier_query, max_retries=3, backoff_factor=1
+    )
 
-        schemes = [
+    schemes = sorted(
+        {
             result["scheme"]["value"]
             for result in identifier_results["results"]["bindings"]
-        ]
-        values = [
+            if "scheme" in result
+        }
+    )
+    values = sorted(
+        {
             result["value"]["value"]
             for result in identifier_results["results"]["bindings"]
-        ]
+            if "value" in result
+        }
+    )
 
-        if len(schemes) != 1:
-            tqdm.write(
-                f"Error in SPARQL: Entity {entity_uri} should have exactly one usesIdentifierScheme, found {len(schemes)}"
-            )
-            has_issues = True
-        elif not schemes[0].startswith("http"):
-            tqdm.write(
-                f"Error in SPARQL: Entity {entity_uri}'s usesIdentifierScheme should be a URIRef, found {schemes[0]}"
-            )
-            has_issues = True
+    if len(schemes) != 1:
+        tqdm.write(
+            f"Error in SPARQL: Entity {entity_uri} should have exactly one usesIdentifierScheme, found {len(schemes)}"
+        )
+        has_issues = True
+    elif not schemes[0].startswith("http"):
+        tqdm.write(
+            f"Error in SPARQL: Entity {entity_uri}'s usesIdentifierScheme should be a URIRef, found {schemes[0]}"
+        )
+        has_issues = True
 
-        if len(values) != 1:
-            tqdm.write(
-                f"Error in SPARQL: Entity {entity_uri} should have exactly one hasLiteralValue, found {len(values)}"
-            )
-            has_issues = True
+    if len(values) != 1:
+        tqdm.write(
+            f"Error in SPARQL: Entity {entity_uri} should have exactly one hasLiteralValue, found {len(values)}"
+        )
+        has_issues = True
 
     return has_issues
 

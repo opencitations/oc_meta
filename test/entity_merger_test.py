@@ -216,6 +216,49 @@ class TestEntityMerger:
             writer.writeheader()
             writer.writerows(data)
 
+    def create_isolated_author_pair(self):
+        """Store and upload two duplicate authors unrelated to the setup data"""
+        g_set = GraphSet(
+            "https://w3id.org/oc/meta/",
+            supplier_prefix="060",
+            custom_counter_handler=self.counter_handler,
+        )
+        author5 = g_set.add_ra(
+            resp_agent="https://orcid.org/0000-0002-8420-0696",
+            res=URIRef("https://w3id.org/oc/meta/ra/0605"),
+        )
+        author5.has_name("Jane Doe")
+        author6 = g_set.add_ra(
+            resp_agent="https://orcid.org/0000-0002-8420-0696",
+            res=URIRef("https://w3id.org/oc/meta/ra/0606"),
+        )
+        author6.has_name("J. Doe")
+
+        prov = ProvSet(
+            g_set,
+            "https://w3id.org/oc/meta/",
+            wanted_label=False,
+            custom_counter_handler=self.counter_handler,
+        )
+        prov.generate_provenance()
+
+        rdf_output = os.path.join(OUTPUT, "rdf") + os.sep
+        res_storer = Storer(
+            abstract_set=g_set,
+            dir_split=10000,
+            n_file_item=1000,
+            output_format="json-ld",
+            zip_output=False,
+        )
+        res_storer.store_all(base_dir=rdf_output, base_iri="https://w3id.org/oc/meta/")
+        res_storer.upload_all(
+            triplestore_url=SERVER,
+            base_dir=rdf_output,
+            batch_size=10,
+            save_queries=False,
+        )
+        self.counter_handler.flush()
+
     def check_sparql_query_content(self, query: str, expected_triples: dict):
         """
         Check if a SPARQL query contains expected triples in DELETE and INSERT sections.
@@ -309,17 +352,16 @@ class TestEntityMerger:
         assert data[0]["Done"] == "False"
 
     def test_process_folder(self):
-        """Test processing multiple files in a folder"""
+        """Test processing the pending file in a folder"""
         csv_folder = os.path.join(BASE, "csv")
-        self.merger.process_folder(csv_folder)
+        processed = self.merger.process_folder(csv_folder)
 
-        # Verify all files were processed
-        for filename in ["merge_test.csv"]:
-            data = EntityMerger.read_csv(os.path.join(csv_folder, filename))
-            assert data[0]["Done"] == "True"
+        assert processed == os.path.join(csv_folder, "merge_test.csv")
+        data = EntityMerger.read_csv(os.path.join(csv_folder, "merge_test.csv"))
+        assert data[0]["Done"] == "True"
 
-    def test_process_folder_processes_all_csv_files(self):
-        """Test that every CSV file in the folder is processed sequentially"""
+    def test_process_folder_skips_files_without_pending_rows(self):
+        """Test that files whose rows are all done are skipped without a re-index"""
         csv_folder = os.path.join(BASE, "csv")
 
         large_data = [
@@ -332,8 +374,9 @@ class TestEntityMerger:
         ]
         self.write_csv("large.csv", large_data)
 
-        self.merger.process_folder(csv_folder)
+        processed = self.merger.process_folder(csv_folder)
 
+        assert processed == os.path.join(csv_folder, "merge_test.csv")
         large_file_data = EntityMerger.read_csv(os.path.join(csv_folder, "large.csv"))
         assert large_file_data[0]["Done"] == "True"
 
@@ -341,6 +384,66 @@ class TestEntityMerger:
             os.path.join(csv_folder, "merge_test.csv")
         )
         assert small_file_data[0]["Done"] == "True"
+
+    def test_process_folder_processes_one_file_per_run_and_writes_sentinel(self):
+        """Test that a run merges a single CSV file and demands a re-index"""
+        csv_folder = os.path.join(BASE, "csv")
+        second_data = [
+            {
+                "surviving_entity": "https://w3id.org/oc/meta/ra/0601",
+                "merged_entities": "https://w3id.org/oc/meta/ra/0602",
+                "Done": "False",
+            }
+        ]
+        self.write_csv("z_second.csv", second_data)
+
+        processed = self.merger.process_folder(csv_folder)
+
+        assert processed == os.path.join(csv_folder, "merge_test.csv")
+        assert os.path.exists(EntityMerger.reindex_sentinel_path(csv_folder))
+        first_data = EntityMerger.read_csv(os.path.join(csv_folder, "merge_test.csv"))
+        assert first_data[0]["Done"] == "True"
+        second_after = EntityMerger.read_csv(os.path.join(csv_folder, "z_second.csv"))
+        assert second_after[0]["Done"] == "False"
+
+    def test_process_folder_refuses_to_start_when_sentinel_exists(self):
+        """Test that a pending re-index sentinel blocks the whole run"""
+        csv_folder = os.path.join(BASE, "csv")
+        with open(
+            EntityMerger.reindex_sentinel_path(csv_folder), "w", encoding="utf-8"
+        ) as sentinel:
+            sentinel.write("re-index required\n")
+
+        with pytest.raises(RuntimeError, match="Re-index the triplestore"):
+            self.merger.process_folder(csv_folder)
+
+        data = EntityMerger.read_csv(os.path.join(csv_folder, "merge_test.csv"))
+        assert data[0]["Done"] == "False"
+
+    def test_process_folder_resumes_next_file_after_sentinel_removed(self):
+        """Test that removing the sentinel lets the next run merge the next file"""
+        csv_folder = os.path.join(BASE, "csv")
+        self.create_isolated_author_pair()
+        second_data = [
+            {
+                "surviving_entity": "https://w3id.org/oc/meta/ra/0605",
+                "merged_entities": "https://w3id.org/oc/meta/ra/0606",
+                "Done": "False",
+            }
+        ]
+        self.write_csv("z_second.csv", second_data)
+        sentinel_path = EntityMerger.reindex_sentinel_path(csv_folder)
+
+        first_processed = self.merger.process_folder(csv_folder)
+        assert first_processed == os.path.join(csv_folder, "merge_test.csv")
+        os.remove(sentinel_path)
+
+        second_processed = self.merger.process_folder(csv_folder)
+
+        assert second_processed == os.path.join(csv_folder, "z_second.csv")
+        assert os.path.exists(sentinel_path)
+        second_after = EntityMerger.read_csv(os.path.join(csv_folder, "z_second.csv"))
+        assert second_after[0]["Done"] == "True"
 
     def test_merge_authors_with_real_data(self):
         """Test merging two author entities with real data"""
@@ -1583,6 +1686,7 @@ class TestEntityMerger:
             save_queries=False,
         )
 
+        os.remove(os.path.join(BASE, "csv", "merge_test.csv"))
         self.write_csv(
             "sibling_merge.csv",
             [

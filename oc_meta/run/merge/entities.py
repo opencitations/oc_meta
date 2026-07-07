@@ -14,7 +14,6 @@ from oc_graphenricher.storage import DirectoryStorage, directory_storage
 from oc_ocdm.counter_handler.filesystem_counter_handler import FilesystemCounterHandler
 from oc_ocdm.graph import GraphSet
 from rich_argparse import RichHelpFormatter
-from tqdm import tqdm
 
 from oc_meta.core.editor import MetaEditor
 from oc_meta.lib.merge_roles import discard_merged_br_author_editor_roles
@@ -27,6 +26,8 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 logger = logging.getLogger(__name__)
+
+REINDEX_SENTINEL_FILENAME = "reindex_required.out"
 
 
 class MergeRow(TypedDict):
@@ -185,15 +186,18 @@ class EntityMerger:
 
         logger.info(f"Successfully processed {len(merged_entities)} merges")
 
-    def process_file(self, csv_file: str) -> str:
-        """Process a single CSV file of merge instructions"""
+    def process_file(self, csv_file: str) -> bool:
+        """Process a single CSV file of merge instructions.
+
+        Return True when merges were applied, False when there was nothing to
+        process or a stop file halted the run."""
         logger.info(f"Starting to process file: {csv_file}")
         data = self.read_csv(csv_file)
         logger.info(f"Read {len(data)} rows from {csv_file}")
 
         if self.should_stop_processing():
             logger.info("Stop file detected, halting processing")
-            return csv_file
+            return False
 
         rows: List[MergeRow] = [
             {
@@ -207,7 +211,7 @@ class EntityMerger:
 
         if not rows:
             logger.info(f"No rows to process in {csv_file}")
-            return csv_file
+            return False
 
         logger.info(f"Found {len(rows)} rows to process in {csv_file}")
         self.process_rows(rows)
@@ -225,11 +229,32 @@ class EntityMerger:
         self.write_csv(csv_file, data)
         logger.info(f"Saved changes to {csv_file}")
 
-        return csv_file
+        return True
 
-    def process_folder(self, csv_folder: str):
+    @staticmethod
+    def reindex_sentinel_path(csv_folder: str) -> str:
+        return os.path.join(csv_folder, REINDEX_SENTINEL_FILENAME)
+
+    def process_folder(self, csv_folder: str) -> str | None:
+        """Process the first CSV file with pending rows, then require a re-index.
+
+        Every merge batch is computed against one triplestore snapshot, so a
+        second file must not be processed until the triplestore has been
+        re-indexed from the RDF files this run wrote. After a file is merged a
+        sentinel is created next to the CSVs and the next invocation refuses to
+        start until the sentinel is removed. Return the processed file, or None
+        when no file had pending rows."""
         if os.path.exists(self.stop_file_path):
             os.remove(self.stop_file_path)
+
+        sentinel_path = self.reindex_sentinel_path(csv_folder)
+        if os.path.exists(sentinel_path):
+            raise RuntimeError(
+                f"{sentinel_path} exists: a previous run already merged a CSV file "
+                "on top of the current triplestore snapshot. Re-index the "
+                "triplestore from the RDF files, then delete the sentinel to "
+                "process the next CSV file."
+            )
 
         csv_files = sorted(
             os.path.join(csv_folder, file)
@@ -237,15 +262,33 @@ class EntityMerger:
             if file.endswith(".csv")
         )
 
-        for csv_file in tqdm(csv_files, desc="Overall Progress"):
+        for csv_file in csv_files:
             if self.should_stop_processing():
                 break
-            self.process_file(csv_file)
+            if self.process_file(csv_file):
+                with open(sentinel_path, "w", encoding="utf-8") as sentinel:
+                    sentinel.write(
+                        f"{csv_file} was merged on top of the current triplestore "
+                        "snapshot.\nRe-index the triplestore from the RDF files, "
+                        "then delete this file to let the next merge run start.\n"
+                    )
+                logger.info(
+                    f"Processed {csv_file}. Re-index the triplestore from the RDF "
+                    f"files, then delete {sentinel_path} to process the next file."
+                )
+                return csv_file
+
+        logger.info("No CSV files with pending rows found")
+        return None
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Merge entities from CSV files in a folder.",
+        description=(
+            "Merge the entities of the first pending CSV file in a folder. "
+            "One file is processed per run: re-index the triplestore from the "
+            f"RDF files and delete {REINDEX_SENTINEL_FILENAME} before the next run."
+        ),
         formatter_class=RichHelpFormatter,
     )
     parser.add_argument(
