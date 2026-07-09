@@ -14,11 +14,8 @@ from tqdm import tqdm
 
 from oc_meta.lib.file_manager import collect_files
 
-logging.basicConfig(
-    filename="error_log_find_duplicated_resources.txt",
-    level=logging.ERROR,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-)
+ERROR_LOG_FILENAME = "error_log_find_duplicated_resources.txt"
+LOGGER = logging.getLogger(__name__)
 
 
 class UnionFind:
@@ -55,21 +52,44 @@ class UnionFind:
 def read_and_analyze_zip_files(folder_path, csv_path, resource_type):
     resources = {}
     qualities = {}
+    error_log_handler, error_log_path = configure_error_log(csv_path)
 
-    if resource_type in ["br", "both"]:
-        br_folder_path = os.path.join(folder_path, "br")
-        process_folder(br_folder_path, resources, qualities, "br")
+    try:
+        if resource_type in ["br", "both"]:
+            br_folder_path = os.path.join(folder_path, "br")
+            process_folder(br_folder_path, resources, qualities, "br")
 
-    if resource_type in ["ra", "both"]:
-        ra_folder_path = os.path.join(folder_path, "ra")
-        process_folder(ra_folder_path, resources, qualities, "ra")
+        if resource_type in ["ra", "both"]:
+            ra_folder_path = os.path.join(folder_path, "ra")
+            process_folder(ra_folder_path, resources, qualities, "ra")
 
-    save_duplicates_to_csv(resources, csv_path, qualities)
+        save_duplicates_to_csv(resources, csv_path, qualities)
+    finally:
+        close_error_log(error_log_handler, error_log_path)
+
+
+def configure_error_log(csv_path):
+    error_log_path = os.path.join(
+        os.path.dirname(os.path.abspath(csv_path)), ERROR_LOG_FILENAME
+    )
+    handler = logging.FileHandler(error_log_path, mode="w", encoding="utf-8")
+    handler.setLevel(logging.ERROR)
+    handler.setFormatter(logging.Formatter("%(levelname)s - %(message)s"))
+    LOGGER.addHandler(handler)
+    LOGGER.setLevel(logging.ERROR)
+    return handler, error_log_path
+
+
+def close_error_log(handler, error_log_path):
+    LOGGER.removeHandler(handler)
+    handler.close()
+    if os.path.exists(error_log_path) and os.path.getsize(error_log_path) == 0:
+        os.remove(error_log_path)
 
 
 def process_folder(folder_path, resources, qualities, expected_type):
     if not os.path.exists(folder_path):
-        logging.error(
+        LOGGER.error(
             f"La sottocartella '{expected_type}' non esiste nel percorso: {folder_path}"
         )
         return
@@ -92,17 +112,17 @@ def process_folder(folder_path, resources, qualities, expected_type):
                                 expected_type,
                             )
                     except orjson.JSONDecodeError:
-                        logging.error(
+                        LOGGER.error(
                             f"Errore nel parsing JSON del file {zip_file} in {zip_path}"
                         )
                     except Exception as e:
-                        logging.error(
+                        LOGGER.error(
                             f"Errore nell'elaborazione del file {zip_file} in {zip_path}: {str(e)}"
                         )
         except zipfile.BadZipFile:
-            logging.error(f"File ZIP corrotto o non valido: {zip_path}")
+            LOGGER.error(f"File ZIP corrotto o non valido: {zip_path}")
         except Exception as e:
-            logging.error(f"Errore nell'apertura del file ZIP {zip_path}: {str(e)}")
+            LOGGER.error(f"Errore nell'apertura del file ZIP {zip_path}: {str(e)}")
 
 
 def get_zip_files(folder_path: str) -> list[str]:
@@ -136,12 +156,12 @@ def analyze_json(data, resources, qualities, zip_path, zip_file, expected_type):
                     resources[entity_id].update(identifiers)
                     qualities[entity_id] = get_entity_quality(entity, entity_type)
             except KeyError as e:
-                logging.error(
+                LOGGER.error(
                     f"Chiave mancante nell'entità {entity.get('@id', 'ID sconosciuto')} "
                     f"nel file {zip_file} all'interno di {zip_path}: {str(e)}"
                 )
             except Exception as e:
-                logging.error(
+                LOGGER.error(
                     f"Errore nell'analisi dell'entità {entity.get('@id', 'ID sconosciuto')} "
                     f"nel file {zip_file} all'interno di {zip_path}: {str(e)}"
                 )
@@ -238,7 +258,7 @@ def save_duplicates_to_csv(resources, csv_path, qualities=None):
                 merged_entities = "; ".join(merged_group)
                 csv_writer.writerow([surviving_entity, merged_entities])
     except Exception as e:
-        logging.error(f"Errore nel salvataggio del file CSV {csv_path}: {str(e)}")
+        LOGGER.error(f"Errore nel salvataggio del file CSV {csv_path}: {str(e)}")
 
 
 def find_duplicates(resources, qualities=None):

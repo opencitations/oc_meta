@@ -28,7 +28,8 @@ uv run python -m oc_meta.run.find.duplicated_ids <FOLDER_PATH> <CSV_PATH> [OPTIO
 | Option | Default | Description |
 |--------|---------|-------------|
 | `--chunk-size` | 5000 | ZIP files to process per chunk (results saved to temp files between chunks) |
-| `--temp-dir` | system temp | Directory for temporary files |
+
+Temporary chunk files are created in the directory containing `CSV_PATH` and removed when the command finishes.
 
 Example:
 
@@ -76,6 +77,8 @@ Find both:
 ```bash
 uv run python -m oc_meta.run.find.duplicated_entities /data/rdf dup_all.csv both
 ```
+
+If errors occur, `error_log_find_duplicated_resources.txt` is written in the directory containing `CSV_PATH`. Empty error logs are removed when the command finishes.
 
 ### Output format
 

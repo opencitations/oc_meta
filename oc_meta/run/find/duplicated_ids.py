@@ -86,15 +86,17 @@ def process_chunk(zip_files_chunk: List[str], temp_dir: str, chunk_index: int) -
         for key, value in result.items():
             entity_info[key].update(value)
 
-    temp_file_path = os.path.join(temp_dir, f"chunk_{chunk_index}.csv")
+    temp_file_path = get_chunk_temp_file_path(temp_dir, chunk_index)
     save_chunk_to_temp_csv(entity_info, temp_file_path)
 
     return temp_file_path
 
 
-def read_and_analyze_zip_files(
-    folder_path: str, csv_path: str, chunk_size: int = 5000, temp_dir: str | None = None
-):
+def get_chunk_temp_file_path(temp_dir: str, chunk_index: int) -> str:
+    return os.path.join(temp_dir, f"chunk_{chunk_index}.csv")
+
+
+def read_and_analyze_zip_files(folder_path: str, csv_path: str, chunk_size: int = 5000):
     id_folder_path = os.path.join(folder_path, "id")
 
     if not os.path.exists(id_folder_path):
@@ -109,16 +111,17 @@ def read_and_analyze_zip_files(
         )
     )
 
-    if temp_dir is None:
-        temp_dir = tempfile.mkdtemp(prefix="oc_meta_duplicates_")
-    else:
-        os.makedirs(temp_dir, exist_ok=True)
+    output_dir = os.path.dirname(os.path.abspath(csv_path))
+    temp_dir = tempfile.mkdtemp(prefix="oc_meta_duplicates_", dir=output_dir)
 
     try:
         chunks = [
             zip_files[i : i + chunk_size] for i in range(0, len(zip_files), chunk_size)
         ]
-        temp_files = []
+        temp_files = [
+            get_chunk_temp_file_path(temp_dir, chunk_index)
+            for chunk_index in range(len(chunks))
+        ]
 
         print(
             f"Processing {len(zip_files)} ZIP files in {len(chunks)} chunks of max {chunk_size} files each"
@@ -126,8 +129,7 @@ def read_and_analyze_zip_files(
         print(f"Temporary files will be stored in: {temp_dir}")
 
         for chunk_index, chunk in enumerate(tqdm(chunks, desc="Processing chunks")):
-            temp_file = process_chunk(chunk, temp_dir, chunk_index)
-            temp_files.append(temp_file)
+            process_chunk(chunk, temp_dir, chunk_index)
 
         print("Merging chunk results...")
         entity_info = defaultdict(set)
@@ -137,8 +139,7 @@ def read_and_analyze_zip_files(
         save_duplicates_to_csv(entity_info, csv_path)
 
     finally:
-        if temp_dir.startswith(tempfile.gettempdir()):
-            shutil.rmtree(temp_dir, ignore_errors=True)
+        shutil.rmtree(temp_dir, ignore_errors=True)
 
 
 def save_duplicates_to_csv(entity_info: Dict[tuple, Set[str]], csv_path: str):
@@ -172,17 +173,9 @@ def main():
         default=5000,
         help="Number of ZIP files to process per chunk (default: 5000)",
     )
-    parser.add_argument(
-        "--temp-dir",
-        type=str,
-        default=None,
-        help="Directory for temporary files (default: system temp directory)",
-    )
     args = parser.parse_args()
 
-    read_and_analyze_zip_files(
-        args.folder_path, args.csv_path, args.chunk_size, args.temp_dir
-    )
+    read_and_analyze_zip_files(args.folder_path, args.csv_path, args.chunk_size)
 
 
 if __name__ == "__main__":

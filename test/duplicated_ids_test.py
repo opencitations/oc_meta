@@ -238,6 +238,27 @@ class TestDuplicatedIds:
 
             assert len(rows) > 0
 
+    def test_default_temp_dir_uses_output_csv_directory_and_is_removed(self, capsys):
+        output_dir = os.path.join(self.test_dir, "output")
+        os.makedirs(output_dir)
+        output_csv = os.path.join(output_dir, "duplicates.csv")
+
+        read_and_analyze_zip_files(self.test_dir, output_csv, chunk_size=2)
+
+        captured = capsys.readouterr()
+        temp_dir_prefix = "Temporary files will be stored in: "
+        temp_dir_lines = [
+            line
+            for line in captured.out.splitlines()
+            if line.startswith(temp_dir_prefix)
+        ]
+
+        assert len(temp_dir_lines) == 1
+
+        temp_dir = temp_dir_lines[0].removeprefix(temp_dir_prefix)
+        assert os.path.dirname(temp_dir) == output_dir
+        assert not os.path.exists(temp_dir)
+
     def test_chunking_behavior(self):
         output_csv = os.path.join(self.temp_dir, "output_chunked.csv")
 

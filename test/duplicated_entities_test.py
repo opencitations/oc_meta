@@ -6,7 +6,9 @@ import csv
 from pathlib import Path
 
 from oc_meta.run.find.duplicated_entities import (
+    ERROR_LOG_FILENAME,
     find_duplicates,
+    read_and_analyze_zip_files,
     save_duplicates_to_csv,
 )
 
@@ -51,3 +53,37 @@ def test_save_duplicates_to_csv_uses_quality_survivor(tmp_path: Path) -> None:
             "merged_entities": "https://w3id.org/oc/meta/ra/1",
         }
     ]
+
+
+def test_read_and_analyze_zip_files_removes_empty_error_log(tmp_path: Path) -> None:
+    rdf_dir = tmp_path / "rdf"
+    output_dir = tmp_path / "output"
+    csv_path = output_dir / "duplicates.csv"
+    (rdf_dir / "br").mkdir(parents=True)
+    output_dir.mkdir()
+
+    read_and_analyze_zip_files(rdf_dir, csv_path, "br")
+
+    assert sorted(path.name for path in output_dir.iterdir()) == ["duplicates.csv"]
+    assert csv_path.read_text(encoding="utf-8") == "surviving_entity,merged_entities\n"
+
+
+def test_read_and_analyze_zip_files_writes_error_log_next_to_output(
+    tmp_path: Path, monkeypatch
+) -> None:
+    rdf_dir = tmp_path / "rdf"
+    output_dir = tmp_path / "output"
+    work_dir = tmp_path / "work"
+    csv_path = output_dir / "duplicates.csv"
+    rdf_dir.mkdir()
+    output_dir.mkdir()
+    work_dir.mkdir()
+    monkeypatch.chdir(work_dir)
+
+    read_and_analyze_zip_files(rdf_dir, csv_path, "br")
+
+    assert sorted(path.name for path in output_dir.iterdir()) == [
+        "duplicates.csv",
+        ERROR_LOG_FILENAME,
+    ]
+    assert sorted(path.name for path in work_dir.iterdir()) == []

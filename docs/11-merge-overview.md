@@ -26,6 +26,8 @@ Merge:
 uv run python -m oc_meta.run.merge.entities merges/ meta_config.yaml https://w3id.org/oc/meta/prov/pa/1
 ```
 
+Production merge order: `id`, re-index, `ra`, re-index, `br`, re-index, orphan cleanup.
+
 Optional - see what was merged:
 
 ```bash
