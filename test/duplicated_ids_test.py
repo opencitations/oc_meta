@@ -14,13 +14,13 @@ from collections import defaultdict
 import pytest
 
 import orjson
-from oc_meta.run.find.duplicated_ids import (
-    load_and_merge_temp_csv,
-    process_chunk,
-    process_zip_file,
-    read_and_analyze_zip_files,
-    save_chunk_to_temp_csv,
-    save_duplicates_to_csv,
+from oc_meta.run.find.duplicates import (
+    find_duplicate_ids,
+    load_and_merge_identifier_temp_csv,
+    process_identifier_chunk,
+    process_identifier_zip_file,
+    save_identifier_chunk_to_temp_csv,
+    save_identifier_duplicates_to_csv,
 )
 
 
@@ -151,7 +151,7 @@ class TestDuplicatedIds:
         return zip_paths
 
     def test_process_zip_file(self):
-        result = process_zip_file(self.test_zip_paths[0])
+        result = process_identifier_zip_file(self.test_zip_paths[0])
 
         assert isinstance(result, dict)
         assert len(result) > 0
@@ -171,12 +171,12 @@ class TestDuplicatedIds:
         }
 
         temp_file = os.path.join(self.temp_dir, "test_chunk.csv")
-        save_chunk_to_temp_csv(entity_info, temp_file)
+        save_identifier_chunk_to_temp_csv(entity_info, temp_file)
 
         assert os.path.exists(temp_file)
 
         loaded_info = defaultdict(set)
-        load_and_merge_temp_csv(temp_file, loaded_info)
+        load_and_merge_identifier_temp_csv(temp_file, loaded_info)
 
         assert len(loaded_info) == 2
         doi_key = ("http://purl.org/spar/datacite/doi", "10.1234/test1")
@@ -185,7 +185,7 @@ class TestDuplicatedIds:
 
     def test_process_chunk(self):
         chunk_files = self.test_zip_paths[:2]
-        temp_file = process_chunk(chunk_files, self.temp_dir, 0)
+        temp_file = process_identifier_chunk(chunk_files, self.temp_dir, 0)
 
         assert os.path.exists(temp_file)
 
@@ -206,7 +206,7 @@ class TestDuplicatedIds:
         }
 
         output_file = os.path.join(self.temp_dir, "duplicates.csv")
-        save_duplicates_to_csv(entity_info, output_file)
+        save_identifier_duplicates_to_csv(entity_info, output_file)
 
         assert os.path.exists(output_file)
 
@@ -225,10 +225,10 @@ class TestDuplicatedIds:
             merged_entities = rows[0]["merged_entities"].split("; ")
             assert len(merged_entities) == 2
 
-    def test_read_and_analyze_zip_files(self):
+    def test_find_duplicate_ids(self):
         output_csv = os.path.join(self.temp_dir, "output.csv")
 
-        read_and_analyze_zip_files(self.test_dir, output_csv, chunk_size=2)
+        find_duplicate_ids(self.test_dir, output_csv, chunk_size=2)
 
         assert os.path.exists(output_csv)
 
@@ -243,7 +243,7 @@ class TestDuplicatedIds:
         os.makedirs(output_dir)
         output_csv = os.path.join(output_dir, "duplicates.csv")
 
-        read_and_analyze_zip_files(self.test_dir, output_csv, chunk_size=2)
+        find_duplicate_ids(self.test_dir, output_csv, chunk_size=2)
 
         captured = capsys.readouterr()
         temp_dir_prefix = "Temporary files will be stored in: "
@@ -262,7 +262,7 @@ class TestDuplicatedIds:
     def test_chunking_behavior(self):
         output_csv = os.path.join(self.temp_dir, "output_chunked.csv")
 
-        read_and_analyze_zip_files(self.test_dir, output_csv, chunk_size=1)
+        find_duplicate_ids(self.test_dir, output_csv, chunk_size=1)
 
         assert os.path.exists(output_csv)
 
@@ -277,7 +277,7 @@ class TestDuplicatedIds:
     def test_datatype_normalization(self):
         output_csv = os.path.join(self.temp_dir, "output_datatype.csv")
 
-        read_and_analyze_zip_files(self.test_dir, output_csv, chunk_size=2)
+        find_duplicate_ids(self.test_dir, output_csv, chunk_size=2)
 
         assert os.path.exists(output_csv)
 

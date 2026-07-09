@@ -14,10 +14,22 @@ The merge tools find duplicate entities and consolidate them, combining their da
 2. **Execute merge** - Consolidate entities sequentially with provenance tracking
 3. **Track history** - Reconstruct what was merged (optional)
 
-Find duplicates:
+Find duplicate IDs:
 
 ```bash
-uv run python -m oc_meta.run.find.duplicated_entities /data/rdf merges/duplicates.csv br
+uv run python -m oc_meta.run.find.duplicates ids /data/rdf merges/duplicate_ids.csv
+```
+
+Find duplicate responsible agents:
+
+```bash
+uv run python -m oc_meta.run.find.duplicates ras /data/rdf merges/duplicate_ras.csv
+```
+
+Find duplicate bibliographic resources:
+
+```bash
+uv run python -m oc_meta.run.find.duplicates brs /data/rdf merges/duplicate_brs.csv
 ```
 
 Merge:
@@ -38,7 +50,7 @@ uv run python -m oc_meta.run.find.merged_entities -c meta_config.yaml -o merged.
 
 | Tool | Purpose |
 |------|---------|
-| [Find duplicates](12-find-duplicates.md) | Scan RDF files for duplicate identifiers and entities |
+| [Find duplicates](12-find-duplicates.md) | Scan RDF files for duplicate IDs, RAs, and BRs |
 | [Merge entities](14-merge-entities.md) | Execute merge operations |
 | [Verify merge](15-verify-merge.md) | Check merge results and generate fix queries |
 | [Compact CSV](16-compact-csv.md) | Extract completed merges into a single file |
