@@ -11,7 +11,7 @@ from typing import Callable
 from urllib.error import URLError
 from urllib.parse import parse_qs, urlparse
 
-from SPARQLWrapper import JSON, POST, SPARQLWrapper
+from SPARQLWrapper import GET, JSON, POST, URLENCODED, SPARQLWrapper
 from SPARQLWrapper.SPARQLExceptions import EndPointInternalError, QueryBadFormed
 
 from oc_meta.constants import QLEVER_MAX_WORKERS, QLEVER_QUERIES_PER_GROUP
@@ -34,8 +34,13 @@ def execute_sparql(
     max_retries: int = 5,
     backoff_factor: float = 5,
     timeout: int = 3600,
+    *,
+    method: str = GET,
 ) -> dict:
     sparql = _make_sparql_client(endpoint_url, timeout)
+    sparql.setMethod(method)
+    if method == POST:
+        sparql.setRequestMethod(URLENCODED)
     last_error: Exception | None = None
     for attempt in range(max_retries + 1):
         if attempt > 0:

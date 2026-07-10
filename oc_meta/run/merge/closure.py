@@ -23,9 +23,14 @@ must import so that every entity it mutates is in memory.
 
 from __future__ import annotations
 
+import logging
 from typing import Iterable, List, Set
 
+from SPARQLWrapper import POST
+
 from oc_meta.lib.sparql import execute_sparql
+
+LOGGER = logging.getLogger(__name__)
 
 FRBR_PART_OF = "http://purl.org/vocab/frbr/core#partOf"
 PRO_IS_HELD_BY = "http://purl.org/spar/pro/isHeldBy"
@@ -33,6 +38,7 @@ PRO_IS_DOCUMENT_CONTEXT_FOR = "http://purl.org/spar/pro/isDocumentContextFor"
 PRO_WITH_ROLE = "http://purl.org/spar/pro/withRole"
 PRO_PUBLISHER = "http://purl.org/spar/pro/publisher"
 DATACITE_HAS_IDENTIFIER = "http://purl.org/spar/datacite/hasIdentifier"
+IDENTIFIER_PROGRESS_INTERVAL = 100_000
 
 
 def _batched(items: List[str], batch_size: int) -> Iterable[List[str]]:
@@ -179,3 +185,47 @@ def compute_related_closure(
         | role_context
         | _publisher_agents(endpoint, related | role_context, batch_size)
     )
+
+
+def compute_identifier_merge_closure(
+    endpoint: str,
+    surviving_identifiers: Iterable[str],
+    merged_identifiers: Iterable[str],
+    batch_size: int = 1000,
+) -> Set[str]:
+    closure = set(surviving_identifiers)
+    merged = set(merged_identifiers)
+    closure.update(merged)
+    merged_list = list(merged)
+
+    for batch_number, batch in enumerate(_batched(merged_list, batch_size), start=1):
+        values = " ".join(f"<{identifier}>" for identifier in batch)
+        query = f"""
+            SELECT DISTINCT ?entity WHERE {{
+                VALUES ?identifier {{ {values} }}
+                ?entity <{DATACITE_HAS_IDENTIFIER}> ?identifier .
+            }}
+        """
+        results = execute_sparql(
+            endpoint,
+            query,
+            max_retries=5,
+            backoff_factor=0.3,
+            method=POST,
+        )
+        for result in results["results"]["bindings"]:
+            if result["entity"]["type"] == "uri":
+                closure.add(result["entity"]["value"])
+
+        processed_entities = min(batch_number * batch_size, len(merged_list))
+        if (
+            processed_entities % IDENTIFIER_PROGRESS_INTERVAL == 0
+            or processed_entities == len(merged_list)
+        ):
+            LOGGER.info(
+                "Computed identifier references for %s of %s merged identifiers",
+                processed_entities,
+                len(merged_list),
+            )
+
+    return closure

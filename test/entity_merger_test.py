@@ -360,6 +360,52 @@ class TestEntityMerger:
         data = EntityMerger.read_csv(os.path.join(csv_folder, "merge_test.csv"))
         assert data[0]["Done"] == "True"
 
+    def test_process_path_accepts_single_csv_file(self, monkeypatch):
+        csv_file = os.path.join(BASE, "csv", "merge_test.csv")
+        processed_files = []
+
+        def fake_process_file(csv_path):
+            processed_files.append(csv_path)
+            data = EntityMerger.read_csv(csv_path)
+            data[0]["Done"] = "True"
+            EntityMerger.write_csv(csv_path, data)
+            return True
+
+        monkeypatch.setattr(self.merger, "process_file", fake_process_file)
+
+        processed = self.merger.process_path(csv_file)
+
+        assert processed == csv_file
+        assert processed_files == [csv_file]
+        assert os.path.exists(EntityMerger.reindex_sentinel_path_for_csv(csv_file))
+        data = EntityMerger.read_csv(csv_file)
+        assert data[0]["Done"] == "True"
+
+    def test_process_path_single_csv_refuses_to_start_when_sentinel_exists(
+        self, monkeypatch
+    ):
+        csv_file = os.path.join(BASE, "csv", "merge_test.csv")
+        processed_files = []
+        with open(
+            EntityMerger.reindex_sentinel_path_for_csv(csv_file),
+            "w",
+            encoding="utf-8",
+        ) as sentinel:
+            sentinel.write("re-index required\n")
+
+        monkeypatch.setattr(
+            self.merger,
+            "process_file",
+            lambda csv_path: processed_files.append(csv_path),
+        )
+
+        with pytest.raises(RuntimeError, match="Re-index the triplestore"):
+            self.merger.process_path(csv_file)
+
+        assert processed_files == []
+        data = EntityMerger.read_csv(csv_file)
+        assert data[0]["Done"] == "False"
+
     def test_process_folder_skips_files_without_pending_rows(self):
         """Test that files whose rows are all done are skipped without a re-index"""
         csv_folder = os.path.join(BASE, "csv")
@@ -707,6 +753,88 @@ class TestEntityMerger:
         csv_data = EntityMerger.read_csv(os.path.join(BASE, "csv", "merge_test.csv"))
         assert csv_data[0]["Done"] == "False"
 
+    def test_process_rows_merges_identifiers_and_redirects_incoming_references(self):
+        g_set = GraphSet(
+            "https://w3id.org/oc/meta/",
+            supplier_prefix="060",
+            custom_counter_handler=self.counter_handler,
+        )
+        resp_agent = "https://orcid.org/0000-0002-8420-0696"
+        surviving_identifier = g_set.add_id(
+            resp_agent,
+            res=URIRef("https://w3id.org/oc/meta/id/0607"),
+        )
+        surviving_identifier.create_doi("10.1000/identifier-merge")
+        merged_identifier = g_set.add_id(
+            resp_agent,
+            res=URIRef("https://w3id.org/oc/meta/id/0608"),
+        )
+        merged_identifier.create_doi("10.1000/identifier-merge")
+
+        source_for_survivor = g_set.add_br(
+            resp_agent,
+            res=URIRef("https://w3id.org/oc/meta/br/0607"),
+        )
+        source_for_survivor.has_identifier(surviving_identifier)
+        source_for_merged = g_set.add_br(
+            resp_agent,
+            res=URIRef("https://w3id.org/oc/meta/br/0608"),
+        )
+        source_for_merged.has_identifier(merged_identifier)
+
+        rdf_output = os.path.join(OUTPUT, "rdf") + os.sep
+        storer = Storer(
+            abstract_set=g_set,
+            dir_split=10000,
+            n_file_item=1000,
+            output_format="json-ld",
+            zip_output=False,
+        )
+        storer.store_all(base_dir=rdf_output, base_iri="https://w3id.org/oc/meta/")
+        storer.upload_all(
+            triplestore_url=SERVER,
+            base_dir=rdf_output,
+            batch_size=10,
+            save_queries=False,
+        )
+        self.counter_handler.flush()
+
+        self.merger.process_rows(
+            [
+                {
+                    "surviving_entity": str(surviving_identifier.res),
+                    "merged_entities": [str(merged_identifier.res)],
+                }
+            ]
+        )
+
+        id_file = os.path.join(OUTPUT, "rdf", "id", "060", "10000", "1000.json")
+        with open(id_file, encoding="utf-8") as file:
+            identifiers = {
+                entity["@id"]: entity
+                for graph in orjson.loads(file.read())
+                for entity in graph.get("@graph", [])
+            }
+        assert set(identifiers) == {
+            "https://w3id.org/oc/meta/id/0601",
+            "https://w3id.org/oc/meta/id/0602",
+            "https://w3id.org/oc/meta/id/0607",
+        }
+
+        br_file = os.path.join(OUTPUT, "rdf", "br", "060", "10000", "1000.json")
+        with open(br_file, encoding="utf-8") as file:
+            bibliographic_resources = {
+                entity["@id"]: entity
+                for graph in orjson.loads(file.read())
+                for entity in graph.get("@graph", [])
+            }
+        assert bibliographic_resources["https://w3id.org/oc/meta/br/0607"][
+            "http://purl.org/spar/datacite/hasIdentifier"
+        ] == [{"@id": "https://w3id.org/oc/meta/id/0607"}]
+        assert bibliographic_resources["https://w3id.org/oc/meta/br/0608"][
+            "http://purl.org/spar/datacite/hasIdentifier"
+        ] == [{"@id": "https://w3id.org/oc/meta/id/0607"}]
+
     def test_process_rows_with_nonexistent_entities_raises(self):
         """Test that in-memory merges of missing entities fail fast"""
         with pytest.raises(ValueError, match="not found in the triplestore"):
@@ -718,6 +846,24 @@ class TestEntityMerger:
                     }
                 ]
             )
+
+    def test_process_rows_with_nonexistent_identifiers_does_not_write_rdf(self):
+        id_file = os.path.join(OUTPUT, "rdf", "id", "060", "10000", "1000.json")
+        with open(id_file, "rb") as file:
+            rdf_before = file.read()
+
+        with pytest.raises(ValueError, match="not found in the triplestore"):
+            self.merger.process_rows(
+                [
+                    {
+                        "surviving_entity": "https://w3id.org/oc/meta/id/9999",
+                        "merged_entities": ["https://w3id.org/oc/meta/id/9998"],
+                    }
+                ]
+            )
+
+        with open(id_file, "rb") as file:
+            assert file.read() == rdf_before
 
     def test_merge_with_invalid_entity_type(self):
         """Test merging with an invalid entity type"""

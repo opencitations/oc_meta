@@ -4,11 +4,14 @@
 
 from unittest.mock import patch
 
+from SPARQLWrapper import POST
+
 from oc_meta.run.merge.closure import (
     _br_role_context,
     _one_hop_neighbours,
     _partof_ancestors,
     _publisher_agents,
+    compute_identifier_merge_closure,
     compute_related_closure,
 )
 
@@ -205,6 +208,93 @@ class TestComputeRelatedClosure:
             "https://example.org/role",
             "https://example.org/role-agent",
         }
+
+
+class TestComputeIdentifierMergeClosure:
+    @patch("oc_meta.run.merge.closure.execute_sparql")
+    def test_queries_incoming_references_to_merged_identifiers(
+        self, mock_execute_sparql
+    ):
+        mock_execute_sparql.return_value = {
+            "results": {
+                "bindings": [
+                    {
+                        "entity": {
+                            "value": "https://w3id.org/oc/meta/ra/0601",
+                            "type": "uri",
+                        }
+                    },
+                    {"entity": {"value": "literal", "type": "literal"}},
+                ]
+            }
+        }
+
+        result = compute_identifier_merge_closure(
+            "http://endpoint",
+            ["https://w3id.org/oc/meta/id/0601"],
+            ["https://w3id.org/oc/meta/id/0602"],
+        )
+
+        assert result == {
+            "https://w3id.org/oc/meta/id/0601",
+            "https://w3id.org/oc/meta/id/0602",
+            "https://w3id.org/oc/meta/ra/0601",
+        }
+        assert mock_execute_sparql.call_count == 1
+        endpoint, query = mock_execute_sparql.call_args.args
+        assert endpoint == "http://endpoint"
+        expected_query = """
+            SELECT DISTINCT ?entity WHERE {
+                VALUES ?identifier { <https://w3id.org/oc/meta/id/0602> }
+                ?entity <http://purl.org/spar/datacite/hasIdentifier> ?identifier .
+            }
+        """
+        assert _normalize_sparql(query) == _normalize_sparql(expected_query)
+        assert mock_execute_sparql.call_args.kwargs == {
+            "max_retries": 5,
+            "backoff_factor": 0.3,
+            "method": POST,
+        }
+
+    @patch("oc_meta.run.merge.closure.execute_sparql")
+    def test_batches_merged_identifiers(self, mock_execute_sparql):
+        mock_execute_sparql.return_value = {"results": {"bindings": []}}
+        merged_identifiers = [
+            f"https://w3id.org/oc/meta/id/{identifier}" for identifier in range(2501)
+        ]
+
+        result = compute_identifier_merge_closure(
+            "http://endpoint",
+            ["https://w3id.org/oc/meta/id/survivor"],
+            merged_identifiers,
+            batch_size=1000,
+        )
+
+        assert result == {
+            "https://w3id.org/oc/meta/id/survivor",
+            *merged_identifiers,
+        }
+        assert mock_execute_sparql.call_count == 3
+        assert [
+            call.args[1].count("<https://w3id.org/oc/meta/id/")
+            for call in mock_execute_sparql.call_args_list
+        ] == [1000, 1000, 501]
+        assert [call.kwargs for call in mock_execute_sparql.call_args_list] == [
+            {"max_retries": 5, "backoff_factor": 0.3, "method": POST},
+            {"max_retries": 5, "backoff_factor": 0.3, "method": POST},
+            {"max_retries": 5, "backoff_factor": 0.3, "method": POST},
+        ]
+
+    @patch("oc_meta.run.merge.closure.execute_sparql")
+    def test_empty_merged_identifiers_make_no_queries(self, mock_execute_sparql):
+        result = compute_identifier_merge_closure(
+            "http://endpoint",
+            ["https://w3id.org/oc/meta/id/0601"],
+            [],
+        )
+
+        assert result == {"https://w3id.org/oc/meta/id/0601"}
+        assert mock_execute_sparql.call_count == 0
 
 
 class TestBrRoleContext:

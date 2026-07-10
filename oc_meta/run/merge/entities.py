@@ -16,7 +16,10 @@ from oc_ocdm.graph import GraphSet
 from rich_argparse import RichHelpFormatter
 
 from oc_meta.core.editor import MetaEditor
-from oc_meta.run.merge.closure import compute_related_closure
+from oc_meta.run.merge.closure import (
+    compute_identifier_merge_closure,
+    compute_related_closure,
+)
 from oc_meta.run.merge.csv_utils import parse_merged_entities
 
 logging.basicConfig(
@@ -47,6 +50,7 @@ class EntityMerger:
         self.entity_types = entity_types
         self.stop_file_path = stop_file_path
         self.batch_size = 10
+        self.identifier_batch_size = 1000
 
     @staticmethod
     def get_entity_type(entity_url: str) -> str | None:
@@ -139,11 +143,28 @@ class EntityMerger:
             f"Computing merge closure for {len(merged_entities)} merged entities and {len(surviving_entities)} surviving entities"
         )
 
-        closure = compute_related_closure(
-            meta_editor.endpoint,
-            set(surviving_entities) | set(merged_entities),
-            self.batch_size,
+        identifiers_only = (
+            bool(surviving_entities or merged_entities)
+            and all(
+                self.get_entity_type(entity) == "id" for entity in surviving_entities
+            )
+            and all(self.get_entity_type(entity) == "id" for entity in merged_entities)
         )
+        if identifiers_only:
+            closure = compute_identifier_merge_closure(
+                meta_editor.endpoint,
+                surviving_entities,
+                merged_entities,
+                self.identifier_batch_size,
+            )
+            import_batch_size = self.identifier_batch_size
+        else:
+            closure = compute_related_closure(
+                meta_editor.endpoint,
+                set(surviving_entities) | set(merged_entities),
+                self.batch_size,
+            )
+            import_batch_size = self.batch_size
         logger.info(f"Merge closure contains {len(closure)} entities")
 
         entities_to_import = {
@@ -158,7 +179,7 @@ class EntityMerger:
                 entities=list(entities_to_import),
                 resp_agent=meta_editor.resp_agent,
                 enable_validation=False,
-                batch_size=self.batch_size,
+                batch_size=import_batch_size,
             )
             for entity in entities_to_import:
                 meta_editor.entity_cache.add(entity)
@@ -229,6 +250,45 @@ class EntityMerger:
     def reindex_sentinel_path(csv_folder: str) -> str:
         return os.path.join(csv_folder, REINDEX_SENTINEL_FILENAME)
 
+    @staticmethod
+    def reindex_sentinel_path_for_csv(csv_file: str) -> str:
+        return os.path.join(
+            os.path.dirname(os.path.abspath(csv_file)), REINDEX_SENTINEL_FILENAME
+        )
+
+    def process_path(self, csv_path: str) -> str | None:
+        if os.path.isfile(csv_path):
+            return self.process_single_csv(csv_path)
+        return self.process_folder(csv_path)
+
+    def process_single_csv(self, csv_file: str) -> str | None:
+        if os.path.exists(self.stop_file_path):
+            os.remove(self.stop_file_path)
+
+        sentinel_path = self.reindex_sentinel_path_for_csv(csv_file)
+        if os.path.exists(sentinel_path):
+            raise RuntimeError(
+                f"{sentinel_path} exists: a previous run already merged a CSV file "
+                "on top of the current triplestore snapshot. Re-index the "
+                "triplestore from the RDF files, then delete the sentinel to "
+                "process another CSV file."
+            )
+
+        if self.process_file(csv_file):
+            with open(sentinel_path, "w", encoding="utf-8") as sentinel:
+                sentinel.write(
+                    f"{csv_file} was merged on top of the current triplestore "
+                    "snapshot.\nRe-index the triplestore from the RDF files, "
+                    "then delete this file to let another merge run start.\n"
+                )
+            logger.info(
+                f"Processed {csv_file}. Re-index the triplestore from the RDF "
+                f"files, then delete {sentinel_path} to process another CSV file."
+            )
+            return csv_file
+
+        return None
+
     def process_folder(self, csv_folder: str) -> str | None:
         """Process the first CSV file with pending rows, then require a re-index.
 
@@ -279,14 +339,15 @@ class EntityMerger:
 def main():
     parser = argparse.ArgumentParser(
         description=(
-            "Merge the entities of the first pending CSV file in a folder. "
-            "One file is processed per run: re-index the triplestore from the "
-            f"RDF files and delete {REINDEX_SENTINEL_FILENAME} before the next run."
+            "Merge entities from a CSV file or from the first pending CSV file "
+            "in a folder. One file is processed per run: re-index the "
+            f"triplestore from the RDF files and delete {REINDEX_SENTINEL_FILENAME} "
+            "before the next run."
         ),
         formatter_class=RichHelpFormatter,
     )
     parser.add_argument(
-        "csv_folder", type=str, help="Path to the folder containing CSV files"
+        "csv_path", type=str, help="Path to a merge CSV file or folder of CSV files"
     )
     parser.add_argument("meta_config", type=str, help="Meta configuration string")
     parser.add_argument("resp_agent", type=str, help="Responsible agent string")
@@ -309,7 +370,7 @@ def main():
         stop_file_path=args.stop_file,
     )
 
-    merger.process_folder(args.csv_folder)
+    merger.process_path(args.csv_path)
 
 
 if __name__ == "__main__":
