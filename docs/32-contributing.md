@@ -120,7 +120,7 @@ oc_meta/
     ├── fixer/      # Data repair tools
     ├── merge/      # Find duplicates and merge entities
     ├── meta/       # Processing scripts
-    ├── patches/    # hasNext anomalies and fixer
+    ├── patches/    # hasNext repair and duplicate RA audit
     └── upload/     # Triplestore upload
 
 test/               # Test files

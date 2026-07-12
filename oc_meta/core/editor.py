@@ -73,12 +73,16 @@ class MetaEditor:
         self.save_queries = save_queries
         self.update_queries = []
 
+        supplier_prefix = (
+            settings["supplier_prefix"] if "supplier_prefix" in settings else "060"
+        )
+        if not supplier_prefix.endswith("0"):
+            supplier_prefix = f"{supplier_prefix}0"
+        self.supplier_prefix = supplier_prefix
+
         if counter_handler is not None:
             self.counter_handler = counter_handler
         else:
-            supplier_prefix = settings.get("supplier_prefix", "060")
-            if not supplier_prefix.endswith("0"):
-                supplier_prefix = f"{supplier_prefix}0"
             info_dir = os.path.join(output_dir, "info_dir", supplier_prefix) + os.sep
             self.counter_handler = FilesystemCounterHandler(
                 info_dir=info_dir, supplier_prefix=supplier_prefix

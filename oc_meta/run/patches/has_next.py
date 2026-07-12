@@ -31,6 +31,12 @@ from oc_ds_converter.oc_idmanager.oc_data_storage.in_memory_manager import (
 from oc_ds_converter.ra_processor import RaProcessor
 
 from oc_meta.core.editor import MetaEditor
+from oc_meta.lib.agent_metadata import (
+    AgentMetadata,
+    JsonObject,
+    parse_crossref_work,
+    parse_datacite_work,
+)
 from oc_meta.lib.console import create_progress
 from oc_meta.lib.file_manager import find_rdf_file
 from oc_meta.run.meta.generate_csv import URI_TYPE_DICT, load_json_from_file
@@ -311,39 +317,32 @@ def _strip_orcid_url(orcid: str) -> str:
     return orcid.replace("https://orcid.org/", "").replace("http://orcid.org/", "")
 
 
+def _api_agents(agents: list[AgentMetadata]) -> list[dict[str, object]]:
+    return [
+        {
+            "family": agent["family"],
+            "given": agent["given"],
+            "name": agent["name"],
+            "orcid": agent["orcid"],
+            "position": agent["position"],
+        }
+        for agent in agents
+    ]
+
+
 def fetch_crossref(doi: str) -> Optional[dict]:
     resp = SESSION.get(CROSSREF_BASE + doi, timeout=30)
     if resp.status_code == 404:
         return None
     resp.raise_for_status()
-    msg = resp.json()["message"]
-    authors = []
-    for i, a in enumerate(msg.get("author", [])):
-        authors.append(
-            {
-                "family": a.get("family", ""),
-                "given": a.get("given", ""),
-                "name": a.get("name", ""),
-                "orcid": _strip_orcid_url(a.get("ORCID")),
-                "position": i,
-            }
-        )
-    editors = []
-    for i, e in enumerate(msg.get("editor", [])):
-        editors.append(
-            {
-                "family": e.get("family", ""),
-                "given": e.get("given", ""),
-                "name": e.get("name", ""),
-                "orcid": _strip_orcid_url(e.get("ORCID")),
-                "position": i,
-            }
-        )
+    data = cast(JsonObject, resp.json())
+    parsed = parse_crossref_work(data, doi)
+    message = cast(dict[str, object], data["message"])
     return {
-        "author": authors,
-        "editor": editors,
-        "publisher": msg.get("publisher", ""),
-        "publisher_crossref_id": msg.get("member"),
+        "author": _api_agents(parsed["author"]),
+        "editor": _api_agents(parsed["editor"]),
+        "publisher": parsed["publisher"],
+        "publisher_crossref_id": message["member"] if "member" in message else None,
         "source": "crossref",
     }
 
@@ -353,50 +352,11 @@ def fetch_datacite(doi: str) -> Optional[dict]:
     if resp.status_code == 404:
         return None
     resp.raise_for_status()
-    attrs = resp.json()["data"]["attributes"]
-    authors = []
-    for i, c in enumerate(attrs.get("creators", [])):
-        orcid = None
-        for ni in c.get("nameIdentifiers", []):
-            if ni.get("nameIdentifierScheme", "").upper() == "ORCID":
-                orcid = _strip_orcid_url(ni["nameIdentifier"])
-                break
-        authors.append(
-            {
-                "family": c.get("familyName", ""),
-                "given": c.get("givenName", ""),
-                "name": c.get("name", ""),
-                "orcid": orcid,
-                "position": i,
-            }
-        )
-    editors = []
-    editor_idx = 0
-    for c in attrs.get("contributors", []):
-        if c.get("contributorType") != "Editor":
-            continue
-        orcid = None
-        for ni in c.get("nameIdentifiers", []):
-            if ni.get("nameIdentifierScheme", "").upper() == "ORCID":
-                orcid = _strip_orcid_url(ni["nameIdentifier"])
-                break
-        editors.append(
-            {
-                "family": c.get("familyName", ""),
-                "given": c.get("givenName", ""),
-                "name": c.get("name", ""),
-                "orcid": orcid,
-                "position": editor_idx,
-            }
-        )
-        editor_idx += 1
-    publisher = attrs.get("publisher", "")
-    if isinstance(publisher, dict):
-        publisher = publisher.get("name", "")
+    parsed = parse_datacite_work(cast(JsonObject, resp.json()), doi)
     return {
-        "author": authors,
-        "editor": editors,
-        "publisher": publisher,
+        "author": _api_agents(parsed["author"]),
+        "editor": _api_agents(parsed["editor"]),
+        "publisher": parsed["publisher"],
         "publisher_crossref_id": None,
         "source": "datacite",
     }

@@ -125,4 +125,6 @@ The `ras` and `brs` modes use Union-Find to handle transitive relationships. If 
 
 ## Next steps
 
-Place the output CSV in a folder and run [Merge entities](14-merge-entities.md) on it.
+Before merging responsible agents, run the [duplicate RA audit](13-audit-duplicate-ras.md) to check contributor roles and identifiers against external metadata. Review or remove unsafe clusters from the merge input.
+
+For other entity types, or after the RA review, place the output CSV in a folder and run [Merge entities](14-merge-entities.md) on it.
