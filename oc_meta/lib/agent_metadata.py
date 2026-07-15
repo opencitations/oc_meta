@@ -34,8 +34,14 @@ class AgentMetadata(TypedDict):
     given: str
     name: str
     orcid: str | None
+    identifiers: tuple[AgentIdentifier, ...]
     position: int
     role: str
+
+
+class AgentIdentifier(TypedDict):
+    scheme: str
+    value: str
 
 
 class WorkMetadata(TypedDict):
@@ -44,6 +50,7 @@ class WorkMetadata(TypedDict):
     author: list[AgentMetadata]
     editor: list[AgentMetadata]
     publisher: str
+    publisher_identifiers: tuple[AgentIdentifier, ...]
 
 
 class OrcidProfile(TypedDict):
@@ -51,6 +58,26 @@ class OrcidProfile(TypedDict):
     given: str
     family: str
     name: str
+
+
+def agents_for_role(work: WorkMetadata, role: str) -> list[AgentMetadata]:
+    if role == "author":
+        return work["author"]
+    if role == "editor":
+        return work["editor"]
+    if role == "publisher" and work["publisher"]:
+        return [
+            AgentMetadata(
+                family="",
+                given="",
+                name=work["publisher"],
+                orcid=None,
+                identifiers=work["publisher_identifiers"],
+                position=0,
+                role="publisher",
+            )
+        ]
+    return []
 
 
 def normalize_orcid(orcid: str) -> str:
@@ -96,38 +123,74 @@ def _string(value: JsonValue) -> str:
     return value if isinstance(value, str) else ""
 
 
-def _orcid_from_name_identifiers(value: JsonValue) -> str | None:
+def _name_identifiers(value: JsonValue) -> tuple[AgentIdentifier, ...]:
+    identifiers = []
     for identifier in _objects(value):
         scheme = _string(identifier.get("nameIdentifierScheme")).upper()
         if scheme == "ORCID":
             orcid = _orcid_or_none(_string(identifier.get("nameIdentifier")))
             if orcid is not None:
-                return orcid
-    return None
+                identifiers.append(AgentIdentifier(scheme="orcid", value=orcid))
+        elif scheme == "ROR":
+            value = _string(identifier.get("nameIdentifier")).rstrip("/")
+            if value:
+                identifiers.append(
+                    AgentIdentifier(scheme="ror", value=value.rsplit("/", 1)[-1])
+                )
+    return tuple(identifiers)
+
+
+def _orcid_identifier(value: str) -> tuple[AgentIdentifier, ...]:
+    orcid = _orcid_or_none(value)
+    if orcid is None:
+        return ()
+    return (AgentIdentifier(scheme="orcid", value=orcid),)
+
+
+def _member_identifier(value: JsonValue) -> tuple[AgentIdentifier, ...]:
+    if not isinstance(value, (str, int)) or isinstance(value, bool):
+        return ()
+    member = str(value).rstrip("/").rsplit("/", 1)[-1]
+    if not member:
+        return ()
+    return (AgentIdentifier(scheme="crossref", value=member),)
+
+
+def _publisher_identifiers(value: JsonValue) -> tuple[AgentIdentifier, ...]:
+    publisher = _object(value)
+    scheme = _string(publisher.get("publisherIdentifierScheme")).upper()
+    identifier = _string(publisher.get("publisherIdentifier")).rstrip("/")
+    if scheme != "ROR" or not identifier:
+        return ()
+    return (AgentIdentifier(scheme="ror", value=identifier.rsplit("/", 1)[-1]),)
 
 
 def parse_crossref_work(data: JsonObject, identifier: str = "") -> WorkMetadata:
     message = _object(data.get("message"))
     authors = []
     for position, author in enumerate(_objects(message.get("author"))):
+        identifiers = _orcid_identifier(_string(author.get("ORCID")))
         authors.append(
             AgentMetadata(
                 family=_string(author.get("family")),
                 given=_string(author.get("given")),
                 name=_string(author.get("name")),
-                orcid=_orcid_or_none(_string(author.get("ORCID"))),
+                orcid=identifiers[0]["value"] if identifiers else None,
+                identifiers=identifiers,
                 position=position,
                 role="author",
             )
         )
     editors = []
     for position, editor in enumerate(_objects(message.get("editor"))):
+        identifiers = _orcid_identifier(_string(editor.get("ORCID")))
         editors.append(
             AgentMetadata(
                 family=_string(editor.get("family")),
                 given=_string(editor.get("given")),
                 name=_string(editor.get("name")),
-                orcid=_orcid_or_none(_string(editor.get("ORCID"))),
+                orcid=identifiers[0]["value"] if identifiers else None,
+                identifiers=identifiers,
                 position=position,
                 role="editor",
             )
@@ -138,6 +201,7 @@ def parse_crossref_work(data: JsonObject, identifier: str = "") -> WorkMetadata:
         author=authors,
         editor=editors,
         publisher=_string(message.get("publisher")),
+        publisher_identifiers=_member_identifier(message.get("member")),
     )
 
 
@@ -145,12 +209,22 @@ def parse_datacite_work(data: JsonObject, identifier: str = "") -> WorkMetadata:
     attributes = _object(_object(data.get("data")).get("attributes"))
     authors = []
     for position, creator in enumerate(_objects(attributes.get("creators"))):
+        identifiers = _name_identifiers(creator.get("nameIdentifiers"))
+        orcid = next(
+            (
+                identifier["value"]
+                for identifier in identifiers
+                if identifier["scheme"] == "orcid"
+            ),
+            None,
+        )
         authors.append(
             AgentMetadata(
                 family=_string(creator.get("familyName")),
                 given=_string(creator.get("givenName")),
                 name=_string(creator.get("name")),
-                orcid=_orcid_from_name_identifiers(creator.get("nameIdentifiers")),
+                orcid=orcid,
+                identifiers=identifiers,
                 position=position,
                 role="author",
             )
@@ -159,12 +233,22 @@ def parse_datacite_work(data: JsonObject, identifier: str = "") -> WorkMetadata:
     for contributor in _objects(attributes.get("contributors")):
         if _string(contributor.get("contributorType")) != "Editor":
             continue
+        identifiers = _name_identifiers(contributor.get("nameIdentifiers"))
+        orcid = next(
+            (
+                identifier["value"]
+                for identifier in identifiers
+                if identifier["scheme"] == "orcid"
+            ),
+            None,
+        )
         editors.append(
             AgentMetadata(
                 family=_string(contributor.get("familyName")),
                 given=_string(contributor.get("givenName")),
                 name=_string(contributor.get("name")),
-                orcid=_orcid_from_name_identifiers(contributor.get("nameIdentifiers")),
+                orcid=orcid,
+                identifiers=identifiers,
                 position=len(editors),
                 role="editor",
             )
@@ -181,6 +265,7 @@ def parse_datacite_work(data: JsonObject, identifier: str = "") -> WorkMetadata:
         author=authors,
         editor=editors,
         publisher=publisher,
+        publisher_identifiers=_publisher_identifiers(publisher_value),
     )
 
 
@@ -190,12 +275,14 @@ def parse_openalex_work(data: JsonObject, identifier: str = "") -> WorkMetadata:
         author = _object(authorship.get("author"))
         display_name = _string(author.get("display_name"))
         raw_name = _string(authorship.get("raw_author_name")) or display_name
+        identifiers = _orcid_identifier(_string(author.get("orcid")))
         authors.append(
             AgentMetadata(
                 family="",
                 given="",
                 name=raw_name,
-                orcid=_orcid_or_none(_string(author.get("orcid"))),
+                orcid=identifiers[0]["value"] if identifiers else None,
+                identifiers=identifiers,
                 position=position,
                 role="author",
             )
@@ -206,6 +293,7 @@ def parse_openalex_work(data: JsonObject, identifier: str = "") -> WorkMetadata:
         author=authors,
         editor=[],
         publisher="",
+        publisher_identifiers=(),
     )
 
 
@@ -394,6 +482,20 @@ class AgentMetadataClient:
             primary = self.datacite(doi)
         if primary is not None:
             works.append(primary)
+        openalex = self.openalex_work(doi, openalex_id)
+        if openalex is not None:
+            works.append(openalex)
+        return works
+
+    def all_work_sources(self, doi: str, openalex_id: str = "") -> list[WorkMetadata]:
+        works = []
+        if doi:
+            crossref = self.crossref(doi)
+            if crossref is not None:
+                works.append(crossref)
+            datacite = self.datacite(doi)
+            if datacite is not None:
+                works.append(datacite)
         openalex = self.openalex_work(doi, openalex_id)
         if openalex is not None:
             works.append(openalex)

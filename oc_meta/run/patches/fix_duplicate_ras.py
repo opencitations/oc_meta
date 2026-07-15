@@ -15,13 +15,10 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from itertools import combinations
-from typing import Protocol, TypeVar, cast
+from typing import Protocol, cast
 
 import orjson
-import yaml
 from oc_ocdm.graph import GraphSet
-from oc_ocdm.graph.entities.bibliographic.agent_role import AgentRole
-from oc_ocdm.graph.entities.bibliographic.responsible_agent import ResponsibleAgent
 from oc_ocdm.graph.entities.identifier import Identifier
 from rich_argparse import RichHelpFormatter
 
@@ -40,39 +37,54 @@ from oc_meta.lib.agent_metadata import (
     ApiCache,
     OrcidProfile,
     WorkMetadata,
+    agents_for_role,
     is_valid_orcid,
     normalize_orcid,
 )
 from oc_meta.lib.console import console, create_progress
-from oc_meta.lib.file_manager import collect_files, collect_zip_files, find_rdf_file
+from oc_meta.lib.rdf_patch import (
+    DATACITE_PREFIX,
+    FAMILY_NAME,
+    FOAF_NAME,
+    GIVEN_NAME,
+    HAS_IDENTIFIER,
+    HAS_LITERAL_VALUE,
+    HAS_NEXT,
+    IS_DOCUMENT_CONTEXT_FOR,
+    IS_HELD_BY,
+    PROV_SPECIALIZATION_OF,
+    ROLE_MAP,
+    USES_IDENTIFIER_SCHEME,
+    WITH_ROLE,
+    EntityFileLocator,
+    agent_role as _agent_role,
+    batches as _batches,
+    data_files as _data_files,
+    ensure_parent as _ensure_parent,
+    first as _first,
+    identifier as _identifier,
+    ids as _ids,
+    literals as _literals,
+    load_audit_config,
+    load_available_entities,
+    load_entities as _load_entities,
+    load_progress as _load_progress,
+    provenance_path as _provenance_path,
+    read_json_object as _read_json_object,
+    responsible_agent as _responsible_agent,
+    save_progress as _save_progress,
+    sha256 as _sha256,
+    snapshot_number as _snapshot_number,
+    write_json as _write_json,
+)
 from oc_meta.lib.sparql import execute_sparql
 from oc_meta.run.merge.entities import REINDEX_SENTINEL_FILENAME
-from oc_meta.run.meta.generate_csv import load_json_from_file
 
-HAS_IDENTIFIER = "http://purl.org/spar/datacite/hasIdentifier"
-USES_IDENTIFIER_SCHEME = "http://purl.org/spar/datacite/usesIdentifierScheme"
-HAS_LITERAL_VALUE = (
-    "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue"
-)
-IS_DOCUMENT_CONTEXT_FOR = "http://purl.org/spar/pro/isDocumentContextFor"
-IS_HELD_BY = "http://purl.org/spar/pro/isHeldBy"
-WITH_ROLE = "http://purl.org/spar/pro/withRole"
-HAS_NEXT = "https://w3id.org/oc/ontology/hasNext"
-FOAF_NAME = "http://xmlns.com/foaf/0.1/name"
-GIVEN_NAME = "http://xmlns.com/foaf/0.1/givenName"
-FAMILY_NAME = "http://xmlns.com/foaf/0.1/familyName"
-PROV_SPECIALIZATION_OF = "http://www.w3.org/ns/prov#specializationOf"
 PROV_GENERATED_AT_TIME = "http://www.w3.org/ns/prov#generatedAtTime"
 PROV_WAS_ATTRIBUTED_TO = "http://www.w3.org/ns/prov#wasAttributedTo"
 PROV_HAD_PRIMARY_SOURCE = "http://www.w3.org/ns/prov#hadPrimarySource"
 DCTERMS_DESCRIPTION = "http://purl.org/dc/terms/description"
 HAS_UPDATE_QUERY = "https://w3id.org/oc/ontology/hasUpdateQuery"
-DATACITE_PREFIX = "http://purl.org/spar/datacite/"
-ROLE_MAP = {
-    "http://purl.org/spar/pro/author": "author",
-    "http://purl.org/spar/pro/editor": "editor",
-    "http://purl.org/spar/pro/publisher": "publisher",
-}
 CONFIRMED_NAME_SCORE = 0.9
 AMBIGUOUS_NAME_SCORE = 0.75
 PLAN_SCHEMA_VERSION = 1
@@ -187,78 +199,12 @@ def _handle_signal(signum: int, frame: object) -> None:
     _stop_requested = True
 
 
-def _values(entity: dict[str, object], predicate: str, key: str) -> list[str]:
-    raw = entity[predicate] if predicate in entity else []
-    if isinstance(raw, dict):
-        raw = [raw]
-    if not isinstance(raw, list):
-        return []
-    return [
-        value[key]
-        for value in raw
-        if isinstance(value, dict) and isinstance(value.get(key), str)
-    ]
-
-
-def _ids(entity: dict[str, object], predicate: str) -> list[str]:
-    return _values(entity, predicate, "@id")
-
-
-def _literals(entity: dict[str, object], predicate: str) -> list[str]:
-    return _values(entity, predicate, "@value")
-
-
-def _first(values: list[str]) -> str:
-    return values[0] if values else ""
-
-
 def _entity_name(entity: dict[str, object]) -> PersonName:
     return PersonName(
         name=_first(_literals(entity, FOAF_NAME)),
         given=_first(_literals(entity, GIVEN_NAME)),
         family=_first(_literals(entity, FAMILY_NAME)),
     )
-
-
-def _sha256(path: str) -> str:
-    digest = hashlib.sha256()
-    with open(path, "rb") as stream:
-        while chunk := stream.read(1024 * 1024):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
-def _load_entities(path: str) -> dict[str, dict[str, object]]:
-    entities = {}
-    if path.endswith(".zip"):
-        graphs = load_json_from_file(path)
-    else:
-        with open(path, "rb") as stream:
-            graphs = orjson.loads(stream.read())
-    for graph in graphs:
-        for raw_entity in graph["@graph"]:
-            entity = cast(dict[str, object], raw_entity)
-            uri = entity.get("@id")
-            if isinstance(uri, str):
-                entities[uri] = entity
-    return entities
-
-
-@dataclass(frozen=True, slots=True)
-class EntityFileLocator:
-    rdf_dir: str
-    dir_split: int
-    items_per_file: int
-    zip_output: bool
-
-    def path(self, uri: str) -> str:
-        return find_rdf_file(
-            uri,
-            self.rdf_dir,
-            self.dir_split,
-            self.items_per_file,
-            self.zip_output,
-        )
 
 
 def iter_cluster_batches(
@@ -289,35 +235,16 @@ def iter_cluster_batches(
             yield batch
 
 
-def _load_target_batch(
-    paths: list[tuple[str, frozenset[str]]],
-) -> dict[str, dict[str, object]]:
-    result = {}
-    for path, targets in paths:
-        for uri, entity in _load_entities(path).items():
-            if uri in targets:
-                result[uri] = entity
-    return result
-
-
-Item = TypeVar("Item")
-
-
-def _batches(items: list[Item], size: int) -> list[list[Item]]:
-    return [items[start : start + size] for start in range(0, len(items), size)]
+def _count_duplicate_clusters(path: str) -> int:
+    with open(path, "rb") as stream:
+        next(stream, None)
+        return sum(1 for _ in stream)
 
 
 def load_target_entities(
     uris: set[str], cache: EntityFileLocator, workers: int
 ) -> dict[str, dict[str, object]]:
-    targets_by_path: dict[str, set[str]] = defaultdict(set)
-    for uri in uris:
-        targets_by_path[cache.path(uri)].add(uri)
-    tasks = [(path, frozenset(targets)) for path, targets in targets_by_path.items()]
-    result = {}
-    with ThreadPoolExecutor(max_workers=workers) as executor:
-        for partial in executor.map(_load_target_batch, _batches(tasks, 24)):
-            result.update(partial)
+    result = load_available_entities(uris, cache, workers)
     missing = uris - result.keys()
     if missing:
         examples = sorted(missing)[:10]
@@ -376,8 +303,9 @@ def scan_candidate_clusters(
     risks_by_row = {}
     cluster_count = 0
     agent_count = 0
+    total_clusters = _count_duplicate_clusters(duplicate_path)
     with create_progress() as progress:
-        task = progress.add_task("Checking duplicate clusters", total=None)
+        task = progress.add_task("Checking duplicate clusters", total=total_clusters)
         for cluster_batch in iter_cluster_batches(duplicate_path):
             if _stop_requested:
                 break
@@ -402,17 +330,6 @@ def scan_candidate_clusters(
         cluster_count,
         agent_count,
     )
-
-
-def _provenance_path(data_path: str, zip_output: bool) -> str:
-    stem = os.path.splitext(data_path)[0]
-    extension = "zip" if zip_output else "json"
-    return os.path.join(stem, "prov", f"se.{extension}")
-
-
-def _snapshot_number(uri: str) -> int:
-    value = uri.rsplit("/", 1)[-1]
-    return int(value) if value.isdigit() else 0
 
 
 def _load_provenance_batch(
@@ -489,12 +406,6 @@ def cluster_risks(cluster: Cluster, agents: dict[str, AgentInfo]) -> list[str]:
     if any(not name.display for name in names):
         risks.append("missing_name")
     return risks
-
-
-def _data_files(directory: str, zip_output: bool) -> list[str]:
-    if zip_output:
-        return collect_zip_files(directory, only_data=True)
-    return sorted(collect_files(directory, "*.json", lambda path: "prov" not in path))
 
 
 def _scan_roles_batch(
@@ -595,25 +506,6 @@ def ordered_chain(roles: list[RoleInfo]) -> OrderedChain:
 
 def _agent_metadata_name(agent: AgentMetadata) -> PersonName:
     return PersonName(name=agent["name"], given=agent["given"], family=agent["family"])
-
-
-def _external_role(work: WorkMetadata, role: str) -> list[AgentMetadata]:
-    if role == "author":
-        return work["author"]
-    if role == "editor":
-        return work["editor"]
-    if role == "publisher" and work["publisher"]:
-        return [
-            AgentMetadata(
-                family="",
-                given="",
-                name=work["publisher"],
-                orcid=None,
-                position=0,
-                role="publisher",
-            )
-        ]
-    return []
 
 
 def _alignment_dict(alignment: AlignmentResult) -> dict[int, tuple[int, float]]:
@@ -1014,7 +906,7 @@ def collect_external_evidence(
                         f"{work_identifier_scheme} identifier"
                     )
                 for role_name, chain in chains.items():
-                    external = _external_role(source_work, role_name)
+                    external = agents_for_role(source_work, role_name)
                     if not external:
                         role_assessments.append(
                             {
@@ -1313,53 +1205,6 @@ def classify_identifiers(
                     )
                 )
     return assessments, operations
-
-
-@dataclass(frozen=True, slots=True)
-class AuditConfig:
-    rdf_dir: str
-    dir_split: int
-    items_per_file: int
-    zip_output: bool
-
-
-def load_audit_config(path: str) -> AuditConfig:
-    with open(path, encoding="utf-8") as stream:
-        loaded = yaml.safe_load(stream)
-    if not isinstance(loaded, dict):
-        raise ValueError("Meta configuration must be a YAML mapping")
-    config = cast(dict[str, object], loaded)
-    output_key = "output_rdf_dir" if "output_rdf_dir" in config else "base_output_dir"
-    output_dir = os.path.abspath(cast(str, config[output_key]))
-    return AuditConfig(
-        rdf_dir=os.path.join(output_dir, "rdf"),
-        dir_split=cast(int, config["dir_split_number"]),
-        items_per_file=cast(int, config["items_per_file"]),
-        zip_output=cast(bool, config["zip_output_rdf"]),
-    )
-
-
-def _ensure_parent(path: str) -> None:
-    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
-
-
-def _write_json(path: str, value: object) -> None:
-    _ensure_parent(path)
-    temporary_path = f"{path}.tmp"
-    with open(temporary_path, "wb") as stream:
-        stream.write(
-            orjson.dumps(value, option=orjson.OPT_INDENT_2 | orjson.OPT_SORT_KEYS)
-        )
-        stream.write(b"\n")
-    os.replace(temporary_path, path)
-
-
-def _read_json_object(path: str) -> dict[str, object]:
-    with open(path, "rb") as stream:
-        value = orjson.loads(stream.read())
-    if not isinstance(value, dict):
-        raise ValueError(f"Expected a JSON object in {path}")
-    return cast(dict[str, object], value)
 
 
 def _review_chain_values(operation: dict[str, object]) -> tuple[str, str]:
@@ -1727,27 +1572,6 @@ def _operation_evidence(operation: dict[str, object]) -> list[dict[str, str]]:
     return evidence
 
 
-def _responsible_agent(g_set: GraphSet, uri: str) -> ResponsibleAgent:
-    entity = g_set.get_entity(uri)
-    if not isinstance(entity, ResponsibleAgent):
-        raise ValueError(f"Responsible agent not imported: {uri}")
-    return entity
-
-
-def _identifier(g_set: GraphSet, uri: str) -> Identifier:
-    entity = g_set.get_entity(uri)
-    if not isinstance(entity, Identifier):
-        raise ValueError(f"Identifier not imported: {uri}")
-    return entity
-
-
-def _agent_role(g_set: GraphSet, uri: str) -> AgentRole:
-    entity = g_set.get_entity(uri)
-    if not isinstance(entity, AgentRole):
-        raise ValueError(f"Agent role not imported: {uri}")
-    return entity
-
-
 def _import_entities(editor: MetaEditor, g_set: GraphSet, uris: set[str]) -> None:
     editor.reader.import_entities_from_triplestore(
         g_set=g_set,
@@ -2062,35 +1886,6 @@ def _operation_groups(
         ]
         result.append((_operation_id("group", *operation_ids), group))
     return sorted(result, key=lambda item: item[0])
-
-
-def _load_progress(path: str, plan_sha256: str, review_sha256: str) -> set[str]:
-    if not os.path.exists(path):
-        return set()
-    progress = _read_json_object(path)
-    if progress["plan_sha256"] != plan_sha256:
-        raise ValueError("Progress file belongs to a different correction plan")
-    if progress["review_sha256"] != review_sha256:
-        raise ValueError("Review decisions changed after execution started")
-    completed = progress["completed_groups"]
-    if not isinstance(completed, list) or not all(
-        isinstance(group, str) for group in completed
-    ):
-        raise ValueError("Invalid completed_groups in progress file")
-    return set(cast(list[str], completed))
-
-
-def _save_progress(
-    path: str, plan_sha256: str, review_sha256: str, completed: set[str]
-) -> None:
-    _write_json(
-        path,
-        {
-            "plan_sha256": plan_sha256,
-            "review_sha256": review_sha256,
-            "completed_groups": sorted(completed),
-        },
-    )
 
 
 def _write_reindex_sentinel(path: str, plan_path: str) -> None:

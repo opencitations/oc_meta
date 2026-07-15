@@ -13,6 +13,8 @@ The duplicate RA auditor checks whether clusters produced by `find.duplicates ra
 
 The dry run does not change RDF files or triplestores. It writes a JSON plan and a CSV in which every proposed operation must be reviewed.
 
+If the scan stops with `RDF entities not found` for one or more AR URIs, first run the [dangling agent role fixer](13-fix-dangling-ars.md). Re-index the triplestore, regenerate the duplicate RA CSV, and then start this audit again. The duplicate auditor deliberately does not repair absent roles.
+
 ## Generate a plan
 
 ```bash

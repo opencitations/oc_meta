@@ -337,12 +337,14 @@ def fetch_crossref(doi: str) -> Optional[dict]:
     resp.raise_for_status()
     data = cast(JsonObject, resp.json())
     parsed = parse_crossref_work(data, doi)
-    message = cast(dict[str, object], data["message"])
+    publisher_identifiers = parsed["publisher_identifiers"]
     return {
         "author": _api_agents(parsed["author"]),
         "editor": _api_agents(parsed["editor"]),
         "publisher": parsed["publisher"],
-        "publisher_crossref_id": message["member"] if "member" in message else None,
+        "publisher_crossref_id": (
+            publisher_identifiers[0]["value"] if publisher_identifiers else None
+        ),
         "source": "crossref",
     }
 

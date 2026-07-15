@@ -83,6 +83,7 @@ class AuditClient:
                         "given": "Ada",
                         "name": "",
                         "orcid": OLD_ORCID,
+                        "identifiers": ({"scheme": "orcid", "value": OLD_ORCID},),
                         "position": 0,
                         "role": "author",
                     },
@@ -91,12 +92,14 @@ class AuditClient:
                         "given": "John",
                         "name": "",
                         "orcid": None,
+                        "identifiers": (),
                         "position": 1,
                         "role": "author",
                     },
                 ],
                 "editor": [],
                 "publisher": "",
+                "publisher_identifiers": (),
             }
         ]
 
@@ -146,6 +149,59 @@ def _objects(g_set: GraphSet, uri: str, predicate: str) -> list[str]:
     return sorted(
         value.value for _, _, value in entity.g.triples((entity.res, predicate, None))
     )
+
+
+def test_count_duplicate_clusters(tmp_path) -> None:
+    duplicate_path = tmp_path / "duplicates.csv"
+    duplicate_path.write_bytes(
+        b"surviving_entity,merged_entities\r\n"
+        b"https://example.org/ra/1,https://example.org/ra/2\r\n"
+        b"https://example.org/ra/3,https://example.org/ra/4"
+    )
+
+    assert fixer._count_duplicate_clusters(str(duplicate_path)) == 2
+
+    duplicate_path.write_bytes(b"surviving_entity,merged_entities\r\n")
+
+    assert fixer._count_duplicate_clusters(str(duplicate_path)) == 0
+
+
+def test_scan_candidate_clusters_sets_progress_total(tmp_path, monkeypatch) -> None:
+    duplicate_path = tmp_path / "duplicates.csv"
+    duplicate_path.write_text(
+        "surviving_entity,merged_entities\n"
+        "https://example.org/ra/1,https://example.org/ra/2\n"
+        "https://example.org/ra/3,https://example.org/ra/4\n",
+        encoding="utf-8",
+    )
+    progress_calls = []
+
+    class FakeProgress:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            return None
+
+        def add_task(self, description, total):
+            progress_calls.append((description, total))
+            return 0
+
+        def advance(self, task, advance):
+            raise AssertionError("No batches should be processed")
+
+    monkeypatch.setattr(fixer, "create_progress", FakeProgress)
+    monkeypatch.setattr(fixer, "iter_cluster_batches", lambda path: iter(()))
+
+    result = fixer.scan_candidate_clusters(
+        str(duplicate_path),
+        fixer.EntityFileLocator("rdf", 10000, 1000, False),
+        1,
+        False,
+    )
+
+    assert progress_calls == [("Checking duplicate clusters", 2)]
+    assert result == ([], {}, {}, 0, 0)
 
 
 def test_ordered_chain_classifies_structural_errors() -> None:
@@ -348,6 +404,7 @@ def test_role_check_proposes_existing_cluster_agent() -> None:
             "given": "Ada",
             "name": "",
             "orcid": None,
+            "identifiers": (),
             "position": 0,
             "role": "author",
         }
@@ -388,6 +445,7 @@ def test_role_check_reorders_without_reassigning_holders() -> None:
             "given": "John",
             "name": "",
             "orcid": None,
+            "identifiers": (),
             "position": 0,
             "role": "author",
         },
@@ -396,6 +454,7 @@ def test_role_check_reorders_without_reassigning_holders() -> None:
             "given": "Ada",
             "name": "",
             "orcid": None,
+            "identifiers": (),
             "position": 1,
             "role": "author",
         },

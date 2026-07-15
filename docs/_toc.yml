@@ -23,6 +23,7 @@ parts:
     chapters:
       - file: 08-editing-entities
       - file: 09-hasnext-fixer
+      - file: 13-fix-dangling-ars
       - file: 13-audit-duplicate-ras
   - caption: External data
     numbered: false
