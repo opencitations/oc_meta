@@ -7,11 +7,12 @@ from __future__ import annotations
 import argparse
 import csv
 import hashlib
+import multiprocessing
 import os
 import signal
 from collections import Counter, defaultdict
 from collections.abc import Iterator
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Protocol, cast
@@ -93,6 +94,12 @@ REVIEW_FIELDS: list[str] = [
 ]
 
 _stop_requested = False
+_existing_roles: frozenset[str] = frozenset()
+_target_roles: frozenset[str] = frozenset()
+_identity_targets: frozenset[tuple[str, str]] = frozenset()
+_target_identifier_uris: frozenset[str] = frozenset()
+_fork_context = multiprocessing.get_context("fork")
+_forkserver_context = multiprocessing.get_context("forkserver")
 
 
 @dataclass(frozen=True, slots=True)
@@ -150,6 +157,13 @@ def _object_sha256(value: object) -> str:
     return hashlib.sha256(orjson.dumps(value, option=orjson.OPT_SORT_KEYS)).hexdigest()
 
 
+def _process_pool(workers: int) -> ProcessPoolExecutor:
+    return ProcessPoolExecutor(
+        max_workers=workers,
+        mp_context=_fork_context,
+    )
+
+
 def _scan_entity_uri_batch(paths: list[str]) -> set[str]:
     return {uri for path in paths for uri in _load_entities(path)}
 
@@ -157,26 +171,30 @@ def _scan_entity_uri_batch(paths: list[str]) -> set[str]:
 def scan_entity_uris(files: list[str], workers: int) -> set[str]:
     result = set()
     batches = _batches(files, 24)
-    with create_progress() as progress:
-        task = progress.add_task("Indexing agent roles", total=len(files))
-        with ThreadPoolExecutor(max_workers=workers) as executor:
-            for batch, partial in zip(
-                batches, executor.map(_scan_entity_uri_batch, batches)
-            ):
+    with _process_pool(workers) as executor:
+        partial_results = executor.map(_scan_entity_uri_batch, batches)
+        with create_progress() as progress:
+            task = progress.add_task("Indexing agent roles", total=len(files))
+            for batch, partial in zip(batches, partial_results):
                 result.update(partial)
                 progress.advance(task, len(batch))
     return result
 
 
+def _init_dangling_scan(existing_roles: frozenset[str]) -> None:
+    global _existing_roles
+    _existing_roles = existing_roles
+
+
 def _scan_dangling_work_batch(
-    paths: list[str], existing_roles: frozenset[str]
+    paths: list[str],
 ) -> tuple[dict[str, WorkRecord], dict[str, tuple[str, ...]]]:
     works = {}
     missing_by_work = {}
     for path in paths:
         for uri, entity in _load_entities(path).items():
             role_uris = tuple(_ids(entity, IS_DOCUMENT_CONTEXT_FOR))
-            missing = tuple(sorted(set(role_uris) - existing_roles))
+            missing = tuple(sorted(set(role_uris) - _existing_roles))
             if not missing:
                 continue
             works[uri] = WorkRecord(uri, role_uris, tuple(_ids(entity, HAS_IDENTIFIER)))
@@ -184,14 +202,17 @@ def _scan_dangling_work_batch(
     return works, missing_by_work
 
 
-def _scan_role_context_batch(
-    paths: list[str], target_roles: frozenset[str]
-) -> dict[str, list[str]]:
+def _init_role_context_scan(target_roles: frozenset[str]) -> None:
+    global _target_roles
+    _target_roles = target_roles
+
+
+def _scan_role_context_batch(paths: list[str]) -> dict[str, list[str]]:
     contexts: dict[str, list[str]] = defaultdict(list)
     for path in paths:
         for uri, entity in _load_entities(path).items():
             for role_uri in _ids(entity, IS_DOCUMENT_CONTEXT_FOR):
-                if role_uri in target_roles:
+                if role_uri in _target_roles:
                     contexts[role_uri].append(uri)
     return contexts
 
@@ -210,17 +231,20 @@ def find_dangling_works(
     works = {}
     missing_by_work = {}
     batches = _batches(br_files, 24)
-    with create_progress() as progress:
-        task = progress.add_task(
-            "Finding dangling role references", total=len(br_files)
-        )
-        with ThreadPoolExecutor(max_workers=workers) as executor:
+    with ProcessPoolExecutor(
+        max_workers=workers,
+        mp_context=_fork_context,
+        initializer=_init_dangling_scan,
+        initargs=(existing_roles,),
+    ) as executor:
+        partial_results = executor.map(_scan_dangling_work_batch, batches)
+        with create_progress() as progress:
+            task = progress.add_task(
+                "Finding dangling role references", total=len(br_files)
+            )
             for batch, (partial_works, partial_missing) in zip(
                 batches,
-                executor.map(
-                    lambda paths: _scan_dangling_work_batch(paths, existing_roles),
-                    batches,
-                ),
+                partial_results,
             ):
                 works.update(partial_works)
                 missing_by_work.update(partial_missing)
@@ -236,15 +260,18 @@ def find_dangling_works(
     )
     role_contexts: dict[str, list[str]] = defaultdict(list)
     batches = _batches(br_files, 24)
-    with create_progress() as progress:
-        task = progress.add_task("Checking role contexts", total=len(br_files))
-        with ThreadPoolExecutor(max_workers=workers) as executor:
+    with ProcessPoolExecutor(
+        max_workers=workers,
+        mp_context=_fork_context,
+        initializer=_init_role_context_scan,
+        initargs=(target_roles,),
+    ) as executor:
+        partial_results = executor.map(_scan_role_context_batch, batches)
+        with create_progress() as progress:
+            task = progress.add_task("Checking role contexts", total=len(br_files))
             for batch, partial in zip(
                 batches,
-                executor.map(
-                    lambda paths: _scan_role_context_batch(paths, target_roles),
-                    batches,
-                ),
+                partial_results,
             ):
                 for role_uri, work_uris in partial.items():
                     role_contexts[role_uri].extend(work_uris)
@@ -331,7 +358,10 @@ def load_provenance_statuses(
         targets_by_path[path].add(uri)
     tasks = [(path, frozenset(targets)) for path, targets in targets_by_path.items()]
     statuses = {}
-    with ThreadPoolExecutor(max_workers=workers) as executor:
+    with ProcessPoolExecutor(
+        max_workers=workers,
+        mp_context=_forkserver_context,
+    ) as executor:
         for partial in executor.map(_provenance_status_batch, _batches(tasks, 24)):
             statuses.update(partial)
     return {uri: statuses[uri] if uri in statuses else "no_snapshot" for uri in uris}
@@ -549,8 +579,15 @@ def select_provider_targets(
     return targets, sources
 
 
+def _init_identity_identifier_scan(
+    targets: frozenset[tuple[str, str]],
+) -> None:
+    global _identity_targets
+    _identity_targets = targets
+
+
 def _scan_identity_identifier_batch(
-    paths: list[str], targets: frozenset[tuple[str, str]]
+    paths: list[str],
 ) -> dict[tuple[str, str], list[str]]:
     result: dict[tuple[str, str], list[str]] = defaultdict(list)
     for path in paths:
@@ -559,19 +596,22 @@ def _scan_identity_identifier_batch(
             if record is None:
                 continue
             key = _normalized_identifier(record.scheme, record.value)
-            if key in targets:
+            if key in _identity_targets:
                 result[key].append(uri)
     return result
 
 
-def _scan_identity_agent_batch(
-    paths: list[str], target_identifiers: frozenset[str]
-) -> dict[str, list[str]]:
+def _init_identity_agent_scan(target_identifier_uris: frozenset[str]) -> None:
+    global _target_identifier_uris
+    _target_identifier_uris = target_identifier_uris
+
+
+def _scan_identity_agent_batch(paths: list[str]) -> dict[str, list[str]]:
     result: dict[str, list[str]] = defaultdict(list)
     for path in paths:
         for uri, entity in _load_entities(path).items():
             for identifier_uri in _ids(entity, HAS_IDENTIFIER):
-                if identifier_uri in target_identifiers:
+                if identifier_uri in _target_identifier_uris:
                     result[identifier_uri].append(uri)
     return result
 
@@ -589,13 +629,18 @@ def scan_identity_index(
     )
     identifier_uris: dict[tuple[str, str], list[str]] = defaultdict(list)
     batches = _batches(identifier_files, 24)
-    with create_progress() as progress:
-        task = progress.add_task("Resolving external identifiers", total=len(batches))
-        with ThreadPoolExecutor(max_workers=workers) as executor:
-            for partial in executor.map(
-                lambda paths: _scan_identity_identifier_batch(paths, target_set),
-                batches,
-            ):
+    with ProcessPoolExecutor(
+        max_workers=workers,
+        mp_context=_fork_context,
+        initializer=_init_identity_identifier_scan,
+        initargs=(target_set,),
+    ) as executor:
+        partial_results = executor.map(_scan_identity_identifier_batch, batches)
+        with create_progress() as progress:
+            task = progress.add_task(
+                "Resolving external identifiers", total=len(batches)
+            )
+            for partial in partial_results:
                 for key, uris in partial.items():
                     identifier_uris[key].extend(uris)
                 progress.advance(task)
@@ -606,13 +651,16 @@ def scan_identity_index(
     ra_files = _data_files(os.path.join(config.rdf_dir, "ra"), config.zip_output)
     ras_by_identifier: dict[str, list[str]] = defaultdict(list)
     batches = _batches(ra_files, 24)
-    with create_progress() as progress:
-        task = progress.add_task("Finding identifier holders", total=len(batches))
-        with ThreadPoolExecutor(max_workers=workers) as executor:
-            for partial in executor.map(
-                lambda paths: _scan_identity_agent_batch(paths, all_identifier_uris),
-                batches,
-            ):
+    with ProcessPoolExecutor(
+        max_workers=workers,
+        mp_context=_fork_context,
+        initializer=_init_identity_agent_scan,
+        initargs=(all_identifier_uris,),
+    ) as executor:
+        partial_results = executor.map(_scan_identity_agent_batch, batches)
+        with create_progress() as progress:
+            task = progress.add_task("Finding identifier holders", total=len(batches))
+            for partial in partial_results:
                 for identifier_uri, ra_uris in partial.items():
                     ras_by_identifier[identifier_uri].extend(ra_uris)
                 progress.advance(task)
@@ -1459,10 +1507,13 @@ def _current_role_contexts(
     contexts: dict[str, list[str]] = defaultdict(list)
     br_files = _data_files(os.path.join(config.rdf_dir, "br"), config.zip_output)
     batches = _batches(br_files, 24)
-    with ThreadPoolExecutor(max_workers=workers) as executor:
-        for partial in executor.map(
-            lambda paths: _scan_role_context_batch(paths, role_set), batches
-        ):
+    with ProcessPoolExecutor(
+        max_workers=workers,
+        mp_context=_fork_context,
+        initializer=_init_role_context_scan,
+        initargs=(role_set,),
+    ) as executor:
+        for partial in executor.map(_scan_role_context_batch, batches):
             for role_uri, work_uris in partial.items():
                 contexts[role_uri].extend(work_uris)
     return {role_uri: tuple(sorted(contexts[role_uri])) for role_uri in role_uris}
@@ -1945,7 +1996,7 @@ def main() -> None:  # pragma: no cover
         "--workers",
         type=int,
         default=min(os.cpu_count() or 1, 16),
-        help="Threads used for local RDF scanning",
+        help="Processes used for local RDF scanning",
     )
     parser.add_argument("-r", "--resp-agent", help="Provenance responsible-agent URI")
     parser.add_argument("--progress-file", help="Execution progress JSON path")

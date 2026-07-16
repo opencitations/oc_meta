@@ -24,6 +24,8 @@ uv run python -m oc_meta.run.patches.fix_dangling_ars \
 
 The dry run reads the RDF files below `output_rdf_dir/rdf`. It does not query the triplestore and does not change RDF. API responses and `404` results are retained in the SQLite cache. Use `--refresh-cache` to fetch them again. Pass `--openalex-api-key` or set `OPENALEX_API_KEY` when the execution environment requires an OpenAlex key.
 
+Local RDF scans use Linux worker processes. Set their number with `--workers`; the default is the lower value between the available CPU count and 16.
+
 The local scan has three stages:
 
 1. Index the AR URIs present in the RDF files.

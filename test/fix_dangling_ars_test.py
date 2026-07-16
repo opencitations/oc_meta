@@ -88,8 +88,9 @@ def _work(
     }
 
 
+@pytest.mark.parametrize("workers", [1, 2])
 def test_find_dangling_works_ignores_existing_malformed_local_roles(
-    tmp_path: Path,
+    tmp_path: Path, workers: int
 ) -> None:
     rdf_dir = tmp_path / "rdf"
     br_2 = f"{BASE}br/0602"
@@ -119,7 +120,7 @@ def test_find_dangling_works_ignores_existing_malformed_local_roles(
     )
 
     works, role_entities, missing, contexts = fixer.find_dangling_works(
-        _config(rdf_dir), 1
+        _config(rdf_dir), workers
     )
 
     assert works == {
@@ -128,6 +129,34 @@ def test_find_dangling_works_ignores_existing_malformed_local_roles(
     assert role_entities == {AR_1: role_entities[AR_1]}
     assert missing == {BR: (AR_2,)}
     assert contexts == {AR_1: (BR,), AR_2: (BR,)}
+
+
+@pytest.mark.parametrize("workers", [1, 2])
+def test_scan_identity_index_returns_exact_identifier_holders(
+    tmp_path: Path, workers: int
+) -> None:
+    rdf_dir = tmp_path / "rdf"
+    orcid = "0000-0002-1825-0097"
+    _write_entities(
+        rdf_dir,
+        [
+            {
+                "@id": ID_1,
+                fixer.USES_IDENTIFIER_SCHEME: [
+                    {"@id": "http://purl.org/spar/datacite/orcid"}
+                ],
+                fixer.HAS_LITERAL_VALUE: [{"@value": orcid}],
+            },
+            {
+                "@id": RA_1,
+                fixer.HAS_IDENTIFIER: [{"@id": ID_1}],
+            },
+        ],
+    )
+
+    assert fixer.scan_identity_index(_config(rdf_dir), {("orcid", orcid)}, workers) == {
+        ("orcid", orcid): fixer.IdentityEntry((ID_1,), (RA_1,)),
+    }
 
 
 def test_structural_anomalies_detects_multiple_predecessors() -> None:
@@ -597,8 +626,9 @@ def test_execution_rejects_changed_global_identity_resolution(
         )
 
 
+@pytest.mark.parametrize("workers", [1, 2])
 def test_load_provenance_statuses_distinguishes_active_invalidated_and_missing(
-    tmp_path: Path,
+    tmp_path: Path, workers: int
 ) -> None:
     rdf_dir = tmp_path / "rdf"
     locator = fixer.EntityFileLocator(str(rdf_dir), 10000, 1000, False)
@@ -631,7 +661,7 @@ def test_load_provenance_statuses_distinguishes_active_invalidated_and_missing(
         )
     )
 
-    statuses = fixer.load_provenance_statuses({AR_1, AR_2, AR_3}, locator, 1)
+    statuses = fixer.load_provenance_statuses({AR_1, AR_2, AR_3}, locator, workers)
 
     assert statuses == {
         AR_1: "latest_snapshot_active",

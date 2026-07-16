@@ -5,9 +5,10 @@
 from __future__ import annotations
 
 import hashlib
+import multiprocessing
 import os
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 from typing import TypeVar, cast
 
@@ -18,8 +19,10 @@ from oc_ocdm.graph.entities.bibliographic.agent_role import AgentRole
 from oc_ocdm.graph.entities.bibliographic.responsible_agent import ResponsibleAgent
 from oc_ocdm.graph.entities.identifier import Identifier
 
-from oc_meta.lib.file_manager import collect_files, collect_zip_files, find_rdf_file
+from oc_meta.lib.file_manager import find_rdf_file
 from oc_meta.run.meta.generate_csv import load_json_from_file
+
+_forkserver_context = multiprocessing.get_context("forkserver")
 
 HAS_IDENTIFIER = "http://purl.org/spar/datacite/hasIdentifier"
 USES_IDENTIFIER_SCHEME = "http://purl.org/spar/datacite/usesIdentifierScheme"
@@ -146,9 +149,16 @@ def load_entities(path: str) -> dict[str, dict[str, object]]:
 
 
 def data_files(directory: str, zip_output: bool) -> list[str]:
-    if zip_output:
-        return collect_zip_files(directory, only_data=True)
-    return sorted(collect_files(directory, "*.json", lambda path: "prov" not in path))
+    extension = ".zip" if zip_output else ".json"
+    paths = []
+    for root, _, filenames in os.walk(directory):
+        for filename in filenames:
+            if not filename.endswith(extension):
+                continue
+            path = os.path.join(root, filename)
+            if "prov" not in path:
+                paths.append(path)
+    return sorted(paths)
 
 
 def load_audit_config(path: str) -> AuditConfig:
@@ -188,7 +198,10 @@ def load_available_entities(
         targets_by_path[locator.path(uri)].add(uri)
     tasks = [(path, frozenset(targets)) for path, targets in targets_by_path.items()]
     result = {}
-    with ThreadPoolExecutor(max_workers=workers) as executor:
+    with ProcessPoolExecutor(
+        max_workers=workers,
+        mp_context=_forkserver_context,
+    ) as executor:
         for partial in executor.map(_load_target_batch, batches(tasks, 24)):
             result.update(partial)
     return result

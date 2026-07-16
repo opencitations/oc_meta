@@ -11,6 +11,7 @@ import pytest
 from oc_meta.lib.rdf_patch import (
     AuditConfig,
     EntityFileLocator,
+    data_files,
     load_audit_config,
     load_available_entities,
     load_entities,
@@ -74,13 +75,37 @@ def test_load_entities_from_json_and_zip(tmp_path: Path) -> None:
     assert load_entities(str(zip_path)) == expected
 
 
-def test_load_available_entities_returns_only_present_uris(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    ("zip_output", "extension"), [(False, ".json"), (True, ".zip")]
+)
+def test_data_files_returns_sorted_data_files(
+    tmp_path: Path, zip_output: bool, extension: str
+) -> None:
+    expected = [
+        tmp_path / "ar" / f"1000{extension}",
+        tmp_path / "br" / f"2000{extension}",
+    ]
+    excluded = [
+        tmp_path / "ar" / "1000" / "prov" / f"se{extension}",
+        tmp_path / "br" / "ignored.txt",
+    ]
+    for path in expected + excluded:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.touch()
+
+    assert data_files(str(tmp_path), zip_output) == [str(path) for path in expected]
+
+
+@pytest.mark.parametrize("workers", [1, 2])
+def test_load_available_entities_returns_only_present_uris(
+    tmp_path: Path, workers: int
+) -> None:
     locator = EntityFileLocator(str(tmp_path), 10000, 1000, False)
     data_path = Path(locator.path(RA_1))
     data_path.parent.mkdir(parents=True)
     data_path.write_bytes(orjson.dumps(_rdf_data()))
 
-    assert load_available_entities({RA_1, RA_2}, locator, 1) == {
+    assert load_available_entities({RA_1, RA_2}, locator, workers) == {
         RA_1: {
             "@id": RA_1,
             "http://xmlns.com/foaf/0.1/name": [{"@value": "Ada Rossi"}],
