@@ -30,16 +30,15 @@ The local scan has three stages:
 2. Find BR entities that directly reference an absent AR.
 3. Load the AR, RA, and identifier entities needed only by those BR entities.
 
-The JSON report includes the missing ARs, their provenance status, provider choices, target role lists, planned RA reuse or creation, and the local RDF state used as an execution precondition.
-
 ## Provider and identity rules
 
-Crossref, DataCite, and OpenAlex are queried in that order. Selection happens independently for authors, editors, and publishers: the first nonempty list for each role is used. If at least one provider returns the work but every provider has an empty list for a role, the target list for that role is empty and existing local roles of that type are removed. If no provider returns the work, the BR is blocked with `no_provider_data`.
+Crossref, DataCite, and OpenAlex are queried in that order. Selection happens independently for authors, editors, and publishers. The first nonempty value for each role is used. When no provider supplies agents for a role, the local chain is retained and the review includes a warning.
 
 For each target agent, the fixer applies these rules:
 
 - reuse a global RA only through an exact ORCID, Crossref member ID, or Research Organization Registry (ROR) ID;
 - preserve a RA already used on the same BR when its name has one unambiguous score of at least `0.9` and no supported identifier conflicts with the provider record;
+- align remaining provider targets and local ARs by relative position, preserving the local holder when its name and identifiers are compatible;
 - create an RA when neither match exists, using the provider name and supported identifier when available;
 - never reuse a global RA by name alone;
 - never change the name or identifiers of a reused RA.
@@ -48,11 +47,13 @@ OpenAlex author IDs are not stored as RA identifiers. An ORCID returned by OpenA
 
 The existing AR is preserved when it already represents the selected agent. Other current ARs are reassigned in their deterministic local order, missing positions receive new ARs, surplus ARs are deleted, and `oco:hasNext` is rebuilt in provider order.
 
-An identifier that resolves to more than one RA blocks the BR. The fixer also blocks a BR when its current roles have multiple contexts, missing or multiple holders, an unknown or multiple role type, a fork, multiple predecessors, a cycle, a self-loop, or a link to another role or context. Breaks attributable to the absent AR are rebuilt.
+When an identifier resolves to more than one RA, the fixer retains the holder of the positionally aligned AR only if that holder is one of the candidates and the name is compatible. The resolution is recorded as `ambiguous_identifier_local` together with all candidates. Without a compatible contextual holder, the BR is blocked. This fixer does not choose a survivor or merge RAs.
+
+The fixer also blocks a BR when its current roles have multiple contexts, missing or multiple holders, an unknown or multiple role type, a fork, multiple predecessors, a cycle, a self-loop, or a link to another role or context. Breaks attributable to the absent AR are rebuilt.
 
 ## Review by bibliographic resource
 
-The review CSV contains one row per BR. Set `decision` to one of:
+The review CSV contains one row per BR with exactly `group_id`, `br`, `doi`, `status`, and `decision`. Detailed changes are in the JSON. Set `decision` to one of:
 
 | Value | Effect |
 |---|---|
@@ -72,15 +73,15 @@ uv run python -m oc_meta.run.patches.fix_dangling_ars \
   --resp-agent https://orcid.org/0000-0002-8420-0696
 ```
 
-Execution reads and writes the local RDF files even if the configuration would normally allow uploads. Before saving a BR, it verifies the configuration hash, plan integrity, review row, and current RDF state. A changed precondition stops the run.
+Execution reads and writes the local RDF files even if the configuration would normally allow uploads. Before saving a BR, it verifies the configuration hash, plan integrity, review row, current RDF state, global identifier resolutions, and the contexts of every planned AR. A changed resolution, stale RDF precondition, or AR that has become shared stops the run.
 
 For every old missing AR, execution removes the dangling BR link and uses a new AR for any restored role. Provenance is handled according to the latest local snapshot:
 
 | Existing provenance | Action |
 |---|---|
-| latest snapshot active | Add a deletion snapshot |
-| latest snapshot invalidated | Add no snapshot |
-| no snapshot | Report the absence and add no snapshot |
+| `latest_snapshot_active` | Add a deletion snapshot |
+| `latest_snapshot_invalidated` | Add no snapshot |
+| `no_snapshot` | Report the absence and add no snapshot |
 
 Progress is saved after each BR. Once an attempted group changes RDF, `reindex_required.out` is created beside the plan. Re-index the triplestore from the RDF files and remove the sentinel before another correction or merge run.
 

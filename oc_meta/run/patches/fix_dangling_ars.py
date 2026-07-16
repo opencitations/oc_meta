@@ -79,23 +79,15 @@ from oc_meta.run.merge.entities import REINDEX_SENTINEL_FILENAME
 
 PROV_INVALIDATED_AT_TIME = "http://www.w3.org/ns/prov#invalidatedAtTime"
 XSD_STRING = "http://www.w3.org/2001/XMLSchema#string"
+DCTERMS_TITLE = "http://purl.org/dc/terms/title"
 
 SUPPORTED_AGENT_IDENTIFIERS = frozenset({"orcid", "crossref", "ror"})
 ROLE_NAMES = ("author", "editor", "publisher")
 CONFIRMED_NAME_SCORE = 0.9
-PLAN_SCHEMA_VERSION = 1
 REVIEW_FIELDS: list[str] = [
     "group_id",
     "br",
-    "missing_ars",
-    "provider_sources",
-    "authors",
-    "editors",
-    "publishers",
-    "reused_ars",
-    "created_ars",
-    "reassigned_ars",
-    "deleted_ars",
+    "doi",
     "status",
     "decision",
 ]
@@ -323,7 +315,9 @@ def _provenance_status_batch(
             key=lambda snapshot: _snapshot_number(cast(str, snapshot["@id"])),
         )
         statuses[uri] = (
-            "invalidated" if _literals(latest, PROV_INVALIDATED_AT_TIME) else "active"
+            "latest_snapshot_invalidated"
+            if _literals(latest, PROV_INVALIDATED_AT_TIME)
+            else "latest_snapshot_active"
         )
     return statuses
 
@@ -340,7 +334,7 @@ def load_provenance_statuses(
     with ThreadPoolExecutor(max_workers=workers) as executor:
         for partial in executor.map(_provenance_status_batch, _batches(tasks, 24)):
             statuses.update(partial)
-    return {uri: statuses[uri] if uri in statuses else "missing" for uri in uris}
+    return {uri: statuses[uri] if uri in statuses else "no_snapshot" for uri in uris}
 
 
 def _local_context(
@@ -409,29 +403,53 @@ def _structural_anomalies(
     work: WorkRecord,
     roles: dict[str, RoleRecord],
     contexts: dict[str, tuple[str, ...]],
-) -> list[str]:
-    anomalies = []
+) -> list[dict[str, object]]:
+    anomalies: list[dict[str, object]] = []
     existing = {uri for uri in work.role_uris if uri in roles}
     for role_uri in sorted(existing):
         role = roles[role_uri]
         if len(contexts[role_uri]) != 1:
-            anomalies.append(f"multiple_contexts:{role_uri}")
+            anomalies.append(
+                {
+                    "type": "multiple_contexts",
+                    "ar": role_uri,
+                    "contexts": list(contexts[role_uri]),
+                }
+            )
         if len(role.roles) != 1 or role.roles[0] not in ROLE_MAP:
-            anomalies.append(f"invalid_role:{role_uri}")
+            anomalies.append(
+                {"type": "invalid_role", "ar": role_uri, "roles": list(role.roles)}
+            )
         if len(role.holders) != 1:
-            anomalies.append(f"invalid_holder:{role_uri}")
+            anomalies.append(
+                {
+                    "type": "invalid_holder",
+                    "ar": role_uri,
+                    "holders": list(role.holders),
+                }
+            )
         if len(role.next_uris) > 1:
-            anomalies.append(f"fork:{role_uri}")
+            anomalies.append(
+                {"type": "fork", "ar": role_uri, "next": list(role.next_uris)}
+            )
         if role.uri in role.next_uris:
-            anomalies.append(f"self_loop:{role_uri}")
+            anomalies.append({"type": "self_loop", "ar": role_uri})
         for next_uri in role.next_uris:
             if next_uri not in existing:
                 if next_uri not in work.role_uris:
-                    anomalies.append(f"cross_context_link:{role_uri}")
+                    anomalies.append(
+                        {
+                            "type": "cross_context_link",
+                            "ar": role_uri,
+                            "next": next_uri,
+                        }
+                    )
                 continue
             next_role = roles[next_uri]
             if role.role != next_role.role:
-                anomalies.append(f"cross_role_link:{role_uri}")
+                anomalies.append(
+                    {"type": "cross_role_link", "ar": role_uri, "next": next_uri}
+                )
     predecessor_counts = Counter(
         next_uri
         for role_uri in existing
@@ -439,8 +457,12 @@ def _structural_anomalies(
         if next_uri in existing
     )
     anomalies.extend(
-        f"multiple_predecessors:{role_uri}"
-        for role_uri, count in predecessor_counts.items()
+        {
+            "type": "multiple_predecessors",
+            "ar": role_uri,
+            "predecessor_count": count,
+        }
+        for role_uri, count in sorted(predecessor_counts.items())
         if count > 1
     )
     for role_name in ROLE_NAMES:
@@ -455,9 +477,9 @@ def _structural_anomalies(
                 next_uris = role_group[current].next_uris
                 current = next_uris[0] if next_uris else ""
             if current in seen:
-                anomalies.append(f"cycle:{role_name}")
+                anomalies.append({"type": "cycle", "role": role_name})
                 break
-    return sorted(set(anomalies))
+    return anomalies
 
 
 def _ordered_roles(roles: list[RoleRecord]) -> list[RoleRecord]:
@@ -505,13 +527,18 @@ def _supported_agent_identifiers(
 
 def select_provider_targets(
     works: list[WorkMetadata],
-) -> tuple[dict[str, list[AgentMetadata]], dict[str, str]]:
+) -> tuple[dict[str, list[AgentMetadata]], dict[str, str | None]]:
+    provider_order = {"crossref": 0, "datacite": 1, "openalex": 2}
+    ordered_works = sorted(
+        enumerate(works),
+        key=lambda item: (provider_order[item[1]["source"]], item[0]),
+    )
     targets = {}
-    sources = {}
+    sources: dict[str, str | None] = {}
     for role_name in ROLE_NAMES:
         selected: list[AgentMetadata] = []
-        source = ""
-        for work in works:
+        source = None
+        for _, work in ordered_works:
             candidates = agents_for_role(work, role_name)
             if candidates:
                 selected = candidates
@@ -642,32 +669,90 @@ def _has_conflicting_identifier(local: AgentRecord, external: AgentMetadata) -> 
 def _identity_resolution(
     agent: AgentMetadata,
     identity_index: dict[tuple[str, str], IdentityEntry],
-) -> tuple[str, list[dict[str, str]], str]:
+) -> tuple[
+    str | None,
+    list[dict[str, object]],
+    tuple[str, ...],
+    dict[str, object] | None,
+]:
     identifiers = _supported_agent_identifiers(agent)
+    evidence = [
+        {
+            "scheme": scheme,
+            "value": value,
+            "identifier_uris": list(identity_index[(scheme, value)].identifier_uris),
+            "ra_uris": list(identity_index[(scheme, value)].ra_uris),
+        }
+        for scheme, value in identifiers
+    ]
     ra_uris = {
         ra_uri
         for identifier in identifiers
         for ra_uri in identity_index[identifier].ra_uris
     }
     if len(ra_uris) > 1:
-        return "", [], "ambiguous_identifier"
+        return None, evidence, tuple(sorted(ra_uris)), None
     if ra_uris:
-        return next(iter(ra_uris)), [], ""
-    orphan_identifiers = []
+        return next(iter(ra_uris)), evidence, (), None
     for scheme, value in identifiers:
         entry = identity_index[(scheme, value)]
         if len(entry.identifier_uris) > 1:
-            return "", [], "ambiguous_identifier"
-        orphan_identifiers.append(
+            return (
+                None,
+                evidence,
+                (),
+                {
+                    "type": "ambiguous_identifier",
+                    "role": agent["role"],
+                    "position": agent["position"],
+                    "identifier_resolutions": evidence,
+                },
+            )
+    return None, evidence, (), None
+
+
+def _agent_record_plan(agent: AgentRecord) -> dict[str, object]:
+    return {
+        "family": agent.name.family,
+        "given": agent.name.given,
+        "name": agent.name.name,
+        "identifiers": [
+            {"scheme": scheme, "value": value}
+            for scheme, value in (
+                _normalized_identifier(identifier.scheme, identifier.value)
+                for identifier in agent.identifiers
+            )
+            if scheme in SUPPORTED_AGENT_IDENTIFIERS
+        ],
+    }
+
+
+def _preserve_role(
+    role_name: str,
+    current_roles: list[RoleRecord],
+    agents: dict[str, AgentRecord],
+) -> dict[str, object]:
+    ordered = _ordered_roles(current_roles)
+    return {
+        "role": role_name,
+        "source": None,
+        "targets": [
             {
-                "scheme": scheme,
-                "value": value,
-                "identifier_uri": (
-                    entry.identifier_uris[0] if entry.identifier_uris else ""
-                ),
+                "position": position,
+                "agent": _agent_record_plan(agents[role.holders[0]]),
+                "source": None,
+                "ar": role.uri,
+                "old_ra": role.holders[0],
+                "ra": role.holders[0],
+                "ra_action": "reuse",
+                "resolution": "local",
+                "identifier_resolutions": [],
+                "old_next": role.next_uris[0] if role.next_uris else None,
             }
-        )
-    return "", orphan_identifiers, ""
+            for position, role in enumerate(ordered)
+        ],
+        "delete_ars": [],
+    }
 
 
 def _reconcile_role(
@@ -677,19 +762,22 @@ def _reconcile_role(
     agents: dict[str, AgentRecord],
     identity_index: dict[tuple[str, str], IdentityEntry],
     source: str,
-) -> tuple[dict[str, object], str]:
+) -> tuple[dict[str, object], dict[str, object] | None]:
     ordered = _ordered_roles(current_roles)
     available = set(range(len(ordered)))
-    targets = []
+    targets: list[dict[str, object]] = []
+    ambiguous_candidates_by_position: dict[int, tuple[str, ...]] = {}
     for position, external in enumerate(external_agents):
-        exact_ra, orphan_identifiers, error = _identity_resolution(
-            external, identity_index
+        exact_ra, identifier_resolutions, ambiguous_candidates, blocker = (
+            _identity_resolution(external, identity_index)
         )
-        if error:
-            return {}, error
-        resolution = "identifier" if exact_ra else "new"
+        if blocker is not None:
+            return {}, blocker
+        if ambiguous_candidates:
+            ambiguous_candidates_by_position[position] = ambiguous_candidates
+        resolution = "identifier" if exact_ra is not None else "new"
         selected_index: int | None = None
-        if exact_ra:
+        if exact_ra is not None:
             matching_roles = [
                 index
                 for index in sorted(available)
@@ -697,11 +785,12 @@ def _reconcile_role(
             ]
             if matching_roles:
                 selected_index = matching_roles[0]
-        else:
+        elif not ambiguous_candidates:
             scored = sorted(
                 (
                     name_score(
-                        agents[ordered[index].holders[0]].name, _agent_name(external)
+                        agents[ordered[index].holders[0]].name,
+                        _agent_name(external),
                     ),
                     index,
                 )
@@ -716,7 +805,6 @@ def _reconcile_role(
                 if len(top) == 1:
                     selected_index = top[0]
                     exact_ra = ordered[selected_index].holders[0]
-                    orphan_identifiers = []
                     resolution = "name"
         selected_role = ordered[selected_index] if selected_index is not None else None
         if selected_index is not None:
@@ -726,39 +814,102 @@ def _reconcile_role(
                 "position": position,
                 "agent": _agent_plan(external),
                 "source": source,
-                "ar": selected_role.uri if selected_role is not None else "",
+                "ar": selected_role.uri if selected_role is not None else None,
                 "old_ra": (
-                    selected_role.holders[0] if selected_role is not None else ""
+                    selected_role.holders[0] if selected_role is not None else None
                 ),
                 "ra": exact_ra,
-                "create_ra": not bool(exact_ra),
+                "ra_action": "reuse" if exact_ra is not None else "create",
                 "resolution": resolution,
-                "identifier_resolutions": orphan_identifiers,
+                "identifier_resolutions": identifier_resolutions,
+                "old_next": (
+                    selected_role.next_uris[0]
+                    if selected_role is not None and selected_role.next_uris
+                    else None
+                ),
             }
         )
 
-    unassigned_targets = [target for target in targets if not target["ar"]]
+    unassigned_targets = [target for target in targets if target["ar"] is None]
     remaining_roles = [ordered[index] for index in sorted(available)]
     for target, role in zip(unassigned_targets, remaining_roles):
         target["ar"] = role.uri
         target["old_ra"] = role.holders[0]
+        target["old_next"] = role.next_uris[0] if role.next_uris else None
         available.remove(ordered.index(role))
+
+    for target in targets:
+        if target["resolution"] != "new" or target["ar"] is None:
+            continue
+        position = cast(int, target["position"])
+        external = external_agents[position]
+        holder = cast(str, target["old_ra"])
+        local = agents[holder]
+        compatible = name_score(
+            local.name, _agent_name(external)
+        ) >= CONFIRMED_NAME_SCORE and not _has_conflicting_identifier(local, external)
+        candidates = (
+            ambiguous_candidates_by_position[position]
+            if position in ambiguous_candidates_by_position
+            else ()
+        )
+        if candidates:
+            if compatible and holder in candidates:
+                target["ra"] = holder
+                target["ra_action"] = "reuse"
+                target["resolution"] = "ambiguous_identifier_local"
+                continue
+            return (
+                {},
+                {
+                    "type": "ambiguous_identifier",
+                    "role": role_name,
+                    "position": position,
+                    "aligned_ar": target["ar"],
+                    "aligned_holder": holder,
+                    "candidate_ras": list(candidates),
+                    "identifier_resolutions": target["identifier_resolutions"],
+                },
+            )
+        if compatible:
+            target["ra"] = holder
+            target["ra_action"] = "reuse"
+            target["resolution"] = "position_name"
+
+    for position, candidates in ambiguous_candidates_by_position.items():
+        target = targets[position]
+        if target["resolution"] == "ambiguous_identifier_local":
+            continue
+        return (
+            {},
+            {
+                "type": "ambiguous_identifier",
+                "role": role_name,
+                "position": position,
+                "aligned_ar": target["ar"],
+                "aligned_holder": target["old_ra"],
+                "candidate_ras": list(candidates),
+                "identifier_resolutions": target["identifier_resolutions"],
+            },
+        )
+
     deleted = [ordered[index].uri for index in sorted(available)]
     return {
         "role": role_name,
         "source": source,
         "targets": targets,
         "delete_ars": deleted,
-    }, ""
+    }, None
 
 
-def _local_state(
+def _preconditions(
     work: WorkRecord,
     roles: dict[str, RoleRecord],
     agents: dict[str, AgentRecord],
     raw_entities: dict[str, dict[str, object]],
     missing: tuple[str, ...],
     provenance: dict[str, str],
+    contexts: dict[str, tuple[str, ...]],
 ) -> dict[str, object]:
     entity_uris = {work.uri}
     for role_uri in work.role_uris:
@@ -777,37 +928,119 @@ def _local_state(
         "entities": {
             uri: raw_entities[uri] for uri in sorted(entity_uris) if uri in raw_entities
         },
-        "missing_ars": list(missing),
-        "missing_ar_provenance": {uri: provenance[uri] for uri in missing},
+        "dangling_ar_references": list(missing),
+        "provenance": {uri: provenance[uri] for uri in missing},
+        "contexts": {uri: list(contexts[uri]) for uri in sorted(work.role_uris)},
     }
 
 
-def _repair_counts(repair: dict[str, object]) -> dict[str, int]:
-    counts = Counter()
-    role_plans = repair["role_plans"]
-    if not isinstance(role_plans, list):
-        raise ValueError("role_plans must be a list")
-    for raw_role_plan in role_plans:
-        role_plan = cast(dict[str, object], raw_role_plan)
+def _dangling_reference_review(
+    missing: tuple[str, ...], provenance: dict[str, str]
+) -> list[dict[str, object]]:
+    references = []
+    for uri in missing:
+        actions = ["remove_from_br"]
+        if provenance[uri] == "latest_snapshot_active":
+            actions.append("invalidate_provenance")
+        references.append(
+            {
+                "ar": uri,
+                "provenance": provenance[uri],
+                "actions": actions,
+            }
+        )
+    return references
+
+
+def _next_target(
+    target: dict[str, object] | None, role_name: str
+) -> dict[str, object] | None:
+    if target is None:
+        return None
+    if target["ar"] is not None:
+        return {"uri": target["ar"]}
+    return {
+        "uri": None,
+        "role": role_name,
+        "position": target["position"],
+        "minted_at_execution": True,
+    }
+
+
+def _review_changes(
+    dangling_references: list[dict[str, object]],
+    role_plans: list[dict[str, object]],
+) -> list[dict[str, object]]:
+    changes: list[dict[str, object]] = [
+        {
+            "action": "remove_dangling_reference",
+            "ar": reference["ar"],
+        }
+        for reference in dangling_references
+    ]
+    for role_plan in role_plans:
+        role_name = cast(str, role_plan["role"])
         targets = cast(list[dict[str, object]], role_plan["targets"])
         for target in targets:
-            if not target["ar"]:
-                counts["created_ars"] += 1
-            elif target["create_ra"] or target["old_ra"] != target["ra"]:
-                counts["reassigned_ars"] += 1
-            else:
-                counts["reused_ars"] += 1
-        counts["deleted_ars"] += len(cast(list[str], role_plan["delete_ars"]))
-    return {
-        "reused_ars": counts["reused_ars"],
-        "created_ars": counts["created_ars"],
-        "reassigned_ars": counts["reassigned_ars"],
-        "deleted_ars": counts["deleted_ars"],
-    }
+            if target["ra_action"] == "create":
+                changes.append(
+                    {
+                        "action": "create_responsible_agent",
+                        "role": role_name,
+                        "position": target["position"],
+                        "agent": target["agent"],
+                        "planned_uri": None,
+                        "minted_at_execution": True,
+                    }
+                )
+            if target["ar"] is None:
+                changes.append(
+                    {
+                        "action": "create_agent_role",
+                        "role": role_name,
+                        "position": target["position"],
+                        "planned_uri": None,
+                        "minted_at_execution": True,
+                    }
+                )
+            elif target["ra_action"] == "create" or target["old_ra"] != target["ra"]:
+                changes.append(
+                    {
+                        "action": "reassign_agent_role",
+                        "ar": target["ar"],
+                        "old_ra": target["old_ra"],
+                        "new_ra": target["ra"],
+                        "role": role_name,
+                        "position": target["position"],
+                    }
+                )
+        changes.extend(
+            {"action": "delete_agent_role", "ar": ar_uri, "role": role_name}
+            for ar_uri in cast(list[str], role_plan["delete_ars"])
+        )
+        for position, target in enumerate(targets):
+            if target["ar"] is None:
+                continue
+            next_target = targets[position + 1] if position + 1 < len(targets) else None
+            desired = _next_target(next_target, role_name)
+            desired_uri = desired["uri"] if desired is not None else None
+            if target["old_next"] == desired_uri and not (
+                desired is not None and desired_uri is None
+            ):
+                continue
+            change: dict[str, object] = {
+                "action": "update_next_link",
+                "ar": target["ar"],
+                "old_next": target["old_next"],
+                "new_next": desired_uri,
+            }
+            if desired is not None and desired_uri is None:
+                change["new_target"] = desired
+            changes.append(change)
+    return changes
 
 
 def _finalize_repair(repair: dict[str, object]) -> dict[str, object]:
-    repair["counts"] = _repair_counts(repair)
     repair["group_id"] = _object_sha256(repair)[:20]
     return repair
 
@@ -818,16 +1051,22 @@ def _build_repair(
     agents: dict[str, AgentRecord],
     identity_index: dict[tuple[str, str], IdentityEntry],
 ) -> dict[str, object]:
-    status = cast(str, draft["status"])
+    review = cast(dict[str, object], draft["review"])
+    execution = cast(dict[str, object], draft["execution"])
+    problem = cast(dict[str, object], review["problem"])
+    dangling_references = cast(
+        list[dict[str, object]], problem["dangling_ar_references"]
+    )
+    status = cast(str, review["status"])
     if status != "ready":
-        draft["role_plans"] = []
-        draft.pop("work_record")
-        if "targets" in draft:
-            draft.pop("targets")
+        execution["role_plans"] = []
+        review["changes"] = _review_changes(dangling_references, [])
+        draft.pop("_work_record")
+        draft.pop("_targets")
         return _finalize_repair(draft)
-    work = cast(WorkRecord, draft["work_record"])
-    targets = cast(dict[str, list[AgentMetadata]], draft.pop("targets"))
-    sources = cast(dict[str, str], draft["role_sources"])
+    work = cast(WorkRecord, draft["_work_record"])
+    targets = cast(dict[str, list[AgentMetadata]], draft.pop("_targets"))
+    sources = cast(dict[str, str | None], review["selected_provider_by_role"])
     role_plans = []
     for role_name in ROLE_NAMES:
         current = [
@@ -835,23 +1074,30 @@ def _build_repair(
             for uri in work.role_uris
             if uri in roles and roles[uri].role == role_name
         ]
-        role_plan, error = _reconcile_role(
-            role_name,
-            current,
-            targets[role_name],
-            agents,
-            identity_index,
-            sources[role_name],
-        )
-        if error:
-            draft["status"] = "blocked"
-            draft["reason"] = error
-            draft["role_plans"] = []
-            draft.pop("work_record")
+        source = sources[role_name]
+        if source is None:
+            role_plan = _preserve_role(role_name, current, agents)
+            blocker = None
+        else:
+            role_plan, blocker = _reconcile_role(
+                role_name,
+                current,
+                targets[role_name],
+                agents,
+                identity_index,
+                source,
+            )
+        if blocker is not None:
+            review["status"] = "blocked"
+            cast(list[dict[str, object]], review["blockers"]).append(blocker)
+            execution["role_plans"] = []
+            review["changes"] = _review_changes(dangling_references, [])
+            draft.pop("_work_record")
             return _finalize_repair(draft)
         role_plans.append(role_plan)
-    draft["role_plans"] = role_plans
-    draft.pop("work_record")
+    execution["role_plans"] = role_plans
+    review["changes"] = _review_changes(dangling_references, role_plans)
+    draft.pop("_work_record")
     return _finalize_repair(draft)
 
 
@@ -901,63 +1147,82 @@ def build_repair_plan(
             if _stop_requested:
                 break
             work = works[br_uri]
-            anomalies = _structural_anomalies(work, roles, contexts)
+            blockers = _structural_anomalies(work, roles, contexts)
             for missing_uri in missing_by_work[br_uri]:
                 if len(contexts[missing_uri]) != 1:
-                    anomalies.append(f"multiple_contexts:{missing_uri}")
+                    blockers.append(
+                        {
+                            "type": "multiple_contexts",
+                            "ar": missing_uri,
+                            "contexts": list(contexts[missing_uri]),
+                        }
+                    )
             for role_uri in work.role_uris:
                 if role_uri in roles and any(
                     holder not in agents for holder in roles[role_uri].holders
                 ):
-                    anomalies.append(f"missing_agent:{role_uri}")
+                    blockers.append({"type": "missing_agent", "ar": role_uri})
             work_identifiers = _work_identifiers(work, identifiers)
             doi = work_identifiers["doi"] if "doi" in work_identifiers else ""
             openalex_id = (
                 work_identifiers["openalex"] if "openalex" in work_identifiers else ""
             )
             provider_works = (
-                [] if anomalies else provider.all_work_sources(doi, openalex_id)
+                [] if blockers else provider.all_work_sources(doi, openalex_id)
             )
             targets, role_sources = select_provider_targets(provider_works)
-            status = "ready"
-            reason = ""
-            if anomalies:
-                status = "blocked"
-                reason = "structural_anomaly"
-            elif not provider_works:
-                status = "blocked"
-                reason = "no_provider_data"
-            if status == "ready":
+            warnings = [
+                {
+                    "type": "role_not_provided",
+                    "role": role_name,
+                    "action": "preserve_local_chain",
+                }
+                for role_name in ROLE_NAMES
+                if not blockers and role_sources[role_name] is None
+            ]
+            status = "blocked" if blockers else "ready"
+            if not blockers:
                 identity_targets.update(_target_identifier_keys(targets))
-            target_counts = {
-                role_name: len(targets[role_name]) for role_name in ROLE_NAMES
-            }
+            work_entity = raw_entities[br_uri]
+            titles = _literals(work_entity, DCTERMS_TITLE)
+            title = titles[0] if titles else None
+            dangling_references = _dangling_reference_review(
+                missing_by_work[br_uri], provenance
+            )
             drafts.append(
                 {
-                    "br": br_uri,
-                    "missing_ars": list(missing_by_work[br_uri]),
-                    "missing_ar_provenance": {
-                        uri: provenance[uri] for uri in missing_by_work[br_uri]
+                    "work": {
+                        "br": br_uri,
+                        "title": title,
+                        "identifiers": work_identifiers,
                     },
-                    "provider_sources": [
-                        work_metadata["source"] for work_metadata in provider_works
-                    ],
-                    "role_sources": role_sources,
-                    "work_identifiers": work_identifiers,
-                    "target_counts": target_counts,
-                    "anomalies": sorted(set(anomalies)),
-                    "status": status,
-                    "reason": reason,
-                    "local_state": _local_state(
-                        work,
-                        roles,
-                        agents,
-                        raw_entities,
-                        missing_by_work[br_uri],
-                        provenance,
-                    ),
-                    "work_record": work,
-                    "targets": targets,
+                    "review": {
+                        "status": status,
+                        "problem": {
+                            "dangling_ar_references": dangling_references,
+                        },
+                        "provider_records_found": [
+                            work_metadata["source"] for work_metadata in provider_works
+                        ],
+                        "selected_provider_by_role": role_sources,
+                        "changes": [],
+                        "warnings": warnings,
+                        "blockers": blockers,
+                    },
+                    "execution": {
+                        "preconditions": _preconditions(
+                            work,
+                            roles,
+                            agents,
+                            raw_entities,
+                            missing_by_work[br_uri],
+                            provenance,
+                            contexts,
+                        ),
+                        "role_plans": [],
+                    },
+                    "_work_record": work,
+                    "_targets": targets,
                 }
             )
             progress.advance(task)
@@ -966,25 +1231,14 @@ def build_repair_plan(
 
 
 def _review_row(repair: dict[str, object]) -> dict[str, str | int]:
-    counts = cast(dict[str, int], repair["counts"])
-    target_counts = cast(dict[str, int], repair["target_counts"])
-    role_sources = cast(dict[str, str], repair["role_sources"])
+    work = cast(dict[str, object], repair["work"])
+    identifiers = cast(dict[str, str], work["identifiers"])
+    review = cast(dict[str, object], repair["review"])
     return {
         "group_id": cast(str, repair["group_id"]),
-        "br": cast(str, repair["br"]),
-        "missing_ars": "; ".join(cast(list[str], repair["missing_ars"])),
-        "provider_sources": "; ".join(
-            f"{role_name}={role_sources[role_name] or '[empty]'}"
-            for role_name in ROLE_NAMES
-        ),
-        "authors": target_counts["author"],
-        "editors": target_counts["editor"],
-        "publishers": target_counts["publisher"],
-        "reused_ars": counts["reused_ars"],
-        "created_ars": counts["created_ars"],
-        "reassigned_ars": counts["reassigned_ars"],
-        "deleted_ars": counts["deleted_ars"],
-        "status": cast(str, repair["status"]),
+        "br": cast(str, work["br"]),
+        "doi": identifiers["doi"] if "doi" in identifiers else "",
+        "status": cast(str, review["status"]),
         "decision": "",
     }
 
@@ -1036,7 +1290,8 @@ def read_review_decisions(
             decision = row["decision"].strip().casefold()
             if decision not in {"", "approve", "reject"}:
                 raise ValueError(f"Invalid decision for {group_id}: {row['decision']}")
-            if decision == "approve" and repairs_by_id[group_id]["status"] != "ready":
+            repair_review = cast(dict[str, object], repairs_by_id[group_id]["review"])
+            if decision == "approve" and repair_review["status"] != "ready":
                 raise ValueError(f"Blocked repair group cannot be approved: {group_id}")
             decisions[group_id] = decision
     missing = repairs_by_id.keys() - decisions.keys()
@@ -1096,12 +1351,19 @@ def analyze_dangling_ars(
     finally:
         provider.close()
         api_cache.close()
-    status_counts = Counter(cast(str, repair["status"]) for repair in repairs)
-    reason_counts = Counter(
-        cast(str, repair["reason"]) for repair in repairs if cast(str, repair["reason"])
+    status_counts = Counter(
+        cast(str, cast(dict[str, object], repair["review"])["status"])
+        for repair in repairs
+    )
+    blocker_counts = Counter(
+        cast(str, blocker["type"])
+        for repair in repairs
+        for blocker in cast(
+            list[dict[str, object]],
+            cast(dict[str, object], repair["review"])["blockers"],
+        )
     )
     report: dict[str, object] = {
-        "schema_version": PLAN_SCHEMA_VERSION,
         "complete": not _stop_requested,
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "config": os.path.abspath(config_path),
@@ -1111,11 +1373,11 @@ def analyze_dangling_ars(
         "review_file": os.path.abspath(review_path),
         "summary": {
             "affected_brs": len(works),
-            "missing_ars": len(
+            "dangling_ar_references": len(
                 {uri for missing in missing_by_work.values() for uri in missing}
             ),
             "status_counts": dict(sorted(status_counts.items())),
-            "reason_counts": dict(sorted(reason_counts.items())),
+            "blocker_counts": dict(sorted(blocker_counts.items())),
         },
         "repairs": repairs,
     }
@@ -1157,7 +1419,10 @@ def _plan_agent_identifiers(agent: dict[str, object]) -> list[tuple[str, str]]:
 
 
 def _repair_targets(repair: dict[str, object]) -> Iterator[dict[str, object]]:
-    role_plans = repair["role_plans"]
+    execution = repair["execution"]
+    if not isinstance(execution, dict):
+        raise ValueError("Repair execution must be an object")
+    role_plans = execution["role_plans"]
     if not isinstance(role_plans, list):
         raise ValueError("Repair role_plans must be a list")
     for raw_role_plan in role_plans:
@@ -1180,14 +1445,39 @@ def _repair_identifier_keys(
         key
         for repair in repairs
         for target in _repair_targets(repair)
+        if target["resolution"] != "local"
         for key in _plan_agent_identifiers(cast(dict[str, object], target["agent"]))
     }
 
 
-def _capture_local_state(
-    repair: dict[str, object], config: AuditConfig, workers: int
+def _current_role_contexts(
+    config: AuditConfig, role_uris: tuple[str, ...], workers: int
+) -> dict[str, tuple[str, ...]]:
+    if not role_uris:
+        return {}
+    role_set = frozenset(role_uris)
+    contexts: dict[str, list[str]] = defaultdict(list)
+    br_files = _data_files(os.path.join(config.rdf_dir, "br"), config.zip_output)
+    batches = _batches(br_files, 24)
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        for partial in executor.map(
+            lambda paths: _scan_role_context_batch(paths, role_set), batches
+        ):
+            for role_uri, work_uris in partial.items():
+                contexts[role_uri].extend(work_uris)
+    return {role_uri: tuple(sorted(contexts[role_uri])) for role_uri in role_uris}
+
+
+def _capture_preconditions(
+    repair: dict[str, object],
+    config: AuditConfig,
+    workers: int,
+    role_contexts: dict[str, tuple[str, ...]] | None = None,
 ) -> dict[str, object]:
-    br_uri = repair["br"]
+    work_summary = repair["work"]
+    if not isinstance(work_summary, dict):
+        raise ValueError("Repair work must be an object")
+    br_uri = work_summary["br"]
     if not isinstance(br_uri, str):
         raise ValueError("Repair BR must be a string")
     locator = EntityFileLocator(
@@ -1208,7 +1498,17 @@ def _capture_local_state(
     roles, agents, _, raw_entities, provenance = _local_context(
         {br_uri: work}, role_entities, missing_by_work, locator, workers
     )
-    return _local_state(work, roles, agents, raw_entities, missing, provenance)
+    contexts = (
+        _current_role_contexts(config, work.role_uris, workers)
+        if role_contexts is None
+        else {
+            uri: role_contexts[uri] if uri in role_contexts else ()
+            for uri in work.role_uris
+        }
+    )
+    return _preconditions(
+        work, roles, agents, raw_entities, missing, provenance, contexts
+    )
 
 
 def _validate_identity_index(
@@ -1216,30 +1516,46 @@ def _validate_identity_index(
     identity_index: dict[tuple[str, str], IdentityEntry],
 ) -> None:
     for target in _repair_targets(repair):
+        if target["resolution"] == "local":
+            continue
         agent = cast(dict[str, object], target["agent"])
         keys = _plan_agent_identifiers(agent)
-        ra_uris = {ra_uri for key in keys for ra_uri in identity_index[key].ra_uris}
-        if len(ra_uris) > 1:
-            raise RuntimeError(
-                f"Identifier now resolves to multiple RAs in {repair['br']}: "
-                f"{sorted(ra_uris)}"
+        raw_resolutions = target["identifier_resolutions"]
+        if not isinstance(raw_resolutions, list):
+            raise ValueError("Identifier resolutions must be a list")
+        planned_entries = {}
+        for raw_resolution in raw_resolutions:
+            if not isinstance(raw_resolution, dict):
+                raise ValueError("Identifier resolution must be an object")
+            resolution = cast(dict[str, object], raw_resolution)
+            scheme = resolution["scheme"]
+            value = resolution["value"]
+            identifier_uris = resolution["identifier_uris"]
+            ra_uris = resolution["ra_uris"]
+            if (
+                not isinstance(scheme, str)
+                or not isinstance(value, str)
+                or not isinstance(identifier_uris, list)
+                or not all(isinstance(uri, str) for uri in identifier_uris)
+                or not isinstance(ra_uris, list)
+                or not all(isinstance(uri, str) for uri in ra_uris)
+            ):
+                raise ValueError("Invalid identifier resolution")
+            planned_entries[_normalized_identifier(scheme, value)] = IdentityEntry(
+                tuple(cast(list[str], identifier_uris)),
+                tuple(cast(list[str], ra_uris)),
             )
-        for key in keys:
-            entry = identity_index[key]
-            if not entry.ra_uris and len(entry.identifier_uris) > 1:
-                raise RuntimeError(
-                    f"Identifier now has multiple orphan entities in {repair['br']}: "
-                    f"{key}"
-                )
-        resolution = target["resolution"]
-        if resolution == "identifier" and ra_uris != {target["ra"]}:
+        current_entries = {key: identity_index[key] for key in keys}
+        if current_entries != planned_entries:
+            work = cast(dict[str, object], repair["work"])
             raise RuntimeError(
-                f"Stale plan: identifier resolution changed for {repair['br']}"
+                f"Stale plan: identifier resolution changed for {work['br']}"
             )
 
 
 def _source_url(repair: dict[str, object], source: str) -> str | None:
-    identifiers = cast(dict[str, str], repair["work_identifiers"])
+    work = cast(dict[str, object], repair["work"])
+    identifiers = cast(dict[str, str], work["identifiers"])
     doi = identifiers["doi"] if "doi" in identifiers else ""
     openalex_id = identifiers["openalex"] if "openalex" in identifiers else ""
     if source == "crossref" and doi:
@@ -1325,17 +1641,19 @@ def _resolve_target_agent(
     identity_index: dict[tuple[str, str], IdentityEntry],
 ) -> ResponsibleAgent:
     resolution = target["resolution"]
+    ra_action = target["ra_action"]
     planned_ra = target["ra"]
-    if not isinstance(resolution, str) or not isinstance(planned_ra, str):
+    if not isinstance(resolution, str) or ra_action not in {"reuse", "create"}:
         raise ValueError("Invalid planned RA resolution")
-    if resolution in {"identifier", "name"}:
+    if ra_action == "reuse":
+        if not isinstance(planned_ra, str):
+            raise ValueError("Reused RA must have a planned URI")
         return _responsible_agent(g_set, planned_ra)
+    if planned_ra is not None:
+        raise ValueError("Created RA must not have a planned URI")
 
     metadata = cast(dict[str, object], target["agent"])
     keys = _plan_agent_identifiers(metadata)
-    existing_ras = {ra_uri for key in keys for ra_uri in identity_index[key].ra_uris}
-    if existing_ras:
-        return _responsible_agent(g_set, next(iter(existing_ras)))
 
     source = target["source"]
     if not isinstance(source, str):
@@ -1382,11 +1700,15 @@ def _apply_repair(
     identity_index: dict[tuple[str, str], IdentityEntry],
     locator: EntityFileLocator,
 ) -> None:
-    br_uri = cast(str, repair["br"])
-    local_state = cast(dict[str, object], repair["local_state"])
-    local_entities = cast(dict[str, object], local_state["entities"])
+    work = cast(dict[str, object], repair["work"])
+    br_uri = cast(str, work["br"])
+    execution = cast(dict[str, object], repair["execution"])
+    preconditions = cast(dict[str, object], execution["preconditions"])
+    local_entities = cast(dict[str, object], preconditions["entities"])
     import_uris = set(local_entities)
     for target in _repair_targets(repair):
+        if target["resolution"] == "local":
+            continue
         for key in _plan_agent_identifiers(cast(dict[str, object], target["agent"])):
             import_uris.update(identity_index[key].identifier_uris)
             import_uris.update(identity_index[key].ra_uris)
@@ -1398,8 +1720,8 @@ def _apply_repair(
     )
     _import_files(editor, g_set, import_uris, locator)
     br = _bibliographic_resource(g_set, br_uri)
-    provenance = cast(dict[str, str], repair["missing_ar_provenance"])
-    for missing_uri in cast(list[str], repair["missing_ars"]):
+    provenance = cast(dict[str, str], preconditions["provenance"])
+    for missing_uri in cast(list[str], preconditions["dangling_ar_references"]):
         br.g.remove(
             (
                 br.res,
@@ -1407,38 +1729,47 @@ def _apply_repair(
                 RDFTerm("uri", missing_uri),
             )
         )
-        if provenance[missing_uri] == "active":
+        if provenance[missing_uri] == "latest_snapshot_active":
             missing_role = g_set.add_ar(editor.resp_agent, res=missing_uri)
             missing_role.mark_as_to_be_deleted()
 
-    existing_roles = {
-        uri: _agent_role(g_set, uri)
-        for uri in local_entities
-        if "/ar/" in uri and g_set.get_entity(uri) is not None
-    }
-    for role in existing_roles.values():
-        role.remove_next()
-
-    role_plans = cast(list[dict[str, object]], repair["role_plans"])
+    role_plans = cast(list[dict[str, object]], execution["role_plans"])
     for role_plan in role_plans:
         role_name = cast(str, role_plan["role"])
-        source = cast(str, role_plan["source"])
-        desired_roles = []
-        for target in cast(list[dict[str, object]], role_plan["targets"]):
+        source = role_plan["source"]
+        targets = cast(list[dict[str, object]], role_plan["targets"])
+        desired_roles: list[AgentRole] = []
+        for target in targets:
             agent = _resolve_target_agent(editor, g_set, repair, target, identity_index)
-            ar_uri = cast(str, target["ar"])
-            if ar_uri:
+            ar_uri = target["ar"]
+            if isinstance(ar_uri, str):
                 role = _agent_role(g_set, ar_uri)
                 if cast(str, target["old_ra"]) != _entity_uri(agent):
                     role.remove_is_held_by()
                     role.is_held_by(agent)
             else:
+                if ar_uri is not None or not isinstance(source, str):
+                    raise ValueError("Created AR must have a provider source")
                 role = _create_role(editor, g_set, repair, role_name, source)
                 role.is_held_by(agent)
                 br.has_contributor(role)
             desired_roles.append(role)
-        for left, right in zip(desired_roles, desired_roles[1:]):
-            left.has_next(right)
+        for position, (target, role) in enumerate(zip(targets, desired_roles)):
+            right = (
+                desired_roles[position + 1]
+                if position + 1 < len(desired_roles)
+                else None
+            )
+            desired_next = _entity_uri(right) if right is not None else None
+            if target["ar"] is None:
+                if right is not None:
+                    role.has_next(right)
+                continue
+            if target["old_next"] == desired_next:
+                continue
+            role.remove_next()
+            if right is not None:
+                role.has_next(right)
         for ar_uri in cast(list[str], role_plan["delete_ars"]):
             role = _agent_role(g_set, ar_uri)
             br.remove_contributor(role)
@@ -1468,8 +1799,6 @@ def execute_plan(
     _stop_requested = False
     plan_path = os.path.abspath(plan_path)
     plan = _read_json_object(plan_path)
-    if plan["schema_version"] != PLAN_SCHEMA_VERSION:
-        raise ValueError(f"Unsupported plan schema: {plan['schema_version']}")
     if plan["complete"] is not True:
         raise ValueError("The correction plan is incomplete and cannot be executed")
     if plan["config_sha256"] != _sha256(config_path):
@@ -1504,6 +1833,25 @@ def execute_plan(
     )
     attempted = 0
     if approved:
+        pending = [
+            repair
+            for repair in approved
+            if cast(str, repair["group_id"]) not in completed
+        ]
+        planned_context_uris = set()
+        for repair in pending:
+            repair_execution = cast(dict[str, object], repair["execution"])
+            repair_preconditions = cast(
+                dict[str, object], repair_execution["preconditions"]
+            )
+            planned_context_uris.update(
+                cast(dict[str, list[str]], repair_preconditions["contexts"])
+            )
+        current_contexts = _current_role_contexts(
+            config, tuple(sorted(planned_context_uris)), workers
+        )
+        for repair in pending:
+            _validate_identity_index(repair, identity_index)
         editor = MetaEditor(config_path, resp_agent, save_queries=True)
         editor.rdf_files_only = True
         try:
@@ -1518,12 +1866,15 @@ def execute_plan(
                         continue
                     if _stop_requested:
                         break
-                    current_state = _capture_local_state(repair, config, workers)
-                    if current_state != repair["local_state"]:
+                    current_state = _capture_preconditions(
+                        repair, config, workers, current_contexts
+                    )
+                    execution = cast(dict[str, object], repair["execution"])
+                    if current_state != execution["preconditions"]:
+                        work = cast(dict[str, object], repair["work"])
                         raise RuntimeError(
-                            f"Stale plan: local RDF state changed for {repair['br']}"
+                            f"Stale plan: local RDF state changed for {work['br']}"
                         )
-                    _validate_identity_index(repair, identity_index)
                     attempted += 1
                     _apply_repair(editor, repair, identity_index, locator)
                     completed.add(group_id)
@@ -1535,7 +1886,6 @@ def execute_plan(
 
     complete = len(completed) == len(approved) and not _stop_requested
     execution_report: dict[str, object] = {
-        "schema_version": PLAN_SCHEMA_VERSION,
         "plan": plan_path,
         "plan_sha256": plan_sha256,
         "review_file": selected_review_path,
@@ -1624,8 +1974,8 @@ def main() -> None:  # pragma: no cover
         summary = cast(dict[str, object], report["summary"])
         console.print(
             f"Plan written to [cyan]{os.path.abspath(args.report_file)}[/cyan]. "
-            f"Affected BRs: [cyan]{summary['affected_brs']}[/cyan]; missing ARs: "
-            f"[cyan]{summary['missing_ars']}[/cyan]."
+            f"Affected BRs: [cyan]{summary['affected_brs']}[/cyan]; dangling AR "
+            f"references: [cyan]{summary['dangling_ar_references']}[/cyan]."
         )
         return
 

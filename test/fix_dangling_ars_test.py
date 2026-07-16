@@ -88,7 +88,9 @@ def _work(
     }
 
 
-def test_find_dangling_works_ignores_present_malformed_roles(tmp_path: Path) -> None:
+def test_find_dangling_works_ignores_existing_malformed_local_roles(
+    tmp_path: Path,
+) -> None:
     rdf_dir = tmp_path / "rdf"
     br_2 = f"{BASE}br/0602"
     _write_entities(
@@ -153,11 +155,15 @@ def test_structural_anomalies_detects_multiple_predecessors() -> None:
     contexts = {AR_1: (BR,), AR_2: (BR,), AR_3: (BR,)}
 
     assert fixer._structural_anomalies(work, roles, contexts) == [
-        f"multiple_predecessors:{AR_3}"
+        {
+            "type": "multiple_predecessors",
+            "ar": AR_3,
+            "predecessor_count": 2,
+        }
     ]
 
 
-def test_select_provider_targets_uses_first_nonempty_list_per_role() -> None:
+def test_select_provider_targets_uses_first_nonempty_value_per_role() -> None:
     crossref_author = _agent("Ada Rossi", "author", 0)
     datacite_editor = _agent("Luca Bianchi", "editor", 0)
     works = [
@@ -190,6 +196,107 @@ def test_select_provider_targets_uses_first_nonempty_list_per_role() -> None:
     }
 
 
+def test_select_provider_targets_skips_empty_values_and_preserves_when_all_empty() -> (
+    None
+):
+    datacite_editor = _agent("Luca Bianchi", "editor", 0)
+    targets, sources = fixer.select_provider_targets(
+        [
+            _work("openalex", [_agent("Ignored", "author", 0)], []),
+            _work("datacite", [], [datacite_editor]),
+            _work("crossref", [], []),
+        ]
+    )
+
+    assert targets == {
+        "author": [_agent("Ignored", "author", 0)],
+        "editor": [datacite_editor],
+        "publisher": [],
+    }
+    assert sources == {
+        "author": "openalex",
+        "editor": "datacite",
+        "publisher": None,
+    }
+
+    empty_targets, empty_sources = fixer.select_provider_targets(
+        [
+            _work("crossref", [], []),
+            _work("datacite", [], []),
+            _work("openalex", [], []),
+        ]
+    )
+
+    assert empty_targets == {"author": [], "editor": [], "publisher": []}
+    assert empty_sources == {"author": None, "editor": None, "publisher": None}
+
+
+def test_absent_provider_role_preserves_local_chain() -> None:
+    roles = [
+        fixer.RoleRecord(
+            AR_1,
+            ("http://purl.org/spar/pro/editor",),
+            (RA_1,),
+            (AR_3,),
+        ),
+        fixer.RoleRecord(
+            AR_3,
+            ("http://purl.org/spar/pro/editor",),
+            (RA_2,),
+            (),
+        ),
+    ]
+    agents = {
+        RA_1: fixer.AgentRecord(RA_1, PersonName(name="Ada Rossi"), ()),
+        RA_2: fixer.AgentRecord(RA_2, PersonName(name="Luca Bianchi"), ()),
+    }
+
+    plan = fixer._preserve_role("editor", roles, agents)
+
+    assert plan == {
+        "role": "editor",
+        "source": None,
+        "targets": [
+            {
+                "position": 0,
+                "agent": {
+                    "family": "",
+                    "given": "",
+                    "name": "Ada Rossi",
+                    "identifiers": [],
+                },
+                "source": None,
+                "ar": AR_1,
+                "old_ra": RA_1,
+                "ra": RA_1,
+                "ra_action": "reuse",
+                "resolution": "local",
+                "identifier_resolutions": [],
+                "old_next": AR_3,
+            },
+            {
+                "position": 1,
+                "agent": {
+                    "family": "",
+                    "given": "",
+                    "name": "Luca Bianchi",
+                    "identifiers": [],
+                },
+                "source": None,
+                "ar": AR_3,
+                "old_ra": RA_2,
+                "ra": RA_2,
+                "ra_action": "reuse",
+                "resolution": "local",
+                "identifier_resolutions": [],
+                "old_next": None,
+            },
+        ],
+        "delete_ars": [],
+    }
+    assert fixer._review_changes([], [plan]) == []
+
+
 def test_reconcile_role_preserves_name_match_and_reuses_remaining_ar() -> None:
     roles = [
         fixer.RoleRecord(
@@ -219,7 +326,7 @@ def test_reconcile_role_preserves_name_match_and_reuses_remaining_ar() -> None:
         "author", roles, external, agents, {}, "crossref"
     )
 
-    assert error == ""
+    assert error is None
     assert role_plan == {
         "role": "author",
         "source": "crossref",
@@ -236,9 +343,10 @@ def test_reconcile_role_preserves_name_match_and_reuses_remaining_ar() -> None:
                 "ar": AR_1,
                 "old_ra": RA_1,
                 "ra": RA_1,
-                "create_ra": False,
+                "ra_action": "reuse",
                 "resolution": "name",
                 "identifier_resolutions": [],
+                "old_next": None,
             },
             {
                 "position": 1,
@@ -251,10 +359,11 @@ def test_reconcile_role_preserves_name_match_and_reuses_remaining_ar() -> None:
                 "source": "crossref",
                 "ar": AR_3,
                 "old_ra": RA_2,
-                "ra": "",
-                "create_ra": True,
+                "ra": None,
+                "ra_action": "create",
                 "resolution": "new",
                 "identifier_resolutions": [],
+                "old_next": None,
             },
             {
                 "position": 2,
@@ -265,16 +374,25 @@ def test_reconcile_role_preserves_name_match_and_reuses_remaining_ar() -> None:
                     "identifiers": [],
                 },
                 "source": "crossref",
-                "ar": "",
-                "old_ra": "",
-                "ra": "",
-                "create_ra": True,
+                "ar": None,
+                "old_ra": None,
+                "ra": None,
+                "ra_action": "create",
                 "resolution": "new",
                 "identifier_resolutions": [],
+                "old_next": None,
             },
         ],
         "delete_ars": [],
     }
+    assert [change["action"] for change in fixer._review_changes([], [role_plan])] == [
+        "create_responsible_agent",
+        "reassign_agent_role",
+        "create_responsible_agent",
+        "create_agent_role",
+        "update_next_link",
+        "update_next_link",
+    ]
 
 
 def test_reconcile_role_uses_exact_identifier_and_blocks_ambiguous_identity() -> None:
@@ -306,7 +424,7 @@ def test_reconcile_role_uses_exact_identifier_and_blocks_ambiguous_identity() ->
         "crossref",
     )
 
-    assert error == ""
+    assert error is None
     assert plan["targets"] == [
         {
             "position": 0,
@@ -320,32 +438,163 @@ def test_reconcile_role_uses_exact_identifier_and_blocks_ambiguous_identity() ->
             "ar": AR_1,
             "old_ra": RA_1,
             "ra": RA_2,
-            "create_ra": False,
+            "ra_action": "reuse",
             "resolution": "identifier",
-            "identifier_resolutions": [],
+            "identifier_resolutions": [
+                {
+                    "scheme": "orcid",
+                    "value": orcid,
+                    "identifier_uris": [ID_1],
+                    "ra_uris": [RA_2],
+                }
+            ],
+            "old_next": None,
         }
     ]
-    assert ambiguous_error == "ambiguous_identifier"
-
-
-def test_empty_provider_role_removes_existing_roles() -> None:
-    role = fixer.RoleRecord(
-        AR_1,
-        ("http://purl.org/spar/pro/publisher",),
-        (RA_1,),
-        (),
-    )
-    agents = {RA_1: fixer.AgentRecord(RA_1, PersonName(name="Old Press"), ())}
-
-    plan, error = fixer._reconcile_role("publisher", [role], [], agents, {}, "")
-
-    assert error == ""
-    assert plan == {
-        "role": "publisher",
-        "source": "",
-        "targets": [],
-        "delete_ars": [AR_1],
+    assert ambiguous_error == {
+        "type": "ambiguous_identifier",
+        "role": "author",
+        "position": 0,
+        "aligned_ar": AR_1,
+        "aligned_holder": RA_1,
+        "candidate_ras": [RA_1, RA_2],
+        "identifier_resolutions": [
+            {
+                "scheme": "orcid",
+                "value": orcid,
+                "identifier_uris": [ID_1],
+                "ra_uris": [RA_1, RA_2],
+            }
+        ],
     }
+
+
+@pytest.mark.parametrize("count", [2, 3, 5])
+def test_reconcile_role_preserves_repeated_homonyms_by_position(count: int) -> None:
+    ar_uris = [f"{BASE}ar/07{index:02d}" for index in range(count)]
+    ra_uris = [f"{BASE}ra/07{index:02d}" for index in range(count)]
+    roles = [
+        fixer.RoleRecord(
+            ar_uri,
+            ("http://purl.org/spar/pro/author",),
+            (ra_uri,),
+            (ar_uris[index + 1],) if index + 1 < count else (),
+        )
+        for index, (ar_uri, ra_uri) in enumerate(zip(ar_uris, ra_uris))
+    ]
+    agents = {
+        ra_uri: fixer.AgentRecord(ra_uri, PersonName(name="Wei Wang"), ())
+        for ra_uri in ra_uris
+    }
+    external = [_agent("Wei Wang", "author", index) for index in range(count)]
+
+    plan, blocker = fixer._reconcile_role(
+        "author", roles, external, agents, {}, "crossref"
+    )
+    targets = cast(list[dict[str, object]], plan["targets"])
+
+    assert blocker is None
+    assert [target["ar"] for target in targets] == ar_uris
+    assert [target["ra"] for target in targets] == ra_uris
+    assert [target["ra_action"] for target in targets] == ["reuse"] * count
+    assert [target["resolution"] for target in targets] == ["position_name"] * count
+    assert fixer._review_changes([], [plan]) == []
+
+
+def test_ambiguous_orcid_preserves_compatible_contextual_holders() -> None:
+    orcid = "0000-0002-8420-0696"
+    key = ("orcid", orcid)
+    roles = [
+        fixer.RoleRecord(
+            AR_1,
+            ("http://purl.org/spar/pro/author",),
+            (RA_1,),
+            (AR_3,),
+        ),
+        fixer.RoleRecord(
+            AR_3,
+            ("http://purl.org/spar/pro/author",),
+            (RA_2,),
+            (),
+        ),
+    ]
+    agents = {
+        RA_1: fixer.AgentRecord(RA_1, PersonName(name="Wei Wang"), ()),
+        RA_2: fixer.AgentRecord(RA_2, PersonName(name="Wei Wang"), ()),
+    }
+    external = [
+        _agent("Wei Wang", "author", position, (("orcid", orcid),))
+        for position in range(2)
+    ]
+
+    plan, blocker = fixer._reconcile_role(
+        "author",
+        roles,
+        external,
+        agents,
+        {key: fixer.IdentityEntry((ID_1,), (RA_1, RA_2))},
+        "crossref",
+    )
+    targets = cast(list[dict[str, object]], plan["targets"])
+
+    assert blocker is None
+    assert [target["ra"] for target in targets] == [RA_1, RA_2]
+    assert [target["resolution"] for target in targets] == [
+        "ambiguous_identifier_local",
+        "ambiguous_identifier_local",
+    ]
+
+
+@pytest.mark.parametrize(
+    ("resolution", "planned_ras", "current_ras"),
+    [
+        ("new", (), (RA_1,)),
+        ("name", (), (RA_1,)),
+        ("position_name", (), (RA_1,)),
+        ("identifier", (RA_1,), (RA_2,)),
+        ("ambiguous_identifier_local", (RA_1, RA_2), (RA_1,)),
+    ],
+)
+def test_execution_rejects_changed_global_identity_resolution(
+    resolution: str,
+    planned_ras: tuple[str, ...],
+    current_ras: tuple[str, ...],
+) -> None:
+    orcid = "0000-0002-8420-0696"
+    repair = {
+        "work": {"br": BR},
+        "execution": {
+            "role_plans": [
+                {
+                    "targets": [
+                        {
+                            "agent": {
+                                "family": "",
+                                "given": "",
+                                "name": "Ada Rossi",
+                                "identifiers": [{"scheme": "orcid", "value": orcid}],
+                            },
+                            "resolution": resolution,
+                            "identifier_resolutions": [
+                                {
+                                    "scheme": "orcid",
+                                    "value": orcid,
+                                    "identifier_uris": [ID_1],
+                                    "ra_uris": list(planned_ras),
+                                }
+                            ],
+                        }
+                    ]
+                }
+            ]
+        },
+    }
+
+    with pytest.raises(RuntimeError, match="identifier resolution changed"):
+        fixer._validate_identity_index(
+            repair,
+            {("orcid", orcid): fixer.IdentityEntry((ID_1,), current_ras)},
+        )
 
 
 def test_load_provenance_statuses_distinguishes_active_invalidated_and_missing(
@@ -385,10 +634,61 @@ def test_load_provenance_statuses_distinguishes_active_invalidated_and_missing(
     statuses = fixer.load_provenance_statuses({AR_1, AR_2, AR_3}, locator, 1)
 
     assert statuses == {
-        AR_1: "active",
-        AR_2: "invalidated",
-        AR_3: "missing",
+        AR_1: "latest_snapshot_active",
+        AR_2: "latest_snapshot_invalidated",
+        AR_3: "no_snapshot",
     }
+
+
+def test_preconditions_detect_role_context_that_becomes_shared(tmp_path: Path) -> None:
+    rdf_dir = tmp_path / "rdf"
+    br_2 = f"{BASE}br/0602"
+    entities = [
+        {
+            "@id": BR,
+            "http://purl.org/spar/pro/isDocumentContextFor": [
+                {"@id": AR_1},
+                {"@id": AR_2},
+            ],
+        },
+        {
+            "@id": AR_1,
+            "http://purl.org/spar/pro/withRole": [
+                {"@id": "http://purl.org/spar/pro/author"}
+            ],
+            "http://purl.org/spar/pro/isHeldBy": [{"@id": RA_1}],
+        },
+        {
+            "@id": RA_1,
+            "http://xmlns.com/foaf/0.1/name": [{"@value": "Ada Rossi"}],
+        },
+    ]
+    _write_entities(rdf_dir, entities)
+    repair: dict[str, object] = {"work": {"br": BR}}
+    config = _config(rdf_dir)
+
+    before = fixer._capture_preconditions(repair, config, 1)
+    _write_entities(
+        rdf_dir,
+        [
+            *entities,
+            {
+                "@id": br_2,
+                "http://purl.org/spar/pro/isDocumentContextFor": [{"@id": AR_1}],
+            },
+        ],
+    )
+    after = fixer._capture_preconditions(repair, config, 1)
+
+    assert cast(dict[str, list[str]], before["contexts"]) == {
+        AR_1: [BR],
+        AR_2: [BR],
+    }
+    assert cast(dict[str, list[str]], after["contexts"]) == {
+        AR_1: [BR, br_2],
+        AR_2: [BR],
+    }
+    assert before != after
 
 
 def test_review_approval_is_atomic_per_br_and_detects_modified_plan(
@@ -396,22 +696,71 @@ def test_review_approval_is_atomic_per_br_and_detects_modified_plan(
 ) -> None:
     repair = fixer._finalize_repair(
         {
-            "br": BR,
-            "missing_ars": [AR_2],
-            "provider_sources": ["crossref"],
-            "role_sources": {
-                "author": "crossref",
-                "editor": "",
-                "publisher": "",
+            "work": {
+                "br": BR,
+                "title": "Example",
+                "identifiers": {"doi": "10.1000/example"},
             },
-            "target_counts": {"author": 1, "editor": 0, "publisher": 0},
-            "anomalies": [],
-            "status": "ready",
-            "reason": "",
-            "local_state": {"entities": {}},
-            "missing_ar_provenance": {AR_2: "missing"},
-            "work_identifiers": {"doi": "10.1000/example"},
-            "role_plans": [],
+            "review": {
+                "status": "ready",
+                "problem": {"dangling_ar_references": []},
+                "provider_records_found": ["crossref"],
+                "selected_provider_by_role": {
+                    "author": "crossref",
+                    "editor": None,
+                    "publisher": None,
+                },
+                "changes": [],
+                "warnings": [],
+                "blockers": [],
+            },
+            "execution": {
+                "preconditions": {
+                    "entities": {},
+                    "dangling_ar_references": [AR_2],
+                    "provenance": {AR_2: "no_snapshot"},
+                    "contexts": {AR_2: [BR]},
+                },
+                "role_plans": [],
+            },
+        }
+    )
+    review_path = tmp_path / "review.csv"
+    fixer.write_review_file(str(review_path), [repair])
+    rows = list(csv.DictReader(review_path.open(encoding="utf-8")))
+    assert list(rows[0]) == ["group_id", "br", "doi", "status", "decision"]
+    rows[0]["decision"] = "approve"
+    with review_path.open("w", newline="", encoding="utf-8") as stream:
+        writer = csv.DictWriter(stream, fieldnames=fixer.REVIEW_FIELDS)
+        writer.writeheader()
+        writer.writerows(rows)
+
+    approved = fixer.read_review_decisions(str(review_path), [repair])
+    cast(dict[str, object], repair["review"])["warnings"] = [{"type": "changed"}]
+
+    assert approved == [repair]
+    with pytest.raises(ValueError, match="modified repair group"):
+        fixer.read_review_decisions(str(review_path), [repair])
+
+
+def test_blocked_review_group_cannot_be_approved(tmp_path: Path) -> None:
+    repair = fixer._finalize_repair(
+        {
+            "work": {"br": BR, "title": None, "identifiers": {}},
+            "review": {
+                "status": "blocked",
+                "problem": {"dangling_ar_references": []},
+                "provider_records_found": [],
+                "selected_provider_by_role": {
+                    "author": None,
+                    "editor": None,
+                    "publisher": None,
+                },
+                "changes": [],
+                "warnings": [],
+                "blockers": [{"type": "invalid_holder", "ar": AR_1}],
+            },
+            "execution": {"preconditions": {}, "role_plans": []},
         }
     )
     review_path = tmp_path / "review.csv"
@@ -423,11 +772,7 @@ def test_review_approval_is_atomic_per_br_and_detects_modified_plan(
         writer.writeheader()
         writer.writerows(rows)
 
-    approved = fixer.read_review_decisions(str(review_path), [repair])
-    repair["reason"] = "changed"
-
-    assert approved == [repair]
-    with pytest.raises(ValueError, match="modified repair group"):
+    with pytest.raises(ValueError, match="cannot be approved"):
         fixer.read_review_decisions(str(review_path), [repair])
 
 
@@ -592,6 +937,45 @@ def test_execute_plan_rebuilds_chain_and_invalidates_missing_ar_provenance(
         False,
         "",
     )
+    assert set(report) == {
+        "complete",
+        "generated_at",
+        "config",
+        "config_sha256",
+        "rdf_dir",
+        "api_cache",
+        "review_file",
+        "summary",
+        "repairs",
+    }
+    repair = cast(list[dict[str, object]], report["repairs"])[0]
+    review = cast(dict[str, object], repair["review"])
+    planned_execution = cast(dict[str, object], repair["execution"])
+    assert set(repair) == {"group_id", "work", "review", "execution"}
+    assert cast(dict[str, object], repair["work"]) == {
+        "br": BR,
+        "title": "Untouched title",
+        "identifiers": {"doi": "10.1000/example"},
+    }
+    assert [
+        change["action"] for change in cast(list[dict[str, object]], review["changes"])
+    ] == [
+        "remove_dangling_reference",
+        "create_responsible_agent",
+        "create_agent_role",
+        "update_next_link",
+    ]
+    assert list(review) == [
+        "status",
+        "problem",
+        "provider_records_found",
+        "selected_provider_by_role",
+        "changes",
+        "warnings",
+        "blockers",
+    ]
+    assert set(planned_execution) == {"preconditions", "role_plans"}
+    assert "entities" not in review
     _approve_review(review_path)
     execution = fixer.execute_plan(
         str(config_path),
@@ -602,6 +986,17 @@ def test_execute_plan_rebuilds_chain_and_invalidates_missing_ar_provenance(
         str(tmp_path / "execution.json"),
         1,
     )
+    assert set(execution) == {
+        "plan",
+        "plan_sha256",
+        "review_file",
+        "review_sha256",
+        "generated_at",
+        "complete",
+        "approved_groups",
+        "completed_groups",
+        "reindex_sentinel",
+    }
 
     br_entity = fixer._load_entities(locator.path(BR))[BR]
     role_uris = fixer._ids(br_entity, fixer.IS_DOCUMENT_CONTEXT_FOR)
@@ -620,9 +1015,9 @@ def test_execute_plan_rebuilds_chain_and_invalidates_missing_ar_provenance(
 
     assert cast(dict[str, object], report["summary"]) == {
         "affected_brs": 1,
-        "missing_ars": 1,
+        "dangling_ar_references": 1,
         "status_counts": {"ready": 1},
-        "reason_counts": {},
+        "blocker_counts": {},
     }
     assert execution["complete"] is True
     assert fixer._literals(br_entity, "http://purl.org/dc/terms/title") == [
