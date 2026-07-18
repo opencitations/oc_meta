@@ -96,6 +96,15 @@ def test_data_files_returns_sorted_data_files(
     assert data_files(str(tmp_path), zip_output) == [str(path) for path in expected]
 
 
+def test_data_files_does_not_treat_parent_name_as_provenance(tmp_path: Path) -> None:
+    directory = tmp_path / "provider_output" / "br"
+    path = directory / "060" / "10000" / "1000.json"
+    path.parent.mkdir(parents=True)
+    path.touch()
+
+    assert data_files(str(directory), False) == [str(path)]
+
+
 @pytest.mark.parametrize("workers", [1, 2])
 def test_load_available_entities_returns_only_present_uris(
     tmp_path: Path, workers: int

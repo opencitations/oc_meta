@@ -152,12 +152,13 @@ def data_files(directory: str, zip_output: bool) -> list[str]:
     extension = ".zip" if zip_output else ".json"
     paths = []
     for root, _, filenames in os.walk(directory):
+        relative_parts = os.path.relpath(root, directory).split(os.sep)
+        if "prov" in relative_parts:
+            continue
         for filename in filenames:
             if not filename.endswith(extension):
                 continue
-            path = os.path.join(root, filename)
-            if "prov" not in path:
-                paths.append(path)
+            paths.append(os.path.join(root, filename))
     return sorted(paths)
 
 

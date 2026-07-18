@@ -9,95 +9,72 @@ import csv
 import hashlib
 import multiprocessing
 import os
+import shutil
 import signal
+import tempfile
 from collections import Counter, defaultdict
-from collections.abc import Iterator
+from collections.abc import Mapping
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Protocol, cast
 
 import orjson
+import requests
 from oc_ocdm.graph import GraphSet
-from oc_ocdm.graph.entities.bibliographic.agent_role import AgentRole
 from oc_ocdm.graph.entities.bibliographic.bibliographic_resource import (
     BibliographicResource,
 )
-from oc_ocdm.graph.entities.bibliographic.responsible_agent import ResponsibleAgent
-from oc_ocdm.graph.entities.identifier import Identifier
 from oc_ocdm.graph.graph_entity import GraphEntity
 from rich_argparse import RichHelpFormatter
-from triplelite import RDFTerm
+from triplelite import RDFTerm, TripleLite, from_rdflib
 
 from oc_meta.core.editor import MetaEditor
-from oc_meta.lib.agent_matching import PersonName, name_score
 from oc_meta.lib.agent_metadata import (
+    AgentIdentifier,
     AgentMetadata,
     AgentMetadataClient,
     ApiCache,
     WorkMetadata,
-    agents_for_role,
-    normalize_orcid,
 )
 from oc_meta.lib.console import console, create_progress
 from oc_meta.lib.rdf_patch import (
-    DATACITE_PREFIX,
-    FAMILY_NAME,
-    FOAF_NAME,
-    GIVEN_NAME,
     HAS_IDENTIFIER,
     HAS_LITERAL_VALUE,
     HAS_NEXT,
     IS_DOCUMENT_CONTEXT_FOR,
-    IS_HELD_BY,
     PROV_SPECIALIZATION_OF,
-    ROLE_MAP,
     USES_IDENTIFIER_SCHEME,
-    WITH_ROLE,
     AuditConfig,
     EntityFileLocator,
-    agent_role as _agent_role,
     batches as _batches,
     data_files as _data_files,
     ensure_parent as _ensure_parent,
     first as _first,
-    identifier as _identifier,
     ids as _ids,
     literals as _literals,
     load_audit_config,
     load_available_entities,
     load_entities as _load_entities,
-    load_progress as _load_progress,
     provenance_path as _provenance_path,
     read_json_object as _read_json_object,
-    responsible_agent as _responsible_agent,
-    save_progress as _save_progress,
     sha256 as _sha256,
     snapshot_number as _snapshot_number,
     write_json as _write_json,
 )
 from oc_meta.run.merge.entities import REINDEX_SENTINEL_FILENAME
+from oc_meta.run.meta.generate_csv import FIELDNAMES, URI_TYPE_DICT
 
+PLAN_VERSION = 2
+PROVIDERS = ("crossref", "datacite")
 PROV_INVALIDATED_AT_TIME = "http://www.w3.org/ns/prov#invalidatedAtTime"
-XSD_STRING = "http://www.w3.org/2001/XMLSchema#string"
 DCTERMS_TITLE = "http://purl.org/dc/terms/title"
 
-SUPPORTED_AGENT_IDENTIFIERS = frozenset({"orcid", "crossref", "ror"})
-ROLE_NAMES = ("author", "editor", "publisher")
-CONFIRMED_NAME_SCORE = 0.9
-REVIEW_FIELDS: list[str] = [
-    "group_id",
-    "br",
-    "doi",
-    "status",
-    "decision",
-]
+csv.field_size_limit(2**31 - 1)
 
 _stop_requested = False
 _existing_roles: frozenset[str] = frozenset()
 _target_roles: frozenset[str] = frozenset()
-_identity_targets: frozenset[tuple[str, str]] = frozenset()
-_target_identifier_uris: frozenset[str] = frozenset()
 _fork_context = multiprocessing.get_context("fork")
 _forkserver_context = multiprocessing.get_context("forkserver")
 
@@ -110,41 +87,16 @@ class WorkRecord:
 
 
 @dataclass(frozen=True, slots=True)
-class RoleRecord:
-    uri: str
-    roles: tuple[str, ...]
-    holders: tuple[str, ...]
-    next_uris: tuple[str, ...]
-
-    @property
-    def role(self) -> str:
-        return ROLE_MAP[self.roles[0]] if len(self.roles) == 1 else "unknown"
-
-
-@dataclass(frozen=True, slots=True)
 class IdentifierRecord:
     uri: str
     scheme: str
     value: str
 
 
-@dataclass(frozen=True, slots=True)
-class AgentRecord:
-    uri: str
-    name: PersonName
-    identifiers: tuple[IdentifierRecord, ...]
-
-
-@dataclass(frozen=True, slots=True)
-class IdentityEntry:
-    identifier_uris: tuple[str, ...]
-    ra_uris: tuple[str, ...]
-
-
 class WorkProviderClient(Protocol):
-    def all_work_sources(
-        self, doi: str, openalex_id: str = ""
-    ) -> list[WorkMetadata]: ...
+    def crossref(self, doi: str) -> WorkMetadata | None: ...
+
+    def datacite(self, doi: str) -> WorkMetadata | None: ...
 
 
 def _handle_signal(signum: int, frame: object) -> None:
@@ -158,10 +110,7 @@ def _object_sha256(value: object) -> str:
 
 
 def _process_pool(workers: int) -> ProcessPoolExecutor:
-    return ProcessPoolExecutor(
-        max_workers=workers,
-        mp_context=_fork_context,
-    )
+    return ProcessPoolExecutor(max_workers=workers, mp_context=_fork_context)
 
 
 def _scan_entity_uri_batch(paths: list[str]) -> set[str]:
@@ -202,7 +151,7 @@ def _scan_dangling_work_batch(
     return works, missing_by_work
 
 
-def _init_role_context_scan(target_roles: frozenset[str]) -> None:
+def _init_role_scan(target_roles: frozenset[str]) -> None:
     global _target_roles
     _target_roles = target_roles
 
@@ -215,6 +164,37 @@ def _scan_role_context_batch(paths: list[str]) -> dict[str, list[str]]:
                 if role_uri in _target_roles:
                     contexts[role_uri].append(uri)
     return contexts
+
+
+def _scan_role_link_batch(paths: list[str]) -> set[tuple[str, str]]:
+    links = set()
+    for path in paths:
+        for uri, entity in _load_entities(path).items():
+            for next_uri in _ids(entity, HAS_NEXT):
+                if uri in _target_roles or next_uri in _target_roles:
+                    links.add((uri, next_uri))
+    return links
+
+
+def _scan_contexts(
+    br_files: list[str], target_roles: frozenset[str], workers: int
+) -> dict[str, tuple[str, ...]]:
+    contexts: dict[str, list[str]] = defaultdict(list)
+    batches = _batches(br_files, 24)
+    with ProcessPoolExecutor(
+        max_workers=workers,
+        mp_context=_fork_context,
+        initializer=_init_role_scan,
+        initargs=(target_roles,),
+    ) as executor:
+        partial_results = executor.map(_scan_role_context_batch, batches)
+        with create_progress() as progress:
+            task = progress.add_task("Checking role contexts", total=len(br_files))
+            for batch, partial in zip(batches, partial_results):
+                for role_uri, work_uris in partial.items():
+                    contexts[role_uri].extend(work_uris)
+                progress.advance(task, len(batch))
+    return {role_uri: tuple(sorted(contexts[role_uri])) for role_uri in target_roles}
 
 
 def find_dangling_works(
@@ -243,43 +223,49 @@ def find_dangling_works(
                 "Finding dangling role references", total=len(br_files)
             )
             for batch, (partial_works, partial_missing) in zip(
-                batches,
-                partial_results,
+                batches, partial_results
             ):
                 works.update(partial_works)
                 missing_by_work.update(partial_missing)
                 progress.advance(task, len(batch))
-    locator = EntityFileLocator(
-        config.rdf_dir, config.dir_split, config.items_per_file, config.zip_output
-    )
     target_roles = frozenset(
         role_uri for work in works.values() for role_uri in work.role_uris
+    )
+    locator = EntityFileLocator(
+        config.rdf_dir, config.dir_split, config.items_per_file, config.zip_output
     )
     role_entities = load_available_entities(
         set(target_roles.intersection(existing_roles)), locator, workers
     )
-    role_contexts: dict[str, list[str]] = defaultdict(list)
-    batches = _batches(br_files, 24)
+    return (
+        works,
+        role_entities,
+        missing_by_work,
+        _scan_contexts(br_files, target_roles, workers),
+    )
+
+
+def scan_role_links(
+    config: AuditConfig, role_uris: set[str], workers: int
+) -> set[tuple[str, str]]:
+    if not role_uris:
+        return set()
+    role_files = _data_files(os.path.join(config.rdf_dir, "ar"), config.zip_output)
+    batches = _batches(role_files, 24)
+    links = set()
     with ProcessPoolExecutor(
         max_workers=workers,
         mp_context=_fork_context,
-        initializer=_init_role_context_scan,
-        initargs=(target_roles,),
+        initializer=_init_role_scan,
+        initargs=(frozenset(role_uris),),
     ) as executor:
-        partial_results = executor.map(_scan_role_context_batch, batches)
+        partial_results = executor.map(_scan_role_link_batch, batches)
         with create_progress() as progress:
-            task = progress.add_task("Checking role contexts", total=len(br_files))
-            for batch, partial in zip(
-                batches,
-                partial_results,
-            ):
-                for role_uri, work_uris in partial.items():
-                    role_contexts[role_uri].extend(work_uris)
+            task = progress.add_task("Checking role links", total=len(role_files))
+            for batch, partial in zip(batches, partial_results):
+                links.update(partial)
                 progress.advance(task, len(batch))
-    contexts = {
-        role_uri: tuple(sorted(role_contexts[role_uri])) for role_uri in target_roles
-    }
-    return works, role_entities, missing_by_work, contexts
+    return links
 
 
 def _identifier_record(uri: str, entity: dict[str, object]) -> IdentifierRecord | None:
@@ -287,41 +273,7 @@ def _identifier_record(uri: str, entity: dict[str, object]) -> IdentifierRecord 
     value = _first(_literals(entity, HAS_LITERAL_VALUE))
     if not scheme_uri or not value:
         return None
-    scheme = (
-        scheme_uri[len(DATACITE_PREFIX) :]
-        if scheme_uri.startswith(DATACITE_PREFIX)
-        else scheme_uri
-    )
-    return IdentifierRecord(uri, scheme, value)
-
-
-def _role_record(uri: str, entity: dict[str, object]) -> RoleRecord:
-    return RoleRecord(
-        uri,
-        tuple(_ids(entity, WITH_ROLE)),
-        tuple(_ids(entity, IS_HELD_BY)),
-        tuple(_ids(entity, HAS_NEXT)),
-    )
-
-
-def _agent_record(
-    uri: str,
-    entity: dict[str, object],
-    identifiers: dict[str, IdentifierRecord],
-) -> AgentRecord:
-    return AgentRecord(
-        uri,
-        PersonName(
-            name=_first(_literals(entity, FOAF_NAME)),
-            given=_first(_literals(entity, GIVEN_NAME)),
-            family=_first(_literals(entity, FAMILY_NAME)),
-        ),
-        tuple(
-            identifiers[identifier_uri]
-            for identifier_uri in _ids(entity, HAS_IDENTIFIER)
-            if identifier_uri in identifiers
-        ),
-    )
+    return IdentifierRecord(uri, scheme_uri.rsplit("/", 1)[-1], value)
 
 
 def _provenance_status_batch(
@@ -359,1178 +311,615 @@ def load_provenance_statuses(
     tasks = [(path, frozenset(targets)) for path, targets in targets_by_path.items()]
     statuses = {}
     with ProcessPoolExecutor(
-        max_workers=workers,
-        mp_context=_forkserver_context,
+        max_workers=workers, mp_context=_forkserver_context
     ) as executor:
         for partial in executor.map(_provenance_status_batch, _batches(tasks, 24)):
             statuses.update(partial)
     return {uri: statuses[uri] if uri in statuses else "no_snapshot" for uri in uris}
 
 
-def _local_context(
+def _load_local_context(
     works: dict[str, WorkRecord],
     role_entities: dict[str, dict[str, object]],
     missing_by_work: dict[str, tuple[str, ...]],
     locator: EntityFileLocator,
     workers: int,
-) -> tuple[
-    dict[str, RoleRecord],
-    dict[str, AgentRecord],
-    dict[str, IdentifierRecord],
-    dict[str, dict[str, object]],
-    dict[str, str],
-]:
-    affected_role_uris = {uri for work in works.values() for uri in work.role_uris}
-    selected_role_entities = {
-        uri: role_entities[uri] for uri in affected_role_uris if uri in role_entities
-    }
-    roles = {
-        uri: _role_record(uri, entity) for uri, entity in selected_role_entities.items()
-    }
-    ra_uris = {holder for role in roles.values() for holder in role.holders}
+) -> tuple[dict[str, IdentifierRecord], dict[str, dict[str, object]], dict[str, str]]:
     work_entities = load_available_entities(set(works), locator, workers)
-    ra_entities = load_available_entities(ra_uris, locator, workers)
     identifier_uris = {
         identifier_uri
         for work in works.values()
         for identifier_uri in work.identifier_uris
     }
-    identifier_uris.update(
-        identifier_uri
-        for entity in ra_entities.values()
-        for identifier_uri in _ids(entity, HAS_IDENTIFIER)
-    )
     identifier_entities = load_available_entities(identifier_uris, locator, workers)
     identifiers = {
         uri: record
         for uri, entity in identifier_entities.items()
         if (record := _identifier_record(uri, entity)) is not None
     }
-    agents = {
-        uri: _agent_record(uri, entity, identifiers)
-        for uri, entity in ra_entities.items()
-    }
     raw_entities = dict(work_entities)
-    raw_entities.update(selected_role_entities)
-    raw_entities.update(ra_entities)
+    raw_entities.update(role_entities)
     raw_entities.update(identifier_entities)
     missing_uris = {uri for uris in missing_by_work.values() for uri in uris}
     provenance = load_provenance_statuses(missing_uris, locator, workers)
-    return roles, agents, identifiers, raw_entities, provenance
+    return identifiers, raw_entities, provenance
 
 
 def _work_identifiers(
-    work: WorkRecord, identifiers: dict[str, IdentifierRecord]
+    work: WorkRecord, identifiers: Mapping[str, IdentifierRecord]
 ) -> dict[str, str]:
-    return {
-        identifiers[uri].scheme: identifiers[uri].value
-        for uri in work.identifier_uris
-        if uri in identifiers
-    }
+    result = {}
+    for uri in work.identifier_uris:
+        if uri in identifiers and identifiers[uri].scheme not in result:
+            record = identifiers[uri]
+            result[record.scheme] = record.value
+    return result
 
 
-def _structural_anomalies(
-    work: WorkRecord,
-    roles: dict[str, RoleRecord],
-    contexts: dict[str, tuple[str, ...]],
-) -> list[dict[str, object]]:
-    anomalies: list[dict[str, object]] = []
-    existing = {uri for uri in work.role_uris if uri in roles}
-    for role_uri in sorted(existing):
-        role = roles[role_uri]
-        if len(contexts[role_uri]) != 1:
-            anomalies.append(
-                {
-                    "type": "multiple_contexts",
-                    "ar": role_uri,
-                    "contexts": list(contexts[role_uri]),
-                }
-            )
-        if len(role.roles) != 1 or role.roles[0] not in ROLE_MAP:
-            anomalies.append(
-                {"type": "invalid_role", "ar": role_uri, "roles": list(role.roles)}
-            )
-        if len(role.holders) != 1:
-            anomalies.append(
-                {
-                    "type": "invalid_holder",
-                    "ar": role_uri,
-                    "holders": list(role.holders),
-                }
-            )
-        if len(role.next_uris) > 1:
-            anomalies.append(
-                {"type": "fork", "ar": role_uri, "next": list(role.next_uris)}
-            )
-        if role.uri in role.next_uris:
-            anomalies.append({"type": "self_loop", "ar": role_uri})
-        for next_uri in role.next_uris:
-            if next_uri not in existing:
-                if next_uri not in work.role_uris:
-                    anomalies.append(
-                        {
-                            "type": "cross_context_link",
-                            "ar": role_uri,
-                            "next": next_uri,
-                        }
-                    )
-                continue
-            next_role = roles[next_uri]
-            if role.role != next_role.role:
-                anomalies.append(
-                    {"type": "cross_role_link", "ar": role_uri, "next": next_uri}
-                )
-    predecessor_counts = Counter(
-        next_uri
-        for role_uri in existing
-        for next_uri in set(roles[role_uri].next_uris)
-        if next_uri in existing
-    )
-    anomalies.extend(
-        {
-            "type": "multiple_predecessors",
-            "ar": role_uri,
-            "predecessor_count": count,
-        }
-        for role_uri, count in sorted(predecessor_counts.items())
-        if count > 1
-    )
-    for role_name in ROLE_NAMES:
-        role_group = {
-            uri: roles[uri] for uri in existing if roles[uri].role == role_name
-        }
-        for start_uri in role_group:
-            seen = set()
-            current = start_uri
-            while current in role_group and current not in seen:
-                seen.add(current)
-                next_uris = role_group[current].next_uris
-                current = next_uris[0] if next_uris else ""
-            if current in seen:
-                anomalies.append({"type": "cycle", "role": role_name})
-                break
-    return anomalies
-
-
-def _ordered_roles(roles: list[RoleRecord]) -> list[RoleRecord]:
-    if not roles:
+def _types(entity: dict[str, object]) -> list[str]:
+    value = entity["@type"] if "@type" in entity else []
+    if isinstance(value, str):
+        return [value]
+    if not isinstance(value, list):
         return []
-    by_uri = {role.uri: role for role in roles}
-    targets = {
-        next_uri for role in roles for next_uri in role.next_uris if next_uri in by_uri
-    }
-    heads = sorted(uri for uri in by_uri if uri not in targets)
-    ordered = []
-    visited = set()
-    for head in heads:
-        current = head
-        while current in by_uri and current not in visited:
-            visited.add(current)
-            ordered.append(by_uri[current])
-            next_uris = [uri for uri in by_uri[current].next_uris if uri in by_uri]
-            current = next_uris[0] if next_uris else ""
-    ordered.extend(by_uri[uri] for uri in sorted(by_uri.keys() - visited))
-    return ordered
+    return [item for item in value if isinstance(item, str)]
 
 
-def _normalized_identifier(scheme: str, value: str) -> tuple[str, str]:
-    normalized_scheme = scheme.casefold()
-    normalized_value = value.strip()
-    if normalized_scheme == "orcid":
-        normalized_value = normalize_orcid(normalized_value)
-    elif normalized_scheme in {"crossref", "ror"}:
-        normalized_value = normalized_value.rstrip("/").rsplit("/", 1)[-1]
-        if normalized_scheme == "ror":
-            normalized_value = normalized_value.casefold()
-    return normalized_scheme, normalized_value
+def _local_type(entity: dict[str, object]) -> str:
+    for entity_type in _types(entity):
+        mapped = URI_TYPE_DICT[entity_type] if entity_type in URI_TYPE_DICT else ""
+        if mapped:
+            return mapped
+    return ""
 
 
-def _supported_agent_identifiers(
-    agent: AgentMetadata,
-) -> tuple[tuple[str, str], ...]:
-    return tuple(
-        _normalized_identifier(identifier["scheme"], identifier["value"])
-        for identifier in agent["identifiers"]
-        if identifier["scheme"].casefold() in SUPPORTED_AGENT_IDENTIFIERS
+def _omid(br_uri: str) -> str:
+    if "/br/" not in br_uri:
+        raise ValueError(f"Cannot derive a BR OMID from URI: {br_uri}")
+    return f"omid:br/{br_uri.rsplit('/br/', 1)[1]}"
+
+
+def _serialize_name(
+    family: str,
+    given: str,
+    name: str,
+    identifiers: tuple[AgentIdentifier, ...],
+) -> str:
+    if family or given:
+        rendered_name = f"{family}, {given}" if given else f"{family},"
+    else:
+        rendered_name = name
+    rendered_identifiers = " ".join(
+        f"{identifier['scheme']}:{identifier['value']}" for identifier in identifiers
     )
-
-
-def select_provider_targets(
-    works: list[WorkMetadata],
-) -> tuple[dict[str, list[AgentMetadata]], dict[str, str | None]]:
-    provider_order = {"crossref": 0, "datacite": 1, "openalex": 2}
-    ordered_works = sorted(
-        enumerate(works),
-        key=lambda item: (provider_order[item[1]["source"]], item[0]),
-    )
-    targets = {}
-    sources: dict[str, str | None] = {}
-    for role_name in ROLE_NAMES:
-        selected: list[AgentMetadata] = []
-        source = None
-        for _, work in ordered_works:
-            candidates = agents_for_role(work, role_name)
-            if candidates:
-                selected = candidates
-                source = work["source"]
-                break
-        targets[role_name] = selected
-        sources[role_name] = source
-    return targets, sources
-
-
-def _init_identity_identifier_scan(
-    targets: frozenset[tuple[str, str]],
-) -> None:
-    global _identity_targets
-    _identity_targets = targets
-
-
-def _scan_identity_identifier_batch(
-    paths: list[str],
-) -> dict[tuple[str, str], list[str]]:
-    result: dict[tuple[str, str], list[str]] = defaultdict(list)
-    for path in paths:
-        for uri, entity in _load_entities(path).items():
-            record = _identifier_record(uri, entity)
-            if record is None:
-                continue
-            key = _normalized_identifier(record.scheme, record.value)
-            if key in _identity_targets:
-                result[key].append(uri)
-    return result
-
-
-def _init_identity_agent_scan(target_identifier_uris: frozenset[str]) -> None:
-    global _target_identifier_uris
-    _target_identifier_uris = target_identifier_uris
-
-
-def _scan_identity_agent_batch(paths: list[str]) -> dict[str, list[str]]:
-    result: dict[str, list[str]] = defaultdict(list)
-    for path in paths:
-        for uri, entity in _load_entities(path).items():
-            for identifier_uri in _ids(entity, HAS_IDENTIFIER):
-                if identifier_uri in _target_identifier_uris:
-                    result[identifier_uri].append(uri)
-    return result
-
-
-def scan_identity_index(
-    config: AuditConfig,
-    targets: set[tuple[str, str]],
-    workers: int,
-) -> dict[tuple[str, str], IdentityEntry]:
-    if not targets:
-        return {}
-    target_set = frozenset(targets)
-    identifier_files = _data_files(
-        os.path.join(config.rdf_dir, "id"), config.zip_output
-    )
-    identifier_uris: dict[tuple[str, str], list[str]] = defaultdict(list)
-    batches = _batches(identifier_files, 24)
-    with ProcessPoolExecutor(
-        max_workers=workers,
-        mp_context=_fork_context,
-        initializer=_init_identity_identifier_scan,
-        initargs=(target_set,),
-    ) as executor:
-        partial_results = executor.map(_scan_identity_identifier_batch, batches)
-        with create_progress() as progress:
-            task = progress.add_task(
-                "Resolving external identifiers", total=len(batches)
-            )
-            for partial in partial_results:
-                for key, uris in partial.items():
-                    identifier_uris[key].extend(uris)
-                progress.advance(task)
-
-    all_identifier_uris = frozenset(
-        uri for uris in identifier_uris.values() for uri in uris
-    )
-    ra_files = _data_files(os.path.join(config.rdf_dir, "ra"), config.zip_output)
-    ras_by_identifier: dict[str, list[str]] = defaultdict(list)
-    batches = _batches(ra_files, 24)
-    with ProcessPoolExecutor(
-        max_workers=workers,
-        mp_context=_fork_context,
-        initializer=_init_identity_agent_scan,
-        initargs=(all_identifier_uris,),
-    ) as executor:
-        partial_results = executor.map(_scan_identity_agent_batch, batches)
-        with create_progress() as progress:
-            task = progress.add_task("Finding identifier holders", total=len(batches))
-            for partial in partial_results:
-                for identifier_uri, ra_uris in partial.items():
-                    ras_by_identifier[identifier_uri].extend(ra_uris)
-                progress.advance(task)
-
-    return {
-        key: IdentityEntry(
-            tuple(sorted(set(identifier_uris[key]))),
-            tuple(
-                sorted(
-                    {
-                        ra_uri
-                        for identifier_uri in identifier_uris[key]
-                        for ra_uri in ras_by_identifier[identifier_uri]
-                    }
-                )
-            ),
+    if rendered_identifiers:
+        return (
+            f"{rendered_name} [{rendered_identifiers}]"
+            if rendered_name
+            else f"[{rendered_identifiers}]"
         )
-        for key in targets
-    }
+    return rendered_name
 
 
-def _agent_plan(agent: AgentMetadata) -> dict[str, object]:
-    return {
-        "family": agent["family"],
-        "given": agent["given"],
-        "name": agent["name"],
-        "identifiers": [
-            {"scheme": scheme, "value": value}
-            for scheme, value in _supported_agent_identifiers(agent)
-        ],
-    }
-
-
-def _agent_name(agent: AgentMetadata) -> PersonName:
-    return PersonName(name=agent["name"], given=agent["given"], family=agent["family"])
-
-
-def _has_conflicting_identifier(local: AgentRecord, external: AgentMetadata) -> bool:
-    external_by_scheme: dict[str, set[str]] = defaultdict(set)
-    for scheme, value in _supported_agent_identifiers(external):
-        external_by_scheme[scheme].add(value)
-    local_by_scheme: dict[str, set[str]] = defaultdict(set)
-    for identifier in local.identifiers:
-        scheme, value = _normalized_identifier(identifier.scheme, identifier.value)
-        if scheme in SUPPORTED_AGENT_IDENTIFIERS:
-            local_by_scheme[scheme].add(value)
-    return any(
-        scheme in local_by_scheme
-        and local_by_scheme[scheme].isdisjoint(external_values)
-        for scheme, external_values in external_by_scheme.items()
+def serialize_agents(agents: list[AgentMetadata]) -> str:
+    return "; ".join(
+        _serialize_name(
+            agent["family"],
+            agent["given"],
+            agent["name"],
+            agent["identifiers"],
+        )
+        for agent in agents
     )
 
 
-def _identity_resolution(
-    agent: AgentMetadata,
-    identity_index: dict[tuple[str, str], IdentityEntry],
+def work_csv_row(
+    work: WorkRecord,
+    work_entity: dict[str, object],
+    identifiers: Mapping[str, str],
+    metadata: WorkMetadata,
+) -> dict[str, str]:
+    doi = identifiers["doi"]
+    publisher = _serialize_name(
+        "",
+        "",
+        metadata["publisher"],
+        metadata["publisher_identifiers"],
+    )
+    return {
+        "id": f"{_omid(work.uri)} doi:{doi}",
+        "title": _first(_literals(work_entity, DCTERMS_TITLE)),
+        "author": serialize_agents(metadata["author"]),
+        "issue": "",
+        "volume": "",
+        "venue": "",
+        "page": "",
+        "pub_date": "",
+        "type": _local_type(work_entity),
+        "publisher": publisher,
+        "editor": serialize_agents(metadata["editor"]),
+    }
+
+
+def _select_provider(
+    provider: WorkProviderClient, doi: str
 ) -> tuple[
     str | None,
-    list[dict[str, object]],
-    tuple[str, ...],
-    dict[str, object] | None,
+    WorkMetadata | None,
+    list[str],
+    list[dict[str, str]],
 ]:
-    identifiers = _supported_agent_identifiers(agent)
-    evidence = [
-        {
-            "scheme": scheme,
-            "value": value,
-            "identifier_uris": list(identity_index[(scheme, value)].identifier_uris),
-            "ra_uris": list(identity_index[(scheme, value)].ra_uris),
-        }
-        for scheme, value in identifiers
-    ]
-    ra_uris = {
-        ra_uri
-        for identifier in identifiers
-        for ra_uri in identity_index[identifier].ra_uris
-    }
-    if len(ra_uris) > 1:
-        return None, evidence, tuple(sorted(ra_uris)), None
-    if ra_uris:
-        return next(iter(ra_uris)), evidence, (), None
-    for scheme, value in identifiers:
-        entry = identity_index[(scheme, value)]
-        if len(entry.identifier_uris) > 1:
-            return (
-                None,
-                evidence,
-                (),
-                {
-                    "type": "ambiguous_identifier",
-                    "role": agent["role"],
-                    "position": agent["position"],
-                    "identifier_resolutions": evidence,
-                },
-            )
-    return None, evidence, (), None
-
-
-def _agent_record_plan(agent: AgentRecord) -> dict[str, object]:
-    return {
-        "family": agent.name.family,
-        "given": agent.name.given,
-        "name": agent.name.name,
-        "identifiers": [
-            {"scheme": scheme, "value": value}
-            for scheme, value in (
-                _normalized_identifier(identifier.scheme, identifier.value)
-                for identifier in agent.identifiers
-            )
-            if scheme in SUPPORTED_AGENT_IDENTIFIERS
-        ],
-    }
-
-
-def _preserve_role(
-    role_name: str,
-    current_roles: list[RoleRecord],
-    agents: dict[str, AgentRecord],
-) -> dict[str, object]:
-    ordered = _ordered_roles(current_roles)
-    return {
-        "role": role_name,
-        "source": None,
-        "targets": [
+    attempted = []
+    errors = []
+    if not doi:
+        return None, None, attempted, errors
+    attempted.append("crossref")
+    try:
+        metadata = provider.crossref(doi)
+    except requests.RequestException as error:
+        errors.append(
             {
-                "position": position,
-                "agent": _agent_record_plan(agents[role.holders[0]]),
-                "source": None,
-                "ar": role.uri,
-                "old_ra": role.holders[0],
-                "ra": role.holders[0],
-                "ra_action": "reuse",
-                "resolution": "local",
-                "identifier_resolutions": [],
-                "old_next": role.next_uris[0] if role.next_uris else None,
-            }
-            for position, role in enumerate(ordered)
-        ],
-        "delete_ars": [],
-    }
-
-
-def _reconcile_role(
-    role_name: str,
-    current_roles: list[RoleRecord],
-    external_agents: list[AgentMetadata],
-    agents: dict[str, AgentRecord],
-    identity_index: dict[tuple[str, str], IdentityEntry],
-    source: str,
-) -> tuple[dict[str, object], dict[str, object] | None]:
-    ordered = _ordered_roles(current_roles)
-    available = set(range(len(ordered)))
-    targets: list[dict[str, object]] = []
-    ambiguous_candidates_by_position: dict[int, tuple[str, ...]] = {}
-    for position, external in enumerate(external_agents):
-        exact_ra, identifier_resolutions, ambiguous_candidates, blocker = (
-            _identity_resolution(external, identity_index)
-        )
-        if blocker is not None:
-            return {}, blocker
-        if ambiguous_candidates:
-            ambiguous_candidates_by_position[position] = ambiguous_candidates
-        resolution = "identifier" if exact_ra is not None else "new"
-        selected_index: int | None = None
-        if exact_ra is not None:
-            matching_roles = [
-                index
-                for index in sorted(available)
-                if ordered[index].holders[0] == exact_ra
-            ]
-            if matching_roles:
-                selected_index = matching_roles[0]
-        elif not ambiguous_candidates:
-            scored = sorted(
-                (
-                    name_score(
-                        agents[ordered[index].holders[0]].name,
-                        _agent_name(external),
-                    ),
-                    index,
-                )
-                for index in available
-                if not _has_conflicting_identifier(
-                    agents[ordered[index].holders[0]], external
-                )
-            )
-            if scored and scored[-1][0] >= CONFIRMED_NAME_SCORE:
-                top_score = scored[-1][0]
-                top = [index for score, index in scored if score == top_score]
-                if len(top) == 1:
-                    selected_index = top[0]
-                    exact_ra = ordered[selected_index].holders[0]
-                    resolution = "name"
-        selected_role = ordered[selected_index] if selected_index is not None else None
-        if selected_index is not None:
-            available.remove(selected_index)
-        targets.append(
-            {
-                "position": position,
-                "agent": _agent_plan(external),
-                "source": source,
-                "ar": selected_role.uri if selected_role is not None else None,
-                "old_ra": (
-                    selected_role.holders[0] if selected_role is not None else None
-                ),
-                "ra": exact_ra,
-                "ra_action": "reuse" if exact_ra is not None else "create",
-                "resolution": resolution,
-                "identifier_resolutions": identifier_resolutions,
-                "old_next": (
-                    selected_role.next_uris[0]
-                    if selected_role is not None and selected_role.next_uris
-                    else None
-                ),
+                "provider": "crossref",
+                "error": type(error).__name__,
+                "message": str(error),
             }
         )
-
-    unassigned_targets = [target for target in targets if target["ar"] is None]
-    remaining_roles = [ordered[index] for index in sorted(available)]
-    for target, role in zip(unassigned_targets, remaining_roles):
-        target["ar"] = role.uri
-        target["old_ra"] = role.holders[0]
-        target["old_next"] = role.next_uris[0] if role.next_uris else None
-        available.remove(ordered.index(role))
-
-    for target in targets:
-        if target["resolution"] != "new" or target["ar"] is None:
-            continue
-        position = cast(int, target["position"])
-        external = external_agents[position]
-        holder = cast(str, target["old_ra"])
-        local = agents[holder]
-        compatible = name_score(
-            local.name, _agent_name(external)
-        ) >= CONFIRMED_NAME_SCORE and not _has_conflicting_identifier(local, external)
-        candidates = (
-            ambiguous_candidates_by_position[position]
-            if position in ambiguous_candidates_by_position
-            else ()
-        )
-        if candidates:
-            if compatible and holder in candidates:
-                target["ra"] = holder
-                target["ra_action"] = "reuse"
-                target["resolution"] = "ambiguous_identifier_local"
-                continue
-            return (
-                {},
-                {
-                    "type": "ambiguous_identifier",
-                    "role": role_name,
-                    "position": position,
-                    "aligned_ar": target["ar"],
-                    "aligned_holder": holder,
-                    "candidate_ras": list(candidates),
-                    "identifier_resolutions": target["identifier_resolutions"],
-                },
-            )
-        if compatible:
-            target["ra"] = holder
-            target["ra_action"] = "reuse"
-            target["resolution"] = "position_name"
-
-    for position, candidates in ambiguous_candidates_by_position.items():
-        target = targets[position]
-        if target["resolution"] == "ambiguous_identifier_local":
-            continue
-        return (
-            {},
+        metadata = None
+    if metadata is not None:
+        return "crossref", metadata, attempted, errors
+    attempted.append("datacite")
+    try:
+        metadata = provider.datacite(doi)
+    except requests.RequestException as error:
+        errors.append(
             {
-                "type": "ambiguous_identifier",
-                "role": role_name,
-                "position": position,
-                "aligned_ar": target["ar"],
-                "aligned_holder": target["old_ra"],
-                "candidate_ras": list(candidates),
-                "identifier_resolutions": target["identifier_resolutions"],
-            },
-        )
-
-    deleted = [ordered[index].uri for index in sorted(available)]
-    return {
-        "role": role_name,
-        "source": source,
-        "targets": targets,
-        "delete_ars": deleted,
-    }, None
-
-
-def _preconditions(
-    work: WorkRecord,
-    roles: dict[str, RoleRecord],
-    agents: dict[str, AgentRecord],
-    raw_entities: dict[str, dict[str, object]],
-    missing: tuple[str, ...],
-    provenance: dict[str, str],
-    contexts: dict[str, tuple[str, ...]],
-) -> dict[str, object]:
-    entity_uris = {work.uri}
-    for role_uri in work.role_uris:
-        if role_uri not in roles:
-            continue
-        entity_uris.add(role_uri)
-        for holder in roles[role_uri].holders:
-            if holder not in agents:
-                continue
-            entity_uris.add(holder)
-            entity_uris.update(
-                identifier.uri for identifier in agents[holder].identifiers
-            )
-    entity_uris.update(work.identifier_uris)
-    return {
-        "entities": {
-            uri: raw_entities[uri] for uri in sorted(entity_uris) if uri in raw_entities
-        },
-        "dangling_ar_references": list(missing),
-        "provenance": {uri: provenance[uri] for uri in missing},
-        "contexts": {uri: list(contexts[uri]) for uri in sorted(work.role_uris)},
-    }
-
-
-def _dangling_reference_review(
-    missing: tuple[str, ...], provenance: dict[str, str]
-) -> list[dict[str, object]]:
-    references = []
-    for uri in missing:
-        actions = ["remove_from_br"]
-        if provenance[uri] == "latest_snapshot_active":
-            actions.append("invalidate_provenance")
-        references.append(
-            {
-                "ar": uri,
-                "provenance": provenance[uri],
-                "actions": actions,
+                "provider": "datacite",
+                "error": type(error).__name__,
+                "message": str(error),
             }
         )
-    return references
+        metadata = None
+    if metadata is not None:
+        return "datacite", metadata, attempted, errors
+    return None, None, attempted, errors
 
 
-def _next_target(
-    target: dict[str, object] | None, role_name: str
-) -> dict[str, object] | None:
-    if target is None:
-        return None
-    if target["ar"] is not None:
-        return {"uri": target["ar"]}
-    return {
-        "uri": None,
-        "role": role_name,
-        "position": target["position"],
-        "minted_at_execution": True,
-    }
-
-
-def _review_changes(
-    dangling_references: list[dict[str, object]],
-    role_plans: list[dict[str, object]],
-) -> list[dict[str, object]]:
-    changes: list[dict[str, object]] = [
-        {
-            "action": "remove_dangling_reference",
-            "ar": reference["ar"],
-        }
-        for reference in dangling_references
-    ]
-    for role_plan in role_plans:
-        role_name = cast(str, role_plan["role"])
-        targets = cast(list[dict[str, object]], role_plan["targets"])
-        for target in targets:
-            if target["ra_action"] == "create":
-                changes.append(
-                    {
-                        "action": "create_responsible_agent",
-                        "role": role_name,
-                        "position": target["position"],
-                        "agent": target["agent"],
-                        "planned_uri": None,
-                        "minted_at_execution": True,
-                    }
-                )
-            if target["ar"] is None:
-                changes.append(
-                    {
-                        "action": "create_agent_role",
-                        "role": role_name,
-                        "position": target["position"],
-                        "planned_uri": None,
-                        "minted_at_execution": True,
-                    }
-                )
-            elif target["ra_action"] == "create" or target["old_ra"] != target["ra"]:
-                changes.append(
-                    {
-                        "action": "reassign_agent_role",
-                        "ar": target["ar"],
-                        "old_ra": target["old_ra"],
-                        "new_ra": target["ra"],
-                        "role": role_name,
-                        "position": target["position"],
-                    }
-                )
-        changes.extend(
-            {"action": "delete_agent_role", "ar": ar_uri, "role": role_name}
-            for ar_uri in cast(list[str], role_plan["delete_ars"])
-        )
-        for position, target in enumerate(targets):
-            if target["ar"] is None:
-                continue
-            next_target = targets[position + 1] if position + 1 < len(targets) else None
-            desired = _next_target(next_target, role_name)
-            desired_uri = desired["uri"] if desired is not None else None
-            if target["old_next"] == desired_uri and not (
-                desired is not None and desired_uri is None
-            ):
-                continue
-            change: dict[str, object] = {
-                "action": "update_next_link",
-                "ar": target["ar"],
-                "old_next": target["old_next"],
-                "new_next": desired_uri,
-            }
-            if desired is not None and desired_uri is None:
-                change["new_target"] = desired
-            changes.append(change)
-    return changes
-
-
-def _finalize_repair(repair: dict[str, object]) -> dict[str, object]:
-    repair["group_id"] = _object_sha256(repair)[:20]
-    return repair
-
-
-def _build_repair(
-    draft: dict[str, object],
-    roles: dict[str, RoleRecord],
-    agents: dict[str, AgentRecord],
-    identity_index: dict[tuple[str, str], IdentityEntry],
-) -> dict[str, object]:
-    review = cast(dict[str, object], draft["review"])
-    execution = cast(dict[str, object], draft["execution"])
-    problem = cast(dict[str, object], review["problem"])
-    dangling_references = cast(
-        list[dict[str, object]], problem["dangling_ar_references"]
-    )
-    status = cast(str, review["status"])
-    if status != "ready":
-        execution["role_plans"] = []
-        review["changes"] = _review_changes(dangling_references, [])
-        draft.pop("_work_record")
-        draft.pop("_targets")
-        return _finalize_repair(draft)
-    work = cast(WorkRecord, draft["_work_record"])
-    targets = cast(dict[str, list[AgentMetadata]], draft.pop("_targets"))
-    sources = cast(dict[str, str | None], review["selected_provider_by_role"])
-    role_plans = []
-    for role_name in ROLE_NAMES:
-        current = [
-            roles[uri]
-            for uri in work.role_uris
-            if uri in roles and roles[uri].role == role_name
-        ]
-        source = sources[role_name]
-        if source is None:
-            role_plan = _preserve_role(role_name, current, agents)
-            blocker = None
-        else:
-            role_plan, blocker = _reconcile_role(
-                role_name,
-                current,
-                targets[role_name],
-                agents,
-                identity_index,
-                source,
-            )
-        if blocker is not None:
-            review["status"] = "blocked"
-            cast(list[dict[str, object]], review["blockers"]).append(blocker)
-            execution["role_plans"] = []
-            review["changes"] = _review_changes(dangling_references, [])
-            draft.pop("_work_record")
-            return _finalize_repair(draft)
-        role_plans.append(role_plan)
-    execution["role_plans"] = role_plans
-    review["changes"] = _review_changes(dangling_references, role_plans)
-    draft.pop("_work_record")
-    return _finalize_repair(draft)
-
-
-def _repair_payload(repair: dict[str, object]) -> dict[str, object]:
-    payload = dict(repair)
-    payload.pop("group_id")
+def _operation_payload(operation: dict[str, object]) -> dict[str, object]:
+    payload = dict(operation)
+    payload.pop("operation_id")
     return payload
 
 
-def _verify_repair_id(repair: dict[str, object]) -> None:
-    group_id = repair["group_id"]
-    if not isinstance(group_id, str):
-        raise ValueError("Repair group_id must be a string")
-    if _object_sha256(_repair_payload(repair))[:20] != group_id:
-        raise ValueError(f"Correction plan has modified repair group {group_id}")
+def _finalize_operation(operation: dict[str, object]) -> dict[str, object]:
+    operation["operation_id"] = _object_sha256(operation)[:20]
+    return operation
 
 
-def _target_identifier_keys(
-    targets: dict[str, list[AgentMetadata]],
-) -> set[tuple[str, str]]:
+def _verify_operation_id(operation: dict[str, object]) -> None:
+    operation_id = operation["operation_id"]
+    if not isinstance(operation_id, str):
+        raise ValueError("Operation ID must be a string")
+    if _object_sha256(_operation_payload(operation))[:20] != operation_id:
+        raise ValueError(f"Correction plan has modified operation {operation_id}")
+
+
+def _operation_preconditions(
+    work: WorkRecord,
+    role_entities: Mapping[str, dict[str, object]],
+    raw_entities: Mapping[str, dict[str, object]],
+    missing: tuple[str, ...],
+    contexts: Mapping[str, tuple[str, ...]],
+    links: set[tuple[str, str]],
+    owned_missing: set[str],
+    provenance: Mapping[str, str],
+) -> dict[str, object]:
     return {
-        identifier
-        for role_targets in targets.values()
-        for agent in role_targets
-        for identifier in _supported_agent_identifiers(agent)
+        "br_entity": raw_entities[work.uri],
+        "identifier_entities": {
+            uri: raw_entities[uri]
+            for uri in sorted(work.identifier_uris)
+            if uri in raw_entities
+        },
+        "role_entities": {
+            uri: role_entities[uri]
+            for uri in sorted(work.role_uris)
+            if uri in role_entities
+        },
+        "role_references": list(work.role_uris),
+        "dangling_ar_references": list(missing),
+        "owned_missing_provenance": {
+            uri: provenance[uri] for uri in sorted(owned_missing)
+        },
+        "contexts": {uri: list(contexts[uri]) for uri in sorted(set(work.role_uris))},
+        "has_next_edges": [
+            [source, target]
+            for source, target in sorted(links)
+            if source in work.role_uris or target in work.role_uris
+        ],
     }
 
 
 def build_repair_plan(
     works: dict[str, WorkRecord],
-    roles: dict[str, RoleRecord],
-    agents: dict[str, AgentRecord],
+    role_entities: dict[str, dict[str, object]],
     identifiers: dict[str, IdentifierRecord],
     raw_entities: dict[str, dict[str, object]],
     missing_by_work: dict[str, tuple[str, ...]],
     contexts: dict[str, tuple[str, ...]],
     provenance: dict[str, str],
+    links: set[tuple[str, str]],
     provider: WorkProviderClient,
-    config: AuditConfig,
-    workers: int,
-) -> list[dict[str, object]]:
-    drafts = []
-    identity_targets: set[tuple[str, str]] = set()
+) -> tuple[list[dict[str, object]], dict[str, list[dict[str, str]]]]:
+    affected_brs = set(works)
+    target_roles = {role_uri for work in works.values() for role_uri in work.role_uris}
+    owners = {
+        role_uri: min(
+            br_uri for br_uri, work in works.items() if role_uri in work.role_uris
+        )
+        for role_uri in target_roles
+    }
+    boundary_links = {
+        edge for edge in links if (edge[0] in target_roles) != (edge[1] in target_roles)
+    }
+    operations = []
+    rows_by_provider: dict[str, list[dict[str, str]]] = {
+        provider_name: [] for provider_name in PROVIDERS
+    }
     with create_progress() as progress:
         task = progress.add_task("Querying work metadata", total=len(works))
         for br_uri in sorted(works):
             if _stop_requested:
                 break
             work = works[br_uri]
-            blockers = _structural_anomalies(work, roles, contexts)
-            for missing_uri in missing_by_work[br_uri]:
-                if len(contexts[missing_uri]) != 1:
+            work_identifiers = _work_identifiers(work, identifiers)
+            blockers = []
+            for role_uri in sorted(set(work.role_uris)):
+                external_contexts = sorted(set(contexts[role_uri]) - affected_brs)
+                if external_contexts:
                     blockers.append(
                         {
-                            "type": "multiple_contexts",
-                            "ar": missing_uri,
-                            "contexts": list(contexts[missing_uri]),
+                            "type": "shared_agent_role",
+                            "ar": role_uri,
+                            "external_contexts": external_contexts,
                         }
                     )
-            for role_uri in work.role_uris:
-                if role_uri in roles and any(
-                    holder not in agents for holder in roles[role_uri].holders
-                ):
-                    blockers.append({"type": "missing_agent", "ar": role_uri})
-            work_identifiers = _work_identifiers(work, identifiers)
-            doi = work_identifiers["doi"] if "doi" in work_identifiers else ""
-            openalex_id = (
-                work_identifiers["openalex"] if "openalex" in work_identifiers else ""
-            )
-            provider_works = (
-                [] if blockers else provider.all_work_sources(doi, openalex_id)
-            )
-            targets, role_sources = select_provider_targets(provider_works)
-            warnings = [
-                {
-                    "type": "role_not_provided",
-                    "role": role_name,
-                    "action": "preserve_local_chain",
-                }
-                for role_name in ROLE_NAMES
-                if not blockers and role_sources[role_name] is None
-            ]
-            status = "blocked" if blockers else "ready"
+            for source, target in sorted(boundary_links):
+                if source in work.role_uris or target in work.role_uris:
+                    blockers.append(
+                        {
+                            "type": "external_has_next",
+                            "source": source,
+                            "target": target,
+                        }
+                    )
+            selected_provider = None
+            metadata = None
+            attempted_providers: list[str] = []
+            provider_errors: list[dict[str, str]] = []
             if not blockers:
-                identity_targets.update(_target_identifier_keys(targets))
-            work_entity = raw_entities[br_uri]
-            titles = _literals(work_entity, DCTERMS_TITLE)
-            title = titles[0] if titles else None
-            dangling_references = _dangling_reference_review(
-                missing_by_work[br_uri], provenance
+                (
+                    selected_provider,
+                    metadata,
+                    attempted_providers,
+                    provider_errors,
+                ) = _select_provider(
+                    provider,
+                    work_identifiers["doi"] if "doi" in work_identifiers else "",
+                )
+                if metadata is None:
+                    blockers.append(
+                        {
+                            "type": "provider_unavailable",
+                            "doi": work_identifiers["doi"]
+                            if "doi" in work_identifiers
+                            else "",
+                            "attempted_providers": attempted_providers,
+                            "errors": provider_errors,
+                        }
+                    )
+            existing_roles = sorted(
+                role_uri
+                for role_uri in set(work.role_uris)
+                if role_uri in role_entities and owners[role_uri] == br_uri
             )
-            drafts.append(
+            owned_missing = {
+                role_uri
+                for role_uri in missing_by_work[br_uri]
+                if owners[role_uri] == br_uri
+            }
+            invalidate_missing = sorted(
+                role_uri
+                for role_uri in owned_missing
+                if provenance[role_uri] == "latest_snapshot_active"
+            )
+            work_entity = raw_entities[br_uri]
+            operation = _finalize_operation(
                 {
                     "work": {
                         "br": br_uri,
-                        "title": title,
+                        "title": _first(_literals(work_entity, DCTERMS_TITLE)),
+                        "type": _local_type(work_entity),
                         "identifiers": work_identifiers,
                     },
-                    "review": {
-                        "status": status,
-                        "problem": {
-                            "dangling_ar_references": dangling_references,
-                        },
-                        "provider_records_found": [
-                            work_metadata["source"] for work_metadata in provider_works
-                        ],
-                        "selected_provider_by_role": role_sources,
-                        "changes": [],
-                        "warnings": warnings,
-                        "blockers": blockers,
+                    "provider": {
+                        "selected": selected_provider,
+                        "attempted": attempted_providers,
+                        "errors": provider_errors,
+                        "author_count": len(metadata["author"])
+                        if metadata is not None
+                        else 0,
+                        "editor_count": len(metadata["editor"])
+                        if metadata is not None
+                        else 0,
+                        "publisher_present": bool(metadata["publisher"])
+                        if metadata is not None
+                        else False,
                     },
-                    "execution": {
-                        "preconditions": _preconditions(
-                            work,
-                            roles,
-                            agents,
-                            raw_entities,
-                            missing_by_work[br_uri],
-                            provenance,
-                            contexts,
-                        ),
-                        "role_plans": [],
+                    "blockers": blockers,
+                    "actions": {
+                        "remove_role_references": list(work.role_uris),
+                        "delete_existing_ars": existing_roles,
+                        "invalidate_missing_ars": invalidate_missing,
                     },
-                    "_work_record": work,
-                    "_targets": targets,
+                    "preconditions": _operation_preconditions(
+                        work,
+                        role_entities,
+                        raw_entities,
+                        missing_by_work[br_uri],
+                        contexts,
+                        links,
+                        owned_missing,
+                        provenance,
+                    ),
                 }
             )
+            operations.append(operation)
+            if metadata is not None and selected_provider is not None and not blockers:
+                rows_by_provider[selected_provider].append(
+                    work_csv_row(work, work_entity, work_identifiers, metadata)
+                )
             progress.advance(task)
-    identity_index = scan_identity_index(config, identity_targets, workers)
-    return [_build_repair(draft, roles, agents, identity_index) for draft in drafts]
+    return operations, rows_by_provider
 
 
-def _review_row(repair: dict[str, object]) -> dict[str, str | int]:
-    work = cast(dict[str, object], repair["work"])
-    identifiers = cast(dict[str, str], work["identifiers"])
-    review = cast(dict[str, object], repair["review"])
-    return {
-        "group_id": cast(str, repair["group_id"]),
-        "br": cast(str, work["br"]),
-        "doi": identifiers["doi"] if "doi" in identifiers else "",
-        "status": cast(str, review["status"]),
-        "decision": "",
-    }
-
-
-def write_review_file(path: str, repairs: list[dict[str, object]]) -> None:
+def _write_csv(path: str, rows: list[dict[str, str]]) -> None:
     _ensure_parent(path)
     with open(path, "w", newline="", encoding="utf-8") as stream:
-        writer = csv.DictWriter(stream, fieldnames=list(REVIEW_FIELDS))
+        writer = csv.DictWriter(stream, fieldnames=FIELDNAMES)
         writer.writeheader()
-        for repair in repairs:
-            writer.writerow(_review_row(repair))
+        writer.writerows(rows)
 
 
-def read_review_decisions(
-    path: str, repairs: list[dict[str, object]]
-) -> list[dict[str, object]]:
-    repairs_by_id = {}
-    for repair in repairs:
-        _verify_repair_id(repair)
-        group_id = cast(str, repair["group_id"])
-        if group_id in repairs_by_id:
-            raise ValueError(f"Repeated repair group: {group_id}")
-        repairs_by_id[group_id] = repair
-    decisions = {}
-    with open(path, newline="", encoding="utf-8") as stream:
-        reader = csv.DictReader(stream)
-        if reader.fieldnames != list(REVIEW_FIELDS):
-            raise ValueError(f"Unexpected review CSV header: {reader.fieldnames}")
-        for row in reader:
-            group_id = row["group_id"]
-            if group_id in decisions:
-                raise ValueError(f"Repeated review group: {group_id}")
-            if group_id not in repairs_by_id:
-                raise ValueError(f"Unknown review group: {group_id}")
-            expected = {
-                field: str(value)
-                for field, value in _review_row(repairs_by_id[group_id]).items()
-                if field != "decision"
-            }
-            changed = [
-                field
-                for field in REVIEW_FIELDS
-                if field != "decision" and row[field] != expected[field]
-            ]
-            if changed:
-                raise ValueError(
-                    f"Review row {group_id} differs from the plan in: {changed}"
-                )
-            decision = row["decision"].strip().casefold()
-            if decision not in {"", "approve", "reject"}:
-                raise ValueError(f"Invalid decision for {group_id}: {row['decision']}")
-            repair_review = cast(dict[str, object], repairs_by_id[group_id]["review"])
-            if decision == "approve" and repair_review["status"] != "ready":
-                raise ValueError(f"Blocked repair group cannot be approved: {group_id}")
-            decisions[group_id] = decision
-    missing = repairs_by_id.keys() - decisions.keys()
-    if missing:
-        raise ValueError(f"Review CSV is missing groups: {sorted(missing)}")
-    return [
-        repair
-        for group_id, repair in repairs_by_id.items()
-        if decisions[group_id] == "approve"
-    ]
+def write_provider_csvs(
+    output_dir: str, rows_by_provider: Mapping[str, list[dict[str, str]]]
+) -> dict[str, dict[str, object]]:
+    output_dir = os.path.abspath(output_dir)
+    parent = os.path.dirname(output_dir)
+    os.makedirs(parent, exist_ok=True)
+    staging_dir = tempfile.mkdtemp(
+        prefix=f".{os.path.basename(output_dir)}.", dir=parent
+    )
+    backup_dir = f"{staging_dir}.previous"
+    try:
+        for provider_name in PROVIDERS:
+            _write_csv(
+                os.path.join(staging_dir, provider_name, "input.csv"),
+                rows_by_provider[provider_name],
+            )
+        if os.path.exists(output_dir):
+            os.replace(output_dir, backup_dir)
+        try:
+            os.replace(staging_dir, output_dir)
+        except OSError:
+            if os.path.exists(backup_dir):
+                os.replace(backup_dir, output_dir)
+            raise
+        if os.path.exists(backup_dir):
+            shutil.rmtree(backup_dir)
+    finally:
+        if os.path.exists(staging_dir):
+            shutil.rmtree(staging_dir)
+    return {
+        provider_name: {
+            "path": os.path.join(output_dir, provider_name, "input.csv"),
+            "sha256": _sha256(os.path.join(output_dir, provider_name, "input.csv")),
+            "rows": len(rows_by_provider[provider_name]),
+        }
+        for provider_name in PROVIDERS
+    }
 
 
 def analyze_dangling_ars(
     config_path: str,
     report_path: str,
-    review_path: str,
+    csv_output_dir: str,
     cache_path: str,
     mailto: str,
     workers: int,
     refresh_cache: bool,
-    openalex_api_key: str,
 ) -> dict[str, object]:
     global _stop_requested
     _stop_requested = False
+    config_path = os.path.abspath(config_path)
+    report_path = os.path.abspath(report_path)
+    csv_output_dir = os.path.abspath(csv_output_dir)
+    cache_path = os.path.abspath(cache_path)
     config = load_audit_config(config_path)
     works, role_entities, missing_by_work, contexts = find_dangling_works(
         config, workers
     )
+    target_roles = {role_uri for work in works.values() for role_uri in work.role_uris}
+    links = scan_role_links(config, target_roles, workers)
     locator = EntityFileLocator(
         config.rdf_dir, config.dir_split, config.items_per_file, config.zip_output
     )
-    roles, agents, identifiers, raw_entities, provenance = _local_context(
+    identifiers, raw_entities, provenance = _load_local_context(
         works, role_entities, missing_by_work, locator, workers
     )
     _ensure_parent(cache_path)
     api_cache = ApiCache(cache_path)
     provider = AgentMetadataClient(
-        mailto=mailto,
-        cache=api_cache,
-        refresh_cache=refresh_cache,
-        openalex_api_key=openalex_api_key,
+        mailto=mailto, cache=api_cache, refresh_cache=refresh_cache
     )
     try:
-        repairs = build_repair_plan(
+        operations, rows_by_provider = build_repair_plan(
             works,
-            roles,
-            agents,
+            role_entities,
             identifiers,
             raw_entities,
             missing_by_work,
             contexts,
             provenance,
+            links,
             provider,
-            config,
-            workers,
         )
     finally:
         provider.close()
         api_cache.close()
-    status_counts = Counter(
-        cast(str, cast(dict[str, object], repair["review"])["status"])
-        for repair in repairs
-    )
-    blocker_counts = Counter(
-        cast(str, blocker["type"])
-        for repair in repairs
-        for blocker in cast(
-            list[dict[str, object]],
-            cast(dict[str, object], repair["review"])["blockers"],
-        )
+    blockers = [
+        blocker
+        for operation in operations
+        for blocker in cast(list[dict[str, object]], operation["blockers"])
+    ]
+    complete = not _stop_requested and len(operations) == len(works)
+    executable = complete and not blockers
+    csv_files = (
+        write_provider_csvs(csv_output_dir, rows_by_provider) if executable else {}
     )
     report: dict[str, object] = {
-        "complete": not _stop_requested,
+        "version": PLAN_VERSION,
+        "complete": complete,
+        "executable": executable,
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "config": os.path.abspath(config_path),
+        "config": config_path,
         "config_sha256": _sha256(config_path),
         "rdf_dir": config.rdf_dir,
-        "api_cache": os.path.abspath(cache_path),
-        "review_file": os.path.abspath(review_path),
+        "api_cache": cache_path,
+        "csv_output_dir": csv_output_dir,
+        "csv_files": csv_files,
+        "operations_sha256": _object_sha256(operations),
         "summary": {
             "affected_brs": len(works),
+            "planned_operations": len(operations),
             "dangling_ar_references": len(
                 {uri for missing in missing_by_work.values() for uri in missing}
             ),
-            "status_counts": dict(sorted(status_counts.items())),
-            "blocker_counts": dict(sorted(blocker_counts.items())),
+            "existing_ars_to_delete": len(role_entities),
+            "blocker_counts": dict(
+                sorted(
+                    Counter(cast(str, blocker["type"]) for blocker in blockers).items()
+                )
+            ),
+            "provider_counts": dict(
+                sorted(
+                    Counter(
+                        cast(
+                            str,
+                            cast(dict[str, object], operation["provider"])["selected"],
+                        )
+                        for operation in operations
+                        if cast(dict[str, object], operation["provider"])["selected"]
+                        is not None
+                    ).items()
+                )
+            ),
         },
-        "repairs": repairs,
+        "operations": operations,
     }
     _write_json(report_path, report)
-    write_review_file(review_path, repairs)
     return report
 
 
-def _plan_repairs(plan: dict[str, object]) -> list[dict[str, object]]:
-    raw_repairs = plan["repairs"]
-    if not isinstance(raw_repairs, list) or not all(
-        isinstance(repair, dict) for repair in raw_repairs
+def _plan_operations(plan: dict[str, object]) -> list[dict[str, object]]:
+    if "version" not in plan or plan["version"] != PLAN_VERSION:
+        version = plan["version"] if "version" in plan else "missing"
+        raise ValueError(
+            f"Unsupported correction plan version: {version}; expected {PLAN_VERSION}"
+        )
+    raw_operations = plan["operations"]
+    if not isinstance(raw_operations, list) or not all(
+        isinstance(operation, dict) for operation in raw_operations
     ):
-        raise ValueError("Correction plan repairs must be a list of objects")
-    repairs = cast(list[dict[str, object]], raw_repairs)
-    for repair in repairs:
-        _verify_repair_id(repair)
-    return repairs
+        raise ValueError("Correction plan operations must be a list of objects")
+    operations = cast(list[dict[str, object]], raw_operations)
+    for operation in operations:
+        _verify_operation_id(operation)
+    if plan["operations_sha256"] != _object_sha256(operations):
+        raise ValueError("Correction plan operations were modified")
+    return operations
 
 
-def _plan_agent_identifiers(agent: dict[str, object]) -> list[tuple[str, str]]:
-    raw_identifiers = agent["identifiers"]
-    if not isinstance(raw_identifiers, list):
-        raise ValueError("Planned agent identifiers must be a list")
-    identifiers = []
-    for raw_identifier in raw_identifiers:
-        if not isinstance(raw_identifier, dict):
-            raise ValueError("Planned agent identifier must be an object")
-        identifier = cast(dict[str, object], raw_identifier)
-        scheme = identifier["scheme"]
-        value = identifier["value"]
-        if not isinstance(scheme, str) or not isinstance(value, str):
-            raise ValueError("Planned agent identifier fields must be strings")
-        key = _normalized_identifier(scheme, value)
-        if key[0] not in SUPPORTED_AGENT_IDENTIFIERS:
-            raise ValueError(f"Unsupported agent identifier scheme: {key[0]}")
-        identifiers.append(key)
-    return identifiers
+def _verify_csv_files(plan: dict[str, object]) -> None:
+    csv_output_dir = plan["csv_output_dir"]
+    csv_files = plan["csv_files"]
+    if not isinstance(csv_output_dir, str) or not isinstance(csv_files, dict):
+        raise ValueError("Correction plan CSV metadata is invalid")
+    if set(csv_files) != set(PROVIDERS):
+        raise ValueError("Correction plan must contain Crossref and DataCite CSVs")
+    for provider_name in PROVIDERS:
+        entry = csv_files[provider_name]
+        if not isinstance(entry, dict):
+            raise ValueError(f"Invalid CSV metadata for {provider_name}")
+        expected_path = os.path.join(csv_output_dir, provider_name, "input.csv")
+        if entry["path"] != expected_path:
+            raise ValueError(f"Unexpected CSV path for {provider_name}")
+        if not os.path.isfile(expected_path):
+            raise ValueError(f"Planned CSV is missing: {expected_path}")
+        if entry["sha256"] != _sha256(expected_path):
+            raise ValueError(f"Planned CSV changed: {expected_path}")
 
 
-def _repair_targets(repair: dict[str, object]) -> Iterator[dict[str, object]]:
-    execution = repair["execution"]
-    if not isinstance(execution, dict):
-        raise ValueError("Repair execution must be an object")
-    role_plans = execution["role_plans"]
-    if not isinstance(role_plans, list):
-        raise ValueError("Repair role_plans must be a list")
-    for raw_role_plan in role_plans:
-        if not isinstance(raw_role_plan, dict):
-            raise ValueError("Repair role plan must be an object")
-        role_plan = cast(dict[str, object], raw_role_plan)
-        raw_targets = role_plan["targets"]
-        if not isinstance(raw_targets, list):
-            raise ValueError("Repair targets must be a list")
-        for raw_target in raw_targets:
-            if not isinstance(raw_target, dict):
-                raise ValueError("Repair target must be an object")
-            yield cast(dict[str, object], raw_target)
+def _load_progress(path: str, plan_sha256: str, operations_sha256: str) -> set[str]:
+    if not os.path.exists(path):
+        return set()
+    progress = _read_json_object(path)
+    if progress["plan_sha256"] != plan_sha256:
+        raise ValueError("Progress file belongs to a different correction plan")
+    if progress["operations_sha256"] != operations_sha256:
+        raise ValueError("Progress file contains a different operation set")
+    completed = progress["completed_operations"]
+    if not isinstance(completed, list) or not all(
+        isinstance(operation_id, str) for operation_id in completed
+    ):
+        raise ValueError("Invalid completed_operations in progress file")
+    return set(cast(list[str], completed))
 
 
-def _repair_identifier_keys(
-    repairs: list[dict[str, object]],
-) -> set[tuple[str, str]]:
-    return {
-        key
-        for repair in repairs
-        for target in _repair_targets(repair)
-        if target["resolution"] != "local"
-        for key in _plan_agent_identifiers(cast(dict[str, object], target["agent"]))
-    }
+def _save_progress(
+    path: str,
+    plan_sha256: str,
+    operations_sha256: str,
+    completed: set[str],
+) -> None:
+    _write_json(
+        path,
+        {
+            "plan_sha256": plan_sha256,
+            "operations_sha256": operations_sha256,
+            "completed_operations": sorted(completed),
+        },
+    )
 
 
-def _current_role_contexts(
-    config: AuditConfig, role_uris: tuple[str, ...], workers: int
+def _current_contexts(
+    config: AuditConfig, role_uris: set[str], workers: int
 ) -> dict[str, tuple[str, ...]]:
     if not role_uris:
         return {}
-    role_set = frozenset(role_uris)
-    contexts: dict[str, list[str]] = defaultdict(list)
     br_files = _data_files(os.path.join(config.rdf_dir, "br"), config.zip_output)
-    batches = _batches(br_files, 24)
-    with ProcessPoolExecutor(
-        max_workers=workers,
-        mp_context=_fork_context,
-        initializer=_init_role_context_scan,
-        initargs=(role_set,),
-    ) as executor:
-        for partial in executor.map(_scan_role_context_batch, batches):
-            for role_uri, work_uris in partial.items():
-                contexts[role_uri].extend(work_uris)
-    return {role_uri: tuple(sorted(contexts[role_uri])) for role_uri in role_uris}
+    return _scan_contexts(br_files, frozenset(role_uris), workers)
 
 
 def _capture_preconditions(
-    repair: dict[str, object],
+    operation: dict[str, object],
     config: AuditConfig,
+    contexts: Mapping[str, tuple[str, ...]],
+    links: set[tuple[str, str]],
+    completed_deleted_roles: set[str],
     workers: int,
-    role_contexts: dict[str, tuple[str, ...]] | None = None,
 ) -> dict[str, object]:
-    work_summary = repair["work"]
-    if not isinstance(work_summary, dict):
-        raise ValueError("Repair work must be an object")
-    br_uri = work_summary["br"]
-    if not isinstance(br_uri, str):
-        raise ValueError("Repair BR must be a string")
+    work_summary = cast(dict[str, object], operation["work"])
+    br_uri = cast(str, work_summary["br"])
     locator = EntityFileLocator(
         config.rdf_dir, config.dir_split, config.items_per_file, config.zip_output
     )
@@ -1545,94 +934,94 @@ def _capture_preconditions(
     )
     role_entities = load_available_entities(set(work.role_uris), locator, workers)
     missing = tuple(sorted(set(work.role_uris) - role_entities.keys()))
-    missing_by_work = {br_uri: missing}
-    roles, agents, _, raw_entities, provenance = _local_context(
-        {br_uri: work}, role_entities, missing_by_work, locator, workers
+    identifier_entities = load_available_entities(
+        set(work.identifier_uris), locator, workers
     )
-    contexts = (
-        _current_role_contexts(config, work.role_uris, workers)
-        if role_contexts is None
-        else {
-            uri: role_contexts[uri] if uri in role_contexts else ()
-            for uri in work.role_uris
-        }
+    raw_entities = {br_uri: work_entity, **role_entities, **identifier_entities}
+    planned_preconditions = cast(dict[str, object], operation["preconditions"])
+    owned_provenance = cast(
+        dict[str, str], planned_preconditions["owned_missing_provenance"]
     )
-    return _preconditions(
-        work, roles, agents, raw_entities, missing, provenance, contexts
+    provenance = load_provenance_statuses(set(owned_provenance), locator, workers)
+    current = _operation_preconditions(
+        work,
+        role_entities,
+        raw_entities,
+        missing,
+        contexts,
+        links,
+        set(owned_provenance),
+        provenance,
     )
+    current_roles = cast(dict[str, object], current["role_entities"])
+    planned_roles = cast(dict[str, object], planned_preconditions["role_entities"])
+    if completed_deleted_roles.intersection(current_roles):
+        raise RuntimeError(f"Stale plan: a deleted agent role reappeared for {br_uri}")
+    current["role_entities"] = {
+        uri: entity
+        for uri, entity in current_roles.items()
+        if uri not in completed_deleted_roles
+    }
+    expected = dict(planned_preconditions)
+    expected["role_entities"] = {
+        uri: entity
+        for uri, entity in planned_roles.items()
+        if uri not in completed_deleted_roles
+    }
+    expected["dangling_ar_references"] = sorted(
+        set(cast(list[str], expected["dangling_ar_references"]))
+        | completed_deleted_roles.intersection(work.role_uris)
+    )
+    current_edges = cast(list[list[str]], current["has_next_edges"])
+    planned_edges = cast(list[list[str]], expected["has_next_edges"])
+    new_edges_to_deleted_roles = {
+        tuple(edge)
+        for edge in current_edges
+        if completed_deleted_roles.intersection(edge)
+    } - {tuple(edge) for edge in planned_edges}
+    if new_edges_to_deleted_roles:
+        raise RuntimeError(
+            f"Stale plan: role links changed for {br_uri}: "
+            f"{sorted(new_edges_to_deleted_roles)}"
+        )
+    current["has_next_edges"] = [
+        edge for edge in current_edges if not completed_deleted_roles.intersection(edge)
+    ]
+    expected["has_next_edges"] = [
+        edge for edge in planned_edges if not completed_deleted_roles.intersection(edge)
+    ]
+    if current != expected:
+        raise RuntimeError(f"Stale plan: local RDF state changed for {br_uri}")
+    return current
 
 
-def _validate_identity_index(
-    repair: dict[str, object],
-    identity_index: dict[tuple[str, str], IdentityEntry],
+def _import_exact_entities(
+    editor: MetaEditor,
+    g_set: GraphSet,
+    uris: set[str],
+    locator: EntityFileLocator,
 ) -> None:
-    for target in _repair_targets(repair):
-        if target["resolution"] == "local":
-            continue
-        agent = cast(dict[str, object], target["agent"])
-        keys = _plan_agent_identifiers(agent)
-        raw_resolutions = target["identifier_resolutions"]
-        if not isinstance(raw_resolutions, list):
-            raise ValueError("Identifier resolutions must be a list")
-        planned_entries = {}
-        for raw_resolution in raw_resolutions:
-            if not isinstance(raw_resolution, dict):
-                raise ValueError("Identifier resolution must be an object")
-            resolution = cast(dict[str, object], raw_resolution)
-            scheme = resolution["scheme"]
-            value = resolution["value"]
-            identifier_uris = resolution["identifier_uris"]
-            ra_uris = resolution["ra_uris"]
-            if (
-                not isinstance(scheme, str)
-                or not isinstance(value, str)
-                or not isinstance(identifier_uris, list)
-                or not all(isinstance(uri, str) for uri in identifier_uris)
-                or not isinstance(ra_uris, list)
-                or not all(isinstance(uri, str) for uri in ra_uris)
-            ):
-                raise ValueError("Invalid identifier resolution")
-            planned_entries[_normalized_identifier(scheme, value)] = IdentityEntry(
-                tuple(cast(list[str], identifier_uris)),
-                tuple(cast(list[str], ra_uris)),
-            )
-        current_entries = {key: identity_index[key] for key in keys}
-        if current_entries != planned_entries:
-            work = cast(dict[str, object], repair["work"])
-            raise RuntimeError(
-                f"Stale plan: identifier resolution changed for {work['br']}"
-            )
-
-
-def _source_url(repair: dict[str, object], source: str) -> str | None:
-    work = cast(dict[str, object], repair["work"])
-    identifiers = cast(dict[str, str], work["identifiers"])
-    doi = identifiers["doi"] if "doi" in identifiers else ""
-    openalex_id = identifiers["openalex"] if "openalex" in identifiers else ""
-    if source == "crossref" and doi:
-        return f"https://api.crossref.org/works/{doi}"
-    if source == "datacite" and doi:
-        return f"https://api.datacite.org/dois/{doi}"
-    if source == "openalex":
-        if openalex_id:
-            return f"https://api.openalex.org/works/{openalex_id.rsplit('/', 1)[-1]}"
-        if doi:
-            return f"https://api.openalex.org/works?filter=doi:{doi}"
-    return None
-
-
-def _import_files(
-    editor: MetaEditor, g_set: GraphSet, uris: set[str], locator: EntityFileLocator
-) -> None:
-    paths = {locator.path(uri) for uri in uris}
-    for path in sorted(paths):
+    uris_by_path: dict[str, set[str]] = defaultdict(set)
+    for uri in uris:
+        uris_by_path[locator.path(uri)].add(uri)
+    for path, path_uris in sorted(uris_by_path.items()):
         if not os.path.exists(path):
             continue
         graph = editor.reader.load(path)
-        if graph is not None:
-            editor.reader.import_entities_from_graph(
-                g_set, graph, editor.resp_agent, enable_validation=False
-            )
+        if graph is None:
+            continue
+        merged = TripleLite()
+        for context in from_rdflib(graph):
+            for triple in context.triples((None, None, None)):
+                merged.add(triple)
+        for uri in sorted(path_uris):
+            preexisting = merged.subgraph(uri)
+            if "/br/" in uri:
+                g_set.add_br(editor.resp_agent, res=uri, preexisting_graph=preexisting)
+            elif "/ar/" in uri:
+                g_set.add_ar(editor.resp_agent, res=uri, preexisting_graph=preexisting)
+            else:
+                raise ValueError(f"Unsupported entity in correction operation: {uri}")
 
 
 def _bibliographic_resource(g_set: GraphSet, uri: str) -> BibliographicResource:
@@ -1642,205 +1031,54 @@ def _bibliographic_resource(g_set: GraphSet, uri: str) -> BibliographicResource:
     return entity
 
 
-def _entity_uri(entity: AgentRole | ResponsibleAgent | Identifier) -> str:
-    return str(entity.res)
-
-
-def _create_identifier_value(identifier: Identifier, scheme: str, value: str) -> None:
-    if scheme == "orcid":
-        identifier.create_orcid(value)
-    elif scheme == "crossref":
-        identifier.create_crossref(value)
-    elif scheme == "ror":
-        identifier.g.add(
-            (
-                identifier.res,
-                GraphEntity.iri_uses_identifier_scheme,
-                RDFTerm("uri", f"{DATACITE_PREFIX}ror"),
-            )
-        )
-        identifier.g.add(
-            (
-                identifier.res,
-                GraphEntity.iri_has_literal_value,
-                RDFTerm("literal", value, XSD_STRING),
-            )
-        )
-    else:
-        raise ValueError(f"Unsupported agent identifier scheme: {scheme}")
-
-
-def _set_agent_name(agent: ResponsibleAgent, metadata: dict[str, object]) -> None:
-    family = metadata["family"]
-    given = metadata["given"]
-    name = metadata["name"]
-    if not all(isinstance(value, str) for value in (family, given, name)):
-        raise ValueError("Planned agent names must be strings")
-    if family:
-        agent.has_family_name(cast(str, family))
-    if given:
-        agent.has_given_name(cast(str, given))
-    if name and not family and not given:
-        agent.has_name(cast(str, name))
-
-
-def _resolve_target_agent(
+def _apply_operation(
     editor: MetaEditor,
-    g_set: GraphSet,
-    repair: dict[str, object],
-    target: dict[str, object],
-    identity_index: dict[tuple[str, str], IdentityEntry],
-) -> ResponsibleAgent:
-    resolution = target["resolution"]
-    ra_action = target["ra_action"]
-    planned_ra = target["ra"]
-    if not isinstance(resolution, str) or ra_action not in {"reuse", "create"}:
-        raise ValueError("Invalid planned RA resolution")
-    if ra_action == "reuse":
-        if not isinstance(planned_ra, str):
-            raise ValueError("Reused RA must have a planned URI")
-        return _responsible_agent(g_set, planned_ra)
-    if planned_ra is not None:
-        raise ValueError("Created RA must not have a planned URI")
-
-    metadata = cast(dict[str, object], target["agent"])
-    keys = _plan_agent_identifiers(metadata)
-
-    source = target["source"]
-    if not isinstance(source, str):
-        raise ValueError("Planned provider source must be a string")
-    source_url = _source_url(repair, source)
-    agent = g_set.add_ra(editor.resp_agent, source=source_url)
-    _set_agent_name(agent, metadata)
-    for scheme, value in keys:
-        entry = identity_index[(scheme, value)]
-        if entry.identifier_uris:
-            identifier = _identifier(g_set, entry.identifier_uris[0])
-        else:
-            identifier = g_set.add_id(editor.resp_agent, source=source_url)
-            _create_identifier_value(identifier, scheme, value)
-        agent.has_identifier(identifier)
-        identity_index[(scheme, value)] = IdentityEntry(
-            (_entity_uri(identifier),), (_entity_uri(agent),)
-        )
-    return agent
-
-
-def _create_role(
-    editor: MetaEditor,
-    g_set: GraphSet,
-    repair: dict[str, object],
-    role_name: str,
-    source: str,
-) -> AgentRole:
-    role = g_set.add_ar(editor.resp_agent, source=_source_url(repair, source))
-    if role_name == "author":
-        role.create_author()
-    elif role_name == "editor":
-        role.create_editor()
-    elif role_name == "publisher":
-        role.create_publisher()
-    else:
-        raise ValueError(f"Unsupported role: {role_name}")
-    return role
-
-
-def _apply_repair(
-    editor: MetaEditor,
-    repair: dict[str, object],
-    identity_index: dict[tuple[str, str], IdentityEntry],
+    operation: dict[str, object],
     locator: EntityFileLocator,
 ) -> None:
-    work = cast(dict[str, object], repair["work"])
+    work = cast(dict[str, object], operation["work"])
     br_uri = cast(str, work["br"])
-    execution = cast(dict[str, object], repair["execution"])
-    preconditions = cast(dict[str, object], execution["preconditions"])
-    local_entities = cast(dict[str, object], preconditions["entities"])
-    import_uris = set(local_entities)
-    for target in _repair_targets(repair):
-        if target["resolution"] == "local":
-            continue
-        for key in _plan_agent_identifiers(cast(dict[str, object], target["agent"])):
-            import_uris.update(identity_index[key].identifier_uris)
-            import_uris.update(identity_index[key].ra_uris)
+    actions = cast(dict[str, object], operation["actions"])
+    delete_existing = set(cast(list[str], actions["delete_existing_ars"]))
     g_set = GraphSet(
         editor.base_iri,
         supplier_prefix=editor.supplier_prefix,
         custom_counter_handler=editor.counter_handler,
         wanted_label=False,
     )
-    _import_files(editor, g_set, import_uris, locator)
+    _import_exact_entities(editor, g_set, {br_uri, *delete_existing}, locator)
     br = _bibliographic_resource(g_set, br_uri)
-    provenance = cast(dict[str, str], preconditions["provenance"])
-    for missing_uri in cast(list[str], preconditions["dangling_ar_references"]):
+    for role_uri in cast(list[str], actions["remove_role_references"]):
         br.g.remove(
             (
                 br.res,
                 GraphEntity.iri_is_document_context_for,
-                RDFTerm("uri", missing_uri),
+                RDFTerm("uri", role_uri),
             )
         )
-        if provenance[missing_uri] == "latest_snapshot_active":
-            missing_role = g_set.add_ar(editor.resp_agent, res=missing_uri)
-            missing_role.mark_as_to_be_deleted()
-
-    role_plans = cast(list[dict[str, object]], execution["role_plans"])
-    for role_plan in role_plans:
-        role_name = cast(str, role_plan["role"])
-        source = role_plan["source"]
-        targets = cast(list[dict[str, object]], role_plan["targets"])
-        desired_roles: list[AgentRole] = []
-        for target in targets:
-            agent = _resolve_target_agent(editor, g_set, repair, target, identity_index)
-            ar_uri = target["ar"]
-            if isinstance(ar_uri, str):
-                role = _agent_role(g_set, ar_uri)
-                if cast(str, target["old_ra"]) != _entity_uri(agent):
-                    role.remove_is_held_by()
-                    role.is_held_by(agent)
-            else:
-                if ar_uri is not None or not isinstance(source, str):
-                    raise ValueError("Created AR must have a provider source")
-                role = _create_role(editor, g_set, repair, role_name, source)
-                role.is_held_by(agent)
-                br.has_contributor(role)
-            desired_roles.append(role)
-        for position, (target, role) in enumerate(zip(targets, desired_roles)):
-            right = (
-                desired_roles[position + 1]
-                if position + 1 < len(desired_roles)
-                else None
-            )
-            desired_next = _entity_uri(right) if right is not None else None
-            if target["ar"] is None:
-                if right is not None:
-                    role.has_next(right)
-                continue
-            if target["old_next"] == desired_next:
-                continue
-            role.remove_next()
-            if right is not None:
-                role.has_next(right)
-        for ar_uri in cast(list[str], role_plan["delete_ars"]):
-            role = _agent_role(g_set, ar_uri)
-            br.remove_contributor(role)
-            role.mark_as_to_be_deleted()
+    for role_uri in sorted(delete_existing):
+        role = g_set.get_entity(role_uri)
+        if role is None:
+            raise ValueError(f"Agent role not imported: {role_uri}")
+        role.mark_as_to_be_deleted()
+    for role_uri in cast(list[str], actions["invalidate_missing_ars"]):
+        g_set.add_ar(editor.resp_agent, res=role_uri).mark_as_to_be_deleted()
     editor.save(g_set, editor.supplier_prefix)
 
 
 def _write_reindex_sentinel(path: str, plan_path: str) -> None:
     with open(path, "w", encoding="utf-8") as stream:
         stream.write(
-            f"{plan_path} changed local RDF files.\nRe-index the triplestore from "
-            "the RDF files, then delete this file before another correction or "
-            "merge run. Run duplicate detection again before fix_duplicate_ras.\n"
+            f"{plan_path} changed local RDF files.\nRe-index the data and provenance "
+            "triplestores from the RDF files, then delete this file. Run Meta for "
+            "the Crossref and DataCite CSV directories only after this plan is "
+            "complete.\n"
         )
 
 
 def execute_plan(
     config_path: str,
     plan_path: str,
-    review_path: str | None,
     resp_agent: str,
     progress_path: str,
     execution_report_path: str,
@@ -1848,104 +1086,103 @@ def execute_plan(
 ) -> dict[str, object]:
     global _stop_requested
     _stop_requested = False
+    config_path = os.path.abspath(config_path)
     plan_path = os.path.abspath(plan_path)
     plan = _read_json_object(plan_path)
-    if plan["complete"] is not True:
-        raise ValueError("The correction plan is incomplete and cannot be executed")
+    operations = _plan_operations(plan)
+    if plan["complete"] is not True or plan["executable"] is not True:
+        raise ValueError("The correction plan is not executable")
     if plan["config_sha256"] != _sha256(config_path):
-        raise ValueError("The meta configuration changed after plan generation")
-    repairs = _plan_repairs(plan)
-    selected_review_path = os.path.abspath(
-        review_path or cast(str, plan["review_file"])
-    )
-    approved = read_review_decisions(selected_review_path, repairs)
-    sentinel_path = os.path.join(os.path.dirname(plan_path), REINDEX_SENTINEL_FILENAME)
-    if os.path.exists(sentinel_path):
-        raise RuntimeError(
-            f"{sentinel_path} exists. Re-index the triplestore and remove the "
-            "sentinel before executing this plan."
-        )
-
+        raise ValueError("The Meta configuration changed after plan generation")
+    if any(cast(list[object], operation["blockers"]) for operation in operations):
+        raise ValueError("An executable correction plan cannot contain blockers")
+    _verify_csv_files(plan)
     plan_sha256 = _sha256(plan_path)
-    review_sha256 = _sha256(selected_review_path)
-    completed = _load_progress(progress_path, plan_sha256, review_sha256)
-    approved_ids = {cast(str, repair["group_id"]) for repair in approved}
-    unknown_completed = completed - approved_ids
+    operations_sha256 = cast(str, plan["operations_sha256"])
+    completed = _load_progress(progress_path, plan_sha256, operations_sha256)
+    operation_ids = {cast(str, operation["operation_id"]) for operation in operations}
+    unknown_completed = completed - operation_ids
     if unknown_completed:
         raise ValueError(
-            f"Progress file contains unknown groups: {sorted(unknown_completed)}"
+            f"Progress file contains unknown operations: {sorted(unknown_completed)}"
         )
+    sentinel_path = os.path.join(os.path.dirname(plan_path), REINDEX_SENTINEL_FILENAME)
+    if os.path.exists(sentinel_path) and not os.path.exists(progress_path):
+        raise RuntimeError(
+            f"{sentinel_path} exists. Re-index the triplestores and remove the "
+            "sentinel before starting another correction plan."
+        )
+    pending = [
+        operation
+        for operation in operations
+        if cast(str, operation["operation_id"]) not in completed
+    ]
+    completed_deleted_roles = {
+        role_uri
+        for operation in operations
+        if cast(str, operation["operation_id"]) in completed
+        for role_uri in cast(
+            list[str],
+            cast(dict[str, object], operation["actions"])["delete_existing_ars"],
+        )
+    }
+    pending_role_uris = {
+        role_uri
+        for operation in pending
+        for role_uri in cast(
+            list[str],
+            cast(dict[str, object], operation["preconditions"])["role_references"],
+        )
+    }
     config = load_audit_config(config_path)
+    contexts = _current_contexts(config, pending_role_uris, workers)
+    links = scan_role_links(config, pending_role_uris, workers)
+    for operation in pending:
+        _capture_preconditions(
+            operation,
+            config,
+            contexts,
+            links,
+            completed_deleted_roles,
+            workers,
+        )
     locator = EntityFileLocator(
         config.rdf_dir, config.dir_split, config.items_per_file, config.zip_output
     )
-    identity_index = scan_identity_index(
-        config, _repair_identifier_keys(approved), workers
-    )
     attempted = 0
-    if approved:
-        pending = [
-            repair
-            for repair in approved
-            if cast(str, repair["group_id"]) not in completed
-        ]
-        planned_context_uris = set()
-        for repair in pending:
-            repair_execution = cast(dict[str, object], repair["execution"])
-            repair_preconditions = cast(
-                dict[str, object], repair_execution["preconditions"]
-            )
-            planned_context_uris.update(
-                cast(dict[str, list[str]], repair_preconditions["contexts"])
-            )
-        current_contexts = _current_role_contexts(
-            config, tuple(sorted(planned_context_uris)), workers
-        )
-        for repair in pending:
-            _validate_identity_index(repair, identity_index)
+    if pending:
+        _save_progress(progress_path, plan_sha256, operations_sha256, completed)
         editor = MetaEditor(config_path, resp_agent, save_queries=True)
         editor.rdf_files_only = True
         try:
             with create_progress() as progress:
                 task = progress.add_task(
-                    "Applying approved repairs", total=len(approved)
+                    "Applying correction plan", total=len(operations)
                 )
-                for repair in approved:
-                    group_id = cast(str, repair["group_id"])
-                    if group_id in completed:
-                        progress.advance(task)
-                        continue
+                progress.advance(task, len(completed))
+                for operation in pending:
                     if _stop_requested:
                         break
-                    current_state = _capture_preconditions(
-                        repair, config, workers, current_contexts
-                    )
-                    execution = cast(dict[str, object], repair["execution"])
-                    if current_state != execution["preconditions"]:
-                        work = cast(dict[str, object], repair["work"])
-                        raise RuntimeError(
-                            f"Stale plan: local RDF state changed for {work['br']}"
-                        )
                     attempted += 1
-                    _apply_repair(editor, repair, identity_index, locator)
-                    completed.add(group_id)
-                    _save_progress(progress_path, plan_sha256, review_sha256, completed)
+                    _apply_operation(editor, operation, locator)
+                    completed.add(cast(str, operation["operation_id"]))
+                    _save_progress(
+                        progress_path, plan_sha256, operations_sha256, completed
+                    )
                     progress.advance(task)
         finally:
             if attempted:
                 _write_reindex_sentinel(sentinel_path, plan_path)
-
-    complete = len(completed) == len(approved) and not _stop_requested
+    complete = len(completed) == len(operations) and not _stop_requested
     execution_report: dict[str, object] = {
         "plan": plan_path,
         "plan_sha256": plan_sha256,
-        "review_file": selected_review_path,
-        "review_sha256": review_sha256,
+        "operations_sha256": operations_sha256,
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "complete": complete,
-        "approved_groups": len(approved),
-        "completed_groups": sorted(completed),
-        "reindex_sentinel": sentinel_path if attempted else None,
+        "planned_operations": len(operations),
+        "completed_operations": sorted(completed),
+        "reindex_sentinel": sentinel_path if os.path.exists(sentinel_path) else None,
     }
     _write_json(execution_report_path, execution_report)
     if complete and os.path.exists(progress_path):
@@ -1963,9 +1200,9 @@ def _validate_uri(uri: str) -> None:
 def main() -> None:  # pragma: no cover
     parser = argparse.ArgumentParser(
         description=(
-            "Find bibliographic resources that reference missing agent roles and "
-            "rebuild only their author, editor, and publisher chains from Crossref, "
-            "DataCite, and OpenAlex metadata."
+            "Find bibliographic resources that reference missing agent roles, "
+            "remove all their contributor roles, and prepare Crossref or DataCite "
+            "CSV input for Meta."
         ),
         formatter_class=RichHelpFormatter,
     )
@@ -1974,21 +1211,13 @@ def main() -> None:  # pragma: no cover
     mode.add_argument(
         "--dry-run", action="store_true", help="Generate a plan without changing RDF"
     )
-    mode.add_argument("--execute", metavar="PLAN", help="Execute an approved plan")
+    mode.add_argument("--execute", metavar="PLAN", help="Execute a complete plan")
     parser.add_argument("--report-file", help="Dry-run JSON plan path")
     parser.add_argument(
-        "--review-file",
-        help="Review CSV path; defaults to the path stored in the plan on execution",
+        "--csv-output-dir", help="Directory for Crossref and DataCite Meta CSVs"
     )
     parser.add_argument("--cache-file", help="SQLite API cache path")
     parser.add_argument("--mailto", help="Contact email sent to metadata APIs")
-    parser.add_argument(
-        "--openalex-api-key",
-        default=(
-            os.environ["OPENALEX_API_KEY"] if "OPENALEX_API_KEY" in os.environ else ""
-        ),
-        help="OpenAlex API key; defaults to OPENALEX_API_KEY",
-    )
     parser.add_argument(
         "--refresh-cache", action="store_true", help="Refresh cached API responses"
     )
@@ -2008,19 +1237,19 @@ def main() -> None:  # pragma: no cover
     signal.signal(signal.SIGTERM, _handle_signal)
 
     if args.dry_run:
-        if not args.report_file or not args.mailto:
-            parser.error("--report-file and --mailto are required with --dry-run")
-        review_path = args.review_file or f"{args.report_file}.review.csv"
+        if not args.report_file or not args.csv_output_dir or not args.mailto:
+            parser.error(
+                "--report-file, --csv-output-dir, and --mailto are required with --dry-run"
+            )
         cache_path = args.cache_file or f"{args.report_file}.cache.sqlite"
         report = analyze_dangling_ars(
             config_path=args.config,
-            report_path=os.path.abspath(args.report_file),
-            review_path=os.path.abspath(review_path),
-            cache_path=os.path.abspath(cache_path),
+            report_path=args.report_file,
+            csv_output_dir=args.csv_output_dir,
+            cache_path=cache_path,
             mailto=args.mailto,
             workers=args.workers,
             refresh_cache=args.refresh_cache,
-            openalex_api_key=args.openalex_api_key,
         )
         summary = cast(dict[str, object], report["summary"])
         console.print(
@@ -2028,6 +1257,8 @@ def main() -> None:  # pragma: no cover
             f"Affected BRs: [cyan]{summary['affected_brs']}[/cyan]; dangling AR "
             f"references: [cyan]{summary['dangling_ar_references']}[/cyan]."
         )
+        if report["executable"] is not True:
+            raise SystemExit(1)
         return
 
     if not args.resp_agent:
@@ -2041,7 +1272,6 @@ def main() -> None:  # pragma: no cover
     result = execute_plan(
         config_path=args.config,
         plan_path=plan_path,
-        review_path=args.review_file,
         resp_agent=args.resp_agent,
         progress_path=progress_path,
         execution_report_path=execution_report_path,
@@ -2049,9 +1279,11 @@ def main() -> None:  # pragma: no cover
     )
     console.print(
         f"Execution report written to [cyan]{execution_report_path}[/cyan]. "
-        f"Completed groups: "
-        f"[cyan]{len(cast(list[str], result['completed_groups']))}[/cyan]."
+        f"Completed operations: "
+        f"[cyan]{len(cast(list[str], result['completed_operations']))}[/cyan]."
     )
+    if result["complete"] is not True:
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":
