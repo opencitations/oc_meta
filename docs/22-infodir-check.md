@@ -6,66 +6,77 @@ SPDX-License-Identifier: ISC
 
 # Check info dir
 
-Verifies that filesystem counter files are consistent with the provenance data in the RDF files. Performs two checks:
+Verifies filesystem counter files against both current RDF entities and provenance:
 
-- **Entity counters** (`info_file_*.txt`): the global counter for each entity type must be greater than or equal to the maximum resource number found in the provenance files.
-- **Provenance counters** (`prov_file_*.txt`): the counter value for each entity must match the maximum snapshot number found in its provenance file.
+- **Entity counters** (`info_file_*.txt`): the counter must equal the maximum resource number found in current data or provenance.
+- **Provenance counters** (`prov_file_*.txt`): each value must match the maximum snapshot number found in the RDF provenance.
+- **File structure**: expected files, numeric values, and exact line counts must match.
+- **Missing provenance**: every current entity without a provenance snapshot is reported.
 
 ## Usage
 
 ```bash
-uv run python -m oc_meta.run.infodir.check <directory> <info_dir> [-o OUTPUT]
+uv run python -m oc_meta.run.infodir.check <directory> <info_dir> [options]
 ```
 
 ## Parameters
 
 | Parameter | Required | Description |
 |-----------|----------|-------------|
-| `directory` | Yes | Path to the RDF directory |
+| `directory` | Yes | Path to the zipped JSON-LD RDF directory |
 | `info_dir` | Yes | Base directory for counter files |
-| `-o`, `--output` | No | Output JSON report path (default: `check_info_dir_report.json`) |
+| `-o`, `--output` | No | Output JSON report path; defaults to `check_info_dir_report.json` |
+| `--workers` | No | Worker processes; defaults to `4` |
+| `--max-examples` | No | Examples retained per category; defaults to `100` |
+| `--temp-dir` | No | Temporary storage directory; defaults to the parent of `info_dir` |
 
 ## Process
 
-1. Loads all counter files from the info directory into memory
-2. Collects all provenance ZIP files from the RDF directory
-3. Processes each ZIP in parallel: extracts entity URIs and max snapshot numbers, compares against in-memory provenance counters
-4. After processing all files, compares the global max resource number per entity type against entity counters
-5. Writes a structured JSON report
+1. Reconstructs expected provenance counters in fixed-width temporary files.
+2. Scans current entities and derives exact entity counter values.
+3. Reads each text counter file sequentially and compares values in blocks.
+4. Counts every difference while retaining only the configured number of examples.
+5. Writes a JSON report.
 
 ## Example
 
 ```bash
-uv run python -m oc_meta.run.infodir.check /srv/oc_meta/rdf /srv/oc_meta/info_dir -o /tmp/report.json
+uv run python -m oc_meta.run.infodir.check \
+  /srv/oc_meta/rdf \
+  /srv/oc_meta/info_dir \
+  --workers 8 \
+  -o /tmp/report.json
 ```
+
+## Status and exit codes
+
+- `aligned`, exit `0`: counters and source data agree.
+- `warnings`, exit `1`: counters agree, but current entities without provenance exist.
+- `mismatched`, exit `1`: counter values or files differ.
+- `scan_failed`, exit `2`: the RDF source could not be scanned.
 
 ## Output
 
-A JSON report with the following structure:
-
 ```json
 {
-  "timestamp": "2026-05-01T12:00:00+00:00",
+  "timestamp": "2026-07-18T12:00:00+00:00",
+  "status": "mismatched",
   "root_path": "/srv/oc_meta/rdf",
   "info_dir": "/srv/oc_meta/info_dir",
-  "total_zip_files": 1364452,
-  "total_mismatched_entity_counters": 1,
-  "total_mismatched_prov_counters": 3,
-  "mismatched_entity_counters": [
-    {
-      "prefix": "060",
-      "short_name": "br",
-      "expected_min": 500000,
-      "actual": 400000
-    }
-  ],
-  "mismatched_prov_counters": [
-    {
-      "entity_uri": "https://w3id.org/oc/meta/br/06101234",
-      "expected": 3,
-      "actual": 2,
-      "zip_file": "/srv/oc_meta/rdf/br/060/10000/1000/prov/se.zip"
-    }
-  ]
+  "entity_counter_mismatches": {
+    "total": 1,
+    "examples": [
+      {
+        "prefix": "060",
+        "short_name": "br",
+        "expected": 500000,
+        "actual": 400000,
+        "relation": "too_low"
+      }
+    ],
+    "truncated": false
+  }
 }
 ```
+
+The report contains the same `total`, `examples`, and `truncated` structure for provenance mismatches, counter file errors, and live entities without provenance.

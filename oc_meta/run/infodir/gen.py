@@ -7,179 +7,167 @@
 from __future__ import annotations
 
 import argparse
-import multiprocessing
 import os
-import zipfile
-from concurrent.futures import ProcessPoolExecutor, as_completed
+import shutil
+import tempfile
+from datetime import datetime, timezone
 
-import orjson
-from oc_ocdm.counter_handler.filesystem_counter_handler import FilesystemCounterHandler
-from oc_ocdm.support import get_prefix, get_resource_number, get_short_name
 from rich_argparse import RichHelpFormatter
-from tqdm import tqdm
 
-from oc_meta.lib.file_manager import collect_zip_files
+from oc_meta.lib.console import console
+from oc_meta.run.infodir._common import (
+    CounterKey,
+    SourceDataError,
+    SparseCounterStore,
+    scan_data,
+    scan_provenance,
+    write_json,
+)
 
-
-def find_max_numbered_folder(path):
-    max_number = -1
-    for folder in os.listdir(path):
-        if folder.isdigit():
-            max_number = max(max_number, int(folder))
-    return max_number
-
-
-def find_max_numbered_zip_file(folder_path: str) -> str | None:
-    max_number = -1
-    max_zip_file: str | None = None
-
-    for file_name in os.listdir(folder_path):
-        if file_name.endswith(".zip"):
-            prefix, extension = os.path.splitext(file_name)
-            if prefix.isdigit():
-                number = int(prefix)
-                if number > max_number:
-                    max_number = number
-                    max_zip_file = file_name
-    return max_zip_file
+DEFAULT_WORKERS = 4
+DEFAULT_MAX_EXAMPLES = 100
 
 
-def process_zip_file(zip_file_path):
-    batch_updates = {}
-    with zipfile.ZipFile(zip_file_path, "r") as zip_ref:
-        first_file = zip_ref.namelist()[0]
-        with zip_ref.open(first_file) as entity_file:
-            json_data = orjson.loads(entity_file.read())
-            for graph in json_data:
-                for entity in graph["@graph"]:
-                    prov_entity_uri = entity["@id"]
-                    entity_uri = entity["@id"].split("/prov/se/")[0]
-                    supplier_prefix = get_prefix(entity_uri)
-                    resource_number = get_resource_number(entity_uri)
-                    short_name = get_short_name(entity_uri)
-                    prov_short_name = "se"
-                    counter_value = int(prov_entity_uri.split("/prov/se/")[-1])
-                    batch_key = (short_name, prov_short_name)
-                    if supplier_prefix not in batch_updates:
-                        batch_updates[supplier_prefix] = dict()
-                    if batch_key not in batch_updates[supplier_prefix]:
-                        batch_updates[supplier_prefix][batch_key] = dict()
-                    # Save the maximum counter value for each entity
-                    if resource_number not in batch_updates[supplier_prefix][batch_key]:
-                        batch_updates[supplier_prefix][batch_key][resource_number] = (
-                            counter_value
-                        )
-                    else:
-                        batch_updates[supplier_prefix][batch_key][resource_number] = (
-                            max(
-                                batch_updates[supplier_prefix][batch_key][
-                                    resource_number
-                                ],
-                                counter_value,
-                            )
-                        )
-    return batch_updates
+def generate_info_dir(
+    root_path: str,
+    info_dir: str,
+    workers: int = DEFAULT_WORKERS,
+    max_examples: int = DEFAULT_MAX_EXAMPLES,
+    report_path: str | None = None,
+) -> dict[str, object]:
+    root_path = os.path.abspath(root_path)
+    info_dir = os.path.abspath(info_dir)
+    if os.path.exists(info_dir):
+        raise FileExistsError(f"Info directory already exists: {info_dir}")
+    if max_examples < 0:
+        raise ValueError("max_examples must be non-negative")
 
-
-SUPPLIER_PREFIX = "060"
-
-
-def explore_directories(root_path, info_dir):
-    main_folders = ["ar", "br", "ra", "re", "id"]
-    info_dir_with_prefix = os.path.join(info_dir, SUPPLIER_PREFIX) + os.sep
-    counter_handler = FilesystemCounterHandler(
-        info_dir=info_dir_with_prefix, supplier_prefix=SUPPLIER_PREFIX
+    destination_parent = os.path.dirname(info_dir)
+    os.makedirs(destination_parent, exist_ok=True)
+    staging_dir = tempfile.mkdtemp(
+        prefix=f".{os.path.basename(info_dir)}.", suffix=".tmp", dir=destination_parent
     )
+    scratch_dir = os.path.join(staging_dir, ".scratch")
+    os.makedirs(scratch_dir)
+    store = SparseCounterStore(scratch_dir)
+    published = False
 
-    for main_folder in main_folders:
-        main_folder_path = os.path.join(root_path, main_folder)
-        if os.path.isdir(main_folder_path):
-            for supplier_prefix in os.listdir(main_folder_path):
-                supplier_path = os.path.join(main_folder_path, supplier_prefix)
-                max_folder = find_max_numbered_folder(supplier_path)
-                max_zip_file = find_max_numbered_zip_file(
-                    os.path.join(supplier_path, str(max_folder))
-                )
-                if max_zip_file is None:
-                    continue
-                zip_file_path = os.path.join(
-                    supplier_path, str(max_folder), max_zip_file
-                )
-                with zipfile.ZipFile(zip_file_path, "r") as zip_ref:
-                    first_file = zip_ref.namelist()[0]
-                    with zip_ref.open(first_file) as entity_file:
-                        json_data = orjson.loads(entity_file.read())
-                        max_entity = -1
-                        for graph in json_data:
-                            for entity in graph["@graph"]:
-                                entity_uri = entity["@id"]
-                                resource_number = get_resource_number(entity_uri)
-                                max_entity = max(max_entity, resource_number)
+    try:
+        provenance_scan = scan_provenance(root_path, store, workers)
+        data_scan = scan_data(
+            root_path,
+            store,
+            workers,
+            max_examples,
+        )
+        if provenance_scan.zip_files == 0 and data_scan.zip_files == 0:
+            raise SourceDataError(f"No RDF ZIP files found in {root_path}")
 
-                counter_handler.set_counter(
-                    max_entity, main_folder, supplier_prefix=supplier_prefix
-                )
+        all_keys = store.keys() | set(data_scan.maxima)
+        entity_maxima: dict[CounterKey, int] = {}
+        for key in all_keys:
+            entity_maxima[key] = max(
+                data_scan.maxima[key] if key in data_scan.maxima else 0,
+                store.maximum(key),
+            )
 
-    zip_files = collect_zip_files(root_path, only_prov=True)
+        for (prefix, short_name), maximum in sorted(entity_maxima.items()):
+            prefix_dir = os.path.join(staging_dir, prefix)
+            os.makedirs(prefix_dir, exist_ok=True)
+            with open(
+                os.path.join(prefix_dir, f"info_file_{short_name}.txt"),
+                "w",
+                encoding="utf-8",
+            ) as output_file:
+                output_file.write(f"{maximum}\n")
 
-    # Use forkserver to avoid deadlocks when forking in a multi-threaded environment
-    ctx = multiprocessing.get_context("forkserver")
-    with ProcessPoolExecutor(mp_context=ctx) as executor:
-        future_results = {
-            executor.submit(process_zip_file, zip_file): zip_file
-            for zip_file in zip_files
+        for key in sorted(store.keys()):
+            prefix, short_name = key
+            store.render(
+                key,
+                os.path.join(staging_dir, prefix, f"prov_file_{short_name}.txt"),
+            )
+
+        store.close()
+        shutil.rmtree(scratch_dir)
+        status = (
+            "generated_with_warnings" if data_scan.missing_provenance else "generated"
+        )
+        report: dict[str, object] = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "status": status,
+            "root_path": root_path,
+            "info_dir": info_dir,
+            "source": {
+                "data_zip_files": data_scan.zip_files,
+                "provenance_zip_files": provenance_scan.zip_files,
+                "data_entities": data_scan.entities,
+                "provenance_entities": provenance_scan.entities,
+            },
+            "live_entities_without_provenance": {
+                "total": data_scan.missing_provenance,
+                "examples": data_scan.missing_examples,
+                "truncated": data_scan.missing_provenance
+                > len(data_scan.missing_examples),
+            },
         }
 
-        results = []
-        with tqdm(total=len(zip_files), desc="Processing provenance zip files") as pbar:
-            for future in as_completed(future_results):
-                zip_file = future_results[future]
-                try:
-                    result = future.result()
-                    results.append(result)
-                except Exception as e:
-                    print(f"Error processing file {zip_file}: {e}")
-                finally:
-                    pbar.update(1)
+        os.replace(staging_dir, info_dir)
+        published = True
+    finally:
+        store.close()
+        if not published and os.path.isdir(staging_dir):
+            shutil.rmtree(staging_dir)
 
-    final_batch_updates = {}
-    with tqdm(total=len(results), desc="Merging results") as pbar:
-        for batch in results:
-            for supplier_prefix, value in batch.items():
-                if supplier_prefix not in final_batch_updates:
-                    final_batch_updates[supplier_prefix] = value
-                else:
-                    for batch_key, inner_value in value.items():
-                        if batch_key in final_batch_updates[supplier_prefix]:
-                            for identifier, counter_value in inner_value.items():
-                                current_value = final_batch_updates[supplier_prefix][
-                                    batch_key
-                                ].get(identifier, 0)
-                                final_batch_updates[supplier_prefix][batch_key][
-                                    identifier
-                                ] = max(current_value, counter_value)
-                        else:
-                            final_batch_updates[supplier_prefix][batch_key] = (
-                                inner_value
-                            )
-            pbar.update(1)
+    if report_path is not None:
+        write_json(report_path, report)
 
-    for prefix, updates in final_batch_updates.items():
-        counter_handler.set_counters_batch(updates, prefix)
-    counter_handler.flush()
+    console.print(f"Generated info directory: {info_dir}")
+    console.print(f"Live entities without provenance: {data_scan.missing_provenance}")
+    if report_path is not None:
+        console.print(f"Report saved to {os.path.abspath(report_path)}")
+    return report
 
 
-def main():
+def main() -> int:  # pragma: no cover
     parser = argparse.ArgumentParser(
         description="Scan RDF directories and populate filesystem counter files.",
         formatter_class=RichHelpFormatter,
     )
     parser.add_argument("directory", type=str, help="Path to the RDF directory to scan")
-    parser.add_argument("info_dir", type=str, help="Base directory for counter files")
+    parser.add_argument("info_dir", type=str, help="New counter directory to create")
+    parser.add_argument(
+        "-o",
+        "--output",
+        help="Generation report path (default: <info_dir>.generation-report.json)",
+    )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=DEFAULT_WORKERS,
+        help=f"Worker processes (default: {DEFAULT_WORKERS})",
+    )
+    parser.add_argument(
+        "--max-examples",
+        type=int,
+        default=DEFAULT_MAX_EXAMPLES,
+        help=f"Examples retained per warning category (default: {DEFAULT_MAX_EXAMPLES})",
+    )
     args = parser.parse_args()
+    report_path = (
+        args.output
+        if args.output is not None
+        else f"{os.path.abspath(args.info_dir)}.generation-report.json"
+    )
+    generate_info_dir(
+        args.directory,
+        args.info_dir,
+        workers=args.workers,
+        max_examples=args.max_examples,
+        report_path=report_path,
+    )
+    return 0
 
-    explore_directories(args.directory, args.info_dir)
 
-
-if __name__ == "__main__":
-    main()
+if __name__ == "__main__":  # pragma: no cover
+    raise SystemExit(main())

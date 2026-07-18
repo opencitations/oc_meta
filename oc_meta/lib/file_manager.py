@@ -89,7 +89,8 @@ def collect_zip_files(
         return []
 
     def path_filter(p: str) -> bool:
-        return ("prov" not in p) if only_data else ("prov" in p)
+        is_provenance = "prov" in Path(os.path.relpath(p, root)).parts
+        return not is_provenance if only_data else is_provenance
 
     active_filter = path_filter if only_data or only_prov else None
     files = collect_files(root, "*.zip", active_filter)

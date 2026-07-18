@@ -12,6 +12,8 @@ When processing data, the system reads the current counter value, increments it,
 
 The info dir also tracks provenance snapshot counters. Each time an entity is modified, a new provenance snapshot is created with an incremental number.
 
+An entity counter represents the highest identifier ever assigned. It is therefore the maximum identifier found either among current RDF entities or among provenance subjects. This prevents the reuse of identifiers belonging to deleted entities.
+
 ## Structure
 
 Counter files are stored in `base_output_dir/info_dir/<supplier_prefix>/` with names following this pattern:
@@ -21,8 +23,12 @@ Counter files are stored in `base_output_dir/info_dir/<supplier_prefix>/` with n
 
 Where `short_name` is one of: `br`, `ra`, `ar`, `re`, `id`.
 
+Line `n` of a provenance counter file contains the maximum snapshot number for entity `n`. Empty lines represent entities without a provenance counter.
+
 ## When to use these scripts
 
 - **After importing existing data**: if you load RDF files from another source, you need to generate the info dir so that new entities don't overlap with existing ones
 - **After a system failure**: if counter files are lost, you can rebuild them from the RDF files
 - **To verify consistency**: check that counter files match the actual data in the RDF files
+
+Generation and verification operate on zipped JSON-LD RDF files. Run them while no process is modifying either the RDF directory or the info dir.
