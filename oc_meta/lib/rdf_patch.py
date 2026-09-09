@@ -22,7 +22,7 @@ from oc_ocdm.graph.entities.identifier import Identifier
 from oc_meta.lib.file_manager import find_rdf_file
 from oc_meta.run.meta.generate_csv import load_json_from_file
 
-_forkserver_context = multiprocessing.get_context("forkserver")
+mp_method = "spawn" if os.name == "nt" else "forkserver"
 
 HAS_IDENTIFIER = "http://purl.org/spar/datacite/hasIdentifier"
 USES_IDENTIFIER_SCHEME = "http://purl.org/spar/datacite/usesIdentifierScheme"
@@ -201,7 +201,7 @@ def load_available_entities(
     result = {}
     with ProcessPoolExecutor(
         max_workers=workers,
-        mp_context=_forkserver_context,
+        mp_context=mp_method,
     ) as executor:
         for partial in executor.map(_load_target_batch, batches(tasks, 24)):
             result.update(partial)

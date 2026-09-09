@@ -76,7 +76,7 @@ _stop_requested = False
 _existing_roles: frozenset[str] = frozenset()
 _target_roles: frozenset[str] = frozenset()
 _fork_context = multiprocessing.get_context("fork")
-_forkserver_context = multiprocessing.get_context("forkserver")
+_context = multiprocessing.get_context("forkserver")
 
 
 @dataclass(frozen=True, slots=True)
@@ -311,7 +311,7 @@ def load_provenance_statuses(
     tasks = [(path, frozenset(targets)) for path, targets in targets_by_path.items()]
     statuses = {}
     with ProcessPoolExecutor(
-        max_workers=workers, mp_context=_forkserver_context
+        max_workers=workers, mp_context=_context
     ) as executor:
         for partial in executor.map(_provenance_status_batch, _batches(tasks, 24)):
             statuses.update(partial)

@@ -8,6 +8,7 @@
 import argparse
 import gzip
 import multiprocessing
+import os
 import sys
 import zipfile
 from collections.abc import Iterable, Iterator
@@ -208,7 +209,7 @@ def main() -> None:  # pragma: no cover
         only_prov=args.mode == "prov",
     )
 
-    ctx = multiprocessing.get_context("forkserver")
+    ctx = multiprocessing.get_context("spawn") if os.name == "nt" else multiprocessing.get_context("forkserver")
     with ctx.Pool(processes=num_workers) as pool:
         if output_dir:
             output_dir.mkdir(parents=True, exist_ok=True)

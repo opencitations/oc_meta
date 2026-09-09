@@ -268,7 +268,7 @@ def process_files(
         task = progress.add_task(f"Counting {unit_name}", total=len(files))
 
         # Use forkserver to avoid deadlocks when forking in a multi-threaded environment
-        ctx = multiprocessing.get_context("forkserver")
+        ctx = multiprocessing.get_context("spawn") if os.name == "nt" else multiprocessing.get_context("forkserver")
         with ctx.Pool(processes=workers) as pool:
             for file_path, count, error in pool.imap_unordered(
                 worker_fn, files, chunksize=chunksize

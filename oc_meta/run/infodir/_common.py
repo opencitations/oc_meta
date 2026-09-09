@@ -164,7 +164,7 @@ def bounded_process_map(
     if workers <= 0:
         raise ValueError("workers must be greater than zero")
     path_iterator = iter(paths)
-    context = multiprocessing.get_context("forkserver")
+    context = multiprocessing.get_context("spawn") if os.name == "nt" else multiprocessing.get_context("forkserver")
     pending: dict[Future[ResultType], str] = {}
     with ProcessPoolExecutor(max_workers=workers, mp_context=context) as executor:
         for path in islice(path_iterator, workers * 2):

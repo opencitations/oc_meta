@@ -146,7 +146,7 @@ def process_identifier_chunk(
     entity_info: defaultdict[IdentifierKey, set[str]] = defaultdict(set)
 
     # Use forkserver to avoid deadlocks when forking in a multi-threaded environment.
-    ctx = mp.get_context("forkserver")
+    ctx = mp.get_context("spawn") if os.name == "nt" else mp.get_context("forkserver")
     with ctx.Pool(processes=mp.cpu_count()) as pool:
         results = pool.map(process_identifier_zip_file, zip_files_chunk)
 

@@ -351,7 +351,7 @@ class MetaProcess:
         # Use forkserver to avoid deadlocks when forking from a multi-threaded process.
         # Libraries like Redis and rdflib create background threads, and fork() would
         # copy locked mutexes into the child process, causing hangs.
-        ctx = multiprocessing.get_context("forkserver")
+        ctx = multiprocessing.get_context("spawn") if os.name == "nt" else multiprocessing.get_context("forkserver")
 
         data_process = ctx.Process(
             target=_upload_to_triplestore,
@@ -410,7 +410,7 @@ class MetaProcess:
             # Use forkserver to avoid deadlocks when forking from a multi-threaded process.
             # Libraries like rdflib create background threads, and fork() would
             # copy locked mutexes into the child process, causing hangs.
-            ctx = multiprocessing.get_context("forkserver")
+            ctx = multiprocessing.get_context("spawn") if os.name == "nt" else multiprocessing.get_context("forkserver")
 
             data_store_process = ctx.Process(
                 target=_store_rdf_worker,
