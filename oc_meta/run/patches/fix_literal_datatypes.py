@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import signal
 import shutil
 import zipfile
@@ -195,10 +196,11 @@ def main() -> None:  # pragma: no cover
     ]
 
     # Use forkserver to avoid deadlocks when forking in a multi-threaded environment
+    mp_method = "spawn" if os.name == "nt" else "forkserver"
     executor = ProcessPoolExecutor(
         max_workers=args.workers,
         initializer=_worker_init,
-        mp_context=multiprocessing.get_context("forkserver"),
+        mp_context=multiprocessing.get_context(mp_method),
     )
     try:
         with create_progress() as progress:

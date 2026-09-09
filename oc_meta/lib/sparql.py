@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import multiprocessing
+import os
 import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from typing import Callable
@@ -131,9 +132,11 @@ def run_queries_parallel(
             query_groups.append(batch_queries[i : i + QLEVER_QUERIES_PER_GROUP])
             grouped_sizes.append(sum(batch_sizes[i : i + QLEVER_QUERIES_PER_GROUP]))
 
+        mp_method = "spawn" if os.name == "nt" else "forkserver"
+
         with ProcessPoolExecutor(
             max_workers=min(len(query_groups), workers),
-            mp_context=multiprocessing.get_context("forkserver"),
+            mp_context=multiprocessing.get_context(mp_method),
         ) as executor:
             future_to_size = {
                 executor.submit(

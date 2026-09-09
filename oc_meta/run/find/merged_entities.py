@@ -137,8 +137,9 @@ def main():
     all_results: list[tuple[str, str]] = []
 
     # Use forkserver to avoid deadlocks when forking in a multi-threaded environment
+    mp_method = "spawn" if os.name == "nt" else "forkserver"
     with ProcessPoolExecutor(
-        max_workers=args.workers, mp_context=multiprocessing.get_context("forkserver")
+        max_workers=args.workers, mp_context=multiprocessing.get_context(mp_method)
     ) as executor:
         futures = {executor.submit(process_prov_file, f): f for f in prov_files}
 

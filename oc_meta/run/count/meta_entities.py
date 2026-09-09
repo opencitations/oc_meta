@@ -130,10 +130,11 @@ class OCMetaStatistics:
             task = progress.add_task(
                 "Counting venues from CSV files...", total=len(filepaths)
             )
+            mp_method = "spawn" if os.name == "nt" else "forkserver"
 
             # Use forkserver to avoid deadlocks when forking in a multi-threaded environment
             with ProcessPoolExecutor(
-                mp_context=multiprocessing.get_context("forkserver")
+                mp_context=multiprocessing.get_context(mp_method)
             ) as executor:
                 futures = {
                     executor.submit(_count_venues_in_file, fp): fp for fp in filepaths

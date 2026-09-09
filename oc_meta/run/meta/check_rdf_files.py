@@ -627,11 +627,12 @@ def main() -> None:
     index: Optional[dict[str, str]] = {} if args.input_csv else None
 
     console.print(f"Checking every row of {os.path.basename(args.csv)}...")
+    mp_method = "spawn" if os.name == "nt" else "forkserver"
     with ProcessPoolExecutor(
         max_workers=args.workers,
         initializer=_init_worker,
         initargs=config,
-        mp_context=multiprocessing.get_context("forkserver"),
+        mp_context=multiprocessing.get_context(mp_method),
     ) as pool:
         aggregated = _drive(
             pool,
