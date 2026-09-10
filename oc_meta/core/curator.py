@@ -176,9 +176,11 @@ class Curator:
             for i in range(0, total_rows, self.min_rows_parallel):
                 chunks.append(self.data[i : i + self.min_rows_parallel])
 
+            mp_method = "spawn" if os.name == "nt" else "forkserver"
+
             with ProcessPoolExecutor(
                 max_workers=self.workers,
-                mp_context=multiprocessing.get_context("forkserver"),
+                mp_context=multiprocessing.get_context(mp_method),
             ) as executor:
                 for chunk_metavals, chunk_ids, chunk_vvis in executor.map(
                     _extract_ids_from_chunk, chunks

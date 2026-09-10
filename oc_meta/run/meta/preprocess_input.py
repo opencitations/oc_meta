@@ -364,9 +364,10 @@ def main():  # pragma: no cover
         results: list[FileResult] = []
         with create_progress() as progress:
             task = progress.add_task("Filtering existing IDs", total=len(csv_files))
+            mp_method = "spawn" if os.name == "nt" else "forkserver"
             with ProcessPoolExecutor(
                 max_workers=args.workers,
-                mp_context=multiprocessing.get_context("forkserver"),
+                mp_context=multiprocessing.get_context(mp_method),
             ) as executor:
                 futures = {
                     executor.submit(
@@ -385,9 +386,10 @@ def main():  # pragma: no cover
         results = []
         with create_progress() as progress:
             task = progress.add_task("Reading CSV files", total=len(csv_files))
+            mp_method = "spawn" if os.name == "nt" else "forkserver"
             with ProcessPoolExecutor(
                 max_workers=args.workers,
-                mp_context=multiprocessing.get_context("forkserver"),
+                mp_context=multiprocessing.get_context(mp_method),
             ) as executor:
                 futures = {
                     executor.submit(collect_rows_from_file, f): f for f in csv_files

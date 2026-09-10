@@ -473,7 +473,7 @@ def check_orphans(
         br_files[i : i + batch_size] for i in range(0, len(br_files), batch_size)
     ]
 
-    ctx = multiprocessing.get_context("forkserver")
+    ctx = multiprocessing.get_context("spawn") if os.name == "nt" else multiprocessing.get_context("forkserver")
     with create_progress() as progress:
         task = progress.add_task("Checking orphans", total=len(br_files))
         executor = ProcessPoolExecutor(

@@ -286,7 +286,7 @@ def find_misplaced_editor_ars(
     frbr_part_of: dict[str, list[str]] = {}
     content_ars: dict[str, set[str]] = {}
 
-    ctx = multiprocessing.get_context("forkserver")
+    ctx = multiprocessing.get_context("spawn") if os.name == "nt" else multiprocessing.get_context("forkserver")
 
     with create_progress() as progress:
         br_task = progress.add_task("Scanning BR files", total=len(br_files))

@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import multiprocessing
+import os
 from concurrent.futures import ProcessPoolExecutor
 from functools import partial
 from typing import TYPE_CHECKING, Dict, List, Tuple, TypedDict
@@ -678,9 +679,10 @@ class ResourceFinder:
                     for i in range(0, len(batch_queries), queries_per_worker)
                 ]
                 worker = partial(execute_sparql_queries, ts_url)
+                mp_method = "spawn" if os.name == "nt" else "forkserver"
                 with ProcessPoolExecutor(
                     max_workers=min(len(query_groups), MAX_WORKERS),
-                    mp_context=multiprocessing.get_context("forkserver"),
+                    mp_context=multiprocessing.get_context(mp_method),
                 ) as executor:
                     grouped_results = list(executor.map(worker, query_groups))
                 results = [item for sublist in grouped_results for item in sublist]
@@ -795,9 +797,10 @@ class ResourceFinder:
                         sum(batch_sizes[i : i + QLEVER_QUERIES_PER_GROUP])
                     )
                 worker = partial(execute_sparql_queries, ts_url)
+                mp_method = "spawn" if os.name == "nt" else "forkserver"
                 with ProcessPoolExecutor(
                     max_workers=MAX_WORKERS,
-                    mp_context=multiprocessing.get_context("forkserver"),
+                    mp_context=multiprocessing.get_context(mp_method),
                 ) as executor:
                     results = []
                     for idx, grouped_result in enumerate(
@@ -973,9 +976,10 @@ class ResourceFinder:
                     vvi_count = int(total_vvis * len(group) / len(vvi_queries))
                     grouped_vvi_counts.append(max(1, vvi_count))
                 worker = partial(execute_sparql_queries, ts_url)
+                mp_method = "spawn" if os.name == "nt" else "forkserver"
                 with ProcessPoolExecutor(
                     max_workers=MAX_WORKERS,
-                    mp_context=multiprocessing.get_context("forkserver"),
+                    mp_context=multiprocessing.get_context(mp_method),
                 ) as executor:
                     results = []
                     for idx, grouped_result in enumerate(

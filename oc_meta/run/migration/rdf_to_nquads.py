@@ -113,7 +113,7 @@ def main() -> None:  # pragma: no cover
     )
 
     # Use forkserver to avoid deadlocks when forking in a multi-threaded environment
-    ctx = multiprocessing.get_context("forkserver")
+    ctx = multiprocessing.get_context("spawn") if os.name == "nt" else multiprocessing.get_context("forkserver")
     with ProcessPoolExecutor(max_workers=num_workers, mp_context=ctx) as executor:
         iterator = executor.map(task_func, zip_files)
 

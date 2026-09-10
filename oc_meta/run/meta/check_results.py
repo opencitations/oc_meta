@@ -480,8 +480,9 @@ def process_csv_file(
     prov_future = None
     prov_executor = None
     if total_omids > 0:
+        mp_method = "spawn" if os.name == "nt" else "forkserver"
         prov_executor = ProcessPoolExecutor(
-            max_workers=1, mp_context=multiprocessing.get_context("forkserver")
+            max_workers=1, mp_context=multiprocessing.get_context(mp_method)
         )
         prov_future = prov_executor.submit(
             check_provenance_existence,
@@ -510,9 +511,10 @@ def process_csv_file(
                 result.prov_graphs_missing += 1
 
     if zip_args and workers > 1:
+        mp_method = "spawn" if os.name == "nt" else "forkserver"
         with ProcessPoolExecutor(
             max_workers=min(len(zip_args), workers),
-            mp_context=multiprocessing.get_context("forkserver"),
+            mp_context=multiprocessing.get_context(mp_method),
         ) as executor:
             for future in as_completed(
                 {executor.submit(_check_zip_file, a): a for a in zip_args}

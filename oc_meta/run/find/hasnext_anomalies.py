@@ -309,7 +309,7 @@ def main() -> None:
     total_brs = 0
     all_anomalies: List[dict] = []
 
-    ctx = multiprocessing.get_context("forkserver")
+    ctx = multiprocessing.get_context("spawn") if os.name == "nt" else multiprocessing.get_context("forkserver")
     with ctx.Pool(
         args.workers,
         _init_worker,
