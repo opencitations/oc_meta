@@ -433,11 +433,21 @@ def scan_roles(
 ) -> dict[str, RoleInfo]:
     targets = frozenset(target_ras) if target_ras is not None else None
     result = {}
-    with ThreadPoolExecutor(max_workers=workers) as executor:
-        for partial in executor.map(
-            lambda paths: _scan_roles_batch(paths, targets), _batches(files, 24)
+    batch_size = 24
+    with (
+        create_progress() as progress,
+        ThreadPoolExecutor(max_workers=workers) as executor,
+    ):
+        task = progress.add_task("Scanning agent role archives", total=len(files))
+        for batch_number, partial in enumerate(
+            executor.map(
+                lambda paths: _scan_roles_batch(paths, targets),
+                _batches(files, batch_size),
+            ),
+            start=1,
         ):
             result.update(partial)
+            progress.update(task, completed=min(batch_number * batch_size, len(files)))
             if _stop_requested:
                 break
     return result

@@ -603,6 +603,166 @@ def test_execution_resumes_the_same_plan_after_interruption(
     assert fixer._ids(br_2, fixer.IS_DOCUMENT_CONTEXT_FOR) == []
 
 
+@pytest.mark.parametrize("second_doi", ["10.1000/example", "10.1000/other"])
+def test_multiple_dois_require_review_before_provider_selection(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, second_doi: str
+) -> None:
+    output_dir = tmp_path / "output"
+    config_path = _write_config(tmp_path, output_dir)
+    br = _br_entity(BR_1, ID_1, [AR_2])
+    br[fixer.HAS_IDENTIFIER] = [{"@id": ID_1}, {"@id": ID_2}]
+    _write_entities(
+        output_dir / "rdf",
+        [
+            br,
+            _doi_entity(ID_1, "10.1000/example"),
+            _doi_entity(ID_2, second_doi),
+        ],
+    )
+    StubProvider.crossref_result = _work("crossref")
+
+    report, _, csv_dir = _analyze(tmp_path, monkeypatch, config_path)
+
+    operation = cast(list[dict[str, object]], report["operations"])[0]
+    work = cast(dict[str, object], operation["work"])
+    if second_doi == "10.1000/other":
+        assert operation["blockers"] == [
+            {
+                "type": "multiple_dois",
+                "dois": ["10.1000/example", "10.1000/other"],
+            }
+        ]
+        assert work["identifiers"] == {}
+        assert report["executable"] is False
+        assert StubProvider.calls == []
+        assert csv_dir.exists() is False
+    else:
+        assert operation["blockers"] == []
+        assert work["identifiers"] == {"doi": "10.1000/example"}
+        assert report["executable"] is True
+        assert StubProvider.calls == [("crossref", "10.1000/example")]
+
+
+def test_check_plan_reads_rdf_and_provenance_without_writes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    output_dir = tmp_path / "output"
+    rdf_dir = output_dir / "rdf"
+    config_path = _write_config(tmp_path, output_dir)
+    _write_entities(
+        rdf_dir,
+        [
+            _br_entity(BR_1, ID_1, [AR_2]),
+            _doi_entity(ID_1, "10.1000/example"),
+        ],
+    )
+    provenance_path = _write_active_provenance(rdf_dir, AR_2)
+    StubProvider.crossref_result = _work("crossref")
+    plan, report_path, _ = _analyze(tmp_path, monkeypatch, config_path)
+    before = {
+        str(Path(directory) / filename): (Path(directory) / filename).read_bytes()
+        for directory, _, filenames in os.walk(tmp_path)
+        for filename in filenames
+    }
+
+    result = fixer.check_plan(str(config_path), str(report_path), 1)
+
+    assert result == {
+        "plan_sha256": fixer._sha256(str(report_path)),
+        "local_preconditions_match": True,
+        "bibliographic_review_required": True,
+        "execution_authorized": False,
+        "triplestores_checked": False,
+        "counters_checked": False,
+        "affected_brs": 1,
+        "operations": [
+            {
+                "br": BR_1,
+                "title": "Local title",
+                "identifiers": {"doi": ["10.1000/example"]},
+                "selected_identifiers": {"doi": "10.1000/example"},
+                "provider": cast(list[dict[str, object]], plan["operations"])[0][
+                    "provider"
+                ],
+                "planned_action_counts": {
+                    "remove_role_references": 1,
+                    "delete_existing_ars": 0,
+                    "invalidate_missing_ars": 1,
+                },
+                "blockers": [],
+            }
+        ],
+    }
+    assert {
+        str(Path(directory) / filename): (Path(directory) / filename).read_bytes()
+        for directory, _, filenames in os.walk(tmp_path)
+        for filename in filenames
+    } == before
+    provenance_path.unlink()
+    with pytest.raises(RuntimeError, match="Stale plan: local RDF state changed"):
+        fixer.check_plan(str(config_path), str(report_path), 1)
+
+
+def test_execution_rejects_multi_doi_plan_without_recorded_blocker(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    output_dir = tmp_path / "output"
+    config_path = _write_config(tmp_path, output_dir)
+    _write_entities(
+        output_dir / "rdf",
+        [
+            _br_entity(BR_1, ID_1, [AR_2]),
+            _doi_entity(ID_1, "10.1000/example"),
+        ],
+    )
+    StubProvider.crossref_result = _work("crossref")
+    plan, report_path, _ = _analyze(tmp_path, monkeypatch, config_path)
+    operation = cast(list[dict[str, object]], plan["operations"])[0]
+    preconditions = cast(dict[str, object], operation["preconditions"])
+    identifiers = cast(dict[str, object], preconditions["identifier_entities"])
+    identifiers[ID_2] = _doi_entity(ID_2, "10.1000/other")
+    br = cast(dict[str, object], preconditions["br_entity"])
+    cast(list[dict[str, str]], br[fixer.HAS_IDENTIFIER]).append({"@id": ID_2})
+    operation.pop("operation_id")
+    fixer._finalize_operation(operation)
+    plan["operations_sha256"] = fixer._object_sha256(plan["operations"])
+    report_path.write_bytes(orjson.dumps(plan))
+    _write_entities(
+        output_dir / "rdf",
+        [
+            br,
+            _doi_entity(ID_1, "10.1000/example"),
+            _doi_entity(ID_2, "10.1000/other"),
+        ],
+    )
+
+    review = fixer.check_plan(str(config_path), str(report_path), 1)
+    reviewed_work = cast(list[dict[str, object]], review["operations"])[0]
+    assert reviewed_work["identifiers"] == {"doi": ["10.1000/example", "10.1000/other"]}
+    assert reviewed_work["selected_identifiers"] == {"doi": "10.1000/example"}
+    assert reviewed_work["blockers"] == [
+        {
+            "type": "multiple_dois",
+            "dois": ["10.1000/example", "10.1000/other"],
+        }
+    ]
+
+    with pytest.raises(
+        ValueError, match=f"Multiple DOIs require bibliographic review: {BR_1}"
+    ):
+        fixer.execute_plan(
+            str(config_path),
+            str(report_path),
+            "https://example.org/agent",
+            str(tmp_path / "progress.json"),
+            str(tmp_path / "execution.json"),
+            1,
+        )
+    assert (tmp_path / "progress.json").exists() is False
+    assert (tmp_path / "execution.json").exists() is False
+    assert (tmp_path / fixer.REINDEX_SENTINEL_FILENAME).exists() is False
+
+
 def test_csv_serialization_keeps_all_2880_authors() -> None:
     authors = [
         _agent(f"Author {position}", "author", position) for position in range(2880)

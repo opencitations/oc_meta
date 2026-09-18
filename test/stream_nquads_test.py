@@ -5,19 +5,25 @@
 
 import gzip
 import json
+import multiprocessing
 import zipfile
+from io import BytesIO
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
 import pytest
 from rdflib import Dataset
 
 from oc_meta.run.migration.stream_nquads import (
+    bounded_nquads_results,
     convert_zip_to_nquads,
     convert_zip_to_nquads_file,
     create_progress,
     read_nquads_file_groups,
     write_nquads_chunks,
     write_nquads_line_groups,
+    write_nquads_stdout,
 )
 
 SAMPLE_DATA_JSONLD = json.dumps(
@@ -112,6 +118,63 @@ def _extract_quads(nquads_bytes: bytes) -> set[tuple[str, str, str, str]]:
     graph = Dataset(default_union=True)
     graph.parse(data=nquads_bytes.decode("utf-8"), format="nquads")
     return {(str(s), str(p), str(o), str(g)) for s, p, o, g in graph.quads()}
+
+
+@pytest.mark.parametrize("file_count,workers", [(0, 2), (1, 2), (5, 2), (5, 1)])
+def test_stdout_bounds_pending_conversions(tmp_path, file_count, workers):
+    paths = [
+        _make_zip(
+            tmp_path,
+            f"{index}.zip",
+            SAMPLE_DATA_JSONLD if index % 2 == 0 else SAMPLE_PROV_JSONLD,
+        )
+        for index in range(file_count)
+    ]
+    expected_lines = sorted(
+        line for path in paths for line in convert_zip_to_nquads(path).splitlines()
+    )
+    submitted = []
+    writes = []
+    context = multiprocessing.get_context("spawn")
+    with context.Pool(workers) as pool:
+        apply_async = pool.apply_async
+
+        def submit(function, args):
+            result = apply_async(function, args)
+            submitted.append((args[0], result))
+            return result
+
+        class PausedOutput(BytesIO):
+            def write(self, data):
+                for _, result in submitted:
+                    result.wait(timeout=20)
+                    assert result.ready() is True
+                assert [path for path, _ in submitted] == paths[
+                    : min(file_count, workers + len(writes))
+                ]
+                writes.append(data)
+                return super().write(data)
+
+        output = PausedOutput()
+        with (
+            patch.object(pool, "apply_async", side_effect=submit),
+            patch(
+                "oc_meta.run.migration.stream_nquads.sys.stdout",
+                SimpleNamespace(buffer=output),
+            ),
+        ):
+            write_nquads_stdout(bounded_nquads_results(pool, paths, workers))
+
+    assert len(writes) == file_count
+    assert [path for path, _ in submitted] == paths
+    assert sorted(output.getvalue().splitlines()) == expected_lines
+
+
+def test_bounded_conversion_propagates_error(tmp_path):
+    path = _make_zip(tmp_path, "invalid.zip", "not valid json {")
+    with multiprocessing.get_context("spawn").Pool(1) as pool:
+        with pytest.raises(json.JSONDecodeError):
+            list(bounded_nquads_results(pool, [path], 1))
 
 
 class TestConvertZipToNquads:

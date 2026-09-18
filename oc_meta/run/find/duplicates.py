@@ -8,10 +8,12 @@ import logging
 import multiprocessing as mp
 import os
 import shutil
+import sqlite3
 import tempfile
 import zipfile
 from collections import defaultdict
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Iterable, Iterator, Mapping, Sequence
+from contextlib import closing
 
 import orjson
 from rdflib import Dataset, URIRef
@@ -25,37 +27,6 @@ LOGGER = logging.getLogger(__name__)
 
 PathLikeString = str | os.PathLike[str]
 IdentifierKey = tuple[str, str]
-
-
-class UnionFind:
-    def __init__(self) -> None:
-        self.parent: dict[str, str] = {}
-        self.rank: dict[str, int] = {}
-
-    def find(self, item: str) -> str:
-        if item not in self.parent:
-            self.parent[item] = item
-            self.rank[item] = 0
-            return item
-
-        if self.parent[item] != item:
-            self.parent[item] = self.find(self.parent[item])
-        return self.parent[item]
-
-    def union(self, x: str, y: str) -> None:
-        xroot = self.find(x)
-        yroot = self.find(y)
-
-        if xroot == yroot:
-            return
-
-        if self.rank[xroot] < self.rank[yroot]:
-            self.parent[xroot] = yroot
-        elif self.rank[xroot] > self.rank[yroot]:
-            self.parent[yroot] = xroot
-        else:
-            self.parent[yroot] = xroot
-            self.rank[xroot] += 1
 
 
 def get_zip_files(folder_path: PathLikeString) -> list[str]:
@@ -236,17 +207,113 @@ def find_duplicate_ras(folder_path: PathLikeString, csv_path: PathLikeString) ->
 def find_duplicate_resources_by_type(
     folder_path: PathLikeString, csv_path: PathLikeString, resource_dir: str
 ) -> None:
-    resources: dict[str, set[str]] = {}
-    qualities: dict[str, tuple[int, ...]] = {}
     error_log_handler, error_log_path = configure_error_log(csv_path)
 
     try:
-        entity_folder_path = os.path.join(folder_path, resource_dir)
-        process_entity_folder(entity_folder_path, resources, qualities, resource_dir)
-
-        save_entity_duplicates_to_csv(resources, csv_path, qualities)
+        output_dir = os.path.dirname(os.path.abspath(csv_path))
+        with tempfile.TemporaryDirectory(
+            prefix="oc_meta_duplicates_", dir=output_dir
+        ) as temporary:
+            with closing(
+                sqlite3.connect(os.path.join(temporary, "duplicates.sqlite"))
+            ) as connection:
+                connection.executescript("""
+                    PRAGMA cache_size = -32768;
+                    PRAGMA temp_store = FILE;
+                    PRAGMA mmap_size = 0;
+                    CREATE TABLE entities (uri TEXT PRIMARY KEY, quality BLOB NOT NULL);
+                    CREATE TABLE links (
+                        identifier TEXT NOT NULL, uri TEXT NOT NULL,
+                        PRIMARY KEY (identifier, uri)
+                    ) WITHOUT ROWID;
+                    CREATE TABLE parents (
+                        uri TEXT PRIMARY KEY, parent TEXT NOT NULL, rank INTEGER NOT NULL
+                    ) WITHOUT ROWID;
+                    CREATE TABLE members (root TEXT NOT NULL, uri TEXT NOT NULL, position INTEGER NOT NULL);
+                """)
+                process_entity_folder(
+                    os.path.join(folder_path, resource_dir), connection, resource_dir
+                )
+                completed_csv = os.path.join(temporary, "duplicates.csv")
+                save_merge_rows_to_csv(disk_duplicate_groups(connection), completed_csv)
+                os.replace(completed_csv, csv_path)
     finally:
         close_error_log(error_log_handler, error_log_path)
+
+
+def disk_find(connection: sqlite3.Connection, uri: str) -> tuple[str, int]:
+    root = uri
+    parent, rank = connection.execute(
+        "SELECT parent, rank FROM parents WHERE uri = ?", (root,)
+    ).fetchone()
+    while parent != root:
+        root = parent
+        parent, rank = connection.execute(
+            "SELECT parent, rank FROM parents WHERE uri = ?", (root,)
+        ).fetchone()
+    while uri != root:
+        (parent,) = connection.execute(
+            "SELECT parent FROM parents WHERE uri = ?", (uri,)
+        ).fetchone()
+        connection.execute("UPDATE parents SET parent = ? WHERE uri = ?", (root, uri))
+        uri = parent
+    return root, rank
+
+
+def disk_duplicate_groups(
+    connection: sqlite3.Connection,
+) -> Iterator[tuple[str, list[str]]]:
+    shared_links = connection.execute("""
+        SELECT links.identifier, links.uri FROM links
+        JOIN (SELECT identifier FROM links GROUP BY identifier HAVING COUNT(*) > 1) AS shared
+        USING (identifier) ORDER BY links.identifier, links.uri
+    """)
+    previous_identifier = None
+    first_uri = ""
+    for identifier, uri in tqdm(
+        shared_links, desc="Linking duplicate entities", unit="link"
+    ):
+        connection.execute("INSERT OR IGNORE INTO parents VALUES (?, ?, 0)", (uri, uri))
+        if identifier != previous_identifier:
+            previous_identifier = identifier
+            first_uri = uri
+            continue
+        left, left_rank = disk_find(connection, first_uri)
+        right, right_rank = disk_find(connection, uri)
+        if left == right:
+            continue
+        if left_rank < right_rank:
+            left, right = right, left
+        connection.execute("UPDATE parents SET parent = ? WHERE uri = ?", (left, right))
+        if left_rank == right_rank:
+            connection.execute(
+                "UPDATE parents SET rank = rank + 1 WHERE uri = ?", (left,)
+            )
+    connection.commit()
+    for (uri,) in tqdm(
+        connection.execute("SELECT uri FROM parents"),
+        desc="Grouping duplicate entities",
+        unit="entity",
+    ):
+        root, _ = disk_find(connection, uri)
+        connection.execute(
+            "INSERT INTO members SELECT ?, uri, rowid FROM entities WHERE uri = ?",
+            (root, uri),
+        )
+    connection.execute("CREATE INDEX members_root ON members(root)")
+    connection.commit()
+    groups = connection.execute(
+        "SELECT root FROM members GROUP BY root ORDER BY MIN(position)"
+    )
+    for (root,) in tqdm(groups, desc="Writing duplicate groups", unit="group"):
+        rows = connection.execute(
+            "SELECT entities.uri, entities.quality FROM members JOIN entities USING (uri) "
+            "WHERE root = ? ORDER BY entities.uri",
+            (root,),
+        )
+        qualities = {uri: tuple(orjson.loads(quality)) for uri, quality in rows}
+        survivor = select_surviving_entity(list(qualities), qualities)
+        yield survivor, [uri for uri in qualities if uri != survivor]
 
 
 def configure_error_log(csv_path: PathLikeString) -> tuple[logging.FileHandler, str]:
@@ -272,8 +339,7 @@ def close_error_log(
 
 def process_entity_folder(
     folder_path: PathLikeString,
-    resources: dict[str, set[str]],
-    qualities: dict[str, tuple[int, ...]],
+    connection: sqlite3.Connection,
     expected_type: str,
 ) -> None:
     if not os.path.exists(folder_path):
@@ -284,7 +350,11 @@ def process_entity_folder(
 
     zip_files = get_zip_files(folder_path)
 
-    for zip_path in tqdm(zip_files, desc=f"Analizzando i file ZIP in {expected_type}"):
+    for archive_number, zip_path in enumerate(
+        tqdm(zip_files, desc=f"Analizzando i file ZIP in {expected_type}"), 1
+    ):
+        resources: dict[str, set[str]] = {}
+        qualities: dict[str, tuple[int, ...]] = {}
         try:
             with zipfile.ZipFile(zip_path, "r") as zip_ref:
                 for zip_file in zip_ref.namelist():
@@ -311,6 +381,22 @@ def process_entity_folder(
             LOGGER.error(f"File ZIP corrotto o non valido: {zip_path}")
         except Exception as e:
             LOGGER.error(f"Errore nell'apertura del file ZIP {zip_path}: {str(e)}")
+
+        connection.executemany(
+            "INSERT INTO entities VALUES (?, ?) ON CONFLICT(uri) DO UPDATE SET quality = excluded.quality",
+            ((uri, orjson.dumps(quality)) for uri, quality in qualities.items()),
+        )
+        connection.executemany(
+            "INSERT OR IGNORE INTO links VALUES (?, ?)",
+            (
+                (identifier, uri)
+                for uri, identifiers in resources.items()
+                for identifier in identifiers
+            ),
+        )
+        if archive_number % 1000 == 0:
+            connection.commit()
+    connection.commit()
 
 
 def analyze_entity_json(
@@ -437,45 +523,6 @@ def get_uri(entity, predicate: str) -> str:
         if isinstance(value, dict) and "@id" in value:
             return value["@id"]
     return ""
-
-
-def save_entity_duplicates_to_csv(
-    resources: Mapping[str, set[str]],
-    csv_path: PathLikeString,
-    qualities: Mapping[str, tuple[int, ...]] | None = None,
-) -> None:
-    try:
-        save_merge_rows_to_csv(find_entity_duplicates(resources, qualities), csv_path)
-    except Exception as e:
-        LOGGER.error(f"Errore nel salvataggio del file CSV {csv_path}: {str(e)}")
-
-
-def find_entity_duplicates(
-    resources: Mapping[str, set[str]],
-    qualities: Mapping[str, tuple[int, ...]] | None = None,
-) -> list[tuple[str, list[str]]]:
-    union_find = UnionFind()
-
-    for entity, identifiers in resources.items():
-        for identifier in identifiers:
-            union_find.union(entity, identifier)
-
-    groups: dict[str, list[str]] = {}
-    for entity in resources:
-        representative = union_find.find(entity)
-        if representative not in groups:
-            groups[representative] = []
-        groups[representative].append(entity)
-
-    duplicate_groups = []
-    for group in groups.values():
-        if len(group) > 1:
-            surviving_entity = select_surviving_entity(group, qualities)
-            merged_entities = sorted(
-                entity for entity in group if entity != surviving_entity
-            )
-            duplicate_groups.append((surviving_entity, merged_entities))
-    return duplicate_groups
 
 
 def select_surviving_entity(

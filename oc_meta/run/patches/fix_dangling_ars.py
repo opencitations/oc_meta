@@ -75,8 +75,16 @@ csv.field_size_limit(2**31 - 1)
 _stop_requested = False
 _existing_roles: frozenset[str] = frozenset()
 _target_roles: frozenset[str] = frozenset()
-_fork_context = multiprocessing.get_context("fork") if os.name != "nt" else multiprocessing.get_context("spawn")
-_context = multiprocessing.get_context("forkserver") if os.name != "nt" else multiprocessing.get_context("spawn")
+_fork_context = (
+    multiprocessing.get_context("fork")
+    if os.name != "nt"
+    else multiprocessing.get_context("spawn")
+)
+_context = (
+    multiprocessing.get_context("forkserver")
+    if os.name != "nt"
+    else multiprocessing.get_context("spawn")
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -310,9 +318,7 @@ def load_provenance_statuses(
         targets_by_path[path].add(uri)
     tasks = [(path, frozenset(targets)) for path, targets in targets_by_path.items()]
     statuses = {}
-    with ProcessPoolExecutor(
-        max_workers=workers, mp_context=_context
-    ) as executor:
+    with ProcessPoolExecutor(max_workers=workers, mp_context=_context) as executor:
         for partial in executor.map(_provenance_status_batch, _batches(tasks, 24)):
             statuses.update(partial)
     return {uri: statuses[uri] if uri in statuses else "no_snapshot" for uri in uris}
@@ -348,12 +354,31 @@ def _load_local_context(
 def _work_identifiers(
     work: WorkRecord, identifiers: Mapping[str, IdentifierRecord]
 ) -> dict[str, str]:
-    result = {}
+    values: dict[str, set[str]] = defaultdict(set)
     for uri in work.identifier_uris:
-        if uri in identifiers and identifiers[uri].scheme not in result:
+        if uri in identifiers:
             record = identifiers[uri]
-            result[record.scheme] = record.value
-    return result
+            values[record.scheme].add(record.value)
+    return {
+        scheme: next(iter(items)) for scheme, items in values.items() if len(items) == 1
+    }
+
+
+def _identifier_values(
+    entities: Mapping[str, dict[str, object]],
+) -> dict[str, list[str]]:
+    values: dict[str, set[str]] = defaultdict(set)
+    for uri, entity in entities.items():
+        record = _identifier_record(uri, entity)
+        if record is not None:
+            values[record.scheme].add(record.value)
+    return {scheme: sorted(items) for scheme, items in sorted(values.items())}
+
+
+def _multiple_doi_blockers(values: Mapping[str, list[str]]) -> list[dict[str, object]]:
+    if "doi" in values and len(values["doi"]) > 1:
+        return [{"type": "multiple_dois", "dois": values["doi"]}]
+    return []
 
 
 def _types(entity: dict[str, object]) -> list[str]:
@@ -572,7 +597,15 @@ def build_repair_plan(
                 break
             work = works[br_uri]
             work_identifiers = _work_identifiers(work, identifiers)
-            blockers = []
+            blockers = _multiple_doi_blockers(
+                _identifier_values(
+                    {
+                        uri: raw_entities[uri]
+                        for uri in work.identifier_uris
+                        if uri in raw_entities
+                    }
+                )
+            )
             for role_uri in sorted(set(work.role_uris)):
                 external_contexts = sorted(set(contexts[role_uri]) - affected_brs)
                 if external_contexts:
@@ -995,6 +1028,61 @@ def _capture_preconditions(
     return current
 
 
+def check_plan(config_path: str, plan_path: str, workers: int) -> dict[str, object]:
+    plan = _read_json_object(plan_path)
+    operations = _plan_operations(plan)
+    if plan["complete"] is not True:
+        raise ValueError("The correction plan is incomplete")
+    if plan["config_sha256"] != _sha256(config_path):
+        raise ValueError("The Meta configuration changed after plan generation")
+    _verify_csv_files(plan)
+    config = load_audit_config(config_path)
+    role_uris = {
+        uri
+        for operation in operations
+        for uri in cast(
+            list[str],
+            cast(dict[str, object], operation["preconditions"])["role_references"],
+        )
+    }
+    contexts = _current_contexts(config, role_uris, workers)
+    links = scan_role_links(config, role_uris, workers)
+    works = []
+    for operation in operations:
+        current = _capture_preconditions(
+            operation, config, contexts, links, set(), workers
+        )
+        identifiers = _identifier_values(
+            cast(dict[str, dict[str, object]], current["identifier_entities"])
+        )
+        actions = cast(dict[str, list[str]], operation["actions"])
+        work = cast(dict[str, object], operation["work"])
+        works.append(
+            {
+                "br": work["br"],
+                "title": work["title"],
+                "identifiers": identifiers,
+                "selected_identifiers": work["identifiers"],
+                "provider": operation["provider"],
+                "planned_action_counts": {
+                    name: len(uris) for name, uris in actions.items()
+                },
+                "blockers": cast(list[object], operation["blockers"])
+                + _multiple_doi_blockers(identifiers),
+            }
+        )
+    return {
+        "plan_sha256": _sha256(plan_path),
+        "local_preconditions_match": True,
+        "bibliographic_review_required": True,
+        "execution_authorized": False,
+        "triplestores_checked": False,
+        "counters_checked": False,
+        "affected_brs": len({cast(str, work["br"]) for work in works}),
+        "operations": works,
+    }
+
+
 def _import_exact_entities(
     editor: MetaEditor,
     g_set: GraphSet,
@@ -1090,6 +1178,16 @@ def execute_plan(
     plan_path = os.path.abspath(plan_path)
     plan = _read_json_object(plan_path)
     operations = _plan_operations(plan)
+    for operation in operations:
+        preconditions = cast(dict[str, object], operation["preconditions"])
+        identifiers = _identifier_values(
+            cast(dict[str, dict[str, object]], preconditions["identifier_entities"])
+        )
+        if _multiple_doi_blockers(identifiers):
+            work = cast(dict[str, object], operation["work"])
+            raise ValueError(
+                f"Multiple DOIs require bibliographic review: {work['br']}"
+            )
     if plan["complete"] is not True or plan["executable"] is not True:
         raise ValueError("The correction plan is not executable")
     if plan["config_sha256"] != _sha256(config_path):
@@ -1212,7 +1310,14 @@ def main() -> None:  # pragma: no cover
         "--dry-run", action="store_true", help="Generate a plan without changing RDF"
     )
     mode.add_argument("--execute", metavar="PLAN", help="Execute a complete plan")
-    parser.add_argument("--report-file", help="Dry-run JSON plan path")
+    mode.add_argument(
+        "--check-plan",
+        metavar="PLAN",
+        help="Check a plan against local RDF without editing data",
+    )
+    parser.add_argument(
+        "--report-file", help="Dry-run plan or read-only check report path"
+    )
     parser.add_argument(
         "--csv-output-dir", help="Directory for Crossref and DataCite Meta CSVs"
     )
@@ -1235,6 +1340,20 @@ def main() -> None:  # pragma: no cover
         parser.error("--workers must be positive")
     signal.signal(signal.SIGINT, _handle_signal)
     signal.signal(signal.SIGTERM, _handle_signal)
+
+    if args.check_plan:
+        if not args.report_file:
+            parser.error("--report-file is required with --check-plan")
+        if os.path.exists(args.report_file):
+            parser.error("The check report must be a new file")
+        report = check_plan(args.config, args.check_plan, args.workers)
+        with open(args.report_file, "xb") as stream:
+            stream.write(orjson.dumps(report, option=orjson.OPT_INDENT_2))
+        console.print(
+            f"Local preconditions match for {report['affected_brs']} BRs. "
+            "Bibliographic review is still required; this check does not authorize execution."
+        )
+        return
 
     if args.dry_run:
         if not args.report_file or not args.csv_output_dir or not args.mailto:

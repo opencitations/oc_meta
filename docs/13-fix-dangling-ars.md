@@ -61,6 +61,7 @@ The dry run blocks the whole plan when:
 - a target AR is also referenced by a BR outside the plan;
 - a `oco:hasNext` edge connects a target AR to an AR outside the deletion set;
 - neither Crossref nor DataCite returns a record;
+- a BR has more than one distinct DOI;
 - the scan is interrupted.
 
 Invalid role types, missing holders, multiple holders, malformed chains, and ambiguous agent identifiers do not block execution because the entire local role field is removed.

@@ -11,7 +11,10 @@ import multiprocessing
 import os
 import sys
 import zipfile
+from collections import deque
 from collections.abc import Iterable, Iterator
+from itertools import islice
+from multiprocessing.pool import Pool
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import IO
@@ -138,6 +141,20 @@ def write_nquads_stdout(results: Iterable[bytes]) -> None:
         stdout.flush()
 
 
+def bounded_nquads_results(
+    pool: Pool, zip_paths: Iterable[str], workers: int
+) -> Iterator[bytes]:
+    paths = iter(zip_paths)
+    pending = deque(
+        pool.apply_async(convert_zip_to_nquads, (path,))
+        for path in islice(paths, workers)
+    )
+    while pending:
+        yield pending.popleft().get()
+        for path in islice(paths, 1):
+            pending.append(pool.apply_async(convert_zip_to_nquads, (path,)))
+
+
 def create_progress() -> Progress:
     return Progress(
         SpinnerColumn(),
@@ -209,7 +226,11 @@ def main() -> None:  # pragma: no cover
         only_prov=args.mode == "prov",
     )
 
-    ctx = multiprocessing.get_context("spawn") if os.name == "nt" else multiprocessing.get_context("forkserver")
+    ctx = (
+        multiprocessing.get_context("spawn")
+        if os.name == "nt"
+        else multiprocessing.get_context("forkserver")
+    )
     with ctx.Pool(processes=num_workers) as pool:
         if output_dir:
             output_dir.mkdir(parents=True, exist_ok=True)
@@ -238,9 +259,7 @@ def main() -> None:  # pragma: no cover
                         task_id,
                     )
         else:
-            results = pool.imap_unordered(
-                convert_zip_to_nquads, zip_files, chunksize=10
-            )
+            results = bounded_nquads_results(pool, zip_files, num_workers)
             write_nquads_stdout(results)
 
 
