@@ -12,7 +12,7 @@ import os
 import sys
 import zipfile
 from collections import deque
-from collections.abc import Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from itertools import islice
 from multiprocessing.pool import Pool
 from pathlib import Path
@@ -38,13 +38,18 @@ from oc_meta.lib.file_manager import collect_zip_files
 DEFAULT_LINES_PER_FILE = 10000000
 
 
+def read_zip_dataset(zip_path: str) -> Dataset:
+    with zipfile.ZipFile(zip_path, "r") as zf:
+        json_file = next(n for n in zf.namelist() if n.endswith(".json"))
+        graph = Dataset(default_union=True)
+        with zf.open(json_file) as f:
+            graph.parse(f, format="json-ld")
+    return graph
+
+
 def convert_zip_to_nquads(zip_path: str) -> bytes:
     try:
-        with zipfile.ZipFile(zip_path, "r") as zf:
-            json_file = next(n for n in zf.namelist() if n.endswith(".json"))
-            graph = Dataset(default_union=True)
-            with zf.open(json_file) as f:
-                graph.parse(f, format="json-ld")
+        graph = read_zip_dataset(zip_path)
         return graph.serialize(format="nquads").encode("utf-8")
     except Exception:
         print(f"Failed to convert: {zip_path}", file=sys.stderr, flush=True)
@@ -142,17 +147,19 @@ def write_nquads_stdout(results: Iterable[bytes]) -> None:
 
 
 def bounded_nquads_results(
-    pool: Pool, zip_paths: Iterable[str], workers: int
+    pool: Pool,
+    zip_paths: Iterable[str],
+    workers: int,
+    converter: Callable[[str], bytes] = convert_zip_to_nquads,
 ) -> Iterator[bytes]:
     paths = iter(zip_paths)
     pending = deque(
-        pool.apply_async(convert_zip_to_nquads, (path,))
-        for path in islice(paths, workers)
+        pool.apply_async(converter, (path,)) for path in islice(paths, workers)
     )
     while pending:
         yield pending.popleft().get()
         for path in islice(paths, 1):
-            pending.append(pool.apply_async(convert_zip_to_nquads, (path,)))
+            pending.append(pool.apply_async(converter, (path,)))
 
 
 def create_progress() -> Progress:

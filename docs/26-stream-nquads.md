@@ -68,6 +68,17 @@ uv run python -m oc_meta.run.migration.stream_nquads /srv/oc_meta/rdf --mode dat
 
 See the `index.sh` scripts in the QLever data directories for ready-to-use examples.
 
+### Searching provenance with Time Agnostic Library
+
+To make provenance searches with Time Agnostic Library efficient, use `stream_qlever_provenance` when building the QLever index. The converter reads the triples in each SPARQL update and links its snapshot to `subject|URI`, `predicate|URI`, and `object|URI` values. These links let the library find updates involving a given URI in a specific position, without searching the full update text.
+
+For provenance, replace the first command in the pipeline above with:
+
+```bash
+uv run python -m oc_meta.run.migration.stream_qlever_provenance /srv/oc_meta/rdf \
+  --workers 2
+```
+
 ## Writing chunked files for Virtuoso
 
 Virtuoso's bulk loader reads RDF files from a directory registered with `ld_dir` or `ld_dir_all`. Use `--output-dir` with `--gzip` to write chunked files that can be loaded directly by Virtuoso:
