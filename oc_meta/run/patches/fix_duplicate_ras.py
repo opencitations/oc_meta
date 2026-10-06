@@ -15,11 +15,11 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from itertools import combinations
+from tempfile import TemporaryDirectory
 from typing import Protocol, cast
 
 import orjson
 from oc_ocdm.graph import GraphSet
-from oc_ocdm.graph.entities.identifier import Identifier
 from rich_argparse import RichHelpFormatter
 
 from oc_meta.core.editor import MetaEditor
@@ -57,7 +57,6 @@ from oc_meta.lib.rdf_patch import (
     USES_IDENTIFIER_SCHEME,
     WITH_ROLE,
     EntityFileLocator,
-    agent_role as _agent_role,
     batches as _batches,
     data_files as _data_files,
     ensure_parent as _ensure_parent,
@@ -87,18 +86,17 @@ DCTERMS_DESCRIPTION = "http://purl.org/dc/terms/description"
 HAS_UPDATE_QUERY = "https://w3id.org/oc/ontology/hasUpdateQuery"
 CONFIRMED_NAME_SCORE = 0.9
 AMBIGUOUS_NAME_SCORE = 0.75
-PLAN_SCHEMA_VERSION = 1
+PLAN_SCHEMA_VERSION = 2
 CLUSTER_BATCH_SIZE = 5000
+MERGE_FIELDS = ("surviving_entity", "merged_entities")
+DEFERRED_FIELDS = (*MERGE_FIELDS, "risks")
 REVIEW_FIELDS: tuple[str, ...] = (
     "operation_id",
     "csv_row",
-    "br",
-    "ar",
     "ra",
     "action",
     "identifier_uri",
     "old_value",
-    "new_value",
     "confidence",
     "reason",
     "decision",
@@ -186,7 +184,13 @@ class WorkEvidence:
 
 
 class WorkEvidenceClient(Protocol):
-    def work_sources(self, doi: str, openalex_id: str = "") -> list[WorkMetadata]: ...
+    def crossref(self, doi: str) -> WorkMetadata | None: ...
+
+    def datacite(self, doi: str) -> WorkMetadata | None: ...
+
+    def openalex_work(
+        self, doi: str = "", openalex_id: str = ""
+    ) -> WorkMetadata | None: ...
 
 
 class OrcidClient(Protocol):
@@ -213,7 +217,7 @@ def iter_cluster_batches(
     csv.field_size_limit(1024 * 1024 * 1024)
     with open(path, newline="", encoding="utf-8") as stream:
         reader = csv.DictReader(stream)
-        if reader.fieldnames != ["surviving_entity", "merged_entities"]:
+        if reader.fieldnames not in [list(MERGE_FIELDS), list(DEFERRED_FIELDS)]:
             raise ValueError(f"Unexpected duplicate CSV header: {reader.fieldnames}")
         batch = []
         for csv_row, row in enumerate(reader, 2):
@@ -296,7 +300,6 @@ def scan_candidate_clusters(
     duplicate_path: str,
     cache: EntityFileLocator,
     workers: int,
-    all_api: bool,
 ) -> tuple[list[Cluster], dict[str, AgentInfo], dict[int, list[str]], int, int]:
     candidates = []
     candidate_agents = {}
@@ -315,7 +318,7 @@ def scan_candidate_clusters(
                 risks = cluster_risks(cluster, agents)
                 cluster_count += 1
                 agent_count += len(cluster.members)
-                if not risks and not all_api:
+                if not risks:
                     continue
                 candidates.append(cluster)
                 risks_by_row[cluster.csv_row] = risks
@@ -388,24 +391,127 @@ def _has_conflicting_names(names: list[PersonName]) -> bool:
 
 
 def cluster_risks(cluster: Cluster, agents: dict[str, AgentInfo]) -> list[str]:
-    names = [agents[uri].name for uri in cluster.members]
-    orcids = {
-        normalize_orcid(identifier.value)
+    names = list(dict.fromkeys(agents[uri].name for uri in cluster.members))
+    identifiers_by_agent = [
+        {
+            (
+                identifier.scheme,
+                normalize_orcid(identifier.value)
+                if identifier.scheme == "orcid"
+                else identifier.value,
+            )
+            for identifier in agents[uri].identifiers
+        }
         for uri in cluster.members
-        for identifier in agents[uri].orcids
-    }
+    ]
+    values_by_scheme: dict[str, set[str]] = defaultdict(set)
+    for identifiers in identifiers_by_agent:
+        for scheme, value in identifiers:
+            values_by_scheme[scheme].add(value)
     risks = []
     if _has_conflicting_names(names):
         risks.append("conflicting_names")
-    if len(orcids) > 1:
-        risks.append("multiple_orcids")
-    if any(len(agents[uri].orcids) > 1 for uri in cluster.members):
-        risks.append("bridge_agent")
-    if len(cluster.members) >= 50:
-        risks.append("large_cluster")
-    if any(not name.display for name in names):
+    if any(not normalize_name(name.display) for name in names):
         risks.append("missing_name")
+    if not set.intersection(*identifiers_by_agent):
+        risks.append("no_common_identifier")
+    for scheme, values in sorted(values_by_scheme.items()):
+        if len(values) > 1:
+            risks.append(f"multiple_{scheme}_values")
+        if scheme == "orcid" and any(not is_valid_orcid(value) for value in values):
+            risks.append("invalid_orcid")
     return risks
+
+
+def select_mergeable_clusters(
+    config_path: str,
+    duplicate_path: str,
+    report_path: str,
+    merge_path: str,
+    review_path: str,
+    workers: int,
+) -> dict[str, object]:
+    global _stop_requested
+    _stop_requested = False
+    paths = [
+        os.path.abspath(path)
+        for path in (config_path, duplicate_path, report_path, merge_path, review_path)
+    ]
+    if len(set(paths)) != len(paths):
+        raise ValueError("Input and output paths must be distinct")
+    config_path, duplicate_path, report_path, merge_path, review_path = paths
+    config = load_audit_config(config_path)
+    cache = EntityFileLocator(
+        config.rdf_dir, config.dir_split, config.items_per_file, config.zip_output
+    )
+    for path in (report_path, merge_path, review_path):
+        _ensure_parent(path)
+    cluster_count = _count_duplicate_clusters(duplicate_path)
+    mergeable_count = 0
+    deferred_count = 0
+    risk_counts: Counter[str] = Counter()
+    with (
+        TemporaryDirectory(dir=os.path.dirname(merge_path)) as merge_dir,
+        TemporaryDirectory(dir=os.path.dirname(review_path)) as review_dir,
+    ):
+        pending_merge = os.path.join(merge_dir, "merge.csv")
+        pending_review = os.path.join(review_dir, "review.csv")
+        with (
+            open(pending_merge, "w", newline="", encoding="utf-8") as merge_stream,
+            open(pending_review, "w", newline="", encoding="utf-8") as review_stream,
+            create_progress() as progress,
+        ):
+            merge_writer = csv.writer(merge_stream)
+            review_writer = csv.writer(review_stream)
+            merge_writer.writerow(MERGE_FIELDS)
+            review_writer.writerow(DEFERRED_FIELDS)
+            task = progress.add_task("Checking duplicate clusters", total=cluster_count)
+            for batch in iter_cluster_batches(duplicate_path):
+                if _stop_requested:
+                    raise InterruptedError(
+                        "Local selection interrupted; outputs unchanged"
+                    )
+                agents = load_agents(
+                    {uri for cluster in batch for uri in cluster.members},
+                    cache,
+                    workers,
+                )
+                for cluster in batch:
+                    risks = cluster_risks(cluster, agents)
+                    row = (cluster.survivor, ";".join(cluster.members[1:]))
+                    if risks:
+                        review_writer.writerow((*row, ";".join(risks)))
+                        deferred_count += 1
+                        risk_counts.update(risks)
+                    else:
+                        merge_writer.writerow(row)
+                        mergeable_count += 1
+                progress.advance(task, len(batch))
+        if _stop_requested:
+            raise InterruptedError("Local selection interrupted; outputs unchanged")
+        report: dict[str, object] = {
+            "mode": "local_selection",
+            "complete": True,
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "config": config_path,
+            "config_sha256": _sha256(config_path),
+            "duplicates": duplicate_path,
+            "duplicates_sha256": _sha256(duplicate_path),
+            "merge_file": merge_path,
+            "review_file": review_path,
+            "summary": {
+                "total_clusters": mergeable_count + deferred_count,
+                "mergeable_clusters": mergeable_count,
+                "deferred_clusters": deferred_count,
+                "risk_counts": dict(sorted(risk_counts.items())),
+            },
+        }
+        if _stop_requested:
+            raise InterruptedError("Local selection interrupted; outputs unchanged")
+        os.replace(pending_merge, merge_path)
+        os.replace(pending_review, review_path)
+        _write_json(report_path, report)
+    return report
 
 
 def _scan_roles_batch(
@@ -535,76 +641,38 @@ def _operation(
     reason: str,
     confidence: float,
     *,
-    br: str = "",
-    ar: str = "",
     ra: str = "",
     identifier_uri: str = "",
     old_value: str = "",
-    new_value: str = "",
-    links: list[dict[str, str]] | None = None,
     evidence: list[dict[str, str]] | None = None,
 ) -> dict[str, object]:
-    link_value = (
-        orjson.dumps(links, option=orjson.OPT_SORT_KEYS).decode()
-        if links is not None
-        else ""
-    )
-    evidence_value = (
-        orjson.dumps(evidence, option=orjson.OPT_SORT_KEYS).decode()
-        if evidence is not None
-        else ""
-    )
-    operation_id = _operation_id(
-        action,
-        br,
-        ar,
-        ra,
-        identifier_uri,
-        old_value,
-        new_value,
-        link_value,
-        evidence_value,
-    )
     result: dict[str, object] = {
-        "operation_id": operation_id,
         "csv_row": csv_row,
         "action": action,
-        "br": br,
-        "ar": ar,
         "ra": ra,
         "identifier_uri": identifier_uri,
         "old_value": old_value,
-        "new_value": new_value,
         "confidence": round(confidence, 3),
         "reason": reason,
         "approved": False,
     }
-    if links is not None:
-        result["links"] = links
     if evidence is not None:
         result["evidence"] = evidence
+    result["operation_id"] = _computed_operation_id(result)
     return result
 
 
 def _computed_operation_id(operation: dict[str, object]) -> str:
-    links = operation["links"] if "links" in operation else None
     evidence = operation["evidence"] if "evidence" in operation else None
-    link_value = (
-        orjson.dumps(links, option=orjson.OPT_SORT_KEYS).decode()
-        if links is not None
-        else ""
-    )
     evidence_value = (
         orjson.dumps(evidence, option=orjson.OPT_SORT_KEYS).decode()
         if evidence is not None
         else ""
     )
     return _operation_id(
-        *(cast(str, operation[field]) for field in ("action", "br", "ar", "ra")),
+        *(cast(str, operation[field]) for field in ("action", "ra")),
         cast(str, operation["identifier_uri"]),
         cast(str, operation["old_value"]),
-        cast(str, operation["new_value"]),
-        link_value,
         evidence_value,
     )
 
@@ -687,26 +755,6 @@ def _role_chains(work: WorkInfo, roles: dict[str, RoleInfo]) -> dict[str, Ordere
     return {role: ordered_chain(members) for role, members in grouped.items()}
 
 
-def _selected_work_uris(
-    candidate_ras: set[str],
-    works: dict[str, WorkInfo],
-    roles: dict[str, RoleInfo],
-    max_evidence_works: int,
-) -> set[str]:
-    contexts: dict[str, list[str]] = defaultdict(list)
-    for work in works.values():
-        for role_uri in work.role_uris:
-            role = roles.get(role_uri)
-            if role is not None:
-                for holder_uri in role.holder_uris or (role.ra,):
-                    if holder_uri in candidate_ras:
-                        contexts[holder_uri].append(work.uri)
-    selected = set()
-    for ra in candidate_ras:
-        selected.update(sorted(set(contexts[ra]))[:max_evidence_works])
-    return selected
-
-
 def _alignment_report(
     chain: OrderedChain,
     external: list[AgentMetadata],
@@ -743,121 +791,21 @@ def _alignment_report(
     }
 
 
-def _desired_role_order(
-    chain: OrderedChain,
-    external: list[AgentMetadata],
-    agents: dict[str, AgentInfo],
-) -> list[RoleInfo] | None:
-    if chain.status != "valid" or len(chain.roles) != len(external):
-        return None
-    available = set(range(len(chain.roles)))
-    desired = []
-    for external_agent in external:
-        scored = sorted(
-            (
-                (
-                    name_score(
-                        agents[chain.roles[index].ra].name,
-                        _agent_metadata_name(external_agent),
-                    ),
-                    index,
-                )
-                for index in available
-            ),
-            reverse=True,
-        )
-        if not scored or scored[0][0] < CONFIRMED_NAME_SCORE:
-            return None
-        if len(scored) > 1 and abs(scored[0][0] - scored[1][0]) < 1e-9:
-            return None
-        _, index = scored[0]
-        desired.append(chain.roles[index])
-        available.remove(index)
-    return desired
-
-
-def _chain_links(roles: list[RoleInfo] | tuple[RoleInfo, ...]) -> list[dict[str, str]]:
-    return [
-        {
-            "ar": role.uri,
-            "old_next": _first(list(role.next_uris)),
-            "new_next": roles[index + 1].uri if index + 1 < len(roles) else "",
-        }
-        for index, role in enumerate(roles)
-    ]
-
-
-def _role_operations(
-    cluster_by_ra: dict[str, Cluster],
-    work: WorkInfo,
-    chain: OrderedChain,
-    external: list[AgentMetadata],
-    agents: dict[str, AgentInfo],
-    source: str,
-) -> list[dict[str, object]]:
-    operations = []
-    desired = _desired_role_order(chain, external, agents)
-    if desired is not None and [role.uri for role in desired] != [
-        role.uri for role in chain.roles
-    ]:
-        csv_rows = {
-            cluster_by_ra[role.ra].csv_row
-            for role in chain.roles
-            if role.ra in cluster_by_ra
-        }
-        operations.append(
-            _operation(
-                "reorder_chain",
-                min(csv_rows) if csv_rows else 0,
-                f"{source} confirms the same contributors in a different order",
-                CONFIRMED_NAME_SCORE,
-                br=work.uri,
-                links=_chain_links(desired),
-            )
-        )
-        return operations
-
-    if chain.status != "valid":
-        return operations
-    for position, role in enumerate(chain.roles[: len(external)]):
-        current_score = name_score(
-            agents[role.ra].name, _agent_metadata_name(external[position])
-        )
-        if current_score >= AMBIGUOUS_NAME_SCORE or role.ra not in cluster_by_ra:
-            continue
-        cluster = cluster_by_ra[role.ra]
-        candidates = sorted(
-            (
-                (
-                    name_score(
-                        agents[member].name, _agent_metadata_name(external[position])
-                    ),
-                    member,
-                )
-                for member in cluster.members
-                if member in agents and member != role.ra
-            ),
-            reverse=True,
-        )
-        if not candidates or candidates[0][0] < CONFIRMED_NAME_SCORE:
-            continue
-        if len(candidates) > 1 and abs(candidates[0][0] - candidates[1][0]) < 1e-9:
-            continue
-        score, candidate = candidates[0]
-        operations.append(
-            _operation(
-                "reassign_role",
-                cluster.csv_row,
-                f"{source} contributor at position {position} matches {candidate}",
-                score,
-                br=work.uri,
-                ar=role.uri,
-                ra=role.ra,
-                old_value=role.ra,
-                new_value=candidate,
-            )
-        )
-    return operations
+def iter_work_sources(
+    client: WorkEvidenceClient, doi: str, openalex_id: str
+) -> Iterator[WorkMetadata]:
+    if doi:
+        primary = client.crossref(doi)
+        if _stop_requested:
+            return
+        if primary is None:
+            primary = client.datacite(doi)
+        if primary is not None:
+            yield primary
+    if not _stop_requested and (doi or openalex_id):
+        secondary = client.openalex_work(doi, openalex_id)
+        if secondary is not None:
+            yield secondary
 
 
 def collect_external_evidence(
@@ -867,43 +815,63 @@ def collect_external_evidence(
     agents: dict[str, AgentInfo],
     cluster_by_ra: dict[str, Cluster],
     client: WorkEvidenceClient,
+    targets: set[tuple[str, str]],
+    profiles: dict[str, OrcidProfile | None],
 ) -> tuple[
     list[dict[str, object]],
     dict[tuple[str, str], list[WorkEvidence]],
     dict[str, list[PersonName]],
-    list[dict[str, object]],
 ]:
     role_assessments = []
     edge_evidence: dict[tuple[str, str], list[WorkEvidence]] = defaultdict(list)
     names_by_orcid: dict[str, list[PersonName]] = defaultdict(list)
-    operations_by_id: dict[str, dict[str, object]] = {}
+    pending = targets.copy()
+    targets_by_ra: dict[str, set[tuple[str, str]]] = defaultdict(set)
+    for edge in targets:
+        targets_by_ra[edge[0]].add(edge)
 
     with create_progress() as progress:
         task = progress.add_task("Querying work metadata", total=len(selected_works))
         for br_uri in sorted(selected_works):
-            if _stop_requested:
+            if _stop_requested or not pending:
                 break
             work = works[br_uri]
+            work_ras = {roles[uri].ra for uri in work.role_uris}
+            needed = {
+                edge
+                for ra in work_ras
+                if ra in targets_by_ra
+                for edge in targets_by_ra[ra]
+            } & pending
+            needed_ras = {ra for ra, _ in needed}
+            if not needed:
+                progress.advance(task)
+                continue
             doi = work.identifier("doi")
             openalex_id = work.identifier("openalex")
-            sources = client.work_sources(doi, openalex_id)
-            chains = _role_chains(work, roles)
-            if not sources:
-                role_assessments.extend(
-                    {
-                        "br": br_uri,
-                        "role": role_name,
-                        "source": "",
-                        "chain_status": chain.status,
-                        "ambiguous": True,
-                        "reason": "no_external_work_metadata",
-                        "pairs": [],
-                        "unmatched_local": [role.uri for role in chain.roles],
-                        "unmatched_external": [],
-                    }
-                    for role_name, chain in chains.items()
-                )
-            for source_work in sources:
+            chains = {}
+            for role_name, chain in _role_chains(work, roles).items():
+                if not any(role.ra in needed_ras for role in chain.roles):
+                    continue
+                if chain.status != "valid":
+                    _, report = _alignment_report(chain, [], agents)
+                    report.update(
+                        {
+                            "br": br_uri,
+                            "role": role_name,
+                            "source": "",
+                            "reason": "invalid_local_chain",
+                        }
+                    )
+                    role_assessments.append(report)
+                else:
+                    chains[role_name] = chain
+            if not chains:
+                progress.advance(task)
+                continue
+            found_source = False
+            for source_work in iter_work_sources(client, doi, openalex_id):
+                found_source = True
                 work_identifier_scheme = (
                     "openalex"
                     if source_work["source"] == "openalex" and openalex_id
@@ -918,19 +886,6 @@ def collect_external_evidence(
                 for role_name, chain in chains.items():
                     external = agents_for_role(source_work, role_name)
                     if not external:
-                        role_assessments.append(
-                            {
-                                "br": br_uri,
-                                "role": role_name,
-                                "source": source_work["source"],
-                                "chain_status": chain.status,
-                                "ambiguous": True,
-                                "reason": "external_role_missing",
-                                "pairs": [],
-                                "unmatched_local": [role.uri for role in chain.roles],
-                                "unmatched_external": [],
-                            }
-                        )
                         continue
                     alignment, report = _alignment_report(chain, external, agents)
                     report.update(
@@ -941,51 +896,26 @@ def collect_external_evidence(
                         }
                     )
                     role_assessments.append(report)
-                    for operation in _role_operations(
-                        cluster_by_ra,
-                        work,
-                        chain,
-                        external,
-                        agents,
-                        source_work["source"],
-                    ):
-                        operations_by_id[cast(str, operation["operation_id"])] = (
-                            operation
-                        )
                     if alignment is None:
                         continue
                     matched = _alignment_dict(alignment)
                     for local_index, role in enumerate(chain.roles):
-                        if role.ra not in cluster_by_ra:
-                            continue
                         for identifier in agents[role.ra].orcids:
                             normalized = normalize_orcid(identifier.value)
+                            if (role.ra, normalized) not in needed:
+                                continue
                             match = matched.get(local_index)
                             if match is None:
-                                evidence = WorkEvidence(
-                                    br_uri,
-                                    role.uri,
-                                    _first(list(role.next_uris)),
-                                    work_identifier.uri,
-                                    work_identifier.scheme,
-                                    work_identifier.value,
-                                    role_name,
-                                    source_work["source"],
-                                    False,
-                                    0.0,
-                                    None,
-                                    "",
-                                    False,
-                                )
-                            else:
-                                external_index, score = match
-                                api_agent = external[external_index]
-                                contested_elsewhere = any(
-                                    normalize_orcid(agent["orcid"] or "") == normalized
-                                    for index, agent in enumerate(external)
-                                    if index != external_index
-                                )
-                                evidence = WorkEvidence(
+                                continue
+                            external_index, score = match
+                            api_agent = external[external_index]
+                            contested_elsewhere = any(
+                                normalize_orcid(agent["orcid"] or "") == normalized
+                                for index, agent in enumerate(external)
+                                if index != external_index
+                            )
+                            edge_evidence[(role.ra, normalized)].append(
+                                WorkEvidence(
                                     br_uri,
                                     role.uri,
                                     _first(list(role.next_uris)),
@@ -1001,19 +931,50 @@ def collect_external_evidence(
                                     _agent_metadata_name(api_agent).display,
                                     contested_elsewhere,
                                 )
-                            edge_evidence[(role.ra, normalized)].append(evidence)
+                            )
                     for api_agent in external:
                         api_orcid = normalize_orcid(api_agent["orcid"] or "")
                         if api_orcid:
                             names_by_orcid[api_orcid].append(
                                 _agent_metadata_name(api_agent)
                             )
+                touched_clusters = {cluster_by_ra[ra] for ra, _ in needed}
+                assessments, _ = classify_identifiers(
+                    sorted(touched_clusters, key=lambda cluster: cluster.csv_row),
+                    agents,
+                    edge_evidence,
+                    names_by_orcid,
+                    {},
+                    profiles,
+                )
+                pending.difference_update(
+                    (cast(str, assessment["ra"]), cast(str, assessment["orcid"]))
+                    for assessment in assessments
+                    if assessment["status"] == "verified_wrong"
+                )
+                needed.intersection_update(pending)
+                if not needed or _stop_requested:
+                    break
+            if not found_source:
+                role_assessments.extend(
+                    {
+                        "br": br_uri,
+                        "role": role_name,
+                        "source": "",
+                        "chain_status": chain.status,
+                        "ambiguous": True,
+                        "reason": "no_external_work_metadata",
+                        "pairs": [],
+                        "unmatched_local": [role.uri for role in chain.roles],
+                        "unmatched_external": [],
+                    }
+                    for role_name, chain in chains.items()
+                )
             progress.advance(task)
     return (
         role_assessments,
         edge_evidence,
         names_by_orcid,
-        list(operations_by_id.values()),
     )
 
 
@@ -1024,22 +985,15 @@ def _polluted_identifier(names: list[PersonName]) -> bool:
     return False
 
 
-def classify_identifiers(
+def load_orcid_profiles(
     clusters: list[Cluster],
-    risks_by_row: dict[int, list[str]],
     agents: dict[str, AgentInfo],
-    edge_evidence: dict[tuple[str, str], list[WorkEvidence]],
-    names_by_orcid: dict[str, list[PersonName]],
-    provenance: dict[str, dict[str, object]],
     client: OrcidClient,
-) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
-    assessments = []
-    operations = []
+) -> dict[str, OrcidProfile | None]:
     profiles: dict[str, OrcidProfile | None] = {}
     candidate_orcids = {
         normalize_orcid(identifier.value)
         for cluster in clusters
-        if cluster.csv_row in risks_by_row
         for member in cluster.members
         for identifier in agents[member].orcids
         if is_valid_orcid(identifier.value)
@@ -1052,9 +1006,74 @@ def classify_identifiers(
             profiles[orcid] = client.orcid(orcid)
             progress.advance(task)
 
+    return profiles
+
+
+def _profile_match(
+    cluster: Cluster,
+    agent: AgentInfo,
+    agents: dict[str, AgentInfo],
+    profile: OrcidProfile | None,
+) -> tuple[PersonName, float, float, str]:
+    name = (
+        PersonName(
+            name=profile["name"], given=profile["given"], family=profile["family"]
+        )
+        if profile is not None
+        else PersonName()
+    )
+    other_scores = [
+        (name_score(agents[other].name, name), other)
+        for other in cluster.members
+        if other != agent.uri and name.display
+    ]
+    best_score, best_other = max(other_scores) if other_scores else (0.0, "")
+    return name, name_score(agent.name, name), best_score, best_other
+
+
+def work_evidence_targets(
+    clusters: list[Cluster],
+    agents: dict[str, AgentInfo],
+    profiles: dict[str, OrcidProfile | None],
+) -> set[tuple[str, str]]:
+    targets = set()
     for cluster in clusters:
-        if cluster.csv_row not in risks_by_row:
-            continue
+        for member in cluster.members:
+            agent = agents[member]
+            if not normalize_name(agent.name.display):
+                continue
+            for identifier in agent.orcids:
+                orcid = normalize_orcid(identifier.value)
+                if not is_valid_orcid(orcid):
+                    targets.add((member, orcid))
+                    continue
+                profile = profiles.get(orcid)
+                if profile is None:
+                    continue
+                profile_name, score, other_score, _ = _profile_match(
+                    cluster, agent, agents, profile
+                )
+                if (
+                    score < AMBIGUOUS_NAME_SCORE
+                    and other_score >= CONFIRMED_NAME_SCORE
+                    and script_family(agent.name.display)
+                    == script_family(profile_name.display)
+                ):
+                    targets.add((member, orcid))
+    return targets
+
+
+def classify_identifiers(
+    clusters: list[Cluster],
+    agents: dict[str, AgentInfo],
+    edge_evidence: dict[tuple[str, str], list[WorkEvidence]],
+    names_by_orcid: dict[str, list[PersonName]],
+    provenance: dict[str, dict[str, object]],
+    profiles: dict[str, OrcidProfile | None],
+) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
+    assessments = []
+    operations = []
+    for cluster in clusters:
         for member in cluster.members:
             agent = agents[member]
             for identifier in agent.orcids:
@@ -1072,26 +1091,8 @@ def classify_identifiers(
                 ]
                 elsewhere = [item for item in confirmed if item.contested_elsewhere]
                 profile = profiles.get(orcid)
-                profile_name = (
-                    PersonName(
-                        name=profile["name"],
-                        given=profile["given"],
-                        family=profile["family"],
-                    )
-                    if profile is not None
-                    else PersonName()
-                )
-                profile_score = name_score(agent.name, profile_name)
-                other_scores = sorted(
-                    (
-                        name_score(agents[other].name, profile_name),
-                        other,
-                    )
-                    for other in cluster.members
-                    if other != member and profile_name.display
-                )
-                best_other_score, best_other = (
-                    other_scores[-1] if other_scores else (0.0, "")
+                profile_name, profile_score, best_other_score, best_other = (
+                    _profile_match(cluster, agent, agents, profile)
                 )
                 cross_script = bool(profile_name.display) and script_family(
                     agent.name.display
@@ -1099,29 +1100,6 @@ def classify_identifiers(
                 polluted = _polluted_identifier(
                     names_by_orcid[orcid] if orcid in names_by_orcid else []
                 )
-                replacement_counts = Counter(
-                    item.api_orcid for item in different if item.api_orcid
-                )
-                replacement = ""
-                for candidate, votes in replacement_counts.most_common():
-                    if candidate not in profiles:
-                        profiles[candidate] = client.orcid(candidate)
-                    candidate_profile = profiles[candidate]
-                    if candidate_profile is None:
-                        continue
-                    candidate_name = PersonName(
-                        name=candidate_profile["name"],
-                        given=candidate_profile["given"],
-                        family=candidate_profile["family"],
-                    )
-                    if (
-                        votes >= 2
-                        and name_score(agent.name, candidate_name)
-                        >= CONFIRMED_NAME_SCORE
-                    ):
-                        replacement = candidate
-                        break
-
                 status = "manual_review"
                 reason = "Insufficient or conflicting work evidence"
                 if not is_valid_orcid(orcid) and confirmed:
@@ -1142,14 +1120,6 @@ def classify_identifiers(
                 ):
                     status = "verified_wrong"
                     reason = f"ORCID profile matches {best_other}, not {member}"
-                elif positive and (
-                    not profile_name.display
-                    or profile_score >= AMBIGUOUS_NAME_SCORE
-                    or cross_script
-                ):
-                    status = "verified_correct"
-                    reason = "Work contributor and local agent use the same ORCID"
-
                 assessment = {
                     "csv_row": cluster.csv_row,
                     "ra": member,
@@ -1161,7 +1131,6 @@ def classify_identifiers(
                     "profile_score": round(profile_score, 3),
                     "best_other_ra": best_other,
                     "best_other_score": round(best_other_score, 3),
-                    "replacement_orcid": replacement or None,
                     "work_evidence": [asdict(item) for item in evidence],
                     "agent_provenance": provenance.get(member),
                     "identifier_provenance": provenance.get(identifier.uri),
@@ -1169,7 +1138,6 @@ def classify_identifiers(
                 assessments.append(assessment)
                 if status != "verified_wrong":
                     continue
-                action = "replace_identifier" if replacement else "detach_identifier"
                 evidence_links = [
                     {
                         "br": br,
@@ -1203,31 +1171,17 @@ def classify_identifiers(
                 ]
                 operations.append(
                     _operation(
-                        action,
+                        "detach_identifier",
                         cluster.csv_row,
                         reason,
                         max(best_other_score, CONFIRMED_NAME_SCORE),
                         ra=member,
                         identifier_uri=identifier.uri,
                         old_value=orcid,
-                        new_value=replacement,
                         evidence=evidence_links,
                     )
                 )
     return assessments, operations
-
-
-def _review_chain_values(operation: dict[str, object]) -> tuple[str, str]:
-    links = operation.get("links")
-    if not isinstance(links, list):
-        return cast(str, operation["old_value"]), cast(str, operation["new_value"])
-    old_values = []
-    new_values = []
-    for raw_link in links:
-        link = cast(dict[str, str], raw_link)
-        old_values.append(f"{link['ar']} -> {link['old_next'] or '[end]'}")
-        new_values.append(f"{link['ar']} -> {link['new_next'] or '[end]'}")
-    return "; ".join(old_values), "; ".join(new_values)
 
 
 def write_review_file(path: str, operations: list[dict[str, object]]) -> None:
@@ -1236,14 +1190,11 @@ def write_review_file(path: str, operations: list[dict[str, object]]) -> None:
         writer = csv.DictWriter(stream, fieldnames=REVIEW_FIELDS)
         writer.writeheader()
         for operation in operations:
-            old_value, new_value = _review_chain_values(operation)
             row = {
                 field: operation[field]
                 for field in REVIEW_FIELDS
-                if field not in {"old_value", "new_value", "decision"}
+                if field != "decision"
             }
-            row["old_value"] = old_value
-            row["new_value"] = new_value
             row["decision"] = ""
             writer.writerow(row)
 
@@ -1277,7 +1228,6 @@ def analyze_duplicate_ras(
     mailto: str,
     workers: int,
     max_evidence_works: int,
-    all_api: bool,
     refresh_cache: bool,
     openalex_api_key: str,
 ) -> dict[str, object]:
@@ -1294,39 +1244,13 @@ def analyze_duplicate_ras(
         config.items_per_file,
         config.zip_output,
     )
-    (
-        clusters,
-        agents,
-        risks_by_row,
-        cluster_count,
-        agent_count,
-    ) = scan_candidate_clusters(duplicate_path, cache, workers, all_api)
-
+    clusters, agents, risks_by_row, cluster_count, agent_count = (
+        scan_candidate_clusters(duplicate_path, cache, workers)
+    )
     candidate_ras = set(agents)
-    if candidate_ras:
-        works, roles, contextual_agents = build_context(
-            candidate_ras,
-            config.rdf_dir,
-            config.zip_output,
-            cache,
-            workers,
-            max_evidence_works,
-        )
-        agents.update(contextual_agents)
-    else:
-        works, roles = {}, {}
     cluster_by_ra = {
         member: cluster for cluster in clusters for member in cluster.members
     }
-    provenance_uris = set(candidate_ras)
-    provenance_uris.update(
-        identifier.uri for ra in candidate_ras for identifier in agents[ra].identifiers
-    )
-    provenance = load_provenance(provenance_uris, cache, workers)
-    selected_works = _selected_work_uris(
-        candidate_ras, works, roles, max_evidence_works
-    )
-
     _ensure_parent(cache_path)
     api_cache = ApiCache(cache_path)
     client = AgentMetadataClient(
@@ -1336,35 +1260,51 @@ def analyze_duplicate_ras(
         openalex_api_key=openalex_api_key,
     )
     try:
-        (
-            role_assessments,
-            edge_evidence,
-            names_by_orcid,
-            role_operations,
-        ) = collect_external_evidence(
-            selected_works,
+        profiles = load_orcid_profiles(clusters, agents, client)
+        targets = work_evidence_targets(clusters, agents, profiles)
+        if targets and not _stop_requested:
+            works, roles, contextual_agents = build_context(
+                {ra for ra, _ in targets},
+                config.rdf_dir,
+                config.zip_output,
+                cache,
+                workers,
+                max_evidence_works,
+            )
+            agents.update(contextual_agents)
+        else:
+            works, roles = {}, {}
+        role_assessments, edge_evidence, names_by_orcid = collect_external_evidence(
+            set(works),
             works,
             roles,
             agents,
             cluster_by_ra,
             client,
+            targets,
+            profiles,
         )
+        provenance_uris = set(candidate_ras)
+        provenance_uris.update(
+            identifier.uri
+            for ra in candidate_ras
+            for identifier in agents[ra].identifiers
+        )
+        provenance = load_provenance(provenance_uris, cache, workers)
         identifier_assessments, identifier_operations = classify_identifiers(
             clusters,
-            risks_by_row,
             agents,
             edge_evidence,
             names_by_orcid,
             provenance,
-            client,
+            profiles,
         )
     finally:
         client.close()
         api_cache.close()
-
     operations_by_id = {
         cast(str, operation["operation_id"]): operation
-        for operation in (*role_operations, *identifier_operations)
+        for operation in identifier_operations
     }
     operations = sorted(
         operations_by_id.values(),
@@ -1388,7 +1328,6 @@ def analyze_duplicate_ras(
         "rdf_dir": config.rdf_dir,
         "api_cache": cache_path,
         "audit_options": {
-            "all_api": all_api,
             "max_evidence_works": max_evidence_works,
             "refresh_cache": refresh_cache,
         },
@@ -1400,7 +1339,7 @@ def analyze_duplicate_ras(
             "candidate_agents": len(candidate_ras),
             "locally_consistent_clusters": cluster_count
             - sum(bool(risks) for risks in risks_by_row.values()),
-            "selected_works": len(selected_works),
+            "selected_works": len(works),
             "risk_counts": dict(sorted(risk_counts.items())),
             "identifier_status_counts": dict(sorted(identifier_status_counts.items())),
             "operation_counts": dict(sorted(operation_counts.items())),
@@ -1454,14 +1393,11 @@ def read_review_decisions(
             if operation_id not in operations_by_id:
                 raise ValueError(f"Unknown review operation: {operation_id}")
             operation = operations_by_id[operation_id]
-            old_value, new_value = _review_chain_values(operation)
             expected = {
                 field: str(operation[field])
                 for field in REVIEW_FIELDS
-                if field not in {"old_value", "new_value", "decision"}
+                if field != "decision"
             }
-            expected["old_value"] = old_value
-            expected["new_value"] = new_value
             changed = [
                 field
                 for field in REVIEW_FIELDS
@@ -1509,50 +1445,11 @@ def _current_objects(endpoint: str, subject: str, predicate: str) -> list[str]:
     )
 
 
-def _find_orcid_identifier(endpoint: str, orcid: str) -> str:
-    if not is_valid_orcid(orcid):
-        raise ValueError(f"Invalid replacement ORCID: {orcid}")
-    literal = orjson.dumps(normalize_orcid(orcid)).decode()
-    query = f"""
-        SELECT DISTINCT ?id WHERE {{
-          ?id <{USES_IDENTIFIER_SCHEME}> <{DATACITE_PREFIX}orcid> ;
-              <{HAS_LITERAL_VALUE}> {literal} .
-        }}
-    """
-    identifiers = sorted(
-        binding["id"]["value"] for binding in _sparql_bindings(endpoint, query)
-    )
-    if len(identifiers) > 1:
-        raise ValueError(
-            f"Replacement ORCID {orcid} has multiple identifier entities: {identifiers}"
-        )
-    return identifiers[0] if identifiers else ""
-
-
 def _operation_string(operation: dict[str, object], field: str) -> str:
     value = operation[field]
     if not isinstance(value, str):
         raise ValueError(f"Operation field {field} must be a string")
     return value
-
-
-def _operation_links(operation: dict[str, object]) -> list[dict[str, str]]:
-    value = operation["links"]
-    if not isinstance(value, list):
-        raise ValueError("Reorder operation links must be a list")
-    links = []
-    for item in value:
-        if not isinstance(item, dict):
-            raise ValueError("Reorder operation link must be an object")
-        link = cast(dict[str, object], item)
-        parsed = {}
-        for field in ("ar", "old_next", "new_next"):
-            field_value = link[field]
-            if not isinstance(field_value, str):
-                raise ValueError(f"Reorder link field {field} must be a string")
-            parsed[field] = field_value
-        links.append(parsed)
-    return links
 
 
 def _operation_evidence(operation: dict[str, object]) -> list[dict[str, str]]:
@@ -1594,142 +1491,86 @@ def _import_entities(editor: MetaEditor, g_set: GraphSet, uris: set[str]) -> Non
 
 def _preflight_operations(
     editor: MetaEditor, operations: list[dict[str, object]]
-) -> tuple[set[str], dict[str, str]]:
+) -> set[str]:
     uris = set()
-    replacements = {}
     for operation in operations:
-        action = _operation_string(operation, "action")
-        if action in {"detach_identifier", "replace_identifier"}:
-            ra_uri = _operation_string(operation, "ra")
-            identifier_uri = _operation_string(operation, "identifier_uri")
-            old_value = normalize_orcid(_operation_string(operation, "old_value"))
-            _validate_uri(ra_uri)
-            _validate_uri(identifier_uri)
-            if identifier_uri not in _current_objects(
-                editor.endpoint, ra_uri, HAS_IDENTIFIER
+        ra_uri = _operation_string(operation, "ra")
+        identifier_uri = _operation_string(operation, "identifier_uri")
+        old_value = normalize_orcid(_operation_string(operation, "old_value"))
+        _validate_uri(ra_uri)
+        _validate_uri(identifier_uri)
+        if identifier_uri not in _current_objects(
+            editor.endpoint, ra_uri, HAS_IDENTIFIER
+        ):
+            raise RuntimeError(
+                f"Stale plan: {ra_uri} no longer has identifier {identifier_uri}"
+            )
+        schemes = _current_objects(
+            editor.endpoint, identifier_uri, USES_IDENTIFIER_SCHEME
+        )
+        values = _current_objects(editor.endpoint, identifier_uri, HAS_LITERAL_VALUE)
+        if schemes != [f"{DATACITE_PREFIX}orcid"] or [
+            normalize_orcid(value) for value in values
+        ] != [old_value]:
+            raise RuntimeError(
+                f"Stale plan: identifier {identifier_uri} no longer represents "
+                f"ORCID {old_value}"
+            )
+        for evidence in _operation_evidence(operation):
+            br_uri = evidence["br"]
+            ar_uri = evidence["ar"]
+            evidence_ra = evidence["ra"]
+            work_identifier_uri = evidence["work_identifier_uri"]
+            for uri in (
+                br_uri,
+                ar_uri,
+                evidence_ra,
+                work_identifier_uri,
+            ):
+                _validate_uri(uri)
+            if work_identifier_uri not in _current_objects(
+                editor.endpoint, br_uri, HAS_IDENTIFIER
             ):
                 raise RuntimeError(
-                    f"Stale plan: {ra_uri} no longer has identifier {identifier_uri}"
+                    f"Stale plan: {br_uri} no longer has work identifier "
+                    f"{work_identifier_uri}"
                 )
-            schemes = _current_objects(
-                editor.endpoint, identifier_uri, USES_IDENTIFIER_SCHEME
+            work_schemes = _current_objects(
+                editor.endpoint, work_identifier_uri, USES_IDENTIFIER_SCHEME
             )
-            values = _current_objects(
-                editor.endpoint, identifier_uri, HAS_LITERAL_VALUE
+            work_values = _current_objects(
+                editor.endpoint, work_identifier_uri, HAS_LITERAL_VALUE
             )
-            if schemes != [f"{DATACITE_PREFIX}orcid"] or [
-                normalize_orcid(value) for value in values
-            ] != [old_value]:
+            if work_schemes != [
+                f"{DATACITE_PREFIX}{evidence['work_identifier_scheme']}"
+            ] or work_values != [evidence["work_identifier_value"]]:
                 raise RuntimeError(
-                    f"Stale plan: identifier {identifier_uri} no longer represents "
-                    f"ORCID {old_value}"
+                    f"Stale plan: work identifier {work_identifier_uri} changed"
                 )
-            for evidence in _operation_evidence(operation):
-                br_uri = evidence["br"]
-                ar_uri = evidence["ar"]
-                evidence_ra = evidence["ra"]
-                work_identifier_uri = evidence["work_identifier_uri"]
-                for uri in (
-                    br_uri,
-                    ar_uri,
-                    evidence_ra,
-                    work_identifier_uri,
-                ):
-                    _validate_uri(uri)
-                if work_identifier_uri not in _current_objects(
-                    editor.endpoint, br_uri, HAS_IDENTIFIER
-                ):
-                    raise RuntimeError(
-                        f"Stale plan: {br_uri} no longer has work identifier "
-                        f"{work_identifier_uri}"
-                    )
-                work_schemes = _current_objects(
-                    editor.endpoint, work_identifier_uri, USES_IDENTIFIER_SCHEME
-                )
-                work_values = _current_objects(
-                    editor.endpoint, work_identifier_uri, HAS_LITERAL_VALUE
-                )
-                if work_schemes != [
-                    f"{DATACITE_PREFIX}{evidence['work_identifier_scheme']}"
-                ] or work_values != [evidence["work_identifier_value"]]:
-                    raise RuntimeError(
-                        f"Stale plan: work identifier {work_identifier_uri} changed"
-                    )
-                if ar_uri not in _current_objects(
-                    editor.endpoint, br_uri, IS_DOCUMENT_CONTEXT_FOR
-                ):
-                    raise RuntimeError(
-                        f"Stale plan: {br_uri} no longer contains role {ar_uri}"
-                    )
-                if _current_objects(editor.endpoint, ar_uri, IS_HELD_BY) != [
-                    evidence_ra
-                ]:
-                    raise RuntimeError(
-                        f"Stale plan: {ar_uri} is no longer held by {evidence_ra}"
-                    )
-                expected_next = [evidence["next"]] if evidence["next"] else []
-                if _current_objects(editor.endpoint, ar_uri, HAS_NEXT) != expected_next:
-                    raise RuntimeError(
-                        f"Stale plan: {ar_uri} hasNext no longer matches the "
-                        "confirmed work evidence"
-                    )
-            uris.update((ra_uri, identifier_uri))
-            if action == "replace_identifier":
-                replacement = normalize_orcid(_operation_string(operation, "new_value"))
-                if replacement not in replacements:
-                    replacements[replacement] = _find_orcid_identifier(
-                        editor.endpoint, replacement
-                    )
-                if replacements[replacement]:
-                    uris.add(replacements[replacement])
-        elif action == "reassign_role":
-            br_uri = _operation_string(operation, "br")
-            ar_uri = _operation_string(operation, "ar")
-            old_ra = _operation_string(operation, "old_value")
-            new_ra = _operation_string(operation, "new_value")
-            for uri in (br_uri, ar_uri, old_ra, new_ra):
-                _validate_uri(uri)
             if ar_uri not in _current_objects(
                 editor.endpoint, br_uri, IS_DOCUMENT_CONTEXT_FOR
             ):
                 raise RuntimeError(
                     f"Stale plan: {br_uri} no longer contains role {ar_uri}"
                 )
-            if _current_objects(editor.endpoint, ar_uri, IS_HELD_BY) != [old_ra]:
+            if _current_objects(editor.endpoint, ar_uri, IS_HELD_BY) != [evidence_ra]:
                 raise RuntimeError(
-                    f"Stale plan: {ar_uri} is no longer held by {old_ra}"
+                    f"Stale plan: {ar_uri} is no longer held by {evidence_ra}"
                 )
-            uris.update((ar_uri, old_ra, new_ra))
-        elif action == "reorder_chain":
-            br_uri = _operation_string(operation, "br")
-            _validate_uri(br_uri)
-            contributor_uris = _current_objects(
-                editor.endpoint, br_uri, IS_DOCUMENT_CONTEXT_FOR
-            )
-            for link in _operation_links(operation):
-                ar_uri = link["ar"]
-                _validate_uri(ar_uri)
-                if ar_uri not in contributor_uris:
-                    raise RuntimeError(
-                        f"Stale plan: {br_uri} no longer contains role {ar_uri}"
-                    )
-                current = _current_objects(editor.endpoint, ar_uri, HAS_NEXT)
-                expected = [link["old_next"]] if link["old_next"] else []
-                if current != expected:
-                    raise RuntimeError(
-                        f"Stale plan: {ar_uri} hasNext is {current}, expected {expected}"
-                    )
-                uris.add(ar_uri)
-                if link["new_next"]:
-                    _validate_uri(link["new_next"])
-                    uris.add(link["new_next"])
-    return uris, replacements
+            expected_next = [evidence["next"]] if evidence["next"] else []
+            if _current_objects(editor.endpoint, ar_uri, HAS_NEXT) != expected_next:
+                raise RuntimeError(
+                    f"Stale plan: {ar_uri} hasNext no longer matches the "
+                    "confirmed work evidence"
+                )
+        uris.update((ra_uri, identifier_uri))
+    return uris
 
 
 def _apply_operation_group(
     editor: MetaEditor, operations: list[dict[str, object]]
 ) -> None:
-    uris, replacements = _preflight_operations(editor, operations)
+    uris = _preflight_operations(editor, operations)
 
     g_set = GraphSet(
         editor.base_iri,
@@ -1738,125 +1579,49 @@ def _apply_operation_group(
         wanted_label=False,
     )
     _import_entities(editor, g_set, uris)
-    created_replacements: dict[str, Identifier] = {}
     for operation in operations:
-        action = _operation_string(operation, "action")
-        if action in {"detach_identifier", "replace_identifier"}:
-            ra = _responsible_agent(g_set, _operation_string(operation, "ra"))
-            identifier_uri = _operation_string(operation, "identifier_uri")
-            ra.remove_identifier(_identifier(g_set, identifier_uri))
-            if action == "replace_identifier":
-                replacement = normalize_orcid(_operation_string(operation, "new_value"))
-                replacement_uri = replacements[replacement]
-                if replacement_uri:
-                    replacement_identifier = _identifier(g_set, replacement_uri)
-                elif replacement in created_replacements:
-                    replacement_identifier = created_replacements[replacement]
-                else:
-                    replacement_identifier = g_set.add_id(editor.resp_agent)
-                    replacement_identifier.create_orcid(replacement)
-                    created_replacements[replacement] = replacement_identifier
-                ra.has_identifier(replacement_identifier)
-        elif action == "reassign_role":
-            role = _agent_role(g_set, _operation_string(operation, "ar"))
-            role.remove_is_held_by()
-            role.is_held_by(
-                _responsible_agent(g_set, _operation_string(operation, "new_value"))
-            )
-        elif action == "reorder_chain":
-            for link in _operation_links(operation):
-                role = _agent_role(g_set, link["ar"])
-                role.remove_next()
-                if link["new_next"]:
-                    role.has_next(_agent_role(g_set, link["new_next"]))
+        ra = _responsible_agent(g_set, _operation_string(operation, "ra"))
+        identifier_uri = _operation_string(operation, "identifier_uri")
+        ra.remove_identifier(_identifier(g_set, identifier_uri))
     editor.save(g_set, editor.supplier_prefix)
 
 
 def _validate_approved_operations(operations: list[dict[str, object]]) -> None:
-    allowed = {
-        "detach_identifier",
-        "replace_identifier",
-        "reassign_role",
-        "reorder_chain",
-    }
     identifiers = set()
-    assignments = {}
-    reorders = {}
     for operation in operations:
         action = _operation_string(operation, "action")
-        if action not in allowed:
+        if action != "detach_identifier":
             raise ValueError(f"Unsupported approved operation: {action}")
-        if action in {"detach_identifier", "replace_identifier"}:
-            key = (
-                _operation_string(operation, "ra"),
-                _operation_string(operation, "identifier_uri"),
-            )
-            if key in identifiers:
-                raise ValueError(f"Conflicting identifier operations for {key}")
-            identifiers.add(key)
-            evidence = _operation_evidence(operation)
-            if not evidence:
-                raise ValueError(f"Identifier operation has no work evidence: {key}")
-            if any(item["ra"] != key[0] for item in evidence):
-                raise ValueError(f"Identifier evidence has another RA: {key}")
-            if action == "replace_identifier":
-                old_value = normalize_orcid(_operation_string(operation, "old_value"))
-                new_value = normalize_orcid(_operation_string(operation, "new_value"))
-                if old_value == new_value:
-                    raise ValueError(f"ORCID replacement does not change {key}")
-                if not is_valid_orcid(new_value):
-                    raise ValueError(f"Invalid replacement ORCID: {new_value}")
-        elif action == "reassign_role":
-            ar_uri = _operation_string(operation, "ar")
-            new_ra = _operation_string(operation, "new_value")
-            if ar_uri in assignments and assignments[ar_uri] != new_ra:
-                raise ValueError(f"Conflicting role assignments for {ar_uri}")
-            assignments[ar_uri] = new_ra
-        else:
-            br_uri = _operation_string(operation, "br")
-            links = orjson.dumps(_operation_links(operation))
-            if br_uri in reorders and reorders[br_uri] != links:
-                raise ValueError(f"Conflicting chain orders for {br_uri}")
-            reorders[br_uri] = links
+        key = (
+            _operation_string(operation, "ra"),
+            _operation_string(operation, "identifier_uri"),
+        )
+        if key in identifiers:
+            raise ValueError(f"Conflicting identifier operations for {key}")
+        identifiers.add(key)
+        evidence = _operation_evidence(operation)
+        if not evidence:
+            raise ValueError(f"Identifier operation has no work evidence: {key}")
+        if any(item["ra"] != key[0] for item in evidence):
+            raise ValueError(f"Identifier evidence has another RA: {key}")
 
 
 def _operation_resources(operation: dict[str, object]) -> set[str]:
-    action = _operation_string(operation, "action")
-    if action in {"detach_identifier", "replace_identifier"}:
-        resources = {
-            _operation_string(operation, "ra"),
-            _operation_string(operation, "identifier_uri"),
-        }
-        if action == "replace_identifier":
-            resources.add(
-                f"orcid:{normalize_orcid(_operation_string(operation, 'new_value'))}"
-            )
-        for evidence in _operation_evidence(operation):
-            resources.update(
-                {
-                    f"context:{evidence['br']}",
-                    evidence["ar"],
-                    evidence["ra"],
-                    evidence["work_identifier_uri"],
-                }
-            )
-            if evidence["next"]:
-                resources.add(evidence["next"])
-        return resources
-    if action == "reassign_role":
-        return {
-            f"context:{_operation_string(operation, 'br')}",
-            _operation_string(operation, "ar"),
-            _operation_string(operation, "old_value"),
-            _operation_string(operation, "new_value"),
-        }
-    resources = {f"context:{_operation_string(operation, 'br')}"}
-    for link in _operation_links(operation):
-        resources.add(link["ar"])
-        if link["old_next"]:
-            resources.add(link["old_next"])
-        if link["new_next"]:
-            resources.add(link["new_next"])
+    resources = {
+        _operation_string(operation, "ra"),
+        _operation_string(operation, "identifier_uri"),
+    }
+    for evidence in _operation_evidence(operation):
+        resources.update(
+            {
+                f"context:{evidence['br']}",
+                evidence["ar"],
+                evidence["ra"],
+                evidence["work_identifier_uri"],
+            }
+        )
+        if evidence["next"]:
+            resources.add(evidence["next"])
     return resources
 
 
@@ -2002,25 +1767,36 @@ def execute_plan(
 def main() -> None:  # pragma: no cover
     parser = argparse.ArgumentParser(
         description=(
-            "Audit duplicate responsible-agent clusters against local role chains, "
-            "Crossref, DataCite, OpenAlex, and ORCID. Apply only operations approved "
-            "in the generated review CSV."
+            "Select locally consistent responsible-agent clusters for merging, "
+            "or plan and apply reviewed ORCID corrections for deferred clusters."
         ),
         formatter_class=RichHelpFormatter,
     )
     parser.add_argument("-c", "--config", required=True, help="Meta YAML config")
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument(
-        "--dry-run", action="store_true", help="Generate a plan without changing RDF"
+        "--dry-run",
+        action="store_true",
+        help="Select mergeable clusters using local RDF only",
+    )
+    mode.add_argument(
+        "--repair",
+        action="store_true",
+        help="Plan ORCID corrections using external evidence",
     )
     mode.add_argument("--execute", metavar="PLAN", help="Execute an approved plan")
     parser.add_argument(
         "--duplicates", help="Duplicate RA CSV produced by find.duplicates"
     )
-    parser.add_argument("--report-file", help="Dry-run JSON plan path")
+    parser.add_argument(
+        "--report-file", help="Local summary or correction plan JSON path"
+    )
+    parser.add_argument(
+        "--merge-file", help="Local selection CSV; defaults to REPORT.merge.csv"
+    )
     parser.add_argument(
         "--review-file",
-        help="Review CSV path; defaults to the path stored in the plan on execution",
+        help="Deferred clusters for --dry-run; operation decisions for --repair or --execute",
     )
     parser.add_argument("--cache-file", help="SQLite API cache path")
     parser.add_argument("--mailto", help="Contact email sent to metadata APIs")
@@ -2044,11 +1820,6 @@ def main() -> None:  # pragma: no cover
         help="Maximum works queried per candidate RA",
     )
     parser.add_argument(
-        "--all-api",
-        action="store_true",
-        help="Query external APIs for every cluster instead of local suspects only",
-    )
-    parser.add_argument(
         "--refresh-cache", action="store_true", help="Refresh cached API responses"
     )
     parser.add_argument("-r", "--resp-agent", help="Provenance responsible-agent URI")
@@ -2064,9 +1835,30 @@ def main() -> None:  # pragma: no cover
     signal.signal(signal.SIGINT, _handle_signal)
     signal.signal(signal.SIGTERM, _handle_signal)
     if args.dry_run:
+        if not args.duplicates or not args.report_file:
+            parser.error("--duplicates and --report-file are required with --dry-run")
+        merge_path = args.merge_file or f"{args.report_file}.merge.csv"
+        review_path = args.review_file or f"{args.report_file}.deferred.csv"
+        report = select_mergeable_clusters(
+            args.config,
+            args.duplicates,
+            args.report_file,
+            merge_path,
+            review_path,
+            args.workers,
+        )
+        summary = cast(dict[str, object], report["summary"])
+        console.print(
+            f"Mergeable clusters: {summary['mergeable_clusters']}; "
+            f"deferred clusters: {summary['deferred_clusters']}. "
+            f"Merge CSV: {os.path.abspath(merge_path)}. "
+            f"Deferred CSV: {os.path.abspath(review_path)}."
+        )
+        return
+    if args.repair:
         if not args.duplicates or not args.report_file or not args.mailto:
             parser.error(
-                "--duplicates, --report-file, and --mailto are required with --dry-run"
+                "--duplicates, --report-file, and --mailto are required with --repair"
             )
         review_path = args.review_file or f"{args.report_file}.review.csv"
         cache_path = args.cache_file or f"{args.report_file}.cache.sqlite"
@@ -2079,7 +1871,6 @@ def main() -> None:  # pragma: no cover
             mailto=args.mailto,
             workers=args.workers,
             max_evidence_works=args.max_evidence_works,
-            all_api=args.all_api,
             refresh_cache=args.refresh_cache,
             openalex_api_key=args.openalex_api_key,
         )
