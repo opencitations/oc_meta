@@ -8,6 +8,7 @@ import hashlib
 import multiprocessing
 import os
 from collections import defaultdict
+from collections.abc import Callable, Iterator
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 from typing import TypeVar, cast
@@ -22,7 +23,11 @@ from oc_ocdm.graph.entities.identifier import Identifier
 from oc_meta.lib.file_manager import find_rdf_file
 from oc_meta.run.meta.generate_csv import load_json_from_file
 
-mp_method = multiprocessing.get_context("forkserver") if os.name != "nt" else multiprocessing.get_context("spawn")
+mp_method = (
+    multiprocessing.get_context("forkserver")
+    if os.name != "nt"
+    else multiprocessing.get_context("spawn")
+)
 
 HAS_IDENTIFIER = "http://purl.org/spar/datacite/hasIdentifier"
 USES_IDENTIFIER_SCHEME = "http://purl.org/spar/datacite/usesIdentifierScheme"
@@ -44,7 +49,10 @@ ROLE_MAP = {
     "http://purl.org/spar/pro/publisher": "publisher",
 }
 
+TASKS_PER_WORKER = 10
+
 Item = TypeVar("Item")
+Result = TypeVar("Result")
 
 
 @dataclass(frozen=True, slots=True)
@@ -178,6 +186,20 @@ def load_audit_config(path: str) -> AuditConfig:
     )
 
 
+def recycled_map(
+    function: Callable[[Item], Result],
+    items: list[Item],
+    workers: int,
+    new_pool: Callable[[], ProcessPoolExecutor],
+) -> Iterator[Result]:
+    # Loading JSON-LD files leaves memory held by each worker process, so every
+    # pool runs a bounded number of tasks per worker and then exits.
+    chunk_size = workers * TASKS_PER_WORKER
+    for start in range(0, len(items), chunk_size):
+        with new_pool() as executor:
+            yield from executor.map(function, items[start : start + chunk_size])
+
+
 def _load_target_batch(
     tasks: list[tuple[str, frozenset[str]]],
 ) -> dict[str, dict[str, object]]:
@@ -199,12 +221,13 @@ def load_available_entities(
         targets_by_path[locator.path(uri)].add(uri)
     tasks = [(path, frozenset(targets)) for path, targets in targets_by_path.items()]
     result = {}
-    with ProcessPoolExecutor(
-        max_workers=workers,
-        mp_context=mp_method,
-    ) as executor:
-        for partial in executor.map(_load_target_batch, batches(tasks, 24)):
-            result.update(partial)
+    for partial in recycled_map(
+        _load_target_batch,
+        batches(tasks, 24),
+        workers,
+        lambda: ProcessPoolExecutor(max_workers=workers, mp_context=mp_method),
+    ):
+        result.update(partial)
     return result
 
 

@@ -2,6 +2,9 @@
 #
 # SPDX-License-Identifier: ISC
 
+import os
+from concurrent.futures import ProcessPoolExecutor
+from multiprocessing import get_context
 from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile
 
@@ -17,6 +20,7 @@ from oc_meta.lib.rdf_patch import (
     load_entities,
     load_progress,
     read_json_object,
+    recycled_map,
     save_progress,
     sha256,
     write_json,
@@ -150,3 +154,26 @@ def test_json_hash_and_progress_files(tmp_path: Path) -> None:
     with pytest.raises(ValueError) as error:
         load_progress(str(progress_path), "changed", "review")
     assert str(error.value) == "Progress file belongs to a different correction plan"
+
+
+def _worker_pid(item: int) -> tuple[int, int]:
+    return item, os.getpid()
+
+
+def test_recycled_map_replaces_workers_after_each_chunk() -> None:
+    pools: list[ProcessPoolExecutor] = []
+
+    def new_pool() -> ProcessPoolExecutor:
+        pools.append(
+            ProcessPoolExecutor(max_workers=1, mp_context=get_context("spawn"))
+        )
+        return pools[-1]
+
+    results = list(recycled_map(_worker_pid, list(range(25)), 1, new_pool))
+
+    assert [item for item, _ in results] == list(range(25))
+    assert len(pools) == 3
+    assert [
+        len({pid for item, pid in results if item // 10 == chunk}) for chunk in range(3)
+    ] == [1, 1, 1]
+    assert len({pid for _, pid in results}) == 3

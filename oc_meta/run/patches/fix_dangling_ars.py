@@ -13,7 +13,7 @@ import shutil
 import signal
 import tempfile
 from collections import Counter, defaultdict
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -58,6 +58,7 @@ from oc_meta.lib.rdf_patch import (
     load_entities as _load_entities,
     provenance_path as _provenance_path,
     read_json_object as _read_json_object,
+    recycled_map,
     sha256 as _sha256,
     snapshot_number as _snapshot_number,
     write_json as _write_json,
@@ -117,8 +118,19 @@ def _object_sha256(value: object) -> str:
     return hashlib.sha256(orjson.dumps(value, option=orjson.OPT_SORT_KEYS)).hexdigest()
 
 
-def _process_pool(workers: int) -> ProcessPoolExecutor:
-    return ProcessPoolExecutor(max_workers=workers, mp_context=_fork_context)
+def _process_pool(
+    workers: int,
+    initializer: Callable[[frozenset[str]], None] | None = None,
+    shared: frozenset[str] = frozenset(),
+) -> ProcessPoolExecutor:
+    if initializer is None:
+        return ProcessPoolExecutor(max_workers=workers, mp_context=_fork_context)
+    return ProcessPoolExecutor(
+        max_workers=workers,
+        mp_context=_fork_context,
+        initializer=initializer,
+        initargs=(shared,),
+    )
 
 
 def _scan_entity_uri_batch(paths: list[str]) -> set[str]:
@@ -128,13 +140,14 @@ def _scan_entity_uri_batch(paths: list[str]) -> set[str]:
 def scan_entity_uris(files: list[str], workers: int) -> set[str]:
     result = set()
     batches = _batches(files, 24)
-    with _process_pool(workers) as executor:
-        partial_results = executor.map(_scan_entity_uri_batch, batches)
-        with create_progress() as progress:
-            task = progress.add_task("Indexing agent roles", total=len(files))
-            for batch, partial in zip(batches, partial_results):
-                result.update(partial)
-                progress.advance(task, len(batch))
+    partial_results = recycled_map(
+        _scan_entity_uri_batch, batches, workers, lambda: _process_pool(workers)
+    )
+    with create_progress() as progress:
+        task = progress.add_task("Indexing agent roles", total=len(files))
+        for batch, partial in zip(batches, partial_results):
+            result.update(partial)
+            progress.advance(task, len(batch))
     return result
 
 
@@ -189,19 +202,18 @@ def _scan_contexts(
 ) -> dict[str, tuple[str, ...]]:
     contexts: dict[str, list[str]] = defaultdict(list)
     batches = _batches(br_files, 24)
-    with ProcessPoolExecutor(
-        max_workers=workers,
-        mp_context=_fork_context,
-        initializer=_init_role_scan,
-        initargs=(target_roles,),
-    ) as executor:
-        partial_results = executor.map(_scan_role_context_batch, batches)
-        with create_progress() as progress:
-            task = progress.add_task("Checking role contexts", total=len(br_files))
-            for batch, partial in zip(batches, partial_results):
-                for role_uri, work_uris in partial.items():
-                    contexts[role_uri].extend(work_uris)
-                progress.advance(task, len(batch))
+    partial_results = recycled_map(
+        _scan_role_context_batch,
+        batches,
+        workers,
+        lambda: _process_pool(workers, _init_role_scan, target_roles),
+    )
+    with create_progress() as progress:
+        task = progress.add_task("Checking role contexts", total=len(br_files))
+        for batch, partial in zip(batches, partial_results):
+            for role_uri, work_uris in partial.items():
+                contexts[role_uri].extend(work_uris)
+            progress.advance(task, len(batch))
     return {role_uri: tuple(sorted(contexts[role_uri])) for role_uri in target_roles}
 
 
@@ -219,23 +231,20 @@ def find_dangling_works(
     works = {}
     missing_by_work = {}
     batches = _batches(br_files, 24)
-    with ProcessPoolExecutor(
-        max_workers=workers,
-        mp_context=_fork_context,
-        initializer=_init_dangling_scan,
-        initargs=(existing_roles,),
-    ) as executor:
-        partial_results = executor.map(_scan_dangling_work_batch, batches)
-        with create_progress() as progress:
-            task = progress.add_task(
-                "Finding dangling role references", total=len(br_files)
-            )
-            for batch, (partial_works, partial_missing) in zip(
-                batches, partial_results
-            ):
-                works.update(partial_works)
-                missing_by_work.update(partial_missing)
-                progress.advance(task, len(batch))
+    partial_results = recycled_map(
+        _scan_dangling_work_batch,
+        batches,
+        workers,
+        lambda: _process_pool(workers, _init_dangling_scan, existing_roles),
+    )
+    with create_progress() as progress:
+        task = progress.add_task(
+            "Finding dangling role references", total=len(br_files)
+        )
+        for batch, (partial_works, partial_missing) in zip(batches, partial_results):
+            works.update(partial_works)
+            missing_by_work.update(partial_missing)
+            progress.advance(task, len(batch))
     target_roles = frozenset(
         role_uri for work in works.values() for role_uri in work.role_uris
     )
@@ -261,18 +270,18 @@ def scan_role_links(
     role_files = _data_files(os.path.join(config.rdf_dir, "ar"), config.zip_output)
     batches = _batches(role_files, 24)
     links = set()
-    with ProcessPoolExecutor(
-        max_workers=workers,
-        mp_context=_fork_context,
-        initializer=_init_role_scan,
-        initargs=(frozenset(role_uris),),
-    ) as executor:
-        partial_results = executor.map(_scan_role_link_batch, batches)
-        with create_progress() as progress:
-            task = progress.add_task("Checking role links", total=len(role_files))
-            for batch, partial in zip(batches, partial_results):
-                links.update(partial)
-                progress.advance(task, len(batch))
+    target_roles = frozenset(role_uris)
+    partial_results = recycled_map(
+        _scan_role_link_batch,
+        batches,
+        workers,
+        lambda: _process_pool(workers, _init_role_scan, target_roles),
+    )
+    with create_progress() as progress:
+        task = progress.add_task("Checking role links", total=len(role_files))
+        for batch, partial in zip(batches, partial_results):
+            links.update(partial)
+            progress.advance(task, len(batch))
     return links
 
 
@@ -318,9 +327,13 @@ def load_provenance_statuses(
         targets_by_path[path].add(uri)
     tasks = [(path, frozenset(targets)) for path, targets in targets_by_path.items()]
     statuses = {}
-    with ProcessPoolExecutor(max_workers=workers, mp_context=_context) as executor:
-        for partial in executor.map(_provenance_status_batch, _batches(tasks, 24)):
-            statuses.update(partial)
+    for partial in recycled_map(
+        _provenance_status_batch,
+        _batches(tasks, 24),
+        workers,
+        lambda: ProcessPoolExecutor(max_workers=workers, mp_context=_context),
+    ):
+        statuses.update(partial)
     return {uri: statuses[uri] if uri in statuses else "no_snapshot" for uri in uris}
 
 
