@@ -7,7 +7,12 @@ import os
 import orjson
 import pytest
 from oc_meta.core.creator import Creator
-from oc_meta.core.curator import Curator, is_a_valid_row
+from oc_meta.core.curator import (
+    Curator,
+    _extract_ids_from_chunk,
+    extract_identifiers_and_metavals,
+    is_a_valid_row,
+)
 from oc_meta.lib.file_manager import get_csv_data
 from oc_meta.lib.finder import ResourceFinder
 from oc_ocdm import Storer
@@ -314,7 +319,7 @@ class TestCurator:
         }
         curator = prepareCurator(list())
         curator.finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
-        metavals, identifiers, vvis = curator.extract_identifiers_and_metavals(row)
+        metavals, identifiers, vvis = extract_identifiers_and_metavals(row)
         curator.finder.get_everything_about_res(
             metavals=metavals, identifiers=identifiers, vvis=vvis
         )
@@ -404,7 +409,7 @@ class TestCurator:
         }
         curator = prepareCurator(list())
         curator.finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
-        metavals, identifiers, vvis = curator.extract_identifiers_and_metavals(row)
+        metavals, identifiers, vvis = extract_identifiers_and_metavals(row)
         curator.finder.get_everything_about_res(
             metavals=metavals, identifiers=identifiers, vvis=vvis
         )
@@ -446,7 +451,7 @@ class TestCurator:
         }
         curator = prepareCurator(list())
         curator.finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
-        metavals, identifiers, vvis = curator.extract_identifiers_and_metavals(row)
+        metavals, identifiers, vvis = extract_identifiers_and_metavals(row)
         curator.finder.get_everything_about_res(
             metavals=metavals, identifiers=identifiers, vvis=vvis
         )
@@ -547,7 +552,7 @@ class TestCurator:
         }
         curator = prepareCurator(list())
         curator.finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
-        metavals, identifiers, vvis = curator.extract_identifiers_and_metavals(row)
+        metavals, identifiers, vvis = extract_identifiers_and_metavals(row)
         curator.finder.get_everything_about_res(
             metavals=metavals, identifiers=identifiers, vvis=vvis
         )
@@ -675,7 +680,7 @@ class TestCurator:
         }
         curator = prepareCurator(list())
         curator.finder = ResourceFinder(ts_url=SERVER, base_iri=BASE_IRI)
-        metavals, identifiers, vvis = curator.extract_identifiers_and_metavals(row)
+        metavals, identifiers, vvis = extract_identifiers_and_metavals(row)
         curator.finder.get_everything_about_res(
             metavals=metavals, identifiers=identifiers, vvis=vvis
         )
@@ -1174,7 +1179,7 @@ class TestCurator:
         all_identifiers = set()
         all_vvis = set()
         for row in data:
-            metavals, identifiers, vvis = curator.extract_identifiers_and_metavals(row)
+            metavals, identifiers, vvis = extract_identifiers_and_metavals(row)
             all_metavals.update(metavals)
             all_identifiers.update(identifiers)
             all_vvis.update(vvis)
@@ -2290,6 +2295,40 @@ class TestCuratorExtractNameAndIds:
         name, ids = curator.extract_name_and_ids("")
         assert name == ""
         assert ids == []
+
+
+class TestCuratorExtractIdentifiersFromPeopleFields:
+    ROW = {
+        "id": "doi:10.1234/test",
+        "title": "",
+        "author": "Doe, John [orcid:0000-0002-8420-0696]; Roe, Jane; Poe, Ann [orcid:0000-0003-0530-4305 omid:ra/0601]",
+        "pub_date": "",
+        "venue": "",
+        "volume": "",
+        "issue": "",
+        "page": "",
+        "type": "",
+        "publisher": "Publisher A [crossref:1]; Publisher B [crossref:2]",
+        "editor": "Smith, Bob; Brown, Carl [orcid:0000-0002-1825-0097]",
+    }
+    EXPECTED_IDENTIFIERS = {
+        "doi:10.1234/test",
+        "orcid:0000-0002-8420-0696",
+        "orcid:0000-0003-0530-4305",
+        "orcid:0000-0002-1825-0097",
+        "crossref:1",
+        "crossref:2",
+    }
+
+    def test_every_agent_in_a_cell_is_collected(self):
+        metavals, identifiers, _ = extract_identifiers_and_metavals(self.ROW)
+        assert identifiers == self.EXPECTED_IDENTIFIERS
+        assert metavals == {"omid:ra/0601"}
+
+    def test_parallel_chunks_collect_every_agent(self):
+        metavals, identifiers, _ = _extract_ids_from_chunk([self.ROW])
+        assert identifiers == self.EXPECTED_IDENTIFIERS
+        assert metavals == {"omid:ra/0601"}
 
 
 class TestCuratorCleanIdListMultipleOmid:

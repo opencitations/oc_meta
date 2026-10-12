@@ -43,54 +43,66 @@ def _omid(meta: str) -> str:
     return f"omid:{meta}"
 
 
+def _fields_with_an_id(row: Dict[str, str]) -> List[Tuple[str, List[str]]]:
+    fields_with_an_id = []
+    for field in ["author", "editor", "publisher", "venue", "volume", "issue"]:
+        if field in ("author", "editor", "publisher"):
+            entries = RE_SEMICOLON_IN_PEOPLE_FIELD.split(row[field])
+        else:
+            entries = [row[field]]
+        for entry in entries:
+            _, ids_str = split_name_and_ids(entry)
+            if ids_str:
+                fields_with_an_id.append((field, ids_str.split()))
+    return fields_with_an_id
+
+
+def extract_identifiers_and_metavals(row: Dict[str, str]) -> Tuple[set, set, set]:
+    metavals = set()
+    identifiers = set()
+    vvis = set()
+    venue_ids = set()
+    venue_metaid = None
+
+    if row["id"]:
+        id_list = RE_ONE_OR_MORE_SPACES.split(RE_COLON_AND_SPACES.sub(":", row["id"]))
+        idslist, metaval = Curator.clean_id_list(id_list, br=True)
+        if metaval:
+            metavals.add(_omid(metaval))
+        if idslist:
+            identifiers.update(idslist)
+
+    for field, field_ids in _fields_with_an_id(row):
+        br = field in ["venue", "volume", "issue"]
+        field_idslist, field_metaval = Curator.clean_id_list(field_ids, br=br)
+        if field_metaval:
+            field_metaval = _omid(field_metaval)
+        else:
+            field_metaval = ""
+        if field_metaval:
+            metavals.add(field_metaval)
+        if field == "venue":
+            venue_metaid = field_metaval
+            if field_idslist:
+                venue_ids.update(field_idslist)
+        else:
+            if field_idslist:
+                identifiers.update(field_idslist)
+
+    if (venue_metaid or venue_ids) and (row["volume"] or row["issue"]):
+        vvi = (row["volume"], row["issue"], venue_metaid, tuple(sorted(venue_ids)))
+        vvis.add(vvi)
+
+    return metavals, identifiers, vvis
+
+
 def _extract_ids_from_chunk(rows: list) -> Tuple[set, set, set]:
     all_metavals = set()
     all_identifiers = set()
     all_vvis = set()
 
     for row in rows:
-        metavals = set()
-        identifiers = set()
-        vvis = set()
-        venue_ids = set()
-        venue_metaid = None
-
-        if row["id"]:
-            id_list = RE_ONE_OR_MORE_SPACES.split(
-                RE_COLON_AND_SPACES.sub(":", row["id"])
-            )
-            idslist, metaval = Curator.clean_id_list(id_list, br=True)
-            if metaval:
-                metavals.add(_omid(metaval))
-            if idslist:
-                identifiers.update(idslist)
-
-        fields_with_an_id = []
-        for field in ["author", "editor", "publisher", "venue", "volume", "issue"]:
-            _, ids_str = split_name_and_ids(row[field])
-            if ids_str:
-                fields_with_an_id.append((field, ids_str.split()))
-        for field, field_ids in fields_with_an_id:
-            br = field in ["venue", "volume", "issue"]
-            field_idslist, field_metaval = Curator.clean_id_list(field_ids, br=br)
-            if field_metaval:
-                field_metaval = _omid(field_metaval)
-            else:
-                field_metaval = ""
-            if field_metaval:
-                metavals.add(field_metaval)
-            if field == "venue":
-                venue_metaid = field_metaval
-                if field_idslist:
-                    venue_ids.update(field_idslist)
-            else:
-                if field_idslist:
-                    identifiers.update(field_idslist)
-
-        if (venue_metaid or venue_ids) and (row["volume"] or row["issue"]):
-            vvi = (row["volume"], row["issue"], venue_metaid, tuple(sorted(venue_ids)))
-            vvis.add(vvi)
-
+        metavals, identifiers, vvis = extract_identifiers_and_metavals(row)
         all_metavals.update(metavals)
         all_identifiers.update(identifiers)
         all_vvis.update(vvis)
@@ -194,7 +206,7 @@ class Curator:
                         )
         else:
             for row in self.data:
-                metavals, idslist, vvis = self.extract_identifiers_and_metavals(row)
+                metavals, idslist, vvis = extract_identifiers_and_metavals(row)
                 all_metavals.update(metavals)
                 all_idslist.update(idslist)
                 all_vvis.update(vvis)
@@ -202,52 +214,6 @@ class Curator:
                     self.progress.advance(task_id)
 
         return all_metavals, all_idslist, all_vvis
-
-    def extract_identifiers_and_metavals(self, row) -> Tuple[set, set, set]:
-        metavals = set()
-        identifiers = set()
-        vvis = set()
-        venue_ids = set()
-        venue_metaid = None
-
-        if row["id"]:
-            idslist, metaval = self.clean_id_list(
-                self.split_identifiers(row["id"]),
-                br=True,
-            )
-            id_metaval = _omid(metaval) if metaval else ""
-            if id_metaval:
-                metavals.add(id_metaval)
-            if idslist:
-                identifiers.update(idslist)
-
-        fields_with_an_id = []
-        for field in ["author", "editor", "publisher", "venue", "volume", "issue"]:
-            _, ids_str = split_name_and_ids(row[field])
-            if ids_str:
-                fields_with_an_id.append((field, ids_str.split()))
-        for field, field_ids in fields_with_an_id:
-            br = field in ["venue", "volume", "issue"]
-            field_idslist, field_metaval = self.clean_id_list(field_ids, br=br)
-            if field_metaval:
-                field_metaval = _omid(field_metaval)
-            else:
-                field_metaval = ""
-            if field_metaval:
-                metavals.add(field_metaval)
-            if field == "venue":
-                venue_metaid = field_metaval
-                if field_idslist:
-                    venue_ids.update(field_idslist)
-            else:
-                if field_idslist:
-                    identifiers.update(field_idslist)
-
-        if (venue_metaid or venue_ids) and (row["volume"] or row["issue"]):
-            vvi = (row["volume"], row["issue"], venue_metaid, tuple(sorted(venue_ids)))
-            vvis.add(vvi)
-
-        return metavals, identifiers, vvis
 
     def split_identifiers(self, field_value):
         return RE_ONE_OR_MORE_SPACES.split(RE_COLON_AND_SPACES.sub(":", field_value))
@@ -358,30 +324,10 @@ class Curator:
             )
         else:
             name = ""
-        metaval_ids_list = []
-        idslist: list = []
-        metaval = ""
         if row["id"]:
-            idslist = RE_ONE_OR_MORE_SPACES.split(
-                RE_COLON_AND_SPACES.sub(":", row["id"])
+            idslist, metaval = self.clean_id_list(
+                self.split_identifiers(row["id"]), br=True
             )
-            idslist, metaval = self.clean_id_list(idslist, br=True)
-            id_metaval = _omid(metaval) if metaval else ""
-            metaval_ids_list.append((id_metaval, idslist))
-        fields_with_an_id = []
-        for field in ["author", "editor", "publisher", "venue", "volume", "issue"]:
-            _, ids_str = split_name_and_ids(row[field])
-            if ids_str:
-                fields_with_an_id.append((field, ids_str.split()))
-        for field, field_ids in fields_with_an_id:
-            br = field in ["venue", "volume", "issue"]
-            field_idslist, field_metaval = self.clean_id_list(field_ids, br=br)
-            if field_metaval:
-                field_metaval = _omid(field_metaval)
-            else:
-                field_metaval = ""
-            metaval_ids_list.append((field_metaval, field_idslist))
-        if row["id"]:
             metaval = self.id_worker(
                 "id",
                 name,
