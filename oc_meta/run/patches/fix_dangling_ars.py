@@ -9,11 +9,12 @@ import csv
 import hashlib
 import multiprocessing
 import os
+import re
 import shutil
 import signal
 import tempfile
 from collections import Counter, defaultdict
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Collection, Mapping
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -22,12 +23,9 @@ from typing import Protocol, cast
 import orjson
 import requests
 from oc_ocdm.graph import GraphSet
-from oc_ocdm.graph.entities.bibliographic.bibliographic_resource import (
-    BibliographicResource,
-)
 from oc_ocdm.graph.graph_entity import GraphEntity
 from rich_argparse import RichHelpFormatter
-from triplelite import RDFTerm, TripleLite, from_rdflib
+from triplelite import RDFTerm
 
 from oc_meta.core.editor import MetaEditor
 from oc_meta.lib.agent_metadata import (
@@ -48,10 +46,12 @@ from oc_meta.lib.rdf_patch import (
     AuditConfig,
     EntityFileLocator,
     batches as _batches,
+    bibliographic_resource,
     data_files as _data_files,
     ensure_parent as _ensure_parent,
     first as _first,
     ids as _ids,
+    import_exact_entities,
     literals as _literals,
     load_audit_config,
     load_available_entities,
@@ -70,6 +70,7 @@ PLAN_VERSION = 2
 PROVIDERS = ("crossref", "datacite")
 PROV_INVALIDATED_AT_TIME = "http://www.w3.org/ns/prov#invalidatedAtTime"
 DCTERMS_TITLE = "http://purl.org/dc/terms/title"
+CONTROL_CHARACTERS = re.compile(r"\s*[\x00-\x1f\x7f]+\s*")
 
 csv.field_size_limit(2**31 - 1)
 
@@ -427,6 +428,7 @@ def _serialize_name(
         rendered_name = f"{family}, {given}" if given else f"{family},"
     else:
         rendered_name = name
+    rendered_name = CONTROL_CHARACTERS.sub(" ", rendered_name)
     rendered_identifiers = " ".join(
         f"{identifier['scheme']}:{identifier['value']}" for identifier in identifiers
     )
@@ -452,34 +454,38 @@ def serialize_agents(agents: list[AgentMetadata]) -> str:
 
 
 def work_csv_row(
-    work: WorkRecord,
+    br_uri: str,
     work_entity: dict[str, object],
-    identifiers: Mapping[str, str],
+    doi: str,
     metadata: WorkMetadata,
+    role_types: Collection[str],
 ) -> dict[str, str]:
-    doi = identifiers["doi"]
-    publisher = _serialize_name(
-        "",
-        "",
-        metadata["publisher"],
-        metadata["publisher_identifiers"],
-    )
-    return {
-        "id": f"{_omid(work.uri)} doi:{doi}",
-        "title": _first(_literals(work_entity, DCTERMS_TITLE)),
+    agents = {
         "author": serialize_agents(metadata["author"]),
+        "editor": serialize_agents(metadata["editor"]),
+        "publisher": _serialize_name(
+            "",
+            "",
+            metadata["publisher"],
+            metadata["publisher_identifiers"],
+        ),
+    }
+    return {
+        "id": f"{_omid(br_uri)} doi:{doi}",
+        "title": _first(_literals(work_entity, DCTERMS_TITLE)),
+        "author": agents["author"] if "author" in role_types else "",
         "issue": "",
         "volume": "",
         "venue": "",
         "page": "",
         "pub_date": "",
         "type": _local_type(work_entity),
-        "publisher": publisher,
-        "editor": serialize_agents(metadata["editor"]),
+        "publisher": agents["publisher"] if "publisher" in role_types else "",
+        "editor": agents["editor"] if "editor" in role_types else "",
     }
 
 
-def _select_provider(
+def select_provider(
     provider: WorkProviderClient, doi: str
 ) -> tuple[
     str | None,
@@ -648,7 +654,7 @@ def build_repair_plan(
                     metadata,
                     attempted_providers,
                     provider_errors,
-                ) = _select_provider(
+                ) = select_provider(
                     provider,
                     work_identifiers["doi"] if "doi" in work_identifiers else "",
                 )
@@ -722,7 +728,13 @@ def build_repair_plan(
             operations.append(operation)
             if metadata is not None and selected_provider is not None and not blockers:
                 rows_by_provider[selected_provider].append(
-                    work_csv_row(work, work_entity, work_identifiers, metadata)
+                    work_csv_row(
+                        br_uri,
+                        work_entity,
+                        work_identifiers["doi"],
+                        metadata,
+                        ("author", "editor", "publisher"),
+                    )
                 )
             progress.advance(task)
     return operations, rows_by_provider
@@ -895,7 +907,7 @@ def _plan_operations(plan: dict[str, object]) -> list[dict[str, object]]:
     return operations
 
 
-def _verify_csv_files(plan: dict[str, object]) -> None:
+def verify_csv_files(plan: dict[str, object]) -> None:
     csv_output_dir = plan["csv_output_dir"]
     csv_files = plan["csv_files"]
     if not isinstance(csv_output_dir, str) or not isinstance(csv_files, dict):
@@ -947,7 +959,7 @@ def _save_progress(
     )
 
 
-def _current_contexts(
+def scan_role_contexts(
     config: AuditConfig, role_uris: set[str], workers: int
 ) -> dict[str, tuple[str, ...]]:
     if not role_uris:
@@ -1048,7 +1060,7 @@ def check_plan(config_path: str, plan_path: str, workers: int) -> dict[str, obje
         raise ValueError("The correction plan is incomplete")
     if plan["config_sha256"] != _sha256(config_path):
         raise ValueError("The Meta configuration changed after plan generation")
-    _verify_csv_files(plan)
+    verify_csv_files(plan)
     config = load_audit_config(config_path)
     role_uris = {
         uri
@@ -1058,7 +1070,7 @@ def check_plan(config_path: str, plan_path: str, workers: int) -> dict[str, obje
             cast(dict[str, object], operation["preconditions"])["role_references"],
         )
     }
-    contexts = _current_contexts(config, role_uris, workers)
+    contexts = scan_role_contexts(config, role_uris, workers)
     links = scan_role_links(config, role_uris, workers)
     works = []
     for operation in operations:
@@ -1096,42 +1108,6 @@ def check_plan(config_path: str, plan_path: str, workers: int) -> dict[str, obje
     }
 
 
-def _import_exact_entities(
-    editor: MetaEditor,
-    g_set: GraphSet,
-    uris: set[str],
-    locator: EntityFileLocator,
-) -> None:
-    uris_by_path: dict[str, set[str]] = defaultdict(set)
-    for uri in uris:
-        uris_by_path[locator.path(uri)].add(uri)
-    for path, path_uris in sorted(uris_by_path.items()):
-        if not os.path.exists(path):
-            continue
-        graph = editor.reader.load(path)
-        if graph is None:
-            continue
-        merged = TripleLite()
-        for context in from_rdflib(graph):
-            for triple in context.triples((None, None, None)):
-                merged.add(triple)
-        for uri in sorted(path_uris):
-            preexisting = merged.subgraph(uri)
-            if "/br/" in uri:
-                g_set.add_br(editor.resp_agent, res=uri, preexisting_graph=preexisting)
-            elif "/ar/" in uri:
-                g_set.add_ar(editor.resp_agent, res=uri, preexisting_graph=preexisting)
-            else:
-                raise ValueError(f"Unsupported entity in correction operation: {uri}")
-
-
-def _bibliographic_resource(g_set: GraphSet, uri: str) -> BibliographicResource:
-    entity = g_set.get_entity(uri)
-    if not isinstance(entity, BibliographicResource):
-        raise ValueError(f"Bibliographic resource not imported: {uri}")
-    return entity
-
-
 def _apply_operation(
     editor: MetaEditor,
     operation: dict[str, object],
@@ -1147,8 +1123,8 @@ def _apply_operation(
         custom_counter_handler=editor.counter_handler,
         wanted_label=False,
     )
-    _import_exact_entities(editor, g_set, {br_uri, *delete_existing}, locator)
-    br = _bibliographic_resource(g_set, br_uri)
+    import_exact_entities(editor, g_set, {br_uri, *delete_existing}, locator)
+    br = bibliographic_resource(g_set, br_uri)
     for role_uri in cast(list[str], actions["remove_role_references"]):
         br.g.remove(
             (
@@ -1207,7 +1183,7 @@ def execute_plan(
         raise ValueError("The Meta configuration changed after plan generation")
     if any(cast(list[object], operation["blockers"]) for operation in operations):
         raise ValueError("An executable correction plan cannot contain blockers")
-    _verify_csv_files(plan)
+    verify_csv_files(plan)
     plan_sha256 = _sha256(plan_path)
     operations_sha256 = cast(str, plan["operations_sha256"])
     completed = _load_progress(progress_path, plan_sha256, operations_sha256)
@@ -1246,7 +1222,7 @@ def execute_plan(
         )
     }
     config = load_audit_config(config_path)
-    contexts = _current_contexts(config, pending_role_uris, workers)
+    contexts = scan_role_contexts(config, pending_role_uris, workers)
     links = scan_role_links(config, pending_role_uris, workers)
     for operation in pending:
         _capture_preconditions(

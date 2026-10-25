@@ -771,3 +771,14 @@ def test_csv_serialization_keeps_all_2880_authors() -> None:
     serialized = fixer.serialize_agents(authors)
 
     assert serialized.split("; ") == [f"Author {position}" for position in range(2880)]
+
+
+def test_csv_serialization_replaces_line_breaks_in_names() -> None:
+    authors = [
+        _agent("", "author", 0, family="van \nLoon", given="Nanette"),
+        _agent("on behalf of the\n                    Group", "author", 1),
+    ]
+
+    serialized = fixer.serialize_agents(authors)
+
+    assert serialized == "van Loon, Nanette; on behalf of the Group"

@@ -11,17 +11,24 @@ from collections import defaultdict
 from collections.abc import Callable, Iterator
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
-from typing import TypeVar, cast
+from typing import TYPE_CHECKING, TypeVar, cast
 
 import orjson
 import yaml
 from oc_ocdm.graph import GraphSet
 from oc_ocdm.graph.entities.bibliographic.agent_role import AgentRole
+from oc_ocdm.graph.entities.bibliographic.bibliographic_resource import (
+    BibliographicResource,
+)
 from oc_ocdm.graph.entities.bibliographic.responsible_agent import ResponsibleAgent
 from oc_ocdm.graph.entities.identifier import Identifier
+from triplelite import TripleLite, from_rdflib
 
 from oc_meta.lib.file_manager import find_rdf_file
 from oc_meta.run.meta.generate_csv import load_json_from_file
+
+if TYPE_CHECKING:
+    from oc_meta.core.editor import MetaEditor
 
 mp_method = (
     multiprocessing.get_context("forkserver")
@@ -290,3 +297,39 @@ def agent_role(g_set: GraphSet, uri: str) -> AgentRole:
     if not isinstance(entity, AgentRole):
         raise ValueError(f"Agent role not imported: {uri}")
     return entity
+
+
+def bibliographic_resource(g_set: GraphSet, uri: str) -> BibliographicResource:
+    entity = g_set.get_entity(uri)
+    if not isinstance(entity, BibliographicResource):
+        raise ValueError(f"Bibliographic resource not imported: {uri}")
+    return entity
+
+
+def import_exact_entities(
+    editor: MetaEditor,
+    g_set: GraphSet,
+    uris: set[str],
+    locator: EntityFileLocator,
+) -> None:
+    uris_by_path: dict[str, set[str]] = defaultdict(set)
+    for uri in uris:
+        uris_by_path[locator.path(uri)].add(uri)
+    for path, path_uris in sorted(uris_by_path.items()):
+        if not os.path.exists(path):
+            continue
+        graph = editor.reader.load(path)
+        if graph is None:
+            continue
+        merged = TripleLite()
+        for context in from_rdflib(graph):
+            for triple in context.triples((None, None, None)):
+                merged.add(triple)
+        for uri in sorted(path_uris):
+            preexisting = merged.subgraph(uri)
+            if "/br/" in uri:
+                g_set.add_br(editor.resp_agent, res=uri, preexisting_graph=preexisting)
+            elif "/ar/" in uri:
+                g_set.add_ar(editor.resp_agent, res=uri, preexisting_graph=preexisting)
+            else:
+                raise ValueError(f"Unsupported entity in correction operation: {uri}")
