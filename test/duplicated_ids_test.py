@@ -7,21 +7,29 @@
 import csv
 import os
 import shutil
+import sqlite3
 import tempfile
 import zipfile
-from collections import defaultdict
+from contextlib import closing
 
 import pytest
 
 import orjson
 from oc_meta.run.find.duplicates import (
+    disk_identifier_duplicate_groups,
     find_duplicate_ids,
-    load_and_merge_identifier_temp_csv,
     process_identifier_chunk,
     process_identifier_zip_file,
-    save_identifier_chunk_to_temp_csv,
-    save_identifier_duplicates_to_csv,
 )
+
+
+def _identifier_connection() -> sqlite3.Connection:
+    connection = sqlite3.connect(":memory:")
+    connection.execute(
+        "CREATE TABLE identifiers (scheme TEXT NOT NULL, value TEXT NOT NULL, "
+        "uri TEXT NOT NULL, PRIMARY KEY (scheme, value, uri)) WITHOUT ROWID"
+    )
+    return connection
 
 
 class TestDuplicatedIds:
@@ -160,70 +168,41 @@ class TestDuplicatedIds:
         assert doi_key in result
         assert "https://w3id.org/oc/meta/id/1" in result[doi_key]
 
-    def test_save_and_load_chunk_csv(self):
-        entity_info = defaultdict(set)
-        entity_info[("http://purl.org/spar/datacite/doi", "10.1234/test1")] = {
-            "https://w3id.org/oc/meta/id/1",
-            "https://w3id.org/oc/meta/id/2",
-        }
-        entity_info[("http://purl.org/spar/datacite/doi", "10.1234/test2")] = {
-            "https://w3id.org/oc/meta/id/3"
-        }
-
-        temp_file = os.path.join(self.temp_dir, "test_chunk.csv")
-        save_identifier_chunk_to_temp_csv(entity_info, temp_file)
-
-        assert os.path.exists(temp_file)
-
-        loaded_info = defaultdict(set)
-        load_and_merge_identifier_temp_csv(temp_file, loaded_info)
-
-        assert len(loaded_info) == 2
-        doi_key = ("http://purl.org/spar/datacite/doi", "10.1234/test1")
-        assert doi_key in loaded_info
-        assert len(loaded_info[doi_key]) == 2
-
     def test_process_chunk(self):
-        chunk_files = self.test_zip_paths[:2]
-        temp_file = process_identifier_chunk(chunk_files, self.temp_dir, 0)
+        with closing(_identifier_connection()) as connection:
+            process_identifier_chunk(self.test_zip_paths[:2], connection)
 
-        assert os.path.exists(temp_file)
+            rows = connection.execute(
+                "SELECT scheme, value, uri FROM identifiers"
+            ).fetchall()
 
-        with open(temp_file, "r", encoding="utf-8") as f:
-            reader = csv.DictReader(f)
-            rows = list(reader)
-            assert len(rows) > 0
-
-    def test_save_duplicates_to_csv(self):
-        entity_info = defaultdict(set)
-        entity_info[("http://purl.org/spar/datacite/doi", "10.1234/test1")] = {
+        assert (
+            "http://purl.org/spar/datacite/doi",
+            "10.1234/test1",
             "https://w3id.org/oc/meta/id/1",
-            "https://w3id.org/oc/meta/id/2",
-            "https://w3id.org/oc/meta/id/3",
-        }
-        entity_info[("http://purl.org/spar/datacite/doi", "10.1234/test2")] = {
-            "https://w3id.org/oc/meta/id/4"
-        }
+        ) in rows
 
-        output_file = os.path.join(self.temp_dir, "duplicates.csv")
-        save_identifier_duplicates_to_csv(entity_info, output_file)
+    def test_duplicate_groups(self):
+        doi = "http://purl.org/spar/datacite/doi"
+        with closing(_identifier_connection()) as connection:
+            connection.executemany(
+                "INSERT INTO identifiers VALUES (?, ?, ?)",
+                [
+                    (doi, "10.1234/test1", "https://w3id.org/oc/meta/id/3"),
+                    (doi, "10.1234/test1", "https://w3id.org/oc/meta/id/1"),
+                    (doi, "10.1234/test1", "https://w3id.org/oc/meta/id/2"),
+                    (doi, "10.1234/test2", "https://w3id.org/oc/meta/id/4"),
+                ],
+            )
 
-        assert os.path.exists(output_file)
+            groups = list(disk_identifier_duplicate_groups(connection))
 
-        with open(output_file, "r", encoding="utf-8") as f:
-            reader = csv.DictReader(f)
-            rows = list(reader)
-
-            assert len(rows) == 1
-
-            assert rows[0]["surviving_entity"] in {
+        assert groups == [
+            (
                 "https://w3id.org/oc/meta/id/1",
-                "https://w3id.org/oc/meta/id/2",
-                "https://w3id.org/oc/meta/id/3",
-            }
-
-            merged_entities = rows[0]["merged_entities"].split("; ")
-            assert len(merged_entities) == 2
+                ["https://w3id.org/oc/meta/id/2", "https://w3id.org/oc/meta/id/3"],
+            )
+        ]
 
     def test_find_duplicate_ids(self):
         output_csv = os.path.join(self.temp_dir, "output.csv")

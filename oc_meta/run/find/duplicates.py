@@ -7,13 +7,13 @@ import csv
 import logging
 import multiprocessing as mp
 import os
-import shutil
 import sqlite3
 import tempfile
 import zipfile
 from collections import defaultdict
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from contextlib import closing
+from itertools import groupby
 
 import orjson
 from rdflib import Dataset, URIRef
@@ -90,49 +90,36 @@ def process_identifier_zip_file(
     return dict(entity_info)
 
 
-def save_identifier_chunk_to_temp_csv(
-    entity_info: Mapping[IdentifierKey, set[str]], temp_file_path: PathLikeString
-) -> None:
-    with open(temp_file_path, mode="w", newline="", encoding="utf-8") as csv_file:
-        csv_writer = csv.writer(csv_file)
-        csv_writer.writerow(["identifier_scheme", "literal_value", "entity_ids"])
-        for (scheme, value), ids in entity_info.items():
-            csv_writer.writerow([scheme, value, ";".join(sorted(ids))])
-
-
-def load_and_merge_identifier_temp_csv(
-    temp_file_path: PathLikeString, entity_info: defaultdict[IdentifierKey, set[str]]
-) -> None:
-    with open(temp_file_path, mode="r", encoding="utf-8") as csv_file:
-        csv_reader = csv.DictReader(csv_file)
-        for row in csv_reader:
-            key = (row["identifier_scheme"], row["literal_value"])
-            ids = set(row["entity_ids"].split(";"))
-            entity_info[key].update(ids)
-
-
 def process_identifier_chunk(
-    zip_files_chunk: Sequence[str], temp_dir: PathLikeString, chunk_index: int
-) -> str:
-    entity_info: defaultdict[IdentifierKey, set[str]] = defaultdict(set)
-
+    zip_files_chunk: Sequence[str], connection: sqlite3.Connection
+) -> None:
     # Use forkserver to avoid deadlocks when forking in a multi-threaded environment.
     ctx = mp.get_context("spawn") if os.name == "nt" else mp.get_context("forkserver")
     with ctx.Pool(processes=mp.cpu_count()) as pool:
         results = pool.map(process_identifier_zip_file, zip_files_chunk)
 
-    for result in results:
-        for key, value in result.items():
-            entity_info[key].update(value)
+    connection.executemany(
+        "INSERT OR IGNORE INTO identifiers VALUES (?, ?, ?)",
+        (
+            (scheme, value, uri)
+            for result in results
+            for (scheme, value), uris in result.items()
+            for uri in uris
+        ),
+    )
+    connection.commit()
 
-    temp_file_path = get_chunk_temp_file_path(temp_dir, chunk_index)
-    save_identifier_chunk_to_temp_csv(entity_info, temp_file_path)
 
-    return temp_file_path
-
-
-def get_chunk_temp_file_path(temp_dir: PathLikeString, chunk_index: int) -> str:
-    return os.path.join(temp_dir, f"chunk_{chunk_index}.csv")
+def disk_identifier_duplicate_groups(
+    connection: sqlite3.Connection,
+) -> Iterator[tuple[str, list[str]]]:
+    rows = connection.execute(
+        "SELECT scheme, value, uri FROM identifiers ORDER BY scheme, value, uri"
+    )
+    for _, group in groupby(rows, key=lambda row: (row[0], row[1])):
+        uris = [uri for _, _, uri in group]
+        if len(uris) > 1:
+            yield uris[0], uris[1:]
 
 
 def find_duplicate_ids(
@@ -146,54 +133,37 @@ def find_duplicate_ids(
 
     zip_files = get_zip_files(id_folder_path)
     output_dir = os.path.dirname(os.path.abspath(csv_path))
-    temp_dir = tempfile.mkdtemp(prefix="oc_meta_duplicates_", dir=output_dir)
-
-    try:
+    with tempfile.TemporaryDirectory(
+        prefix="oc_meta_duplicates_", dir=output_dir
+    ) as temporary:
         chunks = [
             zip_files[i : i + chunk_size] for i in range(0, len(zip_files), chunk_size)
         ]
-        temp_files = [
-            get_chunk_temp_file_path(temp_dir, chunk_index)
-            for chunk_index in range(len(chunks))
-        ]
-
         print(
             f"Processing {len(zip_files)} ZIP files in {len(chunks)} chunks of max {chunk_size} files each"
         )
-        print(f"Temporary files will be stored in: {temp_dir}")
+        print(f"Temporary files will be stored in: {temporary}")
 
-        for chunk_index, chunk in enumerate(tqdm(chunks, desc="Processing chunks")):
-            process_identifier_chunk(chunk, temp_dir, chunk_index)
+        with closing(
+            sqlite3.connect(os.path.join(temporary, "identifiers.sqlite"))
+        ) as connection:
+            connection.executescript("""
+                PRAGMA cache_size = -32768;
+                PRAGMA temp_store = FILE;
+                PRAGMA mmap_size = 0;
+                CREATE TABLE identifiers (
+                    scheme TEXT NOT NULL, value TEXT NOT NULL, uri TEXT NOT NULL,
+                    PRIMARY KEY (scheme, value, uri)
+                ) WITHOUT ROWID;
+            """)
+            for chunk in tqdm(chunks, desc="Processing chunks"):
+                process_identifier_chunk(chunk, connection)
 
-        print("Merging chunk results...")
-        entity_info: defaultdict[IdentifierKey, set[str]] = defaultdict(set)
-        for temp_file in tqdm(temp_files, desc="Merging chunks"):
-            load_and_merge_identifier_temp_csv(temp_file, entity_info)
-
-        save_identifier_duplicates_to_csv(entity_info, csv_path)
-
-    finally:
-        shutil.rmtree(temp_dir, ignore_errors=True)
-
-
-def get_identifier_duplicate_rows(
-    entity_info: Mapping[IdentifierKey, set[str]],
-) -> list[tuple[str, list[str]]]:
-    duplicates = []
-    for ids in entity_info.values():
-        if len(ids) > 1:
-            ids_list = sorted(ids)
-            duplicates.append((ids_list[0], ids_list[1:]))
-    return duplicates
-
-
-def save_identifier_duplicates_to_csv(
-    entity_info: Mapping[IdentifierKey, set[str]], csv_path: PathLikeString
-) -> None:
-    try:
-        save_merge_rows_to_csv(get_identifier_duplicate_rows(entity_info), csv_path)
-    except Exception as e:
-        print(f"Error saving CSV file {csv_path}: {str(e)}")
+            completed_csv = os.path.join(temporary, "duplicates.csv")
+            save_merge_rows_to_csv(
+                disk_identifier_duplicate_groups(connection), completed_csv
+            )
+            os.replace(completed_csv, csv_path)
 
 
 def find_duplicate_brs(folder_path: PathLikeString, csv_path: PathLikeString) -> None:

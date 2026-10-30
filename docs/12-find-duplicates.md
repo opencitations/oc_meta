@@ -27,9 +27,9 @@ uv run python -m oc_meta.run.find.duplicates ids <FOLDER_PATH> <CSV_PATH> [OPTIO
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--chunk-size` | 5000 | ZIP files to process per chunk (results saved to temp files between chunks) |
+| `--chunk-size` | 5000 | ZIP files read in parallel before their identifiers are written to disk |
 
-Temporary chunk files are created in the directory containing `CSV_PATH` and removed when the command finishes.
+The command stores each identifier value and the entity that holds it in a temporary SQLite database, which it creates beside `CSV_PATH`. Memory holds only the identifiers of the current chunk. The command reads the groups from the database, then removes it when it finishes.
 
 Example:
 
