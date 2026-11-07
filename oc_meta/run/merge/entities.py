@@ -19,6 +19,7 @@ from oc_meta.core.editor import MetaEditor
 from oc_meta.run.merge.closure import (
     compute_identifier_merge_closure,
     compute_related_closure,
+    compute_responsible_agent_merge_closure,
 )
 from oc_meta.run.merge.csv_utils import parse_merged_entities
 
@@ -44,6 +45,7 @@ class EntityMerger:
         resp_agent: str,
         entity_types: Sequence[str] = ("ra", "br", "id"),
         stop_file_path: str = "stop.out",
+        ra_batch_size: int = 50_000,
     ):
         self.meta_config = meta_config
         self.resp_agent = resp_agent
@@ -51,6 +53,7 @@ class EntityMerger:
         self.stop_file_path = stop_file_path
         self.batch_size = 10
         self.identifier_batch_size = 1000
+        self.ra_batch_size = ra_batch_size
 
     @staticmethod
     def get_entity_type(entity_url: str) -> str | None:
@@ -130,6 +133,13 @@ class EntityMerger:
     def should_stop_processing(self) -> bool:
         return os.path.exists(self.stop_file_path)
 
+    def rows_have_type(self, rows: List[MergeRow], entity_type: str) -> bool:
+        return bool(rows) and all(
+            self.get_entity_type(entity) == entity_type
+            for row in rows
+            for entity in (row["surviving_entity"], *row["merged_entities"])
+        )
+
     def process_rows(self, rows: List[MergeRow]) -> None:
         """Merge the given rows in one batch against a single triplestore snapshot"""
         meta_editor = MetaEditor(self.meta_config, self.resp_agent, save_queries=True)
@@ -143,15 +153,16 @@ class EntityMerger:
             f"Computing merge closure for {len(merged_entities)} merged entities and {len(surviving_entities)} surviving entities"
         )
 
-        identifiers_only = (
-            bool(surviving_entities or merged_entities)
-            and all(
-                self.get_entity_type(entity) == "id" for entity in surviving_entities
-            )
-            and all(self.get_entity_type(entity) == "id" for entity in merged_entities)
-        )
-        if identifiers_only:
+        if self.rows_have_type(rows, "id"):
             closure = compute_identifier_merge_closure(
+                meta_editor.endpoint,
+                surviving_entities,
+                merged_entities,
+                self.identifier_batch_size,
+            )
+            import_batch_size = self.identifier_batch_size
+        elif self.rows_have_type(rows, "ra"):
+            closure = compute_responsible_agent_merge_closure(
                 meta_editor.endpoint,
                 surviving_entities,
                 merged_entities,
@@ -214,14 +225,18 @@ class EntityMerger:
             logger.info("Stop file detected, halting processing")
             return False
 
+        pending = [
+            row
+            for row in data
+            if row["Done"] != "True"
+            and self.get_entity_type(row["surviving_entity"]) in self.entity_types
+        ]
         rows: List[MergeRow] = [
             {
                 "surviving_entity": row["surviving_entity"],
                 "merged_entities": parse_merged_entities(row["merged_entities"]),
             }
-            for row in data
-            if row["Done"] != "True"
-            and self.get_entity_type(row["surviving_entity"]) in self.entity_types
+            for row in pending
         ]
 
         if not rows:
@@ -229,22 +244,29 @@ class EntityMerger:
             return False
 
         logger.info(f"Found {len(rows)} rows to process in {csv_file}")
-        self.process_rows(rows)
+        if not self.rows_have_type(rows, "ra"):
+            self.process_rows(rows)
+            self.mark_done(csv_file, data, pending)
+            return True
 
-        marked_done = 0
-        for row in data:
-            if (
-                row["Done"] != "True"
-                and self.get_entity_type(row["surviving_entity"]) in self.entity_types
-            ):
-                row["Done"] = "True"
-                marked_done += 1
+        for start in range(0, len(rows), self.ra_batch_size):
+            if start and self.should_stop_processing():
+                logger.info("Stop file detected, halting processing")
+                break
+            end = start + self.ra_batch_size
+            logger.info(
+                f"Merging rows {start + 1}-{min(end, len(rows))} of {len(rows)}"
+            )
+            self.process_rows(rows[start:end])
+            self.mark_done(csv_file, data, pending[start:end])
+        return True
 
-        logger.info(f"Marked {marked_done} rows as done")
+    def mark_done(self, csv_file: str, data: List[Dict], rows: List[Dict]) -> None:
+        for row in rows:
+            row["Done"] = "True"
+        logger.info(f"Marked {len(rows)} rows as done")
         self.write_csv(csv_file, data)
         logger.info(f"Saved changes to {csv_file}")
-
-        return True
 
     @staticmethod
     def reindex_sentinel_path(csv_folder: str) -> str:
@@ -360,6 +382,12 @@ def main():
     parser.add_argument(
         "--stop_file", type=str, default="stop.out", help="Path to the stop file"
     )
+    parser.add_argument(
+        "--ra_batch_size",
+        type=int,
+        default=50_000,
+        help="Clusters merged per batch when a CSV holds only responsible agents",
+    )
 
     args = parser.parse_args()
 
@@ -368,6 +396,7 @@ def main():
         resp_agent=args.resp_agent,
         entity_types=args.entity_types,
         stop_file_path=args.stop_file,
+        ra_batch_size=args.ra_batch_size,
     )
 
     merger.process_path(args.csv_path)

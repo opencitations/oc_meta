@@ -46,6 +46,13 @@ def _batched(items: List[str], batch_size: int) -> Iterable[List[str]]:
         yield items[start : start + batch_size]
 
 
+def _values_bindings(endpoint: str, query: str) -> list[dict[str, dict[str, str]]]:
+    results = execute_sparql(
+        endpoint, query, max_retries=5, backoff_factor=0.3, method=POST
+    )
+    return results["results"]["bindings"]
+
+
 def _partof_ancestors(endpoint: str, seeds: Set[str], batch_size: int) -> Set[str]:
     ancestors: Set[str] = set()
     frontier = list(seeds)
@@ -206,14 +213,7 @@ def compute_identifier_merge_closure(
                 ?entity <{DATACITE_HAS_IDENTIFIER}> ?identifier .
             }}
         """
-        results = execute_sparql(
-            endpoint,
-            query,
-            max_retries=5,
-            backoff_factor=0.3,
-            method=POST,
-        )
-        for result in results["results"]["bindings"]:
+        for result in _values_bindings(endpoint, query):
             if result["entity"]["type"] == "uri":
                 closure.add(result["entity"]["value"])
 
@@ -227,5 +227,43 @@ def compute_identifier_merge_closure(
                 processed_entities,
                 len(merged_list),
             )
+
+    return closure
+
+
+def compute_responsible_agent_merge_closure(
+    endpoint: str,
+    surviving_agents: Iterable[str],
+    merged_agents: Iterable[str],
+    batch_size: int = 1000,
+) -> Set[str]:
+    surviving = set(surviving_agents)
+    merged = set(merged_agents)
+    closure = surviving | merged
+
+    for batch in _batched(sorted(surviving | merged), batch_size):
+        values = " ".join(f"<{agent}>" for agent in batch)
+        query = f"""
+            SELECT ?identifier WHERE {{
+                VALUES ?agent {{ {values} }}
+                ?agent <{DATACITE_HAS_IDENTIFIER}> ?identifier .
+            }}
+        """
+        closure.update(
+            result["identifier"]["value"]
+            for result in _values_bindings(endpoint, query)
+        )
+
+    for batch in _batched(sorted(merged), batch_size):
+        values = " ".join(f"<{agent}>" for agent in batch)
+        query = f"""
+            SELECT ?role WHERE {{
+                VALUES ?agent {{ {values} }}
+                ?role <{PRO_IS_HELD_BY}> ?agent .
+            }}
+        """
+        closure.update(
+            result["role"]["value"] for result in _values_bindings(endpoint, query)
+        )
 
     return closure
