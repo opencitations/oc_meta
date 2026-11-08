@@ -28,6 +28,7 @@ from oc_meta.lib.agent_matching import (
     PersonName,
     align_names,
     name_score,
+    names_compatible,
     normalize_name,
     script_family,
 )
@@ -384,9 +385,8 @@ def load_provenance(
 
 
 def _has_conflicting_names(names: list[PersonName]) -> bool:
-    return any(
-        name_score(left, right) < CONFIRMED_NAME_SCORE
-        for left, right in combinations(names, 2)
+    return not all(
+        names_compatible(left, right) for left, right in combinations(names, 2)
     )
 
 

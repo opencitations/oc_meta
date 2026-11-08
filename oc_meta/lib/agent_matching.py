@@ -6,8 +6,15 @@ from __future__ import annotations
 
 import unicodedata
 from dataclasses import dataclass
+from itertools import product
 
+from anyascii import anyascii
+from nicknames import NickNamer
 from rapidfuzz import fuzz
+
+NICKNAMES = NickNamer()
+APOSTROPHES = str.maketrans("", "", "'’ʹʼ`")
+VOWELS = set("aeiou")
 
 
 @dataclass(frozen=True, slots=True)
@@ -108,6 +115,97 @@ def name_score(left: PersonName, right: PersonName) -> float:
     if left_script != right_script or "mixed" in {left_script, right_script}:
         return 0.0
     return fuzz.ratio(left_display, right_display) / 100
+
+
+def _token_variants(value: str) -> set[tuple[str, ...]]:
+    ascii_value = anyascii(value).translate(APOSTROPHES)
+    return {
+        tuple(normalize_name(ascii_value).split()),
+        tuple(normalize_name(ascii_value.replace("-", "")).split()),
+    }
+
+
+def _name_variants(name: PersonName) -> set[tuple[str, ...]]:
+    if not name.family:
+        return _token_variants(name.display)
+    return {
+        given + family
+        for given, family in product(
+            _token_variants(name.given), _token_variants(name.family)
+        )
+    }
+
+
+def _same_token(left: str, right: str) -> bool:
+    return (
+        left == right
+        or (len(left) >= 4 and len(right) >= 4 and fuzz.ratio(left, right) >= 75)
+        or left in NICKNAMES.nicknames_of(right)
+        or right in NICKNAMES.nicknames_of(left)
+        or bool(NICKNAMES.canonicals_of(left) & NICKNAMES.canonicals_of(right))
+    )
+
+
+def _token_fits(token: str, other: str) -> bool:
+    return _same_token(token, other) or (
+        token[0] == other[0] and (len(token) == 1 or len(other) == 1)
+    )
+
+
+def _split_initials(tokens: tuple[str, ...]) -> tuple[str, ...]:
+    return tuple(
+        part
+        for token in tokens
+        for part in (
+            tuple(token)
+            if 1 < len(token) <= 3 and not VOWELS & set(token)
+            else (token,)
+        )
+    )
+
+
+def _tokens_fit(tokens: tuple[str, ...], other: tuple[str, ...]) -> bool:
+    used: set[int] = set()
+    for token in tokens:
+        index = next(
+            (
+                index
+                for index, candidate in enumerate(other)
+                if index not in used and _token_fits(token, candidate)
+            ),
+            None,
+        )
+        if index is None:
+            return False
+        used.add(index)
+    return True
+
+
+def _shorter_fits(left: tuple[str, ...], right: tuple[str, ...]) -> bool:
+    shorter, longer = sorted((left, right), key=len)
+    return _tokens_fit(shorter, longer)
+
+
+def _token_sets_compatible(left: tuple[str, ...], right: tuple[str, ...]) -> bool:
+    anchored = any(
+        _same_token(token, other)
+        for token in left
+        for other in right
+        if len(token) > 1 and len(other) > 1
+    )
+    return anchored and (
+        _shorter_fits(left, right)
+        or _shorter_fits(_split_initials(left), _split_initials(right))
+    )
+
+
+def names_compatible(left: PersonName, right: PersonName) -> bool:
+    return any(
+        _token_sets_compatible(left_tokens, right_tokens)
+        for left_tokens, right_tokens in product(
+            _name_variants(left), _name_variants(right)
+        )
+    )
 
 
 def align_names(

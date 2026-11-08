@@ -21,9 +21,9 @@ uv run python -m oc_meta.run.patches.fix_duplicate_ras \
   --workers 4
 ```
 
-A group qualifies when all names are present, all members share an identifier with the same scheme and value, and each scheme have only one value across the group. ORCID values must also pass format and checksum checks. The command normalizes ORCID values before comparing them, so a URL and its bare identifier count as the same value.
+A group qualifies when all names are present and every pair of names can belong to the same person. Before names are compared, they are converted to Latin letters. The comparison accepts initials, known nicknames, small spelling differences, extra given names or surnames, and a reversed name order. All members must also share an identifier that has the same scheme and value, while each scheme can have only one value across the group. ORCID values must pass format and checksum checks too. The command normalizes ORCID values before it compares them, so a URL and its bare identifier count as the same value.
 
-Group size alone does not cause exclusion. Names provide supporting evidence, but matching names without a shared identifier do not qualify a group for the merge CSV.
+Group size alone does not cause exclusion, and matching names without a shared identifier do not qualify a group for the merge CSV.
 
 The merge CSV contains the original survivor and the other members of each qualifying group, with the columns that the merge command expects. The deferred CSV records the excluded groups and their reasons; the JSON summary contains counts and paths for both files. Default output paths are `REPORT.merge.csv` and `REPORT.deferred.csv` when their flags are omitted.
 

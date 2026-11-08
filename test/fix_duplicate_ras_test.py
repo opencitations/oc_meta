@@ -409,6 +409,23 @@ def test_cluster_risks_detect_conflicting_given_names() -> None:
     assert fixer.cluster_risks(cluster, agents) == ["conflicting_names"]
 
 
+def test_cluster_risks_accept_variants_of_one_name() -> None:
+    names = [
+        PersonName(given="Thomas Nikolai", family="Novitskiy Ivanov"),
+        PersonName(given="Thomas", family="Новицкий"),
+        PersonName(given="Tom N.", family="Novitskiy"),
+        PersonName(given="Tn", family="Novitsky"),
+        PersonName(name="Novitskiy Thomas N."),
+    ]
+    members = tuple(f"{BASE}ra/060{index}" for index in range(1, len(names) + 1))
+    shared_orcid = fixer.IdentifierInfo(ID_1, "orcid", OLD_ORCID)
+    agents = {
+        uri: fixer.AgentInfo(uri, name, (shared_orcid,))
+        for uri, name in zip(members, names)
+    }
+    assert fixer.cluster_risks(fixer.Cluster(2, members[0], members), agents) == []
+
+
 def test_load_provenance_reports_first_and_latest_snapshot() -> None:
     uri = "https://w3id.org/oc/meta/br/060126"
     result = fixer._load_provenance_batch(

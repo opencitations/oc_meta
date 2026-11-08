@@ -14,8 +14,10 @@ authors = [
     {name = "Arianna Moretti"},
 ]
 dependencies = [
+    "anyascii>=0.3.3",
     "beautifulsoup4>=4.14.0",
     "filelock>=3.24.0",
+    "nicknames>=1.0.1",
     "numpy>=2.2.0",
     "oc-ds-converter>=2.0.3",
     "oc-graphenricher>=2.1.13",

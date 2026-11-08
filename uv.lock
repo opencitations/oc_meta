@@ -30,6 +30,15 @@ wheels = [
 ]
 
 [[package]]
+name = "anyascii"
+version = "0.3.3"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/db/ba/edebda727008390936da4a9bf677c19cd63b32d51e864656d2cbd1028e25/anyascii-0.3.3.tar.gz", hash = "sha256:c94e9dd9d47b3d9494eca305fef9447d00b4bf1a32aff85aa746fa3ec7fb95c3", size = 264680, upload-time = "2025-06-29T03:33:30.427Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c2/76/783b75a21ce3563b8709050de030ae253853b147bd52e141edc1025aa268/anyascii-0.3.3-py3-none-any.whl", hash = "sha256:f5ab5e53c8781a36b5a40e1296a0eeda2f48c649ef10c3921c1381b1d00dee7a", size = 345090, upload-time = "2025-06-29T03:33:28.356Z" },
+]
+
+[[package]]
 name = "anyio"
 version = "4.14.2"
 source = { registry = "https://pypi.org/simple" }
@@ -1927,6 +1936,15 @@ wheels = [
 ]
 
 [[package]]
+name = "nicknames"
+version = "1.0.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/86/ba/b555aee8afcf22fcd463886279d063c48eba71b99a55551cd2a7ca0e3577/nicknames-1.0.1.tar.gz", hash = "sha256:0b599c1ebf6844c5a65659d46d024c46e9c2cf66b3046e119107e82a14598e6a", size = 17223, upload-time = "2026-03-06T04:25:35.87Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/21/55/f820209a0a0ab535246a901e53fdadb4fcf562b37712d4d7f45c56ae1dab/nicknames-1.0.1-py3-none-any.whl", hash = "sha256:30608a6a50086bb508e6d5f4fb618ef4f988d5604f73ec1ebcccbc92952f9de9", size = 18130, upload-time = "2026-03-06T04:25:34.586Z" },
+]
+
+[[package]]
 name = "nodeenv"
 version = "1.10.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2113,8 +2131,10 @@ name = "oc-meta"
 version = "3.0.0"
 source = { editable = "." }
 dependencies = [
+    { name = "anyascii" },
     { name = "beautifulsoup4" },
     { name = "filelock" },
+    { name = "nicknames" },
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "numpy", version = "2.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "oc-ds-converter" },
@@ -2163,8 +2183,10 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "anyascii", specifier = ">=0.3.3" },
     { name = "beautifulsoup4", specifier = ">=4.14.0" },
     { name = "filelock", specifier = ">=3.24.0" },
+    { name = "nicknames", specifier = ">=1.0.1" },
     { name = "numpy", specifier = ">=2.2.0" },
     { name = "oc-ds-converter", specifier = ">=2.0.3" },
     { name = "oc-graphenricher", specifier = ">=2.1.13" },
