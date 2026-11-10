@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 import time
 from collections.abc import Mapping
@@ -25,6 +26,7 @@ CROSSREF_BASE = "https://api.crossref.org/works/"
 DATACITE_BASE = "https://api.datacite.org/dois/"
 OPENALEX_WORKS = "https://api.openalex.org/works"
 ORCID_BASE = "https://pub.orcid.org/v3.0/"
+UNAVAILABLE_STATUSES = frozenset({404, 409})
 
 _ORCID_MANAGER = ORCIDManager(use_api_service=False)
 
@@ -57,7 +59,8 @@ class OrcidProfile(TypedDict):
     orcid: str
     given: str
     family: str
-    name: str
+    other_names: tuple[str, ...]
+    dois: frozenset[str]
 
 
 def agents_for_role(work: WorkMetadata, role: str) -> list[AgentMetadata]:
@@ -297,17 +300,35 @@ def parse_openalex_work(data: JsonObject, identifier: str = "") -> WorkMetadata:
     )
 
 
+def _normalize_doi(value: str) -> str:
+    return re.sub(r"^(https?://(dx\.)?doi\.org/|doi:)", "", value.strip().lower())
+
+
 def parse_orcid_profile(data: JsonObject, orcid: str) -> OrcidProfile:
-    person_value = data.get("person")
-    person = _object(person_value) if isinstance(person_value, dict) else data
+    person = _object(data.get("person"))
     name = _object(person.get("name"))
-    given = _string(_object(name.get("given-names")).get("value"))
-    family = _string(_object(name.get("family-name")).get("value"))
+    other_names = _objects(_object(person.get("other-names")).get("other-name"))
+    works = _object(_object(data.get("activities-summary")).get("works"))
     return OrcidProfile(
         orcid=normalize_orcid(orcid),
-        given=given,
-        family=family,
-        name=" ".join(part for part in (given, family) if part),
+        given=_string(_object(name.get("given-names")).get("value")),
+        family=_string(_object(name.get("family-name")).get("value")),
+        other_names=tuple(
+            value
+            for value in (
+                _string(_object(name.get("credit-name")).get("value")),
+                *(_string(item.get("content")) for item in other_names),
+            )
+            if value
+        ),
+        dois=frozenset(
+            _normalize_doi(_string(identifier.get("external-id-value")))
+            for group in _objects(works.get("group"))
+            for identifier in _objects(
+                _object(group.get("external-ids")).get("external-id")
+            )
+            if identifier.get("external-id-type") == "doi"
+        ),
     )
 
 
@@ -371,6 +392,7 @@ class AgentMetadataClient:
     cache: ApiCache
     refresh_cache: bool = False
     openalex_api_key: str = ""
+    orcid_token: str = ""
     timeout: int = 30
     max_attempts: int = 4
     session: requests.Session = field(init=False)
@@ -410,7 +432,7 @@ class AgentMetadataClient:
                 body = cast(JsonObject, response.json())
                 self.cache.set(source, cache_key, response.status_code, body)
                 return body
-            if response.status_code == 404:
+            if response.status_code in UNAVAILABLE_STATUSES:
                 self.cache.set(source, cache_key, response.status_code, None)
                 return None
             if response.status_code == 429 or response.status_code >= 500:
@@ -467,11 +489,14 @@ class AgentMetadataClient:
 
     def orcid(self, orcid: str) -> OrcidProfile | None:
         normalized = normalize_orcid(orcid)
+        headers = {"Accept": "application/vnd.orcid+json"}
+        if self.orcid_token:
+            headers["Authorization"] = f"Bearer {self.orcid_token}"
         data = self._request(
-            "orcid",
+            "orcid_record",
             normalized,
-            ORCID_BASE + quote(normalized, safe="") + "/person",
-            headers={"Accept": "application/vnd.orcid+json"},
+            ORCID_BASE + quote(normalized, safe="") + "/record",
+            headers=headers,
         )
         return parse_orcid_profile(data, normalized) if data is not None else None
 

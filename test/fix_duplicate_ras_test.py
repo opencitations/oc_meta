@@ -43,81 +43,6 @@ class FakeEditor:
         self.saved = (g_set, supplier_prefix)
 
 
-class ProfileClient:
-    def orcid(self, orcid: str) -> fixer.OrcidProfile:
-        assert orcid == OLD_ORCID
-        return {
-            "orcid": OLD_ORCID,
-            "given": "John",
-            "family": "Smith",
-            "name": "John Smith",
-        }
-
-
-class AuditClient:
-    def __init__(
-        self,
-        mailto: str,
-        cache: fixer.ApiCache,
-        refresh_cache: bool,
-        openalex_api_key: str,
-    ) -> None:
-        assert mailto == "audit@example.org"
-        assert isinstance(cache, fixer.ApiCache)
-        assert refresh_cache is False
-        assert openalex_api_key == ""
-
-    def crossref(self, doi: str) -> fixer.WorkMetadata | None:
-        assert doi == "10.1000/example"
-        return {
-            "identifier": doi,
-            "source": "crossref",
-            "author": [
-                {
-                    "family": "Rossi",
-                    "given": "Ada",
-                    "name": "",
-                    "orcid": OLD_ORCID,
-                    "identifiers": ({"scheme": "orcid", "value": OLD_ORCID},),
-                    "position": 0,
-                    "role": "author",
-                },
-                {
-                    "family": "Smith",
-                    "given": "John",
-                    "name": "",
-                    "orcid": None,
-                    "identifiers": (),
-                    "position": 1,
-                    "role": "author",
-                },
-            ],
-            "editor": [],
-            "publisher": "",
-            "publisher_identifiers": (),
-        }
-
-    def datacite(self, doi: str) -> fixer.WorkMetadata | None:
-        raise AssertionError(f"Unexpected DataCite request: {doi}")
-
-    def openalex_work(
-        self, doi: str = "", openalex_id: str = ""
-    ) -> fixer.WorkMetadata | None:
-        raise AssertionError(f"Unexpected OpenAlex request: {doi}, {openalex_id}")
-
-    def orcid(self, orcid: str) -> fixer.OrcidProfile | None:
-        assert orcid == OLD_ORCID
-        return {
-            "orcid": OLD_ORCID,
-            "given": "Ada",
-            "family": "Rossi",
-            "name": "Ada Rossi",
-        }
-
-    def close(self) -> None:
-        return None
-
-
 class FixedDateTime:
     @classmethod
     def now(cls, zone: timezone) -> datetime:
@@ -205,45 +130,6 @@ def test_scan_candidate_clusters_sets_progress_total(tmp_path, monkeypatch) -> N
     assert result == ([], {}, {}, 0, 0)
 
 
-def test_ordered_chain_classifies_structural_errors() -> None:
-    first = fixer.RoleInfo(AR_1, RA_1, "author", (AR_2,))
-    second = fixer.RoleInfo(AR_2, RA_2, "author", ())
-    valid = fixer.ordered_chain([second, first])
-    cycle = fixer.ordered_chain(
-        [
-            first,
-            fixer.RoleInfo(AR_2, RA_2, "author", (AR_1,)),
-        ]
-    )
-    fork = fixer.ordered_chain(
-        [fixer.RoleInfo(AR_1, RA_1, "author", (AR_2, f"{BASE}ar/0603"))]
-    )
-    dangling = fixer.ordered_chain(
-        [fixer.RoleInfo(AR_1, RA_1, "author", (f"{BASE}ar/0699",))]
-    )
-    multiple_holders = fixer.ordered_chain(
-        [fixer.RoleInfo(AR_1, RA_1, "author", (), (RA_1, RA_2))]
-    )
-
-    assert valid == fixer.OrderedChain("valid", (first, second))
-    assert cycle == fixer.OrderedChain(
-        "cycle_or_multiple_heads",
-        (first, fixer.RoleInfo(AR_2, RA_2, "author", (AR_1,))),
-    )
-    assert fork == fixer.OrderedChain(
-        "fork",
-        (fixer.RoleInfo(AR_1, RA_1, "author", (AR_2, f"{BASE}ar/0603")),),
-    )
-    assert dangling == fixer.OrderedChain(
-        "dangling_or_cross_role",
-        (fixer.RoleInfo(AR_1, RA_1, "author", (f"{BASE}ar/0699",)),),
-    )
-    assert multiple_holders == fixer.OrderedChain(
-        "multiple_or_missing_holders",
-        (fixer.RoleInfo(AR_1, RA_1, "author", (), (RA_1, RA_2)),),
-    )
-
-
 @pytest.fixture
 def audit_dataset(tmp_path):
     rdf_dir = tmp_path / "rdf"
@@ -315,61 +201,6 @@ def audit_dataset(tmp_path):
         encoding="utf-8",
     )
     return config_path, duplicate_path, report_path, review_path, cache_path
-
-
-def test_repair_confirms_role_and_stops_after_first_sufficient_source(
-    audit_dataset, monkeypatch
-):
-    config_path, duplicate_path, report_path, review_path, cache_path = audit_dataset
-    monkeypatch.setattr(fixer, "AgentMetadataClient", AuditClient)
-    report = fixer.analyze_duplicate_ras(
-        str(config_path),
-        str(duplicate_path),
-        str(report_path),
-        str(review_path),
-        str(cache_path),
-        "audit@example.org",
-        2,
-        5,
-        False,
-        "",
-    )
-
-    assert report["summary"] == {
-        "total_clusters": 1,
-        "total_cluster_members": 2,
-        "candidate_clusters": 1,
-        "candidate_agents": 2,
-        "locally_consistent_clusters": 0,
-        "selected_works": 2,
-        "risk_counts": {"conflicting_names": 1},
-        "identifier_status_counts": {
-            "manual_review": 1,
-            "verified_wrong": 1,
-        },
-        "operation_counts": {"detach_identifier": 1},
-    }
-    assessments = report["identifier_assessments"]
-    assert isinstance(assessments, list)
-    assert [assessment["status"] for assessment in assessments] == [
-        "manual_review",
-        "verified_wrong",
-    ]
-    operations = report["operations"]
-    assert isinstance(operations, list)
-    assert operations == [
-        fixer._operation(
-            "detach_identifier",
-            2,
-            f"ORCID profile matches {RA_1}, not {RA_2}",
-            1.0,
-            ra=RA_2,
-            identifier_uri=ID_1,
-            old_value=OLD_ORCID,
-            evidence=[_evidence_link(RA_2, AR_2)],
-        )
-    ]
-    assert fixer._read_json_object(str(report_path)) == report
 
 
 def test_cluster_risks_detect_names_orcids_and_bridge() -> None:
@@ -458,161 +289,11 @@ def test_load_provenance_reports_first_and_latest_snapshot() -> None:
     }
 
 
-def test_invalid_orcid_is_detached_only_after_role_confirmation() -> None:
-    cluster = fixer.Cluster(2, RA_1, (RA_1, RA_2))
-    agents = {
-        RA_1: _agent(
-            RA_1,
-            "Ada Rossi",
-            (fixer.IdentifierInfo(ID_1, "orcid", INVALID_ORCID),),
-        ),
-        RA_2: _agent(RA_2, "John Smith"),
-    }
-    evidence = fixer.WorkEvidence(
-        BR_1,
-        AR_1,
-        "",
-        ID_2,
-        "doi",
-        "10.1000/example",
-        "author",
-        "crossref",
-        True,
-        1.0,
-        None,
-        "Ada Rossi",
-        False,
-    )
-    assessments, operations = fixer.classify_identifiers(
-        [cluster],
-        agents,
-        {(RA_1, INVALID_ORCID): [evidence]},
-        {},
-        {},
-        {},
-    )
-    assert assessments == [
-        {
-            "csv_row": 2,
-            "ra": RA_1,
-            "identifier_uri": ID_1,
-            "orcid": INVALID_ORCID,
-            "status": "verified_wrong",
-            "reason": "ORCID has an invalid format or checksum",
-            "profile": None,
-            "profile_score": 0.0,
-            "best_other_ra": "",
-            "best_other_score": 0.0,
-            "work_evidence": [
-                {
-                    "br": BR_1,
-                    "ar": AR_1,
-                    "next_uri": "",
-                    "work_identifier_uri": ID_2,
-                    "work_identifier_scheme": "doi",
-                    "work_identifier_value": "10.1000/example",
-                    "role": "author",
-                    "source": "crossref",
-                    "matched": True,
-                    "name_score": 1.0,
-                    "api_orcid": None,
-                    "api_name": "Ada Rossi",
-                    "contested_elsewhere": False,
-                }
-            ],
-            "agent_provenance": None,
-            "identifier_provenance": None,
-        }
-    ]
-    assert operations == [
-        fixer._operation(
-            "detach_identifier",
-            2,
-            "ORCID has an invalid format or checksum",
-            0.9,
-            ra=RA_1,
-            identifier_uri=ID_1,
-            old_value=INVALID_ORCID,
-            evidence=[_evidence_link(RA_1, AR_1)],
-        )
-    ]
-
-    unconfirmed_assessments, unconfirmed_operations = fixer.classify_identifiers(
-        [cluster],
-        agents,
-        {},
-        {},
-        {},
-        {},
-    )
-    assert unconfirmed_assessments == [
-        {
-            **assessments[0],
-            "status": "manual_review",
-            "reason": (
-                "ORCID has an invalid format or checksum, but the local work "
-                "responsibility is not externally confirmed"
-            ),
-            "work_evidence": [],
-        }
-    ]
-    assert unconfirmed_operations == []
-
-
-def test_orcid_profile_overrides_contaminated_work_identifier() -> None:
-    cluster = fixer.Cluster(2, RA_1, (RA_1, RA_2))
-    shared_identifier = fixer.IdentifierInfo(ID_1, "orcid", OLD_ORCID)
-    agents = {
-        RA_1: _agent(RA_1, "Ada Rossi", (shared_identifier,)),
-        RA_2: _agent(RA_2, "John Smith", (shared_identifier,)),
-    }
-    evidence = fixer.WorkEvidence(
-        BR_1,
-        AR_1,
-        "",
-        ID_2,
-        "doi",
-        "10.1000/example",
-        "author",
-        "crossref",
-        True,
-        1.0,
-        OLD_ORCID,
-        "Ada Rossi",
-        False,
-    )
-    assessments, operations = fixer.classify_identifiers(
-        [cluster],
-        agents,
-        {(RA_1, OLD_ORCID): [evidence]},
-        {OLD_ORCID: [PersonName(name="Ada Rossi")]},
-        {},
-        {OLD_ORCID: ProfileClient().orcid(OLD_ORCID)},
-    )
-    assert [assessment["status"] for assessment in assessments] == [
-        "verified_wrong",
-        "manual_review",
-    ]
-    assert operations == [
-        fixer._operation(
-            "detach_identifier",
-            2,
-            f"ORCID profile matches {RA_2}, not {RA_1}",
-            1.0,
-            ra=RA_1,
-            identifier_uri=ID_1,
-            old_value=OLD_ORCID,
-            evidence=[_evidence_link(RA_1, AR_1)],
-        )
-    ]
-
-
 def test_review_csv_accepts_only_decisions(tmp_path) -> None:
     operation = fixer._operation(
         "detach_identifier",
         2,
         "Wrong ORCID",
-        0.9,
         ra=RA_1,
         identifier_uri=ID_1,
         old_value=OLD_ORCID,
@@ -629,7 +310,6 @@ def test_review_csv_accepts_only_decisions(tmp_path) -> None:
             "action": "detach_identifier",
             "identifier_uri": ID_1,
             "old_value": OLD_ORCID,
-            "confidence": "0.9",
             "reason": "Wrong ORCID",
             "decision": "",
         }
@@ -659,7 +339,6 @@ def test_identifier_preflight_rechecks_confirmed_work_role(monkeypatch) -> None:
         "detach_identifier",
         2,
         "Wrong ORCID",
-        0.9,
         ra=RA_1,
         identifier_uri=ID_1,
         old_value=OLD_ORCID,
@@ -701,7 +380,6 @@ def test_apply_operation_group_detaches_identifier(monkeypatch) -> None:
         "detach_identifier",
         2,
         "Wrong ORCID",
-        0.95,
         ra=RA_1,
         identifier_uri=ID_1,
         old_value=OLD_ORCID,
@@ -754,7 +432,6 @@ def test_execute_plan_applies_only_approved_operations_and_writes_sentinel(
         "detach_identifier",
         2,
         "Wrong ORCID",
-        0.9,
         ra=RA_1,
         identifier_uri=ID_1,
         old_value=OLD_ORCID,
@@ -764,7 +441,6 @@ def test_execute_plan_applies_only_approved_operations_and_writes_sentinel(
         "detach_identifier",
         2,
         "Wrong ORCID",
-        0.9,
         ra=RA_2,
         identifier_uri=ID_1,
         old_value=OLD_ORCID,
@@ -844,103 +520,6 @@ def test_execute_plan_applies_only_approved_operations_and_writes_sentinel(
         "another correction or merge run. Do not reuse the original duplicate CSV: "
         "run duplicate detection again.\n"
     )
-
-
-@pytest.mark.parametrize("profile_name", [None, "Someone Else"])
-def test_repair_skips_work_scans_without_a_profile_conflict(
-    audit_dataset, monkeypatch, profile_name
-):
-    config_path, duplicate_path, report_path, review_path, cache_path = audit_dataset
-    calls = []
-
-    class UnresolvedClient(AuditClient):
-        def orcid(self, orcid: str) -> fixer.OrcidProfile | None:
-            calls.append(orcid)
-            if profile_name is None:
-                return None
-            return {"orcid": orcid, "name": profile_name, "given": "", "family": ""}
-
-    def unexpected_context(*args):
-        raise AssertionError("No work context should be loaded")
-
-    monkeypatch.setattr(fixer, "AgentMetadataClient", UnresolvedClient)
-    monkeypatch.setattr(fixer, "build_context", unexpected_context)
-    report = fixer.analyze_duplicate_ras(
-        str(config_path),
-        str(duplicate_path),
-        str(report_path),
-        str(review_path),
-        str(cache_path),
-        "audit@example.org",
-        1,
-        5,
-        False,
-        "",
-    )
-    assert calls == [OLD_ORCID]
-    assert report["operations"] == []
-    summary = cast(dict[str, object], report["summary"])
-    assert summary["selected_works"] == 0
-    assert summary["identifier_status_counts"] == {"manual_review": 2}
-
-
-@pytest.mark.parametrize("crossref_missing", [True, False])
-def test_repair_uses_another_source_only_for_unresolved_evidence(
-    audit_dataset, monkeypatch, crossref_missing
-):
-    config_path, duplicate_path, report_path, review_path, cache_path = audit_dataset
-    calls = []
-
-    class ProgressiveClient(AuditClient):
-        def orcid(self, orcid):
-            calls.append("orcid")
-            return super().orcid(orcid)
-
-        def crossref(self, doi):
-            calls.append("crossref")
-            if crossref_missing:
-                return None
-            work = super().crossref(doi)
-            assert work is not None
-            work["author"] = []
-            return work
-
-        def datacite(self, doi):
-            calls.append("datacite")
-            work = super().crossref(doi)
-            assert work is not None
-            work["source"] = "datacite"
-            return work
-
-        def openalex_work(self, doi="", openalex_id=""):
-            calls.append("openalex")
-            work = super().crossref(doi)
-            assert work is not None
-            work["source"] = "openalex"
-            return work
-
-    monkeypatch.setattr(fixer, "AgentMetadataClient", ProgressiveClient)
-    report = fixer.analyze_duplicate_ras(
-        str(config_path),
-        str(duplicate_path),
-        str(report_path),
-        str(review_path),
-        str(cache_path),
-        "audit@example.org",
-        1,
-        5,
-        False,
-        "",
-    )
-    assert calls == [
-        "orcid",
-        "crossref",
-        "datacite" if crossref_missing else "openalex",
-    ]
-    summary = cast(dict[str, object], report["summary"])
-    operations = cast(list[dict[str, object]], report["operations"])
-    assert summary["operation_counts"] == {"detach_identifier": 1}
-    assert operations[0]["ra"] == RA_2
 
 
 def test_local_selection_writes_only_consistent_clusters(audit_dataset, monkeypatch):
@@ -1103,52 +682,221 @@ def test_local_selection_keeps_outputs_on_interruption_or_failure(
     ] * 3
 
 
-def test_repair_skips_api_work_requests_for_invalid_local_chains(
-    audit_dataset, monkeypatch
-):
+class RecordClient:
+    profile: fixer.OrcidProfile | None = None
+
+    def __init__(
+        self,
+        mailto: str,
+        cache: fixer.ApiCache,
+        refresh_cache: bool,
+        orcid_token: str,
+    ) -> None:
+        assert mailto == "audit@example.org"
+        assert isinstance(cache, fixer.ApiCache)
+        assert refresh_cache is False
+        assert orcid_token == "orcid-token"
+
+    def orcid(self, orcid: str) -> fixer.OrcidProfile | None:
+        assert orcid == OLD_ORCID
+        return self.profile
+
+    def close(self) -> None:
+        return None
+
+
+def _profile(
+    given: str = "Ada",
+    family: str = "Rossi",
+    other_names: tuple[str, ...] = (),
+    dois: frozenset[str] = frozenset({"10.1000/example"}),
+) -> fixer.OrcidProfile:
+    return {
+        "orcid": OLD_ORCID,
+        "given": given,
+        "family": family,
+        "other_names": other_names,
+        "dois": dois,
+    }
+
+
+def _repair(audit_dataset, monkeypatch, profile):
     config_path, duplicate_path, report_path, review_path, cache_path = audit_dataset
-    role_path = config_path.parent / "rdf/ar/060/10000/1000.json"
-    graphs = orjson.loads(role_path.read_bytes())
-    for graph in graphs:
-        for entity in graph["@graph"]:
-            if entity["@id"] == AR_1:
-                entity[fixer.HAS_NEXT] = [{"@id": f"{BASE}ar/06999"}]
-    role_path.write_bytes(orjson.dumps(graphs))
-    calls = []
-
-    class InvalidChainClient(AuditClient):
-        def orcid(self, orcid):
-            calls.append(orcid)
-            return super().orcid(orcid)
-
-        def crossref(self, doi):
-            raise AssertionError("Invalid local chain cannot confirm responsibility")
-
-    monkeypatch.setattr(fixer, "AgentMetadataClient", InvalidChainClient)
+    merge_path = config_path.parent / "repair_merge.csv"
+    monkeypatch.setattr(RecordClient, "profile", profile)
+    monkeypatch.setattr(fixer, "AgentMetadataClient", RecordClient)
     report = fixer.analyze_duplicate_ras(
         str(config_path),
         str(duplicate_path),
         str(report_path),
+        str(merge_path),
         str(review_path),
         str(cache_path),
         "audit@example.org",
         1,
-        1,
         False,
-        "",
+        "orcid-token",
     )
-    assert calls == [OLD_ORCID]
-    assert report["operations"] == []
-    assert report["role_assessments"] == [
-        {
-            "br": BR_1,
-            "role": "author",
-            "source": "",
-            "reason": "invalid_local_chain",
-            "chain_status": "dangling_or_cross_role",
-            "ambiguous": True,
-            "pairs": [],
-            "unmatched_local": [AR_1, AR_2],
-            "unmatched_external": [],
-        }
+    assert fixer._read_json_object(str(report_path)) == report
+    return report, merge_path.read_text()
+
+
+def _statuses(report: dict[str, object]) -> dict[str, tuple[str, str]]:
+    assessments = cast(list[dict[str, str]], report["identifier_assessments"])
+    return {item["ra"]: (item["status"], item["reason"]) for item in assessments}
+
+
+NO_COAUTHOR = (
+    "Name differs from the ORCID profile, and no co-author on a work in the "
+    "ORCID record matches it"
+)
+
+
+def test_repair_detaches_orcid_when_a_coauthor_matches_the_profile(
+    audit_dataset, monkeypatch
+):
+    report, merge_csv = _repair(audit_dataset, monkeypatch, _profile())
+    reason = "ORCID profile matches co-author Ada Rossi"
+
+    assert _statuses(report) == {
+        RA_1: ("confirmed", "Name matches the ORCID profile"),
+        RA_2: ("verified_wrong", reason),
+    }
+    assert report["operations"] == [
+        fixer._operation(
+            "detach_identifier",
+            2,
+            reason,
+            ra=RA_2,
+            identifier_uri=ID_1,
+            old_value=OLD_ORCID,
+            evidence=[_evidence_link(RA_2, AR_2)],
+        )
     ]
+    assert merge_csv == "surviving_entity,merged_entities\n"
+    summary = cast(dict[str, object], report["summary"])
+    assert summary["repairable_clusters"] == 1
+    assert summary["mergeable_clusters"] == 0
+    assert summary["selected_works"] == 1
+
+
+def test_repair_merges_members_matching_the_profile(audit_dataset, monkeypatch):
+    report, merge_csv = _repair(
+        audit_dataset, monkeypatch, _profile(other_names=("J. Smith",))
+    )
+
+    assert report["operations"] == []
+    assert merge_csv.splitlines() == [
+        "surviving_entity,merged_entities",
+        f"{RA_1},{RA_2}",
+    ]
+    assert cast(dict[str, object], report["summary"])["mergeable_clusters"] == 1
+
+
+@pytest.mark.parametrize(
+    "profile, expected",
+    [
+        (None, "ORCID profile has no public name"),
+        (_profile("", ""), "ORCID profile has no public name"),
+    ],
+)
+def test_repair_leaves_members_for_review_without_a_public_name(
+    audit_dataset, monkeypatch, profile, expected
+):
+    report, merge_csv = _repair(audit_dataset, monkeypatch, profile)
+
+    assert _statuses(report) == {
+        RA_1: ("manual_review", expected),
+        RA_2: ("manual_review", expected),
+    }
+    assert report["operations"] == []
+    assert merge_csv == "surviving_entity,merged_entities\n"
+
+
+def test_repair_requires_the_work_to_be_in_the_orcid_record(audit_dataset, monkeypatch):
+    report, _ = _repair(
+        audit_dataset, monkeypatch, _profile(dois=frozenset({"10.1000/other"}))
+    )
+
+    assert _statuses(report)[RA_2] == ("manual_review", NO_COAUTHOR)
+    assert report["operations"] == []
+
+
+def test_repair_requires_a_coauthor_matching_the_profile(audit_dataset, monkeypatch):
+    report, _ = _repair(
+        audit_dataset,
+        monkeypatch,
+        _profile(dois=frozenset({"10.1000/unused"})),
+    )
+
+    assert _statuses(report)[RA_2] == ("manual_review", NO_COAUTHOR)
+    assert report["operations"] == []
+
+
+def test_repair_requires_a_coauthor_that_identifies_the_profile(
+    audit_dataset, monkeypatch
+):
+    report, _ = _repair(audit_dataset, monkeypatch, _profile(given=""))
+
+    assert _statuses(report) == {
+        RA_1: ("confirmed", "Name matches the ORCID profile"),
+        RA_2: ("manual_review", NO_COAUTHOR),
+    }
+    assert report["operations"] == []
+
+
+def test_repair_keeps_the_orcid_when_the_name_shares_a_word_with_the_profile(
+    audit_dataset, monkeypatch
+):
+    report, _ = _repair(
+        audit_dataset, monkeypatch, _profile(other_names=("Mary Smith",))
+    )
+
+    assert _statuses(report) == {
+        RA_1: ("confirmed", "Name matches the ORCID profile"),
+        RA_2: (
+            "manual_review",
+            "Name differs from the ORCID profile but shares a word with it",
+        ),
+    }
+    assert report["operations"] == []
+
+
+def test_confirmed_merges_replace_an_unconfirmed_survivor() -> None:
+    cluster = fixer.Cluster(2, RA_1, (RA_1, RA_2, RA_3, f"{BASE}ra/0604"))
+    statuses = ["verified_wrong", "confirmed", "confirmed", "manual_review"]
+    assessments = [
+        {"ra": member, "status": status}
+        for member, status in zip(cluster.members, statuses)
+    ]
+
+    assert fixer.confirmed_merges(
+        [(cluster, OLD_ORCID)], cast(list[dict[str, object]], assessments)
+    ) == [(RA_2, RA_3)]
+
+
+def test_shared_orcid_requires_one_value_on_every_member() -> None:
+    cluster = fixer.Cluster(2, RA_1, (RA_1, RA_2))
+    same = fixer.IdentifierInfo(ID_1, "orcid", OLD_ORCID)
+    url = fixer.IdentifierInfo(ID_2, "orcid", f"https://orcid.org/{OLD_ORCID}")
+    other = fixer.IdentifierInfo(ID_2, "orcid", NEW_ORCID)
+
+    assert (
+        fixer._shared_orcid(
+            cluster, {RA_1: _agent(RA_1, "A", (same,)), RA_2: _agent(RA_2, "B", (url,))}
+        )
+        == OLD_ORCID
+    )
+    assert (
+        fixer._shared_orcid(
+            cluster,
+            {RA_1: _agent(RA_1, "A", (same,)), RA_2: _agent(RA_2, "B", (other,))},
+        )
+        == ""
+    )
+    assert (
+        fixer._shared_orcid(
+            cluster, {RA_1: _agent(RA_1, "A", (same,)), RA_2: _agent(RA_2, "B")}
+        )
+        == ""
+    )

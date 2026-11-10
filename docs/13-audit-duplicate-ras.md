@@ -31,26 +31,40 @@ Use the merge CSV with the [entity merger](14-merge-entities.md), which applies 
 
 ## Plan corrections for deferred groups
 
-External checks are an explicit task. To investigate selected deferred groups, keep their full rows and the header in a separate CSV, then run:
+External checks are an explicit task. To investigate the deferred groups, pass their CSV to the repair mode:
 
 ```bash
 uv run python -m oc_meta.run.patches.fix_duplicate_ras \
   -c config/meta_config.yaml \
   --repair \
-  --duplicates selected_deferred_ras.csv \
+  --duplicates duplicate_ras_deferred.csv \
   --report-file duplicate_ra_corrections.json \
+  --merge-file duplicate_ras_confirmed_merge.csv \
   --review-file duplicate_ra_decisions.csv \
   --cache-file duplicate_ra_api_cache.sqlite \
   --mailto name@example.org
 ```
 
-This mode creates a correction plan without changing RDF. It reads each distinct valid ORCID profile first, and it seeks work evidence only for malformed ORCIDs or profiles that match another group member while conflicting with the holder's name. Missing profiles and unresolved names remain for review.
+This mode creates a correction plan and a merge CSV without changing RDF. It handles groups whose only risk is conflicting names and whose members all hold one ORCID. For each of those ORCIDs, the command reads the public record once, which provides the names on the profile and the DOIs of the listed works.
 
-For those agents, the command selects up to five works each unless `--max-evidence-works` sets another limit. It queries Crossref first and tries DataCite when Crossref has no record. OpenAlex is queried only when the available evidence leaves the case unresolved.
+Members whose name can belong to the profile are confirmed. When a group has at least two confirmed members, they form a row of the merge CSV, and the original survivor stays in place if it is one of them.
 
-A correction requires external confirmation of the agent's role through contributor names and order; malformed or ambiguous local role chains cannot supply that confirmation. The plan proposes detaching a wrong ORCID link. Roles, contributor order, and identifier entities remain unchanged, while cases without enough evidence stay in the report for review.
+A member has received the ORCID by mistake only if its name fits the profile nowhere and a work with a DOI in the record has a co-author who clearly is the profile owner. The member's name must share no word with the profile. The co-author must spell at least two words of a profile name exactly, or its only word when the rest are initials. The plan proposes detaching the ORCID from that member. Roles, contributor order, and identifier entities remain unchanged. Every other member stays in the report for review, and so does each group outside this rule.
 
-The SQLite cache stores successful responses and missing records, so a later run can reuse the same cache file. `--refresh-cache` requests fresh responses. Supply `--openalex-api-key` or set `OPENALEX_API_KEY` when using a key for OpenAlex.
+The SQLite cache stores successful responses and unavailable records, so a later run can reuse the same cache file. `--refresh-cache` requests fresh responses.
+
+ORCID limits how many records an anonymous client can read each day, and an access token raises that limit. The token takes two steps to obtain. First, open the [ORCID developer tools page](https://orcid.org/developer-tools) and copy your client ID and client secret, registering them there if your account has none. These two values are not the token, so exchange them for one:
+
+```bash
+curl -H 'Accept: application/json' \
+  -d 'client_id=YOUR_CLIENT_ID' \
+  -d 'client_secret=YOUR_CLIENT_SECRET' \
+  -d 'scope=/read-public' \
+  -d 'grant_type=client_credentials' \
+  https://orcid.org/oauth/token
+```
+
+The token is the value of `access_token` in the JSON response. Add the line `ORCID_ACCESS_TOKEN=your-token` to a `.env` file in the directory where you run the command, or export a shell environment variable with the same name.
 
 ## Apply reviewed corrections
 

@@ -2,6 +2,9 @@
 #
 # SPDX-License-Identifier: ISC
 
+import pytest
+import requests
+
 from oc_meta.lib.agent_metadata import (
     AgentMetadata,
     AgentMetadataClient,
@@ -217,10 +220,34 @@ def test_parse_openalex_and_orcid() -> None:
     )
     profile = parse_orcid_profile(
         {
-            "name": {
-                "given-names": {"value": "Ada"},
-                "family-name": {"value": "Rossi"},
-            }
+            "person": {
+                "name": {
+                    "given-names": {"value": "Ada"},
+                    "family-name": {"value": "Rossi"},
+                    "credit-name": {"value": "A. Rossi"},
+                },
+                "other-names": {"other-name": [{"content": "Ada Bianchi"}]},
+            },
+            "activities-summary": {
+                "works": {
+                    "group": [
+                        {
+                            "external-ids": {
+                                "external-id": [
+                                    {
+                                        "external-id-type": "doi",
+                                        "external-id-value": "https://doi.org/10.1000/ABC",
+                                    },
+                                    {
+                                        "external-id-type": "pmid",
+                                        "external-id-value": "123",
+                                    },
+                                ]
+                            }
+                        }
+                    ]
+                }
+            },
         },
         "0000-0002-8420-0696",
     )
@@ -246,7 +273,8 @@ def test_parse_openalex_and_orcid() -> None:
         "orcid": "0000-0002-8420-0696",
         "given": "Ada",
         "family": "Rossi",
-        "name": "Ada Rossi",
+        "other_names": ("A. Rossi", "Ada Bianchi"),
+        "dois": frozenset({"10.1000/abc"}),
     }
 
 
@@ -259,6 +287,61 @@ def test_api_cache_round_trip(tmp_path) -> None:
     assert cache.get("crossref", "10.1000/example") == (200, body)
     assert cache.get("orcid", "missing") == (404, None)
     assert cache.get("datacite", "unknown") is None
+    cache.close()
+
+
+def test_locked_orcid_record_is_cached_as_unavailable(tmp_path, monkeypatch) -> None:
+    cache = ApiCache(str(tmp_path / "api.sqlite"))
+    client = AgentMetadataClient("test@example.org", cache)
+    locked = requests.Response()
+    locked.status_code = 409
+    requested: list[str] = []
+
+    def fetch(url: str, params: object, headers: object, timeout: int):
+        requested.append(url)
+        return locked
+
+    monkeypatch.setattr(client.session, "get", fetch)
+
+    assert client.orcid("0000-0002-1694-233X") is None
+    assert client.orcid("0000-0002-1694-233X") is None
+    assert requested == ["https://pub.orcid.org/v3.0/0000-0002-1694-233X/record"]
+    assert cache.get("orcid_record", "0000-0002-1694-233X") == (409, None)
+    client.close()
+    cache.close()
+
+
+@pytest.mark.parametrize(
+    ("token", "expected_headers"),
+    [
+        ("", {"Accept": "application/vnd.orcid+json"}),
+        (
+            "secret",
+            {
+                "Accept": "application/vnd.orcid+json",
+                "Authorization": "Bearer secret",
+            },
+        ),
+    ],
+)
+def test_orcid_request_sends_token_only_when_configured(
+    tmp_path, monkeypatch, token: str, expected_headers: dict[str, str]
+) -> None:
+    cache = ApiCache(str(tmp_path / "api.sqlite"))
+    client = AgentMetadataClient("test@example.org", cache, orcid_token=token)
+    missing = requests.Response()
+    missing.status_code = 404
+    sent_headers: list[object] = []
+
+    def fetch(url: str, params: object, headers: object, timeout: int):
+        sent_headers.append(headers)
+        return missing
+
+    monkeypatch.setattr(client.session, "get", fetch)
+
+    assert client.orcid("0000-0002-1694-233X") is None
+    assert sent_headers == [expected_headers]
+    client.close()
     cache.close()
 
 
